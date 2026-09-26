@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/job/v1.json",
+  "title": "haas job.json, version 1",
+  "description": "The spec at the root of a job directory. It carries a brief, not a prompt. A reader fills in ref, sensitivity and budget when they are left out, and ignores a field it does not know. `haas new` writes every field except model, which it leaves out when empty.",
+  "type": "object",
+  "required": ["brief", "repo", "gate", "harness"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "The format of this file. A file without it is version 1. A reader refuses a version newer than it knows.",
+      "const": 1
+    },
+    "brief": {
+      "description": "What to do, in a person's words. It is input to the harness, which the adapter places in the harness's command line.",
+      "type": "string"
+    },
+    "repo": {
+      "description": "The repository to work in: anything `git clone` accepts, a URL or a local path. The runner clones it into workspace/.",
+      "type": "string"
+    },
+    "ref": {
+      "description": "What `git checkout` is given after the clone. A reader takes HEAD when it is empty or left out.",
+      "type": "string",
+      "default": "HEAD"
+    },
+    "gate": {
+      "description": "The command that says pass or fail, as the program and its arguments. It runs in workspace/ with no shell, and the job passes when it exits zero. A job with an empty gate is refused when it runs.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "harness": {
+      "description": "The name of the adapter that runs the work, looked for in harnesses/ inside the job directory, then in the directory HAAS_HARNESSES names, then among the built-in ones.",
+      "type": "string"
+    },
+    "model": {
+      "description": "The model to ask for, put in place of {model} in the adapter. When empty or left out, the harness uses whatever it is configured with.",
+      "type": "string"
+    },
+    "sensitivity": {
+      "description": "How sensitive the code is. Restricted code only talks to a model on this machine or a private network, and the runner refuses the job otherwise. A reader takes internal when it is empty or left out, and refuses any other label.",
+      "enum": ["public", "internal", "restricted"],
+      "default": "internal"
+    },
+    "budget": {
+      "description": "What a job may spend before a runner stops it. A zero or missing member takes its default.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turns": {
+          "description": "The turns a harness may take. It is kept with the job; no runner enforces it yet, so the seconds are what stop a run.",
+          "type": "integer",
+          "default": 40
+        },
+        "seconds": {
+          "description": "The wall-clock seconds the harness may run. When they are spent the harness is killed and the manifest records stoppedAtBudget; the gate still runs.",
+          "type": "integer",
+          "default": 900
+        }
+      }
+    }
+  }
+}
