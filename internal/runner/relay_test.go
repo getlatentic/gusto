@@ -3,6 +3,7 @@ package runner
 import (
 	"bufio"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -11,7 +12,7 @@ import (
 // what the harness sends to loopback has to arrive at the socket whole, and the
 // answer has to come back the same way.
 func TestTheRelayCarriesLoopbackToTheSocket(t *testing.T) {
-	socket := filepath.Join(t.TempDir(), "p.sock")
+	socket := shortSocket(t)
 	far, err := net.Listen("unix", socket)
 	if err != nil {
 		t.Fatal(err)
@@ -52,4 +53,17 @@ func TestABoxThatIsNotSealedRelaysNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	stop()
+}
+
+// shortSocket is a path a unix socket can actually have. A socket address is
+// capped at around 104 bytes on macOS, and t.TempDir() spends most of that on
+// the test's own name, so binding one there fails with "invalid argument".
+func shortSocket(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("/tmp", "h")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	return filepath.Join(dir, "p.sock")
 }
