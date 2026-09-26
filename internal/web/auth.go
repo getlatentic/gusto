@@ -40,9 +40,17 @@ func (k *keeper) admits(given string) bool {
 // issue marks the cookie Secure when the request arrived over TLS, directly or
 // through a proxy that terminated it. Marking it always would mean the cookie is
 // never sent back over plain http, which is how a local run works.
+// issue signs somebody in as nobody in particular, which is what a shared
+// password can say about them.
 func (k *keeper) issue(w http.ResponseWriter, r *http.Request) {
+	k.issueFor(w, r, "the shared sign-in")
+}
+
+// issueFor signs somebody in by name, so a job records who asked for it rather
+// than that somebody did.
+func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string) {
 	until := time.Now().Add(12 * time.Hour).Unix()
-	value := strconv.FormatInt(until, 10)
+	value := strconv.FormatInt(until, 10) + "|" + who
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
 		Value:    value + "." + k.sign(value),
@@ -69,7 +77,8 @@ func (k *keeper) knows(r *http.Request) bool {
 	if !split || !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
 		return false
 	}
-	until, err := strconv.ParseInt(value, 10, 64)
+	when, _, _ := strings.Cut(value, "|")
+	until, err := strconv.ParseInt(when, 10, 64)
 	return err == nil && time.Now().Unix() < until
 }
 
@@ -89,4 +98,21 @@ func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+// who is the name in a signature this server made, or nobody when there is none.
+func (k *keeper) who(r *http.Request) string {
+	if !k.knows(r) {
+		return ""
+	}
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return ""
+	}
+	value, _, _ := strings.Cut(cookie.Value, ".")
+	_, who, found := strings.Cut(value, "|")
+	if !found || who == "" {
+		return "the shared sign-in"
+	}
+	return who
 }

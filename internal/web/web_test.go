@@ -47,7 +47,7 @@ func open(t *testing.T) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, sessions, queue, password, offered(), []string{"platform/test-model"})
+	server, err := New(index, sessions, queue, password, &Identity{}, offered(), []string{"platform/test-model"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,8 +120,16 @@ func TestSomebodySignedInSeesTheList(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/", nil)
-	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), "Nothing has run here yet") {
+	// What the page must show is the way to start a job, not a sentence saying
+	// there are none: an empty table already says that.
+	body := answer.Body.String()
+	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
+	}
+	for _, want := range []string{`name="brief"`, `name="gate"`, `name="repo"`, "Run it"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page does not offer %s", want)
+		}
 	}
 }
 

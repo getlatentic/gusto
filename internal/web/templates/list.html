@@ -5,13 +5,13 @@
 <form class="card" method="post" action="/jobs">
   <div class="row">
     <label>Repository
-      <input name="repo" placeholder="git@github.com:you/repo.git, or a path on this machine" required>
+      <input name="repo" placeholder="git@github.com:you/repo.git" required>
     </label>
-    <label>Gate — the command that says pass or fail
+    <label>Gate
       <input name="gate" placeholder="go test ./..." required>
     </label>
   </div>
-  <label>Brief — what to do, in your words
+  <label>Brief
     <textarea name="brief" placeholder="The add function subtracts. Fix it so add 2 3 prints 5." required></textarea>
   </label>
   <div class="row">
@@ -55,7 +55,7 @@
   {{end}}
 </table>
 {{else}}
-<p class="muted">Nothing has run here yet.</p>
+
 {{end}}
 
 {{template "foot" .}}

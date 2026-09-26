@@ -4,68 +4,105 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
+<link rel="icon" href="/static/mark.png">
+<link rel="stylesheet" href="/static/tokens.css">
 <script src="/static/htmx.min.js" defer></script>
 <style>
-:root { color-scheme: light dark; --edge: color-mix(in srgb, currentColor 15%, transparent); }
-* { box-sizing: border-box; }
-body { margin: 0 auto; padding: 1.5rem 1rem 4rem; max-width: 62rem;
-  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }
-header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem; }
-header h1 { font-size: 1.1rem; margin: 0; letter-spacing: .01em; }
-header nav { margin-left: auto; font-size: .85rem; }
-a { color: inherit; }
-h2 { font-size: .95rem; margin: 2rem 0 .6rem; }
-table { border-collapse: collapse; width: 100%; font-size: .9rem; }
-th { text-align: left; font-weight: 600; opacity: .6; font-size: .75rem;
-  text-transform: uppercase; letter-spacing: .06em; }
-th, td { padding: .45rem .6rem .45rem 0; border-bottom: 1px solid var(--edge); vertical-align: top; }
-form.card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--edge); border-radius: 8px; }
-label { display: grid; gap: .25rem; font-size: .8rem; opacity: .75; }
-input, select, textarea, button { font: inherit; padding: .45rem .55rem; border-radius: 6px;
-  border: 1px solid var(--edge); background: transparent; color: inherit; width: 100%; }
-textarea { min-height: 4.5rem; resize: vertical; }
-button { cursor: pointer; font-weight: 600; width: auto; justify-self: start; padding: .5rem 1.1rem; }
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .75rem; }
-.state { font-size: .72rem; letter-spacing: .05em; text-transform: uppercase;
-  padding: .12rem .45rem; border-radius: 999px; border: 1px solid var(--edge); white-space: nowrap; }
-.passed { color: #17803d; border-color: currentColor; }
-.failed, .interrupted { color: #b3261e; border-color: currentColor; }
-.running { color: #8a5a00; border-color: currentColor; }
-pre { overflow-x: auto; padding: .8rem; border: 1px solid var(--edge); border-radius: 8px;
-  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
-  word-break: break-word; max-height: 32rem; }
-.muted { opacity: .6; }
-h3 { font-size: .85rem; margin: 1.2rem 0 .4rem; }
-.transcript { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 80ch; max-height: 40rem; overflow-y: auto;
-  padding: .8rem 1rem; border: 1px solid var(--edge); border-radius: 8px; font-size: .9rem; line-height: 1.6; }
-.diff-file { margin: 1rem 0 1.5rem; }
-.diff-file h3 { margin: 0 0 .4rem; }
-.diff-meta { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .6; }
-.diff-scroll { overflow-x: auto; border: 1px solid var(--edge); border-radius: 8px; }
-table.diff { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
-table.diff td { border: 0; padding: 0 .5rem; }
-table.diff td.n { width: 1%; text-align: right; opacity: .5; user-select: none; white-space: nowrap; }
-table.diff td.code { white-space: pre-wrap; overflow-wrap: anywhere; }
-table.diff td.code::before { content: " "; display: inline-block; width: 1.2ch; opacity: .6; user-select: none; }
-table.diff tr.added td.code::before { content: "+"; }
-table.diff tr.removed td.code::before { content: "-"; }
-table.diff tr.added { background: color-mix(in srgb, #2da44e 16%, transparent); }
-table.diff tr.removed { background: color-mix(in srgb, #cf222e 16%, transparent); }
-table.diff tr.hunk { background: color-mix(in srgb, #0969da 10%, transparent); opacity: .8; }
-table.diff tr.note td.code { font-style: italic; opacity: .6; }
-.command { display: flex; gap: .6rem; align-items: center; }
-.command code { flex: 1; padding: .55rem .7rem; border: 1px solid var(--edge); border-radius: 6px;
-  overflow-x: auto; white-space: nowrap; user-select: all; }
-.refused { border: 1px solid #b3261e; color: #b3261e; padding: .6rem .8rem; border-radius: 8px; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-space-20);
+  max-width: 64rem; background: var(--yg-bg); color: var(--yg-text);
+  font: 15px/1.55 var(--yg-font-text); }
+
+/* Header: a mark, a name, where to go, and a way out. Nothing else. */
+header { display: flex; align-items: center; gap: var(--yg-space-5);
+  padding-bottom: var(--yg-space-4); margin-bottom: var(--yg-space-8);
+  border-bottom: 1px solid var(--yg-border); }
+header .mark { display: flex; align-items: center; gap: var(--yg-space-2);
+  font: 600 1rem/1 var(--yg-font-display); letter-spacing: -.01em; text-decoration: none; }
+header .mark img { width: 22px; height: auto; }
+nav { display: flex; align-items: center; gap: var(--yg-space-4); margin-left: auto; font-size: .875rem; }
+nav a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  color: var(--yg-text-muted); text-decoration: none; }
+nav a:hover, nav a[aria-current] { color: var(--yg-text); }
+nav a[aria-current] { font-weight: 600; }
+
+/* Icons carry no meaning alone, so they never stand in for a word, and they
+   take the non-text colour the tokens reserve for exactly this. */
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+
+h1 { font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em;
+  margin: 0 0 var(--yg-space-6); }
+h2 { font: 600 .8125rem/1.3 var(--yg-font-text); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--yg-text-subtle);
+  margin: var(--yg-space-10) 0 var(--yg-space-3); }
+a { color: var(--yg-accent-text); }
+
+/* A table is a grid; it does not need lines to prove it. One hairline under the
+   head, and rows separated by space. */
+table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
+th { text-align: left; font-weight: 600; font-size: .75rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--yg-text-subtle);
+  padding: 0 var(--yg-space-4) var(--yg-space-2) 0;
+  border-bottom: 1px solid var(--yg-border); }
+td { padding: var(--yg-space-3) var(--yg-space-4) var(--yg-space-3) 0; vertical-align: top;
+  border-bottom: 1px solid var(--yg-bg-subtle); }
+tr:last-child td { border-bottom: 0; }
+td a { text-decoration: none; color: var(--yg-text); font-weight: 500; }
+td a:hover { color: var(--yg-accent-text); }
+
+/* A card has a surface, so it does not also need a line around it. */
+form.card { display: grid; gap: var(--yg-space-4); padding: var(--yg-space-6);
+  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+label { display: grid; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-subtle); }
+input, select, textarea { font: inherit; padding: var(--yg-space-3);
+  border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); width: 100%; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--yg-focus); outline-offset: 2px; }
+textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
+button { font: 600 inherit; cursor: pointer; padding: var(--yg-space-3) var(--yg-space-6);
+  border: 0; border-radius: var(--yg-radius-sm);
+  background: var(--yg-accent); color: var(--yg-on-accent); justify-self: start; }
+button:hover { background: var(--yg-accent-hover); }
+nav button { background: none; color: var(--yg-text-muted); padding: 0; font-weight: 400; }
+nav button:hover { color: var(--yg-text); background: none; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--yg-space-4); }
+
+.state { font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px var(--yg-space-2); border-radius: var(--yg-radius-full); white-space: nowrap;
+  background: var(--yg-bg-subtle); color: var(--yg-text-subtle); }
+.passed  { background: var(--yg-success-surface); color: var(--yg-leaf-700); }
+.failed, .interrupted { background: var(--yg-danger-surface); color: var(--yg-danger); }
+.running, .queued { background: var(--yg-warning-surface); color: var(--yg-warning); }
+
+pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface-sunken);
+  border-radius: var(--yg-radius-sm); font: 12.5px/1.55 var(--yg-font-mono);
+  white-space: pre-wrap; word-break: break-word; max-height: 30rem; }
+.muted { color: var(--yg-text-muted); }
+.refused { background: var(--yg-danger-surface); color: var(--yg-danger);
+  padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
+
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1><a href="/" style="text-decoration:none">haas</a></h1>
-  <span class="muted">{{.Subtitle}}</span>
-  <nav><a href="/">jobs</a> &nbsp; <a href="/talk">talk</a> &nbsp; <a href="/spend">spend</a> &nbsp;
-    <form method="post" action="/logout" style="display:inline"><button>Sign out</button></form></nav>
+  <a class="mark" href="/"><img src="/static/mark.png" alt=""> haas</a>
+  <nav>
+    <a href="/">{{template "icon-jobs"}} Jobs</a>
+    <a href="/talk">{{template "icon-talk"}} Talk</a>
+    <a href="/spend">{{template "icon-spend"}} Spend</a>
+    <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
+  </nav>
 </header>
 {{end}}
 
 {{define "foot"}}</body></html>{{end}}
+
+{{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}
+{{define "icon-talk"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5a1.5 1.5 0 0 1-1.5 1.5H6l-3 2.5V4a1.5 1.5 0 0 1 1.5-1.5h7.5A1.5 1.5 0 0 1 13.5 4z"/></svg>{{end}}
+{{define "icon-spend"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M11 4.5H6.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H5"/></svg>{{end}}
+{{define "icon-out"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 13.5H3.5A1.5 1.5 0 0 1 2 12V4a1.5 1.5 0 0 1 1.5-1.5H6M10.5 11 14 8l-3.5-3M14 8H6"/></svg>{{end}}

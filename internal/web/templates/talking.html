@@ -9,10 +9,10 @@
     </label>
     <label>Model
       {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
-      {{else}}<input name="model" placeholder="this server names no models">{{end}}
+      {{else}}<input name="model">{{end}}
     </label>
     <label>Repository <span class="muted">optional</span>
-      <input name="repo" placeholder="leave empty for an empty directory">
+      <input name="repo" placeholder="git@github.com:you/repo.git">
     </label>
   </div>
   <button type="submit">Start talking</button>
@@ -46,7 +46,7 @@
   {{end}}
 </table>
 {{else}}
-<p class="muted">Nobody has said anything yet.</p>
+
 {{end}}
 
 {{template "foot" .}}

@@ -26,12 +26,13 @@ type Server struct {
 	queue     *jobs.Queue
 	keeper    *keeper
 	templates *template.Template
+	identity  *Identity
 	catalog   []catalog.Entry
 	models    []string
 	ledger    *spend.Ledger
 }
 
-func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, offered []catalog.Entry, models []string) (*Server, error) {
+func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models []string) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
@@ -40,13 +41,15 @@ func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password
 	if err != nil {
 		return nil, err
 	}
-	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, catalog: offered, models: models}, nil
+	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, identity: identity, catalog: offered, models: models}, nil
 }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /login", s.loginPage)
 	mux.HandleFunc("POST /login", s.signIn)
+	mux.HandleFunc("GET /auth/start", s.start)
+	mux.HandleFunc("GET /auth/callback", s.back)
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })

@@ -49,7 +49,11 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	s.render(w, "login.html", map[string]any{"Wrong": r.URL.Query().Get("wrong") != ""})
+	s.render(w, "login.html", map[string]any{
+		"Wrong":    r.URL.Query().Get("wrong") != "",
+		"Refused":  r.URL.Query().Get("refused"),
+		"Identity": s.identity.Configured(),
+	})
 }
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +124,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	record := jobs.Record{
 		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: "the shared sign-in",
+		Harness: spec.Harness, Model: spec.Model, Asked: s.keeper.who(r),
 		Queued: jobs.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
