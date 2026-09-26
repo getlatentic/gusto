@@ -36,7 +36,7 @@ func Inside(dir job.Dir) (int, error) {
 	if err := rules.Allows(spec, endpoint); err != nil {
 		return 0, err
 	}
-	if adapter.Needs == harness.NeedsNothing {
+	if adapter.Needs == harness.NeedsLocal {
 		if err := Reachable(endpoint); err != nil {
 			return 0, err
 		}
