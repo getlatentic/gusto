@@ -46,7 +46,9 @@ func Run(dir job.Dir) (int, error) {
 		"-v", absolute + ":/job",
 		"-e", "HAAS_MODEL_URL=" + inContainer(harness.ModelURL()),
 		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
-		"--cpus=1", "--memory=3g", "--pids-limit=512"}
+		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
+		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
+		"--pids-limit=512"}
 	if alias {
 		args = append(args, "--add-host=host.docker.internal:host-gateway")
 	}
@@ -98,4 +100,15 @@ func ready(absolute string) (bool, error) {
 func isExit(err error) bool {
 	_, ok := err.(*exec.ExitError)
 	return ok
+}
+
+// share is what one job may take of the machine. A runner often sits beside
+// something else the owner cares about, and a limit larger than the machine is
+// not a limit: the job takes what it likes and the kernel kills whatever it
+// reaches first.
+func share(name, fallback string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return fallback
 }
