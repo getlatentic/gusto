@@ -65,6 +65,20 @@ harnesses ship on npm and Homebrew. Indexing those is a small job. Nobody owns
 the assembler, and nobody proves what the assembly then did. That is the part
 worth building.
 
+### What a bundle can and cannot contain
+
+An image contains everything it needs. A harness bundle cannot: skills are files
+and vendor cleanly, but a connector is a process with its own dependencies and is
+sometimes a remote address. So a bundle vendors its skills, prompt, model policy
+and adapter, and references its harness and connectors by pinned version. The
+model and the credentials are never in it.
+
+That leaves one problem, and it is the reason this is not simply OCI: a digest
+over declarations is not proof of what ran. A pinned version can serve different
+bytes later and the digest still matches. The answer is the one the rest of this
+gives — the bundle declares, the evidence proves. A run records what actually
+resolved beside the digest it was asked for, and a stranger compares the two.
+
 ## Ways in
 
 The pages are not the main entrance.
