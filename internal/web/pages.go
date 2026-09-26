@@ -36,6 +36,16 @@ var helpers = template.FuncMap{
 		}
 		return time.Unix(unix, 0).Format("2 Jan 15:04")
 	},
+	// money is a cost a harness reported. It is a pointer because a cost of
+	// nothing and no cost reported are different answers, and a page must not
+	// show one as the other — and because a pointer handed to printf prints an
+	// address rather than an amount.
+	"money": func(usd *float64) string {
+		if usd == nil {
+			return ""
+		}
+		return fmt.Sprintf("$%.4f", *usd)
+	},
 	"took": func(from, to int64) string {
 		if from == 0 || to == 0 {
 			return ""

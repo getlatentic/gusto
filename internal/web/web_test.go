@@ -439,3 +439,24 @@ func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
 		t.Error("a wrong password left nowhere to try again")
 	}
 }
+
+// A cost is a pointer, because a cost of nothing and no cost reported are
+// different answers. Handed to printf it prints an address, which is what the
+// page showed the first time a harness reported one.
+func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
+	shown, ok := helpers["money"].(func(*float64) string)
+	if !ok {
+		t.Fatal("there is no money helper")
+	}
+	amount := 1.3161
+	if got := shown(&amount); got != "$1.3161" {
+		t.Errorf("a cost of %v is shown as %q", amount, got)
+	}
+	nothing := 0.0
+	if got := shown(&nothing); got != "$0.0000" {
+		t.Errorf("a cost of nothing is shown as %q, and it was reported", got)
+	}
+	if got := shown(nil); got != "" {
+		t.Errorf("a cost nobody reported is shown as %q", got)
+	}
+}

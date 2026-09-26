@@ -4,7 +4,7 @@
 <table>
   <tr><th>State</th><td><span class="state {{.Job.State}}" id="state">{{.Job.State}}</span></td></tr>
   <tr><th>Harness</th><td>{{.Job.Harness}} {{with .Job.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
-  <tr><th>Repository</th><td>{{.Job.Repo}}</td></tr>
+  {{with .Job.Repo}}<tr><th>Repository</th><td>{{.}}</td></tr>{{end}}
   {{with .Spec}}<tr><th>Gate</th><td><code>{{range .Gate}}{{.}} {{end}}</code></td></tr>{{end}}
   <tr><th>Asked</th><td class="muted">{{when .Job.Queued}}{{with took .Job.Started .Job.Ended}}, took {{.}}{{end}}</td></tr>
 </table>
@@ -51,7 +51,7 @@
   <tr><th>Model</th><td>{{.ModelEndpoint}}</td></tr>
   {{with .StoppedByCap}}<tr><th>Stopped by</th><td><span class="state failed">the {{.Cap}} cap</span> {{.Reason}}</td></tr>{{end}}
   <tr><th>Tokens</th><td>{{if .Tokens}}{{.Tokens}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
-  <tr><th>Cost</th><td>{{if .CostUSD}}${{printf "%.4f" .CostUSD}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
+  <tr><th>Cost</th><td>{{with money .CostUSD}}{{.}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
   <tr><th>Signed by</th><td>{{.Signer}}</td></tr>
 </table>
 {{end}}
