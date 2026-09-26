@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/audit/v1.json",
+  "title": "haas audit.json, version 1",
+  "description": "The summary at the root of an audit export: who asked, what ran, what changed, which model, what it spent, who approved it, and what the export's policy removed. Every value is derived from the files in the export. Where a value is unknown the field holds one of three words instead: \"not recorded\" (the platform does not write this down), \"redacted\" (the export's policy removed the file it comes from) or \"none\" (recorded as not happening). A reader ignores a field it does not know.",
+  "type": "object",
+  "required": [
+    "version",
+    "job",
+    "exportedAt",
+    "asked",
+    "ran",
+    "outcome",
+    "changed",
+    "model",
+    "spend",
+    "approval",
+    "requests",
+    "evidence",
+    "carried",
+    "redactions",
+    "policy"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "The format of this file. A reader refuses a version newer than it knows.",
+      "const": 1
+    },
+    "job": {
+      "description": "The job's ID: the name of its directory.",
+      "type": "string"
+    },
+    "exportedAt": {
+      "description": "When the export was written, in seconds since the Unix epoch. The one field no file in the export holds.",
+      "type": "integer"
+    },
+    "asked": {
+      "description": "Who asked for the job, from state.json.",
+      "type": "object",
+      "required": ["who", "how", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "who": {
+          "description": "The person who asked. \"not recorded\" while everybody signs in with one shared password.",
+          "type": "string"
+        },
+        "how": {
+          "description": "How the job arrived, as state.json's asked field says: the pages or the API. A word in its place when state.json is not in the export."
+        },
+        "at": {
+          "description": "When the job was queued, state.json's queuedAt, or a word in its place."
+        }
+      }
+    },
+    "ran": {
+      "description": "What ran: job.json as the export carries it, and the harness the manifest names.",
+      "type": "object",
+      "required": ["spec", "harness", "harnessExit", "stoppedAtBudget", "session"],
+      "additionalProperties": false,
+      "properties": {
+        "spec": {
+          "description": "job.json as written, not read through defaults, so a redacted field reads \"[redacted]\". Its defaults are the ones schema/job/v1.json gives."
+        },
+        "harness": {
+          "description": "The adapter that ran, from the manifest.",
+          "type": "string"
+        },
+        "harnessExit": {
+          "description": "The harness's exit code, from the manifest.",
+          "type": "integer"
+        },
+        "stoppedAtBudget": {
+          "description": "Whether the time budget stopped the harness, from the manifest.",
+          "type": "boolean"
+        },
+        "session": {
+          "description": "The harness's name for the conversation this run was a turn in, or \"none\" for a one-shot job.",
+          "type": "string"
+        }
+      }
+    },
+    "outcome": {
+      "description": "What the gate decided, and the state the server holds.",
+      "type": "object",
+      "required": ["state", "gate", "startedAt", "endedAt", "finishedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "description": "state.json's state: queued, running, passed, failed or interrupted. A word in its place when state.json is not in the export."
+        },
+        "gate": {
+          "description": "The gate's verdict from the manifest, or \"none\" when the job had no gate.",
+          "type": ["object", "string"],
+          "required": ["command", "code", "passed"],
+          "additionalProperties": false,
+          "properties": {
+            "command": {"type": "array", "items": {"type": "string"}},
+            "code": {"type": "integer"},
+            "passed": {"type": "boolean"}
+          }
+        },
+        "startedAt": {
+          "description": "state.json's startedAt, or a word in its place."
+        },
+        "endedAt": {
+          "description": "state.json's endedAt: when a server wrote the final state, which is not always when the run ended. A word in its place when not held."
+        },
+        "finishedAt": {
+          "description": "When the manifest was written, which is when the run ended.",
+          "type": "integer"
+        }
+      }
+    },
+    "changed": {
+      "description": "What the run changed, from out/diff.patch.",
+      "type": "object",
+      "required": ["patch", "sha256", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "patch": {
+          "description": "The patch's path inside the export, or a word in its place.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The patch's hash as the manifest holds it: the run's own, even when the export carries a redacted copy.",
+          "type": "string"
+        },
+        "files": {
+          "description": "The paths the patch changes, read from its headers, or a word in their place.",
+          "type": ["array", "string"],
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "model": {
+      "description": "Which model: asked for, answered at, and paid for with which credential.",
+      "type": "object",
+      "required": ["asked", "endpoint", "credentials"],
+      "additionalProperties": false,
+      "properties": {
+        "asked": {
+          "description": "job.json's model, or \"the harness's default\" when the job names none."
+        },
+        "endpoint": {
+          "description": "The address the harness talked to, from the manifest. Empty when the harness needs no model.",
+          "type": "string"
+        },
+        "credentials": {
+          "description": "The names of the credentials the proxy added, from out/proxy.jsonl. Never a key. A word in their place when the job did not go through the proxy.",
+          "type": ["array", "string"],
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "spend": {
+      "description": "What the job spent. The harness's report is a claim and the proxy's count is what left the box; the proxy counts calls and bytes, not tokens.",
+      "type": "object",
+      "required": ["tokens", "costUsd", "proxyCalls", "proxyBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "description": "The tokens the harness reported, from the manifest, or \"not recorded\" when it reported none.",
+          "type": ["integer", "string"]
+        },
+        "costUsd": {
+          "description": "The cost in US dollars the harness reported, or \"not recorded\".",
+          "type": ["number", "string"]
+        },
+        "proxyCalls": {
+          "description": "The calls out/proxy.jsonl records, or a word in their place.",
+          "type": ["integer", "string"]
+        },
+        "proxyBytes": {
+          "description": "The response bytes out/proxy.jsonl records, or a word in their place.",
+          "type": ["integer", "string"]
+        }
+      }
+    },
+    "approval": {
+      "description": "Who approved the change.",
+      "type": "object",
+      "required": ["by", "why"],
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "description": "The approver. \"not recorded\": an agent opens a pull request and a person merges it on the forge.",
+          "type": "string"
+        },
+        "why": {
+          "description": "Why the approver is or is not known.",
+          "type": "string"
+        }
+      }
+    },
+    "requests": {
+      "description": "The lines of the server's request log whose path names this job, as the log wrote them, from requests.jsonl. \"not recorded\" when no log was given to the export.",
+      "type": ["array", "string"]
+    },
+    "evidence": {
+      "description": "The manifest the export verifies against.",
+      "type": "object",
+      "required": ["manifest", "signer", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "manifest": {
+          "description": "The manifest's path inside the export: out/manifest.json.",
+          "type": "string"
+        },
+        "signer": {
+          "description": "Who stands behind the run, from the manifest.",
+          "type": "string"
+        },
+        "files": {
+          "description": "How many files the manifest names.",
+          "type": "integer"
+        }
+      }
+    },
+    "carried": {
+      "description": "Every file in the export except this one, with its hash as exported, sorted by name.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "sha256", "covered"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "The file's slash path inside the export.",
+            "type": "string"
+          },
+          "sha256": {
+            "description": "The SHA-256 of the file as exported, as 64 lowercase hex digits.",
+            "type": "string"
+          },
+          "covered": {
+            "description": "Whether the run's own manifest vouches for these exact bytes. False for state.json, requests.jsonl and every redacted copy, which the export alone vouches for.",
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "redactions": {
+      "description": "Every file the policy dropped or rewrote. Empty when it changed nothing.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "action", "rules", "original"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "description": "The file's slash path inside the export.",
+            "type": "string"
+          },
+          "action": {
+            "description": "dropped: the file is not in the export. rewritten: values inside it were replaced.",
+            "enum": ["dropped", "rewritten"]
+          },
+          "rules": {
+            "description": "The rules that changed it: \"drop <pattern>\", \"field <name>\" or \"pattern <name>\".",
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "original": {
+            "description": "The hash the manifest holds for the file, so a person with the original can match it to the run, or \"not recorded\" for a file the manifest does not cover.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "policy": {
+      "description": "The retention and redaction policy the export was written under, whole.",
+      "type": "object",
+      "required": ["drop", "redact"],
+      "additionalProperties": false,
+      "properties": {
+        "drop": {
+          "description": "Files of the export, as slash paths or path.Match patterns, that are not retained. job.json and out/manifest.json cannot be dropped.",
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "redact": {
+          "type": "object",
+          "required": ["fields", "patterns"],
+          "additionalProperties": false,
+          "properties": {
+            "fields": {
+              "description": "JSON member names whose values become \"[redacted]\" in every JSON and JSON-lines file.",
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "patterns": {
+              "description": "Regular expressions replaced by \"[redacted: <name>]\" wherever they match text.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "match"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {"type": "string"},
+                  "match": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
