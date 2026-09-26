@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -68,14 +69,14 @@ func serve(args []string) int {
 	identity, err := web.NewIdentity(context.Background(),
 		os.Getenv("HAAS_OIDC_ISSUER"), os.Getenv("HAAS_OIDC_CLIENT_ID"),
 		os.Getenv("HAAS_OIDC_CLIENT_SECRET"), os.Getenv("HAAS_OIDC_REDIRECT"),
-		catalog.Models(os.Getenv("HAAS_ALLOWED")))
+		values("HAAS_ALLOWED"))
 	if err != nil {
 		return fail(err)
 	}
 	if identity.Configured() {
 		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
 	}
-	pages, err := web.New(index, sessions, queue, password, identity, offered, catalog.Models(os.Getenv("HAAS_MODELS")))
+	pages, err := web.New(index, sessions, queue, password, identity, offered, values("HAAS_MODELS"))
 	if err != nil {
 		return fail(err)
 	}
@@ -137,6 +138,19 @@ func setting(name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// values reads a setting written as one comma-separated line, which is how a
+// systemd unit carries a list. Blank members are dropped, so a trailing comma
+// does not become one.
+func values(name string) []string {
+	var members []string
+	for _, each := range strings.Split(os.Getenv(name), ",") {
+		if trimmed := strings.TrimSpace(each); trimmed != "" {
+			members = append(members, trimmed)
+		}
+	}
+	return members
 }
 
 func number(name string, fallback int) int {

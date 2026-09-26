@@ -62,10 +62,3 @@ func TestOnlyWhatIsReadyIsOfferedToAForm(t *testing.T) {
 		t.Fatalf("a form would offer %v", names)
 	}
 }
-
-func TestTheModelsAServerOffersComeFromItsDeployment(t *testing.T) {
-	models := Models(" platform/qwen.qwen3-vl-235b-a22b-instruct , ollama/llama3.2:3b ,, ")
-	if len(models) != 2 || models[0] != "platform/qwen.qwen3-vl-235b-a22b-instruct" {
-		t.Fatalf("got %v", models)
-	}
-}

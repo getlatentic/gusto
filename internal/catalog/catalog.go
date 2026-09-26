@@ -11,7 +11,6 @@ import (
 	"context"
 	"os/exec"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/getlatentic/haas/internal/harness"
@@ -97,16 +96,4 @@ func Ready(entries []Entry) []string {
 		}
 	}
 	return names
-}
-
-// Models is what this server offers to think with, named by the deployment
-// because only it knows which the credential reaches.
-func Models(given string) []string {
-	var models []string
-	for _, each := range strings.Split(given, ",") {
-		if trimmed := strings.TrimSpace(each); trimmed != "" {
-			models = append(models, trimmed)
-		}
-	}
-	return models
 }
