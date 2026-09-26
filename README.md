@@ -151,7 +151,7 @@ haas harnesses
 | --- | --- | --- | --- |
 | claude | `claude` | the user's own account | measured |
 | opencode | `opencode` | a model in the building | measured |
-| codex | `codex` | the user's own account | plain text, not yet measured |
+| codex | `codex` | the user's own account | measured |
 
 `needs` is one of `nothing`, `local`, `account` or `key`. `nothing` means exactly
 that: a harness can be a program that makes the change, and then no model is
