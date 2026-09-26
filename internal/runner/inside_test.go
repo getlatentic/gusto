@@ -1,0 +1,207 @@
+package runner_test
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/getlatentic/haas/internal/evidence"
+	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/runner"
+)
+
+// A harness is a program, so a program that makes the change is enough to run
+// the whole sequence without a model or an account.
+const adapter = `{
+  "name": "fixture",
+  "program": "sh",
+  "argv": ["-c", "printf yes > answer.txt; echo wrote the answer"],
+  "needs": "nothing",
+  "stream": "plain"
+}`
+
+// repo is a checkout whose gate fails until answer.txt says yes.
+func repo(t *testing.T) string {
+	t.Helper()
+	at := t.TempDir()
+	write(t, filepath.Join(at, "answer.txt"), "no")
+	for _, args := range [][]string{
+		{"init", "--quiet"},
+		{"-c", "user.email=t@example.com", "-c", "user.name=T", "commit", "--quiet", "--allow-empty", "-m", "start"},
+	} {
+		command := exec.Command("git", args...)
+		command.Dir = at
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, output)
+		}
+	}
+	add := exec.Command("git", "-c", "user.email=t@example.com", "-c", "user.name=T", "add", "answer.txt")
+	add.Dir = at
+	if output, err := add.CombinedOutput(); err != nil {
+		t.Fatalf("git add: %v: %s", err, output)
+	}
+	return at
+}
+
+func ran(t *testing.T) (job.Dir, job.Spec) {
+	t.Helper()
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("HAAS_SIGNER", "a-test")
+
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{
+		Brief:   "make the answer yes",
+		Repo:    repo(t),
+		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Harness: "fixture",
+	}
+	if err := spec.Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	exit, err := runner.Inside(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exit != 0 {
+		t.Fatalf("the gate should pass once the answer is yes, exit %d: %s", exit, runner.Tail(dir.OutFile("gate.log"), 5))
+	}
+	return dir, spec
+}
+
+func TestAJobLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
+	dir, _ := ran(t)
+	wrong, err := evidence.Check(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wrong) != 0 {
+		t.Fatalf("a fresh run should verify, got %v", wrong)
+	}
+}
+
+func TestTheEvidenceNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
+	dir, _ := ran(t)
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Signer != "a-test" || manifest.Harness != "fixture" {
+		t.Fatalf("signer %q, harness %q", manifest.Signer, manifest.Harness)
+	}
+	if manifest.Tokens != nil || manifest.CostUSD != nil {
+		t.Fatal("a harness that reports no usage must leave null, not zero")
+	}
+	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(patch), "+yes") {
+		t.Fatalf("the patch should carry the change:\n%s", patch)
+	}
+}
+
+func TestChangingTheEvidenceIsDetectable(t *testing.T) {
+	dir, _ := ran(t)
+	write(t, dir.OutFile("transcript.log"), "something else happened")
+	wrong, err := evidence.Check(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wrong) != 1 || !strings.Contains(wrong[0], "transcript.log") {
+		t.Fatalf("want transcript.log reported, got %v", wrong)
+	}
+}
+
+func TestAFileAddedAfterTheRunIsReported(t *testing.T) {
+	dir, _ := ran(t)
+	write(t, dir.OutFile("extra.log"), "smuggled in")
+	wrong, err := evidence.Check(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wrong) != 1 || !strings.Contains(wrong[0], "extra.log") {
+		t.Fatalf("want extra.log reported, got %v", wrong)
+	}
+}
+
+func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "liar.json"), `{
+  "name": "liar",
+  "program": "sh",
+  "argv": ["-c", "echo I have fixed everything"],
+  "needs": "nothing",
+  "stream": "plain"
+}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{
+		Brief:   "make the answer yes",
+		Repo:    repo(t),
+		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Harness: "liar",
+	}
+	if err := spec.Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	exit, err := runner.Inside(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exit == 0 {
+		t.Fatal("a harness that only claims to have finished must not pass the job")
+	}
+}
+
+func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "slow.json"), `{
+  "name": "slow",
+  "program": "sh",
+  "argv": ["-c", "sleep 30"],
+  "needs": "nothing",
+  "stream": "plain"
+}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{
+		Brief:   "never finish",
+		Repo:    repo(t),
+		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Harness: "slow",
+		Budget:  job.Budget{Turns: 1, Seconds: 1},
+	}
+	if err := spec.Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runner.Inside(dir); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !manifest.StoppedAtBudget {
+		t.Fatal("the manifest should say the budget stopped it")
+	}
+}
+
+func write(t *testing.T, path, text string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}

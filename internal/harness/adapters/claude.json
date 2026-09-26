@@ -1,0 +1,8 @@
+{
+  "name": "claude",
+  "program": "claude",
+  "argv": ["-p", "{brief}", "--permission-mode", "acceptEdits"],
+  "needs": "account",
+  "endpoint": "https://api.anthropic.com",
+  "stream": "plain"
+}

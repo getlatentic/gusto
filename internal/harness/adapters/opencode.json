@@ -1,0 +1,7 @@
+{
+  "name": "opencode",
+  "program": "opencode",
+  "argv": ["run", "{brief}"],
+  "needs": "nothing",
+  "stream": "plain"
+}
