@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -33,8 +34,11 @@ func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="`+record.ID+`.tar.gz"`)
 	// A failure part way through has nowhere to go but the stream itself. The
 	// gzip trailer is never written, so a short bundle refuses to unpack instead
-	// of passing for a whole one.
-	_ = writeBundle(w, dir, record.ID)
+	// of passing for a whole one. Whoever runs the server still needs to know it
+	// happened, because the person downloading only sees a broken archive.
+	if err := writeBundle(w, dir, record.ID); err != nil {
+		slog.Error("a bundle stopped part way through", "job", record.ID, "error", err)
+	}
 }
 
 // writeBundle writes the job as a gzipped tar under one directory named by the
