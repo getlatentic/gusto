@@ -25,7 +25,7 @@ keys, read-only, and run again.
 | sandbox | `podman`, `uidmap`, a subuid range, the runner image | iptables, and any daemon: podman runs none |
 | store | the `haas` database, a `haas@localhost` user granted on `haas.*`, Redis db4 | every other database, user and index |
 | serve | a systemd unit on `127.0.0.1:8040` | ports other apps bind |
-| nginx | one name-based vhost for `haas.tosinamuda.com`, and its certificate | the default site and every other vhost |
+| nginx | one name-based vhost for `haas.getlatentic.com`, and its certificate | the default site and every other vhost |
 
 `serve_enabled` is **false** until the binary has an HTTP server. Until then the
 playbook gives the box a working runner, which is worth having on its own: a job
@@ -70,7 +70,7 @@ provider.
 
 ## Before the first run with serve_enabled
 
-1. Add an A record for `haas.tosinamuda.com` → `91.109.118.72`, DNS-only, so
+1. Add an A record for `haas.getlatentic.com` → `91.109.118.72`, DNS-only, so
    certbot's HTTP-01 challenge reaches the box.
 2. Check `ss -tlnH` for `:8040` once more; the inventory can drift.
 3. Rootless podman under a system unit needs `/run/user/<uid>`, which the
