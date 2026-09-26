@@ -7,7 +7,11 @@ import (
 	"github.com/getlatentic/haas/internal/harness"
 )
 
-func TestAHarnessThatSignsInAsAPersonIsNotOfferedByAServer(t *testing.T) {
+// A harness answering to one person's own sign-in has no account on a shared
+// server, so it is withheld rather than offered and then failing. One that
+// takes a key is offered, because the proxy holds the key and the harness is
+// handed a token per job.
+func TestOnlyAHarnessAnsweringToAPersonIsWithheld(t *testing.T) {
 	// No runtime, so every program reads as present: what is left is the
 	// credential, which is the whole point of the check.
 	entries := Survey("", "", []string{"claude", "codex", "opencode"})
@@ -15,16 +19,23 @@ func TestAHarnessThatSignsInAsAPersonIsNotOfferedByAServer(t *testing.T) {
 	for _, entry := range entries {
 		ready[entry.Name] = entry
 	}
-	for _, name := range []string{"claude", "codex"} {
-		if ready[name].Ready {
-			t.Errorf("%s answers to somebody's own subscription and was offered anyway", name)
-		}
-		if !strings.Contains(ready[name].Why, "person") {
-			t.Errorf("%s says %q, which does not tell anybody what to do", name, ready[name].Why)
+	for _, entry := range entries {
+		switch entry.Needs {
+		case harness.NeedsAccount:
+			if entry.Ready {
+				t.Errorf("%s answers to somebody's own subscription and was offered anyway", entry.Name)
+			}
+			if !strings.Contains(entry.Why, "person") {
+				t.Errorf("%s says %q, which does not tell anybody what to do", entry.Name, entry.Why)
+			}
+		default:
+			if !entry.Ready {
+				t.Errorf("%s needs nobody's account and was not offered: %q", entry.Name, entry.Why)
+			}
 		}
 	}
-	if !ready["opencode"].Ready {
-		t.Fatalf("opencode needs nobody's account and was not offered: %q", ready["opencode"].Why)
+	if ready["opencode"].Needs == harness.NeedsAccount {
+		t.Error("opencode is not supposed to need anybody's account")
 	}
 }
 
@@ -57,8 +68,15 @@ func TestWhatEachHarnessWantsIsSaidPlainly(t *testing.T) {
 }
 
 func TestOnlyWhatIsReadyIsOfferedToAForm(t *testing.T) {
-	names := Ready(Survey("", "", []string{"claude", "codex", "opencode"}))
-	if len(names) != 1 || names[0] != "opencode" {
-		t.Fatalf("a form would offer %v", names)
+	offered := Survey("", "", []string{"claude", "codex", "opencode"})
+	names := Ready(offered)
+	for _, entry := range offered {
+		named := false
+		for _, name := range names {
+			named = named || name == entry.Name
+		}
+		if named != entry.Ready {
+			t.Errorf("%s is ready=%v and a form offers it=%v", entry.Name, entry.Ready, named)
+		}
 	}
 }
