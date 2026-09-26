@@ -3,8 +3,11 @@ package jobs
 import (
 	"errors"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/getlatentic/haas/internal/evidence"
 
 	"github.com/getlatentic/haas/internal/job"
 )
@@ -138,4 +141,95 @@ func waitFor(t *testing.T, index *Index, id string, want State) {
 	}
 	got, _ := index.Get(id)
 	t.Fatalf("%s is %q, want %q", id, got.State, want)
+}
+
+// A container is a child of the container runtime, not of this server. A job
+// whose server was killed often runs on, finishes, and writes its manifest — so
+// the state file saying "running" is the stale thing, not the evidence.
+func TestAJobThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "finished alone")
+	if _, _, err := index.Claim(); err != nil {
+		t.Fatal(err)
+	}
+	dir := record.Dir(index.Root())
+	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := evidence.Write(dir, evidence.Manifest{
+		Gate:   evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
+		Signer: "a-test",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(index.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := reopened.Get(record.ID)
+	if got.State != Passed {
+		t.Fatalf("a job with a manifest saying it passed is %q", got.State)
+	}
+	if got.Exit != 0 {
+		t.Fatalf("exit is %d, and the manifest says 0", got.Exit)
+	}
+}
+
+func TestAJobThatLeftNoEvidenceIsInterruptedAndSaysNothingAboutItsExit(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "left nothing")
+	if _, _, err := index.Claim(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(index.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := reopened.Get(record.ID)
+	if got.State != Interrupted {
+		t.Fatalf("state is %q", got.State)
+	}
+	if got.Exit != -1 {
+		t.Fatalf("exit is %d; zero would read as success", got.Exit)
+	}
+}
+
+// Stopping must not start another job. systemd gives a stopping service time to
+// finish what it is writing, not time to begin something new and have it killed.
+func TestStoppingStartsNothingElse(t *testing.T) {
+	index := at(t)
+	for count := 0; count < 5; count++ {
+		queued(t, index, "job")
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var taken atomic.Int32
+	queue := Start(index, func(dir job.Dir) (int, error) {
+		taken.Add(1)
+		started <- struct{}{}
+		<-release
+		return 0, nil
+	}, 1)
+
+	<-started
+	stopped := make(chan struct{})
+	go func() { queue.Stop(); close(stopped) }()
+	close(release)
+	select {
+	case <-stopped:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Stop never returned")
+	}
+	if ran := taken.Load(); ran != 1 {
+		t.Fatalf("%d jobs ran; stopping should have started none after the first", ran)
+	}
+	queued := 0
+	for _, record := range index.List() {
+		if record.State == Queued {
+			queued++
+		}
+	}
+	if queued != 4 {
+		t.Fatalf("%d jobs left queued, want 4", queued)
+	}
 }

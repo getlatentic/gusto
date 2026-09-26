@@ -58,12 +58,20 @@ func (q *Queue) Stop() {
 
 func (q *Queue) serve() {
 	defer q.workers.Done()
-	// A tick is the backstop: a job queued by the command line, in the same
-	// directory, is picked up without anybody telling the server about it.
+	// The tick is a backstop for a wake that was missed. It does not find work
+	// nobody told this server about: the index is read from disk once, at Open.
 	tick := time.NewTicker(5 * time.Second)
 	defer tick.Stop()
 	for {
 		for q.one() {
+			// Stopping must not start another job. The one in flight finishes,
+			// because it is in the middle of writing the evidence that says what
+			// it did, and systemd gives it that time.
+			select {
+			case <-q.stop:
+				return
+			default:
+			}
 		}
 		select {
 		case <-q.stop:

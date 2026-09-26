@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
 )
 
@@ -18,8 +19,13 @@ type Index struct {
 	records map[string]Record
 }
 
-// Open reads what is on disk. A job left running by a server that stopped is
-// marked interrupted, because nothing is watching its container any more.
+// Open reads what is on disk, and lets the evidence decide.
+//
+// A container is a child of the container runtime, not of this server, so a job
+// whose server was killed often runs on, finishes the gate and writes its
+// manifest. Calling that interrupted because the state file still says running
+// would throw away a verdict that is on disk. A job is only interrupted when it
+// left no manifest behind.
 func Open(root string) (*Index, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
@@ -38,8 +44,7 @@ func Open(root string) (*Index, error) {
 			continue // a directory without state is not a job this server made
 		}
 		if record.State == Running {
-			record.State = Interrupted
-			record.Ended = Now()
+			record = ended(record, root)
 			if err := write(record.Dir(root), record); err != nil {
 				return nil, err
 			}
@@ -128,4 +133,23 @@ func (i *Index) Finish(id string, state State, exit int) error {
 	}
 	i.records[id] = record
 	return nil
+}
+
+// ended asks the job directory how a run that nobody was watching turned out.
+func ended(record Record, root string) Record {
+	record.Ended = Now()
+	manifest, err := evidence.Read(record.Dir(root))
+	if err != nil {
+		// No manifest: the run did not reach the end, so nothing is known about
+		// it and an exit code of zero would read as success.
+		record.State = Interrupted
+		record.Exit = -1
+		return record
+	}
+	record.Exit = manifest.Gate.Code
+	record.State = Failed
+	if manifest.Gate.Passed {
+		record.State = Passed
+	}
+	return record
 }
