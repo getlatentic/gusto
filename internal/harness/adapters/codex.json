@@ -1,7 +1,11 @@
 {
   "name": "codex",
   "program": "codex",
-  "argv": ["exec", "--full-auto", "{brief}"],
+  "argv": [
+    "exec",
+    "--skip-git-repo-check"
+  ],
+  "stdin": "{brief}",
   "needs": "account",
   "endpoint": "https://api.openai.com",
   "stream": "plain"

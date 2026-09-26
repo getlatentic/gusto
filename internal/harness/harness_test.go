@@ -3,6 +3,7 @@ package harness
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -217,5 +218,34 @@ func TestTheNamesOfferedIncludeYourOwn(t *testing.T) {
 	}
 	if !slices.IsSorted(names) {
 		t.Fatalf("a list a person reads should be sorted: %v", names)
+	}
+}
+
+// Some harnesses take the brief as an argument and some read it. codex waits on
+// standard input forever when it is given neither, which in a container is a
+// job that never ends.
+func TestAHarnessThatReadsItsBriefIsGivenIt(t *testing.T) {
+	adapter, err := Load("", "codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adapter.Stdin == "" {
+		t.Fatal("codex reads its brief on standard input and the adapter does not say so")
+	}
+	command := adapter.Command(context.Background(), job.Spec{Brief: "fix the adder"}, t.TempDir())
+	if command.Stdin == nil {
+		t.Fatal("nothing was put on standard input")
+	}
+	given, err := io.ReadAll(command.Stdin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(given) != "fix the adder" {
+		t.Fatalf("standard input carried %q", given)
+	}
+	for _, argument := range command.Args {
+		if argument == "fix the adder" {
+			t.Fatal("the brief was also passed as an argument, which codex would read as a path")
+		}
 	}
 }
