@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -29,6 +28,7 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, "catalog.html", map[string]any{
 		"Title":     "haas",
+		"Nav":       "harnesses",
 		"Catalog":   s.catalog,
 		"Models":    s.models,
 		"Instances": listed,
@@ -44,6 +44,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
 				"Title":   "haas — " + entry.Name,
+				"Nav":     "harnesses",
 				"Harness": entry,
 				"Models":  s.models,
 				"Refused": r.URL.Query().Get("refused"),
@@ -93,9 +94,11 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, "instance.html", map[string]any{
 		"Title":     "haas — " + held.ID,
+		"Nav":       "harnesses",
 		"Instance":  held,
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
+		"Tasks":     s.tasks(held.ID),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
@@ -108,6 +111,52 @@ func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
 	}
 	record, _ = s.index.Get(thread.Turns[len(thread.Turns)-1])
 	return record
+}
+
+// runTask is work done on an instance's own computer: a brief, a gate, and the
+// folder the instance already has. Not every task starts from a repository.
+func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
+	held, found := s.instances.Get(r.PathValue("id"))
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	where := "/instances/" + held.ID
+	spec := job.Spec{
+		Brief:   strings.TrimSpace(r.FormValue("brief")),
+		Gate:    job.Words(r.FormValue("gate")),
+		Harness: held.Harness,
+		Model:   held.Model,
+		Repo:    held.Repo,
+		Session: held.ID,
+	}
+	if spec.Brief == "" || len(spec.Gate) == 0 {
+		s.turnAway(w, r, where, "a task needs something to do and a command that says it worked")
+		return
+	}
+	record := jobs.Record{
+		ID: s.index.Free(spec.Brief, time.Now()), State: jobs.Queued,
+		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
+		Instance: held.ID, Asked: s.keeper.who(r), Queued: jobs.Now(),
+	}
+	if err := s.place(spec, record); err != nil {
+		s.turnAway(w, r, where, err.Error())
+		return
+	}
+	s.queue.Wake()
+	http.Redirect(w, r, "/jobs/"+record.ID, http.StatusSeeOther)
+}
+
+// tasks is the work done on an instance that was not said to it: a job that
+// named this instance and no thread of it.
+func (s *Server) tasks(id string) []jobs.Record {
+	var done []jobs.Record
+	for _, record := range s.index.List() {
+		if record.Instance == id && record.Thread == "" {
+			done = append(done, record)
+		}
+	}
+	return done
 }
 
 // openThread starts another conversation on an instance that is already there.
@@ -176,6 +225,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	}
 	return map[string]any{
 		"Title":    "haas — " + thread.Title,
+		"Nav":      "harnesses",
 		"Instance": held,
 		"Thread":   thread,
 		"Path":     threadPath(thread),
@@ -238,32 +288,20 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		Remembered: thread.Remembered,
 		Repo:       held.Repo,
 	}
-	id := s.index.Free(brief, time.Now())
-	dir := job.Dir(filepath.Join(s.index.Root(), id))
-	for _, step := range []func() error{
-		dir.Make,
-		func() error { return spec.Write(dir) },
-		func() error { return harness.Keep(dir, spec.Harness) },
-	} {
-		if err := step(); err != nil {
-			s.turnAway(w, r, threadPath(thread), err.Error())
-			return
-		}
-	}
 	record := jobs.Record{
-		ID: id, State: jobs.Queued, Brief: brief, Repo: held.Repo,
-		Harness: held.Harness, Model: held.Model,
+		ID: s.index.Free(brief, time.Now()), State: jobs.Queued,
+		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
 		Asked: s.keeper.who(r), Queued: jobs.Now(),
 	}
-	if err := s.index.Add(record); err != nil {
+	if err := s.place(spec, record); err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())
 		return
 	}
-	if err := s.instances.Said(held.ID, thread.ID, id, ""); err != nil {
+	if err := s.instances.Said(held.ID, thread.ID, record.ID, ""); err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())
 		return
 	}
 	s.queue.Wake()
-	http.Redirect(w, r, threadPath(thread)+"#"+id, http.StatusSeeOther)
+	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
 }
