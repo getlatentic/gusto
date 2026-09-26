@@ -81,6 +81,12 @@ type Adapter struct {
 	Resume []string `json:"resume,omitempty"`
 
 	Text string `json:"text,omitempty"`
+	// Where a harness says what it ran. A line on which ToolName resolves is a
+	// tool call, and nothing else distinguishes one.
+	ToolName   string `json:"toolName,omitempty"`
+	ToolInput  string `json:"toolInput,omitempty"`
+	ToolStatus string `json:"toolStatus,omitempty"`
+	ToolTitle  string `json:"toolTitle,omitempty"`
 	// SessionID is where the harness says what it calls this conversation.
 	SessionID    string `json:"sessionId,omitempty"`
 	InputTokens  string `json:"inputTokens,omitempty"`
