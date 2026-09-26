@@ -36,10 +36,8 @@ This is the thing a person shares, rents or sells. Two people running `opencode`
 run the same harness and, in every way that matters to them, different
 configured harnesses.
 
-**Nothing in this repository holds one yet.** The germ is there — an adapter
-already travels in a job — and `org-harness`, in the `org` repository, already
-exports a person's configured harness with its secrets replaced by
-placeholders. Neither is the format.
+**Nothing here holds one yet.** The germ is there — an adapter already travels
+in a job — but an adapter is the run recipe, not the configuration.
 
 ## Why the distinction decides the format
 
