@@ -23,6 +23,11 @@
 </table>
 {{end}}
 
+{{with .GateLog}}
+<h2>What the gate said</h2>
+<pre>{{.}}</pre>
+{{end}}
+
 {{with .Patch}}
 <h2>What changed</h2>
 <pre>{{.}}</pre>
@@ -30,9 +35,19 @@
 
 {{with .Files}}
 <h2>Evidence</h2>
-<ul class="files">{{range .}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.}}">{{.}}</a></li>{{end}}</ul>
-<p class="muted">Check it yourself: <code>haas verify &lt;the job directory&gt;</code> re-hashes every file
-and re-runs the gate. It needs the directory, not this server.</p>
+<table>
+  <tr><th>File</th><th>SHA-256, as the manifest has it</th></tr>
+  {{range .}}
+  <tr>
+    <td><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a></td>
+    <td>{{if .SHA256}}<code style="word-break: break-all">{{.SHA256}}</code>{{else}}<span class="muted">not in the manifest</span>{{end}}</td>
+  </tr>
+  {{end}}
+</table>
+<p><a href="/jobs/{{$.Job.ID}}/bundle" download>Download the whole job</a>
+<span class="muted">— job.json, out/ and workspace/, which is what <code>haas verify</code> needs. Unpack it
+and run <code>haas verify {{$.Job.ID}}</code>: it re-hashes every file against the manifest and re-runs the
+gate in the checkout. It needs the directory, not this server.</span></p>
 {{end}}
 
 <script>
