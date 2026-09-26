@@ -1,8 +1,24 @@
 {
   "name": "claude",
   "program": "claude",
-  "argv": ["-p", "{brief}", "--permission-mode", "acceptEdits"],
+  "argv": [
+    "-p",
+    "{brief}",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--permission-mode",
+    "acceptEdits",
+    "--model={model}"
+  ],
   "needs": "account",
   "endpoint": "https://api.anthropic.com",
-  "stream": "plain"
+  "stream": "jsonl",
+  "totals": "cumulative",
+  "text": "message.content.0.text",
+  "inputTokens": "usage.input_tokens",
+  "outputTokens": "usage.output_tokens",
+  "cacheWriteTokens": "usage.cache_creation_input_tokens",
+  "cacheReadTokens": "usage.cache_read_input_tokens",
+  "costUsd": "total_cost_usd"
 }

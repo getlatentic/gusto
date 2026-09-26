@@ -75,17 +75,37 @@ job/
 A token count or a cost is `null` when the harness does not report one. A zero
 would read as free.
 
+## What a job costs, measured
+
+One task, run three ways: a one-line fix to a shell function, with a shell script
+as the gate.
+
+| harness and model | finished | wall clock | billed tokens | cost |
+| --- | --- | --- | --- | --- |
+| `claude`, Opus 5 | yes | 2m55s | 1,134,184 | $1.3161 |
+| `opencode`, `ollama/gpt-oss:20b` | no | 2m01s | 16,669 | $0 |
+| `opencode`, `ollama/llama3.2:3b` | no | 1m14s | 30,138 | $0 |
+
+Claude's total is 1,065,920 cache reads across 41 turns, and 61,508 cache writes.
+The task is not what costs money; the turns are. Neither local model finished:
+`gpt-oss:20b` searched for the file with an empty path argument, found nothing and
+stopped, and `llama3.2:3b` invented a command and then emitted a tool call as
+plain text. The gate refused both, which is what it is for.
+
+One trivial task is not a benchmark. It is the number this repository can prove,
+and every figure above comes from a manifest in a job directory.
+
 ## Adapters
 
 ```bash
 haas harnesses
 ```
 
-| harness | program | needs |
-| --- | --- | --- |
-| claude | `claude` | the user's own account |
-| codex | `codex` | the user's own account |
-| opencode | `opencode` | nothing outside the building |
+| harness | program | needs | stream |
+| --- | --- | --- | --- |
+| claude | `claude` | the user's own account | measured |
+| opencode | `opencode` | nothing outside the building | measured |
+| codex | `codex` | the user's own account | plain text, not yet measured |
 
 An adapter is a JSON file. A directory named by `HAAS_HARNESSES` overrides a
 built-in adapter of the same name, so a customer corrects one or adds a harness
@@ -106,8 +126,13 @@ adds dotted paths — `text`, `inputTokens`, `outputTokens`, `costUsd` — and
 `totals` says whether the harness reports per call or as a running total.
 Summing a running total counts every call more than once.
 
-The three built-in adapters read their harness as plain text. A path is only
-written here after a real run of that harness proved where the number sits.
+A path is only written here after a real run of that harness proved where the
+number sits. A harness whose stream has not been measured is read as plain text,
+which keeps the transcript and the patch and leaves the numbers out rather than
+inventing them.
+
+Cache tokens are counted, because they are billed. Leaving them out understated
+one real run by 168 times.
 
 ## The container
 
@@ -155,7 +180,7 @@ stops before starting the harness and says no model answers at that address.
 go test ./...
 ```
 
-Twenty tests. Six run a whole job with a fixture harness — a program that makes the
+Twenty-three tests. Six run a whole job with a fixture harness — a program that makes the
 change, which is all our own definition of a harness requires — and cover the
 cases the product rests on: a run whose manifest agrees with its own evidence, a
 changed file reported, a file added after the run reported, a harness that only

@@ -139,3 +139,46 @@ func TestANewJobKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
 		t.Fatal("a built-in adapter is already everywhere and should not be copied")
 	}
 }
+
+// Read off a real run of Claude Code: the text arrives as a list of blocks, and
+// the totals arrive on the last line.
+const claudeText = `{"type":"assistant","message":{"model":"claude-opus-5","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":2,"output_tokens":4}}}`
+const claudeResult = `{"duration_api_ms":1733,"stop_reason":"end_turn","total_cost_usd":0.39709999999999995,"usage":{"input_tokens":2,"cache_creation_input_tokens":39699,"output_tokens":4}}`
+
+func TestTheClaudeAdapterReadsALineWithAListInIt(t *testing.T) {
+	adapter, err := Load("", "claude")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var said map[string]any
+	if err := json.Unmarshal([]byte(claudeText), &said); err != nil {
+		t.Fatal(err)
+	}
+	value, ok := Pick(said, adapter.Text)
+	if !ok || value != "ok" {
+		t.Fatalf("text through a list: %v %t", value, ok)
+	}
+	var result map[string]any
+	if err := json.Unmarshal([]byte(claudeResult), &result); err != nil {
+		t.Fatal(err)
+	}
+	cost, ok := Number(result, adapter.CostUSD)
+	if !ok || cost < 0.39 || cost > 0.40 {
+		t.Fatalf("cost: %v %t", cost, ok)
+	}
+	if adapter.Totals != Cumulative {
+		t.Fatal("Claude Code reports a running total, so summing would count every call again")
+	}
+}
+
+func TestAPathIntoAListThatIsNotThereIsNotFound(t *testing.T) {
+	var said map[string]any
+	if err := json.Unmarshal([]byte(claudeText), &said); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"message.content.9.text", "message.content.x.text", "message.usage.0"} {
+		if _, ok := Pick(said, path); ok {
+			t.Errorf("%s should not resolve", path)
+		}
+	}
+}
