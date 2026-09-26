@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 func main() { os.Exit(run(os.Args[1:])) }
@@ -42,6 +43,7 @@ func run(args []string) int {
 		"serve":     serve,
 		"spend":     spendReport,
 		"doctor":    checkMachine,
+		"keygen":    makeKey,
 	}[verb]
 	if !found {
 		usage()
@@ -57,7 +59,7 @@ func usage() {
   haas run <dir>        do the work in a container
   haas inside <dir>     do the work here, without a container
   haas submit <dir>     send the job to HAAS_SERVER and watch it there
-  haas verify <dir>     re-hash the evidence and re-run the gate
+  haas verify <dir>     re-hash the evidence, name its signer, re-run the gate [-signed]
   haas ship <dir>       push a passed job's patch and open a pull request [-dry-run]
   haas check <repo> <sha256>  fetch a pull request's evidence and verify it [-into <dir>]
   haas show <dir>       what the job asked for and what happened
@@ -68,6 +70,7 @@ func usage() {
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
+  haas keygen <name>    a key pair to sign records with [-dir <dir>]
 
 The exit code of run, inside and verify is the gate's answer.
 `)
@@ -148,10 +151,14 @@ func inside(args []string) int {
 }
 
 func verify(args []string) int {
-	dir, code := oneDir(args)
-	if code != 0 {
-		return code
+	flags := flag.NewFlagSet("verify", flag.ContinueOnError)
+	signed := flags.Bool("signed", false, "refuse a record no key signed")
+	where, rest := split(args)
+	if err := flags.Parse(rest); err != nil || where == "" || flags.NArg() > 0 {
+		usage()
+		return 2
 	}
+	dir := job.Dir(where)
 	wrong, err := evidence.Check(dir)
 	if err != nil {
 		return fail(err)
@@ -160,6 +167,22 @@ func verify(args []string) int {
 		fmt.Printf("%s\n", complaint)
 	}
 	if len(wrong) > 0 {
+		return 1
+	}
+	// The signer is named from the keyring, never from the manifest's signer
+	// field. Unsigned passes unless -signed asks otherwise, because every record
+	// made before signing, and every run with no key, is unsigned.
+	keyring, err := signing.ConfiguredKeyring()
+	if err != nil {
+		return fail(err)
+	}
+	attested, err := evidence.Attest(dir, keyring)
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	fmt.Println(attested)
+	if *signed && !attested.Signed {
 		return 1
 	}
 	manifest, err := evidence.Read(dir)

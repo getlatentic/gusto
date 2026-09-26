@@ -7,9 +7,10 @@ result is files.
   says how to run it. Adding one is a file, not a release.
 - **The gate decides.** A harness reporting success is a claim. The job passes
   when the repository's own command exits zero, and not before.
-- **Evidence anyone can check.** Every run leaves a manifest of SHA-256 hashes.
-  `haas verify` re-hashes the files and re-runs the gate, and needs nothing from
-  the platform that produced them.
+- **Evidence anyone can check.** Every run leaves a manifest of SHA-256 hashes,
+  signed with a key you hold when you give the runner one. `haas verify`
+  re-hashes the files, names the signer from your keyring and re-runs the gate,
+  and needs nothing from the platform that produced them.
 - **The runner goes in the box.** A harness with its own tool loop runs its
   edits and shell in its own process, so the container holds the runner.
 - **One rule enforced today.** Restricted code only talks to a model in the same
@@ -88,11 +89,47 @@ signer   tosin
 files    7
 
 $ haas verify /tmp/fix
+signed by acme-2026 (key sha256:7da853821a143b6aeab0bbdff028a1ea)
 7 files match, and the gate still exits 0
 ```
 
 `verify` exits 1 and names the file when anything in `out/` has changed since
 the run.
+
+### Signing the record
+
+Hashes show a file changed; they do not stop whoever stores the record from
+rewriting all of it, hashes included. A signature does, as long as the key is
+somewhere they are not.
+
+```bash
+haas keygen acme-2026 -dir ~/.haas     # acme-2026.key (0600) and acme-2026.pub
+export HAAS_SIGNING_KEY=~/.haas/acme-2026.key   # on the machine that runs jobs
+export HAAS_KEYRING=~/keyring                   # on the machine that verifies
+cp ~/.haas/acme-2026.pub ~/keyring/
+```
+
+The runner signs the exact bytes of `out/manifest.json` with Ed25519 and writes
+the signature beside it, as `out/manifest.sig`. `haas inside` signs in its own
+process. `haas run` keeps the key on the host and signs after the container is
+gone, so the key never goes in with the agent. With no key the run still works,
+and the record is unsigned.
+
+`verify` names the signer from the keyring: the `.pub` file whose key made the
+signature, never the manifest's `signer` field, which is the runner's own word.
+
+| the record | `verify` says | exit |
+| --- | --- | --- |
+| signed by a key in the keyring | `signed by <name> (key <id>)` | the gate's |
+| signed by a key not in the keyring | `out/manifest.sig: it was made by key <id>, which is not in the keyring` | 1 |
+| signed, then changed | `manifest.sig does not match manifest.json` | 1 |
+| unsigned | `unsigned: no key stands behind this record` | the gate's, or 1 with `-signed` |
+
+An unsigned record passes unless `-signed` is given, because every record made
+before signing is unsigned and still has to verify. To rotate, make a new key,
+add its `.pub` to every keyring and keep the old `.pub` there: each signature
+names its key by id, so what the old key signed still verifies after its private
+half is destroyed.
 
 ## Replay
 
@@ -175,12 +212,13 @@ job/
     gate.log        the gate's whole output
     gates.json      the verdict
     manifest.json   a hash of each file above, the totals, and the signer
+    manifest.sig    the signature over manifest.json, when the runner has a key
 ```
 
 A token count or a cost is `null` when the harness does not report one. A zero
 would read as free.
 
-`job.json` and `manifest.json` are published as versioned JSON Schemas in
+`job.json`, `manifest.json` and `manifest.sig` are published as versioned JSON Schemas in
 [`schema/`](schema/). [docs/FORMATS.md](docs/FORMATS.md) says when the version
 changes and what a reader does with one it does not know.
 
@@ -534,7 +572,9 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
 | `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
-| `HAAS_SIGNER` | who the manifest names |
+| `HAAS_SIGNER` | who the manifest names. The runner's own word; `verify` names the signer from the keyring |
+| `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`. Kept on the host, never in a job directory or a container |
+| `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify` trusts, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
