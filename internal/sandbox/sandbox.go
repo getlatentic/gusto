@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 )
 
@@ -33,7 +32,10 @@ func Image() string {
 
 // Run the job in a container and hand back its exit code. The job directory is
 // the only thing mounted, and the container is destroyed with the run.
-func Run(dir job.Dir) (int, error) {
+// Run takes the address the container should ask for a model at. It is given
+// rather than read from the environment because it is per job: the proxy mints
+// a token for this run, and that token is in the address.
+func Run(dir job.Dir, model string) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -44,7 +46,7 @@ func Run(dir job.Dir) (int, error) {
 	}
 	args := []string{"run", "--rm",
 		"-v", absolute + ":/job",
-		"-e", "HAAS_MODEL_URL=" + inContainer(harness.ModelURL()),
+		"-e", "HAAS_MODEL_URL=" + inContainer(model),
 		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
 		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
 		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),

@@ -76,6 +76,14 @@ redis_url: "redis://localhost:6379/{{ redis_db }}"
 redis_db: 4
 redis_claimed: false
 
+# ── The way out of a sandbox ────────────────────────────────────────────────
+# Setting model_upstream turns the proxy on: the container is given an address
+# here instead of a credential, and model_key never leaves the server process.
+# The address is the model's root, with no version on it.
+model_upstream: ""
+model_name: "the platform credential"
+proxy_addr: "0.0.0.0:8041"
+
 # ── The model ───────────────────────────────────────────────────────────────
 # Empty means the harness uses its own account. An address here is what the
 # rules check and what a local-model harness is pointed at.
