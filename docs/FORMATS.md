@@ -9,6 +9,7 @@ JSON Schema, draft 2020-12.
 | --- | --- | --- |
 | `job.json` | [`schema/job/v1.json`](../schema/job/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/job/v1.json` |
 | `out/manifest.json` | [`schema/manifest/v1.json`](../schema/manifest/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json` |
+| `audit.json` | [`schema/audit/v1.json`](../schema/audit/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/audit/v1.json` |
 
 The tests validate against these same files, embedded into the build. A job that
 `haas new` writes and the job and manifest a fixture run leaves must each match
@@ -42,3 +43,86 @@ The schemas themselves are stricter than a reader: they close every object with
 field a writer adds without describing it should fail the tests. To validate a
 file from a newer writer of the same version, use the schema at `main`, which
 carries every field that version has gained.
+
+## The audit export
+
+`haas export` writes a third format, `audit.json`, at the root of an export
+directory. It follows the same version rules as the other two, and its schema is
+[`schema/audit/v1.json`](../schema/audit/v1.json). The code that writes and
+checks it is `internal/audit`.
+
+### What an export is
+
+An export is a job directory without its workspace: `job.json` and `out/` exactly
+as the run left them, plus `state.json` and the request lines when there are
+some, plus `audit.json`. Keeping that shape is what lets the manifest check run
+on an export unchanged. `internal/audit` calls `evidence.Check` for it rather than
+hashing files itself, so whatever that check comes to hold, such as a signature
+on the manifest, an export is held to as well.
+
+### Where each answer comes from
+
+| question | field | from |
+| --- | --- | --- |
+| who asked | `asked` | `state.json`: how the job arrived and when; the person is `not recorded` |
+| what ran | `ran` | `job.json` as written, and the harness, its exit and the budget from the manifest |
+| what it decided | `outcome` | the manifest's gate, and `state.json`'s state and times |
+| what changed | `changed` | `out/diff.patch`, with the hash the manifest holds for it |
+| which model | `model` | `job.json`'s model, the manifest's endpoint, the credential names in `out/proxy.jsonl` |
+| how much | `spend` | the harness's reported tokens and cost from the manifest, and the proxy's calls and bytes |
+| who approved | `approval` | `not recorded` |
+| who looked | `requests` | the request log's lines whose path names the job |
+
+The request that created a job is never among its request lines. It is `POST
+/jobs` or `POST /api/jobs`, and the job's ID is chosen after that path is
+written, so the path is the only tie and it does not hold one. What the lines
+show is who read the job afterwards.
+
+### The words in place of a value
+
+A value the export does not have is one of three strings in its place, never a
+missing field and never a guess:
+
+| word | means |
+| --- | --- |
+| `not recorded` | the platform does not write this down, or this job never had it |
+| `redacted` | the export's policy dropped the file it comes from |
+| `none` | recorded as not happening: no gate for a turn in a conversation, no session for a one-shot job |
+
+`spend.tokens` is `not recorded` where the manifest has `null`, for the same
+reason the manifest has `null`: nothing reported is nothing claimed.
+
+### Redaction, and why it does not break verification
+
+A policy drops files and replaces values, so a redacted file no longer matches
+its hash in the manifest. The decision is to expect exactly that and nothing
+more. Every file the policy touched is listed in `redactions` with the rules that
+touched it and the hash the manifest holds for the original. Verification then
+checks three things:
+
+1. `evidence.Check` on the export. A dropped file may be reported missing and a
+   rewritten one changed; every other complaint fails the export, naming its
+   file. A redaction whose original hash is not the one the manifest holds fails
+   too, so a redacted file cannot be tied to somebody else's run.
+2. Every file against `carried`, the hash the export recorded for it. This holds
+   what the manifest cannot: `state.json`, the request lines, and each redacted
+   copy.
+3. `audit.json` against a summary derived again from the files, one section at a
+   time, so a summary that says more than its files fails by section.
+
+What a redacted file loses is the run's word for it. Its `carried` entry has
+`covered: false`, and the only way to tie it to the run is to hold the original
+and match the hash in `redactions`. Everything the policy left alone keeps
+`covered: true` and verifies against the run's own manifest.
+
+`job.json` and `out/manifest.json` cannot be dropped, because the check starts
+from them. The manifest is never rewritten either: it holds names and hashes and
+nothing to hide. `job.json`'s values can be redacted, and redacting `brief` also
+redacts the copy of it in `state.json`, because a field rule applies to every
+JSON file the export carries.
+
+### Retention
+
+Retention here is what one export keeps: the `drop` list, as slash paths inside
+the export or `path.Match` patterns. How long a server keeps job directories is a
+different question and nothing decides it yet.

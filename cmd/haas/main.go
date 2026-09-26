@@ -39,6 +39,7 @@ func run(args []string) int {
 		"harnesses": list,
 		"serve":     serve,
 		"doctor":    checkMachine,
+		"export":    exportJob,
 	}[verb]
 	if !found {
 		usage()
@@ -59,6 +60,7 @@ func usage() {
   haas check <repo> <sha256>  fetch a pull request's evidence and verify it [-into <dir>]
   haas show <dir>       what the job asked for and what happened
   haas replay <dir>...  run finished jobs again at the same commit, compare verdicts [-here]
+  haas export <dir>     an audit record anybody can verify [-to, -policy, -requests, -verify]
   haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
