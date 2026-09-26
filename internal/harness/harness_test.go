@@ -12,6 +12,7 @@ import (
 )
 
 func TestTheAdaptersThatShipParse(t *testing.T) {
+	t.Setenv("HAAS_HARNESSES", "")
 	names := Names()
 	if len(names) != 3 {
 		t.Fatalf("want three built-in adapters, got %v", names)
@@ -201,5 +202,20 @@ func TestWhatEachHarnessTalksTo(t *testing.T) {
 	program := Adapter{Needs: NeedsNothing}
 	if got := program.EndpointOf(); got != "" {
 		t.Errorf("a harness needing no model talks to %q", got)
+	}
+}
+
+func TestTheNamesOfferedIncludeYourOwn(t *testing.T) {
+	mine := t.TempDir()
+	if err := writeFile(mine+"/fixture.json", `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing"}`); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HAAS_HARNESSES", mine)
+	names := Names()
+	if !slices.Contains(names, "fixture") || !slices.Contains(names, "claude") {
+		t.Fatalf("want both a harness of my own and the built-in ones, got %v", names)
+	}
+	if !slices.IsSorted(names) {
+		t.Fatalf("a list a person reads should be sorted: %v", names)
 	}
 }

@@ -1,0 +1,59 @@
+{{template "head" .}}
+
+<h2>{{.Job.Brief}}</h2>
+<table>
+  <tr><th>State</th><td><span class="state {{.Job.State}}" id="state">{{.Job.State}}</span></td></tr>
+  <tr><th>Harness</th><td>{{.Job.Harness}} {{with .Job.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
+  <tr><th>Repository</th><td>{{.Job.Repo}}</td></tr>
+  {{with .Spec}}<tr><th>Gate</th><td><code>{{range .Gate}}{{.}} {{end}}</code></td></tr>{{end}}
+  <tr><th>Asked</th><td class="muted">{{when .Job.Queued}}{{with took .Job.Started .Job.Ended}}, took {{.}}{{end}}</td></tr>
+</table>
+
+<h2>What the harness said</h2>
+<pre id="stream" class="muted">waiting…</pre>
+
+{{with .Manifest}}
+<h2>What it cost</h2>
+<table>
+  <tr><th>Gate</th><td>exit {{.Gate.Code}}, passed {{.Gate.Passed}}</td></tr>
+  <tr><th>Model</th><td>{{.ModelEndpoint}}</td></tr>
+  <tr><th>Tokens</th><td>{{if .Tokens}}{{.Tokens}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
+  <tr><th>Cost</th><td>{{if .CostUSD}}${{printf "%.4f" .CostUSD}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
+  <tr><th>Signed by</th><td>{{.Signer}}</td></tr>
+</table>
+{{end}}
+
+{{with .Patch}}
+<h2>What changed</h2>
+<pre>{{.}}</pre>
+{{end}}
+
+{{with .Files}}
+<h2>Evidence</h2>
+<ul class="files">{{range .}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.}}">{{.}}</a></li>{{end}}</ul>
+<p class="muted">Check it yourself: <code>haas verify &lt;the job directory&gt;</code> re-hashes every file
+and re-runs the gate. It needs the directory, not this server.</p>
+{{end}}
+
+<script>
+(function () {
+  var box = document.getElementById("stream");
+  var state = document.getElementById("state");
+  if (state.textContent.trim() !== "queued" && state.textContent.trim() !== "running") return;
+  var stream = new EventSource("/watch/{{.Job.ID}}");
+  var first = true;
+  stream.onmessage = function (event) {
+    if (first) { box.textContent = ""; box.classList.remove("muted"); first = false; }
+    box.textContent += event.data + "\n";
+    box.scrollTop = box.scrollHeight;
+  };
+  stream.addEventListener("ended", function (event) {
+    state.textContent = event.data;
+    state.className = "state " + event.data;
+    stream.close();
+    setTimeout(function () { location.reload(); }, 400);
+  });
+})();
+</script>
+
+{{template "foot" .}}
