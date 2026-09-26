@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
@@ -70,7 +71,9 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 		"Title":     "haas",
 		"Subtitle":  "a job is a directory",
 		"Jobs":      s.index.List(),
-		"Harnesses": s.harnesses,
+		"Harnesses": catalog.Ready(s.catalog),
+		"Catalog":   s.catalog,
+		"Models":    s.models,
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }

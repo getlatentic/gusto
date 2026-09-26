@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/spend"
 	"github.com/getlatentic/haas/internal/talk"
@@ -25,11 +26,12 @@ type Server struct {
 	queue     *jobs.Queue
 	keeper    *keeper
 	templates *template.Template
-	harnesses []string
+	catalog   []catalog.Entry
+	models    []string
 	ledger    *spend.Ledger
 }
 
-func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, harnesses []string) (*Server, error) {
+func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, offered []catalog.Entry, models []string) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
@@ -38,7 +40,7 @@ func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password
 	if err != nil {
 		return nil, err
 	}
-	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, harnesses: harnesses}, nil
+	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, catalog: offered, models: models}, nil
 }
 
 func (s *Server) Handler() http.Handler {
