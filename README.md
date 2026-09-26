@@ -15,6 +15,8 @@ result is files.
 - **One rule enforced today.** Restricted code only talks to a model in the same
   building. The runner refuses the job otherwise.
 
+What it is for, and what it is not yet, is in [docs/DIRECTION.md](docs/DIRECTION.md).
+
 ## Install
 
 ```bash

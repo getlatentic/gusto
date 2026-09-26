@@ -1,0 +1,103 @@
+# What this is
+
+A place to run agents that proves what they did.
+
+You give it a brief, some input, and the command that decides whether it worked.
+It runs the agent you chose, in a container, on the model you chose, inside a
+budget. It leaves a record anybody can re-check without trusting the machine
+that produced it.
+
+Coding is the first use, not the point.
+
+## What is general, and what is not
+
+Measured rather than assumed. The coding assumption lives in one file,
+`internal/runner/workspace.go`, which clones a repository and takes a `git diff`.
+`haas ship` has its own git, and that verb is optional.
+
+| piece | general |
+| --- | --- |
+| a job is a directory | yes |
+| a harness is a program named by an adapter | yes |
+| one container a job, destroyed after | yes |
+| the gate: a command that exits zero | yes |
+| evidence: files, hashed, with a manifest | yes |
+| budgets, rules, the proxy | yes |
+| `repo` and `ref` in the job | no — these are inputs, and a repository is one kind |
+| `diff.patch` | partly — any agent that writes files leaves a delta |
+
+The gate is the surprise. "A command that exits zero" already covers a test
+suite, a schema check, a judge model wrapped in a script, and a person clicking
+approve. Nothing about it is about code.
+
+## The uses, and what each one adds
+
+| use | what it needs that does not exist |
+| --- | --- |
+| a coding agent | nothing |
+| an agent that writes no code | inputs rather than a repository; the result is an artifact rather than a patch |
+| a swarm | a parent and child relation between jobs, and a way to combine what they produce |
+| bring or host your own | the package format below |
+| a marketplace | the package, plus somewhere to fetch it and provenance for it |
+| renting one | metering, and runner classes |
+
+## Three words that keep getting confused
+
+See [TERMS.md](TERMS.md). A **harness** is the program. An **adapter** is how to
+run it. A **configured harness** is the program plus the skills, connectors,
+prompt and model policy that shape it. People share and sell the third.
+
+Frozen, a configured harness is an **image** with a digest. A run of one is an
+**instance**. The rule that keeps this honest: an agent that learns writes to a
+job's output, never to itself. Otherwise the same digest behaves differently and
+the evidence proves nothing.
+
+## Catalog, registry, assembler
+
+Three different things, and only one of them is ours to build.
+
+- A **catalog** is the parts somebody picks from: harnesses, skills, connectors.
+- A **registry** is where an assembled configured harness lives, fetched by digest.
+- An **assembler** takes the parts, freezes them into an image, and runs it.
+
+The parts already have homes — skills have a format, connectors have registries,
+harnesses ship on npm and Homebrew. Indexing those is a small job. Nobody owns
+the assembler, and nobody proves what the assembly then did. That is the part
+worth building.
+
+## Ways in
+
+The pages are not the main entrance.
+
+| way in | who uses it | state |
+| --- | --- | --- |
+| `haas` on the command line | whoever wrote the repository | built |
+| the pages | anybody on the team | built |
+| `POST /api/jobs` | a script, a CI job, another platform | built |
+| an MCP server | any agent that speaks MCP: Claude Code, Codex, Cursor, Zed | not started |
+
+The MCP server matters more than another page. Somebody already working in Codex
+does not want a second web application; they want their agent to hand a job to a
+sandbox and get the evidence back. One thing to build, every editor at once, and
+it stops this competing with the agent they already like — it sits underneath it.
+
+## What is deferred, and what promotes it
+
+Nothing here is a plan to build soon. Each line says what would make it urgent.
+
+| deferred | promoted when |
+| --- | --- |
+| naming the configured harness by digest (#64) | two people share a name and mean different things — the first day a team uses this |
+| the package format | a second kind of harness genuinely needs one |
+| a registry | something needs fetching that a git repository cannot carry |
+| a catalog | somebody has to assemble a harness without reading files |
+| merges deploying themselves (#52) | a second person deploys, or merges should deploy unattended |
+
+Designing a registry before anything needs registering is how this stops being a
+product.
+
+## What actually blocks a user today
+
+The deployed service has no model credential and no vendor account, so every job
+on it runs a shell command rather than an agent. That is the gap, and it is not
+a design problem.
