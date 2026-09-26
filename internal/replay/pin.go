@@ -3,7 +3,9 @@ package replay
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -80,4 +82,22 @@ func git(at string, args ...string) (string, error) {
 		return "", fmt.Errorf("git %s: %w: %s", args[0], err, strings.TrimSpace(complaint.String()))
 	}
 	return strings.TrimSpace(output.String()), nil
+}
+
+// Resolve pins a ref before any run has cloned it, the same way Pinned reads it
+// off a finished run: from a clone's record of the remote. The clone takes no
+// working tree and no file contents, and is gone when Resolve returns, so jobs
+// that must start from one commit can each clone their own workspace at it.
+func Resolve(repo, ref string) (Pin, error) {
+	scratch, err := os.MkdirTemp("", "haas-pin-")
+	if err != nil {
+		return Pin{}, err
+	}
+	defer os.RemoveAll(scratch)
+	if _, err := git(scratch, "clone", "--quiet", "--no-checkout", "--filter=blob:none", repo, "clone"); err != nil {
+		return Pin{}, err
+	}
+	pin, err := Pinned(filepath.Join(scratch, "clone"), ref)
+	pin.Committed = 0
+	return pin, err
 }

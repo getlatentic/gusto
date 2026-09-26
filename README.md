@@ -133,6 +133,30 @@ run's verdict.
 The exit code is 1 when any verdict got worse, 2 when a job could not be
 replayed, and 0 otherwise.
 
+## Compare
+
+`haas compare` runs one job on two or more harnesses, and keeps the runs as one
+comparison: a directory holding a job directory a harness and a
+`comparison.json` naming them.
+
+```
+$ haas compare /tmp/fix yes maybe -here
+comparison  /tmp/fix-compare-1
+commit      38b04cbd95cc3b008ce9f5cdee6d5357e0460f8d
+held        brief, budget, gate, ref, repo, sensitivity, version
+
+harness  verdict     harness exit  at budget  tokens  cost  evidence
+yes      passed (0)  0             false      -       -     checks
+maybe    failed (1)  0             false      -       -     checks
+```
+
+The runs differ only by harness. The commit is pinned once, the way `replay`
+pins one, before either run clones, and the brief, gate, budget and model are
+copied. Each run has its own workspace and evidence, and in a container neither
+can see the other. `haas compare /tmp/fix-compare-1` prints the comparison again
+from the evidence. What is held constant and why is in
+[docs/COMPARE.md](docs/COMPARE.md).
+
 ## A job directory
 
 ```

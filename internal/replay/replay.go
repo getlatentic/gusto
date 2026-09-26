@@ -90,10 +90,10 @@ func fill(old, fresh job.Dir, harness string, mark Mark) error {
 	if err := fresh.Make(); err != nil {
 		return err
 	}
-	if err := respec(old, fresh, mark.Commit); err != nil {
+	if err := Rewrite(old, fresh, map[string]any{"ref": mark.Commit}); err != nil {
 		return err
 	}
-	if err := carry(old, fresh, harness); err != nil {
+	if err := Carry(old, fresh, harness); err != nil {
 		return err
 	}
 	return writeMark(fresh, mark)
