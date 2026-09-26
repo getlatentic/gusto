@@ -183,6 +183,12 @@ with `exit` -1.
 index whether the job has ended (`internal/web/stream.go:19-58`). The file is the
 stream, so a watcher who arrives late is caught up from the beginning.
 
+A job the index does not know is answered 404 before a stream opens
+(`stream.go:20-25`), and nothing removes a job from the index once it is there.
+Each read takes the index's newest record of the job, and keeps the record the
+watcher already holds if the index has none (`stream.go:132-141`), so the watcher
+never names a verdict the index did not give.
+
 | the job is | the watcher gets |
 | --- | --- |
 | `queued` | an open stream and no data, so the page reads `waiting…` |
@@ -322,15 +328,3 @@ is what makes the sweep over `running` jobs correct rather than a guess. Claimin
 a job with an atomic create per job would make two servers safe instead of
 refusing the second, and that is a larger decision: it is the first piece of a
 fleet, and the queue is one process today.
-
-### One fault in the code
-
-A place where the code does not do what the code around it says, or cannot run
-at all. It is not fixed here.
-
-**One branch in the watcher cannot be reached.** `ended` treats a job the index
-does not know as interrupted (`internal/web/stream.go:62-67`). `watch` has
-already looked the job up and returned 404 when it was missing
-(`stream.go:20-23`), and nothing ever removes a record from the index — there is
-no `delete` on `Index.records` anywhere. The branch is unreachable, which makes
-it the wrong place to decide what a missing job means.

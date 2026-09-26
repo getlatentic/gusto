@@ -51,11 +51,28 @@ and `/healthz`.
 `haas ship /tmp/fix` hands a passed job back as a pull request. It re-hashes the
 evidence first and refuses, with exit 1, a job whose gate failed or whose files
 changed since the run. It puts `out/diff.patch` on a branch named for the job
-and its manifest hash, at the commit the job ran against, pushes it to the job's
-repository and opens a pull request naming the harness, the model, the gate and
-the manifest's hash. It never merges. `-dry-run` prints the plan and does none
-of it, and `-remote`, `-github owner/name` and `-base` override what it reads
-off the job.
+and its manifest hash, at the commit the job ran against. It commits `job.json`
+and `out/`, byte for byte, on top of that commit under
+`refs/haas/evidence/<manifest sha256>`, a ref that is not a branch, so the
+evidence never enters the change under review. It pushes both to the job's
+repository and opens a pull request naming the harness, the model and the
+gate, linking the manifest and the transcript, and printing the one command
+that checks them. It never merges. `-dry-run` prints the plan and does none of
+it, and `-remote`, `-github owner/name` and `-base` override what it reads off
+the job.
+
+A reviewer runs the command the pull request prints, which has this form:
+
+```bash
+haas check <repository> <manifest sha256>
+```
+
+`check` fetches the evidence ref with the reviewer's own git credentials, holds
+`manifest.json` to the hash the pull request names, re-hashes every file,
+rebuilds the workspace from `diff.patch` and checks it is the pull request's
+commit, then runs the gate. Like `verify`, it exits 1 and names what does not
+agree, and it runs nothing when the files do not match. `-into <dir>` keeps the
+job directory it unpacked.
 
 ```
 $ haas show /tmp/fix
@@ -128,6 +145,7 @@ job/
     harness.log     every line it printed, as it printed it
     stderr.log      what it complained about
     calls.jsonl     the model calls that reported tokens or cost
+    commands.jsonl  what the harness ran, apart from what it said
     diff.patch      what changed
     gate.log        the gate's whole output
     gates.json      the verdict
@@ -189,7 +207,7 @@ haas harnesses
 | --- | --- | --- | --- |
 | claude | `claude` | the user's own account | measured |
 | opencode | `opencode` | a model in the building | measured |
-| codex | `codex` | the user's own account | plain text, not yet measured |
+| codex | `codex` | the user's own account | measured |
 
 `needs` is one of `nothing`, `local`, `account` or `key`. `nothing` means exactly
 that: a harness can be a program that makes the change, and then no model is

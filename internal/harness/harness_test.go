@@ -3,6 +3,7 @@ package harness
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -218,4 +219,85 @@ func TestTheNamesOfferedIncludeYourOwn(t *testing.T) {
 	if !slices.IsSorted(names) {
 		t.Fatalf("a list a person reads should be sorted: %v", names)
 	}
+}
+
+// Some harnesses take the brief as an argument and some read it. codex waits on
+// standard input forever when it is given neither, which in a container is a
+// job that never ends.
+func TestAHarnessThatReadsItsBriefIsGivenIt(t *testing.T) {
+	adapter, err := Load("", "codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adapter.Stdin == "" {
+		t.Fatal("codex reads its brief on standard input and the adapter does not say so")
+	}
+	command := adapter.Command(context.Background(), job.Spec{Brief: "fix the adder"}, t.TempDir())
+	if command.Stdin == nil {
+		t.Fatal("nothing was put on standard input")
+	}
+	given, err := io.ReadAll(command.Stdin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(given) != "fix the adder" {
+		t.Fatalf("standard input carried %q", given)
+	}
+	for _, argument := range command.Args {
+		if argument == "fix the adder" {
+			t.Fatal("the brief was also passed as an argument, which codex would read as a path")
+		}
+	}
+}
+
+// Read off a real codex run with gpt-5.5. The text arrives as a completed item
+// and the usage on the turn that finished; codex reports no cost at all.
+const codexText = `{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"ok"}}`
+const codexUsage = `{"type":"turn.completed","usage":{"input_tokens":21768,"cached_input_tokens":1408,"cache_write_input_tokens":0,"output_tokens":5,"reasoning_output_tokens":0}}`
+const codexThread = `{"type":"thread.started","thread_id":"01a0de23-bcfd-7220-8282-bba4fac27745"}`
+
+func TestTheCodexAdapterReadsARealRun(t *testing.T) {
+	adapter, err := Load("", "codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	said := decode(t, codexText)
+	if value, ok := Pick(said, adapter.Text); !ok || value != "ok" {
+		t.Fatalf("text: %v %t", value, ok)
+	}
+	// An error item carries a message rather than text, so the text path does
+	// not mistake a warning for something the agent said.
+	warning := decode(t, `{"type":"item.completed","item":{"type":"error","message":"skills were shortened"}}`)
+	if _, ok := Pick(warning, adapter.Text); ok {
+		t.Fatal("an error item read as something the agent said")
+	}
+
+	usage := decode(t, codexUsage)
+	for path, want := range map[string]float64{
+		adapter.InputTokens:      21768,
+		adapter.OutputTokens:     5,
+		adapter.CacheReadTokens:  1408,
+		adapter.CacheWriteTokens: 0,
+	} {
+		if got, ok := Number(usage, path); !ok || got != want {
+			t.Errorf("%s = %v (%t), want %v", path, got, ok, want)
+		}
+	}
+	if adapter.CostUSD != "" {
+		t.Fatal("codex reports no cost, and inventing one would be a number nobody measured")
+	}
+
+	thread := decode(t, codexThread)
+	if value, ok := Pick(thread, adapter.SessionID); !ok || value != "01a0de23-bcfd-7220-8282-bba4fac27745" {
+		t.Fatalf("the conversation's name: %v %t", value, ok)
+	}
+}
+
+func decode(t *testing.T, line string) map[string]any {
+	t.Helper()
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(line), &decoded); err != nil {
+		t.Fatal(err)
+	}
+	return decoded
 }

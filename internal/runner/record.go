@@ -17,6 +17,7 @@ type Record struct {
 	raw        *os.File
 	transcript *os.File
 	calls      *os.File
+	commands   *os.File
 	errs       *os.File
 
 	// Remembered is the harness's own name for the conversation, said in its
@@ -40,6 +41,7 @@ func Open(dir job.Dir, adapter harness.Adapter) (*Record, error) {
 		{"harness.log", &record.raw},
 		{"transcript.log", &record.transcript},
 		{"calls.jsonl", &record.calls},
+		{"commands.jsonl", &record.commands},
 		{"stderr.log", &record.errs},
 	} {
 		file, err := os.Create(dir.OutFile(opening.name))
@@ -77,7 +79,37 @@ func (r *Record) Out(line string) error {
 			}
 		}
 	}
+	if err := r.did(decoded); err != nil {
+		return err
+	}
 	return r.usage(decoded, line)
+}
+
+// did keeps what the harness ran, apart from what it said. Somebody asking what
+// an agent touched should not have to read a transcript to find out, and a tool
+// call is the only place a harness says it. A line on which the adapter's tool
+// name resolves is a tool call; nothing else distinguishes one.
+func (r *Record) did(decoded map[string]any) error {
+	name, isCall := harness.Pick(decoded, r.adapter.ToolName)
+	if !isCall {
+		return nil
+	}
+	ran := map[string]any{"tool": name}
+	for field, path := range map[string]string{
+		"input":  r.adapter.ToolInput,
+		"status": r.adapter.ToolStatus,
+		"title":  r.adapter.ToolTitle,
+	} {
+		if value, found := harness.Pick(decoded, path); found {
+			ran[field] = value
+		}
+	}
+	line, err := json.Marshal(ran)
+	if err != nil {
+		return nil
+	}
+	_, err = r.commands.WriteString(string(line) + "\n")
+	return err
 }
 
 func (r *Record) usage(decoded map[string]any, line string) error {
@@ -128,7 +160,7 @@ func (r *Record) Spent() (*int64, *float64) {
 
 func (r *Record) Close() error {
 	var failure error
-	for _, file := range []*os.File{r.raw, r.transcript, r.calls, r.errs} {
+	for _, file := range []*os.File{r.raw, r.transcript, r.calls, r.commands, r.errs} {
 		if err := file.Close(); err != nil && failure == nil {
 			failure = err
 		}
