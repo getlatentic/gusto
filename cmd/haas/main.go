@@ -31,18 +31,16 @@ func run(args []string) int {
 		"run":       runJob,
 		"inside":    inside,
 		"submit":    submit,
-		"verify":    verify,
-		"ship":      shipJob,
-		"check":     checkPull,
-		"replay":    replayJobs,
 		"replay":    replayJobs,
 		"compare":   compareJobs,
+		"verify":    verify,
 		"check":     checkPull,
+		"ship":      shipJob,
+		"export":    exportJob,
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
 		"doctor":    checkMachine,
-		"export":    exportJob,
 	}[verb]
 	if !found {
 		usage()
