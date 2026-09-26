@@ -22,7 +22,7 @@ keys, read-only, and run again.
 | --- | --- | --- |
 | common | `git`, `acl`, a `haas` user with a home at `/opt/haas`, the checkout | any existing user |
 | toolchain | a pinned Go under `/opt/haas/go`, and the binary | the box's shared `/usr/local/go` |
-| sandbox | `podman`, `uidmap`, a subuid range, the runner image | iptables, and any daemon: podman runs none |
+| sandbox | `podman`, `uidmap`, a subuid range, the runner image carrying `runner_harnesses` | iptables, and any daemon: podman runs none |
 | store | the `haas` database, a `haas@localhost` user granted on `haas.*`, Redis db4 | every other database, user and index |
 | serve | a systemd unit on `127.0.0.1:8040` | ports other apps bind |
 | nginx | one name-based vhost for `haas.getlatentic.com`, and its certificate | the default site and every other vhost |
@@ -54,6 +54,20 @@ between them, every one a 404 from a scanner. Stopping them freed 165 MB, and
 removing graspy freed 1 GB. With the services stopped and the vhost still
 proxying to their port, `closer-api.tosinamuda.com` answers 502 rather than 404
 until the record or the vhost goes.
+
+## Which harnesses the image carries
+
+`runner_harnesses` in `group_vars/all.yml` is the list, as `name=package`. The
+deploy builds the image with it and reads the image's label back, and fails if
+the two differ. The smoke test runs one job on a harness no image carries and
+checks it is refused before it starts, with the reason in its transcript.
+
+The box carries opencode, claude and codex, and runs jobs on opencode alone.
+claude and codex answer to a person's own signed-in account, which a shared box
+does not hold, so the catalog does not offer them. Carrying them buys an image
+that already has them the day the proxy can stand in for that account (#85),
+and a catalog that says the account is what is missing rather than the program.
+It costs image size and build time, and it does not make either runnable here.
 
 ## Why a dedicated user rather than www-data
 

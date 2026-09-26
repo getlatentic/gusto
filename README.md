@@ -509,8 +509,30 @@ HAAS_MODEL_URL=http://localhost:11434/v1 haas run /tmp/fix
 `run` mounts the job directory, gives the container 512 processes and whatever
 `HAAS_JOB_CPUS` and `HAAS_JOB_MEMORY` allow, and destroys it afterwards. On a
 machine that hosts anything else, set them: a limit larger than the machine is not
-a limit. `HAAS_IMAGE` names a different image, and
-`--build-arg HARNESS_PACKAGE` builds one for a different harness.
+a limit. `HAAS_IMAGE` names a different image.
+
+One image carries several harnesses. `HARNESSES` lists them as `name=package`,
+the adapter's name beside the npm package that provides its program, and the
+default is `opencode=opencode-ai`:
+
+```bash
+docker build -t haas:dev \
+  --build-arg HARNESSES="opencode=opencode-ai claude=@anthropic-ai/claude-code codex=@openai/codex" .
+docker image inspect --format '{{ index .Config.Labels "com.getlatentic.haas.harnesses" }}' haas:dev
+```
+
+The image says what it carries in that label, and `haas serve` reads it when it
+starts. It still asks the image's PATH for each program, because the label is a
+claim and the PATH is what a job meets, and it offers only the harnesses it
+finds. A job that names one the image lacks anyway, from the command line or
+from a server whose image changed under it, is refused by the runner inside the
+box before the harness starts. The job ends `failed`, and its transcript says
+which program is missing and how to carry it.
+
+Each harness's own configuration is a directory under `image/harness/`, named
+after it and copied to `/root/.config/<name>/`. opencode reads that directory
+already, and the image points claude and codex at theirs with
+`CLAUDE_CONFIG_DIR` and `CODEX_HOME`.
 
 The runner clones the repository before the container starts, so a repository
 credential stays outside the box with the agent. An adapter of your own is copied
