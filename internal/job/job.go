@@ -45,7 +45,10 @@ type Budget struct {
 // Spec carries a brief, not a prompt. The brief is input to a harness, and a
 // field that passed a prompt straight through would make this a proxy for
 // somebody else's model account.
+//
+// Version is the format of job.json. A file without one is version 1.
 type Spec struct {
+	Version     int         `json:"version"`
 	Brief       string      `json:"brief"`
 	Repo        string      `json:"repo"`
 	Ref         string      `json:"ref"`
@@ -72,7 +75,9 @@ func (d Dir) Make() error {
 	return os.MkdirAll(d.Out(), 0o755)
 }
 
-// Read the spec, filling in what a person left out.
+// Read the spec, filling in what a person left out. A field this build does not
+// know is ignored, so a job written after an additive change still runs; a
+// version it does not know is refused.
 func Read(d Dir) (Spec, error) {
 	text, err := os.ReadFile(d.Spec())
 	if err != nil {
@@ -80,6 +85,9 @@ func Read(d Dir) (Spec, error) {
 	}
 	var spec Spec
 	if err := json.Unmarshal(text, &spec); err != nil {
+		return Spec{}, err
+	}
+	if err := Readable("job.json", spec.Version, Version); err != nil {
 		return Spec{}, err
 	}
 	spec = spec.withDefaults()
@@ -90,6 +98,9 @@ func Read(d Dir) (Spec, error) {
 }
 
 func (s Spec) withDefaults() Spec {
+	if s.Version == 0 {
+		s.Version = Version
+	}
 	if s.Ref == "" {
 		s.Ref = "HEAD"
 	}

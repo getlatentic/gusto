@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json",
+  "title": "haas out/manifest.json, version 1",
+  "description": "The record of a run: a SHA-256 of job.json and of every file in out/ except this one, the gate's verdict, what the harness did, and who stands behind it. `haas verify` re-hashes the files against it. A reader ignores a field it does not know.",
+  "type": "object",
+  "required": [
+    "job",
+    "files",
+    "gate",
+    "harness",
+    "harnessExit",
+    "stoppedAtBudget",
+    "modelEndpoint",
+    "tokens",
+    "costUsd",
+    "signer",
+    "atUnix"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "The format of this file. A file without it is version 1. A reader refuses a version newer than it knows.",
+      "const": 1
+    },
+    "job": {
+      "description": "The SHA-256 of job.json, as 64 lowercase hex digits.",
+      "type": "string"
+    },
+    "files": {
+      "description": "Every regular file in out/ except manifest.json, sorted by name. A file here that is gone or changed, or a file in out/ that is not here, fails verification.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "The file's name inside out/.",
+            "type": "string"
+          },
+          "sha256": {
+            "description": "The SHA-256 of the file's bytes, as 64 lowercase hex digits.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "gate": {
+      "description": "The gate's verdict, the same one out/gates.json holds.",
+      "type": "object",
+      "required": ["command", "code", "passed"],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "description": "The gate that ran: the program and its arguments.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "code": {
+          "description": "The gate's exit code.",
+          "type": "integer"
+        },
+        "passed": {
+          "description": "Whether the gate exited zero. This, not the harness, decides the job.",
+          "type": "boolean"
+        }
+      }
+    },
+    "harness": {
+      "description": "The name of the adapter that ran.",
+      "type": "string"
+    },
+    "harnessExit": {
+      "description": "The harness's exit code. A harness reporting success is a claim; the gate is the check.",
+      "type": "integer"
+    },
+    "stoppedAtBudget": {
+      "description": "Whether the harness was killed because the budget's seconds ran out.",
+      "type": "boolean"
+    },
+    "modelEndpoint": {
+      "description": "The address the harness talked to, as the rules checked it. Empty when the harness needs no model.",
+      "type": "string"
+    },
+    "tokens": {
+      "description": "The tokens the harness reported, or null when it reported none. Null is not zero: nothing reported is nothing claimed.",
+      "type": ["integer", "null"]
+    },
+    "costUsd": {
+      "description": "The cost in US dollars the harness reported, or null when it reported none.",
+      "type": ["number", "null"]
+    },
+    "signer": {
+      "description": "Who stands behind the run: HAAS_SIGNER on the runner, or \"unsigned\". A name, until a runner holds a key.",
+      "type": "string"
+    },
+    "atUnix": {
+      "description": "When the manifest was written, in seconds since the Unix epoch.",
+      "type": "integer"
+    }
+  }
+}
