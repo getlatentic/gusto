@@ -19,7 +19,7 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 		t.Skipf("%s is not answering on this machine: %v", Runtime(), err)
 	}
 	empty := job.Dir(t.TempDir())
-	_, err := Run(empty, "http://localhost:11434/v1")
+	_, err := Run(empty, "http://localhost:11434/v1", "")
 	if err == nil {
 		t.Fatal("a directory with no job.json must not run")
 	}

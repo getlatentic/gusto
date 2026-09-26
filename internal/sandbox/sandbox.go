@@ -35,7 +35,7 @@ func Image() string {
 // Run takes the address the container should ask for a model at. It is given
 // rather than read from the environment because it is per job: the proxy mints
 // a token for this run, and that token is in the address.
-func Run(dir job.Dir, model string) (int, error) {
+func Run(dir job.Dir, model, token string) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -47,6 +47,9 @@ func Run(dir job.Dir, model string) (int, error) {
 	args := []string{"run", "--rm",
 		"-v", absolute + ":/job",
 		"-e", "HAAS_MODEL_URL=" + inContainer(model),
+		// Where a harness would have put a credential. The real one stays in the
+		// proxy, and this is worth nothing once the job ends.
+		"-e", "HAAS_MODEL_TOKEN=" + token,
 		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
 		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
 		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),

@@ -26,5 +26,12 @@ db_name: haas
 db_user: haas
 redis_db: 4
 
+# The model this box thinks with. An OpenAI-compatible endpoint with a bearer
+# token, so the proxy adds the credential the same way it would for any other:
+# the container is given a per-job token and never the key. The address is the
+# root, because the container supplies the rest of the path.
+model_upstream: "https://bedrock-mantle.us-east-1.api.aws"
+model_name: "bedrock qwen3-vl-235b"
+
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.

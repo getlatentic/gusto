@@ -92,7 +92,8 @@ func chosenWork(way *WayOut) jobs.Work {
 			return 0, err
 		}
 		defer way.Done(dir)
-		return sandbox.Run(dir, way.For(dir))
+		address, token := way.For(dir)
+		return sandbox.Run(dir, address, token)
 	}
 }
 

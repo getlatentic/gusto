@@ -56,6 +56,19 @@ func New(tokens *Tokens, upstream Upstream, where Where) *Proxy {
 func (p *Proxy) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, rest := split(r.URL.Path)
+		// An OpenAI-compatible client puts its key in the Authorization header
+		// and its base URL in static configuration. A token in the path would
+		// mean rewriting that configuration per job, so the header is accepted
+		// too: the container presents the token exactly where it would have
+		// presented a credential, and the proxy trades it for the real one.
+		if _, known := p.tokens.Job(token); !known {
+			if bearer := bearerOf(r); bearer != "" {
+				if _, known := p.tokens.Job(bearer); known {
+					rest = path.Clean("/" + strings.TrimPrefix(r.URL.Path, "/model"))
+					token = bearer
+				}
+			}
+		}
 		job, known := p.tokens.Job(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
@@ -160,4 +173,13 @@ func (p *Proxy) note(job string, seen record) {
 	if _, err := fmt.Fprintf(file, "%s\n", line); err != nil {
 		slog.Error("the proxy could not write down a call", "job", job, "error", err)
 	}
+}
+
+// bearerOf is the token a client presented where a key would go.
+func bearerOf(r *http.Request) string {
+	given := r.Header.Get("Authorization")
+	if bearer, found := strings.CutPrefix(given, "Bearer "); found {
+		return strings.TrimSpace(bearer)
+	}
+	return ""
 }
