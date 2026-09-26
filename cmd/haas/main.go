@@ -36,6 +36,7 @@ func run(args []string) int {
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
+		"export":    exportJob,
 	}[verb]
 	if !found {
 		usage()
@@ -54,6 +55,7 @@ func usage() {
   haas verify <dir>     re-hash the evidence and re-run the gate
   haas ship <dir>       push a passed job's patch and open a pull request [-dry-run]
   haas show <dir>       what the job asked for and what happened
+  haas export <dir>     an audit record anybody can verify [-to, -policy, -requests, -verify]
   haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
 

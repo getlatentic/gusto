@@ -102,6 +102,54 @@ would read as free.
 [`schema/`](schema/). [docs/FORMATS.md](docs/FORMATS.md) says when the version
 changes and what a reader does with one it does not know.
 
+## An audit export
+
+`haas export <dir>` writes one job's audit record into a new directory,
+`<dir>.audit` unless `-to` names another. It answers who asked, what ran, what
+changed, which model, how much it spent and who approved it, in `audit.json`, and
+it carries the files each answer comes from.
+
+```
+job.audit/
+  audit.json        the summary, derived only from the files below
+  job.json          as the run left it, unless the policy redacted it
+  state.json        the server's state for the job, when it has one
+  requests.jsonl    the request log's lines that name the job, with -requests
+  out/              the evidence and its manifest
+```
+
+The export is a job directory without a workspace, so the manifest check that
+verifies a job verifies it too. `haas export -verify job.audit` runs that check,
+then checks every file against the hash the export recorded, then derives the
+summary again and compares it with `audit.json`. It exits 1 and names the file
+when anything disagrees. `haas verify` also re-runs the gate, which needs the
+workspace an export leaves behind.
+
+Where the platform keeps nothing, the summary says `not recorded` rather than
+leaving the field out. Two answers are always that today: who asked, because
+everybody signs in with one shared password, and who approved, because an agent
+opens a pull request and a person merges it on the forge.
+
+`-policy <file>` says what an export retains and what it hides. It is JSON:
+
+```json
+{
+  "drop": ["out/transcript.log", "requests.jsonl"],
+  "redact": {
+    "fields": ["brief", "remote"],
+    "patterns": [{"name": "api-key", "match": "sk-[A-Za-z0-9-]{16,}"}]
+  }
+}
+```
+
+A dropped file is not carried. A field's value becomes `"[redacted]"` in every
+JSON and JSON-lines file, and a pattern's match becomes `[redacted: api-key]`
+anywhere in text. `audit.json` lists each file the policy changed, the rules that
+changed it, and the hash the manifest holds for the original, and it records the
+policy whole. Verification expects exactly those files to differ, so what the
+policy left alone still verifies against the run. [docs/FORMATS.md](docs/FORMATS.md#the-audit-export)
+has the format.
+
 ## What a job costs, measured
 
 One task, run three ways: a one-line fix to a shell function, with a shell script
