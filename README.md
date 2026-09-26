@@ -40,6 +40,15 @@ the job holds so a server that has never heard of your harness can still run it.
 
 `inside` and `run` exit with the gate's answer: 0 when it passes.
 
+`haas ship /tmp/fix` hands a passed job back as a pull request. It re-hashes the
+evidence first and refuses, with exit 1, a job whose gate failed or whose files
+changed since the run. It puts `out/diff.patch` on a branch named for the job
+and its manifest hash, at the commit the job ran against, pushes it to the job's
+repository and opens a pull request naming the harness, the model, the gate and
+the manifest's hash. It never merges. `-dry-run` prints the plan and does none
+of it, and `-remote`, `-github owner/name` and `-base` override what it reads
+off the job.
+
 ```
 $ haas show /tmp/fix
 brief    make the answer yes
@@ -200,6 +209,7 @@ stops before starting the harness and says no model answers at that address.
 | `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
 | `HAAS_SIGNER` | who the manifest names |
+| `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
