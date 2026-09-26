@@ -89,6 +89,7 @@ job/
     harness.log     every line it printed, as it printed it
     stderr.log      what it complained about
     calls.jsonl     the model calls that reported tokens or cost
+    commands.jsonl  what the harness ran, apart from what it said
     diff.patch      what changed
     gate.log        the gate's whole output
     gates.json      the verdict
