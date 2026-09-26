@@ -2,35 +2,39 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
+{{if .Instances}}
+<h2>Running</h2>
 <section class="picks">
-  {{range .Catalog}}
-  {{if .Ready}}
-  <a class="pick" href="/instances/new?harness={{.Name}}">
-    <span class="name">{{.Name}}</span>
+  {{range .Instances}}
+  <a class="pick live" href="{{.Where}}">
+    <span class="name">{{.Harness}}</span>
+    <span class="line1">{{if .Repo}}{{.Repo}}{{else}}its own folder{{end}}</span>
+    <span class="go">
+      <span class="muted">{{.Threads}} thread{{if ne .Threads 1}}s{{end}} · {{when .Started}}</span>
+      {{with .Latest.State}}<span class="state {{.}}">{{.}}</span>{{end}}
+    </span>
   </a>
-  {{else}}
-  <div class="pick off">
-    <span class="name">{{.Name}}</span>
-    <span class="muted">{{.Why}}</span>
-  </div>
-  {{end}}
   {{end}}
 </section>
-
-{{if .Instances}}
-<h2>Yours</h2>
-<table>
-  <tr><th>Instance</th><th>Harness</th><th>Working in</th><th>Threads</th><th>Started</th></tr>
-  {{range .Instances}}
-  <tr>
-    <td><a href="/instances/{{.ID}}">{{.ID}}</a></td>
-    <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
-    <td class="muted">{{if .Repo}}{{.Repo}}{{else}}an empty directory{{end}}</td>
-    <td>{{.Threads}}</td>
-    <td class="muted">{{when .Started}}</td>
-  </tr>
-  {{end}}
-</table>
 {{end}}
+
+<h2>Start one</h2>
+<section class="picks">
+  {{range .Catalog}}
+  <article class="pick{{if not .Ready}} off{{end}}">
+    <span class="name">{{.Name}}</span>
+    <span class="what">{{if .Ready}}{{.What}}{{else}}{{.Why}}{{end}}</span>
+    {{if .Ready}}
+    <span class="go">
+      <form method="post" action="/instances">
+        <input type="hidden" name="harness" value="{{.Name}}">
+        <button type="submit">Start</button>
+      </form>
+      <a href="/instances/new?harness={{.Name}}">Give it a repository</a>
+    </span>
+    {{end}}
+  </article>
+  {{end}}
+</section>
 
 {{template "foot" .}}

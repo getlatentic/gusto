@@ -1,5 +1,6 @@
 {
   "name": "opencode",
+  "what": "Open source, and points at whichever model the deployment gives it.",
   "program": "opencode",
   "argv": [
     "run",

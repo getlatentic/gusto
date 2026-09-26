@@ -12,10 +12,13 @@ import (
 	"github.com/getlatentic/haas/internal/jobs"
 )
 
-// running is an instance with the one number a list of them needs.
+// running is an instance as a list of them shows it: how much is being said to
+// it, where to pick that up, and what it was last doing.
 type running struct {
 	instance.Instance
 	Threads int
+	Where   string
+	Latest  jobs.Record
 }
 
 // catalogPage is the front door: the harnesses this deployment can actually
@@ -24,7 +27,7 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	held := s.instances.List()
 	listed := make([]running, 0, len(held))
 	for _, each := range held {
-		listed = append(listed, running{Instance: each, Threads: len(s.instances.Threads(each.ID))})
+		listed = append(listed, s.lately(each))
 	}
 	s.render(w, "catalog.html", map[string]any{
 		"Title":     "haas",
@@ -55,6 +58,20 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	s.turnAway(w, r, "/", "this deployment cannot start "+wanted)
 }
 
+// lately is where to pick an instance up and what it was last doing. Somebody
+// coming back wants the conversation, not the page about it.
+func (s *Server) lately(held instance.Instance) running {
+	threads := s.instances.Threads(held.ID)
+	shown := running{Instance: held, Threads: len(threads), Where: "/instances/" + held.ID}
+	if len(threads) == 0 {
+		return shown
+	}
+	last := threads[len(threads)-1]
+	shown.Where = threadPath(last)
+	shown.Latest = s.latestTurn(last)
+	return shown
+}
+
 // startInstance gives a harness a computer to work in.
 func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 	wanted := instance.Instance{
@@ -67,6 +84,11 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/", "pick a harness to start")
 		return
 	}
+	// Starting from the catalog names no model, and the deployment's first is
+	// what the page would have offered anyway.
+	if wanted.Model == "" && len(s.models) > 0 {
+		wanted.Model = s.models[0]
+	}
 	name := wanted.Harness
 	if wanted.Repo != "" {
 		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
@@ -76,7 +98,14 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/instances/"+started.ID, http.StatusSeeOther)
+	// Somebody who started a harness wants to be talking to it, not reading a
+	// page about it, so the first conversation is opened with it.
+	thread, err := s.instances.NewThread(started.ID, "")
+	if err != nil {
+		http.Redirect(w, r, "/instances/"+started.ID, http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
 }
 
 // instancePage is one computer: what it runs, what it works in, and every
@@ -223,8 +252,12 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
+	named := thread.Title
+	if named == "" {
+		named = held.Harness
+	}
 	return map[string]any{
-		"Title":    "haas — " + thread.Title,
+		"Title":    "haas — " + named,
 		"Nav":      "harnesses",
 		"Instance": held,
 		"Thread":   thread,

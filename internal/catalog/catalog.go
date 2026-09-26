@@ -19,6 +19,7 @@ import (
 // Entry is one harness, as a person choosing has to see it.
 type Entry struct {
 	Name    string
+	What    string
 	Program string
 	Needs   harness.Needs
 	// Ready is whether this machine can run it now. Why says what is missing
@@ -52,7 +53,7 @@ func Survey(runtime, image string, names []string) []Entry {
 		if err != nil {
 			continue
 		}
-		entry := Entry{Name: name, Program: adapter.Program, Needs: adapter.Needs}
+		entry := Entry{Name: name, What: adapter.What, Program: adapter.Program, Needs: adapter.Needs}
 		entry.Ready, entry.Why = carried(runtime, image, adapter.Program)
 		if entry.Ready && adapter.Needs == harness.NeedsAccount {
 			// The program is there, but it answers to somebody's own

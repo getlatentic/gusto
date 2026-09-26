@@ -240,7 +240,10 @@ func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 // offered is the catalog a test server shows: one harness that needs nobody's
 // account, which is what a form may offer.
 func offered() []catalog.Entry {
-	return []catalog.Entry{{Name: "fixture", Program: "sh", Needs: harness.NeedsNothing, Ready: true}}
+	return []catalog.Entry{{
+		Name: "fixture", What: "what a fixture is", Program: "sh",
+		Needs: harness.NeedsNothing, Ready: true,
+	}}
 }
 
 // The page and the fragment must agree: a turn swapped in should be the same
@@ -287,21 +290,35 @@ func TestWhatIsVendoredIsServedFromTheBinary(t *testing.T) {
 	}
 }
 
-// startedThread is an instance with one thread open on it, and the address of
-// that thread.
+// startedThread is a harness started from the catalog, and the conversation
+// that starting it opens.
 func startedThread(t *testing.T, site *site) string {
 	t.Helper()
 	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
-	if !strings.HasPrefix(where, "/instances/") {
-		t.Fatalf("no instance was started: %d to %q", started.Code, where)
+	if !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting a harness did not open a conversation: %d to %q", started.Code, where)
 	}
-	opened := site.ask(t, "POST", where+"/threads", url.Values{"title": {"the first thing"}})
-	thread := opened.Header().Get("Location")
-	if !strings.HasPrefix(thread, where+"/threads/") {
-		t.Fatalf("no thread was opened: %d to %q", opened.Code, thread)
+	return where
+}
+
+// startedInstance is the instance a started conversation belongs to.
+func startedInstance(t *testing.T, site *site) string {
+	t.Helper()
+	thread := startedThread(t, site)
+	return thread[:strings.Index(thread, "/threads/")]
+}
+
+// Starting a harness is not reading about one. Whoever picked it wants to be
+// talking to it, so the first conversation is already open.
+func TestStartingAHarnessLandsInAConversationWithIt(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	where := startedThread(t, site)
+	body := site.ask(t, "GET", where, nil).Body.String()
+	if !strings.Contains(body, `name="said"`) {
+		t.Error("the page you land on has nowhere to say anything")
 	}
-	return thread
 }
 
 // Two threads on one instance are two conversations, and what is said in one
@@ -311,7 +328,6 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	site.signIn(t)
 	first := startedThread(t, site)
 	where := first[:strings.Index(first, "/threads/")]
-
 	opened := site.ask(t, "POST", where+"/threads", url.Values{"title": {"the second thing"}})
 	second := opened.Header().Get("Location")
 	if second == first {
@@ -351,11 +367,7 @@ func TestEveryPageOffersTheWayBackToTheCatalog(t *testing.T) {
 func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
-	where := started.Header().Get("Location")
-	if !strings.HasPrefix(where, "/instances/") {
-		t.Fatalf("no instance was started: %q", where)
-	}
+	where := startedInstance(t, site)
 	answer := site.ask(t, "POST", where+"/tasks", url.Values{
 		"brief": {"count the files"}, "gate": {"true"},
 	})
@@ -383,7 +395,7 @@ func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 func TestATaskWithNoGateIsRefused(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	where := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}).Header().Get("Location")
+	where := startedInstance(t, site)
 	answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}})
 	if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
 		t.Errorf("a task with no gate was accepted: %d to %q", answer.Code, got)
@@ -458,5 +470,19 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 	}
 	if got := shown(nil); got != "" {
 		t.Errorf("a cost nobody reported is shown as %q", got)
+	}
+}
+
+// A catalog of names is not a choice. Each card says what the harness is, and
+// carries the action that starts it.
+func TestTheCatalogSaysWhatEachHarnessIsAndOffersToStartIt(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	body := site.ask(t, "GET", "/", nil).Body.String()
+	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, ">Start<") {
+		t.Error("the catalog does not offer to start anything")
+	}
+	if !strings.Contains(body, "what a fixture is") {
+		t.Error("the catalog does not say what the harness is")
 	}
 }
