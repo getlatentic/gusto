@@ -198,10 +198,10 @@ stops before starting the harness and says no model answers at that address.
 ## Tests
 
 ```bash
-go test ./...
+go test ./... -race
 ```
 
-Fifty-one tests. Six run a whole job with a fixture harness — a program that makes the
+Six of them run a whole job with a fixture harness — a program that makes the
 change, which is all our own definition of a harness requires — and cover the
 cases the product rests on: a run whose manifest agrees with its own evidence, a
 changed file reported, a file added after the run reported, a harness that only
