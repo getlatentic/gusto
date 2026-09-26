@@ -21,12 +21,15 @@ and at the end of each one somebody can do one more step than before.
 | sprint | after it, a person can | ships |
 | --- | --- | --- |
 | 0 | run one job on their laptop and check the evidence | the CLI, the two formats, the container, one measured adapter |
-| 1 | finish the loop: a pull request carrying the evidence | `haas ship`, the vendor adapters, tool calls in the record |
-| 2 | send a job to a server and watch it from somewhere else | `haasd`, a queue, a live stream, an evidence store |
-| 3 | account for what it cost, and stop a job that spends too much | the proxy that holds the keys and counts tokens, hard caps |
-| 4 | ask which harness is better on their own codebase | the same job on two harnesses, verified side by side |
-| 5 | run the whole thing in their own cloud | one-artifact install, SSO, roles, audit export, signed evidence |
+| 1 | open a URL, start a job, and watch it happen | the service deployed, a sign-in, the pages to submit and watch, the evidence listed |
+| 2 | send an agent at a real repository and review what it did | a pull request carrying the evidence, the vendor harnesses, the evidence rendered |
+| 3 | account for what it cost, and stop a job that spends too much | the proxy that holds the keys and counts tokens, hard caps, a spend page |
+| 4 | ask which harness is better on their own codebase | the same job on two harnesses, compared on one page |
+| 5 | run the whole thing, UI included, in their own cloud | one-artifact install, SSO, roles, audit export, a signed record |
 | 6 | buy it as a service | tenancy, billing, runner pools, customer-machine runners |
+
+Every sprint from 1 onwards ends with something live at a URL. A sprint that ends
+with a binary nobody can open has not shipped.
 
 Sprint 0 is the walking skeleton: the thinnest path that goes all the way
 through. Everything after it keeps that path working.
