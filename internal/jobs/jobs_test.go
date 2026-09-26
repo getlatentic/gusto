@@ -202,7 +202,9 @@ func TestStoppingStartsNothingElse(t *testing.T) {
 	for count := 0; count < 5; count++ {
 		queued(t, index, "job")
 	}
-	started := make(chan struct{})
+	// started has room for every job, so a queue that wrongly starts a second
+	// one fails the count below rather than hanging here.
+	started := make(chan struct{}, 5)
 	release := make(chan struct{})
 	var taken atomic.Int32
 	queue := Start(index, func(dir job.Dir) (int, error) {
@@ -215,6 +217,9 @@ func TestStoppingStartsNothingElse(t *testing.T) {
 	<-started
 	stopped := make(chan struct{})
 	go func() { queue.Stop(); close(stopped) }()
+	// The job in flight ends only once stopping has begun, which is the case
+	// this test is about.
+	<-queue.stop
 	close(release)
 	select {
 	case <-stopped:
