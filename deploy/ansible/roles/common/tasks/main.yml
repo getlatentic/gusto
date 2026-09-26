@@ -30,22 +30,22 @@
 
 # The box pulls the code itself. A private repo needs a read-only deploy key,
 # and the key is generated here so it never leaves the machine that uses it.
+- name: The app user's ssh directory
+  ansible.builtin.file:
+    path: "{{ app_root }}/.ssh"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0700"
+
 - name: Deploy key
   community.crypto.openssh_keypair:
     path: "{{ app_root }}/.ssh/id_ed25519"
     type: ed25519
+    comment: "haas@greencloud"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0600"
-  register: deploy_key
-  failed_when: false
-
-- name: Deploy key, without the crypto collection
-  ansible.builtin.command:
-    cmd: ssh-keygen -t ed25519 -N '' -f {{ app_root }}/.ssh/id_ed25519 -C haas@greencloud
-    creates: "{{ app_root }}/.ssh/id_ed25519"
-  become_user: "{{ app_user }}"
-  when: deploy_key is failed or deploy_key is skipped
 
 - name: github.com in known_hosts
   ansible.builtin.known_hosts:

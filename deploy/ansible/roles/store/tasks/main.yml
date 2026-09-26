@@ -10,18 +10,18 @@
     cache_valid_time: 3600
 
 - name: The application database
-  community.mysql.mysql_db:
+  ansible.mysql.mysql_db:
     name: "{{ db_name }}"
     encoding: utf8mb4
     collation: utf8mb4_0900_as_cs
     state: present
     login_unix_socket: "{{ mysql_socket }}"
 
-# community.mysql.mysql_user's privilege handling fails on MySQL 9 with
+# ansible.mysql.mysql_user's privilege handling fails on MySQL 9 with
 # "(1046, 'No database selected')", which the box's inventory note records.
 # Explicit DDL runs cleanly and is idempotent.
 - name: The application user, on localhost, scoped to its own database
-  community.mysql.mysql_query:
+  ansible.mysql.mysql_query:
     login_unix_socket: "{{ mysql_socket }}"
     query:
       - "CREATE USER IF NOT EXISTS '{{ db_user }}'@'localhost' IDENTIFIED BY '{{ db_password }}'"
