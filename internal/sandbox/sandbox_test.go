@@ -34,3 +34,13 @@ func TestTheContainerCommandIsYours(t *testing.T) {
 		t.Fatalf("HAAS_CONTAINER should choose the runtime, got %q", Runtime())
 	}
 }
+
+func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
+	if got := share("HAAS_JOB_MEMORY", "3g"); got != "3g" {
+		t.Fatalf("default memory = %q", got)
+	}
+	t.Setenv("HAAS_JOB_MEMORY", "900m")
+	if got := share("HAAS_JOB_MEMORY", "3g"); got != "900m" {
+		t.Fatalf("a small machine should be able to say so, got %q", got)
+	}
+}

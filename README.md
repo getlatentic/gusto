@@ -153,8 +153,10 @@ docker build -t haas:dev .
 HAAS_MODEL_URL=http://localhost:11434/v1 haas run /tmp/fix
 ```
 
-`run` mounts the job directory, gives the container 1 CPU, 3 GiB and 512
-processes, and destroys it afterwards. `HAAS_IMAGE` names a different image, and
+`run` mounts the job directory, gives the container 512 processes and whatever
+`HAAS_JOB_CPUS` and `HAAS_JOB_MEMORY` allow, and destroys it afterwards. On a
+machine that hosts anything else, set them: a limit larger than the machine is not
+a limit. `HAAS_IMAGE` names a different image, and
 `--build-arg HARNESS_PACKAGE` builds one for a different harness.
 
 The runner clones the repository before the container starts, so a repository
@@ -185,6 +187,8 @@ stops before starting the harness and says no model answers at that address.
 | `HAAS_MODEL_URL` | where a local model answers |
 | `HAAS_IMAGE` | the runner image `haas run` starts |
 | `HAAS_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
+| `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
+| `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
 | `HAAS_SIGNER` | who the manifest names |
 
 ## Tests
