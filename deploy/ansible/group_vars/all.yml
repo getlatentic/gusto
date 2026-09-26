@@ -82,6 +82,9 @@ redis_claimed: false
 # The address is the model's root, with no version on it.
 model_upstream: ""
 model_name: "the platform credential"
+# What the pages offer to think with. Only the deployment knows which models the
+# credential actually reaches, so a server that names none offers a free field.
+models: ""
 proxy_addr: "0.0.0.0:8041"
 
 # ── The model ───────────────────────────────────────────────────────────────

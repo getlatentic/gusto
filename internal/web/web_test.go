@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/talk"
@@ -45,7 +47,7 @@ func open(t *testing.T) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, sessions, queue, password, []string{"fixture"})
+	server, err := New(index, sessions, queue, password, offered(), []string{"platform/test-model"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,4 +208,10 @@ func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 			t.Errorf("%q was served and should not have been", name)
 		}
 	}
+}
+
+// offered is the catalog a test server shows: one harness that needs nobody's
+// account, which is what a form may offer.
+func offered() []catalog.Entry {
+	return []catalog.Entry{{Name: "fixture", Program: "sh", Needs: harness.NeedsNothing, Ready: true}}
 }

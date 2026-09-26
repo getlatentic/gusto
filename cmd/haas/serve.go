@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/accesslog"
+	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
@@ -54,7 +55,15 @@ func serve(args []string) int {
 	queue := jobs.Start(index, chosenWork(way, sessions), number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
-	pages, err := web.New(index, sessions, queue, password, harness.Names())
+	// Asked once, at startup: the answer changes only when the image does, and
+	// asking per page would start a container for every row somebody looks at.
+	offered := catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
+	for _, entry := range offered {
+		if !entry.Ready {
+			fmt.Printf("  %-10s not offered: %s\n", entry.Name, entry.Why)
+		}
+	}
+	pages, err := web.New(index, sessions, queue, password, offered, catalog.Models(os.Getenv("HAAS_MODELS")))
 	if err != nil {
 		return fail(err)
 	}

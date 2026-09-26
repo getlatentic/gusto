@@ -7,8 +7,9 @@
     <label>Harness
       <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
     </label>
-    <label>Model <span class="muted">optional</span>
-      <input name="model" placeholder="platform/qwen.qwen3-vl-235b-a22b-instruct">
+    <label>Model
+      {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
+      {{else}}<input name="model" placeholder="this server names no models">{{end}}
     </label>
     <label>Repository <span class="muted">optional</span>
       <input name="repo" placeholder="leave empty for an empty directory">
@@ -16,6 +17,19 @@
   </div>
   <button type="submit">Start talking</button>
 </form>
+
+<h2>Harnesses</h2>
+<table>
+  <tr><th>Harness</th><th>Program</th><th>Needs</th><th></th></tr>
+  {{range .Catalog}}
+  <tr>
+    <td>{{.Name}}</td>
+    <td class="muted">{{.Program}}</td>
+    <td class="muted">{{.Wants}}</td>
+    <td>{{if .Ready}}<span class="state passed">ready</span>{{else}}<span class="muted">{{.Why}}</span>{{end}}</td>
+  </tr>
+  {{end}}
+</table>
 
 <h2>Conversations</h2>
 {{if .Sessions}}

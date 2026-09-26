@@ -32,6 +32,7 @@ redis_db: 4
 # root, because the container supplies the rest of the path.
 model_upstream: "https://bedrock-mantle.us-east-1.api.aws"
 model_name: "bedrock qwen3-vl-235b"
+models: "platform/qwen.qwen3-vl-235b-a22b-instruct"
 
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.

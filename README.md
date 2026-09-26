@@ -541,6 +541,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
 | `HAAS_PASSWORD` | the shared sign-in. `haas serve` refuses to start without it |
 | `HAAS_JOB_CONCURRENCY` | how many jobs run at once |
+| `HAAS_MODELS` | the models the pages offer, comma separated. Only a deployment knows which its credential reaches |
 | `HAAS_SANDBOX` | `here` runs a job in the server's own process instead of a container |
 | `HAAS_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
 | `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |

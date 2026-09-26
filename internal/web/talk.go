@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -19,7 +20,9 @@ func (s *Server) talking(w http.ResponseWriter, r *http.Request) {
 		"Title":     "haas — talking",
 		"Subtitle":  "a conversation with a harness",
 		"Sessions":  s.sessions.List(),
-		"Harnesses": s.harnesses,
+		"Harnesses": catalog.Ready(s.catalog),
+		"Catalog":   s.catalog,
+		"Models":    s.models,
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
