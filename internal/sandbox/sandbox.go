@@ -28,45 +28,64 @@ func Run(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if err := visible(absolute); err != nil {
+	alias, err := ready(absolute)
+	if err != nil {
 		return 0, err
 	}
-	model := strings.Replace(harness.ModelURL(), "localhost", "host.docker.internal", 1)
-	command := exec.Command("docker", "run", "--rm",
-		"-v", absolute+":/job",
-		"-e", "HAAS_MODEL_URL="+model,
-		"-e", "HAAS_SIGNER="+os.Getenv("HAAS_SIGNER"),
-		"--cpus=1", "--memory=3g", "--pids-limit=512",
-		"--add-host=host.docker.internal:host-gateway",
-		Image(), "inside", "/job")
+	args := []string{"run", "--rm",
+		"-v", absolute + ":/job",
+		"-e", "HAAS_MODEL_URL=" + inContainer(harness.ModelURL()),
+		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
+		"--cpus=1", "--memory=3g", "--pids-limit=512"}
+	if alias {
+		args = append(args, "--add-host=host.docker.internal:host-gateway")
+	}
+	args = append(args, Image(), "inside", "/job")
+	command := exec.Command("docker", args...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
-	if err := command.Run(); err != nil {
-		var exit *exec.ExitError
-		if !asExit(err, &exit) {
-			return 0, err
-		}
+	if err := command.Run(); err != nil && !isExit(err) {
+		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil
 }
 
-func asExit(err error, into **exec.ExitError) bool {
-	exit, ok := err.(*exec.ExitError)
-	if ok {
-		*into = exit
+// inContainer rewrites a model address the host reaches on loopback into one a
+// container reaches.
+func inContainer(url string) string {
+	for _, local := range []string{"localhost", "127.0.0.1"} {
+		url = strings.Replace(url, local, "host.docker.internal", 1)
 	}
-	return ok
+	return url
 }
 
-// visible checks the container can read the job directory before any work
-// starts. A bind mount of a path the container runtime does not share hands the
-// container a different, empty directory without saying so, and the run then
-// fails somewhere that does not name the cause.
-func visible(absolute string) error {
-	check := exec.Command("docker", "run", "--rm",
-		"-v", absolute+":/job", "--entrypoint", "test", Image(), "-f", "/job/job.json")
-	if err := check.Run(); err != nil {
-		return fmt.Errorf("the container cannot read %s/job.json: check that the path is shared with the container runtime", absolute)
+// ready checks the container can read the job directory, and reports whether the
+// runtime needs the host-gateway alias to resolve host.docker.internal.
+//
+// Both answers come from one container start because both failures are silent
+// otherwise. A bind mount of a path the runtime does not share hands over an
+// empty directory rather than failing. And Docker Desktop already resolves
+// host.docker.internal to the host, so adding the alias there replaces a working
+// address with the virtual machine's own bridge gateway, which reaches the
+// virtual machine instead of the host.
+func ready(absolute string) (bool, error) {
+	check := exec.Command("docker", "run", "--rm", "-v", absolute+":/job",
+		"--entrypoint", "sh", Image(), "-c",
+		"test -f /job/job.json || exit 3; getent hosts host.docker.internal >/dev/null || exit 4")
+	err := check.Run()
+	switch code := check.ProcessState.ExitCode(); {
+	case err == nil:
+		return false, nil
+	case code == 4:
+		return true, nil
+	case code == 3:
+		return false, fmt.Errorf("the container cannot read %s/job.json: check that the path is shared with the container runtime", absolute)
+	default:
+		return false, fmt.Errorf("could not start a container from %s: %w", Image(), err)
 	}
-	return nil
+}
+
+func isExit(err error) bool {
+	_, ok := err.(*exec.ExitError)
+	return ok
 }

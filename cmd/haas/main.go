@@ -86,6 +86,9 @@ func newJob(args []string) int {
 	if err := spec.Write(dir); err != nil {
 		return fail(err)
 	}
+	if err := harness.Keep(dir, spec.Harness); err != nil {
+		return fail(err)
+	}
 	fmt.Println(dir.Spec())
 	return 0
 }
@@ -94,6 +97,18 @@ func runJob(args []string) int {
 	dir, code := oneDir(args)
 	if code != 0 {
 		return code
+	}
+	// The checkout happens here rather than in the container, so a repository
+	// credential stays on the runner and never enters the box with the agent.
+	spec, err := job.Read(dir)
+	if err != nil {
+		return fail(err)
+	}
+	if err := dir.Make(); err != nil {
+		return fail(err)
+	}
+	if err := runner.Fill(spec, dir); err != nil {
+		return fail(err)
 	}
 	exit, err := sandbox.Run(dir)
 	if err != nil {
@@ -182,7 +197,7 @@ func show(args []string) int {
 
 func list(args []string) int {
 	for _, name := range harness.Names() {
-		adapter, err := harness.Load(name)
+		adapter, err := harness.Load("", name)
 		if err != nil {
 			return fail(err)
 		}

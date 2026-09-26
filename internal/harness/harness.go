@@ -76,11 +76,15 @@ type Adapter struct {
 	CostUSD      string `json:"costUsd,omitempty"`
 }
 
-// Load the adapter a job names.
-func Load(name string) (Adapter, error) {
-	if dir := os.Getenv("HAAS_HARNESSES"); dir != "" {
-		path := filepath.Join(dir, name+".json")
-		if text, err := os.ReadFile(path); err == nil {
+// Load the adapter a job names, looking in the job's own directory first.
+//
+// An adapter in the job travels with it, so a job naming a harness of your own
+// runs on a runner that has never heard of it — in a container, on a fleet, on
+// somebody else's machine. That is the same reason everything else about a run
+// lives in the directory.
+func Load(dir job.Dir, name string) (Adapter, error) {
+	for _, root := range roots(dir) {
+		if text, err := os.ReadFile(filepath.Join(root, name+".json")); err == nil {
 			return parse(text)
 		}
 	}
@@ -89,6 +93,42 @@ func Load(name string) (Adapter, error) {
 		return Adapter{}, fmt.Errorf("no harness called %s", name)
 	}
 	return parse(text)
+}
+
+// Carried is where an adapter sits inside a job directory.
+func Carried(dir job.Dir) string {
+	return filepath.Join(dir.Path(), "harnesses")
+}
+
+func roots(dir job.Dir) []string {
+	var roots []string
+	if dir != "" {
+		roots = append(roots, Carried(dir))
+	}
+	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
+		roots = append(roots, mine)
+	}
+	return roots
+}
+
+// Keep writes an adapter into the job, so that whoever runs the job next has it.
+// A built-in adapter is already everywhere, so only one of your own is copied.
+func Keep(dir job.Dir, name string) error {
+	if _, err := builtIn.ReadFile("adapters/" + name + ".json"); err == nil {
+		return nil
+	}
+	mine := os.Getenv("HAAS_HARNESSES")
+	if mine == "" {
+		return nil
+	}
+	text, err := os.ReadFile(filepath.Join(mine, name+".json"))
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(Carried(dir), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(Carried(dir), name+".json"), text, 0o644)
 }
 
 func parse(text []byte) (Adapter, error) {
