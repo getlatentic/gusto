@@ -23,6 +23,13 @@ about a job the file calls `running` (`index.go:22-28`, `138-155`).
 | `failed` | the gate exited non-zero, or the job could not run | `Finish`, `index.go:121-136`; `ended`, `index.go:149-153` |
 | `interrupted` | the run left no manifest, so nothing is known about it | `ended`, `index.go:143-147` |
 
+A manifest counts as this run's only when it was written after the run started,
+and claiming a job removes the one its last run left (`index.go`). A directory can
+be run again, and without both rules a second run that never reached its gate
+comes back carrying the first run's verdict. A recovered job takes its end from
+the manifest's `atUnix` rather than from the clock at recovery, so an outage is
+not counted as part of the job.
+
 `passed`, `failed` and `interrupted` are final. `Done` reports all three, and
 nothing reads a final state and queues the job again
 (`internal/jobs/state.go:29-31`).
@@ -316,24 +323,10 @@ a job with an atomic create per job would make two servers safe instead of
 refusing the second, and that is a larger decision: it is the first piece of a
 fleet, and the queue is one process today.
 
-### Three faults in the code
+### One fault in the code
 
-Each is a place where the code does not do what the code around it says, or
-cannot run at all. None is fixed here.
-
-**A manifest is trusted without being tied to the run.** `Open` reads whatever
-`out/manifest.json` holds (`index.go:141`), and nothing removes a manifest before
-the run that will replace it. Measured above: a re-queued directory reports the
-earlier run's verdict. The manifest names its `signer` and `atUnix`
-(`internal/evidence/evidence.go:37-50`) and neither is checked against the record
-that is being decided.
-
-**`endedAt` is the time the state was written.** `ended` sets it to `Now()` before
-it reads anything (`index.go:140`), so a job recovered from its manifest carries
-the restart's clock. The pages compute how long a job took from `startedAt` and
-`endedAt` (`internal/web/pages.go:25-30`), and for a recovered job that figure
-includes the outage. Measured: a run of 15 seconds reported as `took 20s`, with
-the manifest's `atUnix` 5 seconds before `endedAt`.
+A place where the code does not do what the code around it says, or cannot run
+at all. It is not fixed here.
 
 **One branch in the watcher cannot be reached.** `ended` treats a job the index
 does not know as interrupted (`internal/web/stream.go:62-67`). `watch` has
