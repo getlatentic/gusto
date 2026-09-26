@@ -38,6 +38,12 @@ live view while it runs, its evidence and a bundle to take away. `haas submit`
 posts a job directory to that server over `POST /api/jobs`, carrying an adapter
 the job holds so a server that has never heard of your harness can still run it.
 
+Every request `haas serve` answers leaves one JSON line on stderr, where journald
+keeps it: method, path, status, bytes, duration, the client's address, and
+whether the caller came with a `cookie`, a `bearer` password, or `none`. It names
+the kind of credential and never its value, and it leaves out the query string
+and `/healthz`.
+
 `inside` and `run` exit with the gate's answer: 0 when it passes.
 
 ```
