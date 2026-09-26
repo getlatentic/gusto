@@ -58,7 +58,6 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 		// proxy, and this is worth nothing once the job ends.
 		"-e", "HAAS_MODEL_TOKEN=" + token,
 		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
-		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
 	}
 	for _, mount := range mounts {
 		absolute, err := filepath.Abs(mount.From)
@@ -67,9 +66,7 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 		}
 		args = append(args, "-v", absolute+":"+mount.To)
 	}
-	args = append(args, []string{
-		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
-		"--pids-limit=512"}...)
+	args = append(args, Limits()...)
 	if alias {
 		args = append(args, "--add-host=host.docker.internal:host-gateway")
 	}
@@ -115,6 +112,17 @@ func ready(absolute string) (bool, error) {
 		return false, fmt.Errorf("the container cannot read %s/job.json: check that the path is shared with the container runtime", absolute)
 	default:
 		return false, fmt.Errorf("could not start a container from %s: %w", Image(), err)
+	}
+}
+
+// Limits are the flags that bound what one job takes of the machine. They are
+// exported so a check before a job can start a container under the same limits
+// the job will run under, because a runtime can refuse a limit outright.
+func Limits() []string {
+	return []string{
+		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
+		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
+		"--pids-limit=512",
 	}
 }
 

@@ -302,6 +302,36 @@ A model on the host has to listen on more than loopback for a container to reach
 it. With Ollama that is `OLLAMA_HOST=0.0.0.0` and a restart; until then `haas`
 stops before starting the harness and says no model answers at that address.
 
+## Before a job
+
+```bash
+haas doctor
+```
+
+`doctor` checks what a job needs from this machine, one named line a check, and
+exits 1 when any fails, so a deploy stops on it rather than on its first job. A
+failure says what to do on the line under it; a check that does not apply says
+`skip` and why.
+
+It asks the container command whether it answers, looks for the image locally,
+starts a container under the job's own `--memory` and `--cpus`, and mounts the
+jobs directory to see a file it left there. Each of those fails a job with exit
+125 or an empty directory otherwise, and a cap the runtime refuses is only
+refused at a start. It checks rootless podman reaches its runtime directory,
+which a systemd `ProtectHome` hides, and that `git` is on PATH, `HAAS_JOBS` is
+writable, `HAAS_MODEL_URL` answers and `HAAS_HARNESSES` parses when they are
+set. It says whether `HAAS_PASSWORD` is set, never what it is.
+
+```
+$ haas doctor
+skip  podman runtime directory  the container command is docker, not podman
+fail  container command         docker does not answer: failed to connect to the docker API at unix:///var/run/docker.sock; ...
+                                fix: start the docker daemon, or for rootless podman read the runtime directory line above
+skip  image                     the container command check did not pass
+skip  job limits                the image check did not pass
+pass  git                       git is at /usr/bin/git
+```
+
 ## Environment
 
 | name | what it does |
