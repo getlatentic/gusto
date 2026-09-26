@@ -13,14 +13,23 @@
     mode: "0750"
   loop:
     - repo
+    - harnesses
 
-- name: A harness that is only a program
+# The fixture belongs to the smoke test and to nothing else. The server offers
+# whatever it finds in harnesses_dir, so a fixture left there is a harness the
+# pages offer and a job that proves nothing by passing.
+- name: A harness that is only a program, where only the smoke test looks
   ansible.builtin.copy:
     src: fixture.json
-    dest: "{{ harnesses_dir }}/fixture.json"
+    dest: "{{ app_root }}/var/smoke/harnesses/fixture.json"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0640"
+
+- name: No fixture where the server looks
+  ansible.builtin.file:
+    path: "{{ harnesses_dir }}/fixture.json"
+    state: absent
 
 - name: A repository whose test fails until the job fixes it
   ansible.builtin.copy:
