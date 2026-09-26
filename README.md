@@ -134,6 +134,12 @@ all — set `HAAS_CONTAINER=podman`.
 
 ## Adapters
 
+A **harness** is the program — `claude`, `codex`, `opencode`. An **adapter** is
+how to run one. A **configured harness** is a harness plus the skills and MCP
+servers that shape it, and nothing here holds one yet. See
+[docs/TERMS.md](docs/TERMS.md).
+
+
 ```bash
 haas harnesses
 ```
