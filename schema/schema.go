@@ -1,5 +1,5 @@
-// Package schema holds the published formats of job.json and manifest.json, and
-// the validator the tests check real outputs with.
+// Package schema holds the published formats of job.json, manifest.json and
+// manifest.sig, and the validator the tests check real outputs with.
 //
 // The files are the contract for anybody who writes a runner or a reader
 // without reading the Go. Embedding them here means the tests validate against
@@ -15,8 +15,14 @@ var job []byte
 //go:embed manifest/v1.json
 var manifest []byte
 
+//go:embed signature/v1.json
+var signature []byte
+
 // Job is the schema of job.json, version 1.
 func Job() []byte { return job }
 
 // Manifest is the schema of out/manifest.json, version 1.
 func Manifest() []byte { return manifest }
+
+// Signature is the schema of out/manifest.sig, version 1.
+func Signature() []byte { return signature }

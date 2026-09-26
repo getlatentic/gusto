@@ -10,6 +10,7 @@ JSON Schema, draft 2020-12.
 | `job.json` | [`schema/job/v1.json`](../schema/job/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/job/v1.json` |
 | `out/manifest.json` | [`schema/manifest/v1.json`](../schema/manifest/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json` |
 | `audit.json` | [`schema/audit/v1.json`](../schema/audit/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/audit/v1.json` |
+| `out/manifest.sig` | [`schema/signature/v1.json`](../schema/signature/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/signature/v1.json` |
 
 The tests validate against these same files, embedded into the build. A job that
 `haas new` writes and the job and manifest a fixture run leaves must each match
@@ -43,6 +44,53 @@ The schemas themselves are stricter than a reader: they close every object with
 field a writer adds without describing it should fail the tests. To validate a
 file from a newer writer of the same version, use the schema at `main`, which
 carries every field that version has gained.
+
+## The signature
+
+`out/manifest.sig` is a detached Ed25519 signature over the exact bytes of
+`out/manifest.json`. It is detached because a signature inside the file it signs
+would have to be taken out again before checking, and the bytes left would then
+need one canonical JSON form that every writer and reader agrees on. Signing the
+bytes on disk needs no such form, and any Ed25519 tool can check it: `openssl
+pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfile <the
+decoded signature>` does. The code that writes and checks it is
+`internal/signing` and `internal/evidence`.
+
+| field | holds |
+| --- | --- |
+| `scheme` | `ed25519` |
+| `key` | the key id: `sha256:` and the first 16 bytes of the SHA-256 of the raw public key, in hex |
+| `publicKey` | the raw 32-byte public key, base64 |
+| `signature` | the 64-byte signature, base64 |
+
+The public key it carries lets `evidence.Check` tell that a manifest changed
+after it was signed, with no keyring, so `verify`, `export`, `replay` and `check`
+all refuse one. It says nothing about who signed: any key vouches for itself.
+Who signed is the verifier's keyring's answer, a directory of `<name>.pub` files
+named by `HAAS_KEYRING`, looked up by `key` and checked against the keyring's own
+copy of the key. The manifest's `signer` field stays what it was, the runner's
+own word for itself.
+
+A record without `manifest.sig` is unsigned. `haas verify` says so in those
+words and passes it, unless `-signed` is given, because every record made before
+signing is unsigned and the version rule below promises it still verifies. A
+signature from a key the keyring does not hold is refused by the key's id.
+
+### Why signing keeps the manifest at version 1
+
+Signing adds a file and changes no field of the manifest. An unsigned manifest
+is byte for byte what it was, and a signed one has the same fields meaning the
+same things. `files` leaves `manifest.sig` out for the reason it leaves
+`manifest.json` out: the signature is made over the manifest after it is
+written, so the manifest cannot hold its hash. That is an additive change, so
+the version stays.
+
+What an older reader does with a signed record is the test of that. It hashes
+`out/` without knowing the new file, and reports `manifest.sig is not in the
+manifest`. That is a refusal by name, never a silent misreading, which is the
+failure this document asks a reader to prefer. Remove the signature and the
+older reader verifies the record as what the signature's absence makes it:
+unsigned.
 
 ## The audit export
 

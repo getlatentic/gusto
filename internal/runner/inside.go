@@ -19,6 +19,7 @@ import (
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/rules"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // Inside does the whole run and returns the exit code the gate earned, so a
@@ -29,6 +30,12 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 	defer stopRelay()
+	// A key that is named but unreadable stops the run before the agent does
+	// any work, rather than leaving a record unsigned that was meant to be.
+	key, keyed, err := signing.Configured()
+	if err != nil {
+		return 0, err
+	}
 	spec, err := job.Read(dir)
 	if err != nil {
 		return 0, err
@@ -103,10 +110,15 @@ func Inside(dir job.Dir) (int, error) {
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,
 		CostUSD:         cost,
-		Signer:          signer(),
+		Signer:          signer(key, keyed),
 		AtUnix:          evidence.Now(),
 	}); err != nil {
 		return 0, err
+	}
+	if keyed {
+		if err := evidence.Seal(dir, key); err != nil {
+			return 0, err
+		}
 	}
 	if verdict == nil || verdict.Passed {
 		return 0, nil
@@ -182,9 +194,16 @@ func asExit(err error, into **exec.ExitError) bool {
 	return ok
 }
 
-func signer() string {
+// signer is the name the manifest gives for who stands behind it. It is the
+// runner's own word: a verifier names the signer from its keyring instead. A
+// runner with a key and no name gives the key's id, so a signed record never
+// calls itself unsigned.
+func signer(key signing.Key, keyed bool) string {
 	if name := os.Getenv("HAAS_SIGNER"); name != "" {
 		return name
+	}
+	if keyed {
+		return key.ID()
 	}
 	return "unsigned"
 }

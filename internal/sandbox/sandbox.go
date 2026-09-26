@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // Runtime is the container command. Podman takes the same arguments and runs no
@@ -68,14 +70,20 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return start(args)
+	return start(dir, args)
 }
 
-func start(args []string) (int, error) {
+// start runs the container, then signs the manifest it left. The manifest is
+// written inside the box, where the agent runs, so the key never goes in: the
+// host signs once the box is gone, with the key HAAS_SIGNING_KEY names here.
+func start(dir job.Dir, args []string) (int, error) {
 	command := exec.Command(Runtime(), args...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	if err := command.Run(); err != nil && !isExit(err) {
+		return 0, err
+	}
+	if err := evidence.SealAsConfigured(dir); err != nil {
 		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil
@@ -84,9 +92,13 @@ func start(args []string) (int, error) {
 // argv is the container's command line: the job directory, what reaches the
 // network, the mounts, and what one job may take of the machine.
 func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
+	signer, err := signerName()
+	if err != nil {
+		return nil, err
+	}
 	args := []string{"run", "--rm",
 		"-v", absolute + ":/job",
-		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
+		"-e", "HAAS_SIGNER=" + signer,
 	}
 	args = append(args, network...)
 	for _, mount := range mounts {
@@ -99,6 +111,18 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 	args = append(args, Limits()...)
 	args = append(args, Image(), "inside", "/job")
 	return args, nil
+}
+
+// signerName is the name the box writes into the manifest: HAAS_SIGNER, or the
+// id of the key the host will sign with, so a record the host signs never
+// calls itself unsigned. Reading the key here also stops a run whose key is
+// unreadable before the agent does any work.
+func signerName() (string, error) {
+	key, keyed, err := signing.Configured()
+	if name := os.Getenv("HAAS_SIGNER"); name != "" || err != nil || !keyed {
+		return name, err
+	}
+	return key.ID(), nil
 }
 
 // inContainer rewrites a model address the host reaches on loopback into one a
