@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getlatentic/haas/internal/accesslog"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -45,7 +46,7 @@ func serve(args []string) int {
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{
 		Addr:              address,
-		Handler:           pages.Handler(),
+		Handler:           accesslog.Keep(accesslog.Stderr())(pages.Handler()),
 		ReadHeaderTimeout: 10 * time.Second,
 		// A job's stream stays open for as long as the job runs, so there is no
 		// write timeout to set here; nginx holds the same view.
