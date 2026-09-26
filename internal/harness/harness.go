@@ -29,8 +29,11 @@ var builtIn embed.FS
 type Needs string
 
 const (
-	// NeedsNothing: a model in the building, and nothing outside it.
+	// NeedsNothing: no model at all. A harness can be a program that makes the
+	// change, and nothing about it leaves the machine.
 	NeedsNothing Needs = "nothing"
+	// NeedsLocal: a model in the building, and nothing outside it.
+	NeedsLocal Needs = "local"
 	// NeedsAccount: the user's own signed-in account, held by the CLI itself.
 	NeedsAccount Needs = "account"
 	// NeedsKey: an API key the proxy adds on the way out.
@@ -201,12 +204,17 @@ func ModelURL() string {
 }
 
 // EndpointOf is the address a job will talk to, for the rules to check. A
-// harness holding its own account names where that account lives.
+// harness that needs no model talks to nothing, and one holding its own account
+// names where that account lives.
 func (a Adapter) EndpointOf() string {
-	if a.Needs == NeedsNothing {
+	switch a.Needs {
+	case NeedsNothing:
+		return ""
+	case NeedsLocal:
 		return ModelURL()
+	default:
+		return a.Endpoint
 	}
-	return a.Endpoint
 }
 
 // Pick reads a dotted path out of a decoded JSONL line.

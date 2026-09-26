@@ -116,8 +116,12 @@ haas harnesses
 | harness | program | needs | stream |
 | --- | --- | --- | --- |
 | claude | `claude` | the user's own account | measured |
-| opencode | `opencode` | nothing outside the building | measured |
+| opencode | `opencode` | a model in the building | measured |
 | codex | `codex` | the user's own account | plain text, not yet measured |
+
+`needs` is one of `nothing`, `local`, `account` or `key`. `nothing` means exactly
+that: a harness can be a program that makes the change, and then no model is
+involved, no endpoint is checked, and a restricted job has nothing to refuse.
 
 An adapter is a JSON file. A directory named by `HAAS_HARNESSES` overrides a
 built-in adapter of the same name, so a customer corrects one or adds a harness

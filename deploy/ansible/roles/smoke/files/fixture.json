@@ -1,0 +1,7 @@
+{
+  "name": "fixture",
+  "program": "sh",
+  "argv": ["-c", "sed -i 's/\\$1 - \\$2/$1 + $2/' adder.sh && echo changed the operator"],
+  "needs": "nothing",
+  "stream": "plain"
+}

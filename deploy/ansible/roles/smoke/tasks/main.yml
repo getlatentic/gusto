@@ -1,0 +1,93 @@
+---
+
+# Skipped when smoke is false.
+# A deploy that cannot run a job has not finished. This runs one, in a container,
+# on this box, and checks its own evidence — the same three commands a person
+# would use, so nothing here is a special path.
+- name: The smoke directories
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/smoke/{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0750"
+  loop:
+    - harnesses
+    - repo
+
+- name: A harness that is only a program
+  ansible.builtin.copy:
+    src: fixture.json
+    dest: "{{ app_root }}/var/smoke/harnesses/fixture.json"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0640"
+
+- name: A repository whose test fails until the job fixes it
+  ansible.builtin.copy:
+    dest: "{{ app_root }}/var/smoke/repo/{{ item.name }}"
+    content: "{{ item.body }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+  loop:
+    - name: adder.sh
+      body: "add() {\n  echo $(( $1 - $2 ))\n}\n"
+    - name: test.sh
+      body: "#!/bin/sh\n. ./adder.sh\nresult=$(add 2 3)\n[ \"$result\" = 5 ] && { echo ok; exit 0; }\necho \"add 2 3 gave $result, not 5\"\nexit 1\n"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: The repository is a repository
+  ansible.builtin.shell:
+    cmd: git init -q . && git add -A && git -c user.email=haas@localhost -c user.name=haas commit -qm "an adder that subtracts"
+    chdir: "{{ app_root }}/var/smoke/repo"
+    creates: "{{ app_root }}/var/smoke/repo/.git"
+  become_user: "{{ app_user }}"
+
+# A fresh job each deploy: the point is whether this build runs one, not whether
+# an old directory is still there.
+- name: Last deploy's job removed
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/smoke/job"
+    state: absent
+
+- name: A job, described the way a person would
+  ansible.builtin.command:
+    cmd: >-
+      {{ app_root }}/bin/haas new {{ app_root }}/var/smoke/job
+      -repo {{ app_root }}/var/smoke/repo
+      -brief "make add add"
+      -harness fixture
+      -- sh test.sh
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+    HAAS_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
+  changed_when: true
+
+- name: The job runs in a container and passes its gate
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/bin/haas run {{ app_root }}/var/smoke/job"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+    HAAS_CONTAINER: "{{ container_runtime }}"
+    HAAS_IMAGE: "{{ runner_image }}"
+    HAAS_JOB_MEMORY: "{{ job_memory }}"
+    HAAS_JOB_CPUS: "{{ job_cpus }}"
+    HAAS_SIGNER: "greencloud"
+  changed_when: true
+
+- name: Its evidence agrees with itself
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/bin/haas verify {{ app_root }}/var/smoke/job"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  changed_when: false
+  register: verified
+
+- name: What the deploy proved
+  ansible.builtin.debug:
+    var: verified.stdout

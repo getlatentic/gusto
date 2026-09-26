@@ -21,7 +21,8 @@ func Allows(spec job.Spec, endpoint string) error {
 	if spec.Sensitivity != job.Restricted {
 		return nil
 	}
-	if Local(endpoint) {
+	// No endpoint means no model: there is nowhere for the code to go.
+	if endpoint == "" || Local(endpoint) {
 		return nil
 	}
 	return fmt.Errorf("restricted code, so the model has to be local: %s is not", endpoint)

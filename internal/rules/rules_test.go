@@ -46,3 +46,11 @@ func TestInternalCodeMayUseAVendorModel(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAHarnessWithNoModelIsAllowedWhateverTheLabel(t *testing.T) {
+	// A harness can be a program that makes the change. Nothing leaves, so the
+	// restricted label has nothing to refuse.
+	if err := Allows(spec(job.Restricted), ""); err != nil {
+		t.Fatal(err)
+	}
+}

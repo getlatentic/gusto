@@ -1,8 +1,14 @@
 {
   "name": "opencode",
   "program": "opencode",
-  "argv": ["run", "--format", "json", "--model={model}", "{brief}"],
-  "needs": "nothing",
+  "argv": [
+    "run",
+    "--format",
+    "json",
+    "--model={model}",
+    "{brief}"
+  ],
+  "needs": "local",
   "stream": "jsonl",
   "totals": "perCall",
   "text": "part.text",

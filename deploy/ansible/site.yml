@@ -7,5 +7,8 @@
     - toolchain # a pinned Go under the app root, never the box's shared one
     - sandbox # rootless podman, and the runner image
     - store # this app's own database, user and Redis index on the shared services
+    # One real job, in a container, checked: a deploy that proves itself.
+    - role: smoke
+      when: smoke | bool
     - serve # the HTTP service, once there is one to run (serve_enabled)
     - nginx # a name-based vhost and its certificate (serve_enabled)

@@ -50,3 +50,14 @@
   environment:
     HOME: "{{ app_root }}"
   changed_when: false
+
+# The build stage leaves an untagged image behind — 957 MB of a Go toolchain the
+# runtime never uses. The named bases stay, so a rebuild does not re-pull them.
+- name: Dangling build images reclaimed
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} image prune -f"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: pruned
+  changed_when: pruned.stdout | trim | length > 0

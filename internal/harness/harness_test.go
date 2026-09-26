@@ -182,3 +182,24 @@ func TestAPathIntoAListThatIsNotThereIsNotFound(t *testing.T) {
 		}
 	}
 }
+
+func TestWhatEachHarnessTalksTo(t *testing.T) {
+	t.Setenv("HAAS_MODEL_URL", "http://localhost:11434/v1")
+	for name, want := range map[string]string{
+		"opencode": "http://localhost:11434/v1",
+		"claude":   "https://api.anthropic.com",
+		"codex":    "https://api.openai.com",
+	} {
+		adapter, err := Load("", name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := adapter.EndpointOf(); got != want {
+			t.Errorf("%s talks to %q, want %q", name, got, want)
+		}
+	}
+	program := Adapter{Needs: NeedsNothing}
+	if got := program.EndpointOf(); got != "" {
+		t.Errorf("a harness needing no model talks to %q", got)
+	}
+}

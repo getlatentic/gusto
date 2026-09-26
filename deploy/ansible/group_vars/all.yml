@@ -36,6 +36,12 @@ job_memory: 900m
 job_cpus: "1"
 job_concurrency: 2
 
+# ── Proving the deploy ──────────────────────────────────────────────────────
+# Every deploy runs one real job in a container and verifies its evidence. It
+# costs a few seconds and it is the only thing that proves the runner works on
+# this box rather than on a laptop.
+smoke: true
+
 # ── The service, and the pages ──────────────────────────────────────────────
 # Off until there is an HTTP server to run. Turning it on brings up the systemd
 # unit, the vhost and the certificate.
