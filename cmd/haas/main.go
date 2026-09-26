@@ -34,6 +34,7 @@ func run(args []string) int {
 		"verify":    verify,
 		"ship":      shipJob,
 		"check":     checkPull,
+		"replay":    replayJobs,
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
@@ -56,6 +57,7 @@ func usage() {
   haas ship <dir>       push a passed job's patch and open a pull request [-dry-run]
   haas check <repo> <sha256>  fetch a pull request's evidence and verify it [-into <dir>]
   haas show <dir>       what the job asked for and what happened
+  haas replay <dir>...  run finished jobs again at the same commit, compare verdicts [-here]
   haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
 

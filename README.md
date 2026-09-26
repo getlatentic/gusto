@@ -94,6 +94,45 @@ $ haas verify /tmp/fix
 `verify` exits 1 and names the file when anything in `out/` has changed since
 the run.
 
+## Replay
+
+`haas replay` runs finished jobs again, unchanged, and compares the new verdict
+with the old one. It is how a harness upgrade that makes things worse is caught
+before a team notices.
+
+```
+$ haas replay /jobs -here
+job        harness  before      after       harness exit  change  replay
+/jobs/one  yes      passed (0)  passed (0)  0 -> 0        same    /jobs/one-replay-1
+/jobs/two  yes      failed (1)  failed (1)  0 -> 0        same    /jobs/two-replay-1
+
+2 replayed: 0 worse, 0 better, 2 same, 0 could not run
+```
+
+It takes job directories, or a directory of jobs, and makes a fresh directory
+beside each, `<job>-replay-<n>`, or under `-into`. The new job is the old
+`job.json` and adapter with one change: `ref` becomes the commit the old run
+started from, so a repository that moved on since does not change the question.
+It runs in a container like `haas run`, or in this process with `-here`, and
+leaves evidence of its own. The old directory is only read, and a job whose
+evidence no longer checks is not replayed, because its verdict is not the one to
+compare against.
+
+The commit is read off the old workspace, and not from its `HEAD`: a harness
+that commits moves `HEAD` onto a commit only its workspace has. The clone's
+`refs/remotes/origin/*` and `refs/tags/*` keep what the repository held when the
+job cloned, so the job's `ref` is resolved against those, and a `ref` that is
+already a commit id is its own answer.
+
+A replay says so in `out/replay.json`: the original's directory, the hash of its
+manifest, the commit and the reference it was read from, and how many commits the
+original harness made on top. It is written before the run, so the replay's
+manifest hashes it. The harness can read which run it repeats and never that
+run's verdict.
+
+The exit code is 1 when any verdict got worse, 2 when a job could not be
+replayed, and 0 otherwise.
+
 ## A job directory
 
 ```
