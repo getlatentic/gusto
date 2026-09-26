@@ -41,3 +41,25 @@
     enabled: true
     daemon_reload: true
   when: serve_enabled | bool
+
+# The box keeps a curated note of what runs on it, and it is the first thing
+# anybody deploying here reads. A deploy that changes ports or databases and
+# leaves that note stale is how the next person collides with this app.
+- name: The box's inventory note says what haas holds
+  ansible.builtin.blockinfile:
+    path: /opt/INVENTORY.md
+    marker: "<!-- {mark} haas (managed by haas/deploy/ansible) -->"
+    create: false
+    block: |
+      ## haas (repo getlatentic/haas)
+
+      | thing | value |
+      |---|---|
+      | services | `haas` (user `haas`, not www-data: rootless podman needs a subuid range and a home) |
+      | port | {{ backend_port }} (lo) |
+      | vhost | {{ server_name }} |
+      | state | job directories under `{{ app_root }}/var/jobs`; MySQL `{{ db_name }}` and Redis db{{ redis_db }} are claimed and currently unused |
+      | containers | rootless `podman` as `haas`; one job at a time takes {{ job_memory }} and {{ job_cpus }} CPU, {{ job_concurrency }} at once |
+      | toolchain | its own Go under `{{ app_root }}/go`; does not use the shared `/usr/local/go` |
+  when: serve_enabled | bool
+  failed_when: false
