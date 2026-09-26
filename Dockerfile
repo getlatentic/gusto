@@ -1,15 +1,19 @@
+# The runner, and the harness it runs. Image names carry their registry because
+# podman refuses a short name unless the host configures a search registry, and a
+# deploy should not need a global file on a shared box to build.
+#
 # The runner, and the harness it runs. The runner is inside the box because a
 # harness with its own tool loop runs its edits and shell in its own process, so
 # containing the CLI alone would leave those outside.
 
-FROM golang:1.26 AS build
+FROM docker.io/library/golang:1.26 AS build
 WORKDIR /src
 COPY go.mod ./
 COPY cmd cmd
 COPY internal internal
 RUN CGO_ENABLED=0 go build -trimpath -o /haas ./cmd/haas
 
-FROM node:24-slim
+FROM docker.io/library/node:24-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
