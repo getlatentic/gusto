@@ -30,7 +30,13 @@ gate is everything after `--`, so quoting survives.
 haas new /tmp/fix -repo /path/to/repo -brief "make the answer yes" -harness opencode -- go test ./...
 haas inside /tmp/fix     # do the work here
 haas run /tmp/fix        # do the work in a container
+haas submit /tmp/fix     # send it to a server, which runs it
 ```
+
+`haas serve` puts the pages in front of all of this: a form to describe a job, a
+live view while it runs, its evidence and a bundle to take away. `haas submit`
+posts a job directory to that server over `POST /api/jobs`, carrying an adapter
+the job holds so a server that has never heard of your harness can still run it.
 
 `inside` and `run` exit with the gate's answer: 0 when it passes.
 
@@ -194,6 +200,12 @@ stops before starting the harness and says no model answers at that address.
 | `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
 | `HAAS_SIGNER` | who the manifest names |
+| `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
+| `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
+| `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
+| `HAAS_PASSWORD` | the shared sign-in. `haas serve` refuses to start without it |
+| `HAAS_JOB_CONCURRENCY` | how many jobs run at once |
+| `HAAS_SANDBOX` | `here` runs a job in the server's own process instead of a container |
 
 ## Tests
 

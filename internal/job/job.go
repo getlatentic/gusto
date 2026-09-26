@@ -8,6 +8,7 @@ package job
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -21,6 +22,19 @@ const (
 	Internal   Sensitivity = "internal"
 	Restricted Sensitivity = "restricted"
 )
+
+// Known reports whether this is a label the rules understand.
+//
+// An unknown label must never read as "not restricted". The rules ask whether a
+// job is restricted, so `secret`, `confidential` or `Restricted` would each
+// switch off the one rule this platform enforces, silently, by a typo.
+func (s Sensitivity) Known() bool {
+	switch s {
+	case Public, Internal, Restricted:
+		return true
+	}
+	return false
+}
 
 // Budget is what a job may spend before a runner stops it.
 type Budget struct {
@@ -68,7 +82,11 @@ func Read(d Dir) (Spec, error) {
 	if err := json.Unmarshal(text, &spec); err != nil {
 		return Spec{}, err
 	}
-	return spec.withDefaults(), nil
+	spec = spec.withDefaults()
+	if !spec.Sensitivity.Known() {
+		return Spec{}, fmt.Errorf("%q is not a sensitivity this runner knows, so it cannot say what may leave", spec.Sensitivity)
+	}
+	return spec, nil
 }
 
 func (s Spec) withDefaults() Spec {
