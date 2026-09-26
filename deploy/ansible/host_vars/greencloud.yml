@@ -30,8 +30,15 @@ redis_db: 4
 # token, so the proxy adds the credential the same way it would for any other:
 # the container is given a per-job token and never the key. The address is the
 # root, because the container supplies the rest of the path.
-model_upstream: "https://bedrock-mantle.us-east-1.api.aws"
-model_name: "bedrock qwen3-vl-235b"
+# Measured on 2026-09-26: this endpoint serves 58 models, but only the
+# open-weights ones are licensed here. It answers /v1/chat/completions and
+# /v1/responses; the anthropic.* models it lists refuse both.
+credentials:
+  - name: platform
+    address: "https://bedrock-mantle.us-east-1.api.aws"
+    auth: bearer
+    key_var: model_key
+
 models: "platform/qwen.qwen3-vl-235b-a22b-instruct"
 
 # ufw is active and default-deny, and already allows nginx. The service binds
