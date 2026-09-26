@@ -1,0 +1,78 @@
+# Deploying haas
+
+One playbook, run from a laptop, against a box that already serves other
+people's sites. It is idempotent and additive: it installs what is missing,
+claims one database, one user and one Redis index, adds one nginx vhost, and
+leaves everything else exactly as it was.
+
+```bash
+ansible-galaxy collection install -r requirements.yml
+cp inventory.example.ini inventory.ini
+ansible-playbook site.yml -e @greencloud.vault.yml \
+  --vault-password-file ~/.config/lpcg/vault_pass.txt
+```
+
+Code reaches the box by `git pull`, so **push the branch first**. The playbook
+prints a public key on its first run; register it under the repository's Deploy
+keys, read-only, and run again.
+
+## What it does, in order
+
+| role | what it adds | what it never touches |
+| --- | --- | --- |
+| common | `git`, `acl`, a `haas` user with a home at `/opt/haas`, the checkout | any existing user |
+| toolchain | a pinned Go under `/opt/haas/go`, and the binary | the box's shared `/usr/local/go` |
+| sandbox | `podman`, `uidmap`, a subuid range, the runner image | iptables, and any daemon: podman runs none |
+| store | the `haas` database, a `haas@localhost` user granted on `haas.*`, Redis db4 | every other database, user and index |
+| serve | a systemd unit on `127.0.0.1:8040` | ports other apps bind |
+| nginx | one name-based vhost for `haas.tosinamuda.com`, and its certificate | the default site and every other vhost |
+
+`serve_enabled` is **false** until the binary has an HTTP server. Until then the
+playbook gives the box a working runner, which is worth having on its own: a job
+directory on the box runs with `/opt/haas/bin/haas run <dir>`.
+
+## Why a dedicated user rather than www-data
+
+The other apps here run as `www-data`, and that is the right default. Rootless
+containers need a subuid range and a writable home for the image store. Adding
+those to the user that eight other services run as would change those services.
+A new user changes nothing.
+
+## Why podman rather than docker
+
+It runs no daemon, so nothing is resident between jobs and no firewall rules are
+rewritten on a box whose nginx fronts other sites. The arguments are the same as
+docker's, so `HAAS_CONTAINER` is all that differs.
+
+## Why both MySQL and SQLite
+
+Two deployments, both real. This box has MySQL and Redis already, so haas uses
+them: records in its own database, and Redis for the queue and for fanning a
+job's output out to everybody watching it. A customer installing one artifact in
+their own cloud gets SQLite in one file, because a second and third service to
+provision is not one artifact. `store` chooses.
+
+## What one job may take
+
+Measured on this box on 2026-09-26, before anything was installed: 4 vCPU, 7894
+MB of memory with 3100 MB available, 4095 MB of swap, 58 GB of disk with 25 GB
+free, load 0.00. An `opencode` job peaked at 663 MiB in its container, so
+`job_concurrency: 2` with `job_memory: 900m` is about 1.8 GB of the 3.1 GB that
+was free. Raise them only against a fresh reading of `free -m`.
+
+## Secrets
+
+`greencloud.vault.yml` is this app's own vault, gitignored and
+ansible-vault-encrypted with the box's shared vault password
+(`~/.config/lpcg/vault_pass.txt`). It holds `db_password` and `haas_password`,
+the shared credential that stands in for sign-in until there is an identity
+provider.
+
+## Before the first run with serve_enabled
+
+1. Add an A record for `haas.tosinamuda.com` → `91.109.118.72`, DNS-only, so
+   certbot's HTTP-01 challenge reaches the box.
+2. Check `ss -tlnH` for `:8040` once more; the inventory can drift.
+3. Rootless podman under a system unit needs `/run/user/<uid>`, which the
+   lingering session creates. Confirm it exists before trusting the service to
+   survive a reboot.

@@ -1,0 +1,10 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart haas
+  ansible.builtin.systemd:
+    name: haas
+    state: restarted
+  when: serve_enabled | bool

@@ -1,0 +1,52 @@
+---
+# podman rather than docker: no daemon, so nothing is resident between jobs, and
+# no iptables rules are rewritten on a box whose nginx fronts other sites.
+# uidmap carries newuidmap/newgidmap, which rootless containers need.
+- name: podman and the rootless helpers
+  ansible.builtin.apt:
+    name:
+      - podman
+      - uidmap
+      - slirp4netns
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: A subuid range for the app user
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: "^{{ app_user }}:"
+    line: "{{ app_user }}:565536:65536"
+    create: true
+    mode: "0644"
+  loop:
+    - /etc/subuid
+    - /etc/subgid
+
+# A user service has to keep running when nobody is logged in.
+- name: The app user's session lingers
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ app_user }}"
+    creates: "/var/lib/systemd/linger/{{ app_user }}"
+
+- name: The runner image
+  ansible.builtin.command:
+    cmd: >-
+      {{ container_runtime }} build
+      --build-arg HARNESS_PACKAGE={{ harness_package }}
+      -t {{ runner_image }} .
+    chdir: "{{ app_root }}/src"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: image
+  changed_when: "'Successfully tagged' in image.stdout or 'COMMIT' in image.stdout"
+
+- name: The runtime can start a container
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} run --rm {{ runner_image }} harnesses"
+    chdir: "{{ app_root }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  changed_when: false

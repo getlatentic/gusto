@@ -1,0 +1,29 @@
+---
+# greencloud (91.109.118.72) — a SHARED box. It already runs closer, lpcg,
+# fungifting, voice-telco with its SIP and RTP ports, graspy, a WordPress site,
+# a Label Studio behind a Cloudflare tunnel, MySQL, PostgreSQL, Redis and nginx.
+# haas coexists: its own user, its own port, its own vhost, and nothing else
+# touched.
+#
+# Measured on 2026-09-26, before any of this: 4 vCPU, 7894 MB of memory with
+# 3100 MB available, 4095 MB of swap, 58 GB of disk with 25 GB free, load 0.00.
+# An opencode job peaked at 663 MiB in its container, so two at a time is about
+# 1.8 GB of the 3.1 GB that is free. That is where job_concurrency comes from.
+job_concurrency: 2
+job_memory: 900m
+
+# :8000, :8010, :8020, :8021, :8030 and :8081 are taken by the other apps.
+backend_port: 8040
+
+# The box's own MySQL and Redis, claimed the way every other app here claims
+# them: one database, one user granted on `haas.*` and nothing else, and Redis
+# db4 because db0 to db3 are in use. Neither service is installed or
+# reconfigured by this playbook, and no other app's database, user or index is
+# touched. db_password lives in greencloud.vault.yml.
+store: mysql
+db_name: haas
+db_user: haas
+redis_db: 4
+
+# ufw is active and default-deny, and already allows nginx. The service binds
+# localhost, so there is no rule to add.

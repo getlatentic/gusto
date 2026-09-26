@@ -1,0 +1,33 @@
+[Unit]
+Description=haas — jobs, their evidence, and the pages in front of them
+After=network.target{% if store == 'mysql' %} mysql.service redis-server.service{% endif %}
+
+{% if store == 'mysql' %}
+Wants=mysql.service redis-server.service
+{% endif %}
+
+[Service]
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_root }}
+EnvironmentFile={{ app_root }}/var/haas.env
+# Rootless podman keeps its image store under this home, and needs a user
+# runtime directory to talk to conmon.
+Environment=HOME={{ app_root }}
+Environment=XDG_RUNTIME_DIR=/run/user/{{ app_uid }}
+ExecStart={{ app_root }}/bin/haas serve
+Restart=always
+RestartSec=3
+# A container holding a job is a child. On stop the service is signalled and gets
+# time to end its jobs and write their evidence before anything is killed.
+KillMode=mixed
+TimeoutStopSec=60
+# It runs other people's code, on a box that serves other people's sites.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths={{ app_root }}
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
