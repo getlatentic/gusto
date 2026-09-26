@@ -1,6 +1,7 @@
 package ship
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -27,20 +28,22 @@ type Options struct {
 // Plan is everything shipping will do, decided before anything is done. The
 // same job gives the same plan, so a dry run shows exactly what a real run does.
 type Plan struct {
-	Job      string
-	Source   string
-	Remote   string
-	Branch   string
-	At       string
-	Patch    string
-	Owner    string
-	Name     string
-	Base     string
-	Title    string
-	Body     string
-	Message  string
-	Manifest string
-	When     int64
+	Job             string
+	Remote          string
+	Branch          string
+	Evidence        string
+	At              string
+	Patch           string
+	Owner           string
+	Name            string
+	Base            string
+	Title           string
+	Body            string
+	Message         string
+	EvidenceMessage string
+	Manifest        string
+	Commits         Commits
+	When            int64
 }
 
 // Prepare refuses a job that must not ship, and plans one that may.
@@ -78,23 +81,36 @@ func planned(dir job.Dir, spec job.Spec, manifest evidence.Manifest, digest stri
 	if err != nil {
 		return Plan{}, err
 	}
-	record := record{spec: spec, manifest: manifest, digest: digest, at: at}
-	return Plan{
-		Job:      dir.Path(),
-		Source:   located(spec.Repo),
-		Remote:   remote,
-		Branch:   branchName(dir, digest),
-		At:       at,
-		Patch:    patch,
-		Owner:    owner,
-		Name:     name,
-		Base:     base,
-		Title:    record.title(),
-		Body:     record.body(),
-		Message:  record.message(dir),
-		Manifest: digest,
-		When:     manifest.AtUnix,
-	}, nil
+	plan := Plan{
+		Job:             dir.Path(),
+		Remote:          remote,
+		Branch:          branchName(dir, digest),
+		Evidence:        EvidenceRef(digest),
+		At:              at,
+		Patch:           patch,
+		Owner:           owner,
+		Name:            name,
+		Base:            base,
+		Manifest:        digest,
+		When:            manifest.AtUnix,
+		EvidenceMessage: evidenceMessage(dir, digest),
+	}
+	return described(dir, plan, record{spec: spec, manifest: manifest, digest: digest, at: at})
+}
+
+// described makes the commits to learn their names, then writes what the pull
+// request says, which links the evidence commit by name.
+func described(dir job.Dir, plan Plan, record record) (Plan, error) {
+	plan.Title = record.title()
+	plan.Message = record.message(dir)
+	commits, err := planCommits(context.Background(), dir, plan)
+	if err != nil {
+		return Plan{}, err
+	}
+	plan.Commits = commits
+	record.links = links{owner: plan.Owner, name: plan.Name, remote: plan.Remote, ref: plan.Evidence, commits: commits}
+	plan.Body = record.body()
+	return plan, nil
 }
 
 // Pull is the request the forge is sent.
