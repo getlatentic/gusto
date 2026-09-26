@@ -21,6 +21,10 @@
   "totals": "perCall",
   "text": "part.text",
   "sessionId": "sessionID",
+  "toolName": "part.tool",
+  "toolInput": "part.state.input",
+  "toolStatus": "part.state.status",
+  "toolTitle": "part.state.title",
   "inputTokens": "part.tokens.input",
   "outputTokens": "part.tokens.output",
   "costUsd": "part.cost"
