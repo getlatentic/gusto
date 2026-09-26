@@ -47,7 +47,7 @@ smoke: true
 # unit, the vhost and the certificate.
 serve_enabled: false
 backend_port: 8040
-server_name: haas.tosinamuda.com
+server_name: haas.getlatentic.com
 api_public_port: 443
 enable_tls: true
 certbot_email: tosinamuda@gmail.com
