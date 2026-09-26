@@ -1,0 +1,38 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<form class="card" method="post" action="/talk">
+  <div class="row">
+    <label>Harness
+      <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
+    </label>
+    <label>Model <span class="muted">optional</span>
+      <input name="model" placeholder="platform/qwen.qwen3-vl-235b-a22b-instruct">
+    </label>
+    <label>Repository <span class="muted">optional</span>
+      <input name="repo" placeholder="leave empty for an empty directory">
+    </label>
+  </div>
+  <button type="submit">Start talking</button>
+</form>
+
+<h2>Conversations</h2>
+{{if .Sessions}}
+<table>
+  <tr><th>Conversation</th><th>Harness</th><th>Working in</th><th>Turns</th><th>Started</th></tr>
+  {{range .Sessions}}
+  <tr>
+    <td><a href="/talk/{{.ID}}">{{.ID}}</a></td>
+    <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
+    <td class="muted">{{if .Repo}}{{.Repo}}{{else}}an empty directory{{end}}</td>
+    <td>{{len .Turns}}</td>
+    <td class="muted">{{when .Started}}</td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="muted">Nobody has said anything yet.</p>
+{{end}}
+
+{{template "foot" .}}

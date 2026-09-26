@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/talk"
 )
 
 const password = "a-shared-password"
@@ -40,7 +41,11 @@ func open(t *testing.T) *site {
 		return 0, nil
 	}, 1)
 	t.Cleanup(queue.Stop)
-	server, err := New(index, queue, password, []string{"fixture"})
+	sessions, err := talk.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(index, sessions, queue, password, []string{"fixture"})
 	if err != nil {
 		t.Fatal(err)
 	}
