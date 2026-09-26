@@ -11,7 +11,7 @@
       {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
       {{else}}<input name="model">{{end}}
     </label>
-    <label>Repository <span class="muted">optional</span>
+    <label><span class="line">Repository <span class="muted">optional</span></span>
       <input name="repo" placeholder="git@github.com:you/repo.git">
     </label>
   </div>
@@ -20,7 +20,7 @@
 
 <h2>Harnesses</h2>
 <table>
-  <tr><th>Harness</th><th>Program</th><th>Needs</th><th></th></tr>
+  <tr><th></th><th>Program</th><th>Needs</th><th></th></tr>
   {{range .Catalog}}
   <tr>
     <td>{{.Name}}</td>
@@ -31,8 +31,8 @@
   {{end}}
 </table>
 
-<h2>Conversations</h2>
 {{if .Sessions}}
+<h2>Conversations</h2>
 <table>
   <tr><th>Conversation</th><th>Harness</th><th>Working in</th><th>Turns</th><th>Started</th></tr>
   {{range .Sessions}}
@@ -45,8 +45,6 @@
   </tr>
   {{end}}
 </table>
-{{else}}
-
 {{end}}
 
 {{template "foot" .}}

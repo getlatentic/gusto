@@ -18,7 +18,7 @@
     <label>Harness
       <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
     </label>
-    <label>Model <span class="muted">optional</span>
+    <label><span class="line">Model <span class="muted">optional</span></span>
       <input name="model" placeholder="ollama/gpt-oss:20b">
     </label>
     <label>Sensitivity
@@ -40,8 +40,8 @@
   <button type="submit">Run it</button>
 </form>
 
-<h2>Jobs</h2>
 {{if .Jobs}}
+<h2>Jobs</h2>
 <table>
   <tr><th>Job</th><th>State</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
   {{range .Jobs}}
@@ -54,8 +54,6 @@
   </tr>
   {{end}}
 </table>
-{{else}}
-
 {{end}}
 
 {{template "foot" .}}

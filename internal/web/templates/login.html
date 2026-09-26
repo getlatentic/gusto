@@ -25,6 +25,8 @@ button, a.button { font: 600 inherit; cursor: pointer; text-align: center; text-
   padding: var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm);
   background: var(--yg-accent); color: var(--yg-on-accent); }
 button:hover, a.button:hover { background: var(--yg-accent-hover); }
+/* Secondary only when something else on the page is primary. A page with one
+   action does not have a quiet one. */
 form.password button { background: none; color: var(--yg-text-muted); font-weight: 400;
   border: 1px solid var(--yg-border-strong); }
 form.password button:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
@@ -44,7 +46,7 @@ svg { width: 18px; height: 18px; vertical-align: -4px; margin-right: var(--yg-sp
   <hr>
   {{end}}
 
-  <form class="password" method="post" action="/login">
+  <form{{if .Identity}} class="password"{{end}} method="post" action="/login">
     <input type="password" name="password" placeholder="Shared password" {{if not .Identity}}autofocus{{end}} required>
     <button type="submit">Sign in</button>
   </form>

@@ -55,6 +55,10 @@ td a:hover { color: var(--yg-accent-text); }
 form.card { display: grid; gap: var(--yg-space-4); padding: var(--yg-space-6);
   background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
 label { display: grid; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-subtle); }
+/* A qualifier belongs on the same line as what it qualifies, or it reads as a
+   second thing to take in. */
+label > .muted { font-size: inherit; }
+label .line { display: flex; align-items: baseline; gap: var(--yg-space-2); }
 input, select, textarea { font: inherit; padding: var(--yg-space-3);
   border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
   background: var(--yg-surface); color: var(--yg-text); width: 100%; }
