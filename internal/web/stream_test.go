@@ -10,10 +10,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/talk"
 )
 
 // A watcher here is served over a pipe rather than a socket. A write to a pipe
@@ -204,5 +209,103 @@ func TestAWatcherThatKeepsReadingSeesEveryLineAndTheVerdict(t *testing.T) {
 	case <-viewer.letGo:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the handler never let go of a finished stream")
+	}
+}
+
+// idle is a site with no queue behind it, so a queued job stays queued until the
+// test says otherwise.
+func idle(t *testing.T) *site {
+	t.Helper()
+	index, err := jobs.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := talk.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(index, sessions, nil, password, []string{"fixture"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := &site{handler: server.Handler(), index: index}
+	site.signIn(t)
+	return site
+}
+
+// aJobIn puts a job on disk in the state given, with lines in its transcript.
+func aJobIn(t *testing.T, site *site, id string, state jobs.State, said ...string) {
+	t.Helper()
+	dir := job.Dir(filepath.Join(site.index.Root(), id))
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	if len(said) > 0 {
+		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		transcript := strings.Join(said, "\n") + "\n"
+		if err := os.WriteFile(dir.OutFile("transcript.log"), []byte(transcript), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := site.index.Add(jobs.Record{ID: id, State: state, Brief: "watch me", Queued: jobs.Now()}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAWatcherOfAnEndedJobIsReplayedTheTranscriptAndToldHowItEnded(t *testing.T) {
+	for _, state := range []jobs.State{jobs.Passed, jobs.Failed, jobs.Interrupted} {
+		t.Run(string(state), func(t *testing.T) {
+			site := idle(t)
+			aJobIn(t, site, "20260101-0900-"+string(state), state, "first line", "last line before the end")
+			got := site.ask(t, "GET", "/watch/20260101-0900-"+string(state), nil).Body.String()
+			want := "data: first line\n\ndata: last line before the end\n\nevent: ended\ndata: " + string(state) + "\n\n"
+			if got != want {
+				t.Errorf("the stream was %q, and the job says %q", got, want)
+			}
+		})
+	}
+}
+
+func TestAWatcherOfAQueuedJobWaitsForItsVerdict(t *testing.T) {
+	site := idle(t)
+	id := "20260101-0900-still-queued"
+	aJobIn(t, site, id, jobs.Queued)
+	viewer := watchOverAPipe(t, site, id)
+	if err := viewer.conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	// The stream is open with nothing on it. Were a queued job taken as ended,
+	// the verdict would already be waiting on the pipe and the handler would
+	// have let go.
+	select {
+	case <-viewer.letGo:
+		t.Fatal("the stream ended while the job was still queued")
+	case <-time.After(time.Second):
+	}
+	if err := site.index.Finish(id, jobs.Failed, 1); err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(viewer.response.Body)
+	if err != nil {
+		t.Fatalf("the stream did not end cleanly: %v", err)
+	}
+	if want := "event: ended\ndata: failed\n\n"; string(got) != want {
+		t.Errorf("the stream was %q after the job ended, and %q is its verdict", got, want)
+	}
+}
+
+// A job the index never knew is answered 404 before any stream opens, so the
+// record the watcher holds is the only word on it, and it names no verdict.
+func TestTheLatestWordOnAJobTheIndexNeverKnewIsTheOneTheWatcherHolds(t *testing.T) {
+	index, err := jobs.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{index: index}
+	held := jobs.Record{ID: "20260101-0900-never-added", State: jobs.Running}
+	if got := server.latest(held); got != held {
+		t.Errorf("the watcher was given %+v in place of %+v", got, held)
 	}
 }
