@@ -38,7 +38,7 @@ This list is the product. A buyer works down it, and most of it is not built.
 | --- | --- | --- |
 | identity | SSO, and roles that separate who may run a job, who may approve one, and who may change policy | one shared password |
 | credentials | a key per team, added by the proxy on the way out and never inside a sandbox | built, one key |
-| spend | budgets per team, project and job, with caps that stop a running job | the proxy counts; nothing caps |
+| spend | budgets per team, project and job, with caps that stop a running job | the proxy counts and caps a job and a team; the count is not yet measured against a real provider |
 | data | where a job runs, and what may leave it. Outbound denied unless an allowlist names it | the runner classes exist; the allowlist does not |
 | model policy | which models may see which repositories, enforced rather than remembered | one rule: restricted code needs a local model |
 | isolation | one sandbox a job, never reused, destroyed after | built |
@@ -158,7 +158,8 @@ real agent in a container, holds a conversation across turns, and hands back a
 record that verifies on somebody else's machine.
 
 What blocks a *second* person is spending. One shared sign-in means everybody who
-can sign in can spend the platform credential, and nothing caps a job yet. The
-proxy counts what actually leaves the box, which is what a cap has to be built
-on, so this is work rather than a question — but the password does not go to
-anybody until it is done.
+can sign in can spend the platform credential. The proxy now counts what each
+call cost and refuses a job or a team past its cap, but the count reads a usage
+shape nobody has yet measured against a real provider, and a team is a label
+anybody can type. The password does not go to anybody until a real run proves
+the count.

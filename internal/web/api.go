@@ -77,6 +77,10 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: short})
 		return
 	}
+	if err := sent.Spec.Budget.Check(); err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
 	adapter, err := runnable(sent.Spec, sent.Adapter)
 	if err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})

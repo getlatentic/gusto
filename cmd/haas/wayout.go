@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/spend"
 )
 
 // WayOut is how a container reaches a model. When a credential is configured it
@@ -20,17 +21,28 @@ import (
 type WayOut struct {
 	proxy   *proxy.Proxy
 	tokens  *proxy.Tokens
+	ledger  *spend.Ledger
 	address string
 	direct  string
 }
 
 // openWayOut reads what is configured. HAAS_MODEL_UPSTREAM is the model's root,
 // with no version on it, because the container supplies the rest of the path.
+// HAAS_SPEND_POLICY names the prices and team caps, and the ledger starts from
+// what every job under jobsRoot has already spent.
 func openWayOut(jobsRoot string) (*WayOut, error) {
 	direct := setting("HAAS_MODEL_URL", "http://localhost:11434/v1")
 	upstream := os.Getenv("HAAS_MODEL_UPSTREAM")
 	if upstream == "" {
 		return &WayOut{direct: direct}, nil
+	}
+	policy, err := spend.LoadPolicy(os.Getenv("HAAS_SPEND_POLICY"))
+	if err != nil {
+		return nil, err
+	}
+	ledger, err := spend.Rebuild(jobsRoot, policy)
+	if err != nil {
+		return nil, err
 	}
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) {
@@ -44,8 +56,9 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 			Address: upstream,
 			Key:     os.Getenv("HAAS_MODEL_KEY"),
 			Name:    setting("HAAS_MODEL_NAME", "the platform credential"),
-		}, where),
+		}, where, ledger),
 		tokens:  tokens,
+		ledger:  ledger,
 		address: setting("HAAS_PROXY_ADDR", "0.0.0.0:8041"),
 	}, nil
 }
@@ -76,12 +89,13 @@ func (w *WayOut) Listen() (func(), error) {
 // For is the address this job's container asks at, and the token it presents
 // there. The token is where a harness would have put a credential, so its
 // configuration stays the same from one job to the next, and what this job
-// spends is attributed to it.
-func (w *WayOut) For(dir job.Dir) (address, token string) {
+// spends is attributed to it and counted against its caps.
+func (w *WayOut) For(dir job.Dir, spec job.Spec) (address, token string) {
 	if w.proxy == nil {
 		return w.direct, ""
 	}
 	id := filepath.Base(dir.Path())
+	w.ledger.Begin(id, spend.TermsOf(spec))
 	minted, err := w.tokens.Mint(id)
 	if err != nil {
 		return w.direct, ""

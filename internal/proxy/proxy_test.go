@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/haas/internal/spend"
 )
 
 // upstream stands in for the model, and records what it was actually sent.
@@ -32,7 +34,8 @@ func site(t *testing.T, key string) (*Proxy, *Tokens, string, *http.Header) {
 	tokens := NewTokens()
 	kept := t.TempDir()
 	proxy := New(tokens, Upstream{Address: model.URL, Key: key, Name: "the-platform-key"},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true })
+		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
+		spend.NewLedger(spend.Policy{}))
 	return proxy, tokens, kept, &seen
 }
 
@@ -113,15 +116,15 @@ func TestWhatActuallyWentIsWrittenDown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var seen record
+	var seen spend.Call
 	if err := json.Unmarshal([]byte(strings.TrimSpace(string(text))), &seen); err != nil {
 		t.Fatal(err)
 	}
 	if seen.Path != "/v1/chat/completions" || seen.Status != 200 || seen.Bytes == 0 {
 		t.Fatalf("the record is %+v", seen)
 	}
-	if seen.Model != "the-platform-key" {
-		t.Fatalf("the record names the credential as %q", seen.Model)
+	if seen.Credential != "the-platform-key" {
+		t.Fatalf("the record names the credential as %q", seen.Credential)
 	}
 	if strings.Contains(string(text), "the-real-key") {
 		t.Fatal("the credential itself is in the record")

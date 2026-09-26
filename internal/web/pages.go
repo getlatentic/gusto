@@ -2,10 +2,12 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,9 +75,19 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		Harness:     r.FormValue("harness"),
 		Model:       strings.TrimSpace(r.FormValue("model")),
 		Sensitivity: job.Sensitivity(r.FormValue("sensitivity")),
+		Team:        strings.TrimSpace(r.FormValue("team")),
 	}
 	if spec.Brief == "" || spec.Repo == "" || len(gate) == 0 {
 		http.Redirect(w, r, "/?refused=a+job+needs+a+repository,+a+brief+and+a+gate", http.StatusSeeOther)
+		return
+	}
+	capped, err := dollars(r.FormValue("usd"))
+	if err == nil {
+		spec.Budget.USD = capped
+		err = spec.Budget.Check()
+	}
+	if err != nil {
+		s.refuse(w, r, err)
 		return
 	}
 	id := s.index.Free(spec.Brief, time.Now())
@@ -103,6 +115,20 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.queue.Wake()
 	http.Redirect(w, r, "/jobs/"+id, http.StatusSeeOther)
+}
+
+// dollars is a cap a person typed. Nothing typed is no cap, which is not the
+// same as a cap of nothing.
+func dollars(typed string) (*float64, error) {
+	typed = strings.TrimPrefix(strings.TrimSpace(typed), "$")
+	if typed == "" {
+		return nil, nil
+	}
+	amount, err := strconv.ParseFloat(typed, 64)
+	if err != nil {
+		return nil, fmt.Errorf("%q is not an amount of dollars", typed)
+	}
+	return &amount, nil
 }
 
 func (s *Server) refuse(w http.ResponseWriter, r *http.Request, err error) {
