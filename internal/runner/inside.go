@@ -24,6 +24,11 @@ import (
 // Inside does the whole run and returns the exit code the gate earned, so a
 // caller needs nothing but the process status to know what happened.
 func Inside(dir job.Dir) (int, error) {
+	stopRelay, err := relayOut()
+	if err != nil {
+		return 0, err
+	}
+	defer stopRelay()
 	spec, err := job.Read(dir)
 	if err != nil {
 		return 0, err
