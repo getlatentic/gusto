@@ -36,3 +36,16 @@ func TestABranchNameIsSafeForGit(t *testing.T) {
 		}
 	}
 }
+
+func TestThePrintedRemoteCarriesNoCredential(t *testing.T) {
+	for remote, want := range map[string]string{
+		"https://x-access-token:secret@github.com/o/r": "https://github.com/o/r.git",
+		"git@github.com:o/r.git":                       "https://github.com/o/r.git",
+		"https://someone:secret@git.example.com/o/r":   "https://git.example.com/o/r",
+		"/srv/git/r.git":                               "/srv/git/r.git",
+	} {
+		if got := printable(remote); got != want {
+			t.Errorf("%s: got %s, want %s", remote, got, want)
+		}
+	}
+}

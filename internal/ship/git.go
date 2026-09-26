@@ -12,47 +12,50 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 )
 
-// Git pushes by shelling out to git in a clone of its own, so the job's
-// workspace, which is evidence, is never touched.
+// Git pushes by shelling out to git in a scratch repository of its own, so the
+// job's workspace, which is evidence, is never touched.
 type Git struct {
 	// Token, when set, is sent to github.com and to no other host.
 	Token string
 }
 
-// Push clones the job's repository, puts the patch on a new branch at the
-// commit the job ran against, and pushes that branch alone. A patch that no
-// longer applies there stops it before anything leaves the machine.
+// Push makes the change and evidence commits again and pushes both in one push,
+// the branch and the evidence ref together, so a branch never reaches the
+// remote without the evidence behind it. The pull request's body links the
+// evidence commit by name, so commits that come out different from the plan
+// stop the push.
 func (g Git) Push(ctx context.Context, plan Plan) error {
-	work, err := os.MkdirTemp("", "haas-ship-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(work)
-	env := g.env(plan.When)
-	for _, args := range [][]string{
-		{"clone", "--quiet", "--no-checkout", plan.Source, work},
-		{"-C", work, "checkout", "--quiet", "-b", plan.Branch, plan.At},
-		{"-C", work, "apply", "--index", plan.Patch},
-		{"-C", work, "commit", "--quiet", "--no-verify", "-m", plan.Message},
-		{"-C", work, "push", "--quiet", plan.Remote, "HEAD:refs/heads/" + plan.Branch},
-	} {
-		if _, err := run(ctx, env, args...); err != nil {
+	dir := job.Dir(plan.Job)
+	return inScratch(ctx, dir, plan.When, func(s scratch) error {
+		made, err := s.made(ctx, dir, plan)
+		if err != nil {
 			return err
 		}
-	}
-	return nil
+		if made != plan.Commits {
+			return fmt.Errorf("the commits came out as %s and %s, and the plan named %s and %s",
+				made.Change, made.Evidence, plan.Commits.Change, plan.Commits.Evidence)
+		}
+		_, err = run(ctx, g.env(), "-C", s.path, "push", "--quiet", plan.Remote,
+			made.Change+":refs/heads/"+plan.Branch, made.Evidence+":"+plan.Evidence)
+		return err
+	})
 }
 
-// env names haas as the author and dates the commit at the end of the run, so
-// shipping the same run twice makes the same commit and the second push has
-// nothing to add. The token goes in by environment rather than argument, where
-// any process listing would show it, and the header is scoped to github.com.
-func (g Git) env(when int64) []string {
+// authored names haas as the author and dates the commits at the end of the
+// run, so shipping the same run twice makes the same commits and the second
+// push has nothing to add.
+func authored(when int64) []string {
 	date := fmt.Sprintf("@%d +0000", when)
-	env := append(os.Environ(),
+	return append(os.Environ(),
 		"GIT_AUTHOR_NAME=haas", "GIT_AUTHOR_EMAIL=haas@localhost", "GIT_AUTHOR_DATE="+date,
 		"GIT_COMMITTER_NAME=haas", "GIT_COMMITTER_EMAIL=haas@localhost", "GIT_COMMITTER_DATE="+date,
 	)
+}
+
+// env carries the token by environment rather than argument, where any process
+// listing would show it, and scopes the header to github.com.
+func (g Git) env() []string {
+	env := os.Environ()
 	if g.Token == "" {
 		return env
 	}
