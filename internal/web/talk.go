@@ -163,7 +163,7 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	record := jobs.Record{
 		ID: id, State: jobs.Queued, Brief: said, Repo: session.Repo,
 		Harness: session.Harness, Model: session.Model,
-		Asked: "the shared sign-in", Queued: jobs.Now(),
+		Asked: s.keeper.who(r), Queued: jobs.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
 		s.refuse(w, r, err)

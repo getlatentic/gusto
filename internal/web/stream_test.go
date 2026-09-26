@@ -224,7 +224,7 @@ func idle(t *testing.T) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, sessions, nil, password, offered(), []string{"platform/test-model"})
+	server, err := New(index, sessions, nil, password, &Identity{}, offered(), []string{"platform/test-model"})
 	if err != nil {
 		t.Fatal(err)
 	}

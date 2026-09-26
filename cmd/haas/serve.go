@@ -63,7 +63,19 @@ func serve(args []string) int {
 			fmt.Printf("  %-10s not offered: %s\n", entry.Name, entry.Why)
 		}
 	}
-	pages, err := web.New(index, sessions, queue, password, offered, catalog.Models(os.Getenv("HAAS_MODELS")))
+	// Reached at startup, so a wrong issuer fails here rather than at
+	// somebody's first sign-in.
+	identity, err := web.NewIdentity(context.Background(),
+		os.Getenv("HAAS_OIDC_ISSUER"), os.Getenv("HAAS_OIDC_CLIENT_ID"),
+		os.Getenv("HAAS_OIDC_CLIENT_SECRET"), os.Getenv("HAAS_OIDC_REDIRECT"),
+		catalog.Models(os.Getenv("HAAS_ALLOWED")))
+	if err != nil {
+		return fail(err)
+	}
+	if identity.Configured() {
+		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
+	}
+	pages, err := web.New(index, sessions, queue, password, identity, offered, catalog.Models(os.Getenv("HAAS_MODELS")))
 	if err != nil {
 		return fail(err)
 	}
