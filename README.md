@@ -89,6 +89,7 @@ job/
     harness.log     every line it printed, as it printed it
     stderr.log      what it complained about
     calls.jsonl     the model calls that reported tokens or cost
+    commands.jsonl  what the harness ran, apart from what it said
     diff.patch      what changed
     gate.log        the gate's whole output
     gates.json      the verdict
@@ -198,7 +199,7 @@ haas harnesses
 | --- | --- | --- | --- |
 | claude | `claude` | the user's own account | measured |
 | opencode | `opencode` | a model in the building | measured |
-| codex | `codex` | the user's own account | plain text, not yet measured |
+| codex | `codex` | the user's own account | measured |
 
 `needs` is one of `nothing`, `local`, `account` or `key`. `nothing` means exactly
 that: a harness can be a program that makes the change, and then no model is
