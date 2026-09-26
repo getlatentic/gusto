@@ -30,6 +30,7 @@ func run(args []string) int {
 		"new":       newJob,
 		"run":       runJob,
 		"inside":    inside,
+		"submit":    submit,
 		"verify":    verify,
 		"show":      show,
 		"harnesses": list,
@@ -48,6 +49,7 @@ func usage() {
   haas new <dir> -repo <url> -brief <text> [-harness <name>] -- <gate command>
   haas run <dir>        do the work in a container
   haas inside <dir>     do the work here, without a container
+  haas submit <dir>     send the job to HAAS_SERVER and watch it there
   haas verify <dir>     re-hash the evidence and re-run the gate
   haas show <dir>       what the job asked for and what happened
   haas serve            the pages: submit a job, watch it, read the record

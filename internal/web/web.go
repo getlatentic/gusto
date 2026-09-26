@@ -46,6 +46,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /{$}", s.guard(s.list))
 	mux.HandleFunc("POST /jobs", s.guard(s.submit))
+	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
