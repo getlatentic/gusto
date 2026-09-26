@@ -73,23 +73,24 @@ func (w *WayOut) Listen() (func(), error) {
 	return func() { _ = server.Close() }, nil
 }
 
-// For is the address this job's container should ask at. A job gets its own
-// token, so what it spends is attributed to it and the address is worthless
-// once the job ends.
-func (w *WayOut) For(dir job.Dir) string {
+// For is the address this job's container asks at, and the token it presents
+// there. The token is where a harness would have put a credential, so its
+// configuration stays the same from one job to the next, and what this job
+// spends is attributed to it.
+func (w *WayOut) For(dir job.Dir) (address, token string) {
 	if w.proxy == nil {
-		return w.direct
+		return w.direct, ""
 	}
 	id := filepath.Base(dir.Path())
-	token, err := w.tokens.Mint(id)
+	minted, err := w.tokens.Mint(id)
 	if err != nil {
-		return w.direct
+		return w.direct, ""
 	}
 	_, port, err := net.SplitHostPort(w.address)
 	if err != nil {
 		port = "8041"
 	}
-	return "http://localhost:" + port + "/model/" + token + "/v1"
+	return "http://localhost:" + port + "/model/v1", minted
 }
 
 // Done ends a job's way out, so a container that outlives its server cannot

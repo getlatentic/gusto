@@ -136,3 +136,42 @@ func TestAModelThatNeedsNoCredentialGetsNone(t *testing.T) {
 		t.Fatalf("an unauthenticated model was sent %q", got)
 	}
 }
+
+// A harness keeps its base URL in static configuration and its key in the
+// Authorization header. Requiring the token in the path would mean rewriting
+// that configuration for every job.
+func TestATokenPresentedWhereAKeyWouldGoIsAccepted(t *testing.T) {
+	proxy, tokens, _, seen := site(t, "the-real-key")
+	token, err := tokens.Mint("a-job")
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest("POST", "/model/v1/chat/completions", strings.NewReader(`{}`))
+	request.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("code %d", recorder.Code)
+	}
+	if got := seen.Get("X-Seen-Path"); got != "/v1/chat/completions" {
+		t.Fatalf("the model was asked for %q", got)
+	}
+	if got := seen.Get("Authorization"); got != "Bearer the-real-key" {
+		t.Fatalf("the model was sent %q", got)
+	}
+}
+
+func TestAKeyThatIsNotATokenStillGetsNothing(t *testing.T) {
+	proxy, _, _, seen := site(t, "the-real-key")
+	request := httptest.NewRequest("POST", "/model/v1/chat/completions", strings.NewReader(`{}`))
+	request.Header.Set("Authorization", "Bearer sk-somebody-elses-key")
+	recorder := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("code %d", recorder.Code)
+	}
+	if seen.Get("X-Seen-Path") != "" {
+		t.Fatal("a request with somebody else's key reached the model")
+	}
+}

@@ -116,7 +116,7 @@ func runJob(args []string) int {
 	if err := runner.Fill(spec, dir); err != nil {
 		return fail(err)
 	}
-	exit, err := sandbox.Run(dir, harness.ModelURL())
+	exit, err := sandbox.Run(dir, harness.ModelURL(), "")
 	if err != nil {
 		return fail(err)
 	}
