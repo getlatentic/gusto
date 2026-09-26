@@ -12,8 +12,11 @@ import (
 // problem. Docker hands over an empty directory rather than refusing a mount of
 // a path it does not share, so the run would otherwise fail somewhere later.
 func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
-	if _, err := exec.LookPath(Runtime()); err != nil {
-		t.Skipf("no %s on this machine", Runtime())
+	// A present binary with a dead daemon is the common shape in CI and in a
+	// cloud sandbox, and it is not a failure of this code. Ask the runtime
+	// whether it answers, rather than whether it is installed.
+	if err := exec.Command(Runtime(), "info").Run(); err != nil {
+		t.Skipf("%s is not answering on this machine: %v", Runtime(), err)
 	}
 	empty := job.Dir(t.TempDir())
 	_, err := Run(empty)
