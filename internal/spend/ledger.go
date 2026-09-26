@@ -15,10 +15,14 @@ type Tally struct {
 	Unmeasured   int     `json:"unmeasured"`
 	InputTokens  int64   `json:"inputTokens"`
 	OutputTokens int64   `json:"outputTokens"`
+	// Refused is the calls a cap kept from leaving. They cost nothing and are
+	// not in Calls.
+	Refused int `json:"refused"`
 }
 
 func (t *Tally) add(call Call) {
 	if call.Refused != nil {
+		t.Refused++
 		return
 	}
 	t.Calls++
@@ -39,11 +43,12 @@ func valueOf(count *int64) int64 {
 }
 
 // Terms are what a job was allowed when it started: the team it counts
-// against, and the cap in its own budget. A nil cap is no cap; a zero cap
-// allows nothing.
+// against, the project it is reported under, and the cap in its own budget. A
+// nil cap is no cap; a zero cap allows nothing.
 type Terms struct {
-	Team   string
-	CapUSD *float64
+	Team    string
+	Project string
+	CapUSD  *float64
 }
 
 // account is one job's terms and what it has spent against them. Blind counts
@@ -55,19 +60,29 @@ type account struct {
 	blind int
 }
 
-type teamMonth struct {
-	team  string
+// Scopes a call is counted under, each by the month it happened in.
+const (
+	ByJob     = "job"
+	ByProject = "project"
+	ByTeam    = "team"
+)
+
+// monthly names one tally: a job, a project or a team, in one calendar month.
+type monthly struct {
+	scope string
+	name  string
 	month string
 }
 
-// Ledger holds every job's spend and every team's spend this month, and
-// decides whether the next call may leave. The proxy is its only writer while
+// Ledger holds what every job, project and team spent in each month, and
+// decides whether the next call may leave. A team's cap and the report read
+// the same tallies, so they cannot disagree. The proxy is its only writer while
 // a server runs; Rebuild reads the same lines back from disk at start.
 type Ledger struct {
 	guard  sync.Mutex
 	policy Policy
 	jobs   map[string]*account
-	teams  map[teamMonth]*Tally
+	months map[monthly]*Tally
 	now    func() time.Time
 }
 
@@ -75,7 +90,7 @@ func NewLedger(policy Policy) *Ledger {
 	return &Ledger{
 		policy: policy,
 		jobs:   map[string]*account{},
-		teams:  map[teamMonth]*Tally{},
+		months: map[monthly]*Tally{},
 		now:    time.Now,
 	}
 }
@@ -105,7 +120,8 @@ func (l *Ledger) Allow(job, model string) *Refusal {
 	return nil
 }
 
-// Count adds a call that happened, or was refused, to the job and its team.
+// Count adds a call that happened, or was refused, to the job, its project
+// and its team, in the month it happened.
 func (l *Ledger) Count(job string, call Call) {
 	l.guard.Lock()
 	defer l.guard.Unlock()
@@ -114,8 +130,9 @@ func (l *Ledger) Count(job string, call Call) {
 	if call.Refused == nil && call.answered() && !call.Measured() {
 		held.blind++
 	}
-	if held.terms.Team != "" {
-		l.team(held.terms.Team, monthOf(time.Unix(call.AtUnix, 0))).add(call)
+	month := monthOf(time.Unix(call.AtUnix, 0))
+	for scope, name := range map[string]string{ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team} {
+		l.tally(scope, name, month).add(call)
 	}
 }
 
@@ -128,12 +145,12 @@ func (l *Ledger) account(job string) *account {
 	return held
 }
 
-func (l *Ledger) team(name, month string) *Tally {
-	key := teamMonth{team: name, month: month}
-	tally, found := l.teams[key]
+func (l *Ledger) tally(scope, name, month string) *Tally {
+	key := monthly{scope: scope, name: name, month: month}
+	tally, found := l.months[key]
 	if !found {
 		tally = &Tally{}
-		l.teams[key] = tally
+		l.months[key] = tally
 	}
 	return tally
 }
@@ -157,7 +174,7 @@ func (l *Ledger) teamSpent(held *account, _ string) *Refusal {
 		return nil
 	}
 	month := monthOf(l.now())
-	spent := l.team(held.terms.Team, month).USD
+	spent := l.tally(ByTeam, held.terms.Team, month).USD
 	if spent < limit {
 		return nil
 	}
@@ -192,7 +209,7 @@ func (l *Ledger) governing(held *account) (*Refusal, bool) {
 		return &Refusal{Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD}, true
 	}
 	if limit, capped := l.policy.teamCap(held.terms.Team); capped {
-		spent := l.team(held.terms.Team, monthOf(l.now())).USD
+		spent := l.tally(ByTeam, held.terms.Team, monthOf(l.now())).USD
 		return &Refusal{Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent}, true
 	}
 	return nil, false

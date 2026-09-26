@@ -399,6 +399,32 @@ A server that restarts rebuilds every team's month from the jobs' own
 `out/proxy.jsonl`, so the lines in the evidence are the ledger. A job run again in
 the same directory keeps what it spent before.
 
+## What the agents cost
+
+`haas spend` says what a month cost, by team, by project and by job, and the
+`spend` page in `haas serve` says the same. `GET /api/spend?month=2026-09` hands a
+script the same report as JSON, behind the password `POST /api/jobs` takes.
+
+```bash
+haas spend                   # this month, from HAAS_JOBS
+haas spend -month 2026-08    # another month
+haas spend -json             # for a script
+```
+
+The report reads the ledger the caps are checked against, so a report and a cap
+cannot disagree: the server's page reads the ledger the proxy counts in, and the
+command rebuilds it from the same `out/proxy.jsonl` lines through the same
+counting. A project is the repository a job worked in. A job that named no team
+is reported as having none.
+
+Unmeasured spend is never shown as free. A call whose answer carried no usage, or
+whose model has no price, is counted as unmeasured, and a sum that includes one
+reads `at least $…`, or `unmeasured` when nothing in it was measured.
+
+The report has **not been reconciled with a provider's invoice**. That needs a
+month of real calls on a real account, which nobody has run yet, so the claim
+that the totals match what the provider bills is still open.
+
 Without `HAAS_MODEL_UPSTREAM` there is no proxy: the container is given the
 model's address directly, which is the local case where there is no credential
 to keep out of anywhere.

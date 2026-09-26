@@ -1,0 +1,39 @@
+{{template "head" .}}
+
+{{with .Report}}
+<h2>Spend in {{.Month}}</h2>
+<p>{{.Total.Money}} across {{.Total.Calls}} calls{{if .Total.Unmeasured}}, of which
+<strong>{{.Total.Unmeasured}} unmeasured</strong>: the provider's answer carried no usage, or the model has no price, so
+their cost is unknown rather than nothing{{end}}{{if .Total.Refused}}. A cap refused {{.Total.Refused}} more{{end}}.</p>
+<p class="muted">Counted at the proxy from each provider's own answer, and read from the same ledger the caps are
+checked against. It has not yet been reconciled with a provider's invoice.</p>
+{{end}}
+
+{{if .Months}}<p class="muted">Months: {{range .Months}}<a href="/spend?month={{.}}">{{.}}</a> &nbsp;{{end}}</p>{{end}}
+
+{{template "spent" (dict "Title" "By team" "Lines" .Report.Teams "Link" "")}}
+{{template "spent" (dict "Title" "By project" "Lines" .Report.Projects "Link" "")}}
+{{template "spent" (dict "Title" "By job" "Lines" .Report.Jobs "Link" "/jobs/")}}
+
+{{template "foot" .}}
+
+{{define "spent"}}
+<h2>{{.Title}}</h2>
+{{if .Lines}}
+<table>
+  <tr><th>Name</th><th>Spent</th><th>Calls</th><th>Unmeasured</th><th>Refused</th><th>Tokens in / out</th></tr>
+  {{range .Lines}}
+  <tr>
+    <td>{{if not .Name}}<span class="muted">none named</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
+    <td>{{if .Unmeasured}}<span class="state running">{{.Money}}</span>{{else}}{{.Money}}{{end}}</td>
+    <td>{{.Calls}}</td>
+    <td>{{.Unmeasured}}</td>
+    <td>{{.Refused}}</td>
+    <td class="muted">{{.InputTokens}} / {{.OutputTokens}}</td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="muted">Nothing went through the proxy this month.</p>
+{{end}}
+{{end}}

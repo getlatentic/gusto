@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/spend"
 	"github.com/getlatentic/haas/internal/talk"
 )
 
@@ -25,6 +26,7 @@ type Server struct {
 	keeper    *keeper
 	templates *template.Template
 	harnesses []string
+	ledger    *spend.Ledger
 }
 
 func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, harnesses []string) (*Server, error) {
@@ -53,6 +55,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
+	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
+	mux.HandleFunc("GET /api/spend", s.sent(s.spendJSON))
 	mux.HandleFunc("GET /talk", s.guard(s.talking))
 	mux.HandleFunc("POST /talk", s.guard(s.begin))
 	mux.HandleFunc("GET /talk/{id}", s.guard(s.conversation))

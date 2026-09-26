@@ -18,6 +18,17 @@ import (
 )
 
 var helpers = template.FuncMap{
+	// dict passes more than one value to a template defined in another, which
+	// html/template has no literal for.
+	"dict": func(pairs ...any) map[string]any {
+		made := map[string]any{}
+		for i := 0; i+1 < len(pairs); i += 2 {
+			if key, ok := pairs[i].(string); ok {
+				made[key] = pairs[i+1]
+			}
+		}
+		return made
+	},
 	"when": func(unix int64) string {
 		if unix == 0 {
 			return ""
