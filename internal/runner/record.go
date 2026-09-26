@@ -23,7 +23,7 @@ type Record struct {
 		tokens int64
 		cost   float64
 	}
-	latest struct{ in, out, cost float64 }
+	latest struct{ tokens, cost float64 }
 	seen   bool
 }
 
@@ -72,17 +72,27 @@ func (r *Record) Out(line string) error {
 }
 
 func (r *Record) usage(decoded map[string]any, line string) error {
-	input, hasInput := harness.Number(decoded, r.adapter.InputTokens)
-	output, hasOutput := harness.Number(decoded, r.adapter.OutputTokens)
+	counted, told := 0.0, false
+	for _, path := range []string{
+		r.adapter.InputTokens,
+		r.adapter.OutputTokens,
+		r.adapter.CacheWriteTokens,
+		r.adapter.CacheReadTokens,
+	} {
+		if number, ok := harness.Number(decoded, path); ok {
+			counted += number
+			told = true
+		}
+	}
 	cost, hasCost := harness.Number(decoded, r.adapter.CostUSD)
-	if !hasInput && !hasOutput && !hasCost {
+	if !told && !hasCost {
 		return nil
 	}
 	r.seen = true
 	if r.adapter.Totals == harness.Cumulative {
-		r.latest.in, r.latest.out, r.latest.cost = input, output, cost
+		r.latest.tokens, r.latest.cost = counted, cost
 	} else {
-		r.perCall.tokens += int64(input + output)
+		r.perCall.tokens += int64(counted)
 		r.perCall.cost += cost
 	}
 	_, err := r.calls.WriteString(line + "\n")
@@ -102,7 +112,7 @@ func (r *Record) Spent() (*int64, *float64) {
 	}
 	tokens, cost := r.perCall.tokens, r.perCall.cost
 	if r.adapter.Totals == harness.Cumulative {
-		tokens, cost = int64(r.latest.in+r.latest.out), r.latest.cost
+		tokens, cost = int64(r.latest.tokens), r.latest.cost
 	}
 	return &tokens, &cost
 }

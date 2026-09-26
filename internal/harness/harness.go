@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
@@ -73,7 +74,11 @@ type Adapter struct {
 	Text         string `json:"text,omitempty"`
 	InputTokens  string `json:"inputTokens,omitempty"`
 	OutputTokens string `json:"outputTokens,omitempty"`
-	CostUSD      string `json:"costUsd,omitempty"`
+	// Cache tokens are billed, so a total that leaves them out disagrees with
+	// the cost beside it. Claude Code's preamble is almost all cache writes.
+	CacheWriteTokens string `json:"cacheWriteTokens,omitempty"`
+	CacheReadTokens  string `json:"cacheReadTokens,omitempty"`
+	CostUSD          string `json:"costUsd,omitempty"`
 }
 
 // Load the adapter a job names, looking in the job's own directory first.
@@ -211,6 +216,16 @@ func Pick(line map[string]any, path string) (any, bool) {
 	}
 	var at any = line
 	for _, key := range strings.Split(path, ".") {
+		// A number addresses a list, because a harness that reports its text as
+		// a list of blocks is normal: Claude Code says message.content.0.text.
+		if index, err := strconv.Atoi(key); err == nil {
+			list, ok := at.([]any)
+			if !ok || index < 0 || index >= len(list) {
+				return nil, false
+			}
+			at = list[index]
+			continue
+		}
 		object, ok := at.(map[string]any)
 		if !ok {
 			return nil, false
