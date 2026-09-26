@@ -241,8 +241,8 @@ question back.
 ### The memory cap
 
 `sandbox.Run` sets `--memory`, `HAAS_JOB_MEMORY` or `3g`
-(`sandbox.go:45-51`). Which state a capped job ends in depends on which process
-the kernel picks.
+(`sandbox.go:45-49, 103-109`). Which state a capped job ends in depends on which
+process the kernel picks.
 
 | the OOM killer picks | measured | the job ends |
 | --- | --- | --- |
@@ -285,7 +285,7 @@ live server would have recorded is gone. The same holds for a cap the runtime
 refuses outright: measured at `HAAS_JOB_MEMORY=4m`, docker answers `Minimum
 memory limit allowed is 6MB`, the container never starts, `out/` stays empty and
 the job ends `failed` with `exit` 125. `ready` starts a container before the real
-run but passes no memory flags (`sandbox.go:83-98`), so it does not catch a cap
+run but passes no memory flags (`sandbox.go:81-96`), so it does not catch a cap
 the runtime will refuse.
 
 Not decided: whether the manifest records the caps a job ran under and the signal
