@@ -23,9 +23,15 @@ RestartSec=3
 KillMode=mixed
 TimeoutStopSec=60
 # It runs other people's code, on a box that serves other people's sites.
+#
+# ProtectHome is deliberately absent. It hides /run/user, which is where rootless
+# podman keeps its runtime directory, and podman then cannot start a container at
+# all: "cannot evaluate symlinks on DB tmp dir path /run/user/997/libpod/tmp:
+# permission denied". ReadWritePaths does not give it back. What is lost is
+# defence in depth over file permissions this unprivileged user is bound by
+# anyway: it cannot read /root or another user's home either way.
 NoNewPrivileges=true
 ProtectSystem=full
-ProtectHome=true
 ReadWritePaths={{ app_root }}
 PrivateTmp=true
 
