@@ -127,7 +127,7 @@ The pages are not the main entrance.
 | way in | who uses it | state |
 | --- | --- | --- |
 | `haas` on the command line | whoever wrote the repository | built |
-| the pages | anybody on the team | built |
+| the pages | anybody on the team | built, including talking to a harness |
 | `POST /api/jobs` | a script, a CI job, another platform | built |
 | an MCP server | any agent that speaks MCP: Claude Code, Codex, Cursor, Zed | not started |
 
@@ -153,6 +153,12 @@ product.
 
 ## What actually blocks a user today
 
-The deployed service has no model credential and no vendor account, so every job
-on it runs a shell command rather than an agent. That is the gap, and it is not
-a design problem.
+Nothing, for one person. The deployed service thinks with a real model, runs a
+real agent in a container, holds a conversation across turns, and hands back a
+record that verifies on somebody else's machine.
+
+What blocks a *second* person is spending. One shared sign-in means everybody who
+can sign in can spend the platform credential, and nothing caps a job yet. The
+proxy counts what actually leaves the box, which is what a cap has to be built
+on, so this is work rather than a question — but the password does not go to
+anybody until it is done.
