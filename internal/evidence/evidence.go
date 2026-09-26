@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -65,7 +66,8 @@ type Manifest struct {
 	ModelEndpoint string   `json:"modelEndpoint"`
 	Tokens        *int64   `json:"tokens"`
 	CostUSD       *float64 `json:"costUsd"`
-	// Signer is who stands behind this run: a name until a runner holds a key.
+	// Signer is who the runner says stands behind this run. It is a claim; the
+	// signer a verifier names comes from its keyring, through Attest.
 	Signer string `json:"signer"`
 	AtUnix int64  `json:"atUnix"`
 }
@@ -76,7 +78,8 @@ const Version = 1
 
 func Now() int64 { return time.Now().Unix() }
 
-// Of hashes the job spec and every file in out/ except the manifest itself.
+// Of hashes the job spec and every file in out/ except the manifest itself and
+// its signature, which is made over the manifest after it is written.
 func Of(dir job.Dir) (string, []Entry, error) {
 	spec, err := hash(dir.Spec())
 	if err != nil {
@@ -88,7 +91,7 @@ func Of(dir job.Dir) (string, []Entry, error) {
 	}
 	files := make([]Entry, 0, len(listing))
 	for _, entry := range listing {
-		if entry.IsDir() || entry.Name() == "manifest.json" {
+		if entry.IsDir() || entry.Name() == "manifest.json" || entry.Name() == SignatureFile {
 			continue
 		}
 		sum, err := hash(dir.OutFile(entry.Name()))
@@ -102,13 +105,17 @@ func Of(dir job.Dir) (string, []Entry, error) {
 }
 
 // Write keeps the manifest, stamping the version this build writes when the
-// caller left it out.
+// caller left it out. A signature already beside it signed other bytes, so it
+// goes: a rewritten record is unsigned until somebody holding a key signs it.
 func Write(dir job.Dir, manifest Manifest) error {
 	if manifest.Version == 0 {
 		manifest.Version = Version
 	}
 	text, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
+		return err
+	}
+	if err := os.Remove(dir.OutFile(SignatureFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return os.WriteFile(dir.OutFile("manifest.json"), append(text, '\n'), 0o644)
@@ -135,7 +142,9 @@ func Read(dir job.Dir) (Manifest, error) {
 }
 
 // Check reports every file whose hash no longer matches the manifest, every one
-// the manifest names that is gone, and every one that appeared since.
+// the manifest names that is gone, every one that appeared since, and a
+// signature that no longer holds for the manifest. Who signed is Attest's
+// question, because it needs a keyring and this check does not.
 func Check(dir job.Dir) ([]string, error) {
 	manifest, err := Read(dir)
 	if err != nil {
@@ -145,7 +154,7 @@ func Check(dir job.Dir) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var wrong []string
+	wrong := sealComplaints(dir)
 	if spec != manifest.Job {
 		wrong = append(wrong, "job.json changed")
 	}

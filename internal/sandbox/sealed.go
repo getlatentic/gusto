@@ -34,7 +34,7 @@ func Sealed(dir job.Dir, socket, token string, mounts ...Mount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return start(args)
+	return start(dir, args)
 }
 
 func sealedArgv(absolute, socket, token string, mounts []Mount) ([]string, error) {

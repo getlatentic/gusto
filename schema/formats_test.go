@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/schema"
 )
 
@@ -23,6 +24,7 @@ func TestEachSchemaIsVersionedAndAgreesWithTheCode(t *testing.T) {
 	}{
 		{schema.Job(), "/schema/job/v1.json", job.Version},
 		{schema.Manifest(), "/schema/manifest/v1.json", evidence.Version},
+		{schema.Signature(), "/schema/signature/v1.json", signing.Version},
 	} {
 		var read struct {
 			ID         string `json:"$id"`

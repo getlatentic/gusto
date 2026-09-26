@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json",
   "title": "haas out/manifest.json, version 1",
-  "description": "The record of a run: a SHA-256 of job.json and of every file in out/ except this one, the gate's verdict, what the harness did, and who stands behind it. `haas verify` re-hashes the files against it. A reader ignores a field it does not know.",
+  "description": "The record of a run: a SHA-256 of job.json and of every file in out/ except this one and its signature, the gate's verdict, what the harness did, and who the runner says stands behind it. `haas verify` re-hashes the files against it. A runner with a key signs these exact bytes in out/manifest.sig, described by schema/signature/v1.json. A reader ignores a field it does not know.",
   "type": "object",
   "required": [
     "job",
@@ -27,7 +27,7 @@
       "type": "string"
     },
     "files": {
-      "description": "Every regular file in out/ except manifest.json, sorted by name. A file here that is gone or changed, or a file in out/ that is not here, fails verification.",
+      "description": "Every regular file in out/ except manifest.json and manifest.sig, sorted by name. The signature is made over this file after it is written, so this file cannot hold its hash. A file here that is gone or changed, or a file in out/ that is not here, fails verification.",
       "type": "array",
       "items": {
         "type": "object",
@@ -134,7 +134,7 @@
       ]
     },
     "signer": {
-      "description": "Who stands behind the run: HAAS_SIGNER on the runner, or \"unsigned\". A name, until a runner holds a key.",
+      "description": "Who the runner says stands behind the run: HAAS_SIGNER on the runner; with no name, the id of the key it signs with; with neither, \"unsigned\". It is the runner's own word: a verifier names the signer from its keyring and out/manifest.sig, never from this field.",
       "type": "string"
     },
     "atUnix": {
