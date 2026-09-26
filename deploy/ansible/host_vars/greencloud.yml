@@ -36,3 +36,9 @@ models: "platform/qwen.qwen3-vl-235b-a22b-instruct"
 
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.
+
+# Sign-in is Google, and one address. The app is in testing mode with that
+# address as its only test user, so the provider refuses anybody else before
+# this server is even asked.
+oidc_issuer: "https://accounts.google.com"
+oidc_allowed: "tosinamuda@gmail.com"

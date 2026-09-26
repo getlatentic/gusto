@@ -56,6 +56,20 @@ enable_tls: true
 certbot_email: tosinamuda@gmail.com
 acme_webroot: /var/www/letsencrypt
 
+# ── Who may sign in ─────────────────────────────────────────────────────────
+# Without an issuer the shared password is the only way in, which is what a
+# laptop has. With one, the provider settles who somebody is and oidc_allowed
+# settles whether they may spend this server's credential: an address, or
+# "@example.com" for any address at that domain.
+#
+# The redirect is derived from the vhost rather than written out, because a
+# provider refuses an address that does not match the one registered with it,
+# and two places to change a hostname is one place to forget.
+oidc_issuer: ""
+oidc_allowed: ""
+oidc_redirect: "{{ 'https' if enable_tls else 'http' }}://{{ server_name }}/auth/callback"
+# oidc_client_id and oidc_client_secret come from the vault.
+
 # ── Where the state lives ───────────────────────────────────────────────────
 # Two stores, because two deployments are real. "sqlite" keeps everything in one
 # file under the app root, which is what a laptop wants and what a customer
