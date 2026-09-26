@@ -11,10 +11,12 @@ import (
 
 // record is what the pull request says about the run behind it: enough for a
 // reviewer to know which harness and model wrote the patch, which command
-// passed it, and which manifest to check it against.
+// passed it, which manifest to check it against, and who signed that manifest
+// as a keyring checked it rather than as the manifest claims.
 type record struct {
 	spec     job.Spec
 	manifest evidence.Manifest
+	signer   string
 	digest   string
 	at       string
 	links    links
@@ -38,7 +40,7 @@ func (r record) body() string {
 	fmt.Fprintf(&out, "| gate | exit %d |\n", r.manifest.Gate.Code)
 	fmt.Fprintf(&out, "| manifest | [sha256 `%s`](%s) |\n", r.digest, r.links.blob("out/manifest.json"))
 	fmt.Fprintf(&out, "| ran against | `%s` |\n", r.at)
-	fmt.Fprintf(&out, "| signer | %s |\n", or(r.manifest.Signer, "nobody named"))
+	fmt.Fprintf(&out, "| signer | %s |\n", r.signer)
 	fmt.Fprintf(&out, "\nThe gate:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Gate.Command))
 	fmt.Fprintf(&out, "\nThe brief:\n\n%s\n", quoted(r.spec.Brief))
 	out.WriteString(r.links.section(r.digest, r.at))
