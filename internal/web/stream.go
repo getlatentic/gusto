@@ -42,10 +42,10 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 		if stream.gone {
 			return
 		}
-		if done, state := s.ended(record.ID); done {
+		if record = s.latest(record); record.State.Done() {
 			// One more read, because the last bytes can land after the state does.
 			stream.pour(tail)
-			stream.send("event: ended\ndata: %s\n\n", state)
+			stream.send("event: ended\ndata: %s\n\n", record.State)
 			stream.flush()
 			return
 		}
@@ -129,14 +129,15 @@ func (f *feed) ready() bool {
 	return !f.gone
 }
 
-// ended asks the index rather than the file, because a job that wrote nothing
-// still ends.
-func (s *Server) ended(id string) (bool, jobs.State) {
-	record, found := s.index.Get(id)
-	if !found {
-		return true, jobs.Interrupted
+// latest asks the index rather than the file how the job stands, because a job
+// that wrote nothing still ends. The index has no word on a job only when it
+// never knew it, and then the record the watcher already holds is the newest
+// thing known: it says no more than it did, and in particular no verdict.
+func (s *Server) latest(known jobs.Record) jobs.Record {
+	if now, found := s.index.Get(known.ID); found {
+		return now
 	}
-	return record.State.Done(), record.State
+	return known
 }
 
 // tail reads a file that is still being written, and hands back whole lines.
