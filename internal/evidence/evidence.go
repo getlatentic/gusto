@@ -34,7 +34,10 @@ type Entry struct {
 // Manifest is the record of a run. A token count or a cost is a pointer, so a
 // harness that does not report one leaves null rather than a zero somebody
 // would read as free.
+//
+// Version is the format of manifest.json. A file without one is version 1.
 type Manifest struct {
+	Version         int      `json:"version"`
 	Job             string   `json:"job"`
 	Files           []Entry  `json:"files"`
 	Gate            Verdict  `json:"gate"`
@@ -48,6 +51,10 @@ type Manifest struct {
 	Signer string `json:"signer"`
 	AtUnix int64  `json:"atUnix"`
 }
+
+// Version is the version of manifest.json this code writes and the newest it
+// reads. The schema that describes it is schema/manifest/v1.json.
+const Version = 1
 
 func Now() int64 { return time.Now().Unix() }
 
@@ -76,7 +83,12 @@ func Of(dir job.Dir) (string, []Entry, error) {
 	return spec, files, nil
 }
 
+// Write keeps the manifest, stamping the version this build writes when the
+// caller left it out.
 func Write(dir job.Dir, manifest Manifest) error {
+	if manifest.Version == 0 {
+		manifest.Version = Version
+	}
 	text, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return err
@@ -84,14 +96,24 @@ func Write(dir job.Dir, manifest Manifest) error {
 	return os.WriteFile(dir.OutFile("manifest.json"), append(text, '\n'), 0o644)
 }
 
+// Read the manifest. A field this build does not know is ignored, and a version
+// it does not know is refused, for the reasons job.Readable gives.
 func Read(dir job.Dir) (Manifest, error) {
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if err != nil {
 		return Manifest{}, err
 	}
 	var manifest Manifest
-	err = json.Unmarshal(text, &manifest)
-	return manifest, err
+	if err := json.Unmarshal(text, &manifest); err != nil {
+		return Manifest{}, err
+	}
+	if err := job.Readable("manifest.json", manifest.Version, Version); err != nil {
+		return Manifest{}, err
+	}
+	if manifest.Version == 0 {
+		manifest.Version = Version
+	}
+	return manifest, nil
 }
 
 // Check reports every file whose hash no longer matches the manifest, every one

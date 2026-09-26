@@ -73,7 +73,7 @@ the run.
 
 ```
 job/
-  job.json          brief, repo, gate, harness, model, sensitivity, budget
+  job.json          version, brief, repo, gate, harness, model, sensitivity, budget
   harnesses/        an adapter of your own, so the job runs anywhere
   workspace/        the checkout the harness works in
   out/
@@ -89,6 +89,10 @@ job/
 
 A token count or a cost is `null` when the harness does not report one. A zero
 would read as free.
+
+`job.json` and `manifest.json` are published as versioned JSON Schemas in
+[`schema/`](schema/). [docs/FORMATS.md](docs/FORMATS.md) says when the version
+changes and what a reader does with one it does not know.
 
 ## What a job costs, measured
 
