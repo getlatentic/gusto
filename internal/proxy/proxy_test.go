@@ -35,7 +35,7 @@ func site(t *testing.T, key string) (*Proxy, *Tokens, string, *http.Header) {
 	kept := t.TempDir()
 	proxy := New(tokens, Upstream{Address: model.URL, Key: key, Name: "the-platform-key"},
 		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
-		spend.NewLedger(spend.Policy{}))
+		spend.NewLedger(spend.Policy{}), Allowlist{})
 	return proxy, tokens, kept, &seen
 }
 

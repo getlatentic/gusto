@@ -114,3 +114,18 @@ func TestARefusedCallCostsNothingAndIsNotACall(t *testing.T) {
 		t.Fatalf("tally %+v", tally)
 	}
 }
+
+// A request to a host other than the model spends no model money, and a
+// refused one is not an unmeasured call a cap should stop on.
+func TestARequestToAnotherHostIsNotSpend(t *testing.T) {
+	ledger := fixedLedger(september)
+	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
+	ledger.Count("a-job", Call{Host: "pastebin.com:443", Status: 403, Denied: "not on the allowlist", AtUnix: september.Unix()})
+	ledger.Count("a-job", Call{Host: "registry.npmjs.org:443", Status: 200, AtUnix: september.Unix()})
+	if refusal := ledger.Allow("a-job", "fixture-model"); refusal != nil {
+		t.Fatalf("refused after requests to other hosts: %+v", refusal)
+	}
+	if calls := ledger.jobs["a-job"].tally.Calls; calls != 0 {
+		t.Fatalf("%d calls counted as spend", calls)
+	}
+}
