@@ -58,6 +58,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	pages.UseLedger(way.ledger)
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{
 		Addr:              address,

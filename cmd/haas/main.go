@@ -40,6 +40,7 @@ func run(args []string) int {
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
+		"spend":     spendReport,
 		"doctor":    checkMachine,
 	}[verb]
 	if !found {
@@ -64,6 +65,7 @@ func usage() {
   haas export <dir>     an audit record anybody can verify [-to, -policy, -requests, -verify]
   haas compare <dir> <harness> <harness>  run one job on each harness, side by side [-here]
   haas serve            the pages: submit a job, watch it, read the record
+  haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
 

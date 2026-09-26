@@ -45,9 +45,11 @@ func Rebuild(root string, policy Policy) (*Ledger, error) {
 	return ledger, nil
 }
 
-// TermsOf is what a job's spec allows it to spend.
+// TermsOf is what a job's spec allows it to spend, and where it is reported.
+// A job's project is the repository it worked in: the one thing every job
+// already names that a platform lead would group spend by.
 func TermsOf(spec job.Spec) Terms {
-	return Terms{Team: spec.Team, CapUSD: spec.Budget.USD}
+	return Terms{Team: spec.Team, Project: spec.Repo, CapUSD: spec.Budget.USD}
 }
 
 // ReadCalls is every call a job's proxy record holds. A missing file is a job

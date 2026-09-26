@@ -32,17 +32,19 @@ type WayOut struct {
 // what every job under jobsRoot has already spent.
 func openWayOut(jobsRoot string) (*WayOut, error) {
 	direct := setting("HAAS_MODEL_URL", "http://localhost:11434/v1")
-	upstream := os.Getenv("HAAS_MODEL_UPSTREAM")
-	if upstream == "" {
-		return &WayOut{direct: direct}, nil
-	}
 	policy, err := spend.LoadPolicy(os.Getenv("HAAS_SPEND_POLICY"))
 	if err != nil {
 		return nil, err
 	}
+	// The ledger exists without a proxy too, so the spend page reports what
+	// jobs spent through one before, rather than nothing.
 	ledger, err := spend.Rebuild(jobsRoot, policy)
 	if err != nil {
 		return nil, err
+	}
+	upstream := os.Getenv("HAAS_MODEL_UPSTREAM")
+	if upstream == "" {
+		return &WayOut{direct: direct, ledger: ledger}, nil
 	}
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) {
