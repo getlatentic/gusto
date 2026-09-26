@@ -27,6 +27,9 @@ go_sha256: ""  # set to pin the tarball; empty skips the check
 # iptables rules are rewritten on a box whose nginx fronts other sites.
 container_runtime: podman
 runner_image: haas:dev
+# Adapters of your own live here. The server offers what it finds, so a harness
+# added to this directory appears in the pages without a new binary.
+harnesses_dir: "{{ app_root }}/var/harnesses"
 harness_package: opencode-ai
 
 # What one job may take. A limit larger than the machine is not a limit: the job

@@ -12,13 +12,12 @@
     group: "{{ app_user }}"
     mode: "0750"
   loop:
-    - harnesses
     - repo
 
 - name: A harness that is only a program
   ansible.builtin.copy:
     src: fixture.json
-    dest: "{{ app_root }}/var/smoke/harnesses/fixture.json"
+    dest: "{{ harnesses_dir }}/fixture.json"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0640"

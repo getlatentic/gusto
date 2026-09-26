@@ -20,13 +20,16 @@
     create_home: true
   when: manage_app_user | bool
 
-- name: State directory
+- name: State directories
   ansible.builtin.file:
-    path: "{{ app_root }}/var"
+    path: "{{ item }}"
     state: directory
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0750"
+  loop:
+    - "{{ app_root }}/var"
+    - "{{ harnesses_dir }}"
 
 # The box pulls the code itself. A private repo needs a read-only deploy key,
 # and the key is generated here so it never leaves the machine that uses it.
