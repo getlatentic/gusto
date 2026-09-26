@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // Options overrides what the job would otherwise decide. Every field may be
@@ -23,6 +24,9 @@ type Options struct {
 	// Base is the branch the pull request targets. The job's ref when the
 	// remote has a branch by that name, and the remote's default otherwise.
 	Base string
+	// Keyring names the signer the pull request gives. An empty one names
+	// nobody, and the body says the signature was not checked.
+	Keyring signing.Keyring
 }
 
 // Plan is everything shipping will do, decided before anything is done. The
@@ -95,7 +99,8 @@ func planned(dir job.Dir, spec job.Spec, manifest evidence.Manifest, digest stri
 		When:            manifest.AtUnix,
 		EvidenceMessage: evidenceMessage(dir, digest),
 	}
-	return described(dir, plan, record{spec: spec, manifest: manifest, digest: digest, at: at})
+	signer := evidence.SignedBy(dir, options.Keyring)
+	return described(dir, plan, record{spec: spec, manifest: manifest, signer: signer, digest: digest, at: at})
 }
 
 // described makes the commits to learn their names, then writes what the pull

@@ -10,8 +10,10 @@
 package audit
 
 // Version is the version of audit.json this code writes and the newest it
-// reads. The schema that describes it is schema/audit/v1.json.
-const Version = 1
+// reads. The schema that describes it is schema/audit/v2.json. Version 1 said
+// the manifest's signer claim where version 2 says what a keyring checked, and
+// a version 1 export is still read, and verified, as version 1.
+const Version = 2
 
 // The names an export's files have inside it.
 const (
@@ -121,7 +123,9 @@ type Approval struct {
 	Why string       `json:"why"`
 }
 
-// Evidence is the manifest the export verifies against.
+// Evidence is the manifest the export verifies against. Signer is the name the
+// exporter's keyring gives the key that signed it, or evidence.SignedBy's words
+// for a record no keyring could vouch for; never the manifest's own claim.
 type Evidence struct {
 	Manifest string `json:"manifest"`
 	Signer   string `json:"signer"`
