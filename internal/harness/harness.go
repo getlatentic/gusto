@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -153,13 +154,28 @@ func parse(text []byte) (Adapter, error) {
 	return adapter, nil
 }
 
-// Names lists the adapters that ship with the binary.
+// Names lists every harness this binary can run: the adapters it ships with,
+// and any of your own in HAAS_HARNESSES. The pages offer what the server can
+// actually run, rather than what it was compiled with.
 func Names() []string {
+	found := map[string]bool{}
 	entries, _ := builtIn.ReadDir("adapters")
-	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		names = append(names, strings.TrimSuffix(entry.Name(), ".json"))
+		found[strings.TrimSuffix(entry.Name(), ".json")] = true
 	}
+	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
+		yours, _ := os.ReadDir(mine)
+		for _, entry := range yours {
+			if strings.HasSuffix(entry.Name(), ".json") {
+				found[strings.TrimSuffix(entry.Name(), ".json")] = true
+			}
+		}
+	}
+	names := make([]string, 0, len(found))
+	for name := range found {
+		names = append(names, name)
+	}
+	sort.Strings(names)
 	return names
 }
 

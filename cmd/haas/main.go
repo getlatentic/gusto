@@ -33,6 +33,7 @@ func run(args []string) int {
 		"verify":    verify,
 		"show":      show,
 		"harnesses": list,
+		"serve":     serve,
 	}[verb]
 	if !found {
 		usage()
@@ -49,6 +50,7 @@ func usage() {
   haas inside <dir>     do the work here, without a container
   haas verify <dir>     re-hash the evidence and re-run the gate
   haas show <dir>       what the job asked for and what happened
+  haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
 
 The exit code of run, inside and verify is the gate's answer.

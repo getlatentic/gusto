@@ -1,0 +1,53 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<form class="card" method="post" action="/jobs">
+  <div class="row">
+    <label>Repository
+      <input name="repo" placeholder="git@github.com:you/repo.git, or a path on this machine" required>
+    </label>
+    <label>Gate — the command that says pass or fail
+      <input name="gate" placeholder="go test ./..." required>
+    </label>
+  </div>
+  <label>Brief — what to do, in your words
+    <textarea name="brief" placeholder="The add function subtracts. Fix it so add 2 3 prints 5." required></textarea>
+  </label>
+  <div class="row">
+    <label>Harness
+      <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
+    </label>
+    <label>Model <span class="muted">optional</span>
+      <input name="model" placeholder="ollama/gpt-oss:20b">
+    </label>
+    <label>Sensitivity
+      <select name="sensitivity">
+        <option value="internal">internal</option>
+        <option value="public">public</option>
+        <option value="restricted">restricted — the model must be local</option>
+      </select>
+    </label>
+  </div>
+  <button type="submit">Run it</button>
+</form>
+
+<h2>Jobs</h2>
+{{if .Jobs}}
+<table>
+  <tr><th>Job</th><th>State</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
+  {{range .Jobs}}
+  <tr>
+    <td><a href="/jobs/{{.ID}}">{{.Brief}}</a><br><span class="muted">{{.ID}}</span></td>
+    <td><span class="state {{.State}}">{{.State}}</span></td>
+    <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
+    <td class="muted">{{when .Queued}}</td>
+    <td class="muted">{{took .Started .Ended}}</td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="muted">Nothing has run here yet.</p>
+{{end}}
+
+{{template "foot" .}}

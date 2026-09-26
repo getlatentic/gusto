@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>haas — sign in</title>
+<style>
+:root { color-scheme: light dark; --edge: color-mix(in srgb, currentColor 15%, transparent); }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center;
+  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+form { display: grid; gap: .8rem; width: min(22rem, 90vw); padding: 1.5rem;
+  border: 1px solid var(--edge); border-radius: 10px; }
+h1 { margin: 0; font-size: 1rem; }
+input, button { font: inherit; padding: .5rem .6rem; border-radius: 6px;
+  border: 1px solid var(--edge); background: transparent; color: inherit; }
+button { cursor: pointer; font-weight: 600; }
+p { margin: 0; font-size: .85rem; color: #b3261e; }
+</style>
+</head>
+<body>
+<form method="post" action="/login">
+  <h1>haas</h1>
+  {{if .Wrong}}<p>That is not the password.</p>{{end}}
+  <input type="password" name="password" placeholder="Password" autofocus required>
+  <button type="submit">Sign in</button>
+</form>
+</body></html>
