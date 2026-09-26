@@ -33,6 +33,7 @@ type Record struct {
 	Changed    Changed     `json:"changed"`
 	Model      Model       `json:"model"`
 	Spend      Spend       `json:"spend"`
+	Outbound   Outbound    `json:"outbound"`
 	Approval   Approval    `json:"approval"`
 	Requests   Fact[[]any] `json:"requests"`
 	Evidence   Evidence    `json:"evidence"`
@@ -93,12 +94,24 @@ type Model struct {
 }
 
 // Spend holds two counts that are deliberately kept apart: what the harness
-// reported, which is a claim, and what the proxy saw leave the box.
+// reported, which is a claim, and what the proxy measured of the model calls
+// that left the box. A call a spending cap refused never left, so it is
+// counted apart and costs nothing.
 type Spend struct {
-	Tokens     Fact[int64]   `json:"tokens"`
-	CostUSD    Fact[float64] `json:"costUsd"`
-	ProxyCalls Fact[int]     `json:"proxyCalls"`
-	ProxyBytes Fact[int64]   `json:"proxyBytes"`
+	Tokens       Fact[int64]   `json:"tokens"`
+	CostUSD      Fact[float64] `json:"costUsd"`
+	ProxyCalls   Fact[int]     `json:"proxyCalls"`
+	ProxyBytes   Fact[int64]   `json:"proxyBytes"`
+	ProxyTokens  Fact[int64]   `json:"proxyTokens"`
+	ProxyUSD     Fact[float64] `json:"proxyUsd"`
+	RefusedCalls Fact[int]     `json:"refusedCalls"`
+}
+
+// Outbound is the traffic to hosts other than the model, as host:port. It
+// costs no model money, and a host that was denied was never reached.
+type Outbound struct {
+	Reached Fact[[]string] `json:"reached"`
+	Denied  Fact[[]string] `json:"denied"`
 }
 
 // Approval is who approved the change. An agent opens a pull request and a

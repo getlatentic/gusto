@@ -76,33 +76,6 @@ func changedFiles(patch []byte) []string {
 	return files
 }
 
-// proxied is what out/proxy.jsonl says left the box: one line a call, written
-// by the proxy and not by the harness.
-type proxied struct {
-	calls       int
-	bytes       int64
-	credentials []string
-}
-
-func proxyCounts(lines []any) proxied {
-	counts := proxied{credentials: []string{}}
-	named := map[string]bool{}
-	for _, line := range lines {
-		call, _ := line.(map[string]any)
-		counts.calls++
-		if size, ok := call["bytes"].(json.Number); ok {
-			sent, _ := size.Int64()
-			counts.bytes += sent
-		}
-		if name, ok := call["credential"].(string); ok && !named[name] {
-			named[name] = true
-			counts.credentials = append(counts.credentials, name)
-		}
-	}
-	sort.Strings(counts.credentials)
-	return counts
-}
-
 // member reads one field of a document that may not be an object at all.
 func member(document any, name string) (any, bool) {
 	object, ok := document.(map[string]any)

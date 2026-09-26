@@ -14,6 +14,10 @@ const (
 	// None is something that was recorded as not happening, such as a gate for
 	// a turn in a conversation, which claims nothing passed.
 	None = "none"
+	// NotMeasured is a sum the proxy could not make, because an answer it
+	// counts carried no usage or the model has no price. It is never written
+	// as zero, which would read as free.
+	NotMeasured = "not measured"
 )
 
 // Fact is a value the export either knows or says plainly why it does not. It
