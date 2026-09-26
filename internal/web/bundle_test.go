@@ -21,7 +21,7 @@ import (
 
 // A harness is a program, so a program that makes the change runs the whole
 // sequence with no model, no account and no container. %s is what it does.
-const fixture = `{
+const fixtureJSON = `{
   "name": "fixture",
   "program": "sh",
   "argv": ["-c", %q],
@@ -41,8 +41,8 @@ const refusal = "answer.txt does not say yes"
 func checkout(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()
-	keep(t, filepath.Join(at, "answer.txt"), "no", 0o644)
-	keep(t, filepath.Join(at, "gate.sh"),
+	put(t, filepath.Join(at, "answer.txt"), "no", 0o644)
+	put(t, filepath.Join(at, "gate.sh"),
 		"#!/bin/sh\ntest \"$(cat answer.txt)\" = yes || { echo '"+refusal+"'; exit 1; }\n", 0o755)
 	for _, args := range [][]string{
 		{"init", "--quiet"},
@@ -58,7 +58,7 @@ func checkout(t *testing.T) string {
 	return at
 }
 
-func keep(t *testing.T, path, text string, mode os.FileMode) {
+func put(t *testing.T, path, text string, mode os.FileMode) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(text), mode); err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func keep(t *testing.T, path, text string, mode os.FileMode) {
 func (s *site) ranJob(t *testing.T, does string) (string, job.Dir) {
 	t.Helper()
 	harnesses := t.TempDir()
-	keep(t, filepath.Join(harnesses, "fixture.json"), fmt.Sprintf(fixture, does), 0o644)
+	put(t, filepath.Join(harnesses, "fixture.json"), fmt.Sprintf(fixtureJSON, does), 0o644)
 	t.Setenv("HAAS_HARNESSES", harnesses)
 	t.Setenv("HAAS_SIGNER", "a-test")
 

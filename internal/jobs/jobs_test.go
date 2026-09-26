@@ -159,6 +159,7 @@ func TestAJobThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 	if err := evidence.Write(dir, evidence.Manifest{
 		Gate:   evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
 		Signer: "a-test",
+		AtUnix: Now(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -231,5 +232,83 @@ func TestStoppingStartsNothingElse(t *testing.T) {
 	}
 	if queued != 4 {
 		t.Fatalf("%d jobs left queued, want 4", queued)
+	}
+}
+
+// A directory can be run more than once. A verdict from the run before is not
+// this run's, and reporting it would credit work this run never did.
+func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "run twice")
+	dir := record.Dir(index.Root())
+	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	claimed, _, err := index.Claim()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Written while this run is in flight, but dated before it began.
+	if err := evidence.Write(dir, evidence.Manifest{
+		Gate:   evidence.Verdict{Code: 0, Passed: true},
+		AtUnix: claimed.Started - 30,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(index.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := reopened.Get(record.ID)
+	if got.State != Interrupted {
+		t.Fatalf("a manifest older than the run reports %q", got.State)
+	}
+}
+
+func TestClaimingAJobClearsTheVerdictOfItsLastRun(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "run twice")
+	dir := record.Dir(index.Root())
+	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := evidence.Write(dir, evidence.Manifest{Gate: evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := index.Claim(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := evidence.Read(dir); err == nil {
+		t.Fatal("the previous run's manifest is still there for this run to inherit")
+	}
+}
+
+// The manifest knows when the run ended. The clock at recovery only knows when
+// somebody noticed, which would count an outage as part of the job.
+func TestARecoveredJobIsNotChargedForTheOutage(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "long outage")
+	dir := record.Dir(index.Root())
+	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	claimed, _, err := index.Claim()
+	if err != nil {
+		t.Fatal(err)
+	}
+	finished := claimed.Started + 15
+	if err := evidence.Write(dir, evidence.Manifest{
+		Gate:   evidence.Verdict{Code: 0, Passed: true},
+		AtUnix: finished,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(index.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := reopened.Get(record.ID)
+	if got.Ended != finished {
+		t.Fatalf("ended at %d, and the manifest says the run finished at %d", got.Ended, finished)
 	}
 }
