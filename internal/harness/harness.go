@@ -64,7 +64,10 @@ const (
 
 // Adapter is how to run one harness.
 type Adapter struct {
-	Name     string            `json:"name"`
+	Name string `json:"name"`
+	// What this harness is, in one line, for somebody choosing between them.
+	// A catalog that lists only names is not a choice.
+	What     string            `json:"what,omitempty"`
 	Program  string            `json:"program"`
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`

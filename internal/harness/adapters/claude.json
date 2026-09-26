@@ -1,5 +1,6 @@
 {
   "name": "claude",
+  "what": "Anthropic's coding agent. Signs in with a person's own subscription.",
   "program": "claude",
   "argv": [
     "-p",
