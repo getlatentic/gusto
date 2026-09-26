@@ -98,8 +98,7 @@ func chosenWork(way *WayOut, sessions *talk.Sessions) jobs.Work {
 			return 0, err
 		}
 		defer way.Done(dir)
-		address, token := way.For(dir, spec)
-		exit, err := sandbox.Run(dir, address, token, staying(sessions, spec)...)
+		exit, err := way.Run(dir, spec, staying(sessions, spec)...)
 		// A turn learns what the harness calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
 		if spec.Session != "" {

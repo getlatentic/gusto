@@ -27,10 +27,19 @@ type Call struct {
 	InputTokens  *int64   `json:"inputTokens"`
 	OutputTokens *int64   `json:"outputTokens"`
 	USD          *float64 `json:"usd"`
+	// Host is where a request other than a model call was going, as
+	// host:port. Such a request costs no model money and is not counted.
+	Host string `json:"host,omitempty"`
+	// Denied says why a request to Host was refused rather than sent.
+	Denied string `json:"denied,omitempty"`
 	// Refused is the cap that kept this call from leaving. A refused call sent
 	// nothing, so its tokens and cost are a measured zero rather than null.
 	Refused *Refusal `json:"refused,omitempty"`
 }
+
+// ToModel says whether this line is a call to the model, the only kind that
+// spends.
+func (c Call) ToModel() bool { return c.Host == "" }
 
 // Measured says whether the cost of this call is known.
 func (c Call) Measured() bool { return c.USD != nil }

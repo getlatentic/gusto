@@ -39,7 +39,7 @@ This list is the product. A buyer works down it, and most of it is not built.
 | identity | SSO, and roles that separate who may run a job, who may approve one, and who may change policy | one shared password |
 | credentials | a key per team, added by the proxy on the way out and never inside a sandbox | built, one key |
 | spend | budgets per team, project and job, with caps that stop a running job | the proxy counts and caps a job and a team; the count is not yet measured against a real provider |
-| data | where a job runs, and what may leave it. Outbound denied unless an allowlist names it | the runner classes exist; the allowlist does not |
+| data | where a job runs, and what may leave it. Outbound denied unless an allowlist names it | the proxy denies any host the allowlist does not name, and the container has no network but the proxy's socket; the seal is not yet measured on the box |
 | model policy | which models may see which repositories, enforced rather than remembered | one rule: restricted code needs a local model |
 | isolation | one sandbox a job, never reused, destroyed after | built |
 | change control | an agent opens a pull request and never merges | built |

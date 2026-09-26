@@ -35,23 +35,25 @@ type Proxy struct {
 	upstream Upstream
 	where    Where
 	ledger   *spend.Ledger
+	allowed  Allowlist
 	client   *http.Client
 	guard    sync.Mutex
 }
 
 // New takes the ledger every call is counted in and every cap is checked
 // against, so what the proxy refuses and what a report says was spent are read
-// from one place.
-func New(tokens *Tokens, upstream Upstream, where Where, ledger *spend.Ledger) *Proxy {
+// from one place, and the hosts a job may reach besides its model.
+func New(tokens *Tokens, upstream Upstream, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
 	return &Proxy{
 		tokens:   tokens,
 		upstream: upstream,
 		where:    where,
 		ledger:   ledger,
+		allowed:  allowed,
 		// A model answers slowly and streams. There is no timeout to set here
 		// that is not a guess at somebody's slowest prompt; the job's own budget
 		// is what stops a run that will not end.
-		client: &http.Client{},
+		client: &http.Client{Transport: http.DefaultTransport},
 	}
 }
 
@@ -60,6 +62,12 @@ func New(tokens *Tokens, upstream Upstream, where Where, ledger *spend.Ledger) *
 // this is. That also means the path must never be useful without one.
 func (p *Proxy) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Anything but the model is asked for the way any forward proxy is,
+		// and goes through the allowlist.
+		if r.Method == http.MethodConnect || r.URL.IsAbs() {
+			p.outbound(w, r)
+			return
+		}
 		token, rest := split(r.URL.Path)
 		// An OpenAI-compatible client puts its key in the Authorization header
 		// and its base URL in static configuration. A token in the path would

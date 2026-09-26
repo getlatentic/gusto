@@ -42,6 +42,10 @@ type Mount struct {
 // Run takes the address the container should ask for a model at. It is given
 // rather than read from the environment because it is per job: the proxy mints
 // a token for this run, and that token is in the address.
+//
+// The container keeps the runtime's default network, so this is the local case:
+// a model on the host and no credential to keep out. A job with a proxy runs
+// Sealed instead.
 func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
@@ -51,26 +55,23 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	args := []string{"run", "--rm",
-		"-v", absolute + ":/job",
+	network := []string{
 		"-e", "HAAS_MODEL_URL=" + inContainer(model),
 		// Where a harness would have put a credential. The real one stays in the
 		// proxy, and this is worth nothing once the job ends.
 		"-e", "HAAS_MODEL_TOKEN=" + token,
-		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
 	}
-	for _, mount := range mounts {
-		absolute, err := filepath.Abs(mount.From)
-		if err != nil {
-			return 0, err
-		}
-		args = append(args, "-v", absolute+":"+mount.To)
-	}
-	args = append(args, Limits()...)
 	if alias {
-		args = append(args, "--add-host=host.docker.internal:host-gateway")
+		network = append(network, "--add-host=host.docker.internal:host-gateway")
 	}
-	args = append(args, Image(), "inside", "/job")
+	args, err := argv(absolute, network, mounts)
+	if err != nil {
+		return 0, err
+	}
+	return start(args)
+}
+
+func start(args []string) (int, error) {
 	command := exec.Command(Runtime(), args...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
@@ -78,6 +79,26 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil
+}
+
+// argv is the container's command line: the job directory, what reaches the
+// network, the mounts, and what one job may take of the machine.
+func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
+	args := []string{"run", "--rm",
+		"-v", absolute + ":/job",
+		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
+	}
+	args = append(args, network...)
+	for _, mount := range mounts {
+		absolute, err := filepath.Abs(mount.From)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "-v", absolute+":"+mount.To)
+	}
+	args = append(args, Limits()...)
+	args = append(args, Image(), "inside", "/job")
+	return args, nil
 }
 
 // inContainer rewrites a model address the host reaches on loopback into one a
