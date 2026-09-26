@@ -69,9 +69,12 @@ type Adapter struct {
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`
 	Endpoint string            `json:"endpoint,omitempty"`
-	Needs    Needs             `json:"needs"`
-	Stream   Stream            `json:"stream"`
-	Totals   Totals            `json:"totals,omitempty"`
+	// Stdin is what the harness reads on standard input. Some take the brief as
+	// an argument and some read it: codex waits on stdin forever otherwise.
+	Stdin  string `json:"stdin,omitempty"`
+	Needs  Needs  `json:"needs"`
+	Stream Stream `json:"stream"`
+	Totals Totals `json:"totals,omitempty"`
 
 	// Dotted paths into a JSONL line. An empty path means the harness does not
 	// say, and the number is left out rather than guessed.
@@ -81,6 +84,12 @@ type Adapter struct {
 	Resume []string `json:"resume,omitempty"`
 
 	Text string `json:"text,omitempty"`
+	// Where a harness says what it ran. A line on which ToolName resolves is a
+	// tool call, and nothing else distinguishes one.
+	ToolName   string `json:"toolName,omitempty"`
+	ToolInput  string `json:"toolInput,omitempty"`
+	ToolStatus string `json:"toolStatus,omitempty"`
+	ToolTitle  string `json:"toolTitle,omitempty"`
 	// SessionID is where the harness says what it calls this conversation.
 	SessionID    string `json:"sessionId,omitempty"`
 	InputTokens  string `json:"inputTokens,omitempty"`
@@ -206,6 +215,9 @@ func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *
 	}
 	command := exec.CommandContext(ctx, a.fill(a.Program, spec), argv...)
 	command.Dir = workspace
+	if a.Stdin != "" {
+		command.Stdin = strings.NewReader(a.fill(a.Stdin, spec))
+	}
 	command.Env = os.Environ()
 	for key, value := range a.Env {
 		command.Env = append(command.Env, key+"="+a.fill(value, spec))
