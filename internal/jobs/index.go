@@ -110,6 +110,12 @@ func (i *Index) Claim() (Record, bool, error) {
 	}
 	oldest.State = Running
 	oldest.Started = Now()
+	// A manifest left by an earlier run of this directory would be read as this
+	// run's verdict if this run never reaches the end. The run about to start
+	// overwrites the rest of out/ anyway, so the old verdict goes with it.
+	if err := os.Remove(oldest.Dir(i.root).OutFile("manifest.json")); err != nil && !os.IsNotExist(err) {
+		return Record{}, false, err
+	}
 	if err := write(oldest.Dir(i.root), *oldest); err != nil {
 		return Record{}, false, err
 	}
@@ -137,15 +143,21 @@ func (i *Index) Finish(id string, state State, exit int) error {
 
 // ended asks the job directory how a run that nobody was watching turned out.
 func ended(record Record, root string) Record {
-	record.Ended = Now()
 	manifest, err := evidence.Read(record.Dir(root))
-	if err != nil {
-		// No manifest: the run did not reach the end, so nothing is known about
-		// it and an exit code of zero would read as success.
+	// A manifest is this run's only if it was written after this run started.
+	// Anything older belongs to a previous run of the same directory, and
+	// treating it as a verdict would report work that this run never did.
+	if err != nil || manifest.AtUnix < record.Started {
+		// Nothing was left behind, so nothing is known: an exit code of zero
+		// would read as success.
 		record.State = Interrupted
 		record.Exit = -1
+		record.Ended = Now()
 		return record
 	}
+	// The manifest knows when the run ended. The clock at recovery only knows
+	// when somebody noticed, which would count the outage as part of the job.
+	record.Ended = manifest.AtUnix
 	record.Exit = manifest.Gate.Code
 	record.State = Failed
 	if manifest.Gate.Passed {
