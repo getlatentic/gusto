@@ -320,7 +320,8 @@ in the container is the one thing this refuses to do, so the container is given
 an address instead:
 
 ```
-container   HAAS_MODEL_URL=http://host:8041/model/<job-token>/v1
+container   HAAS_MODEL_URL=http://127.0.0.1:8041/model/v1, the job's token as its key
+runner      relays 127.0.0.1:8041 in the box to the proxy's socket, mounted in
 proxy       validates the token, adds the real credential, writes down what went
 ```
 
@@ -334,9 +335,40 @@ what the harness says it spent. A harness reporting its own usage is a claim;
 this is the count. Comparing the two is how a harness that under-reports is
 caught.
 
-It listens on its own port because a container cannot reach a service bound to
-its host's loopback. What keeps it safe is the per-job token and the host's
-firewall, not the interface it binds — so do not expose that port.
+## Nothing else leaves
+
+A container with a proxy runs with `--network=none`. It has no route anywhere,
+so the only way out is the proxy's unix socket, mounted in at
+`/run/haas/proxy.sock`, which the runner inside relays to from loopback. The
+repository is cloned before the container starts, so the box needs no route to
+it either.
+
+Every host but the model is refused unless `HAAS_ALLOWED_HOSTS` names it. The
+container is given `HTTPS_PROXY` and `HTTP_PROXY` pointing at the relay, with the
+job's token as the password, so a package manager or a fetch goes through the
+proxy the ordinary way:
+
+```bash
+HAAS_ALLOWED_HOSTS=registry.npmjs.org,proxy.golang.org,*.githubusercontent.com
+```
+
+An entry is a host, which allows its ports 80 and 443, or `host:port` for one
+port. `*.example.com` allows every name under the domain and not the domain
+itself. Nothing set is nothing allowed.
+
+Every request, sent or refused, is a line in `out/proxy.jsonl` with its `host`,
+and a refused one says `denied`, so the manifest's hash covers the attempt. The
+proxy answers a refused host with 403 and sends nothing on. An HTTPS request is
+carried as a tunnel, so the proxy sees the host and not what was said.
+
+Two things are **not yet measured**. Whether `--network=none` with a mounted
+socket holds on the box's podman, rootless or not, and on Docker, has to be
+checked there; the tests hold the command line and not the runtime. And Docker
+Desktop on a Mac may not hand a container a host socket at all. Set
+`HAAS_JOB_NETWORK=open` for the old route, where the container keeps the
+runtime's network and reaches the proxy on `HAAS_PROXY_ADDR`. That route is not
+sealed: the allowlist governs what goes through the proxy, and nothing stops a
+container that ignores it.
 
 ## What a job may spend
 
@@ -513,7 +545,10 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
 | `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `HAAS_MODEL_NAME` | what the evidence calls that credential |
-| `HAAS_PROXY_ADDR` | where the proxy listens for containers, `0.0.0.0:8041` by default |
+| `HAAS_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `HAAS_JOBS` by default |
+| `HAAS_ALLOWED_HOSTS` | the hosts besides the model a job may reach, comma-separated. Nothing set is nothing allowed |
+| `HAAS_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `HAAS_PROXY_ADDR` instead of sealing them |
+| `HAAS_PROXY_ADDR` | where the proxy listens when `HAAS_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
 | `HAAS_SPEND_POLICY` | a file of model prices and team caps the proxy counts with. Without it every model is unpriced and no team is capped |
 
 ## Tests

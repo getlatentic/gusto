@@ -123,6 +123,9 @@ func (l *Ledger) Allow(job, model string) *Refusal {
 // Count adds a call that happened, or was refused, to the job, its project
 // and its team, in the month it happened.
 func (l *Ledger) Count(job string, call Call) {
+	if !call.ToModel() {
+		return
+	}
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	held := l.account(job)
