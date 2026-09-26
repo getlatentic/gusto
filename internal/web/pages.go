@@ -119,32 +119,10 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	if spec, err := job.Read(dir); err == nil {
 		page["Spec"] = spec
 	}
-	manifest, err := evidence.Read(dir)
-	if err == nil {
-		page["Manifest"] = manifest
-	}
-	if patch, err := os.ReadFile(dir.OutFile("diff.patch")); err == nil && len(patch) > 0 {
-		page["Patch"] = string(patch)
-	}
-	if refusal := gateOutput(record, dir); refusal != "" {
-		page["GateLog"] = refusal
-	}
+	manifest := readManifest(dir)
+	drawEvidence(page, record, dir, manifest)
 	page["Files"] = hashed(listing(dir), manifest)
 	s.render(w, "job.html", page)
-}
-
-// gateOutput is what the gate printed, for a job the gate did not pass. That
-// output is the answer a reader of a failure came for, and a pass has nothing to
-// explain. A job still running is left to the stream.
-func gateOutput(record jobs.Record, dir job.Dir) string {
-	if !record.State.Done() || record.State == jobs.Passed {
-		return ""
-	}
-	output, err := os.ReadFile(dir.OutFile("gate.log"))
-	if err != nil {
-		return ""
-	}
-	return string(output)
 }
 
 // hashedFile is one file in out/ beside the hash the manifest claims for it, so
@@ -158,9 +136,9 @@ type hashedFile struct {
 // hashed pairs what is on disk with what the manifest says. No hash means the
 // manifest does not name the file: manifest.json, which cannot hash itself, and
 // anything that appeared after the run, which `haas verify` reports.
-func hashed(names []string, manifest evidence.Manifest) []hashedFile {
-	claimed := make(map[string]string, len(manifest.Files))
-	for _, entry := range manifest.Files {
+func hashed(names []string, manifest *evidence.Manifest) []hashedFile {
+	claimed := map[string]string{}
+	for _, entry := range entriesOf(manifest) {
 		claimed[entry.Name] = entry.SHA256
 	}
 	files := make([]hashedFile, 0, len(names))

@@ -34,6 +34,27 @@ pre { overflow-x: auto; padding: .8rem; border: 1px solid var(--edge); border-ra
   font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
   word-break: break-word; max-height: 32rem; }
 .muted { opacity: .6; }
+h3 { font-size: .85rem; margin: 1.2rem 0 .4rem; }
+.transcript { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 80ch; max-height: 40rem; overflow-y: auto;
+  padding: .8rem 1rem; border: 1px solid var(--edge); border-radius: 8px; font-size: .9rem; line-height: 1.6; }
+.diff-file { margin: 1rem 0 1.5rem; }
+.diff-file h3 { margin: 0 0 .4rem; }
+.diff-meta { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .6; }
+.diff-scroll { overflow-x: auto; border: 1px solid var(--edge); border-radius: 8px; }
+table.diff { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+table.diff td { border: 0; padding: 0 .5rem; }
+table.diff td.n { width: 1%; text-align: right; opacity: .5; user-select: none; white-space: nowrap; }
+table.diff td.code { white-space: pre-wrap; overflow-wrap: anywhere; }
+table.diff td.code::before { content: " "; display: inline-block; width: 1.2ch; opacity: .6; user-select: none; }
+table.diff tr.added td.code::before { content: "+"; }
+table.diff tr.removed td.code::before { content: "-"; }
+table.diff tr.added { background: color-mix(in srgb, #2da44e 16%, transparent); }
+table.diff tr.removed { background: color-mix(in srgb, #cf222e 16%, transparent); }
+table.diff tr.hunk { background: color-mix(in srgb, #0969da 10%, transparent); opacity: .8; }
+table.diff tr.note td.code { font-style: italic; opacity: .6; }
+.command { display: flex; gap: .6rem; align-items: center; }
+.command code { flex: 1; padding: .55rem .7rem; border: 1px solid var(--edge); border-radius: 6px;
+  overflow-x: auto; white-space: nowrap; user-select: all; }
 .refused { border: 1px solid #b3261e; color: #b3261e; padding: .6rem .8rem; border-radius: 8px; }
 </style>
 </head>
