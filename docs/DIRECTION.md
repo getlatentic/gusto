@@ -127,7 +127,7 @@ The pages are not the main entrance.
 | way in | who uses it | state |
 | --- | --- | --- |
 | `haas` on the command line | whoever wrote the repository | built |
-| the pages | anybody on the team | built, including talking to a harness |
+| the pages | anybody on the team | built: a task or a thread on an instance, and `/jobs` as the record of every run |
 | `POST /api/jobs` | a script, a CI job, another platform | built |
 | an MCP server | any agent that speaks MCP: Claude Code, Codex, Cursor, Zed | not started |
 

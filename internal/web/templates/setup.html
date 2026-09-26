@@ -6,6 +6,7 @@
 
 <form class="card" method="post" action="/instances">
   <input type="hidden" name="harness" value="{{.Harness.Name}}">
+  {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
   <div class="row">
     <label>Model
       {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>

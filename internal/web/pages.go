@@ -7,11 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
@@ -85,58 +82,6 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (s *Server) list(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "list.html", map[string]any{
-		"Title":     "haas",
-		"Nav":       "jobs",
-		"Subtitle":  "a job is a directory",
-		"Jobs":      s.index.List(),
-		"Harnesses": catalog.Ready(s.catalog),
-		"Catalog":   s.catalog,
-		"Models":    s.models,
-		"Refused":   r.URL.Query().Get("refused"),
-	})
-}
-
-// submit writes the same job.json the command line writes, and nothing else. A
-// job made here runs on any runner that can read the directory.
-func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
-	gate := job.Words(r.FormValue("gate"))
-	spec := job.Spec{
-		Brief:       strings.TrimSpace(r.FormValue("brief")),
-		Repo:        strings.TrimSpace(r.FormValue("repo")),
-		Gate:        gate,
-		Harness:     r.FormValue("harness"),
-		Model:       strings.TrimSpace(r.FormValue("model")),
-		Sensitivity: job.Sensitivity(r.FormValue("sensitivity")),
-		Team:        strings.TrimSpace(r.FormValue("team")),
-	}
-	if spec.Brief == "" || len(gate) == 0 {
-		s.turnAway(w, r, "/jobs", "a job needs something to do and a command that says it worked")
-		return
-	}
-	capped, err := dollars(r.FormValue("usd"))
-	if err == nil {
-		spec.Budget.USD = capped
-		err = spec.Budget.Check()
-	}
-	if err != nil {
-		s.refuse(w, r, err)
-		return
-	}
-	record := jobs.Record{
-		ID: s.index.Free(spec.Brief, time.Now()), State: jobs.Queued,
-		Brief: spec.Brief, Repo: spec.Repo, Harness: spec.Harness,
-		Model: spec.Model, Asked: s.keeper.who(r), Queued: jobs.Now(),
-	}
-	if err := s.place(spec, record); err != nil {
-		s.refuse(w, r, err)
-		return
-	}
-	s.queue.Wake()
-	http.Redirect(w, r, "/jobs/"+record.ID, http.StatusSeeOther)
-}
-
 // place writes a job's directory and takes it into the index. It is the same
 // sequence whichever page asked for the job, and the caller wakes the queue
 // once it has recorded whatever else the job belongs to.
@@ -154,28 +99,10 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 	return s.index.Add(record)
 }
 
-// dollars is a cap a person typed. Nothing typed is no cap, which is not the
-// same as a cap of nothing.
-func dollars(typed string) (*float64, error) {
-	typed = strings.TrimPrefix(strings.TrimSpace(typed), "$")
-	if typed == "" {
-		return nil, nil
-	}
-	amount, err := strconv.ParseFloat(typed, 64)
-	if err != nil {
-		return nil, fmt.Errorf("%q is not an amount of dollars", typed)
-	}
-	return &amount, nil
-}
-
 // turnAway sends somebody back to the page they came from, carrying the reason
 // they did not get what they asked for.
 func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why string) {
 	http.Redirect(w, r, back+"?refused="+template.URLQueryEscaper(why), http.StatusSeeOther)
-}
-
-func (s *Server) refuse(w http.ResponseWriter, r *http.Request, err error) {
-	s.turnAway(w, r, "/", err.Error())
 }
 
 func (s *Server) job(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +111,10 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	page := map[string]any{"Job": record, "Title": "haas — " + record.ID, "Subtitle": record.ID, "Nav": "jobs"}
+	page := map[string]any{
+		"Job": record, "On": s.origin(record),
+		"Title": "haas — " + record.ID, "Subtitle": record.ID, "Nav": "jobs",
+	}
 	if spec, err := job.Read(dir); err == nil {
 		page["Spec"] = spec
 	}

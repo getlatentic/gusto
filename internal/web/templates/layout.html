@@ -164,6 +164,10 @@ table.facts td { border: 0; padding-left: 0; }
 
 {{define "foot"}}</body></html>{{end}}
 
+{{/* origin is the instance a run belonged to: a link when there is one to go
+     to, and otherwise the reason there is none, never an empty link. */}}
+{{define "origin"}}{{if .Link}}<a href="{{.Link}}">{{.Named}}</a>{{else}}<span class="muted">{{.Named}}</span>{{end}}{{end}}
+
 {{define "icon-harness"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z"/></svg>{{end}}
 {{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}
 {{define "icon-spend"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M11 4.5H6.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H5"/></svg>{{end}}

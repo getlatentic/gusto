@@ -123,9 +123,9 @@ on the manifest, an export is held to as well.
 | who looked | `requests` | the request log's lines whose path names the job |
 
 The request that created a job is never among its request lines. It is `POST
-/jobs` or `POST /api/jobs`, and the job's ID is chosen after that path is
-written, so the path is the only tie and it does not hold one. What the lines
-show is who read the job afterwards.
+/instances/{id}/tasks`, a thread's `POST .../say` or `POST /api/jobs`, and the
+job's ID is chosen after that path is written, so the path is the only tie and
+it does not hold one. What the lines show is who read the job afterwards.
 
 ### The words in place of a value
 
