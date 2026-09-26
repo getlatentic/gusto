@@ -149,8 +149,14 @@ func dollars(typed string) (*float64, error) {
 	return &amount, nil
 }
 
+// turnAway sends somebody back to the page they came from, carrying the reason
+// they did not get what they asked for.
+func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why string) {
+	http.Redirect(w, r, back+"?refused="+template.URLQueryEscaper(why), http.StatusSeeOther)
+}
+
 func (s *Server) refuse(w http.ResponseWriter, r *http.Request, err error) {
-	http.Redirect(w, r, "/?refused="+template.URLQueryEscaper(err.Error()), http.StatusSeeOther)
+	s.turnAway(w, r, "/", err.Error())
 }
 
 func (s *Server) job(w http.ResponseWriter, r *http.Request) {

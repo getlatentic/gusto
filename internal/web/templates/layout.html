@@ -84,6 +84,50 @@ pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface
   border-radius: var(--yg-radius-sm); font: 12.5px/1.55 var(--yg-font-mono);
   white-space: pre-wrap; word-break: break-word; max-height: 30rem; }
 .muted { color: var(--yg-text-muted); }
+
+/* The catalog. One card a harness, and the difference between one this
+   deployment can start and one it cannot is visible before either is read: a
+   card you can start has a surface and no line, one you cannot has a line and
+   no surface. */
+.picks { display: grid; gap: var(--yg-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+.pick { display: grid; gap: var(--yg-space-1); align-content: start; min-height: 6rem;
+  padding: var(--yg-space-5); border-radius: var(--yg-radius-md);
+  background: var(--yg-surface); box-shadow: var(--yg-shadow-1);
+  color: inherit; text-decoration: none; }
+.pick:hover { box-shadow: var(--yg-shadow-2); }
+.pick .name { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em; }
+.pick.off { background: none; box-shadow: none; border: 1px solid var(--yg-border); }
+.pick.off .name { color: var(--yg-text-muted); }
+
+/* A facts table is a label and a value, not a grid, so it carries no head rule
+   and no row rules. */
+table.facts { width: auto; margin-bottom: var(--yg-space-8); }
+table.facts th { border: 0; padding-right: var(--yg-space-6); white-space: nowrap; }
+table.facts td { border: 0; padding-left: 0; }
+
+/* A turn is what you said and what came back. Yours sits in the accent
+   surface, which is the one place a person's own words appear; the reply is
+   the transcript, which is already set apart by being monospaced. */
+.turn { margin-bottom: var(--yg-space-8); }
+.said { margin: 0 0 var(--yg-space-3) auto; max-width: 42rem; width: fit-content;
+  padding: var(--yg-space-3) var(--yg-space-4);
+  background: var(--yg-accent-surface); color: var(--yg-text);
+  border-radius: var(--yg-radius-md); white-space: pre-wrap; }
+.turn pre { margin: 0; }
+/* What a turn ended as, and the one way to the rest of it. A link at the end
+   of a line somebody is not reading does not need underlining to be found. */
+.after { display: flex; align-items: center; gap: var(--yg-space-3);
+  margin: var(--yg-space-2) 0 0; font-size: .8125rem; }
+.after a { color: var(--yg-text-muted); text-decoration: none; }
+.after a:hover { color: var(--yg-accent-text); }
+
+/* Where you are, above what you are reading. The instance is a link; the thread
+   is where you already are, so it is not. */
+.crumb { display: flex; gap: var(--yg-space-3); align-items: baseline;
+  margin: 0 0 var(--yg-space-6); font-size: .9375rem; }
+.crumb a { color: var(--yg-text); text-decoration: none; font-weight: 600; }
+.crumb a:hover { color: var(--yg-accent-text); }
 .refused { background: var(--yg-danger-surface); color: var(--yg-danger);
   padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
 
@@ -96,8 +140,7 @@ pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface
 <header>
   <a class="mark" href="/"><img src="/static/mark.png" alt=""> haas</a>
   <nav>
-    <a href="/">{{template "icon-jobs"}} Jobs</a>
-    <a href="/talk">{{template "icon-talk"}} Talk</a>
+    <a href="/jobs">{{template "icon-jobs"}} Jobs</a>
     <a href="/spend">{{template "icon-spend"}} Spend</a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
   </nav>
@@ -107,6 +150,5 @@ pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface
 {{define "foot"}}</body></html>{{end}}
 
 {{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}
-{{define "icon-talk"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5a1.5 1.5 0 0 1-1.5 1.5H6l-3 2.5V4a1.5 1.5 0 0 1 1.5-1.5h7.5A1.5 1.5 0 0 1 13.5 4z"/></svg>{{end}}
 {{define "icon-spend"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M11 4.5H6.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H5"/></svg>{{end}}
 {{define "icon-out"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 13.5H3.5A1.5 1.5 0 0 1 2 12V4a1.5 1.5 0 0 1 1.5-1.5H6M10.5 11 14 8l-3.5-3M14 8H6"/></svg>{{end}}

@@ -317,3 +317,87 @@ func TestARecoveredJobIsNotChargedForTheOutage(t *testing.T) {
 		t.Fatalf("ended at %d, and the manifest says the run finished at %d", got.Ended, finished)
 	}
 }
+
+// turnQueued is a turn in a conversation: a job that names the instance whose
+// workspace it will write in.
+func turnQueued(t *testing.T, index *Index, instance, thread, brief string) Record {
+	t.Helper()
+	record := Record{
+		ID:      index.Free(brief, time.Now()),
+		State:   Queued,
+		Brief:   brief,
+		Harness: "fixture",
+		Asked:   "a-test",
+		Queued:  Now(),
+
+		Instance: instance,
+		Thread:   thread,
+	}
+	if err := os.MkdirAll(record.Dir(index.Root()).Path(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := index.Add(record); err != nil {
+		t.Fatal(err)
+	}
+	return record
+}
+
+// Threads share one workspace, so two turns of one instance running at once
+// would be two containers editing the same files.
+func TestTwoTurnsOfOneInstanceDoNotRunAtOnce(t *testing.T) {
+	index := at(t)
+	first := turnQueued(t, index, "20260926-1200-work", "1", "fix the bug")
+	turnQueued(t, index, "20260926-1200-work", "2", "cut the release")
+
+	claimed, found, err := index.Claim()
+	if err != nil || !found {
+		t.Fatalf("the first turn was not claimed: %v %v", found, err)
+	}
+	if claimed.ID != first.ID {
+		t.Fatalf("the queue took %s before %s", claimed.ID, first.ID)
+	}
+	if _, taken, err := index.Claim(); err != nil || taken {
+		t.Fatalf("a second turn of the same instance was claimed while one was running (%v %v)", taken, err)
+	}
+
+	if err := index.Finish(first.ID, Passed, 0); err != nil {
+		t.Fatal(err)
+	}
+	next, found, err := index.Claim()
+	if err != nil || !found {
+		t.Fatalf("the waiting turn was never claimed: %v %v", found, err)
+	}
+	if next.Thread != "2" {
+		t.Errorf("the queue went on to thread %q", next.Thread)
+	}
+}
+
+// Only an instance's own turns wait for it. A job that is not a turn has no
+// workspace to share and is claimed while one runs.
+func TestAJobThatIsNotATurnDoesNotWaitForAnInstance(t *testing.T) {
+	index := at(t)
+	turnQueued(t, index, "20260926-1200-work", "1", "fix the bug")
+	if _, found, err := index.Claim(); err != nil || !found {
+		t.Fatalf("the turn was not claimed: %v %v", found, err)
+	}
+	ordinary := queued(t, index, "run the tests")
+	claimed, found, err := index.Claim()
+	if err != nil || !found {
+		t.Fatalf("an ordinary job waited behind a turn: %v %v", found, err)
+	}
+	if claimed.ID != ordinary.ID {
+		t.Errorf("the queue took %s", claimed.ID)
+	}
+}
+
+// Turns of different instances are different computers, and run side by side.
+func TestTurnsOfDifferentInstancesRunSideBySide(t *testing.T) {
+	index := at(t)
+	turnQueued(t, index, "20260926-1200-one", "1", "fix the bug")
+	turnQueued(t, index, "20260926-1200-two", "1", "cut the release")
+	for turn := range 2 {
+		if _, found, err := index.Claim(); err != nil || !found {
+			t.Fatalf("turn %d was not claimed: %v %v", turn, found, err)
+		}
+	}
+}

@@ -11,9 +11,9 @@ import (
 
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/harness"
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/talk"
 )
 
 const password = "a-shared-password"
@@ -43,11 +43,11 @@ func open(t *testing.T) *site {
 		return 0, nil
 	}, 1)
 	t.Cleanup(queue.Stop)
-	sessions, err := talk.Open(t.TempDir())
+	instances, err := instance.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, sessions, queue, password, &Identity{}, offered(), []string{"platform/test-model"})
+	server, err := New(index, instances, queue, password, &Identity{}, offered(), []string{"platform/test-model"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,12 +116,29 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-func TestSomebodySignedInSeesTheList(t *testing.T) {
+// The front door is the catalog: what this deployment can start, and picking
+// one is the only thing on it to do.
+func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/", nil)
-	// What the page must show is the way to start a job, not a sentence saying
-	// there are none: an empty table already says that.
+	body := answer.Body.String()
+	if answer.Code != http.StatusOK {
+		t.Fatalf("code %d", answer.Code)
+	}
+	for _, want := range []string{"fixture", "/instances/new?harness=fixture"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the catalog does not offer %s", want)
+		}
+	}
+}
+
+// A job on its own is still a thing this server does; it is no longer the
+// first thing it offers.
+func TestTheJobFormIsStillThereUnderItsOwnAddress(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	answer := site.ask(t, "GET", "/jobs", nil)
 	body := answer.Body.String()
 	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
@@ -229,12 +246,8 @@ func offered() []catalog.Entry {
 func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	started := site.ask(t, "POST", "/talk", url.Values{"harness": {"fixture"}})
-	id := strings.TrimPrefix(started.Header().Get("Location"), "/talk/")
-	if id == "" {
-		t.Fatalf("no conversation was started: %d to %q", started.Code, started.Header().Get("Location"))
-	}
-	if said := site.ask(t, "POST", "/talk/"+id+"/say", url.Values{"said": {"hello there"}}); said.Code != http.StatusSeeOther {
+	where := startedThread(t, site)
+	if said := site.ask(t, "POST", where+"/say", url.Values{"said": {"hello there"}}); said.Code != http.StatusSeeOther {
 		t.Fatalf("saying something gave %d", said.Code)
 	}
 	select {
@@ -243,8 +256,8 @@ func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
 		t.Fatal("the turn never ran")
 	}
 
-	whole := site.ask(t, "GET", "/talk/"+id, nil).Body.String()
-	fragment := site.ask(t, "GET", "/talk/"+id+"/turns", nil).Body.String()
+	whole := site.ask(t, "GET", where, nil).Body.String()
+	fragment := site.ask(t, "GET", where+"/turns", nil).Body.String()
 	if !strings.Contains(fragment, "hello there") {
 		t.Fatalf("the fragment does not carry the turn:\n%s", fragment)
 	}
@@ -269,5 +282,51 @@ func TestWhatIsVendoredIsServedFromTheBinary(t *testing.T) {
 	// everybody and a page cannot render without it.
 	if strings.Contains(answer.Body.String(), "cdn.") {
 		t.Fatal("the vendored copy reaches a content delivery network")
+	}
+}
+
+// startedThread is an instance with one thread open on it, and the address of
+// that thread.
+func startedThread(t *testing.T, site *site) string {
+	t.Helper()
+	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
+	where := started.Header().Get("Location")
+	if !strings.HasPrefix(where, "/instances/") {
+		t.Fatalf("no instance was started: %d to %q", started.Code, where)
+	}
+	opened := site.ask(t, "POST", where+"/threads", url.Values{"title": {"the first thing"}})
+	thread := opened.Header().Get("Location")
+	if !strings.HasPrefix(thread, where+"/threads/") {
+		t.Fatalf("no thread was opened: %d to %q", opened.Code, thread)
+	}
+	return thread
+}
+
+// Two threads on one instance are two conversations, and what is said in one
+// does not appear in the other.
+func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	first := startedThread(t, site)
+	where := first[:strings.Index(first, "/threads/")]
+
+	opened := site.ask(t, "POST", where+"/threads", url.Values{"title": {"the second thing"}})
+	second := opened.Header().Get("Location")
+	if second == first {
+		t.Fatalf("both threads are at %s", second)
+	}
+	if said := site.ask(t, "POST", first+"/say", url.Values{"said": {"only in the first"}}); said.Code != http.StatusSeeOther {
+		t.Fatalf("saying something gave %d", said.Code)
+	}
+	select {
+	case <-site.ran:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the turn never ran")
+	}
+	if body := site.ask(t, "GET", first, nil).Body.String(); !strings.Contains(body, "only in the first") {
+		t.Error("the first thread does not carry what was said in it")
+	}
+	if body := site.ask(t, "GET", second, nil).Body.String(); strings.Contains(body, "only in the first") {
+		t.Error("the second thread carries what was said in the first")
 	}
 }

@@ -1,0 +1,36 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<section class="picks">
+  {{range .Catalog}}
+  {{if .Ready}}
+  <a class="pick" href="/instances/new?harness={{.Name}}">
+    <span class="name">{{.Name}}</span>
+  </a>
+  {{else}}
+  <div class="pick off">
+    <span class="name">{{.Name}}</span>
+    <span class="muted">{{.Why}}</span>
+  </div>
+  {{end}}
+  {{end}}
+</section>
+
+{{if .Instances}}
+<h2>Yours</h2>
+<table>
+  <tr><th>Instance</th><th>Harness</th><th>Working in</th><th>Threads</th><th>Started</th></tr>
+  {{range .Instances}}
+  <tr>
+    <td><a href="/instances/{{.ID}}">{{.ID}}</a></td>
+    <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
+    <td class="muted">{{if .Repo}}{{.Repo}}{{else}}an empty directory{{end}}</td>
+    <td>{{.Threads}}</td>
+    <td class="muted">{{when .Started}}</td>
+  </tr>
+  {{end}}
+</table>
+{{end}}
+
+{{template "foot" .}}

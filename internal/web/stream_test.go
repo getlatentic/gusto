@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/talk"
 )
 
 // A watcher here is served over a pipe rather than a socket. A write to a pipe
@@ -220,11 +220,11 @@ func idle(t *testing.T) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := talk.Open(t.TempDir())
+	instances, err := instance.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, sessions, nil, password, &Identity{}, offered(), []string{"platform/test-model"})
+	server, err := New(index, instances, nil, password, &Identity{}, offered(), []string{"platform/test-model"})
 	if err != nil {
 		t.Fatal(err)
 	}

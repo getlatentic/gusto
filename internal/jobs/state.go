@@ -39,11 +39,20 @@ type Record struct {
 	Repo    string `json:"repo"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
-	Asked   string `json:"asked"`
-	Exit    int    `json:"exit"`
-	Queued  int64  `json:"queuedAt"`
-	Started int64  `json:"startedAt,omitempty"`
-	Ended   int64  `json:"endedAt,omitempty"`
+	// Instance and Thread are set when this job is a turn in a conversation.
+	// The instance is what serialises them: its threads share one workspace, so
+	// two of its turns must never run at once.
+	Instance string `json:"instance,omitempty"`
+	Thread   string `json:"thread,omitempty"`
+	Asked    string `json:"asked"`
+	// Seq is the order this job arrived in. Queued is a second, and two jobs
+	// submitted in one second are two messages a person sent in order, so the
+	// clock alone cannot say which of them goes first.
+	Seq     int64 `json:"seq,omitempty"`
+	Exit    int   `json:"exit"`
+	Queued  int64 `json:"queuedAt"`
+	Started int64 `json:"startedAt,omitempty"`
+	Ended   int64 `json:"endedAt,omitempty"`
 }
 
 func (r Record) Dir(root string) job.Dir { return job.Dir(root + "/" + r.ID) }
