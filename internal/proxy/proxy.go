@@ -1,17 +1,16 @@
 package proxy
 
 import (
-	"encoding/json"
-	"fmt"
+	"bytes"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/haas/internal/spend"
 )
 
 // Upstream is where the model actually answers, and the credential to reach it.
@@ -29,20 +28,26 @@ type Upstream struct {
 // Where says which file in a job directory the proxy writes its record to.
 type Where func(job string) (string, bool)
 
-// Proxy adds the credential on the way out and writes down what went.
+// Proxy adds the credential on the way out, writes down what went and what it
+// cost, and refuses a call once a cap is spent.
 type Proxy struct {
 	tokens   *Tokens
 	upstream Upstream
 	where    Where
+	ledger   *spend.Ledger
 	client   *http.Client
 	guard    sync.Mutex
 }
 
-func New(tokens *Tokens, upstream Upstream, where Where) *Proxy {
+// New takes the ledger every call is counted in and every cap is checked
+// against, so what the proxy refuses and what a report says was spent are read
+// from one place.
+func New(tokens *Tokens, upstream Upstream, where Where, ledger *spend.Ledger) *Proxy {
 	return &Proxy{
 		tokens:   tokens,
 		upstream: upstream,
 		where:    where,
+		ledger:   ledger,
 		// A model answers slowly and streams. There is no timeout to set here
 		// that is not a guess at somebody's slowest prompt; the job's own budget
 		// is what stops a run that will not end.
@@ -96,8 +101,17 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, job, rest string) {
 		http.Error(w, "that is not an address", http.StatusBadRequest)
 		return
 	}
+	asked, err := readQuestion(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+		return
+	}
 	sent := time.Now()
-	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, r.Body)
+	if refusal := p.ledger.Allow(job, asked.model); refusal != nil {
+		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
+		return
+	}
+	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, bytes.NewReader(asked.body))
 	if err != nil {
 		http.Error(w, "that request could not be made", http.StatusBadGateway)
 		return
@@ -109,23 +123,35 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, job, rest string) {
 	if p.upstream.Key != "" {
 		out.Header.Set("Authorization", "Bearer "+p.upstream.Key)
 	}
+	// Left to itself the client asks for gzip and unpacks it, so the usage in
+	// the answer is readable here. A compression the container chose would pass
+	// through packed, and the call would go uncounted.
+	out.Header.Del("Accept-Encoding")
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: p.upstream.Name}
 	answer, err := p.client.Do(out)
 	if err != nil {
-		p.note(job, record{Path: rest, Error: err.Error(), Took: since(sent)})
+		call.Error, call.Took = err.Error(), since(sent)
+		p.note(job, call)
 		http.Error(w, "the model did not answer", http.StatusBadGateway)
 		return
 	}
 	defer answer.Body.Close()
 	copyHeaders(w.Header(), answer.Header)
 	w.WriteHeader(answer.StatusCode)
-	written, _ := io.Copy(w, answer.Body)
-	p.note(job, record{
-		Path:   rest,
-		Status: answer.StatusCode,
-		Bytes:  written,
-		Took:   since(sent),
-		Model:  p.upstream.Name,
-	})
+	meter := spend.NewMeter(answer.Header.Get("Content-Type"))
+	call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: w}, meter), answer.Body)
+	call.Status, call.Took = answer.StatusCode, since(sent)
+	p.note(job, p.priced(call, meter.Usage()))
+}
+
+// priced puts the provider's count and its cost on a call. Either stays null
+// when it is not known: an answer without usage, or a model without a price.
+func (p *Proxy) priced(call spend.Call, usage *spend.Usage) spend.Call {
+	if usage != nil {
+		call.InputTokens, call.OutputTokens = &usage.Input, &usage.Output
+	}
+	call.USD = p.ledger.Policy().Cost(call.Model, usage)
+	return call
 }
 
 func copyHeaders(to, from http.Header) {
@@ -140,40 +166,6 @@ func copyHeaders(to, from http.Header) {
 }
 
 func since(start time.Time) int64 { return time.Since(start).Milliseconds() }
-
-// record is what the proxy saw. It is deliberately independent of what the
-// harness says it spent: a harness reporting its own usage is a claim, and this
-// is the count of what actually left the box.
-type record struct {
-	Path   string `json:"path"`
-	Status int    `json:"status,omitempty"`
-	Bytes  int64  `json:"bytes,omitempty"`
-	Took   int64  `json:"tookMs"`
-	Model  string `json:"credential,omitempty"`
-	Error  string `json:"error,omitempty"`
-}
-
-func (p *Proxy) note(job string, seen record) {
-	where, ok := p.where(job)
-	if !ok {
-		return
-	}
-	line, err := json.Marshal(seen)
-	if err != nil {
-		return
-	}
-	p.guard.Lock()
-	defer p.guard.Unlock()
-	file, err := os.OpenFile(where, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		slog.Error("the proxy could not write down a call", "job", job, "error", err)
-		return
-	}
-	defer file.Close()
-	if _, err := fmt.Fprintf(file, "%s\n", line); err != nil {
-		slog.Error("the proxy could not write down a call", "job", job, "error", err)
-	}
-}
 
 // bearerOf is the token a client presented where a key would go.
 func bearerOf(r *http.Request) string {

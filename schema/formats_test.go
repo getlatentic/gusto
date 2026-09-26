@@ -76,6 +76,13 @@ func TestTheSmallestJobMatchesTheSchema(t *testing.T) {
 	}
 }
 
+func TestAJobWithATeamAndACapMatchesTheSchema(t *testing.T) {
+	document := `{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h", "team": "platform", "budget": {"usd": 2.5}}`
+	if err := schema.Validate(schema.Job(), []byte(document)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestTheJobSchemaRefusesWhatTheReaderRefuses(t *testing.T) {
 	for _, document := range []string{
 		`{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h", "sensitivity": "secret"}`,

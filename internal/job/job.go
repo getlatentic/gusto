@@ -9,6 +9,7 @@ package job
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 )
@@ -37,9 +38,14 @@ func (s Sensitivity) Known() bool {
 }
 
 // Budget is what a job may spend before a runner stops it.
+//
+// USD is a cap on what the job's calls to a model may cost, counted at the
+// proxy. Nil is no cap, and zero allows nothing, so leaving it out can never
+// be mistaken for a cap of nothing or the other way round.
 type Budget struct {
-	Turns   int `json:"turns"`
-	Seconds int `json:"seconds"`
+	Turns   int      `json:"turns"`
+	Seconds int      `json:"seconds"`
+	USD     *float64 `json:"usd,omitempty"`
 }
 
 // Spec carries a brief, not a prompt. The brief is input to a harness, and a
@@ -62,6 +68,9 @@ type Spec struct {
 	Remembered  string      `json:"remembered,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
+	// Team is who a job's spend counts against. It is a label the person
+	// asking chooses: nothing proves they belong to the team yet.
+	Team string `json:"team,omitempty"`
 }
 
 // Dir is a job directory.
@@ -99,7 +108,19 @@ func Read(d Dir) (Spec, error) {
 	if !spec.Sensitivity.Known() {
 		return Spec{}, fmt.Errorf("%q is not a sensitivity this runner knows, so it cannot say what may leave", spec.Sensitivity)
 	}
+	if err := spec.Budget.Check(); err != nil {
+		return Spec{}, err
+	}
 	return spec, nil
+}
+
+// Check refuses a money cap nothing could spend under. A negative cap would
+// refuse every call and read, to whoever set it, like a typo that capped nothing.
+func (b Budget) Check() error {
+	if b.USD != nil && (*b.USD < 0 || math.IsNaN(*b.USD) || math.IsInf(*b.USD, 0)) {
+		return fmt.Errorf("a budget of $%.4f is not a cap anything can spend under", *b.USD)
+	}
+	return nil
 }
 
 func (s Spec) withDefaults() Spec {

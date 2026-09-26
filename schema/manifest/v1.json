@@ -87,6 +87,34 @@
       "description": "Whether the harness was killed because the budget's seconds ran out.",
       "type": "boolean"
     },
+    "stoppedByCap": {
+      "description": "The spending cap that stopped the run, read from out/proxy.jsonl: the proxy refused the harness's next call to a model once it was spent. Absent when no cap refused anything.",
+      "type": "object",
+      "required": ["cap", "limitUsd", "spentUsd", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "cap": {
+          "description": "Which cap: the job's own budget.usd, or its team's monthly cap from the operator's spend policy.",
+          "enum": ["job", "team"]
+        },
+        "team": {
+          "description": "The team whose cap it was. Absent for the job's own cap.",
+          "type": "string"
+        },
+        "limitUsd": {
+          "description": "The cap, in US dollars.",
+          "type": "number"
+        },
+        "spentUsd": {
+          "description": "What the proxy had counted against the cap when it refused, in US dollars. It can exceed the cap by the calls that were already in flight.",
+          "type": "number"
+        },
+        "reason": {
+          "description": "Why, in words for the person who asked for the job.",
+          "type": "string"
+        }
+      }
+    },
     "modelEndpoint": {
       "description": "The address the harness talked to, as the rules checked it. Empty when the harness needs no model.",
       "type": "string"

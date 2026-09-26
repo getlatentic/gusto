@@ -48,6 +48,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 
+	started := evidence.Now()
 	record, err := Open(dir, adapter)
 	if err != nil {
 		return 0, err
@@ -77,6 +78,10 @@ func Inside(dir job.Dir) (int, error) {
 		}
 		verdict = &given
 	}
+	capped, err := stoppedByCap(dir, started)
+	if err != nil {
+		return 0, err
+	}
 	spent, files, err := evidence.Of(dir)
 	if err != nil {
 		return 0, err
@@ -89,6 +94,7 @@ func Inside(dir job.Dir) (int, error) {
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
+		StoppedByCap:    capped,
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,
 		CostUSD:         cost,

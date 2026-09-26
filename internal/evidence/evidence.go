@@ -25,6 +25,18 @@ type Verdict struct {
 	Passed  bool     `json:"passed"`
 }
 
+// CapStop says which spending cap stopped a run: the proxy refused the
+// harness's calls to a model once it was spent. Reason is written for the
+// person who asked for the job.
+type CapStop struct {
+	// Cap is "job" or "team".
+	Cap      string  `json:"cap"`
+	Team     string  `json:"team,omitempty"`
+	LimitUSD float64 `json:"limitUsd"`
+	SpentUSD float64 `json:"spentUsd"`
+	Reason   string  `json:"reason"`
+}
+
 // Entry is one file and its hash.
 type Entry struct {
 	Name   string `json:"name"`
@@ -45,12 +57,14 @@ type Manifest struct {
 	Gate    *Verdict `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
 	// Session is what the harness calls the conversation this run was a turn in.
-	Session         string   `json:"session,omitempty"`
-	HarnessExit     int      `json:"harnessExit"`
-	StoppedAtBudget bool     `json:"stoppedAtBudget"`
-	ModelEndpoint   string   `json:"modelEndpoint"`
-	Tokens          *int64   `json:"tokens"`
-	CostUSD         *float64 `json:"costUsd"`
+	Session         string `json:"session,omitempty"`
+	HarnessExit     int    `json:"harnessExit"`
+	StoppedAtBudget bool   `json:"stoppedAtBudget"`
+	// StoppedByCap is absent unless a spending cap refused the run a call.
+	StoppedByCap  *CapStop `json:"stoppedByCap,omitempty"`
+	ModelEndpoint string   `json:"modelEndpoint"`
+	Tokens        *int64   `json:"tokens"`
+	CostUSD       *float64 `json:"costUsd"`
 	// Signer is who stands behind this run: a name until a runner holds a key.
 	Signer string `json:"signer"`
 	AtUnix int64  `json:"atUnix"`

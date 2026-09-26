@@ -199,6 +199,9 @@ func show(args []string) int {
 	if manifest.CostUSD != nil {
 		fmt.Printf("cost     $%.4f\n", *manifest.CostUSD)
 	}
+	if stop := manifest.StoppedByCap; stop != nil {
+		fmt.Printf("stopped  by the %s cap: %s\n", stop.Cap, stop.Reason)
+	}
 	if tail := runner.Tail(dir.OutFile("gate.log"), 10); tail != "" {
 		fmt.Printf("\n%s\n", tail)
 	}
