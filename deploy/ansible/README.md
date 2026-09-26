@@ -31,6 +31,30 @@ keys, read-only, and run again.
 playbook gives the box a working runner, which is worth having on its own: a job
 directory on the box runs with `/opt/haas/bin/haas run <dir>`.
 
+## Retiring something
+
+`retire.yml` is separate from `site.yml` on purpose: a deploy never deletes
+anything, and this is run deliberately.
+
+```bash
+ansible-playbook retire.yml
+```
+
+It dumps the closer database to `/root/retired/` before anything stops, stops and
+disables the three closer services, clears the failed state a unit records when
+the TERM that stopped it is not in its `SuccessExitStatus`, and removes the
+graspy checkout — after asserting that no service and no vhost still names
+graspy. The closer checkout, vhost and database stay until
+`-e remove_closer_files=true`, because stopping is reversible and deleting is
+not.
+
+Measured on 2026-09-26: closer held 212 MB of memory and 2.1 GB of disk, graspy
+976 MB of disk, and in 48 hours the three closer services logged 34 requests
+between them, every one a 404 from a scanner. Stopping them freed 165 MB, and
+removing graspy freed 1 GB. With the services stopped and the vhost still
+proxying to their port, `closer-api.tosinamuda.com` answers 502 rather than 404
+until the record or the vhost goes.
+
 ## Why a dedicated user rather than www-data
 
 The other apps here run as `www-data`, and that is the right default. Rootless
