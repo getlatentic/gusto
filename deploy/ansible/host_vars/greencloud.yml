@@ -10,6 +10,7 @@
 # An opencode job peaked at 663 MiB in its container, so two at a time is about
 # 1.8 GB of the 3.1 GB that is free. That is where job_concurrency comes from.
 job_concurrency: 2
+serve_enabled: true
 job_memory: 900m
 
 # :8000, :8010, :8020, :8021, :8030 and :8081 are taken by the other apps.
