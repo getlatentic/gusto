@@ -17,7 +17,7 @@ func TestTheAdaptersThatShipParse(t *testing.T) {
 		t.Fatalf("want three built-in adapters, got %v", names)
 	}
 	for _, name := range names {
-		adapter, err := Load(name)
+		adapter, err := Load("", name)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
@@ -28,7 +28,7 @@ func TestTheAdaptersThatShipParse(t *testing.T) {
 }
 
 func TestAJobsValuesReachTheCommandLine(t *testing.T) {
-	adapter, err := Load("opencode")
+	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestAJobsValuesReachTheCommandLine(t *testing.T) {
 }
 
 func TestAnArgumentTheJobLeftEmptyIsDropped(t *testing.T) {
-	adapter, err := Load("opencode")
+	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestAnArgumentTheJobLeftEmptyIsDropped(t *testing.T) {
 const stepFinish = `{"type":"step_finish","part":{"type":"step-finish","cost":0,"tokens":{"total":17387,"input":17385,"output":2,"reasoning":0}}}`
 
 func TestTheOpencodeAdapterFindsTheNumbersInARealLine(t *testing.T) {
-	adapter, err := Load("opencode")
+	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestAnAdapterOfYourOwnWinsOverABuiltInOne(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("HAAS_HARNESSES", mine)
-	adapter, err := Load("opencode")
+	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,4 +98,44 @@ func TestAnAdapterOfYourOwnWinsOverABuiltInOne(t *testing.T) {
 
 func writeFile(path, text string) error {
 	return os.WriteFile(path, []byte(text), 0o644)
+}
+
+func TestAnAdapterCarriedByTheJobIsFoundWithNothingElseSet(t *testing.T) {
+	t.Setenv("HAAS_HARNESSES", "")
+	dir := job.Dir(t.TempDir())
+	if err := os.MkdirAll(Carried(dir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mine := `{"name":"carried","program":"sh","argv":["-c","true"],"needs":"nothing"}`
+	if err := writeFile(Carried(dir)+"/carried.json", mine); err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := Load(dir, "carried")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adapter.Program != "sh" {
+		t.Fatalf("want the carried adapter, got %+v", adapter)
+	}
+}
+
+func TestANewJobKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
+	mine := t.TempDir()
+	if err := writeFile(mine+"/mine.json", `{"name":"mine","program":"sh","argv":["-c","true"],"needs":"nothing"}`); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HAAS_HARNESSES", mine)
+	dir := job.Dir(t.TempDir())
+	if err := Keep(dir, "mine"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(Carried(dir) + "/mine.json"); err != nil {
+		t.Fatalf("an adapter of your own should travel: %v", err)
+	}
+	if err := Keep(dir, "opencode"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(Carried(dir) + "/opencode.json"); err == nil {
+		t.Fatal("a built-in adapter is already everywhere and should not be copied")
+	}
 }

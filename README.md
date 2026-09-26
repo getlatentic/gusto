@@ -59,6 +59,7 @@ the run.
 ```
 job/
   job.json          brief, repo, gate, harness, model, sensitivity, budget
+  harnesses/        an adapter of your own, so the job runs anywhere
   workspace/        the checkout the harness works in
   out/
     transcript.log  what the harness said
@@ -119,6 +120,26 @@ HAAS_MODEL_URL=http://localhost:11434/v1 haas run /tmp/fix
 processes, and destroys it afterwards. `HAAS_IMAGE` names a different image, and
 `--build-arg HARNESS_PACKAGE` builds one for a different harness.
 
+The runner clones the repository before the container starts, so a repository
+credential stays outside the box with the agent. An adapter of your own is copied
+into the job by `haas new`, so a container that has never heard of your harness
+still runs it.
+
+Two things were measured rather than assumed, and both fail silently otherwise:
+
+- A bind mount of a path the container runtime does not share hands the container
+  an **empty directory**. `run` refuses by name instead. On this machine Docker
+  shares `/Users` and not `/private/tmp`.
+- Docker Desktop already resolves `host.docker.internal`, and to the right
+  address. Adding `--add-host=host.docker.internal:host-gateway` there replaces
+  192.168.5.2, which is the host, with 172.17.0.1, which is the virtual machine.
+  `run` adds the alias only where the name does not already resolve, which is
+  plain Linux Docker.
+
+A model on the host has to listen on more than loopback for a container to reach
+it. With Ollama that is `OLLAMA_HOST=0.0.0.0` and a restart; until then `haas`
+stops before starting the harness and says no model answers at that address.
+
 ## Environment
 
 | name | what it does |
@@ -134,7 +155,7 @@ processes, and destroys it afterwards. `HAAS_IMAGE` names a different image, and
 go test ./...
 ```
 
-Ten tests. Six run a whole job with a fixture harness — a program that makes the
+Twenty tests. Six run a whole job with a fixture harness — a program that makes the
 change, which is all our own definition of a harness requires — and cover the
 cases the product rests on: a run whose manifest agrees with its own evidence, a
 changed file reported, a file added after the run reported, a harness that only

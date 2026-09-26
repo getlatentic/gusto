@@ -17,5 +17,9 @@ RUN apt-get update \
 ARG HARNESS_PACKAGE=opencode-ai
 RUN npm install -g --no-fund --no-audit "$HARNESS_PACKAGE"
 COPY --from=build /haas /usr/local/bin/haas
+# The harness's own configuration belongs to the image, not to the adapter: the
+# adapter has to stay portable between a laptop and a container. This points
+# opencode at a model on the host and lets it edit without asking.
+COPY image/harness/ /root/.config/
 WORKDIR /job
 ENTRYPOINT ["haas"]

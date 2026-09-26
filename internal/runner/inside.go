@@ -28,13 +28,18 @@ func Inside(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	adapter, err := harness.Load(spec.Harness)
+	adapter, err := harness.Load(dir, spec.Harness)
 	if err != nil {
 		return 0, err
 	}
 	endpoint := adapter.EndpointOf()
 	if err := rules.Allows(spec, endpoint); err != nil {
 		return 0, err
+	}
+	if adapter.Needs == harness.NeedsNothing {
+		if err := Reachable(endpoint); err != nil {
+			return 0, err
+		}
 	}
 	if err := dir.Make(); err != nil {
 		return 0, err
