@@ -6,11 +6,7 @@
   <tr><th>Turns</th><td>{{len .Session.Turns}}</td></tr>
 </table>
 
-{{range .Turns}}
-<h2 id="{{.ID}}">{{.Said}}</h2>
-{{if .Replied}}<pre>{{.Replied}}</pre>{{else if .State.Done}}<p class="muted">It said nothing. Its evidence is on <a href="/jobs/{{.ID}}">the job's page</a>.</p>{{end}}
-<p class="muted"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">what this turn left behind</a></p>
-{{end}}
+<div id="turns">{{template "turns" .}}</div>
 
 {{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
 
@@ -33,10 +29,22 @@
   };
   stream.addEventListener("ended", function () {
     stream.close();
-    location.reload();
+    // Swap in the turn that just finished rather than reloading the page,
+    // which threw away the scroll position and everything already read.
+    htmx.ajax("GET", "/talk/{{.Session.ID}}/turns", "#turns").then(function () {
+      box.remove();
+    });
   });
 })();
 </script>
 {{end}}
 
 {{template "foot" .}}
+
+{{define "turns"}}
+{{range .Turns}}
+<h2 id="{{.ID}}">{{.Said}}</h2>
+{{if .Replied}}<pre>{{.Replied}}</pre>{{else if .State.Done}}<p class="muted">It said nothing. Its evidence is on <a href="/jobs/{{.ID}}">the job's page</a>.</p>{{end}}
+<p class="muted"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">what this turn left behind</a></p>
+{{end}}
+{{end}}

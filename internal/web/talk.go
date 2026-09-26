@@ -53,15 +53,27 @@ func (s *Server) begin(w http.ResponseWriter, r *http.Request) {
 
 // conversation shows what has been said, and offers somewhere to say more.
 func (s *Server) conversation(w http.ResponseWriter, r *http.Request) {
-	session, found := s.sessions.Get(r.PathValue("id"))
+	page, found := s.conversationPage(r)
 	if !found {
 		http.NotFound(w, r)
 		return
 	}
-	type turn struct {
-		jobs.Record
-		Said    string
-		Replied string
+	s.render(w, "conversation.html", page)
+}
+
+// turn is one thing said and what came back of it.
+type turn struct {
+	jobs.Record
+	Said    string
+	Replied string
+}
+
+// conversationPage is what both the whole page and the fragment need, so a
+// swapped-in turn cannot disagree with the page it lands in.
+func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
+	session, found := s.sessions.Get(r.PathValue("id"))
+	if !found {
+		return nil, false
 	}
 	var turns []turn
 	for _, id := range session.Turns {
@@ -79,14 +91,14 @@ func (s *Server) conversation(w http.ResponseWriter, r *http.Request) {
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
-	s.render(w, "conversation.html", map[string]any{
+	return map[string]any{
 		"Title":    "haas — " + session.ID,
 		"Subtitle": session.ID,
 		"Session":  session,
 		"Turns":    turns,
 		"Waiting":  running != "",
 		"Latest":   running,
-	})
+	}, true
 }
 
 // said is what the harness replied, read from the turn's own transcript. It is
@@ -101,6 +113,17 @@ func said(dir job.Dir) string {
 		return "…" + string(text[len(text)-most:])
 	}
 	return string(text)
+}
+
+// turns is the conversation so far, on its own, so a finished turn can be
+// swapped in without throwing away everything already on the page.
+func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
+	page, found := s.conversationPage(r)
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	s.render(w, "turns", page)
 }
 
 // say is one turn: an ordinary job that mounts the conversation.

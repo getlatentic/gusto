@@ -48,6 +48,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /login", s.loginPage)
 	mux.HandleFunc("POST /login", s.signIn)
 	mux.HandleFunc("POST /logout", s.signOut)
+	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.list))
@@ -62,6 +63,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /talk", s.guard(s.talking))
 	mux.HandleFunc("POST /talk", s.guard(s.begin))
 	mux.HandleFunc("GET /talk/{id}", s.guard(s.conversation))
+	mux.HandleFunc("GET /talk/{id}/turns", s.guard(s.turns))
 	mux.HandleFunc("POST /talk/{id}/say", s.guard(s.say))
 	return mux
 }
