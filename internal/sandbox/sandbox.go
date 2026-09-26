@@ -12,6 +12,16 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 )
 
+// Runtime is the container command. Podman takes the same arguments and runs no
+// daemon at all, which matters on a small machine and to a customer who will not
+// install one.
+func Runtime() string {
+	if runtime := os.Getenv("HAAS_CONTAINER"); runtime != "" {
+		return runtime
+	}
+	return "docker"
+}
+
 // Image carrying the runner and the harness it will run. A customer builds
 // their own and names it here.
 func Image() string {
@@ -41,7 +51,7 @@ func Run(dir job.Dir) (int, error) {
 		args = append(args, "--add-host=host.docker.internal:host-gateway")
 	}
 	args = append(args, Image(), "inside", "/job")
-	command := exec.Command("docker", args...)
+	command := exec.Command(Runtime(), args...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	if err := command.Run(); err != nil && !isExit(err) {
@@ -69,7 +79,7 @@ func inContainer(url string) string {
 // address with the virtual machine's own bridge gateway, which reaches the
 // virtual machine instead of the host.
 func ready(absolute string) (bool, error) {
-	check := exec.Command("docker", "run", "--rm", "-v", absolute+":/job",
+	check := exec.Command(Runtime(), "run", "--rm", "-v", absolute+":/job",
 		"--entrypoint", "sh", Image(), "-c",
 		"test -f /job/job.json || exit 3; getent hosts host.docker.internal >/dev/null || exit 4")
 	err := check.Run()

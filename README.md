@@ -95,6 +95,18 @@ plain text. The gate refused both, which is what it is for.
 One trivial task is not a benchmark. It is the number this repository can prove,
 and every figure above comes from a manifest in a job directory.
 
+### What a job needs from the machine
+
+An `opencode` job peaked at **662.7 MiB** in its container, sampled with
+`docker stats` while it ran, with the model outside the container. That is the
+harness's own runtime. Size a runner by the jobs it should hold at once, not by
+the image: roughly 0.7 GiB a concurrent job, plus the container runtime, plus a
+Go binary in the tens of megabytes.
+
+Docker Desktop on a Mac costs about 2 GiB because it runs a Linux virtual
+machine. On Linux there is no virtual machine, and `podman` needs no daemon at
+all — set `HAAS_CONTAINER=podman`.
+
 ## Adapters
 
 ```bash
@@ -172,6 +184,7 @@ stops before starting the harness and says no model answers at that address.
 | `HAAS_HARNESSES` | a directory of adapter files that override the built-in ones |
 | `HAAS_MODEL_URL` | where a local model answers |
 | `HAAS_IMAGE` | the runner image `haas run` starts |
+| `HAAS_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
 | `HAAS_SIGNER` | who the manifest names |
 
 ## Tests

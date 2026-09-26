@@ -12,8 +12,8 @@ import (
 // problem. Docker hands over an empty directory rather than refusing a mount of
 // a path it does not share, so the run would otherwise fail somewhere later.
 func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
-	if _, err := exec.LookPath("docker"); err != nil {
-		t.Skip("no docker on this machine")
+	if _, err := exec.LookPath(Runtime()); err != nil {
+		t.Skipf("no %s on this machine", Runtime())
 	}
 	empty := job.Dir(t.TempDir())
 	_, err := Run(empty)
@@ -22,5 +22,15 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cannot read") || !strings.Contains(err.Error(), empty.Path()) {
 		t.Fatalf("the error should name the directory, got %v", err)
+	}
+}
+
+func TestTheContainerCommandIsYours(t *testing.T) {
+	if Runtime() != "docker" {
+		t.Fatalf("docker is the default, got %q", Runtime())
+	}
+	t.Setenv("HAAS_CONTAINER", "podman")
+	if Runtime() != "podman" {
+		t.Fatalf("HAAS_CONTAINER should choose the runtime, got %q", Runtime())
 	}
 }
