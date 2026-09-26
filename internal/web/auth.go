@@ -66,20 +66,40 @@ func (k *keeper) clear(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1})
 }
 
+// read is the name in a signature this server made and has not yet expired.
+//
+// The signature is taken from the last dot rather than the first, because the
+// name is an address and an address has dots in it. A signature is base64url,
+// which has none, so the last dot is always the one that separates them.
+func (k *keeper) read(r *http.Request) (string, bool) {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return "", false
+	}
+	cut := strings.LastIndex(cookie.Value, ".")
+	if cut < 0 {
+		return "", false
+	}
+	value, signature := cookie.Value[:cut], cookie.Value[cut+1:]
+	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
+		return "", false
+	}
+	when, who, named := strings.Cut(value, "|")
+	until, err := strconv.ParseInt(when, 10, 64)
+	if err != nil || time.Now().Unix() >= until {
+		return "", false
+	}
+	if !named || who == "" {
+		return "the shared sign-in", true
+	}
+	return who, true
+}
+
 // knows reports whether this request carries a signature this server made and
 // has not yet expired.
 func (k *keeper) knows(r *http.Request) bool {
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
-		return false
-	}
-	value, signature, split := strings.Cut(cookie.Value, ".")
-	if !split || !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
-		return false
-	}
-	when, _, _ := strings.Cut(value, "|")
-	until, err := strconv.ParseInt(when, 10, 64)
-	return err == nil && time.Now().Unix() < until
+	_, signed := k.read(r)
+	return signed
 }
 
 func (k *keeper) sign(value string) string {
@@ -102,17 +122,6 @@ func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 
 // who is the name in a signature this server made, or nobody when there is none.
 func (k *keeper) who(r *http.Request) string {
-	if !k.knows(r) {
-		return ""
-	}
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
-		return ""
-	}
-	value, _, _ := strings.Cut(cookie.Value, ".")
-	_, who, found := strings.Cut(value, "|")
-	if !found || who == "" {
-		return "the shared sign-in"
-	}
+	who, _ := k.read(r)
 	return who
 }
