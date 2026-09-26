@@ -15,7 +15,7 @@ customer's own account, or to a laptop, and the work is the same.
 | rules | who may run what, where, on which model, up to what spend | one rule built |
 | ui | the pages a person uses: submit a job, watch it, read the record | Sprint 1 |
 | queue | holds jobs, hands one to a runner, restarts a job whose runner dies | Sprint 1 |
-| proxy | the only way out: adds the key, counts the tokens, refuses the rest | Sprint 3 |
+| proxy | the only way out: adds the key, counts the tokens, refuses the rest | adds the key, counts, caps spend |
 | pane | a live terminal for a job, rather than a stream of lines | backlog |
 
 The UI is part of the product, not a layer over it. It ships inside the same

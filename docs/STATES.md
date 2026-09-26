@@ -65,15 +65,15 @@ page reporting `took 20s` for a run of 15 seconds.
 
 `Claim` writes `state.json` before the work starts. Everything after that is
 written by the runner inside the box, in this order
-(`internal/runner/inside.go:26-97`):
+(`internal/runner/inside.go:26-110`):
 
 | written | when | by |
 | --- | --- | --- |
 | `out/harness.log`, `out/transcript.log`, `out/calls.jsonl`, `out/stderr.log` | before the harness starts, truncated | `record.go:30-48` |
-| a line in each | as the harness prints it | `inside.go:128-138` |
-| `out/diff.patch` | after the harness stops | `inside.go:67` |
+| a line in each | as the harness prints it | `inside.go:141-150` |
+| `out/diff.patch` | after the harness stops | `inside.go:68` |
 | `out/gate.log`, `out/gates.json` | after the gate answers | `runner/gate.go:31-44` |
-| `out/manifest.json` | last, hashing everything above | `inside.go:78-92` |
+| `out/manifest.json` | last, hashing everything above | `inside.go:89-106` |
 
 Each line is on the bind-mounted directory before the next one is read, because
 a container's own disk does not survive the container (`record.go:12-14`).
@@ -89,8 +89,15 @@ the box the refusal reaches the queue as exit 2; in the server's own process it
 reaches the queue as an error.
 
 The budget that ends a harness is the time budget. `Inside` builds a context
-from `budget.seconds`, which defaults to 900 (`inside.go:55-56`,
-`internal/job/job.go:85`). `budget.turns` defaults to 40 and nothing reads it.
+from `budget.seconds`, which defaults to 900 (`internal/job/job.go`).
+`budget.turns` defaults to 40 and nothing reads it.
+
+A money cap does not end the harness. The proxy refuses the job's next call to
+the model, which takes the model away, and the time budget ends a harness that
+carries on without one. The cap is outside the box, so the runner learns of it
+from the refusal the proxy wrote to `out/proxy.jsonl` since the run started, and
+records it in the manifest as `stoppedByCap` (`internal/runner/capped.go`). The
+job's state is still the gate's answer.
 
 ## A server restart
 
@@ -149,6 +156,7 @@ appearing in the directory while a server runs waits for the next start.
 | the harness, on its own non-zero exit | `harnessExit` is that code | the gate decides |
 | the harness, by a signal | `harnessExit` -1 | the gate decides |
 | the harness, at the time budget | `harnessExit` -1, `stoppedAtBudget` true | the gate decides |
+| the harness, with its model refused at a spending cap | whatever it exits with, and `stoppedByCap` | the gate decides |
 | a process the harness started | `harnessExit` is what the harness reports for it | the gate decides |
 | the runner, PID 1 in the box | no manifest | `failed`, with the container's exit |
 | the container never starts | no manifest, and `out/` empty | `failed`, `exit` 125 |
@@ -165,7 +173,7 @@ deeper. Measured under the same memory cap: a harness that allocates without
 bound itself leaves `harnessExit: -1`, and a harness that is a shell whose child
 allocates leaves `harnessExit: 137`, because the shell reports its child's kill
 as its own status. `stoppedAtBudget` is the only field that names a cause
-(`inside.go:84`).
+(`inside.go:96`).
 
 The last runner row has two answers because the boundary is in the middle of it.
 Inside the box, `haas inside` turns an error into exit 2
@@ -272,7 +280,7 @@ Can a reader tell that apart from a harness that simply failed? Partly.
 `harnessExit: -1` says a signal killed the process the runner started, which a
 harness exiting on its own never shows. It does not say which signal: SIGKILL
 from the cap, a segfault and a SIGTERM from anywhere else are all -1
-(`inside.go:139-147`). A harness that wraps its work in a shell reports 137
+(`inside.go:151-160`). A harness that wraps its work in a shell reports 137
 instead, which is indistinguishable from a harness choosing to exit 137. Nothing
 reads the cap back, and the manifest has no field for the limits the job ran
 under.
