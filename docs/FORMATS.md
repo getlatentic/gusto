@@ -69,7 +69,8 @@ on the manifest, an export is held to as well.
 | what it decided | `outcome` | the manifest's gate, and `state.json`'s state and times |
 | what changed | `changed` | `out/diff.patch`, with the hash the manifest holds for it |
 | which model | `model` | `job.json`'s model, the manifest's endpoint, the credential names in `out/proxy.jsonl` |
-| how much | `spend` | the harness's reported tokens and cost from the manifest, and the proxy's calls and bytes |
+| how much | `spend` | the harness's reported tokens and cost from the manifest; the calls, bytes, tokens and cost of the model calls `out/proxy.jsonl` records as sent; and the calls a spending cap refused, which are counted apart |
+| where else | `outbound` | the hosts other than the model in `out/proxy.jsonl`, reached and denied |
 | who approved | `approval` | `not recorded` |
 | who looked | `requests` | the request log's lines whose path names the job |
 
@@ -80,14 +81,15 @@ show is who read the job afterwards.
 
 ### The words in place of a value
 
-A value the export does not have is one of three strings in its place, never a
+A value the export does not have is one of four strings in its place, never a
 missing field and never a guess:
 
 | word | means |
 | --- | --- |
 | `not recorded` | the platform does not write this down, or this job never had it |
-| `redacted` | the export's policy dropped the file it comes from |
+| `redacted` | the export's policy dropped the file it comes from, or replaced the value in it |
 | `none` | recorded as not happening: no gate for a turn in a conversation, no session for a one-shot job |
+| `not measured` | the proxy saw the calls but not what they cost: an answer carried no usage, or the model has no price |
 
 `spend.tokens` is `not recorded` where the manifest has `null`, for the same
 reason the manifest has `null`: nothing reported is nothing claimed.

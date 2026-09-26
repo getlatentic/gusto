@@ -73,8 +73,6 @@ func TestAnExportVerifiesAndSaysWhatItDoesNotKnow(t *testing.T) {
 		{[]string{"approval", "by"}, audit.NotRecorded},
 		{[]string{"requests"}, audit.NotRecorded},
 		{[]string{"spend", "tokens"}, audit.NotRecorded},
-		{[]string{"spend", "proxyCalls"}, 2.0},
-		{[]string{"spend", "proxyBytes"}, 2000.0},
 		{[]string{"model", "asked"}, "the harness's default"},
 		{[]string{"outcome", "state"}, "passed"},
 		{[]string{"ran", "harness"}, "fixture"},

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/getlatentic/haas/internal/job"
@@ -12,25 +13,53 @@ import (
 	"github.com/getlatentic/haas/internal/runner"
 )
 
-// The fixture harness makes the change, prints a line carrying something a
-// policy would hide, and leaves two proxy lines where the proxy writes them,
-// so the manifest covers them as it covers a real proxy's record.
-const adapter = `{
-  "name": "fixture",
-  "program": "sh",
-  "argv": ["-c", "printf yes > answer.txt; echo using key sk-test-0123456789abcdef; printf '%s\\n' '{\"path\":\"/v1/chat/completions\",\"status\":200,\"bytes\":1200,\"tookMs\":40,\"credential\":\"the platform credential\"}' '{\"path\":\"/v1/chat/completions\",\"status\":200,\"bytes\":800,\"tookMs\":30,\"credential\":\"the platform credential\"}' > ../out/proxy.jsonl"],
-  "needs": "nothing",
-  "stream": "plain"
-}`
+// The lines a proxy writes, one of each kind: two model calls that left the
+// box, a call a job cap refused, a host the job was let through to, and a host
+// it was denied. The last three are not model calls, and their null costs
+// must not make the model's cost unknown.
+var (
+	firstCall   = `{"path":"/v1/chat/completions","status":200,"bytes":1200,"tookMs":40,"credential":"the platform credential","atUnix":101,"model":"m","inputTokens":100,"outputTokens":20,"usd":0.25}`
+	secondCall  = `{"path":"/v1/chat/completions","status":200,"bytes":800,"tookMs":30,"credential":"the platform credential","atUnix":102,"model":"m","inputTokens":50,"outputTokens":10,"usd":0.5}`
+	refusedCall = `{"path":"/v1/chat/completions","status":402,"tookMs":0,"atUnix":103,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"job","limitUsd":0.75,"spentUsd":0.75,"reason":"the job has spent its cap"}}`
+	reachedHost = `{"path":"","status":200,"bytes":5000,"tookMs":12,"atUnix":104,"inputTokens":null,"outputTokens":null,"usd":null,"host":"registry.npmjs.org:443"}`
+	deniedHost  = `{"path":"","status":403,"tookMs":0,"atUnix":105,"inputTokens":null,"outputTokens":null,"usd":null,"host":"exfil.example:443","denied":"not on the allowlist"}`
+)
+
+// adapter is a fixture harness that makes the change, prints a line carrying
+// something a policy would hide, and leaves the proxy lines where the proxy
+// writes them, so the manifest covers them as it covers a real proxy's record.
+func adapter(t *testing.T, proxy []string) string {
+	t.Helper()
+	quoted := make([]string, len(proxy))
+	for i, line := range proxy {
+		quoted[i] = "'" + line + "'"
+	}
+	script := "printf yes > answer.txt; echo using key sk-test-0123456789abcdef; printf '%s\\n' " +
+		strings.Join(quoted, " ") + " > ../out/proxy.jsonl"
+	text, err := json.Marshal(map[string]any{
+		"name": "fixture", "program": "sh", "argv": []string{"-c", script},
+		"needs": "nothing", "stream": "plain",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(text)
+}
 
 const brief = "make the answer yes for the Acme account"
 
-// ran runs the fixture job to its gate and gives it the state.json a server
-// would have written, so the export has every source it reads.
+// ran runs the fixture job, with a line of each kind in its proxy record.
 func ran(t *testing.T) job.Dir {
 	t.Helper()
+	return ranWith(t, firstCall, secondCall, refusedCall, reachedHost, deniedHost)
+}
+
+// ranWith runs the fixture job to its gate and gives it the state.json a
+// server would have written, so the export has every source it reads.
+func ranWith(t *testing.T, proxy ...string) job.Dir {
+	t.Helper()
 	harnesses := t.TempDir()
-	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
+	write(t, filepath.Join(harnesses, "fixture.json"), adapter(t, proxy))
 	t.Setenv("HAAS_HARNESSES", harnesses)
 	t.Setenv("HAAS_SIGNER", "a-test")
 

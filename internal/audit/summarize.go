@@ -30,6 +30,7 @@ func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy) (R
 	if err != nil {
 		return Record{}, err
 	}
+	proxy := proxyOf(lines(dir.OutFile("proxy.jsonl"), why("out/proxy.jsonl")))
 	return Record{
 		Version:    Version,
 		Job:        id,
@@ -37,8 +38,9 @@ func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy) (R
 		Ran:        ranOf(spec, manifest),
 		Outcome:    outcomeOf(state, manifest),
 		Changed:    changedOf(dir, manifest, why("out/diff.patch")),
-		Model:      modelOf(spec, manifest, lines(dir.OutFile("proxy.jsonl"), why("out/proxy.jsonl"))),
-		Spend:      spendOf(manifest, lines(dir.OutFile("proxy.jsonl"), why("out/proxy.jsonl"))),
+		Model:      modelOf(spec, manifest, proxy),
+		Spend:      spendOf(manifest, proxy),
+		Outbound:   outboundOf(proxy),
 		Approval:   Approval{By: absent[string](NotRecorded), Why: approvalUnseen},
 		Requests:   lines(filepath.Join(dir.Path(), RequestsFile), why(RequestsFile)),
 		Evidence:   Evidence{Manifest: ManifestFile, Signer: manifest.Signer, Files: len(manifest.Files)},
@@ -145,26 +147,45 @@ func changedOf(dir job.Dir, manifest evidence.Manifest, why string) Changed {
 	return Changed{Patch: known("out/diff.patch"), SHA256: known(sum), Files: known(changedFiles(patch))}
 }
 
-func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[[]any]) Model {
+// proxyOf counts the proxy's record, or keeps the word for why there is none.
+func proxyOf(record Fact[[]any]) Fact[proxied] {
+	if record.absent != "" {
+		return absent[proxied](record.absent)
+	}
+	return known(proxyCounts(record.value))
+}
+
+// fromProxy is one count of the proxy's record, or the word for its absence.
+func fromProxy[T any](proxy Fact[proxied], count func(proxied) Fact[T]) Fact[T] {
+	if proxy.absent != "" {
+		return absent[T](proxy.absent)
+	}
+	return count(proxy.value)
+}
+
+func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[proxied]) Model {
 	asked := field(spec, "model")
 	if asked.absent == NotRecorded {
 		asked = known[any](harnessDefault)
 	}
-	credentials := absent[[]string](proxy.absent)
-	if proxy.absent == "" {
-		credentials = known(proxyCounts(proxy.value).credentials)
+	return Model{
+		Asked:       asked,
+		Endpoint:    manifest.ModelEndpoint,
+		Credentials: fromProxy(proxy, func(p proxied) Fact[[]string] { return known(p.credentials) }),
 	}
-	return Model{Asked: asked, Endpoint: manifest.ModelEndpoint, Credentials: credentials}
 }
 
-// spendOf keeps the harness's claim and the proxy's count side by side. The
-// proxy counts calls and bytes, not tokens, so neither stands in for the other.
-func spendOf(manifest evidence.Manifest, proxy Fact[[]any]) Spend {
+// spendOf keeps the harness's claim and the proxy's measure side by side, so
+// neither stands in for the other.
+func spendOf(manifest evidence.Manifest, proxy Fact[proxied]) Spend {
 	spend := Spend{
-		Tokens:     absent[int64](NotRecorded),
-		CostUSD:    absent[float64](NotRecorded),
-		ProxyCalls: absent[int](proxy.absent),
-		ProxyBytes: absent[int64](proxy.absent),
+		Tokens:       absent[int64](NotRecorded),
+		CostUSD:      absent[float64](NotRecorded),
+		ProxyCalls:   fromProxy(proxy, func(p proxied) Fact[int] { return known(p.calls) }),
+		ProxyBytes:   fromProxy(proxy, func(p proxied) Fact[int64] { return known(p.bytes) }),
+		ProxyTokens:  fromProxy(proxy, func(p proxied) Fact[int64] { return p.tokens.fact() }),
+		ProxyUSD:     fromProxy(proxy, func(p proxied) Fact[float64] { return p.usd.fact() }),
+		RefusedCalls: fromProxy(proxy, func(p proxied) Fact[int] { return known(p.refused) }),
 	}
 	if manifest.Tokens != nil {
 		spend.Tokens = known(*manifest.Tokens)
@@ -172,11 +193,14 @@ func spendOf(manifest evidence.Manifest, proxy Fact[[]any]) Spend {
 	if manifest.CostUSD != nil {
 		spend.CostUSD = known(*manifest.CostUSD)
 	}
-	if proxy.absent == "" {
-		counts := proxyCounts(proxy.value)
-		spend.ProxyCalls, spend.ProxyBytes = known(counts.calls), known(counts.bytes)
-	}
 	return spend
+}
+
+func outboundOf(proxy Fact[proxied]) Outbound {
+	return Outbound{
+		Reached: fromProxy(proxy, func(p proxied) Fact[[]string] { return known(p.hostsReached) }),
+		Denied:  fromProxy(proxy, func(p proxied) Fact[[]string] { return known(p.hostsDenied) }),
+	}
 }
 
 func hashIn(manifest evidence.Manifest, name string) (string, bool) {
