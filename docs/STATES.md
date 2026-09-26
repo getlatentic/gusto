@@ -39,11 +39,17 @@ it (`index.go:42-45`). `haas new` writes `job.json` and the adapter and no
 `state.json`, so a job made on the command line inside the server's jobs
 directory is invisible to the server.
 
+`instance` names the instance a job ran on. A task or a turn made on the pages
+records it; a job sent to `POST /api/jobs` has none, and neither has a job made
+by the form `/jobs` carried before a run belonged to an instance. The pages read
+a job without one as having run on no instance, and it lists and opens like any
+other.
+
 ## The transitions
 
 | from | to | what causes it | what the file gains |
 | --- | --- | --- | --- |
-| — | `queued` | the form is accepted (`internal/web/pages.go:95-103`) | every field, `queuedAt` |
+| — | `queued` | a task on an instance (`internal/web/tasks.go`), a turn in a thread (`internal/web/instances.go`) or a job sent to `POST /api/jobs` (`internal/web/api.go`) is accepted | every field, `queuedAt`; `instance` for a task or a turn, and `thread` for a turn |
 | `queued` | `running` | a worker takes the oldest queued job (`index.go:94-118`) | `startedAt` |
 | `running` | `passed` | the work returns exit 0 (`internal/jobs/queue.go:96`) | `exit` 0, `endedAt` |
 | `running` | `failed` | the work returns a non-zero exit (`queue.go:102-104`) | that `exit`, `endedAt` |

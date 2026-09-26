@@ -36,8 +36,13 @@ haas run /tmp/fix        # do the work in a container
 haas submit /tmp/fix     # send it to a server, which runs it
 ```
 
-`haas serve` puts the pages in front of all of this: a form to describe a job, a
-live view while it runs, its evidence and a bundle to take away. `haas submit`
+`haas serve` puts the pages in front of all of this. A run happens on an
+instance, a harness started from the catalog with a folder of its own: say
+something to it in a thread, or give it a task with a gate, the team its spend
+counts against, a cap and how sensitive the code is. A one-off against a
+repository is an instance started with that repository. `/jobs` is the record of
+every run, whatever started it: its verdict, its cost, the instance it ran on, a
+live view while it runs, and its evidence and a bundle to take away. `haas submit`
 posts a job directory to that server over `POST /api/jobs`, carrying an adapter
 the job holds so a server that has never heard of your harness can still run it.
 

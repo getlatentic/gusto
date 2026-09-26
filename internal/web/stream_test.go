@@ -101,10 +101,7 @@ func transcriptLine(n int) string {
 // which is what a watcher reads.
 func aJobThatSaid(t *testing.T, site *site, lines int) string {
 	t.Helper()
-	answer := site.ask(t, "POST", "/jobs", url.Values{
-		"repo": {"/repo"}, "brief": {"watch me"}, "gate": {"true"}, "harness": {"fixture"},
-	})
-	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")
+	id := aTask(t, site, url.Values{"brief": {"watch me"}, "gate": {"true"}})
 	select {
 	case <-site.ran:
 	case <-time.After(5 * time.Second):
