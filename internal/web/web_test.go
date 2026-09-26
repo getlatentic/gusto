@@ -78,7 +78,10 @@ func (s *site) signIn(t *testing.T) {
 
 func TestAStrangerIsSentToSignInAndNotToTheThingTheyAskedFor(t *testing.T) {
 	site := open(t)
-	for _, path := range []string{"/", "/jobs/anything", "/watch/anything", "/jobs/anything/files/manifest.json"} {
+	for _, path := range []string{
+		"/", "/jobs/anything", "/watch/anything",
+		"/jobs/anything/files/manifest.json", "/jobs/anything/bundle",
+	} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/login" {
 			t.Errorf("%s gave %d to %q", path, answer.Code, answer.Header().Get("Location"))

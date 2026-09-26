@@ -119,14 +119,55 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	if spec, err := job.Read(dir); err == nil {
 		page["Spec"] = spec
 	}
-	if manifest, err := evidence.Read(dir); err == nil {
+	manifest, err := evidence.Read(dir)
+	if err == nil {
 		page["Manifest"] = manifest
 	}
 	if patch, err := os.ReadFile(dir.OutFile("diff.patch")); err == nil && len(patch) > 0 {
 		page["Patch"] = string(patch)
 	}
-	page["Files"] = listing(dir)
+	if refusal := gateOutput(record, dir); refusal != "" {
+		page["GateLog"] = refusal
+	}
+	page["Files"] = hashed(listing(dir), manifest)
 	s.render(w, "job.html", page)
+}
+
+// gateOutput is what the gate printed, for a job the gate did not pass. That
+// output is the answer a reader of a failure came for, and a pass has nothing to
+// explain. A job still running is left to the stream.
+func gateOutput(record jobs.Record, dir job.Dir) string {
+	if !record.State.Done() || record.State == jobs.Passed {
+		return ""
+	}
+	output, err := os.ReadFile(dir.OutFile("gate.log"))
+	if err != nil {
+		return ""
+	}
+	return string(output)
+}
+
+// hashedFile is one file in out/ beside the hash the manifest claims for it, so
+// a reader can hash their own download and compare without fetching the manifest
+// as well.
+type hashedFile struct {
+	Name   string
+	SHA256 string
+}
+
+// hashed pairs what is on disk with what the manifest says. No hash means the
+// manifest does not name the file: manifest.json, which cannot hash itself, and
+// anything that appeared after the run, which `haas verify` reports.
+func hashed(names []string, manifest evidence.Manifest) []hashedFile {
+	claimed := make(map[string]string, len(manifest.Files))
+	for _, entry := range manifest.Files {
+		claimed[entry.Name] = entry.SHA256
+	}
+	files := make([]hashedFile, 0, len(names))
+	for _, name := range names {
+		files = append(files, hashedFile{Name: name, SHA256: claimed[name]})
+	}
+	return files
 }
 
 func listing(dir job.Dir) []string {
