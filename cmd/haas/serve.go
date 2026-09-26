@@ -36,7 +36,16 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	queue := jobs.Start(index, chosenWork(), number("HAAS_JOB_CONCURRENCY", 1))
+	way, err := openWayOut(index.Root())
+	if err != nil {
+		return fail(err)
+	}
+	stopProxy, err := way.Listen()
+	if err != nil {
+		return fail(err)
+	}
+	defer stopProxy()
+	queue := jobs.Start(index, chosenWork(way), number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
 	pages, err := web.New(index, queue, password, harness.Names())
@@ -68,7 +77,7 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork() jobs.Work {
+func chosenWork(way *WayOut) jobs.Work {
 	if os.Getenv("HAAS_SANDBOX") == "here" {
 		return runner.Inside
 	}
@@ -82,7 +91,8 @@ func chosenWork() jobs.Work {
 		if err := runner.Fill(spec, dir); err != nil {
 			return 0, err
 		}
-		return sandbox.Run(dir)
+		defer way.Done(dir)
+		return sandbox.Run(dir, way.For(dir))
 	}
 }
 

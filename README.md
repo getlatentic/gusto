@@ -183,6 +183,35 @@ inventing them.
 Cache tokens are counted, because they are billed. Leaving them out understated
 one real run by 168 times.
 
+## The way out of a sandbox
+
+A harness needs a model and a model needs a credential. Putting that credential
+in the container is the one thing this refuses to do, so the container is given
+an address instead:
+
+```
+container   HAAS_MODEL_URL=http://host:8041/model/<job-token>/v1
+proxy       validates the token, adds the real credential, writes down what went
+```
+
+The token is minted per job and dropped when the job ends, so it is worth nothing
+to anybody who takes it afterwards, and what a job spends is attributed to the
+job rather than to an account. Whatever authorization a container sends is
+discarded rather than forwarded.
+
+The proxy writes `out/proxy.jsonl`: what actually left the box, independent of
+what the harness says it spent. A harness reporting its own usage is a claim;
+this is the count. Comparing the two is how a harness that under-reports is
+caught.
+
+It listens on its own port because a container cannot reach a service bound to
+its host's loopback. What keeps it safe is the per-job token and the host's
+firewall, not the interface it binds — so do not expose that port.
+
+Without `HAAS_MODEL_UPSTREAM` there is no proxy: the container is given the
+model's address directly, which is the local case where there is no credential
+to keep out of anywhere.
+
 ## The container
 
 ```bash
@@ -234,6 +263,10 @@ stops before starting the harness and says no model answers at that address.
 | `HAAS_PASSWORD` | the shared sign-in. `haas serve` refuses to start without it |
 | `HAAS_JOB_CONCURRENCY` | how many jobs run at once |
 | `HAAS_SANDBOX` | `here` runs a job in the server's own process instead of a container |
+| `HAAS_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
+| `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
+| `HAAS_MODEL_NAME` | what the evidence calls that credential |
+| `HAAS_PROXY_ADDR` | where the proxy listens for containers, `0.0.0.0:8041` by default |
 
 ## Tests
 
