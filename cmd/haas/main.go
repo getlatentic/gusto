@@ -33,12 +33,13 @@ func run(args []string) int {
 		"submit":    submit,
 		"verify":    verify,
 		"ship":      shipJob,
+		"check":     checkPull,
 		"replay":    replayJobs,
 		"compare":   compareJobs,
-		"check":     checkPull,
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
+		"doctor":    checkMachine,
 	}[verb]
 	if !found {
 		usage()
@@ -62,6 +63,7 @@ func usage() {
   haas compare <dir> <harness> <harness>  run one job on each harness, side by side [-here]
   haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
+  haas doctor           check this machine can run a job, before one is sent
 
 The exit code of run, inside and verify is the gate's answer.
 `)
