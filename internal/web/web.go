@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/talk"
 )
 
 //go:embed templates/*.html
@@ -19,13 +20,14 @@ var pages embed.FS
 
 type Server struct {
 	index     *jobs.Index
+	sessions  *talk.Sessions
 	queue     *jobs.Queue
 	keeper    *keeper
 	templates *template.Template
 	harnesses []string
 }
 
-func New(index *jobs.Index, queue *jobs.Queue, password string, harnesses []string) (*Server, error) {
+func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, harnesses []string) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
@@ -34,7 +36,7 @@ func New(index *jobs.Index, queue *jobs.Queue, password string, harnesses []stri
 	if err != nil {
 		return nil, err
 	}
-	return &Server{index: index, queue: queue, keeper: keeper, templates: templates, harnesses: harnesses}, nil
+	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, harnesses: harnesses}, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -51,6 +53,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
+	mux.HandleFunc("GET /talk", s.guard(s.talking))
+	mux.HandleFunc("POST /talk", s.guard(s.begin))
+	mux.HandleFunc("GET /talk/{id}", s.guard(s.conversation))
+	mux.HandleFunc("POST /talk/{id}/say", s.guard(s.say))
 	return mux
 }
 

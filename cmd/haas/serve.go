@@ -12,11 +12,13 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/accesslog"
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/haas/internal/talk"
 	"github.com/getlatentic/haas/internal/web"
 )
 
@@ -36,6 +38,10 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	sessions, err := talk.Open(setting("HAAS_SESSIONS", "sessions"))
+	if err != nil {
+		return fail(err)
+	}
 	way, err := openWayOut(index.Root())
 	if err != nil {
 		return fail(err)
@@ -45,10 +51,10 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	defer stopProxy()
-	queue := jobs.Start(index, chosenWork(way), number("HAAS_JOB_CONCURRENCY", 1))
+	queue := jobs.Start(index, chosenWork(way, sessions), number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
-	pages, err := web.New(index, queue, password, harness.Names())
+	pages, err := web.New(index, sessions, queue, password, harness.Names())
 	if err != nil {
 		return fail(err)
 	}
@@ -77,7 +83,7 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork(way *WayOut) jobs.Work {
+func chosenWork(way *WayOut, sessions *talk.Sessions) jobs.Work {
 	if os.Getenv("HAAS_SANDBOX") == "here" {
 		return runner.Inside
 	}
@@ -93,7 +99,15 @@ func chosenWork(way *WayOut) jobs.Work {
 		}
 		defer way.Done(dir)
 		address, token := way.For(dir)
-		return sandbox.Run(dir, address, token)
+		exit, err := sandbox.Run(dir, address, token, staying(sessions, spec)...)
+		// A turn learns what the harness calls the conversation, and the next
+		// turn is handed it back. Without this every turn starts again.
+		if spec.Session != "" {
+			if manifest, read := evidence.Read(dir); read == nil {
+				_ = sessions.Said(spec.Session, "", manifest.Session)
+			}
+		}
+		return exit, err
 	}
 }
 
@@ -110,4 +124,18 @@ func number(name string, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+// staying is what a turn needs that outlives its container: the conversation's
+// working directory, and the memory the harness keeps of the conversation.
+// A harness stores that memory in its own data directory rather than beside the
+// files it edits, which is why there are two.
+func staying(sessions *talk.Sessions, spec job.Spec) []sandbox.Mount {
+	if spec.Session == "" {
+		return nil
+	}
+	return []sandbox.Mount{
+		{From: sessions.Workspace(spec.Session), To: "/job/workspace"},
+		{From: sessions.State(spec.Session), To: "/root/.local/share"},
+	}
 }

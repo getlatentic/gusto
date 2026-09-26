@@ -1,0 +1,42 @@
+{{template "head" .}}
+
+<table>
+  <tr><th>Harness</th><td>{{.Session.Harness}} {{with .Session.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
+  <tr><th>Working in</th><td>{{if .Session.Repo}}{{.Session.Repo}}{{else}}<span class="muted">an empty directory</span>{{end}}</td></tr>
+  <tr><th>Turns</th><td>{{len .Session.Turns}}</td></tr>
+</table>
+
+{{range .Turns}}
+<h2 id="{{.ID}}">{{.Said}}</h2>
+{{if .Replied}}<pre>{{.Replied}}</pre>{{else if .State.Done}}<p class="muted">It said nothing. Its evidence is on <a href="/jobs/{{.ID}}">the job's page</a>.</p>{{end}}
+<p class="muted"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">what this turn left behind</a></p>
+{{end}}
+
+{{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
+
+<form class="card" method="post" action="/talk/{{.Session.ID}}/say">
+  <label>Say something
+    <textarea name="said" placeholder="Ask it to change something, or to explain what it sees." autofocus required></textarea>
+  </label>
+  <button type="submit">Send</button>
+</form>
+
+{{if .Waiting}}
+<script>
+(function () {
+  var box = document.getElementById("stream");
+  var stream = new EventSource("/watch/{{.Latest}}");
+  var first = true;
+  stream.onmessage = function (event) {
+    if (first) { box.textContent = ""; box.classList.remove("muted"); first = false; }
+    box.textContent += event.data + "\n";
+  };
+  stream.addEventListener("ended", function () {
+    stream.close();
+    location.reload();
+  });
+})();
+</script>
+{{end}}
+
+{{template "foot" .}}
