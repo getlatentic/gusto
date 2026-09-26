@@ -215,3 +215,51 @@ func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 func offered() []catalog.Entry {
 	return []catalog.Entry{{Name: "fixture", Program: "sh", Needs: harness.NeedsNothing, Ready: true}}
 }
+
+// The page and the fragment must agree: a turn swapped in should be the same
+// markup the whole page would have rendered for it.
+func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/talk", url.Values{"harness": {"fixture"}})
+	id := strings.TrimPrefix(started.Header().Get("Location"), "/talk/")
+	if id == "" {
+		t.Fatalf("no conversation was started: %d to %q", started.Code, started.Header().Get("Location"))
+	}
+	if said := site.ask(t, "POST", "/talk/"+id+"/say", url.Values{"said": {"hello there"}}); said.Code != http.StatusSeeOther {
+		t.Fatalf("saying something gave %d", said.Code)
+	}
+	select {
+	case <-site.ran:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the turn never ran")
+	}
+
+	whole := site.ask(t, "GET", "/talk/"+id, nil).Body.String()
+	fragment := site.ask(t, "GET", "/talk/"+id+"/turns", nil).Body.String()
+	if !strings.Contains(fragment, "hello there") {
+		t.Fatalf("the fragment does not carry the turn:\n%s", fragment)
+	}
+	if !strings.Contains(whole, "hello there") {
+		t.Fatal("the whole page does not carry the turn")
+	}
+	if strings.Contains(fragment, "<html") || strings.Contains(fragment, "</body>") {
+		t.Fatal("the fragment is a whole page, which would nest one inside the other when swapped")
+	}
+}
+
+func TestWhatIsVendoredIsServedFromTheBinary(t *testing.T) {
+	site := open(t)
+	answer := site.ask(t, "GET", "/static/htmx.min.js", nil)
+	if answer.Code != http.StatusOK {
+		t.Fatalf("code %d", answer.Code)
+	}
+	if answer.Body.Len() < 10_000 {
+		t.Fatalf("%d bytes came back, which is not htmx", answer.Body.Len())
+	}
+	// It is in the binary, so it needs no sign-in: it is the same bytes for
+	// everybody and a page cannot render without it.
+	if strings.Contains(answer.Body.String(), "cdn.") {
+		t.Fatal("the vendored copy reaches a content delivery network")
+	}
+}
