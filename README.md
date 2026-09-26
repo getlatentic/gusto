@@ -161,7 +161,7 @@ from the evidence. What is held constant and why is in
 
 ```
 job/
-  job.json          version, brief, repo, gate, harness, model, sensitivity, budget
+  job.json          version, brief, repo, gate, harness, model, sensitivity, budget, team
   harnesses/        an adapter of your own, so the job runs anywhere
   workspace/        the checkout the harness works in
   out/
@@ -169,6 +169,7 @@ job/
     harness.log     every line it printed, as it printed it
     stderr.log      what it complained about
     calls.jsonl     the model calls that reported tokens or cost
+    proxy.jsonl     every call that left through the proxy, and what it cost
     commands.jsonl  what the harness ran, apart from what it said
     diff.patch      what changed
     gate.log        the gate's whole output
@@ -337,6 +338,67 @@ It listens on its own port because a container cannot reach a service bound to
 its host's loopback. What keeps it safe is the per-job token and the host's
 firewall, not the interface it binds — so do not expose that port.
 
+## What a job may spend
+
+The proxy counts what each call cost from the provider's own answer, never from
+what the harness says. It reads the OpenAI-compatible `usage` object,
+`prompt_tokens` and `completion_tokens`, from a plain answer and from the last
+event of a streamed one. A streamed request is sent on with
+`stream_options.include_usage` set, because a stream carries no usage otherwise.
+That path is written against the documented shape and has **not yet been
+measured against a real upstream**; the tests hold fixtures, labelled as such.
+
+Money needs prices, and prices are the operator's. `HAAS_SPEND_POLICY` names a
+file of them, with the monthly cap on each team:
+
+```json
+{
+  "prices": { "some-model": { "inputPerMillion": 2.5, "outputPerMillion": 10 } },
+  "teams": { "platform": { "usdPerMonth": 200 } }
+}
+```
+
+The numbers above show the format and are nobody's price. A field the file
+names that this build does not know stops the server, because a misspelt cap
+would otherwise be no cap.
+
+Each line of `out/proxy.jsonl` carries `inputTokens`, `outputTokens` and `usd`.
+An answer with no usage, or a model with no price, leaves them `null`: unmeasured,
+not free.
+
+There are two caps:
+
+- **A job's own**, `budget.usd` in `job.json`. Left out is no cap; zero allows
+  nothing.
+- **A team's**, per calendar month in UTC, from the policy. A job counts against
+  the team its `team` field names. That is a label the person asking chooses:
+  nothing proves they belong to the team yet, so a team cap holds against
+  mistakes and not against somebody determined to spend.
+
+The proxy checks both before each call leaves. Once one is spent it answers
+`402` with the reason, in the error shape an OpenAI-compatible client prints, and
+writes the refusal to `out/proxy.jsonl`. A call already in flight when the cap is
+reached finishes, so a job can end above its cap by the calls it had in flight,
+which is one for a harness that asks one at a time. A cap it cannot count fails
+closed: under a cap, a model with no price is refused before anything is sent,
+and a successful answer that carried no usage stops the job's next call. An error
+answer with no usage is recorded as unmeasured and does not stop it.
+
+The refusal does not kill the harness. It takes away the model, and the time
+budget ends a harness that does not stop by itself. The manifest then records
+`stoppedByCap`, naming the cap, the team, the limit and what was spent, and the
+job page and `haas show` say which cap stopped it:
+
+```
+stopped  by the team cap: team platform has spent $200.0312 of its $200.0000 cap for 2026-09
+```
+
+That line shows the format; it is not from a run.
+
+A server that restarts rebuilds every team's month from the jobs' own
+`out/proxy.jsonl`, so the lines in the evidence are the ledger. A job run again in
+the same directory keeps what it spent before.
+
 Without `HAAS_MODEL_UPSTREAM` there is no proxy: the container is given the
 model's address directly, which is the local case where there is no credential
 to keep out of anywhere.
@@ -426,6 +488,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `HAAS_MODEL_NAME` | what the evidence calls that credential |
 | `HAAS_PROXY_ADDR` | where the proxy listens for containers, `0.0.0.0:8041` by default |
+| `HAAS_SPEND_POLICY` | a file of model prices and team caps the proxy counts with. Without it every model is unpriced and no team is capped |
 
 ## Tests
 

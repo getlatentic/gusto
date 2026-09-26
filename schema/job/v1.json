@@ -56,8 +56,16 @@
           "description": "The wall-clock seconds the harness may run. When they are spent the harness is killed and the manifest records stoppedAtBudget; the gate still runs.",
           "type": "integer",
           "default": 900
+        },
+        "usd": {
+          "description": "A cap on what the job's calls to a model may cost, in US dollars, counted at the proxy from the provider's own answers and the operator's prices. Once it is spent the proxy refuses the job's next call and the manifest records stoppedByCap. Left out, there is no cap; zero allows nothing. A reader refuses a negative cap. Only a job whose model is reached through the proxy is capped.",
+          "type": "number"
         }
       }
+    },
+    "team": {
+      "description": "Who the job's spend counts against. A team named in the operator's spend policy has a monthly cap its jobs share. It is a label the person asking chooses; nothing yet proves they belong to the team.",
+      "type": "string"
     }
   }
 }
