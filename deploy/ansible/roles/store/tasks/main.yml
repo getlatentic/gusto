@@ -1,0 +1,48 @@
+---
+# The box already runs MySQL 9.7 and Redis for other apps. Nothing here installs
+# or configures either of them: this claims one database, one user scoped to it,
+# and one Redis index that nothing else uses.
+- name: The Python MySQL connector the modules need
+  ansible.builtin.apt:
+    name: python3-pymysql
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: The application database
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    encoding: utf8mb4
+    collation: utf8mb4_0900_as_cs
+    state: present
+    login_unix_socket: "{{ mysql_socket }}"
+
+# community.mysql.mysql_user's privilege handling fails on MySQL 9 with
+# "(1046, 'No database selected')", which the box's inventory note records.
+# Explicit DDL runs cleanly and is idempotent.
+- name: The application user, on localhost, scoped to its own database
+  community.mysql.mysql_query:
+    login_unix_socket: "{{ mysql_socket }}"
+    query:
+      - "CREATE USER IF NOT EXISTS '{{ db_user }}'@'localhost' IDENTIFIED BY '{{ db_password }}'"
+      - "ALTER USER '{{ db_user }}'@'localhost' IDENTIFIED BY '{{ db_password }}'"
+      - "GRANT ALL PRIVILEGES ON `{{ db_name }}`.* TO '{{ db_user }}'@'localhost'"
+  no_log: true
+
+# Redis has no per-app user on this box; apps isolate by a numbered index. Taking
+# one that already holds keys would mean sharing a keyspace with another app, so
+# this refuses rather than assumes. An index this app already filled is fine.
+- name: What is in the Redis index this app claims
+  ansible.builtin.command:
+    cmd: "redis-cli -n {{ redis_db }} DBSIZE"
+  changed_when: false
+  register: redis_keys
+
+- name: A Redis index in use by something else is not taken
+  ansible.builtin.assert:
+    that:
+      - (redis_keys.stdout | trim | int) == 0 or redis_claimed | bool
+    fail_msg: >-
+      Redis db{{ redis_db }} holds {{ redis_keys.stdout | trim }} keys and this app
+      has not claimed it before. Pick a free index in group_vars, or set
+      redis_claimed=true if these keys are ours.

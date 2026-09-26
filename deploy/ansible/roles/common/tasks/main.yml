@@ -1,0 +1,75 @@
+---
+- name: Base packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - acl # lets become_user file operations work for an unprivileged user
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# A real home and a login shell, because rootless podman keeps its image store
+# under the user's home and systemd needs a user session to linger.
+- name: The app user
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    home: "{{ app_root }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+  when: manage_app_user | bool
+
+- name: State directory
+  ansible.builtin.file:
+    path: "{{ app_root }}/var"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0750"
+
+# The box pulls the code itself. A private repo needs a read-only deploy key,
+# and the key is generated here so it never leaves the machine that uses it.
+- name: Deploy key
+  community.crypto.openssh_keypair:
+    path: "{{ app_root }}/.ssh/id_ed25519"
+    type: ed25519
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  register: deploy_key
+  failed_when: false
+
+- name: Deploy key, without the crypto collection
+  ansible.builtin.command:
+    cmd: ssh-keygen -t ed25519 -N '' -f {{ app_root }}/.ssh/id_ed25519 -C haas@greencloud
+    creates: "{{ app_root }}/.ssh/id_ed25519"
+  become_user: "{{ app_user }}"
+  when: deploy_key is failed or deploy_key is skipped
+
+- name: github.com in known_hosts
+  ansible.builtin.known_hosts:
+    path: "{{ app_root }}/.ssh/known_hosts"
+    name: github.com
+    key: "{{ lookup('pipe', 'ssh-keyscan -t ed25519 github.com') }}"
+  become_user: "{{ app_user }}"
+
+- name: The public key to register as a read-only deploy key
+  ansible.builtin.slurp:
+    src: "{{ app_root }}/.ssh/id_ed25519.pub"
+  register: deploy_pubkey
+
+- name: Register this under the repository's deploy keys if the clone fails
+  ansible.builtin.debug:
+    msg: "{{ deploy_pubkey.content | b64decode | trim }}"
+
+- name: Checkout / pull repository
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_root }}/src"
+    version: "{{ repo_branch }}"
+    key_file: "{{ app_root }}/.ssh/id_ed25519"
+    accept_hostkey: false
+    force: true # the box mirrors origin; it is not an editing copy
+  become_user: "{{ app_user }}"
+  notify: Restart haas

@@ -1,0 +1,45 @@
+---
+# A pinned Go, under the app root. The box has a shared /usr/local/go that
+# belongs to whoever installed it, and depending on its version would make this
+# deploy depend on somebody else's upgrade.
+- name: Go tarball
+  ansible.builtin.get_url:
+    url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
+    dest: "{{ app_root }}/go{{ go_version }}.tar.gz"
+    checksum: "{{ ('sha256:' + go_sha256) if go_sha256 else omit }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0644"
+
+- name: Go unpacked
+  ansible.builtin.unarchive:
+    src: "{{ app_root }}/go{{ go_version }}.tar.gz"
+    dest: "{{ app_root }}"
+    remote_src: true
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    creates: "{{ app_root }}/go/bin/go"
+
+- name: Build the binary
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/go/bin/go build -trimpath -o {{ app_root }}/bin/haas ./cmd/haas"
+    chdir: "{{ app_root }}/src"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+    GOCACHE: "{{ app_root }}/var/go-cache"
+    GOMODCACHE: "{{ app_root }}/var/go-mod"
+  register: build
+  changed_when: true
+  notify: Restart haas
+
+- name: The binary answers
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/bin/haas harnesses"
+  become_user: "{{ app_user }}"
+  changed_when: false
+  register: harnesses
+
+- name: Harnesses this build knows
+  ansible.builtin.debug:
+    var: harnesses.stdout_lines

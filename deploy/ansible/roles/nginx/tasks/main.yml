@@ -1,0 +1,62 @@
+---
+# nginx is already the only public listener on this box and already serves other
+# vhosts on :443. This adds one name-based vhost and nothing else: never the
+# default site, never another app's configuration.
+- name: ACME webroot exists
+  ansible.builtin.file:
+    path: "{{ acme_webroot }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  when: serve_enabled | bool and enable_tls | bool
+
+- name: Is there a certificate already?
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+  register: tls_cert
+  when: serve_enabled | bool
+
+# The first TLS run renders the cert-less variant on :80 so certbot's challenge
+# has something to answer. A plain `listen 443` here would clash with the vhosts
+# already serving TLS.
+- name: The vhost
+  ansible.builtin.template:
+    src: haas.conf.j2
+    dest: /etc/nginx/sites-available/haas.conf
+    mode: "0644"
+  vars:
+    tls_active: "{{ (enable_tls | bool) and (tls_cert.stat.exists | default(false)) }}"
+  when: serve_enabled | bool
+  notify: Reload nginx
+
+- name: The vhost is enabled
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/haas.conf
+    dest: /etc/nginx/sites-enabled/haas.conf
+    state: link
+  when: serve_enabled | bool
+  notify: Reload nginx
+
+- name: Apply pending reloads before the challenge
+  ansible.builtin.meta: flush_handlers
+
+- name: A certificate for this name
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --webroot -w {{ acme_webroot }}
+      -d {{ server_name }} --email {{ certbot_email }}
+      --agree-tos --non-interactive
+    creates: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+  when: serve_enabled | bool and enable_tls | bool
+  notify: Reload nginx
+
+- name: The vhost, now that there is a certificate
+  ansible.builtin.template:
+    src: haas.conf.j2
+    dest: /etc/nginx/sites-available/haas.conf
+    mode: "0644"
+  vars:
+    tls_active: "{{ enable_tls | bool }}"
+  when: serve_enabled | bool and enable_tls | bool
+  notify: Reload nginx

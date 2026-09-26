@@ -1,0 +1,11 @@
+---
+- name: haas — a runner, and later the pages in front of it
+  hosts: app
+  become: true
+  roles:
+    - common # git, acl, the app user and its home
+    - toolchain # a pinned Go under the app root, never the box's shared one
+    - sandbox # rootless podman, and the runner image
+    - store # this app's own database, user and Redis index on the shared services
+    - serve # the HTTP service, once there is one to run (serve_enabled)
+    - nginx # a name-based vhost and its certificate (serve_enabled)

@@ -1,0 +1,73 @@
+---
+# ── Identity ────────────────────────────────────────────────────────────────
+# haas runs as its own user rather than www-data, which is the convention for
+# the other apps on a shared box. Rootless containers need a subuid range and a
+# writable home for the image store, and www-data has neither. Giving them to a
+# user that eight other services run as would change those services; a new user
+# changes nothing.
+app_user: haas
+app_root: /opt/haas
+manage_app_user: true
+manage_default_site: false # never touch the default site or another app's vhost
+
+# ── Code delivery (git only) ────────────────────────────────────────────────
+# The box clones and pulls; nothing is copied up from a laptop. A private repo
+# needs a read-only deploy key, which the common role generates and prints.
+repo_url: git@github.com:getlatentic/haas.git
+repo_branch: main
+
+# ── The toolchain ───────────────────────────────────────────────────────────
+# Pinned, and under the app root. /usr/local/go on a shared box belongs to
+# whoever put it there.
+go_version: "1.26.1"
+go_sha256: ""  # set to pin the tarball; empty skips the check
+
+# ── The sandbox ─────────────────────────────────────────────────────────────
+# podman, because it runs no daemon: nothing is resident between jobs and no
+# iptables rules are rewritten on a box whose nginx fronts other sites.
+container_runtime: podman
+runner_image: haas:dev
+harness_package: opencode-ai
+
+# What one job may take. A limit larger than the machine is not a limit: the job
+# takes what it likes and the kernel kills whatever it reaches first, which on a
+# shared box is somebody else's service.
+job_memory: 900m
+job_cpus: "1"
+job_concurrency: 2
+
+# ── The service, and the pages ──────────────────────────────────────────────
+# Off until there is an HTTP server to run. Turning it on brings up the systemd
+# unit, the vhost and the certificate.
+serve_enabled: false
+backend_port: 8040
+server_name: haas.tosinamuda.com
+api_public_port: 443
+enable_tls: true
+certbot_email: tosinamuda@gmail.com
+acme_webroot: /var/www/letsencrypt
+
+# ── Where the state lives ───────────────────────────────────────────────────
+# Two stores, because two deployments are real. "sqlite" keeps everything in one
+# file under the app root, which is what a laptop wants and what a customer
+# installing one artifact gets. "mysql" uses a box's existing MySQL and Redis:
+# its own database and user, and a numbered Redis index for the queue and for
+# fanning a job's output out to everybody watching it.
+store: sqlite
+sqlite_path: "{{ app_root }}/var/haas.db"
+
+db_name: haas
+db_user: haas
+mysql_socket: /var/run/mysqld/mysqld.sock
+# db_password comes from the vault, never from here.
+
+# Redis carries the run queue and the live stream, so two processes can watch one
+# job and see the same order. db0 to db3 are taken on greencloud.
+redis_url: "redis://localhost:6379/{{ redis_db }}"
+redis_db: 4
+redis_claimed: false
+
+# ── The model ───────────────────────────────────────────────────────────────
+# Empty means the harness uses its own account. An address here is what the
+# rules check and what a local-model harness is pointed at.
+model_url: ""
