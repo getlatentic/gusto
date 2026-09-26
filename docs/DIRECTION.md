@@ -9,6 +9,47 @@ that produced it.
 
 Coding is the first use, not the point.
 
+## Why there is room
+
+The model vendors are buying the execution layer under agents. OpenAI acquired
+Ona in June 2026 to run Codex agents unattended. GitHub sells Codespaces at
+$0.18 a core-hour and puts Copilot agents on top. Anthropic runs Claude Code
+cloud sessions. Each one runs its own agent.
+
+So none of them will answer the question a platform team actually has: what did
+all of our agents cost last month, what did they touch, and which one is better
+on our codebase. Neutrality is the one position a vendor cannot take, and it
+gets more valuable as they integrate.
+
+## Who buys it
+
+A platform or developer-experience lead at a company already running two or more
+agent tools, who cannot say what they spent or what they changed. The opening
+question is exactly that, and an answer of "I don't know" is the sale.
+
+Not individual developers. A free command line and a cheap subscription already
+serve them, and the vendors bundle hosting with their own agents.
+
+## What "governed" has to mean
+
+This list is the product. A buyer works down it, and most of it is not built.
+
+| | | state |
+| --- | --- | --- |
+| identity | SSO, and roles that separate who may run a job, who may approve one, and who may change policy | one shared password |
+| credentials | a key per team, added by the proxy on the way out and never inside a sandbox | built, one key |
+| spend | budgets per team, project and job, with caps that stop a running job | the proxy counts; nothing caps |
+| data | where a job runs, and what may leave it. Outbound denied unless an allowlist names it | the runner classes exist; the allowlist does not |
+| model policy | which models may see which repositories, enforced rather than remembered | one rule: restricted code needs a local model |
+| isolation | one sandbox a job, never reused, destroyed after | built |
+| change control | an agent opens a pull request and never merges | built |
+| supply chain | bundles pinned by digest, skills and connectors from an allowlist | #64 |
+| audit | an immutable record a job at a time, exportable | the record is built; the export is not |
+| comparison | the same task on two harnesses, verified side by side | Sprint 4 |
+
+The last row is the one nobody else can offer, because everybody else sells one
+agent.
+
 ## What is general, and what is not
 
 Measured rather than assumed. The coding assumption lives in one file,
