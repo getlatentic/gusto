@@ -16,11 +16,11 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
-	"github.com/getlatentic/haas/internal/talk"
 	"github.com/getlatentic/haas/internal/web"
 )
 
@@ -40,7 +40,10 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	sessions, err := talk.Open(setting("HAAS_SESSIONS", "sessions"))
+	// The directory keeps the name it was written under: what is in it is the
+	// same thing, read now as an instance with threads rather than as one
+	// conversation.
+	instances, err := instance.Open(setting("HAAS_SESSIONS", "sessions"))
 	if err != nil {
 		return fail(err)
 	}
@@ -53,7 +56,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	defer stopProxy()
-	queue := jobs.Start(index, chosenWork(way, sessions), number("HAAS_JOB_CONCURRENCY", 1))
+	queue := jobs.Start(index, chosenWork(way, instances), number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
 	// Asked once, at startup: the answer changes only when the image does, and
@@ -76,7 +79,7 @@ func serve(args []string) int {
 	if identity.Configured() {
 		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
 	}
-	pages, err := web.New(index, sessions, queue, password, identity, offered, values("HAAS_MODELS"))
+	pages, err := web.New(index, instances, queue, password, identity, offered, values("HAAS_MODELS"))
 	if err != nil {
 		return fail(err)
 	}
@@ -106,9 +109,9 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, sessions *talk.Sessions) jobs.Work {
+func chosenWork(way *WayOut, instances *instance.Store) jobs.Work {
 	if os.Getenv("HAAS_SANDBOX") == "here" {
-		return runner.Inside
+		return here(instances)
 	}
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
@@ -121,12 +124,12 @@ func chosenWork(way *WayOut, sessions *talk.Sessions) jobs.Work {
 			return 0, err
 		}
 		defer way.Done(dir)
-		exit, err := way.Run(dir, spec, staying(sessions, spec)...)
+		exit, err := way.Run(dir, spec, staying(instances, spec)...)
 		// A turn learns what the harness calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
 		if spec.Session != "" {
 			if manifest, read := evidence.Read(dir); read == nil {
-				_ = sessions.Said(spec.Session, "", manifest.Session)
+				_ = instances.Said(spec.Session, spec.Thread, "", manifest.Session)
 			}
 		}
 		return exit, err
@@ -161,16 +164,51 @@ func number(name string, fallback int) int {
 	return value
 }
 
+// here runs a job in this process, which is what a laptop with no image built
+// has. A turn in a container gets the instance's workspace mounted over its
+// own; without one, the job's workspace is made a link to it instead, so a
+// conversation works the same way in both places.
+func here(instances *instance.Store) jobs.Work {
+	return func(dir job.Dir) (int, error) {
+		spec, err := job.Read(dir)
+		if err != nil {
+			return 0, err
+		}
+		if spec.Session != "" {
+			if err := pointAt(instances.Workspace(spec.Session), dir); err != nil {
+				return 0, err
+			}
+		}
+		return runner.Inside(dir)
+	}
+}
+
+// pointAt makes a job's workspace a link to the instance's.
+//
+// The job directory is made before it is queued, which leaves a real, empty
+// directory where the workspace goes; a link cannot be put over one. Remove
+// refuses a directory with anything in it, so a job that has its own checkout
+// is never quietly replaced.
+func pointAt(workspace string, dir job.Dir) error {
+	if err := dir.Make(); err != nil {
+		return err
+	}
+	if err := os.Remove(dir.Workspace()); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.Symlink(workspace, dir.Workspace())
+}
+
 // staying is what a turn needs that outlives its container: the conversation's
 // working directory, and the memory the harness keeps of the conversation.
 // A harness stores that memory in its own data directory rather than beside the
 // files it edits, which is why there are two.
-func staying(sessions *talk.Sessions, spec job.Spec) []sandbox.Mount {
+func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 	if spec.Session == "" {
 		return nil
 	}
 	return []sandbox.Mount{
-		{From: sessions.Workspace(spec.Session), To: "/job/workspace"},
-		{From: sessions.State(spec.Session), To: "/root/.local/share"},
+		{From: instances.Workspace(spec.Session), To: "/job/workspace"},
+		{From: instances.State(spec.Session), To: "/root/.local/share"},
 	}
 }

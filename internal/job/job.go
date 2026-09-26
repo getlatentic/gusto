@@ -61,10 +61,12 @@ type Spec struct {
 	Gate    []string `json:"gate"`
 	Harness string   `json:"harness"`
 	Model   string   `json:"model,omitempty"`
-	// Session names a conversation this job is a turn in. A job with one mounts
-	// what stays instead of cloning, and Remembered is the harness's own name
-	// for the conversation, handed back so it resumes rather than restarts.
+	// Session names the instance this job is a turn on: the computer whose
+	// workspace it mounts instead of cloning. Thread names the conversation on
+	// that instance, and Remembered is the harness's own name for that
+	// conversation, handed back so it resumes rather than restarts.
 	Session     string      `json:"session,omitempty"`
+	Thread      string      `json:"thread,omitempty"`
 	Remembered  string      `json:"remembered,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`

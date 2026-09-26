@@ -17,6 +17,9 @@ type Index struct {
 	root    string
 	guard   sync.Mutex
 	records map[string]Record
+	// seq is the arrival order the next job gets, so two jobs submitted in one
+	// second still run in the order they were sent.
+	seq int64
 }
 
 // Open reads what is on disk, and lets the evidence decide.
@@ -51,7 +54,36 @@ func Open(root string) (*Index, error) {
 		}
 		index.records[record.ID] = record
 	}
+	index.number()
 	return index, nil
+}
+
+// number gives every job an arrival order, and says what the next one is.
+// A job written before this field existed has none, so they are numbered by
+// the clock and then by name: arbitrary between two of the same second, but
+// the same on every read, and always before anything queued since.
+func (i *Index) number() {
+	var missing []Record
+	for id := range i.records {
+		if record := i.records[id]; record.Seq == 0 {
+			missing = append(missing, record)
+		} else if record.Seq >= i.seq {
+			i.seq = record.Seq + 1
+		}
+	}
+	sort.Slice(missing, func(a, b int) bool {
+		if missing[a].Queued != missing[b].Queued {
+			return missing[a].Queued < missing[b].Queued
+		}
+		return missing[a].ID < missing[b].ID
+	})
+	for at, record := range missing {
+		record.Seq = int64(at) - int64(len(missing))
+		i.records[record.ID] = record
+	}
+	if i.seq < 1 {
+		i.seq = 1
+	}
 }
 
 func (i *Index) Root() string { return i.root }
@@ -62,6 +94,10 @@ func (i *Index) Add(record Record) error {
 	defer i.guard.Unlock()
 	if _, taken := i.records[record.ID]; taken {
 		return fmt.Errorf("a job called %s is already here", record.ID)
+	}
+	if record.Seq == 0 {
+		record.Seq = i.seq
+		i.seq++
 	}
 	if err := write(record.Dir(i.root), record); err != nil {
 		return err
@@ -94,13 +130,22 @@ func (i *Index) List() []Record {
 func (i *Index) Claim() (Record, bool, error) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
+	// An instance's threads share one workspace, so a turn waits while another
+	// turn of the same instance runs. Jobs that are not turns have no instance
+	// and wait for nothing.
+	busy := map[string]bool{}
+	for id := range i.records {
+		if record := i.records[id]; record.State == Running && record.Instance != "" {
+			busy[record.Instance] = true
+		}
+	}
 	var oldest *Record
 	for id := range i.records {
 		record := i.records[id]
-		if record.State != Queued {
+		if record.State != Queued || busy[record.Instance] {
 			continue
 		}
-		if oldest == nil || record.Queued < oldest.Queued {
+		if oldest == nil || record.Seq < oldest.Seq {
 			taken := record
 			oldest = &taken
 		}

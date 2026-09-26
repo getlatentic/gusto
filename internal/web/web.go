@@ -10,11 +10,12 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/spend"
-	"github.com/getlatentic/haas/internal/talk"
 )
 
 //go:embed templates/*.html
@@ -22,7 +23,7 @@ var pages embed.FS
 
 type Server struct {
 	index     *jobs.Index
-	sessions  *talk.Sessions
+	instances *instance.Store
 	queue     *jobs.Queue
 	keeper    *keeper
 	templates *template.Template
@@ -32,7 +33,7 @@ type Server struct {
 	ledger    *spend.Ledger
 }
 
-func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models []string) (*Server, error) {
+func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models []string) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func New(index *jobs.Index, sessions *talk.Sessions, queue *jobs.Queue, password
 	if err != nil {
 		return nil, err
 	}
-	return &Server{index: index, sessions: sessions, queue: queue, keeper: keeper, templates: templates, identity: identity, catalog: offered, models: models}, nil
+	return &Server{index: index, instances: instances, queue: queue, keeper: keeper, templates: templates, identity: identity, catalog: offered, models: models}, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -54,7 +55,15 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
-	mux.HandleFunc("GET /{$}", s.guard(s.list))
+	mux.HandleFunc("GET /{$}", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
+	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
+	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
+	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
+	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
+	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
+	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
+	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	mux.HandleFunc("POST /jobs", s.guard(s.submit))
 	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
@@ -63,12 +72,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
 	mux.HandleFunc("GET /api/spend", s.sent(s.spendJSON))
-	mux.HandleFunc("GET /talk", s.guard(s.talking))
-	mux.HandleFunc("POST /talk", s.guard(s.begin))
-	mux.HandleFunc("GET /talk/{id}", s.guard(s.conversation))
-	mux.HandleFunc("GET /talk/{id}/turns", s.guard(s.turns))
-	mux.HandleFunc("POST /talk/{id}/say", s.guard(s.say))
+	// Conversations were held at /talk before an instance could hold more than
+	// one. A link somebody kept still finds its instance.
+	mux.HandleFunc("GET /talk", moved("/"))
+	mux.HandleFunc("GET /talk/{id}", moved("/instances/{id}"))
 	return mux
+}
+
+// moved redirects an address that used to mean something here to where it
+// means it now, filling {id} from the request.
+func moved(to string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, strings.ReplaceAll(to, "{id}", r.PathValue("id")), http.StatusMovedPermanently)
+	}
 }
 
 func (s *Server) render(w http.ResponseWriter, page string, data any) {

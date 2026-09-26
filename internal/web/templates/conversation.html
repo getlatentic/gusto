@@ -1,16 +1,12 @@
 {{template "head" .}}
 
-<table>
-  <tr><th>Harness</th><td>{{.Session.Harness}} {{with .Session.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
-  <tr><th>Working in</th><td>{{if .Session.Repo}}{{.Session.Repo}}{{else}}<span class="muted">an empty directory</span>{{end}}</td></tr>
-  <tr><th>Turns</th><td>{{len .Session.Turns}}</td></tr>
-</table>
+<p class="crumb"><a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a> <span class="muted">{{if .Thread.Title}}{{.Thread.Title}}{{else}}thread {{.Thread.ID}}{{end}}</span></p>
 
 <div id="turns">{{template "turns" .}}</div>
 
 {{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
 
-<form class="card" method="post" action="/talk/{{.Session.ID}}/say">
+<form class="card" method="post" action="{{.Path}}/say">
   <label>Say something
     <textarea name="said" placeholder="Ask it to change something, or to explain what it sees." autofocus required></textarea>
   </label>
@@ -31,7 +27,7 @@
     stream.close();
     // Swap in the turn that just finished rather than reloading the page,
     // which threw away the scroll position and everything already read.
-    htmx.ajax("GET", "/talk/{{.Session.ID}}/turns", "#turns").then(function () {
+    htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
       box.remove();
     });
   });
@@ -43,8 +39,10 @@
 
 {{define "turns"}}
 {{range .Turns}}
-<h2 id="{{.ID}}">{{.Said}}</h2>
-{{if .Replied}}<pre>{{.Replied}}</pre>{{else if .State.Done}}<p class="muted">It said nothing. Its evidence is on <a href="/jobs/{{.ID}}">the job's page</a>.</p>{{end}}
-<p class="muted"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">what this turn left behind</a></p>
+<article class="turn" id="{{.ID}}">
+  <p class="said">{{.Said}}</p>
+  {{if .Replied}}<pre>{{.Replied}}</pre>{{end}}
+  <p class="after"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">evidence</a></p>
+</article>
 {{end}}
 {{end}}

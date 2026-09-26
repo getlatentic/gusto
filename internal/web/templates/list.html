@@ -19,7 +19,8 @@
       <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
     </label>
     <label><span class="line">Model <span class="muted">optional</span></span>
-      <input name="model" placeholder="ollama/gpt-oss:20b">
+      {{if .Models}}<select name="model"><option value="">whatever it defaults to</option>{{range .Models}}<option>{{.}}</option>{{end}}</select>
+      {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
     </label>
     <label>Sensitivity
       <select name="sensitivity">

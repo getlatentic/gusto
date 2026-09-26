@@ -1,0 +1,21 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<h1>{{.Harness.Name}}</h1>
+
+<form class="card" method="post" action="/instances">
+  <input type="hidden" name="harness" value="{{.Harness.Name}}">
+  <div class="row">
+    <label>Model
+      {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
+      {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
+    </label>
+    <label><span class="line">Repository <span class="muted">optional</span></span>
+      <input name="repo" placeholder="git@github.com:you/repo.git">
+    </label>
+  </div>
+  <button type="submit">Start it</button>
+</form>
+
+{{template "foot" .}}
