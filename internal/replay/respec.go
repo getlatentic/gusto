@@ -9,13 +9,16 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 )
 
-// respec copies the old job.json with one change: ref becomes the pinned commit.
+// Rewrite copies from's job.json into to with the named fields set, and nothing
+// else changed. A replay sets ref to the pinned commit; a comparison sets the
+// harness as well.
 //
 // The file is copied field by field rather than through job.Spec, so a field
-// this build does not know survives into the replay instead of being dropped,
-// and the replay asks for exactly what the original asked for.
-func respec(old, fresh job.Dir, commit string) error {
-	text, err := os.ReadFile(old.Spec())
+// this build does not know survives into the copy instead of being dropped, and
+// the copy asks for exactly what the original asked for. from and to may be the
+// same directory.
+func Rewrite(from, to job.Dir, set map[string]any) error {
+	text, err := os.ReadFile(from.Spec())
 	if err != nil {
 		return err
 	}
@@ -23,20 +26,22 @@ func respec(old, fresh job.Dir, commit string) error {
 	if err := json.Unmarshal(text, &fields); err != nil {
 		return err
 	}
-	if fields["ref"], err = json.Marshal(commit); err != nil {
-		return err
+	for name, value := range set {
+		if fields[name], err = json.Marshal(value); err != nil {
+			return err
+		}
 	}
-	if err := anchor(fields, old); err != nil {
+	if err := anchor(fields, from); err != nil {
 		return err
 	}
 	out, err := json.MarshalIndent(fields, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(fresh.Spec(), append(out, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(to.Spec(), append(out, '\n'), 0o644); err != nil {
 		return err
 	}
-	_, err = job.Read(fresh)
+	_, err = job.Read(to)
 	return err
 }
 
@@ -60,14 +65,25 @@ func anchor(fields map[string]json.RawMessage, old job.Dir) error {
 	return err
 }
 
-// carry gives the replay the adapter the old job carried, so it runs the
-// harness the same way. An old job that carried none ran a built-in adapter or
-// one from HAAS_HARNESSES, and harness.Keep carries the one this machine has
-// now, so a container that has never heard of it still runs it.
-func carry(old, fresh job.Dir, name string) error {
+// Carry gives the new job the adapters the old one carried, so it runs a
+// harness the same way. When none of them is the named harness's, the old job
+// ran a built-in adapter or one from HAAS_HARNESSES, and harness.Keep carries
+// the one this machine has now, so a container that has never heard of it
+// still runs it.
+func Carry(old, fresh job.Dir, name string) error {
+	if err := copyCarried(old, fresh); err != nil {
+		return err
+	}
+	if _, err := os.Stat(filepath.Join(harness.Carried(fresh), name+".json")); err == nil {
+		return nil
+	}
+	return harness.Keep(fresh, name)
+}
+
+func copyCarried(old, fresh job.Dir) error {
 	listing, err := os.ReadDir(harness.Carried(old))
 	if os.IsNotExist(err) {
-		return harness.Keep(fresh, name)
+		return nil
 	}
 	if err != nil {
 		return err

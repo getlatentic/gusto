@@ -35,6 +35,9 @@ func run(args []string) int {
 		"ship":      shipJob,
 		"check":     checkPull,
 		"replay":    replayJobs,
+		"replay":    replayJobs,
+		"compare":   compareJobs,
+		"check":     checkPull,
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
@@ -61,6 +64,7 @@ func usage() {
   haas show <dir>       what the job asked for and what happened
   haas replay <dir>...  run finished jobs again at the same commit, compare verdicts [-here]
   haas export <dir>     an audit record anybody can verify [-to, -policy, -requests, -verify]
+  haas compare <dir> <harness> <harness>  run one job on each harness, side by side [-here]
   haas serve            the pages: submit a job, watch it, read the record
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
