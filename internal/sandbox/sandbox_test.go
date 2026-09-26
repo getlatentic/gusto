@@ -18,6 +18,12 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	if err := exec.Command(Runtime(), "info").Run(); err != nil {
 		t.Skipf("%s is not answering on this machine: %v", Runtime(), err)
 	}
+	// And the image this runs, which a checkout does not come with. Without it
+	// the runtime refuses before it ever reads the directory, so the test would
+	// fail for a reason that is not the one it is about.
+	if err := exec.Command(Runtime(), "image", "inspect", Image()).Run(); err != nil {
+		t.Skipf("%s is not built on this machine: %s build -t %s .", Image(), Runtime(), Image())
+	}
 	empty := job.Dir(t.TempDir())
 	_, err := Run(empty, "http://localhost:11434/v1", "")
 	if err == nil {
