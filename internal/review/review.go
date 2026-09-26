@@ -23,14 +23,19 @@ import (
 // agree, and the gate runs only when Wrong is empty: code the evidence does not
 // vouch for is not run.
 type Report struct {
-	Wrong   []string
-	Files   int
-	Claimed evidence.Verdict
+	Wrong []string
+	Files int
+	// Claimed is absent when the job had no gate, which a turn in a
+	// conversation does not.
+	Claimed *evidence.Verdict
 	Gate    evidence.Verdict
 }
 
 // Holds is true when every file matches and the gate answers as it did.
 func (r Report) Holds() bool {
+	if r.Claimed == nil {
+		return false
+	}
 	return len(r.Wrong) == 0 && r.Gate.Passed == r.Claimed.Passed && r.Gate.Code == r.Claimed.Code
 }
 
@@ -40,6 +45,9 @@ func (r Report) Lines() []string {
 		return r.Wrong
 	}
 	if !r.Holds() {
+		if r.Claimed == nil {
+			return []string{"this job had no gate, so there is no verdict to check"}
+		}
 		return []string{fmt.Sprintf("the gate now exits %d, and the manifest says %d", r.Gate.Code, r.Claimed.Code)}
 	}
 	return []string{fmt.Sprintf("%d files match, and the gate still exits %d", r.Files, r.Gate.Code)}
