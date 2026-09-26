@@ -8,7 +8,11 @@
 
 FROM docker.io/library/golang:1.26 AS build
 WORKDIR /src
-COPY go.mod ./
+# go.sum comes with go.mod: a build that has one without the other refuses every
+# dependency it cannot check, and downloading here keeps the modules on a layer
+# that source edits do not invalidate.
+COPY go.mod go.sum ./
+RUN go mod download
 COPY cmd cmd
 COPY internal internal
 RUN CGO_ENABLED=0 go build -trimpath -o /haas ./cmd/haas
