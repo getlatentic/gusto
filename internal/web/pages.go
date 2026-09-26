@@ -49,10 +49,15 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+	wrong := r.URL.Query().Get("wrong") != ""
 	s.render(w, "login.html", map[string]any{
-		"Wrong":    r.URL.Query().Get("wrong") != "",
+		"Wrong":    wrong,
 		"Refused":  r.URL.Query().Get("refused"),
 		"Identity": s.identity.Configured(),
+		// With a provider the shared password is the way in when the provider
+		// is not, so it stays reachable and stops being the second thing on
+		// the page. A wrong one keeps it open, or there is nowhere to try again.
+		"Shared": !s.identity.Configured() || wrong || r.URL.Query().Has("shared"),
 	})
 }
 
@@ -73,6 +78,7 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "list.html", map[string]any{
 		"Title":     "haas",
+		"Nav":       "jobs",
 		"Subtitle":  "a job is a directory",
 		"Jobs":      s.index.List(),
 		"Harnesses": catalog.Ready(s.catalog),
@@ -95,8 +101,8 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		Sensitivity: job.Sensitivity(r.FormValue("sensitivity")),
 		Team:        strings.TrimSpace(r.FormValue("team")),
 	}
-	if spec.Brief == "" || spec.Repo == "" || len(gate) == 0 {
-		http.Redirect(w, r, "/?refused=a+job+needs+a+repository,+a+brief+and+a+gate", http.StatusSeeOther)
+	if spec.Brief == "" || len(gate) == 0 {
+		s.turnAway(w, r, "/jobs", "a job needs something to do and a command that says it worked")
 		return
 	}
 	capped, err := dollars(r.FormValue("usd"))
@@ -108,31 +114,34 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		s.refuse(w, r, err)
 		return
 	}
-	id := s.index.Free(spec.Brief, time.Now())
-	dir := job.Dir(filepath.Join(s.index.Root(), id))
-	if err := dir.Make(); err != nil {
-		s.refuse(w, r, err)
-		return
-	}
-	if err := spec.Write(dir); err != nil {
-		s.refuse(w, r, err)
-		return
-	}
-	if err := harness.Keep(dir, spec.Harness); err != nil {
-		s.refuse(w, r, err)
-		return
-	}
 	record := jobs.Record{
-		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: s.keeper.who(r),
-		Queued: jobs.Now(),
+		ID: s.index.Free(spec.Brief, time.Now()), State: jobs.Queued,
+		Brief: spec.Brief, Repo: spec.Repo, Harness: spec.Harness,
+		Model: spec.Model, Asked: s.keeper.who(r), Queued: jobs.Now(),
 	}
-	if err := s.index.Add(record); err != nil {
+	if err := s.place(spec, record); err != nil {
 		s.refuse(w, r, err)
 		return
 	}
 	s.queue.Wake()
-	http.Redirect(w, r, "/jobs/"+id, http.StatusSeeOther)
+	http.Redirect(w, r, "/jobs/"+record.ID, http.StatusSeeOther)
+}
+
+// place writes a job's directory and takes it into the index. It is the same
+// sequence whichever page asked for the job, and the caller wakes the queue
+// once it has recorded whatever else the job belongs to.
+func (s *Server) place(spec job.Spec, record jobs.Record) error {
+	dir := job.Dir(filepath.Join(s.index.Root(), record.ID))
+	if err := dir.Make(); err != nil {
+		return err
+	}
+	if err := spec.Write(dir); err != nil {
+		return err
+	}
+	if err := harness.Keep(dir, spec.Harness); err != nil {
+		return err
+	}
+	return s.index.Add(record)
 }
 
 // dollars is a cap a person typed. Nothing typed is no cap, which is not the
@@ -165,7 +174,7 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	page := map[string]any{"Job": record, "Title": "haas — " + record.ID, "Subtitle": record.ID}
+	page := map[string]any{"Job": record, "Title": "haas — " + record.ID, "Subtitle": record.ID, "Nav": "jobs"}
 	if spec, err := job.Read(dir); err == nil {
 		page["Spec"] = spec
 	}

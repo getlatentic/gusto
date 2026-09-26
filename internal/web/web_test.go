@@ -9,8 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/harness"
+
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -328,5 +330,112 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 	if body := site.ask(t, "GET", second, nil).Body.String(); strings.Contains(body, "only in the first") {
 		t.Error("the second thread carries what was said in the first")
+	}
+}
+
+// The catalog is the front door, so every page has to name a way back to it.
+// Without one the app looks like it is only about jobs.
+func TestEveryPageOffersTheWayBackToTheCatalog(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	for _, page := range []string{"/", "/jobs", "/spend"} {
+		body := site.ask(t, "GET", page, nil).Body.String()
+		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Harnesses") {
+			t.Errorf("%s does not offer the way to the catalog", page)
+		}
+	}
+}
+
+// A task is work done on the instance's own folder. Not every task starts
+// from a repository, and one that does not still has somewhere to work.
+func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
+	where := started.Header().Get("Location")
+	if !strings.HasPrefix(where, "/instances/") {
+		t.Fatalf("no instance was started: %q", where)
+	}
+	answer := site.ask(t, "POST", where+"/tasks", url.Values{
+		"brief": {"count the files"}, "gate": {"true"},
+	})
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("the task was refused: %d %q", answer.Code, answer.Body.String())
+	}
+	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")
+	record, found := site.index.Get(id)
+	if !found {
+		t.Fatalf("no job called %q", id)
+	}
+	if record.Instance != strings.TrimPrefix(where, "/instances/") {
+		t.Errorf("the task does not name its instance: %+v", record)
+	}
+	if record.Thread != "" {
+		t.Errorf("a task is not said to a thread, but it names %q", record.Thread)
+	}
+	// It belongs to the instance's page, which is where it was asked for.
+	if body := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(body, "count the files") {
+		t.Error("the instance does not list the task run on it")
+	}
+}
+
+// A task needs somewhere to work and a way to know it worked, and nothing else.
+func TestATaskWithNoGateIsRefused(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	where := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}).Header().Get("Location")
+	answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}})
+	if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
+		t.Errorf("a task with no gate was accepted: %d to %q", answer.Code, got)
+	}
+}
+
+// A job of its own no longer demands a repository: it works in an empty one.
+func TestAJobWithNoRepositoryIsAccepted(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	answer := site.ask(t, "POST", "/jobs", url.Values{
+		"brief": {"write a script that prints ok"}, "gate": {"sh run.sh"}, "harness": {"fixture"},
+	})
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("code %d", answer.Code)
+	}
+	if got := answer.Header().Get("Location"); strings.Contains(got, "refused") {
+		t.Fatalf("it was refused: %q", got)
+	}
+}
+
+// With a provider the shared password is the way in when the provider is not,
+// so it is reachable and it is not the second thing on the sign-in page.
+func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
+	index, err := jobs.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	instances, err := instance.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(index, instances, nil, password, &Identity{provider: &oidc.Provider{}}, offered(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := &site{handler: server.Handler(), index: index}
+
+	plain := site.ask(t, "GET", "/login", nil).Body.String()
+	if strings.Contains(plain, `name="password"`) {
+		t.Error("the sign-in page offers the shared password beside the provider")
+	}
+	if !strings.Contains(plain, "/login?shared") {
+		t.Error("the shared password cannot be reached at all")
+	}
+	asked := site.ask(t, "GET", "/login?shared", nil).Body.String()
+	if !strings.Contains(asked, `name="password"`) {
+		t.Error("the shared password is not offered to somebody who asked for it")
+	}
+	// A wrong one keeps it open, or there is nowhere to try again.
+	wrong := site.ask(t, "GET", "/login?wrong=1", nil).Body.String()
+	if !strings.Contains(wrong, `name="password"`) {
+		t.Error("a wrong password left nowhere to try again")
 	}
 }

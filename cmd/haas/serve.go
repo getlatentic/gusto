@@ -127,7 +127,7 @@ func chosenWork(way *WayOut, instances *instance.Store) jobs.Work {
 		exit, err := way.Run(dir, spec, staying(instances, spec)...)
 		// A turn learns what the harness calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
-		if spec.Session != "" {
+		if spec.Session != "" && spec.Thread != "" {
 			if manifest, read := evidence.Read(dir); read == nil {
 				_ = instances.Said(spec.Session, spec.Thread, "", manifest.Session)
 			}

@@ -31,4 +31,29 @@
   <button type="submit">Open a thread</button>
 </form>
 
+<h2>Tasks</h2>
+{{if .Tasks}}
+<table>
+  <tr><th>Task</th><th>State</th><th>Asked</th><th>Took</th></tr>
+  {{range .Tasks}}
+  <tr>
+    <td><a href="/jobs/{{.ID}}">{{.Brief}}</a></td>
+    <td><span class="state {{.State}}">{{.State}}</span></td>
+    <td class="muted">{{when .Queued}}</td>
+    <td class="muted">{{took .Started .Ended}}</td>
+  </tr>
+  {{end}}
+</table>
+{{end}}
+
+<form class="card" method="post" action="/instances/{{.Instance.ID}}/tasks">
+  <label>Brief
+    <textarea name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
+  </label>
+  <label><span class="line">Gate <span class="muted">the command that says it worked</span></span>
+    <input name="gate" placeholder="sh test.sh" required>
+  </label>
+  <button type="submit">Run it</button>
+</form>
+
 {{template "foot" .}}

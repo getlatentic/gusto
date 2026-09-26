@@ -9,8 +9,9 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 )
 
-// Fill puts the repository in workspace/. A directory that already holds a
-// checkout is left alone, so a run can be repeated against the same tree.
+// Fill puts the repository in workspace/, or makes an empty one when no
+// repository is named. A directory that already holds a checkout is left alone,
+// so a run can be repeated against the same tree.
 func Fill(spec job.Spec, dir job.Dir) error {
 	// A turn in a conversation works in the conversation's directory, which is
 	// mounted over this one. Cloning here would write files nobody reads.
@@ -19,6 +20,11 @@ func Fill(spec job.Spec, dir job.Dir) error {
 	}
 	if _, err := os.Stat(filepath.Join(dir.Workspace(), ".git")); err == nil {
 		return nil
+	}
+	if spec.Repo == "" {
+		// Not every task starts from a repository. The workspace is one anyway,
+		// because a run says what it changed by diffing it.
+		return git(dir.Workspace(), "init", "--quiet", ".")
 	}
 	if err := git(dir.Path(), "clone", "--quiet", spec.Repo, "workspace"); err != nil {
 		return err
