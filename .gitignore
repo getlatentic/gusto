@@ -1,3 +1,8 @@
 /haas
 /dist/
 /.runs/
+.env
+.env.*
+.claude/
+AGENTS.md
+CLAUDE.md
