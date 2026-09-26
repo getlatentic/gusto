@@ -55,7 +55,7 @@ func sign(t *testing.T, dir job.Dir, gate evidence.Verdict) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files, Gate: gate, Signer: "a-test"}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files, Gate: &gate, Signer: "a-test"}); err != nil {
 		t.Fatal(err)
 	}
 }

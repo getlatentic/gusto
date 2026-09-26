@@ -19,6 +19,10 @@ type Record struct {
 	calls      *os.File
 	errs       *os.File
 
+	// Remembered is the harness's own name for the conversation, said in its
+	// output. Handing it back is how the next turn continues rather than starts.
+	Remembered string
+
 	perCall struct {
 		tokens int64
 		cost   float64
@@ -60,6 +64,11 @@ func (r *Record) Out(line string) error {
 	var decoded map[string]any
 	if err := json.Unmarshal([]byte(line), &decoded); err != nil {
 		return nil
+	}
+	if named, ok := harness.Pick(decoded, r.adapter.SessionID); ok {
+		if said, ok := named.(string); ok && said != "" {
+			r.Remembered = said
+		}
 	}
 	if text, ok := harness.Pick(decoded, r.adapter.Text); ok {
 		if said, ok := text.(string); ok {

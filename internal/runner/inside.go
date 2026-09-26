@@ -67,9 +67,15 @@ func Inside(dir job.Dir) (int, error) {
 	if err := Diff(dir); err != nil {
 		return 0, err
 	}
-	verdict, err := Gate(spec, dir)
-	if err != nil {
-		return 0, err
+	// A turn in a conversation names no gate. It ran, and the evidence says what
+	// happened without claiming anything passed.
+	var verdict *evidence.Verdict
+	if len(spec.Gate) > 0 {
+		given, err := Gate(spec, dir)
+		if err != nil {
+			return 0, err
+		}
+		verdict = &given
 	}
 	spent, files, err := evidence.Of(dir)
 	if err != nil {
@@ -80,6 +86,7 @@ func Inside(dir job.Dir) (int, error) {
 		Files:           files,
 		Gate:            verdict,
 		Harness:         adapter.Name,
+		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
 		ModelEndpoint:   endpoint,
@@ -90,7 +97,7 @@ func Inside(dir job.Dir) (int, error) {
 	}); err != nil {
 		return 0, err
 	}
-	if verdict.Passed {
+	if verdict == nil || verdict.Passed {
 		return 0, nil
 	}
 	return 1, nil

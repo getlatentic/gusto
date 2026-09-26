@@ -12,6 +12,11 @@ import (
 // Fill puts the repository in workspace/. A directory that already holds a
 // checkout is left alone, so a run can be repeated against the same tree.
 func Fill(spec job.Spec, dir job.Dir) error {
+	// A turn in a conversation works in the conversation's directory, which is
+	// mounted over this one. Cloning here would write files nobody reads.
+	if spec.Session != "" {
+		return nil
+	}
 	if _, err := os.Stat(filepath.Join(dir.Workspace(), ".git")); err == nil {
 		return nil
 	}

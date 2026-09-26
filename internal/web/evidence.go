@@ -43,8 +43,8 @@ type gateView struct {
 
 func readGate(record jobs.Record, dir job.Dir, manifest *evidence.Manifest) gateView {
 	gate := gateView{Explains: record.State != jobs.Passed}
-	if manifest != nil {
-		gate.Verdict = &manifest.Gate
+	if manifest != nil && manifest.Gate != nil {
+		gate.Verdict = manifest.Gate
 		gate.Command = shellLine(manifest.Gate.Command)
 	}
 	if log, found := readExcerpt(dir, record.ID, "gate.log", drawn); found && !log.Empty() {

@@ -7,7 +7,6 @@
   "required": [
     "job",
     "files",
-    "gate",
     "harness",
     "harnessExit",
     "stoppedAtBudget",
@@ -32,7 +31,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "sha256"],
+        "required": [
+          "name",
+          "sha256"
+        ],
         "additionalProperties": false,
         "properties": {
           "name": {
@@ -47,15 +49,21 @@
       }
     },
     "gate": {
-      "description": "The gate's verdict, the same one out/gates.json holds.",
+      "description": "The gate's verdict, the same one out/gates.json holds. Absent when the job had no gate to run: a turn in a conversation is not a claim that anything passed.",
       "type": "object",
-      "required": ["command", "code", "passed"],
+      "required": [
+        "command",
+        "code",
+        "passed"
+      ],
       "additionalProperties": false,
       "properties": {
         "command": {
           "description": "The gate that ran: the program and its arguments.",
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "code": {
           "description": "The gate's exit code.",
@@ -85,11 +93,17 @@
     },
     "tokens": {
       "description": "The tokens the harness reported, or null when it reported none. Null is not zero: nothing reported is nothing claimed.",
-      "type": ["integer", "null"]
+      "type": [
+        "integer",
+        "null"
+      ]
     },
     "costUsd": {
       "description": "The cost in US dollars the harness reported, or null when it reported none.",
-      "type": ["number", "null"]
+      "type": [
+        "number",
+        "null"
+      ]
     },
     "signer": {
       "description": "Who stands behind the run: HAAS_SIGNER on the runner, or \"unsigned\". A name, until a runner holds a key.",
@@ -98,6 +112,10 @@
     "atUnix": {
       "description": "When the manifest was written, in seconds since the Unix epoch.",
       "type": "integer"
+    },
+    "session": {
+      "type": "string",
+      "description": "What the harness calls the conversation this run was a turn in. Absent for a one-shot job."
     }
   }
 }

@@ -75,7 +75,14 @@ type Adapter struct {
 
 	// Dotted paths into a JSONL line. An empty path means the harness does not
 	// say, and the number is left out rather than guessed.
-	Text         string `json:"text,omitempty"`
+	// Resume replaces the arguments when there is a conversation to continue. It
+	// is the whole list rather than a fragment: splicing two lists duplicates
+	// whatever flag they share.
+	Resume []string `json:"resume,omitempty"`
+
+	Text string `json:"text,omitempty"`
+	// SessionID is where the harness says what it calls this conversation.
+	SessionID    string `json:"sessionId,omitempty"`
 	InputTokens  string `json:"inputTokens,omitempty"`
 	OutputTokens string `json:"outputTokens,omitempty"`
 	// Cache tokens are billed, so a total that leaves them out disagrees with
@@ -182,8 +189,12 @@ func Names() []string {
 // Command builds the process to run. The context carries the time budget, so a
 // harness that will not stop is killed rather than waited for.
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
-	argv := make([]string, 0, len(a.Argv))
-	for _, argument := range a.Argv {
+	wanted := a.Argv
+	if spec.Remembered != "" && len(a.Resume) > 0 {
+		wanted = a.Resume
+	}
+	argv := make([]string, 0, len(wanted))
+	for _, argument := range wanted {
 		// An argument the job left empty is dropped rather than passed as a
 		// bare flag: a harness asked for "--model=" refuses to start, and the
 		// job meant "whatever you are configured with".
@@ -207,6 +218,7 @@ func (a Adapter) fill(text string, spec job.Spec) string {
 		"{brief}", spec.Brief,
 		"{model}", spec.Model,
 		"{modelUrl}", ModelURL(),
+		"{session}", spec.Remembered,
 	).Replace(text)
 }
 
