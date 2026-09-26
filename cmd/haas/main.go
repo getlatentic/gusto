@@ -162,6 +162,10 @@ func verify(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	if manifest.Gate == nil {
+		fmt.Println("this job had no gate, so there is no verdict to check")
+		return 0
+	}
 	if again.Passed != manifest.Gate.Passed || again.Code != manifest.Gate.Code {
 		fmt.Printf("the gate now exits %d, and the manifest says %d\n", again.Code, manifest.Gate.Code)
 		return 1

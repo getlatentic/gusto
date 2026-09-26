@@ -8,10 +8,19 @@
     "--model={model}",
     "{brief}"
   ],
+  "resume": [
+    "run",
+    "--format",
+    "json",
+    "--session={session}",
+    "--model={model}",
+    "{brief}"
+  ],
   "needs": "local",
   "stream": "jsonl",
   "totals": "perCall",
   "text": "part.text",
+  "sessionId": "sessionID",
   "inputTokens": "part.tokens.input",
   "outputTokens": "part.tokens.output",
   "costUsd": "part.cost"

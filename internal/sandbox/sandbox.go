@@ -32,10 +32,17 @@ func Image() string {
 
 // Run the job in a container and hand back its exit code. The job directory is
 // the only thing mounted, and the container is destroyed with the run.
+// Mount is something outside the job directory that a container needs: a
+// conversation's working directory, or the memory a harness keeps of it.
+type Mount struct {
+	From string
+	To   string
+}
+
 // Run takes the address the container should ask for a model at. It is given
 // rather than read from the environment because it is per job: the proxy mints
 // a token for this run, and that token is in the address.
-func Run(dir job.Dir, model, token string) (int, error) {
+func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -52,8 +59,17 @@ func Run(dir job.Dir, model, token string) (int, error) {
 		"-e", "HAAS_MODEL_TOKEN=" + token,
 		"-e", "HAAS_SIGNER=" + os.Getenv("HAAS_SIGNER"),
 		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
+	}
+	for _, mount := range mounts {
+		absolute, err := filepath.Abs(mount.From)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, "-v", absolute+":"+mount.To)
+	}
+	args = append(args, []string{
 		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
-		"--pids-limit=512"}
+		"--pids-limit=512"}...)
 	if alias {
 		args = append(args, "--add-host=host.docker.internal:host-gateway")
 	}

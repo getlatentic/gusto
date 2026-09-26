@@ -48,13 +48,18 @@ type Budget struct {
 //
 // Version is the format of job.json. A file without one is version 1.
 type Spec struct {
-	Version     int         `json:"version"`
-	Brief       string      `json:"brief"`
-	Repo        string      `json:"repo"`
-	Ref         string      `json:"ref"`
-	Gate        []string    `json:"gate"`
-	Harness     string      `json:"harness"`
-	Model       string      `json:"model,omitempty"`
+	Version int      `json:"version"`
+	Brief   string   `json:"brief"`
+	Repo    string   `json:"repo"`
+	Ref     string   `json:"ref"`
+	Gate    []string `json:"gate"`
+	Harness string   `json:"harness"`
+	Model   string   `json:"model,omitempty"`
+	// Session names a conversation this job is a turn in. A job with one mounts
+	// what stays instead of cloning, and Remembered is the harness's own name
+	// for the conversation, handed back so it resumes rather than restarts.
+	Session     string      `json:"session,omitempty"`
+	Remembered  string      `json:"remembered,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
 }

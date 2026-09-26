@@ -158,6 +158,13 @@ func ended(record Record, root string) Record {
 	// The manifest knows when the run ended. The clock at recovery only knows
 	// when somebody noticed, which would count the outage as part of the job.
 	record.Ended = manifest.AtUnix
+	if manifest.Gate == nil {
+		// A turn in a conversation has no verdict. It ran, and that is all the
+		// evidence claims.
+		record.State = Passed
+		record.Exit = 0
+		return record
+	}
 	record.Exit = manifest.Gate.Code
 	record.State = Failed
 	if manifest.Gate.Passed {

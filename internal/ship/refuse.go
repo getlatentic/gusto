@@ -25,7 +25,10 @@ func Shippable(dir job.Dir) (evidence.Manifest, error) {
 	if err != nil {
 		return evidence.Manifest{}, err
 	}
-	if err := passed(dir, manifest.Gate); err != nil {
+	if manifest.Gate == nil {
+		return evidence.Manifest{}, fmt.Errorf("%w: this job had no gate, so nothing says its work is right", ErrRefused)
+	}
+	if err := passed(dir, *manifest.Gate); err != nil {
 		return evidence.Manifest{}, err
 	}
 	return manifest, carriesChange(dir)

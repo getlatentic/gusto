@@ -37,11 +37,15 @@ type Entry struct {
 //
 // Version is the format of manifest.json. A file without one is version 1.
 type Manifest struct {
-	Version         int      `json:"version"`
-	Job             string   `json:"job"`
-	Files           []Entry  `json:"files"`
-	Gate            Verdict  `json:"gate"`
-	Harness         string   `json:"harness"`
+	Version int     `json:"version"`
+	Job     string  `json:"job"`
+	Files   []Entry `json:"files"`
+	// Gate is absent when the job had none to run: a turn in a conversation is
+	// not a claim that anything passed.
+	Gate    *Verdict `json:"gate,omitempty"`
+	Harness string   `json:"harness"`
+	// Session is what the harness calls the conversation this run was a turn in.
+	Session         string   `json:"session,omitempty"`
 	HarnessExit     int      `json:"harnessExit"`
 	StoppedAtBudget bool     `json:"stoppedAtBudget"`
 	ModelEndpoint   string   `json:"modelEndpoint"`

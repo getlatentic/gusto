@@ -157,7 +157,7 @@ func TestAJobThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
+		Gate:   &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
 		Signer: "a-test",
 		AtUnix: Now(),
 	}); err != nil {
@@ -250,7 +250,7 @@ func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 	}
 	// Written while this run is in flight, but dated before it began.
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   evidence.Verdict{Code: 0, Passed: true},
+		Gate:   &evidence.Verdict{Code: 0, Passed: true},
 		AtUnix: claimed.Started - 30,
 	}); err != nil {
 		t.Fatal(err)
@@ -272,7 +272,7 @@ func TestClaimingAJobClearsTheVerdictOfItsLastRun(t *testing.T) {
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Gate: evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := index.Claim(); err != nil {
@@ -298,7 +298,7 @@ func TestARecoveredJobIsNotChargedForTheOutage(t *testing.T) {
 	}
 	finished := claimed.Started + 15
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   evidence.Verdict{Code: 0, Passed: true},
+		Gate:   &evidence.Verdict{Code: 0, Passed: true},
 		AtUnix: finished,
 	}); err != nil {
 		t.Fatal(err)
