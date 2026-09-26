@@ -120,7 +120,14 @@ func Names() []string {
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
 	argv := make([]string, 0, len(a.Argv))
 	for _, argument := range a.Argv {
-		argv = append(argv, a.fill(argument, spec))
+		// An argument the job left empty is dropped rather than passed as a
+		// bare flag: a harness asked for "--model=" refuses to start, and the
+		// job meant "whatever you are configured with".
+		filled := a.fill(argument, spec)
+		if filled == "" || strings.HasSuffix(filled, "=") {
+			continue
+		}
+		argv = append(argv, filled)
 	}
 	command := exec.CommandContext(ctx, a.fill(a.Program, spec), argv...)
 	command.Dir = workspace

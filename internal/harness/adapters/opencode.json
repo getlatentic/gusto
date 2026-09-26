@@ -1,7 +1,12 @@
 {
   "name": "opencode",
   "program": "opencode",
-  "argv": ["run", "{brief}"],
+  "argv": ["run", "--format", "json", "--model={model}", "{brief}"],
   "needs": "nothing",
-  "stream": "plain"
+  "stream": "jsonl",
+  "totals": "perCall",
+  "text": "part.text",
+  "inputTokens": "part.tokens.input",
+  "outputTokens": "part.tokens.output",
+  "costUsd": "part.cost"
 }

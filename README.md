@@ -65,7 +65,6 @@ job/
     harness.log     every line it printed, as it printed it
     stderr.log      what it complained about
     calls.jsonl     the model calls that reported tokens or cost
-    commands.jsonl  written by an adapter that reports its tool calls
     diff.patch      what changed
     gate.log        the gate's whole output
     gates.json      the verdict
