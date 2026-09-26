@@ -13,43 +13,31 @@ import (
 	"github.com/getlatentic/haas/internal/spend"
 )
 
-// Upstream is where the model actually answers, and the credential to reach it.
-// An empty Key is normal: a model in the building often needs none.
-type Upstream struct {
-	// Address is the model's root, with no version on it: the container is given
-	// `.../model/<token>/v1` and the harness appends the rest, so the whole path
-	// after the token comes from the container and this must not repeat it.
-	Address string
-	Key     string
-	// Name is what the evidence records. The key itself never appears anywhere.
-	Name string
-}
-
 // Where says which file in a job directory the proxy writes its record to.
 type Where func(job string) (string, bool)
 
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
 type Proxy struct {
-	tokens   *Tokens
-	upstream Upstream
-	where    Where
-	ledger   *spend.Ledger
-	allowed  Allowlist
-	client   *http.Client
-	guard    sync.Mutex
+	tokens      *Tokens
+	credentials Credentials
+	where       Where
+	ledger      *spend.Ledger
+	allowed     Allowlist
+	client      *http.Client
+	guard       sync.Mutex
 }
 
 // New takes the ledger every call is counted in and every cap is checked
 // against, so what the proxy refuses and what a report says was spent are read
 // from one place, and the hosts a job may reach besides its model.
-func New(tokens *Tokens, upstream Upstream, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
+func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
 	return &Proxy{
-		tokens:   tokens,
-		upstream: upstream,
-		where:    where,
-		ledger:   ledger,
-		allowed:  allowed,
+		tokens:      tokens,
+		credentials: credentials,
+		where:       where,
+		ledger:      ledger,
+		allowed:     allowed,
 		// A model answers slowly and streams. There is no timeout to set here
 		// that is not a guess at somebody's slowest prompt; the job's own budget
 		// is what stops a run that will not end.
@@ -82,14 +70,14 @@ func (p *Proxy) Handler() http.Handler {
 				}
 			}
 		}
-		job, known := p.tokens.Job(token)
+		ticket, known := p.tokens.Job(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
 			// ended, so this cannot be used to learn which jobs are running.
 			http.Error(w, "no", http.StatusForbidden)
 			return
 		}
-		p.pass(w, r, job, rest)
+		p.pass(w, r, ticket, rest)
 	})
 }
 
@@ -103,8 +91,16 @@ func split(full string) (token, rest string) {
 	return token, "/" + rest
 }
 
-func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, job, rest string) {
-	to, err := url.JoinPath(p.upstream.Address, rest)
+func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
+	job := ticket.Job
+	credential, held := p.credentials.Get(ticket.Credential)
+	if !held {
+		// The job was given this credential when it started, so losing it here
+		// means the deployment changed underneath a running job.
+		http.Error(w, "this job's credential is no longer held here", http.StatusBadGateway)
+		return
+	}
+	to, err := url.JoinPath(credential.Address, rest)
 	if err != nil {
 		http.Error(w, "that is not an address", http.StatusBadRequest)
 		return
@@ -126,16 +122,13 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, job, rest string) {
 	}
 	copyHeaders(out.Header, r.Header)
 	// The credential is added here and nowhere else. Whatever the container sent
-	// as authorization is discarded rather than forwarded.
-	out.Header.Del("Authorization")
-	if p.upstream.Key != "" {
-		out.Header.Set("Authorization", "Bearer "+p.upstream.Key)
-	}
+	// in its place is discarded rather than forwarded.
+	credential.apply(out.Header)
 	// Left to itself the client asks for gzip and unpacks it, so the usage in
 	// the answer is readable here. A compression the container chose would pass
 	// through packed, and the call would go uncounted.
 	out.Header.Del("Accept-Encoding")
-	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: p.upstream.Name}
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name}
 	answer, err := p.client.Do(out)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
