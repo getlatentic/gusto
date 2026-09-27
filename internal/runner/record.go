@@ -72,7 +72,7 @@ func (r *Record) Out(line string) error {
 			r.Remembered = said
 		}
 	}
-	if text, ok := harness.Pick(decoded, r.adapter.Text); ok {
+	if text, ok := harness.Pick(decoded, r.adapter.Text); ok && r.adapter.Says(decoded) {
 		if said, ok := text.(string); ok {
 			if _, err := r.transcript.WriteString(said); err != nil {
 				return err
@@ -91,7 +91,7 @@ func (r *Record) Out(line string) error {
 // name resolves is a tool call; nothing else distinguishes one.
 func (r *Record) did(decoded map[string]any) error {
 	name, isCall := harness.Pick(decoded, r.adapter.ToolName)
-	if !isCall {
+	if !isCall || !r.adapter.Ran(decoded) {
 		return nil
 	}
 	ran := map[string]any{"tool": name}
@@ -113,6 +113,9 @@ func (r *Record) did(decoded map[string]any) error {
 }
 
 func (r *Record) usage(decoded map[string]any, line string) error {
+	if !r.adapter.Counts(decoded) {
+		return nil
+	}
 	counted, told := 0.0, false
 	for _, path := range []string{
 		r.adapter.InputTokens,

@@ -86,6 +86,17 @@ type Adapter struct {
 	// whatever flag they share.
 	Resume []string `json:"resume,omitempty"`
 
+	// When narrows which lines each of the readings below is taken from, by
+	// purpose: "text", "usage" and "tool". A harness that says a thing once
+	// needs none of this. pi says everything three times — one message's usage
+	// rides on message_update, message_end and turn_end alike, its thinking and
+	// its tool arguments stream on the same path as its words, and a tool call
+	// appears at its start, its update and its end. Reading every line that
+	// carries a thing counted a run at nearly three times what it spent, put
+	// the model's reasoning in the transcript, and wrote each command down
+	// three times.
+	When map[string]map[string]string `json:"when,omitempty"`
+
 	Text string `json:"text,omitempty"`
 	// Where a harness says what it ran. A line on which ToolName resolves is a
 	// tool call, and nothing else distinguishes one.
@@ -313,4 +324,21 @@ func Number(line map[string]any, path string) (float64, bool) {
 	}
 	number, ok := value.(float64)
 	return number, ok
+}
+
+// Says, Counts and Ran report whether this line is the one the reply, the
+// numbers and a tool call are read from. An adapter that narrows nothing reads
+// each from every line that carries it.
+func (a Adapter) Says(line map[string]any) bool   { return a.reads("text", line) }
+func (a Adapter) Counts(line map[string]any) bool { return a.reads("usage", line) }
+func (a Adapter) Ran(line map[string]any) bool    { return a.reads("tool", line) }
+
+func (a Adapter) reads(purpose string, line map[string]any) bool {
+	for path, want := range a.When[purpose] {
+		got, found := Pick(line, path)
+		if !found || fmt.Sprint(got) != want {
+			return false
+		}
+	}
+	return true
 }
