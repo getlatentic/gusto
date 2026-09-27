@@ -192,22 +192,39 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
   nav a span { display: none; }
 }
 
-/* Narrow enough and a column down the side leaves no room to read. The list
-   lies down across the top instead, so every conversation is still one tap
-   away and the talk keeps the width. */
+/* A bar for the narrow case: which conversation you are in, and the way to the
+   rest of them. It is not there when the list already is. */
+.talk-top { display: none; align-items: center; gap: var(--yg-space-3);
+  padding: var(--yg-space-3) var(--yg-space-4);
+  border-bottom: 1px solid var(--yg-border); }
+.talk-top .which { font-weight: 600; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.rail-toggle { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  padding: var(--yg-space-2) var(--yg-space-3); font-size: .875rem; font-weight: 400;
+  background: none; color: var(--yg-text-muted); border: 1px solid var(--yg-border-strong); }
+.rail-toggle:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.scrim { display: none; }
+
+/* Narrow enough and a column down the side leaves nothing to read in. The
+   list stays a list and slides over instead, because a conversation list laid
+   out as tabs stops reading as the thing you keep and start. */
 @media (max-width: 56rem) {
-  .desk { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .rail { grid-template-rows: auto; grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center; gap: var(--yg-space-3);
-    padding: var(--yg-space-3) var(--yg-space-4);
-    border-right: 0; border-bottom: 1px solid var(--yg-border); }
-  .rail .whose { padding: 0; }
-  .rail .whose span { display: none; }
-  .rail ol { grid-auto-flow: column; grid-auto-columns: max-content;
-    overflow-x: auto; overflow-y: hidden; }
-  .rail button { width: auto; padding: var(--yg-space-2) var(--yg-space-3); white-space: nowrap; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .talk { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .talk-top { display: flex; }
+  .rail { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(17rem, 82vw);
+    background: var(--yg-bg); box-shadow: var(--yg-shadow-3);
+    transform: translateX(-100%);
+    transition: transform var(--yg-dur-base) var(--yg-ease-standard); }
+  body.rail-open .rail { transform: none; }
+  body.rail-open .scrim { display: block; position: fixed; inset: 0; z-index: 10;
+    background: rgb(23 23 23 / .32); }
   .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); }
   .composer { padding: var(--yg-space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail { transition: none; }
 }
 
 /* Every conversation on this instance, with the one you are in marked. They
@@ -258,6 +275,7 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
 {{define "origin"}}{{if .Link}}<a href="{{.Link}}">{{.Named}}</a>{{else}}<span class="muted">{{.Named}}</span>{{end}}{{end}}
 
 {{define "icon-harness"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z"/></svg>{{end}}
+{{define "icon-menu"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>{{end}}
 {{define "icon-add"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>{{end}}
 {{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}
 {{define "icon-spend"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M11 4.5H6.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H5"/></svg>{{end}}
