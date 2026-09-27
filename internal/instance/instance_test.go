@@ -227,3 +227,73 @@ func TestAWorkspaceThatIsNotARepositoryIsMendedOnTheWayIn(t *testing.T) {
 		t.Errorf("the workspace was not mended: %v", err)
 	}
 }
+
+func TestARemovedInstanceIsGoneButItsFilesAreKept(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Start("one", Instance{Harness: "opencode"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(store.Workspace("one"), "work.txt"), []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Remove("one"); err != nil {
+		t.Fatal(err)
+	}
+	if _, found := store.Get("one"); found {
+		t.Error("a removed instance is still held")
+	}
+	again, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.List()) != 0 {
+		t.Errorf("reopening the store found %v", again.List())
+	}
+	kept, _ := filepath.Glob(filepath.Join(root, removed, "one-*", "workspace", "work.txt"))
+	if len(kept) != 1 {
+		t.Error("the workspace should be moved aside, not deleted")
+	}
+}
+
+func TestAThreadIsNamedByWhatWasFirstSaidInIt(t *testing.T) {
+	if got := TitleOf("Draft a SOAP note from visit-notes.txt and keep it short, please, because it is long\nmore"); got != "Draft a SOAP note from visit-notes.txt and keep…" {
+		t.Errorf("title %q", got)
+	}
+	store, _ := Open(t.TempDir())
+	if _, err := store.Start("one", Instance{Harness: "dsh"}); err != nil {
+		t.Fatal(err)
+	}
+	named, _ := store.NewThread("one", "chosen")
+	store.Name("one", named.ID, "from the first message")
+	store.Name("one", "1", "first")
+	store.Name("one", "1", "second")
+	if held, _ := store.Thread("one", named.ID); held.Title != "chosen" {
+		t.Errorf("a chosen title was replaced with %q", held.Title)
+	}
+	if held, _ := store.Thread("one", "1"); held.Title != "first" {
+		t.Errorf("the first message's title became %q", held.Title)
+	}
+}
+
+// A template's files are where the harness starts from, committed, so the
+// first turn's patch is what the harness changed and not the samples.
+func TestSeededFilesAreCommittedAsTheStart(t *testing.T) {
+	store, _ := Open(t.TempDir())
+	if _, err := store.Start("one", Instance{Harness: "dsh"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Seed("one", map[string]string{"notes/visit.txt": "invented"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Seed("one", map[string]string{"../escape": "x"}); err == nil {
+		t.Error("a file outside the folder was written")
+	}
+	status, _ := exec.Command("git", "-C", store.Workspace("one"), "status", "--porcelain").Output()
+	if len(strings.TrimSpace(string(status))) != 0 {
+		t.Errorf("the seeded files are not committed: %q", status)
+	}
+}

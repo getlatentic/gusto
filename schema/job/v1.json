@@ -4,7 +4,7 @@
   "title": "haas job.json, version 1",
   "description": "The spec at the root of a job directory. It carries a brief, not a prompt. A reader fills in ref, sensitivity and budget when they are left out, and ignores a field it does not know. `haas new` writes every field except model, which it leaves out when empty.",
   "type": "object",
-  "required": ["brief", "repo", "gate", "harness"],
+  "required": ["brief", "harness"],
   "additionalProperties": false,
   "properties": {
     "version": {
@@ -16,7 +16,7 @@
       "type": "string"
     },
     "repo": {
-      "description": "The repository to work in: anything `git clone` accepts, a URL or a local path. The runner clones it into workspace/.",
+      "description": "The repository to work in: anything `git clone` accepts, a URL or a local path. The runner clones it into workspace/. Empty, the workspace starts as an empty repository; for a turn it is the instance's own folder.",
       "type": "string"
     },
     "ref": {
@@ -25,7 +25,7 @@
       "default": "HEAD"
     },
     "gate": {
-      "description": "The command that says pass or fail, as the program and its arguments. It runs in workspace/ with no shell, and the job passes when it exits zero. A job with an empty gate is refused when it runs.",
+      "description": "The command that says pass or fail, as the program and its arguments. It runs in workspace/ with no shell, and the job passes when it exits zero. A turn in a conversation names none: it runs, and its evidence claims no verdict.",
       "type": "array",
       "items": { "type": "string" }
     },
@@ -66,6 +66,29 @@
     "team": {
       "description": "Who the job's spend counts against. A team named in the operator's spend policy has a monthly cap its jobs share. It is a label the person asking chooses; nothing yet proves they belong to the team.",
       "type": "string"
+    },
+    "session": {
+      "description": "The instance this job is a turn on. Its workspace is mounted instead of a clone of repo.",
+      "type": "string"
+    },
+    "thread": {
+      "description": "The conversation on that instance this job is a turn in.",
+      "type": "string"
+    },
+    "remembered": {
+      "description": "The harness's own name for that conversation, handed back so it resumes rather than starts again.",
+      "type": "string"
+    },
+    "setup": {
+      "description": "The configuration the harness ran with: the names of its skills and of the MCP servers it could call. The definitions travel beside the job in setup/, outside the evidence, because a server's definition can carry a token.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "skills": {"type": "array", "items": {"type": "string"}},
+        "servers": {"type": "array", "items": {"type": "string"}}
+      }
     }
   }
 }

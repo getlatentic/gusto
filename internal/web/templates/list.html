@@ -1,24 +1,60 @@
 {{template "head" .}}
+{{with .Board}}
 
-<p class="muted">Every job this server holds, whatever started it. A job runs on an instance, in its folder: start one from the <a href="/">catalog</a>{{if .Harnesses}}, or <a href="/instances/new?harness={{index .Harnesses 0}}&amp;then=task">start one with a repository</a> for a one-off{{end}}.</p>
+<div class="title-row">
+  <h1>Activity</h1>
+  {{with .Shown}}<span class="count">{{.}}</span>{{end}}
+</div>
 
-{{if .Runs}}
-<table>
-  <tr><th>Job</th><th>Verdict</th><th>Cost</th><th>Instance</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
-  {{range .Runs}}
-  <tr>
-    <td><a href="/jobs/{{.ID}}">{{.Brief}}</a><br><span class="muted">{{.ID}}</span></td>
-    <td><span class="state {{.State}}">{{.State}}</span></td>
-    <td>{{with money .Cost}}{{.}}{{else}}<span class="muted">not reported</span>{{end}}</td>
-    <td>{{template "origin" .On}}</td>
-    <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
-    <td class="muted">{{when .Queued}}</td>
-    <td class="muted">{{took .Started .Ended}}</td>
-  </tr>
-  {{end}}
-</table>
+<form class="filters" method="get" action="/jobs">
+  <nav class="segments" aria-label="What happened, this week">
+    <a href="{{if .Harness}}/jobs?harness={{.Harness}}{{else}}/jobs{{end}}"{{if not .State}} aria-current="true"{{end}}>Everything</a>
+    {{range .Figures}}<a class="is-{{.Label}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span class="dot"></span>{{.Label}} <span class="n">{{.Count}}</span></a>{{end}}
+  </nav>
+  {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
+  <label class="inline"><span class="sr">Harness</span>
+    <select name="harness" onchange="this.form.submit()">
+      <option value="">every harness</option>
+      {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+  </label>
+  <noscript><button type="submit">Filter</button></noscript>
+</form>
+
+{{if .Days}}
+{{range .Days}}
+<section class="log">
+  <h2>{{.Named}}</h2>
+  <ol>
+    {{range .Runs}}
+    <li class="event is-{{.State}}">
+      <span class="at" title="{{when .Queued}}">{{hourOf .Queued}}</span>
+      <span class="dot" aria-hidden="true"></span>
+      <div class="what">
+        <p class="where">{{template "origin" .On}}{{if not .On.Link}} · {{.Harness}}{{end}}<span class="model">{{with .Model}} · {{modelOnly .}}{{end}}</span></p>
+        <a class="brief" href="/jobs/{{.ID}}" title="{{.Brief}}">{{.Brief}}</a>
+      </div>
+      <div class="how">
+        <span class="outcome">{{outcome .}}</span>
+        <span class="muted">{{$took := took .Started .Ended}}{{$took}}{{if and $took (or .Metered .Cost)}} · {{end}}{{template "cost" .}}</span>
+      </div>
+    </li>
+    {{end}}
+  </ol>
+</section>
+{{end}}
+<nav class="pages" aria-label="Pages">
+  {{with .Newer}}<a href="{{.}}">Newer</a>{{end}}
+  {{with .Older}}<a href="{{.}}">Older</a>{{end}}
+</nav>
 {{else}}
-<p class="muted">Nothing has run here yet.</p>
+<p class="empty muted">{{if or .State .Harness}}Nothing matches these filters.{{else}}Nothing has happened here yet. Everything a harness does shows up here: <a href="/new">start one</a>.{{end}}</p>
 {{end}}
 
+{{end}}
 {{template "foot" .}}
+
+{{/* cost is what the proxy counted, which is the provider's own figure; a job
+     that never went through the proxy shows the harness's claim, marked as
+     one. */}}
+{{define "cost"}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}{{.Spent.Money}}{{else}}<span title="{{.Spent.Calls}} calls, and no price for this model">{{tokens (add .Spent.InputTokens .Spent.OutputTokens)}} tokens</span>{{end}}{{else if .Cost}}<span title="the harness's own figure">{{money .Cost}}</span>{{end}}{{end}}

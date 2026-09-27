@@ -3,42 +3,68 @@
 <div class="desk">
   <div class="scrim" id="scrim"></div>
   <aside class="rail" id="rail">
-    <div class="whose">
-      <a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a>
-      <span>{{if .Instance.Model}}{{.Instance.Model}}{{else}}whatever it defaults to{{end}}</span>
-    </div>
+    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this harness">
+      <span class="avatar" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+      <span class="who">
+        <span class="name">{{.Instance.Harness}}</span>
+        <span class="model">{{if .Instance.Model}}{{modelOnly .Instance.Model}}{{else}}its default model{{end}}{{with .Instance.Setup}} · {{.}}{{end}}</span>
+      </span>
+    </a>
+
+    <form method="post" action="/instances/{{.Instance.ID}}/threads">
+      <button type="submit" class="new-thread">{{template "icon-add"}} New thread</button>
+    </form>
 
     <ol>
       {{range .Threads}}
-      <li><a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{if .Title}}{{.Title}}{{else}}thread {{.ID}}{{end}}</a></li>
+      <li><a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{.Name}}</a></li>
       {{end}}
     </ol>
-
-    <form method="post" action="/instances/{{.Instance.ID}}/threads">
-      <button type="submit">{{template "icon-add"}} New thread</button>
-    </form>
   </aside>
 
   <main class="talk">
     <div class="talk-top">
-      <button class="rail-toggle" type="button" id="open-rail" aria-controls="rail" aria-expanded="false">
-        {{template "icon-menu"}} Conversations
+      <button class="rail-toggle" type="button" id="open-rail" aria-controls="rail" aria-expanded="false" title="Conversations">
+        {{template "icon-menu"}}
       </button>
-      <span class="which">{{if .Thread.Title}}{{.Thread.Title}}{{else}}thread {{.Thread.ID}}{{end}}</span>
+      <span class="which">{{.Named}}</span>
+      <span class="with">{{.Instance.Harness}}{{with .Instance.Model}} · {{modelOnly .}}{{end}}</span>
     </div>
 
     <div class="said-so-far" id="said">
       <div class="column">
         <div id="turns">{{template "turns" .}}</div>
-        {{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
-        {{if not .Turns}}{{if not .Waiting}}<p class="nothing-said">Nothing said yet.</p>{{end}}{{end}}
+        {{if .Waiting}}
+        <div class="answer working" id="working">
+          <span class="avatar" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+          <div class="body">
+            <p class="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> Working <span class="elapsed" id="elapsed"></span></p>
+            <pre id="stream" hidden></pre>
+          </div>
+        </div>
+        {{end}}
+        {{if not .Turns}}{{if not .Waiting}}
+        <div class="start">
+          <span class="avatar big" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+          <h2>What should {{.Instance.Harness}} do?</h2>
+          <p class="muted">It works in its own folder{{with .Instance.Repo}}, a checkout of {{base .}}{{end}}, and remembers this thread.</p>
+          {{with .Starters}}
+          <div class="starters">
+            {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
+          </div>
+          {{end}}
+        </div>
+        {{end}}{{end}}
       </div>
     </div>
 
     <div class="composer">
       <form class="column" method="post" action="{{.Path}}/say">
-        <textarea name="said" rows="1" placeholder="Ask it to change something, or to explain what it sees." autofocus required></textarea>
-        <button type="submit">Send</button>
+        <div class="box">
+          <textarea name="said" rows="1" placeholder="Message {{.Instance.Harness}}" autofocus required></textarea>
+          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+        </div>
+        <p class="hint">Enter sends. Shift and Enter start a new line.</p>
       </form>
     </div>
   </main>
@@ -64,6 +90,16 @@
   });
 
   var said = document.getElementById("said");
+  // A starter is a suggestion, so it is put in the box to be read and sent,
+  // not sent on somebody's behalf.
+  document.querySelectorAll(".starter").forEach(function (starter) {
+    starter.addEventListener("click", function () {
+      var box = document.querySelector(".composer textarea");
+      box.value = starter.dataset.said;
+      box.dispatchEvent(new Event("input"));
+      box.focus();
+    });
+  });
   // A conversation opens where it left off, not at the beginning.
   if (said) { said.scrollTop = said.scrollHeight; }
 
@@ -92,19 +128,25 @@
 (function () {
   var box = document.getElementById("stream");
   var said = document.getElementById("said");
+  var elapsed = document.getElementById("elapsed");
+  var began = Date.now();
+  var clock = setInterval(function () {
+    var seconds = Math.floor((Date.now() - began) / 1000);
+    elapsed.textContent = seconds < 60 ? seconds + "s" : Math.floor(seconds / 60) + "m " + (seconds % 60) + "s";
+  }, 1000);
   var stream = new EventSource("/watch/{{.Latest}}");
-  var first = true;
   stream.onmessage = function (event) {
-    if (first) { box.textContent = ""; box.classList.remove("muted"); first = false; }
+    box.hidden = false;
     box.textContent += event.data + "\n";
     said.scrollTop = said.scrollHeight;
   };
   stream.addEventListener("ended", function () {
     stream.close();
+    clearInterval(clock);
     // Swap in the turn that just finished rather than reloading the page,
     // which threw away the scroll position and everything already read.
     htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
-      box.remove();
+      document.getElementById("working").remove();
       said.scrollTop = said.scrollHeight;
     });
   });
@@ -118,8 +160,23 @@
 {{range .Turns}}
 <article class="turn" id="{{.ID}}">
   <p class="said">{{.Said}}</p>
-  {{if .Replied}}<pre>{{.Replied}}</pre>{{end}}
-  <p class="after"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">evidence</a></p>
+  {{if .State.Done}}
+  <div class="answer{{if .Stopped}} failed{{end}}">
+    <span class="avatar" aria-hidden="true">{{slice .Harness 0 1}}</span>
+    <div class="body">
+      {{with .Steps}}
+      <details class="steps">
+        <summary>{{len .}} step{{if ne (len .) 1}}s{{end}}</summary>
+        <ol>{{range .}}<li><span class="what">{{.What}}</span> <span class="detail">{{.Detail}}</span></li>{{end}}</ol>
+      </details>
+      {{end}}
+      {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}
+      {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+      {{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}
+      <p class="meta">{{with took .Started .Ended}}{{.}}{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}} · {{.Spent.Money}}{{end}}{{end}} · <a href="/jobs/{{.ID}}">details</a></p>
+    </div>
+  </div>
+  {{end}}
 </article>
 {{end}}
 {{end}}

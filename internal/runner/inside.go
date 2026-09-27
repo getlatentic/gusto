@@ -48,13 +48,17 @@ func Inside(dir job.Dir) (int, error) {
 	}
 	adapter := configured.Adapter
 	if err := admit(spec, adapter); err != nil {
-		return 0, refuse(dir, err)
+		return 0, Refuse(dir, err)
 	}
 	endpoint := adapter.EndpointOf()
 	if err := dir.Make(); err != nil {
 		return 0, err
 	}
 	if err := Fill(spec, dir); err != nil {
+		return 0, err
+	}
+	before, err := Snapshot(dir)
+	if err != nil {
 		return 0, err
 	}
 
@@ -66,11 +70,18 @@ func Inside(dir job.Dir) (int, error) {
 	budget := time.Duration(spec.Budget.Seconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
+	servers, err := Servers(dir)
+	if err != nil {
+		return 0, Refuse(dir, err)
+	}
+	if err := placeSkills(dir, spec, adapter); err != nil {
+		return 0, err
+	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
 	var exit int
 	if adapter.Stream == harness.ACP {
-		exit, err = converse(ctx, command, spec, record)
-	} else {
+		exit, err = converse(ctx, command, spec, servers, record)
+	} else if err = adapter.Give(command, servers); err == nil {
 		exit, err = stream(ctx, command, record)
 	}
 	tokens, cost := record.Spent()
@@ -81,7 +92,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 
-	if err := Diff(dir); err != nil {
+	if err := Diff(dir, before); err != nil {
 		return 0, err
 	}
 	// A turn in a conversation names no gate. It ran, and the evidence says what
@@ -125,10 +136,23 @@ func Inside(dir job.Dir) (int, error) {
 			return 0, err
 		}
 	}
-	if verdict == nil || verdict.Passed {
-		return 0, nil
+	return earned(verdict, exit), nil
+}
+
+// earned is the exit code a run earned. A gate decides when there is one. A
+// turn in a conversation has none, and then the harness's own exit is the only
+// word on whether it did what it was asked: a harness that failed made a turn
+// that failed, whatever it managed to say first.
+func earned(verdict *evidence.Verdict, harnessExit int) int {
+	switch {
+	case verdict != nil && verdict.Passed:
+		return 0
+	case verdict != nil:
+		return 1
+	case harnessExit != 0:
+		return 1
 	}
-	return 1, nil
+	return 0
 }
 
 type said struct {

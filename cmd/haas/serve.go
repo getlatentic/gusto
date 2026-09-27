@@ -22,6 +22,7 @@ import (
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/web"
 )
@@ -86,6 +87,17 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseLedger(way.ledger)
+	// Setups are kept beside the instances. The MCP servers they choose from
+	// are the operator's, one file each in HAAS_MCP.
+	setups, err := setup.Open(setting("HAAS_SETUPS", "setups"))
+	if err != nil {
+		return fail(err)
+	}
+	servers, err := setup.OpenServers(os.Getenv("HAAS_MCP"))
+	if err != nil {
+		return fail(err)
+	}
+	pages.UseSetups(setups, servers)
 	// The job page names a signer only as this keyring checked it, the way
 	// verify, show, ship and export do.
 	keyring, err := signing.ConfiguredKeyring()

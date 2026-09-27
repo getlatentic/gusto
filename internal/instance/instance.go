@@ -31,8 +31,13 @@ type Instance struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Repo    string `json:"repo,omitempty"`
-	Who     string `json:"who,omitempty"`
-	Started int64  `json:"startedAt"`
+	// Setup names the configuration every turn on this instance is given.
+	Setup string `json:"setup,omitempty"`
+	// Sensitivity is every turn's, so work that may not leave the building
+	// never does, whichever thread it is said in.
+	Sensitivity string `json:"sensitivity,omitempty"`
+	Who         string `json:"who,omitempty"`
+	Started     int64  `json:"startedAt"`
 }
 
 // Store is every instance under one directory.
@@ -57,7 +62,7 @@ func Open(root string) (*Store, error) {
 		return nil, err
 	}
 	for _, entry := range listing {
-		if !entry.IsDir() {
+		if !entry.IsDir() || hidden(entry.Name()) {
 			continue
 		}
 		if err := store.load(filepath.Join(root, entry.Name())); err != nil {

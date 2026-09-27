@@ -12,9 +12,14 @@
     "DEEPSEEK_BASE_URL": "{modelUrl}",
     "DEEPSEEK_API_KEY": "{modelToken}",
     "HAAS_MODEL_ID": "{modelId}",
-    "DSH_HOME": "/root/.local/share/dsh"
+    "DSH_HOME": "/root/.local/share/dsh",
+    "DSH_AGENTS_HOME": "/root/.agents"
   },
   "needs": "key",
+  "skills": "/root/.agents/skills",
+  "mcp": {
+    "format": "acp"
+  },
   "endpoint": "https://api.deepseek.com",
   "stream": "acp"
 }

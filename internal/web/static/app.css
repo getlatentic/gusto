@@ -1,0 +1,615 @@
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-space-20);
+  max-width: 72rem; background: var(--yg-bg); color: var(--yg-text);
+  font: 15px/1.55 var(--yg-font-text); }
+
+/* Header: a mark, a name, where to go, and a way out. Nothing else. */
+header { display: flex; align-items: center; gap: var(--yg-space-5);
+  padding-bottom: var(--yg-space-4); margin-bottom: var(--yg-space-8);
+  border-bottom: 1px solid var(--yg-border); }
+header .mark { display: flex; align-items: center; gap: var(--yg-space-2);
+  font: 600 1rem/1 var(--yg-font-display); letter-spacing: -.01em; text-decoration: none; }
+header .mark img { width: 22px; height: auto; }
+header nav { display: flex; align-items: center; gap: var(--yg-space-4); margin-left: auto; font-size: .875rem; }
+header nav a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  color: var(--yg-text-muted); text-decoration: none; }
+header nav a:hover, header nav a[aria-current] { color: var(--yg-text); }
+header nav a[aria-current] { font-weight: 600; }
+/* Starting a harness is the one action every page offers, so it is the one
+   thing in the header drawn as a button. */
+header nav a.new { margin-left: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-4);
+  border-radius: var(--yg-radius-sm); background: var(--yg-accent); color: var(--yg-on-accent); font-weight: 600; }
+header nav a.new:hover, header nav a.new[aria-current] { background: var(--yg-accent-hover); color: var(--yg-on-accent); }
+header nav a.new svg.i { opacity: 1; }
+
+/* Icons carry no meaning alone, so they never stand in for a word, and they
+   take the non-text colour the tokens reserve for exactly this. */
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+
+h1 { font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em;
+  margin: 0 0 var(--yg-space-6); }
+h2 { font: 600 .8125rem/1.3 var(--yg-font-text); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--yg-text-subtle);
+  margin: var(--yg-space-10) 0 var(--yg-space-3); }
+a { color: var(--yg-accent-text); }
+
+/* A table is a grid; it does not need lines to prove it. One hairline under the
+   head, and rows separated by space. */
+table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
+th { text-align: left; font-weight: 600; font-size: .75rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--yg-text-subtle);
+  padding: 0 var(--yg-space-4) var(--yg-space-2) 0;
+  border-bottom: 1px solid var(--yg-border); }
+td { padding: var(--yg-space-3) var(--yg-space-4) var(--yg-space-3) 0; vertical-align: top;
+  border-bottom: 1px solid var(--yg-bg-subtle); }
+tr:last-child td { border-bottom: 0; }
+td a { text-decoration: none; color: var(--yg-text); font-weight: 500; }
+td a:hover { color: var(--yg-accent-text); }
+
+/* A card has a surface, so it does not also need a line around it. */
+form.card { display: grid; gap: var(--yg-space-4); padding: var(--yg-space-6);
+  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+label { display: grid; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-subtle); }
+/* A qualifier belongs on the same line as what it qualifies, or it reads as a
+   second thing to take in. */
+label > .muted { font-size: inherit; }
+label .line { display: flex; align-items: baseline; gap: var(--yg-space-2); }
+input, select, textarea { font: inherit; padding: var(--yg-space-3);
+  border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); width: 100%; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--yg-focus); outline-offset: 2px; }
+textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
+button { font: 600 inherit; cursor: pointer; padding: var(--yg-space-3) var(--yg-space-6);
+  border: 0; border-radius: var(--yg-radius-sm);
+  background: var(--yg-accent); color: var(--yg-on-accent); justify-self: start; }
+button:hover { background: var(--yg-accent-hover); }
+header nav button { background: none; color: var(--yg-text-muted); padding: 0; font-weight: 400; }
+header nav button:hover { color: var(--yg-text); background: none; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--yg-space-4); }
+
+.state { font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px var(--yg-space-2); border-radius: var(--yg-radius-full); white-space: nowrap;
+  background: var(--yg-bg-subtle); color: var(--yg-text-subtle); }
+.passed  { background: var(--yg-success-surface); color: var(--yg-leaf-700); }
+.failed, .interrupted { background: var(--yg-danger-surface); color: var(--yg-danger); }
+.running, .queued { background: var(--yg-warning-surface); color: var(--yg-warning); }
+
+pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface-sunken);
+  border-radius: var(--yg-radius-sm); font: 12.5px/1.55 var(--yg-font-mono);
+  white-space: pre-wrap; word-break: break-word; max-height: 30rem; }
+.muted { color: var(--yg-text-muted); }
+
+/* The catalog. One card a harness, and the difference between one this
+   deployment can start and one it cannot is visible before either is read: a
+   card you can start has a surface and no line, one you cannot has a line and
+   no surface. */
+.picks { display: grid; gap: var(--yg-space-4); margin-bottom: var(--yg-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.pick { display: flex; flex-direction: column; gap: var(--yg-space-2);
+  min-height: 9.5rem; padding: var(--yg-space-5);
+  border-radius: var(--yg-radius-md); background: var(--yg-surface);
+  box-shadow: var(--yg-shadow-1); color: inherit; text-decoration: none; }
+.pick:hover { box-shadow: var(--yg-shadow-2); }
+.pick .name { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em; }
+.pick .what { font-size: .875rem; color: var(--yg-text-muted); }
+/* The repository a running one works in: one line, cut rather than wrapped,
+   because the name is the part that identifies it. */
+.pick .line1 { font-size: .875rem; color: var(--yg-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The action sits on the floor of the card, so cards of different heights
+   still line their actions up. */
+.pick .go { margin-top: auto; display: flex; align-items: center;
+  gap: var(--yg-space-4); font-size: .8125rem; }
+.pick .go a { color: var(--yg-text-muted); text-decoration: none; }
+.pick .go a:hover { color: var(--yg-accent-text); }
+.pick .go button { padding: var(--yg-space-2) var(--yg-space-5); font-size: .875rem; }
+/* One this deployment cannot start is a line and no surface: the difference is
+   visible before either card is read. */
+.pick.off { background: none; box-shadow: none; border: 1px solid var(--yg-border); }
+.pick.off .name { color: var(--yg-text-muted); }
+
+/* A facts table is a label and a value, not a grid, so it carries no head rule
+   and no row rules. */
+table.facts { width: auto; margin-bottom: var(--yg-space-8); }
+table.facts th { border: 0; padding-right: var(--yg-space-6); white-space: nowrap; }
+table.facts td { border: 0; padding-left: 0; }
+
+/* A turn is what you said and what came back. Yours sits in the accent
+   surface, which is the one place a person's own words appear; the reply is
+   the transcript, which is already set apart by being monospaced. */
+.turn { margin-bottom: var(--yg-space-8); }
+.said { margin: 0 0 var(--yg-space-3) auto; max-width: 42rem; width: fit-content;
+  padding: var(--yg-space-3) var(--yg-space-4);
+  background: var(--yg-accent-surface); color: var(--yg-text);
+  border-radius: var(--yg-radius-md); white-space: pre-wrap; }
+.turn pre { margin: 0; }
+/* What a turn ended as, and the one way to the rest of it. A link at the end
+   of a line somebody is not reading does not need underlining to be found. */
+.after { display: flex; align-items: center; gap: var(--yg-space-3);
+  margin: var(--yg-space-2) 0 0; font-size: .8125rem; }
+.after a { color: var(--yg-text-muted); text-decoration: none; }
+.after a:hover { color: var(--yg-accent-text); }
+
+/* A chat fills the window. The header stays, the conversation scrolls under
+   it, and what you type stays on the floor of the page where you left it —
+   rather than at the end of a document you have to scroll to reach. */
+body.chat { max-width: none; height: 100dvh; padding: 0;
+  display: grid; grid-template-rows: auto minmax(0, 1fr); }
+body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
+.desk { display: grid; grid-template-columns: 16rem minmax(0, 1fr); min-height: 0; }
+
+/* The conversations on this instance, down the side, because a list you can
+   see is one you remember you have. */
+.rail { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--yg-space-4);
+  min-height: 0; min-width: 0; padding: var(--yg-space-6) var(--yg-space-4);
+  border-right: 1px solid var(--yg-border); }
+.rail ol { list-style: none; margin: 0; padding: 0; overflow-y: auto;
+  display: grid; gap: 2px; align-content: start; }
+.rail ol a { display: block; padding: var(--yg-space-2) var(--yg-space-3);
+  border-radius: var(--yg-radius-sm); font-size: .875rem; color: var(--yg-text-muted);
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail ol a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.rail ol a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
+/* What was said scrolls; what you type does not. Both sit in one column of a
+   readable width, so a reply and the box you answer it in line up. */
+.talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+.said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
+.column { max-width: 46rem; margin: 0 auto; }
+.nothing-said { color: var(--yg-text-muted); text-align: center;
+  padding: var(--yg-space-16) 0; }
+
+/* A page's name, with what it counts beside it and its one control at the end
+   of the same line. */
+.title-row { display: flex; align-items: center; gap: var(--yg-space-3); margin: 0 0 var(--yg-space-6); }
+.title-row h1 { margin: 0; }
+.title-row .count { font-size: .875rem; color: var(--yg-text-muted); }
+.title-row > form, .title-row > .month { margin-left: auto; }
+button.quiet { background: none; color: var(--yg-text-muted); font-weight: 400;
+  border: 1px solid var(--yg-border-strong); padding: var(--yg-space-2) var(--yg-space-4); }
+button.quiet:hover { background: var(--yg-danger-surface); color: var(--yg-danger); border-color: var(--yg-danger); }
+a.button { display: inline-flex; align-items: center; gap: var(--yg-space-2); text-decoration: none;
+  padding: var(--yg-space-3) var(--yg-space-6); border-radius: var(--yg-radius-sm);
+  background: var(--yg-accent); color: var(--yg-on-accent); font-weight: 600; }
+a.button:hover { background: var(--yg-accent-hover); }
+a.button svg.i { opacity: 1; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.empty { padding: var(--yg-space-12) var(--yg-space-6); text-align: center;
+  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.empty p { margin: 0 0 var(--yg-space-3); }
+.empty .button { margin-top: var(--yg-space-3); }
+p.empty { background: none; box-shadow: none; }
+
+/* Your harnesses: one row each, in one surface, the way a list of
+   conversations reads. What it is and what was last said lead; where it works,
+   how much is held with it and when come after, in columns that line up. */
+.instances { list-style: none; margin: 0; padding: 0; background: var(--yg-surface);
+  border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); overflow: hidden; }
+.instances li + li { border-top: 1px solid var(--yg-bg-subtle); }
+.instance { display: grid; align-items: center; gap: var(--yg-space-4);
+  grid-template-columns: 2.25rem minmax(0, 1fr) 11rem 5.5rem 6.5rem 5rem;
+  padding: var(--yg-space-4) var(--yg-space-5); color: inherit; text-decoration: none; }
+.instance:hover { background: var(--yg-bg-subtle); }
+.avatar { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: var(--yg-radius-sm);
+  background: var(--yg-accent-surface); color: var(--yg-accent-text);
+  font: 600 1rem/1 var(--yg-font-display); text-transform: uppercase; }
+.who { display: grid; gap: 2px; min-width: 0; }
+.who .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who .model { font-weight: 400; font-size: .8125rem; color: var(--yg-text-muted); margin-left: var(--yg-space-1); }
+.who .last, .instance .where { font-size: .875rem; color: var(--yg-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.instance .held, .instance .when { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; }
+.instance .when { text-align: right; }
+
+/* The figures across the top of a dashboard. Each is a number first and its
+   meaning under it; on the record each is also the filter for itself. */
+.figures { display: grid; gap: var(--yg-space-4); margin: 0 0 var(--yg-space-6);
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+.figure { display: grid; gap: var(--yg-space-1); padding: var(--yg-space-4) var(--yg-space-5);
+  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1);
+  color: inherit; text-decoration: none; }
+a.figure:hover { box-shadow: var(--yg-shadow-2); }
+.figure[aria-current] { outline: 2px solid var(--yg-accent); outline-offset: -2px; }
+.figure .value { font: 600 1.625rem/1.1 var(--yg-font-display); letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; }
+.figure .label { font-size: .8125rem; color: var(--yg-text-muted); }
+/* A state is named in words, with a dot in its colour beside the word; the
+   colour never carries it alone. */
+.figure .label { display: flex; align-items: center; gap: var(--yg-space-2); }
+.figure.running .label::before, .figure.queued .label::before, .figure.passed .label::before,
+.figure.failed .label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+.figure.running .label::before, .figure.queued .label::before { background: var(--yg-warning); }
+.figure.passed .label::before { background: var(--yg-success); }
+.figure.failed .label::before { background: var(--yg-danger); }
+
+.filters { display: flex; align-items: center; gap: var(--yg-space-4); margin: 0 0 var(--yg-space-4); font-size: .875rem; }
+label.inline { display: flex; align-items: center; gap: var(--yg-space-2); color: var(--yg-text-muted); font-size: .875rem; }
+label.inline select { width: auto; padding: var(--yg-space-2) var(--yg-space-3); }
+.filters .clear { color: var(--yg-text-muted); }
+
+/* The record: one line a job, with the brief cut rather than wrapped so every
+   row is the same height and the columns can be read down. */
+table.jobs { background: var(--yg-surface); border-radius: var(--yg-radius-md);
+  box-shadow: var(--yg-shadow-1); table-layout: fixed; }
+table.jobs th, table.jobs td { padding-left: var(--yg-space-4); }
+table.jobs th { padding-top: var(--yg-space-3); }
+table.jobs th:nth-child(1) { width: 7rem; }
+table.jobs th:nth-child(3) { width: 9rem; }
+table.jobs th:nth-child(4) { width: 6.5rem; }
+table.jobs th:nth-child(5) { width: 5rem; }
+table.jobs th:nth-child(6) { width: 7.5rem; }
+td.brief { min-width: 0; }
+td.brief a, td.brief .meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td.brief .meta { font-size: .8125rem; color: var(--yg-text-muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th.num { text-align: right; }
+.pages { display: flex; justify-content: flex-end; gap: var(--yg-space-4); margin: var(--yg-space-4) 0 0; font-size: .875rem; }
+
+/* Spend. A panel is a surface holding one chart or one breakdown. */
+.panel { padding: var(--yg-space-5); margin: 0 0 var(--yg-space-4);
+  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.panel h2 { margin: 0 0 var(--yg-space-4); }
+.panel h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.panels { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr)); }
+.panels .panel { margin: 0; }
+.panels + .panel { margin-top: var(--yg-space-4); }
+.bars { display: flex; align-items: stretch; gap: 3px; height: 10rem; }
+.day { flex: 1; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--yg-space-1); min-width: 0; }
+.day .fill { align-self: end; display: block; min-height: 1px; border-radius: 3px 3px 0 0;
+  background: var(--yg-accent); }
+.day:hover .fill { background: var(--yg-accent-hover); }
+.day .date { font-size: .6875rem; color: var(--yg-text-subtle); text-align: center; }
+table.shares td { border-bottom: 1px solid var(--yg-bg-subtle); }
+table.shares td.name { width: 55%; min-width: 0; }
+.share { display: block; height: 4px; margin-top: var(--yg-space-1); border-radius: 2px; background: var(--yg-bg-subtle); }
+.share span { display: block; height: 100%; border-radius: 2px; background: var(--yg-accent); }
+.note { font-size: .8125rem; margin-top: var(--yg-space-6); }
+
+/* One run. What it did takes the wide column; the facts about it, what it
+   cost and the evidence for it sit beside, where they are looked up rather
+   than read. */
+.run-head { display: flex; align-items: flex-start; gap: var(--yg-space-4); margin: 0 0 var(--yg-space-6); }
+h1.brief { margin: 0; font-size: 1.25rem; line-height: 1.35; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.run-head .state { margin-top: var(--yg-space-1); }
+.run { display: grid; gap: var(--yg-space-4); grid-template-columns: minmax(0, 1fr) 20rem; align-items: start; }
+.run-main, .run-side { display: grid; gap: var(--yg-space-4); min-width: 0; }
+.run .panel { margin: 0; }
+/* A reply is Markdown drawn as a page: prose at reading size, and code in the
+   sunken surface the tokens keep for it. */
+.reply { overflow-wrap: anywhere; }
+.reply > :first-child { margin-top: 0; }
+.reply > :last-child { margin-bottom: 0; }
+.reply p, .reply ul, .reply ol, .reply pre, .reply table, .reply blockquote { margin: 0 0 var(--yg-space-3); }
+.reply h1, .reply h2, .reply h3, .reply h4 { font: 600 1rem/1.4 var(--yg-font-text); letter-spacing: 0;
+  text-transform: none; color: var(--yg-text); margin: var(--yg-space-4) 0 var(--yg-space-2); }
+.reply code { font: 13px/1.5 var(--yg-font-mono); background: var(--yg-surface-sunken);
+  padding: 1px 4px; border-radius: var(--yg-radius-xs); }
+.reply pre code { background: none; padding: 0; }
+.reply blockquote { padding-left: var(--yg-space-3); border-left: 2px solid var(--yg-border-strong); color: var(--yg-text-muted); }
+.reply table { width: auto; }
+.reply .image { color: var(--yg-text-muted); font-size: .875rem; }
+dl.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--yg-space-2) var(--yg-space-4);
+  margin: 0; font-size: .875rem; }
+dl.facts dt { color: var(--yg-text-muted); }
+dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+dl.facts dd a { color: var(--yg-text); font-weight: 500; }
+.run-side .panel > * + * { margin-top: var(--yg-space-4); }
+.run-side .panel h2 + * { margin-top: 0; }
+.run-side details { font-size: .875rem; }
+.run-side summary { cursor: pointer; color: var(--yg-text-muted); }
+ol.ran { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); font-size: .875rem; }
+ol.ran li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--yg-space-3); align-items: baseline; }
+ol.ran .tool { color: var(--yg-text-muted); font-size: .8125rem; }
+ol.ran code, .files code, .denied code, .verdict code { font: 12.5px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.verdict { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3); margin: 0 0 var(--yg-space-3); }
+ul.files, ul.denied { list-style: none; margin: var(--yg-space-3) 0 0; padding: 0; display: grid; gap: var(--yg-space-2); }
+ul.files li { display: grid; gap: 2px; }
+ul.files code { color: var(--yg-text-subtle); font-size: 11px; }
+.command { display: flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-3);
+  background: var(--yg-surface-sunken); border-radius: var(--yg-radius-sm); }
+.command code { flex: 1; min-width: 0; font: 12px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.command button { padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
+.small { font-size: .8125rem; }
+a.button.small { padding: var(--yg-space-2) var(--yg-space-4); font-size: .875rem; }
+
+/* A diff: line numbers either side, additions and removals on the surfaces
+   the tokens keep for success and danger, and long lines scroll inside it. */
+.diff-file + .diff-file { margin-top: var(--yg-space-5); }
+.diff-file h3 { display: flex; gap: var(--yg-space-2); align-items: baseline; margin: 0 0 var(--yg-space-2);
+  font: 500 .875rem/1.4 var(--yg-font-text); }
+.diff-file h3 code { font: 13px/1.4 var(--yg-font-mono); }
+.plus { color: var(--yg-leaf-700); font-size: .8125rem; }
+.minus { color: var(--yg-danger); font-size: .8125rem; }
+.diff-meta { font: 12px/1.5 var(--yg-font-mono); color: var(--yg-text-muted); }
+.diff-scroll { overflow-x: auto; border: 1px solid var(--yg-border); border-radius: var(--yg-radius-sm); }
+table.diff { font: 12.5px/1.55 var(--yg-font-mono); width: 100%; }
+table.diff td { padding: 0 var(--yg-space-2); border: 0; vertical-align: top; }
+table.diff td.n { width: 1%; min-width: 2.5rem; text-align: right; color: var(--yg-text-subtle); user-select: none; }
+table.diff td.code { white-space: pre; }
+table.diff tr.added td { background: var(--yg-success-surface); }
+table.diff tr.removed td { background: var(--yg-danger-surface); }
+table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-muted); }
+
+@media (max-width: 64rem) {
+  .run { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 48rem) {
+  .instance { grid-template-columns: 2.25rem minmax(0, 1fr) auto; }
+  .instance .where, .instance .held, .instance .status { display: none; }
+  table.jobs th:nth-child(3), table.jobs td:nth-child(3),
+  table.jobs th:nth-child(4), table.jobs td:nth-child(4),
+  table.jobs th:nth-child(5), table.jobs td:nth-child(5) { display: none; }
+  table.jobs th:nth-child(1) { width: 6rem; }
+  table.jobs th:nth-child(6) { width: 6.5rem; }
+  table.jobs th, table.jobs td { padding-left: var(--yg-space-3); }
+  .panels { grid-template-columns: minmax(0, 1fr); }
+  .day .date { visibility: hidden; }
+}
+
+/* Below this the labels go and the icons carry the header on their own, which
+   is the width at which they start pushing the page wider than the window. */
+@media (max-width: 34rem) {
+  header nav { gap: var(--yg-space-3); }
+  header nav a span { display: none; }
+}
+
+/* A bar for the narrow case: which conversation you are in, and the way to the
+   rest of them. It is not there when the list already is. */
+.talk-top { display: flex; align-items: center; gap: var(--yg-space-3);
+  padding: var(--yg-space-3) var(--yg-space-4);
+  border-bottom: 1px solid var(--yg-border); }
+.talk-top .which { font-weight: 600; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.rail-toggle { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  padding: var(--yg-space-2) var(--yg-space-3); font-size: .875rem; font-weight: 400;
+  background: none; color: var(--yg-text-muted); border: 1px solid var(--yg-border-strong); }
+.rail-toggle:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.scrim { display: none; }
+
+/* Narrow enough and a column down the side leaves nothing to read in. The
+   list stays a list and slides over instead, because a conversation list laid
+   out as tabs stops reading as the thing you keep and start. */
+@media (max-width: 56rem) {
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(17rem, 82vw);
+    background: var(--yg-bg); box-shadow: var(--yg-shadow-3);
+    transform: translateX(-100%);
+    transition: transform var(--yg-dur-base) var(--yg-ease-standard); }
+  body.rail-open .rail { transform: none; }
+  body.rail-open .scrim { display: block; position: fixed; inset: 0; z-index: 10;
+    background: rgb(23 23 23 / .32); }
+  .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); }
+  .composer { padding: var(--yg-space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail { transition: none; }
+}
+
+/* Every conversation on this instance, with the one you are in marked. They
+   wrap rather than scroll, because a thread you cannot see is one you will not
+   remember you opened. */
+.threads { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-2);
+  margin: 0 0 var(--yg-space-6); font-size: .875rem; }
+.threads a { padding: var(--yg-space-2) var(--yg-space-4); border-radius: var(--yg-radius-full);
+  color: var(--yg-text-muted); text-decoration: none; background: var(--yg-bg-subtle); }
+.threads a:hover { color: var(--yg-text); }
+.threads a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
+.threads form { display: contents; }
+.threads button { display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  padding: var(--yg-space-2) var(--yg-space-4); font-size: inherit; font-weight: 400;
+  background: none; color: var(--yg-text-muted); border: 1px dashed var(--yg-border-strong); }
+.threads button:hover { background: none; color: var(--yg-accent-text); border-color: var(--yg-accent); }
+
+/* Where you are, above what you are reading. The instance is a link; the thread
+   is where you already are, so it is not. */
+.crumb { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); align-items: baseline;
+  margin: 0 0 var(--yg-space-3); font-size: .8125rem; color: var(--yg-text-subtle); }
+.crumb a { color: var(--yg-text-muted); text-decoration: none; }
+.crumb a:hover { color: var(--yg-accent-text); }
+.refused { background: var(--yg-danger-surface); color: var(--yg-danger);
+  padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
+
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+}
+
+/* Setups. */
+.lede { margin: -.25rem 0 var(--yg-space-4); }
+.new-setup { gap: var(--yg-space-3); background: none; box-shadow: none; border: 1px dashed var(--yg-border-strong); }
+.new-setup input[name="name"] { padding: var(--yg-space-2) var(--yg-space-3); }
+fieldset.servers { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--yg-space-2) var(--yg-space-4); }
+fieldset.servers legend { padding: 0; margin-bottom: var(--yg-space-1); font-size: .8125rem; }
+label.check { display: flex; align-items: center; gap: var(--yg-space-2); font-size: .875rem; color: var(--yg-text); }
+label.check input { width: auto; }
+form.stack { display: grid; gap: var(--yg-space-4); }
+ul.skills, ul.starts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-4); }
+ul.starts { gap: var(--yg-space-2); font-size: .9375rem; }
+ul.skills li + li { border-top: 1px solid var(--yg-bg-subtle); padding-top: var(--yg-space-4); }
+.skill-head { display: flex; align-items: center; justify-content: space-between; gap: var(--yg-space-3); }
+.skill-head .name { font-weight: 600; }
+ul.skills p { margin: var(--yg-space-1) 0 var(--yg-space-2); font-size: .875rem; }
+ul.skills summary { cursor: pointer; font-size: .875rem; color: var(--yg-text-muted); }
+
+/* What a matrix measured a harness doing, one model a line. */
+ul.measured { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .8125rem; }
+ul.measured li { display: flex; justify-content: space-between; gap: var(--yg-space-3); color: var(--yg-text-muted); }
+ul.measured .model { color: var(--yg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ul.measured li.finished span:last-child::before { content: "✓ "; color: var(--yg-success); }
+ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
+
+/* The chat. Down the side, the harness and its threads, the newest thread one
+   click from the top. In the middle, what you said on the right and what came
+   back on the left beside the harness's mark, with what it did folded above
+   the reply and what it took quietly under it. */
+.rail .whose { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0;
+  padding: var(--yg-space-2); border-radius: var(--yg-radius-sm); color: inherit; text-decoration: none; }
+.rail .whose:hover { background: var(--yg-bg-subtle); }
+.rail .whose .who { display: grid; min-width: 0; }
+.rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
+.rail .whose .model { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail { grid-template-rows: auto auto minmax(0, 1fr); }
+button.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
+  background: var(--yg-surface); color: var(--yg-text); font-weight: 500;
+  border: 1px solid var(--yg-border-strong); }
+button.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
+.talk-top { gap: var(--yg-space-3); padding: var(--yg-space-3) var(--yg-space-6);
+  border-bottom: 1px solid var(--yg-border); min-height: 3.25rem; }
+.talk-top .rail-toggle { display: none; padding: var(--yg-space-2); }
+.talk-top .which { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.talk-top .with { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; }
+.turn { margin-bottom: var(--yg-space-6); }
+.said { margin: 0 0 var(--yg-space-4) auto; max-width: 36rem; overflow-wrap: anywhere; }
+.answer { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: var(--yg-space-3); align-items: start; }
+.answer .avatar, .start .avatar { width: 2rem; height: 2rem; font-size: .875rem; }
+.answer .body { min-width: 0; padding-top: 3px; }
+details.steps { margin: 0 0 var(--yg-space-3); font-size: .8125rem; }
+details.steps summary { cursor: pointer; color: var(--yg-text-muted); width: fit-content;
+  padding: 2px var(--yg-space-3); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); }
+details.steps summary:hover { color: var(--yg-text); }
+details.steps ol { list-style: none; margin: var(--yg-space-2) 0 0; padding: 0 0 0 var(--yg-space-3);
+  border-left: 2px solid var(--yg-border); display: grid; gap: var(--yg-space-1); }
+details.steps .what { font-weight: 600; color: var(--yg-text); }
+details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.answer .meta { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); opacity: 0;
+  transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
+.turn:hover .answer .meta, .turn:focus-within .answer .meta, .turn:last-child .answer .meta { opacity: 1; }
+.answer .meta a { color: inherit; }
+.stopped { margin: var(--yg-space-2) 0 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .875rem;
+  background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
+.stopped code { font: 12px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.working .status { margin: 0; display: flex; align-items: center; gap: var(--yg-space-2); color: var(--yg-text-muted); font-size: .875rem; }
+.working .elapsed { font-variant-numeric: tabular-nums; color: var(--yg-text-subtle); }
+.working pre { margin-top: var(--yg-space-3); max-height: 16rem; font-size: 12px; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--yg-accent); animation: dot 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: .15s; }
+.dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } }
+.start { display: grid; justify-items: center; gap: var(--yg-space-3); text-align: center; padding: var(--yg-space-16) 0 var(--yg-space-8); }
+.start .avatar.big { width: 3rem; height: 3rem; font-size: 1.25rem; }
+.start h2 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em;
+  text-transform: none; color: var(--yg-text); }
+.start p { margin: 0; max-width: 30rem; }
+.starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--yg-space-3);
+  width: 100%; margin-top: var(--yg-space-4); }
+button.starter { text-align: left; font-weight: 400; font-size: .875rem; line-height: 1.4; color: var(--yg-text);
+  background: var(--yg-surface); border: 1px solid var(--yg-border); padding: var(--yg-space-3) var(--yg-space-4);
+  border-radius: var(--yg-radius-md); justify-self: stretch; }
+button.starter:hover { background: var(--yg-surface); border-color: var(--yg-accent); }
+.composer { padding: var(--yg-space-3) var(--yg-space-6) var(--yg-space-4); }
+.composer .box { display: flex; align-items: flex-end; gap: var(--yg-space-2);
+  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
+  background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-lg);
+  box-shadow: var(--yg-shadow-1); }
+.composer .box:focus-within { border-color: var(--yg-accent); }
+.composer textarea { flex: 1; min-width: 0; min-height: 2.5rem; max-height: 14rem; padding: var(--yg-space-2) 0;
+  border: 0; background: none; resize: none; }
+.composer textarea:focus-visible { outline: none; }
+button.send { flex: none; width: 2.25rem; height: 2.25rem; padding: 0; display: grid; place-items: center;
+  border-radius: var(--yg-radius-full); }
+button.send svg.i { opacity: 1; stroke-width: 2; }
+.composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
+@media (max-width: 56rem) {
+  .talk-top .rail-toggle { display: inline-flex; }
+  .talk-top .with { display: none; }
+  .composer .hint { display: none; }
+}
+
+/* Templates: a field's mark, its name, and one line on what it does. */
+.templates { display: grid; gap: var(--yg-space-4); margin-bottom: var(--yg-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.template { display: grid; align-content: start; gap: var(--yg-space-2); padding: var(--yg-space-5);
+  border-radius: var(--yg-radius-md); background: var(--yg-surface); box-shadow: var(--yg-shadow-1);
+  color: inherit; text-decoration: none; }
+.template:hover { box-shadow: var(--yg-shadow-2); }
+.template .name { font: 600 1.0625rem/1.25 var(--yg-font-display); letter-spacing: -.01em; }
+.template .what { font-size: .875rem; color: var(--yg-text-muted); }
+.industry { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); margin: 0; }
+.restricted { color: var(--yg-danger); }
+.field { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--yg-radius-md);
+  background: var(--yg-accent-surface); color: var(--yg-accent-text); }
+.field svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; }
+.template-head { display: flex; gap: var(--yg-space-4); align-items: flex-start; margin: 0 0 var(--yg-space-6); }
+.template-head .field { width: 3rem; height: 3rem; flex: none; }
+.template-head h1 { margin: var(--yg-space-1) 0 var(--yg-space-2); }
+.template-head .summary { margin: 0; max-width: 44rem; color: var(--yg-text-muted); }
+ul.asks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); }
+ul.asks li { padding: var(--yg-space-3) var(--yg-space-4); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); font-size: .9375rem; }
+.notice { padding: var(--yg-space-3) var(--yg-space-4); background: var(--yg-warning-surface); color: var(--yg-text);
+  border-radius: var(--yg-radius-sm); font-size: .875rem; }
+.run-side form.stack label { font-size: .875rem; }
+
+/* Activity: a log, a day at a time. Each event is the time, a dot in its
+   state's colour, where it happened and what was asked, and how it ended. */
+.filters { flex-wrap: wrap; }
+.segments { display: flex; flex-wrap: wrap; gap: var(--yg-space-1); padding: 3px;
+  background: var(--yg-bg-subtle); border-radius: var(--yg-radius-full); }
+.segments a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  padding: var(--yg-space-1) var(--yg-space-3); border-radius: var(--yg-radius-full);
+  font-size: .8125rem; color: var(--yg-text-muted); text-decoration: none; text-transform: capitalize; }
+.segments a:hover { color: var(--yg-text); }
+.segments a[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); font-weight: 600; }
+.segments .n { color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yg-neutral-300); flex: none; }
+.is-running .dot, .is-queued .dot { background: var(--yg-warning); }
+.is-passed .dot { background: var(--yg-success); }
+.is-failed .dot, .is-interrupted .dot { background: var(--yg-danger); }
+.log h2 { margin: var(--yg-space-8) 0 var(--yg-space-2); }
+.log ol { list-style: none; margin: 0; padding: 0; background: var(--yg-surface);
+  border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.event { display: grid; grid-template-columns: 3rem 7px minmax(0, 1fr) auto; align-items: center;
+  gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-5); }
+.event + .event { border-top: 1px solid var(--yg-bg-subtle); }
+.event:hover { background: var(--yg-bg-subtle); }
+.event .at { font-size: .8125rem; color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
+.event .what { min-width: 0; }
+.event .where { margin: 0; font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event .where a { color: var(--yg-text); font-weight: 600; text-decoration: none; }
+.event .where a:hover { color: var(--yg-accent-text); }
+.event .brief { display: block; color: var(--yg-text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event .brief:hover { color: var(--yg-accent-text); }
+.event .how { display: grid; justify-items: end; font-size: .8125rem; white-space: nowrap; }
+.event .outcome { font-weight: 500; }
+.event.is-failed .outcome, .event.is-interrupted .outcome { color: var(--yg-danger); }
+@media (max-width: 48rem) {
+  .event { grid-template-columns: 7px minmax(0, 1fr) auto; }
+  .event .at { display: none; }
+}
+
+/* One harness: who it is across the top, its conversations as a list. */
+.instance-head { display: flex; align-items: center; gap: var(--yg-space-4); margin: 0 0 var(--yg-space-6); }
+.instance-head .who { flex: 1; min-width: 0; }
+.instance-head h1 { margin: 0; }
+.instance-head p { margin: var(--yg-space-1) 0 0; }
+.instance-head button { display: inline-flex; align-items: center; gap: var(--yg-space-2); }
+.instance-head button svg.i { opacity: 1; }
+.avatar.big { width: 3rem; height: 3rem; font-size: 1.25rem; }
+ol.threads-list { list-style: none; margin: 0; padding: 0; }
+ol.threads-list li + li { border-top: 1px solid var(--yg-bg-subtle); }
+ol.threads-list a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--yg-space-4);
+  padding: var(--yg-space-3) var(--yg-space-2); color: inherit; text-decoration: none; border-radius: var(--yg-radius-sm); }
+ol.threads-list a:hover { background: var(--yg-bg-subtle); }
+ol.threads-list .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.threads-list .last { grid-column: 1; font-size: .875rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.threads-list .when { grid-column: 2; grid-row: 1; font-size: .8125rem; color: var(--yg-text-subtle); }
+details#task summary { cursor: pointer; display: flex; align-items: baseline; gap: var(--yg-space-3); flex-wrap: wrap; }
+details#task summary h2 { display: inline; margin: 0; }
+details#task summary .muted { font-size: .8125rem; }
+details#task[open] summary { margin-bottom: var(--yg-space-4); }
+details#task .threads-list { margin-bottom: var(--yg-space-4); }
+.start-form { max-width: 36rem; }
+
+/* The files a turn left changed, each a link to it as it is now. */
+.changed { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); margin: var(--yg-space-3) 0 0; }
+.changed a { display: inline-flex; align-items: center; gap: var(--yg-space-1); font: 12.5px/1.4 var(--yg-font-mono);
+  padding: var(--yg-space-1) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); text-decoration: none; }
+.changed a:hover { border-color: var(--yg-accent); }
+.panel.file h2 code { font-size: .875rem; text-transform: none; letter-spacing: 0; color: var(--yg-text); }

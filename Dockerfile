@@ -40,6 +40,12 @@ RUN set -eu; \
 # asks each program's PATH, because a label is a claim and the PATH is what a
 # job will meet.
 LABEL com.getlatentic.haas.harnesses="$HARNESSES"
+# MCP_SERVERS is the npm packages of the MCP servers a setup may give a
+# harness. The box fetches nothing once it is sealed, so a server a setup names
+# is one the image already carries.
+ARG MCP_SERVERS=""
+RUN if [ -n "$MCP_SERVERS" ]; then npm install -g --no-fund --no-audit $MCP_SERVERS; fi
+LABEL com.getlatentic.haas.mcp="$MCP_SERVERS"
 COPY --from=build /haas /usr/local/bin/haas
 # A harness's own configuration belongs to the image, not to the adapter: the
 # adapter has to stay portable between a laptop and a container. Each harness

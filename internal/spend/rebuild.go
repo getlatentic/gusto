@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/getlatentic/haas/internal/job"
 )
@@ -34,22 +35,56 @@ func Rebuild(root string, policy Policy) (*Ledger, error) {
 			continue
 		}
 		ledger.Begin(entry.Name(), TermsOf(spec))
-		calls, err := ReadCalls(dir.OutFile("proxy.jsonl"))
+		calls, err := dated(dir.OutFile("proxy.jsonl"))
 		if err != nil {
 			return nil, err
 		}
 		for _, call := range calls {
-			ledger.Count(entry.Name(), call)
+			ledger.Count(entry.Name(), policy.reprice(call))
 		}
 	}
 	return ledger, nil
+}
+
+// reprice prices a call the proxy counted before its model had a price. The
+// tokens are the provider's and the price is the operator's, so a price added
+// later applies to what was already counted; a line that carried a cost keeps
+// it. The evidence on disk is not rewritten.
+func (p Policy) reprice(call Call) Call {
+	if call.Measured() || !call.Counted() || call.Refused != nil {
+		return call
+	}
+	usage := &Usage{Input: *call.InputTokens, Cached: valueOf(call.CachedTokens), Output: *call.OutputTokens}
+	call.USD = p.Cost(call.Credential, call.Model, usage, time.Unix(call.AtUnix, 0))
+	return call
+}
+
+// dated is a job's calls with a time on every one. The proxy wrote lines
+// without one before it recorded when a call was sent, and those are dated by
+// when the file was last written, which is within the job's own run, rather
+// than filed under 1970.
+func dated(path string) ([]Call, error) {
+	calls, err := ReadCalls(path)
+	if err != nil || len(calls) == 0 {
+		return calls, err
+	}
+	written, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	for i := range calls {
+		if calls[i].AtUnix == 0 {
+			calls[i].AtUnix = written.ModTime().Unix()
+		}
+	}
+	return calls, nil
 }
 
 // TermsOf is what a job's spec allows it to spend, and where it is reported.
 // A job's project is the repository it worked in: the one thing every job
 // already names that a platform lead would group spend by.
 func TermsOf(spec job.Spec) Terms {
-	return Terms{Team: spec.Team, Project: spec.Repo, CapUSD: spec.Budget.USD}
+	return Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
 }
 
 // ReadCalls is every call a job's proxy record holds. A missing file is a job

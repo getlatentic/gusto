@@ -15,6 +15,7 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -33,6 +34,8 @@ type Server struct {
 	models    Models
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
+	setups    *setup.Store
+	servers   setup.Servers
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -57,15 +60,24 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
-	mux.HandleFunc("GET /{$}", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /{$}", s.guard(s.home))
+	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
+	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
+	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
+	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
+	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
+	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
+	mux.HandleFunc("POST /setups", s.guard(s.saveSetup))
+	mux.HandleFunc("POST /setups/{name}/skills", s.guard(s.writeSkill))
+	mux.HandleFunc("POST /setups/{name}/skills/{skill}/drop", s.guard(s.dropSkill))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))

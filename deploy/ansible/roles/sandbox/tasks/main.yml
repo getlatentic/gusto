@@ -36,6 +36,7 @@
     cmd: >-
       {{ container_runtime }} build
       --build-arg {{ ('HARNESSES=' ~ (runner_harnesses | join(' '))) | quote }}
+      --build-arg {{ ('MCP_SERVERS=' ~ (runner_mcp_packages | join(' '))) | quote }}
       -t {{ candidate_image }} .
     chdir: "{{ app_root }}/src"
   become_user: "{{ app_user }}"

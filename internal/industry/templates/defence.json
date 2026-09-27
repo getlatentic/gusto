@@ -1,0 +1,43 @@
+{
+  "name": "defence",
+  "title": "Defence programme office",
+  "industry": "Defence",
+  "summary": "Traces requirements to test evidence and writes after-action reports. Restricted: it runs only on a model inside your own network, and haas refuses it anywhere else.",
+  "harnesses": [
+    "dsh",
+    "claude",
+    "hermes",
+    "opencode",
+    "codex",
+    "pi"
+  ],
+  "sensitivity": "restricted",
+  "skills": [
+    {
+      "name": "cui-handling",
+      "description": "Use for every task in this workspace: all of its content is controlled unclassified information.",
+      "body": "Treat everything in this workspace as Controlled Unclassified Information.\n\n- Never send any of it to a website, search engine, or tool outside this workspace.\n- Begin every file you write with the banner `CUI` on its own line and end it with `CUI`.\n- Do not summarise CUI into a less protected form, such as an email draft or a public document, unless asked, and mark such a draft CUI too.\n- If a task would need anything outside this workspace, stop and say what you would need."
+    },
+    {
+      "name": "requirements-trace",
+      "description": "Use when asked to trace requirements to tests, find gaps in test coverage, or build a traceability matrix.",
+      "body": "Build a requirements traceability matrix from the requirements and test evidence in the workspace.\n\n- One row per requirement ID, in ID order: the requirement's short text, each test case that verifies it, the latest result of each, and a status of Verified, Failed or Not tested.\n- A requirement is Verified only if every test tracing to it passed on its latest run.\n- After the table, list failed and untested requirements with the reason, and any test that traces to no requirement.\n- Save it as `traceability-matrix.md` with the CUI banner."
+    },
+    {
+      "name": "after-action-report",
+      "description": "Use when asked for an after-action report, a lessons-learned review or an exercise debrief.",
+      "body": "Write the report from the notes in the workspace, in four parts:\n\n1. **What was planned**: the objectives and the plan as intended.\n2. **What happened**: a timeline of what actually occurred, with times.\n3. **Why it happened**: causes of each difference between plan and outcome, stated as findings, never blame of individuals.\n4. **Sustain and improve**: what to keep doing and what to change, each with an owner role and a date to review.\n\nSave it as `after-action-report.md` with the CUI banner."
+    }
+  ],
+  "starters": [
+    "Build a traceability matrix from requirements.md and test-log.csv",
+    "List every requirement without a passing test",
+    "Write an after-action report from exercise-notes.md"
+  ],
+  "files": {
+    "README.md": "CUI\n\n# Sample programme folder\n\nAll names, dates and identifiers in this file are invented for demonstration. It is not a real record.\n\nCUI\n",
+    "requirements.md": "CUI\n\n# System requirements: field sensor relay (invented)\n\n*All names, dates and identifiers in this file are invented for demonstration. It is not a real record.*\n\n- **SR-001** The relay shall forward sensor messages to the command node within 2 seconds of receipt.\n- **SR-002** The relay shall encrypt all traffic with AES-256.\n- **SR-003** The relay shall operate for 72 hours on battery power.\n- **SR-004** The relay shall buffer at least 10,000 messages when the command node is unreachable.\n- **SR-005** The relay shall report its own health status every 60 seconds.\n- **SR-006** The relay shall reject messages from unregistered sensors.\n\nCUI\n",
+    "test-log.csv": "test_id,requirement,run_date,result,notes\nTC-101,SR-001,2026-09-10,pass,median 0.8 s\nTC-102,SR-001,2026-09-18,fail,4.1 s under 500 msg/s load\nTC-201,SR-002,2026-09-11,pass,\nTC-301,SR-003,2026-09-12,pass,76 h at 20 C\nTC-302,SR-003,2026-09-19,fail,51 h at -10 C\nTC-501,SR-005,2026-09-15,pass,\nTC-901,,2026-09-16,pass,boot time under 30 s\n",
+    "exercise-notes.md": "CUI\n\n# Exercise NORTHERN RELAY notes (invented)\n\n*All names, dates and identifiers in this file are invented for demonstration. It is not a real record.*\n\nPlan: deploy 4 relays along the valley by 0600, establish link to command node by 0630, run message traffic for 12 h.\n\n0540 Relays 1 to 3 deployed. Relay 4 team delayed, vehicle stuck at ford.\n0615 Relay 4 deployed. Link established 0640, 10 min late.\n0900 Command node lost power for 25 min. Relays buffered traffic; no message loss.\n1310 Relay 2 battery warning, 28% remaining against 70% expected. Cold overnight.\n1500 Relay 2 swapped. Traffic resumed after 6 min gap.\n1830 End of exercise. 41,200 messages relayed, 0 lost, 3 delayed over 2 s.\n\nTeam comments: ford crossing was not on the route plan. Spare batteries were in the wrong vehicle. Buffering worked well.\n\nCUI\n"
+  }
+}

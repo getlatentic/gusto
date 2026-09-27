@@ -11,10 +11,14 @@ type Tally struct {
 	Calls int `json:"calls"`
 	// USD is the sum of every call whose cost is known. It is a floor, not a
 	// total, whenever Unmeasured is above zero.
-	USD          float64 `json:"usd"`
-	Unmeasured   int     `json:"unmeasured"`
-	InputTokens  int64   `json:"inputTokens"`
-	OutputTokens int64   `json:"outputTokens"`
+	USD        float64 `json:"usd"`
+	Unmeasured int     `json:"unmeasured"`
+	// Uncounted is the calls whose answer said nothing of what they used, so
+	// their tokens are missing from the counts below as well as their cost.
+	Uncounted    int   `json:"uncounted"`
+	InputTokens  int64 `json:"inputTokens"`
+	CachedTokens int64 `json:"cachedTokens"`
+	OutputTokens int64 `json:"outputTokens"`
 	// Refused is the calls a cap kept from leaving. They cost nothing and are
 	// not in Calls.
 	Refused int `json:"refused"`
@@ -26,13 +30,19 @@ func (t *Tally) add(call Call) {
 		return
 	}
 	t.Calls++
-	if !call.Measured() {
-		t.Unmeasured++
-		return
+	if call.Counted() {
+		t.InputTokens += valueOf(call.InputTokens)
+		t.CachedTokens += valueOf(call.CachedTokens)
+		t.OutputTokens += valueOf(call.OutputTokens)
+	} else if call.billed() {
+		t.Uncounted++
 	}
-	t.USD += *call.USD
-	t.InputTokens += valueOf(call.InputTokens)
-	t.OutputTokens += valueOf(call.OutputTokens)
+	switch {
+	case call.Measured():
+		t.USD += *call.USD
+	case call.billed() || call.Counted():
+		t.Unmeasured++
+	}
 }
 
 func valueOf(count *int64) int64 {
@@ -48,6 +58,7 @@ func valueOf(count *int64) int64 {
 type Terms struct {
 	Team    string
 	Project string
+	Harness string
 	CapUSD  *float64
 }
 
@@ -60,11 +71,16 @@ type account struct {
 	blind int
 }
 
-// Scopes a call is counted under, each by the month it happened in.
+// Scopes a call is counted under, each by the month it happened in. A day is
+// counted as a scope of its own, named by its date, so a month's report can
+// say how the spending fell across it.
 const (
 	ByJob     = "job"
 	ByProject = "project"
 	ByTeam    = "team"
+	ByHarness = "harness"
+	ByModel   = "model"
+	ByDay     = "day"
 )
 
 // monthly names one tally: a job, a project or a team, in one calendar month.
@@ -108,16 +124,17 @@ func (l *Ledger) Begin(job string, terms Terms) {
 
 // Allow is asked before a call leaves. Nil lets it go; a refusal names the cap
 // that stops it. Only calls already in flight can take a job past its cap.
-func (l *Ledger) Allow(job, model string) *Refusal {
+func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	held := l.account(job)
-	for _, check := range []func(*account, string) *Refusal{l.jobSpent, l.teamSpent, l.uncountable} {
-		if refusal := check(held, model); refusal != nil {
-			return refusal
-		}
+	if refusal := l.jobSpent(held); refusal != nil {
+		return refusal
 	}
-	return nil
+	if refusal := l.teamSpent(held); refusal != nil {
+		return refusal
+	}
+	return l.uncountable(held, credential, model)
 }
 
 // Count adds a call that happened, or was refused, to the job, its project
@@ -130,11 +147,15 @@ func (l *Ledger) Count(job string, call Call) {
 	defer l.guard.Unlock()
 	held := l.account(job)
 	held.tally.add(call)
-	if call.Refused == nil && call.answered() && !call.Measured() {
+	if call.Refused == nil && call.billed() && !call.Measured() {
 		held.blind++
 	}
-	month := monthOf(time.Unix(call.AtUnix, 0))
-	for scope, name := range map[string]string{ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team} {
+	sent := time.Unix(call.AtUnix, 0).UTC()
+	month := monthOf(sent)
+	for scope, name := range map[string]string{
+		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
+		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"),
+	} {
 		l.tally(scope, name, month).add(call)
 	}
 }
@@ -160,7 +181,7 @@ func (l *Ledger) tally(scope, name, month string) *Tally {
 
 func monthOf(at time.Time) string { return at.UTC().Format("2006-01") }
 
-func (l *Ledger) jobSpent(held *account, _ string) *Refusal {
+func (l *Ledger) jobSpent(held *account) *Refusal {
 	limit := held.terms.CapUSD
 	if limit == nil || held.tally.USD < *limit {
 		return nil
@@ -171,7 +192,7 @@ func (l *Ledger) jobSpent(held *account, _ string) *Refusal {
 	}
 }
 
-func (l *Ledger) teamSpent(held *account, _ string) *Refusal {
+func (l *Ledger) teamSpent(held *account) *Refusal {
 	limit, capped := l.policy.teamCap(held.terms.Team)
 	if !capped {
 		return nil
@@ -190,13 +211,13 @@ func (l *Ledger) teamSpent(held *account, _ string) *Refusal {
 // uncountable refuses a call a cap could not count. A cap that cannot see
 // what is spent is not holding anything, so it fails closed: before the call
 // when the model has no price, and after an answer that carried no usage.
-func (l *Ledger) uncountable(held *account, model string) *Refusal {
+func (l *Ledger) uncountable(held *account, credential, model string) *Refusal {
 	governing, found := l.governing(held)
 	if !found {
 		return nil
 	}
 	switch {
-	case model != "" && !l.policy.Priced(model):
+	case model != "" && !l.policy.Priced(credential, model):
 		governing.Reason = fmt.Sprintf("%s has no price in the spend policy, so the %s cap cannot count it", model, governing.Cap)
 	case held.blind > 0:
 		governing.Reason = fmt.Sprintf("an answer to this job carried no usage, so the %s cap cannot count what it spends", governing.Cap)

@@ -2,21 +2,34 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<h1>{{.Harness.Name}}</h1>
+<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>{{.Harness.Name}}</span></nav>
+<header class="instance-head">
+  <span class="avatar big" aria-hidden="true">{{slice .Harness.Name 0 1}}</span>
+  <div class="who">
+    <h1>{{.Harness.Name}}</h1>
+    <p class="muted">{{.Harness.What}}</p>
+  </div>
+</header>
 
-<form class="card" method="post" action="/instances">
+<form class="panel stack start-form" method="post" action="/instances">
   <input type="hidden" name="harness" value="{{.Harness.Name}}">
   {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
-  <div class="row">
-    <label>Model
-      {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
-      {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
-    </label>
-    <label><span class="line">Repository <span class="muted">optional</span></span>
-      <input name="repo" placeholder="git@github.com:you/repo.git">
-    </label>
-  </div>
-  <button type="submit">Start it</button>
+  <label>Model
+    {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select name="model">{{range .Models}}<option value="{{.}}">{{.}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
+    {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
+  </label>
+  <label><span class="line">Repository <span class="muted">optional; without one it starts in an empty folder</span></span>
+    <input name="repo" placeholder="git@github.com:you/repo.git">
+  </label>
+  {{if .Setups}}
+  <label><span class="line">Setup <span class="muted">skills and MCP servers to give it</span></span>
+    <select name="setup">
+      <option value="">none</option>
+      {{$chosen := .Chosen}}{{range .Setups}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Name}} · {{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}}, {{len .}} MCP{{end}}</option>{{end}}
+    </select>
+  </label>
+  {{end}}
+  <button type="submit">Start {{.Harness.Name}}</button>
 </form>
 
 {{template "foot" .}}
