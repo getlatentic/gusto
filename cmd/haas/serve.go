@@ -22,6 +22,7 @@ import (
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/web"
 )
 
@@ -85,6 +86,13 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseLedger(way.ledger)
+	// The job page names a signer only as this keyring checked it, the way
+	// verify, show, ship and export do.
+	keyring, err := signing.ConfiguredKeyring()
+	if err != nil {
+		return fail(err)
+	}
+	pages.UseKeyring(keyring)
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{
 		Addr:              address,
