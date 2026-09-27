@@ -27,8 +27,14 @@
     }
   },
   "stream": "jsonl",
+  "when": {
+    "text": {
+      "part.type": "text"
+    }
+  },
   "totals": "perCall",
   "text": "part.text",
+  "message": "part.messageID",
   "sessionId": "sessionID",
   "toolName": "part.tool",
   "toolInput": "part.state.input",

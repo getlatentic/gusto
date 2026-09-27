@@ -48,7 +48,16 @@
   },
   "stream": "jsonl",
   "totals": "cumulative",
+  "when": {
+    "text": {
+      "type": "assistant"
+    },
+    "tool": {
+      "type": "assistant"
+    }
+  },
   "text": "message.content.0.text",
+  "message": "message.id",
   "toolName": "message.content.0.name",
   "toolInput": "message.content.0.input",
   "sessionId": "session_id",
