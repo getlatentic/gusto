@@ -38,22 +38,16 @@ harnesses_dir: "{{ app_root }}/var/harnesses"
 # its com.getlatentic.haas.harnesses label, and the server offers a harness only
 # when its program is really on the image's PATH.
 #
-# opencode and codex run jobs here. Neither needs anybody's account: opencode
-# points at whichever model the deployment gives it, and codex is handed the
-# proxy's per-job token and a credential that speaks the responses API.
-#
-# claude is carried and not offered. Its adapter still answers to a person's own
-# signed-in account, which a shared box does not hold, so the catalog keeps it
-# off the form and names the account as what is missing. Carrying it costs image
-# size and build time; what it buys is no rebuild on the day its adapter takes a
-# key the proxy holds.
+# Each runs on the proxy's per-job token and nobody's account. dsh and hermes
+# are pinned to the versions their adapters were measured against, since a new
+# release can move where a harness reads its model or its key.
 runner_harnesses:
   - opencode=opencode-ai
   - claude=@anthropic-ai/claude-code
   - codex=@openai/codex
   - pi=@earendil-works/pi-coding-agent
-  - dsh=@deepseek-ai/dsh
-  - hermes=hermes-agent
+  - dsh=@deepseek-ai/dsh@0.1.5-rc.3
+  - hermes=hermes-agent@0.21.5
 
 # What one job may take. A limit larger than the machine is not a limit: the job
 # takes what it likes and the kernel kills whatever it reaches first, which on a
