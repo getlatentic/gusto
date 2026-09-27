@@ -3,7 +3,9 @@ package harness
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,6 +20,8 @@ import (
 //	codex     one -c mcp_servers={...} inline table, approved in advance,
 //	          since exec never asks and refuses what needs asking
 //	opencode  an "mcp" key in OPENCODE_CONFIG_CONTENT, merged with its file
+//	pi        pi-mcp-adapter, loaded as an extension, reading the servers
+//	          from ~/.config/mcp/mcp.json, the file every harness can share
 //	acp       mcpServers on the session, which the runner opens
 //
 // A harness with no MCP has none of this, and a setup naming a server is
@@ -29,6 +33,9 @@ type MCP struct {
 	// the names a harness allows its tools by.
 	Argv []string          `json:"argv,omitempty"`
 	Env  map[string]string `json:"env,omitempty"`
+	// File is where the servers are written, in Format, for a harness that
+	// reads them from a file rather than its arguments.
+	File string `json:"file,omitempty"`
 }
 
 // TakesMCP says whether this harness can be given MCP servers.
@@ -46,6 +53,14 @@ func (a Adapter) Give(command *exec.Cmd, servers []job.Server) error {
 	rendered, err := a.MCP.rendered(servers)
 	if err != nil {
 		return err
+	}
+	if a.MCP.File != "" {
+		if err := os.MkdirAll(filepath.Dir(a.MCP.File), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(a.MCP.File, []byte(rendered), 0o600); err != nil {
+			return err
+		}
 	}
 	fill := strings.NewReplacer("{mcp}", rendered, "{mcpTools}", tools(servers))
 	for _, argument := range a.MCP.Argv {

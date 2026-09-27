@@ -13,9 +13,9 @@ body { margin: 0; min-height: 100dvh; display: grid; place-items: center;
 main { width: min(22rem, 92vw); display: grid; gap: var(--yg-space-6);
   padding: var(--yg-space-8); background: var(--yg-surface);
   border-radius: var(--yg-radius-lg); box-shadow: var(--yg-shadow-2); }
-.mark { display: flex; align-items: center; gap: var(--yg-space-3);
+.brand { display: flex; align-items: center; gap: var(--yg-space-3);
   font: 600 1.125rem/1 var(--yg-font-display); letter-spacing: -.01em; }
-.mark img { width: 28px; height: auto; }
+.brand img { width: 28px; height: auto; }
 form { display: grid; gap: var(--yg-space-3); }
 input { font: inherit; padding: var(--yg-space-3); width: 100%;
   border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
@@ -42,7 +42,7 @@ svg { width: 18px; height: 18px; vertical-align: -4px; margin-right: var(--yg-sp
 </head>
 <body>
 <main>
-  <div class="mark"><img src="/static/mark.png" alt=""> haas</div>
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
   {{if .Refused}}<p>{{.Refused}}</p>{{end}}
   {{if .Wrong}}<p>That is not the password.</p>{{end}}
 

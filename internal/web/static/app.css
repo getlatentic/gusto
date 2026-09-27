@@ -7,9 +7,9 @@ body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-spa
 header { display: flex; align-items: center; gap: var(--yg-space-5);
   padding-bottom: var(--yg-space-4); margin-bottom: var(--yg-space-8);
   border-bottom: 1px solid var(--yg-border); }
-header .mark { display: flex; align-items: center; gap: var(--yg-space-2);
+header .brand { display: flex; align-items: center; gap: var(--yg-space-2);
   font: 600 1rem/1 var(--yg-font-display); letter-spacing: -.01em; text-decoration: none; }
-header .mark img { width: 22px; height: auto; }
+header .brand img { width: 22px; height: auto; }
 header nav { display: flex; align-items: center; gap: var(--yg-space-4); margin-left: auto; font-size: .875rem; }
 header nav a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
   color: var(--yg-text-muted); text-decoration: none; }
@@ -413,9 +413,6 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
 .refused { background: var(--yg-danger-surface); color: var(--yg-danger);
   padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
 
-@media (prefers-color-scheme: dark) {
-  :root { color-scheme: dark; }
-}
 
 /* Setups. */
 .lede { margin: -.25rem 0 var(--yg-space-4); }
@@ -624,19 +621,16 @@ details#task .threads-list { margin-bottom: var(--yg-space-4); }
 h1, .display { font-family: var(--yg-font-display); }
 h1 { font-size: 1.75rem; letter-spacing: -.025em; }
 
-.hue-general   { --hue: var(--yg-accent-text); --hue-soft: var(--yg-accent-surface); }
-.hue-health    { --hue: #0f766e; --hue-soft: #dcf5ef; }
-.hue-education { --hue: #4338ca; --hue-soft: #e4e7fb; }
-.hue-hr        { --hue: #be185d; --hue-soft: #fbe3ee; }
-.hue-defence   { --hue: #3f6212; --hue-soft: #e6f0d6; }
-@media (prefers-color-scheme: dark) {
-  .hue-health    { --hue: #5eead4; --hue-soft: #12302c; }
-  .hue-education { --hue: #a5b4fc; --hue-soft: #1e2140; }
-  .hue-hr        { --hue: #f9a8d4; --hue-soft: #3a1728; }
-  .hue-defence   { --hue: #bef264; --hue-soft: #243014; }
-}
+.hue-general     { --hue: #c2410c; --hue-strong: #ea580c; --hue-soft: #ffedd5; --hue-wash: #fff7ed; }
+.hue-health      { --hue: #0f766e; --hue-strong: #0d9488; --hue-soft: #ccfbf1; --hue-wash: #f0fdfa; }
+.hue-education   { --hue: #4338ca; --hue-strong: #6366f1; --hue-soft: #e0e7ff; --hue-wash: #eef2ff; }
+.hue-hr          { --hue: #be123c; --hue-strong: #f43f5e; --hue-soft: #ffe4e6; --hue-wash: #fff1f2; }
+.hue-defence     { --hue: #3f6212; --hue-strong: #65a30d; --hue-soft: #ecfccb; --hue-wash: #f7fee7; }
+.hue-engineering { --hue: #0369a1; --hue-strong: #0ea5e9; --hue-soft: #e0f2fe; --hue-wash: #f0f9ff; }
 .mark { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem;
-  border-radius: 12px; background: var(--hue-soft); color: var(--hue); }
+  border-radius: 12px; color: #fff;
+  background: linear-gradient(145deg, var(--hue-strong), var(--hue));
+  box-shadow: 0 6px 14px -8px var(--hue); }
 .mark svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round; }
 .mark.lg { width: 4rem; height: 4rem; border-radius: 18px; }
@@ -670,8 +664,10 @@ h1 { font-size: 1.75rem; letter-spacing: -.025em; }
    what to do, on a wash of its hue. */
 .hero { position: relative; overflow: hidden; display: grid; gap: var(--yg-space-5);
   padding: var(--yg-space-10) var(--yg-space-8); margin: 0 0 var(--yg-space-8); border-radius: 24px;
-  background: radial-gradient(120% 140% at 0% 0%, var(--hue-soft) 0%, transparent 60%), var(--yg-surface);
-  box-shadow: var(--yg-shadow-1); }
+  background:
+    radial-gradient(60% 90% at 100% 0%, color-mix(in srgb, var(--hue-strong) 22%, transparent) 0%, transparent 70%),
+    linear-gradient(135deg, var(--hue-soft) 0%, var(--hue-wash) 55%, #fff 100%);
+  border: 1px solid color-mix(in srgb, var(--hue-strong) 18%, transparent); }
 .hero .eyebrow { margin: 0; font-size: .8125rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--hue); }
 .hero h1 { margin: var(--yg-space-1) 0 var(--yg-space-2); font-size: 2.25rem; }
 .hero .lede { margin: 0; font-size: 1.125rem; color: var(--yg-text-muted); max-width: 36rem; }
@@ -681,6 +677,8 @@ h1 { font-size: 1.75rem; letter-spacing: -.025em; }
 /* What an agent can do: one tile a skill, a title and a line. */
 .abilities { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: 0 0 var(--yg-space-8); }
 .ability { padding: var(--yg-space-5); border-radius: 16px; background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
+.ability strong::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: var(--yg-space-2);
+  border-radius: 50%; background: var(--hue-strong); vertical-align: middle; }
 .ability .mark { margin-bottom: var(--yg-space-3); }
 .ability strong { display: block; font: 600 1rem/1.3 var(--yg-font-display); margin-bottom: var(--yg-space-1); }
 .ability p { margin: 0; font-size: .875rem; color: var(--yg-text-muted); }
@@ -697,14 +695,15 @@ details.more[open] > summary { margin-bottom: var(--yg-space-4); }
 /* Choosing what to start: a card a field, and one for a blank agent. */
 .choices { display: grid; gap: var(--yg-space-5); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); margin: 0 0 var(--yg-space-8); }
 .choice { display: grid; align-content: start; gap: var(--yg-space-3); padding: var(--yg-space-6);
-  border-radius: 20px; background: radial-gradient(140% 120% at 100% 0%, var(--hue-soft) 0%, transparent 55%), var(--yg-surface);
-  box-shadow: var(--yg-shadow-1); color: inherit; text-decoration: none;
+  border-radius: 20px; color: inherit; text-decoration: none;
+  background: linear-gradient(160deg, var(--hue-soft) 0%, var(--hue-wash) 45%, #fff 100%);
+  border: 1px solid color-mix(in srgb, var(--hue-strong) 16%, transparent);
   transition: transform var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
-.choice:hover { transform: translateY(-2px); box-shadow: var(--yg-shadow-2); }
+.choice:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -18px var(--hue); border-color: color-mix(in srgb, var(--hue-strong) 40%, transparent); }
 .choice .name { font: 600 1.1875rem/1.25 var(--yg-font-display); letter-spacing: -.015em; }
 .choice .what { font-size: .9375rem; color: var(--yg-text-muted); }
 .choice .tag { justify-self: start; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--hue); }
-.choice.blank { background: none; box-shadow: none; border: 1.5px dashed var(--yg-border-strong); }
+.choice.blank { background: var(--yg-surface); border: 1.5px dashed var(--yg-border-strong); }
 .choice.blank:hover { border-color: var(--yg-accent); }
 @media (prefers-reduced-motion: reduce) { .choice { transition: none; } .choice:hover { transform: none; } }
 

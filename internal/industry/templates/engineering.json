@@ -1,0 +1,49 @@
+{
+  "name": "engineering",
+  "title": "Software engineer",
+  "industry": "Engineering",
+  "summary": "Fixes bugs with a test first, writes tests, and reviews changes.",
+  "harnesses": [
+    "claude",
+    "codex",
+    "opencode",
+    "dsh",
+    "pi",
+    "hermes"
+  ],
+  "sensitivity": "internal",
+  "skills": [
+    {
+      "name": "fix-a-bug",
+      "title": "Fix bugs",
+      "blurb": "Reproduces the bug with a failing test, then fixes it.",
+      "description": "Use when asked to fix a bug, a failing test, or behaviour that is wrong.",
+      "body": "Fix it the way a careful engineer would.\n\n1. Run the tests first and read the failure, or write a test that fails for the reported behaviour.\n2. Find the cause in the code, not just the symptom. Say what it was in one sentence.\n3. Make the smallest change that fixes the cause.\n4. Run the tests again, all of them, and show that they pass.\n5. Report: the cause, the change, and the test that now guards it."
+    },
+    {
+      "name": "write-tests",
+      "title": "Write tests",
+      "blurb": "Covers the edges: empty, zero, too large, wrong type.",
+      "description": "Use when asked to add tests, raise coverage, or check a function's behaviour.",
+      "body": "Write tests with the project's own test runner and style.\n\n- One test a behaviour, named for what it proves.\n- Cover the edges: empty input, zero, negative, the largest allowed value, and one past it.\n- A test must fail if the behaviour breaks: check it would, by reasoning or by trying.\n- Run the whole suite at the end and report what passed."
+    },
+    {
+      "name": "review-change",
+      "title": "Review changes",
+      "blurb": "Finds real problems, with the line and the fix.",
+      "description": "Use when asked to review code, a diff, a change or a pull request.",
+      "body": "Review for problems that matter, most serious first.\n\n- Correctness, then security, then data loss, then performance, then clarity. Skip style nits unless asked.\n- For each finding: the file and line, what goes wrong and when, and the fix.\n- Say what you checked and found fine, in one line.\n- If there is nothing worth changing, say so plainly."
+    }
+  ],
+  "starters": [
+    "Run the tests and fix what fails",
+    "Add tests for discounts above 100% and negative quantities",
+    "Review invoice.js and tell me what could go wrong in production"
+  ],
+  "files": {
+    "README.md": "# Invoice\n\n*This project is invented for demonstration.*\n\nWorks out an invoice's total. Run the tests with:\n\n```\nnode --test\n```\n",
+    "package.json": "{\n  \"name\": \"invoice\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"test\": \"node --test\"\n  }\n}\n",
+    "invoice.js": "// Works out an invoice's total. Invented for demonstration.\n\n// total is the sum of each line's price times its quantity, less the\n// discount, plus tax on what remains.\nexport function total(lines, { discountPercent = 0, taxPercent = 0 } = {}) {\n  let subtotal = 0;\n  for (const line of lines) {\n    subtotal += line.price * line.quantity;\n  }\n  const discount = subtotal * discountPercent;\n  const taxed = (subtotal - discount) * (1 + taxPercent / 100);\n  return Math.round(taxed * 100) / 100;\n}\n",
+    "invoice.test.js": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { total } from \"./invoice.js\";\n\ntest(\"adds up the lines\", () => {\n  assert.equal(total([{ price: 10, quantity: 2 }, { price: 5, quantity: 1 }]), 25);\n});\n\ntest(\"takes a percentage discount\", () => {\n  assert.equal(total([{ price: 100, quantity: 1 }], { discountPercent: 10 }), 90);\n});\n\ntest(\"adds tax after the discount\", () => {\n  assert.equal(total([{ price: 100, quantity: 1 }], { discountPercent: 10, taxPercent: 20 }), 108);\n});\n"
+  }
+}

@@ -51,9 +51,13 @@ runner_harnesses:
   - hermes=hermes-agent@0.21.5
 
 # The npm packages of the MCP servers the image carries, for mcp_servers to
-# offer. A setup can only give a harness a server whose program is here.
+# offer, and of what a harness needs to call them. A setup can only give a
+# harness a server whose program is here.
 runner_mcp_packages:
   - "@modelcontextprotocol/server-memory@2026.8.31"
+  # Not a server: the extension pi takes MCP servers through, measured on
+  # 2026-09-27 against a probe server.
+  - "pi-mcp-adapter@3.0.0"
 
 # The MCP servers a setup may choose from, one file each in var/mcp. A server
 # is a program the image carries, or an address a job may reach. What a
