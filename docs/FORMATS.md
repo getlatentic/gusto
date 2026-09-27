@@ -69,10 +69,10 @@ all refuse one. It says nothing about who signed: any key vouches for itself.
 Who signed is the verifier's keyring's answer, a directory of `<name>.pub` files
 named by `HAAS_KEYRING`, looked up by `key` and checked against the keyring's own
 copy of the key. The manifest's `signer` field stays what it was, the runner's
-own word for itself, and nothing shows it as the signer: `haas show`, the pull
-request `haas ship` opens and `audit.json` each name the signer through
-`evidence.SignedBy`, which gives the keyring's name or says in words why it
-cannot (`unsigned`, `signed, not checked: no keyring`, `signed, not checked: key
+own word for itself, and nothing shows it as the signer: `haas show`, the job
+page, the pull request `haas ship` opens and `audit.json` each name the signer
+through `evidence.SignedBy`, which gives the keyring's name or says in words why
+it cannot (`unsigned`, `signed, not checked: no keyring`, `signed, not checked: key
 <id> is not in the keyring`, `signed, and the signature does not hold`).
 
 A record without `manifest.sig` is unsigned. `haas verify` says so in those

@@ -121,6 +121,7 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	manifest := readManifest(dir)
 	drawEvidence(page, record, dir, manifest)
 	page["Files"] = hashed(listing(dir), manifest)
+	page["SignedBy"] = s.signedBy(dir)
 	s.render(w, "job.html", page)
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/spend"
 )
 
@@ -31,6 +32,7 @@ type Server struct {
 	catalog   []catalog.Entry
 	models    []string
 	ledger    *spend.Ledger
+	keyring   signing.Keyring
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models []string) (*Server, error) {

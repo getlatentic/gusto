@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 const password = "a-shared-password"
@@ -35,6 +36,12 @@ func open(t *testing.T) *site {
 // openAt is a server over a jobs directory that may already hold jobs, which is
 // how a test shows that what ran before still reads.
 func openAt(t *testing.T, root string) *site {
+	t.Helper()
+	return openKeyed(t, root, signing.Keyring{})
+}
+
+// openKeyed is openAt with the keyring the job page names signers from.
+func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 	t.Helper()
 	index, err := jobs.Open(root)
 	if err != nil {
@@ -60,6 +67,7 @@ func openAt(t *testing.T, root string) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
+	server.UseKeyring(keyring)
 	return &site{handler: server.Handler(), index: index, ran: ran}
 }
 
