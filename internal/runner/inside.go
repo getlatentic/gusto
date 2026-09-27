@@ -75,7 +75,12 @@ func Inside(dir job.Dir) (int, error) {
 	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
 	var exit int
-	if adapter.Stream == harness.ACP {
+	if spec.Terminal {
+		if err = adapter.Give(command, servers); err == nil {
+			in, out := fromTheBox()
+			exit, err = terminal(ctx, command, dir, in, out)
+		}
+	} else if adapter.Stream == harness.ACP {
 		exit, err = converse(ctx, command, spec, servers, record)
 	} else if err = adapter.Give(command, servers); err == nil {
 		exit, err = stream(ctx, command, record)

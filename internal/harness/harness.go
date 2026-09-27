@@ -91,6 +91,10 @@ type Adapter struct {
 
 	// Dotted paths into a JSONL line. An empty path means the harness does not
 	// say, and the number is left out rather than guessed.
+	// Terminal is the arguments that start the harness in its own interface,
+	// for a person to watch and type into. Empty is a harness with none.
+	Terminal []string `json:"terminal,omitempty"`
+
 	// Resume replaces the arguments when there is a conversation to continue. It
 	// is the whole list rather than a fragment: splicing two lists duplicates
 	// whatever flag they share.
@@ -233,7 +237,10 @@ func Names() []string {
 // harness that will not stop is killed rather than waited for.
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
 	wanted := a.Argv
-	if spec.Remembered != "" && len(a.Resume) > 0 {
+	switch {
+	case spec.Terminal:
+		wanted = a.Terminal
+	case spec.Remembered != "" && len(a.Resume) > 0:
 		wanted = a.Resume
 	}
 	argv := make([]string, 0, len(wanted))

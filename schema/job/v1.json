@@ -79,6 +79,10 @@
       "description": "The harness's own name for that conversation, handed back so it resumes rather than starts again.",
       "type": "string"
     },
+    "terminal": {
+      "description": "Run the harness in its own interface on a terminal a person watches and can type into, rather than handing it the brief. What the screen showed and what was typed are recorded in out/pane.cast.",
+      "type": "boolean"
+    },
     "setup": {
       "description": "The configuration the harness ran with: the names of its skills and of the MCP servers it could call. The definitions travel beside the job in setup/, outside the evidence, because a server's definition can carry a token.",
       "type": "object",

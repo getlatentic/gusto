@@ -56,6 +56,12 @@ func located(servers []job.Server) ([]job.Server, error) {
 // none, or servers for one with no MCP. Starting it anyway would run a bare
 // harness under the name of a configured one.
 func fits(spec job.Spec, adapter harness.Adapter) error {
+	if spec.Terminal && len(adapter.Terminal) == 0 {
+		return fmt.Errorf("%s has no interface of its own to open a terminal on", adapter.Name)
+	}
+	if spec.Terminal && spec.Setup != nil && len(spec.Setup.Servers) > 0 && adapter.MCP != nil && adapter.MCP.Format == "acp" {
+		return fmt.Errorf("%s is given MCP servers over ACP, which its own interface does not speak", adapter.Name)
+	}
 	if spec.Setup == nil {
 		return nil
 	}
