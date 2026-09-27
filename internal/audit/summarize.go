@@ -6,6 +6,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // approvalUnseen is why an export cannot name an approver: the platform's part
@@ -15,10 +16,11 @@ const approvalUnseen = "an agent opens a pull request and never merges; a person
 // harnessDefault is what a job that names no model asked for.
 const harnessDefault = "the harness's default"
 
-// Summarize derives audit.json from the files in an export and nothing else.
-// Export writes what this returns, and Verify calls it again and compares, so
-// the summary can never say something its files do not.
-func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy) (Record, error) {
+// Summarize derives audit.json from the files in an export and nothing else
+// but the keyring that names their signer. Export writes what this returns, and
+// Verify calls it again and compares, so the summary can never say something
+// its files and that keyring do not.
+func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy, keyring signing.Keyring) (Record, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return Record{}, err
@@ -43,7 +45,7 @@ func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy) (R
 		Outbound:   outboundOf(proxy),
 		Approval:   Approval{By: absent[string](NotRecorded), Why: approvalUnseen},
 		Requests:   lines(filepath.Join(dir.Path(), RequestsFile), why(RequestsFile)),
-		Evidence:   Evidence{Manifest: ManifestFile, Signer: manifest.Signer, Files: len(manifest.Files)},
+		Evidence:   Evidence{Manifest: ManifestFile, Signer: evidence.SignedBy(dir, keyring), Files: len(manifest.Files)},
 		Carried:    carried,
 		Redactions: nonNil(redactions),
 		Policy:     policy.written(),

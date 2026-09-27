@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // Report is what Verify found. Problems empty means the export holds.
@@ -31,6 +32,7 @@ type stored struct {
 	Carried    []Carried   `json:"carried"`
 	Redactions []Redaction `json:"redactions"`
 	Policy     Policy      `json:"policy"`
+	Evidence   Evidence    `json:"evidence"`
 }
 
 // Verify checks an export in three steps, and names the file behind every
@@ -42,8 +44,9 @@ type stored struct {
 //  2. Every file against the hash the export recorded, which covers what the
 //     manifest does not: the server's state, the request lines, and the
 //     redacted copies.
-//  3. audit.json against a summary derived again from those files.
-func Verify(dir job.Dir) (Report, error) {
+//  3. audit.json against a summary derived again from those files, with the
+//     signer named by the verifier's own keyring.
+func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
 	written, record, err := readSummary(dir)
 	if err != nil {
 		return Report{}, err
@@ -64,10 +67,14 @@ func Verify(dir job.Dir) (Report, error) {
 		return Report{}, err
 	}
 	report.Problems = append(report.Problems, compareCarried(record.Carried, carried)...)
-	derived, err := Summarize(dir, record.Job, record.Redactions, record.Policy)
+	derived, err := Summarize(dir, record.Job, record.Redactions, record.Policy, keyring)
 	if err != nil {
 		return Report{}, err
 	}
+	derived = derived.asWritten(record.Version, manifest)
+	report.Problems = append(report.Problems, signerDisagreement(record.Evidence.Signer, derived.Evidence.Signer)...)
+	// The signer was compared above, by name; the rest of evidence still is.
+	derived.Evidence.Signer = record.Evidence.Signer
 	report.Problems = append(report.Problems, disagreements(written, derived)...)
 	report.Covered = covered(carried)
 	return report, nil

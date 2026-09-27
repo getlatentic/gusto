@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // Options is what shapes one export besides the job itself.
@@ -21,6 +22,9 @@ type Options struct {
 	RequestLog string
 	// Now stamps exportedAt.
 	Now func() int64
+	// Keyring names the signer. An empty one names nobody, and the export says
+	// the signature was not checked rather than repeat the manifest's claim.
+	Keyring signing.Keyring
 }
 
 // Export writes the audit export of the job in from into a new directory to.
@@ -54,7 +58,7 @@ func write(from, to job.Dir, manifest evidence.Manifest, options Options) (Recor
 	if err != nil {
 		return Record{}, err
 	}
-	record, err := Summarize(to, id, redactions, options.Policy)
+	record, err := Summarize(to, id, redactions, options.Policy, options.Keyring)
 	if err != nil {
 		return Record{}, err
 	}

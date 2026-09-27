@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/getlatentic/haas/internal/audit"
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/schema"
 )
 
@@ -24,9 +26,15 @@ func exported(t *testing.T, from job.Dir, options audit.Options) job.Dir {
 	return job.Dir(to)
 }
 
+// verified checks an export with no keyring, which names no signer.
 func verified(t *testing.T, dir job.Dir) audit.Report {
 	t.Helper()
-	report, err := audit.Verify(dir)
+	return verifiedWith(t, dir, signing.Keyring{})
+}
+
+func verifiedWith(t *testing.T, dir job.Dir, keyring signing.Keyring) audit.Report {
+	t.Helper()
+	report, err := audit.Verify(dir, keyring)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +54,7 @@ func summary(t *testing.T, dir job.Dir) map[string]any {
 // stranger reads, so the test validates the bytes the export wrote.
 func matchesTheSchema(t *testing.T, dir job.Dir) {
 	t.Helper()
-	published, err := os.ReadFile("../../schema/audit/v1.json")
+	published, err := os.ReadFile("../../schema/audit/v2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +85,7 @@ func TestAnExportVerifiesAndSaysWhatItDoesNotKnow(t *testing.T) {
 		{[]string{"outcome", "state"}, "passed"},
 		{[]string{"ran", "harness"}, "fixture"},
 		{[]string{"ran", "session"}, audit.None},
-		{[]string{"evidence", "signer"}, "a-test"},
+		{[]string{"evidence", "signer"}, evidence.Unsigned},
 	} {
 		if got := at(record, tc.path...); got != tc.want {
 			t.Errorf("%s: got %#v, want %#v", strings.Join(tc.path, "."), got, tc.want)

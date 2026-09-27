@@ -225,9 +225,15 @@ func show(args []string) int {
 		fmt.Println("\nno manifest yet, so this job has not run here")
 		return 0
 	}
+	// The signer is the keyring's name for the key, as verify gives it, never
+	// the manifest's signer field, which is the runner's claim.
+	keyring, err := signing.ConfiguredKeyring()
+	if err != nil {
+		return fail(err)
+	}
 	fmt.Printf("\ngate     exit %d, passed %t\nharness  exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
 		manifest.Gate.Code, manifest.Gate.Passed, manifest.HarnessExit, manifest.StoppedAtBudget,
-		manifest.ModelEndpoint, manifest.Signer, len(manifest.Files))
+		manifest.ModelEndpoint, evidence.SignedBy(dir, keyring), len(manifest.Files))
 	if manifest.Tokens != nil {
 		fmt.Printf("tokens   %d\n", *manifest.Tokens)
 	}
