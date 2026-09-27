@@ -68,7 +68,7 @@ func Inside(dir job.Dir) (int, error) {
 	defer cancel()
 	servers, err := Servers(dir)
 	if err != nil {
-		return 0, err
+		return 0, refuse(dir, err)
 	}
 	if err := placeSkills(dir, spec, adapter); err != nil {
 		return 0, err
@@ -131,10 +131,23 @@ func Inside(dir job.Dir) (int, error) {
 			return 0, err
 		}
 	}
-	if verdict == nil || verdict.Passed {
-		return 0, nil
+	return earned(verdict, exit), nil
+}
+
+// earned is the exit code a run earned. A gate decides when there is one. A
+// turn in a conversation has none, and then the harness's own exit is the only
+// word on whether it did what it was asked: a harness that failed made a turn
+// that failed, whatever it managed to say first.
+func earned(verdict *evidence.Verdict, harnessExit int) int {
+	switch {
+	case verdict != nil && verdict.Passed:
+		return 0
+	case verdict != nil:
+		return 1
+	case harnessExit != 0:
+		return 1
 	}
-	return 1, nil
+	return 0
 }
 
 type said struct {

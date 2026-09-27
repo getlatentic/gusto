@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/getlatentic/haas/internal/harness"
@@ -26,7 +27,29 @@ func Servers(dir job.Dir) ([]job.Server, error) {
 		return nil, err
 	}
 	var servers []job.Server
-	return servers, json.Unmarshal(text, &servers)
+	if err := json.Unmarshal(text, &servers); err != nil {
+		return nil, err
+	}
+	return located(servers)
+}
+
+// located names each server's program by its full path, found on this box's
+// PATH. ACP asks for one, and a program the image does not carry is better
+// refused here, by name, than failing inside the harness where only its log
+// would say so.
+func located(servers []job.Server) ([]job.Server, error) {
+	for i, server := range servers {
+		if server.Command == "" {
+			continue
+		}
+		path, err := exec.LookPath(server.Command)
+		if err != nil {
+			return nil, fmt.Errorf("the MCP server %s runs %s, which this runner does not carry: "+
+				"add its package to the image's MCP_SERVERS", server.Name, server.Command)
+		}
+		servers[i].Command = path
+	}
+	return servers, nil
 }
 
 // fits refuses a setup the harness cannot take: skills for one that finds
