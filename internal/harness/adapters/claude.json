@@ -23,7 +23,7 @@
     "{session}"
   ],
   "env": {
-    "ANTHROPIC_BASE_URL": "{modelUrl}",
+    "ANTHROPIC_BASE_URL": "{modelRoot}",
     "ANTHROPIC_API_KEY": "{modelToken}"
   },
   "stdin": "{brief}",

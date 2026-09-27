@@ -379,3 +379,27 @@ func TestAnAdapterThatNarrowsNothingCountsEveryLine(t *testing.T) {
 		t.Error("an adapter naming no lines refused one")
 	}
 }
+
+// An Anthropic-shaped client adds /v1/messages itself, so it is handed the
+// address without a version on it. Handed the /v1 form it asked the provider
+// for /v1/v1/messages and was answered 404.
+func TestAClientThatAddsItsOwnVersionIsGivenTheRootWithoutOne(t *testing.T) {
+	t.Setenv("HAAS_MODEL_URL", "http://127.0.0.1:8041/model/v1")
+	if got := ModelRoot(); got != "http://127.0.0.1:8041/model" {
+		t.Errorf("the root reads as %q", got)
+	}
+	adapter, err := Load("", "claude")
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := adapter.Command(context.Background(), job.Spec{Model: "anthropic/x"}, t.TempDir())
+	var base string
+	for _, set := range command.Env {
+		if after, found := strings.CutPrefix(set, "ANTHROPIC_BASE_URL="); found {
+			base = after
+		}
+	}
+	if base != "http://127.0.0.1:8041/model" {
+		t.Errorf("claude is pointed at %q, and it appends /v1/messages to that", base)
+	}
+}
