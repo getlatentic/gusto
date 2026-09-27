@@ -2,6 +2,7 @@ package runner
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -30,6 +31,8 @@ type Record struct {
 	}
 	latest struct{ tokens, cost float64 }
 	seen   bool
+	// message is the message the transcript's last text belonged to.
+	message string
 	// priced is whether the harness ever named a cost. Tokens counted without
 	// one is the ordinary case — most harnesses report numbers and no money —
 	// and a cost of zero written there would read as a run that was free.
@@ -63,7 +66,7 @@ func (r *Record) Out(line string) error {
 	if _, err := r.raw.WriteString(line + "\n"); err != nil {
 		return err
 	}
-	if r.adapter.Stream != harness.JSONL {
+	if r.adapter.Stream == harness.Plain {
 		_, err := r.transcript.WriteString(line + "\n")
 		return err
 	}
@@ -78,7 +81,7 @@ func (r *Record) Out(line string) error {
 	}
 	if text, ok := harness.Pick(decoded, r.adapter.Text); ok && r.adapter.Says(decoded) {
 		if said, ok := text.(string); ok {
-			if _, err := r.transcript.WriteString(said); err != nil {
+			if _, err := r.transcript.WriteString(r.paragraph(decoded) + said); err != nil {
 				return err
 			}
 		}
@@ -87,6 +90,21 @@ func (r *Record) Out(line string) error {
 		return err
 	}
 	return r.usage(decoded, line)
+}
+
+// paragraph is the break owed before text from a message other than the last.
+func (r *Record) paragraph(decoded map[string]any) string {
+	named, ok := harness.Pick(decoded, r.adapter.Message)
+	if !ok {
+		return ""
+	}
+	message := fmt.Sprint(named)
+	started := r.message != "" && message != r.message
+	r.message = message
+	if started {
+		return "\n\n"
+	}
+	return ""
 }
 
 // did keeps what the harness ran, apart from what it said. Somebody asking what
@@ -120,18 +138,7 @@ func (r *Record) usage(decoded map[string]any, line string) error {
 	if !r.adapter.Counts(decoded) {
 		return nil
 	}
-	counted, told := 0.0, false
-	for _, path := range []string{
-		r.adapter.InputTokens,
-		r.adapter.OutputTokens,
-		r.adapter.CacheWriteTokens,
-		r.adapter.CacheReadTokens,
-	} {
-		if number, ok := harness.Number(decoded, path); ok {
-			counted += number
-			told = true
-		}
-	}
+	counted, told := r.tokens(decoded)
 	cost, hasCost := harness.Number(decoded, r.adapter.CostUSD)
 	if !told && !hasCost {
 		return nil
@@ -146,6 +153,27 @@ func (r *Record) usage(decoded map[string]any, line string) error {
 	}
 	_, err := r.calls.WriteString(line + "\n")
 	return err
+}
+
+// tokens is what one line counts: the harness's own total when it states one,
+// and the sum of the parts otherwise.
+func (r *Record) tokens(decoded map[string]any) (float64, bool) {
+	if total, ok := harness.Number(decoded, r.adapter.TotalTokens); ok {
+		return total, true
+	}
+	counted, told := 0.0, false
+	for _, path := range []string{
+		r.adapter.InputTokens,
+		r.adapter.OutputTokens,
+		r.adapter.CacheWriteTokens,
+		r.adapter.CacheReadTokens,
+	} {
+		if number, ok := harness.Number(decoded, path); ok {
+			counted += number
+			told = true
+		}
+	}
+	return counted, told
 }
 
 func (r *Record) Err(line string) error {
