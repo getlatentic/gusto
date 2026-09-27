@@ -9,6 +9,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/ship"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // shipJob opens a pull request from a job whose gate passed. It exits 1 when
@@ -28,7 +29,12 @@ func shipJob(args []string) int {
 		fmt.Fprintln(os.Stderr, "haas ship needs a job directory, then its flags")
 		return 2
 	}
-	plan, err := ship.Prepare(job.Dir(where), ship.Options{Remote: *remote, GitHub: *github, Base: *base})
+	keyring, err := signing.ConfiguredKeyring()
+	if err != nil {
+		return fail(err)
+	}
+	options := ship.Options{Remote: *remote, GitHub: *github, Base: *base, Keyring: keyring}
+	plan, err := ship.Prepare(job.Dir(where), options)
 	if err != nil {
 		return refusedOr(err)
 	}

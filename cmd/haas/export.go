@@ -9,6 +9,7 @@ import (
 	"github.com/getlatentic/haas/internal/audit"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/signing"
 )
 
 // exportJob writes a job's audit export, or with -verify checks one. It is
@@ -31,8 +32,14 @@ func exportJob(args []string) int {
 		fmt.Fprintln(os.Stderr, "haas export needs a job directory, or -verify and an export directory")
 		return 2
 	}
+	// The keyring names the signer both ways: the one an export is written
+	// under, and the one a verifier checks that name against.
+	keyring, err := signing.ConfiguredKeyring()
+	if err != nil {
+		return fail(err)
+	}
 	if *check {
-		report, err := audit.Verify(job.Dir(where))
+		report, err := audit.Verify(job.Dir(where), keyring)
 		if err != nil {
 			return fail(err)
 		}
@@ -55,7 +62,7 @@ func exportJob(args []string) int {
 	if *to == "" {
 		*to = filepath.Clean(where) + ".audit"
 	}
-	record, err := audit.Export(job.Dir(where), *to, audit.Options{Policy: policy, RequestLog: *requestLog, Now: evidence.Now})
+	record, err := audit.Export(job.Dir(where), *to, audit.Options{Policy: policy, RequestLog: *requestLog, Now: evidence.Now, Keyring: keyring})
 	if err != nil {
 		return fail(err)
 	}

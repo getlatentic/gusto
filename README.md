@@ -90,7 +90,7 @@ label    internal
 gate     exit 0, passed true
 harness  exit 0, stopped at the budget false
 model    http://localhost:11434/v1
-signer   tosin
+signer   acme-2026
 files    7
 
 $ haas verify /tmp/fix
@@ -122,6 +122,18 @@ and the record is unsigned.
 
 `verify` names the signer from the keyring: the `.pub` file whose key made the
 signature, never the manifest's `signer` field, which is the runner's own word.
+
+`show`, `ship`'s pull request body and `export`'s `audit.json` name the signer
+the same way, and where the keyring cannot vouch for a name they say so in the
+same words rather than repeat the manifest's claim:
+
+| the record | `show`, the pull request and `audit.json` say |
+| --- | --- |
+| signed by a key in the keyring | `<name>` |
+| signed, with no `HAAS_KEYRING` | `signed, not checked: no keyring` |
+| signed by a key not in the keyring | `signed, not checked: key <id> is not in the keyring` |
+| signed, then changed | `signed, and the signature does not hold` |
+| unsigned | `unsigned` |
 
 | the record | `verify` says | exit |
 | --- | --- | --- |
@@ -577,9 +589,9 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
 | `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
-| `HAAS_SIGNER` | who the manifest names. The runner's own word; `verify` names the signer from the keyring |
+| `HAAS_SIGNER` | who the manifest names. The runner's own word; every surface names the signer from the keyring |
 | `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`. Kept on the host, never in a job directory or a container |
-| `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify` trusts, retired ones included |
+| `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
