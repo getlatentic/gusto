@@ -253,6 +253,7 @@ func (a Adapter) fill(text string, spec job.Spec) string {
 		"{model}", spec.Model,
 		"{modelId}", alone,
 		"{modelUrl}", ModelURL(),
+		"{modelRoot}", ModelRoot(),
 		"{modelToken}", ModelToken(),
 		"{session}", spec.Remembered,
 	).Replace(text)
@@ -266,6 +267,12 @@ func ModelURL() string {
 	}
 	return "http://localhost:11434/v1"
 }
+
+// ModelRoot is where the model answers, without the version on the end, for a
+// client that adds its own. An Anthropic-shaped one appends /v1/messages, so
+// handing it the /v1 form asks the provider for /v1/v1/messages and is answered
+// 404.
+func ModelRoot() string { return strings.TrimSuffix(ModelURL(), "/v1") }
 
 // ModelToken is what the box was given in place of a credential. A harness that
 // reads its key from a variable of its own is handed this, so the real key
