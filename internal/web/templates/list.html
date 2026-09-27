@@ -1,13 +1,10 @@
 {{template "head" .}}
 
-<p class="muted">Every run this server holds, whatever started it. A run happens on an instance, in its
-folder: start one from the <a href="/">catalog</a>.{{if .Harnesses}} For a one-off against a repository,
-start {{range $i, $name := .Harnesses}}{{if $i}}, {{end}}<a href="/instances/new?harness={{$name}}&amp;then=task">{{$name}}</a>{{end}}
-with that repository and run the task there.{{end}}</p>
+<p class="muted">Every job this server holds, whatever started it. A job runs on an instance, in its folder: start one from the <a href="/">catalog</a>{{if .Harnesses}}, or <a href="/instances/new?harness={{index .Harnesses 0}}&amp;then=task">start one with a repository</a> for a one-off{{end}}.</p>
 
 {{if .Runs}}
 <table>
-  <tr><th>Run</th><th>Verdict</th><th>Cost</th><th>Instance</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
+  <tr><th>Job</th><th>Verdict</th><th>Cost</th><th>Instance</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
   {{range .Runs}}
   <tr>
     <td><a href="/jobs/{{.ID}}">{{.Brief}}</a><br><span class="muted">{{.ID}}</span></td>
