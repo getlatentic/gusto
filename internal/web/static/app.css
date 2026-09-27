@@ -605,3 +605,11 @@ details#task summary .muted { font-size: .8125rem; }
 details#task[open] summary { margin-bottom: var(--yg-space-4); }
 details#task .threads-list { margin-bottom: var(--yg-space-4); }
 .start-form { max-width: 36rem; }
+
+/* The files a turn left changed, each a link to it as it is now. */
+.changed { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); margin: var(--yg-space-3) 0 0; }
+.changed a { display: inline-flex; align-items: center; gap: var(--yg-space-1); font: 12.5px/1.4 var(--yg-font-mono);
+  padding: var(--yg-space-1) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); text-decoration: none; }
+.changed a:hover { border-color: var(--yg-accent); }
+.panel.file h2 code { font-size: .875rem; text-transform: none; letter-spacing: 0; color: var(--yg-text); }

@@ -29,8 +29,10 @@ type turn struct {
 	jobs.Record
 	Said    string
 	Replied string
-	// Steps is what the harness did on the way to its reply.
-	Steps []step
+	// Steps is what the harness did on the way to its reply, and Changed the
+	// files it left different.
+	Steps   []step
+	Changed []string
 	// Spent is the proxy's count of what the turn's calls cost.
 	Spent   spend.Tally
 	Metered bool
@@ -58,7 +60,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 			continue
 		}
 		dir := record.Dir(s.index.Root())
-		shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir)}
+		shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir), Changed: changed(dir)}
 		shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 		if record.State == jobs.Failed || record.State == jobs.Interrupted {
 			shown.Stopped = stopped(dir)
