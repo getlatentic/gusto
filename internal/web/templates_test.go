@@ -55,3 +55,22 @@ func TestARestrictedTemplatesTurnsAreRestricted(t *testing.T) {
 		t.Fatalf("the turn's sensitivity is %q, %v", spec.Sensitivity, err)
 	}
 }
+
+// A file in a harness's folder can be read from the page, and nothing outside
+// the folder can: not a path that climbs out, not a link that points out, and
+// not the folder's own git history.
+func TestTheFolderViewerShowsOnlyTheFolder(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
+	where := started.Header().Get("Location")
+	instance := where[:strings.Index(where, "/threads/")]
+	if page := site.ask(t, "GET", instance+"/file?path=visit-notes.txt", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "community-acquired pneumonia") {
+		t.Fatalf("the sample file did not open: %d", page.Code)
+	}
+	for _, path := range []string{"../../../etc/passwd", "/etc/passwd", ".git/config", "missing.txt"} {
+		if page := site.ask(t, "GET", instance+"/file?path="+url.QueryEscape(path), nil); page.Code != http.StatusNotFound {
+			t.Errorf("%s answered %d", path, page.Code)
+		}
+	}
+}

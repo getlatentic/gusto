@@ -171,6 +171,7 @@
       </details>
       {{end}}
       {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}
+      {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
       {{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}
       <p class="meta">{{with took .Started .Ended}}{{.}}{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}} · {{.Spent.Money}}{{end}}{{end}} · <a href="/jobs/{{.ID}}">details</a></p>
     </div>
