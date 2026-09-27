@@ -53,7 +53,7 @@
   {{with .StoppedByCap}}<tr><th>Stopped by</th><td><span class="state failed">the {{.Cap}} cap</span> {{.Reason}}</td></tr>{{end}}
   <tr><th>Tokens</th><td>{{if .Tokens}}{{.Tokens}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
   <tr><th>Cost</th><td>{{with money .CostUSD}}{{.}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
-  <tr><th>Signed by</th><td>{{.Signer}}</td></tr>
+  <tr><th>Signed by</th><td>{{$.SignedBy}}</td></tr>
 </table>
 {{end}}
 
