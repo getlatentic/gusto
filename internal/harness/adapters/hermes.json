@@ -1,0 +1,17 @@
+{
+  "name": "hermes",
+  "what": "Nous Research's agent, which remembers what it learns across sessions.",
+  "program": "sh",
+  "argv": [
+    "-c",
+    "mkdir -p \"$HERMES_HOME\" && cp /root/.config/hermes/config.yaml \"$HERMES_HOME/config.yaml\" && exec hermes acp --accept-hooks"
+  ],
+  "env": {
+    "HERMES_HOME": "/root/.local/share/hermes",
+    "HAAS_MODEL_ID": "{modelId}"
+  },
+  "needs": "key",
+  "stream": "acp",
+  "toolName": "params.update.kind",
+  "toolTitle": "params.update.title"
+}
