@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fixturePolicy is a price table for tests. Its prices are made up, and are
@@ -17,7 +18,7 @@ func fixturePolicy() Policy {
 }
 
 func TestACallIsPricedFromTheTable(t *testing.T) {
-	cost := fixturePolicy().Cost("fixture-model", &Usage{Input: 1_000_000, Output: 100_000})
+	cost := fixturePolicy().Cost("", "fixture-model", &Usage{Input: 1_000_000, Output: 100_000}, time.Time{})
 	if cost == nil || *cost != 3 {
 		t.Fatalf("cost %v", cost)
 	}
@@ -25,10 +26,10 @@ func TestACallIsPricedFromTheTable(t *testing.T) {
 
 func TestAModelWithNoPriceIsUnmeasuredRatherThanFree(t *testing.T) {
 	policy := fixturePolicy()
-	if cost := policy.Cost("another-model", &Usage{Input: 10, Output: 10}); cost != nil {
+	if cost := policy.Cost("", "another-model", &Usage{Input: 10, Output: 10}, time.Time{}); cost != nil {
 		t.Fatalf("an unpriced model cost %v", *cost)
 	}
-	if cost := policy.Cost("fixture-model", nil); cost != nil {
+	if cost := policy.Cost("", "fixture-model", nil, time.Time{}); cost != nil {
 		t.Fatalf("an unmeasured answer cost %v", *cost)
 	}
 }
@@ -40,10 +41,10 @@ func TestThePolicyIsAFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !policy.Priced("m") || policy.Teams["a"].USDPerMonth != 50 {
+	if !policy.Priced("", "m") || policy.Teams["a"].USDPerMonth != 50 {
 		t.Fatalf("policy %+v", policy)
 	}
-	if none, err := LoadPolicy(""); err != nil || none.Priced("m") {
+	if none, err := LoadPolicy(""); err != nil || none.Priced("", "m") {
 		t.Fatalf("no file should be no policy, got %+v, %v", none, err)
 	}
 }

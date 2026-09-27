@@ -7,6 +7,8 @@
 // out/proxy.jsonl, so they cannot disagree.
 package spend
 
+import "strings"
+
 // Call is one line of out/proxy.jsonl: what went out, what came back, and what
 // it cost.
 //
@@ -23,9 +25,13 @@ type Call struct {
 	Error      string `json:"error,omitempty"`
 	AtUnix     int64  `json:"atUnix"`
 	// Model is what the request asked for, and the name the price is found by.
-	Model        string   `json:"model,omitempty"`
-	InputTokens  *int64   `json:"inputTokens"`
-	OutputTokens *int64   `json:"outputTokens"`
+	Model        string `json:"model,omitempty"`
+	InputTokens  *int64 `json:"inputTokens"`
+	OutputTokens *int64 `json:"outputTokens"`
+	// CachedTokens is the part of InputTokens the provider read from its cache
+	// and billed at its cache rate. A line written before it was counted has
+	// none, and is priced as if nothing was cached.
+	CachedTokens *int64   `json:"cachedTokens,omitempty"`
 	USD          *float64 `json:"usd"`
 	// Host is where a request other than a model call was going, as
 	// host:port. Such a request costs no model money and is not counted.
@@ -44,16 +50,32 @@ func (c Call) ToModel() bool { return c.Host == "" }
 // Measured says whether the cost of this call is known.
 func (c Call) Measured() bool { return c.USD != nil }
 
+// Counted says whether the provider's answer said what the call used.
+func (c Call) Counted() bool { return c.InputTokens != nil && c.OutputTokens != nil }
+
+// Named is what a report calls the model this call went to: the credential
+// and the model, as a job names it. A call that named no model, such as a
+// harness listing the models on offer, is named by its path instead.
+func (c Call) Named() string {
+	if c.Model == "" {
+		return strings.TrimSpace(c.Credential + " " + c.Path)
+	}
+	if c.Credential == "" {
+		return c.Model
+	}
+	return c.Credential + "/" + c.Model
+}
+
 // answered says whether the provider accepted the call. A successful answer
 // with no usage in it is the one a cap cannot live with, because the provider
 // billed something the proxy could not count.
 func (c Call) answered() bool { return c.Status >= 200 && c.Status < 300 }
 
-// Usage is the provider's own count of one call.
-type Usage struct {
-	Input  int64
-	Output int64
-}
+// billed says whether the provider charges for this call. An answer it turned
+// away is not billed, and neither is a request that asked no model anything,
+// such as a harness listing the models on offer. Only an accepted call to a
+// model that carried no count is money nobody can see.
+func (c Call) billed() bool { return c.answered() && c.Model != "" }
 
 // Refusal says which cap stopped a call and why, in words the person who asked
 // for the job can act on.

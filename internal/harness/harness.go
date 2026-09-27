@@ -81,7 +81,13 @@ type Adapter struct {
 	Endpoint string            `json:"endpoint,omitempty"`
 	// Stdin is what the harness reads on standard input. Some take the brief as
 	// an argument and some read it: codex waits on stdin forever otherwise.
-	Stdin  string `json:"stdin,omitempty"`
+	Stdin string `json:"stdin,omitempty"`
+	// Skills is the folder the harness finds skills in, each a directory with
+	// a SKILL.md. The runner puts a job's skills there before it starts. Empty
+	// is a harness that takes none.
+	Skills string `json:"skills,omitempty"`
+	// MCP is how the harness takes MCP servers, or nil when it takes none.
+	MCP    *MCP   `json:"mcp,omitempty"`
 	Needs  Needs  `json:"needs"`
 	Stream Stream `json:"stream"`
 	Totals Totals `json:"totals,omitempty"`

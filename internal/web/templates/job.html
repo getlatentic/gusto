@@ -1,107 +1,135 @@
 {{template "head" .}}
 
-<h2>{{.Job.Brief}}</h2>
-<table>
-  <tr><th>State</th><td><span class="state {{.Job.State}}" id="state">{{.Job.State}}</span></td></tr>
-  <tr><th>Harness</th><td>{{.Job.Harness}} {{with .Job.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
-  <tr><th>Instance</th><td>{{template "origin" .On}}</td></tr>
-  {{with .Job.Repo}}<tr><th>Repository</th><td>{{.}}</td></tr>{{end}}
-  {{with .Spec}}<tr><th>Gate</th><td><code>{{range .Gate}}{{.}} {{end}}</code></td></tr>{{end}}
-  <tr><th>Asked</th><td class="muted">{{when .Job.Queued}}{{with took .Job.Started .Job.Ended}}, took {{.}}{{end}}</td></tr>
-</table>
+<nav class="crumb" aria-label="Where this is">
+  <a href="/jobs">Jobs</a><span>/</span>
+  {{if .ThreadPath}}<a href="{{.ThreadPath}}">{{.On.Named}}</a><span>/</span>{{end}}
+  <span>this run</span>
+</nav>
 
-<h2>What the harness said</h2>
-{{if .Live}}
-<pre id="stream" class="muted">waiting…</pre>
-{{else}}{{with .Transcript}}
-{{if .Empty}}<p class="muted">The harness said nothing.</p>{{else}}
-<div class="transcript">{{.Text}}</div>
-{{template "cut" .}}{{end}}
-{{else}}
-<p class="muted">This job left no transcript.</p>
-{{end}}{{end}}
+<header class="run-head">
+  <h1 class="brief">{{.Job.Brief}}</h1>
+  <span class="state {{.Job.State}}" id="state">{{.Job.State}}</span>
+</header>
 
-{{with .Gate}}
-<h2>The gate</h2>
-<table>
-  {{with .Verdict}}
-  <tr><th>Command</th><td><code>{{$.Gate.Command}}</code></td></tr>
-  <tr><th>Exit code</th><td>{{.Code}}</td></tr>
-  <tr><th>Passed</th><td><span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{.Passed}}</span></td></tr>
-  {{else}}
-  <tr><th>Verdict</th><td class="muted">none: the run left no manifest, so the gate never answered</td></tr>
-  {{end}}
-</table>
-{{with .Log}}
-{{if $.Gate.Explains}}
-<h3>What the gate said</h3>
-<pre class="log">{{.Text}}</pre>
-{{template "cut" .}}
-{{else}}
-<details><summary>What the gate printed ({{.Whole}})</summary>
-<pre class="log">{{.Text}}</pre>
-{{template "cut" .}}
-</details>
-{{end}}
-{{end}}
-{{end}}
+<div class="run">
+<div class="run-main">
 
-{{with .Manifest}}
-<h2>What it cost</h2>
-<table>
-  <tr><th>Model</th><td>{{.ModelEndpoint}}</td></tr>
-  {{with .StoppedByCap}}<tr><th>Stopped by</th><td><span class="state failed">the {{.Cap}} cap</span> {{.Reason}}</td></tr>{{end}}
-  <tr><th>Tokens</th><td>{{if .Tokens}}{{.Tokens}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
-  <tr><th>Cost</th><td>{{with money .CostUSD}}{{.}}{{else}}<span class="muted">not reported</span>{{end}}</td></tr>
-  <tr><th>Signed by</th><td>{{$.SignedBy}}</td></tr>
-</table>
-{{end}}
-
-{{with .Patch}}
-<h2>What changed</h2>
-{{if .Empty}}<p class="muted">The harness changed nothing: the patch is empty.</p>{{end}}
-{{range .Files}}
-<section class="diff-file">
-  <h3><code>{{.Name}}</code> <span class="muted">+{{.Added}} −{{.Removed}}</span></h3>
-  {{range .Meta}}<div class="diff-meta">{{.}}</div>{{end}}
-  {{if .Binary}}<p class="muted">A binary file. The patch names it and does not carry its contents.</p>{{end}}
-  {{with .Hunks}}
-  <div class="diff-scroll"><table class="diff">
-    {{range .}}
-    <tr class="hunk"><td class="n"></td><td class="n"></td><td class="code">{{.Header}}</td></tr>
-    {{range .Lines}}<tr class="{{.Kind}}"><td class="n">{{if .Old}}{{.Old}}{{end}}</td><td class="n">{{if .New}}{{.New}}{{end}}</td><td class="code">{{.Text}}</td></tr>
+  <section class="panel">
+    <h2>{{if .ThreadPath}}Reply{{else}}What the harness said{{end}}</h2>
+    {{if .Live}}
+    <pre id="stream" class="muted">waiting…</pre>
+    {{else}}{{with .Transcript}}
+    {{if .Empty}}<p class="muted">The harness said nothing.</p>{{else}}
+    <div class="reply">{{markdown .Text}}</div>
+    {{template "cut" .}}{{end}}
+    {{else}}
+    <p class="muted">This run left no transcript.</p>
     {{end}}{{end}}
-  </table></div>
-  {{end}}
-</section>
-{{end}}
-{{template "cut" .}}
-{{end}}
+  </section>
 
-{{with .Verify}}
-<h2>Check it yourself</h2>
-<p><a href="{{.Bundle}}" download>Download the whole job</a> <span class="muted">(job.json, out/ and
-workspace/, which is what <code>haas verify</code> reads).</span> Then, in the directory the download landed in:</p>
-<div class="command">
-  <code id="verify">{{.Command}}</code>
-  <button type="button" id="copy-verify">Copy</button>
+  {{with .Ran}}
+  <section class="panel">
+    <h2>What it ran <span class="muted">{{len .}}</span></h2>
+    <ol class="ran">
+      {{range .}}<li><span class="tool">{{.Tool}}</span><code>{{.Says}}</code></li>{{end}}
+    </ol>
+  </section>
+  {{end}}
+
+  {{with .Patch}}
+  <section class="panel">
+    <h2>What changed{{if .Files}} <span class="muted">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}</span>{{end}}</h2>
+    {{if .Empty}}<p class="muted">The harness changed nothing: the patch is empty.</p>{{end}}
+    {{range .Files}}
+    <section class="diff-file">
+      <h3><code>{{.Name}}</code> <span class="plus">+{{.Added}}</span> <span class="minus">−{{.Removed}}</span></h3>
+      {{range .Meta}}<div class="diff-meta">{{.}}</div>{{end}}
+      {{if .Binary}}<p class="muted">A binary file. The patch names it and does not carry its contents.</p>{{end}}
+      {{with .Hunks}}
+      <div class="diff-scroll"><table class="diff">
+        {{range .}}
+        <tr class="hunk"><td class="n"></td><td class="n"></td><td class="code">{{.Header}}</td></tr>
+        {{range .Lines}}<tr class="{{.Kind}}"><td class="n">{{if .Old}}{{.Old}}{{end}}</td><td class="n">{{if .New}}{{.New}}{{end}}</td><td class="code">{{.Text}}</td></tr>
+        {{end}}{{end}}
+      </table></div>
+      {{end}}
+    </section>
+    {{end}}
+    {{template "cut" .}}
+  </section>
+  {{end}}
+
+  {{with .Gate}}
+  <section class="panel">
+    <h2>The gate</h2>
+    {{with .Verdict}}
+    <p class="verdict"><span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>
+      <code>{{$.Gate.Command}}</code> <span class="muted">exited {{.Code}}</span></p>
+    {{else}}
+    <p class="muted">The run stopped before its gate answered.</p>
+    {{end}}
+    {{with .Log}}
+    {{if $.Gate.Explains}}<h3>What the gate said</h3><pre class="log">{{.Text}}</pre>{{template "cut" .}}
+    {{else}}<details><summary>What the gate printed ({{.Whole}})</summary><pre class="log">{{.Text}}</pre>{{template "cut" .}}</details>{{end}}
+    {{end}}
+  </section>
+  {{end}}
+
 </div>
-<p class="muted">It re-hashes every file against the manifest and re-runs the gate in the checkout. It needs the
-directory, not this server.</p>
-{{end}}
 
-{{with .Files}}
-<h2>Evidence</h2>
-<table>
-  <tr><th>File</th><th>SHA-256, as the manifest has it</th></tr>
-  {{range .}}
-  <tr>
-    <td><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a></td>
-    <td>{{if .SHA256}}<code style="word-break: break-all">{{.SHA256}}</code>{{else}}<span class="muted">not in the manifest</span>{{end}}</td>
-  </tr>
+<aside class="run-side">
+  <section class="panel">
+    <dl class="facts">
+      <dt>Harness</dt><dd>{{.Job.Harness}}</dd>
+      {{with .Job.Model}}<dt>Model</dt><dd>{{.}}</dd>{{end}}
+      <dt>Ran on</dt><dd>{{template "origin" .On}}</dd>
+      {{with .Job.Repo}}<dt>Repository</dt><dd class="wrap">{{.}}</dd>{{end}}
+      <dt>Asked</dt><dd>{{when .Job.Queued}}</dd>
+      {{with took .Job.Started .Job.Ended}}<dt>Took</dt><dd>{{.}}</dd>{{end}}
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>What it cost</h2>
+    {{with .Calls}}
+    <dl class="facts">
+      <dt>Spent</dt><dd>{{if eq .Tally.Unmeasured 0}}{{.Tally.Money}}{{else if eq .Tally.USD 0.0}}<span class="muted">no price set</span>{{else}}{{.Tally.Money}}{{end}}</dd>
+      <dt>Model calls</dt><dd>{{.Tally.Calls}}{{with .Tally.Refused}}, <span class="state failed">{{.}} refused</span>{{end}}</dd>
+      <dt>Tokens in</dt><dd>{{tokens .Tally.InputTokens}}{{with .Tally.CachedTokens}} <span class="muted">({{tokens .}} cached)</span>{{end}}</dd>
+      <dt>Tokens out</dt><dd>{{tokens .Tally.OutputTokens}}</dd>
+    </dl>
+    {{with .Denied}}
+    <details><summary>{{len .}} request{{if ne (len .) 1}}s{{end}} to other hosts refused</summary>
+      <ul class="denied">{{range .}}<li><code>{{.Host}}</code></li>{{end}}</ul>
+    </details>
+    {{end}}
+    {{else}}
+    {{with $.Manifest}}{{if .CostUSD}}<p>{{money .CostUSD}} <span class="muted">as the harness reported it</span></p>{{else}}<p class="muted">This run made no call through the proxy.</p>{{end}}{{else}}<p class="muted">Nothing yet.</p>{{end}}
+    {{end}}
+    {{with .Manifest}}{{with .StoppedByCap}}<p><span class="state failed">stopped by the {{.Cap}} cap</span> {{.Reason}}</p>{{end}}{{end}}
+  </section>
+
+  {{with .Manifest}}
+  <section class="panel">
+    <h2>Evidence</h2>
+    <dl class="facts">
+      <dt>Signed by</dt><dd>{{$.SignedBy}}</dd>
+      <dt>Files</dt><dd>{{len $.Files}}</dd>
+    </dl>
+    {{with $.Verify}}
+    <p><a class="button small" href="{{.Bundle}}" download>Download the run</a></p>
+    <p class="muted small">Check it without this server:</p>
+    <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
+    {{end}}
+    <details><summary>Every file and its hash</summary>
+      <ul class="files">
+        {{range $.Files}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a>{{if .SHA256}}<code>{{.SHA256}}</code>{{else}}<span class="muted">not in the manifest</span>{{end}}</li>{{end}}
+      </ul>
+    </details>
+  </section>
   {{end}}
-</table>
-{{end}}
+</aside>
+</div>
 
 <script>
 (function () {

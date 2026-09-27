@@ -2,7 +2,6 @@ package spend
 
 import (
 	"bytes"
-	"encoding/json"
 	"strings"
 )
 
@@ -10,17 +9,15 @@ import (
 // holding it up. It is written to alongside the container, so the harness sees
 // every byte at the moment it would have without a proxy.
 //
-// The shape it reads is the documented OpenAI-compatible one: a `usage` object
-// with `prompt_tokens` and `completion_tokens`, at the top of a plain answer, or
-// in the last `data:` event of a streamed one. That path is written against the
-// documentation and has not yet been measured against a real upstream.
+// It reads chat completions, the responses API and Anthropic's messages, plain
+// and streamed, in the shapes DeepSeek answered them with on 2026-09-27.
 type Meter struct {
 	streamed bool
 	// pending is the part of a streamed answer after its last newline, and the
 	// whole of a plain one.
 	pending []byte
 	spilled bool
-	usage   *Usage
+	said    *reported
 }
 
 // meterLimit is how much of an answer the meter holds to find its usage. An
@@ -48,7 +45,9 @@ func (m *Meter) Write(given []byte) (int, error) {
 }
 
 // events reads every complete line of a stream, and keeps the rest for the
-// next write. The last usage a stream carries is the one kept.
+// next write. A stream can say its usage over several events, Anthropic's
+// input at the start and its output at the end, so each field keeps the last
+// value any event gave it.
 func (m *Meter) events() {
 	for {
 		end := bytes.IndexByte(m.pending, '\n')
@@ -64,38 +63,25 @@ func (m *Meter) events() {
 }
 
 // Usage is what the provider said the call cost in tokens, or nil when the
-// answer did not say.
+// answer did not say. A naming this does not know counts nothing, which is
+// reported as unmeasured rather than as free.
 func (m *Meter) Usage() *Usage {
 	if !m.streamed && !m.spilled {
 		m.read(m.pending)
 	}
-	return m.usage
+	if m.said == nil {
+		return nil
+	}
+	return m.said.usage()
 }
 
-// read takes the usage out of one answer. Providers name the same two numbers
-// two ways: chat completions say prompt and completion, while the responses API
-// and Anthropic say input and output. An answer carries one pair or the other,
-// so reading both namings counts every provider without being told which is
-// which — and a naming this does not know counts nothing, which is reported as
-// unmeasured rather than as free.
 func (m *Meter) read(text []byte) {
-	var answer struct {
-		Usage *struct {
-			Prompt     *int64 `json:"prompt_tokens"`
-			Completion *int64 `json:"completion_tokens"`
-			Input      *int64 `json:"input_tokens"`
-			Output     *int64 `json:"output_tokens"`
-		} `json:"usage"`
-	}
-	if json.Unmarshal(text, &answer) != nil || answer.Usage == nil {
+	found := usageIn(text)
+	if found == nil {
 		return
 	}
-	in, out := answer.Usage.Prompt, answer.Usage.Completion
-	if in == nil && out == nil {
-		in, out = answer.Usage.Input, answer.Usage.Output
+	if m.said == nil {
+		m.said = &reported{}
 	}
-	if in == nil || out == nil {
-		return
-	}
-	m.usage = &Usage{Input: *in, Output: *out}
+	m.said.merge(found)
 }

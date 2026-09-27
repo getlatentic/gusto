@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 )
 
@@ -68,6 +69,11 @@ func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 		t.Fatal(err)
 	}
 	server.UseKeyring(keyring)
+	setups, err := setup.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.UseSetups(setups, setup.Servers{"memory": {Name: "memory", Command: "mcp-server-memory", Env: map[string]string{"TOKEN": "s3cret"}}})
 	return &site{handler: server.Handler(), index: index, ran: ran}
 }
 
@@ -133,12 +139,16 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-// The front door is the catalog: what this deployment can start, and picking
-// one is the only thing on it to do.
+// The front door is what somebody already has. With nothing yet it sends them
+// to the catalog, which is where a harness is chosen.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	answer := site.ask(t, "GET", "/", nil)
+	home := site.ask(t, "GET", "/", nil).Body.String()
+	if !strings.Contains(home, "no harnesses yet") || !strings.Contains(home, `href="/new"`) {
+		t.Error("an empty home page does not send somebody to the catalog")
+	}
+	answer := site.ask(t, "GET", "/new", nil)
 	body := answer.Body.String()
 	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
@@ -188,7 +198,7 @@ func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 func offered() []catalog.Entry {
 	return []catalog.Entry{{
 		Name: "fixture", What: "what a fixture is", Program: "sh",
-		Needs: harness.NeedsNothing, Ready: true,
+		Needs: harness.NeedsNothing, Ready: true, Skills: true, MCP: true,
 	}}
 }
 
@@ -290,7 +300,7 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	if body := site.ask(t, "GET", first, nil).Body.String(); !strings.Contains(body, "only in the first") {
 		t.Error("the first thread does not carry what was said in it")
 	}
-	if body := site.ask(t, "GET", second, nil).Body.String(); strings.Contains(body, "only in the first") {
+	if body := site.ask(t, "GET", second+"/turns", nil).Body.String(); strings.Contains(body, "only in the first") {
 		t.Error("the second thread carries what was said in the first")
 	}
 }
@@ -414,7 +424,7 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 func TestTheCatalogSaysWhatEachHarnessIsAndOffersToStartIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/", nil).Body.String()
+	body := site.ask(t, "GET", "/new", nil).Body.String()
 	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, ">Start<") {
 		t.Error("the catalog does not offer to start anything")
 	}

@@ -1,0 +1,55 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+{{with .Template}}
+<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>template</span></nav>
+<header class="template-head">
+  {{template "industry" .Industry}}
+  <div>
+    <p class="industry">{{.Industry}}{{if .Restricted}} · <span class="restricted">restricted</span>{{end}}</p>
+    <h1>{{.Title}}</h1>
+    <p class="summary">{{.Summary}}</p>
+  </div>
+</header>
+
+<div class="run">
+<div class="run-main">
+  <section class="panel">
+    <h2>What it knows how to do</h2>
+    <ul class="skills">
+      {{range .Skills}}<li><span class="name">{{.Name}}</span><p class="muted">{{.Description}}</p>
+        <details><summary>Instructions</summary><div class="reply">{{markdown .Body}}</div></details></li>{{end}}
+    </ul>
+  </section>
+  <section class="panel">
+    <h2>Try asking</h2>
+    <ul class="asks">{{range .Starters}}<li>{{.}}</li>{{end}}</ul>
+  </section>
+  <section class="panel">
+    <h2>Its folder starts with</h2>
+    <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
+    <p class="muted small">Every sample file is invented for demonstration. None is anybody's record.</p>
+  </section>
+</div>
+
+<aside class="run-side">
+  <section class="panel">
+    <h2>Start it</h2>
+    {{if .Restricted}}<p class="notice">Restricted work runs only on a model inside your own network. haas refuses to send it to a provider outside, and says so, rather than letting it leave.</p>{{end}}
+    {{if $.Harnesses}}
+    <form class="stack" method="post" action="/templates/{{.Name}}">
+      <label>Harness
+        <select name="harness">{{range $.Harnesses}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+      </label>
+      <button type="submit">Start {{.Title}}</button>
+    </form>
+    {{else}}
+    <p class="muted">No harness here can take this template: it needs one that loads skills{{if .Servers}} and MCP servers{{end}}.</p>
+    {{end}}
+  </section>
+</aside>
+</div>
+{{end}}
+
+{{template "foot" .}}
