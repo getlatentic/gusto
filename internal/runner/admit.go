@@ -44,12 +44,12 @@ func Carries(name string, adapter harness.Adapter) error {
 	return nil
 }
 
-// refuse keeps the reason a job never started where a person reading the job
+// Refuse keeps the reason a job never started where a person reading the job
 // looks: the transcript, which the job page, the live stream and a
 // conversation all show. A run that does start truncates it, so a refusal
 // never outlives the next attempt. The reason is still returned, so the
 // process exits the way any runner error does.
-func refuse(dir job.Dir, reason error) error {
+func Refuse(dir job.Dir, reason error) error {
 	said := "haas refused this job before the harness started: " + reason.Error() + "\n"
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return errors.Join(reason, err)
