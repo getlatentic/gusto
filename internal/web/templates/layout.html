@@ -37,7 +37,7 @@
 {{define "mark"}}<span class="mark {{.Size}} {{hue .Field}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="letter">{{initial .Name}}</span>{{end}}</span>{{end}}
 {{define "field-drawing"}}<svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defence"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else if eq . "Engineering"}}<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>{{else}}<path d="M12 3v18M3 12h18"/>{{end}}</svg>{{end}}
 {{define "icon-info"}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8h.01M11 12h1v5h1"/><circle cx="12" cy="12" r="9"/></svg>{{end}}
-{{define "icon-lock"}}<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{end}}
+{{define "icon-lock"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{end}}
 {{/* industry is a template's mark: a line drawing for its field. */}}
 {{define "industry"}}<span class="field" aria-hidden="true"><svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defence"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else}}<path d="M4 4h16v16H4z"/>{{end}}</svg></span>{{end}}
 {{/* choices is a card a template, and one to start a blank agent. */}}
@@ -60,6 +60,8 @@
 {{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
 {{define "steps"}}<ol class="did">{{range .}}<li><span class="what">{{.What}}</span>{{with .Detail}} <span class="detail">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
+{{define "icon-shield"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l5 1.9v3.9c0 3-2.2 5.3-5 6.2-2.8-.9-5-3.2-5-6.2V3.7l5-1.9z"/></svg>{{end}}
+{{define "icon-seal"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 8.2l1.7 1.7 3.3-3.4"/><circle cx="8" cy="8" r="6"/></svg>{{end}}
 {{define "icon-file"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2H4.5A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V6L9 2zM9 2v4h4"/></svg>{{end}}
 {{define "icon-send"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>{{end}}
 {{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}

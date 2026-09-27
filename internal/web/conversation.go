@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -39,6 +40,11 @@ type turn struct {
 	// Stopped is the harness's last words when the turn failed, which is the
 	// reason as near as the record has one.
 	Stopped string
+	// Blocked is how many requests to other sites the proxy refused, and
+	// Signed whether the turn's record is signed: the guarantees, shown where
+	// the work is rather than a page away.
+	Blocked int
+	Signed  bool
 }
 
 // conversationPage is what both the whole page and the fragment need, so a
@@ -65,6 +71,11 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if record.State == jobs.Failed || record.State == jobs.Interrupted {
 			shown.Stopped = stopped(dir)
 		}
+		if calls := callsOf(dir); calls != nil {
+			shown.Blocked = len(calls.Denied)
+		}
+		_, err := os.Stat(dir.OutFile(evidence.SignatureFile))
+		shown.Signed = err == nil
 		turns = append(turns, shown)
 	}
 	running := ""

@@ -28,6 +28,11 @@
         {{template "icon-menu"}}
       </button>
       <span class="which">{{.Named}}</span>
+      <span class="guards" title="What keeps this agent's work safe">
+        <span class="chip">{{template "icon-shield"}} Sealed</span>
+        <span class="chip">{{template "icon-lock"}} Key stays with haas</span>
+        {{if eq .Instance.Sensitivity "restricted"}}<span class="chip">Stays in your network</span>{{end}}
+      </span>
       <a class="files-link" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}} Files</a>
     </div>
 
@@ -173,7 +178,10 @@
       {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}
       {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
       {{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}
-      <p class="meta">{{with took .Started .Ended}}{{.}}{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}} · {{.Spent.Money}}{{end}}{{end}} · <a href="/jobs/{{.ID}}">details</a></p>
+      <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
+        {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
+        {{if .Signed}}<span class="guard" title="This message's record is signed">{{template "icon-seal"}} Signed</span>{{end}}
+        <a href="/jobs/{{.ID}}">Details</a></p>
     </div>
   </div>
   {{end}}

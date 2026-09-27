@@ -41,6 +41,37 @@
   no_log: true
   notify: Restart haas
 
+# The key that signs every record. It is made on the box, the first time,
+# and never leaves it: the public half goes in the keyring the server names
+# signers by, and anyone who verifies a record needs only that.
+- name: The signing directories
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/{{ item.name }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { name: signing, mode: "0700" }
+    - { name: keyring, mode: "0755" }
+
+- name: The signing key
+  ansible.builtin.command:
+    cmd: "{{ live_bin }} keygen {{ signer_name }} -dir {{ app_root }}/var/signing"
+    creates: "{{ app_root }}/var/signing/{{ signer_name }}.key"
+  become_user: "{{ app_user }}"
+  notify: Restart haas
+
+- name: The signing key's public half, in the keyring
+  ansible.builtin.copy:
+    src: "{{ app_root }}/var/signing/{{ signer_name }}.pub"
+    dest: "{{ app_root }}/var/keyring/{{ signer_name }}.pub"
+    remote_src: true
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0644"
+  notify: Restart haas
+
 - name: The MCP servers directory
   ansible.builtin.file:
     path: "{{ app_root }}/var/mcp"
