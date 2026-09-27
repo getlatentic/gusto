@@ -307,6 +307,22 @@ plain text. The gate refused both, which is what it is for.
 One trivial task is not a benchmark. It is the number this repository can prove,
 and every figure above comes from a manifest in a job directory.
 
+### Measuring it yourself
+
+`haas matrix` runs a fixed set of jobs on every harness and model pair a plan
+names, keeps each run as an ordinary job directory, and writes the table in the
+shape above, with the place it ran as a column. A cell that finished is never
+run again unless asked, because each one costs money.
+
+```bash
+haas new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
+cp docs/matrix/issue-8.json plan.json          # opencode on two local models
+haas matrix plan.json -here                    # plan-matrix/table.md and table.json
+HAAS_MATRIX=plan-matrix/table.json haas serve  # mark a pair that cannot finish it
+```
+
+[docs/MATRIX.md](docs/MATRIX.md) has the plan, the layout and the columns.
+
 ### What a job needs from the machine
 
 An `opencode` job peaked at **662.7 MiB** in its container, sampled with

@@ -1,0 +1,8 @@
+{
+  "environment": "laptop",
+  "jobs": ["one-line-fix"],
+  "pairs": [
+    { "harness": "opencode", "model": "ollama/gpt-oss:20b" },
+    { "harness": "opencode", "model": "ollama/llama3.2:3b" }
+  ]
+}

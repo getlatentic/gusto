@@ -34,6 +34,7 @@ func run(args []string) int {
 		"submit":    submit,
 		"replay":    replayJobs,
 		"compare":   compareJobs,
+		"matrix":    matrixJobs,
 		"verify":    verify,
 		"check":     checkPull,
 		"ship":      shipJob,
@@ -66,6 +67,7 @@ func usage() {
   haas replay <dir>...  run finished jobs again at the same commit, compare verdicts [-here]
   haas export <dir>     an audit record anybody can verify [-to, -policy, -requests, -verify]
   haas compare <dir> <harness> <harness>  run one job on each harness, side by side [-here]
+  haas matrix <plan>    run jobs on harness and model pairs, a table of which finish [-here, -again, -json]
   haas serve            the pages: submit a job, watch it, read the record
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
