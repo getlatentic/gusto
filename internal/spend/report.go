@@ -70,6 +70,18 @@ func (l *Ledger) Months() []string {
 	return months
 }
 
+// Job is everything one job has spent, whatever month it was in, and whether
+// it reached a model at all.
+func (l *Ledger) Job(id string) (Tally, bool) {
+	l.guard.Lock()
+	defer l.guard.Unlock()
+	held, found := l.jobs[id]
+	if !found || held.tally.Calls+held.tally.Refused == 0 {
+		return Tally{}, false
+	}
+	return held.tally, true
+}
+
 // ThisMonth is the month a team's cap is counting now.
 func (l *Ledger) ThisMonth() string { return monthOf(l.now()) }
 
