@@ -3,9 +3,12 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/spend"
 )
 
 func TestASettingWrittenAsOneLineIsReadAsAList(t *testing.T) {
@@ -64,5 +67,27 @@ func TestAWorkspaceWithSomethingInItIsNotReplacedByALink(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir.Workspace(), "mine.txt")); err != nil {
 		t.Errorf("the file was lost: %v", err)
+	}
+}
+
+// A job naming a credential this deployment does not hold is refused by name,
+// before any container starts — not as a model call that fails somewhere inside
+// a run somebody then has to go and read.
+func TestAJobNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
+	way := &WayOut{
+		proxy:       &proxy.Proxy{},
+		tokens:      proxy.NewTokens(),
+		credentials: proxy.Credentials{"platform": {Name: "platform", Address: "https://example.invalid"}},
+		ledger:      spend.NewLedger(spend.Policy{}),
+	}
+	dir := job.Dir(t.TempDir())
+	_, err := way.Run(dir, job.Spec{Model: "nowhere/some-model"})
+	if err == nil {
+		t.Fatal("a credential nobody holds was allowed to start a container")
+	}
+	for _, want := range []string{"nowhere", "platform"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the refusal does not name %q: %v", want, err)
+		}
 	}
 }

@@ -1,5 +1,5 @@
-// Package web is the pages a person uses: submit a job, watch it happen, read
-// what it left behind.
+// Package web is the pages a person uses: start a harness, run work on it,
+// watch it happen, and read what every run left behind.
 //
 // Server-rendered, with the templates compiled into the binary, because a
 // customer installs one artifact and a second origin with its own build step is
@@ -65,7 +65,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
-	mux.HandleFunc("POST /jobs", s.guard(s.submit))
 	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))

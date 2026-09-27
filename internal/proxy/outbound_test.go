@@ -28,12 +28,12 @@ func openGateway(t *testing.T, allowed string) gateway {
 	tokens := NewTokens()
 	kept := t.TempDir()
 	ledger := spend.NewLedger(spend.Policy{})
-	proxy := New(tokens, Upstream{Address: "http://127.0.0.1:1"},
+	proxy := New(tokens, Credentials{"": {Address: "http://127.0.0.1:1"}},
 		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
 		ledger, ParseAllowlist(allowed))
 	server := httptest.NewServer(proxy.Handler())
 	t.Cleanup(server.Close)
-	token, err := tokens.Mint("a-job")
+	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,9 +151,9 @@ func TestTheOutboundWayNeedsAJobsToken(t *testing.T) {
 // A sealed container reaches the proxy through a socket, not a port.
 func TestTheProxyAnswersOnASocket(t *testing.T) {
 	tokens := NewTokens()
-	token, _ := tokens.Mint("a-job")
+	token, _ := tokens.Mint("a-job", "")
 	host, count := reached(t, false)
-	proxy := New(tokens, Upstream{Address: "http://127.0.0.1:1"},
+	proxy := New(tokens, Credentials{"": {Address: "http://127.0.0.1:1"}},
 		func(string) (string, bool) { return "", false }, spend.NewLedger(spend.Policy{}), ParseAllowlist(hostOf(host)))
 	socket := filepath.Join(t.TempDir(), "p.sock")
 	stop, err := proxy.ListenSocket(socket)

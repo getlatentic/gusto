@@ -39,11 +39,17 @@ it (`index.go:42-45`). `haas new` writes `job.json` and the adapter and no
 `state.json`, so a job made on the command line inside the server's jobs
 directory is invisible to the server.
 
+`instance` names the instance a job ran on. A task or a turn made on the pages
+records it; a job sent to `POST /api/jobs` has none, and neither has a job made
+by the form `/jobs` carried before a run belonged to an instance. The pages read
+a job without one as having run on no instance, and it lists and opens like any
+other.
+
 ## The transitions
 
 | from | to | what causes it | what the file gains |
 | --- | --- | --- | --- |
-| — | `queued` | the form is accepted (`internal/web/pages.go:95-103`) | every field, `queuedAt` |
+| — | `queued` | a task on an instance (`internal/web/tasks.go`), a turn in a thread (`internal/web/instances.go`) or a job sent to `POST /api/jobs` (`internal/web/api.go`) is accepted | every field, `queuedAt`; `instance` for a task or a turn, and `thread` for a turn |
 | `queued` | `running` | a worker takes the oldest queued job (`index.go:94-118`) | `startedAt` |
 | `running` | `passed` | the work returns exit 0 (`internal/jobs/queue.go:96`) | `exit` 0, `endedAt` |
 | `running` | `failed` | the work returns a non-zero exit (`queue.go:102-104`) | that `exit`, `endedAt` |
@@ -82,11 +88,13 @@ a container's own disk does not survive the container (`record.go:12-14`).
 the manifest's presence is what separates a run that reached its end from one
 that did not.
 
-The runner refuses the job before it writes anything when a restricted job names
-a model that is not local (`inside.go:36`), or when a harness needing a local
-model has none answering (`inside.go:39-43`). Neither leaves a gate verdict. In
-the box the refusal reaches the queue as exit 2; in the server's own process it
-reaches the queue as an error.
+The runner refuses the job before the harness starts when the harness's program
+is not on its PATH, when a restricted job names a model that is not local, or
+when a harness needing a local model has none answering (`runner/admit.go`). A
+refusal writes one file, `out/transcript.log`, holding the reason, so the job
+page, the live stream and a conversation show why the job never started. It
+leaves no gate verdict and no manifest. In the box the refusal reaches the queue
+as exit 2; in the server's own process it reaches the queue as an error.
 
 The budget that ends a harness is the time budget. `Inside` builds a context
 from `budget.seconds`, which defaults to 900 (`internal/job/job.go`).
@@ -182,8 +190,8 @@ and the queue reads it as a non-zero exit (`queue.go:102-104`). On the host —
 reading `job.json`, cloning the repository, starting the container — the error
 reaches the queue as an error and becomes `exit` -1 (`queue.go:98-101`). Measured
 on the container path: a job naming a harness the image does not carry ends
-`failed` with `exit` 2, and a job whose repository does not exist ends `failed`
-with `exit` -1.
+`failed` with `exit` 2, its transcript naming the missing program, and a job
+whose repository does not exist ends `failed` with `exit` -1.
 
 ## What a watcher sees
 

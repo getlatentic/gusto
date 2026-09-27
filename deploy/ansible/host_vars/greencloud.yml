@@ -30,9 +30,22 @@ redis_db: 4
 # token, so the proxy adds the credential the same way it would for any other:
 # the container is given a per-job token and never the key. The address is the
 # root, because the container supplies the rest of the path.
-model_upstream: "https://bedrock-mantle.us-east-1.api.aws"
-model_name: "bedrock qwen3-vl-235b"
-models: "platform/qwen.qwen3-vl-235b-a22b-instruct"
+# Measured on 2026-09-26: this endpoint serves 58 models, but only the
+# open-weights ones are licensed here. It answers /v1/chat/completions and
+# /v1/responses; the anthropic.* models it lists refuse both.
+credentials:
+  - name: platform
+    address: "https://bedrock-mantle.us-east-1.api.aws"
+    auth: bearer
+    key_var: model_key
+  # Measured on 2026-09-26: serves deepseek-flash and deepseek-v4-pro, and
+  # implements the responses API, which is the only wire codex still speaks.
+  - name: deepseek
+    address: "https://api.deepseek.com"
+    auth: bearer
+    key_var: deepseek_key
+
+models: "platform/qwen.qwen3-vl-235b-a22b-instruct,deepseek/deepseek-flash"
 
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.

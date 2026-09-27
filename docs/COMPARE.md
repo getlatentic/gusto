@@ -77,10 +77,10 @@ is what the comparison prints, not a failure of the comparison.
 
 ## Not yet
 
-- **A comparison from the pages.** The form and `POST /api/jobs` make one job.
-  Fanning a submission out there needs the queue to hold a comparison, which is
-  `internal/web` and `internal/jobs`; until then a comparison starts on the
-  command line.
+- **A comparison from the pages.** A task on an instance and `POST /api/jobs`
+  each make one job. Fanning a submission out there needs the queue to hold a
+  comparison, which is `internal/web` and `internal/jobs`; until then a
+  comparison starts on the command line.
 - **More than a verdict side by side.** The table shows the verdict, the
   harness's exit, the budget, tokens and cost. Comparing the patches is reading
   the two `diff.patch` files.

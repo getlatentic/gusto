@@ -61,9 +61,9 @@ func counted(t *testing.T, answering *model, terms spend.Terms) (*Proxy, string,
 	kept := t.TempDir()
 	ledger := spend.NewLedger(fixturePrices)
 	ledger.Begin("a-job", terms)
-	proxy := New(tokens, Upstream{Address: server.URL, Name: "the-platform-key"},
+	proxy := New(tokens, Credentials{"": {Address: server.URL, Name: "the-platform-key"}},
 		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
-	token, err := tokens.Mint("a-job")
+	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
 	}

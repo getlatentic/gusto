@@ -18,7 +18,6 @@ import (
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/rules"
 	"github.com/getlatentic/haas/internal/signing"
 )
 
@@ -44,15 +43,10 @@ func Inside(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if err := admit(spec, adapter); err != nil {
+		return 0, refuse(dir, err)
+	}
 	endpoint := adapter.EndpointOf()
-	if err := rules.Allows(spec, endpoint); err != nil {
-		return 0, err
-	}
-	if adapter.Needs == harness.NeedsLocal {
-		if err := Reachable(endpoint); err != nil {
-			return 0, err
-		}
-	}
 	if err := dir.Make(); err != nil {
 		return 0, err
 	}

@@ -1,60 +1,27 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+<p class="muted">Every run this server holds, whatever started it. A run happens on an instance, in its
+folder: start one from the <a href="/">catalog</a>.{{if .Harnesses}} For a one-off against a repository,
+start {{range $i, $name := .Harnesses}}{{if $i}}, {{end}}<a href="/instances/new?harness={{$name}}&amp;then=task">{{$name}}</a>{{end}}
+with that repository and run the task there.{{end}}</p>
 
-<form class="card" method="post" action="/jobs">
-  <div class="row">
-    <label><span class="line">Repository <span class="muted">optional</span></span>
-      <input name="repo" placeholder="git@github.com:you/repo.git">
-    </label>
-    <label>Gate
-      <input name="gate" placeholder="go test ./..." required>
-    </label>
-  </div>
-  <label>Brief
-    <textarea name="brief" placeholder="The add function subtracts. Fix it so add 2 3 prints 5." required></textarea>
-  </label>
-  <div class="row">
-    <label>Harness
-      <select name="harness">{{range .Harnesses}}<option>{{.}}</option>{{end}}</select>
-    </label>
-    <label><span class="line">Model <span class="muted">optional</span></span>
-      {{if .Models}}<select name="model"><option value="">whatever it defaults to</option>{{range .Models}}<option>{{.}}</option>{{end}}</select>
-      {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
-    </label>
-    <label>Sensitivity
-      <select name="sensitivity">
-        <option value="internal">internal</option>
-        <option value="public">public</option>
-        <option value="restricted">restricted — the model must be local</option>
-      </select>
-    </label>
-  </div>
-  <div class="row">
-    <label>Team <span class="muted">optional — its monthly cap applies</span>
-      <input name="team" placeholder="platform">
-    </label>
-    <label>Cap in dollars <span class="muted">optional — the job stops when its model calls cost this</span>
-      <input name="usd" inputmode="decimal" placeholder="5.00">
-    </label>
-  </div>
-  <button type="submit">Run it</button>
-</form>
-
-{{if .Jobs}}
-<h2>Jobs</h2>
+{{if .Runs}}
 <table>
-  <tr><th>Job</th><th>State</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
-  {{range .Jobs}}
+  <tr><th>Run</th><th>Verdict</th><th>Cost</th><th>Instance</th><th>Harness</th><th>Asked</th><th>Took</th></tr>
+  {{range .Runs}}
   <tr>
     <td><a href="/jobs/{{.ID}}">{{.Brief}}</a><br><span class="muted">{{.ID}}</span></td>
     <td><span class="state {{.State}}">{{.State}}</span></td>
+    <td>{{with money .Cost}}{{.}}{{else}}<span class="muted">not reported</span>{{end}}</td>
+    <td>{{template "origin" .On}}</td>
     <td>{{.Harness}}{{with .Model}}<br><span class="muted">{{.}}</span>{{end}}</td>
     <td class="muted">{{when .Queued}}</td>
     <td class="muted">{{took .Started .Ended}}</td>
   </tr>
   {{end}}
 </table>
+{{else}}
+<p class="muted">Nothing has run here yet.</p>
 {{end}}
 
 {{template "foot" .}}

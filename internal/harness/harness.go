@@ -229,10 +229,20 @@ func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *
 }
 
 func (a Adapter) fill(text string, spec job.Spec) string {
+	_, alone, _ := strings.Cut(spec.Model, "/")
+	if alone == "" {
+		alone = spec.Model
+	}
 	return strings.NewReplacer(
 		"{brief}", spec.Brief,
+		// A job names its model as the credential that serves it and then the
+		// model: `platform/qwen…`. A harness with its own provider list wants
+		// the whole thing, and one that passes the name straight to a provider
+		// wants the model alone.
 		"{model}", spec.Model,
+		"{modelId}", alone,
 		"{modelUrl}", ModelURL(),
+		"{modelToken}", ModelToken(),
 		"{session}", spec.Remembered,
 	).Replace(text)
 }
@@ -245,6 +255,11 @@ func ModelURL() string {
 	}
 	return "http://localhost:11434/v1"
 }
+
+// ModelToken is what the box was given in place of a credential. A harness that
+// reads its key from a variable of its own is handed this, so the real key
+// stays in the proxy and this is worth nothing once the job ends.
+func ModelToken() string { return os.Getenv("HAAS_MODEL_TOKEN") }
 
 // EndpointOf is the address a job will talk to, for the rules to check. A
 // harness that needs no model talks to nothing, and one holding its own account
