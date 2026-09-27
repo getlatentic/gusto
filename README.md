@@ -24,6 +24,9 @@ What it is for, and what it is not yet, is in [docs/DIRECTION.md](docs/DIRECTION
 go build -o haas ./cmd/haas
 ```
 
+To run the whole product, the pages included, on a machine or a cluster of your
+own, [deploy/README.md](deploy/README.md) has a compose file and a Helm chart.
+
 ## Run
 
 A job needs a repository, a brief, and the command that says pass or fail. The

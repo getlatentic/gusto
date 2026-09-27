@@ -1,0 +1,171 @@
+{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
+{{- range $name, $_ := .Values.env }}
+{{- if has $name $reserved }}
+{{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
+{{- end }}
+{{- end -}}
+{{- $runner := include "haas.image" (list "runner" .Values.image.runner) -}}
+{{- $socket := "/run/haas/runtime/docker.sock" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "haas.fullname" . }}
+  labels:
+    {{- include "haas.labels" . | nindent 4 }}
+spec:
+  # One server: the queue, the proxy and the spend ledger live in its process,
+  # and a second would run the same jobs directory twice. Recreate stops the
+  # old pod before the new one claims the volume.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "haas.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "haas.selector" . | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      # Nothing here speaks to the Kubernetes API, and a job must not find a
+      # token to try.
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # The server's own shutdown waits up to 30 seconds for its jobs to write
+      # their evidence; this is that and room to stop.
+      terminationGracePeriodSeconds: 60
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # The job runtime: a Docker daemon beside the server, which starts one
+        # container per job. It is privileged, which is root on the node that
+        # runs it. deploy/README.md says why this is the option shipped, what
+        # it costs, and what replaces it. It listens on a unix socket in the
+        # pod alone: the image's default would also open TCP 2375, without
+        # authentication, to anything that reaches the pod.
+        - name: runtime
+          image: {{ include "haas.image" (list "runtime" .Values.image.runtime) }}
+          # Always, in an init container, is a sidecar: it starts before the
+          # server, runs beside it, and stops after it.
+          restartPolicy: Always
+          args: ["dockerd", "--host=unix://{{ $socket }}"]
+          securityContext:
+            privileged: true
+          startupProbe:
+            exec:
+              command: ["docker", "-H", "unix://{{ $socket }}", "info"]
+            periodSeconds: 2
+            failureThreshold: 60
+          {{- with .Values.resources.runtime }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - { name: runtime-socket, mountPath: /run/haas/runtime }
+            - { name: runtime-storage, mountPath: /var/lib/docker }
+            # The same paths as the server's: it names a job's directory and
+            # the proxy's socket by the path it sees, and this daemon resolves
+            # them on its own filesystem.
+            - { name: data, mountPath: /var/lib/haas }
+            - { name: proxy-socket, mountPath: /run/haas/proxy }
+        # The server asks the runtime what the runner carries once, when it
+        # starts, so the runner is pulled before it does. The daemon's storage
+        # goes with the pod, so every new pod pulls it again.
+        - name: runner
+          image: {{ include "haas.image" (list "cli" .Values.image.cli) }}
+          command: ["docker", "pull", {{ $runner | quote }}]
+          env:
+            - { name: DOCKER_HOST, value: "unix://{{ $socket }}" }
+            {{- if .Values.runnerPullSecret }}
+            - { name: DOCKER_CONFIG, value: /etc/haas/pull }
+            {{- end }}
+          volumeMounts:
+            - { name: runtime-socket, mountPath: /run/haas/runtime }
+            {{- if .Values.runnerPullSecret }}
+            - { name: runner-pull, mountPath: /etc/haas/pull, readOnly: true }
+            {{- end }}
+      containers:
+        - name: server
+          image: {{ include "haas.image" (list "server" .Values.image.server) }}
+          args: ["serve"]
+          ports:
+            - { name: http, containerPort: 8040 }
+          env:
+            - { name: HAAS_ADDR, value: "0.0.0.0:8040" }
+            - { name: HAAS_CONTAINER, value: docker }
+            - { name: DOCKER_HOST, value: "unix://{{ $socket }}" }
+            - { name: HAAS_IMAGE, value: {{ $runner | quote }} }
+            - { name: HAAS_JOBS, value: /var/lib/haas/jobs }
+            - { name: HAAS_SESSIONS, value: /var/lib/haas/sessions }
+            - { name: HAAS_SETUPS, value: /var/lib/haas/setups }
+            # Not on the volume: a unix socket belongs on a filesystem both
+            # containers share in memory, whatever the storage class is.
+            - { name: HAAS_PROXY_SOCKET, value: /run/haas/proxy/proxy.sock }
+            - { name: HAAS_JOB_CONCURRENCY, value: {{ .Values.jobs.concurrency | quote }} }
+            - { name: HAAS_JOB_MEMORY, value: {{ .Values.jobs.memory | quote }} }
+            - { name: HAAS_JOB_CPUS, value: {{ .Values.jobs.cpus | quote }} }
+            - { name: HAAS_MODELS, value: {{ .Values.model.models | quote }} }
+            - { name: HAAS_ALLOWED_HOSTS, value: {{ .Values.model.allowedHosts | quote }} }
+            - name: HAAS_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: {{ include "haas.secretName" . }}, key: HAAS_PASSWORD }
+            {{- if .Values.credentials.existingSecret }}
+            - { name: HAAS_CREDENTIALS, value: /etc/haas/credentials }
+            {{- else if .Values.model.upstream }}
+            - { name: HAAS_MODEL_UPSTREAM, value: {{ .Values.model.upstream | quote }} }
+            - { name: HAAS_MODEL_NAME, value: {{ .Values.model.name | quote }} }
+            {{- if or .Values.model.key .Values.model.existingSecret }}
+            - name: HAAS_MODEL_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "haas.modelSecretName" . }}, key: HAAS_MODEL_KEY }
+            {{- end }}
+            {{- end }}
+            {{- range $name, $value := .Values.env }}
+            - { name: {{ $name }}, value: {{ $value | toString | quote }} }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 6
+          # Root, with no way to gain more: a job's container writes its
+          # evidence as root, and the server signs it in the same directory.
+          securityContext:
+            allowPrivilegeEscalation: false
+          {{- with .Values.resources.server }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/haas }
+            - { name: runtime-socket, mountPath: /run/haas/runtime }
+            - { name: proxy-socket, mountPath: /run/haas/proxy }
+            {{- if .Values.credentials.existingSecret }}
+            - { name: credentials, mountPath: /etc/haas/credentials, readOnly: true }
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "haas.claimName" . }}
+        - { name: runtime-socket, emptyDir: {} }
+        - { name: proxy-socket, emptyDir: {} }
+        - { name: runtime-storage, emptyDir: {} }
+        {{- if .Values.credentials.existingSecret }}
+        - name: credentials
+          secret:
+            secretName: {{ .Values.credentials.existingSecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- if .Values.runnerPullSecret }}
+        - name: runner-pull
+          secret:
+            secretName: {{ .Values.runnerPullSecret }}
+            items:
+              - { key: .dockerconfigjson, path: config.json }
+        {{- end }}
