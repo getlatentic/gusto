@@ -38,24 +38,33 @@ configured harnesses.
 
 ### What one is on disk
 
-A configured harness is a directory named after the harness, with the adapter at
-`adapter.json` and whatever shapes the harness beside it:
+A configured harness is two things a job carries: the harness's directory, and
+the job's setup.
 
 ```
-opencode/
-  adapter.json          how to run it: the adapter, and the only file haas reads
-  prompt.md             standing instructions
-  model.json            the model policy
-  mcp.json              the MCP servers it may start
-  skills/<name>/SKILL.md
+job/
+  harnesses/opencode/
+    adapter.json          how to run it: the adapter, and the only file haas reads
+    prompt.md             standing instructions
+    model.json            the model policy
+  setup/
+    skills/<name>/SKILL.md  the skills it is given
+    servers.json            the MCP servers it may call
 ```
 
-Only `adapter.json` is required, and the other names are a convention rather
-than a schema: haas does not interpret them. The adapter points its harness at
-them through `{harnessDir}`, which is filled with the directory's path, so
-`"argv": ["--append-system-prompt-file", "{harnessDir}/prompt.md"]` hands claude
-its prompt. Every file in the directory is part of the configured harness, named
+The directory holds `adapter.json`, which is required, and whatever the adapter
+points its harness at. The other names are a convention rather than a schema:
+haas does not interpret them. The adapter reaches them through `{harnessDir}`,
+which is filled with the directory's path, so `"argv":
+["--append-system-prompt-file", "{harnessDir}/prompt.md"]` hands claude its
+prompt. Every file in the directory is part of the configured harness, named
 above or not.
+
+The setup is the skills and MCP servers a person chose, carried in the job's
+`setup/` and handed to the harness the way its adapter says (`skills`, `mcp`).
+It is part of the configured harness too: the same adapter given two setups is
+two configured harnesses. A harness directory may not have a `setup/` folder of
+its own, because the digest lists the job's setup under that name.
 
 A bare adapter, `opencode.json`, is the smallest configured harness: an adapter
 alone. It is read exactly as a directory holding only `adapter.json` would be,
@@ -66,7 +75,8 @@ than guessed at.
 
 ### Its digest
 
-A configured harness is named by its **digest**, a SHA-256 over its files,
+A configured harness is named by its **digest**, a SHA-256 over its files and
+its setup's,
 because a name is what two teams can both say while meaning different things.
 Anybody holding the directory computes the same string, with or without haas;
 [FORMATS.md](FORMATS.md#the-configured-harness-digest) gives the steps. Every run
@@ -88,16 +98,19 @@ same digest.
 ### What it declares and what the run proves
 
 Skills, the prompt, the model policy and the adapter are files, and the
-directory holds them. The harness program itself, an MCP server's process and
-the model are referenced rather than held: a name and a version in the
-directory, resolved when the job runs. A digest over a reference is not proof
+directory and the setup hold them. The harness program itself, an MCP server's
+process and the model are referenced rather than held: a program's name in the
+adapter or in `servers.json`, resolved when the job runs. A digest over a reference is not proof
 of what the reference resolved to. The directory declares; the evidence of a
 run is what proves, and recording what each reference resolved to beside the
 digest is work still to come.
 
 ### What it may not change
 
-A configured harness is read, not written. The digest is taken before the
+A configured harness is read, not written. That holds for what the job carries;
+a harness given skills finds them where its adapter's `skills` says, which is
+outside the job and outside the digest, and the runner copies them there
+afresh from the setup before each run. The digest is taken before the
 harness starts, so nothing it writes during a run changes what the manifest
 says ran, and a harness that does write to its own directory shows up as a
 changed harness when the job is verified. A harness that learns writes what it

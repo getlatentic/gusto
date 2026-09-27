@@ -106,7 +106,10 @@ The code is `internal/harness/digest.go`; these are the steps it follows.
 
 1. **Take the files.** Every regular file under the harness's directory, by its
    path relative to that directory, with `/` between the parts. A bare adapter,
-   `name.json`, is one file at the path `adapter.json`.
+   `name.json`, is one file at the path `adapter.json`. When the job carries a
+   setup, every file under its `setup/` joins them at `setup/` and its path
+   there, so a harness and its setup digest as one directory holding both. A
+   harness directory with a `setup/` of its own is refused.
 2. **Leave out version control.** Any file or directory named `.git`, `.hg` or
    `.svn`, and everything under it.
 3. **Refuse what is not a file.** A symbolic link, a device, a socket or a pipe
@@ -132,7 +135,8 @@ each set afresh, and none of it changes what the harness does:
 | `.git`, `.hg`, `.svn` | the history is not the harness, and a tarball has none of it |
 
 Without Go, in a POSIX shell with GNU `find`, `sort` and `sha256sum`, run in
-the harness's directory:
+the harness's directory, with the job's `setup/` copied into it when there is
+one:
 
 ```sh
 find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P\n' |
@@ -145,13 +149,14 @@ find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P
 It prints the hex without the prefix, and it does not refuse links, so check
 for them with `find . -type l` first. The test in
 `internal/harness/digest_test.go` holds a fixture's digest, written down, and
-those shell steps give the same one.
+those shell steps give the same one. `setup_test.go` holds that a harness and
+its setup digest as one directory holding both.
 
 ### Where the digest is taken
 
 The runner reads the configured harness once, before the harness starts, and
 takes both the adapter it runs and the digest from that one reading, from the
-job's own `harnesses/` when the job carries it. A harness built into haas is
+job's own `harnesses/` when the job carries it, and from the job's `setup/`. A harness built into haas is
 not carried, and its digest is of the adapter built into the runner that ran
 it, which is what ran.
 
