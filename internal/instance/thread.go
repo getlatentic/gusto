@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -144,6 +145,40 @@ func (s *Store) Said(id, thread, job, remembered string) error {
 	}
 	s.threads[id][held.ID] = held
 	return s.writeThread(held)
+}
+
+// Name gives a thread a title when it has none. Somebody who named a thread
+// keeps their name; one opened without is named by what was first said in it,
+// which is how a list of conversations is told apart.
+func (s *Store) Name(id, thread, title string) error {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	held, found := s.threads[id][thread]
+	if !found {
+		return fmt.Errorf("no thread %s on %s", thread, id)
+	}
+	if held.Title != "" || title == "" {
+		return nil
+	}
+	held.Title = title
+	s.threads[id][held.ID] = held
+	return s.writeThread(held)
+}
+
+// TitleOf is the start of what was said, short enough for a list: the first
+// line, cut at a word.
+func TitleOf(said string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(said), "\n")
+	words := strings.Fields(line)
+	const most = 48
+	title := ""
+	for _, word := range words {
+		if len(title)+len(word)+1 > most {
+			return title + "…"
+		}
+		title = strings.TrimSpace(title + " " + word)
+	}
+	return title
 }
 
 func (s *Store) writeThread(thread Thread) error {

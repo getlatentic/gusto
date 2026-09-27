@@ -258,3 +258,23 @@ func TestARemovedInstanceIsGoneButItsFilesAreKept(t *testing.T) {
 		t.Error("the workspace should be moved aside, not deleted")
 	}
 }
+
+func TestAThreadIsNamedByWhatWasFirstSaidInIt(t *testing.T) {
+	if got := TitleOf("Draft a SOAP note from visit-notes.txt and keep it short, please, because it is long\nmore"); got != "Draft a SOAP note from visit-notes.txt and keep…" {
+		t.Errorf("title %q", got)
+	}
+	store, _ := Open(t.TempDir())
+	if _, err := store.Start("one", Instance{Harness: "dsh"}); err != nil {
+		t.Fatal(err)
+	}
+	named, _ := store.NewThread("one", "chosen")
+	store.Name("one", named.ID, "from the first message")
+	store.Name("one", "1", "first")
+	store.Name("one", "1", "second")
+	if held, _ := store.Thread("one", named.ID); held.Title != "chosen" {
+		t.Errorf("a chosen title was replaced with %q", held.Title)
+	}
+	if held, _ := store.Thread("one", "1"); held.Title != "first" {
+		t.Errorf("the first message's title became %q", held.Title)
+	}
+}

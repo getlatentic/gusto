@@ -300,7 +300,7 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	if body := site.ask(t, "GET", first, nil).Body.String(); !strings.Contains(body, "only in the first") {
 		t.Error("the first thread does not carry what was said in it")
 	}
-	if body := site.ask(t, "GET", second, nil).Body.String(); strings.Contains(body, "only in the first") {
+	if body := site.ask(t, "GET", second+"/turns", nil).Body.String(); strings.Contains(body, "only in the first") {
 		t.Error("the second thread carries what was said in the first")
 	}
 }

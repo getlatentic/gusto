@@ -145,12 +145,6 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
 .rail { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--yg-space-4);
   min-height: 0; min-width: 0; padding: var(--yg-space-6) var(--yg-space-4);
   border-right: 1px solid var(--yg-border); }
-.rail .whose { display: grid; gap: var(--yg-space-1); min-width: 0; padding: 0 var(--yg-space-3); }
-.rail .whose a { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em;
-  color: var(--yg-text); text-decoration: none; }
-.rail .whose a:hover { color: var(--yg-accent-text); }
-.rail .whose span { font-size: .8125rem; color: var(--yg-text-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rail ol { list-style: none; margin: 0; padding: 0; overflow-y: auto;
   display: grid; gap: 2px; align-content: start; }
 .rail ol a { display: block; padding: var(--yg-space-2) var(--yg-space-3);
@@ -158,26 +152,11 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
   text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rail ol a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
 .rail ol a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
-.rail button { width: 100%; justify-self: stretch; display: inline-flex; align-items: center;
-  justify-content: center; gap: var(--yg-space-2); font-weight: 400; font-size: .875rem;
-  background: none; color: var(--yg-text-muted); border: 1px dashed var(--yg-border-strong); }
-.rail button:hover { background: none; color: var(--yg-accent-text); border-color: var(--yg-accent); }
-
 /* What was said scrolls; what you type does not. Both sit in one column of a
    readable width, so a reply and the box you answer it in line up. */
-.talk { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+.talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 .said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
 .column { max-width: 46rem; margin: 0 auto; }
-.composer { border-top: 1px solid var(--yg-border); padding: var(--yg-space-5) var(--yg-space-6); }
-.composer form { display: flex; align-items: flex-end; gap: var(--yg-space-3);
-  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
-  background: var(--yg-surface); border: 1px solid var(--yg-border-strong);
-  border-radius: var(--yg-radius-lg); }
-.composer form:focus-within { border-color: var(--yg-accent); }
-.composer textarea { flex: 1; min-width: 0; min-height: 2.75rem; max-height: 14rem; padding: var(--yg-space-2) 0;
-  border: 0; background: none; resize: none; }
-.composer textarea:focus-visible { outline: none; }
-.composer button { flex: none; padding: var(--yg-space-3) var(--yg-space-5); }
 .nothing-said { color: var(--yg-text-muted); text-align: center;
   padding: var(--yg-space-16) 0; }
 
@@ -379,7 +358,7 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
 
 /* A bar for the narrow case: which conversation you are in, and the way to the
    rest of them. It is not there when the list already is. */
-.talk-top { display: none; align-items: center; gap: var(--yg-space-3);
+.talk-top { display: flex; align-items: center; gap: var(--yg-space-3);
   padding: var(--yg-space-3) var(--yg-space-4);
   border-bottom: 1px solid var(--yg-border); }
 .talk-top .which { font-weight: 600; overflow: hidden;
@@ -395,8 +374,6 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
    out as tabs stops reading as the thing you keep and start. */
 @media (max-width: 56rem) {
   .desk { grid-template-columns: minmax(0, 1fr); }
-  .talk { grid-template-rows: auto minmax(0, 1fr) auto; }
-  .talk-top { display: flex; }
   .rail { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(17rem, 82vw);
     background: var(--yg-bg); box-shadow: var(--yg-shadow-3);
     transform: translateX(-100%);
@@ -463,3 +440,83 @@ ul.measured li { display: flex; justify-content: space-between; gap: var(--yg-sp
 ul.measured .model { color: var(--yg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 ul.measured li.finished span:last-child::before { content: "✓ "; color: var(--yg-success); }
 ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
+
+/* The chat. Down the side, the harness and its threads, the newest thread one
+   click from the top. In the middle, what you said on the right and what came
+   back on the left beside the harness's mark, with what it did folded above
+   the reply and what it took quietly under it. */
+.rail .whose { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0;
+  padding: var(--yg-space-2); border-radius: var(--yg-radius-sm); color: inherit; text-decoration: none; }
+.rail .whose:hover { background: var(--yg-bg-subtle); }
+.rail .whose .who { display: grid; min-width: 0; }
+.rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
+.rail .whose .model { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail { grid-template-rows: auto auto minmax(0, 1fr); }
+button.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
+  background: var(--yg-surface); color: var(--yg-text); font-weight: 500;
+  border: 1px solid var(--yg-border-strong); }
+button.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
+.talk-top { gap: var(--yg-space-3); padding: var(--yg-space-3) var(--yg-space-6);
+  border-bottom: 1px solid var(--yg-border); min-height: 3.25rem; }
+.talk-top .rail-toggle { display: none; padding: var(--yg-space-2); }
+.talk-top .which { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.talk-top .with { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; }
+.turn { margin-bottom: var(--yg-space-6); }
+.said { margin: 0 0 var(--yg-space-4) auto; max-width: 36rem; overflow-wrap: anywhere; }
+.answer { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: var(--yg-space-3); align-items: start; }
+.answer .avatar, .start .avatar { width: 2rem; height: 2rem; font-size: .875rem; }
+.answer .body { min-width: 0; padding-top: 3px; }
+details.steps { margin: 0 0 var(--yg-space-3); font-size: .8125rem; }
+details.steps summary { cursor: pointer; color: var(--yg-text-muted); width: fit-content;
+  padding: 2px var(--yg-space-3); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); }
+details.steps summary:hover { color: var(--yg-text); }
+details.steps ol { list-style: none; margin: var(--yg-space-2) 0 0; padding: 0 0 0 var(--yg-space-3);
+  border-left: 2px solid var(--yg-border); display: grid; gap: var(--yg-space-1); }
+details.steps .what { font-weight: 600; color: var(--yg-text); }
+details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.answer .meta { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); opacity: 0;
+  transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
+.turn:hover .answer .meta, .turn:focus-within .answer .meta, .turn:last-child .answer .meta { opacity: 1; }
+.answer .meta a { color: inherit; }
+.stopped { margin: var(--yg-space-2) 0 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .875rem;
+  background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
+.stopped code { font: 12px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.working .status { margin: 0; display: flex; align-items: center; gap: var(--yg-space-2); color: var(--yg-text-muted); font-size: .875rem; }
+.working .elapsed { font-variant-numeric: tabular-nums; color: var(--yg-text-subtle); }
+.working pre { margin-top: var(--yg-space-3); max-height: 16rem; font-size: 12px; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--yg-accent); animation: dot 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: .15s; }
+.dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } }
+.start { display: grid; justify-items: center; gap: var(--yg-space-3); text-align: center; padding: var(--yg-space-16) 0 var(--yg-space-8); }
+.start .avatar.big { width: 3rem; height: 3rem; font-size: 1.25rem; }
+.start h2 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em;
+  text-transform: none; color: var(--yg-text); }
+.start p { margin: 0; max-width: 30rem; }
+.starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--yg-space-3);
+  width: 100%; margin-top: var(--yg-space-4); }
+button.starter { text-align: left; font-weight: 400; font-size: .875rem; line-height: 1.4; color: var(--yg-text);
+  background: var(--yg-surface); border: 1px solid var(--yg-border); padding: var(--yg-space-3) var(--yg-space-4);
+  border-radius: var(--yg-radius-md); justify-self: stretch; }
+button.starter:hover { background: var(--yg-surface); border-color: var(--yg-accent); }
+.composer { padding: var(--yg-space-3) var(--yg-space-6) var(--yg-space-4); }
+.composer .box { display: flex; align-items: flex-end; gap: var(--yg-space-2);
+  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
+  background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-lg);
+  box-shadow: var(--yg-shadow-1); }
+.composer .box:focus-within { border-color: var(--yg-accent); }
+.composer textarea { flex: 1; min-width: 0; min-height: 2.5rem; max-height: 14rem; padding: var(--yg-space-2) 0;
+  border: 0; background: none; resize: none; }
+.composer textarea:focus-visible { outline: none; }
+button.send { flex: none; width: 2.25rem; height: 2.25rem; padding: 0; display: grid; place-items: center;
+  border-radius: var(--yg-radius-full); }
+button.send svg.i { opacity: 1; stroke-width: 2; }
+.composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
+@media (max-width: 56rem) {
+  .talk-top .rail-toggle { display: inline-flex; }
+  .talk-top .with { display: none; }
+  .composer .hint { display: none; }
+}
