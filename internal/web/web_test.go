@@ -56,7 +56,7 @@ func openAt(t *testing.T, root string) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, instances, queue, password, &Identity{}, offered(), []string{"platform/test-model"})
+	server, err := New(index, instances, queue, password, &Identity{}, offered(), Everything([]string{"platform/test-model"}))
 	if err != nil {
 		t.Fatal(err)
 	}

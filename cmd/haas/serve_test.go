@@ -91,3 +91,40 @@ func TestAJobNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
 		}
 	}
 }
+
+// Starting a harness from the catalog chooses no model, so it is given one. It
+// must not be given one its credential will refuse: codex was handed the
+// platform credential, whose provider rejects the tools codex sends, and the
+// instance failed on its first message.
+func TestAHarnessIsOnlyOfferedModelsItsCredentialWillServe(t *testing.T) {
+	credentials := proxy.Credentials{
+		// Measured: this one answers opencode and refuses what codex sends.
+		"platform": {Name: "platform", Address: "https://one.invalid", Harnesses: []string{"opencode"}},
+		"deepseek": {Name: "deepseek", Address: "https://two.invalid"},
+	}
+	offered := offeredModels(credentials,
+		[]string{"platform/qwen", "deepseek/deepseek-flash"},
+		[]string{"opencode", "codex"})
+
+	if got := offered.First("codex"); got != "deepseek/deepseek-flash" {
+		t.Errorf("codex would be started on %q", got)
+	}
+	if got := offered.For("codex"); len(got) != 1 {
+		t.Errorf("codex is offered %v", got)
+	}
+	if got := offered.For("opencode"); len(got) != 2 {
+		t.Errorf("opencode is offered %v, and its credential serves it", got)
+	}
+}
+
+// A deployment that has found no exceptions says nothing, and every harness is
+// offered everything.
+func TestSayingNothingOffersEveryHarnessEverything(t *testing.T) {
+	credentials := proxy.Credentials{"platform": {Name: "platform", Address: "https://one.invalid"}}
+	offered := offeredModels(credentials, []string{"platform/qwen"}, []string{"opencode", "codex"})
+	for _, harness := range []string{"opencode", "codex", "one-nobody-configured"} {
+		if got := offered.First(harness); got != "platform/qwen" {
+			t.Errorf("%s would be started on %q", harness, got)
+		}
+	}
+}

@@ -38,6 +38,26 @@ type Credential struct {
 	Address string `json:"address"`
 	Key     string `json:"key,omitempty"`
 	Auth    Auth   `json:"auth,omitempty"`
+	// Harnesses is which harnesses this credential can actually serve, where
+	// that is narrower than all of them. Naming none means all of them, which
+	// is the ordinary case; naming some is how a deployment records that a
+	// provider refuses what a particular harness sends it.
+	Harnesses []string `json:"harnesses,omitempty"`
+}
+
+// Serves reports whether this credential will answer that harness. A credential
+// naming no harnesses answers every one, so a deployment says nothing until it
+// has found out otherwise.
+func (c Credential) Serves(harness string) bool {
+	if len(c.Harnesses) == 0 {
+		return true
+	}
+	for _, named := range c.Harnesses {
+		if named == harness {
+			return true
+		}
+	}
+	return false
 }
 
 // apply puts this credential on a request and takes off whatever the container

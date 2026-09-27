@@ -49,7 +49,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Title":   "haas — " + entry.Name,
 				"Nav":     "harnesses",
 				"Harness": entry,
-				"Models":  s.models,
+				"Models":  s.models.For(entry.Name),
 				"Then":    r.URL.Query().Get("then"),
 				"Refused": r.URL.Query().Get("refused"),
 			})
@@ -85,10 +85,11 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/", "pick a harness to start")
 		return
 	}
-	// Starting from the catalog names no model, and the deployment's first is
-	// what the page would have offered anyway.
-	if wanted.Model == "" && len(s.models) > 0 {
-		wanted.Model = s.models[0]
+	// Starting from the catalog names no model, so it gets the first this
+	// deployment offers *that harness* — not the first it offers at all, which
+	// may be one this harness cannot use.
+	if wanted.Model == "" {
+		wanted.Model = s.models.First(wanted.Harness)
 	}
 	name := wanted.Harness
 	if wanted.Repo != "" {

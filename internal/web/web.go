@@ -29,11 +29,11 @@ type Server struct {
 	templates *template.Template
 	identity  *Identity
 	catalog   []catalog.Entry
-	models    []string
+	models    Models
 	ledger    *spend.Ledger
 }
 
-func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models []string) (*Server, error) {
+func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err

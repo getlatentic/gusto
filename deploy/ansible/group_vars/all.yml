@@ -133,6 +133,7 @@ proxy_addr: "0.0.0.0:8041"
 #       address: "https://…"        # the model's root, with no version on it
 #       auth: bearer                # bearer, or anthropic for its own header
 #       key_var: model_key
+#       harnesses: [opencode]        # optional: the ones it will serve, if not all
 credentials: []
 
 # ── The model ───────────────────────────────────────────────────────────────
