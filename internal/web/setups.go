@@ -2,10 +2,12 @@ package web
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/setup"
@@ -13,8 +15,18 @@ import (
 
 // UseSetups hands the pages the store of setups and the MCP servers this
 // deployment offers. A server without it offers no setups.
+// Each template already installed is brought up to the version this build
+// ships, so a fixed skill reaches the agents started from it.
 func (s *Server) UseSetups(store *setup.Store, servers setup.Servers) {
 	s.setups, s.servers = store, servers
+	for _, held := range industry.All() {
+		if _, installed := store.Get(held.Name); !installed {
+			continue
+		}
+		if err := s.install(held); err != nil {
+			slog.Warn("a template's skills were not brought up to date", "template", held.Name, "error", err)
+		}
+	}
 }
 
 // UseInBuilding tells the pages whether restricted work can run here.
