@@ -1,0 +1,20 @@
+{
+  "name": "dsh",
+  "what": "DeepSeek's own agent, where every part of it is a plugin.",
+  "program": "dsh",
+  "argv": [
+    "--profile",
+    "acp",
+    "--patch",
+    "/root/.config/dsh/haas.patch.yml"
+  ],
+  "env": {
+    "DEEPSEEK_BASE_URL": "{modelUrl}",
+    "DEEPSEEK_API_KEY": "{modelToken}",
+    "HAAS_MODEL_ID": "{modelId}",
+    "DSH_HOME": "/root/.local/share/dsh"
+  },
+  "needs": "key",
+  "endpoint": "https://api.deepseek.com",
+  "stream": "acp"
+}
