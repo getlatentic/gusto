@@ -26,6 +26,9 @@ type Entry struct {
 	// when it cannot, in words somebody can act on.
 	Ready bool
 	Why   string
+	// Measured is what a matrix saw this harness do on its simplest job, one
+	// run a model. Empty is a harness no matrix measured.
+	Measured []Measured
 }
 
 // What a harness needs, said plainly rather than as a keyword.
@@ -45,9 +48,11 @@ func (e Entry) Wants() string {
 
 // Survey asks the image which harnesses it carries. It is done once, when the
 // server starts, because the answer only changes when the image does and asking
-// per page would start a container for every row.
+// per page would start a container for every row. The matrix named by
+// HAAS_MATRIX is read then too, so a pair that cannot finish the simplest job
+// says so.
 func Survey(runtime, image string, names []string) []Entry {
-	return Of(Container(runtime, image), names)
+	return measuredFromSetting(Of(Container(runtime, image), names))
 }
 
 // Of builds the catalog from what one image answers. A name nobody can load is
