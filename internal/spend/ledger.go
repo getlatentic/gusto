@@ -34,12 +34,13 @@ func (t *Tally) add(call Call) {
 		t.InputTokens += valueOf(call.InputTokens)
 		t.CachedTokens += valueOf(call.CachedTokens)
 		t.OutputTokens += valueOf(call.OutputTokens)
-	} else {
+	} else if call.billed() {
 		t.Uncounted++
 	}
-	if call.Measured() {
+	switch {
+	case call.Measured():
 		t.USD += *call.USD
-	} else {
+	case call.billed() || call.Counted():
 		t.Unmeasured++
 	}
 }
@@ -146,14 +147,14 @@ func (l *Ledger) Count(job string, call Call) {
 	defer l.guard.Unlock()
 	held := l.account(job)
 	held.tally.add(call)
-	if call.Refused == nil && call.answered() && !call.Measured() {
+	if call.Refused == nil && call.billed() && !call.Measured() {
 		held.blind++
 	}
 	sent := time.Unix(call.AtUnix, 0).UTC()
 	month := monthOf(sent)
 	for scope, name := range map[string]string{
 		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
-		ByHarness: held.terms.Harness, ByModel: call.Priced(), ByDay: sent.Format("2006-01-02"),
+		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"),
 	} {
 		l.tally(scope, name, month).add(call)
 	}

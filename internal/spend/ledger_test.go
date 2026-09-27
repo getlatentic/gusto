@@ -94,7 +94,7 @@ func TestACapRefusesWhatItCannotCount(t *testing.T) {
 }
 
 // A provider that refused a call billed nothing for it, so an error without
-// usage is recorded as unmeasured and does not blind the cap.
+// usage costs nothing and does not blind the cap.
 func TestAnErrorWithoutUsageDoesNotStopACappedJob(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
@@ -107,7 +107,7 @@ func TestAnErrorWithoutUsageDoesNotStopACappedJob(t *testing.T) {
 func TestARefusedCallCostsNothingAndIsNotACall(t *testing.T) {
 	var tally Tally
 	tally.add(RefusedCall("/v1/chat/completions", "fixture-model", september.Unix(), &Refusal{Cap: "job"}))
-	unmeasured := Call{Status: 200}
+	unmeasured := Call{Status: 200, Model: "fixture-model"}
 	tally.add(unmeasured)
 	tally.add(answered(0.25, september))
 	if tally.Calls != 2 || tally.Unmeasured != 1 || tally.USD != 0.25 || tally.InputTokens != 10 {
@@ -148,5 +148,18 @@ func TestTokensAreCountedWhenTheModelHasNoPrice(t *testing.T) {
 	}
 	if len(report.Models) != 2 || len(report.Days) != 1 || report.Days[0].Name != "2026-09-27" {
 		t.Errorf("models %+v, days %+v", report.Models, report.Days)
+	}
+}
+
+// A provider bills nothing for a call it turns away, or for listing its
+// models, and says nothing of usage for either. Those cost nothing; they are
+// not calls whose cost is unknown.
+func TestACallTheProviderRefusedCostsNothing(t *testing.T) {
+	ledger := NewLedger(Policy{})
+	ledger.Count("a-job", Call{Path: "/v1/chat/completions", Status: 400, AtUnix: 1790496257, Model: "deepseek-flash"})
+	ledger.Count("a-job", Call{Path: "/v1/models", Status: 200, AtUnix: 1790496258, Credential: "deepseek"})
+	total := ledger.Report("2026-09").Total
+	if total.Calls != 2 || total.Unmeasured != 0 || total.Uncounted != 0 {
+		t.Errorf("total %+v", total)
 	}
 }
