@@ -36,8 +36,8 @@ type board struct {
 	// which is how a log is read.
 	Days  []day
 	Shown string
-	Newer     string
-	Older     string
+	Newer string
+	Older string
 }
 
 // day is one day of the log.
@@ -65,7 +65,7 @@ func dayName(at, now time.Time) string {
 	switch {
 	case y1 == y2 && m1 == m2 && d1 == d2:
 		return "Today"
-	case at.Add(24 * time.Hour).Format("2006-01-02") == now.Format("2006-01-02"):
+	case at.Add(24*time.Hour).Format("2006-01-02") == now.Format("2006-01-02"):
 		return "Yesterday"
 	case y1 == y2:
 		return at.Format("Monday 2 January")
