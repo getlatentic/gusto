@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"html/template"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -33,6 +34,9 @@ var replies = goldmark.New(
 // markdown is a reply as HTML, or the reply as escaped text when it cannot be
 // drawn, which is still the whole of it.
 func markdown(text string) template.HTML {
+	// A harness says where it saved something by the box's own path. The
+	// person reading knows the agent's folder, not the box.
+	text = strings.ReplaceAll(text, "/job/workspace/", "")
 	var drawn bytes.Buffer
 	if err := replies.Convert([]byte(text), &drawn); err != nil {
 		return template.HTML("<pre>" + template.HTMLEscapeString(text) + "</pre>")

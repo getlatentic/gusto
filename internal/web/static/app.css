@@ -274,7 +274,7 @@ h1.brief { margin: 0; font-size: 1.25rem; line-height: 1.35; overflow-wrap: anyw
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .run-head .state { margin-top: var(--yg-space-1); }
 .run { display: grid; gap: var(--yg-space-4); grid-template-columns: minmax(0, 1fr) 20rem; align-items: start; }
-.run-main, .run-side { display: grid; gap: var(--yg-space-4); min-width: 0; }
+.run-main, .run-side { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-4); min-width: 0; }
 .run .panel { margin: 0; }
 /* A reply is Markdown drawn as a page: prose at reading size, and code in the
    sunken surface the tokens keep for it. */
