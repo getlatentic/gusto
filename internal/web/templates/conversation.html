@@ -1,36 +1,78 @@
 {{template "head" .}}
 
-<p class="crumb"><a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a></p>
+<div class="desk">
+  <aside class="rail">
+    <div class="whose">
+      <a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a>
+      <span>{{if .Instance.Model}}{{.Instance.Model}}{{else}}whatever it defaults to{{end}}</span>
+    </div>
 
-<nav class="threads">
-  {{range .Threads}}
-  <a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{if .Title}}{{.Title}}{{else}}thread {{.ID}}{{end}}</a>
-  {{end}}
-  <form method="post" action="/instances/{{.Instance.ID}}/threads">
-    <button type="submit">{{template "icon-add"}} New thread</button>
-  </form>
-</nav>
+    <ol>
+      {{range .Threads}}
+      <li><a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{if .Title}}{{.Title}}{{else}}thread {{.ID}}{{end}}</a></li>
+      {{end}}
+    </ol>
 
-<div id="turns">{{template "turns" .}}</div>
+    <form method="post" action="/instances/{{.Instance.ID}}/threads">
+      <button type="submit">{{template "icon-add"}} New thread</button>
+    </form>
+  </aside>
 
-{{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
+  <main class="talk">
+    <div class="said-so-far" id="said">
+      <div class="column">
+        <div id="turns">{{template "turns" .}}</div>
+        {{if .Waiting}}<pre id="stream" class="muted">thinking…</pre>{{end}}
+        {{if not .Turns}}{{if not .Waiting}}<p class="nothing-said">Nothing said yet.</p>{{end}}{{end}}
+      </div>
+    </div>
 
-<form class="card" method="post" action="{{.Path}}/say">
-  <label>Say something
-    <textarea name="said" placeholder="Ask it to change something, or to explain what it sees." autofocus required></textarea>
-  </label>
-  <button type="submit">Send</button>
-</form>
+    <div class="composer">
+      <form class="column" method="post" action="{{.Path}}/say">
+        <textarea name="said" rows="1" placeholder="Ask it to change something, or to explain what it sees." autofocus required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var said = document.getElementById("said");
+  // A conversation opens where it left off, not at the beginning.
+  if (said) { said.scrollTop = said.scrollHeight; }
+
+  // The box grows with what is typed, up to the height the stylesheet allows.
+  var box = document.querySelector(".composer textarea");
+  if (box) {
+    var grow = function () {
+      box.style.height = "auto";
+      box.style.height = box.scrollHeight + "px";
+    };
+    box.addEventListener("input", grow);
+    grow();
+    // Enter sends, because this is a conversation. A newline needs shift.
+    box.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (box.value.trim()) { box.form.requestSubmit(); }
+      }
+    });
+  }
+})();
+</script>
 
 {{if .Waiting}}
 <script>
 (function () {
   var box = document.getElementById("stream");
+  var said = document.getElementById("said");
   var stream = new EventSource("/watch/{{.Latest}}");
   var first = true;
   stream.onmessage = function (event) {
     if (first) { box.textContent = ""; box.classList.remove("muted"); first = false; }
     box.textContent += event.data + "\n";
+    said.scrollTop = said.scrollHeight;
   };
   stream.addEventListener("ended", function () {
     stream.close();
@@ -38,6 +80,7 @@
     // which threw away the scroll position and everything already read.
     htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
       box.remove();
+      said.scrollTop = said.scrollHeight;
     });
   });
 })();

@@ -136,6 +136,80 @@ table.facts td { border: 0; padding-left: 0; }
 .after a { color: var(--yg-text-muted); text-decoration: none; }
 .after a:hover { color: var(--yg-accent-text); }
 
+/* A chat fills the window. The header stays, the conversation scrolls under
+   it, and what you type stays on the floor of the page where you left it —
+   rather than at the end of a document you have to scroll to reach. */
+body.chat { max-width: none; height: 100dvh; padding: 0;
+  display: grid; grid-template-rows: auto minmax(0, 1fr); }
+body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
+.desk { display: grid; grid-template-columns: 16rem minmax(0, 1fr); min-height: 0; }
+
+/* The conversations on this instance, down the side, because a list you can
+   see is one you remember you have. */
+.rail { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--yg-space-4);
+  min-height: 0; min-width: 0; padding: var(--yg-space-6) var(--yg-space-4);
+  border-right: 1px solid var(--yg-border); }
+.rail .whose { display: grid; gap: var(--yg-space-1); min-width: 0; padding: 0 var(--yg-space-3); }
+.rail .whose a { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em;
+  color: var(--yg-text); text-decoration: none; }
+.rail .whose a:hover { color: var(--yg-accent-text); }
+.rail .whose span { font-size: .8125rem; color: var(--yg-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail ol { list-style: none; margin: 0; padding: 0; overflow-y: auto;
+  display: grid; gap: 2px; align-content: start; }
+.rail ol a { display: block; padding: var(--yg-space-2) var(--yg-space-3);
+  border-radius: var(--yg-radius-sm); font-size: .875rem; color: var(--yg-text-muted);
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail ol a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.rail ol a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
+.rail button { width: 100%; justify-self: stretch; display: inline-flex; align-items: center;
+  justify-content: center; gap: var(--yg-space-2); font-weight: 400; font-size: .875rem;
+  background: none; color: var(--yg-text-muted); border: 1px dashed var(--yg-border-strong); }
+.rail button:hover { background: none; color: var(--yg-accent-text); border-color: var(--yg-accent); }
+
+/* What was said scrolls; what you type does not. Both sit in one column of a
+   readable width, so a reply and the box you answer it in line up. */
+.talk { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+.said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
+.column { max-width: 46rem; margin: 0 auto; }
+.composer { border-top: 1px solid var(--yg-border); padding: var(--yg-space-5) var(--yg-space-6); }
+.composer form { display: flex; align-items: flex-end; gap: var(--yg-space-3);
+  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
+  background: var(--yg-surface); border: 1px solid var(--yg-border-strong);
+  border-radius: var(--yg-radius-lg); }
+.composer form:focus-within { border-color: var(--yg-accent); }
+.composer textarea { flex: 1; min-width: 0; min-height: 2.75rem; max-height: 14rem; padding: var(--yg-space-2) 0;
+  border: 0; background: none; resize: none; }
+.composer textarea:focus-visible { outline: none; }
+.composer button { flex: none; padding: var(--yg-space-3) var(--yg-space-5); }
+.nothing-said { color: var(--yg-text-muted); text-align: center;
+  padding: var(--yg-space-16) 0; }
+
+/* Below this the labels go and the icons carry the header on their own, which
+   is the width at which they start pushing the page wider than the window. */
+@media (max-width: 34rem) {
+  nav { gap: var(--yg-space-3); }
+  nav a span { display: none; }
+}
+
+/* Narrow enough and a column down the side leaves no room to read. The list
+   lies down across the top instead, so every conversation is still one tap
+   away and the talk keeps the width. */
+@media (max-width: 56rem) {
+  .desk { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .rail { grid-template-rows: auto; grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center; gap: var(--yg-space-3);
+    padding: var(--yg-space-3) var(--yg-space-4);
+    border-right: 0; border-bottom: 1px solid var(--yg-border); }
+  .rail .whose { padding: 0; }
+  .rail .whose span { display: none; }
+  .rail ol { grid-auto-flow: column; grid-auto-columns: max-content;
+    overflow-x: auto; overflow-y: hidden; }
+  .rail button { width: auto; padding: var(--yg-space-2) var(--yg-space-3); white-space: nowrap; }
+  .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); }
+  .composer { padding: var(--yg-space-4); }
+}
+
 /* Every conversation on this instance, with the one you are in marked. They
    wrap rather than scroll, because a thread you cannot see is one you will not
    remember you opened. */
@@ -165,13 +239,13 @@ table.facts td { border: 0; padding-left: 0; }
 }
 </style>
 </head>
-<body>
+<body{{if .Chat}} class="chat"{{end}}>
 <header>
   <a class="mark" href="/"><img src="/static/mark.png" alt=""> haas</a>
   <nav>
-    <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} Harnesses</a>
-    <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} Jobs</a>
-    <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} Spend</a>
+    <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Harnesses</span></a>
+    <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Jobs</span></a>
+    <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spend</span></a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
   </nav>
 </header>
