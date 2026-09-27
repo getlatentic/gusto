@@ -110,6 +110,12 @@ The code is `internal/harness/digest.go`; these are the steps it follows.
    setup, every file under its `setup/` joins them at `setup/` and its path
    there, so a harness and its setup digest as one directory holding both. A
    harness directory with a `setup/` of its own is refused.
+   `setup/servers.json` is taken with the value of every `env` and `headers`
+   entry replaced by an empty string, its name kept, and the list written
+   back as compact JSON with its keys sorted, the way Go's `encoding/json`
+   writes it. A token is not part of what a harness is: rotating one leaves
+   the digest as it was, and two teams running one setup on their own
+   credentials get one digest.
 2. **Leave out version control.** Any file or directory named `.git`, `.hg` or
    `.svn`, and everything under it.
 3. **Refuse what is not a file.** A symbolic link, a device, a socket or a pipe
