@@ -1,10 +1,19 @@
 ---
-- name: A public key to accept
+# A whole key, not the start of one. `-e key=value` stops at the first space,
+# so a public key passed that way arrives as "ssh-ed25519" alone, is written
+# into authorized_keys, and sshd refuses every connection with nothing in its
+# log but "publickey". Checking the shape here says so before the deploy.
+- name: A whole public key to accept
   ansible.builtin.assert:
-    that: autodeploy_public_key | length > 0
+    that:
+      - autodeploy_public_key | length > 0
+      - autodeploy_public_key.split() | length >= 2
+      - autodeploy_public_key.split()[1] | length > 40
     fail_msg: >-
-      autodeploy_enabled is true and autodeploy_public_key is empty. Put the
-      public half of the key GitHub holds in host_vars; README.md says how.
+      autodeploy_public_key is not a whole public key; it is
+      "{{ autodeploy_public_key }}". A value with spaces passed as
+      -e key=value stops at the first space: pass it as -e @vars.json, or put
+      it in host_vars. README.md says how.
 
 - name: What the box needs to run the playbook itself
   ansible.builtin.apt:
