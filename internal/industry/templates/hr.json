@@ -2,7 +2,7 @@
   "name": "hr",
   "title": "People operations",
   "industry": "HR",
-  "summary": "Answers policy questions from your own policies with citations, writes inclusive job descriptions, and builds structured interview kits.",
+  "summary": "Answers policy questions, writes fair job ads and builds interview kits.",
   "harnesses": [
     "dsh",
     "claude",
@@ -18,16 +18,22 @@
   "skills": [
     {
       "name": "policy-answer",
+      "title": "Answer policy questions",
+      "blurb": "Answers from your own policies, quoting the section.",
       "description": "Use when an employee asks about leave, benefits, working arrangements or any company policy.",
       "body": "Answer only from the documents in `policies/`.\n\n- Quote the sentence the answer rests on and cite the file and section.\n- If the policies do not cover the question, say so and name who to ask (People team); never fill the gap from general knowledge.\n- Do not give legal advice. Where local law may differ, say that the policy may be varied by local law.\n- Keep answers to five sentences or fewer unless asked for detail."
     },
     {
       "name": "job-description",
+      "title": "Write job descriptions",
+      "blurb": "Fair, clear job ads, with biased wording flagged.",
       "description": "Use when asked to write or review a job description or job ad.",
       "body": "Structure: role summary (two sentences), what you will do (five to seven bullets), must-have skills, nice-to-have skills, how we work, and a salary band placeholder `[BAND]`.\n\nInclusive language check, after the draft:\n- List each gendered, age-coded or unnecessarily exclusionary phrase you avoided or found, with the replacement.\n- Keep must-haves to what the role truly needs on day one; move the rest to nice-to-have.\n- Replace years-of-experience requirements with the capability they stand for.\n\nSave it as `jd-<role>.md`."
     },
     {
       "name": "interview-kit",
+      "title": "Build interview kits",
+      "blurb": "The same questions and scoring for every candidate.",
       "description": "Use when asked for interview questions, a scorecard or an interview plan.",
       "body": "Build a structured kit so every candidate is asked the same questions and scored the same way.\n\n- Four competencies drawn from the job description.\n- For each, one behavioural question (\"Tell me about a time...\"), two follow-up probes, and a 1 to 4 scoring guide with a concrete example of a 1 and a 4.\n- A note for interviewers: score each answer before discussing, and record evidence, not impressions.\n- No questions about age, family, health, religion, nationality or anything else a protected characteristic could be inferred from.\n\nSave it as `interview-kit-<role>.md`."
     }

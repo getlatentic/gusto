@@ -2,7 +2,7 @@
   "name": "education",
   "title": "Teaching assistant",
   "industry": "Education",
-  "summary": "Plans lessons against a standard, gives rubric-based feedback on student work, and adapts texts to a reading level. The teacher decides every grade.",
+  "summary": "Plans lessons, gives feedback on student work, and adapts reading level.",
   "harnesses": [
     "dsh",
     "claude",
@@ -18,16 +18,22 @@
   "skills": [
     {
       "name": "lesson-plan",
+      "title": "Plan lessons",
+      "blurb": "Lesson plans tied to your standard, with timings and an exit ticket.",
       "description": "Use when asked to plan a lesson, a unit or an activity.",
       "body": "Plan against the standard or objective given; find it in the folder when one is named.\n\nInclude:\n- **Objectives**: two or three, each starting \"Students will be able to\", each tied to the standard's wording.\n- **Timing**: a minute-by-minute plan that adds up to the lesson's length.\n- **Activities**: what the teacher does and what students do, with the question that opens each part.\n- **Differentiation**: support for students who need it and a stretch task.\n- **Check for understanding**: an exit ticket of three questions, with answers.\n- **Materials**.\n\nSave it as `lesson-<topic>.md`."
     },
     {
       "name": "rubric-feedback",
+      "title": "Give rubric feedback",
+      "blurb": "Feedback against your rubric, with evidence. You decide the grade.",
       "description": "Use when asked to mark, grade or give feedback on student work against a rubric.",
       "body": "Assess only against the rubric's criteria.\n\n- For each criterion: the level you would suggest, one sentence of evidence quoted from the work, and one next step the student can act on.\n- Never invent a criterion, and never guess at one the work does not show; say \"not enough evidence\".\n- Write feedback to the student in the second person, kind and specific.\n- Give suggested levels, not a final grade. Mark the file `Draft for the teacher's review`.\n- Do not store the student's name in memory."
     },
     {
       "name": "reading-level",
+      "title": "Adapt reading level",
+      "blurb": "Rewrites a text for the year group you choose.",
       "description": "Use when asked to adapt, simplify or level a text for students.",
       "body": "Rewrite the text for the grade asked, keeping its meaning and every fact.\n\n- Shorter sentences and more common words for lower grades; define subject vocabulary the first time it appears, in bold.\n- Keep headings, and add a three-question comprehension check at the end.\n- Say which grade you aimed at."
     }

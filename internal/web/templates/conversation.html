@@ -3,16 +3,16 @@
 <div class="desk">
   <div class="scrim" id="scrim"></div>
   <aside class="rail" id="rail">
-    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this harness">
-      <span class="avatar" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this assistant">
+      {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "sm")}}
       <span class="who">
-        <span class="name">{{.Instance.Harness}}</span>
-        <span class="model">{{if .Instance.Model}}{{modelOnly .Instance.Model}}{{else}}its default model{{end}}{{with .Instance.Setup}} · {{.}}{{end}}</span>
+        <span class="name">{{.Assistant.Name}}</span>
+        <span class="model">{{.Assistant.Brain}}</span>
       </span>
     </a>
 
     <form method="post" action="/instances/{{.Instance.ID}}/threads">
-      <button type="submit" class="new-thread">{{template "icon-add"}} New thread</button>
+      <button type="submit" class="new-thread">{{template "icon-add"}} New conversation</button>
     </form>
 
     <ol>
@@ -28,7 +28,7 @@
         {{template "icon-menu"}}
       </button>
       <span class="which">{{.Named}}</span>
-      <span class="with">{{.Instance.Harness}}{{with .Instance.Model}} · {{modelOnly .}}{{end}}</span>
+      <span class="with">{{.Assistant.Brain}}</span>
     </div>
 
     <div class="said-so-far" id="said">
@@ -36,7 +36,7 @@
         <div id="turns">{{template "turns" .}}</div>
         {{if .Waiting}}
         <div class="answer working" id="working">
-          <span class="avatar" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+          {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "sm")}}
           <div class="body">
             <p class="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> Working <span class="elapsed" id="elapsed"></span></p>
             <pre id="stream" hidden></pre>
@@ -45,9 +45,9 @@
         {{end}}
         {{if not .Turns}}{{if not .Waiting}}
         <div class="start">
-          <span class="avatar big" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
-          <h2>What should {{.Instance.Harness}} do?</h2>
-          <p class="muted">It works in its own folder{{with .Instance.Repo}}, a checkout of {{base .}}{{end}}, and remembers this thread.</p>
+          {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "lg")}}
+          <h2>How can I help?</h2>
+          <p class="muted">{{.Assistant.Name}} works in its own folder and remembers this conversation.</p>
           {{with .Starters}}
           <div class="starters">
             {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
@@ -61,7 +61,7 @@
     <div class="composer">
       <form class="column" method="post" action="{{.Path}}/say">
         <div class="box">
-          <textarea name="said" rows="1" placeholder="Message {{.Instance.Harness}}" autofocus required></textarea>
+          <textarea name="said" rows="1" placeholder="Message {{.Assistant.Name}}" autofocus required></textarea>
           <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
         <p class="hint">Enter sends. Shift and Enter start a new line.</p>
@@ -162,11 +162,11 @@
   <p class="said">{{.Said}}</p>
   {{if .State.Done}}
   <div class="answer{{if .Stopped}} failed{{end}}">
-    <span class="avatar" aria-hidden="true">{{slice .Harness 0 1}}</span>
+    {{template "mark" (dict "Field" $.Assistant.Field "Name" $.Assistant.Name "Size" "sm")}}
     <div class="body">
       {{with .Steps}}
       <details class="steps">
-        <summary>{{len .}} step{{if ne (len .) 1}}s{{end}}</summary>
+        <summary>{{len .}} step{{if ne (len .) 1}}s{{end}} taken</summary>
         <ol>{{range .}}<li><span class="what">{{.What}}</span> <span class="detail">{{.Detail}}</span></li>{{end}}</ol>
       </details>
       {{end}}

@@ -27,7 +27,10 @@ import (
 
 // Instance is the computer: what a harness runs under and works in.
 type Instance struct {
-	ID      string `json:"id"`
+	ID string `json:"id"`
+	// Title is what the people using it call it: the template's name, or one
+	// they gave it.
+	Title   string `json:"title,omitempty"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Repo    string `json:"repo,omitempty"`

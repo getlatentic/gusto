@@ -43,7 +43,10 @@ var helpers = template.FuncMap{
 		}
 		return fmt.Sprintf("$%.4f", *usd)
 	},
-	"tokens": compact,
+	"tokens":  compact,
+	"brain":   modelName,
+	"hue":     fieldClass,
+	"initial": initial,
 	// modelOnly is a model without the credential that serves it, which is
 	// what somebody choosing between models reads.
 	"modelOnly": func(model string) string {
@@ -68,9 +71,9 @@ var helpers = template.FuncMap{
 		case shown.Thread != "":
 			return "failed"
 		case shown.State == jobs.Passed:
-			return "gate passed"
+			return "check passed"
 		}
-		return "gate failed"
+		return "check failed"
 	},
 	"has": func(list []string, item string) bool { return slices.Contains(list, item) },
 	"seconds": func(wall *float64) string {

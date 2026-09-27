@@ -9,6 +9,7 @@ package web
 import (
 	"embed"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -36,6 +37,9 @@ type Server struct {
 	keyring   signing.Keyring
 	setups    *setup.Store
 	servers   setup.Servers
+	// inBuilding is whether a model inside the deployment's own network is
+	// reachable, without which restricted work cannot start at all.
+	inBuilding bool
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -62,6 +66,8 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
+	mux.HandleFunc("GET /setups", s.guard(s.setupsPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
@@ -104,6 +110,7 @@ func moved(to string) http.HandlerFunc {
 func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
+		slog.Error("a page could not be drawn", "page", page, "error", err)
 		http.Error(w, "the page could not be drawn", http.StatusInternalServerError)
 	}
 }

@@ -1,5 +1,6 @@
 {
   "name": "hermes",
+  "title": "Hermes",
   "what": "Nous Research's agent, which remembers what it learns across sessions.",
   "program": "sh",
   "argv": [

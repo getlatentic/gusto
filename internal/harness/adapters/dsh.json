@@ -1,5 +1,6 @@
 {
   "name": "dsh",
+  "title": "DeepSeek Agent",
   "what": "DeepSeek's own agent, where every part of it is a plugin.",
   "program": "dsh",
   "argv": [

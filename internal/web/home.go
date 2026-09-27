@@ -3,7 +3,9 @@ package web
 import (
 	"net/http"
 	"sort"
+	"strconv"
 
+	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -12,7 +14,7 @@ import (
 // yours is an instance as the home page lists it: what it is, what was last
 // said to it, and where to pick that conversation up.
 type yours struct {
-	instance.Instance
+	assistant
 	Threads int
 	Where   string
 	Latest  jobs.Record
@@ -20,9 +22,11 @@ type yours struct {
 	Active int64
 }
 
-// home is the harnesses somebody already has, the one used last first,
+// assistantsPerPage is how many rows the home page shows at once.
+const assistantsPerPage = 10
+
+// home is the assistants somebody already has, the one used last first,
 // because a person coming back wants to carry on rather than choose again.
-// Choosing is the catalog's page.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	held := s.instances.List()
 	listed := make([]yours, 0, len(held))
@@ -30,27 +34,55 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		listed = append(listed, s.lately(each))
 	}
 	sort.SliceStable(listed, func(a, b int) bool { return listed[a].Active > listed[b].Active })
-	s.render(w, "home.html", map[string]any{
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page = max(page, 1)
+	from := min((page-1)*assistantsPerPage, len(listed))
+	to := min(from+assistantsPerPage, len(listed))
+	data := map[string]any{
 		"Title":     "haas",
 		"Nav":       "harnesses",
-		"Instances": listed,
+		"Instances": listed[from:to],
+		"Total":     len(listed),
+		"From":      from + 1,
+		"To":        to,
+		"Templates": industry.All(),
+		"Refused":   r.URL.Query().Get("refused"),
+	}
+	if page > 1 {
+		data["Newer"] = "/?page=" + strconv.Itoa(page-1)
+	}
+	if to < len(listed) {
+		data["Older"] = "/?page=" + strconv.Itoa(page+1)
+	}
+	s.render(w, "home.html", data)
+}
+
+// catalogPage is where a new assistant is chosen: set up for a field of work,
+// or blank.
+func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "catalog.html", map[string]any{
+		"Title":     "haas — new assistant",
+		"Nav":       "new",
 		"Templates": industry.All(),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
 
-// catalogPage is every harness this deployment carries, and whether it can
-// start each one.
-func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "catalog.html", map[string]any{
-		"Title":     "haas — start a harness",
-		"Nav":       "new",
-		"Catalog":   s.catalog,
-		"Templates": industry.All(),
-		"Setups":    s.setupsList(),
-		"Offered":   s.servers,
-		"Keeps":     s.setups != nil,
-		"Refused":   r.URL.Query().Get("refused"),
+// blankPage starts an assistant with nothing set up: a name, and the engine
+// and skill set for whoever wants to choose them.
+func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
+	var ready []catalog.Entry
+	for _, entry := range s.catalog {
+		if entry.Ready {
+			ready = append(ready, entry)
+		}
+	}
+	s.render(w, "blank.html", map[string]any{
+		"Title":   "haas — new assistant",
+		"Nav":     "new",
+		"Engines": ready,
+		"Setups":  s.setupsList(),
+		"Refused": r.URL.Query().Get("refused"),
 	})
 }
 
@@ -64,11 +96,11 @@ func (s *Server) lately(held instance.Instance) yours {
 		active = latest.Queued
 	}
 	return yours{
-		Instance: held,
-		Threads:  len(s.instances.Threads(held.ID)),
-		Where:    threadPath(last),
-		Latest:   latest,
-		Active:   active,
+		assistant: s.assistantOf(held),
+		Threads:   len(s.instances.Threads(held.ID)),
+		Where:     threadPath(last),
+		Latest:    latest,
+		Active:    active,
 	}
 }
 

@@ -2,23 +2,20 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/">Your harnesses</a><span>/</span><span>{{.Instance.ID}}</span></nav>
+<nav class="crumb" aria-label="Where this is"><a href="/">Your assistants</a><span>/</span><span>{{.Assistant.Name}}</span></nav>
 <header class="instance-head">
-  <span class="avatar big" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+  {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "lg")}}
   <div class="who">
-    <h1>{{.Instance.Harness}}</h1>
-    <p class="muted">{{if .Instance.Model}}{{modelOnly .Instance.Model}}{{else}}its default model{{end}}
-      · {{if .Instance.Repo}}{{base .Instance.Repo}}{{else}}its own folder{{end}}
-      {{with .Instance.Setup}} · setup <a href="/setups/{{.}}">{{.}}</a>{{end}}
-      {{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">restricted</span>{{end}}</p>
+    <h1>{{.Assistant.Name}}</h1>
+    <p class="muted">{{.Assistant.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">stays in your network</span>{{end}}</p>
   </div>
-  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit">{{template "icon-add"}} New thread</button></form>
+  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="cta">{{template "icon-add"}} New conversation</button></form>
 </header>
 
 <div class="run">
 <div class="run-main">
   <section class="panel">
-    <h2>Conversations <span class="muted">{{len .Threads}}</span></h2>
+    <h2 class="section-title">Conversations</h2>
     <ol class="threads-list">
       {{range .Threads}}
       <li><a href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
@@ -32,7 +29,7 @@
 
   <section class="panel">
     <details id="task"{{if .Tasks}} open{{end}}>
-      <summary><h2>Tasks with a gate</h2> <span class="muted">a job that passes only when a command you name exits zero</span></summary>
+      <summary><h2>Checked tasks</h2> <span class="muted">for developers: a task that passes only when a command succeeds</span></summary>
       {{if .Tasks}}
       <ol class="threads-list">
         {{range .Tasks}}<li><a href="/jobs/{{.ID}}"><span class="name">{{.Brief}}</span><span class="last"><span class="state {{.State}}">{{.State}}</span></span><span class="when">{{ago .Queued}}</span></a></li>{{end}}
@@ -69,19 +66,19 @@
 <aside class="run-side">
   <section class="panel">
     <dl class="facts">
-      <dt>Harness</dt><dd>{{.Instance.Harness}}</dd>
-      <dt>Model</dt><dd>{{if .Instance.Model}}{{.Instance.Model}}{{else}}its default{{end}}</dd>
-      <dt>Folder</dt><dd>{{if .Instance.Repo}}{{.Instance.Repo}}{{else}}empty when it started{{end}}</dd>
-      <dt>Setup</dt><dd>{{with .Instance.Setup}}<a href="/setups/{{.}}">{{.}}</a>{{else}}none{{end}}</dd>
-      <dt>Started</dt><dd>{{when .Instance.Started}}{{with .Instance.Who}} by {{.}}{{end}}</dd>
+      <dt>Model</dt><dd>{{.Assistant.Brain}}</dd>
+      <dt>Engine</dt><dd>{{.Assistant.Engine}}</dd>
+      {{with .Instance.Setup}}<dt>Skills</dt><dd><a href="/setups/{{.}}">{{.}}</a></dd>{{end}}
+      {{with .Instance.Repo}}<dt>Repository</dt><dd>{{.}}</dd>{{end}}
+      <dt>Started</dt><dd>{{when .Instance.Started}}</dd>
     </dl>
   </section>
   <section class="panel">
     <form method="post" action="/instances/{{.Instance.ID}}/remove"
-          onsubmit="return confirm('Remove this harness? Its folder is set aside, and its activity stays in the log.')">
-      <button type="submit" class="quiet">Remove this harness</button>
+          onsubmit="return confirm('Remove this assistant? Its files are kept aside and its activity stays in the log.')">
+      <button type="submit" class="quiet">Remove this assistant</button>
     </form>
-    <p class="muted small">Its folder is set aside, not deleted, and its activity stays in the log.</p>
+    <p class="muted small">Its files are kept aside, not deleted.</p>
   </section>
 </aside>
 </div>

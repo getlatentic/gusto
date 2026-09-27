@@ -1,5 +1,6 @@
 {
   "name": "codex",
+  "title": "Codex",
   "what": "OpenAI's coding agent, run once per task rather than held open.",
   "program": "codex",
   "argv": [

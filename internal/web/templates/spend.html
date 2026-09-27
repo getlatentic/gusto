@@ -2,7 +2,7 @@
 {{with .Ledger}}
 
 <div class="title-row">
-  <h1>Spend</h1>
+  <h1>Spending</h1>
   <form class="month" method="get" action="/spend">
     <label class="inline"><span class="sr">Month</span>
       <select name="month" onchange="this.form.submit()">
@@ -49,8 +49,8 @@
 </section>
 
 <div class="panels">
-  {{template "shares" (dict "Title" "By model" "Lines" .Models "Link" "")}}
-  {{template "shares" (dict "Title" "By harness" "Lines" .Harnesses "Link" "/jobs?harness=")}}
+  {{template "shares" (dict "Title" "By model" "Lines" .Models "Link" "" "Plain" true)}}
+  {{template "shares" (dict "Title" "By engine" "Lines" .Harnesses "Link" "/jobs?harness=")}}
   {{template "shares" (dict "Title" "By team" "Lines" .Teams "Link" "")}}
   {{template "shares" (dict "Title" "By project" "Lines" .Projects "Link" "")}}
 </div>
@@ -72,7 +72,7 @@
     {{range .Lines}}
     <tr>
       <td class="name">
-        {{if not .Name}}<span class="muted">none named</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}
+        {{if not .Name}}<span class="muted">none named</span>{{else if $.Plain}}<span title="{{.Name}}">{{brain .Name}}</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}
         <span class="share" aria-hidden="true"><span style="width: {{printf "%.1f" .Width}}%"></span></span>
       </td>
       <td class="num">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{.Money}}{{end}}</td>

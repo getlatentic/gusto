@@ -1,5 +1,6 @@
 {
   "name": "pi",
+  "title": "Pi",
   "what": "Reads, edits and runs, and takes whichever model the deployment points it at.",
   "program": "pi",
   "argv": [

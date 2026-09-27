@@ -16,6 +16,7 @@ import (
 // Entry is one harness, as a person choosing has to see it.
 type Entry struct {
 	Name    string
+	Title   string
 	What    string
 	Program string
 	Needs   harness.Needs
@@ -87,6 +88,7 @@ func Of(image Image, names []string) []Entry {
 func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 	entry := Entry{
 		Name:     name,
+		Title:    titleOf(name, adapter),
 		What:     adapter.What,
 		Program:  adapter.Program,
 		Needs:    adapter.Needs,
@@ -113,4 +115,13 @@ func Ready(entries []Entry) []string {
 		}
 	}
 	return names
+}
+
+// titleOf is a harness's name for a person, its program's name when the
+// adapter gives none.
+func titleOf(name string, adapter harness.Adapter) string {
+	if adapter.Title != "" {
+		return adapter.Title
+	}
+	return name
 }

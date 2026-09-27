@@ -2,7 +2,7 @@
   "name": "health",
   "title": "Clinical documentation",
   "industry": "Health",
-  "summary": "Drafts SOAP notes from visit notes, de-identifies letters, and rewrites instructions in plain language. Every draft is marked for clinician review.",
+  "summary": "Drafts clinical notes and explains care in plain language, without leaking patient details.",
   "harnesses": [
     "dsh",
     "claude",
@@ -15,16 +15,22 @@
   "skills": [
     {
       "name": "phi-guard",
+      "title": "Protect patient privacy",
+      "blurb": "Replaces names, dates and record numbers before anything is written down.",
       "description": "Use before quoting, copying or writing any clinical text, and whenever asked to de-identify a document.",
       "body": "Protected health information never leaves a document it is in unless the task is to move it.\n\nWhen writing any new file or answer from clinical text:\n- Replace each of the HIPAA identifiers with a bracketed placeholder: names become [PATIENT] or [CLINICIAN], dates more specific than the year become [DATE], ages over 89 become [AGE 90+], and addresses, phone numbers, email addresses, medical record numbers, insurance numbers and any other account or device numbers become [ADDRESS], [PHONE], [EMAIL], [MRN], [INSURANCE ID] and [ID].\n- Keep clinical facts, medications, doses and results exactly as written.\n- When de-identifying, write a new file beside the original with `-deidentified` before the extension, and list at the end how many of each placeholder you used.\n- If you are not sure whether a string identifies somebody, replace it and say so."
     },
     {
       "name": "soap-note",
+      "title": "Write SOAP notes",
+      "blurb": "Turns visit notes into a SOAP note, marked for your review.",
       "description": "Use when asked for a SOAP note, a progress note or a clinical summary of a visit.",
       "body": "Write the note from the source text alone.\n\nStructure:\n- **Subjective**: the patient's own account, history of the present illness, and relevant history, in the source's terms.\n- **Objective**: vitals, examination findings and results, with units.\n- **Assessment**: only the assessments the clinician recorded. Never add a diagnosis the source does not contain.\n- **Plan**: medications with dose, route and frequency; tests ordered; referrals; follow-up; patient education.\n\nRules:\n- Write \"not documented\" for anything a section needs and the source does not say.\n- Apply the phi-guard skill to the note.\n- Save it as `soap-note.md` unless told otherwise.\n- End with the line: `Draft for clinician review. Not a medical record until signed.`"
     },
     {
       "name": "plain-language",
+      "title": "Explain in plain language",
+      "blurb": "Rewrites instructions so any patient can follow them.",
       "description": "Use when asked to explain clinical instructions to a patient, or to rewrite at a reading level.",
       "body": "Rewrite for a patient at a sixth-grade reading level unless another level is asked for.\n\n- Short sentences, one instruction each. Everyday words; explain any medical term you must keep.\n- Keep every dose, time and warning exactly. Never soften a warning.\n- Use a numbered list for steps and a short \"Call your doctor if\" list for warning signs.\n- Say what the reading level is and how you checked it."
     }

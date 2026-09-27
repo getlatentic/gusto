@@ -1,0 +1,37 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<section class="hero hue-general">
+  <div>
+    <p class="eyebrow">New assistant</p>
+    <h1>Start from blank</h1>
+    <p class="lede">A general assistant with a folder of its own.</p>
+  </div>
+</section>
+
+{{if .Engines}}
+<form class="panel stack start-form" method="post" action="/instances">
+  <label>Name it <input name="title" placeholder="Assistant" maxlength="60"></label>
+  <details class="more">
+    <summary>Advanced</summary>
+    <div class="stack">
+      <label>Engine
+        <select name="harness">{{range .Engines}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
+      </label>
+      {{if .Setups}}
+      <label>Skill set
+        <select name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+      </label>
+      {{end}}
+      <label>Start from a repository <input name="repo" placeholder="git@github.com:you/repo.git"></label>
+    </div>
+  </details>
+  <button type="submit" class="cta">Start</button>
+</form>
+{{else}}
+<div class="callout warn"><span class="sign">{{template "icon-info"}}</span>
+  <div><strong>Nothing can start here yet</strong><p>Ask whoever runs haas to add an engine.</p></div></div>
+{{end}}
+
+{{template "foot" .}}
