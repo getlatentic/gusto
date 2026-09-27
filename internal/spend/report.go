@@ -85,6 +85,9 @@ func (l *Ledger) Job(id string) (Tally, bool) {
 // ThisMonth is the month a team's cap is counting now.
 func (l *Ledger) ThisMonth() string { return monthOf(l.now()) }
 
+// Add counts another tally into this one.
+func (t *Tally) Add(other Tally) { t.join(other) }
+
 func (t *Tally) join(other Tally) {
 	t.Calls += other.Calls
 	t.USD += other.USD

@@ -44,7 +44,7 @@ func TestTheSpendPageShowsTeamsProjectsAndJobs(t *testing.T) {
 		t.Fatalf("code %d", answer.Code)
 	}
 	page := answer.Body.String()
-	for _, want := range []string{"platform", "github.com/o/api", `href="/jobs/fix-it"`, "$0.5000", "calls have no cost", "none named"} {
+	for _, want := range []string{"platform", "github.com/o/api", `href="/jobs/fix-it"`, "$0.5000", "spent this month, at least", "none named"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("want %q on the page:\n%s", want, page)
 		}

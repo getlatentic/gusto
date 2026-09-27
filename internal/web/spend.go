@@ -45,7 +45,7 @@ func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "spend.html", map[string]any{
 		"Title":  "haas — spend",
 		"Nav":    "spend",
-		"Ledger": viewLedger(report, months, time.Now()),
+		"Ledger": s.viewLedger(report, months, time.Now()),
 	})
 }
 
