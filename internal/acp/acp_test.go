@@ -80,13 +80,18 @@ func run(t *testing.T, a *agent, turn Turn) (Ended, []string, error) {
 	t.Helper()
 	toAgent, fromClient := io.Pipe()
 	fromAgent, toClient := io.Pipe()
-	go a.serve(t, toAgent, toClient)
+	served := make(chan struct{})
+	go func() {
+		a.serve(t, toAgent, toClient)
+		close(served)
+	}()
 	var kept []string
 	ended, err := Converse(fromClient, fromAgent, turn, func(line string) error {
 		kept = append(kept, line)
 		return nil
 	})
 	fromClient.Close()
+	<-served
 	return ended, kept, err
 }
 
