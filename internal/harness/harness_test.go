@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -421,5 +422,27 @@ func TestEveryHarnessThatNamesItsSessionCanResumeIt(t *testing.T) {
 		if !strings.Contains(strings.Join(command.Args, " "), "the-session") {
 			t.Errorf("%s records its session and never resumes it: %v", name, command.Args)
 		}
+	}
+}
+
+// pi reads its servers from a file rather than its arguments, and loads the
+// extension that calls them only when there are servers to call.
+func TestPiIsGivenItsServersInAFile(t *testing.T) {
+	adapter, err := Load("", "pi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(t.TempDir(), "mcp", "mcp.json")
+	adapter.MCP.File = file
+	command := adapter.Command(context.Background(), job.Spec{Brief: "b"}, t.TempDir())
+	if err := adapter.Give(command, []job.Server{{Name: "memory", Command: "mcp-server-memory"}}); err != nil {
+		t.Fatal(err)
+	}
+	written, err := os.ReadFile(file)
+	if err != nil || !strings.Contains(string(written), `"mcpServers":{"memory"`) {
+		t.Fatalf("the servers file holds %s, %v", written, err)
+	}
+	if !strings.Contains(strings.Join(command.Args, " "), "pi-mcp-adapter") {
+		t.Errorf("pi was not given the adapter: %v", command.Args)
 	}
 }

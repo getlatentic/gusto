@@ -22,6 +22,14 @@
   "stdin": "{brief}",
   "needs": "key",
   "skills": "/root/.pi/agent/skills",
+  "mcp": {
+    "format": "claude",
+    "file": "/root/.config/mcp/mcp.json",
+    "argv": [
+      "-e",
+      "/usr/local/lib/node_modules/pi-mcp-adapter/index.ts"
+    ]
+  },
   "stream": "jsonl",
   "totals": "perCall",
   "when": {

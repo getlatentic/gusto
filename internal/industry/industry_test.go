@@ -11,7 +11,7 @@ import (
 // a harness can load, starters, and sample files marked as invented.
 func TestEveryTemplateIsCompleteAndItsFilesAreInvented(t *testing.T) {
 	all := All()
-	if len(all) != 4 {
+	if len(all) != 5 {
 		t.Fatalf("%d templates", len(all))
 	}
 	for _, held := range all {
