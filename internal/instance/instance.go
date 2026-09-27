@@ -86,6 +86,9 @@ func (s *Store) threadsDir(id string) string { return filepath.Join(s.Dir(id), "
 // Start makes an instance, and fills its workspace from a repository when one
 // is given. Cloning happens here rather than in a turn, so it happens once and
 // so a repository credential stays outside the box with the agent.
+//
+// It opens the first conversation too, under the same guard as the instance
+// itself, so nothing that lists instances ever sees one with nowhere to talk.
 func (s *Store) Start(id string, wanted Instance) (Instance, error) {
 	wanted.ID = id
 	wanted.Started = time.Now().Unix()
@@ -101,7 +104,11 @@ func (s *Store) Start(id string, wanted Instance) (Instance, error) {
 	defer s.guard.Unlock()
 	s.held[id] = wanted
 	s.threads[id] = map[string]Thread{}
-	return wanted, s.write(wanted)
+	if err := s.write(wanted); err != nil {
+		return Instance{}, err
+	}
+	_, err := s.open(id, "")
+	return wanted, err
 }
 
 func (s *Store) Get(id string) (Instance, bool) {
@@ -127,7 +134,8 @@ func (s *Store) write(held Instance) error {
 	return writeJSON(filepath.Join(s.Dir(held.ID), "instance.json"), held)
 }
 
-// load reads one instance directory, lifting one written before threads existed.
+// load reads one instance directory, lifting one written before threads existed
+// and mending one started before starting opened a conversation.
 func (s *Store) load(dir string) error {
 	held, err := readInstance(dir)
 	if err != nil {
@@ -147,6 +155,7 @@ func (s *Store) load(dir string) error {
 	}
 	s.held[held.ID] = held
 	s.threads[held.ID] = threads
+	s.mend(held.ID)
 	return nil
 }
 
