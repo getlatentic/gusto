@@ -8,11 +8,16 @@ import (
 // read from the ledger's own tallies, the ones a team's cap is checked against,
 // rather than added up again, so a report and a cap cannot disagree.
 type Report struct {
-	Month    string `json:"month"`
-	Total    Tally  `json:"total"`
-	Teams    []Line `json:"teams"`
-	Projects []Line `json:"projects"`
-	Jobs     []Line `json:"jobs"`
+	Month     string `json:"month"`
+	Total     Tally  `json:"total"`
+	Teams     []Line `json:"teams"`
+	Projects  []Line `json:"projects"`
+	Harnesses []Line `json:"harnesses"`
+	Models    []Line `json:"models"`
+	Jobs      []Line `json:"jobs"`
+	// Days are in date order rather than ranked, because they are read as a
+	// line across the month.
+	Days []Line `json:"days"`
 }
 
 // Line is one team, project or job and what it spent. An empty name is a job
@@ -27,7 +32,10 @@ func (l *Ledger) Report(month string) Report {
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	report := Report{Month: month}
-	into := map[string]*[]Line{ByTeam: &report.Teams, ByProject: &report.Projects, ByJob: &report.Jobs}
+	into := map[string]*[]Line{
+		ByTeam: &report.Teams, ByProject: &report.Projects, ByJob: &report.Jobs,
+		ByHarness: &report.Harnesses, ByModel: &report.Models, ByDay: &report.Days,
+	}
 	for key, tally := range l.months {
 		if key.month != month {
 			continue
@@ -37,9 +45,12 @@ func (l *Ledger) Report(month string) Report {
 			report.Total.join(*tally)
 		}
 	}
-	for _, lines := range into {
-		ranked(*lines)
+	for scope, lines := range into {
+		if scope != ByDay {
+			ranked(*lines)
+		}
 	}
+	sort.Slice(report.Days, func(i, j int) bool { return report.Days[i].Name < report.Days[j].Name })
 	return report
 }
 
@@ -66,7 +77,9 @@ func (t *Tally) join(other Tally) {
 	t.Calls += other.Calls
 	t.USD += other.USD
 	t.Unmeasured += other.Unmeasured
+	t.Uncounted += other.Uncounted
 	t.InputTokens += other.InputTokens
+	t.CachedTokens += other.CachedTokens
 	t.OutputTokens += other.OutputTokens
 	t.Refused += other.Refused
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 )
 
 // Policy is the operator's: what each model costs, and what each team may
@@ -13,13 +14,6 @@ import (
 type Policy struct {
 	Prices map[string]Price   `json:"prices"`
 	Teams  map[string]TeamCap `json:"teams"`
-}
-
-// Price is what a provider charges for a million tokens of each kind, in US
-// dollars.
-type Price struct {
-	InputPerMillion  float64 `json:"inputPerMillion"`
-	OutputPerMillion float64 `json:"outputPerMillion"`
 }
 
 // TeamCap is what one team's jobs may spend together in a calendar month, UTC.
@@ -49,19 +43,31 @@ func LoadPolicy(path string) (Policy, error) {
 
 // Priced says whether a model has a price. A model with none costs an unknown
 // amount, which is not the same as nothing.
-func (p Policy) Priced(model string) bool {
-	_, found := p.Prices[model]
+func (p Policy) Priced(credential, model string) bool {
+	_, found := p.price(credential, model)
 	return found
 }
 
-// Cost is what this usage of this model cost, or nil when either is unknown.
-func (p Policy) Cost(model string, usage *Usage) *float64 {
-	price, found := p.Prices[model]
+// Cost is what this usage of this model cost when it was sent, or nil when
+// either is unknown.
+func (p Policy) Cost(credential, model string, usage *Usage, sent time.Time) *float64 {
+	price, found := p.price(credential, model)
 	if !found || usage == nil {
 		return nil
 	}
-	cost := float64(usage.Input)*price.InputPerMillion/1e6 + float64(usage.Output)*price.OutputPerMillion/1e6
+	cost := price.of(*usage, sent)
 	return &cost
+}
+
+// price is found by the name a job asks for, the credential and the model,
+// before the model alone: one model served through two credentials can be
+// billed at two rates, and one served at one rate needs writing only once.
+func (p Policy) price(credential, model string) (Price, bool) {
+	if price, found := p.Prices[credential+"/"+model]; found && credential != "" {
+		return price, true
+	}
+	price, found := p.Prices[model]
+	return price, found
 }
 
 // teamCap is the monthly cap on a team, if the policy sets one.
