@@ -10,6 +10,8 @@
     "--verbose",
     "--permission-mode",
     "acceptEdits",
+    "--allowedTools",
+    "Bash",
     "--model={modelId}"
   ],
   "resume": [
@@ -19,6 +21,8 @@
     "--verbose",
     "--permission-mode",
     "acceptEdits",
+    "--allowedTools",
+    "Bash",
     "--model={modelId}",
     "--resume",
     "{session}"
