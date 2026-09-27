@@ -93,6 +93,12 @@ type Adapter struct {
 	// what every other harness here speaks. A model is only offered to a
 	// harness through a credential that answers in its shape.
 	Speaks string `json:"speaks,omitempty"`
+	// Keeps is the folder the harness keeps its own state in: its settings and
+	// the conversations it resumes. It has to be under the instance's state,
+	// which is the one folder that outlives a turn's box, or every next message
+	// looks for a conversation that is gone. The runner makes it, because some
+	// harnesses refuse to start without it.
+	Keeps string `json:"keeps,omitempty"`
 	// MCP is how the harness takes MCP servers, or nil when it takes none.
 	MCP    *MCP   `json:"mcp,omitempty"`
 	Needs  Needs  `json:"needs"`

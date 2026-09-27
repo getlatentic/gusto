@@ -74,6 +74,11 @@ func Inside(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, Refuse(dir, err)
 	}
+	if adapter.Keeps != "" {
+		if err := os.MkdirAll(adapter.Keeps, 0o700); err != nil {
+			return 0, err
+		}
+	}
 	if err := placeSkills(dir, spec, adapter); err != nil {
 		return 0, err
 	}
