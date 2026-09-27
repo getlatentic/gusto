@@ -414,3 +414,38 @@ func TestTheCatalogSaysWhatEachHarnessIsAndOffersToStartIt(t *testing.T) {
 		t.Error("the catalog does not say what the harness is")
 	}
 }
+
+// An instance holds as many conversations as somebody wants, and the page you
+// are on is the one place you would go looking for the others. Before this the
+// only route to a second thread was back out to the instance page, so an
+// instance read as though it held one conversation.
+func TestAConversationShowsTheOthersAndOpensAnother(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	first := startedThread(t, site)
+	where := first[:strings.Index(first, "/threads/")]
+
+	body := site.ask(t, "GET", first, nil).Body.String()
+	if !strings.Contains(body, `action="`+where+`/threads"`) {
+		t.Fatal("a conversation offers no way to open another")
+	}
+
+	// Opened from inside a conversation, and it lands in the new one.
+	opened := site.ask(t, "POST", where+"/threads", nil)
+	second := opened.Header().Get("Location")
+	if !strings.HasPrefix(second, where+"/threads/") || second == first {
+		t.Fatalf("opening a thread went to %q", second)
+	}
+
+	// And from there both are listed, with the one you are in marked.
+	body = site.ask(t, "GET", second, nil).Body.String()
+	for _, want := range []string{`href="` + first + `"`, `href="` + second + `"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the conversation does not list %s", want)
+		}
+	}
+	marked := strings.Index(body, `href="`+second+`" aria-current`)
+	if marked < 0 {
+		t.Error("the conversation you are in is not marked as the one you are in")
+	}
+}
