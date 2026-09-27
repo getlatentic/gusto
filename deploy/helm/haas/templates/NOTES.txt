@@ -1,0 +1,14 @@
+haas is starting in {{ .Release.Namespace }}.
+
+The job runtime in this pod is privileged, which is root on its node. The
+namespace has to admit a privileged pod (Pod Security "privileged"), and
+deploy/README.md in the repository says what that trade is.
+
+Sign in with the shared password:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "haas.fullname" . }} 8040:{{ .Values.service.port }}
+  open http://127.0.0.1:8040
+
+What the server offers, and what it does not and why:
+
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "haas.fullname" . }} -c server
