@@ -62,11 +62,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /auth/callback", s.back)
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
+	mux.HandleFunc("GET /keys/{file}", s.key)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
+	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
 	mux.HandleFunc("GET /setups", s.guard(s.setupsPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))

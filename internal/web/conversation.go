@@ -74,8 +74,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if calls := callsOf(dir); calls != nil {
 			shown.Blocked = len(calls.Denied)
 		}
-		_, err := os.Stat(dir.OutFile(evidence.SignatureFile))
-		shown.Signed = err == nil
+		attested, err := evidence.Attest(dir, s.keyring)
+		shown.Signed = err == nil && attested.Signed
 		turns = append(turns, shown)
 	}
 	running := ""

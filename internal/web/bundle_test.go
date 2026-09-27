@@ -272,9 +272,8 @@ func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 			t.Errorf("the page does not show the hash of %s, so nobody can check it against the manifest", entry.Name)
 		}
 	}
-	// manifest.json cannot hash itself, and saying so beats an empty cell.
-	if !strings.Contains(page, "not in the manifest") {
-		t.Error("a file the manifest does not name should say so")
+	if !strings.Contains(page, "files match") {
+		t.Error("the page should say it checked the files against the manifest")
 	}
 	if !strings.Contains(page, "/jobs/"+id+"/bundle") {
 		t.Error("the bundle must be reachable from the job page")

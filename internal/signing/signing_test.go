@@ -170,3 +170,37 @@ func TestNoKeyConfiguredLeavesARunUnsignedAndABadOneFails(t *testing.T) {
 		t.Fatalf("want a named but missing key refused, found %t", found)
 	}
 }
+
+// A key handed out by name is the same key a keyring reads back from the file.
+func TestAKeyHandedOutByNameReadsBackAsTheSameKey(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := signing.Generate(dir, "greencloud"); err != nil {
+		t.Fatal(err)
+	}
+	ring, err := signing.OpenKeyring(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	held, found := ring.Named("greencloud")
+	if !found {
+		t.Fatal("the keyring should find the key by its name")
+	}
+	text, err := held.PEM()
+	if err != nil {
+		t.Fatal(err)
+	}
+	elsewhere := t.TempDir()
+	if err := os.WriteFile(filepath.Join(elsewhere, "greencloud.pub"), text, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	again, err := signing.OpenKeyring(elsewhere)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, found := again[signing.IDOf(held.Public)]; !found {
+		t.Error("the handed-out key should be the one the keyring holds")
+	}
+	if _, found := ring.Named("someone-else"); found {
+		t.Error("a name the keyring does not hold should not be found")
+	}
+}

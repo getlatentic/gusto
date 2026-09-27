@@ -19,6 +19,7 @@
       <label>Engine
         <select name="harness">{{range .Engines}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
       </label>
+      <a class="link-quiet" href="/engines">How each engine did →</a>
       {{if .Setups}}
       <label>Skill set
         <select name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>

@@ -53,22 +53,6 @@ func readGate(record jobs.Record, dir job.Dir, manifest *evidence.Manifest) gate
 	return gate
 }
 
-// verifyView is how a reviewer checks the run on their own machine. The bundle
-// unpacks into a directory named by the job, which is the directory `haas
-// verify` takes.
-type verifyView struct {
-	Bundle  string
-	Command string
-}
-
-func verifying(id string) verifyView {
-	name := shellWord(id)
-	return verifyView{
-		Bundle:  "/jobs/" + id + "/bundle",
-		Command: "tar -xzf " + shellWord(id+".tar.gz") + " && haas verify " + name,
-	}
-}
-
 // bare is what a POSIX shell reads as one word without quotes.
 var bare = regexp.MustCompile(`^[A-Za-z0-9_./:=@%+,-]+$`)
 
@@ -96,7 +80,6 @@ func shellWord(word string) string {
 func drawEvidence(page map[string]any, record jobs.Record, dir job.Dir, manifest *evidence.Manifest) {
 	if manifest != nil {
 		page["Manifest"] = manifest
-		page["Verify"] = verifying(record.ID)
 	}
 	if patch, found := readPatch(dir, record.ID); found {
 		page["Patch"] = patch

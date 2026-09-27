@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/instance"
@@ -51,7 +52,7 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	page["Ran"] = ranBy(dir)
 	page["Calls"] = callsOf(dir)
 	page["Files"] = hashed(listing(dir), manifest)
-	page["SignedBy"] = s.signedBy(dir)
+	page["Proof"] = s.proofOf(record.ID, dir, manifest)
 	s.render(w, "job.html", page)
 }
 
@@ -115,6 +116,29 @@ type calls struct {
 	Tally  spend.Tally
 	Model  []spend.Call
 	Denied []spend.Call
+}
+
+// blocked is one site a run was refused, and how often it tried.
+type blocked struct {
+	Host  string
+	Times int
+}
+
+// Sites is each refused site once, in the order it was first tried, since a
+// harness retrying one address reads as a list of the same line otherwise.
+func (c calls) Sites() []blocked {
+	var sites []blocked
+	at := map[string]int{}
+	for _, call := range c.Denied {
+		host := strings.TrimSuffix(call.Host, ":443")
+		if i, seen := at[host]; seen {
+			sites[i].Times++
+			continue
+		}
+		at[host] = len(sites)
+		sites = append(sites, blocked{Host: host, Times: 1})
+	}
+	return sites
 }
 
 func callsOf(dir job.Dir) *calls {

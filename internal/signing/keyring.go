@@ -2,6 +2,8 @@ package signing
 
 import (
 	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -76,4 +78,23 @@ func (k Keyring) Signer(signature Signature, message []byte) (Named, error) {
 		return Named{}, err
 	}
 	return held, nil
+}
+
+// Named finds a key by the name its keyring file gives it.
+func (k Keyring) Named(name string) (Named, bool) {
+	for _, held := range k {
+		if held.Name == name {
+			return held, true
+		}
+	}
+	return Named{}, false
+}
+
+// PEM is the key as its <name>.pub file holds it, for a verifier to keep.
+func (n Named) PEM() ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(n.Public)
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}), nil
 }

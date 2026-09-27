@@ -41,7 +41,7 @@
   </section>
   {{end}}
 
-  {{with .Patch}}
+  {{with .Patch}}{{if not (and .Empty $.Talk)}}
   <section class="panel">
     <h2 class="section-title">What changed</h2>
     {{if .Empty}}<p class="muted">No files changed.</p>{{end}}
@@ -62,7 +62,7 @@
     {{end}}
     {{template "cut" .}}
   </section>
-  {{end}}
+  {{end}}{{end}}
 
   {{with .Gate}}
   <section class="panel">
@@ -109,26 +109,31 @@
     </dl>
     {{with .Calls}}{{with .Denied}}
     <details><summary>{{len .}} blocked request{{if ne (len .) 1}}s{{end}} to other sites</summary>
-      <ul class="denied">{{range .}}<li><code>{{.Host}}</code></li>{{end}}</ul>
+      <ul class="denied">{{range $.Calls.Sites}}<li><code>{{.Host}}</code>{{if gt .Times 1}} <span class="muted">{{.Times}} times</span>{{end}}</li>{{end}}</ul>
     </details>
     {{end}}{{end}}
     {{with .Manifest}}{{with .StoppedByCap}}<p><span class="state failed">stopped by the {{.Cap}} cap</span> {{.Reason}}</p>{{end}}{{end}}
   </section>
 
-  {{with .Manifest}}
-  <section class="panel">
-    <details>
-      <summary>Proof of what ran</summary>
-      <dl class="facts">
-        <dt>Signed by</dt><dd>{{$.SignedBy}}</dd>
-        <dt>Files</dt><dd>{{len $.Files}}</dd>
-      </dl>
-      {{with $.Verify}}
-      <p><a class="button small" href="{{.Bundle}}" download>Download the record</a></p>
-      <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
-      {{end}}
+  {{with .Proof}}
+  <section class="panel proof" id="proof">
+    <h2 class="section-title">Proof of what ran</h2>
+    {{if not .Holds}}
+    <p class="proof-line bad">{{template "icon-shield"}} This record does not check out.</p>
+    <ul class="denied">{{range .Wrong}}<li>{{.}}</li>{{end}}</ul>
+    {{else if .Unchecked}}
+    <p class="proof-line">All {{.Files}} files match; {{.Unchecked}}.</p>
+    {{else if .Signed}}
+    <p class="proof-line good">{{template "icon-seal"}} Signed by {{.Signer}}. All {{.Files}} files match.</p>
+    {{else}}
+    <p class="proof-line">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
+    {{end}}
+    <p class="muted small">Check it on your own machine, without haas.</p>
+    <p class="proof-downloads"><a class="button small" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="button small plain" href="{{.}}" download>The signing key</a>{{end}}</p>
+    <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
+    <details><summary>Each file and its fingerprint</summary>
       <ul class="files">
-        {{range $.Files}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a>{{if .SHA256}}<code>{{.SHA256}}</code>{{else}}<span class="muted">not in the manifest</span>{{end}}</li>{{end}}
+        {{range $.Files}}{{if .SHA256}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a><code>{{.SHA256}}</code></li>{{end}}{{end}}
       </ul>
     </details>
   </section>

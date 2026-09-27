@@ -1,0 +1,33 @@
+{{template "head" .}}
+
+<nav class="crumb" aria-label="Where this is"><a href="/new">New agent</a><span>/</span><a href="/new/blank">Start from blank</a><span>/</span><span>How each engine did</span></nav>
+
+<div class="page-head">
+  <h1>How each engine did</h1>
+  <p class="muted">Each engine was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
+</div>
+
+{{with .Measured}}
+{{if .Rows}}
+<section class="figures">
+  <div class="figure headline"><span class="value">{{.Finished}} of {{.Tried}}</span><span class="label">finished the fix</span></div>
+</section>
+<div class="list">
+  <table class="measured">
+    <thead><tr><th>Engine</th>{{range .Models}}<th>{{.}}</th>{{end}}</tr></thead>
+    <tbody>
+    {{range .Rows}}
+    <tr><td class="name">{{.Title}}</td>
+      {{range .Cells}}<td>{{if not .Tried}}<span class="muted">not tried</span>{{else if .Finished}}<span class="done">{{template "icon-seal"}} Finished</span><span class="sub">{{.Took}}{{with .Cost}} · {{.}}{{end}}</span>{{else}}<span class="missed">Did not finish</span><span class="sub">{{.Took}}</span>{{end}}</td>{{end}}
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+<p class="note muted">Time includes starting the box. Cost is what the proxy counted.</p>
+{{else}}
+<p class="empty muted">Nothing has been measured on this server yet.</p>
+{{end}}
+{{end}}
+
+{{template "foot" .}}
