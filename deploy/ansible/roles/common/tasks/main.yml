@@ -70,7 +70,7 @@
   ansible.builtin.git:
     repo: "{{ repo_url }}"
     dest: "{{ app_root }}/src"
-    version: "{{ repo_branch }}"
+    version: "{{ repo_version }}"
     key_file: "{{ app_root }}/.ssh/id_ed25519"
     accept_hostkey: false
     force: true # the box mirrors origin; it is not an editing copy

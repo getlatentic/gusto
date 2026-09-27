@@ -1,0 +1,10 @@
+---
+- name: No key may ask this box for a deploy
+  ansible.builtin.file:
+    path: "{{ autodeploy_home }}/.ssh/authorized_keys"
+    state: absent
+
+- name: No sudo rule runs one
+  ansible.builtin.file:
+    path: /etc/sudoers.d/haas-deploy
+    state: absent

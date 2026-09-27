@@ -3,12 +3,17 @@
   hosts: app
   become: true
   roles:
-    - common # git, acl, the app user and its home
-    - toolchain # a pinned Go under the app root, never the box's shared one
-    - sandbox # rootless podman, and the runner image
+    - common # git, acl, the app user and its home, the checkout
+    # The key GitHub may use to ask for a deploy, or its removal. Early, so
+    # turning it off takes effect even on a deploy that fails further down.
+    - autodeploy
+    - toolchain # a pinned Go under the app root, and a candidate binary
+    - sandbox # rootless podman, and a candidate runner image
     - store # this app's own database, user and Redis index on the shared services
-    # One real job, in a container, checked: a deploy that proves itself.
+    # One real job, in a container, checked against the candidates: a deploy
+    # that proves itself before it replaces anything.
     - role: smoke
       when: smoke | bool
-    - serve # the HTTP service, once there is one to run (serve_enabled)
+    - release # the candidates become live, and the old ones are kept
+    - serve # the HTTP service, checked once it restarts (serve_enabled)
     - nginx # a name-based vhost and its certificate (serve_enabled)
