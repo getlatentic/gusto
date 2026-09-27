@@ -1,4 +1,4 @@
-{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
+{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
 {{- range $name, $_ := .Values.env }}
 {{- if has $name $reserved }}
 {{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
@@ -101,6 +101,7 @@ spec:
             - { name: HAAS_IMAGE, value: {{ $runner | quote }} }
             - { name: HAAS_JOBS, value: /var/lib/haas/jobs }
             - { name: HAAS_SESSIONS, value: /var/lib/haas/sessions }
+            - { name: HAAS_SETUPS, value: /var/lib/haas/setups }
             # Not on the volume: a unix socket belongs on a filesystem both
             # containers share in memory, whatever the storage class is.
             - { name: HAAS_PROXY_SOCKET, value: /run/haas/proxy/proxy.sock }

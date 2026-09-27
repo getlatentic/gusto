@@ -142,6 +142,7 @@ never counted.
 | --- | --- |
 | jobs and their evidence | the claim, at `/var/lib/haas/jobs` |
 | conversations' workspaces | the claim, at `/var/lib/haas/sessions` |
+| harnesses' setups | the claim, at `/var/lib/haas/setups` |
 | the proxy's socket | `/run/haas/proxy/proxy.sock`, in a volume only the pod shares |
 | the runtime's images | the pod's own storage, gone with the pod |
 
