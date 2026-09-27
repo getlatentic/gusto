@@ -63,3 +63,42 @@ func TestAnAnswerTooLargeToHoldIsUnmeasured(t *testing.T) {
 		t.Fatalf("an answer past the limit read as %+v", usage)
 	}
 }
+
+// Two providers, two namings, one pair of numbers. Both bodies here are real:
+// they came back from the same credential, one from /v1/chat/completions and
+// one from /v1/responses, and the second counted nothing before this.
+func TestUsageIsCountedWhicheverWayTheProviderNamesIt(t *testing.T) {
+	for _, each := range []struct {
+		api  string
+		body string
+	}{
+		{"chat completions", `{"usage":{"completion_tokens":16,"prompt_tokens":69,"total_tokens":85}}`},
+		{"responses", `{"usage":{"input_tokens":69,"input_tokens_details":{"cached_tokens":0},"output_tokens":16,"output_tokens_details":{"reasoning_tokens":14},"total_tokens":85}}`},
+		{"anthropic messages", `{"usage":{"input_tokens":69,"output_tokens":16}}`},
+	} {
+		t.Run(each.api, func(t *testing.T) {
+			meter := NewMeter("application/json")
+			if _, err := meter.Write([]byte(each.body)); err != nil {
+				t.Fatal(err)
+			}
+			usage := meter.Usage()
+			if usage == nil {
+				t.Fatal("the call counted nothing, which reads as free")
+			}
+			if usage.Input != 69 || usage.Output != 16 {
+				t.Errorf("counted %d in and %d out", usage.Input, usage.Output)
+			}
+		})
+	}
+}
+
+// A naming nobody knows counts nothing rather than guessing a number.
+func TestUsageNobodyRecognisesIsNotInvented(t *testing.T) {
+	meter := NewMeter("application/json")
+	if _, err := meter.Write([]byte(`{"usage":{"tokens_used":85}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if usage := meter.Usage(); usage != nil {
+		t.Errorf("a usage nobody knows was read as %+v", usage)
+	}
+}

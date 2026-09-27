@@ -14,6 +14,32 @@
     app_uid: "{{ ansible_facts.getent_passwd[app_user][1] }}"
   when: serve_enabled | bool
 
+- name: The credentials directory
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/credentials"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0700"
+  when: credentials | length > 0
+
+# no_log, because the content is a key. That file is the only place it lands.
+- name: A credential a job may spend
+  ansible.builtin.copy:
+    dest: "{{ app_root }}/var/credentials/{{ item.name }}.json"
+    content: |
+      {{ {'address': item.address,
+          'auth': item.auth | default('bearer'),
+          'key': lookup('vars', item.key_var)} | to_nice_json }}
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  loop: "{{ credentials }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+  notify: Restart haas
+
 - name: The service environment
   ansible.builtin.template:
     src: haas.env.j2

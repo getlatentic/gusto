@@ -122,6 +122,23 @@ model_name: "the platform credential"
 models: ""
 proxy_addr: "0.0.0.0:8041"
 
+# ── The credentials a job may spend ─────────────────────────────────────────
+# Each entry becomes var/credentials/<name>.json, read once at startup. The name
+# is what a model names: a job asking for `platform/qwen…` is served by the
+# credential called `platform`, and one asking for a name this deployment does
+# not hold is refused before its container starts.
+#
+# The key never appears in the environment file. key_var names the vault
+# variable that holds it, and the playbook writes it into the credential's own
+# file, readable by the app user alone.
+#
+#   credentials:
+#     - name: platform
+#       address: "https://…"        # the model's root, with no version on it
+#       auth: bearer                # bearer, or anthropic for its own header
+#       key_var: model_key
+credentials: []
+
 # ── The model ───────────────────────────────────────────────────────────────
 # Empty means the harness uses its own account. An address here is what the
 # rules check and what a local-model harness is pointed at.
