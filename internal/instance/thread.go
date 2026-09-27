@@ -34,6 +34,14 @@ func (s *Store) NewThread(id, title string) (Thread, error) {
 	if _, found := s.held[id]; !found {
 		return Thread{}, fmt.Errorf("no instance called %s", id)
 	}
+	return s.open(id, title)
+}
+
+// open numbers a conversation, holds it and writes it. The caller holds the
+// guard, or is Open, before anybody else can reach the store. The thread is
+// held before it is written, so an instance whose directory refuses the write
+// still has somewhere to talk for as long as this process runs.
+func (s *Store) open(id, title string) (Thread, error) {
 	if s.threads[id] == nil {
 		s.threads[id] = map[string]Thread{}
 	}
@@ -45,6 +53,22 @@ func (s *Store) NewThread(id, title string) (Thread, error) {
 	}
 	s.threads[id][thread.ID] = thread
 	return thread, s.writeThread(thread)
+}
+
+// mend opens the first conversation on an instance that has none, which is how
+// the two-step start left every instance it made. It runs once, as the store
+// loads, and writes the thread to disk, so the next load finds it there and
+// nothing that reads the store has to allow for an instance without one.
+//
+// A directory that cannot be written keeps the thread in memory only. The
+// instance is still listed and still leads into a conversation; the write is
+// tried again when the store next loads, and anything said on the thread meets
+// the same refusal, reported where it is said.
+func (s *Store) mend(id string) {
+	if len(s.threads[id]) > 0 {
+		return
+	}
+	s.open(id, "")
 }
 
 // next is one past the highest number in use, so a deleted thread's number is
@@ -75,8 +99,32 @@ func (s *Store) Threads(id string) []Thread {
 	for _, held := range s.threads[id] {
 		all = append(all, held)
 	}
-	sort.Slice(all, func(a, b int) bool { return all[a].Started < all[b].Started })
+	sort.Slice(all, func(a, b int) bool { return openedBefore(all[a], all[b]) })
 	return all
+}
+
+// openedBefore orders threads by when they were opened. A second is coarse
+// enough for two to share one, as the thread Start opens and the next one
+// often do, and their numbers still say which came first.
+func openedBefore(a, b Thread) bool {
+	if a.Started != b.Started {
+		return a.Started < b.Started
+	}
+	first, _ := strconv.Atoi(a.ID)
+	second, _ := strconv.Atoi(b.ID)
+	return first < second
+}
+
+// Latest is the conversation an instance was last holding: the one opened last.
+// Every instance the store holds has one, because starting an instance opens it
+// and loading one mends it, so only an id the store does not hold gets the zero
+// Thread.
+func (s *Store) Latest(id string) Thread {
+	threads := s.Threads(id)
+	if len(threads) == 0 {
+		return Thread{}
+	}
+	return threads[len(threads)-1]
 }
 
 // Said records a turn on a thread, and the harness's own name for the
@@ -99,6 +147,9 @@ func (s *Store) Said(id, thread, job, remembered string) error {
 }
 
 func (s *Store) writeThread(thread Thread) error {
+	if err := os.MkdirAll(s.threadsDir(thread.Instance), 0o755); err != nil {
+		return err
+	}
 	return writeJSON(filepath.Join(s.threadsDir(thread.Instance), thread.ID+".json"), thread)
 }
 
