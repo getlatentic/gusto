@@ -29,7 +29,14 @@ type site struct {
 
 func open(t *testing.T) *site {
 	t.Helper()
-	index, err := jobs.Open(t.TempDir())
+	return openAt(t, t.TempDir())
+}
+
+// openAt is a server over a jobs directory that may already hold jobs, which is
+// how a test shows that what ran before still reads.
+func openAt(t *testing.T, root string) *site {
+	t.Helper()
+	index, err := jobs.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +103,7 @@ func TestAStrangerIsSentToSignInAndNotToTheThingTheyAskedFor(t *testing.T) {
 			t.Errorf("%s gave %d to %q", path, answer.Code, answer.Header().Get("Location"))
 		}
 	}
-	posted := site.ask(t, "POST", "/jobs", url.Values{"brief": {"x"}, "repo": {"y"}, "gate": {"true"}})
+	posted := site.ask(t, "POST", "/instances/anything/tasks", url.Values{"brief": {"x"}, "gate": {"true"}})
 	if posted.Header().Get("Location") != "/login" {
 		t.Error("a stranger must not be able to start a job")
 	}
@@ -135,76 +142,10 @@ func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	}
 }
 
-// A job on its own is still a thing this server does; it is no longer the
-// first thing it offers.
-func TestTheJobFormIsStillThereUnderItsOwnAddress(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	answer := site.ask(t, "GET", "/jobs", nil)
-	body := answer.Body.String()
-	if answer.Code != http.StatusOK {
-		t.Fatalf("code %d", answer.Code)
-	}
-	for _, want := range []string{`name="brief"`, `name="gate"`, `name="repo"`, "Run it"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page does not offer %s", want)
-		}
-	}
-}
-
-func TestAJobSubmittedFromThePageIsTheSameJobTheCommandLineMakes(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	answer := site.ask(t, "POST", "/jobs", url.Values{
-		"repo":    {"/somewhere/repo"},
-		"brief":   {"Make the adder add"},
-		"gate":    {`sh -c "test 2 = 2"`},
-		"harness": {"fixture"},
-	})
-	if answer.Code != http.StatusSeeOther {
-		t.Fatalf("code %d", answer.Code)
-	}
-	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")
-	record, found := site.index.Get(id)
-	if !found {
-		t.Fatalf("no job called %q", id)
-	}
-	spec, err := job.Read(record.Dir(site.index.Root()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if spec.Brief != "Make the adder add" || spec.Repo != "/somewhere/repo" {
-		t.Fatalf("the spec is %+v", spec)
-	}
-	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {
-		t.Fatalf("a quoted gate must survive the form: %#v", spec.Gate)
-	}
-	select {
-	case <-site.ran:
-	case <-time.After(5 * time.Second):
-		t.Fatal("the job was never picked up")
-	}
-}
-
-func TestAJobWithoutAGateIsRefusedAndNothingIsCreated(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	answer := site.ask(t, "POST", "/jobs", url.Values{"repo": {"/repo"}, "brief": {"do it"}, "gate": {"  "}})
-	if !strings.Contains(answer.Header().Get("Location"), "refused") {
-		t.Fatalf("sent to %q", answer.Header().Get("Location"))
-	}
-	if len(site.index.List()) != 0 {
-		t.Fatal("a refused job left a directory behind")
-	}
-}
-
 func TestTheStreamReplaysFromTheStartAndEndsWithTheVerdict(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	answer := site.ask(t, "POST", "/jobs", url.Values{
-		"repo": {"/repo"}, "brief": {"watch me"}, "gate": {"true"}, "harness": {"fixture"},
-	})
-	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")
+	id := aTask(t, site, url.Values{"brief": {"watch me"}, "gate": {"true"}})
 	select {
 	case <-site.ran:
 	case <-time.After(5 * time.Second):
@@ -222,10 +163,7 @@ func TestTheStreamReplaysFromTheStartAndEndsWithTheVerdict(t *testing.T) {
 func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	answer := site.ask(t, "POST", "/jobs", url.Values{
-		"repo": {"/repo"}, "brief": {"files"}, "gate": {"true"}, "harness": {"fixture"},
-	})
-	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")
+	id := aTask(t, site, url.Values{"brief": {"files"}, "gate": {"true"}})
 	<-site.ran
 	if got := site.ask(t, "GET", "/jobs/"+id+"/files/transcript.log", nil); got.Code != http.StatusOK {
 		t.Fatalf("an evidence file should be readable, got %d", got.Code)
@@ -396,24 +334,14 @@ func TestATaskWithNoGateIsRefused(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedInstance(t, site)
-	answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}})
-	if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
-		t.Errorf("a task with no gate was accepted: %d to %q", answer.Code, got)
+	for _, gate := range []string{"", "  "} {
+		answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}, "gate": {gate}})
+		if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
+			t.Errorf("a task with gate %q was accepted: %d to %q", gate, answer.Code, got)
+		}
 	}
-}
-
-// A job of its own no longer demands a repository: it works in an empty one.
-func TestAJobWithNoRepositoryIsAccepted(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	answer := site.ask(t, "POST", "/jobs", url.Values{
-		"brief": {"write a script that prints ok"}, "gate": {"sh run.sh"}, "harness": {"fixture"},
-	})
-	if answer.Code != http.StatusSeeOther {
-		t.Fatalf("code %d", answer.Code)
-	}
-	if got := answer.Header().Get("Location"); strings.Contains(got, "refused") {
-		t.Fatalf("it was refused: %q", got)
+	if len(site.index.List()) != 0 {
+		t.Fatal("a refused task left a directory behind")
 	}
 }
 

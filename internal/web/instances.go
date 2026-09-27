@@ -50,6 +50,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Nav":     "harnesses",
 				"Harness": entry,
 				"Models":  s.models,
+				"Then":    r.URL.Query().Get("then"),
 				"Refused": r.URL.Query().Get("refused"),
 			})
 			return
@@ -98,6 +99,12 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/", err.Error())
 		return
 	}
+	// A one-off against a repository is an instance started for a task, and
+	// whoever asked for it wants the task form, not a conversation.
+	if r.FormValue("then") == "task" {
+		http.Redirect(w, r, "/instances/"+started.ID+"#task", http.StatusSeeOther)
+		return
+	}
 	// Somebody who started a harness wants to be talking to it, not reading a
 	// page about it, so the first conversation is opened with it.
 	thread, err := s.instances.NewThread(started.ID, "")
@@ -140,52 +147,6 @@ func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
 	}
 	record, _ = s.index.Get(thread.Turns[len(thread.Turns)-1])
 	return record
-}
-
-// runTask is work done on an instance's own computer: a brief, a gate, and the
-// folder the instance already has. Not every task starts from a repository.
-func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-	where := "/instances/" + held.ID
-	spec := job.Spec{
-		Brief:   strings.TrimSpace(r.FormValue("brief")),
-		Gate:    job.Words(r.FormValue("gate")),
-		Harness: held.Harness,
-		Model:   held.Model,
-		Repo:    held.Repo,
-		Session: held.ID,
-	}
-	if spec.Brief == "" || len(spec.Gate) == 0 {
-		s.turnAway(w, r, where, "a task needs something to do and a command that says it worked")
-		return
-	}
-	record := jobs.Record{
-		ID: s.index.Free(spec.Brief, time.Now()), State: jobs.Queued,
-		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
-		Instance: held.ID, Asked: s.keeper.who(r), Queued: jobs.Now(),
-	}
-	if err := s.place(spec, record); err != nil {
-		s.turnAway(w, r, where, err.Error())
-		return
-	}
-	s.queue.Wake()
-	http.Redirect(w, r, "/jobs/"+record.ID, http.StatusSeeOther)
-}
-
-// tasks is the work done on an instance that was not said to it: a job that
-// named this instance and no thread of it.
-func (s *Server) tasks(id string) []jobs.Record {
-	var done []jobs.Record
-	for _, record := range s.index.List() {
-		if record.Instance == id && record.Thread == "" {
-			done = append(done, record)
-		}
-	}
-	return done
 }
 
 // openThread starts another conversation on an instance that is already there.

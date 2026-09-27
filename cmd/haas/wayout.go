@@ -19,10 +19,11 @@ import (
 // the model's own address, which is the local case where there is no credential
 // to keep out of anywhere.
 type WayOut struct {
-	proxy  *proxy.Proxy
-	tokens *proxy.Tokens
-	ledger *spend.Ledger
-	direct string
+	proxy       *proxy.Proxy
+	tokens      *proxy.Tokens
+	credentials proxy.Credentials
+	ledger      *spend.Ledger
+	direct      string
 	// sealed containers have no network, and reach the proxy through socket.
 	// An unsealed one reaches it on address, over the runtime's own network.
 	sealed  bool
@@ -47,8 +48,11 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 	if err != nil {
 		return nil, err
 	}
-	upstream := os.Getenv("HAAS_MODEL_UPSTREAM")
-	if upstream == "" {
+	credentials, err := heldCredentials()
+	if err != nil {
+		return nil, err
+	}
+	if len(credentials) == 0 {
 		return &WayOut{direct: direct, ledger: ledger}, nil
 	}
 	tokens := proxy.NewTokens()
@@ -59,16 +63,13 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		return filepath.Join(jobsRoot, id, "out", "proxy.jsonl"), true
 	}
 	return &WayOut{
-		proxy: proxy.New(tokens, proxy.Upstream{
-			Address: upstream,
-			Key:     os.Getenv("HAAS_MODEL_KEY"),
-			Name:    setting("HAAS_MODEL_NAME", "the platform credential"),
-		}, where, ledger, proxy.ParseAllowlist(os.Getenv("HAAS_ALLOWED_HOSTS"))),
-		tokens:  tokens,
-		ledger:  ledger,
-		sealed:  os.Getenv("HAAS_JOB_NETWORK") != "open",
-		socket:  setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
-		address: setting("HAAS_PROXY_ADDR", "0.0.0.0:8041"),
+		proxy:       proxy.New(tokens, credentials, where, ledger, proxy.ParseAllowlist(os.Getenv("HAAS_ALLOWED_HOSTS"))),
+		credentials: credentials,
+		tokens:      tokens,
+		ledger:      ledger,
+		sealed:      os.Getenv("HAAS_JOB_NETWORK") != "open",
+		socket:      setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
+		address:     setting("HAAS_PROXY_ADDR", "0.0.0.0:8041"),
 	}, nil
 }
 
@@ -98,8 +99,15 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 		return sandbox.Run(dir, w.direct, "", mounts...)
 	}
 	id := filepath.Base(dir.Path())
+	named, _ := proxy.Named(spec.Model)
+	if _, held := w.credentials.Get(named); !held {
+		// Refused before the container starts, by name, rather than as a model
+		// call that fails somewhere inside a run somebody has to go and read.
+		return 0, fmt.Errorf("no credential called %q here; this deployment holds %s",
+			named, strings.Join(w.credentials.Names(), ", "))
+	}
 	w.ledger.Begin(id, spend.TermsOf(spec))
-	token, err := w.tokens.Mint(id)
+	token, err := w.tokens.Mint(id, named)
 	if err != nil {
 		return 0, err
 	}
@@ -119,4 +127,24 @@ func (w *WayOut) Done(dir job.Dir) {
 	if w.proxy != nil {
 		w.tokens.Drop(filepath.Base(dir.Path()))
 	}
+}
+
+// heldCredentials is every credential this deployment holds. HAAS_CREDENTIALS
+// names a directory of <name>.json, the way the keyring and the adapters are
+// read. A deployment configured before that directory existed named one
+// upstream in the environment, and it is read as the one unnamed credential
+// that serves every job.
+func heldCredentials() (proxy.Credentials, error) {
+	if dir := os.Getenv("HAAS_CREDENTIALS"); dir != "" {
+		return proxy.OpenCredentials(dir)
+	}
+	address := os.Getenv("HAAS_MODEL_UPSTREAM")
+	if address == "" {
+		return nil, nil
+	}
+	return proxy.Credentials{"": {
+		Address: address,
+		Key:     os.Getenv("HAAS_MODEL_KEY"),
+		Name:    setting("HAAS_MODEL_NAME", "the platform credential"),
+	}}, nil
 }

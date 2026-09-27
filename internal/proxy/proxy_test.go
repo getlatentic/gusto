@@ -33,7 +33,7 @@ func site(t *testing.T, key string) (*Proxy, *Tokens, string, *http.Header) {
 	model := upstream(t, &seen)
 	tokens := NewTokens()
 	kept := t.TempDir()
-	proxy := New(tokens, Upstream{Address: model.URL, Key: key, Name: "the-platform-key"},
+	proxy := New(tokens, Credentials{"": {Address: model.URL, Key: key, Name: "the-platform-key"}},
 		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
 		spend.NewLedger(spend.Policy{}), Allowlist{})
 	return proxy, tokens, kept, &seen
@@ -50,7 +50,7 @@ func ask(t *testing.T, proxy *Proxy, path, body string) *httptest.ResponseRecord
 
 func TestTheCredentialIsAddedHereAndTheContainersIsDiscarded(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "the-real-key")
-	token, err := tokens.Mint("a-job")
+	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestATokenNobodyMintedGetsNothing(t *testing.T) {
 
 func TestAJobsWayOutEndsWithTheJob(t *testing.T) {
 	proxy, tokens, _, _ := site(t, "the-real-key")
-	token, err := tokens.Mint("a-job")
+	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,8 +94,8 @@ func TestAJobsWayOutEndsWithTheJob(t *testing.T) {
 
 func TestOneJobsTokenIsNotAnothers(t *testing.T) {
 	_, tokens, _, _ := site(t, "k")
-	first, _ := tokens.Mint("job-one")
-	second, _ := tokens.Mint("job-two")
+	first, _ := tokens.Mint("job-one", "")
+	second, _ := tokens.Mint("job-two", "")
 	if first == second {
 		t.Fatal("two jobs were given the same way out")
 	}
@@ -109,7 +109,7 @@ func TestOneJobsTokenIsNotAnothers(t *testing.T) {
 // is how a harness that under-reports is caught.
 func TestWhatActuallyWentIsWrittenDown(t *testing.T) {
 	proxy, tokens, kept, _ := site(t, "the-real-key")
-	token, _ := tokens.Mint("a-job")
+	token, _ := tokens.Mint("a-job", "")
 	ask(t, proxy, "/model/"+token+"/v1/chat/completions", `{"model":"x"}`)
 
 	text, err := os.ReadFile(filepath.Join(kept, "a-job.jsonl"))
@@ -133,7 +133,7 @@ func TestWhatActuallyWentIsWrittenDown(t *testing.T) {
 
 func TestAModelThatNeedsNoCredentialGetsNone(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "")
-	token, _ := tokens.Mint("a-job")
+	token, _ := tokens.Mint("a-job", "")
 	ask(t, proxy, "/model/"+token+"/v1/models", `{}`)
 	if got := seen.Get("Authorization"); got != "" {
 		t.Fatalf("an unauthenticated model was sent %q", got)
@@ -145,7 +145,7 @@ func TestAModelThatNeedsNoCredentialGetsNone(t *testing.T) {
 // that configuration for every job.
 func TestATokenPresentedWhereAKeyWouldGoIsAccepted(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "the-real-key")
-	token, err := tokens.Mint("a-job")
+	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,10 +8,7 @@
 package catalog
 
 import (
-	"context"
-	"os/exec"
 	"sort"
-	"time"
 
 	"github.com/getlatentic/haas/internal/harness"
 )
@@ -22,6 +19,9 @@ type Entry struct {
 	What    string
 	Program string
 	Needs   harness.Needs
+	// Declared is whether the image names this harness among those it
+	// carries. It is the image's word; Ready rests on the program itself.
+	Declared bool
 	// Ready is whether this machine can run it now. Why says what is missing
 	// when it cannot, in words somebody can act on.
 	Ready bool
@@ -47,21 +47,24 @@ func (e Entry) Wants() string {
 // server starts, because the answer only changes when the image does and asking
 // per page would start a container for every row.
 func Survey(runtime, image string, names []string) []Entry {
-	entries := make([]Entry, 0, len(names))
+	return Of(Container(runtime, image), names)
+}
+
+// Of builds the catalog from what one image answers. A name nobody can load is
+// left out: there is nothing to say about it that would help somebody choose.
+func Of(image Image, names []string) []Entry {
+	adapters := map[string]harness.Adapter{}
+	programs := make([]string, 0, len(names))
 	for _, name := range names {
-		adapter, err := harness.Load("", name)
-		if err != nil {
-			continue
+		if adapter, err := harness.Load("", name); err == nil {
+			adapters[name] = adapter
+			programs = append(programs, adapter.Program)
 		}
-		entry := Entry{Name: name, What: adapter.What, Program: adapter.Program, Needs: adapter.Needs}
-		entry.Ready, entry.Why = carried(runtime, image, adapter.Program)
-		if entry.Ready && adapter.Needs == harness.NeedsAccount {
-			// The program is there, but it answers to somebody's own
-			// subscription, which a shared server does not have.
-			entry.Ready = false
-			entry.Why = "it signs in as a person, so it runs where that person is"
-		}
-		entries = append(entries, entry)
+	}
+	carried := image.Carried(programs)
+	entries := make([]Entry, 0, len(adapters))
+	for name, adapter := range adapters {
+		entries = append(entries, entryOf(name, adapter, carried))
 	}
 	sort.Slice(entries, func(a, b int) bool {
 		if entries[a].Ready != entries[b].Ready {
@@ -72,20 +75,22 @@ func Survey(runtime, image string, names []string) []Entry {
 	return entries
 }
 
-// carried asks the image whether it has the program, and says so plainly when
-// it does not.
-func carried(runtime, image, program string) (bool, string) {
-	if runtime == "" || image == "" {
-		return true, ""
+func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
+	entry := Entry{
+		Name:     name,
+		What:     adapter.What,
+		Program:  adapter.Program,
+		Needs:    adapter.Needs,
+		Declared: carried.Declares(name),
 	}
-	context, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	ask := exec.CommandContext(context, runtime, "run", "--rm", "--entrypoint", "sh", image,
-		"-c", "command -v "+program+" >/dev/null")
-	if err := ask.Run(); err != nil {
-		return false, "the runner image does not carry " + program
+	entry.Ready, entry.Why = carried.Runs(name, adapter.Program)
+	if entry.Ready && adapter.Needs == harness.NeedsAccount {
+		// The program is there, but it answers to somebody's own
+		// subscription, which a shared server does not have.
+		entry.Ready = false
+		entry.Why = "it signs in as a person, so it runs where that person is"
 	}
-	return true, ""
+	return entry
 }
 
 // Ready is the names a job may name, which is what a form should offer.

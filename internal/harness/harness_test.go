@@ -301,3 +301,39 @@ func decode(t *testing.T, line string) map[string]any {
 	}
 	return decoded
 }
+
+// Codex names no tool. A shell call is an item carrying a command, and nothing
+// else in its stream has that field — which is what tells a call from a message.
+// Both lines here are real, from a run against deepseek-flash.
+func TestCodexShellCallsAreToldApartFromItsMessages(t *testing.T) {
+	adapter, err := Load("", "codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ran := `{"type":"item.completed","item":{"id":"item_2","type":"command_execution",` +
+		`"command":"/bin/zsh -lc 'cat adder.sh'","status":"completed"}}`
+	said := `{"type":"item.completed","item":{"id":"item_4","type":"agent_message",` +
+		`"text":"Root cause: the arithmetic operator is - instead of +."}}`
+
+	var call, message map[string]any
+	if err := json.Unmarshal([]byte(ran), &call); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(said), &message); err != nil {
+		t.Fatal(err)
+	}
+	name, isCall := Pick(call, adapter.ToolName)
+	if ran, _ := name.(string); !isCall || !strings.Contains(ran, "cat adder.sh") {
+		t.Errorf("a shell call read as %q, %v", name, isCall)
+	}
+	if status, found := Pick(call, adapter.ToolStatus); !found || status != "completed" {
+		t.Errorf("its status read as %q, %v", status, found)
+	}
+	if _, isCall := Pick(message, adapter.ToolName); isCall {
+		t.Error("what the harness said was recorded as a command it ran")
+	}
+	text, found := Pick(message, adapter.Text)
+	if said, _ := text.(string); !found || !strings.Contains(said, "Root cause") {
+		t.Errorf("what it said read as %q, %v", text, found)
+	}
+}

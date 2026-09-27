@@ -28,6 +28,19 @@
           "name": "Qwen3 VL 235B"
         }
       }
+    },
+    "deepseek": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "DeepSeek",
+      "options": {
+        "baseURL": "{env:HAAS_MODEL_URL}",
+        "apiKey": "{env:HAAS_MODEL_TOKEN}"
+      },
+      "models": {
+        "deepseek-flash": {
+          "name": "DeepSeek Flash"
+        }
+      }
     }
   },
   "permission": {

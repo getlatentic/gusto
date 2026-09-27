@@ -148,9 +148,9 @@ on the manifest, an export is held to as well.
 | who signed | `evidence.signer` | `out/manifest.sig`, checked against the exporter's `HAAS_KEYRING`; never the manifest's `signer` field |
 
 The request that created a job is never among its request lines. It is `POST
-/jobs` or `POST /api/jobs`, and the job's ID is chosen after that path is
-written, so the path is the only tie and it does not hold one. What the lines
-show is who read the job afterwards.
+/instances/{id}/tasks`, a thread's `POST .../say` or `POST /api/jobs`, and the
+job's ID is chosen after that path is written, so the path is the only tie and
+it does not hold one. What the lines show is who read the job afterwards.
 
 ### The words in place of a value
 

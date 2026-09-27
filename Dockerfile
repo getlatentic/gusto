@@ -1,10 +1,10 @@
-# The runner, and the harness it runs. Image names carry their registry because
-# podman refuses a short name unless the host configures a search registry, and a
-# deploy should not need a global file on a shared box to build.
-#
-# The runner, and the harness it runs. The runner is inside the box because a
+# The runner, and the harnesses it runs. The runner is inside the box because a
 # harness with its own tool loop runs its edits and shell in its own process, so
 # containing the CLI alone would leave those outside.
+#
+# Image names carry their registry because podman refuses a short name unless
+# the host configures a search registry, and a deploy should not need a global
+# file on a shared box to build.
 
 FROM docker.io/library/golang:1.26 AS build
 WORKDIR /src
@@ -21,13 +21,35 @@ FROM docker.io/library/node:24-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-# One image a harness. The adapter names the program; this provides it.
-ARG HARNESS_PACKAGE=opencode-ai
-RUN npm install -g --no-fund --no-audit "$HARNESS_PACKAGE"
+# HARNESSES is the list this image carries: each member is an adapter's name, an
+# equals sign, and the npm package that provides its program, so the name a job
+# asks for and the package that answers it are written down together. A version
+# pins the same way it does for npm: codex=@openai/codex@0.1.0.
+ARG HARNESSES="opencode=opencode-ai"
+RUN set -eu; \
+    packages=""; \
+    for member in $HARNESSES; do \
+      case "$member" in \
+        ?*=?*) packages="$packages ${member#*=}" ;; \
+        *) echo "HARNESSES wants name=package, and $member is not" >&2; exit 1 ;; \
+      esac; \
+    done; \
+    if [ -n "$packages" ]; then npm install -g --no-fund --no-audit $packages; fi
+# The image says what it carries, so `docker image inspect` and the server's
+# catalog both read it without anybody opening this file. The catalog still
+# asks each program's PATH, because a label is a claim and the PATH is what a
+# job will meet.
+LABEL com.getlatentic.haas.harnesses="$HARNESSES"
 COPY --from=build /haas /usr/local/bin/haas
-# The harness's own configuration belongs to the image, not to the adapter: the
-# adapter has to stay portable between a laptop and a container. This points
-# opencode at a model on the host and lets it edit without asking.
+# A harness's own configuration belongs to the image, not to the adapter: the
+# adapter has to stay portable between a laptop and a container. Each harness
+# has a directory of its own under image/harness/, named after it and copied to
+# /root/.config/<name>/, so two harnesses never share a file. opencode reads
+# that directory already; claude and codex read their own homes, and are
+# pointed at theirs by the variables each vendor documents for it.
 COPY image/harness/ /root/.config/
+ENV CLAUDE_CONFIG_DIR=/root/.config/claude \
+    CODEX_HOME=/root/.config/codex
+RUN mkdir -p "$CLAUDE_CONFIG_DIR" "$CODEX_HOME"
 WORKDIR /job
 ENTRYPOINT ["haas"]

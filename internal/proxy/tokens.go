@@ -13,25 +13,35 @@ import (
 	"sync"
 )
 
+// Ticket is what a token stands for: the job the spending is attributed to, and
+// the credential that job may spend. The credential is decided when the job
+// starts and held here, so a container cannot reach a provider it was not given
+// by naming one in a request.
+type Ticket struct {
+	Job        string
+	Credential string
+}
+
 // Tokens are what a container shows instead of a credential. One is minted per
 // job and dropped when the job ends, so it is worth nothing to anybody who takes
 // it later, and what it spends is attributed to a job rather than an account.
 type Tokens struct {
 	guard sync.RWMutex
-	jobs  map[string]string
+	jobs  map[string]Ticket
 }
 
 func NewTokens() *Tokens {
-	return &Tokens{jobs: map[string]string{}}
+	return &Tokens{jobs: map[string]Ticket{}}
 }
 
-// Mint gives this job a token. A job that already has one keeps it, so a
-// restarted run does not orphan the address its container was given.
-func (t *Tokens) Mint(job string) (string, error) {
+// Mint gives this job a token good for one credential. A job that already has
+// one keeps it, so a restarted run does not orphan the address its container
+// was given.
+func (t *Tokens) Mint(job, credential string) (string, error) {
 	t.guard.Lock()
 	defer t.guard.Unlock()
 	for token, held := range t.jobs {
-		if held == job {
+		if held.Job == job {
 			return token, nil
 		}
 	}
@@ -40,16 +50,16 @@ func (t *Tokens) Mint(job string) (string, error) {
 		return "", err
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
-	t.jobs[token] = job
+	t.jobs[token] = Ticket{Job: job, Credential: credential}
 	return token, nil
 }
 
-// Job says which job a token belongs to, or that it belongs to none.
-func (t *Tokens) Job(token string) (string, bool) {
+// Job says what a token stands for, or that it stands for nothing.
+func (t *Tokens) Job(token string) (Ticket, bool) {
 	t.guard.RLock()
 	defer t.guard.RUnlock()
-	job, found := t.jobs[token]
-	return job, found
+	ticket, found := t.jobs[token]
+	return ticket, found
 }
 
 // Drop ends a job's way out. Called when the job ends, so a container that
@@ -58,7 +68,7 @@ func (t *Tokens) Drop(job string) {
 	t.guard.Lock()
 	defer t.guard.Unlock()
 	for token, held := range t.jobs {
-		if held == job {
+		if held.Job == job {
 			delete(t.jobs, token)
 		}
 	}
