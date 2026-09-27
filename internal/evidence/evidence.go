@@ -57,6 +57,11 @@ type Manifest struct {
 	// not a claim that anything passed.
 	Gate    *Verdict `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
+	// HarnessDigest names the configured harness that ran by what it held,
+	// taken before it started. A name is what two teams can both say and mean
+	// different things by; this is not. It is empty in a manifest written
+	// before it was recorded, which says so rather than guessing one.
+	HarnessDigest string `json:"harnessDigest,omitempty"`
 	// Session is what the harness calls the conversation this run was a turn in.
 	Session         string `json:"session,omitempty"`
 	HarnessExit     int    `json:"harnessExit"`
@@ -154,7 +159,7 @@ func Check(dir job.Dir) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	wrong := sealComplaints(dir)
+	wrong := append(sealComplaints(dir), harnessComplaints(dir, manifest)...)
 	if spec != manifest.Job {
 		wrong = append(wrong, "job.json changed")
 	}

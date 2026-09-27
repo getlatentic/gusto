@@ -39,10 +39,14 @@ func Inside(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	adapter, err := harness.Load(dir, spec.Harness)
+	// The digest is taken here, from what the job carries, before the harness
+	// starts: nothing it writes during the run can change what the manifest
+	// says it was.
+	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
 		return 0, err
 	}
+	adapter := configured.Adapter
 	if err := admit(spec, adapter); err != nil {
 		return 0, Refuse(dir, err)
 	}
@@ -114,6 +118,7 @@ func Inside(dir job.Dir) (int, error) {
 		Files:           files,
 		Gate:            verdict,
 		Harness:         adapter.Name,
+		HarnessDigest:   configured.Digest,
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,

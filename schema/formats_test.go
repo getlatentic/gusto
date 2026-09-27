@@ -97,6 +97,20 @@ func TestTheJobSchemaRefusesWhatTheReaderRefuses(t *testing.T) {
 	}
 }
 
+// The digest joined the manifest at version 1, so a manifest with it and one
+// from before it are both version 1.
+func TestAManifestIsValidWithAndWithoutTheHarnessDigest(t *testing.T) {
+	before := `{"job": "j", "files": [], "harness": "opencode", "harnessExit": 0, "stoppedAtBudget": false,
+		"modelEndpoint": "", "tokens": null, "costUsd": null, "signer": "unsigned", "atUnix": 1}`
+	after := strings.Replace(before, `"harness": "opencode",`,
+		`"harness": "opencode", "harnessDigest": "sha256:3e8c088aa809533e7f9fa7a54f545d896c2dcbe9a3c81b4d543ad97de277fa7f",`, 1)
+	for _, document := range []string{before, after} {
+		if err := schema.Validate(schema.Manifest(), []byte(document)); err != nil {
+			t.Errorf("%v\n%s", err, document)
+		}
+	}
+}
+
 // A turn in a conversation is a job too, and the one written most often. Its
 // job.json names the instance, the thread and the setup, and names no gate.
 func TestATurnInAConversationMatchesTheSchema(t *testing.T) {
