@@ -158,3 +158,17 @@ func heldCredentials() (proxy.Credentials, error) {
 		Name:    setting("HAAS_MODEL_NAME", "the platform credential"),
 	}}, nil
 }
+
+// InBuilding says whether any model this deployment reaches is inside its own
+// network, which is the only place restricted work may go.
+func (w *WayOut) InBuilding() bool {
+	if w.proxy == nil {
+		return rules.Local(w.direct)
+	}
+	for _, name := range w.credentials.Names() {
+		if credential, held := w.credentials.Get(name); held && rules.Local(credential.Address) {
+			return true
+		}
+	}
+	return false
+}

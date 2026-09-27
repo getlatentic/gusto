@@ -48,6 +48,16 @@ type Credential struct {
 // Serves reports whether this credential will answer that harness. A credential
 // naming no harnesses answers every one, so a deployment says nothing until it
 // has found out otherwise.
+// Speaks is the shape of API the credential's provider answers in: an
+// Anthropic-authenticated one answers Anthropic's messages, and a bearer one
+// OpenAI's.
+func (c Credential) Speaks() string {
+	if c.Auth == Anthropic {
+		return "anthropic"
+	}
+	return "openai"
+}
+
 func (c Credential) Serves(harness string) bool {
 	if len(c.Harnesses) == 0 {
 		return true
