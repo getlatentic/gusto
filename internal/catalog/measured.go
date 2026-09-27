@@ -25,6 +25,10 @@ type Measured struct {
 	Environment string
 	Job         string
 	Finished    bool
+	// WallSeconds and CostUSD are what the run took and what its calls cost,
+	// nil when the run did not leave them.
+	WallSeconds *float64
+	CostUSD     *float64
 	// Run is the run's directory, so the claim can be checked.
 	Run string
 }
@@ -93,19 +97,20 @@ func measuredFromSetting(entries []Entry) []Entry {
 	return marked
 }
 
-// table is the part of the matrix's table.json the catalog reads. The rest
-// of it, the cost and the wall clock, is for a person choosing.
+// table is the part of the matrix's table.json the catalog reads.
 type table struct {
 	Version  int    `json:"version"`
 	Matrix   string `json:"matrix"`
 	Simplest string `json:"simplest"`
 	Rows     []struct {
-		Job         string `json:"job"`
-		Harness     string `json:"harness"`
-		Model       string `json:"model"`
-		Environment string `json:"environment"`
-		Finished    *bool  `json:"finished"`
-		Run         string `json:"run"`
+		Job         string   `json:"job"`
+		Harness     string   `json:"harness"`
+		Model       string   `json:"model"`
+		Environment string   `json:"environment"`
+		Finished    *bool    `json:"finished"`
+		WallSeconds *float64 `json:"wallSeconds"`
+		CostUSD     *float64 `json:"costUsd"`
+		Run         string   `json:"run"`
 	} `json:"rows"`
 }
 
@@ -130,7 +135,8 @@ func simplestRuns(path string) (map[string][]Measured, error) {
 		}
 		runs[row.Harness] = append(runs[row.Harness], Measured{
 			Model: row.Model, Environment: row.Environment, Job: row.Job,
-			Finished: *row.Finished, Run: filepath.Join(read.Matrix, row.Run),
+			Finished: *row.Finished, WallSeconds: row.WallSeconds, CostUSD: row.CostUSD,
+			Run: filepath.Join(read.Matrix, row.Run),
 		})
 	}
 	return runs, nil

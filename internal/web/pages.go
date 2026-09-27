@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/haas/internal/harness"
@@ -41,7 +43,22 @@ var helpers = template.FuncMap{
 		}
 		return fmt.Sprintf("$%.4f", *usd)
 	},
-	"tokens":   compact,
+	"tokens": compact,
+	// modelOnly is a model without the credential that serves it, which is
+	// what somebody choosing between models reads.
+	"modelOnly": func(model string) string {
+		if _, alone, found := strings.Cut(model, "/"); found {
+			return alone
+		}
+		return model
+	},
+	"has": func(list []string, item string) bool { return slices.Contains(list, item) },
+	"seconds": func(wall *float64) string {
+		if wall == nil {
+			return ""
+		}
+		return (time.Duration(*wall) * time.Second).String()
+	},
 	"markdown": markdown,
 	"asset":    asset,
 	"base":     filepath.Base,

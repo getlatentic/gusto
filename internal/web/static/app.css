@@ -456,3 +456,10 @@ ul.skills li + li { border-top: 1px solid var(--yg-bg-subtle); padding-top: var(
 .skill-head .name { font-weight: 600; }
 ul.skills p { margin: var(--yg-space-1) 0 var(--yg-space-2); font-size: .875rem; }
 ul.skills summary { cursor: pointer; font-size: .875rem; color: var(--yg-text-muted); }
+
+/* What a matrix measured a harness doing, one model a line. */
+ul.measured { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .8125rem; }
+ul.measured li { display: flex; justify-content: space-between; gap: var(--yg-space-3); color: var(--yg-text-muted); }
+ul.measured .model { color: var(--yg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ul.measured li.finished span:last-child::before { content: "✓ "; color: var(--yg-success); }
+ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
