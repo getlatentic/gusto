@@ -227,3 +227,34 @@ func TestAWorkspaceThatIsNotARepositoryIsMendedOnTheWayIn(t *testing.T) {
 		t.Errorf("the workspace was not mended: %v", err)
 	}
 }
+
+func TestARemovedInstanceIsGoneButItsFilesAreKept(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Start("one", Instance{Harness: "opencode"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(store.Workspace("one"), "work.txt"), []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Remove("one"); err != nil {
+		t.Fatal(err)
+	}
+	if _, found := store.Get("one"); found {
+		t.Error("a removed instance is still held")
+	}
+	again, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.List()) != 0 {
+		t.Errorf("reopening the store found %v", again.List())
+	}
+	kept, _ := filepath.Glob(filepath.Join(root, removed, "one-*", "workspace", "work.txt"))
+	if len(kept) != 1 {
+		t.Error("the workspace should be moved aside, not deleted")
+	}
+}

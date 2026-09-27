@@ -10,18 +10,18 @@ import (
 )
 
 // The record starts nothing. A run happens on an instance, and the record says
-// where to start one for a one-off against a repository.
+// where to start one.
 func TestTheRecordStartsNothingAndSaysWhereToStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	body := site.ask(t, "GET", "/jobs", nil).Body.String()
-	for _, gone := range []string{`name="brief"`, `name="gate"`, `action="/jobs"`} {
+	for _, gone := range []string{`name="brief"`, `name="gate"`, `method="post" action="/jobs"`} {
 		if strings.Contains(body, gone) {
 			t.Errorf("the record still carries %s", gone)
 		}
 	}
-	if !strings.Contains(body, `/instances/new?harness=fixture&amp;then=task`) {
-		t.Error("the record does not say where a one-off against a repository starts")
+	if !strings.Contains(body, `href="/new"`) {
+		t.Error("the record does not say where a harness is started")
 	}
 	if posted := site.ask(t, "POST", "/jobs", url.Values{"brief": {"x"}, "gate": {"true"}}); posted.Code != http.StatusMethodNotAllowed {
 		t.Errorf("posting to the record gave %d", posted.Code)

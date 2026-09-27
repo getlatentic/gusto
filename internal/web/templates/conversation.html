@@ -118,7 +118,7 @@
 {{range .Turns}}
 <article class="turn" id="{{.ID}}">
   <p class="said">{{.Said}}</p>
-  {{if .Replied}}<pre>{{.Replied}}</pre>{{end}}
+  {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}
   <p class="after"><span class="state {{.State}}">{{.State}}</span> <a href="/jobs/{{.ID}}">evidence</a></p>
 </article>
 {{end}}

@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -42,11 +43,9 @@ func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "spend.html", map[string]any{
-		"Title":    "haas — spend",
-		"Nav":      "spend",
-		"Subtitle": "what the agents cost",
-		"Report":   report,
-		"Months":   months,
+		"Title":  "haas — spend",
+		"Nav":    "spend",
+		"Ledger": viewLedger(report, months, time.Now()),
 	})
 }
 

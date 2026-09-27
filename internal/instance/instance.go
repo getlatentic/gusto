@@ -57,7 +57,7 @@ func Open(root string) (*Store, error) {
 		return nil, err
 	}
 	for _, entry := range listing {
-		if !entry.IsDir() {
+		if !entry.IsDir() || hidden(entry.Name()) {
 			continue
 		}
 		if err := store.load(filepath.Join(root, entry.Name())); err != nil {

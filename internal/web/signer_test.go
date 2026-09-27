@@ -58,7 +58,7 @@ func TestTheJobPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		"unsigned":                           {"unsigned-20260927-0100", keyring, evidence.Unsigned},
 		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, evidence.NoKeyring},
 		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "is not in the keyring"},
-		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "<td>acme</td>"},
+		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "<dd>acme</dd>"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			site := openKeyed(t, root, tc.keyring)
