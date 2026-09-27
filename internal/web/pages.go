@@ -52,6 +52,26 @@ var helpers = template.FuncMap{
 		}
 		return model
 	},
+	"hourOf": func(unix int64) string { return time.Unix(unix, 0).Format("15:04") },
+	// outcome is how a run ended, in the words of a log: a turn replied, a
+	// task passed or failed its gate, and one still going says so.
+	"outcome": func(shown run) string {
+		switch {
+		case shown.State == jobs.Queued:
+			return "waiting"
+		case shown.State == jobs.Running:
+			return "working"
+		case shown.State == jobs.Interrupted:
+			return "interrupted"
+		case shown.Thread != "" && shown.State == jobs.Passed:
+			return "replied"
+		case shown.Thread != "":
+			return "failed"
+		case shown.State == jobs.Passed:
+			return "gate passed"
+		}
+		return "gate failed"
+	},
 	"has": func(list []string, item string) bool { return slices.Contains(list, item) },
 	"seconds": func(wall *float64) string {
 		if wall == nil {

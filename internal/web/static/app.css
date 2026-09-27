@@ -545,3 +545,40 @@ ul.asks li { padding: var(--yg-space-3) var(--yg-space-4); border: 1px solid var
 .notice { padding: var(--yg-space-3) var(--yg-space-4); background: var(--yg-warning-surface); color: var(--yg-text);
   border-radius: var(--yg-radius-sm); font-size: .875rem; }
 .run-side form.stack label { font-size: .875rem; }
+
+/* Activity: a log, a day at a time. Each event is the time, a dot in its
+   state's colour, where it happened and what was asked, and how it ended. */
+.filters { flex-wrap: wrap; }
+.segments { display: flex; flex-wrap: wrap; gap: var(--yg-space-1); padding: 3px;
+  background: var(--yg-bg-subtle); border-radius: var(--yg-radius-full); }
+.segments a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
+  padding: var(--yg-space-1) var(--yg-space-3); border-radius: var(--yg-radius-full);
+  font-size: .8125rem; color: var(--yg-text-muted); text-decoration: none; text-transform: capitalize; }
+.segments a:hover { color: var(--yg-text); }
+.segments a[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); font-weight: 600; }
+.segments .n { color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--yg-neutral-300); flex: none; }
+.is-running .dot, .is-queued .dot { background: var(--yg-warning); }
+.is-passed .dot { background: var(--yg-success); }
+.is-failed .dot, .is-interrupted .dot { background: var(--yg-danger); }
+.log h2 { margin: var(--yg-space-8) 0 var(--yg-space-2); }
+.log ol { list-style: none; margin: 0; padding: 0; background: var(--yg-surface);
+  border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.event { display: grid; grid-template-columns: 3rem 7px minmax(0, 1fr) auto; align-items: center;
+  gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-5); }
+.event + .event { border-top: 1px solid var(--yg-bg-subtle); }
+.event:hover { background: var(--yg-bg-subtle); }
+.event .at { font-size: .8125rem; color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
+.event .what { min-width: 0; }
+.event .where { margin: 0; font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event .where a { color: var(--yg-text); font-weight: 600; text-decoration: none; }
+.event .where a:hover { color: var(--yg-accent-text); }
+.event .brief { display: block; color: var(--yg-text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event .brief:hover { color: var(--yg-accent-text); }
+.event .how { display: grid; justify-items: end; font-size: .8125rem; white-space: nowrap; }
+.event .outcome { font-weight: 500; }
+.event.is-failed .outcome, .event.is-interrupted .outcome { color: var(--yg-danger); }
+@media (max-width: 48rem) {
+  .event { grid-template-columns: 7px minmax(0, 1fr) auto; }
+  .event .at { display: none; }
+}
