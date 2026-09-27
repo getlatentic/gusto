@@ -90,6 +90,13 @@ spend_policy:
       cachedInputPerMillion: 0.022
       outputPerMillion: 1.98
       peak: *deepseek_peak
+    # aws.amazon.com/bedrock/pricing lists this model at these rates in
+    # Mumbai, Ireland and Milan, and does not list us-east-1, where the
+    # platform credential reaches it; the lowest listed rate is used until it
+    # does.
+    qwen.qwen3-vl-235b-a22b-instruct:
+      inputPerMillion: 0.53
+      outputPerMillion: 2.66
   teams: {}
 
 # ufw is active and default-deny, and already allows nginx. The service binds

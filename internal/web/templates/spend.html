@@ -49,13 +49,14 @@
 </section>
 
 <div class="panels">
-  {{template "shares" (dict "Title" "By model" "Lines" .Models "Link" "")}}
-  {{template "shares" (dict "Title" "By engine" "Lines" .Harnesses "Link" "")}}
-  {{template "shares" (dict "Title" "By team" "Lines" .Teams "Link" "")}}
-  {{template "shares" (dict "Title" "By project" "Lines" .Projects "Link" "")}}
+  {{template "shares" (dict "Title" "By agent" "Lines" .Agents)}}
+  {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
+  {{template "shares" (dict "Title" "By engine" "Lines" .Harnesses)}}
+  {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
+  {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
 </div>
 
-{{template "shares" (dict "Title" "Most expensive jobs" "Lines" .Jobs "Link" "/jobs/")}}
+{{template "shares" (dict "Title" "Most expensive messages" "Lines" .Jobs)}}
 
 <p class="note muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
 
@@ -72,7 +73,7 @@
     {{range .Lines}}
     <tr>
       <td class="name">
-        {{if not .Name}}<span class="muted">none named</span>{{else if $.Plain}}<span title="{{.Name}}">{{brain .Name}}</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}
+        {{if not .Name}}<span class="muted">none named</span>{{else if .Href}}<a href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="sub">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
         <span class="share" aria-hidden="true"><span style="width: {{printf "%.1f" .Width}}%"></span></span>
       </td>
       <td class="num">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{.Money}}{{end}}</td>

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +45,7 @@ func TestTheSpendPageShowsTeamsProjectsAndJobs(t *testing.T) {
 		t.Fatalf("code %d", answer.Code)
 	}
 	page := answer.Body.String()
-	for _, want := range []string{"platform", "github.com/o/api", `href="/jobs/fix-it"`, "$0.5000", "spent this month, at least", "none named"} {
+	for _, want := range []string{"platform", "github.com/o/api", `href="/jobs/fix-it"`, "$0.5000", "spent this month, at least", "Other work"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("want %q on the page:\n%s", want, page)
 		}
@@ -74,5 +75,30 @@ func TestTheSpendReportIsThereForAScript(t *testing.T) {
 	site.handler.ServeHTTP(stranger, httptest.NewRequest("GET", "/api/spend", nil))
 	if stranger.Code != http.StatusUnauthorized {
 		t.Fatalf("a stranger got %d", stranger.Code)
+	}
+}
+
+// What an agent spent is added up under the agent's name, and a message is
+// listed by what was asked, not by its job's id.
+func TestTheSpendPageNamesAgentsAndMessages(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
+	where := started.Header().Get("Location")
+	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from visit-notes.txt"}})
+	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
+	site.wait(t, id)
+	dir := job.Dir(filepath.Join(site.index.Root(), id))
+	if err := os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(priced+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	page := site.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
+	for _, want := range []string{"By agent", "Clinical documentation", ">Draft a SOAP note from visit-notes.txt</a>", `href="/jobs/` + id + `"`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("want %q on the page:\n%s", want, page)
+		}
+	}
+	if strings.Contains(page, "By team") {
+		t.Error("a month where no team was named has nothing to show by team")
 	}
 }
