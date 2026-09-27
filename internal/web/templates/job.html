@@ -1,45 +1,50 @@
 {{template "head" .}}
 
 <nav class="crumb" aria-label="Where this is">
-  <a href="/jobs">Jobs</a><span>/</span>
-  {{if .ThreadPath}}<a href="{{.ThreadPath}}">{{.On.Named}}</a><span>/</span>{{end}}
-  <span>this run</span>
+  {{if .Agent}}<a href="/">Agents</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
+  {{with .Talk}}<a href="{{$.ThreadPath}}">{{.Name}}</a>{{else}}<span>this run</span>{{end}}
 </nav>
 
 <header class="run-head">
-  <h1 class="brief">{{.Job.Brief}}</h1>
-  <span class="state {{.Job.State}}" id="state">{{.Job.State}}</span>
+  <div class="run-title">
+    {{with .Talk}}<p class="place">Message {{.Place}} of {{.Of}}</p>{{end}}
+    <h1 class="brief">{{.Job.Brief}}</h1>
+    <p class="outcome-line"><span class="state {{.Job.State}}" id="state">{{outcome .Run}}</span>
+      <span class="muted">{{with took .Job.Started .Job.Ended}}in {{.}}{{end}}{{if .Run.Metered}} · {{template "cost" .Run}}{{end}} · {{when .Job.Queued}}</span></p>
+  </div>
+  {{with .Talk}}<nav class="neighbours" aria-label="Other messages">
+    {{if .Before}}<a href="/jobs/{{.Before}}">← Previous</a>{{end}}
+    {{if .After}}<a href="/jobs/{{.After}}">Next →</a>{{end}}
+  </nav>{{end}}
 </header>
 
 <div class="run">
 <div class="run-main">
 
   <section class="panel">
-    <h2>{{if .ThreadPath}}Reply{{else}}What the harness said{{end}}</h2>
+    <h2 class="section-title">{{if .ThreadPath}}Reply{{else}}What it said{{end}}</h2>
     {{if .Live}}
     <pre id="stream" class="muted">waiting…</pre>
     {{else}}{{with .Transcript}}
-    {{if .Empty}}<p class="muted">The harness said nothing.</p>{{else}}
+    {{if .Empty}}<p class="muted">It said nothing.</p>{{else}}
     <div class="reply">{{markdown .Text}}</div>
     {{template "cut" .}}{{end}}
     {{else}}
-    <p class="muted">This run left no transcript.</p>
+    <p class="muted">Nothing was recorded.</p>
     {{end}}{{end}}
   </section>
 
-  {{with .Ran}}
+  {{with .Steps}}
   <section class="panel">
-    <h2>What it ran <span class="muted">{{len .}}</span></h2>
-    <ol class="ran">
-      {{range .}}<li><span class="tool">{{.Tool}}</span><code>{{.Says}}</code></li>{{end}}
-    </ol>
+    <h2 class="section-title">What it did</h2>
+    {{template "steps" .}}
   </section>
   {{end}}
 
   {{with .Patch}}
   <section class="panel">
-    <h2>What changed{{if .Files}} <span class="muted">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}</span>{{end}}</h2>
-    {{if .Empty}}<p class="muted">The harness changed nothing: the patch is empty.</p>{{end}}
+    <h2 class="section-title">What changed</h2>
+    {{if .Empty}}<p class="muted">No files changed.</p>{{end}}
     {{range .Files}}
     <section class="diff-file">
       <h3><code>{{.Name}}</code> <span class="plus">+{{.Added}}</span> <span class="minus">−{{.Removed}}</span></h3>
@@ -61,7 +66,7 @@
 
   {{with .Gate}}
   <section class="panel">
-    <h2>The gate</h2>
+    <h2 class="section-title">The check</h2>
     {{with .Verdict}}
     <p class="verdict"><span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>
       <code>{{$.Gate.Command}}</code> <span class="muted">exited {{.Code}}</span></p>
@@ -78,50 +83,50 @@
 </div>
 
 <aside class="run-side">
+  {{with .Talk}}
   <section class="panel">
+    <h2 class="section-title">This conversation</h2>
     <dl class="facts">
-      <dt>Harness</dt><dd>{{.Job.Harness}}</dd>
-      {{with .Job.Model}}<dt>Model</dt><dd>{{.}}</dd>{{end}}
-      <dt>Ran on</dt><dd>{{template "origin" .On}}</dd>
-      {{with .Job.Repo}}<dt>Repository</dt><dd class="wrap">{{.}}</dd>{{end}}
-      <dt>Asked</dt><dd>{{when .Job.Queued}}</dd>
-      {{with took .Job.Started .Job.Ended}}<dt>Took</dt><dd>{{.}}</dd>{{end}}
+      <dt>Messages</dt><dd>{{.Of}}</dd>
+      <dt>Time</dt><dd>{{span .Seconds}}</dd>
+      {{if .Metered}}<dt>Cost</dt><dd>{{.Spent.Money}}</dd>{{end}}
     </dl>
+    {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Agent.ID}}/file?path={{.}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+    <p><a class="cta small-cta" href="{{$.ThreadPath}}">Open the conversation</a></p>
   </section>
+  {{end}}
 
   <section class="panel">
-    <h2>What it cost</h2>
-    {{with .Calls}}
     <dl class="facts">
-      <dt>Spent</dt><dd>{{if eq .Tally.Unmeasured 0}}{{.Tally.Money}}{{else if eq .Tally.USD 0.0}}<span class="muted">no price set</span>{{else}}{{.Tally.Money}}{{end}}</dd>
-      <dt>Model calls</dt><dd>{{.Tally.Calls}}{{with .Tally.Refused}}, <span class="state failed">{{.}} refused</span>{{end}}</dd>
-      <dt>Tokens in</dt><dd>{{tokens .Tally.InputTokens}}{{with .Tally.CachedTokens}} <span class="muted">({{tokens .}} cached)</span>{{end}}</dd>
-      <dt>Tokens out</dt><dd>{{tokens .Tally.OutputTokens}}</dd>
+      {{with .Agent}}<dt>Agent</dt><dd><a href="/instances/{{.ID}}">{{.Name}}</a></dd>
+      <dt>Model</dt><dd>{{.Brain}}</dd>
+      <dt>Engine</dt><dd>{{.Engine}}</dd>{{else}}
+      <dt>Engine</dt><dd>{{.Job.Harness}}</dd>
+      {{with .Job.Model}}<dt>Model</dt><dd>{{brain .}}</dd>{{end}}
+      <dt>Came from</dt><dd>{{template "origin" .On}}</dd>{{end}}
+      {{with .Job.Repo}}<dt>Repository</dt><dd class="wrap">{{.}}</dd>{{end}}
+      {{with .Calls}}<dt>Tokens</dt><dd>{{tokens .Tally.InputTokens}} in, {{tokens .Tally.OutputTokens}} out</dd>{{end}}
     </dl>
-    {{with .Denied}}
-    <details><summary>{{len .}} request{{if ne (len .) 1}}s{{end}} to other hosts refused</summary>
+    {{with .Calls}}{{with .Denied}}
+    <details><summary>{{len .}} blocked request{{if ne (len .) 1}}s{{end}} to other sites</summary>
       <ul class="denied">{{range .}}<li><code>{{.Host}}</code></li>{{end}}</ul>
     </details>
-    {{end}}
-    {{else}}
-    {{with $.Manifest}}{{if .CostUSD}}<p>{{money .CostUSD}} <span class="muted">as the harness reported it</span></p>{{else}}<p class="muted">This run made no call through the proxy.</p>{{end}}{{else}}<p class="muted">Nothing yet.</p>{{end}}
-    {{end}}
+    {{end}}{{end}}
     {{with .Manifest}}{{with .StoppedByCap}}<p><span class="state failed">stopped by the {{.Cap}} cap</span> {{.Reason}}</p>{{end}}{{end}}
   </section>
 
   {{with .Manifest}}
   <section class="panel">
-    <h2>Evidence</h2>
-    <dl class="facts">
-      <dt>Signed by</dt><dd>{{$.SignedBy}}</dd>
-      <dt>Files</dt><dd>{{len $.Files}}</dd>
-    </dl>
-    {{with $.Verify}}
-    <p><a class="button small" href="{{.Bundle}}" download>Download the run</a></p>
-    <p class="muted small">Check it without this server:</p>
-    <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
-    {{end}}
-    <details><summary>Every file and its hash</summary>
+    <details>
+      <summary>Proof of what ran</summary>
+      <dl class="facts">
+        <dt>Signed by</dt><dd>{{$.SignedBy}}</dd>
+        <dt>Files</dt><dd>{{len $.Files}}</dd>
+      </dl>
+      {{with $.Verify}}
+      <p><a class="button small" href="{{.Bundle}}" download>Download the record</a></p>
+      <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
+      {{end}}
       <ul class="files">
         {{range $.Files}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a>{{if .SHA256}}<code>{{.SHA256}}</code>{{else}}<span class="muted">not in the manifest</span>{{end}}</li>{{end}}
       </ul>

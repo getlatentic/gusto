@@ -55,6 +55,9 @@ var helpers = template.FuncMap{
 		}
 		return model
 	},
+	// span is a number of seconds as a person says it.
+	"size":   measure,
+	"span":   func(seconds int64) string { return (time.Duration(seconds) * time.Second).String() },
 	"hourOf": func(unix int64) string { return time.Unix(unix, 0).Format("15:04") },
 	// outcome is how a run ended, in the words of a log: a turn replied, a
 	// task passed or failed its gate, and one still going says so.

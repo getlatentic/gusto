@@ -141,19 +141,19 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 }
 
 // The front door is what somebody already has. With nothing yet it offers
-// the kinds of work an assistant comes ready for, and a blank one.
+// the kinds of work an agent comes ready for, and a blank one.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	home := site.ask(t, "GET", "/", nil).Body.String()
-	for _, want := range []string{"Set up your first assistant", `href="/templates/health"`, `href="/new/blank"`} {
+	for _, want := range []string{"Set up your first agent", `href="/templates/health"`, `href="/new/blank"`} {
 		if !strings.Contains(home, want) {
 			t.Errorf("an empty home page does not offer %s", want)
 		}
 	}
 	answer := site.ask(t, "GET", "/new", nil)
 	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
-		t.Fatalf("the new assistant page does not offer templates: %d", answer.Code)
+		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
 	}
 }
 
@@ -309,7 +309,7 @@ func TestEveryPageOffersTheWayBackToTheCatalog(t *testing.T) {
 	site.signIn(t)
 	for _, page := range []string{"/", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Assistants") {
+		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Agents") {
 			t.Errorf("%s does not offer the way to the catalog", page)
 		}
 	}
@@ -416,9 +416,9 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 	}
 }
 
-// A blank assistant is one button. The engine is there for whoever wants
+// A blank agent is one button. The engine is there for whoever wants
 // to choose it, by a name a person knows, not by its program's.
-func TestABlankAssistantStartsWithOneButton(t *testing.T) {
+func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	body := site.ask(t, "GET", "/new/blank", nil).Body.String()
@@ -430,6 +430,6 @@ func TestABlankAssistantStartsWithOneButton(t *testing.T) {
 		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
 	if home := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(home, "Research helper") {
-		t.Error("the assistant is not listed by the name it was given")
+		t.Error("the agent is not listed by the name it was given")
 	}
 }

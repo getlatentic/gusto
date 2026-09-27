@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/getlatentic/haas/internal/evidence"
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -23,18 +24,23 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	ledger, _ := s.spending()
 	page := map[string]any{
 		"Job": record, "On": s.origin(record), "Run": s.recorded(record, ledger),
-		"Title": "haas — " + record.Brief, "Nav": "jobs",
+		"Title": "haas — " + record.Brief, "Nav": "harnesses",
 	}
 	spec, err := job.Read(dir)
 	if err == nil {
 		page["Spec"] = spec
 	}
+	if held, found := s.instances.Get(record.Instance); found {
+		page["Agent"] = s.agentOf(held)
+	}
 	if record.Thread != "" {
 		if thread, found := s.instances.Thread(record.Instance, record.Thread); found {
 			page["Thread"] = thread
 			page["ThreadPath"] = threadPath(thread)
+			page["Talk"] = s.talkAround(thread, record.ID, ledger)
 		}
 	}
+	page["Steps"] = stepsOf(dir)
 	manifest := readManifest(dir)
 	drawEvidence(page, record, dir, manifest)
 	// A turn in a conversation names no gate, so it has no verdict to be
@@ -165,4 +171,55 @@ func listing(dir job.Dir) []string {
 		}
 	}
 	return names
+}
+
+// talk is the conversation a turn belongs to, as its page places it: which
+// message it was, the ones either side, and what the whole conversation has
+// taken, cost and changed so far.
+type talk struct {
+	Name    string
+	Place   int
+	Of      int
+	Before  string
+	After   string
+	Seconds int64
+	Spent   spend.Tally
+	Metered bool
+	Changed []string
+}
+
+func (s *Server) talkAround(thread instance.Thread, id string, ledger *spend.Ledger) talk {
+	around := talk{Name: s.nameOf(thread), Of: len(thread.Turns)}
+	seen := map[string]bool{}
+	for i, turn := range thread.Turns {
+		if turn == id {
+			around.Place = i + 1
+			if i > 0 {
+				around.Before = thread.Turns[i-1]
+			}
+			if i+1 < len(thread.Turns) {
+				around.After = thread.Turns[i+1]
+			}
+		}
+		record, found := s.index.Get(turn)
+		if !found {
+			continue
+		}
+		if record.Started != 0 && record.Ended != 0 {
+			around.Seconds += record.Ended - record.Started
+		}
+		if spent, metered := spentBy(ledger, turn); metered {
+			around.Metered = true
+			around.Spent.USD += spent.USD
+			around.Spent.Unmeasured += spent.Unmeasured
+			around.Spent.Calls += spent.Calls
+		}
+		for _, file := range changed(record.Dir(s.index.Root())) {
+			if !seen[file] {
+				seen[file] = true
+				around.Changed = append(around.Changed, file)
+			}
+		}
+	}
+	return around
 }

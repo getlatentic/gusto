@@ -75,10 +75,10 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		// Every conversation on this instance, because one instance holds as
 		// many as somebody wants and the page you are on is the one place you
 		// would go looking for the others.
-		"Threads":   s.namedThreads(held.ID),
-		"Named":     s.nameOf(thread),
-		"Assistant": s.assistantOf(held),
-		"Starters":  s.startersOf(held),
+		"Threads":  s.namedThreads(held.ID),
+		"Named":    s.nameOf(thread),
+		"Agent":    s.agentOf(held),
+		"Starters": s.startersOf(held),
 		// A chat fills the window rather than sitting in a document.
 		"Chat":     true,
 		"Title":    "haas — " + s.nameOf(thread),
@@ -167,30 +167,6 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	}
 	s.queue.Wake()
 	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
-}
-
-// step is one thing a harness did during a turn, as a person reads it.
-type step struct {
-	What   string
-	Detail string
-}
-
-// stepsOf names what a turn did: a tool a server offered by its server and
-// its name, a skill by the skill, and anything else by the tool and what it
-// was given.
-func stepsOf(dir job.Dir) []step {
-	var steps []step
-	for _, done := range ranBy(dir) {
-		shown := step{What: strings.ToLower(done.Tool), Detail: done.Says()}
-		if server, tool, found := strings.Cut(strings.TrimPrefix(done.Tool, "mcp__"), "__"); found && strings.HasPrefix(done.Tool, "mcp__") {
-			shown = step{What: server, Detail: strings.ReplaceAll(tool, "_", " ")}
-		}
-		if len(shown.Detail) > 160 {
-			shown.Detail = shown.Detail[:160] + "…"
-		}
-		steps = append(steps, shown)
-	}
-	return steps
 }
 
 // stopped is the last thing the harness or the runner said on its way out.

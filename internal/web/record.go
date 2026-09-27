@@ -45,7 +45,7 @@ func (s *Server) origin(record jobs.Record) origin {
 	if !found {
 		return origin{Named: "removed", Why: record.Instance + ", which this server no longer holds"}
 	}
-	named := s.assistantOf(held).Name
+	named := s.agentOf(held).Name
 	shown := origin{Named: named, Why: held.ID, Link: "/instances/" + held.ID}
 	// A turn names its conversation, since a message in a thread is the thing
 	// somebody went to the record looking for.

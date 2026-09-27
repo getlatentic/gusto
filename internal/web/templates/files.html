@@ -1,0 +1,29 @@
+{{template "head" .}}
+
+<nav class="crumb" aria-label="Where this is"><a href="/">Agents</a><span>/</span><a href="{{if .Back}}{{.Back}}{{else}}/instances/{{.Agent.ID}}{{end}}">{{.Agent.Name}}</a><span>/</span><span>Files</span></nav>
+<div class="page-head">
+  <h1>Files</h1>
+  <p class="muted">Everything in {{.Agent.Name}}'s folder, most recently changed first.</p>
+</div>
+
+{{if .Files}}
+<div class="list">
+  <table class="agents files-table">
+    <thead><tr><th>File</th><th>Size</th><th>Changed</th></tr></thead>
+    <tbody>
+    {{range .Files}}
+    <tr>
+      <td><span class="who-cell">{{template "icon-file"}}<a href="/instances/{{$.Agent.ID}}/file?path={{.Path}}">{{.Path}}</a></span></td>
+      <td class="muted">{{size .Size}}</td>
+      <td class="muted">{{ago .Modified}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{if .Cut}}<p class="muted small">Showing the first 500 files.</p>{{end}}
+{{else}}
+<p class="empty muted">The folder is empty.</p>
+{{end}}
+
+{{template "foot" .}}

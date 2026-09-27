@@ -1,10 +1,10 @@
 {{template "head" .}}
 
 <nav class="crumb" aria-label="Where this is">
-  <a href="{{if .Back}}{{.Back}}{{else}}/instances/{{.Instance.ID}}{{end}}">{{.Instance.Harness}}</a><span>/</span><span>{{.Path}}</span>
+  <a href="/">Agents</a><span>/</span><a href="{{if .Back}}{{.Back}}{{else}}/instances/{{.Instance.ID}}{{end}}">{{.Agent.Name}}</a><span>/</span><a href="/instances/{{.Instance.ID}}/files">Files</a><span>/</span><span>{{.Path}}</span>
 </nav>
 <section class="panel file">
-  <h2><code>{{.Path}}</code> <span class="muted">as it is in the folder now</span></h2>
+  <h2><code>{{.Path}}</code></h2>
   {{if .Markdown}}<div class="reply">{{markdown .Text}}</div>{{else}}<pre>{{.Text}}</pre>{{end}}
   {{if .Cut}}<p class="muted small">The file is longer than the page draws.</p>{{end}}
 </section>
