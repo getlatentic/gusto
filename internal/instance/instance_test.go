@@ -69,10 +69,7 @@ func TestAnInstanceAndItsThreadsAreReadBackFromDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	thread, err := store.NewThread(held.ID, "the bug")
-	if err != nil {
-		t.Fatal(err)
-	}
+	thread := store.Latest(held.ID)
 	if err := store.Said(held.ID, thread.ID, "job-a", "harness-session-a"); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +148,7 @@ func TestAThreadNumberIsNotHandedOutTwice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seen := map[string]bool{}
+	seen := map[string]bool{store.Latest(held.ID).ID: true}
 	for range 5 {
 		thread, err := store.NewThread(held.ID, "another")
 		if err != nil {
@@ -162,7 +159,7 @@ func TestAThreadNumberIsNotHandedOutTwice(t *testing.T) {
 		}
 		seen[thread.ID] = true
 	}
-	if got := store.Threads(held.ID); len(got) != 5 {
+	if got := store.Threads(held.ID); len(got) != 6 {
 		t.Errorf("the instance holds %d threads", len(got))
 	}
 }

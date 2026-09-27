@@ -60,17 +60,16 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 }
 
 // lately is where to pick an instance up and what it was last doing. Somebody
-// coming back wants the conversation, not the page about it.
+// coming back wants the conversation, not the page about it, and every instance
+// has one to go back to because the store opens it.
 func (s *Server) lately(held instance.Instance) running {
-	threads := s.instances.Threads(held.ID)
-	shown := running{Instance: held, Threads: len(threads), Where: "/instances/" + held.ID}
-	if len(threads) == 0 {
-		return shown
+	last := s.instances.Latest(held.ID)
+	return running{
+		Instance: held,
+		Threads:  len(s.instances.Threads(held.ID)),
+		Where:    threadPath(last),
+		Latest:   s.latestTurn(last),
 	}
-	last := threads[len(threads)-1]
-	shown.Where = threadPath(last)
-	shown.Latest = s.latestTurn(last)
-	return shown
 }
 
 // startInstance gives a harness a computer to work in.
@@ -107,13 +106,8 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Somebody who started a harness wants to be talking to it, not reading a
-	// page about it, so the first conversation is opened with it.
-	thread, err := s.instances.NewThread(started.ID, "")
-	if err != nil {
-		http.Redirect(w, r, "/instances/"+started.ID, http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
+	// page about it, and starting it opened the first conversation.
+	http.Redirect(w, r, threadPath(s.instances.Latest(started.ID)), http.StatusSeeOther)
 }
 
 // instancePage is one computer: what it runs, what it works in, and every
