@@ -9,7 +9,7 @@
   {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
   <div class="row">
     <label>Model
-      {{if .Models}}<select name="model">{{range .Models}}<option>{{.}}</option>{{end}}</select>
+      {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select name="model">{{range .Models}}<option value="{{.}}">{{.}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
       {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
     </label>
     <label><span class="line">Repository <span class="muted">optional</span></span>

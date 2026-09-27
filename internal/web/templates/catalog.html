@@ -12,6 +12,14 @@
   <article class="pick">
     <span class="name">{{.Name}}</span>
     <span class="what">{{.What}}</span>
+    {{with .Measured}}
+    <ul class="measured" aria-label="Measured on the one-line fix">
+      {{range .}}<li class="{{if .Finished}}finished{{else}}unfinished{{end}}" title="{{.Job}}, {{.Environment}}: {{.Run}}">
+        <span class="model">{{modelOnly .Model}}</span>
+        <span>{{if .Finished}}finished{{with .WallSeconds}} in {{seconds .}}{{end}}{{with .CostUSD}}, {{money .}}{{end}}{{else}}did not finish{{end}}</span>
+      </li>{{end}}
+    </ul>
+    {{end}}
     <span class="go">
       <form method="post" action="/instances">
         <input type="hidden" name="harness" value="{{.Name}}">

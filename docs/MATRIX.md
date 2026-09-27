@@ -39,7 +39,7 @@ haas matrix plan-matrix -json   # the same table, as the catalog reads it
   say where it ran cannot be read (#44).
 
 [`matrix/issue-8.json`](matrix/issue-8.json) is the two local rows from #8, and
-[`matrix/box.json`](matrix/box.json) the four pairs the box's two credentials
+[`matrix/box.json`](matrix/box.json) the thirteen pairs the box's three credentials
 make possible. A test reads the first, so it stays a plan the matrix accepts.
 
 ## What a matrix is
