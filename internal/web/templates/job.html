@@ -4,6 +4,7 @@
 <table>
   <tr><th>State</th><td><span class="state {{.Job.State}}" id="state">{{.Job.State}}</span></td></tr>
   <tr><th>Harness</th><td>{{.Job.Harness}} {{with .Job.Model}}<span class="muted">{{.}}</span>{{end}}</td></tr>
+  <tr><th>Instance</th><td>{{template "origin" .On}}</td></tr>
   {{with .Job.Repo}}<tr><th>Repository</th><td>{{.}}</td></tr>{{end}}
   {{with .Spec}}<tr><th>Gate</th><td><code>{{range .Gate}}{{.}} {{end}}</code></td></tr>{{end}}
   <tr><th>Asked</th><td class="muted">{{when .Job.Queued}}{{with took .Job.Started .Job.Ended}}, took {{.}}{{end}}</td></tr>
