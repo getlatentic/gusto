@@ -32,9 +32,45 @@ type board struct {
 	Harness   string
 	Harnesses []string
 	Runs      []run
-	Shown     string
+	// Days is the page's runs by the day they were asked for, newest first,
+	// which is how a log is read.
+	Days  []day
+	Shown string
 	Newer     string
 	Older     string
+}
+
+// day is one day of the log.
+type day struct {
+	Named string
+	Runs  []run
+}
+
+// byDay groups runs, already newest first, under the day each was asked.
+func byDay(runs []run, now time.Time) []day {
+	var days []day
+	for _, each := range runs {
+		named := dayName(time.Unix(each.Queued, 0), now)
+		if len(days) == 0 || days[len(days)-1].Named != named {
+			days = append(days, day{Named: named})
+		}
+		days[len(days)-1].Runs = append(days[len(days)-1].Runs, each)
+	}
+	return days
+}
+
+func dayName(at, now time.Time) string {
+	y1, m1, d1 := at.Date()
+	y2, m2, d2 := now.Date()
+	switch {
+	case y1 == y2 && m1 == m2 && d1 == d2:
+		return "Today"
+	case at.Add(24 * time.Hour).Format("2006-01-02") == now.Format("2006-01-02"):
+		return "Yesterday"
+	case y1 == y2:
+		return at.Format("Monday 2 January")
+	}
+	return at.Format("2 January 2006")
 }
 
 // lately is how far back the counts across the top look. What is running or
@@ -77,6 +113,7 @@ func (s *Server) board(r *http.Request) board {
 		})
 	}
 	s.page(&shown, kept, query)
+	shown.Days = byDay(shown.Runs, time.Now())
 	return shown
 }
 

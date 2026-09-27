@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -50,18 +49,9 @@ func (s *Server) origin(record jobs.Record) origin {
 	// A turn names its conversation, since a message in a thread is the thing
 	// somebody went to the record looking for.
 	if thread, found := s.instances.Thread(held.ID, record.Thread); found && record.Thread != "" {
-		shown.Named, shown.Link = held.Harness+" · "+threadName(thread), threadPath(thread)
+		shown.Named, shown.Link = held.Harness+" · "+s.nameOf(thread), threadPath(thread)
 	}
 	return shown
-}
-
-// threadName is how a conversation is named in a list: its title, or its
-// number when it has none.
-func threadName(thread instance.Thread) string {
-	if thread.Title != "" {
-		return thread.Title
-	}
-	return "thread " + thread.ID
 }
 
 // list is the record: every run this server knows, whatever started it, with

@@ -14,7 +14,7 @@
   <a class="mark" href="/"><img src="/static/mark.png" alt=""> haas</a>
   <nav>
     <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Harnesses</span></a>
-    <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Jobs</span></a>
+    <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Activity</span></a>
     <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spend</span></a>
     <a class="new" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New harness</span></a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
