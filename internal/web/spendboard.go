@@ -21,6 +21,7 @@ type ledgerView struct {
 	Daily     []bar
 	Models    []share
 	Harnesses []share
+	Agents    []share
 	Teams     []share
 	Projects  []share
 	Jobs      []share
@@ -35,9 +36,14 @@ type bar struct {
 }
 
 // share is one line of a breakdown and how much of the largest line it is.
+// Label and Sub are what a person reads for a line whose name is an id, and
+// Href is where the line leads.
 type share struct {
 	spend.Line
 	Width float64
+	Label string
+	Sub   string
+	Href  string
 }
 
 // topJobs is how many jobs the dashboard lists. The month's whole list is in
@@ -89,13 +95,14 @@ func (s *Server) viewLedger(report spend.Report, months []string, now time.Time)
 	view.Daily = daysOf(report, view.Measure, now)
 	view.Models = shares(report.Models, view.Measure)
 	view.Harnesses = shares(report.Harnesses, view.Measure)
-	view.Teams = shares(report.Teams, view.Measure)
-	view.Projects = shares(report.Projects, view.Measure)
+	view.Agents = shares(s.byAgent(report.Jobs), view.Measure)
+	view.Teams = anyNamed(shares(report.Teams, view.Measure))
+	view.Projects = anyNamed(shares(report.Projects, view.Measure))
 	jobs := report.Jobs
 	if len(jobs) > topJobs {
 		jobs = jobs[:topJobs]
 	}
-	view.Jobs = shares(jobs, view.Measure)
+	view.Jobs = s.labelled(shares(jobs, view.Measure))
 	return view
 }
 
