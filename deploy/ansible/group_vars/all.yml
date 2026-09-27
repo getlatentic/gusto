@@ -205,6 +205,6 @@ credentials: []
 # rules check and what a local-model harness is pointed at.
 model_url: ""
 
-# The name a record's signature is given: this deployment, as verifiers know
-# it. Its key is made on the box the first time it deploys.
+# The name of this deployment's signing key, as the keyring files it and a
+# verifier reads it. The key is made on the box the first time it deploys.
 signer_name: "{{ inventory_hostname }}"
