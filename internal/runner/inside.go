@@ -53,6 +53,10 @@ func Inside(dir job.Dir) (int, error) {
 	if err := Fill(spec, dir); err != nil {
 		return 0, err
 	}
+	before, err := Snapshot(dir)
+	if err != nil {
+		return 0, err
+	}
 
 	started := evidence.Now()
 	record, err := Open(dir, adapter)
@@ -77,7 +81,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 
-	if err := Diff(dir); err != nil {
+	if err := Diff(dir, before); err != nil {
 		return 0, err
 	}
 	// A turn in a conversation names no gate. It ran, and the evidence says what
