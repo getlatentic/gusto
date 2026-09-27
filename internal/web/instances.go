@@ -216,7 +216,9 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		// Every conversation on this instance, because one instance holds as
 		// many as somebody wants and the page you are on is the one place you
 		// would go looking for the others.
-		"Threads":  s.instances.Threads(held.ID),
+		"Threads": s.instances.Threads(held.ID),
+		// A chat fills the window rather than sitting in a document.
+		"Chat":     true,
 		"Title":    "haas — " + named,
 		"Nav":      "harnesses",
 		"Instance": held,
