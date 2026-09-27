@@ -23,6 +23,29 @@
   {{end}}{{end}}
 </section>
 
+{{if .Keeps}}
+<h2>Setups</h2>
+<p class="muted lede">Skills and MCP servers to start a harness with. Choose one when you start it.</p>
+<section class="picks">
+  {{range .Setups}}
+  <a class="pick" href="/setups/{{.Name}}">
+    <span class="name">{{.Name}}</span>
+    <span class="what">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · MCP: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
+  </a>
+  {{end}}
+  <form class="pick new-setup" method="post" action="/setups">
+    <span class="name">New setup</span>
+    <input name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required aria-label="Setup name">
+    {{with .Offered}}
+    <fieldset class="servers"><legend class="muted">MCP servers</legend>
+      {{range $name, $server := .}}<label class="check"><input type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
+    </fieldset>
+    {{end}}
+    <span class="go"><button type="submit">Create</button></span>
+  </form>
+</section>
+{{end}}
+
 {{$off := false}}{{range .Catalog}}{{if not .Ready}}{{$off = true}}{{end}}{{end}}
 {{if $off}}
 <h2>Not available here</h2>

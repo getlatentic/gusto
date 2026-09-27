@@ -125,6 +125,9 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 	if err := dir.Make(); err != nil {
 		return err
 	}
+	if err := s.equip(&spec, dir); err != nil {
+		return err
+	}
 	if err := spec.Write(dir); err != nil {
 		return err
 	}

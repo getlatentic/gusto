@@ -15,6 +15,7 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -33,6 +34,8 @@ type Server struct {
 	models    Models
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
+	setups    *setup.Store
+	servers   setup.Servers
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -68,6 +71,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
+	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
+	mux.HandleFunc("POST /setups", s.guard(s.saveSetup))
+	mux.HandleFunc("POST /setups/{name}/skills", s.guard(s.writeSkill))
+	mux.HandleFunc("POST /setups/{name}/skills/{skill}/drop", s.guard(s.dropSkill))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))

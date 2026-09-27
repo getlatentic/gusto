@@ -439,3 +439,20 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
 @media (prefers-color-scheme: dark) {
   :root { color-scheme: dark; }
 }
+
+/* Setups. */
+.lede { margin: -.25rem 0 var(--yg-space-4); }
+.new-setup { gap: var(--yg-space-3); background: none; box-shadow: none; border: 1px dashed var(--yg-border-strong); }
+.new-setup input[name="name"] { padding: var(--yg-space-2) var(--yg-space-3); }
+fieldset.servers { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--yg-space-2) var(--yg-space-4); }
+fieldset.servers legend { padding: 0; margin-bottom: var(--yg-space-1); font-size: .8125rem; }
+label.check { display: flex; align-items: center; gap: var(--yg-space-2); font-size: .875rem; color: var(--yg-text); }
+label.check input { width: auto; }
+form.stack { display: grid; gap: var(--yg-space-4); }
+ul.skills, ul.starts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-4); }
+ul.starts { gap: var(--yg-space-2); font-size: .9375rem; }
+ul.skills li + li { border-top: 1px solid var(--yg-bg-subtle); padding-top: var(--yg-space-4); }
+.skill-head { display: flex; align-items: center; justify-content: space-between; gap: var(--yg-space-3); }
+.skill-head .name { font-weight: 600; }
+ul.skills p { margin: var(--yg-space-1) 0 var(--yg-space-2); font-size: .875rem; }
+ul.skills summary { cursor: pointer; font-size: .875rem; color: var(--yg-text-muted); }

@@ -20,6 +20,7 @@
   },
   "stdin": "{brief}",
   "needs": "key",
+  "skills": "/root/.pi/agent/skills",
   "stream": "jsonl",
   "totals": "perCall",
   "when": {

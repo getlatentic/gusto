@@ -16,6 +16,14 @@
       <input name="repo" placeholder="git@github.com:you/repo.git">
     </label>
   </div>
+  {{if .Setups}}
+  <label><span class="line">Setup <span class="muted">skills and MCP servers to give it</span></span>
+    <select name="setup">
+      <option value="">none</option>
+      {{$chosen := .Chosen}}{{range .Setups}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Name}} · {{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}}, {{len .}} MCP{{end}}</option>{{end}}
+    </select>
+  </label>
+  {{end}}
   <button type="submit">Start it</button>
 </form>
 

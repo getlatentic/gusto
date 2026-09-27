@@ -129,6 +129,7 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		Thread:     thread.ID,
 		Remembered: thread.Remembered,
 		Repo:       held.Repo,
+		Setup:      setupOf(held),
 	}
 	record := jobs.Record{
 		ID: s.index.Free(brief, time.Now()), State: jobs.Queued,

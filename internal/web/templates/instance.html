@@ -13,6 +13,7 @@
 <table class="facts">
   <tr><th>Model</th><td>{{if .Instance.Model}}{{.Instance.Model}}{{else}}<span class="muted">whatever it defaults to</span>{{end}}</td></tr>
   <tr><th>Working in</th><td>{{if .Instance.Repo}}{{.Instance.Repo}}{{else}}<span class="muted">an empty directory</span>{{end}}</td></tr>
+  <tr><th>Setup</th><td>{{with .Instance.Setup}}<a href="/setups/{{.}}">{{.}}</a>{{else}}<span class="muted">none: the harness as it comes</span>{{end}}</td></tr>
   <tr><th>Started</th><td class="muted">{{when .Instance.Started}}{{with .Instance.Who}} by {{.}}{{end}}</td></tr>
 </table>
 

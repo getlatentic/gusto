@@ -41,6 +41,26 @@
   no_log: true
   notify: Restart haas
 
+- name: The MCP servers directory
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/mcp"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: An MCP server a setup may choose
+  ansible.builtin.copy:
+    dest: "{{ app_root }}/var/mcp/{{ item.name }}.json"
+    content: "{{ item | dict2items | rejectattr('key', 'equalto', 'name') | items2dict | to_nice_json }}\n"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0644"
+  loop: "{{ mcp_servers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Restart haas
+
 # Prices and team caps. A model it leaves out is counted in tokens and shown
 # as unpriced, which is not the same as free.
 - name: The spend policy

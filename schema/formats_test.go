@@ -96,3 +96,21 @@ func TestTheJobSchemaRefusesWhatTheReaderRefuses(t *testing.T) {
 		}
 	}
 }
+
+// A turn in a conversation is a job too, and the one written most often. Its
+// job.json names the instance, the thread and the setup, and names no gate.
+func TestATurnInAConversationMatchesTheSchema(t *testing.T) {
+	turn := job.Spec{
+		Version: job.Version, Brief: "and then?", Harness: "dsh", Model: "deepseek/deepseek-flash",
+		Session: "20260927-0830-dsh", Thread: "1", Remembered: "9c5efae6",
+		Sensitivity: job.Internal, Budget: job.Budget{Turns: 40, Seconds: 900},
+		Setup: &job.Setup{Name: "reviewer", Skills: []string{"review"}, Servers: []string{"memory"}},
+	}
+	document, err := json.Marshal(turn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := schema.Validate(schema.Job(), document); err != nil {
+		t.Fatalf("%v\n%s", err, document)
+	}
+}
