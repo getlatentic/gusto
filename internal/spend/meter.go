@@ -72,18 +72,30 @@ func (m *Meter) Usage() *Usage {
 	return m.usage
 }
 
+// read takes the usage out of one answer. Providers name the same two numbers
+// two ways: chat completions say prompt and completion, while the responses API
+// and Anthropic say input and output. An answer carries one pair or the other,
+// so reading both namings counts every provider without being told which is
+// which — and a naming this does not know counts nothing, which is reported as
+// unmeasured rather than as free.
 func (m *Meter) read(text []byte) {
 	var answer struct {
 		Usage *struct {
 			Prompt     *int64 `json:"prompt_tokens"`
 			Completion *int64 `json:"completion_tokens"`
+			Input      *int64 `json:"input_tokens"`
+			Output     *int64 `json:"output_tokens"`
 		} `json:"usage"`
 	}
 	if json.Unmarshal(text, &answer) != nil || answer.Usage == nil {
 		return
 	}
-	if answer.Usage.Prompt == nil || answer.Usage.Completion == nil {
+	in, out := answer.Usage.Prompt, answer.Usage.Completion
+	if in == nil && out == nil {
+		in, out = answer.Usage.Input, answer.Usage.Output
+	}
+	if in == nil || out == nil {
 		return
 	}
-	m.usage = &Usage{Input: *answer.Usage.Prompt, Output: *answer.Usage.Completion}
+	m.usage = &Usage{Input: *in, Output: *out}
 }
