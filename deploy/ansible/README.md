@@ -248,12 +248,9 @@ deploy builds the image with it and reads the image's label back, and fails if
 the two differ. The smoke test runs one job on a harness no image carries and
 checks it is refused before it starts, with the reason in its transcript.
 
-The box carries opencode, claude and codex, and runs jobs on opencode and codex.
-Both take the proxy's per-job token instead of anybody's account. claude still
-answers to a person's own signed-in account, which a shared box does not hold,
-so the catalog does not offer it and says the account is what is missing rather
-than the program. Carrying it costs image size and build time, and buys an image
-that already has it the day its adapter takes a key the proxy holds.
+The box carries opencode, claude, codex, pi and dsh. Each takes the proxy's
+per-job token instead of anybody's account, and the catalog offers each only the
+credentials that serve it: `harnesses` on a credential in `host_vars` narrows it.
 
 ## Why a dedicated user rather than www-data
 

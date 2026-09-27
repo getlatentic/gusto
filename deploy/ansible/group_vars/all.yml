@@ -52,6 +52,7 @@ runner_harnesses:
   - claude=@anthropic-ai/claude-code
   - codex=@openai/codex
   - pi=@earendil-works/pi-coding-agent
+  - dsh=@deepseek-ai/dsh
 
 # What one job may take. A limit larger than the machine is not a limit: the job
 # takes what it likes and the kernel kills whatever it reaches first, which on a
