@@ -17,11 +17,24 @@ func claiming(t *testing.T, root, id string) job.Dir {
 	leaveOld(t, filepath.Join(root, id), map[string]string{
 		"state.json": `{"id":"` + id + `","state":"passed","brief":"b","repo":"/repo","harness":"fixture",` +
 			`"asked":"someone","exit":0,"queuedAt":1788264000,"startedAt":1788264001,"endedAt":1788264060}`,
-		"out/manifest.json": `{"version":1,"job":"","files":[],"gate":{"command":["true"],"code":0,"passed":true},` +
-			`"harness":"fixture","harnessExit":0,"stoppedAtBudget":false,"modelEndpoint":"local",` +
-			`"tokens":null,"costUsd":null,"signer":"alice","atUnix":1788264060}`,
 	})
-	return job.Dir(filepath.Join(root, id))
+	dir := job.Dir(filepath.Join(root, id))
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{Brief: "b", Repo: "/repo", Gate: []string{"true"}, Harness: "fixture"}
+	if err := spec.Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	hash, files, err := evidence.Of(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := evidence.Manifest{Job: hash, Files: files, Gate: &evidence.Verdict{Command: spec.Gate, Passed: true}, Signer: "alice"}
+	if err := evidence.Write(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+	return dir
 }
 
 func sealWith(t *testing.T, dir job.Dir, ring, name string) {
@@ -55,18 +68,33 @@ func TestTheJobPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		keyring signing.Keyring
 		want    string
 	}{
-		"unsigned":                           {"unsigned-20260927-0100", keyring, evidence.Unsigned},
+		"unsigned":                           {"unsigned-20260927-0100", keyring, "Not signed"},
 		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, evidence.NoKeyring},
 		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "is not in the keyring"},
-		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "<dd>acme</dd>"},
+		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "Signed by acme."},
 	} {
 		t.Run(name, func(t *testing.T) {
 			site := openKeyed(t, root, tc.keyring)
 			site.signIn(t)
 			body := site.ask(t, "GET", "/jobs/"+tc.id, nil).Body.String()
-			if !strings.Contains(body, "Signed by") || !strings.Contains(body, tc.want) || strings.Contains(body, "alice") {
-				t.Fatalf("want %q beside Signed by and never the manifest's claim:\n%s", tc.want, body)
+			if !strings.Contains(body, tc.want) || strings.Contains(body, "alice") {
+				t.Fatalf("want %q in the proof and never the manifest's claim:\n%s", tc.want, body)
 			}
 		})
+	}
+}
+
+// A verifier fetches the signer's public key before trusting anything else
+// the server says, so the key is served without signing in.
+func TestTheSignersKeyIsServedToAnyone(t *testing.T) {
+	root, trusted := t.TempDir(), t.TempDir()
+	sealWith(t, claiming(t, root, "acme-20260927-0100"), trusted, "acme")
+	site := openKeyed(t, root, keyringAt(t, trusted))
+	got := site.ask(t, "GET", "/keys/acme.pub", nil)
+	if got.Code != 200 || !strings.Contains(got.Body.String(), "BEGIN PUBLIC KEY") {
+		t.Fatalf("the key should be served, got %d:\n%s", got.Code, got.Body.String())
+	}
+	if missing := site.ask(t, "GET", "/keys/stranger.pub", nil); missing.Code != 404 {
+		t.Errorf("a key the keyring does not hold gave %d, want 404", missing.Code)
 	}
 }

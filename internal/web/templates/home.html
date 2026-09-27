@@ -13,7 +13,7 @@
     {{range .Instances}}
     <tr>
       <td><span class="who-cell">{{template "mark" (dict "Field" .Field "Name" .Name "Size" "sm")}}
-        <span><a href="{{.Where}}">{{.Name}}</a><span class="sub">{{.Brain}}</span></span></span></td>
+        <span><a href="{{.Where}}">{{.Name}}</a><span class="sub">{{.Runs}}</span></span></span></td>
       <td><span class="snippet">{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
       <td class="muted">{{.Threads}}</td>
       <td class="muted" title="{{when .Active}}">{{ago .Active}}</td>

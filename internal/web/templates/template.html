@@ -57,7 +57,7 @@
         <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
         <p class="muted small">Invented for demonstration.</p>
       </section>
-      {{if gt (len $.Harnesses) 1}}
+      {{if and (gt (len $.Harnesses) 1) (not (and .Restricted (not $.InBuilding)))}}
       <section class="panel">
         <h2>Engine</h2>
         <form class="stack" method="post" action="/templates/{{.Name}}">

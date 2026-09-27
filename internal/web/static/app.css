@@ -262,6 +262,8 @@ th.num { text-align: right; }
 .day .date { font-size: .6875rem; color: var(--yg-text-subtle); text-align: center; }
 table.shares td { border-bottom: 1px solid var(--yg-bg-subtle); }
 table.shares td.name { width: 55%; min-width: 0; }
+table.shares td.name a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+table.shares td.name .sub { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
 .share { display: block; height: 4px; margin-top: var(--yg-space-1); border-radius: 2px; background: var(--yg-bg-subtle); }
 .share span { display: block; height: 100%; border-radius: 2px; background: var(--yg-accent); }
 .note { font-size: .8125rem; margin-top: var(--yg-space-6); }
@@ -288,7 +290,7 @@ h1.brief { margin: 0; font-size: 1.25rem; line-height: 1.35; overflow-wrap: anyw
   padding: 1px 4px; border-radius: var(--yg-radius-xs); }
 .reply pre code { background: none; padding: 0; }
 .reply blockquote { padding-left: var(--yg-space-3); border-left: 2px solid var(--yg-border-strong); color: var(--yg-text-muted); }
-.reply table { width: auto; }
+.reply table { width: auto; display: block; overflow-x: auto; overflow-wrap: break-word; }
 .reply .image { color: var(--yg-text-muted); font-size: .875rem; }
 dl.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--yg-space-2) var(--yg-space-4);
   margin: 0; font-size: .875rem; }
@@ -313,6 +315,13 @@ ul.files code { color: var(--yg-text-subtle); font-size: 11px; }
 .command button { padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
 .small { font-size: .8125rem; }
 a.button.small { padding: var(--yg-space-2) var(--yg-space-4); font-size: .875rem; }
+a.button.plain { background: var(--yg-surface); color: var(--yg-text); border: 1px solid var(--yg-border); }
+a.button.plain:hover { border-color: var(--yg-accent); background: var(--yg-accent-surface); }
+.proof-line { display: flex; gap: var(--yg-space-2); align-items: flex-start; font-weight: 500; margin: 0 0 var(--yg-space-2); }
+.proof-line svg.i { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.proof-line.good { color: var(--yg-leaf-700); }
+.proof-line.bad { color: var(--yg-danger); }
+.proof-downloads { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); }
 
 /* A diff: line numbers either side, additions and removals on the surfaces
    the tokens keep for success and danger, and long lines scroll inside it. */
@@ -785,3 +794,12 @@ table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-alig
   border: 1px solid color-mix(in srgb, var(--yg-accent) 25%, transparent); }
 .figure.headline .value { color: var(--yg-accent-text); font-size: 1.875rem; }
 .bars .day .fill { background: linear-gradient(180deg, var(--yg-accent), color-mix(in srgb, var(--yg-accent) 70%, #fff)); }
+
+/* The measured grid: an engine a row, a model a column. */
+table.measured th { padding: var(--yg-space-4) var(--yg-space-5) var(--yg-space-3); background: none; }
+table.measured td { padding: var(--yg-space-4) var(--yg-space-5); vertical-align: top; border-bottom: 1px solid var(--yg-bg-subtle); }
+table.measured td.name { font-weight: 600; }
+table.measured .done { display: inline-flex; align-items: center; gap: 4px; color: var(--yg-leaf-700); font-weight: 500; }
+table.measured .done svg.i { width: 14px; height: 14px; }
+table.measured .missed { color: var(--yg-danger); font-weight: 500; }
+table.measured .sub { display: block; font-size: .75rem; color: var(--yg-text-subtle); }

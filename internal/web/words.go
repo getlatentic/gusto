@@ -22,6 +22,18 @@ type agent struct {
 	Brain  string
 }
 
+// Runs is the engine and the model in one line, for the place under its name.
+// An agent already named for its engine is not told its name twice.
+func (a agent) Runs() string {
+	if a.Engine == "" || a.Engine == a.Name {
+		return a.Brain
+	}
+	if a.Brain == "" {
+		return a.Engine
+	}
+	return a.Engine + " · " + a.Brain
+}
+
 func (s *Server) agentOf(held instance.Instance) agent {
 	shown := agent{Instance: held, Name: held.Title, Engine: s.engineName(held.Harness), Brain: modelName(held.Model)}
 	if template, found := industry.Get(held.Setup); found {
