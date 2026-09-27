@@ -1,0 +1,9 @@
+# Copied into HERMES_HOME before each turn: hermes reads its model only from
+# there, and that directory is the conversation's own, mounted over the image.
+# key_env is honoured only for the base_url written beside it, which is why the
+# address is here and not in CUSTOM_BASE_URL.
+model:
+  provider: custom
+  default: ${HAAS_MODEL_ID}
+  base_url: ${HAAS_MODEL_URL}
+  key_env: HAAS_MODEL_TOKEN
