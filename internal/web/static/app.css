@@ -520,3 +520,28 @@ button.send svg.i { opacity: 1; stroke-width: 2; }
   .talk-top .with { display: none; }
   .composer .hint { display: none; }
 }
+
+/* Templates: a field's mark, its name, and one line on what it does. */
+.templates { display: grid; gap: var(--yg-space-4); margin-bottom: var(--yg-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.template { display: grid; align-content: start; gap: var(--yg-space-2); padding: var(--yg-space-5);
+  border-radius: var(--yg-radius-md); background: var(--yg-surface); box-shadow: var(--yg-shadow-1);
+  color: inherit; text-decoration: none; }
+.template:hover { box-shadow: var(--yg-shadow-2); }
+.template .name { font: 600 1.0625rem/1.25 var(--yg-font-display); letter-spacing: -.01em; }
+.template .what { font-size: .875rem; color: var(--yg-text-muted); }
+.industry { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); margin: 0; }
+.restricted { color: var(--yg-danger); }
+.field { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--yg-radius-md);
+  background: var(--yg-accent-surface); color: var(--yg-accent-text); }
+.field svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; }
+.template-head { display: flex; gap: var(--yg-space-4); align-items: flex-start; margin: 0 0 var(--yg-space-6); }
+.template-head .field { width: 3rem; height: 3rem; flex: none; }
+.template-head h1 { margin: var(--yg-space-1) 0 var(--yg-space-2); }
+.template-head .summary { margin: 0; max-width: 44rem; color: var(--yg-text-muted); }
+ul.asks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); }
+ul.asks li { padding: var(--yg-space-3) var(--yg-space-4); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); font-size: .9375rem; }
+.notice { padding: var(--yg-space-3) var(--yg-space-4); background: var(--yg-warning-surface); color: var(--yg-text);
+  border-radius: var(--yg-radius-sm); font-size: .875rem; }
+.run-side form.stack label { font-size: .875rem; }

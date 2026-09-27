@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
 )
@@ -33,6 +34,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		"Title":     "haas",
 		"Nav":       "harnesses",
 		"Instances": listed,
+		"Templates": industry.All(),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
@@ -41,13 +43,14 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 // start each one.
 func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "catalog.html", map[string]any{
-		"Title":   "haas — start a harness",
-		"Nav":     "new",
-		"Catalog": s.catalog,
-		"Setups":  s.setupsList(),
-		"Offered": s.servers,
-		"Keeps":   s.setups != nil,
-		"Refused": r.URL.Query().Get("refused"),
+		"Title":     "haas — start a harness",
+		"Nav":       "new",
+		"Catalog":   s.catalog,
+		"Templates": industry.All(),
+		"Setups":    s.setupsList(),
+		"Offered":   s.servers,
+		"Keeps":     s.setups != nil,
+		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
 

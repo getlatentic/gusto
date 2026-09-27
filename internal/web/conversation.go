@@ -73,8 +73,9 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		// Every conversation on this instance, because one instance holds as
 		// many as somebody wants and the page you are on is the one place you
 		// would go looking for the others.
-		"Threads": s.namedThreads(held.ID),
-		"Named":   s.nameOf(thread),
+		"Threads":  s.namedThreads(held.ID),
+		"Named":    s.nameOf(thread),
+		"Starters": s.startersOf(held),
 		// A chat fills the window rather than sitting in a document.
 		"Chat":     true,
 		"Title":    "haas — " + s.nameOf(thread),
@@ -133,14 +134,15 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	spec := job.Spec{
-		Brief:      brief,
-		Harness:    held.Harness,
-		Model:      held.Model,
-		Session:    held.ID,
-		Thread:     thread.ID,
-		Remembered: thread.Remembered,
-		Repo:       held.Repo,
-		Setup:      setupOf(held),
+		Brief:       brief,
+		Harness:     held.Harness,
+		Model:       held.Model,
+		Session:     held.ID,
+		Thread:      thread.ID,
+		Remembered:  thread.Remembered,
+		Repo:        held.Repo,
+		Setup:       setupOf(held),
+		Sensitivity: sensitivityOf(held),
 	}
 	record := jobs.Record{
 		ID: s.index.Free(brief, time.Now()), State: jobs.Queued,

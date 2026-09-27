@@ -32,6 +32,20 @@
 {{define "icon-harness"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z"/></svg>{{end}}
 {{define "icon-menu"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>{{end}}
 {{define "icon-add"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>{{end}}
+{{/* industry is a template's mark: a line drawing for its field. */}}
+{{define "industry"}}<span class="field" aria-hidden="true"><svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defence"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else}}<path d="M4 4h16v16H4z"/>{{end}}</svg></span>{{end}}
+{{define "templates"}}
+<section class="templates">
+  {{range .}}
+  <a class="template" href="/templates/{{.Name}}">
+    {{template "industry" .Industry}}
+    <span class="industry">{{.Industry}}{{if .Restricted}} · <span class="restricted">restricted</span>{{end}}</span>
+    <span class="name">{{.Title}}</span>
+    <span class="what">{{.Summary}}</span>
+  </a>
+  {{end}}
+</section>
+{{end}}
 {{define "icon-send"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>{{end}}
 {{define "icon-jobs"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>{{end}}
 {{define "icon-spend"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M11 4.5H6.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H5"/></svg>{{end}}

@@ -28,9 +28,11 @@
 {{else}}
 <section class="empty">
   <p>You have no harnesses yet.</p>
-  <p class="muted">Start one from the catalog. It gets a folder of its own, and you can hold as many conversations with it as you like.</p>
+  <p class="muted">A harness is an agent with a folder of its own. Hold as many conversations with it as you like; every model call it makes is counted.</p>
   <a class="button" href="/new">{{template "icon-add"}} Start a harness</a>
 </section>
+<h2>Or start from a template</h2>
+{{template "templates" .Templates}}
 {{end}}
 
 {{template "foot" .}}
