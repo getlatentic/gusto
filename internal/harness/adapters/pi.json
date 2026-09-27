@@ -1,0 +1,57 @@
+{
+  "name": "pi",
+  "what": "Reads, edits and runs, and takes whichever model the deployment points it at.",
+  "program": "pi",
+  "argv": [
+    "-e",
+    "/root/.config/pi/haas-provider.ts",
+    "--provider",
+    "haas",
+    "--model",
+    "{modelId}",
+    "--mode",
+    "json",
+    "-p",
+    "--session-dir",
+    "/root/.local/share/pi"
+  ],
+  "env": {
+    "HAAS_MODEL_ID": "{modelId}"
+  },
+  "stdin": "{brief}",
+  "needs": "key",
+  "stream": "jsonl",
+  "totals": "perCall",
+  "when": {
+    "text": {
+      "assistantMessageEvent.type": "text_delta"
+    },
+    "usage": {
+      "type": "message_end"
+    },
+    "tool": {
+      "type": "tool_execution_start"
+    }
+  },
+  "text": "assistantMessageEvent.delta",
+  "toolName": "toolName",
+  "toolInput": "args",
+  "sessionId": "id",
+  "inputTokens": "message.usage.input",
+  "outputTokens": "message.usage.output",
+  "resume": [
+    "-e",
+    "/root/.config/pi/haas-provider.ts",
+    "--provider",
+    "haas",
+    "--model",
+    "{modelId}",
+    "--mode",
+    "json",
+    "-p",
+    "--session-dir",
+    "/root/.local/share/pi",
+    "--session-id",
+    "{session}"
+  ]
+}

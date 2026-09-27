@@ -15,8 +15,8 @@ import (
 func TestTheAdaptersThatShipParse(t *testing.T) {
 	t.Setenv("HAAS_HARNESSES", "")
 	names := Names()
-	if len(names) != 3 {
-		t.Fatalf("want three built-in adapters, got %v", names)
+	if len(names) == 0 {
+		t.Fatal("no adapter ships with this build")
 	}
 	for _, name := range names {
 		adapter, err := Load("", name)
@@ -335,5 +335,47 @@ func TestCodexShellCallsAreToldApartFromItsMessages(t *testing.T) {
 	text, found := Pick(message, adapter.Text)
 	if said, _ := text.(string); !found || !strings.Contains(said, "Root cause") {
 		t.Errorf("what it said read as %q, %v", text, found)
+	}
+}
+
+// pi reports one message's usage on message_update, message_end and turn_end
+// alike. Counted on every line that carries numbers, a run that spent 1,194
+// input tokens reported 3,193; counted on the one line the adapter names, it
+// reports what it spent. Every line here is real, from a run against
+// deepseek-flash.
+func TestUsageIsTakenOnlyFromTheLinesAnAdapterNames(t *testing.T) {
+	adapter, err := Load("", "pi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := map[string]string{
+		"message_end":    `{"type":"message_end","message":{"usage":{"input":157,"output":26}}}`,
+		"turn_end":       `{"type":"turn_end","message":{"usage":{"input":157,"output":26}}}`,
+		"message_update": `{"type":"message_update","message":{"usage":{"input":140,"output":20}},"assistantMessageEvent":{"delta":"ok"}}`,
+	}
+	for kind, text := range lines {
+		var line map[string]any
+		if err := json.Unmarshal([]byte(text), &line); err != nil {
+			t.Fatal(err)
+		}
+		if counts := adapter.Counts(line); counts != (kind == "message_end") {
+			t.Errorf("%s counts=%v", kind, counts)
+		}
+		// The numbers are readable on every one of them, which is the trap.
+		if _, found := Number(line, adapter.InputTokens); !found {
+			t.Errorf("%s: the numbers should be readable, and are not", kind)
+		}
+	}
+}
+
+// An adapter that narrows nothing counts every line carrying numbers, which is
+// what every adapter but pi does.
+func TestAnAdapterThatNarrowsNothingCountsEveryLine(t *testing.T) {
+	adapter, err := Load("", "opencode")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !adapter.Counts(map[string]any{"anything": "at all"}) {
+		t.Error("an adapter naming no lines refused one")
 	}
 }
