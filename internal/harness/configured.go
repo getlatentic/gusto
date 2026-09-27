@@ -31,17 +31,25 @@ type Configured struct {
 // somebody else's machine. That is the same reason everything else about a run
 // lives in the directory.
 func Open(dir job.Dir, name string) (Configured, error) {
+	tree, home, err := find(dir, name)
+	if err != nil {
+		return Configured{}, err
+	}
+	return configure(dir, tree, home)
+}
+
+func find(dir job.Dir, name string) (Tree, string, error) {
 	for _, root := range roots(dir) {
 		tree, home, found, err := lookIn(root, name)
 		if err != nil || found {
-			return configure(tree, home, err)
+			return tree, home, err
 		}
 	}
 	text, err := builtIn.ReadFile("adapters/" + name + ".json")
 	if err != nil {
-		return Configured{}, fmt.Errorf("no harness called %s", name)
+		return nil, "", fmt.Errorf("no harness called %s", name)
 	}
-	return configure(Tree{{Path: AdapterFile, Content: text}}, "", nil)
+	return Tree{{Path: AdapterFile, Content: text}}, "", nil
 }
 
 // Load the adapter a job names, from the configured harness Open finds.
@@ -57,7 +65,7 @@ func Carrying(dir job.Dir, name string) (Configured, bool, error) {
 	if err != nil || !found {
 		return Configured{}, found, err
 	}
-	configured, err := configure(tree, home, nil)
+	configured, err := configure(dir, tree, home)
 	return configured, true, err
 }
 
@@ -100,13 +108,17 @@ func folderTree(folder string) (Tree, string, bool, error) {
 		return nil, "", true, err
 	}
 	tree, err := walk(home)
+	if err == nil && tree.holdsSetup() {
+		err = fmt.Errorf("the harness at %s has a %s folder, and that name is the job's setup's", home, SetupFolder)
+	}
 	return tree, home, true, err
 }
 
-func configure(tree Tree, home string, err error) (Configured, error) {
-	if err != nil {
-		return Configured{}, err
-	}
+// configure takes the adapter and the digest from one reading. The digest
+// covers the setup the job carries as well, because skills and MCP servers
+// shape the harness as much as its own files do: the same adapter given two
+// setups is two configured harnesses.
+func configure(dir job.Dir, tree Tree, home string) (Configured, error) {
 	text, found := tree.adapter()
 	if !found {
 		return Configured{}, fmt.Errorf("the harness at %s has no %s", home, AdapterFile)
@@ -116,7 +128,11 @@ func configure(tree Tree, home string, err error) (Configured, error) {
 		return Configured{}, err
 	}
 	adapter.home = home
-	return Configured{Adapter: adapter, Digest: tree.Digest()}, nil
+	given, err := setupOf(dir)
+	if err != nil {
+		return Configured{}, err
+	}
+	return Configured{Adapter: adapter, Digest: tree.with(given).Digest()}, nil
 }
 
 func isDir(path string) bool {

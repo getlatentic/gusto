@@ -68,8 +68,12 @@ func walk(root string) (Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Slice(tree, func(i, j int) bool { return tree[i].Path < tree[j].Path })
+	tree.sort()
 	return tree, nil
+}
+
+func (t Tree) sort() {
+	sort.Slice(t, func(i, j int) bool { return t[i].Path < t[j].Path })
 }
 
 func skip(entry fs.DirEntry) error {
