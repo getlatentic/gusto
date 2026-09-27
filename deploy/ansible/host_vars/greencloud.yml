@@ -60,7 +60,11 @@ credentials:
     harnesses:
       - claude
 
-models: "platform/qwen.qwen3-vl-235b-a22b-instruct,deepseek/deepseek-flash,anthropic/deepseek-flash"
+# The first a harness can use is the one it is started on, so the order is
+# the choice: DeepSeek Flash finished every conversation measured on
+# 2026-09-27, and Qwen 3 VL, a vision model, answered opencode's first
+# message with "Please try again".
+models: "deepseek/deepseek-flash,anthropic/deepseek-flash,deepseek/deepseek-v4-pro,anthropic/deepseek-v4-pro,platform/qwen.qwen3-vl-235b-a22b-instruct"
 
 # DeepSeek's published prices, read from api-docs.deepseek.com/quick_start/pricing
 # on 2026-09-27: US dollars a million tokens at the off-peak rate, doubled on
