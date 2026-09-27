@@ -2,6 +2,8 @@ package web
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/haas/internal/spend"
@@ -42,7 +44,44 @@ type share struct {
 // the JSON report and the ledger; the page is for finding the expensive ones.
 const topJobs = 10
 
-func viewLedger(report spend.Report, months []string, now time.Time) ledgerView {
+// plainly merges a breakdown's lines under the names a person reads: two
+// credentials serving one model are one model, and a request that asked no
+// model anything is one of the other requests.
+func plainly(lines []spend.Line, name func(string) string) []spend.Line {
+	merged := map[string]*spend.Line{}
+	var order []string
+	for _, line := range lines {
+		named := name(line.Name)
+		held, found := merged[named]
+		if !found {
+			held = &spend.Line{Name: named}
+			merged[named] = held
+			order = append(order, named)
+		}
+		held.Tally.Add(line.Tally)
+	}
+	out := make([]spend.Line, 0, len(order))
+	for _, named := range order {
+		out = append(out, *merged[named])
+	}
+	sort.SliceStable(out, func(a, b int) bool { return out[a].USD > out[b].USD })
+	return out
+}
+
+// modelOf is a ledger's model line by the model's plain name.
+func modelOf(line string) string {
+	if strings.Contains(line, "/v1/") || strings.HasPrefix(line, "/") {
+		return "Other requests"
+	}
+	if i := strings.LastIndex(line, "/"); i >= 0 {
+		line = line[i+1:]
+	}
+	return modelName(line)
+}
+
+func (s *Server) viewLedger(report spend.Report, months []string, now time.Time) ledgerView {
+	report.Models = plainly(report.Models, modelOf)
+	report.Harnesses = plainly(report.Harnesses, s.engineName)
 	view := ledgerView{Report: report, Months: months, Measure: "tokens"}
 	if report.Total.USD > 0 {
 		view.Measure = "money"

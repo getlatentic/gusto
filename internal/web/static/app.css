@@ -781,3 +781,7 @@ table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-alig
 .answer .meta .guard svg.i { width: 13px; height: 13px; opacity: .9; }
 .answer .meta a.guard:hover { text-decoration: underline; }
 @media (max-width: 64rem) { .talk-top .guards { display: none; } }
+.figure.headline { background: linear-gradient(150deg, var(--yg-accent-surface), var(--yg-surface) 70%);
+  border: 1px solid color-mix(in srgb, var(--yg-accent) 25%, transparent); }
+.figure.headline .value { color: var(--yg-accent-text); font-size: 1.875rem; }
+.bars .day .fill { background: linear-gradient(180deg, var(--yg-accent), color-mix(in srgb, var(--yg-accent) 70%, #fff)); }
