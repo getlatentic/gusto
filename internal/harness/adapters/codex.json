@@ -55,8 +55,14 @@
     ]
   },
   "stream": "jsonl",
+  "when": {
+    "text": {
+      "item.type": "agent_message"
+    }
+  },
   "totals": "perCall",
   "text": "item.text",
+  "message": "item.id",
   "toolName": "item.command",
   "toolStatus": "item.status",
   "sessionId": "thread_id",

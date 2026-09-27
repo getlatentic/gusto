@@ -199,3 +199,42 @@ func TestAnACPHarnessIsReadWhereTheProtocolSaysThings(t *testing.T) {
 		t.Error("no cost was named, so none is claimed")
 	}
 }
+
+// claudeTurn is Claude Code's stream as it came from a turn that loaded a
+// skill: the skill arrives on a user line, which is not the agent speaking.
+var claudeTurn = []string{
+	`{"type":"system","subtype":"init","session_id":"s1"}`,
+	`{"type":"assistant","message":{"id":"m1","role":"assistant","content":[{"type":"thinking","thinking":"read it first"}]}}`,
+	`{"type":"assistant","message":{"id":"m1","role":"assistant","content":[{"type":"text","text":"I'll read the notes first."}]}}`,
+	`{"type":"assistant","message":{"id":"m1","role":"assistant","content":[{"type":"tool_use","id":"c1","name":"Skill","input":{"skill":"soap-note"}}]}}`,
+	`{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Base directory for this skill: /root/.local/share/claude/skills/soap-note\n\nWrite the note."}]}}`,
+	`{"type":"assistant","message":{"id":"m2","role":"assistant","content":[{"type":"text","text":"Drafted to soap-note.md."}]}}`,
+	`{"type":"result","subtype":"success","session_id":"s1","usage":{"input_tokens":800,"output_tokens":200}}`,
+}
+
+func TestClaudeCodeIsHeardOnlyWhereTheAgentSpeaks(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := harness.Load("", "claude")
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := Open(dir, adapter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range claudeTurn {
+		if err := record.Out(line); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := record.Close(); err != nil {
+		t.Fatal(err)
+	}
+	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
+	if want := "I'll read the notes first.\n\nDrafted to soap-note.md."; string(said) != want {
+		t.Errorf("transcript = %q, want %q: the agent's words only, a paragraph a message", said, want)
+	}
+}
