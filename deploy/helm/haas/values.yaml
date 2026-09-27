@@ -1,0 +1,102 @@
+# haas on Kubernetes. README.md beside this chart is the path to follow, and
+# deploy/README.md says what the job runtime below is given and why.
+
+# Every image is named by digest, and the chart refuses one without it. A tag
+# is where an image is today; a digest is which bytes it is.
+image:
+  # `haas serve`, built from deploy/server/Dockerfile and pushed to a registry
+  # the cluster reaches. No public image exists yet, so these have no default.
+  server:
+    repository: ""
+    digest: ""
+  # The runner, built from the root Dockerfile. The job runtime pulls it by
+  # digest when the pod starts, and starts a container from it for every job.
+  runner:
+    repository: ""
+    digest: ""
+  # The job runtime: a Docker daemon in the pod. The tag is for the reader and
+  # is not used; the digest is.
+  runtime:
+    repository: docker.io/library/docker
+    tag: 29-dind
+    digest: sha256:3f3c01aaaebf7cce837356b688b7c059a4749f10bd7660dec7c58fc454a283f0
+  # The docker CLI, which pulls the runner into that daemon before the server
+  # asks it what the runner carries.
+  cli:
+    repository: docker.io/library/docker
+    tag: 29-cli
+    digest: sha256:018edbc908e08fcc9dbf029c812c34251e9b4719e6f71ca0e5eae2a987d014ca
+
+# Pull secrets for the images the kubelet pulls: the server, the runtime and the
+# CLI.
+imagePullSecrets: []
+# The runner is pulled by the daemon in the pod, not by the kubelet, so it has
+# a secret of its own: the name of a kubernetes.io/dockerconfigjson Secret, or
+# empty for a registry that needs no sign-in.
+runnerPullSecret: ""
+
+# The shared sign-in. The server will not start without it. Name a Secret with
+# a HAAS_PASSWORD key, or give the password here and the chart makes one.
+auth:
+  existingSecret: ""
+  password: ""
+
+# The way out of a job's box. With an upstream the proxy is on, every job runs
+# with no network but the proxy's socket, and the key never enters a job.
+model:
+  # The model's root address, with no version on the end.
+  upstream: ""
+  # What the evidence calls the credential.
+  name: the platform credential
+  # A Secret with a HAAS_MODEL_KEY key, or the key here and the chart makes one.
+  existingSecret: ""
+  key: ""
+  # What the pages offer to think with, comma separated.
+  models: ""
+  # Hosts besides the model a job may reach, comma separated. Nothing is
+  # nothing.
+  allowedHosts: ""
+
+# Several credentials instead of one upstream: a Secret whose keys are
+# <name>.json, in the shape deploy/ansible's serve role writes. Set, it is
+# used in place of model.upstream.
+credentials:
+  existingSecret: ""
+
+# What one job may take. Every job runs inside the runtime container, so its
+# resources below have to hold concurrency times memory.
+jobs:
+  concurrency: 1
+  memory: 3g
+  cpus: "1"
+
+# Any other HAAS_ setting, as name: value. README.md at the repository root has
+# the table. HAAS_ADDR, HAAS_JOBS, HAAS_SESSIONS, HAAS_IMAGE, HAAS_CONTAINER and
+# HAAS_PROXY_SOCKET belong to the chart and are refused here.
+env: {}
+
+# Jobs, their evidence and the conversations' workspaces. One server writes
+# them, so the claim is ReadWriteOnce and the pod is replaced, never doubled.
+persistence:
+  existingClaim: ""
+  storageClass: ""
+  # A starting point, not a measurement: size it by the jobs you keep.
+  size: 20Gi
+
+resources:
+  server: {}
+  runtime: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+# The pages hold a job's output open for as long as it runs, so whatever
+# ingress controller is used must not buffer it or time it out early. The
+# annotations are the controller's own; README.md has ingress-nginx's.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  tls: []
