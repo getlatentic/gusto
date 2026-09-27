@@ -83,10 +83,10 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	threads := s.instances.Threads(held.ID)
+	threads := s.namedThreads(held.ID)
 	said := make([]map[string]any, 0, len(threads))
-	for _, thread := range threads {
-		said = append(said, map[string]any{"Thread": thread, "Latest": s.latestTurn(thread)})
+	for i := len(threads) - 1; i >= 0; i-- {
+		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
 	}
 	s.render(w, "instance.html", map[string]any{
 		"Title":     "haas — " + held.ID,
