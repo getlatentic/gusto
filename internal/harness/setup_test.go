@@ -1,6 +1,8 @@
 package harness
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -64,5 +66,35 @@ func TestAHarnessDirectoryMayNotHoldASetupOfItsOwn(t *testing.T) {
 	_, err := Open("", "fixture")
 	if err == nil || !strings.Contains(err.Error(), "has a setup folder") {
 		t.Fatalf("want the setup folder refused, got %v", err)
+	}
+}
+
+// A token is not part of what a harness is. Two jobs whose setups differ only
+// in a server's secret values digest the same, and one whose server is given
+// a different variable does not.
+func TestASetupsSecretsAreNotPartOfItsDigest(t *testing.T) {
+	digestWith := func(servers string) string {
+		t.Helper()
+		dir := job.Dir(t.TempDir())
+		if err := os.MkdirAll(dir.SetupDir(), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir.SetupDir(), "servers.json"), []byte(servers), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		tree, err := setupOf(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tree.Digest()
+	}
+	one := digestWith(`[{"name":"docs","url":"https://mcp.example.com","headers":{"Authorization":"Bearer one"}}]`)
+	rotated := digestWith(`[{"name":"docs","url":"https://mcp.example.com","headers":{"Authorization":"Bearer two"}}]`)
+	other := digestWith(`[{"name":"docs","url":"https://mcp.example.com","headers":{"X-Api-Key":"Bearer one"}}]`)
+	if one != rotated {
+		t.Error("rotating a token changed the digest")
+	}
+	if one == other {
+		t.Error("a server given a different header digests the same")
 	}
 }
