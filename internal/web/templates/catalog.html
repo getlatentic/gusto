@@ -4,6 +4,12 @@
 
 <h1>Start a harness</h1>
 
+<h2>From a template</h2>
+<p class="muted lede">Set up for one field's work, with skills, starters and a folder of sample files.</p>
+{{template "templates" .Templates}}
+
+<h2>From scratch</h2>
+
 {{$ready := false}}{{range .Catalog}}{{if .Ready}}{{$ready = true}}{{end}}{{end}}
 {{if not $ready}}<p class="muted">This deployment cannot start any harness yet. Each one below says what it is missing.</p>{{end}}
 

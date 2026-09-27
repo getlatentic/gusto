@@ -278,3 +278,22 @@ func TestAThreadIsNamedByWhatWasFirstSaidInIt(t *testing.T) {
 		t.Errorf("the first message's title became %q", held.Title)
 	}
 }
+
+// A template's files are where the harness starts from, committed, so the
+// first turn's patch is what the harness changed and not the samples.
+func TestSeededFilesAreCommittedAsTheStart(t *testing.T) {
+	store, _ := Open(t.TempDir())
+	if _, err := store.Start("one", Instance{Harness: "dsh"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Seed("one", map[string]string{"notes/visit.txt": "invented"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Seed("one", map[string]string{"../escape": "x"}); err == nil {
+		t.Error("a file outside the folder was written")
+	}
+	status, _ := exec.Command("git", "-C", store.Workspace("one"), "status", "--porcelain").Output()
+	if len(strings.TrimSpace(string(status))) != 0 {
+		t.Errorf("the seeded files are not committed: %q", status)
+	}
+}

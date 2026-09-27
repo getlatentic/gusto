@@ -71,6 +71,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
+	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
+	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
 	mux.HandleFunc("POST /setups", s.guard(s.saveSetup))
 	mux.HandleFunc("POST /setups/{name}/skills", s.guard(s.writeSkill))

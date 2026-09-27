@@ -25,6 +25,15 @@ func setupOf(held instance.Instance) *job.Setup {
 	return &job.Setup{Name: held.Setup}
 }
 
+// sensitivityOf is what a turn on this instance is labelled: the instance's
+// own, or internal.
+func sensitivityOf(held instance.Instance) job.Sensitivity {
+	if held.Sensitivity == "" {
+		return job.Internal
+	}
+	return job.Sensitivity(held.Sensitivity)
+}
+
 // equip carries the setup a job names into its directory, and puts in
 // job.json what it actually held, whatever the sender said it held.
 func (s *Server) equip(spec *job.Spec, dir job.Dir) error {
@@ -32,7 +41,7 @@ func (s *Server) equip(spec *job.Spec, dir job.Dir) error {
 		return nil
 	}
 	if s.setups == nil {
-		return errors.New("this server keeps no setups")
+		return errNoSetups
 	}
 	carried, err := s.setups.Carry(spec.Setup.Name, s.servers, dir)
 	if err != nil {
@@ -41,6 +50,8 @@ func (s *Server) equip(spec *job.Spec, dir job.Dir) error {
 	spec.Setup = carried
 	return nil
 }
+
+var errNoSetups = errors.New("this server keeps no setups")
 
 // setupsList is every setup, for a page to offer.
 func (s *Server) setupsList() []setup.Setup {

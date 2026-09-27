@@ -26,8 +26,11 @@ import (
 type Setup struct {
 	Name    string   `json:"name"`
 	Servers []string `json:"servers,omitempty"`
-	Who     string   `json:"who,omitempty"`
-	Made    int64    `json:"madeAt"`
+	// Starters are things to say that show what the setup is for, offered in
+	// an empty thread.
+	Starters []string `json:"starters,omitempty"`
+	Who      string   `json:"who,omitempty"`
+	Made     int64    `json:"madeAt"`
 	// Skills is filled from the folder rather than kept in the file, so the
 	// folder is the one account of what a setup holds.
 	Skills []Skill `json:"-"`

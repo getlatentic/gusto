@@ -32,9 +32,12 @@ type Instance struct {
 	Model   string `json:"model,omitempty"`
 	Repo    string `json:"repo,omitempty"`
 	// Setup names the configuration every turn on this instance is given.
-	Setup   string `json:"setup,omitempty"`
-	Who     string `json:"who,omitempty"`
-	Started int64  `json:"startedAt"`
+	Setup string `json:"setup,omitempty"`
+	// Sensitivity is every turn's, so work that may not leave the building
+	// never does, whichever thread it is said in.
+	Sensitivity string `json:"sensitivity,omitempty"`
+	Who         string `json:"who,omitempty"`
+	Started     int64  `json:"startedAt"`
 }
 
 // Store is every instance under one directory.

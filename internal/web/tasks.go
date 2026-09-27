@@ -57,6 +57,9 @@ func taskOn(held instance.Instance, r *http.Request) (job.Spec, error) {
 		Team:        strings.TrimSpace(r.FormValue("team")),
 		Setup:       setupOf(held),
 	}
+	if held.Sensitivity == string(job.Restricted) {
+		spec.Sensitivity = job.Restricted
+	}
 	if spec.Brief == "" || len(spec.Gate) == 0 {
 		return job.Spec{}, errors.New("a task needs something to do and a command that says it worked")
 	}
