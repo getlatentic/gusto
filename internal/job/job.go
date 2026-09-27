@@ -12,6 +12,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 // Sensitivity is how sensitive the code in a job is. A runner says whose
@@ -58,7 +59,7 @@ type Spec struct {
 	Brief   string   `json:"brief"`
 	Repo    string   `json:"repo"`
 	Ref     string   `json:"ref"`
-	Gate    []string `json:"gate"`
+	Gate    []string `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
 	Model   string   `json:"model,omitempty"`
 	// Session names the instance this job is a turn on: the computer whose
@@ -73,6 +74,37 @@ type Spec struct {
 	// Team is who a job's spend counts against. It is a label the person
 	// asking chooses: nothing proves they belong to the team yet.
 	Team string `json:"team,omitempty"`
+	// Setup is what the harness was configured with beyond its adapter: the
+	// skills it was given and the MCP servers it may call.
+	Setup *Setup `json:"setup,omitempty"`
+}
+
+// Setup names a configuration and what was in it. Only names are here,
+// because job.json is evidence anyone with the run can read, and a server's
+// definition can carry a token. The definitions themselves travel beside the
+// job, in the directory Setup names.
+type Setup struct {
+	Name    string   `json:"name"`
+	Skills  []string `json:"skills,omitempty"`
+	Servers []string `json:"servers,omitempty"`
+}
+
+// named is what a skill or a server may be called: lower case, digits and
+// hyphens, as the Agent Skills format asks, and never a path.
+var named = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
+
+// Named says whether a name can be a skill's or a server's.
+func Named(name string) bool { return named.MatchString(name) }
+
+// Server is one MCP server as the deployment declares it: a program the box
+// runs, or an address it calls.
+type Server struct {
+	Name    string            `json:"name"`
+	Command string            `json:"command,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	URL     string            `json:"url,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 // Dir is a job directory.
@@ -83,6 +115,11 @@ func (d Dir) Spec() string            { return filepath.Join(string(d), "job.jso
 func (d Dir) Workspace() string       { return filepath.Join(string(d), "workspace") }
 func (d Dir) Out() string             { return filepath.Join(string(d), "out") }
 func (d Dir) OutFile(n string) string { return filepath.Join(d.Out(), n) }
+
+// SetupDir is where a job's skills and server definitions wait for the
+// runner. It sits outside out/ and the workspace, so it is neither signed
+// evidence nor in the bundle a reviewer downloads.
+func (d Dir) SetupDir() string { return filepath.Join(string(d), "setup") }
 
 func (d Dir) Make() error {
 	if err := os.MkdirAll(d.Workspace(), 0o755); err != nil {

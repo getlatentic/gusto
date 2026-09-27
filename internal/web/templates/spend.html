@@ -1,39 +1,89 @@
 {{template "head" .}}
+{{with .Ledger}}
 
-{{with .Report}}
-<h2>Spend in {{.Month}}</h2>
-<p>{{.Total.Money}} across {{.Total.Calls}} calls{{if .Total.Unmeasured}}, of which
-<strong>{{.Total.Unmeasured}} unmeasured</strong>: the provider's answer carried no usage, or the model has no price, so
-their cost is unknown rather than nothing{{end}}{{if .Total.Refused}}. A cap refused {{.Total.Refused}} more{{end}}.</p>
-<p class="muted">Counted at the proxy from each provider's own answer, and read from the same ledger the caps are
-checked against. It has not yet been reconciled with a provider's invoice.</p>
+<div class="title-row">
+  <h1>Spend</h1>
+  <form class="month" method="get" action="/spend">
+    <label class="inline"><span class="sr">Month</span>
+      <select name="month" onchange="this.form.submit()">
+        {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
+        {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
+      </select>
+    </label>
+    <noscript><button type="submit">Show</button></noscript>
+  </form>
+</div>
+
+<section class="figures">
+  <div class="figure">
+    <span class="value">{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}—{{else}}{{usd .Total.USD}}{{end}}</span>
+    <span class="label">{{if eq .Total.Unmeasured 0}}spent{{else if eq .Total.Calls .Total.Unmeasured}}no price set for these models{{else}}spent at least: {{.Total.Unmeasured}} calls have no cost{{end}}</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{.Total.Calls}}</span>
+    <span class="label">model calls{{with .Total.Uncounted}}, {{.}} uncounted{{end}}</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{tokens .Total.InputTokens}}</span>
+    <span class="label">tokens in, {{percent .Total.CachedTokens .Total.InputTokens}} cached</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{tokens .Total.OutputTokens}}</span>
+    <span class="label">tokens out</span>
+  </div>
+  <div class="figure{{if .Total.Refused}} failed{{end}}">
+    <span class="value">{{.Total.Refused}}</span>
+    <span class="label">refused by a cap</span>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>By day <span class="muted">in {{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
+  {{if .Daily}}
+  <div class="bars" role="img" aria-label="Spending on each day of {{.Month}}">
+    {{range .Daily}}
+    <div class="day" title="{{.Says}}"><span class="fill" style="height: {{printf "%.1f" .Height}}%"></span><span class="date">{{.Label}}</span></div>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+<div class="panels">
+  {{template "shares" (dict "Title" "By model" "Lines" .Models "Link" "")}}
+  {{template "shares" (dict "Title" "By harness" "Lines" .Harnesses "Link" "/jobs?harness=")}}
+  {{template "shares" (dict "Title" "By team" "Lines" .Teams "Link" "")}}
+  {{template "shares" (dict "Title" "By project" "Lines" .Projects "Link" "")}}
+</div>
+
+{{template "shares" (dict "Title" "Most expensive jobs" "Lines" .Jobs "Link" "/jobs/")}}
+
+<p class="note muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
+
 {{end}}
-
-{{if .Months}}<p class="muted">Months: {{range .Months}}<a href="/spend?month={{.}}">{{.}}</a> &nbsp;{{end}}</p>{{end}}
-
-{{template "spent" (dict "Title" "By team" "Lines" .Report.Teams "Link" "")}}
-{{template "spent" (dict "Title" "By project" "Lines" .Report.Projects "Link" "")}}
-{{template "spent" (dict "Title" "By job" "Lines" .Report.Jobs "Link" "/jobs/")}}
-
 {{template "foot" .}}
 
-{{define "spent"}}
-<h2>{{.Title}}</h2>
-{{if .Lines}}
-<table>
-  <tr><th>Name</th><th>Spent</th><th>Calls</th><th>Unmeasured</th><th>Refused</th><th>Tokens in / out</th></tr>
-  {{range .Lines}}
-  <tr>
-    <td>{{if not .Name}}<span class="muted">none named</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
-    <td>{{if .Unmeasured}}<span class="state running">{{.Money}}</span>{{else}}{{.Money}}{{end}}</td>
-    <td>{{.Calls}}</td>
-    <td>{{.Unmeasured}}</td>
-    <td>{{.Refused}}</td>
-    <td class="muted">{{.InputTokens}} / {{.OutputTokens}}</td>
-  </tr>
+{{define "shares"}}
+<section class="panel">
+  <h2>{{.Title}}</h2>
+  {{if .Lines}}
+  <table class="shares">
+    <thead><tr><th>Name</th><th class="num">Spent</th><th class="num">Tokens</th><th class="num">Calls</th></tr></thead>
+    <tbody>
+    {{range .Lines}}
+    <tr>
+      <td class="name">
+        {{if not .Name}}<span class="muted">none named</span>{{else if $.Link}}<a href="{{$.Link}}{{.Name}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}
+        <span class="share" aria-hidden="true"><span style="width: {{printf "%.1f" .Width}}%"></span></span>
+      </td>
+      <td class="num">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{.Money}}{{end}}</td>
+      <td class="num">{{tokens (add .InputTokens .OutputTokens)}}</td>
+      <td class="num">{{.Calls}}{{with .Refused}} <span class="state failed" title="refused by a cap">+{{.}}</span>{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Nothing this month.</p>
   {{end}}
-</table>
-{{else}}
-<p class="muted">Nothing went through the proxy this month.</p>
-{{end}}
+</section>
 {{end}}

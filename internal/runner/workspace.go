@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
 )
@@ -32,22 +33,62 @@ func Fill(spec job.Spec, dir job.Dir) error {
 	return git(dir.Workspace(), "checkout", "--quiet", spec.Ref)
 }
 
-// Diff writes what the harness changed. `add -N` puts new files in the index as
-// intentions, so the patch shows them without staging their contents.
-func Diff(dir job.Dir) error {
-	if err := git(dir.Workspace(), "add", "-N", "."); err != nil {
+// Snapshot is the workspace as a git tree, before the harness touches it. A
+// turn in a conversation works in a folder earlier turns already changed, and
+// what this turn changed is the difference from here, not from the folder's
+// first commit.
+func Snapshot(dir job.Dir) (string, error) {
+	return treeOf(dir.Workspace())
+}
+
+// Diff writes what the harness changed since before: every file added,
+// removed or edited, new ones with their contents.
+func Diff(dir job.Dir, before string) error {
+	after, err := treeOf(dir.Workspace())
+	if err != nil {
 		return err
 	}
-	patch, err := exec.Command("git", "-C", dir.Workspace(), "diff").Output()
+	patch, err := exec.Command("git", "-C", dir.Workspace(), "diff", before, after).Output()
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(dir.OutFile("diff.patch"), patch, 0o644)
 }
 
+// treeOf writes the working tree, ignored files left out, as a tree object.
+// It stages into an index of its own, so the workspace's index and history
+// are exactly as the harness left them.
+func treeOf(workspace string) (string, error) {
+	scratch, err := os.MkdirTemp("", "haas-index-")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(scratch)
+	index := "GIT_INDEX_FILE=" + filepath.Join(scratch, "index")
+	if err := gitWith(workspace, index, "add", "-A", "."); err != nil {
+		return "", err
+	}
+	command := exec.Command("git", "write-tree")
+	command.Dir = workspace
+	command.Env = append(os.Environ(), index)
+	tree, err := command.Output()
+	if err != nil {
+		return "", fmt.Errorf("git write-tree: %w", err)
+	}
+	return strings.TrimSpace(string(tree)), nil
+}
+
 func git(at string, args ...string) error {
+	return gitWith(at, "", args...)
+}
+
+// gitWith runs git with one more variable in its environment.
+func gitWith(at, variable string, args ...string) error {
 	command := exec.Command("git", args...)
 	command.Dir = at
+	if variable != "" {
+		command.Env = append(os.Environ(), variable)
+	}
 	if output, err := command.CombinedOutput(); err != nil {
 		return fmt.Errorf("git %s: %w: %s", args[0], err, output)
 	}

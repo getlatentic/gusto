@@ -9,6 +9,9 @@ package acp
 import (
 	"encoding/json"
 	"io"
+	"sort"
+
+	"github.com/getlatentic/haas/internal/job"
 )
 
 // Turn is one message in a conversation.
@@ -18,6 +21,8 @@ type Turn struct {
 	// Session is the harness's name for the conversation to continue. Empty
 	// starts a new one.
 	Session string
+	// Servers are the MCP servers the session may call.
+	Servers []job.Server
 }
 
 // Ended is how the turn finished: the session it belongs to, which the next
@@ -98,11 +103,11 @@ func open(c *conn, turn Turn, can continuing) (string, error) {
 			method = "session/resume"
 		}
 		c.muted = true
-		_, err := c.call(method, map[string]any{"sessionId": turn.Session, "cwd": turn.Cwd, "mcpServers": []any{}})
+		_, err := c.call(method, map[string]any{"sessionId": turn.Session, "cwd": turn.Cwd, "mcpServers": mcpServers(turn.Servers)})
 		c.muted = false
 		return turn.Session, err
 	}
-	answer, err := c.call("session/new", map[string]any{"cwd": turn.Cwd, "mcpServers": []any{}})
+	answer, err := c.call("session/new", map[string]any{"cwd": turn.Cwd, "mcpServers": mcpServers(turn.Servers)})
 	if err != nil {
 		return turn.Session, err
 	}
@@ -113,4 +118,35 @@ func open(c *conn, turn Turn, can continuing) (string, error) {
 		return "", err
 	}
 	return opened.SessionID, nil
+}
+
+// mcpServers is the servers in the protocol's shape: an address with its
+// headers, or a program with its environment, each as a list of pairs.
+func mcpServers(servers []job.Server) []map[string]any {
+	shaped := make([]map[string]any, 0, len(servers))
+	for _, server := range servers {
+		if server.URL != "" {
+			shaped = append(shaped, map[string]any{"type": "http", "name": server.Name, "url": server.URL, "headers": pairs(server.Headers)})
+			continue
+		}
+		args := server.Args
+		if args == nil {
+			args = []string{}
+		}
+		shaped = append(shaped, map[string]any{"name": server.Name, "command": server.Command, "args": args, "env": pairs(server.Env)})
+	}
+	return shaped
+}
+
+func pairs(values map[string]string) []map[string]string {
+	names := make([]string, 0, len(values))
+	for name := range values {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	listed := make([]map[string]string, 0, len(names))
+	for _, name := range names {
+		listed = append(listed, map[string]string{"name": name, "value": values[name]})
+	}
+	return listed
 }

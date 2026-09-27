@@ -22,6 +22,14 @@
   ],
   "stdin": "{brief}",
   "needs": "key",
+  "skills": "/root/.config/codex/skills",
+  "mcp": {
+    "format": "codex",
+    "argv": [
+      "-c",
+      "{mcp}"
+    ]
+  },
   "stream": "jsonl",
   "totals": "perCall",
   "text": "item.text",

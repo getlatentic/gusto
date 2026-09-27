@@ -106,6 +106,9 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter) (string, error)
 	if err := dir.Make(); err != nil {
 		return "", err
 	}
+	if err := s.equip(&spec, dir); err != nil {
+		return "", err
+	}
 	if err := spec.Write(dir); err != nil {
 		return "", err
 	}

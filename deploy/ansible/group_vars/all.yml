@@ -49,6 +49,23 @@ runner_harnesses:
   - dsh=@deepseek-ai/dsh@0.1.5-rc.3
   - hermes=hermes-agent@0.21.5
 
+# The npm packages of the MCP servers the image carries, for mcp_servers to
+# offer. A setup can only give a harness a server whose program is here.
+runner_mcp_packages:
+  - "@modelcontextprotocol/server-memory@2026.8.31"
+
+# The MCP servers a setup may choose from, one file each in var/mcp. A server
+# is a program the image carries, or an address a job may reach. What a
+# definition holds reaches the box that runs it, so it holds no secret a job's
+# agent should not read.
+mcp_servers:
+  - name: memory
+    command: mcp-server-memory
+    # The instance's own state, so what it remembers lasts across turns and
+    # threads and belongs to that instance alone.
+    env:
+      MEMORY_FILE_PATH: /root/.local/share/mcp-memory.jsonl
+
 # What one job may take. A limit larger than the machine is not a limit: the job
 # takes what it likes and the kernel kills whatever it reaches first, which on a
 # shared box is somebody else's service.

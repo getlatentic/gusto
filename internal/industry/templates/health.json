@@ -1,0 +1,42 @@
+{
+  "name": "health",
+  "title": "Clinical documentation",
+  "industry": "Health",
+  "summary": "Drafts SOAP notes from visit notes, de-identifies letters, and rewrites instructions in plain language. Every draft is marked for clinician review.",
+  "harnesses": [
+    "dsh",
+    "claude",
+    "hermes",
+    "opencode",
+    "codex",
+    "pi"
+  ],
+  "sensitivity": "internal",
+  "skills": [
+    {
+      "name": "phi-guard",
+      "description": "Use before quoting, copying or writing any clinical text, and whenever asked to de-identify a document.",
+      "body": "Protected health information never leaves a document it is in unless the task is to move it.\n\nWhen writing any new file or answer from clinical text:\n- Replace each of the HIPAA identifiers with a bracketed placeholder: names become [PATIENT] or [CLINICIAN], dates more specific than the year become [DATE], ages over 89 become [AGE 90+], and addresses, phone numbers, email addresses, medical record numbers, insurance numbers and any other account or device numbers become [ADDRESS], [PHONE], [EMAIL], [MRN], [INSURANCE ID] and [ID].\n- Keep clinical facts, medications, doses and results exactly as written.\n- When de-identifying, write a new file beside the original with `-deidentified` before the extension, and list at the end how many of each placeholder you used.\n- If you are not sure whether a string identifies somebody, replace it and say so."
+    },
+    {
+      "name": "soap-note",
+      "description": "Use when asked for a SOAP note, a progress note or a clinical summary of a visit.",
+      "body": "Write the note from the source text alone.\n\nStructure:\n- **Subjective**: the patient's own account, history of the present illness, and relevant history, in the source's terms.\n- **Objective**: vitals, examination findings and results, with units.\n- **Assessment**: only the assessments the clinician recorded. Never add a diagnosis the source does not contain.\n- **Plan**: medications with dose, route and frequency; tests ordered; referrals; follow-up; patient education.\n\nRules:\n- Write \"not documented\" for anything a section needs and the source does not say.\n- Apply the phi-guard skill to the note.\n- Save it as `soap-note.md` unless told otherwise.\n- End with the line: `Draft for clinician review. Not a medical record until signed.`"
+    },
+    {
+      "name": "plain-language",
+      "description": "Use when asked to explain clinical instructions to a patient, or to rewrite at a reading level.",
+      "body": "Rewrite for a patient at a sixth-grade reading level unless another level is asked for.\n\n- Short sentences, one instruction each. Everyday words; explain any medical term you must keep.\n- Keep every dose, time and warning exactly. Never soften a warning.\n- Use a numbered list for steps and a short \"Call your doctor if\" list for warning signs.\n- Say what the reading level is and how you checked it."
+    }
+  ],
+  "starters": [
+    "Draft a SOAP note from visit-notes.txt",
+    "Make a de-identified copy of referral-letter.md",
+    "Rewrite the discharge instructions in visit-notes.txt at a sixth-grade reading level"
+  ],
+  "files": {
+    "README.md": "# Sample clinic folder\n\nAll names, dates and identifiers in this file are invented for demonstration. It is not a real record.\n",
+    "visit-notes.txt": "VISIT NOTES (invented for demonstration; not a real record)\nPatient: Maria Okonkwo   DOB: 03/14/1961   MRN: 44-718-209\nSeen: 09/22/2026 by Dr. Samuel Reyes, Riverside Family Clinic, 12 Mill Lane, Springfield\n\nPt reports 3 days of productive cough, green sputum, fever to 38.6 at home, mild SOB on stairs. No chest pain. Hx T2DM on metformin 1000 mg BID, HTN on lisinopril 10 mg daily. Non-smoker. No recent travel.\n\nVitals: T 38.2 C, HR 96, BP 138/84, RR 20, SpO2 95% RA.\nExam: crackles R lower base, no wheeze. Otherwise unremarkable.\nCXR: R lower lobe consolidation.\nA: community-acquired pneumonia, R lower lobe. CURB-65 score 1.\nP: amoxicillin 1 g PO TID x 5 days. Paracetamol 1 g PO q6h PRN fever, max 4 g/day. Check glucose twice daily while unwell. Review in clinic in 48 h or sooner if worse.\n\nDischarge instructions given verbally: Take the amoxicillin three times a day with food until all doses are finished, even if you feel better. Drink plenty of fluids. Seek urgent care immediately if breathing becomes more difficult, lips turn blue, confusion develops, or fever persists beyond 72 hours despite antibiotics. Blood sugars may run high during infection; if above 300 mg/dL twice in a row, call the clinic. Phone: 555-0142.\n",
+    "referral-letter.md": "# Referral: cardiology\n\n*All names, dates and identifiers in this file are invented for demonstration. It is not a real record.*\n\nDear Dr. Aisha Bello,\n\nI am referring Mr. Thomas Lindqvist (DOB 11/02/1949, MRN 55-201-877, Medicare ID 1EG4-TE5-MK73) of 48 Harbour Road, Lakeside, phone 555-0199, for evaluation of exertional chest tightness over six weeks.\n\nECG on 09/18/2026 showed sinus rhythm with new T-wave inversion in V4 to V6. Troponin was negative twice. He takes atorvastatin 40 mg nightly and aspirin 81 mg daily. His brother had a myocardial infarction at 52.\n\nHe can be reached at thomas.lindqvist@example.com. Please contact me at the clinic on 555-0142.\n\nKind regards,\nDr. Samuel Reyes\n"
+  }
+}

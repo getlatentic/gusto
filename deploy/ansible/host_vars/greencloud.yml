@@ -62,6 +62,32 @@ credentials:
 
 models: "platform/qwen.qwen3-vl-235b-a22b-instruct,deepseek/deepseek-flash,anthropic/deepseek-flash"
 
+# DeepSeek's published prices, read from api-docs.deepseek.com/quick_start/pricing
+# on 2026-09-27: US dollars a million tokens at the off-peak rate, doubled on
+# weekdays from 01:00 to 04:00 and 06:00 to 10:00 UTC except on Chinese public
+# holidays, which go in `except` as DeepSeek announces them. Both credentials
+# reach the same account, so a price named by the model alone covers both. The
+# qwen model on the platform credential has no price here: its tokens are
+# counted and its cost is shown as unknown.
+deepseek_peak: &deepseek_peak
+  multiplier: 2
+  weekdays: [1, 2, 3, 4, 5]
+  hoursUtc: [[1, 4], [6, 10]]
+  except: []
+spend_policy:
+  prices:
+    deepseek-flash:
+      inputPerMillion: 0.15
+      cachedInputPerMillion: 0.003
+      outputPerMillion: 0.6
+      peak: *deepseek_peak
+    deepseek-v4-pro:
+      inputPerMillion: 0.66
+      cachedInputPerMillion: 0.022
+      outputPerMillion: 1.98
+      peak: *deepseek_peak
+  teams: {}
+
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.
 
