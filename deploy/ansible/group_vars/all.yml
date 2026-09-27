@@ -111,7 +111,10 @@ autodeploy_etc: /etc/haas-deploy
 autodeploy_ansible: "ansible-core>=2.16,<2.20"
 # Copied to the box from the laptop that enables autodeploy.
 autodeploy_vault_file: "{{ playbook_dir }}/greencloud.vault.yml"
-autodeploy_vault_password_file: ~/.config/lpcg/vault_pass.txt
+# This app's vault has a password of its own, not the one shared with the other
+# apps on the box: autodeploy puts the password on the box, and a shared one
+# would put every other app's secrets within reach of this app's deploy.
+autodeploy_vault_password_file: ~/.config/haas/vault_pass.txt
 # Set by the box when it deploys itself, and by nothing else.
 autodeploy_self: false
 
