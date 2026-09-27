@@ -72,6 +72,8 @@ const (
 // Adapter is how to run one harness.
 type Adapter struct {
 	Name string `json:"name"`
+	// Title is what a person who has never heard of the program calls it.
+	Title string `json:"title,omitempty"`
 	// What this harness is, in one line, for somebody choosing between them.
 	// A catalog that lists only names is not a choice.
 	What     string            `json:"what,omitempty"`

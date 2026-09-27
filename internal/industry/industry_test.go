@@ -22,7 +22,7 @@ func TestEveryTemplateIsCompleteAndItsFilesAreInvented(t *testing.T) {
 			t.Errorf("%s has sensitivity %q", held.Name, held.Sensitivity)
 		}
 		for _, skill := range held.Skills {
-			if !job.Named(skill.Name) || skill.Description == "" || skill.Body == "" {
+			if !job.Named(skill.Name) || skill.Title == "" || skill.Blurb == "" || skill.Description == "" || skill.Body == "" {
 				t.Errorf("%s: skill %q is incomplete", held.Name, skill.Name)
 			}
 		}

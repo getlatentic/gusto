@@ -45,6 +45,11 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 func TestARestrictedTemplatesTurnsAreRestricted(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
+	refused := site.ask(t, "POST", "/templates/defence", url.Values{"harness": {"fixture"}})
+	if !strings.Contains(refused.Header().Get("Location"), "refused=") {
+		t.Fatal("restricted work started where no model is in the building")
+	}
+	site.server.UseInBuilding(true)
 	started := site.ask(t, "POST", "/templates/defence", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"List every requirement without a passing test"}})

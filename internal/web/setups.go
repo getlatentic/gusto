@@ -17,6 +17,21 @@ func (s *Server) UseSetups(store *setup.Store, servers setup.Servers) {
 	s.setups, s.servers = store, servers
 }
 
+// UseInBuilding tells the pages whether restricted work can run here.
+func (s *Server) UseInBuilding(reachable bool) { s.inBuilding = reachable }
+
+// setupsPage is every skill set, and the way to make another.
+func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "setups.html", map[string]any{
+		"Title":   "haas — skill sets",
+		"Nav":     "new",
+		"Setups":  s.setupsList(),
+		"Offered": s.servers,
+		"Keeps":   s.setups != nil,
+		"Refused": r.URL.Query().Get("refused"),
+	})
+}
+
 // setupOf is what a job on this instance is given, named for job.json.
 func setupOf(held instance.Instance) *job.Setup {
 	if held.Setup == "" {

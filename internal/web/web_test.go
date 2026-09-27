@@ -23,6 +23,7 @@ import (
 const password = "a-shared-password"
 
 type site struct {
+	server  *Server
 	handler http.Handler
 	index   *jobs.Index
 	cookie  *http.Cookie
@@ -74,7 +75,7 @@ func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 		t.Fatal(err)
 	}
 	server.UseSetups(setups, setup.Servers{"memory": {Name: "memory", Command: "mcp-server-memory", Env: map[string]string{"TOKEN": "s3cret"}}})
-	return &site{handler: server.Handler(), index: index, ran: ran}
+	return &site{handler: server.Handler(), index: index, ran: ran, server: server}
 }
 
 func (s *site) ask(t *testing.T, method, path string, form url.Values) *httptest.ResponseRecorder {
@@ -139,24 +140,20 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-// The front door is what somebody already has. With nothing yet it sends them
-// to the catalog, which is where a harness is chosen.
+// The front door is what somebody already has. With nothing yet it offers
+// the kinds of work an assistant comes ready for, and a blank one.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	home := site.ask(t, "GET", "/", nil).Body.String()
-	if !strings.Contains(home, "no harnesses yet") || !strings.Contains(home, `href="/new"`) {
-		t.Error("an empty home page does not send somebody to the catalog")
+	for _, want := range []string{"Set up your first assistant", `href="/templates/health"`, `href="/new/blank"`} {
+		if !strings.Contains(home, want) {
+			t.Errorf("an empty home page does not offer %s", want)
+		}
 	}
 	answer := site.ask(t, "GET", "/new", nil)
-	body := answer.Body.String()
-	if answer.Code != http.StatusOK {
-		t.Fatalf("code %d", answer.Code)
-	}
-	for _, want := range []string{"fixture", "/instances/new?harness=fixture"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the catalog does not offer %s", want)
-		}
+	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
+		t.Fatalf("the new assistant page does not offer templates: %d", answer.Code)
 	}
 }
 
@@ -312,7 +309,7 @@ func TestEveryPageOffersTheWayBackToTheCatalog(t *testing.T) {
 	site.signIn(t)
 	for _, page := range []string{"/", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Harnesses") {
+		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Assistants") {
 			t.Errorf("%s does not offer the way to the catalog", page)
 		}
 	}
@@ -419,51 +416,20 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 	}
 }
 
-// A catalog of names is not a choice. Each card says what the harness is, and
-// carries the action that starts it.
-func TestTheCatalogSaysWhatEachHarnessIsAndOffersToStartIt(t *testing.T) {
+// A blank assistant is one button. The engine is there for whoever wants
+// to choose it, by a name a person knows, not by its program's.
+func TestABlankAssistantStartsWithOneButton(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/new", nil).Body.String()
-	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, ">Start<") {
-		t.Error("the catalog does not offer to start anything")
+	body := site.ask(t, "GET", "/new/blank", nil).Body.String()
+	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, `<option value="fixture">`) {
+		t.Error("the blank page does not offer to start anything")
 	}
-	if !strings.Contains(body, "what a fixture is") {
-		t.Error("the catalog does not say what the harness is")
+	started := site.ask(t, "POST", "/instances", url.Values{"title": {"Research helper"}})
+	if where := started.Header().Get("Location"); !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
-}
-
-// An instance holds as many conversations as somebody wants, and the page you
-// are on is the one place you would go looking for the others. Before this the
-// only route to a second thread was back out to the instance page, so an
-// instance read as though it held one conversation.
-func TestAConversationShowsTheOthersAndOpensAnother(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	first := startedThread(t, site)
-	where := first[:strings.Index(first, "/threads/")]
-
-	body := site.ask(t, "GET", first, nil).Body.String()
-	if !strings.Contains(body, `action="`+where+`/threads"`) {
-		t.Fatal("a conversation offers no way to open another")
-	}
-
-	// Opened from inside a conversation, and it lands in the new one.
-	opened := site.ask(t, "POST", where+"/threads", nil)
-	second := opened.Header().Get("Location")
-	if !strings.HasPrefix(second, where+"/threads/") || second == first {
-		t.Fatalf("opening a thread went to %q", second)
-	}
-
-	// And from there both are listed, with the one you are in marked.
-	body = site.ask(t, "GET", second, nil).Body.String()
-	for _, want := range []string{`href="` + first + `"`, `href="` + second + `"`} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the conversation does not list %s", want)
-		}
-	}
-	marked := strings.Index(body, `href="`+second+`" aria-current`)
-	if marked < 0 {
-		t.Error("the conversation you are in is not marked as the one you are in")
+	if home := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(home, "Research helper") {
+		t.Error("the assistant is not listed by the name it was given")
 	}
 }

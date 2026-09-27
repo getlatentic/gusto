@@ -35,7 +35,11 @@ type Template struct {
 
 // Skill is one of a template's skills.
 type Skill struct {
-	Name        string `json:"name"`
+	Name  string `json:"name"`
+	Title string `json:"title"`
+	// Blurb is what the skill does, said to the person choosing it. The
+	// description is said to the model, which chooses by it.
+	Blurb       string `json:"blurb"`
 	Description string `json:"description"`
 	Body        string `json:"body"`
 }

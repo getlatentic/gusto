@@ -20,11 +20,12 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "template.html", map[string]any{
-		"Title":     "haas — " + held.Title,
-		"Nav":       "new",
-		"Template":  held,
-		"Harnesses": s.runnersOf(held),
-		"Refused":   r.URL.Query().Get("refused"),
+		"Title":      "haas — " + held.Title,
+		"Nav":        "new",
+		"Template":   held,
+		"Harnesses":  s.runnersOf(held),
+		"InBuilding": s.inBuilding,
+		"Refused":    r.URL.Query().Get("refused"),
 	})
 }
 
@@ -80,7 +81,12 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
+	if held.Restricted() && !s.inBuilding {
+		s.turnAway(w, r, back, "this work has to stay in your network, and no model here is")
+		return
+	}
 	wanted := instance.Instance{
+		Title:   held.Title,
 		Harness: chosen, Model: s.models.First(chosen), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}

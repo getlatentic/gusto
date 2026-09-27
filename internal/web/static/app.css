@@ -613,3 +613,131 @@ details#task .threads-list { margin-bottom: var(--yg-space-4); }
   background: var(--yg-surface); color: var(--yg-text); text-decoration: none; }
 .changed a:hover { border-color: var(--yg-accent); }
 .panel.file h2 code { font-size: .875rem; text-transform: none; letter-spacing: 0; color: var(--yg-text); }
+
+/* ── The look ──────────────────────────────────────────────────────────
+   Headings in Sora, the display face the tokens name. Each field of work
+   has a hue of its own, used for its mark and a wash behind its title, so
+   a teaching assistant and a clinical one are told apart before they are
+   read. */
+@font-face { font-family: "Sora"; src: url("/static/sora.woff2") format("woff2");
+  font-weight: 400 700; font-display: swap; }
+h1, .display { font-family: var(--yg-font-display); }
+h1 { font-size: 1.75rem; letter-spacing: -.025em; }
+
+.hue-general   { --hue: var(--yg-accent-text); --hue-soft: var(--yg-accent-surface); }
+.hue-health    { --hue: #0f766e; --hue-soft: #dcf5ef; }
+.hue-education { --hue: #4338ca; --hue-soft: #e4e7fb; }
+.hue-hr        { --hue: #be185d; --hue-soft: #fbe3ee; }
+.hue-defence   { --hue: #3f6212; --hue-soft: #e6f0d6; }
+@media (prefers-color-scheme: dark) {
+  .hue-health    { --hue: #5eead4; --hue-soft: #12302c; }
+  .hue-education { --hue: #a5b4fc; --hue-soft: #1e2140; }
+  .hue-hr        { --hue: #f9a8d4; --hue-soft: #3a1728; }
+  .hue-defence   { --hue: #bef264; --hue-soft: #243014; }
+}
+.mark { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem;
+  border-radius: 12px; background: var(--hue-soft); color: var(--hue); }
+.mark svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round; }
+.mark.lg { width: 4rem; height: 4rem; border-radius: 18px; }
+.mark.sm { width: 2rem; height: 2rem; border-radius: 9px; }
+.mark .letter { font: 600 1rem/1 var(--yg-font-display); }
+
+/* A button that is the page's one action looks like it. */
+.cta { display: inline-flex; align-items: center; justify-content: center; gap: var(--yg-space-2);
+  padding: .8rem 1.4rem; border-radius: 12px; font: 600 1rem/1 var(--yg-font-text);
+  background: var(--yg-accent); color: var(--yg-on-accent); text-decoration: none; border: 0;
+  box-shadow: 0 1px 0 rgb(0 0 0 / .06), 0 6px 16px -6px color-mix(in srgb, var(--yg-accent) 60%, transparent); }
+.cta:hover { background: var(--yg-accent-hover); }
+.cta[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.cta svg.i { opacity: 1; stroke-width: 2; }
+.link-quiet { color: var(--yg-text-muted); font-size: .875rem; text-decoration: none; }
+.link-quiet:hover { color: var(--yg-accent-text); }
+
+/* A callout says one thing that matters, with a mark for what kind. */
+.callout { display: flex; gap: var(--yg-space-3); align-items: flex-start;
+  padding: var(--yg-space-4) var(--yg-space-5); border-radius: 14px;
+  background: var(--yg-info-surface); color: var(--yg-text); }
+.callout .sign { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem;
+  border-radius: 50%; background: var(--yg-surface); color: var(--yg-info); }
+.callout .sign svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.callout strong { display: block; margin-bottom: 2px; }
+.callout p { margin: 0; font-size: .9375rem; color: var(--yg-text-muted); }
+.callout.warn { background: var(--yg-warning-surface); }
+.callout.warn .sign { color: var(--yg-warning); }
+
+/* A hero is a page about one thing: its mark, its name, one sentence, and
+   what to do, on a wash of its hue. */
+.hero { position: relative; overflow: hidden; display: grid; gap: var(--yg-space-5);
+  padding: var(--yg-space-10) var(--yg-space-8); margin: 0 0 var(--yg-space-8); border-radius: 24px;
+  background: radial-gradient(120% 140% at 0% 0%, var(--hue-soft) 0%, transparent 60%), var(--yg-surface);
+  box-shadow: var(--yg-shadow-1); }
+.hero .eyebrow { margin: 0; font-size: .8125rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--hue); }
+.hero h1 { margin: var(--yg-space-1) 0 var(--yg-space-2); font-size: 2.25rem; }
+.hero .lede { margin: 0; font-size: 1.125rem; color: var(--yg-text-muted); max-width: 36rem; }
+.hero .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-4); }
+.hero form { display: contents; }
+
+/* What an assistant can do: one tile a skill, a title and a line. */
+.abilities { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: 0 0 var(--yg-space-8); }
+.ability { padding: var(--yg-space-5); border-radius: 16px; background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
+.ability .mark { margin-bottom: var(--yg-space-3); }
+.ability strong { display: block; font: 600 1rem/1.3 var(--yg-font-display); margin-bottom: var(--yg-space-1); }
+.ability p { margin: 0; font-size: .875rem; color: var(--yg-text-muted); }
+.section-title { font: 600 1.125rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none;
+  color: var(--yg-text); margin: 0 0 var(--yg-space-4); }
+.asks-row { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); margin: 0 0 var(--yg-space-8); padding: 0; list-style: none; }
+.asks-row li { padding: var(--yg-space-2) var(--yg-space-4); border-radius: var(--yg-radius-full);
+  background: var(--yg-surface); border: 1px solid var(--yg-border); font-size: .9375rem; }
+details.more { margin: 0 0 var(--yg-space-8); }
+details.more > summary { cursor: pointer; color: var(--yg-text-muted); font-size: .9375rem; width: fit-content; }
+details.more > summary:hover { color: var(--yg-text); }
+details.more[open] > summary { margin-bottom: var(--yg-space-4); }
+
+/* Choosing what to start: a card a field, and one for a blank assistant. */
+.choices { display: grid; gap: var(--yg-space-5); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); margin: 0 0 var(--yg-space-8); }
+.choice { display: grid; align-content: start; gap: var(--yg-space-3); padding: var(--yg-space-6);
+  border-radius: 20px; background: radial-gradient(140% 120% at 100% 0%, var(--hue-soft) 0%, transparent 55%), var(--yg-surface);
+  box-shadow: var(--yg-shadow-1); color: inherit; text-decoration: none;
+  transition: transform var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
+.choice:hover { transform: translateY(-2px); box-shadow: var(--yg-shadow-2); }
+.choice .name { font: 600 1.1875rem/1.25 var(--yg-font-display); letter-spacing: -.015em; }
+.choice .what { font-size: .9375rem; color: var(--yg-text-muted); }
+.choice .tag { justify-self: start; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--hue); }
+.choice.blank { background: none; box-shadow: none; border: 1.5px dashed var(--yg-border-strong); }
+.choice.blank:hover { border-color: var(--yg-accent); }
+@media (prefers-reduced-motion: reduce) { .choice { transition: none; } .choice:hover { transform: none; } }
+
+/* Your assistants, a page at a time. */
+.list { background: var(--yg-surface); border-radius: 18px; box-shadow: var(--yg-shadow-1); overflow: hidden; }
+table.assistants { table-layout: fixed; }
+table.assistants th { padding: var(--yg-space-4) var(--yg-space-5) var(--yg-space-3); background: none; }
+table.assistants td { padding: var(--yg-space-4) var(--yg-space-5); vertical-align: middle; border-bottom: 1px solid var(--yg-bg-subtle); }
+table.assistants tr:hover td { background: var(--yg-bg-subtle); }
+table.assistants th:nth-child(1) { width: 34%; }
+table.assistants th:nth-child(3) { width: 9rem; }
+table.assistants th:nth-child(4) { width: 8rem; text-align: right; }
+table.assistants td:nth-child(4) { text-align: right; }
+.who-cell { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0; }
+.who-cell a { font-weight: 600; color: var(--yg-text); text-decoration: none; }
+.who-cell a::after { content: ""; position: absolute; inset: 0; }
+table.assistants tr { position: relative; }
+.who-cell .sub, .snippet { display: block; font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who-cell > span:last-child { min-width: 0; }
+.pager { display: flex; align-items: center; justify-content: space-between; padding: var(--yg-space-3) var(--yg-space-5);
+  font-size: .875rem; color: var(--yg-text-muted); }
+.pager a { color: var(--yg-text); text-decoration: none; padding: var(--yg-space-1) var(--yg-space-3);
+  border: 1px solid var(--yg-border); border-radius: 8px; }
+.pager a:hover { border-color: var(--yg-accent); }
+.pager .gap { flex: 1; }
+@media (max-width: 48rem) {
+  table.assistants th:nth-child(2), table.assistants td:nth-child(2),
+  table.assistants th:nth-child(3), table.assistants td:nth-child(3) { display: none; }
+  .hero { padding: var(--yg-space-6) var(--yg-space-5); }
+  .hero h1 { font-size: 1.75rem; }
+}
+.page-head { margin: 0 0 var(--yg-space-8); }
+.page-head h1 { margin: 0 0 var(--yg-space-2); font-size: 2rem; }
+.page-head p { margin: 0; font-size: 1.0625rem; }
+.hero > .mark.lg { margin-bottom: calc(-1 * var(--yg-space-2)); }
+.abilities .ability { border-top: 0; }

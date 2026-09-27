@@ -3,53 +3,72 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 {{with .Template}}
-<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>template</span></nav>
-<header class="template-head">
-  {{template "industry" .Industry}}
+<section class="hero {{hue .Industry}}">
+  {{template "mark" (dict "Field" .Industry "Name" .Title "Size" "lg")}}
   <div>
-    <p class="industry">{{.Industry}}{{if .Restricted}} · <span class="restricted">restricted</span>{{end}}</p>
+    <p class="eyebrow">{{.Industry}}</p>
     <h1>{{.Title}}</h1>
-    <p class="summary">{{.Summary}}</p>
+    <p class="lede">{{.Summary}}</p>
   </div>
-</header>
-
-<div class="run">
-<div class="run-main">
-  <section class="panel">
-    <h2>What it knows how to do</h2>
-    <ul class="skills">
-      {{range .Skills}}<li><span class="name">{{.Name}}</span><p class="muted">{{.Description}}</p>
-        <details><summary>Instructions</summary><div class="reply">{{markdown .Body}}</div></details></li>{{end}}
-    </ul>
-  </section>
-  <section class="panel">
-    <h2>Try asking</h2>
-    <ul class="asks">{{range .Starters}}<li>{{.}}</li>{{end}}</ul>
-  </section>
-  <section class="panel">
-    <h2>Its folder starts with</h2>
-    <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
-    <p class="muted small">Every sample file is invented for demonstration. None is anybody's record.</p>
-  </section>
-</div>
-
-<aside class="run-side">
-  <section class="panel">
-    <h2>Start it</h2>
-    {{if .Restricted}}<p class="notice">Restricted work runs only on a model inside your own network. haas refuses to send it to a provider outside, and says so, rather than letting it leave.</p>{{end}}
-    {{if $.Harnesses}}
-    <form class="stack" method="post" action="/templates/{{.Name}}">
-      <label>Harness
-        <select name="harness">{{range $.Harnesses}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
-      </label>
-      <button type="submit">Start {{.Title}}</button>
+  <div class="actions">
+    {{if and .Restricted (not $.InBuilding)}}
+    <button class="cta" disabled>Start</button>
+    {{else if $.Harnesses}}
+    <form method="post" action="/templates/{{.Name}}">
+      <input type="hidden" name="harness" value="{{(index $.Harnesses 0).Name}}">
+      <button type="submit" class="cta">Start {{.Title}}</button>
     </form>
     {{else}}
-    <p class="muted">No harness here can take this template: it needs one that loads skills{{if .Servers}} and MCP servers{{end}}.</p>
+    <button class="cta" disabled>Start</button>
     {{end}}
-  </section>
-</aside>
+    <a class="link-quiet" href="/new">← Back</a>
+  </div>
+</section>
+
+{{if .Restricted}}
+<div class="callout {{if not $.InBuilding}}warn{{end}}" style="margin-bottom: var(--yg-space-8)"><span class="sign">{{template "icon-lock"}}</span>
+  <div><strong>Stays inside your network</strong>
+  <p>{{if $.InBuilding}}This work only goes to models in your own network.{{else}}It needs a model in your own network, and this deployment has none. haas will not send this work anywhere else.{{end}}</p></div></div>
+{{end}}
+
+<h2 class="section-title">What it can do</h2>
+<div class="abilities {{hue .Industry}}">
+  {{range .Skills}}
+  <div class="ability"><strong>{{.Title}}</strong><p>{{.Blurb}}</p></div>
+  {{end}}
 </div>
+
+<h2 class="section-title">Try asking</h2>
+<ul class="asks-row">{{range .Starters}}<li>{{.}}</li>{{end}}</ul>
+
+<details class="more">
+  <summary>Details</summary>
+  <div class="run">
+    <div class="run-main">
+      <section class="panel">
+        <h2>Instructions it follows</h2>
+        <ul class="skills">{{range .Skills}}<li><span class="name">{{.Title}}</span>
+          <details><summary>Read</summary><div class="reply">{{markdown .Body}}</div></details></li>{{end}}</ul>
+      </section>
+    </div>
+    <aside class="run-side">
+      <section class="panel">
+        <h2>Sample files</h2>
+        <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
+        <p class="muted small">Invented for demonstration.</p>
+      </section>
+      {{if gt (len $.Harnesses) 1}}
+      <section class="panel">
+        <h2>Engine</h2>
+        <form class="stack" method="post" action="/templates/{{.Name}}">
+          <select name="harness">{{range $.Harnesses}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
+          <button type="submit" class="quiet">Start with this engine</button>
+        </form>
+      </section>
+      {{end}}
+    </aside>
+  </div>
+</details>
 {{end}}
 
 {{template "foot" .}}

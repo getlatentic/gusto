@@ -2,11 +2,11 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>{{.Harness.Name}}</span></nav>
+<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>{{.Harness.Title}}</span></nav>
 <header class="instance-head">
-  <span class="avatar big" aria-hidden="true">{{slice .Harness.Name 0 1}}</span>
+  {{template "mark" (dict "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="who">
-    <h1>{{.Harness.Name}}</h1>
+    <h1>{{.Harness.Title}}</h1>
     <p class="muted">{{.Harness.What}}</p>
   </div>
 </header>
@@ -29,7 +29,7 @@
     </select>
   </label>
   {{end}}
-  <button type="submit">Start {{.Harness.Name}}</button>
+  <button type="submit" class="cta">Start</button>
 </form>
 
 {{template "foot" .}}

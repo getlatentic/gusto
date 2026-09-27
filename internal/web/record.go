@@ -45,11 +45,12 @@ func (s *Server) origin(record jobs.Record) origin {
 	if !found {
 		return origin{Named: "removed", Why: record.Instance + ", which this server no longer holds"}
 	}
-	shown := origin{Named: held.Harness, Why: held.ID, Link: "/instances/" + held.ID}
+	named := s.assistantOf(held).Name
+	shown := origin{Named: named, Why: held.ID, Link: "/instances/" + held.ID}
 	// A turn names its conversation, since a message in a thread is the thing
 	// somebody went to the record looking for.
 	if thread, found := s.instances.Thread(held.ID, record.Thread); found && record.Thread != "" {
-		shown.Named, shown.Link = held.Harness+" · "+s.nameOf(thread), threadPath(thread)
+		shown.Named, shown.Link = named+" · "+s.nameOf(thread), threadPath(thread)
 	}
 	return shown
 }
