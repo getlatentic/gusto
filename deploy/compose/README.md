@@ -126,6 +126,7 @@ given its own directory, never this one. The smoke check then prints
 | --- | --- |
 | jobs and their evidence | `$HAAS_DATA/jobs` on the host, `/var/lib/haas/jobs` unless moved |
 | conversations' workspaces | `$HAAS_DATA/sessions` |
+| harnesses' setups | `$HAAS_DATA/setups` |
 | the proxy's socket, with an upstream set | `$HAAS_DATA/jobs/.proxy.sock` |
 | the server's log | `docker compose logs server`: one JSON line a request |
 

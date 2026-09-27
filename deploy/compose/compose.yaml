@@ -22,6 +22,7 @@ services:
       dockerfile: Dockerfile
       args:
         HARNESSES: ${HAAS_RUNNER_HARNESSES:-opencode=opencode-ai}
+        MCP_SERVERS: ${HAAS_RUNNER_MCP:-}
       # The root Dockerfile names its bases by tag. A named context replaces
       # what a FROM line resolves to, so this install builds the same file from
       # bases pinned by digest without changing it. A key is the FROM line's
@@ -53,6 +54,7 @@ services:
       HAAS_IMAGE: ${HAAS_RUNNER_IMAGE:-haas-runner:local}
       HAAS_JOBS: ${HAAS_DATA:-/var/lib/haas}/jobs
       HAAS_SESSIONS: ${HAAS_DATA:-/var/lib/haas}/sessions
+      HAAS_SETUPS: ${HAAS_DATA:-/var/lib/haas}/setups
       DOCKER_HOST: unix:///run/haas/runtime.sock
     ports:
       # Loopback by default: the shared password travels in the clear over
