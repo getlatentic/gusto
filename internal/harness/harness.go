@@ -6,6 +6,11 @@
 // release. The built-in adapters are defaults, and a directory named by
 // HAAS_HARNESSES overrides any of them, so a customer can correct one or add a
 // harness of their own without a new binary.
+//
+// A configured harness is the adapter and what shapes the harness it runs: a
+// prompt, skills, MCP servers, a model policy. It is a directory with the
+// adapter at adapter.json, and a bare name.json is the smallest one, an adapter
+// alone. Its digest names it by what it holds rather than by what it is called.
 package harness
 
 import (
@@ -15,8 +20,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -124,61 +127,11 @@ type Adapter struct {
 	// the parts, whose overlaps differ from one harness to the next.
 	TotalTokens string `json:"totalTokens,omitempty"`
 	CostUSD     string `json:"costUsd,omitempty"`
-}
 
-// Load the adapter a job names, looking in the job's own directory first.
-//
-// An adapter in the job travels with it, so a job naming a harness of your own
-// runs on a runner that has never heard of it — in a container, on a fleet, on
-// somebody else's machine. That is the same reason everything else about a run
-// lives in the directory.
-func Load(dir job.Dir, name string) (Adapter, error) {
-	for _, root := range roots(dir) {
-		if text, err := os.ReadFile(filepath.Join(root, name+".json")); err == nil {
-			return parse(text)
-		}
-	}
-	text, err := builtIn.ReadFile("adapters/" + name + ".json")
-	if err != nil {
-		return Adapter{}, fmt.Errorf("no harness called %s", name)
-	}
-	return parse(text)
-}
-
-// Carried is where an adapter sits inside a job directory.
-func Carried(dir job.Dir) string {
-	return filepath.Join(dir.Path(), "harnesses")
-}
-
-func roots(dir job.Dir) []string {
-	var roots []string
-	if dir != "" {
-		roots = append(roots, Carried(dir))
-	}
-	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
-		roots = append(roots, mine)
-	}
-	return roots
-}
-
-// Keep writes an adapter into the job, so that whoever runs the job next has it.
-// A built-in adapter is already everywhere, so only one of your own is copied.
-func Keep(dir job.Dir, name string) error {
-	if _, err := builtIn.ReadFile("adapters/" + name + ".json"); err == nil {
-		return nil
-	}
-	mine := os.Getenv("HAAS_HARNESSES")
-	if mine == "" {
-		return nil
-	}
-	text, err := os.ReadFile(filepath.Join(mine, name+".json"))
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(Carried(dir), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(Carried(dir), name+".json"), text, 0o644)
+	// home is the directory of the configured harness this adapter came from,
+	// which {harnessDir} names so the harness can read its prompt, skills and
+	// servers. It is empty for an adapter with no directory of its own.
+	home string
 }
 
 func parse(text []byte) (Adapter, error) {
@@ -196,31 +149,6 @@ func parse(text []byte) (Adapter, error) {
 		adapter.speaksACP()
 	}
 	return adapter, nil
-}
-
-// Names lists every harness this binary can run: the adapters it ships with,
-// and any of your own in HAAS_HARNESSES. The pages offer what the server can
-// actually run, rather than what it was compiled with.
-func Names() []string {
-	found := map[string]bool{}
-	entries, _ := builtIn.ReadDir("adapters")
-	for _, entry := range entries {
-		found[strings.TrimSuffix(entry.Name(), ".json")] = true
-	}
-	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
-		yours, _ := os.ReadDir(mine)
-		for _, entry := range yours {
-			if strings.HasSuffix(entry.Name(), ".json") {
-				found[strings.TrimSuffix(entry.Name(), ".json")] = true
-			}
-		}
-	}
-	names := make([]string, 0, len(found))
-	for name := range found {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
 }
 
 // Command builds the process to run. The context carries the time budget, so a
@@ -270,6 +198,7 @@ func (a Adapter) fill(text string, spec job.Spec) string {
 		"{modelRoot}", ModelRoot(),
 		"{modelToken}", ModelToken(),
 		"{session}", spec.Remembered,
+		"{harnessDir}", a.home,
 	).Replace(text)
 }
 

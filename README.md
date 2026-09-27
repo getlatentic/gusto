@@ -216,7 +216,7 @@ from the evidence. What is held constant and why is in
 ```
 job/
   job.json          version, brief, repo, gate, harness, model, sensitivity, budget, team
-  harnesses/        an adapter of your own, so the job runs anywhere
+  harnesses/        a configured harness of your own, so the job runs anywhere
   workspace/        the checkout the harness works in
   out/
     transcript.log  what the harness said
@@ -338,9 +338,9 @@ all — set `HAAS_CONTAINER=podman`.
 ## Adapters
 
 A **harness** is the program — `claude`, `codex`, `opencode`. An **adapter** is
-how to run one. A **configured harness** is a harness plus the skills and MCP
-servers that shape it, and nothing here holds one yet. See
-[docs/TERMS.md](docs/TERMS.md).
+how to run one. A **configured harness** is a directory: the adapter, and the
+prompt, skills, MCP servers and model policy that shape the harness. Every run
+names the one it ran by digest. See [docs/TERMS.md](docs/TERMS.md).
 
 
 ```bash
@@ -359,7 +359,9 @@ involved, no endpoint is checked, and a restricted job has nothing to refuse.
 
 An adapter is a JSON file. A directory named by `HAAS_HARNESSES` overrides a
 built-in adapter of the same name, so a customer corrects one or adds a harness
-of their own without a new binary.
+of their own without a new binary. It holds bare adapters, `name.json`, or
+configured harnesses, `name/adapter.json` with the files that shape it beside it,
+which the adapter reaches through `{harnessDir}`.
 
 ```json
 {
