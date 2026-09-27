@@ -19,6 +19,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
 	"github.com/getlatentic/haas/internal/web"
@@ -79,7 +80,7 @@ func serve(args []string) int {
 	if identity.Configured() {
 		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
 	}
-	pages, err := web.New(index, instances, queue, password, identity, offered, values("HAAS_MODELS"))
+	pages, err := web.New(index, instances, queue, password, identity, offered, offeredModels(way.credentials, values("HAAS_MODELS"), harness.Names()))
 	if err != nil {
 		return fail(err)
 	}
@@ -181,6 +182,31 @@ func here(instances *instance.Store) jobs.Work {
 		}
 		return runner.Inside(dir)
 	}
+}
+
+// offeredModels is what the pages may offer, by harness. A credential can say
+// which harnesses it serves, because a provider can refuse what one harness
+// sends while answering another; a credential that says nothing serves them
+// all, which is what a deployment has until it finds out otherwise.
+func credentialOf(model string) string {
+	named, _ := proxy.Named(model)
+	return named
+}
+
+func offeredModels(credentials proxy.Credentials, models, harnesses []string) web.Models {
+	if len(credentials) == 0 {
+		return web.Everything(models)
+	}
+	offered := web.Models{"": models}
+	for _, harness := range harnesses {
+		for _, model := range models {
+			credential, held := credentials.Get(credentialOf(model))
+			if !held || credential.Serves(harness) {
+				offered[harness] = append(offered[harness], model)
+			}
+		}
+	}
+	return offered
 }
 
 // pointAt makes a job's workspace a link to the instance's.

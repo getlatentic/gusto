@@ -38,6 +38,11 @@ credentials:
     address: "https://bedrock-mantle.us-east-1.api.aws"
     auth: bearer
     key_var: model_key
+    # Measured on 2026-09-26: its responses API accepts only `function` and
+    # `mcp` tools, and codex sends a `namespace` one. So it serves opencode
+    # and nothing else here, and codex is not offered it.
+    harnesses:
+      - opencode
   # Measured on 2026-09-26: serves deepseek-flash and deepseek-v4-pro, and
   # implements the responses API, which is the only wire codex still speaks.
   - name: deepseek
