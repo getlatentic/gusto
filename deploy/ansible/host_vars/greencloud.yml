@@ -64,5 +64,5 @@ oidc_allowed: "tosinamuda@gmail.com"
 # Autodeploy stays off here until its key exists. To turn it on, put the public
 # half of the key GitHub holds in autodeploy_public_key, set autodeploy_enabled,
 # and run the playbook once by hand; README.md has the steps.
-autodeploy_enabled: false
-autodeploy_public_key: ""
+autodeploy_enabled: true
+autodeploy_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIISdoI6zBtx+cnKvjxpnQ7zp35CLRg/AcjhsZz0NRC3k haas-deploy, asks greencloud to deploy a commit on main"
