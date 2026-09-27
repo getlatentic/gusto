@@ -403,3 +403,23 @@ func TestAClientThatAddsItsOwnVersionIsGivenTheRootWithoutOne(t *testing.T) {
 		t.Errorf("claude is pointed at %q, and it appends /v1/messages to that", base)
 	}
 }
+
+// Every harness that says what it calls a conversation has to be able to
+// continue one. Recording the session and never handing it back makes every
+// message in a thread the first, which is how Codex answered "this is my
+// first turn" on the sixth.
+func TestEveryHarnessThatNamesItsSessionCanResumeIt(t *testing.T) {
+	for _, name := range Names() {
+		adapter, err := Load("", name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if adapter.SessionID == "" || adapter.Stream == ACP {
+			continue
+		}
+		command := adapter.Command(context.Background(), job.Spec{Brief: "b", Remembered: "the-session"}, t.TempDir())
+		if !strings.Contains(strings.Join(command.Args, " "), "the-session") {
+			t.Errorf("%s records its session and never resumes it: %v", name, command.Args)
+		}
+	}
+}
