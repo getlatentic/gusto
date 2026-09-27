@@ -133,12 +133,16 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-// The front door is the catalog: what this deployment can start, and picking
-// one is the only thing on it to do.
+// The front door is what somebody already has. With nothing yet it sends them
+// to the catalog, which is where a harness is chosen.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	answer := site.ask(t, "GET", "/", nil)
+	home := site.ask(t, "GET", "/", nil).Body.String()
+	if !strings.Contains(home, "no harnesses yet") || !strings.Contains(home, `href="/new"`) {
+		t.Error("an empty home page does not send somebody to the catalog")
+	}
+	answer := site.ask(t, "GET", "/new", nil)
 	body := answer.Body.String()
 	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
@@ -414,7 +418,7 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 func TestTheCatalogSaysWhatEachHarnessIsAndOffersToStartIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/", nil).Body.String()
+	body := site.ask(t, "GET", "/new", nil).Body.String()
 	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, ">Start<") {
 		t.Error("the catalog does not offer to start anything")
 	}

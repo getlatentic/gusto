@@ -183,8 +183,8 @@ func TestAShortTranscriptIsDrawnWholeWithItsLineBreaks(t *testing.T) {
 		"transcript.log": "I read the tests.\nI changed answer.txt.\n",
 	}, gate: passed})
 	page := site.page(t, "short")
-	if !strings.Contains(page, "<div class=\"transcript\">I read the tests.\nI changed answer.txt.\n</div>") {
-		t.Error("the transcript should be drawn as text with its line breaks")
+	if !strings.Contains(page, "I read the tests.<br>\nI changed answer.txt.") {
+		t.Error("the transcript should be drawn with its line breaks")
 	}
 	if strings.Contains(page, "Read the whole file") {
 		t.Error("a file drawn whole has nothing more to link")
@@ -200,8 +200,8 @@ func TestTheGateShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	page := site.page(t, "refused")
 	for _, want := range []string{
 		"<code>sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
-		"<th>Exit code</th><td>3</td>",
-		`<span class="state failed">false</span>`,
+		`<span class="muted">exited 3</span>`,
+		`<span class="state failed">failed</span>`,
 		"What the gate said", "3 tests failed",
 	} {
 		if !strings.Contains(page, want) {

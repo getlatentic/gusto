@@ -2,7 +2,13 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<h1>{{.Instance.Harness}}</h1>
+<div class="title-row">
+  <h1>{{.Instance.Harness}}</h1>
+  <form method="post" action="/instances/{{.Instance.ID}}/remove" class="remove"
+        onsubmit="return confirm('Remove this harness? Its folder is set aside, and its jobs stay in the record.')">
+    <button type="submit" class="quiet">Remove</button>
+  </form>
+</div>
 
 <table class="facts">
   <tr><th>Model</th><td>{{if .Instance.Model}}{{.Instance.Model}}{{else}}<span class="muted">whatever it defaults to</span>{{end}}</td></tr>

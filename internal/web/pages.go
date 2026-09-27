@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -42,6 +40,43 @@ var helpers = template.FuncMap{
 			return ""
 		}
 		return fmt.Sprintf("$%.4f", *usd)
+	},
+	"tokens":   compact,
+	"markdown": markdown,
+	"asset":    asset,
+	"base":     filepath.Base,
+	"add":      func(a, b int64) int64 { return a + b },
+	// usd is an amount of money as a headline shows it: cents once there are
+	// dollars, and the fractions of a cent an agent's calls cost until then.
+	"usd": func(amount float64) string {
+		if amount >= 1 {
+			return fmt.Sprintf("$%.2f", amount)
+		}
+		return fmt.Sprintf("$%.4f", amount)
+	},
+	// ago is how long ago something happened, as a list read at a glance says
+	// it, with the date itself once it is more than a day old.
+	"ago": func(unix int64) string {
+		if unix == 0 {
+			return ""
+		}
+		since := time.Since(time.Unix(unix, 0))
+		switch {
+		case since < time.Minute:
+			return "just now"
+		case since < time.Hour:
+			return fmt.Sprintf("%dm ago", int(since.Minutes()))
+		case since < 24*time.Hour:
+			return fmt.Sprintf("%dh ago", int(since.Hours()))
+		}
+		return time.Unix(unix, 0).Format("2 Jan")
+	},
+	// percent is a part of a whole, rounded, for a label.
+	"percent": func(part, whole int64) string {
+		if whole == 0 {
+			return "0%"
+		}
+		return fmt.Sprintf("%.0f%%", 100*float64(part)/float64(whole))
 	},
 	"took": func(from, to int64) string {
 		if from == 0 || to == 0 {
@@ -103,63 +138,6 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 // they did not get what they asked for.
 func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why string) {
 	http.Redirect(w, r, back+"?refused="+template.URLQueryEscaper(why), http.StatusSeeOther)
-}
-
-func (s *Server) job(w http.ResponseWriter, r *http.Request) {
-	record, dir, found := s.find(r)
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-	page := map[string]any{
-		"Job": record, "On": s.origin(record),
-		"Title": "haas — " + record.ID, "Subtitle": record.ID, "Nav": "jobs",
-	}
-	if spec, err := job.Read(dir); err == nil {
-		page["Spec"] = spec
-	}
-	manifest := readManifest(dir)
-	drawEvidence(page, record, dir, manifest)
-	page["Files"] = hashed(listing(dir), manifest)
-	page["SignedBy"] = s.signedBy(dir)
-	s.render(w, "job.html", page)
-}
-
-// hashedFile is one file in out/ beside the hash the manifest claims for it, so
-// a reader can hash their own download and compare without fetching the manifest
-// as well.
-type hashedFile struct {
-	Name   string
-	SHA256 string
-}
-
-// hashed pairs what is on disk with what the manifest says. No hash means the
-// manifest does not name the file: manifest.json, which cannot hash itself, and
-// anything that appeared after the run, which `haas verify` reports.
-func hashed(names []string, manifest *evidence.Manifest) []hashedFile {
-	claimed := map[string]string{}
-	for _, entry := range entriesOf(manifest) {
-		claimed[entry.Name] = entry.SHA256
-	}
-	files := make([]hashedFile, 0, len(names))
-	for _, name := range names {
-		files = append(files, hashedFile{Name: name, SHA256: claimed[name]})
-	}
-	return files
-}
-
-func listing(dir job.Dir) []string {
-	entries, err := os.ReadDir(dir.Out())
-	if err != nil {
-		return nil
-	}
-	var names []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			names = append(names, entry.Name())
-		}
-	}
-	return names
 }
 
 // file hands back one evidence file. The name is checked against the listing

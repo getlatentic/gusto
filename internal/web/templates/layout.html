@@ -4,257 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
-<link rel="icon" href="/static/mark.png">
-<link rel="stylesheet" href="/static/tokens.css">
-<script src="/static/htmx.min.js" defer></script>
-<style>
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-space-20);
-  max-width: 64rem; background: var(--yg-bg); color: var(--yg-text);
-  font: 15px/1.55 var(--yg-font-text); }
-
-/* Header: a mark, a name, where to go, and a way out. Nothing else. */
-header { display: flex; align-items: center; gap: var(--yg-space-5);
-  padding-bottom: var(--yg-space-4); margin-bottom: var(--yg-space-8);
-  border-bottom: 1px solid var(--yg-border); }
-header .mark { display: flex; align-items: center; gap: var(--yg-space-2);
-  font: 600 1rem/1 var(--yg-font-display); letter-spacing: -.01em; text-decoration: none; }
-header .mark img { width: 22px; height: auto; }
-nav { display: flex; align-items: center; gap: var(--yg-space-4); margin-left: auto; font-size: .875rem; }
-nav a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
-  color: var(--yg-text-muted); text-decoration: none; }
-nav a:hover, nav a[aria-current] { color: var(--yg-text); }
-nav a[aria-current] { font-weight: 600; }
-
-/* Icons carry no meaning alone, so they never stand in for a word, and they
-   take the non-text colour the tokens reserve for exactly this. */
-svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
-  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
-
-h1 { font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em;
-  margin: 0 0 var(--yg-space-6); }
-h2 { font: 600 .8125rem/1.3 var(--yg-font-text); letter-spacing: .06em;
-  text-transform: uppercase; color: var(--yg-text-subtle);
-  margin: var(--yg-space-10) 0 var(--yg-space-3); }
-a { color: var(--yg-accent-text); }
-
-/* A table is a grid; it does not need lines to prove it. One hairline under the
-   head, and rows separated by space. */
-table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
-th { text-align: left; font-weight: 600; font-size: .75rem; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--yg-text-subtle);
-  padding: 0 var(--yg-space-4) var(--yg-space-2) 0;
-  border-bottom: 1px solid var(--yg-border); }
-td { padding: var(--yg-space-3) var(--yg-space-4) var(--yg-space-3) 0; vertical-align: top;
-  border-bottom: 1px solid var(--yg-bg-subtle); }
-tr:last-child td { border-bottom: 0; }
-td a { text-decoration: none; color: var(--yg-text); font-weight: 500; }
-td a:hover { color: var(--yg-accent-text); }
-
-/* A card has a surface, so it does not also need a line around it. */
-form.card { display: grid; gap: var(--yg-space-4); padding: var(--yg-space-6);
-  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
-label { display: grid; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-subtle); }
-/* A qualifier belongs on the same line as what it qualifies, or it reads as a
-   second thing to take in. */
-label > .muted { font-size: inherit; }
-label .line { display: flex; align-items: baseline; gap: var(--yg-space-2); }
-input, select, textarea { font: inherit; padding: var(--yg-space-3);
-  border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
-  background: var(--yg-surface); color: var(--yg-text); width: 100%; }
-input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
-  outline: 2px solid var(--yg-focus); outline-offset: 2px; }
-textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
-button { font: 600 inherit; cursor: pointer; padding: var(--yg-space-3) var(--yg-space-6);
-  border: 0; border-radius: var(--yg-radius-sm);
-  background: var(--yg-accent); color: var(--yg-on-accent); justify-self: start; }
-button:hover { background: var(--yg-accent-hover); }
-nav button { background: none; color: var(--yg-text-muted); padding: 0; font-weight: 400; }
-nav button:hover { color: var(--yg-text); background: none; }
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--yg-space-4); }
-
-.state { font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase;
-  padding: 2px var(--yg-space-2); border-radius: var(--yg-radius-full); white-space: nowrap;
-  background: var(--yg-bg-subtle); color: var(--yg-text-subtle); }
-.passed  { background: var(--yg-success-surface); color: var(--yg-leaf-700); }
-.failed, .interrupted { background: var(--yg-danger-surface); color: var(--yg-danger); }
-.running, .queued { background: var(--yg-warning-surface); color: var(--yg-warning); }
-
-pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface-sunken);
-  border-radius: var(--yg-radius-sm); font: 12.5px/1.55 var(--yg-font-mono);
-  white-space: pre-wrap; word-break: break-word; max-height: 30rem; }
-.muted { color: var(--yg-text-muted); }
-
-/* The catalog. One card a harness, and the difference between one this
-   deployment can start and one it cannot is visible before either is read: a
-   card you can start has a surface and no line, one you cannot has a line and
-   no surface. */
-.picks { display: grid; gap: var(--yg-space-4); margin-bottom: var(--yg-space-4);
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
-.pick { display: flex; flex-direction: column; gap: var(--yg-space-2);
-  min-height: 9.5rem; padding: var(--yg-space-5);
-  border-radius: var(--yg-radius-md); background: var(--yg-surface);
-  box-shadow: var(--yg-shadow-1); color: inherit; text-decoration: none; }
-.pick:hover { box-shadow: var(--yg-shadow-2); }
-.pick .name { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em; }
-.pick .what { font-size: .875rem; color: var(--yg-text-muted); }
-/* The repository a running one works in: one line, cut rather than wrapped,
-   because the name is the part that identifies it. */
-.pick .line1 { font-size: .875rem; color: var(--yg-text-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* The action sits on the floor of the card, so cards of different heights
-   still line their actions up. */
-.pick .go { margin-top: auto; display: flex; align-items: center;
-  gap: var(--yg-space-4); font-size: .8125rem; }
-.pick .go a { color: var(--yg-text-muted); text-decoration: none; }
-.pick .go a:hover { color: var(--yg-accent-text); }
-.pick .go button { padding: var(--yg-space-2) var(--yg-space-5); font-size: .875rem; }
-/* One this deployment cannot start is a line and no surface: the difference is
-   visible before either card is read. */
-.pick.off { background: none; box-shadow: none; border: 1px solid var(--yg-border); }
-.pick.off .name { color: var(--yg-text-muted); }
-
-/* A facts table is a label and a value, not a grid, so it carries no head rule
-   and no row rules. */
-table.facts { width: auto; margin-bottom: var(--yg-space-8); }
-table.facts th { border: 0; padding-right: var(--yg-space-6); white-space: nowrap; }
-table.facts td { border: 0; padding-left: 0; }
-
-/* A turn is what you said and what came back. Yours sits in the accent
-   surface, which is the one place a person's own words appear; the reply is
-   the transcript, which is already set apart by being monospaced. */
-.turn { margin-bottom: var(--yg-space-8); }
-.said { margin: 0 0 var(--yg-space-3) auto; max-width: 42rem; width: fit-content;
-  padding: var(--yg-space-3) var(--yg-space-4);
-  background: var(--yg-accent-surface); color: var(--yg-text);
-  border-radius: var(--yg-radius-md); white-space: pre-wrap; }
-.turn pre { margin: 0; }
-/* What a turn ended as, and the one way to the rest of it. A link at the end
-   of a line somebody is not reading does not need underlining to be found. */
-.after { display: flex; align-items: center; gap: var(--yg-space-3);
-  margin: var(--yg-space-2) 0 0; font-size: .8125rem; }
-.after a { color: var(--yg-text-muted); text-decoration: none; }
-.after a:hover { color: var(--yg-accent-text); }
-
-/* A chat fills the window. The header stays, the conversation scrolls under
-   it, and what you type stays on the floor of the page where you left it —
-   rather than at the end of a document you have to scroll to reach. */
-body.chat { max-width: none; height: 100dvh; padding: 0;
-  display: grid; grid-template-rows: auto minmax(0, 1fr); }
-body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
-.desk { display: grid; grid-template-columns: 16rem minmax(0, 1fr); min-height: 0; }
-
-/* The conversations on this instance, down the side, because a list you can
-   see is one you remember you have. */
-.rail { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--yg-space-4);
-  min-height: 0; min-width: 0; padding: var(--yg-space-6) var(--yg-space-4);
-  border-right: 1px solid var(--yg-border); }
-.rail .whose { display: grid; gap: var(--yg-space-1); min-width: 0; padding: 0 var(--yg-space-3); }
-.rail .whose a { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em;
-  color: var(--yg-text); text-decoration: none; }
-.rail .whose a:hover { color: var(--yg-accent-text); }
-.rail .whose span { font-size: .8125rem; color: var(--yg-text-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rail ol { list-style: none; margin: 0; padding: 0; overflow-y: auto;
-  display: grid; gap: 2px; align-content: start; }
-.rail ol a { display: block; padding: var(--yg-space-2) var(--yg-space-3);
-  border-radius: var(--yg-radius-sm); font-size: .875rem; color: var(--yg-text-muted);
-  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rail ol a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-.rail ol a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
-.rail button { width: 100%; justify-self: stretch; display: inline-flex; align-items: center;
-  justify-content: center; gap: var(--yg-space-2); font-weight: 400; font-size: .875rem;
-  background: none; color: var(--yg-text-muted); border: 1px dashed var(--yg-border-strong); }
-.rail button:hover { background: none; color: var(--yg-accent-text); border-color: var(--yg-accent); }
-
-/* What was said scrolls; what you type does not. Both sit in one column of a
-   readable width, so a reply and the box you answer it in line up. */
-.talk { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
-.said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
-.column { max-width: 46rem; margin: 0 auto; }
-.composer { border-top: 1px solid var(--yg-border); padding: var(--yg-space-5) var(--yg-space-6); }
-.composer form { display: flex; align-items: flex-end; gap: var(--yg-space-3);
-  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
-  background: var(--yg-surface); border: 1px solid var(--yg-border-strong);
-  border-radius: var(--yg-radius-lg); }
-.composer form:focus-within { border-color: var(--yg-accent); }
-.composer textarea { flex: 1; min-width: 0; min-height: 2.75rem; max-height: 14rem; padding: var(--yg-space-2) 0;
-  border: 0; background: none; resize: none; }
-.composer textarea:focus-visible { outline: none; }
-.composer button { flex: none; padding: var(--yg-space-3) var(--yg-space-5); }
-.nothing-said { color: var(--yg-text-muted); text-align: center;
-  padding: var(--yg-space-16) 0; }
-
-/* Below this the labels go and the icons carry the header on their own, which
-   is the width at which they start pushing the page wider than the window. */
-@media (max-width: 34rem) {
-  nav { gap: var(--yg-space-3); }
-  nav a span { display: none; }
-}
-
-/* A bar for the narrow case: which conversation you are in, and the way to the
-   rest of them. It is not there when the list already is. */
-.talk-top { display: none; align-items: center; gap: var(--yg-space-3);
-  padding: var(--yg-space-3) var(--yg-space-4);
-  border-bottom: 1px solid var(--yg-border); }
-.talk-top .which { font-weight: 600; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; }
-.rail-toggle { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2);
-  padding: var(--yg-space-2) var(--yg-space-3); font-size: .875rem; font-weight: 400;
-  background: none; color: var(--yg-text-muted); border: 1px solid var(--yg-border-strong); }
-.rail-toggle:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-.scrim { display: none; }
-
-/* Narrow enough and a column down the side leaves nothing to read in. The
-   list stays a list and slides over instead, because a conversation list laid
-   out as tabs stops reading as the thing you keep and start. */
-@media (max-width: 56rem) {
-  .desk { grid-template-columns: minmax(0, 1fr); }
-  .talk { grid-template-rows: auto minmax(0, 1fr) auto; }
-  .talk-top { display: flex; }
-  .rail { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(17rem, 82vw);
-    background: var(--yg-bg); box-shadow: var(--yg-shadow-3);
-    transform: translateX(-100%);
-    transition: transform var(--yg-dur-base) var(--yg-ease-standard); }
-  body.rail-open .rail { transform: none; }
-  body.rail-open .scrim { display: block; position: fixed; inset: 0; z-index: 10;
-    background: rgb(23 23 23 / .32); }
-  .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); }
-  .composer { padding: var(--yg-space-4); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rail { transition: none; }
-}
-
-/* Every conversation on this instance, with the one you are in marked. They
-   wrap rather than scroll, because a thread you cannot see is one you will not
-   remember you opened. */
-.threads { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-2);
-  margin: 0 0 var(--yg-space-6); font-size: .875rem; }
-.threads a { padding: var(--yg-space-2) var(--yg-space-4); border-radius: var(--yg-radius-full);
-  color: var(--yg-text-muted); text-decoration: none; background: var(--yg-bg-subtle); }
-.threads a:hover { color: var(--yg-text); }
-.threads a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
-.threads form { display: contents; }
-.threads button { display: inline-flex; align-items: center; gap: var(--yg-space-2);
-  padding: var(--yg-space-2) var(--yg-space-4); font-size: inherit; font-weight: 400;
-  background: none; color: var(--yg-text-muted); border: 1px dashed var(--yg-border-strong); }
-.threads button:hover { background: none; color: var(--yg-accent-text); border-color: var(--yg-accent); }
-
-/* Where you are, above what you are reading. The instance is a link; the thread
-   is where you already are, so it is not. */
-.crumb { display: flex; gap: var(--yg-space-3); align-items: baseline;
-  margin: 0 0 var(--yg-space-6); font-size: .9375rem; }
-.crumb a { color: var(--yg-text); text-decoration: none; font-weight: 600; }
-.crumb a:hover { color: var(--yg-accent-text); }
-.refused { background: var(--yg-danger-surface); color: var(--yg-danger);
-  padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
-
-@media (prefers-color-scheme: dark) {
-  :root { color-scheme: dark; }
-}
-</style>
+<link rel="icon" href="{{asset "/static/mark.png"}}">
+<link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
+<link rel="stylesheet" href="{{asset "/static/app.css"}}">
+<script src="{{asset "/static/htmx.min.js"}}" defer></script>
 </head>
 <body{{if .Chat}} class="chat"{{end}}>
 <header>
@@ -263,6 +16,7 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
     <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Harnesses</span></a>
     <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Jobs</span></a>
     <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spend</span></a>
+    <a class="new" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New harness</span></a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
   </nav>
 </header>
@@ -271,8 +25,9 @@ body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
 {{define "foot"}}</body></html>{{end}}
 
 {{/* origin is the instance a run belonged to: a link when there is one to go
-     to, and otherwise the reason there is none, never an empty link. */}}
-{{define "origin"}}{{if .Link}}<a href="{{.Link}}">{{.Named}}</a>{{else}}<span class="muted">{{.Named}}</span>{{end}}{{end}}
+     to, and otherwise a short word for why there is none, never an empty link.
+     The whole reason is one hover away. */}}
+{{define "origin"}}{{if .Link}}<a href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}
 
 {{define "icon-harness"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z"/></svg>{{end}}
 {{define "icon-menu"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>{{end}}

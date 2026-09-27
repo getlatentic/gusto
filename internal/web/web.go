@@ -57,10 +57,12 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
-	mux.HandleFunc("GET /{$}", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /{$}", s.guard(s.home))
+	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
+	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))

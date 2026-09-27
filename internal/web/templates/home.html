@@ -1,0 +1,36 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<div class="title-row">
+  <h1>Your harnesses</h1>
+  {{with .Instances}}<span class="count">{{len .}}</span>{{end}}
+</div>
+
+{{if .Instances}}
+<ol class="instances">
+  {{range .Instances}}
+  <li>
+    <a class="instance" href="{{.Where}}">
+      <span class="avatar" aria-hidden="true">{{slice .Harness 0 1}}</span>
+      <span class="who">
+        <span class="name">{{.Harness}}{{with .Model}} <span class="model">{{.}}</span>{{end}}</span>
+        <span class="last">{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
+      </span>
+      <span class="where" title="{{if .Repo}}{{.Repo}}{{else}}its own folder{{end}}">{{if .Repo}}{{base .Repo}}{{else}}its own folder{{end}}</span>
+      <span class="held">{{.Threads}} thread{{if ne .Threads 1}}s{{end}}</span>
+      <span class="status">{{with .Latest.State}}<span class="state {{.}}">{{.}}</span>{{end}}</span>
+      <span class="when" title="{{when .Active}}">{{ago .Active}}</span>
+    </a>
+  </li>
+  {{end}}
+</ol>
+{{else}}
+<section class="empty">
+  <p>You have no harnesses yet.</p>
+  <p class="muted">Start one from the catalog. It gets a folder of its own, and you can hold as many conversations with it as you like.</p>
+  <a class="button" href="/new">{{template "icon-add"}} Start a harness</a>
+</section>
+{{end}}
+
+{{template "foot" .}}
