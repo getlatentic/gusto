@@ -10,8 +10,8 @@ import (
 // The pages are for people who do not know what a harness, a model id or a
 // credential is. This is where the machine's names become theirs.
 
-// assistant is an instance as a person sees it.
-type assistant struct {
+// agent is an instance as a person sees it.
+type agent struct {
 	instance.Instance
 	// Name is what it is called, Field the kind of work it was set up for,
 	// empty for one started blank, and Engine and Brain the program and the
@@ -22,8 +22,8 @@ type assistant struct {
 	Brain  string
 }
 
-func (s *Server) assistantOf(held instance.Instance) assistant {
-	shown := assistant{Instance: held, Name: held.Title, Engine: s.engineName(held.Harness), Brain: modelName(held.Model)}
+func (s *Server) agentOf(held instance.Instance) agent {
+	shown := agent{Instance: held, Name: held.Title, Engine: s.engineName(held.Harness), Brain: modelName(held.Model)}
 	if template, found := industry.Get(held.Setup); found {
 		shown.Field = template.Industry
 		if shown.Name == "" {
@@ -34,7 +34,7 @@ func (s *Server) assistantOf(held instance.Instance) assistant {
 		shown.Name = shown.Engine
 	}
 	if shown.Name == "" {
-		shown.Name = "Assistant"
+		shown.Name = "Agent"
 	}
 	return shown
 }

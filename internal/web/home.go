@@ -14,7 +14,7 @@ import (
 // yours is an instance as the home page lists it: what it is, what was last
 // said to it, and where to pick that conversation up.
 type yours struct {
-	assistant
+	agent
 	Threads int
 	Where   string
 	Latest  jobs.Record
@@ -22,10 +22,10 @@ type yours struct {
 	Active int64
 }
 
-// assistantsPerPage is how many rows the home page shows at once.
-const assistantsPerPage = 10
+// agentsPerPage is how many rows the home page shows at once.
+const agentsPerPage = 10
 
-// home is the assistants somebody already has, the one used last first,
+// home is the agents somebody already has, the one used last first,
 // because a person coming back wants to carry on rather than choose again.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	held := s.instances.List()
@@ -36,8 +36,8 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	sort.SliceStable(listed, func(a, b int) bool { return listed[a].Active > listed[b].Active })
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	page = max(page, 1)
-	from := min((page-1)*assistantsPerPage, len(listed))
-	to := min(from+assistantsPerPage, len(listed))
+	from := min((page-1)*agentsPerPage, len(listed))
+	to := min(from+agentsPerPage, len(listed))
 	data := map[string]any{
 		"Title":     "haas",
 		"Nav":       "harnesses",
@@ -57,18 +57,18 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "home.html", data)
 }
 
-// catalogPage is where a new assistant is chosen: set up for a field of work,
+// catalogPage is where a new agent is chosen: set up for a field of work,
 // or blank.
 func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "catalog.html", map[string]any{
-		"Title":     "haas — new assistant",
+		"Title":     "haas — new agent",
 		"Nav":       "new",
 		"Templates": industry.All(),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
 
-// blankPage starts an assistant with nothing set up: a name, and the engine
+// blankPage starts an agent with nothing set up: a name, and the engine
 // and skill set for whoever wants to choose them.
 func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 	var ready []catalog.Entry
@@ -78,7 +78,7 @@ func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, "blank.html", map[string]any{
-		"Title":   "haas — new assistant",
+		"Title":   "haas — new agent",
 		"Nav":     "new",
 		"Engines": ready,
 		"Setups":  s.setupsList(),
@@ -96,11 +96,11 @@ func (s *Server) lately(held instance.Instance) yours {
 		active = latest.Queued
 	}
 	return yours{
-		assistant: s.assistantOf(held),
-		Threads:   len(s.instances.Threads(held.ID)),
-		Where:     threadPath(last),
-		Latest:    latest,
-		Active:    active,
+		agent:   s.agentOf(held),
+		Threads: len(s.instances.Threads(held.ID)),
+		Where:   threadPath(last),
+		Latest:  latest,
+		Active:  active,
 	}
 }
 

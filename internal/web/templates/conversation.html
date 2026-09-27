@@ -3,11 +3,11 @@
 <div class="desk">
   <div class="scrim" id="scrim"></div>
   <aside class="rail" id="rail">
-    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this assistant">
-      {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "sm")}}
+    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this agent">
+      {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "sm")}}
       <span class="who">
-        <span class="name">{{.Assistant.Name}}</span>
-        <span class="model">{{.Assistant.Brain}}</span>
+        <span class="name">{{.Agent.Name}}</span>
+        <span class="model">{{.Agent.Brain}}</span>
       </span>
     </a>
 
@@ -28,7 +28,7 @@
         {{template "icon-menu"}}
       </button>
       <span class="which">{{.Named}}</span>
-      <span class="with">{{.Assistant.Brain}}</span>
+      <a class="files-link" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}} Files</a>
     </div>
 
     <div class="said-so-far" id="said">
@@ -36,7 +36,7 @@
         <div id="turns">{{template "turns" .}}</div>
         {{if .Waiting}}
         <div class="answer working" id="working">
-          {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "sm")}}
+          {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "sm")}}
           <div class="body">
             <p class="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> Working <span class="elapsed" id="elapsed"></span></p>
             <pre id="stream" hidden></pre>
@@ -45,9 +45,9 @@
         {{end}}
         {{if not .Turns}}{{if not .Waiting}}
         <div class="start">
-          {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "lg")}}
+          {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
           <h2>How can I help?</h2>
-          <p class="muted">{{.Assistant.Name}} works in its own folder and remembers this conversation.</p>
+          <p class="muted">{{.Agent.Name}} works in its own folder and remembers this conversation.</p>
           {{with .Starters}}
           <div class="starters">
             {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
@@ -61,7 +61,7 @@
     <div class="composer">
       <form class="column" method="post" action="{{.Path}}/say">
         <div class="box">
-          <textarea name="said" rows="1" placeholder="Message {{.Assistant.Name}}" autofocus required></textarea>
+          <textarea name="said" rows="1" placeholder="Message {{.Agent.Name}}" autofocus required></textarea>
           <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
         <p class="hint">Enter sends. Shift and Enter start a new line.</p>
@@ -162,12 +162,12 @@
   <p class="said">{{.Said}}</p>
   {{if .State.Done}}
   <div class="answer{{if .Stopped}} failed{{end}}">
-    {{template "mark" (dict "Field" $.Assistant.Field "Name" $.Assistant.Name "Size" "sm")}}
+    {{template "mark" (dict "Field" $.Agent.Field "Name" $.Agent.Name "Size" "sm")}}
     <div class="body">
       {{with .Steps}}
       <details class="steps">
         <summary>{{len .}} step{{if ne (len .) 1}}s{{end}} taken</summary>
-        <ol>{{range .}}<li><span class="what">{{.What}}</span> <span class="detail">{{.Detail}}</span></li>{{end}}</ol>
+        {{template "steps" .}}
       </details>
       {{end}}
       {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}

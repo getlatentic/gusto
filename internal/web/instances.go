@@ -46,7 +46,7 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		wanted.Harness = s.firstReady()
 	}
 	if wanted.Harness == "" {
-		s.turnAway(w, r, "/new", "this deployment cannot start an assistant yet")
+		s.turnAway(w, r, "/new", "this deployment cannot start an agent yet")
 		return
 	}
 	if why := s.unfit(wanted); why != "" {
@@ -93,10 +93,10 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
 	}
 	s.render(w, "instance.html", map[string]any{
-		"Title":     "haas — " + s.assistantOf(held).Name,
+		"Title":     "haas — " + s.agentOf(held).Name,
 		"Nav":       "harnesses",
 		"Instance":  held,
-		"Assistant": s.assistantOf(held),
+		"Agent":     s.agentOf(held),
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
 		"Tasks":     s.tasks(held.ID),
@@ -133,7 +133,7 @@ func threadPath(thread instance.Thread) string {
 	return "/instances/" + thread.Instance + "/threads/" + thread.ID
 }
 
-// firstReady is the engine a blank assistant gets when nobody chooses: the
+// firstReady is the engine a blank agent gets when nobody chooses: the
 // first this deployment can run, in the catalog's order.
 func (s *Server) firstReady() string {
 	for _, entry := range s.catalog {

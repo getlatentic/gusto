@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
@@ -61,6 +62,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		"Title":    "haas — " + filepath.Base(asked),
 		"Nav":      "harnesses",
 		"Instance": held,
+		"Agent":    s.agentOf(held),
 		"Path":     strings.TrimPrefix(asked, "/"),
 		"Text":     string(text),
 		"Cut":      info.Size() > mostShown,
@@ -81,4 +83,54 @@ func readSome(path string) ([]byte, error) {
 		return nil, fs.ErrNotExist
 	}
 	return text[:read], nil
+}
+
+// held is one file in an agent's folder, as its Files page lists it.
+type held struct {
+	Path     string
+	Size     int64
+	Modified int64
+}
+
+// mostListed is how many files the Files page lists. A folder a build ran in
+// can hold hundreds of thousands, and nobody reads that list.
+const mostListed = 500
+
+// folderPage lists what is in an agent's folder, the most recently changed
+// first, because that is what a conversation has been working on.
+func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
+	agentHeld, found := s.instances.Get(r.PathValue("id"))
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	root := s.instances.Workspace(agentHeld.ID)
+	var files []held
+	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if entry.IsDir() && (entry.Name() == ".git" || entry.Name() == "node_modules") {
+			return filepath.SkipDir
+		}
+		if !entry.Type().IsRegular() || len(files) >= mostListed {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil
+		}
+		relative, _ := filepath.Rel(root, path)
+		files = append(files, held{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix()})
+		return nil
+	})
+	sort.Slice(files, func(a, b int) bool { return files[a].Modified > files[b].Modified })
+	s.render(w, "files.html", map[string]any{
+		"Title": "haas — files",
+		"Nav":   "harnesses",
+		"Agent": s.agentOf(agentHeld),
+		"Files": files,
+		"Cut":   len(files) >= mostListed,
+		"Back":  r.URL.Query().Get("from"),
+	})
 }

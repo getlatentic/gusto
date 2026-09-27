@@ -471,7 +471,7 @@ details.steps { margin: 0 0 var(--yg-space-3); font-size: .8125rem; }
 details.steps summary { cursor: pointer; color: var(--yg-text-muted); width: fit-content;
   padding: 2px var(--yg-space-3); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); }
 details.steps summary:hover { color: var(--yg-text); }
-details.steps ol { list-style: none; margin: var(--yg-space-2) 0 0; padding: 0 0 0 var(--yg-space-3);
+details.steps ol.did { list-style: none; margin: var(--yg-space-2) 0 0; padding: 0 0 0 var(--yg-space-3);
   border-left: 2px solid var(--yg-border); display: grid; gap: var(--yg-space-1); }
 details.steps .what { font-weight: 600; color: var(--yg-text); }
 details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 12px; overflow-wrap: anywhere; }
@@ -617,7 +617,7 @@ details#task .threads-list { margin-bottom: var(--yg-space-4); }
 /* ── The look ──────────────────────────────────────────────────────────
    Headings in Sora, the display face the tokens name. Each field of work
    has a hue of its own, used for its mark and a wash behind its title, so
-   a teaching assistant and a clinical one are told apart before they are
+   a teaching agent and a clinical one are told apart before they are
    read. */
 @font-face { font-family: "Sora"; src: url("/static/sora.woff2") format("woff2");
   font-weight: 400 700; font-display: swap; }
@@ -678,7 +678,7 @@ h1 { font-size: 1.75rem; letter-spacing: -.025em; }
 .hero .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-4); }
 .hero form { display: contents; }
 
-/* What an assistant can do: one tile a skill, a title and a line. */
+/* What an agent can do: one tile a skill, a title and a line. */
 .abilities { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: 0 0 var(--yg-space-8); }
 .ability { padding: var(--yg-space-5); border-radius: 16px; background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
 .ability .mark { margin-bottom: var(--yg-space-3); }
@@ -694,7 +694,7 @@ details.more > summary { cursor: pointer; color: var(--yg-text-muted); font-size
 details.more > summary:hover { color: var(--yg-text); }
 details.more[open] > summary { margin-bottom: var(--yg-space-4); }
 
-/* Choosing what to start: a card a field, and one for a blank assistant. */
+/* Choosing what to start: a card a field, and one for a blank agent. */
 .choices { display: grid; gap: var(--yg-space-5); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); margin: 0 0 var(--yg-space-8); }
 .choice { display: grid; align-content: start; gap: var(--yg-space-3); padding: var(--yg-space-6);
   border-radius: 20px; background: radial-gradient(140% 120% at 100% 0%, var(--hue-soft) 0%, transparent 55%), var(--yg-surface);
@@ -708,20 +708,20 @@ details.more[open] > summary { margin-bottom: var(--yg-space-4); }
 .choice.blank:hover { border-color: var(--yg-accent); }
 @media (prefers-reduced-motion: reduce) { .choice { transition: none; } .choice:hover { transform: none; } }
 
-/* Your assistants, a page at a time. */
+/* Your agents, a page at a time. */
 .list { background: var(--yg-surface); border-radius: 18px; box-shadow: var(--yg-shadow-1); overflow: hidden; }
-table.assistants { table-layout: fixed; }
-table.assistants th { padding: var(--yg-space-4) var(--yg-space-5) var(--yg-space-3); background: none; }
-table.assistants td { padding: var(--yg-space-4) var(--yg-space-5); vertical-align: middle; border-bottom: 1px solid var(--yg-bg-subtle); }
-table.assistants tr:hover td { background: var(--yg-bg-subtle); }
-table.assistants th:nth-child(1) { width: 34%; }
-table.assistants th:nth-child(3) { width: 9rem; }
-table.assistants th:nth-child(4) { width: 8rem; text-align: right; }
-table.assistants td:nth-child(4) { text-align: right; }
+table.agents { table-layout: fixed; }
+table.agents th { padding: var(--yg-space-4) var(--yg-space-5) var(--yg-space-3); background: none; }
+table.agents td { padding: var(--yg-space-4) var(--yg-space-5); vertical-align: middle; border-bottom: 1px solid var(--yg-bg-subtle); }
+table.agents tr:hover td { background: var(--yg-bg-subtle); }
+table.agents th:nth-child(1) { width: 34%; }
+table.agents th:nth-child(3) { width: 9rem; }
+table.agents th:nth-child(4) { width: 8rem; text-align: right; }
+table.agents td:nth-child(4) { text-align: right; }
 .who-cell { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0; }
 .who-cell a { font-weight: 600; color: var(--yg-text); text-decoration: none; }
 .who-cell a::after { content: ""; position: absolute; inset: 0; }
-table.assistants tr { position: relative; }
+table.agents tr { position: relative; }
 .who-cell .sub, .snippet { display: block; font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .who-cell > span:last-child { min-width: 0; }
 .pager { display: flex; align-items: center; justify-content: space-between; padding: var(--yg-space-3) var(--yg-space-5);
@@ -731,8 +731,8 @@ table.assistants tr { position: relative; }
 .pager a:hover { border-color: var(--yg-accent); }
 .pager .gap { flex: 1; }
 @media (max-width: 48rem) {
-  table.assistants th:nth-child(2), table.assistants td:nth-child(2),
-  table.assistants th:nth-child(3), table.assistants td:nth-child(3) { display: none; }
+  table.agents th:nth-child(2), table.agents td:nth-child(2),
+  table.agents th:nth-child(3), table.agents td:nth-child(3) { display: none; }
   .hero { padding: var(--yg-space-6) var(--yg-space-5); }
   .hero h1 { font-size: 1.75rem; }
 }
@@ -741,3 +741,32 @@ table.assistants tr { position: relative; }
 .page-head p { margin: 0; font-size: 1.0625rem; }
 .hero > .mark.lg { margin-bottom: calc(-1 * var(--yg-space-2)); }
 .abilities .ability { border-top: 0; }
+
+/* What an agent did, one plain line a step: the verb, then what it was about. */
+ol.did { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); font-size: .875rem; }
+ol.did li { min-width: 0; overflow-wrap: anywhere; }
+ol.did .what { font-weight: 600; color: var(--yg-text); margin-right: var(--yg-space-1); }
+ol.did .detail { color: var(--yg-text-muted); }
+details.steps ol.did .detail { font-family: var(--yg-font-text); font-size: .8125rem; }
+
+/* One message's page, inside its conversation. */
+.run-head { align-items: flex-end; justify-content: space-between; }
+.run-title { min-width: 0; }
+.run-title .place { margin: 0 0 var(--yg-space-1); font-size: .8125rem; font-weight: 600; color: var(--yg-text-subtle); letter-spacing: .04em; text-transform: uppercase; }
+.outcome-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3); margin: var(--yg-space-3) 0 0; font-size: .875rem; }
+.neighbours { display: flex; gap: var(--yg-space-2); flex: none; }
+.neighbours a { padding: var(--yg-space-2) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: 10px;
+  color: var(--yg-text); text-decoration: none; font-size: .875rem; background: var(--yg-surface); }
+.neighbours a:hover { border-color: var(--yg-accent); }
+.run-side details > summary { cursor: pointer; color: var(--yg-text-muted); }
+.run-side details[open] > summary { margin-bottom: var(--yg-space-3); }
+.small-cta { padding: .6rem 1rem; font-size: .875rem; width: 100%; }
+.files-link { display: inline-flex; align-items: center; gap: var(--yg-space-1); font-size: .875rem;
+  color: var(--yg-text-muted); text-decoration: none; padding: var(--yg-space-1) var(--yg-space-3);
+  border: 1px solid var(--yg-border); border-radius: 10px; }
+.files-link:hover { color: var(--yg-text); border-color: var(--yg-accent); }
+table.files-table th:nth-child(1) { width: auto; }
+table.files-table th:nth-child(2) { width: 7rem; }
+table.files-table th:nth-child(3) { width: 8rem; }
+table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-align: right; }
+.instance-head .link-quiet { display: inline-flex; align-items: center; gap: var(--yg-space-1); }

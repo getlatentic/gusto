@@ -2,13 +2,14 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/">Your assistants</a><span>/</span><span>{{.Assistant.Name}}</span></nav>
+<nav class="crumb" aria-label="Where this is"><a href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
 <header class="instance-head">
-  {{template "mark" (dict "Field" .Assistant.Field "Name" .Assistant.Name "Size" "lg")}}
+  {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
   <div class="who">
-    <h1>{{.Assistant.Name}}</h1>
-    <p class="muted">{{.Assistant.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">stays in your network</span>{{end}}</p>
+    <h1>{{.Agent.Name}}</h1>
+    <p class="muted">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">stays in your network</span>{{end}}</p>
   </div>
+  <a class="link-quiet" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
   <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="cta">{{template "icon-add"}} New conversation</button></form>
 </header>
 
@@ -66,8 +67,8 @@
 <aside class="run-side">
   <section class="panel">
     <dl class="facts">
-      <dt>Model</dt><dd>{{.Assistant.Brain}}</dd>
-      <dt>Engine</dt><dd>{{.Assistant.Engine}}</dd>
+      <dt>Model</dt><dd>{{.Agent.Brain}}</dd>
+      <dt>Engine</dt><dd>{{.Agent.Engine}}</dd>
       {{with .Instance.Setup}}<dt>Skills</dt><dd><a href="/setups/{{.}}">{{.}}</a></dd>{{end}}
       {{with .Instance.Repo}}<dt>Repository</dt><dd>{{.}}</dd>{{end}}
       <dt>Started</dt><dd>{{when .Instance.Started}}</dd>
@@ -75,8 +76,8 @@
   </section>
   <section class="panel">
     <form method="post" action="/instances/{{.Instance.ID}}/remove"
-          onsubmit="return confirm('Remove this assistant? Its files are kept aside and its activity stays in the log.')">
-      <button type="submit" class="quiet">Remove this assistant</button>
+          onsubmit="return confirm('Remove this agent? Its files are kept aside and its activity stays in the log.')">
+      <button type="submit" class="quiet">Remove this agent</button>
     </form>
     <p class="muted small">Its files are kept aside, not deleted.</p>
   </section>

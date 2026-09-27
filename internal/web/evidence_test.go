@@ -127,7 +127,7 @@ func TestAnEmptyPatchSaysNothingChanged(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	site.leave(t, "idle", leftBehind{state: jobs.Failed, out: map[string]string{"diff.patch": ""}, gate: passed})
-	if page := site.page(t, "idle"); !strings.Contains(page, "The harness changed nothing") {
+	if page := site.page(t, "idle"); !strings.Contains(page, "No files changed") {
 		t.Error("an empty patch is an answer and should be given as one")
 	}
 }
