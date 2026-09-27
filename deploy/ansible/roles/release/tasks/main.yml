@@ -73,6 +73,8 @@
 
 # The server names the image by its tag on every job it starts, so moving the
 # tag is the whole promotion: a job already running keeps the image it began on.
+# The server asks the image what it carries once, at startup, so a new image
+# under a running server leaves the catalog offering what the old one had.
 - name: The candidate image becomes the live one
   ansible.builtin.command:
     cmd: "{{ container_runtime }} tag {{ candidate_image }} {{ runner_image }}"
@@ -81,14 +83,17 @@
     HOME: "{{ app_root }}"
   when: candidate_id != live_id
   changed_when: true
+  notify: Restart haas
 
-- name: The candidate tag, released
-  ansible.builtin.command:
-    cmd: "{{ container_runtime }} untag {{ candidate_image }}"
-  become_user: "{{ app_user }}"
-  environment:
-    HOME: "{{ app_root }}"
-  changed_when: true
+# The candidate tag is left where it is, pointing at the image now live. It
+# costs no disk, because it is the same image, and the next build moves it.
+#
+# It used to be untagged here, and that took the live tag with it: podman
+# stores a local build as localhost/haas:candidate, an unqualified
+# haas:candidate does not match that name, and podman then removes *every* name
+# from the image rather than refusing. The live tag went with the candidate on
+# every deploy, and the server came up offering no harness at all because it
+# could not find the image it names.
 
 # What serve undoes if the promoted version does not answer once it starts. A
 # rollback that also reverted what this deploy did not change would go further
