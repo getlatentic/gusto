@@ -474,7 +474,7 @@ details.steps .what { font-weight: 600; color: var(--yg-text); }
 details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 12px; overflow-wrap: anywhere; }
 .answer .meta { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); opacity: 0;
   transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
-.turn:hover .answer .meta, .turn:focus-within .answer .meta, .turn:last-child .answer .meta { opacity: 1; }
+.answer .meta { opacity: 1; }
 .answer .meta a { color: inherit; }
 .stopped { margin: var(--yg-space-2) 0 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .875rem;
   background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
@@ -769,3 +769,15 @@ table.files-table th:nth-child(2) { width: 7rem; }
 table.files-table th:nth-child(3) { width: 8rem; }
 table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-align: right; }
 .instance-head .link-quiet { display: inline-flex; align-items: center; gap: var(--yg-space-1); }
+
+/* The guarantees, where the work is: chips on the conversation, and what
+   each reply was kept from, in the line under it. */
+.guards { display: flex; gap: var(--yg-space-2); flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  font-size: .75rem; font-weight: 500; color: var(--yg-leaf-700); background: var(--yg-success-surface); white-space: nowrap; }
+.chip svg.i { width: 13px; height: 13px; opacity: .9; }
+.answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.answer .meta .guard { display: inline-flex; align-items: center; gap: 4px; color: var(--yg-leaf-700); text-decoration: none; }
+.answer .meta .guard svg.i { width: 13px; height: 13px; opacity: .9; }
+.answer .meta a.guard:hover { text-decoration: underline; }
+@media (max-width: 64rem) { .talk-top .guards { display: none; } }
