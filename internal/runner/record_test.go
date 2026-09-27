@@ -148,3 +148,54 @@ func TestTokensWithoutAPriceAreNotARunThatWasFree(t *testing.T) {
 		t.Errorf("a run nobody priced was recorded as costing %v", *cost)
 	}
 }
+
+// Lines dsh sent over ACP while fixing a file, and a prompt's answer carrying
+// the usage the protocol defines.
+var acpTurn = []string{
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_thought_chunk","content":{"type":"text","text":"Let me look at the file."}}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","messageId":"m1","content":{"type":"text","text":"I'll look"}}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","messageId":"m1","content":{"type":"text","text":" first."}}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"usage_update","used":9426,"size":1000000}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"tool_call","toolCallId":"c1","title":"edit","kind":"other","status":"in_progress","rawInput":{"file_path":"adder.sh"}}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"tool_call_update","toolCallId":"c1","status":"completed","content":[{"type":"content","content":{"type":"text","text":"updated"}}]}}}`,
+	`{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","messageId":"m2","content":{"type":"text","text":"Fixed."}}}}`,
+	`{"jsonrpc":"2.0","id":3,"result":{"stopReason":"end_turn","usage":{"totalTokens":1000,"inputTokens":800,"outputTokens":200,"cachedReadTokens":600}}}`,
+}
+
+func TestAnACPHarnessIsReadWhereTheProtocolSaysThings(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := harness.Load("", "dsh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := Open(dir, adapter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range acpTurn {
+		if err := record.Out(line); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tokens, cost := record.Spent()
+	if err := record.Close(); err != nil {
+		t.Fatal(err)
+	}
+	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
+	if want := "I'll look first.\n\nFixed."; string(said) != want {
+		t.Errorf("transcript = %q, want %q: each message its own paragraph, and no thinking", said, want)
+	}
+	ran, _ := os.ReadFile(dir.OutFile("commands.jsonl"))
+	if lines := strings.Split(strings.TrimSpace(string(ran)), "\n"); len(lines) != 1 || !strings.Contains(lines[0], `"tool":"edit"`) {
+		t.Errorf("commands = %s, want the one call, once", ran)
+	}
+	if tokens == nil || *tokens != 1000 {
+		t.Errorf("tokens = %v, want the total the harness stated", tokens)
+	}
+	if cost != nil {
+		t.Error("no cost was named, so none is claimed")
+	}
+}

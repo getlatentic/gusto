@@ -62,7 +62,13 @@ func Inside(dir job.Dir) (int, error) {
 	budget := time.Duration(spec.Budget.Seconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
-	exit, err := stream(ctx, adapter.Command(ctx, spec, dir.Workspace()), record)
+	command := adapter.Command(ctx, spec, dir.Workspace())
+	var exit int
+	if adapter.Stream == harness.ACP {
+		exit, err = converse(ctx, command, spec, record)
+	} else {
+		exit, err = stream(ctx, command, record)
+	}
 	tokens, cost := record.Spent()
 	if closeErr := record.Close(); closeErr != nil && err == nil {
 		err = closeErr

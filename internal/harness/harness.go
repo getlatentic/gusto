@@ -50,6 +50,10 @@ const (
 	// JSONL: one JSON object a line, with the paths below saying where the
 	// numbers are.
 	JSONL Stream = "jsonl"
+	// ACP: the harness speaks the Agent Client Protocol, and the runner holds
+	// the conversation rather than reading a printout. The protocol fixes where
+	// everything is said, so the paths default to it.
+	ACP Stream = "acp"
 )
 
 // Totals says whether a harness reports its usage per call or as a running
@@ -98,6 +102,10 @@ type Adapter struct {
 	When map[string]map[string]string `json:"when,omitempty"`
 
 	Text string `json:"text,omitempty"`
+	// Message is where a harness names the message a piece of text belongs to.
+	// Text from a new message starts a new paragraph, so two replies do not
+	// run together as one sentence.
+	Message string `json:"message,omitempty"`
 	// Where a harness says what it ran. A line on which ToolName resolves is a
 	// tool call, and nothing else distinguishes one.
 	ToolName   string `json:"toolName,omitempty"`
@@ -112,7 +120,10 @@ type Adapter struct {
 	// the cost beside it. Claude Code's preamble is almost all cache writes.
 	CacheWriteTokens string `json:"cacheWriteTokens,omitempty"`
 	CacheReadTokens  string `json:"cacheReadTokens,omitempty"`
-	CostUSD          string `json:"costUsd,omitempty"`
+	// TotalTokens is where a harness states its own total. It is taken over
+	// the parts, whose overlaps differ from one harness to the next.
+	TotalTokens string `json:"totalTokens,omitempty"`
+	CostUSD     string `json:"costUsd,omitempty"`
 }
 
 // Load the adapter a job names, looking in the job's own directory first.
@@ -180,6 +191,9 @@ func parse(text []byte) (Adapter, error) {
 	}
 	if adapter.Totals == "" {
 		adapter.Totals = PerCall
+	}
+	if adapter.Stream == ACP {
+		adapter.speaksACP()
 	}
 	return adapter, nil
 }
