@@ -54,8 +54,9 @@ func Converse(in io.Writer, out io.Reader, turn Turn, keep func(line string) err
 	return Ended{Session: session, Stop: ended.StopReason}, nil
 }
 
-// continuing is how an agent can take up a session it held before. Resuming
-// carries on without replaying the history, and loading replays it first.
+// continuing is how an agent can take up a session it held before. The
+// protocol has resuming carry on without replaying the history and loading
+// replay it first, but hermes replays on both, so neither is recorded.
 type continuing struct {
 	resume, load bool
 }
@@ -67,7 +68,6 @@ func initialize(c *conn) (continuing, error) {
 			"fs":       map[string]bool{"readTextFile": false, "writeTextFile": false},
 			"terminal": false,
 		},
-		"clientInfo": map[string]string{"name": "haas"},
 	})
 	if err != nil {
 		return continuing{}, err
@@ -92,14 +92,13 @@ func initialize(c *conn) (continuing, error) {
 // otherwise. A named session the agent cannot find fails the turn rather than
 // quietly starting over, which would lose the thread without saying so.
 func open(c *conn, turn Turn, can continuing) (string, error) {
-	held := map[string]any{"sessionId": turn.Session, "cwd": turn.Cwd, "mcpServers": []any{}}
-	switch {
-	case turn.Session != "" && can.resume:
-		_, err := c.call("session/resume", held)
-		return turn.Session, err
-	case turn.Session != "" && can.load:
+	if turn.Session != "" && (can.resume || can.load) {
+		method := "session/load"
+		if can.resume {
+			method = "session/resume"
+		}
 		c.muted = true
-		_, err := c.call("session/load", held)
+		_, err := c.call(method, map[string]any{"sessionId": turn.Session, "cwd": turn.Cwd, "mcpServers": []any{}})
 		c.muted = false
 		return turn.Session, err
 	}
