@@ -218,6 +218,10 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		named = held.Harness
 	}
 	return map[string]any{
+		// Every conversation on this instance, because one instance holds as
+		// many as somebody wants and the page you are on is the one place you
+		// would go looking for the others.
+		"Threads":  s.instances.Threads(held.ID),
 		"Title":    "haas — " + named,
 		"Nav":      "harnesses",
 		"Instance": held,

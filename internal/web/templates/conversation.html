@@ -1,6 +1,15 @@
 {{template "head" .}}
 
-<p class="crumb"><a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a> <span class="muted">{{if .Thread.Title}}{{.Thread.Title}}{{else}}thread {{.Thread.ID}}{{end}}</span></p>
+<p class="crumb"><a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a></p>
+
+<nav class="threads">
+  {{range .Threads}}
+  <a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{if .Title}}{{.Title}}{{else}}thread {{.ID}}{{end}}</a>
+  {{end}}
+  <form method="post" action="/instances/{{.Instance.ID}}/threads">
+    <button type="submit">{{template "icon-add"}} New thread</button>
+  </form>
+</nav>
 
 <div id="turns">{{template "turns" .}}</div>
 
