@@ -456,7 +456,7 @@ ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
 .rail .whose:hover { background: var(--yg-bg-subtle); }
 .rail .whose .who { display: grid; min-width: 0; }
 .rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
-.rail .whose .model { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail .whose .model { font-size: .8125rem; line-height: 1.35; color: var(--yg-text-muted); }
 .rail { grid-template-rows: auto auto minmax(0, 1fr); }
 button.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
   gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
