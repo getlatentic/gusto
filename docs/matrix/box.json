@@ -1,0 +1,10 @@
+{
+  "environment": "box",
+  "jobs": ["one-line-fix"],
+  "pairs": [
+    { "harness": "opencode", "model": "platform/qwen.qwen3-vl-235b-a22b-instruct" },
+    { "harness": "opencode", "model": "deepseek/deepseek-flash" },
+    { "harness": "codex", "model": "platform/qwen.qwen3-vl-235b-a22b-instruct" },
+    { "harness": "codex", "model": "deepseek/deepseek-flash" }
+  ]
+}
