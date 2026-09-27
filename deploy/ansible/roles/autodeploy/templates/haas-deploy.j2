@@ -1,0 +1,35 @@
+#!/bin/sh
+# Managed by ansible (roles/autodeploy/templates/haas-deploy.j2).
+#
+# The only thing the autodeploy key can do. sshd runs this, through sudo, with
+# whatever the client sent as its one argument, so the argument is data and is
+# refused unless it is one full commit id. The deploy itself runs in a systemd
+# unit rather than under this process: a dropped connection or a cancelled
+# workflow stops the watching, never a deploy halfway through.
+set -eu
+
+sha=${1:-}
+case "$sha" in
+  *[!0-9a-f]* | "")
+    echo "haas-deploy takes one full commit id, and was given: $sha" >&2
+    exit 2
+    ;;
+esac
+if [ "$(printf %s "$sha" | wc -c)" -ne 40 ]; then
+  echo "haas-deploy takes one full commit id of 40 characters, and was given: $sha" >&2
+  exit 2
+fi
+
+unit="haas-deploy@$sha.service"
+
+# The deploy's output, shown to whoever asked, as it happens.
+journalctl --unit="$unit" --follow --output=cat --since="$(date '+%Y-%m-%d %H:%M:%S')" &
+follower=$!
+trap 'kill "$follower" 2>/dev/null || true' EXIT
+
+# start waits for a oneshot unit to finish, and fails when the deploy did.
+status=0
+systemctl start "$unit" || status=$?
+# The journal reaches the follower a moment after the unit ends.
+sleep 2
+exit "$status"

@@ -29,12 +29,14 @@
     cmd: "loginctl enable-linger {{ app_user }}"
     creates: "/var/lib/systemd/linger/{{ app_user }}"
 
-- name: The runner image
+# Tagged as the candidate, so jobs the live server starts meanwhile keep the
+# image they were deployed with. The release role moves the live tag.
+- name: The candidate runner image
   ansible.builtin.command:
     cmd: >-
       {{ container_runtime }} build
       --build-arg {{ ('HARNESSES=' ~ (runner_harnesses | join(' '))) | quote }}
-      -t {{ runner_image }} .
+      -t {{ candidate_image }} .
     chdir: "{{ app_root }}/src"
   become_user: "{{ app_user }}"
   environment:
@@ -42,9 +44,9 @@
   register: image
   changed_when: "'Successfully tagged' in image.stdout or 'COMMIT' in image.stdout"
 
-- name: The runtime can start a container
+- name: The runtime can start the candidate
   ansible.builtin.command:
-    cmd: "{{ container_runtime }} run --rm {{ runner_image }} harnesses"
+    cmd: "{{ container_runtime }} run --rm {{ candidate_image }} harnesses"
     chdir: "{{ app_root }}"
   become_user: "{{ app_user }}"
   environment:
@@ -53,26 +55,15 @@
 
 # Read back from the image rather than from the variable, so a build that did
 # not take the list shows here and not at somebody's first job.
-- name: What the runner image carries
+- name: What the candidate image carries
   ansible.builtin.command:
     cmd: >-
       {{ container_runtime }} image inspect
       --format '{{ '{{' }} index .Config.Labels "com.getlatentic.haas.harnesses" {{ '}}' }}'
-      {{ runner_image }}
+      {{ candidate_image }}
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
   register: carried
   changed_when: false
   failed_when: carried.rc != 0 or (carried.stdout | trim) != (runner_harnesses | join(' '))
-
-# The build stage leaves an untagged image behind — 957 MB of a Go toolchain the
-# runtime never uses. The named bases stay, so a rebuild does not re-pull them.
-- name: Dangling build images reclaimed
-  ansible.builtin.command:
-    cmd: "{{ container_runtime }} image prune -f"
-  become_user: "{{ app_user }}"
-  environment:
-    HOME: "{{ app_root }}"
-  register: pruned
-  changed_when: pruned.stdout | trim | length > 0

@@ -1,0 +1,19 @@
+---
+# Puts the version the last promotion replaced back in service: the previous
+# binary, the previous image, and a restart that is checked. It is run by hand.
+#
+#   ansible-playbook rollback.yml
+#
+# It does not move main. The next merge deploys main again, so revert what
+# broke, or turn autodeploy off first (README.md says how).
+- name: The previous haas version, back in service
+  hosts: app
+  become: true
+  tasks:
+    - name: The previous binary and image, live again
+      ansible.builtin.include_role:
+        name: release
+        tasks_from: restore
+      vars:
+        restore_bin: true
+        restore_image: true

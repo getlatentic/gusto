@@ -1,0 +1,159 @@
+---
+- name: A public key to accept
+  ansible.builtin.assert:
+    that: autodeploy_public_key | length > 0
+    fail_msg: >-
+      autodeploy_enabled is true and autodeploy_public_key is empty. Put the
+      public half of the key GitHub holds in host_vars; README.md says how.
+
+- name: What the box needs to run the playbook itself
+  ansible.builtin.apt:
+    name:
+      - python3-venv
+      - util-linux # flock
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# Root's alone. The playbook these hold runs as root, so a copy the app user
+# could write, like the checkout under its home, would hand that user root on
+# the next deploy.
+- name: Where the deploy keeps its configuration and its own checkout
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ autodeploy_etc }}"
+    - "{{ autodeploy_root }}"
+
+- name: Ansible, in a virtualenv of its own
+  ansible.builtin.pip:
+    name: "{{ autodeploy_ansible }}"
+    virtualenv: "{{ autodeploy_root }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: github.com in the deploy's own known_hosts
+  ansible.builtin.known_hosts:
+    path: "{{ autodeploy_etc }}/known_hosts"
+    name: github.com
+    key: "{{ lookup('pipe', 'ssh-keyscan -t ed25519 github.com') }}"
+
+- name: This box, as the only host its own deploy reaches
+  ansible.builtin.copy:
+    dest: "{{ autodeploy_etc }}/inventory.ini"
+    content: |
+      # Managed by ansible (roles/autodeploy). The box deploys itself.
+      [app]
+      {{ inventory_hostname }} ansible_connection=local
+    owner: root
+    group: root
+    mode: "0600"
+
+# Only from a laptop: a deploy the box runs itself reads these files, and
+# there is nothing to copy them from. The vault stays encrypted on disk; the
+# password beside it is what opens it, readable by root alone.
+- name: The vault, still encrypted
+  ansible.builtin.copy:
+    src: "{{ autodeploy_vault_file }}"
+    dest: "{{ autodeploy_etc }}/vault.yml"
+    decrypt: false
+    owner: root
+    group: root
+    mode: "0600"
+  when: not (autodeploy_self | bool)
+
+- name: The password that opens it
+  ansible.builtin.copy:
+    src: "{{ autodeploy_vault_password_file | expanduser }}"
+    dest: "{{ autodeploy_etc }}/vault_pass"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: not (autodeploy_self | bool)
+
+- name: The deploy the box runs itself, and the entry the key reaches
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - haas-deploy
+    - haas-deploy-run
+
+- name: One unit a commit, so a deploy outlives the connection that asked for it
+  ansible.builtin.template:
+    src: haas-deploy@.service.j2
+    dest: /etc/systemd/system/haas-deploy@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+# A user that can log in with one key and run one command. The account has no
+# password and no way to set one; `*` rather than a lock, because sshd refuses
+# a key to a locked account when it does not use PAM.
+- name: The deploy user
+  ansible.builtin.user:
+    name: "{{ autodeploy_user }}"
+    home: "{{ autodeploy_home }}"
+    create_home: false
+    shell: /bin/sh
+    password: "*"
+    system: true
+
+# Root owns the home and the key file, so the one command this user may run
+# cannot be used to rewrite what it may run.
+- name: The deploy user's home and ssh directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ autodeploy_home }}"
+    - "{{ autodeploy_home }}/.ssh"
+
+# restrict turns off forwarding of every kind, the agent, X11 and a terminal.
+# command= runs the trigger whatever the client asked for, and hands it what
+# the client asked for as data: the commit it wants deployed.
+- name: The one key it accepts, and the one thing that key does
+  ansible.builtin.copy:
+    dest: "{{ autodeploy_home }}/.ssh/authorized_keys"
+    content: |
+      restrict,command="sudo -n /usr/local/sbin/haas-deploy \"$SSH_ORIGINAL_COMMAND\"" {{ autodeploy_public_key | trim }}
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: The one command it may run as root
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/haas-deploy
+    content: |
+      # Managed by ansible (roles/autodeploy). The trigger checks its argument
+      # is one full commit id before it does anything with it.
+      {{ autodeploy_user }} ALL=(root) NOPASSWD: /usr/local/sbin/haas-deploy
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+# GitHub checks the box against this line rather than trusting whatever answers
+# the first time. It is read from the box over the connection this playbook
+# already trusts.
+- name: The box's host key
+  ansible.builtin.slurp:
+    src: /etc/ssh/ssh_host_ed25519_key.pub
+  register: host_key
+  when: not (autodeploy_self | bool)
+
+- name: The DEPLOY_KNOWN_HOSTS secret
+  ansible.builtin.debug:
+    msg: "{{ ansible_host | default(inventory_hostname) }} {{ (host_key.content | b64decode).split()[:2] | join(' ') }}"
+  when: not (autodeploy_self | bool)

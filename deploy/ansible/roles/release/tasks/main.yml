@@ -1,0 +1,112 @@
+---
+# Every role before this one built a candidate beside the live version and,
+# with smoke on, proved it. This is the only place a candidate becomes what
+# runs. A failure anywhere above ends the play before it gets here, so the
+# live binary and the live image stay the ones that were running when the
+# deploy began.
+#
+# The live version is kept as the previous one before it is replaced, and only
+# when the candidate differs from it. Deploying one commit twice therefore
+# never overwrites the version a rollback would go back to.
+
+- name: The candidate binary and the live one
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    checksum_algorithm: sha256
+  loop:
+    - "{{ candidate_bin }}"
+    - "{{ live_bin }}"
+  register: binaries
+
+- name: Whether the binary changes
+  ansible.builtin.set_fact:
+    candidate_sum: "{{ binaries.results[0].stat.checksum }}"
+    live_sum: "{{ binaries.results[1].stat.checksum | default('') }}"
+
+- name: The live binary, kept as the previous one
+  ansible.builtin.command:
+    cmd: "cp -p {{ live_bin }} {{ previous_bin }}"
+  when: live_sum | length > 0 and candidate_sum != live_sum
+  changed_when: true
+
+# A rename, so the service starting at any moment finds one whole binary or the
+# other and never half of one.
+- name: The candidate binary becomes the live one
+  ansible.builtin.command:
+    cmd: "mv -f {{ candidate_bin }} {{ live_bin }}"
+  when: candidate_sum != live_sum
+  changed_when: true
+  notify: Restart haas
+
+- name: A candidate identical to the live binary, removed
+  ansible.builtin.file:
+    path: "{{ candidate_bin }}"
+    state: absent
+  when: candidate_sum == live_sum
+
+- name: Which image each tag names
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} image inspect --format {{ '{{' }}.Id{{ '}}' }} {{ item }}"
+  loop:
+    - "{{ candidate_image }}"
+    - "{{ runner_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: image_ids
+  changed_when: false
+  failed_when: item == candidate_image and image_ids.rc != 0
+
+- name: Whether the image changes
+  ansible.builtin.set_fact:
+    candidate_id: "{{ image_ids.results[0].stdout | trim }}"
+    live_id: "{{ (image_ids.results[1].stdout | trim) if image_ids.results[1].rc == 0 else '' }}"
+
+- name: The live image, kept as the previous one
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} tag {{ runner_image }} {{ previous_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  when: live_id | length > 0 and candidate_id != live_id
+  changed_when: true
+
+# The server names the image by its tag on every job it starts, so moving the
+# tag is the whole promotion: a job already running keeps the image it began on.
+- name: The candidate image becomes the live one
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} tag {{ candidate_image }} {{ runner_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  when: candidate_id != live_id
+  changed_when: true
+
+- name: The candidate tag, released
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} untag {{ candidate_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  changed_when: true
+
+# What serve undoes if the promoted version does not answer once it starts. A
+# rollback that also reverted what this deploy did not change would go further
+# back than the failure.
+- name: What this deploy promoted
+  ansible.builtin.set_fact:
+    promoted_bin: "{{ candidate_sum != live_sum }}"
+    promoted_image: "{{ candidate_id != live_id }}"
+
+# The build stage leaves an untagged image behind, 957 MB of a Go toolchain the
+# runtime never uses, and the image the previous tag named until now is
+# untagged too. The live and previous images stay, so a rollback has something
+# to go back to and a rebuild does not re-pull the named bases.
+- name: Dangling images reclaimed
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} image prune -f"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: pruned
+  changed_when: pruned.stdout | trim | length > 0

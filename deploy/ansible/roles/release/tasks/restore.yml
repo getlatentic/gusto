@@ -1,0 +1,61 @@
+---
+# Puts the previous binary and image back as the live ones. serve runs this when
+# a version it just promoted does not answer, and rollback.yml runs it by hand.
+# restore_bin and restore_image say which of the two to put back; the previous
+# copies stay, so running this twice lands in the same place.
+
+- name: The previous binary
+  ansible.builtin.stat:
+    path: "{{ previous_bin }}"
+  register: previous_binary
+  when: restore_bin | bool
+
+- name: There is a previous binary to go back to
+  ansible.builtin.assert:
+    that: previous_binary.stat.exists
+    fail_msg: "{{ previous_bin }} does not exist: no deploy has replaced a live binary on this box yet."
+  when: restore_bin | bool
+
+- name: The previous image
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} image exists {{ previous_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: previous_image_found
+  changed_when: false
+  failed_when: previous_image_found.rc != 0
+  when: restore_image | bool
+
+# Copied beside the live binary and renamed over it, so the service never
+# starts from half a file. The previous copy stays where it was.
+- name: The previous binary is the live one again
+  ansible.builtin.shell:
+    cmd: "cp -p {{ previous_bin }} {{ live_bin }}.restoring && mv -f {{ live_bin }}.restoring {{ live_bin }}"
+  when: restore_bin | bool
+  changed_when: true
+
+- name: The previous image is the live one again
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} tag {{ previous_image }} {{ runner_image }}"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  when: restore_image | bool
+  changed_when: true
+
+- name: The service runs the previous binary
+  ansible.builtin.systemd:
+    name: haas
+    state: restarted
+  when: serve_enabled | bool and restore_bin | bool
+
+- name: The previous version answers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ backend_port }}/healthz"
+    return_content: true
+  register: restored_health
+  until: restored_health.status == 200
+  retries: "{{ health_retries }}"
+  delay: "{{ health_delay }}"
+  when: serve_enabled | bool and restore_bin | bool
