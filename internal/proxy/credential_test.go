@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -179,5 +180,32 @@ func TestACredentialWithNoAddressIsRefusedByName(t *testing.T) {
 	_, err := OpenCredentials(dir)
 	if err == nil || !strings.Contains(err.Error(), "broken") {
 		t.Fatalf("a credential with no address gave %v", err)
+	}
+}
+
+// A container is told one address and puts its token where its own provider's
+// key belongs. An Anthropic-shaped client puts it in x-api-key, and the proxy
+// answered those with "no": Claude Code read that as a failed sign-in and went
+// to api.anthropic.com instead, where the allowlist stopped it.
+func TestATokenIsTakenFromWhereeverTheClientPutsIt(t *testing.T) {
+	proxy, tokens, seen, _ := held(t, Credentials{"anthropic": {Key: "the-real-key", Auth: Anthropic}})
+	token, err := tokens.Mint("a-job", "anthropic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, where := range []struct{ header, value string }{
+		{"Authorization", "Bearer " + token},
+		{"x-api-key", token},
+	} {
+		request := httptest.NewRequest("POST", "/model/v1/messages", strings.NewReader(`{"model":"claude"}`))
+		request.Header.Set(where.header, where.value)
+		answer := httptest.NewRecorder()
+		proxy.Handler().ServeHTTP(answer, request)
+		if answer.Code != http.StatusOK {
+			t.Errorf("a token in %s was answered %d", where.header, answer.Code)
+		}
+	}
+	if got := seen["anthropic"].Get("x-api-key"); got != "the-real-key" {
+		t.Errorf("the credential reached the provider as %q", got)
 	}
 }

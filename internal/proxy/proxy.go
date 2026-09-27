@@ -169,10 +169,15 @@ func copyHeaders(to, from http.Header) {
 func since(start time.Time) int64 { return time.Since(start).Milliseconds() }
 
 // bearerOf is the token a client presented where a key would go.
+//
+// Where that is depends on the shape the client speaks: an OpenAI-compatible
+// one sends Authorization: Bearer, and an Anthropic-shaped one sends x-api-key.
+// Both are read, because the container is told one address and puts its token
+// wherever its own provider's key belongs.
 func bearerOf(r *http.Request) string {
 	given := r.Header.Get("Authorization")
 	if bearer, found := strings.CutPrefix(given, "Bearer "); found {
 		return strings.TrimSpace(bearer)
 	}
-	return ""
+	return strings.TrimSpace(r.Header.Get("x-api-key"))
 }
