@@ -96,6 +96,88 @@ failure this document asks a reader to prefer. Remove the signature and the
 older reader verifies the record as what the signature's absence makes it:
 unsigned.
 
+## The configured harness digest
+
+`out/manifest.json`'s `harnessDigest` names the configured harness that ran by
+what it held (see [TERMS.md](TERMS.md#configured-harness)). It is `sha256:` and
+64 lowercase hex digits, and it is computed from the harness's files alone, so
+anybody holding the directory, from a clone or a tarball, gets the same string.
+The code is `internal/harness/digest.go`; these are the steps it follows.
+
+1. **Take the files.** Every regular file under the harness's directory, by its
+   path relative to that directory, with `/` between the parts. A bare adapter,
+   `name.json`, is one file at the path `adapter.json`.
+2. **Leave out version control.** Any file or directory named `.git`, `.hg` or
+   `.svn`, and everything under it.
+3. **Refuse what is not a file.** A symbolic link, a device, a socket or a pipe
+   fails the digest with its path named, as does a path with a line break in it.
+   A link reaches outside the harness, so it would digest differently on two
+   machines holding the same directory. A directory with no files in it adds
+   nothing, as in git.
+4. **Sort** the paths byte for byte, as `LC_ALL=C sort` does.
+5. **Write one line a file**: its mode, a space, the SHA-256 of its content in
+   lowercase hex, a space, its path, and a newline. The mode is `100755` when
+   any execute bit is set, and `100644` otherwise.
+6. **Hash the lines.** The digest is `sha256:` and the SHA-256 of all the lines
+   together, in lowercase hex.
+
+What is left out is what a checkout, an unpacked tarball and a copy into a job
+each set afresh, and none of it changes what the harness does:
+
+| left out | why |
+| --- | --- |
+| timestamps | a clone sets them to when it ran |
+| owner and group | a tarball unpacked by another user, or a container, changes them |
+| read and write bits | a umask decides them; only whether a file runs changes behaviour |
+| `.git`, `.hg`, `.svn` | the history is not the harness, and a tarball has none of it |
+
+Without Go, in a POSIX shell with GNU `find`, `sort` and `sha256sum`, run in
+the harness's directory:
+
+```sh
+find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P\n' |
+  LC_ALL=C sort | while IFS= read -r path; do
+    if [ -n "$(find "$path" -perm /111)" ]; then mode=100755; else mode=100644; fi
+    printf '%s %s %s\n' "$mode" "$(sha256sum < "$path" | cut -c1-64)" "$path"
+  done | sha256sum | cut -c1-64
+```
+
+It prints the hex without the prefix, and it does not refuse links, so check
+for them with `find . -type l` first. The test in
+`internal/harness/digest_test.go` holds a fixture's digest, written down, and
+those shell steps give the same one.
+
+### Where the digest is taken
+
+The runner reads the configured harness once, before the harness starts, and
+takes both the adapter it runs and the digest from that one reading, from the
+job's own `harnesses/` when the job carries it. A harness built into haas is
+not carried, and its digest is of the adapter built into the runner that ran
+it, which is what ran.
+
+Nothing a harness writes during its run can change the digest in the manifest,
+because the digest was taken already. A harness that writes to its own
+directory in the job changes the copy the job carries, and `evidence.Check`
+digests that copy again and reports `harnesses/<name> changed`, so `haas
+verify` fails the record. A job that carries no harness, and an export, which
+leaves `harnesses/` out, have nothing there to check.
+
+### Comparing runs
+
+Two runs with the same `harnessDigest` ran the same configured harness. Two
+runs with the same `harness` name need not have. `evidence.Comparable` says
+which it is, in words: the same configuration, the same name configured
+differently, different harnesses, or a run that has no digest to compare.
+
+### Why the digest keeps the manifest at version 1
+
+`harnessDigest` is a new optional field, and no other field changed what it
+means: that is an additive change, so the version stays. A manifest written
+before it has none, and a reader says `no digest recorded` in its place rather
+than working one out from the adapter it has now, which may not be the one
+that ran. Such a run is never comparable by configuration, only by name, and
+the words say so.
+
 ## The audit export
 
 `haas export` writes a third format, `audit.json`, at the root of an export
