@@ -1,25 +1,43 @@
 {
   "name": "claude",
-  "what": "Anthropic's coding agent. Signs in with a person's own subscription.",
+  "what": "Anthropic's coding agent, on whichever Anthropic-shaped endpoint the deployment points it at.",
   "program": "claude",
   "argv": [
     "-p",
-    "{brief}",
     "--output-format",
     "stream-json",
     "--verbose",
     "--permission-mode",
-    "acceptEdits",
-    "--model={model}"
+    "bypassPermissions",
+    "--model={modelId}"
   ],
-  "needs": "account",
-  "endpoint": "https://api.anthropic.com",
+  "resume": [
+    "-p",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--permission-mode",
+    "bypassPermissions",
+    "--model={modelId}",
+    "--resume",
+    "{session}"
+  ],
+  "env": {
+    "ANTHROPIC_BASE_URL": "{modelUrl}",
+    "ANTHROPIC_API_KEY": "{modelToken}"
+  },
+  "stdin": "{brief}",
+  "needs": "key",
   "stream": "jsonl",
   "totals": "cumulative",
   "text": "message.content.0.text",
+  "toolName": "message.content.0.name",
+  "toolInput": "message.content.0.input",
+  "sessionId": "session_id",
   "inputTokens": "usage.input_tokens",
   "outputTokens": "usage.output_tokens",
-  "cacheWriteTokens": "usage.cache_creation_input_tokens",
   "cacheReadTokens": "usage.cache_read_input_tokens",
+  "cacheWriteTokens": "usage.cache_creation_input_tokens",
+  "endpoint": "https://api.anthropic.com",
   "costUsd": "total_cost_usd"
 }

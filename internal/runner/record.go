@@ -30,6 +30,10 @@ type Record struct {
 	}
 	latest struct{ tokens, cost float64 }
 	seen   bool
+	// priced is whether the harness ever named a cost. Tokens counted without
+	// one is the ordinary case — most harnesses report numbers and no money —
+	// and a cost of zero written there would read as a run that was free.
+	priced bool
 }
 
 func Open(dir job.Dir, adapter harness.Adapter) (*Record, error) {
@@ -133,6 +137,7 @@ func (r *Record) usage(decoded map[string]any, line string) error {
 		return nil
 	}
 	r.seen = true
+	r.priced = r.priced || hasCost
 	if r.adapter.Totals == harness.Cumulative {
 		r.latest.tokens, r.latest.cost = counted, cost
 	} else {
@@ -149,7 +154,10 @@ func (r *Record) Err(line string) error {
 }
 
 // Spent is what the harness reported. Nothing reported is nothing claimed, so
-// the caller writes null rather than zero.
+// the caller writes null rather than zero — and the two are asked separately,
+// because a harness that counts its tokens and names no price is the ordinary
+// case. Writing zero there would say a run was free, which is the one thing a
+// record of spending must never say by accident.
 func (r *Record) Spent() (*int64, *float64) {
 	if !r.seen {
 		return nil, nil
@@ -157,6 +165,9 @@ func (r *Record) Spent() (*int64, *float64) {
 	tokens, cost := r.perCall.tokens, r.perCall.cost
 	if r.adapter.Totals == harness.Cumulative {
 		tokens, cost = int64(r.latest.tokens), r.latest.cost
+	}
+	if !r.priced {
+		return &tokens, nil
 	}
 	return &tokens, &cost
 }
