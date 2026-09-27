@@ -25,12 +25,14 @@
   ],
   "env": {
     "ANTHROPIC_BASE_URL": "{modelRoot}",
-    "ANTHROPIC_API_KEY": "{modelToken}"
+    "ANTHROPIC_API_KEY": "{modelToken}",
+    "CLAUDE_CONFIG_DIR": "/root/.local/share/claude"
   },
   "stdin": "{brief}",
   "needs": "key",
   "speaks": "anthropic",
-  "skills": "/root/.config/claude/skills",
+  "skills": "/root/.local/share/claude/skills",
+  "keeps": "/root/.local/share/claude",
   "mcp": {
     "format": "claude",
     "argv": [

@@ -50,12 +50,9 @@ COPY --from=build /haas /usr/local/bin/haas
 # A harness's own configuration belongs to the image, not to the adapter: the
 # adapter has to stay portable between a laptop and a container. Each harness
 # has a directory of its own under image/harness/, named after it and copied to
-# /root/.config/<name>/, so two harnesses never share a file. opencode reads
-# that directory already; claude and codex read their own homes, and are
-# pointed at theirs by the variables each vendor documents for it.
+# /root/.config/<name>/, so two harnesses never share a file. What a harness
+# keeps between turns, its sessions and settings, is under /root/.local/share,
+# the instance's own state; each adapter points its harness there.
 COPY image/harness/ /root/.config/
-ENV CLAUDE_CONFIG_DIR=/root/.config/claude \
-    CODEX_HOME=/root/.config/codex
-RUN mkdir -p "$CLAUDE_CONFIG_DIR" "$CODEX_HOME"
 WORKDIR /job
 ENTRYPOINT ["haas"]

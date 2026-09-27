@@ -23,7 +23,8 @@
   ],
   "stdin": "{brief}",
   "needs": "key",
-  "skills": "/root/.config/codex/skills",
+  "skills": "/root/.local/share/codex/skills",
+  "keeps": "/root/.local/share/codex",
   "mcp": {
     "format": "codex",
     "argv": [
@@ -41,5 +42,8 @@
   "outputTokens": "usage.output_tokens",
   "cacheReadTokens": "usage.cached_input_tokens",
   "cacheWriteTokens": "usage.cache_write_input_tokens",
-  "endpoint": "https://api.openai.com"
+  "endpoint": "https://api.openai.com",
+  "env": {
+    "CODEX_HOME": "/root/.local/share/codex"
+  }
 }
