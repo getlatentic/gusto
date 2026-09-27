@@ -2,73 +2,88 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<h1>{{.Instance.Harness}}</h1>
-
-<table class="facts">
-  <tr><th>Model</th><td>{{if .Instance.Model}}{{.Instance.Model}}{{else}}<span class="muted">whatever it defaults to</span>{{end}}</td></tr>
-  <tr><th>Working in</th><td>{{if .Instance.Repo}}{{.Instance.Repo}}{{else}}<span class="muted">an empty directory</span>{{end}}</td></tr>
-  <tr><th>Started</th><td class="muted">{{when .Instance.Started}}{{with .Instance.Who}} by {{.}}{{end}}</td></tr>
-</table>
-
-<h2>Threads</h2>
-{{if .Threads}}
-<table>
-  <tr><th>Thread</th><th>Last turn</th><th></th></tr>
-  {{range .Threads}}
-  <tr>
-    <td><a href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">{{if .Thread.Title}}{{.Thread.Title}}{{else}}thread {{.Thread.ID}}{{end}}</a></td>
-    <td class="muted">{{if .Latest.ID}}{{.Latest.Brief}}{{else}}nothing said yet{{end}}</td>
-    <td>{{with .Latest.State}}<span class="state {{.}}">{{.}}</span>{{end}}</td>
-  </tr>
-  {{end}}
-</table>
-{{end}}
-
-<form class="card" method="post" action="/instances/{{.Instance.ID}}/threads">
-  <label><span class="line">What is this one about <span class="muted">optional</span></span>
-    <input name="title" placeholder="the flaky login test">
-  </label>
-  <button type="submit">Open a thread</button>
-</form>
-
-<h2>Tasks</h2>
-{{if .Tasks}}
-<table>
-  <tr><th>Task</th><th>State</th><th>Asked</th><th>Took</th></tr>
-  {{range .Tasks}}
-  <tr>
-    <td><a href="/jobs/{{.ID}}">{{.Brief}}</a></td>
-    <td><span class="state {{.State}}">{{.State}}</span></td>
-    <td class="muted">{{when .Queued}}</td>
-    <td class="muted">{{took .Started .Ended}}</td>
-  </tr>
-  {{end}}
-</table>
-{{end}}
-
-<form class="card" id="task" method="post" action="/instances/{{.Instance.ID}}/tasks">
-  <label>Brief
-    <textarea name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
-  </label>
-  <label><span class="line">Gate <span class="muted">the command that says it worked</span></span>
-    <input name="gate" placeholder="sh test.sh" required>
-  </label>
-  <div class="row">
-    <label>Sensitivity
-      <select name="sensitivity">
-        <option value="internal">internal</option>
-        <option value="public">public</option>
-        <option value="restricted">restricted: the model must be local</option>
-      </select>
-    </label>
-    <label><span class="line">Team <span class="muted">optional, its monthly cap applies</span></span>
-      <input name="team" placeholder="platform">
-    </label>
-    <label><span class="line">Cap in dollars <span class="muted">optional, the task stops when its model calls cost this</span></span>
-      <input name="usd" inputmode="decimal" placeholder="5.00">
-    </label>
+<nav class="crumb" aria-label="Where this is"><a href="/">Your harnesses</a><span>/</span><span>{{.Instance.ID}}</span></nav>
+<header class="instance-head">
+  <span class="avatar big" aria-hidden="true">{{slice .Instance.Harness 0 1}}</span>
+  <div class="who">
+    <h1>{{.Instance.Harness}}</h1>
+    <p class="muted">{{if .Instance.Model}}{{modelOnly .Instance.Model}}{{else}}its default model{{end}}
+      · {{if .Instance.Repo}}{{base .Instance.Repo}}{{else}}its own folder{{end}}
+      {{with .Instance.Setup}} · setup <a href="/setups/{{.}}">{{.}}</a>{{end}}
+      {{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">restricted</span>{{end}}</p>
   </div>
-  <button type="submit">Run it</button>
-</form>
+  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit">{{template "icon-add"}} New thread</button></form>
+</header>
+
+<div class="run">
+<div class="run-main">
+  <section class="panel">
+    <h2>Conversations <span class="muted">{{len .Threads}}</span></h2>
+    <ol class="threads-list">
+      {{range .Threads}}
+      <li><a href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
+        <span class="name">{{.Thread.Name}}</span>
+        <span class="last">{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
+        <span class="when">{{with .Latest.Queued}}{{ago .}}{{end}}</span>
+      </a></li>
+      {{end}}
+    </ol>
+  </section>
+
+  <section class="panel">
+    <details id="task"{{if .Tasks}} open{{end}}>
+      <summary><h2>Tasks with a gate</h2> <span class="muted">a job that passes only when a command you name exits zero</span></summary>
+      {{if .Tasks}}
+      <ol class="threads-list">
+        {{range .Tasks}}<li><a href="/jobs/{{.ID}}"><span class="name">{{.Brief}}</span><span class="last"><span class="state {{.State}}">{{.State}}</span></span><span class="when">{{ago .Queued}}</span></a></li>{{end}}
+      </ol>
+      {{end}}
+      <form class="stack" method="post" action="/instances/{{.Instance.ID}}/tasks">
+        <label>What to do
+          <textarea name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
+        </label>
+        <label><span class="line">Gate <span class="muted">the command that says it worked</span></span>
+          <input name="gate" placeholder="sh test.sh" required>
+        </label>
+        <div class="row">
+          <label>Sensitivity
+            <select name="sensitivity">
+              <option value="internal">internal</option>
+              <option value="public">public</option>
+              <option value="restricted">restricted: the model must be local</option>
+            </select>
+          </label>
+          <label><span class="line">Team <span class="muted">optional</span></span>
+            <input name="team" placeholder="platform">
+          </label>
+          <label><span class="line">Cap in dollars <span class="muted">optional</span></span>
+            <input name="usd" inputmode="decimal" placeholder="5.00">
+          </label>
+        </div>
+        <button type="submit">Run it</button>
+      </form>
+    </details>
+  </section>
+</div>
+
+<aside class="run-side">
+  <section class="panel">
+    <dl class="facts">
+      <dt>Harness</dt><dd>{{.Instance.Harness}}</dd>
+      <dt>Model</dt><dd>{{if .Instance.Model}}{{.Instance.Model}}{{else}}its default{{end}}</dd>
+      <dt>Folder</dt><dd>{{if .Instance.Repo}}{{.Instance.Repo}}{{else}}empty when it started{{end}}</dd>
+      <dt>Setup</dt><dd>{{with .Instance.Setup}}<a href="/setups/{{.}}">{{.}}</a>{{else}}none{{end}}</dd>
+      <dt>Started</dt><dd>{{when .Instance.Started}}{{with .Instance.Who}} by {{.}}{{end}}</dd>
+    </dl>
+  </section>
+  <section class="panel">
+    <form method="post" action="/instances/{{.Instance.ID}}/remove"
+          onsubmit="return confirm('Remove this harness? Its folder is set aside, and its activity stays in the log.')">
+      <button type="submit" class="quiet">Remove this harness</button>
+    </form>
+    <p class="muted small">Its folder is set aside, not deleted, and its activity stays in the log.</p>
+  </section>
+</aside>
+</div>
 
 {{template "foot" .}}

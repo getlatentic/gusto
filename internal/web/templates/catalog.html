@@ -2,39 +2,75 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-{{if .Instances}}
-<h2>Running</h2>
-<section class="picks">
-  {{range .Instances}}
-  <a class="pick live" href="{{.Where}}">
-    <span class="name">{{.Harness}}</span>
-    <span class="line1">{{if .Repo}}{{.Repo}}{{else}}its own folder{{end}}</span>
-    <span class="go">
-      <span class="muted">{{.Threads}} thread{{if ne .Threads 1}}s{{end}} · {{when .Started}}</span>
-      {{with .Latest.State}}<span class="state {{.}}">{{.}}</span>{{end}}
-    </span>
-  </a>
-  {{end}}
-</section>
-{{end}}
+<h1>Start a harness</h1>
 
-<h2>Start one</h2>
+<h2>From a template</h2>
+<p class="muted lede">Set up for one field's work, with skills, starters and a folder of sample files.</p>
+{{template "templates" .Templates}}
+
+<h2>From scratch</h2>
+
+{{$ready := false}}{{range .Catalog}}{{if .Ready}}{{$ready = true}}{{end}}{{end}}
+{{if not $ready}}<p class="muted">This deployment cannot start any harness yet. Each one below says what it is missing.</p>{{end}}
+
 <section class="picks">
-  {{range .Catalog}}
-  <article class="pick{{if not .Ready}} off{{end}}">
+  {{range .Catalog}}{{if .Ready}}
+  <article class="pick">
     <span class="name">{{.Name}}</span>
-    <span class="what">{{if .Ready}}{{.What}}{{else}}{{.Why}}{{end}}</span>
-    {{if .Ready}}
+    <span class="what">{{.What}}</span>
+    {{with .Measured}}
+    <ul class="measured" aria-label="Measured on the one-line fix">
+      {{range .}}<li class="{{if .Finished}}finished{{else}}unfinished{{end}}" title="{{.Job}}, {{.Environment}}: {{.Run}}">
+        <span class="model">{{modelOnly .Model}}</span>
+        <span>{{if .Finished}}finished{{with .WallSeconds}} in {{seconds .}}{{end}}{{with .CostUSD}}, {{money .}}{{end}}{{else}}did not finish{{end}}</span>
+      </li>{{end}}
+    </ul>
+    {{end}}
     <span class="go">
       <form method="post" action="/instances">
         <input type="hidden" name="harness" value="{{.Name}}">
         <button type="submit">Start</button>
       </form>
-      <a href="/instances/new?harness={{.Name}}">Give it a repository</a>
+      <a href="/instances/new?harness={{.Name}}">Choose a model or repository</a>
     </span>
-    {{end}}
   </article>
-  {{end}}
+  {{end}}{{end}}
 </section>
+
+{{if .Keeps}}
+<h2>Setups</h2>
+<p class="muted lede">Skills and MCP servers to start a harness with. Choose one when you start it.</p>
+<section class="picks">
+  {{range .Setups}}
+  <a class="pick" href="/setups/{{.Name}}">
+    <span class="name">{{.Name}}</span>
+    <span class="what">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · MCP: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
+  </a>
+  {{end}}
+  <form class="pick new-setup" method="post" action="/setups">
+    <span class="name">New setup</span>
+    <input name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required aria-label="Setup name">
+    {{with .Offered}}
+    <fieldset class="servers"><legend class="muted">MCP servers</legend>
+      {{range $name, $server := .}}<label class="check"><input type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
+    </fieldset>
+    {{end}}
+    <span class="go"><button type="submit">Create</button></span>
+  </form>
+</section>
+{{end}}
+
+{{$off := false}}{{range .Catalog}}{{if not .Ready}}{{$off = true}}{{end}}{{end}}
+{{if $off}}
+<h2>Not available here</h2>
+<section class="picks">
+  {{range .Catalog}}{{if not .Ready}}
+  <article class="pick off">
+    <span class="name">{{.Name}}</span>
+    <span class="what">{{.Why}}</span>
+  </article>
+  {{end}}{{end}}
+</section>
+{{end}}
 
 {{template "foot" .}}

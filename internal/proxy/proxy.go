@@ -111,7 +111,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		return
 	}
 	sent := time.Now()
-	if refusal := p.ledger.Allow(job, asked.model); refusal != nil {
+	if refusal := p.ledger.Allow(job, credential.Name, asked.model); refusal != nil {
 		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
 		return
 	}
@@ -150,8 +150,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 func (p *Proxy) priced(call spend.Call, usage *spend.Usage) spend.Call {
 	if usage != nil {
 		call.InputTokens, call.OutputTokens = &usage.Input, &usage.Output
+		call.CachedTokens = &usage.Cached
 	}
-	call.USD = p.ledger.Policy().Cost(call.Model, usage)
+	call.USD = p.ledger.Policy().Cost(call.Credential, call.Model, usage, time.Unix(call.AtUnix, 0))
 	return call
 }
 

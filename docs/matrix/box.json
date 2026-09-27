@@ -1,10 +1,20 @@
 {
   "environment": "box",
   "jobs": ["one-line-fix"],
+  "simplest": "one-line-fix",
   "pairs": [
     { "harness": "opencode", "model": "platform/qwen.qwen3-vl-235b-a22b-instruct" },
     { "harness": "opencode", "model": "deepseek/deepseek-flash" },
-    { "harness": "codex", "model": "platform/qwen.qwen3-vl-235b-a22b-instruct" },
-    { "harness": "codex", "model": "deepseek/deepseek-flash" }
+    { "harness": "opencode", "model": "deepseek/deepseek-v4-pro" },
+    { "harness": "codex", "model": "deepseek/deepseek-flash" },
+    { "harness": "codex", "model": "deepseek/deepseek-v4-pro" },
+    { "harness": "claude", "model": "anthropic/deepseek-flash" },
+    { "harness": "claude", "model": "anthropic/deepseek-v4-pro" },
+    { "harness": "pi", "model": "deepseek/deepseek-flash" },
+    { "harness": "pi", "model": "deepseek/deepseek-v4-pro" },
+    { "harness": "dsh", "model": "deepseek/deepseek-flash" },
+    { "harness": "dsh", "model": "deepseek/deepseek-v4-pro" },
+    { "harness": "hermes", "model": "deepseek/deepseek-flash" },
+    { "harness": "hermes", "model": "deepseek/deepseek-v4-pro" }
   ]
 }

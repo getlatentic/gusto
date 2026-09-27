@@ -46,7 +46,7 @@ func TestARestartedServerRemembersWhatATeamSpent(t *testing.T) {
 		t.Fatal(err)
 	}
 	ledger.now = func() time.Time { return september }
-	if refusal := ledger.Allow("later", "fixture-model"); refusal == nil || refusal.Cap != "team" {
+	if refusal := ledger.Allow("later", "", "fixture-model"); refusal == nil || refusal.Cap != "team" {
 		t.Fatalf("refusal %+v", refusal)
 	}
 }
@@ -76,5 +76,48 @@ func TestTheCapThatStoppedARunIsTheFirstRefusalSinceItStarted(t *testing.T) {
 	}
 	if none, err := Stopped(dir.OutFile("proxy.jsonl"), september.Unix()+60); err != nil || none != nil {
 		t.Fatalf("a run after every refusal was stopped by %+v, %v", none, err)
+	}
+}
+
+// The proxy once wrote its lines without a time. They belong to the run that
+// wrote them, not to January 1970.
+func TestALineWithNoTimeIsDatedByItsFile(t *testing.T) {
+	root := t.TempDir()
+	dir := job.Dir(filepath.Join(root, "old"))
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	if err := (job.Spec{Brief: "b", Harness: "opencode"}).Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	record := dir.OutFile("proxy.jsonl")
+	if err := os.WriteFile(record, []byte(`{"path":"/v1/chat/completions","status":200,"credential":"old"}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	then := time.Date(2026, 9, 26, 14, 11, 0, 0, time.UTC)
+	if err := os.Chtimes(record, then, then); err != nil {
+		t.Fatal(err)
+	}
+	ledger, err := Rebuild(root, Policy{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if months := ledger.Months(); len(months) != 1 || months[0] != "2026-09" {
+		t.Errorf("months %v", months)
+	}
+}
+
+func TestACallCountedBeforeItsModelHadAPriceIsPricedOnRebuild(t *testing.T) {
+	root := t.TempDir()
+	in, out := int64(1_000_000), int64(0)
+	jobWithCalls(t, root, "early", job.Spec{Brief: "b"}, Call{Path: "/v1/chat/completions", Status: 200,
+		AtUnix: time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC).Unix(), Model: "deepseek-flash", Credential: "deepseek",
+		InputTokens: &in, OutputTokens: &out})
+	ledger, err := Rebuild(root, Policy{Prices: map[string]Price{"deepseek-flash": deepseekFlash()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total := ledger.Report("2026-09").Total; total.Unmeasured != 0 || !near(total.USD, 0.15) {
+		t.Errorf("total %+v", total)
 	}
 }

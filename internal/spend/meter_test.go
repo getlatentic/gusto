@@ -5,9 +5,8 @@ import (
 	"testing"
 )
 
-// These answers are fixtures written to the documented OpenAI-compatible shape.
-// None was observed from a real provider: the path is not yet measured against
-// a real upstream, and these hold the line the documentation draws.
+// These two are the documented OpenAI-compatible shape. The measured ones
+// further down are DeepSeek's own answers on each wire.
 const (
 	plainAnswer = `{"id":"x","model":"m","choices":[{"message":{"content":"yes"}}],` +
 		`"usage":{"prompt_tokens":1200,"completion_tokens":300,"total_tokens":1500}}`
@@ -100,5 +99,43 @@ func TestUsageNobodyRecognisesIsNotInvented(t *testing.T) {
 	}
 	if usage := meter.Usage(); usage != nil {
 		t.Errorf("a usage nobody knows was read as %+v", usage)
+	}
+}
+
+// DeepSeek's answers on 2026-09-27, cut to their usage. A chat completion
+// counts the cache inside prompt_tokens; Anthropic's shape counts it beside
+// input_tokens, and its stream says the input first and the output last.
+const (
+	deepseekChat = `{"usage":{"prompt_tokens":1034,"completion_tokens":2,"total_tokens":1036,` +
+		`"prompt_tokens_details":{"cached_tokens":896},"prompt_cache_hit_tokens":896,"prompt_cache_miss_tokens":138}}`
+	deepseekResponses = "data: {\"type\":\"response.created\",\"response\":{\"usage\":null}}\n\n" +
+		"data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":33," +
+		"\"input_tokens_details\":{\"cached_tokens\":0},\"output_tokens\":16,\"total_tokens\":49}}}\n\n"
+	anthropicStream = "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":" +
+		"{\"input_tokens\":34,\"cache_creation_input_tokens\":10,\"cache_read_input_tokens\":500,\"output_tokens\":1}}}\n\n" +
+		"event: message_delta\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":40}}\n\n"
+)
+
+func TestTheCachedShareOfAChatCompletionIsCounted(t *testing.T) {
+	usage := metered("application/json", deepseekChat, 9)
+	if usage == nil || *usage != (Usage{Input: 1034, Cached: 896, Output: 2}) {
+		t.Fatalf("usage %+v", usage)
+	}
+}
+
+func TestAStreamedResponsesAnswerIsCountedFromItsCompletedEvent(t *testing.T) {
+	usage := metered("text/event-stream", deepseekResponses, 11)
+	if usage == nil || *usage != (Usage{Input: 33, Output: 16}) {
+		t.Fatalf("usage %+v", usage)
+	}
+}
+
+// Anthropic's stream says the input in message_start and the output again in
+// message_delta, which may carry nothing else. Keeping only the last event would
+// lose the input, and keeping only the first would count one output token.
+func TestAnAnthropicStreamIsCountedAcrossItsEvents(t *testing.T) {
+	usage := metered("text/event-stream", anthropicStream, 13)
+	if usage == nil || *usage != (Usage{Input: 544, Cached: 500, CacheWrite: 10, Output: 40}) {
+		t.Fatalf("usage %+v", usage)
 	}
 }

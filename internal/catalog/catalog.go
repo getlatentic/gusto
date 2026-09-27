@@ -19,6 +19,10 @@ type Entry struct {
 	What    string
 	Program string
 	Needs   harness.Needs
+	// Skills and MCP are whether the harness can be given skills and MCP
+	// servers, so a setup it cannot take is never offered for it.
+	Skills bool
+	MCP    bool
 	// Declared is whether the image names this harness among those it
 	// carries. It is the image's word; Ready rests on the program itself.
 	Declared bool
@@ -86,6 +90,8 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		What:     adapter.What,
 		Program:  adapter.Program,
 		Needs:    adapter.Needs,
+		Skills:   adapter.Skills != "",
+		MCP:      adapter.TakesMCP(),
 		Declared: carried.Declares(name),
 	}
 	entry.Ready, entry.Why = carried.Runs(name, adapter.Program)
