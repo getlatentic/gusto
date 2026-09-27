@@ -1,0 +1,78 @@
+# A merge to main deploys itself, once its tests pass.
+#
+# This workflow does not hold the playbook's secrets and does not run the
+# playbook. It asks the box, over ssh, to deploy the commit that passed, and
+# the box does the deploy with the playbook and vault it already holds. The key
+# in DEPLOY_SSH_KEY can do that and nothing else: deploy/ansible/README.md says
+# what the key can reach, how to set it up, and how to turn this off.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A merge that lands while one runs waits for it rather
+# than cancelling it; when several wait, only the newest runs, and it carries
+# everything the others would have.
+concurrency:
+  group: deploy-greencloud
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Formatted
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test -race ./...
+
+  deploy:
+    needs: test
+    # Off until the repository variable AUTODEPLOY is "on", so the workflow can
+    # be merged before the box and the secrets are ready, and turned off
+    # without a commit.
+    if: github.ref == 'refs/heads/main' && vars.AUTODEPLOY == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Secrets kept on this environment, restricted to main, are out of reach of
+    # a workflow run from any other branch.
+    environment: greencloud
+    steps:
+      # No checkout: nothing from the repository runs on the runner that holds
+      # the key. The box fetches the commit itself and checks it is on main.
+      - name: Ask the box to deploy this commit
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_HOST; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "::error::The secret $name is not set. deploy/ansible/README.md says what it holds."
+              exit 1
+            fi
+          done
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/deploy_known_hosts
+          # The host key is pinned by the secret, never accepted on first sight.
+          ssh -i ~/.ssh/deploy_key \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/deploy_known_hosts" \
+            -o ServerAliveInterval=30 \
+            "haas-deploy@$DEPLOY_HOST" "$GITHUB_SHA"

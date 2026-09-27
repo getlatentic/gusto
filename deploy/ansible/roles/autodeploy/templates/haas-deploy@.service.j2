@@ -1,0 +1,13 @@
+# Managed by ansible (roles/autodeploy/templates/haas-deploy@.service.j2).
+# One deploy of the commit named by the instance: haas-deploy@<commit>.service.
+[Unit]
+Description=haas deploy of %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/haas-deploy-run %i
+# A bound, so a step that hangs gives the lock back rather than holding every
+# later deploy. It is a ceiling chosen for that, not a measured duration.
+TimeoutStartSec=1h

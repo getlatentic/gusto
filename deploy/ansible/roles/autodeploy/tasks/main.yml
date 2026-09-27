@@ -1,0 +1,16 @@
+---
+# A merge to main deploys itself: GitHub Actions asks, and this box does the
+# deploy on its own, from its own checkout, with the vault it already holds.
+# The key GitHub holds can ask for one thing, a deploy of a commit on main, and
+# nothing else. README.md says what that trades and how to turn it off.
+#
+# Off is not only the absence of the on tasks: it removes the key and the sudo
+# rule, so turning autodeploy off in the repository takes GitHub's access away
+# on the next deploy, whoever runs it.
+- name: Autodeploy, on
+  ansible.builtin.include_tasks: enabled.yml
+  when: autodeploy_enabled | bool
+
+- name: Autodeploy, off
+  ansible.builtin.include_tasks: disabled.yml
+  when: not (autodeploy_enabled | bool)

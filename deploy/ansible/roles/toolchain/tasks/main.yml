@@ -20,9 +20,12 @@
     group: "{{ app_user }}"
     creates: "{{ app_root }}/go/bin/go"
 
-- name: Build the binary
+# Built beside the live binary, never over it. The release role promotes it only
+# once everything that proves it has passed, so a build that fails its smoke job
+# leaves the running version exactly where it was.
+- name: Build the candidate binary
   ansible.builtin.command:
-    cmd: "{{ app_root }}/go/bin/go build -trimpath -o {{ app_root }}/bin/haas ./cmd/haas"
+    cmd: "{{ app_root }}/go/bin/go build -trimpath -o {{ candidate_bin }} ./cmd/haas"
     chdir: "{{ app_root }}/src"
   become_user: "{{ app_user }}"
   environment:
@@ -31,11 +34,10 @@
     GOMODCACHE: "{{ app_root }}/var/go-mod"
   register: build
   changed_when: true
-  notify: Restart haas
 
-- name: The binary answers
+- name: The candidate answers
   ansible.builtin.command:
-    cmd: "{{ app_root }}/bin/haas harnesses"
+    cmd: "{{ candidate_bin }} harnesses"
   become_user: "{{ app_user }}"
   changed_when: false
   register: harnesses
