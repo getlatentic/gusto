@@ -128,3 +128,23 @@ func TestSayingNothingOffersEveryHarnessEverything(t *testing.T) {
 		}
 	}
 }
+
+// Claude Code speaks Anthropic's messages and every other harness here speaks
+// OpenAI's. Offered a model through a credential in the other shape, it is
+// told the model does not exist, which is how a Claude Code agent started from
+// a template failed on its first message.
+func TestAHarnessIsOnlyOfferedModelsInTheShapeItSpeaks(t *testing.T) {
+	credentials := proxy.Credentials{
+		"deepseek":  {Name: "deepseek", Address: "https://api.deepseek.invalid"},
+		"anthropic": {Name: "anthropic", Address: "https://api.deepseek.invalid/anthropic", Auth: proxy.Anthropic},
+	}
+	offered := offeredModels(credentials,
+		[]string{"deepseek/deepseek-flash", "anthropic/deepseek-flash"},
+		[]string{"claude", "codex"})
+	if got := offered.For("claude"); len(got) != 1 || got[0] != "anthropic/deepseek-flash" {
+		t.Errorf("claude is offered %v", got)
+	}
+	if got := offered.For("codex"); len(got) != 1 || got[0] != "deepseek/deepseek-flash" {
+		t.Errorf("codex is offered %v", got)
+	}
+}

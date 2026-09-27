@@ -29,6 +29,7 @@
   },
   "stdin": "{brief}",
   "needs": "key",
+  "speaks": "anthropic",
   "skills": "/root/.config/claude/skills",
   "mcp": {
     "format": "claude",

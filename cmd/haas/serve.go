@@ -98,6 +98,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseSetups(setups, servers)
+	pages.UseInBuilding(way.InBuilding())
 	// The job page names a signer only as this keyring checked it, the way
 	// verify, show, ship and export do.
 	keyring, err := signing.ConfiguredKeyring()
@@ -218,11 +219,18 @@ func offeredModels(credentials proxy.Credentials, models, harnesses []string) we
 		return web.Everything(models)
 	}
 	offered := web.Models{"": models}
-	for _, harness := range harnesses {
+	for _, name := range harnesses {
+		speaks := "openai"
+		if adapter, err := harness.Load("", name); err == nil && adapter.Speaks != "" {
+			speaks = adapter.Speaks
+		}
 		for _, model := range models {
 			credential, held := credentials.Get(credentialOf(model))
-			if !held || credential.Serves(harness) {
-				offered[harness] = append(offered[harness], model)
+			// A harness is offered a model only through a credential that
+			// answers in the shape it calls: Claude Code sent to an
+			// OpenAI-shaped endpoint is told its model does not exist.
+			if !held || (credential.Serves(name) && credential.Speaks() == speaks) {
+				offered[name] = append(offered[name], model)
 			}
 		}
 	}

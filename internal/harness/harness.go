@@ -88,6 +88,11 @@ type Adapter struct {
 	// a SKILL.md. The runner puts a job's skills there before it starts. Empty
 	// is a harness that takes none.
 	Skills string `json:"skills,omitempty"`
+	// Speaks is the shape of API the harness calls a model in: "anthropic"
+	// for Anthropic's messages, and OpenAI's when it is left out, which is
+	// what every other harness here speaks. A model is only offered to a
+	// harness through a credential that answers in its shape.
+	Speaks string `json:"speaks,omitempty"`
 	// MCP is how the harness takes MCP servers, or nil when it takes none.
 	MCP    *MCP   `json:"mcp,omitempty"`
 	Needs  Needs  `json:"needs"`
