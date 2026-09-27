@@ -15,7 +15,7 @@ EnvironmentFile={{ app_root }}/var/haas.env
 # runtime directory to talk to conmon.
 Environment=HOME={{ app_root }}
 Environment=XDG_RUNTIME_DIR=/run/user/{{ app_uid }}
-ExecStart={{ app_root }}/bin/haas serve
+ExecStart={{ live_bin }} serve
 Restart=always
 RestartSec=3
 # A container holding a job is a child. On stop the service is signalled and gets

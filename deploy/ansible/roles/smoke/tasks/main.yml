@@ -4,6 +4,10 @@
 # A deploy that cannot run a job has not finished. This runs one, in a container,
 # on this box, and checks its own evidence — the same three commands a person
 # would use, so nothing here is a special path.
+#
+# It proves the candidate binary and the candidate image, not the live ones. A
+# failure here ends the play before the release role, so what the server runs
+# stays what it ran before the deploy began.
 - name: The smoke directories
   ansible.builtin.file:
     path: "{{ app_root }}/var/smoke/{{ item }}"
@@ -20,16 +24,21 @@
 # pages offer and a job that proves nothing by passing.
 # absent names a program no image carries, which is what a job on a harness the
 # image was not built with looks like from inside the box.
+# smoke_fixture chooses the file behind the fixture harness. broken.json changes
+# nothing, so the gate fails, and that is how a person proves a failing smoke job
+# keeps the previous version running.
 - name: The smoke test's harnesses, where only the smoke test looks
   ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: "{{ app_root }}/var/smoke/harnesses/{{ item }}"
+    src: "{{ item.src }}"
+    dest: "{{ app_root }}/var/smoke/harnesses/{{ item.dest }}"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0640"
   loop:
-    - fixture.json
-    - absent.json
+    - { src: "{{ smoke_fixture }}", dest: fixture.json }
+    - { src: absent.json, dest: absent.json }
+  loop_control:
+    label: "{{ item.dest }} from {{ item.src }}"
 
 - name: No smoke harness where the server looks
   ansible.builtin.file:
@@ -74,7 +83,7 @@
 - name: A job, described the way a person would
   ansible.builtin.command:
     cmd: >-
-      {{ app_root }}/bin/haas new {{ app_root }}/var/smoke/job
+      {{ candidate_bin }} new {{ app_root }}/var/smoke/job
       -repo {{ app_root }}/var/smoke/repo
       -brief "make add add"
       -harness fixture
@@ -87,12 +96,12 @@
 
 - name: The job runs in a container and passes its gate
   ansible.builtin.command:
-    cmd: "{{ app_root }}/bin/haas run {{ app_root }}/var/smoke/job"
+    cmd: "{{ candidate_bin }} run {{ app_root }}/var/smoke/job"
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
     HAAS_CONTAINER: "{{ container_runtime }}"
-    HAAS_IMAGE: "{{ runner_image }}"
+    HAAS_IMAGE: "{{ candidate_image }}"
     HAAS_JOB_MEMORY: "{{ job_memory }}"
     HAAS_JOB_CPUS: "{{ job_cpus }}"
     HAAS_SIGNER: "greencloud"
@@ -100,7 +109,7 @@
 
 - name: Its evidence agrees with itself
   ansible.builtin.command:
-    cmd: "{{ app_root }}/bin/haas verify {{ app_root }}/var/smoke/job"
+    cmd: "{{ candidate_bin }} verify {{ app_root }}/var/smoke/job"
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
@@ -117,7 +126,7 @@
 - name: A job on a harness the image does not carry
   ansible.builtin.command:
     cmd: >-
-      {{ app_root }}/bin/haas new {{ app_root }}/var/smoke/refused
+      {{ candidate_bin }} new {{ app_root }}/var/smoke/refused
       -repo {{ app_root }}/var/smoke/repo
       -brief "make add add"
       -harness absent
@@ -130,12 +139,12 @@
 
 - name: It is refused before it starts
   ansible.builtin.command:
-    cmd: "{{ app_root }}/bin/haas run {{ app_root }}/var/smoke/refused"
+    cmd: "{{ candidate_bin }} run {{ app_root }}/var/smoke/refused"
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
     HAAS_CONTAINER: "{{ container_runtime }}"
-    HAAS_IMAGE: "{{ runner_image }}"
+    HAAS_IMAGE: "{{ candidate_image }}"
     HAAS_JOB_MEMORY: "{{ job_memory }}"
     HAAS_JOB_CPUS: "{{ job_cpus }}"
   register: refusal

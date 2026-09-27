@@ -1,0 +1,7 @@
+{
+  "name": "fixture",
+  "program": "sh",
+  "argv": ["-c", "echo changed nothing"],
+  "needs": "nothing",
+  "stream": "plain"
+}

@@ -1,0 +1,65 @@
+#!/bin/sh
+# Managed by ansible (roles/autodeploy/templates/haas-deploy-run.j2).
+#
+# Deploys one commit of {{ repo_branch }} onto this box, from this box. It runs as
+# root under haas-deploy@<commit>.service, from a checkout only root can write,
+# with the vault and the password this box already holds. Nothing the caller
+# sends reaches it except the commit id, and that commit has to be on
+# {{ repo_branch }} already.
+set -eu
+
+sha=$1
+state={{ autodeploy_root }}
+etc={{ autodeploy_etc }}
+checkout="$state/src"
+branch={{ repo_branch }}
+
+export HOME=/root
+export ANSIBLE_COLLECTIONS_PATH="$state/collections"
+# The app's read-only deploy key, which already reaches the repository. The
+# host key is root's own copy, so the app user cannot change what github.com is.
+export GIT_SSH_COMMAND="ssh -i {{ app_root }}/.ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$etc/known_hosts -o StrictHostKeyChecking=yes"
+
+# One deploy at a time on this box, whichever commit asked for it.
+exec 9>"$state/lock"
+flock 9
+
+if [ ! -d "$checkout/.git" ]; then
+  git clone --quiet --no-checkout {{ repo_url }} "$checkout"
+fi
+git -C "$checkout" fetch --quiet origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+
+if ! git -C "$checkout" merge-base --is-ancestor "$sha" "origin/$branch" 2>/dev/null; then
+  echo "$sha is not on $branch. Only a merged commit deploys." >&2
+  exit 1
+fi
+
+# A deploy that arrives late, or a re-run of an old workflow, must not take the
+# box back to an older commit. That is what rollback.yml is for.
+if [ -s "$state/deployed" ]; then
+  deployed=$(cat "$state/deployed")
+  ancestry=0
+  git -C "$checkout" merge-base --is-ancestor "$deployed" "$sha" 2>/dev/null || ancestry=$?
+  if [ "$ancestry" -eq 1 ]; then
+    echo "$deployed is deployed and $sha is older than it. Nothing to do."
+    exit 0
+  fi
+  if [ "$ancestry" -ne 0 ]; then
+    echo "$deployed, the deployed commit, is no longer on $branch; deploying $sha anyway."
+  fi
+fi
+
+git -C "$checkout" checkout --quiet --force --detach "$sha"
+cd "$checkout/deploy/ansible"
+
+echo "Deploying $sha"
+"$state/venv/bin/ansible-galaxy" collection install -r requirements.yml
+"$state/venv/bin/ansible-playbook" site.yml \
+  -i "$etc/inventory.ini" \
+  -e @"$etc/vault.yml" \
+  --vault-password-file "$etc/vault_pass" \
+  -e repo_version="$sha" \
+  -e autodeploy_self=true
+
+echo "$sha" > "$state/deployed"
+echo "Deployed $sha"
