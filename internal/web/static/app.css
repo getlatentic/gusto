@@ -582,3 +582,26 @@ ul.asks li { padding: var(--yg-space-3) var(--yg-space-4); border: 1px solid var
   .event { grid-template-columns: 7px minmax(0, 1fr) auto; }
   .event .at { display: none; }
 }
+
+/* One harness: who it is across the top, its conversations as a list. */
+.instance-head { display: flex; align-items: center; gap: var(--yg-space-4); margin: 0 0 var(--yg-space-6); }
+.instance-head .who { flex: 1; min-width: 0; }
+.instance-head h1 { margin: 0; }
+.instance-head p { margin: var(--yg-space-1) 0 0; }
+.instance-head button { display: inline-flex; align-items: center; gap: var(--yg-space-2); }
+.instance-head button svg.i { opacity: 1; }
+.avatar.big { width: 3rem; height: 3rem; font-size: 1.25rem; }
+ol.threads-list { list-style: none; margin: 0; padding: 0; }
+ol.threads-list li + li { border-top: 1px solid var(--yg-bg-subtle); }
+ol.threads-list a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--yg-space-4);
+  padding: var(--yg-space-3) var(--yg-space-2); color: inherit; text-decoration: none; border-radius: var(--yg-radius-sm); }
+ol.threads-list a:hover { background: var(--yg-bg-subtle); }
+ol.threads-list .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.threads-list .last { grid-column: 1; font-size: .875rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.threads-list .when { grid-column: 2; grid-row: 1; font-size: .8125rem; color: var(--yg-text-subtle); }
+details#task summary { cursor: pointer; display: flex; align-items: baseline; gap: var(--yg-space-3); flex-wrap: wrap; }
+details#task summary h2 { display: inline; margin: 0; }
+details#task summary .muted { font-size: .8125rem; }
+details#task[open] summary { margin-bottom: var(--yg-space-4); }
+details#task .threads-list { margin-bottom: var(--yg-space-4); }
+.start-form { max-width: 36rem; }
