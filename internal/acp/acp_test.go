@@ -130,10 +130,12 @@ func TestANewConversationKeepsWhatTheAgentSaidAndItsSession(t *testing.T) {
 }
 
 func TestARememberedSessionIsResumedRatherThanStartedAgain(t *testing.T) {
-	a := &agent{capabilities: dshCapabilities, answers: map[string]string{
-		"session/prompt": `"result":{"stopReason":"end_turn"}`,
-	}}
-	ended, _, err := run(t, a, Turn{Cwd: "/job/workspace", Brief: "and then?", Session: "s1"})
+	a := &agent{
+		capabilities: dshCapabilities,
+		before:       map[string][]string{"session/resume": {chunk}},
+		answers:      map[string]string{"session/prompt": `"result":{"stopReason":"end_turn"}`},
+	}
+	ended, kept, err := run(t, a, Turn{Cwd: "/job/workspace", Brief: "and then?", Session: "s1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,6 +144,9 @@ func TestARememberedSessionIsResumedRatherThanStartedAgain(t *testing.T) {
 	}
 	if ended.Session != "s1" {
 		t.Errorf("session = %q", ended.Session)
+	}
+	if strings.Contains(strings.Join(kept, "\n"), "Fixed.") {
+		t.Error("hermes replays the history on resume, and that belongs to earlier turns")
 	}
 }
 
