@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 )
 
@@ -68,6 +69,11 @@ func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 		t.Fatal(err)
 	}
 	server.UseKeyring(keyring)
+	setups, err := setup.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.UseSetups(setups, setup.Servers{"memory": {Name: "memory", Command: "mcp-server-memory", Env: map[string]string{"TOKEN": "s3cret"}}})
 	return &site{handler: server.Handler(), index: index, ran: ran}
 }
 
@@ -192,7 +198,7 @@ func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
 func offered() []catalog.Entry {
 	return []catalog.Entry{{
 		Name: "fixture", What: "what a fixture is", Program: "sh",
-		Needs: harness.NeedsNothing, Ready: true,
+		Needs: harness.NeedsNothing, Ready: true, Skills: true, MCP: true,
 	}}
 }
 

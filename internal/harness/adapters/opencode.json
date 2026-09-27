@@ -18,6 +18,13 @@
     "{brief}"
   ],
   "needs": "local",
+  "skills": "/root/.config/opencode/skills",
+  "mcp": {
+    "format": "opencode",
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{mcp}"
+    }
+  },
   "stream": "jsonl",
   "totals": "perCall",
   "text": "part.text",

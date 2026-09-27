@@ -21,6 +21,8 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Nav":     "harnesses",
 				"Harness": entry,
 				"Models":  s.models.For(entry.Name),
+				"Setups":  s.fitting(entry),
+				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
 				"Refused": r.URL.Query().Get("refused"),
 			})
@@ -36,10 +38,15 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		Harness: r.FormValue("harness"),
 		Model:   strings.TrimSpace(r.FormValue("model")),
 		Repo:    strings.TrimSpace(r.FormValue("repo")),
+		Setup:   strings.TrimSpace(r.FormValue("setup")),
 		Who:     s.keeper.who(r),
 	}
 	if wanted.Harness == "" {
 		s.turnAway(w, r, "/new", "pick a harness to start")
+		return
+	}
+	if why := s.unfit(wanted); why != "" {
+		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
 		return
 	}
 	// Starting from the catalog names no model, so it gets the first this

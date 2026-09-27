@@ -28,6 +28,16 @@
   },
   "stdin": "{brief}",
   "needs": "key",
+  "skills": "/root/.config/claude/skills",
+  "mcp": {
+    "format": "claude",
+    "argv": [
+      "--mcp-config",
+      "{mcp}",
+      "--allowedTools",
+      "{mcpTools}"
+    ]
+  },
   "stream": "jsonl",
   "totals": "cumulative",
   "text": "message.content.0.text",

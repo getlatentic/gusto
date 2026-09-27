@@ -66,11 +66,18 @@ func Inside(dir job.Dir) (int, error) {
 	budget := time.Duration(spec.Budget.Seconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
+	servers, err := Servers(dir)
+	if err != nil {
+		return 0, err
+	}
+	if err := placeSkills(dir, spec, adapter); err != nil {
+		return 0, err
+	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
 	var exit int
 	if adapter.Stream == harness.ACP {
-		exit, err = converse(ctx, command, spec, record)
-	} else {
+		exit, err = converse(ctx, command, spec, servers, record)
+	} else if err = adapter.Give(command, servers); err == nil {
 		exit, err = stream(ctx, command, record)
 	}
 	tokens, cost := record.Spent()

@@ -44,6 +44,9 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 		"Title":   "haas — start a harness",
 		"Nav":     "new",
 		"Catalog": s.catalog,
+		"Setups":  s.setupsList(),
+		"Offered": s.servers,
+		"Keeps":   s.setups != nil,
 		"Refused": r.URL.Query().Get("refused"),
 	})
 }

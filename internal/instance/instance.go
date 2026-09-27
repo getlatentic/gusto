@@ -31,6 +31,8 @@ type Instance struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Repo    string `json:"repo,omitempty"`
+	// Setup names the configuration every turn on this instance is given.
+	Setup   string `json:"setup,omitempty"`
 	Who     string `json:"who,omitempty"`
 	Started int64  `json:"startedAt"`
 }

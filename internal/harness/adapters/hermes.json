@@ -11,6 +11,10 @@
     "HAAS_MODEL_ID": "{modelId}"
   },
   "needs": "key",
+  "skills": "/root/.agents/skills",
+  "mcp": {
+    "format": "acp"
+  },
   "stream": "acp",
   "toolName": "params.update.kind",
   "toolTitle": "params.update.title"

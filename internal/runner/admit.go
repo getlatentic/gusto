@@ -18,6 +18,9 @@ func admit(spec job.Spec, adapter harness.Adapter) error {
 	if err := Carries(spec.Harness, adapter); err != nil {
 		return err
 	}
+	if err := fits(spec, adapter); err != nil {
+		return err
+	}
 	endpoint := adapter.EndpointOf()
 	if err := rules.Allows(spec, endpoint); err != nil {
 		return err
