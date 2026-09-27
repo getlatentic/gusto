@@ -18,18 +18,26 @@
 # The fixture belongs to the smoke test and to nothing else. The server offers
 # whatever it finds in harnesses_dir, so a fixture left there is a harness the
 # pages offer and a job that proves nothing by passing.
-- name: A harness that is only a program, where only the smoke test looks
+# absent names a program no image carries, which is what a job on a harness the
+# image was not built with looks like from inside the box.
+- name: The smoke test's harnesses, where only the smoke test looks
   ansible.builtin.copy:
-    src: fixture.json
-    dest: "{{ app_root }}/var/smoke/harnesses/fixture.json"
+    src: "{{ item }}"
+    dest: "{{ app_root }}/var/smoke/harnesses/{{ item }}"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0640"
+  loop:
+    - fixture.json
+    - absent.json
 
-- name: No fixture where the server looks
+- name: No smoke harness where the server looks
   ansible.builtin.file:
-    path: "{{ harnesses_dir }}/fixture.json"
+    path: "{{ harnesses_dir }}/{{ item }}"
     state: absent
+  loop:
+    - fixture.json
+    - absent.json
 
 - name: A repository whose test fails until the job fixes it
   ansible.builtin.copy:
@@ -55,10 +63,13 @@
 
 # A fresh job each deploy: the point is whether this build runs one, not whether
 # an old directory is still there.
-- name: Last deploy's job removed
+- name: Last deploy's jobs removed
   ansible.builtin.file:
-    path: "{{ app_root }}/var/smoke/job"
+    path: "{{ app_root }}/var/smoke/{{ item }}"
     state: absent
+  loop:
+    - job
+    - refused
 
 - name: A job, described the way a person would
   ansible.builtin.command:
@@ -99,3 +110,42 @@
 - name: What the deploy proved
   ansible.builtin.debug:
     var: verified.stdout
+
+# A job on a harness the image lacks has to stop before the harness starts and
+# say why where the job page shows it, rather than start, fail to find its
+# program, and read as the harness failing.
+- name: A job on a harness the image does not carry
+  ansible.builtin.command:
+    cmd: >-
+      {{ app_root }}/bin/haas new {{ app_root }}/var/smoke/refused
+      -repo {{ app_root }}/var/smoke/repo
+      -brief "make add add"
+      -harness absent
+      -- sh test.sh
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+    HAAS_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
+  changed_when: true
+
+- name: It is refused before it starts
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/bin/haas run {{ app_root }}/var/smoke/refused"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+    HAAS_CONTAINER: "{{ container_runtime }}"
+    HAAS_IMAGE: "{{ runner_image }}"
+    HAAS_JOB_MEMORY: "{{ job_memory }}"
+    HAAS_JOB_CPUS: "{{ job_cpus }}"
+  register: refusal
+  changed_when: true
+  failed_when: refusal.rc == 0
+
+- name: And says why where the job page shows it
+  ansible.builtin.command:
+    cmd: >-
+      grep -F "does not carry haas-smoke-harness-nobody-installed"
+      {{ app_root }}/var/smoke/refused/out/transcript.log
+  become_user: "{{ app_user }}"
+  changed_when: false
