@@ -35,19 +35,15 @@ harnesses_dir: "{{ app_root }}/var/harnesses"
 # its com.getlatentic.haas.harnesses label, and the server offers a harness only
 # when its program is really on the image's PATH.
 #
-# opencode is what this box runs jobs on: it points at whichever model the
-# deployment gives it, so it needs nobody's account.
+# opencode and codex run jobs here. Neither needs anybody's account: opencode
+# points at whichever model the deployment gives it, and codex is handed the
+# proxy's per-job token and a credential that speaks the responses API.
 #
-# claude and codex are carried so the image is the one the box will need, and so
-# the catalog names the real reason they are not offered rather than "not
-# carried". Carrying them does not make them runnable here. Their adapters still
-# say they answer to a person's own signed-in account, which a shared box does
-# not hold, so the catalog keeps them off the form and a job on either reaches
-# for the vendor with no credential. Both can be pointed at a gateway instead of
-# an account, which is what the proxy is, but the proxy holds one upstream and
-# they speak two different provider APIs (#85). Until that lands, what carrying
-# them costs is image size and build time, and what it buys is no rebuild on
-# the day it does.
+# claude is carried and not offered. Its adapter still answers to a person's own
+# signed-in account, which a shared box does not hold, so the catalog keeps it
+# off the form and names the account as what is missing. Carrying it costs image
+# size and build time; what it buys is no rebuild on the day its adapter takes a
+# key the proxy holds.
 runner_harnesses:
   - opencode=opencode-ai
   - claude=@anthropic-ai/claude-code
