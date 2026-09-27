@@ -22,7 +22,6 @@
   ],
   "stdin": "{brief}",
   "needs": "key",
-  "endpoint": "https://api.openai.com",
   "stream": "jsonl",
   "totals": "perCall",
   "text": "item.text",
@@ -32,5 +31,6 @@
   "inputTokens": "usage.input_tokens",
   "outputTokens": "usage.output_tokens",
   "cacheReadTokens": "usage.cached_input_tokens",
-  "cacheWriteTokens": "usage.cache_write_input_tokens"
+  "cacheWriteTokens": "usage.cache_write_input_tokens",
+  "endpoint": "https://api.openai.com"
 }

@@ -272,9 +272,18 @@ func ModelURL() string {
 // stays in the proxy and this is worth nothing once the job ends.
 func ModelToken() string { return os.Getenv("HAAS_MODEL_TOKEN") }
 
-// EndpointOf is the address a job will talk to, for the rules to check. A
-// harness that needs no model talks to nothing, and one holding its own account
-// names where that account lives.
+// EndpointOf is the address a job will talk to, for the rules to check.
+//
+// A harness that needs no model talks to nothing, one needing a model in the
+// building talks to it, and one taking a key names the provider its credential
+// reaches.
+//
+// It is deliberately not the proxy's address for a harness taking a key. The
+// box is handed the proxy, but the proxy forwards to a provider outside the
+// building, and a rule that asked the box where it was told to call would read
+// a restricted job as staying in the building when it does not. The address
+// that would answer this exactly is the credential's, which the deployment
+// holds and the adapter cannot see.
 func (a Adapter) EndpointOf() string {
 	switch a.Needs {
 	case NeedsNothing:

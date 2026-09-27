@@ -120,3 +120,31 @@ func TestATranscriptLineIsNotACommand(t *testing.T) {
 		t.Fatalf("commands.jsonl holds %q", text)
 	}
 }
+
+// A harness that counts its tokens and names no price is the ordinary case,
+// and a cost of zero written there would say the run was free. claude reported
+// $0.28 of Anthropic prices for tokens another provider served, so its price
+// was dropped from the adapter — and the record then said the run cost nothing.
+func TestTokensWithoutAPriceAreNotARunThatWasFree(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	record, err := Open(dir, harness.Adapter{
+		Stream: harness.JSONL, Totals: harness.PerCall,
+		InputTokens: "usage.input", OutputTokens: "usage.output",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := record.Out(`{"usage":{"input":120,"output":30}}`); err != nil {
+		t.Fatal(err)
+	}
+	tokens, cost := record.Spent()
+	if tokens == nil || *tokens != 150 {
+		t.Fatalf("tokens read as %v", tokens)
+	}
+	if cost != nil {
+		t.Errorf("a run nobody priced was recorded as costing %v", *cost)
+	}
+}

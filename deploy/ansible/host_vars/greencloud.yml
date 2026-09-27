@@ -49,8 +49,18 @@ credentials:
     address: "https://api.deepseek.com"
     auth: bearer
     key_var: deepseek_key
+  # The same provider, in Anthropic's shape, which is the only wire Claude Code
+  # speaks. Measured on 2026-09-27: /anthropic/v1/messages answers with a real
+  # Anthropic-shaped message. bedrock-mantle serves that path too and refuses
+  # its anthropic.* models as unlicensed for this account.
+  - name: anthropic
+    address: "https://api.deepseek.com/anthropic"
+    auth: anthropic
+    key_var: deepseek_key
+    harnesses:
+      - claude
 
-models: "platform/qwen.qwen3-vl-235b-a22b-instruct,deepseek/deepseek-flash"
+models: "platform/qwen.qwen3-vl-235b-a22b-instruct,deepseek/deepseek-flash,anthropic/deepseek-flash"
 
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.

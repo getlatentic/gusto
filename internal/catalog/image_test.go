@@ -80,9 +80,9 @@ func TestTheLabelIsAClaimAndThePathIsTheAnswer(t *testing.T) {
 	if !strings.Contains(entries["opencode"].Why, "says it carries opencode") {
 		t.Fatalf("a label that lies should be named, got %q", entries["opencode"].Why)
 	}
-	// claude is on the PATH without being declared, so the only thing keeping
-	// it back is the credential it wants.
-	if !strings.Contains(entries["claude"].Why, "person") || entries["claude"].Declared {
+	// claude is on the PATH without being declared, and the PATH is the answer:
+	// an image carrying a harness its label forgot still runs it.
+	if !entries["claude"].Ready || entries["claude"].Declared {
 		t.Fatalf("claude reads %+v", entries["claude"])
 	}
 }
