@@ -44,7 +44,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 	if err := admit(spec, adapter); err != nil {
-		return 0, refuse(dir, err)
+		return 0, Refuse(dir, err)
 	}
 	endpoint := adapter.EndpointOf()
 	if err := dir.Make(); err != nil {
@@ -68,7 +68,7 @@ func Inside(dir job.Dir) (int, error) {
 	defer cancel()
 	servers, err := Servers(dir)
 	if err != nil {
-		return 0, refuse(dir, err)
+		return 0, Refuse(dir, err)
 	}
 	if err := placeSkills(dir, spec, adapter); err != nil {
 		return 0, err

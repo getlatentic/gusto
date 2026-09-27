@@ -9,6 +9,8 @@ import (
 
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/rules"
+	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -100,11 +102,19 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 	}
 	id := filepath.Base(dir.Path())
 	named, _ := proxy.Named(spec.Model)
-	if _, held := w.credentials.Get(named); !held {
+	credential, held := w.credentials.Get(named)
+	if !held {
 		// Refused before the container starts, by name, rather than as a model
 		// call that fails somewhere inside a run somebody has to go and read.
 		return 0, fmt.Errorf("no credential called %q here; this deployment holds %s",
 			named, strings.Join(w.credentials.Names(), ", "))
+	}
+	// Every call a sealed box makes to a model leaves through this credential,
+	// so its address is where the code goes. The runner inside checks the
+	// address it was handed, which is the proxy on its own loopback, and would
+	// read a restricted job as staying in the building when it does not.
+	if err := rules.Allows(spec, credential.Address); err != nil {
+		return 0, runner.Refuse(dir, err)
 	}
 	w.ledger.Begin(id, spend.TermsOf(spec))
 	token, err := w.tokens.Mint(id, named)
