@@ -30,7 +30,24 @@ runner_image: haas:dev
 # Adapters of your own live here. The server offers what it finds, so a harness
 # added to this directory appears in the pages without a new binary.
 harnesses_dir: "{{ app_root }}/var/harnesses"
-harness_package: opencode-ai
+# The harnesses the runner image carries, each as name=package: the adapter's
+# name and the npm package that provides its program. The image lists them in
+# its com.getlatentic.haas.harnesses label, and the server offers a harness only
+# when its program is really on the image's PATH.
+#
+# opencode and codex run jobs here. Neither needs anybody's account: opencode
+# points at whichever model the deployment gives it, and codex is handed the
+# proxy's per-job token and a credential that speaks the responses API.
+#
+# claude is carried and not offered. Its adapter still answers to a person's own
+# signed-in account, which a shared box does not hold, so the catalog keeps it
+# off the form and names the account as what is missing. Carrying it costs image
+# size and build time; what it buys is no rebuild on the day its adapter takes a
+# key the proxy holds.
+runner_harnesses:
+  - opencode=opencode-ai
+  - claude=@anthropic-ai/claude-code
+  - codex=@openai/codex
 
 # What one job may take. A limit larger than the machine is not a limit: the job
 # takes what it likes and the kernel kills whatever it reaches first, which on a

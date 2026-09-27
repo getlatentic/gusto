@@ -33,7 +33,7 @@
   ansible.builtin.command:
     cmd: >-
       {{ container_runtime }} build
-      --build-arg HARNESS_PACKAGE={{ harness_package }}
+      --build-arg {{ ('HARNESSES=' ~ (runner_harnesses | join(' '))) | quote }}
       -t {{ runner_image }} .
     chdir: "{{ app_root }}/src"
   become_user: "{{ app_user }}"
@@ -50,6 +50,21 @@
   environment:
     HOME: "{{ app_root }}"
   changed_when: false
+
+# Read back from the image rather than from the variable, so a build that did
+# not take the list shows here and not at somebody's first job.
+- name: What the runner image carries
+  ansible.builtin.command:
+    cmd: >-
+      {{ container_runtime }} image inspect
+      --format '{{ '{{' }} index .Config.Labels "com.getlatentic.haas.harnesses" {{ '}}' }}'
+      {{ runner_image }}
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: carried
+  changed_when: false
+  failed_when: carried.rc != 0 or (carried.stdout | trim) != (runner_harnesses | join(' '))
 
 # The build stage leaves an untagged image behind — 957 MB of a Go toolchain the
 # runtime never uses. The named bases stay, so a rebuild does not re-pull them.
