@@ -1,7 +1,8 @@
 {{template "head" .}}
 
 <div class="desk">
-  <aside class="rail">
+  <div class="scrim" id="scrim"></div>
+  <aside class="rail" id="rail">
     <div class="whose">
       <a href="/instances/{{.Instance.ID}}">{{.Instance.Harness}}</a>
       <span>{{if .Instance.Model}}{{.Instance.Model}}{{else}}whatever it defaults to{{end}}</span>
@@ -19,6 +20,13 @@
   </aside>
 
   <main class="talk">
+    <div class="talk-top">
+      <button class="rail-toggle" type="button" id="open-rail" aria-controls="rail" aria-expanded="false">
+        {{template "icon-menu"}} Conversations
+      </button>
+      <span class="which">{{if .Thread.Title}}{{.Thread.Title}}{{else}}thread {{.Thread.ID}}{{end}}</span>
+    </div>
+
     <div class="said-so-far" id="said">
       <div class="column">
         <div id="turns">{{template "turns" .}}</div>
@@ -38,6 +46,23 @@
 
 <script>
 (function () {
+  // The list slides over when there is no room beside the talk, and anything
+  // that takes you away from where you are closes it again.
+  var open = document.getElementById("open-rail");
+  var scrim = document.getElementById("scrim");
+  var shut = function () {
+    document.body.classList.remove("rail-open");
+    open.setAttribute("aria-expanded", "false");
+  };
+  open.addEventListener("click", function () {
+    var nowOpen = document.body.classList.toggle("rail-open");
+    open.setAttribute("aria-expanded", String(nowOpen));
+  });
+  scrim.addEventListener("click", shut);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") { shut(); }
+  });
+
   var said = document.getElementById("said");
   // A conversation opens where it left off, not at the beginning.
   if (said) { said.scrollTop = said.scrollHeight; }
