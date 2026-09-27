@@ -102,24 +102,17 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, threadPath(s.instances.Latest(started.ID)), http.StatusSeeOther)
 }
 
-// install keeps a template as a setup of the same name. One already there is
-// left as it is, because somebody may have changed its skills since.
+// install keeps a template as a setup of the same name, and brings one
+// already there up to the template's version wherever nobody has changed it.
 func (s *Server) install(held industry.Template) error {
 	if s.setups == nil {
 		return errNoSetups
 	}
-	if _, found := s.setups.Get(held.Name); found {
-		return nil
+	skills := make([]setup.Skill, len(held.Skills))
+	for i, skill := range held.Skills {
+		skills[i] = setup.Skill{Name: skill.Name, Description: skill.Description, Body: skill.Body}
 	}
-	if err := s.setups.Save(setup.Setup{Name: held.Name, Servers: s.offeredOf(held), Starters: held.Starters, Who: "haas"}, s.servers); err != nil {
-		return err
-	}
-	for _, skill := range held.Skills {
-		if err := s.setups.Write(held.Name, setup.Skill{Name: skill.Name, Description: skill.Description, Body: skill.Body}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return s.setups.Provide(setup.Setup{Name: held.Name, Servers: s.offeredOf(held), Starters: held.Starters, Skills: skills}, s.servers)
 }
 
 // startersOf is what an empty thread on this instance offers to say.

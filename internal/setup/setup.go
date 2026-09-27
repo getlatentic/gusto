@@ -31,6 +31,10 @@ type Setup struct {
 	Starters []string `json:"starters,omitempty"`
 	Who      string   `json:"who,omitempty"`
 	Made     int64    `json:"madeAt"`
+	// Wrote is the fingerprint of each SKILL.md haas itself last wrote, so a
+	// skill still matching it can take a newer version and one a person has
+	// edited is left alone.
+	Wrote map[string]string `json:"wrote,omitempty"`
 	// Skills is filled from the folder rather than kept in the file, so the
 	// folder is the one account of what a setup holds.
 	Skills []Skill `json:"-"`
@@ -78,6 +82,10 @@ func (s *Store) Save(wanted Setup, offered Servers) error {
 	if wanted.Made == 0 {
 		wanted.Made = time.Now().Unix()
 	}
+	return s.saveLocked(wanted)
+}
+
+func (s *Store) saveLocked(wanted Setup) error {
 	text, err := json.MarshalIndent(wanted, "", "  ")
 	if err != nil {
 		return err
@@ -131,12 +139,22 @@ func (s *Store) Write(setup string, skill Skill) error {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	dir := filepath.Join(s.skillsDir(setup), skill.Name)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	return s.put(setup, skill.Name, document(skill.Name, description, skill.Body))
+}
+
+func document(name, description, body string) string {
+	return "---\nname: " + name + "\ndescription: " + quote(description) + "\n---\n\n" + strings.TrimSpace(body) + "\n"
+}
+
+func (s *Store) skillFile(setup, skill string) string {
+	return filepath.Join(s.skillsDir(setup), skill, "SKILL.md")
+}
+
+func (s *Store) put(setup, skill, text string) error {
+	if err := os.MkdirAll(filepath.Dir(s.skillFile(setup, skill)), 0o755); err != nil {
 		return err
 	}
-	document := "---\nname: " + skill.Name + "\ndescription: " + quote(description) + "\n---\n\n" + strings.TrimSpace(skill.Body) + "\n"
-	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(document), 0o644)
+	return os.WriteFile(s.skillFile(setup, skill), []byte(text), 0o644)
 }
 
 // Drop takes a skill out of a setup.
