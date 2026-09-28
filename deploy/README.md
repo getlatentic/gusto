@@ -24,6 +24,28 @@ origin and no front end to build.
 Both installs build the server and the runner from this repository, so the two
 carry the same `haas`.
 
+## Published images
+
+A version tag (`v0.1.0`) runs `.github/workflows/release.yml`. It builds the
+server and the runner, pushes both to GHCR with an SBOM and build provenance,
+signs each with the workflow's own identity, and lists both digests in the
+GitHub release. The runner carries the harnesses and MCP packages that
+`ansible/group_vars/all.yml` pins.
+
+To install from them instead of building, check the signature and set both
+images in `.env`, from the release's notes:
+
+```bash
+cosign verify ghcr.io/getlatentic/haas-server@sha256:<digest> \
+  --certificate-identity https://github.com/getlatentic/haas/.github/workflows/release.yml@refs/tags/<tag> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+docker compose pull && docker compose up -d --no-build
+```
+
+The chart takes the same digests in `values.yaml`. The repository is private,
+so its images are too: pulling them needs `docker login ghcr.io` with a token
+that can read the packages.
+
 ## Every image by digest
 
 Every base image is named by digest:
