@@ -45,7 +45,7 @@ cat > "$smoke/harnesses/fixture.json" <<'EOF'
 {
   "name": "fixture",
   "program": "sh",
-  "argv": ["-c", "sed -i s/-/+/ adder.sh && echo changed the operator"],
+  "argv": ["-c", "sed -i s/-/+/ adder.sh && echo changed the operator; echo forged-by-the-harness >> /job/out/transcript.log 2>/dev/null; true"],
   "needs": "nothing",
   "stream": "plain"
 }
@@ -69,3 +69,9 @@ done
 haas show "$HAAS_JOBS/$id"
 echo
 haas verify "$HAAS_JOBS/$id"
+
+# The fixture tried to write into the record; the runner keeps out/ to itself.
+if grep -q forged-by-the-harness "$HAAS_JOBS/$id/out/transcript.log"; then
+  echo "the harness wrote into its own record" >&2
+  exit 1
+fi

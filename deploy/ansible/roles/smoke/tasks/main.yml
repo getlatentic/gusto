@@ -116,6 +116,18 @@
   changed_when: false
   register: verified
 
+# The fixture also tries to write into the record. The runner gives the
+# harness a user of its own and keeps out/ to itself, so the attempt is refused;
+# an image that lets it through fails the deploy here, because the manifest
+# would hash the forged line and verify would pass.
+- name: The harness could not write the record
+  ansible.builtin.command:
+    cmd: grep -q forged-by-the-harness {{ app_root }}/var/smoke/job/out/transcript.log
+  become_user: "{{ app_user }}"
+  register: forged
+  failed_when: forged.rc != 1
+  changed_when: false
+
 - name: What the deploy proved
   ansible.builtin.debug:
     var: verified.stdout
