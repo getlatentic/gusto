@@ -75,12 +75,21 @@ out of the other's, so use it for harnesses you trust, such as a fixture.
 checks, whichever harness did better, and 2 otherwise. Which harness did better
 is what the comparison prints, not a failure of the comparison.
 
+## From the pages
+
+`/compare` gives one task to several engines on a template that has a check.
+Today that is the Software engineer template, checked by `node --test`.
+
+- Each run is an ordinary job in the queue, so it shows in Activity and
+  Spending and keeps its own signed record.
+- Every run clones the template's sample from one commit, held in
+  `HAAS_COMPARISONS/samples/<template>`, with the same model, skills and check.
+- `HAAS_COMPARISONS/<id>.json` names the runs by job id.
+- `/compare/<id>` shows each run's verdict, time, cost and change size, and
+  marks the fastest and the cheapest of the runs that passed.
+
 ## Not yet
 
-- **A comparison from the pages.** A task on an instance and `POST /api/jobs`
-  each make one job. Fanning a submission out there needs the queue to hold a
-  comparison, which is `internal/web` and `internal/jobs`; until then a
-  comparison starts on the command line.
 - **More than a verdict side by side.** The table shows the verdict, the
   harness's exit, the budget, tokens and cost. Comparing the patches is reading
   the two `diff.patch` files.

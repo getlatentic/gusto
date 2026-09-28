@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/setup"
@@ -35,6 +36,7 @@ type Server struct {
 	models    Models
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
+	lineups   *compare.Board
 	setups    *setup.Store
 	servers   setup.Servers
 	// inBuilding is whether a model inside the deployment's own network is
@@ -69,6 +71,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
 	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
+	mux.HandleFunc("GET /compare", s.guard(s.comparePage))
+	mux.HandleFunc("POST /compare", s.guard(s.startComparison))
+	mux.HandleFunc("GET /compare/{id}", s.guard(s.lineupPage))
 	mux.HandleFunc("GET /setups", s.guard(s.setupsPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))

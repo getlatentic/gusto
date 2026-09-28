@@ -90,7 +90,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
-	id, err := s.queued(sent.Spec, sent.Adapter)
+	id, err := s.queued(sent.Spec, sent.Adapter, sentOverHTTP)
 	if err != nil {
 		reply(w, http.StatusInternalServerError, Answer{Refused: err.Error()})
 		return
@@ -100,7 +100,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 
 // queued writes the job directory and takes it into the index, so a sent job
 // leaves on disk what `haas new` leaves and the queue picks it up the same way.
-func (s *Server) queued(spec job.Spec, carried *harness.Adapter) (string, error) {
+func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked string) (string, error) {
 	id := s.index.Free(spec.Brief, time.Now())
 	dir := job.Dir(filepath.Join(s.index.Root(), id))
 	if err := dir.Make(); err != nil {
@@ -117,7 +117,7 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter) (string, error)
 	}
 	record := jobs.Record{
 		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: sentOverHTTP,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked,
 		Queued: jobs.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
