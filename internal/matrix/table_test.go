@@ -144,7 +144,7 @@ func TestAMatrixIsAddressedByItsDirectory(t *testing.T) {
 	}
 }
 
-// The two rows from #8 are a plan: opencode on two local models, on the one-
+// The two rows from getlatentic/planning#234 are a plan: opencode on two local models, on the one-
 // line fix. The plan in the docs has to be one the matrix accepts.
 func TestTheRowsFromIssueEightAreAPlan(t *testing.T) {
 	at := t.TempDir()
