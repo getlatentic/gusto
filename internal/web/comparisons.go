@@ -13,6 +13,7 @@ import (
 	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/rules"
 )
 
@@ -114,7 +115,11 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 	if err != nil {
 		return "", err
 	}
-	lineup := compare.Lineup{ID: s.index.Free("compare "+brief, time.Now()), Brief: brief, Template: held.Name,
+	id, err := s.lineups.Reserve(jobs.Name("compare "+brief, time.Now()))
+	if err != nil {
+		return "", err
+	}
+	lineup := compare.Lineup{ID: id, Brief: brief, Template: held.Name,
 		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix()}
 	for _, harness := range harnesses {
 		spec, err := s.sideSpec(held, harness, named, brief, repo, commit)

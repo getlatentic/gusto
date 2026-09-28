@@ -1,6 +1,10 @@
 package jobs
 
 import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -36,17 +40,28 @@ func slug(text string) string {
 	return strings.Trim(string(out), "-")
 }
 
-// Free returns a name nothing is using yet, adding a number if it has to.
-func (i *Index) Free(brief string, at time.Time) string {
+// Reserve takes a name nothing is using and makes the job's directory, which
+// only one caller can do for any one name. Two jobs asked for in the same
+// minute in the same words are two jobs, the second with a number.
+func (i *Index) Reserve(brief string, at time.Time) (string, error) {
 	base := Name(brief, at)
 	i.guard.Lock()
 	defer i.guard.Unlock()
-	name := base
-	for attempt := 2; ; attempt++ {
-		if _, taken := i.records[name]; !taken {
-			return name
+	for attempt := 1; ; attempt++ {
+		name := base
+		if attempt > 1 {
+			name = base + "-" + itoa(attempt)
 		}
-		name = base + "-" + itoa(attempt)
+		if _, taken := i.records[name]; taken {
+			continue
+		}
+		err := os.Mkdir(filepath.Join(i.root, name), 0o755)
+		if err == nil {
+			return name, nil
+		}
+		if !errors.Is(err, fs.ErrExist) {
+			return "", err
+		}
 	}
 }
 

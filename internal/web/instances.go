@@ -63,7 +63,7 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 	if wanted.Repo != "" {
 		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
 	}
-	started, err := s.instances.Start(s.index.Free(name, time.Now()), wanted)
+	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
 	if err != nil {
 		s.turnAway(w, r, "/new", err.Error())
 		return
