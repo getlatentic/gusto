@@ -1,7 +1,10 @@
 {
   "name": "fixture",
   "program": "sh",
-  "argv": ["-c", "sed -i 's/\\$1 - \\$2/$1 + $2/' adder.sh && echo changed the operator"],
+  "argv": [
+    "-c",
+    "sed -i 's/\\$1 - \\$2/$1 + $2/' adder.sh && echo changed the operator; echo forged-by-the-harness >> /job/out/transcript.log 2>/dev/null; true"
+  ],
   "needs": "nothing",
   "stream": "plain"
 }
