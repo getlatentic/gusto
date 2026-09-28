@@ -39,6 +39,8 @@ func Inside(dir job.Dir) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	agent := agentHere()
+	agent.trustWorkspace()
 	// The digest is taken here, from what the job carries, before the harness
 	// starts: nothing it writes during the run can change what the manifest
 	// says it was.
@@ -84,11 +86,18 @@ func Inside(dir job.Dir) (int, error) {
 	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
 	var exit int
-	if adapter.Stream == harness.ACP {
+	if adapter.Stream != harness.ACP {
+		err = adapter.Give(command, servers)
+	}
+	if err == nil {
+		err = agent.handOver(dir, command)
+	}
+	if err == nil && adapter.Stream == harness.ACP {
 		exit, err = converse(ctx, command, spec, servers, record)
-	} else if err = adapter.Give(command, servers); err == nil {
+	} else if err == nil {
 		exit, err = stream(ctx, command, record)
 	}
+	agent.endAll()
 	tokens, cost := record.Spent()
 	if closeErr := record.Close(); closeErr != nil && err == nil {
 		err = closeErr
@@ -105,6 +114,7 @@ func Inside(dir job.Dir) (int, error) {
 	var verdict *evidence.Verdict
 	if len(spec.Gate) > 0 {
 		given, err := Gate(spec, dir)
+		agent.endAll()
 		if err != nil {
 			return 0, err
 		}

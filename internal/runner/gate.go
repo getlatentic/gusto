@@ -19,6 +19,8 @@ func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
 	}
 	command := exec.Command(spec.Gate[0], spec.Gate[1:]...)
 	command.Dir = dir.Workspace()
+	// The gate runs the repository's own code, as untrusted as the harness.
+	agentHere().runAs(command)
 	output, err := command.CombinedOutput()
 	return evidence.Verdict{
 		Command: spec.Gate,
