@@ -40,6 +40,10 @@
     "Add tests for discounts above 100% and negative quantities",
     "Review invoice.js and tell me what could go wrong in production"
   ],
+  "check": [
+    "node",
+    "--test"
+  ],
   "files": {
     "README.md": "# Invoice\n\n*This project is invented for demonstration.*\n\nWorks out an invoice's total. Run the tests with:\n\n```\nnode --test\n```\n",
     "package.json": "{\n  \"name\": \"invoice\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"test\": \"node --test\"\n  }\n}\n",

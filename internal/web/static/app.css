@@ -803,3 +803,12 @@ table.measured .done { display: inline-flex; align-items: center; gap: 4px; colo
 table.measured .done svg.i { width: 14px; height: 14px; }
 table.measured .missed { color: var(--yg-danger); font-weight: 500; }
 table.measured .sub { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
+
+/* Comparing agents on one task. */
+fieldset.picks { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--yg-space-2); }
+fieldset.picks legend { font-weight: 500; margin-bottom: var(--yg-space-2); }
+label.pick { display: inline-flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-3);
+  border: 1px solid var(--yg-border); border-radius: var(--yg-radius-full); background: var(--yg-surface); font-weight: 400; cursor: pointer; }
+label.pick:has(input:checked) { border-color: var(--yg-accent); background: var(--yg-accent-surface); }
+table.lineup .badge { display: inline-block; margin-left: var(--yg-space-2); padding: 1px var(--yg-space-2); border-radius: var(--yg-radius-full);
+  font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; background: var(--yg-accent-surface); color: var(--yg-accent-hover); }

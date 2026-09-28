@@ -14,6 +14,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/accesslog"
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/instance"
@@ -99,6 +100,11 @@ func serve(args []string) int {
 	}
 	pages.UseSetups(setups, servers)
 	pages.UseInBuilding(way.InBuilding())
+	lineups, err := compare.OpenBoard(setting("HAAS_COMPARISONS", "comparisons"))
+	if err != nil {
+		return fail(err)
+	}
+	pages.UseBoard(lineups)
 	// The job page names a signer only as this keyring checked it, the way
 	// verify, show, ship and export do.
 	keyring, err := signing.ConfiguredKeyring()

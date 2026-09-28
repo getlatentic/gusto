@@ -31,6 +31,10 @@ type Template struct {
 	Skills      []Skill           `json:"skills"`
 	Starters    []string          `json:"starters"`
 	Files       map[string]string `json:"files"`
+	// Check is the command that says whether work on the sample files is
+	// done, run in the box after the agent. A template with one can put
+	// several agents on the same task and let it decide between them.
+	Check []string `json:"check,omitempty"`
 }
 
 // Skill is one of a template's skills.

@@ -45,6 +45,17 @@ func openAt(t *testing.T, root string) *site {
 // openKeyed is openAt with the keyring the job page names signers from.
 func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 	t.Helper()
+	return build(t, root, keyring, offered())
+}
+
+// openOffering is a server whose catalog is the entries given.
+func openOffering(t *testing.T, entries []catalog.Entry) *site {
+	t.Helper()
+	return build(t, t.TempDir(), signing.Keyring{}, entries)
+}
+
+func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry) *site {
+	t.Helper()
 	index, err := jobs.Open(root)
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +76,7 @@ func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, instances, queue, password, &Identity{}, offered(), Everything([]string{"platform/test-model"}))
+	server, err := New(index, instances, queue, password, &Identity{}, entries, Everything([]string{"platform/test-model"}))
 	if err != nil {
 		t.Fatal(err)
 	}

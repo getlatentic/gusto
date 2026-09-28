@@ -1,0 +1,44 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<div class="page-head">
+  <h1>Compare agents</h1>
+  <p class="muted">Give several agents the same task on the same code. The project's own tests decide which of them did it.</p>
+</div>
+
+{{with .Template}}
+<form class="panel stack start-form" method="post" action="/compare">
+  <label>The task
+    <textarea name="brief" rows="2" required>{{index .Starters 0}}</textarea>
+  </label>
+  <p class="muted small">On the {{.Title}} sample project, checked by running <code>{{range $i, $word := .Check}}{{if $i}} {{end}}{{$word}}{{end}}</code> after each agent.</p>
+  <fieldset class="picks">
+    <legend>Agents</legend>
+    {{range $.Engines}}<label class="pick"><input type="checkbox" name="harness" value="{{.Name}}" checked> {{.Title}}</label>{{end}}
+  </fieldset>
+  {{with $.Models}}<label>Model
+    <select name="model">{{range .}}<option>{{.}}</option>{{end}}</select>
+  </label>{{end}}
+  <button type="submit" class="cta">Compare</button>
+</form>
+{{else}}
+<div class="callout warn"><span class="sign">{{template "icon-info"}}</span>
+  <div><strong>Nothing to compare on yet</strong><p>No template here has a check that can decide between agents.</p></div></div>
+{{end}}
+
+{{with .Lineups}}
+<h2 class="section-title">Earlier comparisons</h2>
+<div class="list">
+  <table class="agents">
+    <thead><tr><th>Task</th><th>Model</th><th>Agents</th><th>When</th></tr></thead>
+    <tbody>
+    {{range .}}
+    <tr><td><a href="/compare/{{.ID}}">{{.Brief}}</a></td><td class="muted">{{.Model}}</td><td class="muted">{{len .Runs}}</td><td class="muted" title="{{when .At}}">{{ago .At}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+
+{{template "foot" .}}
