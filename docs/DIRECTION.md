@@ -43,7 +43,7 @@ This list is the product. A buyer works down it, and most of it is not built.
 | model policy | which models may see which repositories, enforced rather than remembered | one rule: restricted code needs a local model |
 | isolation | one sandbox a job, never reused, destroyed after | built |
 | change control | an agent opens a pull request and never merges | built |
-| supply chain | bundles pinned by digest, skills and connectors from an allowlist | #64 |
+| supply chain | bundles pinned by digest, skills and connectors from an allowlist | getlatentic/planning#283 |
 | audit | an immutable record a job at a time, exportable | the record is built; the export is not |
 | comparison | the same task on two harnesses, verified side by side | Sprint 4 |
 
@@ -142,11 +142,11 @@ Nothing here is a plan to build soon. Each line says what would make it urgent.
 
 | deferred | promoted when |
 | --- | --- |
-| naming the configured harness by digest (#64) | two people share a name and mean different things — the first day a team uses this |
+| naming the configured harness by digest (getlatentic/planning#283) | two people share a name and mean different things — the first day a team uses this |
 | the package format | a second kind of harness genuinely needs one |
 | a registry | something needs fetching that a git repository cannot carry |
 | a catalog | somebody has to assemble a harness without reading files |
-| merges deploying themselves (#52) | a second person deploys, or merges should deploy unattended |
+| merges deploying themselves (getlatentic/planning#279) | a second person deploys, or merges should deploy unattended |
 
 Designing a registry before anything needs registering is how this stops being a
 product.
