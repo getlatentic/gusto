@@ -24,7 +24,7 @@ func at(t *testing.T) *Index {
 func queued(t *testing.T, index *Index, brief string) Record {
 	t.Helper()
 	record := Record{
-		ID:      index.Free(brief, time.Now()),
+		ID:      reserved(t, index, brief),
 		State:   Queued,
 		Brief:   brief,
 		Harness: "fixture",
@@ -53,13 +53,26 @@ func TestAJobsNameSaysWhenAndWhat(t *testing.T) {
 	}
 }
 
+func reserved(t *testing.T, index *Index, brief string) string {
+	t.Helper()
+	id, err := index.Reserve(brief, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// Two jobs asked for in the same minute in the same words are two jobs, even
+// when the second is named before the first is added to the index.
 func TestTwoJobsAskedInTheSameMinuteGetDifferentNames(t *testing.T) {
 	index := at(t)
-	when := time.Now()
-	first := queued(t, index, "fix the adder")
-	second := index.Free("fix the adder", when)
-	if first.ID == second {
-		t.Fatalf("both are %q", first.ID)
+	first := reserved(t, index, "fix the adder")
+	second := reserved(t, index, "fix the adder")
+	if first == second {
+		t.Fatalf("both are %q", first)
+	}
+	if added := queued(t, index, "fix the adder"); added.ID == first || added.ID == second {
+		t.Fatalf("a third job took %q", added.ID)
 	}
 }
 
@@ -323,7 +336,7 @@ func TestARecoveredJobIsNotChargedForTheOutage(t *testing.T) {
 func turnQueued(t *testing.T, index *Index, instance, thread, brief string) Record {
 	t.Helper()
 	record := Record{
-		ID:      index.Free(brief, time.Now()),
+		ID:      reserved(t, index, brief),
 		State:   Queued,
 		Brief:   brief,
 		Harness: "fixture",

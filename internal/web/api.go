@@ -101,7 +101,10 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 // queued writes the job directory and takes it into the index, so a sent job
 // leaves on disk what `haas new` leaves and the queue picks it up the same way.
 func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked string) (string, error) {
-	id := s.index.Free(spec.Brief, time.Now())
+	id, err := s.index.Reserve(spec.Brief, time.Now())
+	if err != nil {
+		return "", err
+	}
 	dir := job.Dir(filepath.Join(s.index.Root(), id))
 	if err := dir.Make(); err != nil {
 		return "", err

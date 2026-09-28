@@ -29,8 +29,13 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, where, err.Error())
 		return
 	}
+	id, err := s.index.Reserve(spec.Brief, time.Now())
+	if err != nil {
+		s.turnAway(w, r, where, err.Error())
+		return
+	}
 	record := jobs.Record{
-		ID: s.index.Free(spec.Brief, time.Now()), State: jobs.Queued,
+		ID: id, State: jobs.Queued,
 		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Asked: s.keeper.who(r), Queued: jobs.Now(),
 	}

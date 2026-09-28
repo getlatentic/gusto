@@ -50,6 +50,27 @@ func OpenBoard(root string) (*Board, error) {
 
 func (b *Board) file(id string) string { return filepath.Join(b.root, id+".json") }
 
+// Reserve takes an id no lineup has, numbering the one proposed when it is
+// taken, and holds it by making its file, which only one caller can do.
+func (b *Board) Reserve(proposed string) (string, error) {
+	for n := 1; ; n++ {
+		id := proposed
+		if n > 1 {
+			id = fmt.Sprintf("%s-%d", proposed, n)
+		}
+		if !job.Named(id) {
+			return "", fmt.Errorf("%q cannot name a comparison", id)
+		}
+		file, err := os.OpenFile(b.file(id), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err == nil {
+			return id, file.Close()
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return "", err
+		}
+	}
+}
+
 // Save keeps a lineup under its id.
 func (b *Board) Save(lineup Lineup) error {
 	if !job.Named(lineup.ID) {

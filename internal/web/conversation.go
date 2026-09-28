@@ -158,8 +158,13 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		Setup:       setupOf(held),
 		Sensitivity: sensitivityOf(held),
 	}
+	id, err := s.index.Reserve(brief, time.Now())
+	if err != nil {
+		s.turnAway(w, r, threadPath(thread), err.Error())
+		return
+	}
 	record := jobs.Record{
-		ID: s.index.Free(brief, time.Now()), State: jobs.Queued,
+		ID: id, State: jobs.Queued,
 		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
 		Asked: s.keeper.who(r), Queued: jobs.Now(),

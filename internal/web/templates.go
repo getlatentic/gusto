@@ -8,6 +8,7 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/setup"
 )
 
@@ -90,7 +91,7 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		Harness: chosen, Model: s.models.First(chosen), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}
-	started, err := s.instances.Start(s.index.Free(held.Name, time.Now()), wanted)
+	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)
 	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
