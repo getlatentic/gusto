@@ -297,3 +297,26 @@ func TestSeededFilesAreCommittedAsTheStart(t *testing.T) {
 		t.Errorf("the seeded files are not committed: %q", status)
 	}
 }
+
+// Two instances proposed the same id, as two started in the same minute from
+// one template are, become two instances, and the first keeps its harness.
+func TestTwoInstancesProposedOneIdStayTwo(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := store.Start("20260928-0950-engineering", Instance{Harness: "codex"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := store.Start("20260928-0950-engineering", Instance{Harness: "opencode"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.ID == second.ID {
+		t.Fatalf("both instances are %s", first.ID)
+	}
+	if held, _ := store.Get(first.ID); held.Harness != "codex" {
+		t.Errorf("the first instance's harness is now %q", held.Harness)
+	}
+}

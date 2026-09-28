@@ -16,7 +16,9 @@ package instance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -97,7 +99,15 @@ func (s *Store) threadsDir(id string) string { return filepath.Join(s.Dir(id), "
 //
 // It opens the first conversation too, under the same guard as the instance
 // itself, so nothing that lists instances ever sees one with nowhere to talk.
-func (s *Store) Start(id string, wanted Instance) (Instance, error) {
+//
+// The id is claimed rather than trusted: two instances started in the same
+// minute from the same template are proposed the same one, and the second
+// takes a numbered id instead of writing over the first.
+func (s *Store) Start(proposed string, wanted Instance) (Instance, error) {
+	id, err := s.claim(proposed)
+	if err != nil {
+		return Instance{}, err
+	}
 	wanted.ID = id
 	wanted.Started = time.Now().Unix()
 	for _, each := range []string{s.Workspace(id), s.State(id), s.threadsDir(id)} {
@@ -115,8 +125,26 @@ func (s *Store) Start(id string, wanted Instance) (Instance, error) {
 	if err := s.write(wanted); err != nil {
 		return Instance{}, err
 	}
-	_, err := s.open(id, "")
+	_, err = s.open(id, "")
 	return wanted, err
+}
+
+// claim makes the instance's directory, which only one caller can do for any
+// one id, so the id it returns is this caller's alone.
+func (s *Store) claim(proposed string) (string, error) {
+	for n := 1; ; n++ {
+		id := proposed
+		if n > 1 {
+			id = fmt.Sprintf("%s-%d", proposed, n)
+		}
+		err := os.Mkdir(s.Dir(id), 0o755)
+		if err == nil {
+			return id, nil
+		}
+		if !errors.Is(err, fs.ErrExist) {
+			return "", err
+		}
+	}
 }
 
 func (s *Store) Get(id string) (Instance, bool) {
