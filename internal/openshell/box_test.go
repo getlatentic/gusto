@@ -68,7 +68,7 @@ func sandboxFor(t *testing.T, dir job.Dir) *openshell.Sandbox {
 		t.Fatal(err)
 	}
 	box, err := openshell.New(openshell.Config{Binary: "openshell", Image: "runner.tar", CPU: "1", Memory: "1Gi", Allowed: []string{"registry.npmjs.org"}},
-		"job-one", configured.Adapter, "http://host.openshell.internal:8041/model/v1", "a-job-token")
+		"job-one", configured.Adapter, "http://host.openshell.internal:8041/model/v1", "http://127.0.0.1:8041/model/v1", "a-job-token")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,5 +244,40 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
 	if !strings.Contains(string(calls), "/sandbox/.config/fixture/skills") || strings.Contains(string(calls), "/root/") {
 		t.Errorf("the skill went to the runner's home, or nowhere: %s", calls)
+	}
+}
+
+// An adapter is written for a container, where the harness's home is /root, so
+// every mention of it in what the harness is told is rewritten for the sandbox.
+func TestTheRunnersHomeIsRewrittenForTheSandboxInWhatTheHarnessIsTold(t *testing.T) {
+	installFake(t)
+	for from, want := range map[string]string{
+		"/root": "/sandbox", "/root/.local/share/codex": "/sandbox/.local/share/codex",
+		`mkdir -p /root/.a && cp /root/.config/x /root/.b`: `mkdir -p /sandbox/.a && cp /sandbox/.config/x /sandbox/.b`,
+		"/rootless/thing": "/rootless/thing", "/usr/root/x": "/usr/root/x",
+	} {
+		if got := openshell.InSandbox(from); got != want {
+			t.Errorf("%q became %q, want %q", from, got, want)
+		}
+	}
+}
+
+// A program the image does not carry is refused by name once the sandbox is up,
+// and the sandbox is removed, rather than the harness failing inside it.
+func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *testing.T) {
+	root := installFake(t)
+	dir, _ := aJob(t)
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"a-program-no-image-carries","argv":[],"needs":"nothing","stream":"plain"}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	_, err := runner.Outside(dir, sandboxFor(t, dir))
+	if err == nil || !strings.Contains(err.Error(), "does not carry a-program-no-image-carries") {
+		t.Fatalf("%v", err)
+	}
+	if deleted, _ := os.ReadFile(filepath.Join(root, "deleted.log")); !strings.Contains(string(deleted), openshell.Name("job-one")) {
+		t.Errorf("the sandbox was left behind: %q", deleted)
+	}
+	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "refused this job before the harness started") {
+		t.Errorf("the refusal is not where a person looks: %s", said)
 	}
 }
