@@ -111,13 +111,9 @@ batches and the last moment of a run arrives late.
 - **Conversations and tool servers.** A job with a skill set runs; a turn in a
   conversation, or a set with MCP servers, is refused by name before anything
   starts.
-- **A real model.** opencode and pi have run in sandboxes made from the runner image,
-  through the real proxy, against a model that only answers "pong": each started,
-  reached the proxy, was denied everything else, and left a signed record. Neither has
-  edited a file, because that model cannot. The run on a real model is
-  `deploy/aws/openshell/e2e-real.sh` with `HAAS_MODEL_UPSTREAM` and `HAAS_MODEL_KEY`
-  set by the person running it. Claude Code, codex, dsh and hermes have not run in a
-  sandbox.
+- **The rest of the matrix.** opencode and pi have edited a file in a sandbox made
+  from the runner image, on a real model, and passed the project's tests. Claude Code,
+  codex, dsh and hermes have not run in a sandbox.
 - **`haas verify`.** It re-runs the gate where it is run, which for a job that ran
   in a sandbox is the verifier's machine and not a sandbox.
 - **A process limit.** The VM driver says it cannot enforce one.
@@ -128,3 +124,12 @@ On an `m8i.xlarge` with nested virtualization, OpenShell 0.1.2: a first sandbox,
 pulling a 512 MB image, started and ran a command in 8.2 s and a warm one in
 6.5 s. A comparison of two engines on the sample project took 9 s a run. The
 scripts are in `deploy/aws/openshell`: `probe.sh`, `e2e.sh` and `e2e-compare.sh`.
+
+On a real model, with the key read from Parameter Store by the instance
+(`e2e-real.sh`): Qwen3 VL 235B on Bedrock, through the proxy. opencode fixed the
+sample project's discount and the tests passed. A comparison of opencode and pi on
+it passed both, in 39 s and 18 s, each with a one-line diff and a signed record.
+opencode asked for `models.opencode.ai`, `registry.npmjs.org` and `github.com`;
+each was denied and it carried on. The credential name has to be one the harness's
+adapter knows: opencode failed under `bedrock`, which its adapter has no provider
+for, and passed under `platform`.
