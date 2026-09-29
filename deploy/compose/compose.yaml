@@ -56,6 +56,7 @@ services:
       HAAS_SESSIONS: ${HAAS_DATA:-/var/lib/haas}/sessions
       HAAS_SETUPS: ${HAAS_DATA:-/var/lib/haas}/setups
       HAAS_CHANGES: ${HAAS_DATA:-/var/lib/haas}/changes/changes.jsonl
+      HAAS_RETENTION: ${HAAS_DATA:-/var/lib/haas}/retention
       HAAS_COMPARISONS: ${HAAS_DATA:-/var/lib/haas}/comparisons
       DOCKER_HOST: unix:///run/haas/runtime.sock
     ports:

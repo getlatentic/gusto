@@ -234,3 +234,12 @@ signer_name: "{{ inventory_hostname }}"
 # shared password. Turning this on stops `haas submit` and deploy/smoke.sh
 # working with the password: they need HAAS_TOKEN. docs/TOKENS.md.
 api_tokens: false
+
+# How long finished work is kept, in days after a job ends, by the state it
+# ended in (passed, failed, interrupted). A job loses its workspace first, then
+# its signed record; nothing set is kept for ever. A record cannot go before its
+# workspace. An empty policy removes nothing, and /retention still shows the disk
+# and the holds. docs/RETENTION.md.
+retention_policy: {}
+#  workspaceDays: { passed: 14, failed: 30, interrupted: 7 }
+#  recordDays: { passed: 365, failed: 365, interrupted: 90 }

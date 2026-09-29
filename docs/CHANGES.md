@@ -15,6 +15,8 @@ setup, and which settings changed. An admin reads it at `/changes`.
 | `setup.saved` | a skill set is created or its tools change |
 | `skill.written`, `skill.dropped` | a skill is added to a skill set or removed |
 | `token.created`, `token.revoked` | an admin makes or revokes an API token, with what it may do. The secret is never written |
+| `retention.hold`, `retention.release` | an admin keeps a job or a person's work from being removed, or lets it go |
+| `retention.swept` | a sweep removed workspaces or records, with the counts and the records named |
 | `server.started` | the server starts, with the settings that decide who may do what |
 | `settings.changed` | one of those settings differs from the last start |
 
@@ -24,8 +26,8 @@ holds a password: a wrong password is recorded as wrong, not as typed.
 The settings are `HAAS_ALLOWED`, `HAAS_ADMINS`, `HAAS_RUNNER_GROUPS`,
 `HAAS_ADMIN_GROUPS`, `HAAS_OIDC_GROUPS_CLAIM`, `HAAS_OIDC_ISSUER`,
 `HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, `HAAS_API_TOKENS`,
-`HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM`, and the hash of the
-spend policy file. They change outside the pages, so `who` is `the server` and
+`HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM`, `HAAS_RETENTION`, and the hashes of the
+retention policy and of the spend policy file. They change outside the pages, so `who` is `the server` and
 `when` is when it next started.
 
 A change is applied and then recorded. When the record cannot be written, the
