@@ -7,10 +7,12 @@ says what the server is given to start those containers with. Read
 installing: **the job runtime in this pod is privileged, which is root on the
 node that runs it**, and the namespace has to admit that.
 
-This chart has been linted, rendered and checked against the Kubernetes schema,
-and its pod has been laid out by hand with Docker. It has not yet been installed
-on a cluster. [What has been run](../../README.md#what-has-been-run-and-what-has-not)
-says exactly what was run.
+This chart has been linted, rendered and checked against the Kubernetes schema.
+The `install-check` workflow installs it on a `kind` cluster from a release's
+digests, and the pod signs somebody in. It has not been installed on a cluster
+you run, and arm64 has not been tried.
+[What has been run](../../README.md#what-has-been-run-and-what-has-not) says
+exactly what was run.
 
 ## What the cluster needs
 
@@ -24,10 +26,32 @@ says exactly what was run.
 
 ## Images
 
-No public image exists for the server or the runner, so you build both, push
-them, and give the chart their digests. Compose builds them from the same pinned
-bases as the compose install, so build with it, from the repository root, on a
-machine with Docker:
+### From a release
+
+A release names the server and the runner by digest, signed, in its notes. The
+images are private, so the cluster needs a way to pull them. The kubelet pulls
+the server and the daemon in the pod pulls the runner, and one
+`kubernetes.io/dockerconfigjson` Secret serves both:
+
+```bash
+kubectl -n haas create secret docker-registry ghcr \
+  --docker-server=ghcr.io --docker-username=<user> --docker-password=<token>
+helm install haas deploy/helm/haas -n haas \
+  --set image.server.repository=ghcr.io/getlatentic/haas-server --set image.server.digest=sha256:<digest> \
+  --set image.runner.repository=ghcr.io/getlatentic/haas-runner --set image.runner.digest=sha256:<digest> \
+  --set 'imagePullSecrets[0].name=ghcr' --set runnerPullSecret=ghcr \
+  --set auth.password=<password>
+```
+
+`.github/workflows/install-check.yml` runs these steps on a `kind` cluster, after
+`cosign verify` on both images. Check the signatures before you pull:
+[deploy/README.md](../../README.md#published-images) has the command.
+
+### Or build them
+
+To use your own registry, build both, push them, and give the chart their
+digests. Compose builds them from the same pinned bases as the compose install,
+so build with it, from the repository root, on a machine with Docker:
 
 ```bash
 cd deploy/compose

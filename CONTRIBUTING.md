@@ -1,16 +1,21 @@
 # Contributing
 
-**Issues are the single source of truth.** No work happens that is not an issue,
-and every change references one.
+**Issues are the single source of truth, and they live in
+[getlatentic/planning](https://github.com/getlatentic/planning)**, the private
+tracker for every Latentic product. This repository has no issues of its own.
+No work happens that is not an issue there, and every change references one.
 
-- Branch per issue. The pull request says `Closes #N`, or `Refs #N` when it only
-  moves part of it.
+- Every haas issue carries the `repo:haas` label. Milestones are named
+  `haas · <goal>` and are sprints.
+- Branch per issue. The pull request says `Closes getlatentic/planning#N`, or
+  `Refs getlatentic/planning#N` when it only moves part of it. A bare `#N` points
+  at this repository and finds nothing.
 - Tick the sub-tasks in the issue as you go, and close it when its acceptance
   criteria are met.
 - Work that surfaces mid-sprint goes to the backlog with the `backlog` label and
   no milestone. It joins a sprint at sprint planning, not the moment it is
   thought of.
-- Milestones are sprints. Every issue belongs to a sprint or to the backlog.
+- Every issue belongs to a sprint or to the backlog.
 
 ## The standard for the code
 
