@@ -41,6 +41,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Title":     "haas",
 		"Nav":       "harnesses",
+		"Admin":     s.admin(r),
 		"Instances": listed[from:to],
 		"Total":     len(listed),
 		"From":      from + 1,

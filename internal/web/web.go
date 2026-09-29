@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -37,9 +38,13 @@ type Server struct {
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
 	admins    map[string]bool
-	lineups   *compare.Board
-	setups    *setup.Store
-	servers   setup.Servers
+	// changes is the record of what changed on the platform, and turnedAway
+	// counts the sign-ins written to it.
+	changes    *changelog.Log
+	turnedAway refusals
+	lineups    *compare.Board
+	setups     *setup.Store
+	servers    setup.Servers
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
 	inBuilding bool
@@ -100,6 +105,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
+	mux.HandleFunc("GET /changes", s.guard(s.adminPage(s.changesPage)))
+	mux.HandleFunc("GET /changes.jsonl", s.guard(s.adminPage(s.changesFile)))
+	mux.HandleFunc("GET /api/changes", s.sent(s.changesScript))
 	mux.HandleFunc("GET /api/spend", s.sent(s.spendJSON))
 	// Conversations were held at /talk before an instance could hold more than
 	// one. A link somebody kept still finds its instance.

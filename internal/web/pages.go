@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -148,14 +149,18 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	if !s.keeper.admits(r.FormValue("password")) {
+		// What was typed is never written down, only that it was wrong.
+		s.noteRefused(r, "", "the shared password", "the password was wrong")
 		http.Redirect(w, r, "/login?wrong=1", http.StatusSeeOther)
 		return
 	}
 	s.keeper.issue(w, r)
+	s.noteSignIn(r, sharedSignIn, Admin, "the shared password")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
+	s.note(r, changelog.SignedOut, nil)
 	s.keeper.clear(w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
