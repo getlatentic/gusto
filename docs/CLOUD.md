@@ -41,6 +41,11 @@ processes of the organisations assigned to it, because a sandbox reaches its
 server's proxy through the gateway machine's loopback. The account store says
 which cell an organisation is on.
 
+On an `m8i.2xlarge`, 12 sandboxes ran together, and CPU-bound work in them ran at full
+speed up to four and slowed in proportion beyond that ([OPENSHELL.md](OPENSHELL.md)). A
+cell's capacity is therefore a setting and not a guess: sandboxes that mostly wait for a
+model can be many more than four.
+
 A new organisation on the shared pool needs no new AWS resources: it is a
 directory and a process on a cell, and a route. Only growing the pool, or an
 organisation with its own, adds infrastructure.
