@@ -53,3 +53,10 @@ func asset(path string) string {
 	}
 	return path
 }
+
+// Static is the vendored files, for another server in this binary that draws
+// pages in the same design and must not fetch anything either.
+func Static() http.Handler { return serveStatic() }
+
+// Asset is a static file's address with its fingerprint.
+func Asset(path string) string { return asset(path) }
