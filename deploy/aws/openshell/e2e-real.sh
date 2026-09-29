@@ -32,15 +32,18 @@ fi
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e; pkill -f "[e]2e/haas serve" || true; pkill -f "[f]ake_model.py" || true; sleep 1; rm -f ~/e2e/haas ~/e2e/model.env'
 scp -q "${ssh_options[@]}" "$state/haas" e2e/fake_model.py "ubuntu@$address:e2e/"
 scp -q -r "${ssh_options[@]}" e2e/sample "ubuntu@$address:e2e/"
+# The credential's name and the model's id at that provider; neither is secret.
+name="${HAAS_MODEL_NAME:-provider}"; id="${HAAS_MODEL_ID:-}"
+if [ -n "${HAAS_MODEL_UPSTREAM:-}" ] && [ -z "$id" ]; then echo "set HAAS_MODEL_ID, the model's id at HAAS_MODEL_UPSTREAM" >&2; exit 2; fi
 if [ -n "${HAAS_MODEL_UPSTREAM:-}" ] && [ -z "${HAAS_MODEL_KEY:-}" ]; then
   # The instance reads the key itself, with its role, from where ./put-key.sh stored it.
   parameter="${HAAS_MODEL_PARAMETER:-/haas/poc/model-key}"
   ssh "${ssh_options[@]}" "ubuntu@$address" "umask 077; export AWS_REGION=$AWS_REGION
     key=\$(aws ssm get-parameter --with-decryption --name '$parameter' --query Parameter.Value --output text) || exit 1
-    printf 'HAAS_MODEL_UPSTREAM=%s\nHAAS_MODEL_KEY=%s\n' '$HAAS_MODEL_UPSTREAM' \"\$key\" > ~/e2e/model.env"
+    printf 'HAAS_MODEL_UPSTREAM=%s\nHAAS_MODEL_NAME=%s\nHAAS_MODEL_ID=%s\nHAAS_MODEL_KEY=%s\n' '$HAAS_MODEL_UPSTREAM' '$name' '$id' \"\$key\" > ~/e2e/model.env"
 elif [ -n "${HAAS_MODEL_KEY:-}" ]; then
   : "${HAAS_MODEL_UPSTREAM:?set HAAS_MODEL_UPSTREAM with HAAS_MODEL_KEY}"
-  printf 'HAAS_MODEL_UPSTREAM=%s\nHAAS_MODEL_KEY=%s\n' "$HAAS_MODEL_UPSTREAM" "$HAAS_MODEL_KEY" \
+  printf 'HAAS_MODEL_UPSTREAM=%s\nHAAS_MODEL_NAME=%s\nHAAS_MODEL_ID=%s\nHAAS_MODEL_KEY=%s\n' "$HAAS_MODEL_UPSTREAM" "$name" "$id" "$HAAS_MODEL_KEY" \
     | ssh "${ssh_options[@]}" "ubuntu@$address" 'umask 077; cat > ~/e2e/model.env'
 fi
 ssh "${ssh_options[@]}" "ubuntu@$address" 'bash -s' < e2e/real-on-host.sh 2>&1 | tee out/e2e-real.txt
