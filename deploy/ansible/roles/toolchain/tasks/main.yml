@@ -11,6 +11,26 @@
     group: "{{ app_user }}"
     mode: "0644"
 
+# Asked of the installed toolchain alone (GOTOOLCHAIN=local), so it says what is
+# on disk and not what Go would fetch to satisfy go.mod.
+- name: Which Go is installed
+  ansible.builtin.command:
+    cmd: "{{ app_root }}/go/bin/go version"
+  environment:
+    GOTOOLCHAIN: local
+    GOROOT: "{{ app_root }}/go"
+  register: installed_go
+  changed_when: false
+  failed_when: false
+
+# A version that is not the pinned one is replaced whole, so no file of the old
+# one is left among the new.
+- name: An installed Go that is not the pinned one, removed
+  ansible.builtin.file:
+    path: "{{ app_root }}/go"
+    state: absent
+  when: "('go' + go_version + ' ') not in (installed_go.stdout | default('')) "
+
 - name: Go unpacked
   ansible.builtin.unarchive:
     src: "{{ app_root }}/go{{ go_version }}.tar.gz"
@@ -32,6 +52,9 @@
     HOME: "{{ app_root }}"
     GOCACHE: "{{ app_root }}/var/go-cache"
     GOMODCACHE: "{{ app_root }}/var/go-mod"
+    # The pinned Go builds, or the build fails: a toolchain fetched from the
+    # network to satisfy go.mod is one nobody pinned or checked.
+    GOTOOLCHAIN: local
   register: build
   changed_when: true
 
