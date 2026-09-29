@@ -42,6 +42,9 @@ func serve(args []string) int {
 		fmt.Fprintln(os.Stderr, "haas: set HAAS_PASSWORD; the server will not start without a sign-in")
 		return 2
 	}
+	if err := ready(); err != nil {
+		return fail(err)
+	}
 	index, err := jobs.Open(setting("HAAS_JOBS", "jobs"))
 	if err != nil {
 		return fail(err)
