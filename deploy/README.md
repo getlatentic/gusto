@@ -206,6 +206,13 @@ outside the repository; nothing under `deploy/` changed for it.
   `helm/haas/ci/values.yaml`, and `kubeconform -strict` against Kubernetes
   1.30.0: five resources, all valid. It refuses a tag in place of a digest, a
   missing password, a setting the chart owns, and Kubernetes before 1.29.
+- **The chart, on a cluster.** The `install-check` workflow
+  (`.github/workflows/install-check.yml`, run 36531022679 on 2026-09-29) checks
+  the signatures of v0.1.0-rc.1's two images with cosign, then installs the chart
+  from their digests on a `kind` cluster with a pull secret. The pod became
+  ready, the server container ran the named digest, sign-in answered 303 and the
+  home page 200. The same run installed compose from the digests with
+  `--no-build` and passed the same checks. Neither ran a job or reached a model.
 - **The chart's pod, without Kubernetes.** kind could not start a pod on that
   machine (runc failed one level down), so the pod was laid out by hand with
   Docker: the runtime image privileged with the chart's arguments, the server
