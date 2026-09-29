@@ -92,7 +92,7 @@ func Inside(dir job.Dir) (int, error) {
 		err = agent.handOver(dir, command)
 	}
 	if err == nil && adapter.Stream == harness.ACP {
-		exit, err = converse(ctx, command, spec, servers, record)
+		exit, err = converse(ctx, command, resolved(command.Dir), spec, servers, record)
 	} else if err == nil {
 		exit, err = stream(ctx, command, record)
 	}

@@ -1,6 +1,7 @@
 package openshell_test
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -279,5 +280,60 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 	}
 	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "refused this job before the harness started") {
 		t.Errorf("the refusal is not where a person looks: %s", said)
+	}
+}
+
+// A harness that keeps its state in a folder wants the folder to exist before it
+// starts, as it does in a container, and in the sandbox's home.
+func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
+	installFake(t)
+	dir, _ := aJob(t)
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "fixture.json"), `{
+  "name": "fixture", "program": "sh", "keeps": "/root/.local/share/fixture",
+  "argv": ["-c", "printf yes > answer.txt; test -d ../.local/share/fixture && echo state folder is there || echo state folder is missing"],
+  "needs": "nothing", "stream": "plain"}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+		t.Fatalf("exit %d, %v", exit, err)
+	}
+	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "state folder is there") {
+		t.Errorf("the harness found no state folder:\n%s", said)
+	}
+}
+
+// An agent that speaks the Agent Client Protocol is held a conversation with, in
+// the directory the sandbox has the workspace at and not one of this machine's.
+func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
+	installFake(t)
+	dir, _ := aJob(t)
+	agent := `while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([^,}]*\).*/\1/p')
+  case "$line" in
+    *'"method":"initialize"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1,"agentCapabilities":{},"authMethods":[]}}\n' "$id";;
+    *'"method":"session/new"'*) printf '%s' "$line" > asked-new.json; printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id";;
+    *'"method":"session/prompt"'*) printf yes > answer.txt
+      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Made it yes."}}}}\n'
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id";;
+  esac
+done`
+	adapter, err := json.Marshal(map[string]any{
+		"name": "fixture", "program": "sh", "argv": []string{"-c", agent}, "needs": "nothing", "stream": "acp",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "fixture.json"), string(adapter))
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+		t.Fatalf("exit %d, %v", exit, err)
+	}
+	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "Made it yes.") {
+		t.Errorf("the agent's words did not reach the record:\n%s", said)
+	}
+	asked, err := os.ReadFile(filepath.Join(dir.Workspace(), "asked-new.json"))
+	if err != nil || !strings.Contains(string(asked), `"cwd":"/sandbox/workspace"`) {
+		t.Errorf("the session should begin in the sandbox's workspace: %s %v", asked, err)
 	}
 }
