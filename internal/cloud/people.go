@@ -44,8 +44,8 @@ type Limits struct {
 // DefaultLimits are what a sign-up may run before and after it is verified.
 func DefaultLimits() Limits {
 	return Limits{
-		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."},
-		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true},
+		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit."},
+		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4},
 	}
 }
 

@@ -22,8 +22,11 @@ type Quota struct {
 	Monthly bool `json:"monthly,omitempty"`
 	// Concurrent is how many jobs may run at once.
 	Concurrent int `json:"concurrent"`
-	// Invites says whether colleagues may be invited.
-	Invites bool `json:"invites"`
+	// Invites says whether colleagues may be invited, Members how many people
+	// there may be in all, and Computers how many computers.
+	Invites   bool `json:"invites"`
+	Members   int  `json:"members"`
+	Computers int  `json:"computers"`
 	// Note is a sentence added to a refusal: how the limit is lifted.
 	Note string `json:"note,omitempty"`
 }
@@ -126,4 +129,21 @@ func read(path string) (Quota, error) {
 		return Quota{}, fmt.Errorf("the limits in %s are negative", path)
 	}
 	return q, nil
+}
+
+// RefuseComputers is nil while the computers there are number fewer than the quota
+// allows, and a sentence a person can act on when they do not.
+func (q Quota) RefuseComputers(have int) error {
+	if have < q.Computers {
+		return nil
+	}
+	computers := "computers"
+	if q.Computers == 1 {
+		computers = "computer"
+	}
+	message := fmt.Sprintf("This organisation may have %d %s and has %d.", q.Computers, computers, have)
+	if q.Note != "" {
+		message += " " + q.Note
+	}
+	return exceeded(message)
 }
