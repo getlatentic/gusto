@@ -23,6 +23,42 @@ browser ──► front door (haas cloud) ──► the organisation's haas serv
 | Where do jobs run? | In OpenShell sandboxes on a pool of gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel. |
 | Why a shared gateway and not one per organisation? | A host with KVM is the cost. A gateway per organisation is the same isolation at about a hundred times the price, and the sandbox boundary is already per job. |
 
+## The demo
+
+One EC2 host runs the front door, each organisation's `haas serve` and one OpenShell
+gateway.
+
+1. An admin signs up on the public cloud and confirms their address. The
+   organisation is on the trial that a verified address gets: an admin and three
+   users, each with a computer.
+2. The admin invites three people. An invited person signs in to the organisation.
+3. Each person has one computer: a microVM on the host that keeps their files, that
+   their agents run in, and that is theirs alone.
+4. The admin sees every computer in their organisation, whose it is, and what state
+   it is in. The operator sees every computer on the host, and whose organisation
+   it belongs to.
+
+### Computers
+
+A computer belongs to one person and one organisation, and the organisation's server is
+the only thing that makes or reaches it. Its record is kept in the organisation's own
+directory, as the source of truth for what the organisation has:
+
+| Field | Meaning |
+| --- | --- |
+| `user` | the person, by address |
+| `org` | the organisation |
+| `sandbox` | the name the gateway knows it by: `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person, so what is an organisation's on the gateway is found by its digest |
+| `host` | the cell it runs on |
+| `state` | `creating`, `running`, `stopped`, `failed` or `deleted` |
+| `created`, `lastActive` | when |
+
+A person has one computer in an organisation. It is made when they first sign in, so a
+person who was invited and never came costs nothing, and it is stopped when idle, which
+keeps their files. Removing the person deletes it. The gateway's list and the
+organisation's records are compared, and a sandbox with no record, or a record with no
+sandbox, is reported.
+
 ## Where it runs
 
 Nothing here is made or changed from a person's machine. What is made when
@@ -103,6 +139,8 @@ file name, and only the hash of a link's secret is stored.
 | Jobs in total | 3 | 200 a month |
 | Jobs at once | 1 | 4 |
 | Invite colleagues | no | yes |
+| People in all | 1 | 4 |
+| Computers | 1 | 4 |
 
 The numbers are settings. `quota.json` in the organisation's directory is where
 the organisation's server reads them, through `HAAS_QUOTA`, and
@@ -129,6 +167,7 @@ an account, so the form cannot be used to find out who is a customer.
 | `HAAS_CLOUD_URL` | the address links in mail begin with |
 | `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `HAAS_CLOUD_MAIL` | `outbox`, or `smtp://user:password@host:587?from=name@example.com` |
+| `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
 | `HAAS_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
 ## What comes next

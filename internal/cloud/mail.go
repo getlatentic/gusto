@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -38,6 +39,10 @@ func message(from, to, subject, body string) ([]byte, error) {
 	return []byte(out.String()), nil
 }
 
+// outboxSequence numbers the mail in the order it is sent, which two sent in one
+// millisecond are otherwise not told apart by.
+var outboxSequence atomic.Uint64
+
 // Outbox writes each mail to a file in a directory instead of sending it: for a
 // machine with no mail server, and for a test that reads what a person would.
 type Outbox struct {
@@ -52,7 +57,7 @@ func (o Outbox) Send(to, subject, body string) error {
 	}
 	id := make([]byte, 6)
 	rand.Read(id)
-	name := fmt.Sprintf("%s-%s.eml", time.Now().UTC().Format("20060102-150405.000"), hex.EncodeToString(id))
+	name := fmt.Sprintf("%s-%06d-%s.eml", time.Now().UTC().Format("20060102-150405.000"), outboxSequence.Add(1), hex.EncodeToString(id))
 	return os.WriteFile(filepath.Join(o.Dir, name), text, 0o600)
 }
 

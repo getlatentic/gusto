@@ -25,6 +25,8 @@ type view struct {
 	Trial    quota.Quota
 	Verified quota.Quota
 	Notice   string
+	// Computers is how many computers the organisation has.
+	Computers int
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
