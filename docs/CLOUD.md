@@ -48,7 +48,7 @@ directory, as the source of truth for what the organisation has:
 | --- | --- |
 | `user` | the person, by address |
 | `org` | the organisation |
-| `sandbox` | the name the gateway knows it by, made from the organisation and the person, so a look at the gateway's own list says whose each is |
+| `sandbox` | the name the gateway knows it by: `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person, so what is an organisation's on the gateway is found by its digest |
 | `host` | the cell it runs on |
 | `state` | `creating`, `running`, `stopped`, `failed` or `deleted` |
 | `created`, `lastActive` | when |
@@ -139,6 +139,8 @@ file name, and only the hash of a link's secret is stored.
 | Jobs in total | 3 | 200 a month |
 | Jobs at once | 1 | 4 |
 | Invite colleagues | no | yes |
+| People in all | 1 | 4 |
+| Computers | 1 | 4 |
 
 The numbers are settings. `quota.json` in the organisation's directory is where
 the organisation's server reads them, through `HAAS_QUOTA`, and
