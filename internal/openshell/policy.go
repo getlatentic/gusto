@@ -52,7 +52,7 @@ func Policy(cfg Config, modelURL string, writable []string) ([]byte, error) {
 func filesystem(writable []string) map[string]any {
 	return map[string]any{
 		"include_workdir": false,
-		"read_only":       []string{"/usr", "/lib", "/bin", "/etc", "/proc", "/dev/urandom", "/var/log"},
+		"read_only":       []string{"/usr", "/lib", "/bin", "/etc", "/opt", "/proc", "/dev/urandom", "/var/log"},
 		"read_write":      append([]string{"/sandbox", "/tmp", "/dev/null"}, writable...),
 	}
 }
