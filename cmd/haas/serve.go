@@ -100,6 +100,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseLedger(way.ledger)
+	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})
 	pages.UseAdmins(values("HAAS_ADMINS"))
 	// Setups are kept beside the instances. The MCP servers they choose from
 	// are the operator's, one file each in HAAS_MCP.

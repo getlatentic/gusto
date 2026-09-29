@@ -3,6 +3,7 @@ package jobs
 import (
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/haas/internal/job"
@@ -22,6 +23,8 @@ type Queue struct {
 	stop    chan struct{}
 	stopped sync.Once
 	workers sync.WaitGroup
+	alive   atomic.Int32
+	slots   int
 }
 
 func Start(index *Index, work Work, workers int) *Queue {
@@ -30,6 +33,7 @@ func Start(index *Index, work Work, workers int) *Queue {
 	}
 	index.setSlots(workers)
 	queue := &Queue{
+		slots: workers,
 		index: index,
 		work:  work,
 		wake:  make(chan struct{}, workers),
@@ -57,7 +61,15 @@ func (q *Queue) Stop() {
 	q.workers.Wait()
 }
 
+// Alive is how many workers are running, and Slots how many there should be.
+// A worker that is gone leaves a queue that takes jobs and never starts them.
+func (q *Queue) Alive() int { return int(q.alive.Load()) }
+
+func (q *Queue) Slots() int { return q.slots }
+
 func (q *Queue) serve() {
+	q.alive.Add(1)
+	defer q.alive.Add(-1)
 	defer q.workers.Done()
 	// The tick is a backstop for a wake that was missed. It does not find work
 	// nobody told this server about: the index is read from disk once, at Open.

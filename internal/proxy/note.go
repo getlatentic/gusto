@@ -14,6 +14,7 @@ import (
 // The line is the ledger: a server that restarts rebuilds its counts from these
 // lines, and the manifest hashes them with the rest of the evidence.
 func (p *Proxy) note(job string, call spend.Call) {
+	p.counts.add(call)
 	p.ledger.Count(job, call)
 	where, ok := p.where(job)
 	if !ok {
