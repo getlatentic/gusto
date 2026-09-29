@@ -1,0 +1,159 @@
+package cloud
+
+import (
+	"embed"
+	"html/template"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/getlatentic/haas/internal/web"
+)
+
+//go:embed templates/*.html static/cloud.css
+var files embed.FS
+
+// Config is what a front door is made from.
+type Config struct {
+	Store    *Store
+	Mail     Mailer
+	Sessions *Sessions
+	// URL is the address links in mail begin with, and Domain is the domain
+	// organisations are served under, as <slug>.<domain>.
+	URL    *url.URL
+	Domain string
+	// TrustProxy says the address of a request is the last one a proxy in front
+	// of this server wrote in X-Forwarded-For, and not the connection's own.
+	TrustProxy bool
+	// The most sign-ups from one address in an hour, mail to one address in an
+	// hour, and sign-ups in all in an hour.
+	PerAddress, PerMailbox, InAll int
+}
+
+// Server is the front door's pages.
+type Server struct {
+	Config
+	pages   *template.Template
+	signups *Limiter
+	mails   *Limiter
+	all     *Limiter
+	sending sync.WaitGroup
+}
+
+// New makes the front door.
+func New(c Config) (*Server, error) {
+	if c.PerAddress <= 0 {
+		c.PerAddress = 10
+	}
+	if c.PerMailbox <= 0 {
+		c.PerMailbox = 3
+	}
+	if c.InAll <= 0 {
+		c.InAll = 200
+	}
+	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset}).ParseFS(files, "templates/*.html")
+	if err != nil {
+		return nil, err
+	}
+	return &Server{Config: c, pages: pages,
+		signups: NewLimiter(c.PerAddress, time.Hour), mails: NewLimiter(c.PerMailbox, time.Hour), all: NewLimiter(c.InAll, time.Hour)}, nil
+}
+
+// Handler is every page the front door has.
+func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("POST /signup", s.signUp)
+	mux.HandleFunc("GET /signin", s.signInPage)
+	mux.HandleFunc("POST /signin", s.signIn)
+	mux.HandleFunc("GET /verify", s.confirmPage(Verify, "Confirm your email address", "Confirm"))
+	mux.HandleFunc("POST /verify", s.useLink(Verify))
+	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to haas", "Continue"))
+	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
+	mux.HandleFunc("GET /org", s.guard(s.org))
+	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
+	mux.HandleFunc("POST /signout", s.signOut)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
+	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/", web.Static())
+	return s.secure(mux)
+}
+
+// Wait returns when every mail started so far has been handed on.
+func (s *Server) Wait() { s.sending.Wait() }
+
+// secure gives every response headers that keep a page from being framed,
+// sniffed or scripted, refuses a form that another site sent, and keeps a
+// request from sending more than a form is.
+func (s *Server) secure(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "same-origin")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		if s.Sessions.secure {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
+		if !strings.HasPrefix(r.URL.Path, "/static/") {
+			h.Set("Cache-Control", "no-store")
+		}
+		if r.Method == http.MethodPost {
+			if !sameSite(r) {
+				http.Error(w, "that form was sent from another site", http.StatusForbidden)
+				return
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// sameSite says a form came from a page of this server. A browser names the
+// page's origin on every form it posts, and says when the site is another.
+func sameSite(r *http.Request) bool {
+	if origin := r.Header.Get("Origin"); origin != "" {
+		parsed, err := url.Parse(origin)
+		return err == nil && parsed.Host == r.Host
+	}
+	return r.Header.Get("Sec-Fetch-Site") != "cross-site"
+}
+
+func cached(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// source is the address a request came from, for the limits on it.
+func (s *Server) source(r *http.Request) string {
+	if s.TrustProxy {
+		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+			parts := strings.Split(forwarded, ",")
+			return strings.TrimSpace(parts[len(parts)-1])
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// send mails a person without making the request wait for it, so how long it
+// takes says nothing about whether the address has an account.
+func (s *Server) send(to, subject, body string) {
+	s.sending.Add(1)
+	go func() {
+		defer s.sending.Done()
+		if err := s.Mail.Send(to, subject, body); err != nil {
+			log.Printf("cloud: mail to a person was not sent: %v", err)
+		}
+	}()
+}

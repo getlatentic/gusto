@@ -1,0 +1,11 @@
+{{define "signup"}}{{template "head" .}}
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+  <h1>Create your organisation</h1>
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="/signup">
+    <label>Work email <input type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
+    <label>Organisation name <input type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
+    <button type="submit">Create organisation</button>
+  </form>
+  <p class="other">Already have one? <a href="/signin">Sign in</a></p>
+{{template "foot"}}{{end}}
