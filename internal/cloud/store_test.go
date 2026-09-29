@@ -258,3 +258,124 @@ func TestAFileThatMustBeNewIsMadeByOneCallerOnly(t *testing.T) {
 		t.Errorf("the first file should be untouched: %v %v", got, err)
 	}
 }
+
+func TestAnOrganisationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *testing.T) {
+	s := open(t, Settings{})
+	person, org, err := s.SignUp(Signup{Email: "ada@acme-research.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if org.Name != "Acme Research" || org.Slug != "acme-research" || org.Domain != "acme-research.com" || person.Org != "acme-research" {
+		t.Errorf("%+v %+v", person, org)
+	}
+	// A name given is kept, and the address still follows from it.
+	_, other, err := s.SignUp(Signup{Email: "bob@globex.com", OrgName: "Globex Secret Works"})
+	if err != nil || other.Slug != "globex-secret-works" || other.Domain != "globex.com" {
+		t.Errorf("%+v %v", other, err)
+	}
+}
+
+func TestAFreeMailAddressHasNoCompanyToNameItAndClaimsNoDomain(t *testing.T) {
+	s := open(t, Settings{AllowFreeMail: true})
+	if _, _, err := s.SignUp(Signup{Email: "ada@gmail.com"}); !errors.Is(err, ErrNeedName) {
+		t.Fatalf("a name is asked for: %v", err)
+	}
+	_, org, err := s.SignUp(Signup{Email: "ada@gmail.com", OrgName: "Ada's Lab"})
+	if err != nil || org.Domain != "" {
+		t.Fatalf("%+v %v", org, err)
+	}
+	if _, err := s.Verify("ada@gmail.com"); err != nil {
+		t.Fatal(err)
+	}
+	if _, claimed, _ := s.DomainOwner("gmail.com"); claimed {
+		t.Error("nobody owns gmail.com")
+	}
+	// Nor is a second person at the same provider held off by the first.
+	if _, _, err := s.SignUp(Signup{Email: "bob@gmail.com", OrgName: "Bob's Lab"}); err != nil {
+		t.Errorf("%v", err)
+	}
+}
+
+func TestAnAddressThatCannotBeADerivedNameOrAddressIsAskedAbout(t *testing.T) {
+	s := open(t, Settings{})
+	for email, want := range map[string]error{
+		"ada@test.com":  ErrReservedSlug, // test is kept
+		"ada@ab.com":    ErrBadSlug,      // two letters is too short
+		"ada@admin.org": ErrReservedSlug,
+	} {
+		if _, _, err := s.SignUp(Signup{Email: email}); !errors.Is(err, want) {
+			t.Errorf("%s: %v, want %v", email, err, want)
+		}
+	}
+	s.SignUp(Signup{Email: "ada@acme.com"})
+	if _, _, err := s.SignUp(Signup{Email: "bob@acme.io"}); !errors.Is(err, ErrSlugTaken) {
+		t.Errorf("another company's acme is not the same organisation: %v", err)
+	}
+	if _, org, err := s.SignUp(Signup{Email: "bob@acme.io", Slug: "acme-io"}); err != nil || org.Slug != "acme-io" || org.Name != "Acme" {
+		t.Errorf("an address of their own choosing works: %+v %v", org, err)
+	}
+}
+
+func TestTheFirstOrganisationToConfirmACompanysDomainHasIt(t *testing.T) {
+	s := open(t, Settings{})
+	_, alpha, _ := s.SignUp(Signup{Email: "a@acme.com", OrgName: "Alpha"})
+	_, beta, _ := s.SignUp(Signup{Email: "b@acme.com", OrgName: "Beta"})
+	if _, claimed, _ := s.DomainOwner("acme.com"); claimed {
+		t.Fatal("signing up claims nothing: anybody can type an address")
+	}
+
+	if _, err := s.Verify("b@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	if owner, claimed, _ := s.DomainOwner("acme.com"); !claimed || owner != beta.Slug {
+		t.Fatalf("the first to confirm has it: %q %v", owner, claimed)
+	}
+	if quota, _ := s.Quota(beta.Slug); quota != DefaultLimits().Verified {
+		t.Errorf("the owner is lifted: %+v", quota)
+	}
+
+	// The second is a person who has shown they read their mail, and no more.
+	person, err := s.Verify("a@acme.com")
+	if !errors.Is(err, ErrDomainClaimed) || person.Trial() {
+		t.Fatalf("the person is verified, and told the domain is taken: %+v %v", person, err)
+	}
+	if quota, _ := s.Quota(alpha.Slug); quota != DefaultLimits().Trial {
+		t.Errorf("an organisation that does not have the domain stays on the trial: %+v", quota)
+	}
+	if _, _, err := s.SignUp(Signup{Email: "c@acme.com", OrgName: "Gamma"}); !errors.Is(err, ErrDomainClaimed) {
+		t.Errorf("a claimed domain takes no new organisation: %v", err)
+	}
+	if _, err := os.Stat(s.OrgDir("gamma")); err == nil {
+		t.Error("a refused sign-up left an organisation")
+	}
+}
+
+func TestOrganisationsConfirmedTogetherCannotBothHaveTheDomain(t *testing.T) {
+	s := open(t, Settings{PerDomain: 100})
+	var slugs []string
+	for i := range 20 {
+		_, org, err := s.SignUp(Signup{Email: fmt.Sprintf("p%d@acme.com", i), OrgName: fmt.Sprintf("Org %d", i)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		slugs = append(slugs, org.Slug)
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	has := 0
+	for _, slug := range slugs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if ok, err := s.claimDomain("acme.com", slug); err == nil && ok {
+				mu.Lock()
+				has++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if has != 1 {
+		t.Fatalf("%d organisations have the domain", has)
+	}
+}

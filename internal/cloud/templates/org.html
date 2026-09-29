@@ -15,6 +15,9 @@
     <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
     <dt>Computers</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
   </dl>
+  {{if .Claimed}}
+  <p class="muted">{{.Domain}} already has an organisation here. Ask its admin to invite you, and you will have a place in it.</p>
+  {{end}}
   {{if .Person.Trial}}
   <p class="muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
   <form method="post" action="/org/verify"><button class="quiet" type="submit">Send the link again</button></form>

@@ -48,7 +48,7 @@ func Open(root string, set Settings) (*Store, error) {
 	if set.Limits == (Limits{}) {
 		set.Limits = DefaultLimits()
 	}
-	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox"} {
+	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox", "domains"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0o700); err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	if err := workEmail(email, s.set.AllowFreeMail, s.refused); err != nil {
 		return Person{}, Org{}, err
 	}
-	name, err := OrgName(in.OrgName)
+	name, err := s.nameFor(in.OrgName, email)
 	if err != nil {
 		return Person{}, Org{}, err
 	}
@@ -123,15 +123,47 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 		}
 		return Person{}, Org{}, err
 	}
-	if made, err := s.orgsOfDomain(DomainOf(email)); err != nil {
-		return Person{}, Org{}, err
-	} else if made >= s.set.PerDomain {
-		return Person{}, Org{}, ErrDomainFull
+	domain := s.companyDomain(email)
+	if domain != "" {
+		if _, claimed, err := s.DomainOwner(domain); err != nil || claimed {
+			if err == nil {
+				err = ErrDomainClaimed
+			}
+			return Person{}, Org{}, err
+		}
+		if made, err := s.orgsOfDomain(domain); err != nil {
+			return Person{}, Org{}, err
+		} else if made >= s.set.PerDomain {
+			return Person{}, Org{}, ErrDomainFull
+		}
 	}
 	now := s.now().UTC().Truncate(time.Second)
 	person := Person{Email: email, Org: slug, Role: Admin, Created: now}
-	org := Org{Slug: slug, Name: name, Admin: email, Created: now}
+	org := Org{Slug: slug, Name: name, Admin: email, Domain: domain, Created: now}
 	return person, org, s.create(person, org)
+}
+
+// nameFor is the organisation's name: the one given, or the one the company's
+// domain suggests.
+func (s *Store) nameFor(given, email string) (string, error) {
+	if strings.TrimSpace(given) != "" {
+		return OrgName(given)
+	}
+	suggested, err := FromDomain(DomainOf(email))
+	if err != nil {
+		return "", err
+	}
+	return OrgName(suggested)
+}
+
+// companyDomain is the address's domain when it is a company's, and empty when
+// it is at a free mail provider, which is nobody's to claim.
+func (s *Store) companyDomain(email string) string {
+	domain := DomainOf(email)
+	if freeMail[domain] {
+		return ""
+	}
+	return domain
 }
 
 // create claims the slug by making its directory, then the address by linking
@@ -240,10 +272,20 @@ func (s *Store) Verify(email string) (Person, error) {
 	if err := writeFile(s.personFile(email), person, 0o600); err != nil {
 		return Person{}, err
 	}
-	if person.Role == Admin {
-		return person, s.setQuota(person.Org, s.set.Limits.Verified)
+	if person.Role != Admin {
+		return person, nil
 	}
-	return person, nil
+	// The first organisation whose admin confirms an address at a company's
+	// domain has the domain. One that is second is verified as a person and keeps
+	// the trial: the domain is another's, and its admin is who invites them.
+	if org, found, err := s.Org(person.Org); err == nil && found && org.Domain != "" {
+		if has, err := s.claimDomain(org.Domain, org.Slug); err != nil {
+			return person, err
+		} else if !has {
+			return person, ErrDomainClaimed
+		}
+	}
+	return person, s.setQuota(person.Org, s.set.Limits.Verified)
 }
 
 // Quota is what an organisation may run now.
