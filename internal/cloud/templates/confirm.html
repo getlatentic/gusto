@@ -1,0 +1,8 @@
+{{define "confirm"}}{{template "head" .}}
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+  <h1>{{.Title}}</h1>
+  <form method="post" action="{{.Action}}">
+    <input type="hidden" name="t" value="{{.Token}}">
+    <button type="submit">{{.Button}}</button>
+  </form>
+{{template "foot"}}{{end}}

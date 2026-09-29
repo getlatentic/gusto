@@ -1,0 +1,14 @@
+{{define "signin"}}{{template "head" .}}
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+  <h1>Sign in</h1>
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{if .Sent}}
+  <p>If that address has an account, a link is on its way. It works once, for 20 minutes.</p>
+  {{else}}
+  <form method="post" action="/signin">
+    <label>Email <input type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
+    <button type="submit">Email me a link</button>
+  </form>
+  {{end}}
+  <p class="other"><a href="/">Create an organisation</a></p>
+{{template "foot"}}{{end}}

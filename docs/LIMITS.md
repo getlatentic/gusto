@@ -46,3 +46,28 @@ person is meant to hold, and leave it unset on a server with one user.
 
 Comparisons start one job for each engine, so a person limit of one makes a
 comparison run its engines one after another.
+
+## A quota for the whole server
+
+A hosted organisation's server runs under a quota that its front door writes
+(`docs/CLOUD.md`). `HAAS_QUOTA` names the file:
+
+```json
+{"jobs": 3, "concurrent": 1, "note": "Confirm the admin's email address to raise this limit."}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `jobs` | how many jobs may be started, in all, or in a calendar month (UTC) when `monthly` is true |
+| `concurrent` | how many may run at once, whoever asked for them |
+| `note` | a sentence added to the refusal: how the limit is lifted |
+
+Zero is none. A job past `jobs` is refused when it is asked for: the pages show
+the reason, and the API answers 429 with it. A job past `concurrent` stays queued
+and says "This organisation may run 1 at a time and has 1 running".
+
+The file is read again each second, so a limit that is lifted applies to the next
+job without a restart. A server started with `HAAS_QUOTA` and a file it cannot
+read does not start. One that loses the file while it runs refuses every new job
+and lets one run at a time, and does not fall back to no limit.
+

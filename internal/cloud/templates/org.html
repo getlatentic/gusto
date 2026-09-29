@@ -1,0 +1,20 @@
+{{define "org"}}{{template "head" .}}
+  <header>
+    <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+    <form method="post" action="/signout"><button class="quiet" type="submit">Sign out</button></form>
+  </header>
+  <h1>{{.Org.Name}}</h1>
+  {{if .Notice}}<p class="muted" role="status">{{.Notice}}</p>{{end}}
+  <dl>
+    <dt>Address</dt><dd>{{.Address}}</dd>
+    <dt>Admin</dt><dd>{{.Org.Admin}}</dd>
+    <dt>Email</dt>
+    <dd>{{if .Person.Trial}}<span class="state">Not verified</span>{{else}}<span class="state ok">Verified</span>{{end}}</dd>
+    <dt>Jobs</dt>
+    <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
+  </dl>
+  {{if .Person.Trial}}
+  <p class="muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
+  <form method="post" action="/org/verify"><button class="quiet" type="submit">Send the link again</button></form>
+  {{end}}
+{{template "foot"}}{{end}}
