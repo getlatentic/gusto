@@ -133,6 +133,15 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	if _, err := output(place); err != nil {
 		return err
 	}
+	// A harness's state folder has to be there before it starts, as it is in a
+	// container: codex refuses a home that does not exist.
+	if adapter.Keeps != "" {
+		keep := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
+			"sh", "-c", `mkdir -p "$1"`, "sh", inHome(adapter.Keeps))
+		if _, err := output(keep); err != nil {
+			return err
+		}
+	}
 	if spec.Setup == nil || adapter.Skills == "" {
 		return nil
 	}

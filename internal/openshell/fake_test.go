@@ -28,7 +28,9 @@ case "$cmd $sub" in
   while [ $# -gt 0 ]; do case "$1" in
     --name|-n) name=$2; shift 2;; --workdir) workdir=$2; shift 2;; --env) envs+=("$2"); shift 2;;
     --no-login-shell|--no-tty|--no-credential-warnings) shift;; --) shift; break;; *) shift;; esac; done
-  cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${envs[@]}" "$@";;
+  # A path the caller names under the sandbox's home is under that sandbox here.
+  mapped=(); for argument in "$@"; do case "$argument" in /sandbox|/sandbox/*) argument="$root/$name$argument";; esac; mapped+=("$argument"); done
+  cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${envs[@]}" "${mapped[@]}";;
 "sandbox download")
   dest=$5; mkdir -p "$dest"; cp -R "$root/$3$4/." "$dest/";;
 "sandbox delete") rm -rf "$root/$3"; echo "$3" >> "$root/deleted.log";;

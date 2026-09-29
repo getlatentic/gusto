@@ -112,7 +112,12 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		return 0, err
 	}
 	command := box.Wrap(ctx, adapter.CommandIn(ctx, spec, box.Workdir(), box.Env()))
-	exit, err := stream(ctx, command, record)
+	var exit int
+	if adapter.Stream == harness.ACP {
+		exit, err = converse(ctx, command, box.Workdir(), spec, nil, record)
+	} else {
+		exit, err = stream(ctx, command, record)
+	}
 	tokens, cost := record.Spent()
 	if closeErr := record.Close(); closeErr != nil && err == nil {
 		err = closeErr

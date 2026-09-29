@@ -20,7 +20,8 @@ const hangUp = 10 * time.Second
 // converse holds one turn over the Agent Client Protocol. The harness's exit
 // status is the turn's: an answered prompt is 0 whatever the teardown took, and
 // a turn the harness failed or never answered is 1, with its reason in stderr.
-func converse(ctx context.Context, command *exec.Cmd, spec job.Spec, servers []job.Server, record *Record) (int, error) {
+// cwd is the directory the conversation works in, by the path the harness sees.
+func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, record *Record) (int, error) {
 	in, err := command.StdinPipe()
 	if err != nil {
 		return 0, err
@@ -40,7 +41,7 @@ func converse(ctx context.Context, command *exec.Cmd, spec job.Spec, servers []j
 	go func() { exited <- keepErrors(errs, record, command) }()
 
 	ended, failed := acp.Converse(in, out, acp.Turn{
-		Cwd:     resolved(command.Dir),
+		Cwd:     cwd,
 		Brief:   spec.Brief,
 		Session: spec.Remembered,
 		Servers: servers,
