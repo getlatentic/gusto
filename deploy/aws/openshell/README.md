@@ -100,6 +100,7 @@ AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,.
 
 ```bash
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
+./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organisation
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
 
@@ -122,6 +123,7 @@ probe/expected.txt                               what the first run printed
 e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
 e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
 put-key.sh                                       stores a model's key in Parameter Store
+e2e-cloud.sh, e2e/cloud/                         the front door driven through its pages, on a real model
 e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two harnesses in one sandbox, a shared app, many sandboxes
 harnesses.sh, e2e/credentials.sh                 the harness list and the proxy's credentials, shared by the runs
 ```

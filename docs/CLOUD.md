@@ -38,6 +38,15 @@ gateway.
    it is in. The operator sees every computer on the host, and whose organisation
    it belongs to.
 
+`deploy/aws/openshell/e2e-cloud.sh` runs these steps on a host as people would, through the
+pages, with a real model, and checks what the host holds afterwards. On an `m8i.2xlarge`, on
+2026-09-29: an admin and three invited people each had a computer, and each computer was
+a sandbox on the gateway. All three people's first turns ran at once, and a second turn in
+the same conversation found what the first left. A second organisation on the same host had
+its own computer and could not be reached from the first, and a person could not open
+another person's agent in their own organisation. An organisation's server was listening 20 s
+after sign-up once the image was on the gateway, and 129 s after the first ever sign-up.
+
 ### Computers
 
 A computer belongs to one person and one organisation, and the organisation's server is
@@ -241,6 +250,10 @@ the lines that were there when it began are not its.
 
 - A job asked for by a script or a token has no person, so it runs in a sandbox of its
   own that goes when the job does.
+- A turn in a conversation on an instance works in one directory of the computer,
+  `/sandbox/jobs/instance-<id>/workspace`, that is kept between turns, because a harness ties
+  a conversation to the directory it began in. Any other job works in a directory of its own
+  that goes when the job does.
 - A turn in a conversation on an instance works on the instance's files. They are copied
   into the job's directory before the turn and back after it, and only when the turn got as far
   as writing its record, so a turn that failed on the way leaves the instance as it was. What the
