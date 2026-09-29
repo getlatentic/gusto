@@ -23,6 +23,42 @@ browser ──► front door (haas cloud) ──► the organisation's haas serv
 | Where do jobs run? | In OpenShell sandboxes on a pool of gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel. |
 | Why a shared gateway and not one per organisation? | A host with KVM is the cost. A gateway per organisation is the same isolation at about a hundred times the price, and the sandbox boundary is already per job. |
 
+## The demo
+
+One EC2 host runs the front door, each organisation's `haas serve` and one OpenShell
+gateway.
+
+1. An admin signs up on the public cloud and confirms their address. The
+   organisation is on the trial that a verified address gets: an admin and three
+   users, each with a computer.
+2. The admin invites three people. An invited person signs in to the organisation.
+3. Each person has one computer: a microVM on the host that keeps their files, that
+   their agents run in, and that is theirs alone.
+4. The admin sees every computer in their organisation, whose it is, and what state
+   it is in. The operator sees every computer on the host, and whose organisation
+   it belongs to.
+
+### Computers
+
+A computer belongs to one person and one organisation, and the organisation's server is
+the only thing that makes or reaches it. Its record is kept in the organisation's own
+directory, as the source of truth for what the organisation has:
+
+| Field | Meaning |
+| --- | --- |
+| `user` | the person, by address |
+| `org` | the organisation |
+| `sandbox` | the name the gateway knows it by, made from the organisation and the person, so a look at the gateway's own list says whose each is |
+| `host` | the cell it runs on |
+| `state` | `creating`, `running`, `stopped`, `failed` or `deleted` |
+| `created`, `lastActive` | when |
+
+A person has one computer in an organisation. It is made when they first sign in, so a
+person who was invited and never came costs nothing, and it is stopped when idle, which
+keeps their files. Removing the person deletes it. The gateway's list and the
+organisation's records are compared, and a sandbox with no record, or a record with no
+sandbox, is reported.
+
 ## Where it runs
 
 Nothing here is made or changed from a person's machine. What is made when
