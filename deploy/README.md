@@ -220,12 +220,19 @@ outside the repository; nothing under `deploy/` changed for it.
   environment. The runtime listened on no TCP port, `smoke.sh`'s job passed
   sealed, and the same two requests were refused and found no route.
 
+- **Compose, cold, by a stranger.** An agent with no other context cloned the
+  repository and followed `compose/README.md` alone, on linux/arm64 in the
+  Rancher Desktop VM on an Apple Silicon Mac (2026-09-29). Both images built in
+  48 s, the server read `healthy` about 15 s after `up`, the smoke check passed
+  in 2.2 s, and sign-in and the pages answered. It found eight gaps in the
+  README, which were corrected. It ran no model and did not try TLS, signing or
+  podman.
+
 Not run yet:
 
-- the chart on a Kubernetes cluster: the native sidecar's start order, the
-  volume claim, the probes, Pod Security admission, an ingress, and the runtime
-  pulling the runner by digest with `runnerPullSecret`;
+- the chart on a cluster you run, and its ingress: the `install-check` workflow
+  installs it on a `kind` cluster, with the ingress off;
 - compose on podman's socket, rootful or rootless;
 - a real harness with a real model through either install;
-- arm64;
-- either path, on a clean machine, by somebody who did not write it.
+- the chart on arm64;
+- the chart, on a clean machine, by somebody who did not write it.
