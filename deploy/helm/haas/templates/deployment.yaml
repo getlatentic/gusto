@@ -1,4 +1,4 @@
-{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_CHANGES" "HAAS_COMPARISONS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
+{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_CHANGES" "HAAS_API_TOKENS" "HAAS_COMPARISONS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
 {{- range $name, $_ := .Values.env }}
 {{- if has $name $reserved }}
 {{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
@@ -115,6 +115,9 @@ spec:
             - name: HAAS_PASSWORD
               valueFrom:
                 secretKeyRef: { name: {{ include "haas.secretName" . }}, key: HAAS_PASSWORD }
+            {{- if .Values.auth.apiTokens }}
+            - { name: HAAS_API_TOKENS, value: /var/lib/haas/tokens/tokens.json }
+            {{- end }}
             {{- if .Values.credentials.existingSecret }}
             - { name: HAAS_CREDENTIALS, value: /etc/haas/credentials }
             {{- else if .Values.model.upstream }}

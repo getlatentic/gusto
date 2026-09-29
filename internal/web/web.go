@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/getlatentic/haas/internal/apitoken"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/compare"
@@ -41,6 +42,7 @@ type Server struct {
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes    *changelog.Log
+	tokens     *apitoken.Store
 	turnedAway refusals
 	lineups    *compare.Board
 	setups     *setup.Store
@@ -55,11 +57,16 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	if err != nil {
 		return nil, err
 	}
-	templates, err := template.New("").Funcs(helpers).ParseFS(pages, "templates/*.html")
+	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
+	// The layout asks whether to link to the tokens page, and only a server
+	// that takes tokens has one.
+	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
+		"takesTokens": func() bool { return s.tokens != nil },
+	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
-	return &Server{index: index, instances: instances, queue: queue, keeper: keeper, templates: templates, identity: identity, catalog: offered, models: models}, nil
+	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -99,7 +106,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /setups/{name}/skills", s.guard(s.adminOnly(s.writeSkill)))
 	mux.HandleFunc("POST /setups/{name}/skills/{skill}/drop", s.guard(s.adminOnly(s.dropSkill)))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
-	mux.HandleFunc("POST /api/jobs", s.sent(s.accept))
+	mux.HandleFunc("POST /api/jobs", s.sent(apitoken.Submit, s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
@@ -107,8 +114,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
 	mux.HandleFunc("GET /changes", s.guard(s.adminPage(s.changesPage)))
 	mux.HandleFunc("GET /changes.jsonl", s.guard(s.adminPage(s.changesFile)))
-	mux.HandleFunc("GET /api/changes", s.sent(s.changesScript))
-	mux.HandleFunc("GET /api/spend", s.sent(s.spendJSON))
+	mux.HandleFunc("GET /tokens", s.guard(s.tokenAdmin(s.tokensPage)))
+	mux.HandleFunc("POST /tokens", s.guard(s.tokenAdmin(s.makeToken)))
+	mux.HandleFunc("POST /tokens/{id}/revoke", s.guard(s.tokenAdmin(s.revokeToken)))
+	mux.HandleFunc("GET /api/changes", s.sent(apitoken.Audit, s.changesScript))
+	mux.HandleFunc("GET /api/spend", s.sent(apitoken.Spend, s.spendJSON))
 	// Conversations were held at /talk before an instance could hold more than
 	// one. A link somebody kept still finds its instance.
 	mux.HandleFunc("GET /talk", moved("/"))

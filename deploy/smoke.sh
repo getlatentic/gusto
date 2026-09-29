@@ -53,6 +53,12 @@ EOF
 
 HAAS_HARNESSES="$smoke/harnesses" haas new "$smoke/job" -repo "$smoke/repo" \
   -brief "make add add" -harness fixture -- sh test.sh >/dev/null
+# A server that takes API tokens does not take the shared password, so the check
+# needs a token that may submit: make one at /tokens and set HAAS_TOKEN.
+if [ -n "${HAAS_API_TOKENS:-}" ] && [ -z "${HAAS_TOKEN:-}" ]; then
+  echo "this server takes API tokens: set HAAS_TOKEN to one that may send jobs" >&2
+  exit 2
+fi
 id=$(HAAS_SERVER=http://127.0.0.1:8040 haas submit "$smoke/job" | head -n 1)
 echo "submitted $id"
 

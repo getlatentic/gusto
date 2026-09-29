@@ -69,5 +69,5 @@ func (s *Server) spendJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	report, _ := reportOf(ledger, r)
-	s.asJSON(w, report)
+	s.asJSON(w, askers{Report: report, Askers: s.byAsker(report.Jobs)})
 }
