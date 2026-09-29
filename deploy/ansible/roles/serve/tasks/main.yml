@@ -197,9 +197,11 @@
 - name: The live version answers, or the previous one comes back
   when: serve_enabled | bool
   block:
+    # Ready, and not only alive: the workers are running and the jobs can be
+    # written, so a version whose queue is dead does not pass and stay promoted.
     - name: The service answers on its own port
       ansible.builtin.uri:
-        url: "http://127.0.0.1:{{ backend_port }}/healthz"
+        url: "http://127.0.0.1:{{ backend_port }}/readyz"
         return_content: true
       register: health
       until: health.status == 200
@@ -217,7 +219,7 @@
     - name: The deploy fails, whatever the rollback did
       ansible.builtin.fail:
         msg: >-
-          The version this deploy promoted did not answer /healthz on
+          The version this deploy promoted did not answer /readyz on
           127.0.0.1:{{ backend_port }}.
           {{ 'The previous binary is live again.' if (promoted_bin | default(false) | bool)
              else 'This deploy promoted no binary, so the server was failing before it.' }}

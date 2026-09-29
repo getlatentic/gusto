@@ -114,3 +114,18 @@ func TestHealthzIsNotLogged(t *testing.T) {
 		t.Errorf("a probe was logged: %s", destination)
 	}
 }
+
+func TestProbesAndWorkingScrapesAreNotLoggedAndRefusedOnesAre(t *testing.T) {
+	for path, status := range map[string]int{"/readyz": 200, "/metrics": 200} {
+		wrapped, destination := kept(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) }))
+		wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
+		if destination.String() != "" {
+			t.Errorf("%s answering %d was logged: %s", path, status, destination)
+		}
+	}
+	wrapped, destination := kept(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusUnauthorized) }))
+	wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/metrics", nil))
+	if !strings.Contains(destination.String(), `"path":"/metrics"`) || !strings.Contains(destination.String(), `"status":401`) {
+		t.Errorf("a refused scrape was not logged: %q", destination.String())
+	}
+}

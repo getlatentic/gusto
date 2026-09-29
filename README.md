@@ -53,7 +53,7 @@ Every request `haas serve` answers leaves one JSON line on stderr, where journal
 keeps it: method, path, status, bytes, duration, the client's address, and
 whether the caller came with a `cookie`, a `bearer` password, or `none`. It names
 the kind of credential and never its value, and it leaves out the query string
-and `/healthz`.
+`/healthz` and `/readyz`, and a `/metrics` scrape that worked ([docs/RUNBOOK.md](docs/RUNBOOK.md)).
 
 `inside` and `run` exit with the gate's answer: 0 when it passes.
 
@@ -640,6 +640,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](docs/KEYS.md) covers rotation, backup and KMS |
 | `HAAS_CHANGES` | the file the record of what changes on the platform is appended to: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `haas changes verify` checks it. [docs/CHANGES.md](docs/CHANGES.md) |
 | `HAAS_MIGRATE_IRREVERSIBLE` | `1` lets one start run a data migration that cannot be undone. Without it the server refuses, naming the step. [docs/UPGRADE.md](docs/UPGRADE.md) |
+| `HAAS_DEPLOY_RESULT` | a file a deploy writes when it ends, `{"release","ok","at"}`. `/metrics` reports it as `haas_last_deploy_ok`. The playbook's autodeploy sets and writes it. [docs/RUNBOOK.md](docs/RUNBOOK.md) |
 | `HAAS_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. Finished work is removed on the policy's schedule: a job's workspace first, its signed record later. `HAAS_RETENTION_MINUTES` sets the interval, 60 by default. `haas retention` lists what a sweep would remove. [docs/RETENTION.md](docs/RETENTION.md) |
 | `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |

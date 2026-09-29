@@ -32,16 +32,21 @@ func Keep(logger *slog.Logger) func(http.Handler) http.Handler {
 			// The line is written after the handler returns, so a stream is
 			// recorded once, when it ends, with everything it sent.
 			next.ServeHTTP(answer, r)
+			// A scrape that worked says nothing new every fifteen seconds. One
+			// that was refused is somebody trying a credential, and is logged.
+			if r.URL.Path == "/metrics" && answer.status() == http.StatusOK {
+				return
+			}
 			write(logger, r, answer, time.Since(started))
 		})
 	}
 }
 
-// unremarkable leaves out /healthz. A liveness probe polls it on a timer and
-// always hears the same answer, so its lines would bury the ones that say who
-// asked for a job, and none of them would name anybody.
+// unremarkable leaves out /healthz and /readyz. A probe polls them on a timer
+// and almost always hears the same answer, so its lines would bury the ones that
+// say who asked for a job, and none of them would name anybody.
 func unremarkable(r *http.Request) bool {
-	return r.URL.Path == "/healthz"
+	return r.URL.Path == "/healthz" || r.URL.Path == "/readyz"
 }
 
 // write names the path and never the query string, and names the kind of

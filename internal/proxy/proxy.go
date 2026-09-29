@@ -26,6 +26,7 @@ type Proxy struct {
 	allowed     Allowlist
 	client      *http.Client
 	guard       sync.Mutex
+	counts      counters
 }
 
 // New takes the ledger every call is counted in and every cap is checked

@@ -1,0 +1,25 @@
+# The alert rules are checked and tested with promtool: every rule parses, and
+# each alert fires on series that should fire it and stays quiet on ones that
+# should not. See docs/RUNBOOK.md.
+name: alerts-check
+
+on:
+  pull_request:
+    paths:
+      - deploy/alerts/**
+      - .github/workflows/alerts-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check and test the rules
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/alerts:/alerts" prom/prometheus:v2.55.1 check rules /alerts/haas.rules.yml
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/alerts:/alerts" prom/prometheus:v2.55.1 test rules /alerts/haas.rules.test.yml

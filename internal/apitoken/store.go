@@ -33,10 +33,12 @@ const (
 	Spend = "spend"
 	// Audit reads the record of what changed on the platform.
 	Audit = "audit"
+	// Metrics reads GET /metrics.
+	Metrics = "metrics"
 )
 
 // Scopes is every scope there is, in the order a person reads them.
-var Scopes = []string{Submit, Spend, Audit}
+var Scopes = []string{Submit, Spend, Audit, Metrics}
 
 // Prefix starts every secret, so one found in a repository or a log is known for
 // what it is.

@@ -79,6 +79,14 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 // sealed ones, and a port for a runtime that cannot be handed a socket. What
 // keeps the port safe is the per-job token and the host's firewall, not the
 // interface it binds.
+// ProxyCounts is what the proxy has counted, or nil when there is no proxy.
+func (w *WayOut) ProxyCounts() func() proxy.Counts {
+	if w.proxy == nil {
+		return nil
+	}
+	return w.proxy.Counts
+}
+
 func (w *WayOut) Listen() (func(), error) {
 	switch {
 	case w.proxy == nil:

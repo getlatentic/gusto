@@ -1,0 +1,185 @@
+# promtool test rules haas.rules.test.yml
+rule_files:
+  - haas.rules.yml
+evaluation_interval: 1m
+
+tests:
+  - name: a server that stops answering pages
+    interval: 1m
+    input_series:
+      - series: 'up{job="haas"}'
+        values: '1 1 1 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: HaasDown
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: HaasDown
+        exp_alerts:
+          - exp_labels: { severity: page, job: haas }
+            exp_annotations:
+              summary: "haas is not answering /metrics"
+              runbook: "docs/RUNBOOK.md#haasdown"
+
+  - name: a queue that takes jobs and does not start them
+    interval: 1m
+    input_series:
+      - series: 'haas_queue_stuck_seconds'
+        values: '0 0 400 500 600 700'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: HaasQueueStuck
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: HaasQueueStuck
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "A job nothing holds back has waited over five minutes and has not started"
+              runbook: "docs/RUNBOOK.md#haasqueuestuck"
+
+  - name: a full runner pool is busy, and is not a stuck queue
+    interval: 1m
+    input_series:
+      - series: 'haas_queue_stuck_seconds'
+        values: '0+0x40'
+      - series: 'haas_queue_depth'
+        values: '5+0x40'
+      - series: 'haas_jobs_running'
+        values: '2+0x40'
+      - series: 'haas_runner_slots'
+        values: '2+0x40'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HaasQueueStuck
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: HaasRunnersSaturated
+        exp_alerts: []
+      - eval_time: 35m
+        alertname: HaasRunnersSaturated
+        exp_alerts:
+          - exp_labels: { severity: ticket }
+            exp_annotations:
+              summary: "Every runner has been busy with jobs waiting for half an hour"
+              runbook: "docs/RUNBOOK.md#haasrunnerssaturated"
+
+  - name: the disk fills
+    interval: 1m
+    input_series:
+      - series: 'haas_disk_free_bytes{store="jobs"}'
+        values: '50+0x5 5+0x20'
+      - series: 'haas_disk_total_bytes{store="jobs"}'
+        values: '100+0x25'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HaasDiskLow
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: HaasDiskLow
+        exp_alerts:
+          - exp_labels: { severity: page, store: jobs }
+            exp_annotations:
+              summary: "Less than 10% of the disk the jobs are kept on is free"
+              runbook: "docs/RUNBOOK.md#haasdisklow"
+
+  - name: the model starts failing
+    interval: 1m
+    input_series:
+      - series: 'haas_proxy_calls_total'
+        values: '0+10x30'
+      - series: 'haas_proxy_errors_total'
+        values: '0+0x10 0+5x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: HaasModelErrors
+        exp_alerts: []
+      - eval_time: 28m
+        alertname: HaasModelErrors
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "More than a fifth of the model calls in the last ten minutes failed on the model's side"
+              runbook: "docs/RUNBOOK.md#haasmodelerrors"
+
+  - name: a few errors on a few calls do not page
+    interval: 1m
+    input_series:
+      - series: 'haas_proxy_calls_total'
+        values: '0+0.5x30'
+      - series: 'haas_proxy_errors_total'
+        values: '0+0.5x30'
+    alert_rule_test:
+      - eval_time: 28m
+        alertname: HaasModelErrors
+        exp_alerts: []
+
+  - name: a deploy that rolled back
+    interval: 1m
+    input_series:
+      - series: 'haas_last_deploy_ok{release="3ac3db3"}'
+        values: '1 1 0 0 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: HaasDeployFailed
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: HaasDeployFailed
+        exp_alerts:
+          - exp_labels: { severity: page, release: 3ac3db3 }
+            exp_annotations:
+              summary: "The last deploy failed or was rolled back"
+              runbook: "docs/RUNBOOK.md#haasdeployfailed"
+
+  - name: most jobs failing, and one failure among many passes
+    interval: 1m
+    input_series:
+      - series: 'haas_jobs_finished_total{state="failed"}'
+        values: '0+1x70'
+      - series: 'haas_jobs_finished_total{state="passed"}'
+        values: '0+0.2x70'
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: HaasJobsFailing
+        exp_alerts:
+          - exp_labels: { severity: ticket }
+            exp_annotations:
+              summary: "More than half the jobs that ended in the last hour failed"
+              runbook: "docs/RUNBOOK.md#haasjobsfailing"
+
+  - name: mostly passing does not alert
+    interval: 1m
+    input_series:
+      - series: 'haas_jobs_finished_total{state="failed"}'
+        values: '0+0.1x70'
+      - series: 'haas_jobs_finished_total{state="passed"}'
+        values: '0+1x70'
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: HaasJobsFailing
+        exp_alerts: []
+
+  - name: workers gone and restarts
+    interval: 1m
+    input_series:
+      - series: 'haas_runner_workers_alive'
+        values: '2 2 1 1 1 1'
+      - series: 'haas_runner_slots'
+        values: '2 2 2 2 2 2'
+      - series: 'haas_started_timestamp_seconds'
+        values: '100 100 200 300 400 400'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HaasNotReady
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "haas has fewer workers running than it should"
+              runbook: "docs/RUNBOOK.md#haasnotready"
+      - eval_time: 5m
+        alertname: HaasRestartingOften
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "haas has restarted three times in half an hour"
+              runbook: "docs/RUNBOOK.md#haasrestartingoften"

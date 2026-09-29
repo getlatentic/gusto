@@ -29,6 +29,7 @@ dashes, and what the token may do.
 | send jobs | `POST /api/jobs` |
 | read spending | `GET /api/spend` |
 | read the change record | `GET /api/changes` |
+| read metrics | `GET /metrics` |
 
 The page shows the secret once, in the response to making it. The server keeps
 only a hash of it, so nobody can show it again: make another and revoke the old
