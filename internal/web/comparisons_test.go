@@ -12,6 +12,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/compare"
+	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
@@ -90,7 +91,8 @@ func TestAComparisonNeedsTwoAgents(t *testing.T) {
 	}
 }
 
-// The fastest and the cheapest are chosen among the runs that passed.
+// The fastest and the cheapest are chosen among the runs that passed, and only
+// when they stand clear of the others.
 func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 	sides := []side{
 		{Passed: false, Record: jobs.Record{Started: 1, Ended: 2}, Metered: true},
@@ -98,9 +100,77 @@ func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 		{Passed: true, Record: jobs.Record{Started: 1, Ended: 10}, Metered: true},
 	}
 	sides[1].Spent.USD, sides[2].Spent.USD = 0.001, 0.002
-	markBest(sides)
+	weigh(sides)
 	if sides[0].Fastest || sides[0].Cheapest || !sides[2].Fastest || !sides[1].Cheapest {
 		t.Errorf("best = %+v", sides)
+	}
+}
+
+func TestRunsThatAreLevelHaveNoBest(t *testing.T) {
+	sides := []side{
+		{Passed: true, Record: jobs.Record{Started: 0 + 1, Ended: 101}, Metered: true},
+		{Passed: true, Record: jobs.Record{Started: 1, Ended: 106}, Metered: true},
+	}
+	sides[0].Spent.USD, sides[1].Spent.USD = 1.00, 1.05
+	reading := weigh(sides)
+	if sides[0].Fastest || sides[1].Fastest || sides[0].Cheapest || sides[1].Cheapest {
+		t.Errorf("a best was named between level runs: %+v", sides)
+	}
+	if !strings.Contains(reading.Headline, "Nothing separates them") {
+		t.Errorf("headline %q", reading.Headline)
+	}
+}
+
+// A finished comparison says which run did better, at what cost and in how
+// long, and a comparison with a run still working says none of it yet.
+func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
+	site := twoEngines(t)
+	board := site.server.lineups
+	lineup := compare.Lineup{ID: "two-runs", Brief: "fix it", Model: "m"}
+	for i, each := range []struct {
+		harness string
+		passed  bool
+		took    int64
+		lines   []string
+	}{
+		{"first", true, 40, []string{priced, priced, priced}},
+		{"second", false, 90, []string{priced}},
+	} {
+		id := fmt.Sprintf("run-%d", i)
+		spentJob(t, site.index.Root(), id, "", each.lines...)
+		dir := job.Dir(filepath.Join(site.index.Root(), id))
+		if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: each.passed}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {
+			t.Fatal(err)
+		}
+		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: each.harness, Job: id})
+	}
+	if err := board.Save(lineup); err != nil {
+		t.Fatal(err)
+	}
+	site.signIn(t)
+	page := site.ask(t, "GET", "/compare/two-runs", nil).Body.String()
+	for _, want := range []string{"First was the only one to pass the check.", "<th>Model calls</th>", "<td>3</td>", "$0.7500", "40 s"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("want %q on the page:\n%s", want, page)
+		}
+	}
+
+	if err := job.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
+		t.Fatal(err)
+	}
+	if err := site.index.Add(jobs.Record{ID: "run-2", State: jobs.Running, Brief: "fix it", Harness: "second", Started: 100}); err != nil {
+		t.Fatal(err)
+	}
+	unfinished := compare.Lineup{ID: "still-going", Brief: "fix it", Model: "m",
+		Runs: []compare.Entry{lineup.Runs[0], {Harness: "second", Job: "run-2"}}}
+	if err := board.Save(unfinished); err != nil {
+		t.Fatal(err)
+	}
+	if page := site.ask(t, "GET", "/compare/still-going", nil).Body.String(); strings.Contains(page, "only one to pass") {
+		t.Errorf("a verdict was given while a run was still working:\n%s", page)
 	}
 }
 
