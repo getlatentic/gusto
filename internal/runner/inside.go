@@ -242,7 +242,7 @@ func asExit(err error, into **exec.ExitError) bool {
 // runner's own word: a verifier names the signer from its keyring instead. A
 // runner with a key and no name gives the key's id, so a signed record never
 // calls itself unsigned.
-func signer(key signing.Key, keyed bool) string {
+func signer(key signing.Signer, keyed bool) string {
 	if name := os.Getenv("HAAS_SIGNER"); name != "" {
 		return name
 	}
