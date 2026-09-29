@@ -97,9 +97,9 @@ func weigh(sides []side) compare.Reading {
 	results := make([]compare.Result, len(sides))
 	for i, one := range sides {
 		results[i] = compare.Result{Name: one.Engine, Passed: one.Passed, Seconds: one.Seconds()}
-		if one.Metered && one.Spent.Unmeasured == 0 {
+		if one.Metered {
 			usd := one.Spent.USD
-			results[i].USD = &usd
+			results[i].USD, results[i].Floor = &usd, one.Spent.Unmeasured > 0
 		}
 	}
 	reading := compare.Weigh(results)
