@@ -183,3 +183,14 @@ func waitFor(t *testing.T, index *jobs.Index, id string) {
 	}
 	t.Fatalf("%s never finished", id)
 }
+
+// The engine choices are their own control. Under the catalogue's card class
+// they drew as tall pills of every width, with the checkbox above the name.
+func TestEngineChoicesDoNotWearTheCatalogueCardClass(t *testing.T) {
+	site := twoEngines(t)
+	site.signIn(t)
+	page := site.ask(t, "GET", "/compare", nil).Body.String()
+	if strings.Count(page, `<label class="engine">`) != 2 || strings.Contains(page, `<label class="pick"`) {
+		t.Fatalf("the engine choices are not their own control:\n%s", page)
+	}
+}
