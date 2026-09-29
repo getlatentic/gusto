@@ -23,6 +23,47 @@ browser ──► front door (haas cloud) ──► the organisation's haas serv
 | Where do jobs run? | In OpenShell sandboxes on a pool of gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel. |
 | Why a shared gateway and not one per organisation? | A host with KVM is the cost. A gateway per organisation is the same isolation at about a hundred times the price, and the sandbox boundary is already per job. |
 
+## Where it runs
+
+Nothing here is made or changed from a person's machine. What is made when
+somebody signs up is made by the running service, and what is made when we change
+the platform is made by CI.
+
+| Layer | Made by | When | Runs in |
+| --- | --- | --- | --- |
+| The base stack: network, control-plane host, cell image and template, storage, keys, DNS, roles | Terraform and Ansible | when we change the platform, from a reviewed pull request | GitHub Actions, as an IAM role through OIDC, with state in an encrypted S3 bucket |
+| An organisation: its record, directory, server, route and secrets path | the orchestrator | at sign-up, in seconds | the control-plane host |
+| Capacity: more or fewer cells | the orchestrator, through the AWS API | as load changes | the control-plane host |
+| Dedicated or customer-owned infrastructure | a provisioner worker running the same Terraform modules, with state for each organisation | when an organisation asks for it | the control plane, in an isolated worker |
+
+A cell is one host with KVM. It runs an OpenShell gateway and the `haas serve`
+processes of the organisations assigned to it, because a sandbox reaches its
+server's proxy through the gateway machine's loopback. The account store says
+which cell an organisation is on.
+
+A new organisation on the shared pool needs no new AWS resources: it is a
+directory and a process on a cell, and a route. Only growing the pool, or an
+organisation with its own, adds infrastructure.
+
+### The orchestrator
+
+An organisation moves through `provisioning`, `ready`, `suspended` and `deleting`.
+A controller in the front door reconciles it: each step is safe to run again,
+progress is written to the organisation's record, and a step that failed is retried
+and shown to the operator. A crash between two steps leaves an organisation that the
+next pass finishes. The controller has two ways to act on a cell, a local one that
+starts processes on this machine and one that asks a `haas cell` agent on another
+host, and the AWS calls sit behind an interface of their own.
+
+The orchestrator's IAM role can scale the cells' group, read the secrets under its
+own path and snapshot their disks. It cannot change the base stack. That role, and
+the one CI uses, are separate so that a compromised control plane cannot rewrite
+the platform.
+
+The first apply of the base stack makes the state bucket and the OIDC role, and is
+run once by a person with admin access. Every change after it runs in CI, and so do
+`down` and `reset`.
+
 ## Accounts
 
 The front door keeps its records as files under `HAAS_CLOUD_ROOT`, written by
