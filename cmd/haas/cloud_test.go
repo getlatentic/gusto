@@ -153,3 +153,31 @@ func TestTheOperatorsSettingsForEveryOrganisationAreReadFromAFile(t *testing.T) 
 		t.Errorf("no file is only the path: %v %v", env, err)
 	}
 }
+
+func TestTheOperatorSeesEveryComputerWithItsOrganisationAndPerson(t *testing.T) {
+	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sign := range []cloud.Signup{{Email: "ada@acme.com", OrgName: "Acme"}, {Email: "eve@globex.com", OrgName: "Globex"}, {Email: "ned@initech.com", OrgName: "Initech"}} {
+		if _, org, err := store.SignUp(sign); err != nil {
+			t.Fatal(err)
+		} else if org.Slug != "initech-com" {
+			registry, _ := store.Computers(org.Slug)
+			registry.Ensure(sign.Email, "cell-1")
+		}
+	}
+	var out strings.Builder
+	if err := listComputers(&out, store); err != nil {
+		t.Fatal(err)
+	}
+	text := out.String()
+	for _, want := range []string{"ORGANISATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organisations"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("%q is not in:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "ned@initech.com") {
+		t.Errorf("an organisation with no computers lists none:\n%s", text)
+	}
+}

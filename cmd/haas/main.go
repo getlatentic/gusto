@@ -76,6 +76,7 @@ func usage() {
   haas matrix <plan>    run jobs on harness and model pairs, a table of which finish [-here, -again, -json]
   haas serve            the pages: submit a job, watch it, read the record
   haas cloud            the front door of a hosted haas: sign-up, sign-in and organisations
+  haas cloud computers  every computer on this host, its organisation and its person
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent

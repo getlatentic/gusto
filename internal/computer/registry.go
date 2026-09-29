@@ -195,3 +195,57 @@ func (r *Registry) write(computer Computer) error {
 	}
 	return os.Rename(temp.Name(), r.file(computer.ID))
 }
+
+// retireFile is the mark that asks for a person's computer to be removed. It is a file of
+// its own and not a change to the record, because the front door makes it and the
+// organisation's server, which reaches the gateway, acts on it, and two processes
+// changing one record would lose a change.
+func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
+
+// Retire asks for a person's computer to be removed, and does nothing when they have none.
+func (r *Registry) Retire(user string) error {
+	id := ID(r.org, strings.ToLower(strings.TrimSpace(user)))
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, err := r.read(id); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	file, err := os.OpenFile(r.retireFile(id), os.O_WRONLY|os.O_CREATE, 0o600)
+	if err != nil {
+		return err
+	}
+	return file.Close()
+}
+
+// Retiring is the computers that were asked to be removed and have not been.
+func (r *Registry) Retiring() ([]Computer, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	all, err := r.all()
+	if err != nil {
+		return nil, err
+	}
+	var retiring []Computer
+	for _, each := range all {
+		if _, err := os.Stat(r.retireFile(each.ID)); err == nil && each.Live() {
+			retiring = append(retiring, each)
+		}
+	}
+	return retiring, nil
+}
+
+// Retired records that a computer was removed, and clears the mark.
+func (r *Registry) Retired(id string) error {
+	if _, err := r.Change(id, func(c *Computer) { c.State, c.Note = Deleted, "removed" }); err != nil {
+		return err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := os.Remove(r.retireFile(id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}

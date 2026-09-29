@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"github.com/getlatentic/haas/internal/computer"
 	"net/http"
 	"net/url"
 	"strings"
@@ -202,5 +203,21 @@ func TestInvitationsAreLimitedForOneOrganisationInAnHour(t *testing.T) {
 	}
 	if last != http.StatusTooManyRequests {
 		t.Errorf("the twenty-first in an hour: %d", last)
+	}
+}
+
+func TestTheOrganisationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	ada := f.verifiedAdmin("ada@acme.com", "Acme")
+	f.invitedAndJoined(ada, "bob@acme.com")
+	registry, _ := f.store.Computers("acme-com")
+	made, _, _ := registry.Ensure("bob@acme.com", "local")
+	registry.Change(made.ID, func(c *computer.Computer) { c.State = computer.Running })
+	_, page := ada.get("/org")
+	if !strings.Contains(page, "runner, computer running") || !strings.Contains(page, "1 of 4") {
+		t.Errorf("Bob's computer and the count of them:\n%s", page)
+	}
+	if strings.Contains(page, "admin, computer") {
+		t.Errorf("Ada has none:\n%s", page)
 	}
 }

@@ -225,3 +225,47 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganisationOnly(t *testing.T) 
 		t.Errorf("an empty record and a gateway with only jobs agree: %+v", clean)
 	}
 }
+
+// Whoever asks for a computer to be removed, the record is changed only by the one that
+// removes it.
+func TestAComputerAskedToBeRemovedIsListedUntilItIsRemoved(t *testing.T) {
+	r := open(t, "acme")
+	a, _, _ := r.Ensure("a@acme.com", "cell-1")
+	b, _, _ := r.Ensure("b@acme.com", "cell-1")
+	if err := r.Retire("nobody@acme.com"); err != nil {
+		t.Errorf("a person with no computer has nothing to remove: %v", err)
+	}
+	if err := r.Retire(" A@acme.com "); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Retire("a@acme.com"); err != nil {
+		t.Errorf("asking twice is the same as once: %v", err)
+	}
+	retiring, _ := r.Retiring()
+	if len(retiring) != 1 || retiring[0].ID != a.ID {
+		t.Fatalf("%+v", retiring)
+	}
+	if got, _ := r.Of("a@acme.com"); got.State != Creating {
+		t.Errorf("asking changes nothing in the record: %+v", got)
+	}
+	if err := r.Retired(a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if retiring, _ := r.Retiring(); len(retiring) != 0 {
+		t.Errorf("%+v", retiring)
+	}
+	if _, err := r.Of("a@acme.com"); !errors.Is(err, ErrNone) {
+		t.Errorf("a removed computer is not the person's: %v", err)
+	}
+	if got, err := r.Of("b@acme.com"); err != nil || got.ID != b.ID {
+		t.Errorf("another's is untouched: %+v %v", got, err)
+	}
+	// The person can be given a new one, and it is not retiring.
+	fresh, made, err := r.Ensure("a@acme.com", "cell-1")
+	if err != nil || !made {
+		t.Fatalf("%+v %v %v", fresh, made, err)
+	}
+	if retiring, _ := r.Retiring(); len(retiring) != 0 {
+		t.Errorf("a new computer is not marked by the old one's request: %+v", retiring)
+	}
+}
