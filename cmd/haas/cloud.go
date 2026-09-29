@@ -38,8 +38,10 @@ func cloudCommand(args []string) int {
 	defer stop()
 	controlled := make(chan struct{})
 	go func() {
-		controller.Run(ctx, 5*time.Second)
-		close(controlled)
+		defer close(controlled)
+		if controller != nil {
+			controller.Run(ctx, 5*time.Second)
+		}
 	}()
 	go func() {
 		<-ctx.Done()
@@ -89,9 +91,11 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	controller, err := organisationServers(store, public, limits)
-	if err != nil {
-		return nil, nil, err
+	var controller *cloud.Controller
+	if os.Getenv("HAAS_CLOUD_SERVERS") != "off" {
+		if controller, err = organisationServers(store, public, limits); err != nil {
+			return nil, nil, err
+		}
 	}
 	front, err := cloud.New(cloud.Config{
 		Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
