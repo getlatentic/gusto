@@ -34,7 +34,7 @@ func TestAWaitingJobSaysWhyOnItsPageAndInTheRecord(t *testing.T) {
 		}
 	}
 	record := site.ask(t, "GET", "/jobs", nil).Body.String()
-	if !strings.Contains(record, "Number 1 in line.") {
+	if !strings.Contains(record, "Asked by amy@acme.test. amy@acme.test already has 1 running") || !strings.Contains(record, "Number 1 in line.") {
 		t.Errorf("the record does not say who is waiting:\n%s", record)
 	}
 	if running := site.ask(t, "GET", "/jobs/amy-running", nil).Body.String(); strings.Contains(running, "in line") {
