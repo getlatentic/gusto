@@ -187,12 +187,43 @@ an account, so the form cannot be used to find out who is a customer.
 | `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `HAAS_CLOUD_MAIL` | `outbox`, or `smtp://user:password@host:587?from=name@example.com` |
 | `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
+| `HAAS_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
+| `HAAS_CLOUD_PORT_FROM` | the first port an organisation's server is given, two each, 9100 by default |
+| `HAAS_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
+| `HAAS_CLOUD_SERVERS` | `off` runs the front door with accounts and no organisation servers |
 | `HAAS_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
+
+## How a person gets to their organisation
+
+1. They sign in at the front door, `<domain>`, by a link mailed to them.
+2. The organisation's page has an Open button when the organisation's server answers.
+3. Open makes a token, good for a minute and one use, that names the person, their role
+   and the organisation, signed with a key that only the front door and that
+   organisation's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
+4. The front door sends `<slug>.<domain>` to that organisation's server, on the
+   machine's loopback, and the server checks the token and signs the person in. There is
+   no password page on an organisation's server, and `/login` there sends people back
+   to the front door.
+5. The server trusts what the front door said for an hour. Past that the person goes
+   back through the front door, which asks whether they still belong, so a person who
+   is removed is out within the hour, and sooner when their computer goes.
+
+The front door tells the server who the client is, writes over anything the client
+claimed about itself, and keeps its own cookies from the organisations' servers. Each
+organisation's cookie is for its own host name, so one organisation's page cannot read
+another's.
+
+## What is built
+
+The controller provisions an organisation's directories, its signing key and its entry
+key, gives it two ports, and starts its `haas serve` on this machine with only the
+operator's settings and its own. It is started again when it stops, after longer waits
+each time it fails, and every server is stopped, asked first, when the front door ends.
+The other cells, and the AWS calls, are not built: a cell is an interface, and the
+first is this machine.
 
 ## What comes next
 
-Sign-up and the organisation record come first
-(getlatentic/planning#394). Running the organisation's server and giving it
-capacity follows (getlatentic/planning#395), then inviting people
-(getlatentic/planning#396), then the stack on AWS from code
-(getlatentic/planning#397).
+Inviting people (getlatentic/planning#396), the computers' lifecycle
+(getlatentic/planning#430), the admin's and the operator's views, the stack on AWS from
+code (getlatentic/planning#397), and payment.

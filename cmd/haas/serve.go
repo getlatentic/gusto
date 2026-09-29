@@ -168,6 +168,13 @@ func serve(args []string) int {
 		go pages.RunRetention(background, time.Duration(number("HAAS_RETENTION_MINUTES", 60))*time.Minute)
 	}
 	pages.UseSettings(governing())
+	front, err := frontDoorFromEnv()
+	if err != nil {
+		return fail(err)
+	}
+	if front != nil {
+		pages.UseFrontDoor(*front)
+	}
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{
 		Addr:              address,

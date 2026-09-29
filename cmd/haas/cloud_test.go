@@ -16,13 +16,15 @@ import (
 )
 
 func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
+	// A test binary is not a haas that can serve an organisation.
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	root := filepath.Join(t.TempDir(), "cloud")
 	t.Setenv("HAAS_CLOUD_ROOT", root)
 	t.Setenv("HAAS_CLOUD_URL", "https://cloud.example.com")
 	t.Setenv("HAAS_CLOUD_DOMAIN", "example.com")
 	t.Setenv("HAAS_CLOUD_FREE_MAIL", "allow")
 	t.Setenv("HAAS_CLOUD_TRIAL_JOBS", "7")
-	front, err := openCloud()
+	front, _, err := openCloud()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +55,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 }
 
 func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	for name, set := range map[string]map[string]string{
 		"a link address that is not one": {"HAAS_CLOUD_URL": "cloud.example.com"},
 		"a mail setting that is not one": {"HAAS_CLOUD_MAIL": "smtp://mail.example.com"},
@@ -62,7 +65,7 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 			for key, value := range set {
 				t.Setenv(key, value)
 			}
-			if _, err := openCloud(); err == nil || !strings.Contains(err.Error(), "HAAS_CLOUD_") {
+			if _, _, err := openCloud(); err == nil || !strings.Contains(err.Error(), "HAAS_CLOUD_") {
 				t.Errorf("%v", err)
 			}
 		})
@@ -74,8 +77,9 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 // organisation's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	t.Setenv("HAAS_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-	front, err := openCloud()
+	front, _, err := openCloud()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,5 +122,34 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	time.Sleep(1100 * time.Millisecond)
 	if err := start("four"); err != nil {
 		t.Errorf("verifying lifts the limit for the running server: %v", err)
+	}
+}
+
+func TestTheOperatorsSettingsForEveryOrganisationAreReadFromAFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "org.env")
+	os.WriteFile(path, []byte("# what every organisation's server has\nHAAS_CREDENTIALS=/etc/haas/credentials\n\n  HAAS_SANDBOX=openshell  \n"), 0o600)
+	env, err := operatorEnv(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(env, "\n")
+	for _, want := range []string{"PATH=", "HAAS_CREDENTIALS=/etc/haas/credentials", "HAAS_SANDBOX=openshell"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("%q is not in %v", want, env)
+		}
+	}
+	if strings.Contains(joined, "#") {
+		t.Errorf("a comment is not a setting: %v", env)
+	}
+	bad := filepath.Join(t.TempDir(), "bad.env")
+	os.WriteFile(bad, []byte("HAAS_SANDBOX=openshell\nthis is not a setting\n"), 0o600)
+	if _, err := operatorEnv(bad); err == nil || !strings.Contains(err.Error(), "line 2") {
+		t.Errorf("a line that is not a setting is named by its number: %v", err)
+	}
+	if _, err := operatorEnv(filepath.Join(t.TempDir(), "missing.env")); err == nil {
+		t.Error("a file that is named and missing is an error")
+	}
+	if env, err := operatorEnv(""); err != nil || len(env) != 1 {
+		t.Errorf("no file is only the path: %v %v", env, err)
 	}
 }
