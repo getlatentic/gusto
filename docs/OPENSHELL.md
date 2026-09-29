@@ -180,9 +180,9 @@ sandbox. Claude wrote `server.js`, a page that shows an invoice total. Codex fix
 discount in `invoice.js` and added a `/health` route to `server.js`. The project's
 tests then passed, 3 of 3. The turns took 45 s and 31 s. Each turn had a token of its
 own, and the proxy recorded 16 calls through the `anthropic` credential for the first
-and 13 through `deepseek` for the second, so the calls of a turn can be told apart. Both
-harnesses asked for `api.anthropic.com`, `chatgpt.com`, `github.com` and
-`api.github.com`, and the sandbox denied each.
+and 13 through `deepseek` for the second, so the calls of a turn can be told apart. Between
+them the harnesses asked for `api.anthropic.com`, `chatgpt.com`, `ab.chatgpt.com`,
+`github.com` and `api.github.com`, and the sandbox denied each.
 
 An upload leaves `.git` behind, so a sandbox holds the files and no history. The diff of
 a turn is taken on the host after the workspace is fetched, or from a repository made in
@@ -210,7 +210,9 @@ The first app failed for the first reason, and Claude said so in its own answer.
 had 2 CPUs and 3 GiB each. Every one took 18 to 24 s to be ready at 1, 2, 4 and 8 running,
 and up to 34 s at 12, with the 1.6 GB image. A fixed piece of CPU work took 2.5 s in one
 sandbox and 2.5 to 2.6 s with four running. It took 5.1 to 5.4 s with eight and
-7.3 to 8.2 s with twelve, which is the four cores of an eight-vCPU host shared out.
+7.3 to 8.2 s with twelve: about what four cores' worth of CPU shared among them gives, and
+the host has 8 vCPUs, which are threads and not eight cores. That reading is an inference
+from the times, and the core count was not checked.
 
 | Running | Ready in | The same work in | Host memory in use |
 | --- | --- | --- | --- |
