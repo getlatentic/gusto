@@ -106,3 +106,11 @@ ingress:
   annotations: {}
   host: ""
   tls: []
+
+# How long finished work is kept, in days after a job ends, by the state it
+# ended in. A job loses its workspace first, then its signed record. Empty
+# removes nothing. docs/RETENTION.md.
+retention: {}
+# retention:
+#   workspaceDays: { passed: 14, failed: 30, interrupted: 7 }
+#   recordDays: { passed: 365, failed: 365, interrupted: 90 }

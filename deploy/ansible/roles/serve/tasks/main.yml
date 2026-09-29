@@ -57,6 +57,7 @@
     - { name: github, mode: "0700" }
     - { name: changes, mode: "0750" }
     - { name: tokens, mode: "0700" }
+    - { name: retention, mode: "0750" }
 
 - name: The signing key
   ansible.builtin.command:
@@ -73,6 +74,17 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0644"
+  notify: Restart haas
+
+# How long finished work is kept. The file is the operator's setting, so the
+# playbook owns it; the holds and the last sweep beside it are the server's.
+- name: The retention policy
+  ansible.builtin.copy:
+    content: "{{ retention_policy | to_nice_json }}\n"
+    dest: "{{ app_root }}/var/retention/policy.json"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0640"
   notify: Restart haas
 
 # The record of what changes on the platform. The server opens it to append, and

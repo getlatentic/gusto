@@ -22,6 +22,7 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
 	"github.com/getlatentic/haas/internal/setup"
@@ -135,6 +136,16 @@ func serve(args []string) int {
 			return fail(err)
 		}
 		pages.UseTokens(tokens)
+	}
+	background, stopBackground := context.WithCancel(context.Background())
+	defer stopBackground()
+	if dir := os.Getenv("HAAS_RETENTION"); dir != "" {
+		policy, err := retention.LoadPolicy(dir)
+		if err != nil {
+			return fail(err)
+		}
+		pages.UseRetention(dir, policy)
+		go pages.RunRetention(background, time.Duration(number("HAAS_RETENTION_MINUTES", 60))*time.Minute)
 	}
 	pages.UseSettings(governing())
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
