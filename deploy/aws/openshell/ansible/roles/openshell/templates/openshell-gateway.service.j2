@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenShell gateway with the VM driver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ openshell_user }}
+SupplementaryGroups=kvm
+Environment=PATH={{ openshell_bin }}:/usr/sbin:/sbin:/usr/bin:/bin
+Environment=XDG_CONFIG_HOME={{ openshell_config }}
+Environment=XDG_STATE_HOME={{ openshell_state }}
+Environment=OPENSHELL_LOCAL_TLS_DIR={{ openshell_state }}/openshell/tls
+ExecStart={{ openshell_bin }}/openshell-gateway
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

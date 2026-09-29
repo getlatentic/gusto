@@ -1,0 +1,106 @@
+---
+- name: What the VM driver needs on the host
+  ansible.builtin.apt:
+    name: [e2fsprogs, curl, bc, ca-certificates]
+    state: present
+    update_cache: true
+
+- name: The user that runs the gateway may use KVM
+  ansible.builtin.user:
+    name: "{{ openshell_user }}"
+    groups: kvm
+    append: true
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ openshell_user }}"
+    group: "{{ openshell_user }}"
+    mode: "0755"
+  loop: ["/opt/openshell", "{{ openshell_bin }}", "{{ openshell_dist }}", "{{ openshell_config }}/openshell", "{{ openshell_state }}/openshell"]
+
+- name: The release's binaries, each checked against its pinned checksum
+  ansible.builtin.get_url:
+    url: "{{ openshell_release }}/{{ item.file }}"
+    dest: "{{ openshell_dist }}/{{ item.file }}"
+    checksum: "sha256:{{ item.sha256 }}"
+    mode: "0644"
+  loop: "{{ openshell_assets }}"
+
+- name: Unpacked
+  ansible.builtin.unarchive:
+    src: "{{ openshell_dist }}/{{ item.file }}"
+    dest: "{{ openshell_bin }}"
+    remote_src: true
+    creates: "{{ openshell_bin }}/{{ item.file | regex_replace('-x86_64-.*$', '') }}"
+  loop: "{{ openshell_assets }}"
+
+- name: The probe that runs inside a sandbox
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../probe/inside.sh"
+    dest: /opt/openshell/inside.sh
+    mode: "0644"
+
+- name: The gateway's certificates
+  ansible.builtin.command:
+    cmd: >-
+      {{ openshell_bin }}/openshell-gateway generate-certs
+      --output-dir {{ openshell_state }}/openshell/tls --server-san 127.0.0.1 --server-san localhost
+    creates: "{{ openshell_state }}/openshell/tls"
+  become_user: "{{ openshell_user }}"
+  environment:
+    XDG_STATE_HOME: "{{ openshell_state }}"
+
+- name: The gateway's configuration
+  ansible.builtin.template:
+    src: gateway.toml.j2
+    dest: "{{ openshell_config }}/openshell/gateway.toml"
+    owner: "{{ openshell_user }}"
+    mode: "0644"
+  notify: Restart the gateway
+
+- name: The gateway's service
+  ansible.builtin.template:
+    src: openshell-gateway.service.j2
+    dest: /etc/systemd/system/openshell-gateway.service
+    mode: "0644"
+  notify: Restart the gateway
+
+- name: The gateway is running
+  ansible.builtin.systemd:
+    name: openshell-gateway
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: The handler runs now, before the gateway is asked for anything
+  ansible.builtin.meta: flush_handlers
+
+- name: The gateway answers
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ openshell_gateway_port }}"
+    timeout: 60
+
+- name: The gateway is registered for the user, and selected
+  ansible.builtin.shell: |
+    set -e
+    openshell gateway list 2>/dev/null | grep -q {{ openshell_gateway_name }} || \
+      openshell gateway add https://127.0.0.1:{{ openshell_gateway_port }} --local --name {{ openshell_gateway_name }}
+    openshell gateway select {{ openshell_gateway_name }}
+    openshell status
+  args:
+    executable: /bin/bash
+  become_user: "{{ openshell_user }}"
+  environment:
+    PATH: "{{ openshell_bin }}:/usr/sbin:/sbin:/usr/bin:/bin"
+    XDG_CONFIG_HOME: "{{ openshell_config }}"
+    XDG_STATE_HOME: "{{ openshell_state }}"
+    OPENSHELL_LOCAL_TLS_DIR: "{{ openshell_state }}/openshell/tls"
+  register: status
+  changed_when: false
+
+- name: What the gateway says
+  ansible.builtin.debug:
+    msg: "{{ status.stdout_lines }}"

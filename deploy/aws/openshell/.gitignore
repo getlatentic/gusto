@@ -1,0 +1,4 @@
+.state/
+out/
+.terraform/
+terraform.tfstate*

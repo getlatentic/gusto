@@ -1,0 +1,15 @@
+host kernel: 7.0.0-1013-aws; /dev/kvm: /dev/kvm
+openshell: openshell 0.1.2
+sandbox start and command, cold: N.N s
+sandbox start and command, warm: N.N s
+Created sandbox: probe-warm
+guest kernel: 6.12.76
+dns example.com: 198.18.0.2      example.com
+tcp 93.184.216.34:443: refused
+tcp 1.1.1.1:53: refused
+tcp 169.254.169.254:80: refused
+tcp 10.0.0.2:22: refused
+write /etc/haas-test: denied
+write /root/x: denied
+write /tmp/x: allowed
+read /etc/shadow: allowed
