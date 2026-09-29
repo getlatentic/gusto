@@ -45,6 +45,7 @@ func run(args []string) int {
 		"spend":     spendReport,
 		"doctor":    checkMachine,
 		"keygen":    makeKey,
+		"keys":      checkKeys,
 	}[verb]
 	if !found {
 		usage()
@@ -72,7 +73,8 @@ func usage() {
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
-  haas keygen <name>    a key pair to sign records with [-dir <dir>]
+  haas keygen <name>    a key pair to sign records with [-dir <dir>, -awskms <key>]
+  haas keys             which key signed each record, and which no key in the keyring can vouch for [-jobs <dir>]
 
 The exit code of run, inside and verify is the gate's answer.
 `)

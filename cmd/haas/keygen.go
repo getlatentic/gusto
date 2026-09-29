@@ -13,10 +13,14 @@ import (
 func makeKey(args []string) int {
 	flags := flag.NewFlagSet("keygen", flag.ContinueOnError)
 	into := flags.String("dir", ".", "where to write the two files")
+	kms := flags.String("awskms", "", "an AWS KMS key to sign with instead: its id, ARN or alias")
 	name, rest := split(args)
 	if err := flags.Parse(rest); err != nil || name == "" || flags.NArg() > 0 {
 		usage()
 		return 2
+	}
+	if *kms != "" {
+		return signerFromKMS(*into, name, *kms)
 	}
 	key, err := signing.Generate(*into, name)
 	if err != nil {

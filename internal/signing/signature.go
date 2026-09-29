@@ -14,9 +14,6 @@ import (
 // it reads. The schema that describes it is schema/signature/v1.json.
 const Version = 1
 
-// Scheme is the one signature scheme there is.
-const Scheme = "ed25519"
-
 // ErrMismatch is a signature that does not hold for the bytes it sits beside.
 var ErrMismatch = errors.New("the signature does not match")
 
@@ -31,15 +28,19 @@ type Signature struct {
 	Value     string `json:"signature"`
 }
 
-// Sign signs the message with the key.
-func Sign(key Key, message []byte) Signature {
+// Sign signs the message with the signer, in the scheme it names.
+func Sign(signer Signer, message []byte) (Signature, error) {
+	value, err := signer.Sign(message)
+	if err != nil {
+		return Signature{}, err
+	}
 	return Signature{
 		Version:   Version,
-		Scheme:    Scheme,
-		Key:       key.ID(),
-		PublicKey: base64.StdEncoding.EncodeToString(key.Public()),
-		Value:     base64.StdEncoding.EncodeToString(ed25519.Sign(key.private, message)),
-	}
+		Scheme:    signer.Scheme(),
+		Key:       signer.ID(),
+		PublicKey: base64.StdEncoding.EncodeToString(signer.Public()),
+		Value:     base64.StdEncoding.EncodeToString(value),
+	}, nil
 }
 
 // Encode is the signature as the file holds it.
@@ -58,8 +59,8 @@ func Decode(name string, text []byte) (Signature, error) {
 	if err := job.Readable(name, signature.Version, Version); err != nil {
 		return Signature{}, err
 	}
-	if signature.Scheme != Scheme {
-		return Signature{}, fmt.Errorf("%s uses the scheme %q, and this build knows only %q", name, signature.Scheme, Scheme)
+	if signature.Scheme != Scheme && signature.Scheme != SchemeDigest {
+		return Signature{}, fmt.Errorf("%s uses the scheme %q, and this build knows %q and %q", name, signature.Scheme, Scheme, SchemeDigest)
 	}
 	return signature, nil
 }
@@ -83,7 +84,7 @@ func (s Signature) madeBy(public ed25519.PublicKey, message []byte) error {
 	if err != nil {
 		return fmt.Errorf("the signature is not base64: %w", err)
 	}
-	if !ed25519.Verify(public, message, value) {
+	if !verify(s.Scheme, public, message, value) {
 		return ErrMismatch
 	}
 	return nil

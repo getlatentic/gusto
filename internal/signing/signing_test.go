@@ -20,6 +20,16 @@ func generated(t *testing.T, ring, name string) signing.Key {
 	return key
 }
 
+// signedBy signs a message and fails the test when the signer cannot.
+func signedBy(t *testing.T, signer signing.Signer, message []byte) signing.Signature {
+	t.Helper()
+	signature, err := signing.Sign(signer, message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return signature
+}
+
 func TestAGeneratedPrivateKeyIsReadableByItsOwnerAlone(t *testing.T) {
 	ring := t.TempDir()
 	key := generated(t, ring, "acme")
@@ -65,7 +75,7 @@ func TestASignersNameIsAPlainFileName(t *testing.T) {
 
 func TestASignatureHoldsForTheBytesItSignedAndNoOthers(t *testing.T) {
 	key := generated(t, t.TempDir(), "acme")
-	signature := signing.Sign(key, []byte("the record"))
+	signature := signedBy(t, key, []byte("the record"))
 	if err := signature.Intact([]byte("the record")); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +88,7 @@ func TestASignatureNamingAKeyOtherThanTheOneItCarriesIsRefused(t *testing.T) {
 	ring := t.TempDir()
 	carried := generated(t, ring, "acme")
 	named := generated(t, ring, "other")
-	signature := signing.Sign(carried, []byte("the record"))
+	signature := signedBy(t, carried, []byte("the record"))
 	signature.Key = named.ID()
 	if err := signature.Intact([]byte("the record")); err == nil || !strings.Contains(err.Error(), named.ID()) {
 		t.Fatalf("want the mismatched id named, got %v", err)
@@ -92,7 +102,7 @@ func TestTheKeyringNamesTheSignerFromItsOwnFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	signer, err := keyring.Signer(signing.Sign(key, []byte("the record")), []byte("the record"))
+	signer, err := keyring.Signer(signedBy(t, key, []byte("the record")), []byte("the record"))
 	if err != nil || signer.Name != "acme-2026" {
 		t.Fatalf("signer %q: %v", signer.Name, err)
 	}
@@ -106,7 +116,7 @@ func TestAKeyNotInTheKeyringIsRefusedByItsID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = keyring.Signer(signing.Sign(stranger, []byte("r")), []byte("r"))
+	_, err = keyring.Signer(signedBy(t, stranger, []byte("r")), []byte("r"))
 	if err == nil || !strings.Contains(err.Error(), stranger.ID()) || !strings.Contains(err.Error(), "not in the keyring") {
 		t.Fatalf("want the stranger's key named, got %v", err)
 	}
@@ -122,7 +132,7 @@ func TestTheKeyringChecksItsOwnCopyOfTheKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	forged := signing.Sign(stranger, []byte("r"))
+	forged := signedBy(t, stranger, []byte("r"))
 	forged.Key = trusted.ID()
 	if _, err := keyring.Signer(forged, []byte("r")); !errors.Is(err, signing.ErrMismatch) {
 		t.Fatalf("want the forged signature refused, got %v", err)
@@ -146,7 +156,7 @@ func TestAKeyringHoldingOneKeyTwiceIsRefused(t *testing.T) {
 
 func TestASignatureFileRoundTripsAndANewerVersionIsRefused(t *testing.T) {
 	key := generated(t, t.TempDir(), "acme")
-	text, err := signing.Sign(key, []byte("r")).Encode()
+	text, err := signedBy(t, key, []byte("r")).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
