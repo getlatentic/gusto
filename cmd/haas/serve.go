@@ -224,7 +224,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		if err != nil {
 			return nil, err
 		}
-		return inSandbox(way, cfg, index, registry), nil
+		return inSandbox(way, cfg, index, registry, instances), nil
 	}
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
@@ -240,10 +240,8 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		exit, err := way.Run(dir, spec, staying(instances, spec)...)
 		// A turn learns what the harness calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
-		if spec.Session != "" && spec.Thread != "" {
-			if manifest, read := evidence.Read(dir); read == nil {
-				_ = instances.Said(spec.Session, spec.Thread, "", manifest.Session)
-			}
+		if manifest, read := evidence.Read(dir); read == nil {
+			learnConversation(instances, spec, manifest.Session)
 		}
 		return exit, err
 	}, nil
@@ -251,7 +249,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 
 // inSandbox runs each job's harness in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
-func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry) jobs.Work {
+func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.Work {
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -261,12 +259,14 @@ func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *c
 			return 0, err
 		}
 		defer way.Done(dir)
-		// A person's job runs in their own computer, and one asked for by a script or a
-		// token, which is nobody's, in a sandbox of its own.
-		if person := personWhoAsked(index, dir); registry != nil && person != "" {
-			return way.RunInComputer(dir, spec, cfg, registry, person)
+		if err := beforeTurn(instances, spec, dir); err != nil {
+			return 0, err
 		}
-		return way.RunInSandbox(dir, spec, cfg)
+		exit, err := ranInSandbox(way, cfg, index, registry, dir, spec)
+		if afterErr := afterTurn(instances, spec, dir); afterErr != nil && err == nil {
+			err = afterErr
+		}
+		return exit, err
 	}
 }
 
@@ -388,4 +388,13 @@ func surveyed(names []string) []catalog.Entry {
 		}
 	}
 	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
+}
+
+// ranInSandbox runs a job in the computer of the person who asked for it, and one asked
+// for by a script or a token, which is nobody's, in a sandbox of its own.
+func ranInSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
+	if person := personWhoAsked(index, dir); registry != nil && person != "" {
+		return way.RunInComputer(dir, spec, cfg, registry, person)
+	}
+	return way.RunInSandbox(dir, spec, cfg)
 }
