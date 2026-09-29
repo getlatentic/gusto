@@ -1,0 +1,72 @@
+# Private repositories
+
+A job for a private repository gets a token for that one repository. The token
+comes from a GitHub App, it is revoked when the work is done, and it never
+enters the box the agent runs in.
+
+The only long-lived secret is the App's private key. It sits in the vault, and
+in a file that only the server reads.
+
+## Make the App
+
+1. On GitHub, open Settings, Developer settings, GitHub Apps, New GitHub App.
+2. Give it these repository permissions and no others:
+   - Contents: read and write. Write is for `haas ship`; a clone needs only read.
+   - Pull requests: read and write. `haas ship` opens one.
+   - Metadata: read.
+3. Turn the webhook off.
+4. Make the App private to your organisation, and install it on the
+   repositories jobs may use. Choose selected repositories, not all.
+5. Note the App id, and generate a private key. GitHub gives a `.pem` file.
+
+## Give it to haas
+
+| Setting | Holds |
+| --- | --- |
+| `HAAS_GITHUB_APP_ID` | the App id |
+| `HAAS_GITHUB_APP_KEY` | the path of the private key file |
+| `HAAS_GITHUB_URL`, `HAAS_GITHUB_API` | a GitHub Enterprise Server, such as `https://ghe.example` and `https://ghe.example/api/v3`. github.com when unset |
+
+Set both of the first two or neither. The server refuses to start with one.
+
+With the playbook, put the key in the vault as `github_app_private_key` and set
+`github_app_id` in `group_vars`. The playbook writes the key at mode 0600 where
+only the server reads it.
+
+## What happens to a job
+
+1. A job names a repository, in any form git takes: `https://github.com/acme/api`,
+   `git@github.com:acme/api.git`, or `ssh://git@github.com/acme/api.git`.
+2. The server asks GitHub whether the App is installed on `acme/api`. When it is
+   not, the job is refused before anything is cloned. The record says
+   `the GitHub App is not installed on acme/api` and names what to ask an owner for.
+3. The server mints a token for `acme/api` alone, with `contents: read`.
+4. git clones over HTTPS. The token goes to git in its environment, for the
+   forge's address only, and not in an argument or a file. An address written
+   for ssh is cloned over HTTPS, because the token is what the App holds.
+5. The token is revoked when git finishes. The repository is left with the plain
+   address and no credential in its configuration.
+6. The box starts with the checkout. It has no token and no way to reach GitHub.
+
+A repository that is not on the forge, and a local path, is reached as git
+reaches it on the machine. A deployment with no App behaves as it always did.
+
+## Opening a pull request
+
+`haas ship` mints a second token for the push target, with `contents: write` and
+`pull_requests: write`, for that repository alone, and revokes it when shipping
+is done. Without an App it uses `HAAS_GITHUB_TOKEN`, as before.
+
+## What was tested
+
+The tests run against a fake GitHub API and a real `git http-backend` that
+answers only a token the fake minted and has not revoked. They show that the
+token names one repository, that a clone uses it, that it is revoked after, and
+that neither the job directory nor the checkout's `.git/config` holds it.
+
+This has not yet run against github.com. Run the live test on your own App:
+
+```bash
+HAAS_TEST_GITHUB_REPO=acme/api HAAS_GITHUB_APP_ID=... HAAS_GITHUB_APP_KEY=app.pem \
+  go test -tags githublive -run Live ./internal/repoaccess
+```

@@ -5,9 +5,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/repoaccess"
 	"github.com/getlatentic/haas/internal/ship"
 	"github.com/getlatentic/haas/internal/signing"
 )
@@ -38,10 +41,11 @@ func shipJob(args []string) int {
 	if err != nil {
 		return refusedOr(err)
 	}
-	shipper, err := shipperFor(*dry)
+	shipper, release, err := shipperFor(context.Background(), *dry, plan)
 	if err != nil {
 		return fail(err)
 	}
+	defer release()
 	address, err := shipper.Ship(context.Background(), plan)
 	if err != nil {
 		return fail(err)
@@ -53,16 +57,32 @@ func shipJob(args []string) int {
 }
 
 // shipperFor needs a token only when something will be pushed, so a dry run
-// works on a machine that holds none.
-func shipperFor(dry bool) (ship.Shipper, error) {
+// works on a machine that holds none. With a GitHub App the token is minted for
+// the one repository being pushed to, and revoked when shipping is done; without
+// one it is the standing token in HAAS_GITHUB_TOKEN. The function it returns
+// ends the token.
+func shipperFor(ctx context.Context, dry bool, plan ship.Plan) (ship.Shipper, func(), error) {
+	nothing := func() {}
 	if dry {
-		return ship.Shipper{Out: os.Stdout, DryRun: true}, nil
+		return ship.Shipper{Out: os.Stdout, DryRun: true}, nothing, nil
 	}
-	forge, err := ship.GitHubFromEnv()
+	forge, err := repoaccess.FromEnv()
 	if err != nil {
-		return ship.Shipper{}, err
+		return ship.Shipper{}, nothing, err
 	}
-	return ship.Shipper{Pusher: ship.Git{Token: forge.Token}, Forge: forge, Out: os.Stdout}, nil
+	if repo, ours := forge.Locate(plan.Remote); forge.App != nil && ours {
+		token, err := forge.App.Token(ctx, repo.Owner, repo.Name, repoaccess.Write)
+		if err != nil {
+			return ship.Shipper{}, nothing, err
+		}
+		hub := ship.GitHub{API: forge.API, Token: token.Value, Client: &http.Client{Timeout: 30 * time.Second}}
+		return ship.Shipper{Pusher: ship.Git{Token: token.Value, Host: forge.Web}, Forge: hub, Out: os.Stdout}, func() { repoaccess.Release(token) }, nil
+	}
+	hub, err := ship.GitHubFromEnv()
+	if err != nil {
+		return ship.Shipper{}, nothing, err
+	}
+	return ship.Shipper{Pusher: ship.Git{Token: hub.Token}, Forge: hub, Out: os.Stdout}, nothing, nil
 }
 
 func refusedOr(err error) int {

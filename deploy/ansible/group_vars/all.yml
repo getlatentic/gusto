@@ -214,6 +214,14 @@ credentials: []
 # rules check and what a local-model harness is pointed at.
 model_url: ""
 
+# A GitHub App that reaches the repositories jobs name. Empty leaves a
+# repository to be reached the way git reaches it on the box. The App's private
+# key is github_app_private_key, from the vault. A GitHub Enterprise Server is
+# github_url (https://ghe.example) and github_api (https://ghe.example/api/v3).
+github_app_id: ""
+github_url: ""
+github_api: ""
+
 # The name of this deployment's signing key, as the keyring files it and a
 # verifier reads it. The key is made on the box the first time it deploys.
 signer_name: "{{ inventory_hostname }}"
