@@ -62,6 +62,9 @@ func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
 // The runner is root in the box, and a workspace's git configuration belongs to
 // the agent. Staging the workspace runs nothing the workspace's own .git names.
 func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
+	// Other packages' tests stage workspaces in the shared temp directory while
+	// this one runs, so what is left behind is only looked for in a directory of its own.
+	t.Setenv("TMPDIR", t.TempDir())
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
