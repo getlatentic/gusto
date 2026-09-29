@@ -1,0 +1,51 @@
+{{template "head" .}}
+
+<div class="page-head">
+  <h1>API tokens</h1>
+  <p class="muted">What programs use to call this server. A token may do only what you give it, is named in every record it makes, and stops working the moment you revoke it. The shared password no longer opens the API.</p>
+</div>
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+{{if .Secret}}
+<section class="panel">
+  <h2>Token {{.Made}}</h2>
+  <p>Copy it now. This page is the only place it is ever shown.</p>
+  <p><code>{{.Secret}}</code></p>
+  <p class="muted">Set it as <code>HAAS_TOKEN</code> where <code>haas submit</code> runs, or send it as <code>Authorization: Bearer</code>.</p>
+</section>
+{{end}}
+
+<section class="panel">
+  <h2>Make a token</h2>
+  <form method="post" action="/tokens">
+    <label>Name <input name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
+    <fieldset class="servers"><legend class="muted">It may</legend>
+      {{range .Offered}}<label class="check"><input type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
+    </fieldset>
+    <button type="submit">Make token</button>
+  </form>
+</section>
+
+{{if .Tokens}}
+<section class="panel">
+  <table>
+    <thead><tr><th>Name</th><th>May</th><th>Made</th><th>Last used</th><th></th></tr></thead>
+    <tbody>
+      {{range .Tokens}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>{{.May}}</td>
+        <td>{{.Made}} <span class="muted">by {{.By}}</span></td>
+        <td class="muted">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
+        <td>{{if .Live}}<form method="post" action="/tokens/{{.ID}}/revoke"><button type="submit">Revoke</button></form>{{else}}<span class="muted">revoked {{.Ended}}</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{else}}
+<p class="muted">No token has been made yet.</p>
+{{end}}
+
+{{template "foot" .}}

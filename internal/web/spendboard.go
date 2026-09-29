@@ -22,6 +22,7 @@ type ledgerView struct {
 	Models    []share
 	Harnesses []share
 	Agents    []share
+	Askers    []share
 	Teams     []share
 	Projects  []share
 	Jobs      []share
@@ -96,6 +97,10 @@ func (s *Server) viewLedger(report spend.Report, months []string, now time.Time)
 	view.Models = shares(report.Models, view.Measure)
 	view.Harnesses = shares(report.Harnesses, view.Measure)
 	view.Agents = shares(s.byAgent(report.Jobs), view.Measure)
+	// One asker is the person reading, or nobody worth a panel.
+	if askers := s.byAsker(report.Jobs); len(askers) > 1 {
+		view.Askers = shares(askers, view.Measure)
+	}
 	view.Teams = anyNamed(shares(report.Teams, view.Measure))
 	view.Projects = anyNamed(shares(report.Projects, view.Measure))
 	jobs := report.Jobs

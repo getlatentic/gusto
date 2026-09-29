@@ -225,3 +225,8 @@ github_api: ""
 # The name of this deployment's signing key, as the keyring files it and a
 # verifier reads it. The key is made on the box the first time it deploys.
 signer_name: "{{ inventory_hostname }}"
+
+# The API takes scoped, revocable tokens an admin makes at /tokens, and not the
+# shared password. Turning this on stops `haas submit` and deploy/smoke.sh
+# working with the password: they need HAAS_TOKEN. docs/TOKENS.md.
+api_tokens: false
