@@ -16,7 +16,8 @@ records what was checked, what was found, and what was done.
 
 Not reviewed: the identity provider, nginx and TLS on the host, the ansible
 vault, the deploy key's reach, third-party harness internals, and what a model
-does with a hostile prompt.
+does with a hostile prompt. A second review and an outside test are
+getlatentic/planning#372.
 
 ## Findings
 
@@ -35,10 +36,10 @@ does with a hostile prompt.
 | 11 | Low | Signing out only cleared the cookie, so a copy stayed valid for its twelve hours | Fixed. The server ends the session |
 | 12 | Low | Google sign-in had state but no PKCE and no nonce | Fixed. Both, tested against a provider that checks them |
 | 13 | Low | The model's redirect would have been followed with the credential's headers | Fixed. A redirect is not followed |
-| 14 | Info | A spending cap is checked before a call and counted after, so calls in flight when it is reached can pass it | Accepted. The excess is bounded by the calls in flight, and is documented |
-| 15 | Info | `haas ship` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which refuses a source whose `objects/` holds links. The playbook's box has it |
-| 16 | Info | Three of the six harness packages in the runner image are not pinned to a version | Open. A pin for `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent` means measuring each. The image is built by digest, so a build is still reproducible |
-| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the harness can write `out/` | Documented. Development only |
+| 14 | Info | A spending cap is checked before a call and counted after, so calls in flight when it is reached can pass it | Accepted. The excess is bounded by the calls in flight, and is documented. Tracked: getlatentic/planning#369 |
+| 15 | Info | `haas ship` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which refuses a source whose `objects/` holds links. The playbook's box has it. `haas doctor` should check: getlatentic/planning#370 |
+| 16 | Info | Three of the six harness packages in the runner image are not pinned to a version | Open. A pin for `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent` means measuring each. The image is built by digest, so a build is still reproducible. Tracked: getlatentic/planning#361 |
+| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the harness can write `out/` | Documented. Development only. `haas doctor` should detect it: getlatentic/planning#370 |
 
 ## Checked and sound
 
@@ -63,3 +64,18 @@ listed above should keep its test: `internal/web/security_test.go`,
 `internal/web/oidcflow_test.go`, `internal/repoaccess/accept_test.go`,
 `internal/runner/workspace_test.go`, `internal/proxy/dial_test.go` and
 `internal/sandbox/sandbox_test.go`.
+
+## Follow-ups
+
+Each is a backlog issue in getlatentic/planning:
+
+| Issue | What |
+| --- | --- |
+| #359 | run the tests, vet and `govulncheck` on every pull request |
+| #360 | scan the dependencies and the runner image on a schedule |
+| #361 | pin the three unpinned harness packages |
+| #367 | believe a named proxy's forwarded address when limiting wrong sign-ins |
+| #369 | hold a spending cap under concurrent calls |
+| #370 | `haas doctor` checks permissions on bind mounts and the git version |
+| #371 | a read-only root filesystem and a tighter system-call profile |
+| #372 | review the identity provider, TLS, the vault and the deploy path, and an outside test |
