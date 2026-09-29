@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/computer"
+	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/openshell"
@@ -54,6 +55,11 @@ func withGateway(t *testing.T) string {
 // organisationServer is what serve is made of for an organisation that runs jobs in
 // computers: the index, the way out, the record of computers, and the work that runs a job.
 func organisationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string) {
+	work, index, registry, cfg, root, _ := organisationWithInstances(t, quotaOf)
+	return work, index, registry, cfg, root
+}
+
+func organisationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
 	t.Helper()
 	root := withGateway(t)
 	harnesses := t.TempDir()
@@ -80,7 +86,11 @@ func organisationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Ind
 	quota.Write(limit, quotaOf)
 	registry.UseQuota(quota.Open(limit))
 	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi"}
-	return inSandbox(way, cfg, index, registry), index, registry, cfg, root
+	instances, err := instance.Open(filepath.Join(t.TempDir(), "sessions"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return inSandbox(way, cfg, index, registry, instances), index, registry, cfg, root, instances
 }
 
 // jobBy is a job asked for by who, run by the work, and the directory it ran in.

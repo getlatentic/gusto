@@ -125,9 +125,8 @@ batches and the last moment of a run arrives late.
 
 ## What it does not do yet
 
-- **Conversations and tool servers.** A job with a skill set runs; a turn in a
-  conversation, or a set with MCP servers, is refused by name before anything
-  starts.
+- **Tool servers.** A job with a skill set runs; a set with MCP servers is refused by
+  name before anything starts.
 - **`haas verify`.** It re-runs the gate where it is run, which for a job that ran
   in a sandbox is the verifier's machine and not a sandbox.
 - **A process limit.** The VM driver says it cannot enforce one.

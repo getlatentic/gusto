@@ -68,8 +68,8 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		return 0, err
 	}
 	// What a box cannot yet carry is refused by name before anything starts.
-	if spec.Session != "" || (spec.Setup != nil && len(spec.Setup.Servers) > 0) {
-		return 0, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry a conversation or tool servers"))
+	if spec.Setup != nil && len(spec.Setup.Servers) > 0 {
+		return 0, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
 	}
 	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
