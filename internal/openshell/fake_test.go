@@ -35,12 +35,18 @@ case "$cmd $sub" in
     --no-login-shell|--no-tty|--no-credential-warnings) shift;; --) shift; break;; *) shift;; esac; done
   # A path the caller names under the sandbox's home is under that sandbox here.
   mapped=(); for argument in "$@"; do case "$argument" in /sandbox|/sandbox/*) argument="$root/$name$argument";; esac; mapped+=("$argument"); done
+  [ -e "$root/$name/stopped" ] && { echo "Error:   × sandbox is stopped" >&2; exit 1; }
   cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${envs[@]}" "${mapped[@]}";;
 "sandbox download")
   dest=$5; mkdir -p "$dest"; cp -R "$root/$3$4/." "$dest/";;
 "sandbox ssh-config") printf 'Host openshell-%s.default\n    User sandbox\n' "$3";;
+"sandbox get") [ -d "$root/$3" ] && echo "Name: $3" || { echo "Error:   × sandbox not found" >&2; exit 1; };;
+"sandbox start") touch "$root/starts.log"; echo "$3" >> "$root/starts.log"; rm -f "$root/$3/stopped";;
+"sandbox stop") touch "$root/$3/stopped";;
 "sandbox delete") rm -rf "$root/$3"; echo "$3" >> "$root/deleted.log";;
 "logs "*|"logs")
+  # A test that wants a log of its own says so, and writes it.
+  if [ -n "${OPENSHELL_FAKE_EVENTS:-}" ]; then cat "$root/${@: -1}/events.log" 2>/dev/null; exit 0; fi
   # A log that has not all arrived the first time it is asked for.
   n=$(cat "$root/logs.count" 2>/dev/null || echo 0); echo $((n + 1)) > "$root/logs.count"
   printf '%s\n' '{"event":"net.allow","host":"host.openshell.internal","port":8041}'
