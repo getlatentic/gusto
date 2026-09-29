@@ -50,10 +50,13 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	if err != nil {
 		log.Printf("cloud: an organisation is missing its quota: %v", err)
 	}
-	computers := 0
+	computers, byAddress := 0, map[string]string{}
 	if registry, err := s.Store.Computers(org.Slug); err == nil {
 		if all, err := registry.All(); err == nil {
 			computers = len(all)
+			for _, each := range all {
+				byAddress[each.User] = string(each.State)
+			}
 		}
 	}
 	server, canOpen := "", false
@@ -65,8 +68,9 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 		server, canOpen = string(state), state == Ready
 	}
 	members, _ := s.Store.Members(org.Slug)
+
 	invited, _ := s.Store.Invitations(org.Slug)
-	v := view{Members: members, Invited: invited, IsAdmin: person.Role == Admin,
+	v := view{ComputerOf: byAddress, Members: members, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice}
 	s.render(w, status, "org", v)

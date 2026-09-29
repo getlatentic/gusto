@@ -271,5 +271,14 @@ func (s *Store) Remove(slug string, by Person, address string) error {
 			return ErrLastAdmin
 		}
 	}
-	return os.Remove(s.personFile(email))
+	if err := os.Remove(s.personFile(email)); err != nil {
+		return err
+	}
+	// Their computer is marked, and the organisation's server, which reaches the gateway,
+	// removes it. A person who never had one has nothing marked.
+	registry, err := s.Computers(slug)
+	if err != nil {
+		return err
+	}
+	return registry.Retire(email)
 }

@@ -21,6 +21,16 @@ import (
 // organisations' records, and the servers it starts for each organisation and sends
 // their people to. It runs no jobs itself.
 func cloudCommand(args []string) int {
+	if len(args) > 0 && args[0] == "computers" {
+		store, err := cloud.Open(setting("HAAS_CLOUD_ROOT", "cloud"), cloud.Settings{})
+		if err != nil {
+			return fail(err)
+		}
+		if err := listComputers(os.Stdout, store); err != nil {
+			return fail(err)
+		}
+		return 0
+	}
 	front, controller, err := openCloud()
 	if err != nil {
 		return fail(err)

@@ -310,3 +310,33 @@ func TestOneInvitationMakesOnePersonHoweverManyTimeItIsFollowed(t *testing.T) {
 		t.Errorf("%d joined and %d are in", joinedCount, len(members))
 	}
 }
+
+// A person's computer is marked for removal when they are removed, by the front door, which
+// leaves the removing to the organisation's server.
+func TestRemovingAPersonMarksTheirComputerForRemoval(t *testing.T) {
+	s := open(t, Settings{})
+	admin, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
+	bob := joined(t, s, org, admin, "bob@acme.com")
+	cy := joined(t, s, org, admin, "cy@acme.com")
+	registry, err := s.Computers(org.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.Ensure(bob.Email, "local")
+	registry.Ensure(cy.Email, "local")
+	if err := s.Remove(org.Slug, admin, "bob@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	retiring, _ := registry.Retiring()
+	if len(retiring) != 1 || retiring[0].User != "bob@acme.com" {
+		t.Errorf("only the removed person's computer is marked: %+v", retiring)
+	}
+	// A person who never had one is removed with nothing to mark.
+	dee := joined(t, s, org, admin, "dee@acme.com")
+	if err := s.Remove(org.Slug, admin, dee.Email); err != nil {
+		t.Errorf("%v", err)
+	}
+	if retiring, _ := registry.Retiring(); len(retiring) != 1 {
+		t.Errorf("%+v", retiring)
+	}
+}

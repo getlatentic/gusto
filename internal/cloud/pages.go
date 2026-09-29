@@ -45,7 +45,9 @@ type view struct {
 	Invited   []Invitation
 	IsAdmin   bool
 	CanInvite bool
-	Inviter   string
+	// Computers of each member by address, for the people who have one.
+	ComputerOf map[string]string
+	Inviter    string
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
