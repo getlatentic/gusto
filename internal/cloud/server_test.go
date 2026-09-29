@@ -137,7 +137,7 @@ func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T
 	if status != 200 {
 		t.Fatalf("the person should be signed in: %d", status)
 	}
-	for _, want := range []string{"Acme Research", "acme-research.cloud.test", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month"} {
+	for _, want := range []string{"Acme Research", "acme-research.cloud.test", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month", "0 of 1"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the organisation page lacks %q:\n%s", want, page)
 		}
@@ -179,7 +179,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 	if quota, _ := f.store.Quota("acme"); quota != DefaultLimits().Verified {
 		t.Errorf("verifying lifts the limit: %+v", quota)
 	}
-	if _, page := other.get("/org"); !strings.Contains(page, "Verified") || !strings.Contains(page, "200 a month, 4 at a time") {
+	if _, page := other.get("/org"); !strings.Contains(page, "Verified") || !strings.Contains(page, "200 a month, 4 at a time") || !strings.Contains(page, "0 of 4") || !strings.Contains(page, "up to 4") {
 		t.Errorf("the page should say so, and the browser that followed the link is signed in:\n%s", page)
 	}
 	if status, _, _ := f.browser().post("/verify", url.Values{"t": {token}}); status != http.StatusGone {
@@ -288,6 +288,7 @@ func TestSigningInAnswersTheSameWhetherOrNotTheAddressHasAnAccount(t *testing.T)
 func TestASignInLinkSignsThePersonInOnceAndTheSessionEndsWhenTheySignOut(t *testing.T) {
 	f := newFront(t, Settings{}, nil)
 	f.browser().post("/signup", signup("ada@acme.com", "Acme"))
+	f.mails() // mail is sent in the background, so the sign-up's is waited for before the next is asked for
 	f.browser().post("/signin", url.Values{"email": {"ada@acme.com"}})
 	link := f.lastLink()
 

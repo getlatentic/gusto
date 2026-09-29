@@ -167,6 +167,7 @@ an account, so the form cannot be used to find out who is a customer.
 | `HAAS_CLOUD_URL` | the address links in mail begin with |
 | `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `HAAS_CLOUD_MAIL` | `outbox`, or `smtp://user:password@host:587?from=name@example.com` |
+| `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
 | `HAAS_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
 ## What comes next
