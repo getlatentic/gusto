@@ -40,6 +40,6 @@
 {{if .Reading}}<p class="note muted">Figures within 15% of each other, or under 5 seconds or a tenth of a cent apart, are called level: one run each is one sample, and a second run could reverse them. A model call is one turn of the agent's loop, counted at the proxy.</p>{{end}}
 <p class="note muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own signed record, under Details.</p>
 
-{{if .Running}}<script>setTimeout(function () { location.reload(); }, 4000);</script>{{end}}
+{{if .Running}}<script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 4000);</script>{{end}}
 
 {{template "foot" .}}

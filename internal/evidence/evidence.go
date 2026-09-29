@@ -96,7 +96,10 @@ func Of(dir job.Dir) (string, []Entry, error) {
 	}
 	files := make([]Entry, 0, len(listing))
 	for _, entry := range listing {
-		if entry.IsDir() || entry.Name() == "manifest.json" || entry.Name() == SignatureFile {
+		// A link, a pipe or a device in out/ is not a file the record can vouch
+		// for: hashing a link would read what it points at, and a pipe would
+		// never end. Check names it.
+		if !entry.Type().IsRegular() || entry.Name() == "manifest.json" || entry.Name() == SignatureFile {
 			continue
 		}
 		sum, err := hash(dir.OutFile(entry.Name()))
@@ -173,6 +176,13 @@ func Check(dir job.Dir) ([]string, error) {
 			wrong = append(wrong, fmt.Sprintf("%s is missing", entry.Name))
 		case sum != entry.SHA256:
 			wrong = append(wrong, fmt.Sprintf("%s changed", entry.Name))
+		}
+	}
+	if listing, err := os.ReadDir(dir.Out()); err == nil {
+		for _, entry := range listing {
+			if !entry.IsDir() && !entry.Type().IsRegular() {
+				wrong = append(wrong, fmt.Sprintf("%s is not a plain file", entry.Name()))
+			}
 		}
 	}
 	named := map[string]bool{}

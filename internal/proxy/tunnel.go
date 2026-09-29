@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -24,7 +25,9 @@ const dialLimit = 15 * time.Second
 // record would read as evidence changed after the run.
 func (p *Proxy) tunnel(w http.ResponseWriter, job, address string, call spend.Call) {
 	sent := time.Now()
-	remote, err := net.DialTimeout("tcp", address, dialLimit)
+	ctx, cancel := context.WithTimeout(context.Background(), dialLimit)
+	defer cancel()
+	remote, err := p.dial(ctx, "tcp", address)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
 		p.note(job, call)

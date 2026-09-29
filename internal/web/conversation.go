@@ -106,6 +106,9 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 // said is what the harness replied, read from the turn's own transcript. It is
 // bounded because a page is not the place to read a megabyte.
 func said(dir job.Dir) string {
+	if !dir.PlainOut("transcript.log") {
+		return ""
+	}
 	text, err := os.ReadFile(dir.OutFile("transcript.log"))
 	if err != nil {
 		return ""

@@ -42,10 +42,14 @@ type Server struct {
 	admins    map[string]bool
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
-	changes    *changelog.Log
-	tokens     *apitoken.Store
-	retention  *retained
-	health     Health
+	changes   *changelog.Log
+	tokens    *apitoken.Store
+	retention *retained
+	health    Health
+	wrong     attempts
+	// localRepos are the directories a repository may be cloned from on this
+	// server's own disk, which is none unless the operator names them.
+	localRepos []string
 	startedAt  time.Time
 	disk       diskUse
 	turnedAway refusals
@@ -139,7 +143,7 @@ func (s *Server) Handler() http.Handler {
 	// one. A link somebody kept still finds its instance.
 	mux.HandleFunc("GET /talk", moved("/"))
 	mux.HandleFunc("GET /talk/{id}", moved("/instances/{id}"))
-	return mux
+	return s.secure(mux)
 }
 
 // moved redirects an address that used to mean something here to where it
@@ -152,6 +156,10 @@ func moved(to string) http.HandlerFunc {
 
 func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// An inline script runs only with the nonce this response's policy names.
+	if fields, ok := data.(map[string]any); ok {
+		fields["Nonce"] = nonceOf(w)
+	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
 		slog.Error("a page could not be drawn", "page", page, "error", err)
 		http.Error(w, "the page could not be drawn", http.StatusInternalServerError)

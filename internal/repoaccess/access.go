@@ -161,9 +161,17 @@ func refusedForNow(err error) bool {
 	return strings.Contains(said, "Repository not found") || strings.Contains(said, "Invalid username or token") || strings.Contains(said, "Authentication failed")
 }
 
+// protocols are the transports git may use to clone. ext:: runs a program, and
+// git:// and http:// send everything in the clear.
+var protocols = "GIT_ALLOW_PROTOCOL=https:ssh:file"
+
 func clone(ctx context.Context, env []string, remote, dir, into string) error {
-	command := exec.CommandContext(ctx, "git", "-C", dir, "clone", "--quiet", remote, into)
-	command.Env = env
+	if env == nil {
+		env = os.Environ()
+	}
+	// The double dash ends the options, so an address is never read as one.
+	command := exec.CommandContext(ctx, "git", "-C", dir, "clone", "--quiet", "--", remote, into)
+	command.Env = append(env, protocols, "GIT_TERMINAL_PROMPT=0")
 	if output, err := command.CombinedOutput(); err != nil {
 		return fmt.Errorf("git clone: %w: %s", err, strings.TrimSpace(string(output)))
 	}

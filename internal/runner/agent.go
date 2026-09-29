@@ -33,17 +33,6 @@ func agentHere() agent {
 	return agent{uid: uid, gid: uid, present: true}
 }
 
-// trustWorkspace lets the runner's own git read a workspace the agent owns,
-// which git otherwise refuses as another user's repository.
-func (a agent) trustWorkspace() {
-	if !a.present {
-		return
-	}
-	os.Setenv("GIT_CONFIG_COUNT", "1")
-	os.Setenv("GIT_CONFIG_KEY_0", "safe.directory")
-	os.Setenv("GIT_CONFIG_VALUE_0", "*")
-}
-
 // handOver gives the agent its workspace and home, closes out/ to it, and
 // sets the command to start as the agent.
 func (a agent) handOver(dir job.Dir, command *exec.Cmd) error {

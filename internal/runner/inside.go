@@ -40,7 +40,6 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 	agent := agentHere()
-	agent.trustWorkspace()
 	// The digest is taken here, from what the job carries, before the harness
 	// starts: nothing it writes during the run can change what the manifest
 	// says it was.

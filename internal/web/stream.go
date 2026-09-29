@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/getlatentic/haas/internal/jobs"
@@ -34,7 +35,7 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 	stream := &feed{to: w, control: http.NewResponseController(w)}
 	stream.flush()
 
-	tail := &tail{path: dir.OutFile("transcript.log")}
+	tail := &tail{path: dir.OutFile("transcript.log"), plain: dir.PlainOut}
 	ticker := time.NewTicker(300 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -142,12 +143,17 @@ func (s *Server) latest(known jobs.Record) jobs.Record {
 
 // tail reads a file that is still being written, and hands back whole lines.
 type tail struct {
-	path      string
+	path string
+	// plain says whether the file may be opened: it is a file and not a link.
+	plain     func(name string) bool
 	at        int64
 	remainder []byte
 }
 
 func (t *tail) lines() []string {
+	if t.plain != nil && !t.plain(filepath.Base(t.path)) {
+		return nil
+	}
 	file, err := os.Open(t.path)
 	if err != nil {
 		return nil // the harness has not written anything yet

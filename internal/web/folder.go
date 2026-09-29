@@ -13,6 +13,9 @@ import (
 
 // changed is the files a turn changed, from its patch, for the chat to link to.
 func changed(dir job.Dir) []string {
+	if !dir.PlainOut("diff.patch") {
+		return nil
+	}
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if err != nil {
 		return nil

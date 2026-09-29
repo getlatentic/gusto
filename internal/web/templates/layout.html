@@ -8,6 +8,18 @@
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
+  <script nonce="{{.Nonce}}">
+    // What a handler on an element would do, kept here so the page's policy can
+    // refuse every inline handler: a select that sends its form when it changes,
+    // and a form that asks first.
+    document.addEventListener("change", function (event) {
+      if (event.target.matches("[data-autosubmit]") && event.target.form) { event.target.form.submit(); }
+    });
+    document.addEventListener("submit", function (event) {
+      var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
+      if (ask && !confirm(ask)) { event.preventDefault(); }
+    });
+  </script>
 </head>
 <body{{if .Chat}} class="chat"{{end}}>
 <header>

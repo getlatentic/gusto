@@ -54,6 +54,14 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: short})
 		return
 	}
+	if err := repoaccess.Acceptable(sent.Spec.Repo, s.localRepos); err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
+	if err := repoaccess.AcceptableRef(sent.Spec.Ref); err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
 	if err := sent.Spec.Budget.Check(); err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return

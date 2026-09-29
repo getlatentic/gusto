@@ -2,6 +2,8 @@ package runner
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -43,6 +45,9 @@ func Fill(spec job.Spec, dir job.Dir) error {
 		}
 		return err
 	}
+	if err := repoaccess.AcceptableRef(spec.Ref); err != nil {
+		return Refuse(dir, err)
+	}
 	return git(dir.Workspace(), "checkout", "--quiet", spec.Ref)
 }
 
@@ -50,45 +55,82 @@ func Fill(spec job.Spec, dir job.Dir) error {
 // turn in a conversation works in a folder earlier turns already changed, and
 // what this turn changed is the difference from here, not from the folder's
 // first commit.
+//
+// The trees are made in a repository of the runner's own, with the workspace as
+// its working tree. A workspace's own .git is the agent's to write, and git runs
+// the programs its configuration names (a filter, an fsmonitor) when it stages
+// files; the runner is root, so staging with the agent's configuration would
+// hand the agent root in the box during the one step that writes the record.
 func Snapshot(dir job.Dir) (string, error) {
-	return treeOf(dir.Workspace())
+	return treeOf(dir)
 }
 
 // Diff writes what the harness changed since before: every file added,
 // removed or edited, new ones with their contents.
 func Diff(dir job.Dir, before string) error {
-	after, err := treeOf(dir.Workspace())
+	defer os.RemoveAll(objectsOf(dir))
+	after, err := treeOf(dir)
 	if err != nil {
 		return err
 	}
-	patch, err := exec.Command("git", "-C", dir.Workspace(), "diff", before, after).Output()
+	command := exec.Command("git", "diff", before, after)
+	command.Env = ownRepository(dir)
+	patch, err := command.Output()
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(dir.OutFile("diff.patch"), patch, 0o644)
 }
 
+// objectsOf is where a job's trees are kept while it runs, outside the job
+// directory and the workspace, so neither the agent nor the evidence holds it.
+func objectsOf(dir job.Dir) string {
+	path, err := filepath.Abs(dir.Path())
+	if err != nil {
+		path = dir.Path()
+	}
+	sum := sha256.Sum256([]byte(path))
+	return filepath.Join(os.TempDir(), "haas-trees-"+hex.EncodeToString(sum[:8]))
+}
+
+// ownRepository is the environment that makes git use the runner's repository
+// and the job's workspace, and nothing else's configuration: no system or user
+// file, and no prompt.
+func ownRepository(dir job.Dir) []string {
+	workspace, err := filepath.Abs(dir.Workspace())
+	if err != nil {
+		workspace = dir.Workspace()
+	}
+	return append(os.Environ(),
+		"GIT_DIR="+objectsOf(dir),
+		"GIT_WORK_TREE="+workspace,
+		"GIT_CONFIG_NOSYSTEM=1",
+		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_INDEX_FILE="+filepath.Join(objectsOf(dir), "index"),
+		"GIT_TERMINAL_PROMPT=0",
+	)
+}
+
 // treeOf writes the working tree, ignored files left out, as a tree object.
-// It stages into an index of its own, so the workspace's index and history
-// are exactly as the harness left them.
-func treeOf(workspace string) (string, error) {
-	scratch, err := os.MkdirTemp("", "haas-index-")
-	if err != nil {
-		return "", err
+func treeOf(dir job.Dir) (string, error) {
+	if _, err := os.Stat(filepath.Join(objectsOf(dir), "HEAD")); err != nil {
+		if output, err := exec.Command("git", "init", "--quiet", "--bare", objectsOf(dir)).CombinedOutput(); err != nil {
+			return "", fmt.Errorf("git init: %w: %s", err, output)
+		}
 	}
-	defer os.RemoveAll(scratch)
-	index := "GIT_INDEX_FILE=" + filepath.Join(scratch, "index")
-	if err := gitWith(workspace, index, "add", "-A", "."); err != nil {
-		return "", err
+	for _, args := range [][]string{{"add", "-A", "."}, {"write-tree"}} {
+		command := exec.Command("git", args...)
+		command.Dir = dir.Workspace()
+		command.Env = ownRepository(dir)
+		output, err := command.Output()
+		if err != nil {
+			return "", fmt.Errorf("git %s: %w", args[0], err)
+		}
+		if args[0] == "write-tree" {
+			return strings.TrimSpace(string(output)), nil
+		}
 	}
-	command := exec.Command("git", "write-tree")
-	command.Dir = workspace
-	command.Env = append(os.Environ(), index)
-	tree, err := command.Output()
-	if err != nil {
-		return "", fmt.Errorf("git write-tree: %w", err)
-	}
-	return strings.TrimSpace(string(tree)), nil
+	return "", errors.New("git wrote no tree")
 }
 
 func git(at string, args ...string) error {
