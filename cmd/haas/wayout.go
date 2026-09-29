@@ -159,10 +159,7 @@ func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) 
 	if err != nil {
 		return 0, err
 	}
-	_, port, err := net.SplitHostPort(w.address)
-	if err != nil {
-		port = "8041"
-	}
+	port := w.proxyPort()
 	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
 		return 0, err
@@ -173,6 +170,14 @@ func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) 
 		return 0, err
 	}
 	return runner.Outside(dir, box)
+}
+
+// proxyPort is the port the proxy listens on.
+func (w *WayOut) proxyPort() string {
+	if _, port, err := net.SplitHostPort(w.address); err == nil {
+		return port
+	}
+	return "8041"
 }
 
 // Done ends a job's way out, so a container that outlives its server cannot

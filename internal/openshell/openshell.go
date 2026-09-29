@@ -84,6 +84,13 @@ type Sandbox struct {
 	// sshConfig is the file that says how to reach the sandbox with ssh, and
 	// sshHost the name it gives it. Both are made when a conversation needs them.
 	sshConfig, sshHost string
+	// A computer is a sandbox that outlives a job: it is made once, each job works in a
+	// directory of its own in it, and the job's part of the guard's log is what came
+	// after the lines that were there when it began.
+	persistent bool
+	workdir    string
+	job        string
+	logBase    int
 }
 
 // New prepares the sandbox for a job. modelURL is where the sandbox reaches the
@@ -101,6 +108,53 @@ func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL,
 	s.policy = policy
 	return s, nil
 }
+
+// jobName is what a directory in a computer may be called.
+var jobName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
+
+// dirName is a job's id as a directory's name in a computer. A name of plain letters,
+// digits and hyphens is itself. Any other, with a letter from another alphabet or
+// a slash or dots in it, is made plain and given a digest of the whole, so it cannot
+// reach outside its directory and two that are alike stay two.
+func dirName(id string) string {
+	if jobName.MatchString(id) {
+		return id
+	}
+	var plain strings.Builder
+	for _, r := range strings.ToLower(id) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			plain.WriteRune(r)
+		case plain.Len() > 0 && !strings.HasSuffix(plain.String(), "-"):
+			plain.WriteByte('-')
+		}
+	}
+	sum := sha256.Sum256([]byte(id))
+	name := strings.Trim(plain.String(), "-")
+	if len(name) > 60 {
+		name = strings.Trim(name[:60], "-")
+	}
+	if name != "" {
+		name += "-"
+	}
+	return name + hex.EncodeToString(sum[:])[:8]
+}
+
+// NewComputer prepares a job in a computer: a sandbox that lasts, called name, that this
+// job works in a directory of. The sandbox is made when it is not there, and is
+// not removed when the job ends.
+func NewComputer(cfg Config, name, job string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
+	s, err := New(cfg, job, adapter, modelURL, hostModelURL, token)
+	if err != nil {
+		return nil, err
+	}
+	s.name, s.persistent, s.job = name, true, dirName(job)
+	s.workdir = jobsDir + "/" + s.job + "/workspace"
+	return s, nil
+}
+
+// jobsDir is where the jobs of a computer are, each in a directory of its own.
+const jobsDir = Home + "/jobs"
 
 // Home is the home of the user a sandbox runs the harness as.
 const Home = "/sandbox"
@@ -142,6 +196,13 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		keep := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
 			"sh", "-c", `mkdir -p "$1"`, "sh", inHome(adapter.Keeps))
 		if _, err := output(keep); err != nil {
+			return err
+		}
+	}
+	// What an earlier job in a computer put where the harness looks for skills is not
+	// this job's.
+	if s.persistent && adapter.Skills != "" {
+		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", inHome(adapter.Skills))); err != nil {
 			return err
 		}
 	}
@@ -200,7 +261,12 @@ func (s *Sandbox) Env() harness.Env {
 	}
 }
 
-func (s *Sandbox) Workdir() string { return Workdir }
+func (s *Sandbox) Workdir() string {
+	if s.workdir != "" {
+		return s.workdir
+	}
+	return Workdir
+}
 
 // HostModelURL is where the proxy is from the machine that runs the server.
 func (s *Sandbox) HostModelURL() string { return s.hostModel }
@@ -255,8 +321,16 @@ func step(args []string) string {
 	return strings.Join(words, " ")
 }
 
-// Start makes the sandbox, with its policy, and puts the workspace in it.
+// Start makes the sandbox, with its policy, and puts the workspace in it. A computer
+// is made only when it is not there, and is started again when it was stopped.
 func (s *Sandbox) Start(ctx context.Context, workspace string) error {
+	if s.persistent {
+		return s.startInComputer(ctx, workspace)
+	}
+	return s.makeSandbox(ctx, workspace)
+}
+
+func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
 	policy, err := os.CreateTemp("", "haas-sandbox-policy-")
 	if err != nil {
 		return err
@@ -320,7 +394,7 @@ func (s *Sandbox) create(ctx context.Context, args []string) error {
 // value looks like a credential, and the token here is the one that stands in
 // for one.
 func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
-	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", Workdir, "--no-login-shell", "--no-tty", "--"}
+	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--"}
 	if len(command.Env) > 0 {
 		args = append(args, "env")
 		for _, entry := range command.Env {
@@ -344,7 +418,7 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	if err := s.reachable(ctx); err != nil {
 		return nil, err
 	}
-	words := []string{"cd " + quoted(Workdir) + " &&", "exec"}
+	words := []string{"cd " + quoted(s.Workdir()) + " &&", "exec"}
 	if len(command.Env) > 0 {
 		words = append(words, "env")
 		for _, entry := range command.Env {
@@ -405,7 +479,7 @@ func (s *Sandbox) Fetch(into string) error {
 		return err
 	}
 	defer os.RemoveAll(staging)
-	if _, err := output(s.run(context.Background(), "sandbox", "download", s.name, Workdir, staging)); err != nil {
+	if _, err := output(s.run(context.Background(), "sandbox", "download", s.name, s.Workdir(), staging)); err != nil {
 		return err
 	}
 	// A directory downloads as its contents, links kept as links and not followed,
@@ -443,6 +517,7 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 		events = latest
 		time.Sleep(settle)
 	}
+	events = s.jobEvents(events)
 	policy, err = output(s.run(context.Background(), "policy", "get", s.name, "--full"))
 	if err != nil {
 		return events, s.policy, nil
@@ -450,10 +525,13 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 	return events, policy, nil
 }
 
-// Close removes the sandbox.
+// Close removes the sandbox, and a computer's job's directory and no more of it.
 func (s *Sandbox) Close() error {
 	if s.sshConfig != "" {
 		os.Remove(s.sshConfig)
+	}
+	if s.persistent {
+		return s.endJob()
 	}
 	_, err := output(s.run(context.Background(), "sandbox", "delete", s.name))
 	return err

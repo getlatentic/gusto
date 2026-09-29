@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/haas/internal/apitoken"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/compare"
+	"github.com/getlatentic/haas/internal/computer"
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/instance"
@@ -77,9 +78,23 @@ func serve(args []string) int {
 	}
 	defer stopProxy()
 	index.SetLimits(jobs.Limits{Person: number("HAAS_LIMIT_PERSON", 0), Team: number("HAAS_LIMIT_TEAM", 0)})
-	work, err := chosenWork(way, instances)
+	computers, err := computersFromEnv()
 	if err != nil {
 		return fail(err)
+	}
+	work, err := chosenWork(way, instances, index, computers)
+	if err != nil {
+		return fail(err)
+	}
+	if computers != nil {
+		cfg, err := openshell.FromEnv()
+		if err != nil {
+			return fail(err)
+		}
+		tending, stopTending := context.WithCancel(context.Background())
+		defer stopTending()
+		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) },
+			30*time.Second, time.Duration(number("HAAS_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
 	}
 	queue := jobs.Start(index, work, number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
@@ -200,7 +215,7 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, instances *instance.Store) (jobs.Work, error) {
+func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.Work, error) {
 	switch os.Getenv("HAAS_SANDBOX") {
 	case "here":
 		return here(instances), nil
@@ -209,7 +224,7 @@ func chosenWork(way *WayOut, instances *instance.Store) (jobs.Work, error) {
 		if err != nil {
 			return nil, err
 		}
-		return inSandbox(way, cfg), nil
+		return inSandbox(way, cfg, index, registry), nil
 	}
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
@@ -236,7 +251,7 @@ func chosenWork(way *WayOut, instances *instance.Store) (jobs.Work, error) {
 
 // inSandbox runs each job's harness in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
-func inSandbox(way *WayOut, cfg openshell.Config) jobs.Work {
+func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry) jobs.Work {
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -246,6 +261,11 @@ func inSandbox(way *WayOut, cfg openshell.Config) jobs.Work {
 			return 0, err
 		}
 		defer way.Done(dir)
+		// A person's job runs in their own computer, and one asked for by a script or a
+		// token, which is nobody's, in a sandbox of its own.
+		if person := personWhoAsked(index, dir); registry != nil && person != "" {
+			return way.RunInComputer(dir, spec, cfg, registry, person)
+		}
 		return way.RunInSandbox(dir, spec, cfg)
 	}
 }
