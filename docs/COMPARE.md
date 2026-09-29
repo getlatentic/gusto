@@ -55,8 +55,10 @@ harnesses alone.
 ## What is not held
 
 - **The adapter.** It is the harness, and the harness is what is compared.
-- **The hour.** The runs start together, so each meets the same time of day and
-  the same load on a shared model, and neither waits on the other. Two runs of
+- **The hour.** The runs are queued together, and start together when there are
+  runners for all of them and no person limit ([LIMITS.md](LIMITS.md)) holds
+  one back. Otherwise a later engine starts later and meets a different load
+  on a shared model. Two runs of
   one harness still differ, because a model does; one comparison is one sample.
 - **The model's answers.** Nothing here makes a model deterministic.
 

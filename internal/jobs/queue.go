@@ -28,6 +28,7 @@ func Start(index *Index, work Work, workers int) *Queue {
 	if workers < 1 {
 		workers = 1
 	}
+	index.setSlots(workers)
 	queue := &Queue{
 		index: index,
 		work:  work,
@@ -105,5 +106,8 @@ func (q *Queue) one() bool {
 	if err := q.index.Finish(record.ID, state, exit); err != nil {
 		slog.Error("could not record how a job ended", "job", record.ID, "error", err)
 	}
+	// A job that ends can free a person's or a team's limit for a job another
+	// worker is asleep on.
+	q.Wake()
 	return true
 }

@@ -1,0 +1,48 @@
+# Limits on what one person or team runs at once
+
+`HAAS_JOB_CONCURRENCY` says how many jobs the server runs at once. Two more
+settings stop one person or team from taking all of them.
+
+| Setting | Meaning |
+| --- | --- |
+| `HAAS_LIMIT_PERSON` | the most jobs one person runs at once |
+| `HAAS_LIMIT_TEAM` | the most jobs one team runs at once |
+
+Zero, or nothing, is no limit. The playbook has `limit_person` and `limit_team`,
+compose has the two variables in `.env`, and the chart has `jobs.limitPerson`
+and `jobs.limitTeam`.
+
+## Who counts
+
+A person is who asked for the job: the signed-in address, the shared sign-in as
+one person, or `token:<name>` for a job an API token sent. A team is the
+`team` the job names, which is also what spending groups by. A job that names
+no team is held by no team limit.
+
+## What a job over its limit does
+
+It stays queued. It starts when one of that person's or team's jobs ends, and a
+job that belongs to nobody at their limit starts in its place. Order is
+otherwise first come, first served.
+
+The job's page, and its line in Activity, says which thing holds it:
+
+| Says | Because |
+| --- | --- |
+| Amy already has 1 running, the most one person may run at once | the person limit |
+| The team platform already has 2 running, the most a team may run at once | the team limit |
+| Every runner is busy: 2 of 2 | every worker is on a job |
+| Waiting for this agent to finish its last message | a turn of the same agent is running |
+
+Each also says where the job stands in the line, counting every queued job from
+the front. The Activity page's *waiting* filter is the queue.
+
+## Choosing
+
+A limit is a hard cap. With two runners and a person limit of one, one person's
+job leaves the second runner idle when nobody else is waiting. That is the cost
+of a cap that never varies. Set the person limit to the share of runners one
+person is meant to hold, and leave it unset on a server with one user.
+
+Comparisons start one job for each engine, so a person limit of one makes a
+comparison run its engines one after another.

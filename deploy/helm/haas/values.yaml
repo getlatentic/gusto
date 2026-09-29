@@ -70,6 +70,9 @@ credentials:
 # resources below have to hold concurrency times memory.
 jobs:
   concurrency: 1
+  # The most one person, or one team, runs at once. 0 is no limit.
+  limitPerson: 0
+  limitTeam: 0
   memory: 3g
   cpus: "1"
 

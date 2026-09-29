@@ -61,6 +61,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	defer stopProxy()
+	index.SetLimits(jobs.Limits{Person: number("HAAS_LIMIT_PERSON", 0), Team: number("HAAS_LIMIT_TEAM", 0)})
 	queue := jobs.Start(index, chosenWork(way, instances), number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
