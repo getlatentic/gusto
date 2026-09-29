@@ -81,6 +81,9 @@ type Sandbox struct {
 	token     string
 	policy    []byte
 	keeps     []string
+	// sshConfig is the file that says how to reach the sandbox with ssh, and
+	// sshHost the name it gives it. Both are made when a conversation needs them.
+	sshConfig, sshHost string
 }
 
 // New prepares the sandbox for a job. modelURL is where the sandbox reaches the
@@ -295,6 +298,67 @@ func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 	return wrapped
 }
 
+// Attach runs a command in the sandbox over ssh through the gateway. exec
+// carries standard input as one piece when it ends, so an agent that is spoken
+// to as it works would never hear the first message.
+func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error) {
+	if err := s.reachable(ctx); err != nil {
+		return nil, err
+	}
+	words := []string{"cd " + quoted(Workdir) + " &&", "exec"}
+	if len(command.Env) > 0 {
+		words = append(words, "env")
+		for _, entry := range command.Env {
+			if strings.Contains(entry, "=") {
+				words = append(words, quoted(inSandbox(entry)))
+			}
+		}
+	}
+	for _, argument := range command.Args {
+		words = append(words, quoted(inSandbox(argument)))
+	}
+	attached := exec.CommandContext(ctx, "ssh", "-F", s.sshConfig, "-T", "-o", "BatchMode=yes", s.sshHost, strings.Join(words, " "))
+	attached.Env = cleanEnv()
+	attached.Stdin = command.Stdin
+	return attached, nil
+}
+
+// reachable has the gateway say how to ssh to the sandbox, once.
+func (s *Sandbox) reachable(ctx context.Context) error {
+	if s.sshConfig != "" {
+		return nil
+	}
+	said, err := output(s.run(ctx, "sandbox", "ssh-config", s.name))
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(said), "\n") {
+		if alias, found := strings.CutPrefix(strings.TrimSpace(line), "Host "); found {
+			s.sshHost = alias
+			break
+		}
+	}
+	if s.sshHost == "" {
+		return fmt.Errorf("openshell sandbox ssh-config named no host for %s", s.name)
+	}
+	file, err := os.CreateTemp("", "haas-sandbox-ssh-")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if _, err := file.Write(said); err != nil {
+		os.Remove(file.Name())
+		return err
+	}
+	s.sshConfig = file.Name()
+	return nil
+}
+
+// quoted is text as one word to the shell that runs it in the sandbox.
+func quoted(text string) string {
+	return "'" + strings.ReplaceAll(text, "'", `'\''`) + "'"
+}
+
 // Fetch replaces into with the workspace as the sandbox now holds it.
 func (s *Sandbox) Fetch(into string) error {
 	staging, err := os.MkdirTemp(filepath.Dir(into), ".fetch-")
@@ -349,6 +413,9 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 
 // Close removes the sandbox.
 func (s *Sandbox) Close() error {
+	if s.sshConfig != "" {
+		os.Remove(s.sshConfig)
+	}
 	_, err := output(s.run(context.Background(), "sandbox", "delete", s.name))
 	return err
 }

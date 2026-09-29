@@ -305,7 +305,7 @@ func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
 // An agent that speaks the Agent Client Protocol is held a conversation with, in
 // the directory the sandbox has the workspace at and not one of this machine's.
 func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
-	installFake(t)
+	root := installFake(t)
 	dir, _ := aJob(t)
 	agent := `while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([^,}]*\).*/\1/p')
@@ -331,6 +331,10 @@ done`
 	}
 	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "Made it yes.") {
 		t.Errorf("the agent's words did not reach the record:\n%s", said)
+	}
+	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
+	if !strings.Contains(string(calls), "ssh-config") || !strings.Contains(string(calls), "ssh haas-") {
+		t.Errorf("a conversation should be held over ssh, since exec cannot carry one: %s", calls)
 	}
 	asked, err := os.ReadFile(filepath.Join(dir.Workspace(), "asked-new.json"))
 	if err != nil || !strings.Contains(string(asked), `"cwd":"/sandbox/workspace"`) {

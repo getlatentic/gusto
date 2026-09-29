@@ -33,6 +33,7 @@ case "$cmd $sub" in
   cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${envs[@]}" "${mapped[@]}";;
 "sandbox download")
   dest=$5; mkdir -p "$dest"; cp -R "$root/$3$4/." "$dest/";;
+"sandbox ssh-config") printf 'Host openshell-%s.default\n    User sandbox\n' "$3";;
 "sandbox delete") rm -rf "$root/$3"; echo "$3" >> "$root/deleted.log";;
 "logs "*|"logs")
   # A log that has not all arrived the first time it is asked for.
@@ -45,11 +46,25 @@ case "$cmd $sub" in
 esac
 `
 
+// fakeSSH is the ssh command that reaches a fake sandbox: it runs what it is
+// asked to run in that sandbox's directory, with the sandbox's home mapped.
+const fakeSSH = `#!/bin/bash
+root=${OPENSHELL_FAKE_ROOT:?}
+while [ $# -gt 0 ]; do case "$1" in -F|-o) shift 2;; -T) shift;; *) break;; esac; done
+name=${1#openshell-}; name=${name%.default}
+remote=${2//\/sandbox/$root/$name/sandbox}
+echo "ssh $name" >> "$root/calls.log"
+exec env -i PATH="$PATH" bash -c "$remote"
+`
+
 // installFake puts the fake first on PATH and returns where its sandboxes are.
 func installFake(t *testing.T) string {
 	t.Helper()
 	bin, root := t.TempDir(), t.TempDir()
 	if err := os.WriteFile(filepath.Join(bin, "openshell"), []byte(fakeOpenshell), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(bin, "ssh"), []byte(fakeSSH), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
