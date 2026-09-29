@@ -17,6 +17,7 @@
     <a href="/compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}} <span>Compare</span></a>
     <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Activity</span></a>
     <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spending</span></a>
+    {{if and .Admin takesTokens}}<a href="/tokens"{{if eq .Nav "tokens"}} aria-current="page"{{end}}>{{template "icon-lock"}} <span>Tokens</span></a>{{end}}
     {{if .Admin}}<a href="/changes"{{if eq .Nav "changes"}} aria-current="page"{{end}}>{{template "icon-log"}} <span>Changes</span></a>{{end}}
     <a class="new" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New agent</span></a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>

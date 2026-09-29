@@ -33,7 +33,7 @@ func governing() map[string]string {
 	settings := map[string]string{}
 	for _, name := range []string{
 		"HAAS_ALLOWED", "HAAS_ADMINS", "HAAS_RUNNER_GROUPS", "HAAS_ADMIN_GROUPS",
-		"HAAS_OIDC_GROUPS_CLAIM", "HAAS_OIDC_ISSUER", "HAAS_ALLOWED_HOSTS", "HAAS_MODELS", "HAAS_JOB_NETWORK",
+		"HAAS_OIDC_GROUPS_CLAIM", "HAAS_OIDC_ISSUER", "HAAS_ALLOWED_HOSTS", "HAAS_MODELS", "HAAS_JOB_NETWORK", "HAAS_API_TOKENS",
 	} {
 		settings[name] = os.Getenv(name)
 	}

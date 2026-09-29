@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/accesslog"
+	"github.com/getlatentic/haas/internal/apitoken"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/evidence"
@@ -127,6 +128,13 @@ func serve(args []string) int {
 	}
 	defer changes.Close()
 	pages.UseChanges(changes)
+	if path := os.Getenv("HAAS_API_TOKENS"); path != "" {
+		tokens, err := apitoken.Open(path)
+		if err != nil {
+			return fail(err)
+		}
+		pages.UseTokens(tokens)
+	}
 	pages.UseSettings(governing())
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{

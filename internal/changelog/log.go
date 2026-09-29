@@ -42,6 +42,8 @@ const (
 	SkillDropped    = "skill.dropped"
 	ServerStarted   = "server.started"
 	SettingsChanged = "settings.changed"
+	TokenCreated    = "token.created"
+	TokenRevoked    = "token.revoked"
 )
 
 // Event is one line of the log.
