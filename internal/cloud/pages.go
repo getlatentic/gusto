@@ -34,6 +34,11 @@ type view struct {
 	Computers int
 	// Domain is the company's.
 	Domain string
+	// The organisation's server: how it is, whether a person can open it, and
+	// whether the page should look again in a moment.
+	Server  string
+	CanOpen bool
+	Refresh bool
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {

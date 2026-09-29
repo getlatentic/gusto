@@ -38,6 +38,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.mailVerification(person, org)
+	s.provision(org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }

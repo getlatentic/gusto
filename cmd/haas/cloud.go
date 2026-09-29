@@ -18,45 +18,51 @@ import (
 )
 
 // cloudCommand runs the front door of a hosted haas: sign-up, sign-in and the
-// organisations' records. It runs no jobs; each organisation has a server of its
-// own.
+// organisations' records, and the servers it starts for each organisation and sends
+// their people to. It runs no jobs itself.
 func cloudCommand(args []string) int {
-	front, err := openCloud()
+	front, controller, err := openCloud()
 	if err != nil {
 		return fail(err)
 	}
 	address := setting("HAAS_CLOUD_ADDR", "127.0.0.1:8050")
+	// There is no write timeout: an organisation's job stream stays open for as long as
+	// the job runs, and the front door carries it.
 	server := &http.Server{
 		Addr:              address,
 		Handler:           accesslog.Keep(accesslog.Stderr())(front.Handler()),
 		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
-	stopping := make(chan os.Signal, 1)
-	signal.Notify(stopping, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	controlled := make(chan struct{})
 	go func() {
-		<-stopping
-		context, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		controller.Run(ctx, 5*time.Second)
+		close(controlled)
+	}()
+	go func() {
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		_ = server.Shutdown(context)
+		_ = server.Shutdown(shutdown)
 	}()
 	fmt.Printf("the front door is listening on %s\n", address)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fail(err)
 	}
 	front.Wait()
+	<-controlled
 	return 0
 }
 
 // openCloud reads the front door's settings and opens what it keeps. Links
 // that expired are swept when it starts and every hour after.
-func openCloud() (*cloud.Server, error) {
+func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	address := setting("HAAS_CLOUD_ADDR", "127.0.0.1:8050")
 	public, err := url.Parse(setting("HAAS_CLOUD_URL", "http://"+address))
 	if err != nil || (public.Scheme != "http" && public.Scheme != "https") || public.Host == "" {
-		return nil, errors.New("HAAS_CLOUD_URL is the address links in mail begin with, as https://cloud.example.com")
+		return nil, nil, errors.New("HAAS_CLOUD_URL is the address links in mail begin with, as https://cloud.example.com")
 	}
 	root := setting("HAAS_CLOUD_ROOT", "cloud")
 	limits := cloud.DefaultLimits()
@@ -73,27 +79,76 @@ func openCloud() (*cloud.Server, error) {
 		Limits:         limits,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sessions, err := cloud.OpenSessions(root, public.Scheme == "https")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	mail, err := cloud.MailFrom(os.Getenv("HAAS_CLOUD_MAIL"), filepath.Join(root, "outbox"))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	controller, err := organisationServers(store, public, limits)
+	if err != nil {
+		return nil, nil, err
 	}
 	front, err := cloud.New(cloud.Config{
-		Store: store, Mail: mail, Sessions: sessions, URL: public,
+		Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("HAAS_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("HAAS_CLOUD_TRUST_PROXY") == "1",
 		PerAddress: number("HAAS_CLOUD_PER_ADDRESS", 0), PerMailbox: number("HAAS_CLOUD_PER_MAILBOX", 0), InAll: number("HAAS_CLOUD_IN_ALL", 0),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	go sweepLinks(store)
-	return front, nil
+	return front, controller, nil
+}
+
+// organisationServers is what starts each organisation's haas serve on this machine.
+// HAAS_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organisation's
+// server is started with, which is where the operator's model credentials, models and
+// sandbox settings go. Nothing else of the front door's environment goes to them.
+func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	env, err := operatorEnv(os.Getenv("HAAS_CLOUD_ORG_ENV"))
+	if err != nil {
+		return nil, err
+	}
+	return &cloud.Controller{
+		Store: store, Cell: &cloud.LocalCell{}, Command: []string{exe, "serve"}, Env: env,
+		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: number("HAAS_CLOUD_PORT_FROM", 9100),
+		Wait: time.Duration(number("HAAS_CLOUD_START_WAIT_SECONDS", 120)) * time.Second, Concurrent: limits.Verified.Concurrent,
+	}, nil
+}
+
+// operatorEnv reads the settings every organisation's server gets. A line is
+// KEY=VALUE, and blank lines and lines that begin with # are skipped. PATH is
+// this process's unless the file sets it, so a server finds git and openshell.
+func operatorEnv(path string) ([]string, error) {
+	env := []string{"PATH=" + os.Getenv("PATH")}
+	if path == "" {
+		return env, nil
+	}
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	for number, line := range strings.Split(string(text), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if !strings.Contains(line, "=") {
+			return nil, fmt.Errorf("%s line %d is not KEY=VALUE", path, number+1)
+		}
+		env = append(env, line)
+	}
+	return env, nil
 }
 
 func sweepLinks(store *cloud.Store) {

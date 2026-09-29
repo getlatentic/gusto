@@ -15,6 +15,9 @@ input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid 
 button { font: 600 inherit; cursor: pointer; text-align: center; padding: var(--yg-space-3); border: 0;
   border-radius: var(--yg-radius-sm); background: var(--yg-accent); color: var(--yg-on-accent); }
 button:hover { background: var(--yg-accent-hover); }
+a.button { display: block; font: 600 inherit; text-align: center; text-decoration: none; padding: var(--yg-space-3);
+  border-radius: var(--yg-radius-sm); background: var(--yg-accent); color: var(--yg-on-accent); }
+a.button:hover { background: var(--yg-accent-hover); }
 /* Secondary only beside a primary: an action that repeats another is quiet. */
 button.quiet { background: none; color: var(--yg-text-muted); font-weight: 400; border: 1px solid var(--yg-border-strong); }
 button.quiet:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }

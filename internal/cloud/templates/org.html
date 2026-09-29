@@ -15,7 +15,9 @@
     <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
     <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
     <dt>Computers</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
+    {{if .Server}}<dt>Server</dt><dd><span class="state{{if .CanOpen}} ok{{end}}">{{if .CanOpen}}Ready{{else}}Starting{{end}}</span></dd>{{end}}
   </dl>
+  {{if .CanOpen}}<a class="button" href="/open">Open</a>{{end}}
   {{if .Person.Trial}}
   <p class="muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
   <form method="post" action="/org/verify"><button class="quiet" type="submit">Send the link again</button></form>
