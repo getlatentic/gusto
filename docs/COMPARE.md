@@ -96,14 +96,18 @@ cheap at anything, and when one run passes alone the sentence says so and
 names no fastest or cheapest.
 
 Two figures are level when they differ by less than 15% of the larger, or by
-less than 5 seconds, or by less than a tenth of a cent. A level pair gets no
-badge, and the sentence says the time or the cost was level. When nothing
-separates the runs, it says that. One run each is one sample, and a second run
-could reverse a small difference.
+less than 5 seconds, or by less than a tenth of a cent. It is the best two
+that must stand apart: a level pair at the front gets no badge, and the
+sentence names the two, since with six runs the fastest two being level says
+nothing about the slowest. When nothing separates the runs, the sentence says
+that. One run each is one sample, and a second run could reverse a small
+difference.
 
-A cost that is not priced for every model call is not ranked, and neither is a
-run with no time: the run left out may have been the best, so the sentence says
-the figure could not be compared.
+A cost the proxy could not price in full is a floor, "at least". A floor can
+show a run is not the cheapest, and it can never make one the cheapest, so a
+floor close to the best leaves the ranking open and the sentence says why. A
+run with no time, or no cost counted at all, is not ranked either: it may have
+been the best.
 
 Model calls are the turns of the agent's loop, counted at the proxy from the
 provider's own answers. A run that did not go through the proxy shows none.
