@@ -15,11 +15,17 @@ import (
 // inComputer is a sandbox that lasts, for a job.
 func inComputer(t *testing.T, dir job.Dir, name, jobID string) *openshell.Sandbox {
 	t.Helper()
+	return inComputerFor(t, dir, name, jobID, "")
+}
+
+// inComputerFor is a sandbox that lasts, for a turn in a conversation on an instance.
+func inComputerFor(t *testing.T, dir job.Dir, name, jobID, instance string) *openshell.Sandbox {
+	t.Helper()
 	configured, err := harness.Open(dir, "fixture")
 	if err != nil {
 		t.Fatal(err)
 	}
-	box, err := openshell.NewComputer(openshell.Config{Binary: "openshell", Image: "runner.tar", CPU: "1", Memory: "1Gi"}, name, jobID,
+	box, err := openshell.NewComputer(openshell.Config{Binary: "openshell", Image: "runner.tar", CPU: "1", Memory: "1Gi"}, name, jobID, instance,
 		configured.Adapter, "http://host.openshell.internal:8041/model/v1", "http://127.0.0.1:8041/model/v1", "a-job-token")
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +179,7 @@ func TestAJobInAComputerAlwaysWorksInADirectoryOfItsOwnInsideTheJobsDirectory(t 
 	seen := map[string]string{}
 	for _, id := range []string{"20260929-1200-fix-the-adder", "../escape", "a/b", "A-Capital", "-lead", "with space", "20260929-1200-caf\u00e9", "20260929-1200-caf\u00e8",
 		strings.Repeat("a", 200), "..", ".", "\u0430\u0431\u0432"} {
-		box, err := openshell.NewComputer(openshell.Config{Binary: "openshell"}, "c-x", id, configured.Adapter, "http://m", "http://m", "t")
+		box, err := openshell.NewComputer(openshell.Config{Binary: "openshell"}, "c-x", id, "", configured.Adapter, "http://m", "http://m", "t")
 		if err != nil {
 			t.Errorf("%q: %v", id, err)
 			continue
@@ -195,9 +201,48 @@ func TestAJobInAComputerAlwaysWorksInADirectoryOfItsOwnInsideTheJobsDirectory(t 
 }
 
 func box(id string, t *testing.T, adapter harness.Adapter) string {
-	b, err := openshell.NewComputer(openshell.Config{Binary: "openshell"}, "c-x", id, adapter, "http://m", "http://m", "t")
+	b, err := openshell.NewComputer(openshell.Config{Binary: "openshell"}, "c-x", id, "", adapter, "http://m", "http://m", "t")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return b.Workdir()
+}
+
+// The harness ties a conversation to the directory it began in, so every turn of an instance
+// works in one directory of the computer, and what an earlier turn left in it that the
+// instance no longer has is not there. A job that is not a turn keeps to a directory of its own.
+func TestTurnsOfOneInstanceShareADirectoryThatIsKeptAndIsGivenTheInstancesFilesAgain(t *testing.T) {
+	root := installFake(t)
+	kept := filepath.Join(root, "c-12345678-abcdefgh", "sandbox", "jobs", "instance-20260929-1200-notes")
+	first, _ := aJob(t)
+	withHarness(t, `printf yes > answer.txt; printf stale > only-in-the-first-turn.txt; echo turn in $(pwd | sed 's|.*/sandbox||')`)
+	if exit, err := runner.Outside(first, inComputerFor(t, first, "c-12345678-abcdefgh", "20260929-1200-first", "20260929-1200-notes")); err != nil || exit != 0 {
+		t.Fatalf("exit %d, %v", exit, err)
+	}
+	if _, err := os.Stat(kept); err != nil {
+		t.Fatalf("the conversation's directory goes when a turn ends: %v", err)
+	}
+	second, _ := aJob(t)
+	withHarness(t, `printf yes > answer.txt; ls; echo turn in $(pwd | sed 's|.*/sandbox||')`)
+	if exit, err := runner.Outside(second, inComputerFor(t, second, "c-12345678-abcdefgh", "20260929-1201-second", "20260929-1200-notes")); err != nil || exit != 0 {
+		t.Fatalf("exit %d, %v", exit, err)
+	}
+	for _, dir := range []job.Dir{first, second} {
+		said, _ := os.ReadFile(dir.OutFile("transcript.log"))
+		if !strings.Contains(string(said), "turn in /jobs/instance-20260929-1200-notes/workspace") {
+			t.Errorf("both turns work in the instance's directory:\n%s", said)
+		}
+	}
+	said, _ := os.ReadFile(second.OutFile("transcript.log"))
+	if strings.Contains(string(said), "only-in-the-first-turn.txt") {
+		t.Errorf("the second turn was given what the first left, and not the instance's files:\n%s", said)
+	}
+	other, _ := aJob(t)
+	withHarness(t, `printf yes > answer.txt; echo one-off in $(pwd | sed 's|.*/sandbox||')`)
+	if _, err := runner.Outside(other, inComputer(t, other, "c-12345678-abcdefgh", "20260929-1202-oneoff")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "c-12345678-abcdefgh", "sandbox", "jobs", "20260929-1202-oneoff")); err == nil {
+		t.Error("a job that is not a turn left its directory")
+	}
 }

@@ -35,8 +35,12 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 		return fmt.Errorf("the workspace is %s, and a computer names it workspace", absolute)
 	}
 	here := jobsDir + "/" + s.job
-	if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "mkdir", "-p", here)); err != nil {
-		return err
+	// What a turn of a conversation left there is the last turn's, and the workspace it is
+	// given now is the whole of what it works on.
+	for _, command := range [][]string{{"rm", "-rf", here}, {"mkdir", "-p", here}} {
+		if _, err := output(s.run(ctx, append([]string{"sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--"}, command...)...)); err != nil {
+			return err
+		}
 	}
 	if _, err := output(s.run(ctx, "sandbox", "upload", s.name, absolute, here)); err != nil {
 		return err
@@ -110,8 +114,11 @@ func (s *Sandbox) jobEvents(all []byte) []byte {
 
 // endJob takes away what this job left in a computer, which is the directory it
 // worked in and the skills it was given: the next job is given its own. The computer
-// stays.
+// stays, and so does the directory of a conversation, which its next turn works in.
 func (s *Sandbox) endJob() error {
+	if s.keepDir {
+		return nil
+	}
 	if _, err := output(s.run(context.Background(), "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
 		"rm", "-rf", jobsDir+"/"+s.job)); err != nil {
 		return err
