@@ -173,6 +173,27 @@ func parse(text []byte) (Adapter, error) {
 // Command builds the process to run. The context carries the time budget, so a
 // harness that will not stop is killed rather than waited for.
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
+	return a.CommandIn(ctx, spec, workspace, Here())
+}
+
+// Env is what a harness is started with besides its own arguments: the
+// environment it inherits, and where its model is and what stands in for a
+// credential. A box that is not this process names them itself, so nothing of
+// this process's environment, which holds the server's own secrets, reaches it.
+type Env struct {
+	Base       []string
+	ModelURL   string
+	ModelToken string
+}
+
+// Here is this process's own: what a container's runner and a run on a laptop
+// start a harness with.
+func Here() Env {
+	return Env{Base: os.Environ(), ModelURL: ModelURL(), ModelToken: ModelToken()}
+}
+
+// CommandIn is Command for a harness started in an environment given.
+func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string, env Env) *exec.Cmd {
 	wanted := a.Argv
 	if spec.Remembered != "" && len(a.Resume) > 0 {
 		wanted = a.Resume
@@ -182,25 +203,25 @@ func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *
 		// An argument the job left empty is dropped rather than passed as a
 		// bare flag: a harness asked for "--model=" refuses to start, and the
 		// job meant "whatever you are configured with".
-		filled := a.fill(argument, spec)
+		filled := a.fill(argument, spec, env)
 		if filled == "" || strings.HasSuffix(filled, "=") {
 			continue
 		}
 		argv = append(argv, filled)
 	}
-	command := exec.CommandContext(ctx, a.fill(a.Program, spec), argv...)
+	command := exec.CommandContext(ctx, a.fill(a.Program, spec, env), argv...)
 	command.Dir = workspace
 	if a.Stdin != "" {
-		command.Stdin = strings.NewReader(a.fill(a.Stdin, spec))
+		command.Stdin = strings.NewReader(a.fill(a.Stdin, spec, env))
 	}
-	command.Env = os.Environ()
+	command.Env = append([]string{}, env.Base...)
 	for key, value := range a.Env {
-		command.Env = append(command.Env, key+"="+a.fill(value, spec))
+		command.Env = append(command.Env, key+"="+a.fill(value, spec, env))
 	}
 	return command
 }
 
-func (a Adapter) fill(text string, spec job.Spec) string {
+func (a Adapter) fill(text string, spec job.Spec, env Env) string {
 	_, alone, _ := strings.Cut(spec.Model, "/")
 	if alone == "" {
 		alone = spec.Model
@@ -213,9 +234,9 @@ func (a Adapter) fill(text string, spec job.Spec) string {
 		// wants the model alone.
 		"{model}", spec.Model,
 		"{modelId}", alone,
-		"{modelUrl}", ModelURL(),
-		"{modelRoot}", ModelRoot(),
-		"{modelToken}", ModelToken(),
+		"{modelUrl}", env.ModelURL,
+		"{modelRoot}", strings.TrimSuffix(env.ModelURL, "/v1"),
+		"{modelToken}", env.ModelToken,
 		"{session}", spec.Remembered,
 		"{harnessDir}", a.home,
 	).Replace(text)
