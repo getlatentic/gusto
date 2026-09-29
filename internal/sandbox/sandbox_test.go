@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 
@@ -51,5 +52,40 @@ func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
 	t.Setenv("HAAS_JOB_MEMORY", "900m")
 	if got := share("HAAS_JOB_MEMORY", "3g"); got != "900m" {
 		t.Fatalf("a small machine should be able to say so, got %q", got)
+	}
+}
+
+// Whether the runtime enforces them is measured by the deploy's smoke job, which
+// runs a real container. What can be held here is that every container, sealed
+// or not, is asked for the same restrictions and no more capabilities than the
+// runner needs.
+func TestEveryContainerDropsEveryCapabilityButWhatTheRunnerNeeds(t *testing.T) {
+	sealed, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "t", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	open, err := argv("/jobs/a", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, args := range map[string][]string{"sealed": sealed, "open": open} {
+		if !slices.Contains(args, "--cap-drop=ALL") || !slices.Contains(args, "--security-opt=no-new-privileges") {
+			t.Errorf("%s: %v", name, args)
+		}
+		var added []string
+		for _, arg := range args {
+			if capability, found := strings.CutPrefix(arg, "--cap-add="); found {
+				added = append(added, capability)
+			}
+		}
+		slices.Sort(added)
+		if strings.Join(added, ",") != "CHOWN,DAC_OVERRIDE,FOWNER,SETGID,SETUID" {
+			t.Errorf("%s adds %v", name, added)
+		}
+		for _, arg := range args {
+			if arg == "--privileged" || strings.HasPrefix(arg, "--device") || strings.HasPrefix(arg, "--cap-add=SYS_") || arg == "--cap-add=NET_ADMIN" {
+				t.Errorf("%s was given %q", name, arg)
+			}
+		}
 	}
 }

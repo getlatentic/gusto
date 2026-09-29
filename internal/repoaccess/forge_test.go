@@ -60,6 +60,7 @@ type forge struct {
 
 func newForge(t *testing.T) *forge {
 	t.Helper()
+	t.Cleanup(repoaccess.AllowHTTP())
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)

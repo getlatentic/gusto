@@ -46,7 +46,7 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, call spend.Call)
 	for _, name := range []string{"Proxy-Authorization", "Proxy-Connection", "Connection"} {
 		out.Header.Del(name)
 	}
-	answer, err := p.client.Transport.RoundTrip(out)
+	answer, err := p.outboundTransport().RoundTrip(out)
 	if err != nil {
 		call.Error = err.Error()
 		http.Error(w, "that host did not answer", http.StatusBadGateway)
@@ -90,4 +90,11 @@ func proxyToken(r *http.Request) string {
 	}
 	bearer, _ := strings.CutPrefix(given, "Bearer ")
 	return strings.TrimSpace(bearer)
+}
+
+// outboundTransport carries a job's plain HTTP requests, connecting through dial
+// so the same rules hold as for a tunnel, and following no redirect: the
+// container asks for each address itself.
+func (p *Proxy) outboundTransport() *http.Transport {
+	return &http.Transport{DialContext: p.dial, DisableKeepAlives: true, Proxy: nil}
 }

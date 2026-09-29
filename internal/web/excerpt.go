@@ -31,6 +31,9 @@ type excerpt struct {
 // not there is not an error: a run that stopped early leaves some of them
 // unwritten, and the page draws what exists.
 func readExcerpt(dir job.Dir, id, name string, limit int) (excerpt, bool) {
+	if !dir.PlainOut(name) {
+		return excerpt{}, false
+	}
 	file, err := os.Open(dir.OutFile(name))
 	if err != nil {
 		return excerpt{}, false

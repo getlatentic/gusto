@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -110,6 +111,7 @@ func TestAOneOffAgainstARepositoryIsAnInstanceStartedForATask(t *testing.T) {
 		t.Fatal("the set-up page forgets that a task was asked for")
 	}
 	repo := aRepository(t)
+	site.server.UseLocalRepos([]string{filepath.Dir(repo)})
 	started := site.ask(t, "POST", "/instances", url.Values{
 		"harness": {"fixture"}, "repo": {repo}, "then": {"task"},
 	})

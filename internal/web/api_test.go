@@ -66,7 +66,7 @@ var fixture = harness.Adapter{
 func aJob() job.Spec {
 	return job.Spec{
 		Brief:   "Make the adder add",
-		Repo:    "/somewhere/repo",
+		Repo:    "https://github.com/acme/repo",
 		Gate:    []string{"sh", "-c", "test 2 = 2"},
 		Harness: "opencode",
 	}
@@ -115,7 +115,7 @@ func TestAJobSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if spec.Brief != "Make the adder add" || spec.Repo != "/somewhere/repo" || spec.Harness != "opencode" {
+	if spec.Brief != "Make the adder add" || spec.Repo != "https://github.com/acme/repo" || spec.Harness != "opencode" {
 		t.Fatalf("the spec on disk is %+v", spec)
 	}
 	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {

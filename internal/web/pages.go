@@ -148,7 +148,14 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
+	from := clientOf(r)
+	if s.wrong.blocked(from, time.Now()) {
+		s.noteRefused(r, "", "the shared password", "too many wrong attempts from this source")
+		tooMany(w)
+		return
+	}
 	if !s.keeper.admits(r.FormValue("password")) {
+		s.wrong.failed(from, time.Now())
 		// What was typed is never written down, only that it was wrong.
 		s.noteRefused(r, "", "the shared password", "the password was wrong")
 		http.Redirect(w, r, "/login?wrong=1", http.StatusSeeOther)
@@ -161,6 +168,7 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.note(r, changelog.SignedOut, nil)
+	s.keeper.end(r)
 	s.keeper.clear(w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

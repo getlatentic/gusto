@@ -22,8 +22,11 @@ repo_version: "{{ repo_branch }}"
 # ── The toolchain ───────────────────────────────────────────────────────────
 # Pinned, and under the app root. /usr/local/go on a shared box belongs to
 # whoever put it there.
-go_version: "1.26.1"
-go_sha256: ""  # set to pin the tarball; empty skips the check
+# 1.26.8 is the newest 1.26; every release before 1.26.6 carries standard-library
+# fixes this server is reachable by (net/http, crypto/tls, html/template).
+# go_sha256 is the tarball's checksum from go.dev/dl, checked before it is used.
+go_version: "1.26.8"
+go_sha256: "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b"
 
 # ── The sandbox ─────────────────────────────────────────────────────────────
 # podman, because it runs no daemon: nothing is resident between jobs and no
