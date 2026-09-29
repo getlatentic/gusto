@@ -75,7 +75,7 @@
   </main>
 </div>
 
-<script>
+<script nonce="{{.Nonce}}">
 (function () {
   // The list slides over when there is no room beside the talk, and anything
   // that takes you away from where you are closes it again.
@@ -129,7 +129,7 @@
 </script>
 
 {{if .Waiting}}
-<script>
+<script nonce="{{.Nonce}}">
 (function () {
   var box = document.getElementById("stream");
   var said = document.getElementById("said");

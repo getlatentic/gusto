@@ -116,6 +116,19 @@ func (d Dir) Workspace() string       { return filepath.Join(string(d), "workspa
 func (d Dir) Out() string             { return filepath.Join(string(d), "out") }
 func (d Dir) OutFile(n string) string { return filepath.Join(d.Out(), n) }
 
+// PlainOut says whether out/n is a plain file. A harness that can write out/
+// (a runner with no agent user to hand the work to) can leave a link there, and
+// a page that opens it would show whatever it points at, or wait on a pipe for
+// ever; so what the server shows of a job's record is read only when it is a
+// file and not a link.
+func (d Dir) PlainOut(n string) bool {
+	if info, err := os.Lstat(d.Out()); err != nil || !info.IsDir() {
+		return false
+	}
+	info, err := os.Lstat(d.OutFile(n))
+	return err == nil && info.Mode().IsRegular()
+}
+
 // SetupDir is where a job's skills and server definitions wait for the
 // runner. It sits outside out/ and the workspace, so it is neither signed
 // evidence nor in the bundle a reviewer downloads.

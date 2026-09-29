@@ -27,6 +27,7 @@ type Proxy struct {
 	client      *http.Client
 	guard       sync.Mutex
 	counts      counters
+	resolve     Resolver
 }
 
 // New takes the ledger every call is counted in and every cap is checked
@@ -42,7 +43,13 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 		// A model answers slowly and streams. There is no timeout to set here
 		// that is not a guess at somebody's slowest prompt; the job's own budget
 		// is what stops a run that will not end.
-		client: &http.Client{Transport: http.DefaultTransport},
+		// The model is where a credential goes, so an answer that sends the
+		// call somewhere else is not followed: it would carry the credential's
+		// headers with it.
+		client: &http.Client{
+			Transport:     http.DefaultTransport,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
 	}
 }
 

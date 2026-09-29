@@ -191,7 +191,7 @@ func listing(dir job.Dir) []string {
 	}
 	var names []string
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if entry.Type().IsRegular() {
 			names = append(names, entry.Name())
 		}
 	}
