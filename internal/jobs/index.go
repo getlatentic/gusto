@@ -19,7 +19,8 @@ type Index struct {
 	records map[string]Record
 	// seq is the arrival order the next job gets, so two jobs submitted in one
 	// second still run in the order they were sent.
-	seq int64
+	seq    int64
+	limits Limits
 }
 
 // Open reads what is on disk, and lets the evidence decide.
@@ -130,19 +131,14 @@ func (i *Index) List() []Record {
 func (i *Index) Claim() (Record, bool, error) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
-	// An instance's threads share one workspace, so a turn waits while another
-	// turn of the same instance runs. Jobs that are not turns have no instance
-	// and wait for nothing.
-	busy := map[string]bool{}
-	for id := range i.records {
-		if record := i.records[id]; record.State == Running && record.Instance != "" {
-			busy[record.Instance] = true
-		}
-	}
+	now := i.running()
 	var oldest *Record
 	for id := range i.records {
 		record := i.records[id]
-		if record.State != Queued || busy[record.Instance] {
+		if record.State != Queued {
+			continue
+		}
+		if _, held := i.hold(record, now); held {
 			continue
 		}
 		if oldest == nil || record.Seq < oldest.Seq {

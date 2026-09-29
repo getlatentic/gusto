@@ -112,7 +112,7 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked string) (
 	}
 	record := jobs.Record{
 		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: asked,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked, Team: spec.Team,
 		Queued: jobs.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
