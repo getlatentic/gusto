@@ -15,7 +15,13 @@ import (
 // claims a signer the keyring may never have heard of.
 func recorded(t *testing.T, answer string) job.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	return recordedAt(t, job.Dir(t.TempDir()), answer)
+}
+
+// recordedAt is recorded in a directory the caller chose, so several jobs can
+// sit under one root the way a server keeps them.
+func recordedAt(t *testing.T, dir job.Dir, answer string) job.Dir {
+	t.Helper()
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

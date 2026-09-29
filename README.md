@@ -117,6 +117,10 @@ export HAAS_KEYRING=~/keyring                   # on the machine that verifies
 cp ~/.haas/acme-2026.pub ~/keyring/
 ```
 
+To replace a key, back one up, or keep it in AWS KMS, see
+[docs/KEYS.md](docs/KEYS.md). `haas keys` lists which key signed each record and
+which records no key in the keyring can vouch for.
+
 The runner signs the exact bytes of `out/manifest.json` with Ed25519 and writes
 the signature beside it, as `out/manifest.sig`. `haas inside` signs in its own
 process. `haas run` keeps the key on the host and signs after the container is
@@ -633,7 +637,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
 | `HAAS_SIGNER` | who the manifest names. The runner's own word; every surface names the signer from the keyring |
-| `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`. Kept on the host, never in a job directory or a container |
+| `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](docs/KEYS.md) covers rotation, backup and KMS |
 | `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |

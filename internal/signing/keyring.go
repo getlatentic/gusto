@@ -66,13 +66,23 @@ func (k Keyring) add(path string) error {
 	return nil
 }
 
+// UnknownKeyError is a signature from a key the keyring does not hold. It is
+// not a forgery: it is what a record looks like once its key has been left out
+// of the keyring, so a check that lists these is listing what has stopped being
+// verifiable, and what a restored key or public file would bring back.
+type UnknownKeyError struct{ ID string }
+
+func (e UnknownKeyError) Error() string {
+	return fmt.Sprintf("it was made by key %s, which is not in the keyring", e.ID)
+}
+
 // Signer names who signed the message: the keyring's name for the key, checked
 // against the keyring's own copy of it rather than the one the signature
 // carries. A key the keyring does not hold is refused by its id.
 func (k Keyring) Signer(signature Signature, message []byte) (Named, error) {
 	held, found := k[signature.Key]
 	if !found {
-		return Named{}, fmt.Errorf("it was made by key %s, which is not in the keyring", signature.Key)
+		return Named{}, UnknownKeyError{ID: signature.Key}
 	}
 	if err := signature.madeBy(held.Public, message); err != nil {
 		return Named{}, err
