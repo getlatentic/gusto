@@ -62,6 +62,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	// that takes tokens has one.
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
 		"takesTokens": func() bool { return s.tokens != nil },
+		"waiting":     s.waiting,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err

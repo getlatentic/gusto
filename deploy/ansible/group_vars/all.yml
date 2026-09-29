@@ -77,6 +77,10 @@ mcp_servers:
 job_memory: 900m
 job_cpus: "1"
 job_concurrency: 2
+# How many jobs one person, or one team, may run at once. A job over its limit
+# waits and says why. Zero is no limit. docs/LIMITS.md.
+limit_person: 0
+limit_team: 0
 
 # ── Proving the deploy ──────────────────────────────────────────────────────
 # Every deploy runs one real job in a container and verifies its evidence. It

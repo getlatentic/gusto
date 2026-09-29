@@ -23,7 +23,8 @@ holds a password: a wrong password is recorded as wrong, not as typed.
 
 The settings are `HAAS_ALLOWED`, `HAAS_ADMINS`, `HAAS_RUNNER_GROUPS`,
 `HAAS_ADMIN_GROUPS`, `HAAS_OIDC_GROUPS_CLAIM`, `HAAS_OIDC_ISSUER`,
-`HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, `HAAS_API_TOKENS`, and the hash of the
+`HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, `HAAS_API_TOKENS`,
+`HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM`, and the hash of the
 spend policy file. They change outside the pages, so `who` is `the server` and
 `when` is when it next started.
 

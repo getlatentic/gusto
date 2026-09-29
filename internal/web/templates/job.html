@@ -11,6 +11,7 @@
     <h1 class="brief">{{.Job.Brief}}</h1>
     <p class="outcome-line"><span class="state {{.Job.State}}" id="state">{{outcome .Run}}</span>
       <span class="muted">{{with took .Job.Started .Job.Ended}}in {{.}}{{end}}{{if .Run.Metered}} · {{template "cost" .Run}}{{end}} · {{when .Job.Queued}}</span></p>
+    {{with waiting .Job.ID}}<p class="muted" id="why">{{.}}</p>{{end}}
   </div>
   {{with .Talk}}<nav class="neighbours" aria-label="Other messages">
     {{if .Before}}<a href="/jobs/{{.Before}}">← Previous</a>{{end}}

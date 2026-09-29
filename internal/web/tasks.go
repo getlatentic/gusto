@@ -36,7 +36,7 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 	record := jobs.Record{
 		ID: id, State: jobs.Queued,
 		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
-		Instance: held.ID, Asked: s.keeper.who(r), Queued: jobs.Now(),
+		Instance: held.ID, Asked: s.keeper.who(r), Team: spec.Team, Queued: jobs.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		s.turnAway(w, r, where, err.Error())
