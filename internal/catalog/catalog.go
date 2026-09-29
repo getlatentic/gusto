@@ -57,7 +57,13 @@ func (e Entry) Wants() string {
 // HAAS_MATRIX is read then too, so a pair that cannot finish the simplest job
 // says so.
 func Survey(runtime, image string, names []string) []Entry {
-	return measuredFromSetting(Of(Container(runtime, image), names))
+	return SurveyOf(Container(runtime, image), names)
+}
+
+// SurveyOf is Survey of an image that is asked some other way, such as a
+// sandbox on a gateway.
+func SurveyOf(image Image, names []string) []Entry {
+	return measuredFromSetting(Of(image, names))
 }
 
 // Of builds the catalog from what one image answers. A name nobody can load is
