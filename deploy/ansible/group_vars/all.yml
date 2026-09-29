@@ -148,6 +148,7 @@ autodeploy_self: false
 # and two places to change a hostname is one place to forget.
 oidc_issuer: ""
 oidc_allowed: ""
+haas_admins: ""
 oidc_redirect: "{{ 'https' if enable_tls else 'http' }}://{{ server_name }}/auth/callback"
 # oidc_client_id and oidc_client_secret come from the vault.
 

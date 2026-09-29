@@ -36,6 +36,7 @@ type Server struct {
 	models    Models
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
+	admins    map[string]bool
 	lineups   *compare.Board
 	setups    *setup.Store
 	servers   setup.Servers

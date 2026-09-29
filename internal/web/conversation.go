@@ -50,7 +50,7 @@ type turn struct {
 // conversationPage is what both the whole page and the fragment need, so a
 // swapped-in turn cannot disagree with the page it lands in.
 func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.owned(r)
 	if !found {
 		return nil, false
 	}
@@ -132,9 +132,8 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 // thread, so the queue knows not to run it beside another turn of the same
 // workspace.
 func (s *Server) say(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))

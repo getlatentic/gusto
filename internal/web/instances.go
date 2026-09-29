@@ -82,9 +82,8 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 // instancePage is one computer: what it runs, what it works in, and every
 // conversation being held with it.
 func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	threads := s.namedThreads(held.ID)
@@ -116,9 +115,8 @@ func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
 
 // openThread starts another conversation on an instance that is already there.
 func (s *Server) openThread(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	thread, err := s.instances.NewThread(held.ID, strings.TrimSpace(r.FormValue("title")))
