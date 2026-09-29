@@ -197,3 +197,24 @@ func TestWithNoControllerTheFrontDoorRoutesNothing(t *testing.T) {
 		t.Errorf("%d", status)
 	}
 }
+
+// A stylesheet is kept by a browser for an hour, so its address changes when it does.
+func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	_, page := f.browser().get("/")
+	if !strings.Contains(page, `href="/static/cloud.css?v=`) {
+		t.Fatalf("the stylesheet's address has no digest:\n%s", page)
+	}
+	address := fingerprinted("/static/cloud.css")
+	if len(address) != len("/static/cloud.css?v=")+10 || !strings.Contains(page, address) {
+		t.Errorf("%q is not in the page", address)
+	}
+	if fingerprinted("/static/nothing.css") != "/static/nothing.css" {
+		t.Error("a file that is not there has no digest")
+	}
+	if status, _, header := f.browser().get3(address); status != 200 || !strings.Contains(header.Get("Cache-Control"), "max-age") {
+		t.Errorf("the address with a digest is served: %d %v", status, header)
+	}
+}
+
+func (b *browser) get3(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
