@@ -1,0 +1,12 @@
+[openshell]
+version = 2
+
+[openshell.gateway]
+name = "{{ openshell_gateway_name }}"
+bind_address = "127.0.0.1:{{ openshell_gateway_port }}"
+health_bind_address = "127.0.0.1:{{ openshell_gateway_port + 1 }}"
+compute_driver = "vm"
+
+[openshell.drivers.vm]
+vcpus = {{ openshell_vcpus }}
+mem_mib = {{ openshell_mem_mib }}

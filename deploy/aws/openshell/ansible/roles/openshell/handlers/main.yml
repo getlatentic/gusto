@@ -1,0 +1,6 @@
+---
+- name: Restart the gateway
+  ansible.builtin.systemd:
+    name: openshell-gateway
+    state: restarted
+    daemon_reload: true
