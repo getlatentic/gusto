@@ -44,6 +44,7 @@ type Server struct {
 	signups *Limiter
 	mails   *Limiter
 	all     *Limiter
+	invites *Limiter
 	sending sync.WaitGroup
 	making  sync.WaitGroup
 }
@@ -64,7 +65,8 @@ func New(c Config) (*Server, error) {
 		return nil, err
 	}
 	return &Server{Config: c, pages: pages,
-		signups: NewLimiter(c.PerAddress, time.Hour), mails: NewLimiter(c.PerMailbox, time.Hour), all: NewLimiter(c.InAll, time.Hour)}, nil
+		signups: NewLimiter(c.PerAddress, time.Hour), mails: NewLimiter(c.PerMailbox, time.Hour), all: NewLimiter(c.InAll, time.Hour),
+		invites: NewLimiter(20, time.Hour)}, nil
 }
 
 // Handler is every page the front door has, and every organisation's server behind
@@ -93,6 +95,11 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))
+	mux.HandleFunc("POST /org/invite", s.guard(s.invite))
+	mux.HandleFunc("POST /org/invites/cancel", s.guard(s.cancelInvitation))
+	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
+	mux.HandleFunc("GET /invite", s.invitationPage)
+	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))

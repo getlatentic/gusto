@@ -17,6 +17,19 @@
     <dt>Computers</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
     {{if .Server}}<dt>Server</dt><dd><span class="state{{if .CanOpen}} ok{{end}}">{{if .CanOpen}}Ready{{else}}Starting{{end}}</span></dd>{{end}}
   </dl>
+  <h2>People</h2>
+  <ul class="people">
+    {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}</span>
+      {{if and $.IsAdmin (ne .Email $.Person.Email)}}<form method="post" action="/org/people/remove"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Remove</button></form>{{end}}</li>{{end}}
+    {{range .Invited}}<li><span>{{.Email}}</span><span class="muted">invited</span>
+      {{if $.IsAdmin}}<form method="post" action="/org/invites/cancel"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Cancel</button></form>{{end}}</li>{{end}}
+  </ul>
+  {{if .CanInvite}}
+  <form method="post" action="/org/invite" class="invite">
+    <input type="email" name="email" placeholder="Email address" autocomplete="off" required>
+    <button type="submit">Invite</button>
+  </form>
+  {{end}}
   {{if .CanOpen}}<a class="button" href="/open">Open</a>{{end}}
   {{if .Person.Trial}}
   <p class="muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
