@@ -37,12 +37,12 @@ type Door interface {
 	Done(dir job.Dir)
 }
 
-// Contained runs every cell in a container, through a door opened for each
-// comparison. The proxy names a job by its directory under the root it was
-// opened on, so a comparison's runs are that root's children.
-func Contained(open func(root string) (Door, error)) Way {
+// Contained runs every cell through a door opened for each comparison, in the
+// box that where says. The proxy names a job by its directory under the root it
+// was opened on, so a comparison's runs are that root's children.
+func Contained(where string, open func(root string) (Door, error)) Way {
 	return Way{
-		Where: "in a container, " + sandbox.Runtime() + " " + sandbox.Image(),
+		Where: where,
 		Open: func(root string) (replay.Run, func(), error) {
 			door, err := open(root)
 			if err != nil {
