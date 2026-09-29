@@ -17,7 +17,7 @@
       <li>
         <div class="skill-head">
           <span class="name">{{.Name}}</span>
-          <form method="post" action="/setups/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>
+          {{if $.Admin}}<form method="post" action="/setups/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>{{end}}
         </div>
         <p class="muted">{{.Description}}</p>
         <details><summary>Instructions</summary><div class="reply">{{markdown .Body}}</div></details>
@@ -29,6 +29,7 @@
     {{end}}
   </section>
 
+  {{if .Admin}}
   <section class="panel">
     <h2>Add a skill</h2>
     <form class="stack" method="post" action="/setups/{{.Setup.Name}}/skills">
@@ -39,12 +40,13 @@
       <button type="submit">Add the skill</button>
     </form>
   </section>
+  {{end}}
 </div>
 
 <aside class="run-side">
   <section class="panel">
     <h2>MCP servers</h2>
-    {{if .Offered}}
+    {{if and .Offered .Admin}}
     <form class="stack" method="post" action="/setups">
       <input type="hidden" name="name" value="{{.Setup.Name}}">
       {{$chosen := .Setup.Servers}}
@@ -54,6 +56,8 @@
       {{end}}
       <button type="submit" class="quiet">Save</button>
     </form>
+    {{else if .Offered}}
+    <p class="muted">{{if .Setup.Servers}}{{range $i, $s := .Setup.Servers}}{{if $i}}, {{end}}{{$s}}{{end}}{{else}}None chosen.{{end}} An administrator changes these.</p>
     {{else}}
     <p class="muted">This deployment offers no MCP servers. Its operator declares them, because each one runs inside the box or is an address the box may reach.</p>
     {{end}}
