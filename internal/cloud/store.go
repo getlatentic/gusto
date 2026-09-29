@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 // Settings are what an operator chooses about sign-ups.
@@ -244,11 +246,12 @@ func (s *Store) Verify(email string) (Person, error) {
 }
 
 // Quota is what an organisation may run now.
-func (s *Store) Quota(slug string) (Quota, error) {
-	var quota Quota
-	return quota, readFile(filepath.Join(s.DataDir(slug), "quota.json"), &quota)
+func (s *Store) Quota(slug string) (quota.Quota, error) {
+	var q quota.Quota
+	return q, readFile(s.QuotaFile(slug), &q)
 }
 
-func (s *Store) setQuota(slug string, quota Quota) error {
-	return writeFile(filepath.Join(s.DataDir(slug), "quota.json"), quota, 0o600)
-}
+// QuotaFile is where the organisation's server reads its limits.
+func (s *Store) QuotaFile(slug string) string { return filepath.Join(s.DataDir(slug), "quota.json") }
+
+func (s *Store) setQuota(slug string, q quota.Quota) error { return quota.Write(s.QuotaFile(slug), q) }

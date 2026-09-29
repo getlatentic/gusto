@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/quota"
 	"github.com/getlatentic/haas/internal/repoaccess"
 	"github.com/getlatentic/haas/internal/rules"
 )
@@ -81,7 +83,11 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r))
 	if err != nil {
-		reply(w, http.StatusInternalServerError, Answer{Refused: err.Error()})
+		status := http.StatusInternalServerError
+		if errors.Is(err, quota.ErrExceeded) {
+			status = http.StatusTooManyRequests
+		}
+		reply(w, status, Answer{Refused: err.Error()})
 		return
 	}
 	reply(w, http.StatusCreated, Answer{ID: id})

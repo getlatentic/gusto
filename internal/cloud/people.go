@@ -1,6 +1,10 @@
 package cloud
 
-import "time"
+import (
+	"time"
+
+	"github.com/getlatentic/haas/internal/quota"
+)
 
 // Role is what a person may do in their organisation.
 type Role string
@@ -31,31 +35,17 @@ type Org struct {
 	Created time.Time `json:"created"`
 }
 
-// Quota is what an organisation may run, and is written where the
-// organisation's own server reads it. Zero is none.
-type Quota struct {
-	// Jobs is how many jobs may be started: in all for a trial, and in a month
-	// once verified.
-	Jobs int `json:"jobs"`
-	// Monthly says Jobs is counted for the month and not in all.
-	Monthly bool `json:"monthly,omitempty"`
-	// Concurrent is how many jobs may run at once.
-	Concurrent int `json:"concurrent"`
-	// Invites says whether colleagues may be invited.
-	Invites bool `json:"invites"`
-}
-
 // Limits are the two quotas an organisation moves between, and the settings that
 // make them.
 type Limits struct {
-	Trial, Verified Quota
+	Trial, Verified quota.Quota
 }
 
 // DefaultLimits are what a sign-up may run before and after it is verified.
 func DefaultLimits() Limits {
 	return Limits{
-		Trial:    Quota{Jobs: 3, Concurrent: 1},
-		Verified: Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true},
+		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."},
+		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true},
 	}
 }
 
