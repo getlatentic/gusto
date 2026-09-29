@@ -127,12 +127,35 @@ file name, and only the hash of a link's secret is stored.
 
 ## Sign-up
 
-1. A person gives a work email and an organisation name. The address is
-   checked, and refused when it is a free mail provider or a disposable one.
-2. The person, the organisation and the organisation's directory are made, the
+1. A person gives a work email. The address is checked, and refused when it is a
+   disposable one, or at a free mail provider unless the operator allows it.
+2. The organisation is named from the company's domain, found with the public
+   suffix list: `ada@acme-research.com` makes "Acme Research" at `acme-research`, and
+   `mail.acme.co.uk` makes "Acme". A free mail address names no company, so the
+   person is asked for a name, and anyone whose domain gives a name or an address
+   that will not do (a kept one such as `admin`, one that is taken, one too short)
+   is asked for those two. The address is a field of its own and not the domain,
+   so a company can be renamed or hold two domains without moving its links.
+3. The person, the organisation and the organisation's directory are made, the
    person is signed in, and a verification link is mailed.
-3. Until the link is followed, the organisation may run a small trial. Following
+4. Until the link is followed, the organisation may run a small trial. Following
    it lifts the limit.
+
+### A company's domain
+
+The first organisation whose admin confirms an address at a company's domain has
+the domain, and the claim is a file made exclusively, so two confirmed together
+cannot both have it. Signing up claims nothing, because anybody can type an address
+they do not own. A second sign-up from a claimed domain is told the company already
+has an organisation and to ask its admin to invite them. An organisation that was
+made before the claim and confirms afterwards is verified as a person, keeps the
+trial, and says on its page that the domain is another's. A free mail domain is
+nobody's to claim.
+
+A confirmed link proves one mailbox and not the domain, so nobody joins an
+organisation by having an address at its domain. That waits for a DNS record that
+shows the domain is the admin's (getlatentic/planning#396), and until then people
+join by invitation.
 
 | | Unverified | Verified |
 | --- | --- | --- |
@@ -153,7 +176,7 @@ the organisation's server reads them, through `HAAS_QUOTA`, and
 | Sign-up attempts from one address, refused ones too | 10 an hour |
 | Mail to one address | 3 an hour |
 | Sign-ups in all | 200 an hour |
-| Organisations for one email domain | 3 |
+| Organisations that have not yet claimed one email domain | 3 |
 
 A sign-in link is always answered the same way, whether or not the address has
 an account, so the form cannot be used to find out who is a customer.
