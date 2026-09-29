@@ -137,7 +137,7 @@ func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T
 	if status != 200 {
 		t.Fatalf("the person should be signed in: %d", status)
 	}
-	for _, want := range []string{"Acme Research", "acme-research.cloud.test", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month", "0 of 1"} {
+	for _, want := range []string{"Acme Research", "acme-com.cloud.test", "acme.com", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month", "0 of 1"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the organisation page lacks %q:\n%s", want, page)
 		}
@@ -145,7 +145,7 @@ func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T
 	if mails := f.mails(); len(mails) != 1 || !strings.Contains(mails[0], "To: ada@acme.com") || !strings.Contains(mails[0], "/verify?t=") {
 		t.Errorf("one verification mail should have been sent: %v", mails)
 	}
-	quota, err := f.store.Quota("acme-research")
+	quota, err := f.store.Quota("acme-com")
 	if err != nil || quota.Jobs != 3 || quota.Concurrent != 1 {
 		t.Errorf("an organisation that is not verified runs a small trial: %+v %v", quota, err)
 	}
@@ -176,7 +176,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 	if person, _, _ := f.store.Person("ada@acme.com"); person.Trial() {
 		t.Error("pressing the button should verify the address")
 	}
-	if quota, _ := f.store.Quota("acme"); quota != DefaultLimits().Verified {
+	if quota, _ := f.store.Quota("acme-com"); quota != DefaultLimits().Verified {
 		t.Errorf("verifying lifts the limit: %+v", quota)
 	}
 	if _, page := other.get("/org"); !strings.Contains(page, "Verified") || !strings.Contains(page, "200 a month, 4 at a time") || !strings.Contains(page, "0 of 4") || !strings.Contains(page, "up to 4") {
@@ -195,12 +195,12 @@ func TestASignUpThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 		status int
 		says   string
 	}{
-		"free mail":     {signup("bob@gmail.com", "Bob Ltd"), 422, "email address your company gave you"},
-		"disposable":    {signup("bob@mailinator.com", "Bob Ltd"), 422, "expire"},
-		"not an email":  {signup("bob", "Bob Ltd"), 422, "not an email address"},
-		"a taken name":  {signup("bob@bob.com", "Acme"), 409, "is taken"},
-		"a taken email": {signup("ada@acme.com", "Another"), 409, "already has an account"},
-		"a bad name":    {signup("bob@bob.com", "x"), 422, "2 to 80 characters"},
+		"free mail":       {signup("bob@gmail.com", "Bob Ltd"), 422, "email address your company gave you"},
+		"disposable":      {signup("bob@mailinator.com", "Bob Ltd"), 422, "expire"},
+		"not an email":    {signup("bob", "Bob Ltd"), 422, "not an email address"},
+		"a taken address": {url.Values{"email": {"bob@bob.com"}, "org": {"Bob Ltd"}, "slug": {"acme-com"}}, 409, "is taken"},
+		"a taken email":   {signup("ada@acme.com", "Another"), 409, "already has an account"},
+		"a bad name":      {signup("bob@bob.com", "x"), 422, "2 to 80 characters"},
 	} {
 		status, page, _ := f.browser().post("/signup", c.form)
 		if status != c.status || !strings.Contains(page, c.says) {
@@ -346,7 +346,7 @@ func TestOnePersonNeverSeesAnotherOrganisation(t *testing.T) {
 		t.Errorf("a cookie signed with another key signs nobody in: %d", status)
 	}
 	// And the organisations' directories are apart.
-	if f.store.DataDir("acme-research") == f.store.DataDir("globex-secret-works") {
+	if f.store.DataDir("acme-com") == f.store.DataDir("globex-com") {
 		t.Error("two organisations share a directory")
 	}
 }
@@ -398,8 +398,8 @@ func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganisation(t *testin
 	if status, _, _ := b.post("/signup", url.Values{"email": {"ada@acme-research.com"}}); status != http.StatusSeeOther {
 		t.Fatal(status)
 	}
-	if _, page := b.get("/org"); !strings.Contains(page, "Acme Research") || !strings.Contains(page, "acme-research.cloud.test") {
-		t.Errorf("the domain gave the name and the address:\n%s", page)
+	if _, page := b.get("/org"); !strings.Contains(page, "Acme Research") || !strings.Contains(page, "acme-research-com.cloud.test") || !strings.Contains(page, "acme-research.com") {
+		t.Errorf("the domain gave the name and the address, and the page shows the domain:\n%s", page)
 	}
 }
 
@@ -418,50 +418,64 @@ func TestAFreeMailSignUpIsAskedForANameAndKeepsTheEmailTyped(t *testing.T) {
 	}
 }
 
-func TestAnAddressTheDomainMakesAnUnusableOneOfIsAskedAboutAndKeepsAskingUntilItWorks(t *testing.T) {
+// Two companies whose domains differ by a suffix have the same name and each has an
+// address of its own. Neither is put ahead of the other for arriving first, and
+// each page shows the domain, which is what tells them apart.
+func TestTwoCompaniesWithAlikeNamesAreTreatedTheSame(t *testing.T) {
 	f := newFront(t, Settings{}, nil)
-	f.browser().post("/signup", url.Values{"email": {"ada@acme.com"}})
-	status, page, _ := f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}})
-	if status != http.StatusConflict || !strings.Contains(page, "is taken") || !strings.Contains(page, `name="slug"`) || !strings.Contains(page, `name="org"`) {
-		t.Fatalf("a taken address asks for another:\n%d %s", status, page)
+	com, co := f.browser(), f.browser()
+	for _, who := range []struct {
+		b     *browser
+		email string
+	}{{com, "ada@acme-research.com"}, {co, "bob@acme-research.co"}} {
+		if status, _, _ := who.b.post("/signup", url.Values{"email": {who.email}}); status != http.StatusSeeOther {
+			t.Fatalf("%s: %d", who.email, status)
+		}
 	}
-	// Still taken, and the form is still the longer one.
-	status, page, _ = f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}, "org": {"Acme"}, "slug": {"acme"}})
-	if status != http.StatusConflict || !strings.Contains(page, `name="slug"`) {
-		t.Errorf("%d %s", status, page)
-	}
-	if status, _, _ := f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}, "org": {"Acme"}, "slug": {"acme-io"}}); status != http.StatusSeeOther {
-		t.Errorf("%d", status)
-	}
-}
-
-func TestACompanyThatHasAnOrganisationSendsAnotherFromItsDomainToItsAdmin(t *testing.T) {
-	f := newFront(t, Settings{}, nil)
-	first := f.browser()
-	first.post("/signup", url.Values{"email": {"ada@acme.com"}})
-	second := f.browser()
-	second.post("/signup", url.Values{"email": {"bob@acme.com"}, "org": {"Bob Ltd"}})
-	f.mails()
-	verify := func(to string) {
-		for _, mail := range f.mails() {
-			if strings.Contains(mail, "To: "+to) && strings.Contains(mail, "/verify?t=") {
-				link := linkInMail.FindStringSubmatch(mail)[1]
-				f.browser().post("/verify", url.Values{"t": {link[strings.Index(link, "t=")+2:]}})
+	_, comPage := com.get("/org")
+	_, coPage := co.get("/org")
+	for page, want := range map[string][]string{comPage: {"Acme Research", "acme-research-com.cloud.test", "acme-research.com"}, coPage: {"Acme Research", "acme-research-co.cloud.test", "acme-research.co"}} {
+		for _, text := range want {
+			if !strings.Contains(page, text) {
+				t.Errorf("a page lacks %q:\n%s", text, page)
 			}
 		}
 	}
-	verify("ada@acme.com")
+	if strings.Contains(comPage, "acme-research-co.") || strings.Contains(coPage, "acme-research-com.") {
+		t.Error("a page shows the other company's address")
+	}
+	// An address chosen on purpose that is taken is refused, and the form asks for another.
+	status, page, _ := f.browser().post("/signup", url.Values{"email": {"carol@example.org"}, "org": {"Carol"}, "slug": {"acme-research-com"}})
+	if status != http.StatusConflict || !strings.Contains(page, "is taken") || !strings.Contains(page, `name="slug"`) {
+		t.Errorf("%d\n%s", status, page)
+	}
+}
 
-	status, page, _ := f.browser().post("/signup", url.Values{"email": {"carol@acme.com"}, "org": {"Carol Ltd"}})
-	if status != http.StatusConflict || !strings.Contains(page, "already has an organisation here") {
-		t.Errorf("the domain is Ada's now: %d\n%s", status, page)
+// A company with subsidiaries has an organisation for each. The second at a domain is
+// asked what to call it, and then has an address from that name.
+func TestACompanyWithSubsidiariesHasAnOrganisationForEach(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	first, second := f.browser(), f.browser()
+	if status, _, _ := first.post("/signup", url.Values{"email": {"ada@acme.com"}}); status != http.StatusSeeOther {
+		t.Fatal(status)
 	}
-	// Bob confirms his address too, and is told that the domain is another organisation's.
-	verify("bob@acme.com")
-	if _, page := second.get("/org"); !strings.Contains(page, "acme.com already has an organisation here") || strings.Contains(page, "200 a month") {
-		t.Errorf("Bob's organisation stays on the trial and says why:\n%s", page)
+	status, page, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}})
+	if status != http.StatusUnprocessableEntity || !strings.Contains(page, "name this one") || !strings.Contains(page, `name="org"`) || !strings.Contains(page, `value="bob@acme.com"`) {
+		t.Fatalf("the second is asked for a name and keeps the email:\n%d %s", status, page)
 	}
-	if _, page := first.get("/org"); strings.Contains(page, "already has an organisation here") {
-		t.Errorf("Ada's says nothing of it:\n%s", page)
+	if status, _, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}, "org": {"Acme Insurance"}}); status != http.StatusSeeOther {
+		t.Fatal(status)
+	}
+	_, firstPage := first.get("/org")
+	_, secondPage := second.get("/org")
+	for page, want := range map[string][]string{firstPage: {"acme-com.cloud.test", "ada@acme.com", "acme.com"}, secondPage: {"Acme Insurance", "acme-insurance.cloud.test", "bob@acme.com", "acme.com"}} {
+		for _, text := range want {
+			if !strings.Contains(page, text) {
+				t.Errorf("a page lacks %q:\n%s", text, page)
+			}
+		}
+	}
+	if strings.Contains(firstPage, "Insurance") || strings.Contains(secondPage, "ada@acme.com") {
+		t.Error("one organisation's page names the other")
 	}
 }
