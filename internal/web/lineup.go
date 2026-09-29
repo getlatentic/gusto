@@ -21,7 +21,8 @@ type side struct {
 	Files   int
 	Added   int
 	Removed int
-	// Fastest and Cheapest mark the best of the runs that passed.
+	// Fastest and Cheapest mark the run that stands clear of every other run
+	// that passed, and neither is set when they are level.
 	Fastest  bool
 	Cheapest bool
 }
@@ -46,11 +47,17 @@ func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
 	}
 	ledger, _ := s.spending()
 	sides, running := s.sidesOf(lineup, ledger)
-	s.render(w, "lineup.html", map[string]any{
+	page := map[string]any{
 		"Title": "haas — " + lineup.Brief, "Nav": "compare",
 		"Lineup": lineup, "Sides": sides, "Running": running,
 		"Passed": passedCount(sides),
-	})
+	}
+	// A verdict on runs that are still working would name a winner that a run
+	// still to finish could overturn.
+	if !running && len(sides) > 1 {
+		page["Reading"] = weigh(sides)
+	}
+	s.render(w, "lineup.html", page)
 }
 
 func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, bool) {
@@ -64,7 +71,6 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 		running = running || !record.State.Done()
 		sides = append(sides, s.sideOf(entry, record, ledger))
 	}
-	markBest(sides)
 	return sides, running
 }
 
@@ -85,27 +91,25 @@ func (s *Server) sideOf(entry compare.Entry, record jobs.Record, ledger *spend.L
 	return shown
 }
 
-// markBest names the fastest and the cheapest of the runs that passed. A run
-// that failed its check is not best at anything.
-func markBest(sides []side) {
-	fastest, cheapest := -1, -1
+// weigh reads the finished runs together: which stands clear on time and on
+// cost, and a sentence saying so, or saying that nothing separates them.
+func weigh(sides []side) compare.Reading {
+	results := make([]compare.Result, len(sides))
 	for i, one := range sides {
-		if !one.Passed {
-			continue
-		}
-		if fastest < 0 || one.Seconds() < sides[fastest].Seconds() {
-			fastest = i
-		}
-		if one.Metered && one.Spent.Unmeasured == 0 && (cheapest < 0 || one.Spent.USD < sides[cheapest].Spent.USD) {
-			cheapest = i
+		results[i] = compare.Result{Name: one.Engine, Passed: one.Passed, Seconds: one.Seconds()}
+		if one.Metered && one.Spent.Unmeasured == 0 {
+			usd := one.Spent.USD
+			results[i].USD = &usd
 		}
 	}
-	if fastest >= 0 {
-		sides[fastest].Fastest = true
+	reading := compare.Weigh(results)
+	if reading.Fastest >= 0 {
+		sides[reading.Fastest].Fastest = true
 	}
-	if cheapest >= 0 {
-		sides[cheapest].Cheapest = true
+	if reading.Cheapest >= 0 {
+		sides[reading.Cheapest].Cheapest = true
 	}
+	return reading
 }
 
 func passedCount(sides []side) int {

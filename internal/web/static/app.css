@@ -267,6 +267,7 @@ table.shares td.name .sub { display: block; font-size: .75rem; color: var(--yg-t
 .share { display: block; height: 4px; margin-top: var(--yg-space-1); border-radius: 2px; background: var(--yg-bg-subtle); }
 .share span { display: block; height: 100%; border-radius: 2px; background: var(--yg-accent); }
 .note { font-size: .8125rem; margin-top: var(--yg-space-6); }
+.verdict { font-size: 1.0625rem; margin: 0 0 var(--yg-space-6); }
 
 /* One run. What it did takes the wide column; the facts about it, what it
    cost and the evidence for it sit beside, where they are looked up rather

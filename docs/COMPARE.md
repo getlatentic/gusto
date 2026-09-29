@@ -85,8 +85,28 @@ Today that is the Software engineer template, checked by `node --test`.
 - Every run clones the template's sample from one commit, held in
   `HAAS_COMPARISONS/samples/<template>`, with the same model, skills and check.
 - `HAAS_COMPARISONS/<id>.json` names the runs by job id.
-- `/compare/<id>` shows each run's verdict, time, cost and change size, and
-  marks the fastest and the cheapest of the runs that passed.
+- `/compare/<id>` shows each run's verdict, time, cost, model calls and
+  change size, links each run's signed record, and says in one sentence which
+  did better once every run has finished.
+
+## What the sentence says
+
+Only runs that passed the check are ranked. A run that failed is not fast or
+cheap at anything, and when one run passes alone the sentence says so and
+names no fastest or cheapest.
+
+Two figures are level when they differ by less than 15% of the larger, or by
+less than 5 seconds, or by less than a tenth of a cent. A level pair gets no
+badge, and the sentence says the time or the cost was level. When nothing
+separates the runs, it says that. One run each is one sample, and a second run
+could reverse a small difference.
+
+A cost that is not priced for every model call is not ranked, and neither is a
+run with no time: the run left out may have been the best, so the sentence says
+the figure could not be compared.
+
+Model calls are the turns of the agent's loop, counted at the proxy from the
+provider's own answers. A run that did not go through the proxy shows none.
 
 ## Not yet
 

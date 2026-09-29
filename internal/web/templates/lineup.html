@@ -13,10 +13,11 @@
   <div class="figure headline"><span class="value">{{.Passed}} of {{len .Sides}}</span>
     <span class="label">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></div>
 </section>
+{{with .Reading}}<p class="verdict">{{.Headline}}</p>{{end}}
 
 <div class="list">
   <table class="measured lineup">
-    <thead><tr><th>Agent</th><th>Result</th><th>Time</th><th>Cost</th><th>Changed</th><th></th></tr></thead>
+    <thead><tr><th>Agent</th><th>Result</th><th>Time</th><th>Cost</th><th>Model calls</th><th>Changed</th><th></th></tr></thead>
     <tbody>
     {{range .Sides}}
     <tr>
@@ -28,6 +29,7 @@
         {{if .Fastest}}<span class="badge">Fastest</span>{{end}}{{if .Cheapest}}<span class="badge">Cheapest</span>{{end}}</td>
       <td>{{with .Seconds}}{{.}} s{{end}}</td>
       <td>{{if .Metered}}{{.Spent.Money}}{{end}}</td>
+      <td>{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
       <td>{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="plus">+{{.Added}}</span> <span class="minus">−{{.Removed}}</span>{{end}}</td>
       <td><a href="/jobs/{{.Record.ID}}">Details</a></td>
     </tr>
@@ -35,6 +37,7 @@
     </tbody>
   </table>
 </div>
+{{if .Reading}}<p class="note muted">Figures within 15% of each other, or under 5 seconds or a tenth of a cent apart, are called level: one run each is one sample, and a second run could reverse them. A model call is one turn of the agent's loop, counted at the proxy.</p>{{end}}
 <p class="note muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own signed record, under Details.</p>
 
 {{if .Running}}<script>setTimeout(function () { location.reload(); }, 4000);</script>{{end}}
