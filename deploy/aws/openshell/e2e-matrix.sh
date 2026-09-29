@@ -9,18 +9,14 @@
 source "$(dirname "$0")/env.sh"
 address="$(terraform output -raw address)"
 root="$(git rev-parse --show-toplevel)"
-harnesses="$(python3 -c '
-import re,sys
-text=open(sys.argv[1]).read()
-block=text.split("runner_harnesses:")[1].split("\n\n")[0]
-print(" ".join(re.findall(r"^\s+- (\S+=\S+)\s*$",block,re.M)))' "$root/deploy/ansible/group_vars/all.yml")"
+harnesses="$(./harnesses.sh)"
 ./image.sh runner-all-rootfs "$harnesses"
 (cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/haas" ./cmd/haas)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e/matrix; pkill -f "[e]2e/haas (serve|matrix)" || true; sleep 1; rm -f ~/e2e/haas'
 scp -q "${ssh_options[@]}" "$state/haas" "ubuntu@$address:e2e/"
 scp -q -r "${ssh_options[@]}" e2e/sample "ubuntu@$address:e2e/"
 scp -q "${ssh_options[@]}" "$root/docs/matrix/box.json" "ubuntu@$address:e2e/matrix/plan.json"
-scp -q "${ssh_options[@]}" e2e/matrix-on-host.sh "ubuntu@$address:e2e/"
+scp -q "${ssh_options[@]}" e2e/matrix-on-host.sh e2e/credentials.sh "ubuntu@$address:e2e/"
 ssh "${ssh_options[@]}" "ubuntu@$address" "export AWS_REGION=$AWS_REGION AGAIN='${AGAIN:-}' BEDROCK_PARAMETER=${HAAS_MODEL_PARAMETER:-/haas/poc/model-key} DEEPSEEK_PARAMETER=${HAAS_DEEPSEEK_PARAMETER:-/haas/poc/deepseek-key}
   setsid nohup bash ~/e2e/matrix-on-host.sh > ~/e2e/matrix-host.log 2>&1 < /dev/null &"
 {

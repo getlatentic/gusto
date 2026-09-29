@@ -96,6 +96,20 @@ python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth
 AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
 ```
 
+## Two harnesses in one sandbox, a shared app, and many sandboxes
+
+```bash
+./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
+./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
+```
+
+Both need `./up.sh` and the two keys, as `e2e-matrix.sh` does. They use the same image,
+which `image.sh` builds. Bring the instance up with `TF_VAR_instance_type=m8i.2xlarge` for
+the sizes in `docs/OPENSHELL.md`. Two things cost time: `openshell sandbox exec` reads
+standard input, so a script fed to `ssh bash -s` loses its later lines unless each
+`exec` has `</dev/null`, and `pkill -f` matches the shell that runs it unless the
+pattern has a bracket in it.
+
 ## Files
 
 ```
@@ -108,6 +122,8 @@ probe/expected.txt                               what the first run printed
 e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
 e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
 put-key.sh                                       stores a model's key in Parameter Store
+e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two harnesses in one sandbox, a shared app, many sandboxes
+harnesses.sh, e2e/credentials.sh                 the harness list and the proxy's credentials, shared by the runs
 ```
 
 The binaries are OpenShell 0.1.2. Their checksums are pinned in
