@@ -1,0 +1,19 @@
+---
+openshell_version: "0.1.2"
+openshell_release: "https://github.com/NVIDIA/OpenShell/releases/download/v{{ openshell_version }}"
+openshell_bin: /opt/openshell/bin
+openshell_dist: /opt/openshell/dist
+# The checksums are pinned from the release's own checksum files, so what is
+# downloaded is what was measured, and a changed asset fails here.
+openshell_assets:
+  - { file: openshell-x86_64-unknown-linux-musl.tar.gz, sha256: 7eb6917285331a09e3300266a0558616481a5e9927cae2612ea07c4045b6dd6f }
+  - { file: openshell-gateway-x86_64-unknown-linux-gnu.tar.gz, sha256: 218d887845b3a020ab7535c9985eb9c666d6938f144044957f8b82b42892aadb }
+  - { file: openshell-driver-vm-x86_64-unknown-linux-gnu.tar.gz, sha256: 042e2d5a7b5a1f3d112ef346c45a113f331c2e39c90644d3d5001820a2a9aa12 }
+  - { file: openshell-supervisor-x86_64-unknown-linux-gnu.tar.gz, sha256: 801d717f4211b4c24449b08a47ce5571ff623ce993c10d44e133dbe2edc36611 }
+openshell_user: ubuntu
+openshell_config: /etc/openshell-xdg
+openshell_state: /var/lib/openshell-xdg
+openshell_gateway_name: spike
+openshell_gateway_port: 18080
+openshell_vcpus: 2
+openshell_mem_mib: 4096

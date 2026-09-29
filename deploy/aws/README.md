@@ -67,3 +67,5 @@ fsync returns before the data reaches the instance's disk.
 
 State is local (`terraform.tfstate`, not committed). Keep this directory
 between `up.sh` and `down.sh`, or `down.sh` has nothing to destroy.
+
+OpenShell has its own, smaller test in [openshell/](openshell/README.md): one instance, no E2B, no DNS.
