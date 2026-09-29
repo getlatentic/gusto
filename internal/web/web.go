@@ -39,7 +39,9 @@ type Server struct {
 	models    Models
 	ledger    *spend.Ledger
 	keyring   signing.Keyring
-	admins    map[string]bool
+	// front is set when this server is one organisation's in a hosted haas.
+	front  *frontDoor
+	admins map[string]bool
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes   *changelog.Log
@@ -83,10 +85,15 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /login", s.loginPage)
-	mux.HandleFunc("POST /login", s.signIn)
-	mux.HandleFunc("GET /auth/start", s.start)
-	mux.HandleFunc("GET /auth/callback", s.back)
+	if s.front != nil {
+		mux.HandleFunc("GET /login", s.toFrontDoor)
+		mux.HandleFunc("GET /auth/entry", s.enter)
+	} else {
+		mux.HandleFunc("GET /login", s.loginPage)
+		mux.HandleFunc("POST /login", s.signIn)
+		mux.HandleFunc("GET /auth/start", s.start)
+		mux.HandleFunc("GET /auth/callback", s.back)
+	}
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /keys/{file}", s.key)
