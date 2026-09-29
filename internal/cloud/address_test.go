@@ -75,3 +75,24 @@ func TestOnlyAnAddressAHostNameCanTakeIsAllowed(t *testing.T) {
 		}
 	}
 }
+
+func TestACompanyDomainNamesItsOrganisationAndAFreeOneDoesNot(t *testing.T) {
+	for domain, want := range map[string]string{
+		"acme.com": "Acme", "acme-research.com": "Acme Research", "mail.acme.co.uk": "Acme", "acme.io": "Acme",
+		"corp.local": "Corp", "a-b-c.org": "A B C", "team.a-b-c.org": "A B C", "a-b-c.example.org": "Example",
+	} {
+		if got, err := FromDomain(domain); err != nil || got != want {
+			t.Errorf("FromDomain(%q) = %q, %v, want %q", domain, got, err, want)
+		}
+	}
+	for _, domain := range []string{"gmail.com", "outlook.com", "mailinator.com"} {
+		if _, err := FromDomain(domain); !errors.Is(err, ErrNeedName) {
+			t.Errorf("%s names no company: %v", domain, err)
+		}
+	}
+	// What the domain gives is a name that makes an address.
+	name, _ := FromDomain("mail.acme-research.co.uk")
+	if SlugFor(name) != "acme-research" {
+		t.Errorf("%q gives %q", name, SlugFor(name))
+	}
+}

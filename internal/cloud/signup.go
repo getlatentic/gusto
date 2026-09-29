@@ -19,21 +19,22 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 // the link that lifts the trial. A person who was refused sees why and keeps
 // what they typed.
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
-	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org")}
-	again := func(status int, why string) {
-		s.render(w, status, "signup", view{Title: "Create your organisation", Error: why, Email: in.Email, OrgName: in.OrgName})
+	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
+	again := func(status int, why string, more bool) {
+		s.render(w, status, "signup", view{Title: "Create your organisation", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug,
+			More: more || in.OrgName != "" || in.Slug != ""})
 	}
 	if !s.all.Allow("all") {
-		again(http.StatusServiceUnavailable, "Sign-ups are busy right now. Try again in a little while.")
+		again(http.StatusServiceUnavailable, "Sign-ups are busy right now. Try again in a little while.", false)
 		return
 	}
 	if !s.signups.Allow(s.source(r)) {
-		again(http.StatusTooManyRequests, "That is a lot of sign-ups from one place. Try again later.")
+		again(http.StatusTooManyRequests, "That is a lot of sign-ups from one place. Try again later.", false)
 		return
 	}
 	person, org, err := s.Store.SignUp(in)
 	if err != nil {
-		again(refusalStatus(err), refusalText(err))
+		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}
 	s.mailVerification(person, org)
@@ -41,10 +42,21 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
+// asksForMore says the form needs the organisation's name and address, because
+// the domain could not give them or gave ones that will not do.
+func asksForMore(err error) bool {
+	for _, known := range []error{ErrNeedName, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {
+		if errors.Is(err, known) {
+			return true
+		}
+	}
+	return false
+}
+
 // refusalText is what a person is told when a sign-up cannot go ahead. An
 // error that is not one of ours is ours to log, and says nothing of itself.
 func refusalText(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrNeedName, ErrDomainClaimed} {
 		if errors.Is(err, known) {
 			return strings.ToUpper(known.Error()[:1]) + known.Error()[1:] + "."
 		}
@@ -54,12 +66,12 @@ func refusalText(err error) string {
 }
 
 func refusalStatus(err error) int {
-	for _, known := range []error{ErrEmailTaken, ErrSlugTaken, ErrDomainFull} {
+	for _, known := range []error{ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrDomainClaimed} {
 		if errors.Is(err, known) {
 			return http.StatusConflict
 		}
 	}
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrNeedName} {
 		if errors.Is(err, known) {
 			return http.StatusUnprocessableEntity
 		}
@@ -132,7 +144,7 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 			return
 		}
 		if purpose == Verify {
-			if _, err := s.Store.Verify(email); err != nil {
+			if _, err := s.Store.Verify(email); err != nil && !errors.Is(err, ErrDomainClaimed) {
 				log.Printf("cloud: an address was not verified: %v", err)
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return
