@@ -1,13 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/rules"
 	"github.com/getlatentic/haas/internal/runner"
@@ -69,9 +72,9 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		credentials: credentials,
 		tokens:      tokens,
 		ledger:      ledger,
-		sealed:      os.Getenv("HAAS_JOB_NETWORK") != "open",
+		sealed:      os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell",
 		socket:      setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
-		address:     setting("HAAS_PROXY_ADDR", "0.0.0.0:8041"),
+		address:     setting("HAAS_PROXY_ADDR", proxyAddress()),
 	}, nil
 }
 
@@ -108,24 +111,7 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 	if w.proxy == nil {
 		return sandbox.Run(dir, w.direct, "", mounts...)
 	}
-	id := filepath.Base(dir.Path())
-	named, _ := proxy.Named(spec.Model)
-	credential, held := w.credentials.Get(named)
-	if !held {
-		// Refused before the container starts, by name, rather than as a model
-		// call that fails somewhere inside a run somebody has to go and read.
-		return 0, fmt.Errorf("no credential called %q here; this deployment holds %s",
-			named, strings.Join(w.credentials.Names(), ", "))
-	}
-	// Every call a sealed box makes to a model leaves through this credential,
-	// so its address is where the code goes. The runner inside checks the
-	// address it was handed, which is the proxy on its own loopback, and would
-	// read a restricted job as staying in the building when it does not.
-	if err := rules.Allows(spec, credential.Address); err != nil {
-		return 0, runner.Refuse(dir, err)
-	}
-	w.ledger.Begin(id, spend.TermsOf(spec))
-	token, err := w.tokens.Mint(id, named)
+	token, err := w.admit(dir, spec)
 	if err != nil {
 		return 0, err
 	}
@@ -137,6 +123,56 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 		port = "8041"
 	}
 	return sandbox.Run(dir, "http://localhost:"+port+"/model/v1", token, mounts...)
+}
+
+// admit checks that the job may reach its model, and gives it the token that
+// stands in for the credential. It is refused before anything starts, by name,
+// rather than as a model call that fails somewhere inside a run somebody has
+// to go and read.
+func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
+	id := filepath.Base(dir.Path())
+	named, _ := proxy.Named(spec.Model)
+	credential, held := w.credentials.Get(named)
+	if !held {
+		return "", fmt.Errorf("no credential called %q here; this deployment holds %s",
+			named, strings.Join(w.credentials.Names(), ", "))
+	}
+	// Every call a sealed box makes to a model leaves through this credential,
+	// so its address is where the code goes. The runner inside checks the
+	// address it was handed, which is the proxy on its own loopback, and would
+	// read a restricted job as staying in the building when it does not.
+	if err := rules.Allows(spec, credential.Address); err != nil {
+		return "", runner.Refuse(dir, err)
+	}
+	w.ledger.Begin(id, spend.TermsOf(spec))
+	return w.tokens.Mint(id, named)
+}
+
+// RunInSandbox runs a job's harness in an OpenShell sandbox. The proxy is
+// reached on the name the sandbox gives this machine, so it listens on a port
+// and not a socket, and the runner stays here and writes the record.
+func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
+	if w.proxy == nil {
+		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
+	}
+	token, err := w.admit(dir, spec)
+	if err != nil {
+		return 0, err
+	}
+	_, port, err := net.SplitHostPort(w.address)
+	if err != nil {
+		port = "8041"
+	}
+	configured, err := harness.Open(dir, spec.Harness)
+	if err != nil {
+		return 0, err
+	}
+	box, err := openshell.New(cfg, filepath.Base(dir.Path()), configured.Adapter,
+		"http://"+cfg.Host+":"+port+"/model/v1", token)
+	if err != nil {
+		return 0, err
+	}
+	return runner.Outside(dir, box)
 }
 
 // Done ends a job's way out, so a container that outlives its server cannot
@@ -179,4 +215,15 @@ func (w *WayOut) InBuilding() bool {
 		}
 	}
 	return false
+}
+
+// proxyAddress is where the proxy listens unless it is told. A container reaches
+// it over the runtime's network, so it listens on every interface; a sandbox on
+// a gateway reaches the machine's loopback through the gateway's own proxy, so
+// it need not be on the network at all.
+func proxyAddress() string {
+	if os.Getenv("HAAS_SANDBOX") == "openshell" {
+		return "127.0.0.1:8041"
+	}
+	return "0.0.0.0:8041"
 }

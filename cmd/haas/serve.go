@@ -21,6 +21,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/runner"
@@ -66,12 +67,16 @@ func serve(args []string) int {
 	}
 	defer stopProxy()
 	index.SetLimits(jobs.Limits{Person: number("HAAS_LIMIT_PERSON", 0), Team: number("HAAS_LIMIT_TEAM", 0)})
-	queue := jobs.Start(index, chosenWork(way, instances), number("HAAS_JOB_CONCURRENCY", 1))
+	work, err := chosenWork(way, instances)
+	if err != nil {
+		return fail(err)
+	}
+	queue := jobs.Start(index, work, number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
 	// Asked once, at startup: the answer changes only when the image does, and
 	// asking per page would start a container for every row somebody looks at.
-	offered := catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
+	offered := surveyed(harness.Names())
 	for _, entry := range offered {
 		if !entry.Ready {
 			fmt.Printf("  %-10s not offered: %s\n", entry.Name, entry.Why)
@@ -178,9 +183,16 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, instances *instance.Store) jobs.Work {
-	if os.Getenv("HAAS_SANDBOX") == "here" {
-		return here(instances)
+func chosenWork(way *WayOut, instances *instance.Store) (jobs.Work, error) {
+	switch os.Getenv("HAAS_SANDBOX") {
+	case "here":
+		return here(instances), nil
+	case "openshell":
+		cfg, err := openshell.FromEnv()
+		if err != nil {
+			return nil, err
+		}
+		return inSandbox(way, cfg), nil
 	}
 	return func(dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
@@ -202,6 +214,22 @@ func chosenWork(way *WayOut, instances *instance.Store) jobs.Work {
 			}
 		}
 		return exit, err
+	}, nil
+}
+
+// inSandbox runs each job's harness in an OpenShell sandbox. The checkout
+// happens here, outside the sandbox, as it does for a container.
+func inSandbox(way *WayOut, cfg openshell.Config) jobs.Work {
+	return func(dir job.Dir) (int, error) {
+		spec, err := job.Read(dir)
+		if err != nil {
+			return 0, err
+		}
+		if err := runner.Fill(spec, dir); err != nil {
+			return 0, err
+		}
+		defer way.Done(dir)
+		return way.RunInSandbox(dir, spec, cfg)
 	}
 }
 
@@ -312,4 +340,15 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 		{From: instances.Workspace(spec.Session), To: "/job/workspace"},
 		{From: instances.State(spec.Session), To: "/root/.local/share"},
 	}
+}
+
+// surveyed is what this deployment's image carries. In a container that is asked
+// of the runtime, and in a sandbox on a gateway it is asked of a sandbox.
+func surveyed(names []string) []catalog.Entry {
+	if os.Getenv("HAAS_SANDBOX") == "openshell" {
+		if cfg, err := openshell.FromEnv(); err == nil {
+			return catalog.SurveyOf(openshell.Image(cfg), names)
+		}
+	}
+	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
 }
