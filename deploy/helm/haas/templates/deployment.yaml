@@ -1,4 +1,4 @@
-{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_CHANGES" "HAAS_API_TOKENS" "HAAS_COMPARISONS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
+{{- $reserved := list "HAAS_ADDR" "HAAS_JOBS" "HAAS_SESSIONS" "HAAS_SETUPS" "HAAS_CHANGES" "HAAS_RETENTION" "HAAS_API_TOKENS" "HAAS_COMPARISONS" "HAAS_IMAGE" "HAAS_CONTAINER" "HAAS_PROXY_SOCKET" -}}
 {{- range $name, $_ := .Values.env }}
 {{- if has $name $reserved }}
 {{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
@@ -103,6 +103,7 @@ spec:
             - { name: HAAS_SESSIONS, value: /var/lib/haas/sessions }
             - { name: HAAS_SETUPS, value: /var/lib/haas/setups }
             - { name: HAAS_CHANGES, value: /var/lib/haas/changes/changes.jsonl }
+            - { name: HAAS_RETENTION, value: /var/lib/haas/retention }
             - { name: HAAS_COMPARISONS, value: /var/lib/haas/comparisons }
             # Not on the volume: a unix socket belongs on a filesystem both
             # containers share in memory, whatever the storage class is.
@@ -153,6 +154,9 @@ spec:
             - { name: data, mountPath: /var/lib/haas }
             - { name: runtime-socket, mountPath: /run/haas/runtime }
             - { name: proxy-socket, mountPath: /run/haas/proxy }
+            {{- if .Values.retention }}
+            - { name: retention-policy, mountPath: /var/lib/haas/retention/policy.json, subPath: policy.json, readOnly: true }
+            {{- end }}
             {{- if .Values.credentials.existingSecret }}
             - { name: credentials, mountPath: /etc/haas/credentials, readOnly: true }
             {{- end }}
@@ -163,6 +167,11 @@ spec:
         - { name: runtime-socket, emptyDir: {} }
         - { name: proxy-socket, emptyDir: {} }
         - { name: runtime-storage, emptyDir: {} }
+        {{- if .Values.retention }}
+        - name: retention-policy
+          configMap:
+            name: {{ include "haas.fullname" . }}-retention
+        {{- end }}
         {{- if .Values.credentials.existingSecret }}
         - name: credentials
           secret:

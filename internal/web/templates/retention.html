@@ -1,0 +1,70 @@
+{{template "head" .}}
+
+<div class="page-head">
+  <h1>Retention</h1>
+  <p class="muted">Finished work is removed on a schedule. A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
+</div>
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<section class="figures">
+  <div class="figure"><span class="value">{{.Used}}</span><span class="label">used by {{.Jobs}} job{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="figure"><span class="value">{{.Workspaces}}</span><span class="label">of it in workspaces</span></div>
+  <div class="figure"><span class="value">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="label">{{with .Oldest}}oldest job kept, <a href="/jobs/{{.}}">{{.}}</a>{{else}}no job has finished{{end}}</span></div>
+</section>
+
+<section class="panel">
+  <h2>Policy</h2>
+  {{if .Removes}}
+  <table>
+    <thead><tr><th>A job that</th><th>loses its workspace after</th><th>loses its record after</th></tr></thead>
+    <tbody>
+      {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="muted">kept</span>{{end}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  <p class="muted">Days are counted from when the job ended. The policy is <code>policy.json</code> in <code>HAAS_RETENTION</code>.</p>
+  {{else}}
+  <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>HAAS_RETENTION</code>.</p>
+  {{end}}
+</section>
+
+<section class="panel">
+  <h2>Next sweep</h2>
+  {{if .Upcoming}}
+  <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
+  <table>
+    <thead><tr><th>Job</th><th>Removes</th><th>Ended</th><th>Frees</th></tr></thead>
+    <tbody>
+      {{range .Upcoming}}<tr><td><a href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td>{{.Days}} days ago</td><td>{{.Bytes}} bytes</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Nothing is due.</p>
+  {{end}}
+  <form method="post" action="/retention/sweep"><button type="submit">Sweep now</button></form>
+  {{with .Last}}<p class="muted">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>Holds</h2>
+  <p class="muted">Held work is kept whole, whatever the policy says.</p>
+  {{if or .HeldJobs .HeldPeople}}
+  <table>
+    <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
+    <tbody>
+      {{range $id, $h := .HeldJobs}}<tr><td>job <a href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
+        <td><form method="post" action="/jobs/{{$id}}/release"><button type="submit">Release</button></form></td></tr>{{end}}
+      {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
+        <td><form method="post" action="/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit">Release</button></form></td></tr>{{end}}
+    </tbody>
+  </table>
+  {{end}}
+  <form method="post" action="/retention/holds" class="inline">
+    <label>Person <input name="who" placeholder="amy@acme.test" required></label>
+    <label>Why <input name="why" placeholder="for the record"></label>
+    <button type="submit">Keep their work</button>
+  </form>
+  <p class="muted">A single job is held from its own page.</p>
+</section>
+
+{{template "foot" .}}

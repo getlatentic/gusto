@@ -19,6 +19,20 @@
   </nav>{{end}}
 </header>
 
+{{if .CanHold}}
+<section class="panel hold">
+  {{with .Hold}}
+  <p>Kept from removal by {{.By}}{{with .Why}}: {{.}}{{end}}.</p>
+  <form method="post" action="/jobs/{{$.Job.ID}}/release"><button type="submit">Let it be removed on schedule</button></form>
+  {{else}}
+  <form method="post" action="/jobs/{{.Job.ID}}/hold" class="inline">
+    <label>Keep this job whole <input name="why" placeholder="why, for the record"></label>
+    <button type="submit">Keep</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+
 <div class="run">
 <div class="run-main">
 

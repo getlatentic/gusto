@@ -287,6 +287,13 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("made the API token %s, which may %s", w["name"], or(w["scopes"], "do nothing"))
 	case changelog.TokenRevoked:
 		return fmt.Sprintf("revoked the API token %s", w["name"])
+	case changelog.HoldSet:
+		return "kept " + heldThing(w) + " from being removed" + becauseOf(w["why"])
+	case changelog.HoldReleased:
+		return "let " + heldThing(w) + " be removed on schedule again"
+	case changelog.Swept:
+		return fmt.Sprintf("retention removed %s workspaces and %s records, freeing %s bytes%s",
+			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
 	case changelog.ServerStarted:
 		return "the server started"
 	case changelog.SettingsChanged:
@@ -300,4 +307,25 @@ func or(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func heldThing(w map[string]string) string {
+	if w["job"] != "" {
+		return "the job " + w["job"]
+	}
+	return "everything asked for by " + w["person"]
+}
+
+func becauseOf(why string) string {
+	if why == "" {
+		return ""
+	}
+	return ": " + why
+}
+
+func recordsOf(ids string) string {
+	if ids == "" {
+		return ""
+	}
+	return " (records removed: " + ids + ")"
 }

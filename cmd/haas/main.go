@@ -47,6 +47,7 @@ func run(args []string) int {
 		"keygen":    makeKey,
 		"keys":      checkKeys,
 		"changes":   changesCommand,
+		"retention": retentionCommand,
 	}[verb]
 	if !found {
 		usage()
@@ -76,6 +77,7 @@ func usage() {
   haas doctor           check this machine can run a job, before one is sent
   haas keygen <name>    a key pair to sign records with [-dir <dir>, -awskms <key>]
   haas changes verify <file>  check a record of what changed on the platform, and who signed it [-head <hash>]
+  haas retention        what a sweep would remove now, and frees, and removes nothing [-jobs <dir>, -dir <dir>]
   haas keys             which key signed each record, and which no key in the keyring can vouch for [-jobs <dir>]
 
 The exit code of run, inside and verify is the gate's answer.
