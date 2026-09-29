@@ -640,6 +640,8 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](docs/KEYS.md) covers rotation, backup and KMS |
 | `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
+| `HAAS_GITHUB_APP_ID`, `HAAS_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](docs/REPOS.md) |
+| `HAAS_GITHUB_URL` | a GitHub Enterprise Server's address, with `HAAS_GITHUB_API`; github.com when unset |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |

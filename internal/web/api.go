@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/repoaccess"
 	"github.com/getlatentic/haas/internal/rules"
 )
 
@@ -90,12 +92,27 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
+	if err := reachable(r.Context(), sent.Spec.Repo); err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
 	id, err := s.queued(sent.Spec, sent.Adapter, sentOverHTTP)
 	if err != nil {
 		reply(w, http.StatusInternalServerError, Answer{Refused: err.Error()})
 		return
 	}
 	reply(w, http.StatusCreated, Answer{ID: id})
+}
+
+// reachable refuses by name a repository this deployment's GitHub App is not
+// installed on, so whoever sent the job hears it now and not from a job that
+// failed later.
+func reachable(ctx context.Context, repo string) error {
+	forge, err := repoaccess.FromEnv()
+	if err != nil {
+		return err
+	}
+	return forge.Check(ctx, repo)
 }
 
 // queued writes the job directory and takes it into the index, so a sent job

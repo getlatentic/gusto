@@ -1,6 +1,8 @@
 package runner
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,10 +10,12 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/repoaccess"
 )
 
 // Fill puts the repository in workspace/, or makes an empty one when no
-// repository is named. A directory that already holds a checkout is left alone,
+// repository is named. The clone happens here, outside the box, so a credential
+// for the repository never goes in with the agent. A directory that already holds a checkout is left alone,
 // so a run can be repeated against the same tree.
 func Fill(spec job.Spec, dir job.Dir) error {
 	// A turn in a conversation works in the conversation's directory, which is
@@ -27,7 +31,16 @@ func Fill(spec job.Spec, dir job.Dir) error {
 		// because a run says what it changed by diffing it.
 		return git(dir.Workspace(), "init", "--quiet", ".")
 	}
-	if err := git(dir.Path(), "clone", "--quiet", spec.Repo, "workspace"); err != nil {
+	forge, err := repoaccess.FromEnv()
+	if err != nil {
+		return err
+	}
+	if err := forge.Clone(context.Background(), spec.Repo, dir.Path(), "workspace"); err != nil {
+		// A repository the App does not reach is a refusal, said in the
+		// record like any other, and not a run that failed somewhere.
+		if errors.As(err, &repoaccess.NotInstalledError{}) {
+			return Refuse(dir, err)
+		}
 		return err
 	}
 	return git(dir.Workspace(), "checkout", "--quiet", spec.Ref)

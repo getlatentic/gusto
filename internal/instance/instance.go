@@ -15,6 +15,7 @@
 package instance
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/haas/internal/repoaccess"
 )
 
 // Instance is the computer: what a harness runs under and works in.
@@ -214,10 +217,12 @@ func fill(workspace, repo string) error {
 	if repo == "" {
 		return run(workspace, "init", "--quiet", ".")
 	}
-	clone := exec.Command("git", "clone", "--quiet", repo, ".")
-	clone.Dir = workspace
-	if output, err := clone.CombinedOutput(); err != nil {
-		return fmt.Errorf("that repository could not be cloned: %s", output)
+	forge, err := repoaccess.FromEnv()
+	if err != nil {
+		return err
+	}
+	if err := forge.Clone(context.Background(), repo, workspace, "."); err != nil {
+		return fmt.Errorf("that repository could not be cloned: %w", err)
 	}
 	return nil
 }
