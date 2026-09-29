@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
@@ -101,13 +102,16 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	wanted := setup.Setup{Name: name, Servers: r.Form["server"], Who: s.keeper.who(r)}
+	action := "created"
 	if held, found := s.setups.Get(name); found {
 		wanted.Made, wanted.Who = held.Made, held.Who
+		action = "changed"
 	}
 	if err := s.setups.Save(wanted, s.servers); err != nil {
 		s.turnAway(w, r, "/new", err.Error())
 		return
 	}
+	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", ")})
 	http.Redirect(w, r, "/setups/"+name, http.StatusSeeOther)
 }
 
@@ -149,6 +153,7 @@ func (s *Server) writeSkill(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
+	s.note(r, changelog.SkillWritten, map[string]string{"setup": name, "skill": skill.Name})
 	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
@@ -162,6 +167,7 @@ func (s *Server) dropSkill(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/setups/"+name, err.Error())
 		return
 	}
+	s.note(r, changelog.SkillDropped, map[string]string{"setup": name, "skill": r.PathValue("skill")})
 	http.Redirect(w, r, "/setups/"+name, http.StatusSeeOther)
 }
 

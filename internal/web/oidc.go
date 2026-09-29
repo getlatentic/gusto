@@ -96,16 +96,19 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 	given, err := r.Cookie("haas-state")
 	if err != nil || given.Value == "" || given.Value != r.URL.Query().Get("state") {
 		// An answer this server did not ask for, so it is not acted on.
+		s.noteRefused(r, "", "the provider", "the answer did not come from a sign-in started here")
 		refuse(w, r, "that sign-in did not start here")
 		return
 	}
 	who, err := s.identity.person(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
+		s.noteRefused(r, "", "the provider", "the sign-in could not be checked")
 		refuse(w, r, "that sign-in could not be checked")
 		return
 	}
 	role, admitted := s.roleFor(who)
 	if !admitted {
+		s.noteRefused(r, who.Email, "the provider", "no role maps to this person")
 		// Who they are is settled; whether they may spend this server's
 		// credential is a separate question, and the answer is no.
 		slog.Info("a sign-in was refused: no role maps to this person", "email", who.Email, "groups", len(who.Groups))
@@ -113,6 +116,7 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.keeper.issueFor(w, r, who.Email, role)
+	s.noteSignIn(r, who.Email, role, "the provider")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

@@ -46,6 +46,7 @@ func run(args []string) int {
 		"doctor":    checkMachine,
 		"keygen":    makeKey,
 		"keys":      checkKeys,
+		"changes":   changesCommand,
 	}[verb]
 	if !found {
 		usage()
@@ -74,6 +75,7 @@ func usage() {
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent
   haas keygen <name>    a key pair to sign records with [-dir <dir>, -awskms <key>]
+  haas changes verify <file>  check a record of what changed on the platform, and who signed it [-head <hash>]
   haas keys             which key signed each record, and which no key in the keyring can vouch for [-jobs <dir>]
 
 The exit code of run, inside and verify is the gate's answer.

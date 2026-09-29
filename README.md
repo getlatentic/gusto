@@ -638,6 +638,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
 | `HAAS_SIGNER` | who the manifest names. The runner's own word; every surface names the signer from the keyring |
 | `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](docs/KEYS.md) covers rotation, backup and KMS |
+| `HAAS_CHANGES` | the file the record of what changes on the platform is appended to: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `haas changes verify` checks it. [docs/CHANGES.md](docs/CHANGES.md) |
 | `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_GITHUB_APP_ID`, `HAAS_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](docs/REPOS.md) |
