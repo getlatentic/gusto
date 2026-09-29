@@ -12,6 +12,8 @@
     <dd>{{if .Person.Trial}}<span class="state">Not verified</span>{{else}}<span class="state ok">Verified</span>{{end}}</dd>
     <dt>Jobs</dt>
     <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
+    <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
+    <dt>Computers</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
   </dl>
   {{if .Person.Trial}}
   <p class="muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>

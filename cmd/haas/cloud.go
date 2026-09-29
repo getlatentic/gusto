@@ -64,6 +64,8 @@ func openCloud() (*cloud.Server, error) {
 	limits.Trial.Concurrent = number("HAAS_CLOUD_TRIAL_CONCURRENT", limits.Trial.Concurrent)
 	limits.Verified.Jobs = number("HAAS_CLOUD_JOBS", limits.Verified.Jobs)
 	limits.Verified.Concurrent = number("HAAS_CLOUD_CONCURRENT", limits.Verified.Concurrent)
+	limits.Verified.Members = number("HAAS_CLOUD_MEMBERS", limits.Verified.Members)
+	limits.Verified.Computers = number("HAAS_CLOUD_COMPUTERS", limits.Verified.Computers)
 	store, err := cloud.Open(root, cloud.Settings{
 		AllowFreeMail:  os.Getenv("HAAS_CLOUD_FREE_MAIL") == "allow",
 		RefusedDomains: lowered(values("HAAS_CLOUD_REFUSED_DOMAINS")),

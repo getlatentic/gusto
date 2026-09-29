@@ -50,7 +50,13 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	if err != nil {
 		log.Printf("cloud: an organisation is missing its quota: %v", err)
 	}
-	v := view{Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
+	computers := 0
+	if registry, err := s.Store.Computers(org.Slug); err == nil {
+		if all, err := registry.All(); err == nil {
+			computers = len(all)
+		}
+	}
+	v := view{Computers: computers, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice}
 	s.render(w, status, "org", v)
 }

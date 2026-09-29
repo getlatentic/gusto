@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/haas/internal/computer"
 	"github.com/getlatentic/haas/internal/quota"
 )
 
@@ -249,6 +250,12 @@ func (s *Store) Verify(email string) (Person, error) {
 func (s *Store) Quota(slug string) (quota.Quota, error) {
 	var q quota.Quota
 	return q, readFile(s.QuotaFile(slug), &q)
+}
+
+// Computers is the organisation's record of its computers, which its server keeps
+// and this reads.
+func (s *Store) Computers(slug string) (*computer.Registry, error) {
+	return computer.Open(filepath.Join(s.DataDir(slug), "computers"), slug)
 }
 
 // QuotaFile is where the organisation's server reads its limits.
