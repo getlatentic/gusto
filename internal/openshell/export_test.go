@@ -7,3 +7,6 @@ func SetSettle(wait time.Duration, rounds int) { settle, settleRounds = wait, ro
 
 // InSandbox is inSandbox, for the tests.
 func InSandbox(text string) string { return inSandbox(text) }
+
+// PlaceConfig is placeConfig, for the tests.
+func PlaceConfig(from, home string) string { return placeConfig(from, home) }

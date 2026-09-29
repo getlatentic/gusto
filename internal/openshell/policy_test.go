@@ -54,7 +54,7 @@ func TestTheWorkspaceAndTheHarnessesOwnPlacesAreWritableAndTheSystemIsNot(t *tes
 	for _, path := range filesystem["read_write"].([]any) {
 		writable[path.(string)] = true
 	}
-	for _, want := range []string{"/sandbox", "/tmp", "/dev/null", "/home/agent/.local/share/opencode"} {
+	for _, want := range []string{"/sandbox", "/tmp", "/dev/null", "/dev/ptmx", "/dev/pts", "/home/agent/.local/share/opencode"} {
 		if !writable[want] {
 			t.Errorf("%s is not writable", want)
 		}

@@ -42,7 +42,7 @@ func TestCostIsTheProxysCountWhenTheRunWentThroughIt(t *testing.T) {
 	hermetic(t)
 	pair := matrix.Pair{Harness: "priced", Model: "m"}
 	opened := &door{}
-	way := matrix.Contained(func(string) (matrix.Door, error) { return opened, nil })
+	way := matrix.Contained("in a test container", func(string) (matrix.Door, error) { return opened, nil })
 	_, table := measure(t, planned(t, remote(t), pair), "", way)
 
 	row := rowFor(t, table, "one-line-fix", pair)

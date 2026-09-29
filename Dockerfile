@@ -18,8 +18,10 @@ COPY internal internal
 RUN CGO_ENABLED=0 go build -trimpath -o /haas ./cmd/haas
 
 FROM docker.io/library/node:24-slim
+# ripgrep is what opencode's glob and grep tools run. It downloads one on first
+# use, which a box with no network cannot, and every search then fails.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git ca-certificates \
+ && apt-get install -y --no-install-recommends git ca-certificates ripgrep \
  && rm -rf /var/lib/apt/lists/*
 # HARNESSES is the list this image carries: each member is an adapter's name, an
 # equals sign, and the npm package that provides its program, so the name a job
