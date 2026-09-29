@@ -213,6 +213,22 @@ claimed about itself, and keeps its own cookies from the organisations' servers.
 organisation's cookie is for its own host name, so one organisation's page cannot read
 another's.
 
+## People
+
+An admin whose address is confirmed invites people from the organisation's page. An
+invitation counts against the number of people the organisation may have, an admin and
+three by default, so an organisation cannot be over-invited, and the room is checked
+again when the invitation is answered. The link goes to a page that says what the person
+is joining and asks them to press a button, so a mail program that opens every link
+does not answer it. The person joins as a runner, with their address confirmed since they
+read the mail, and lands on the organisation's page.
+
+An address that already has an account cannot be invited, and the refusal is the same
+whoever it belongs to. An admin can cancel an invitation, which takes its link away, and
+can remove a person, but not themselves or the last admin. A removed person is signed out
+of the front door at once, and the organisation's own server stops trusting them within
+the hour it last did. Twenty invitations an hour are allowed for one organisation.
+
 ## What is built
 
 The controller provisions an organisation's directories, its signing key and its entry

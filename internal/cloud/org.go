@@ -64,7 +64,10 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 		}
 		server, canOpen = string(state), state == Ready
 	}
-	v := view{Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
+	members, _ := s.Store.Members(org.Slug)
+	invited, _ := s.Store.Invitations(org.Slug)
+	v := view{Members: members, Invited: invited, IsAdmin: person.Role == Admin,
+		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice}
 	s.render(w, status, "org", v)
 }
