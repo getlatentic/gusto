@@ -1,0 +1,35 @@
+# Upgrades and rolls back on data a published release made. For each of the last
+# two release tags it builds that release, has it make a signed job, upgrades
+# the data with this commit, and then rolls back and starts the old release on
+# it again. See deploy/upgrade-check.sh.
+name: upgrade-check
+
+on:
+  pull_request:
+    paths:
+      - internal/**
+      - cmd/**
+      - deploy/upgrade-check.sh
+      - .github/workflows/upgrade-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Upgrade from the last two releases, and roll back
+        run: |
+          git fetch --tags --quiet
+          releases=$(git tag --list 'v*' --sort=-v:refname | head -n 2)
+          test -n "$releases" || { echo "no release tag to upgrade from" >&2; exit 1; }
+          deploy/upgrade-check.sh $releases

@@ -48,6 +48,8 @@ func run(args []string) int {
 		"keys":      checkKeys,
 		"changes":   changesCommand,
 		"retention": retentionCommand,
+		"data":      dataCommand,
+		"version":   versionCommand,
 	}[verb]
 	if !found {
 		usage()
@@ -78,6 +80,8 @@ func usage() {
   haas keygen <name>    a key pair to sign records with [-dir <dir>, -awskms <key>]
   haas changes verify <file>  check a record of what changed on the platform, and who signed it [-head <hash>]
   haas retention        what a sweep would remove now, and frees, and removes nothing [-jobs <dir>, -dir <dir>]
+  haas data status|check|rollback -to <release>  the format of each data directory, what starting this release would do to it, and how to go back
+  haas version          which release this is
   haas keys             which key signed each record, and which no key in the keyring can vouch for [-jobs <dir>]
 
 The exit code of run, inside and verify is the gate's answer.
