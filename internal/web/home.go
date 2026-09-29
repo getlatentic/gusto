@@ -28,7 +28,7 @@ const agentsPerPage = 10
 // home is the agents somebody already has, the one used last first,
 // because a person coming back wants to carry on rather than choose again.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	held := s.instances.List()
+	held := s.ownInstances(r, s.instances.List())
 	listed := make([]yours, 0, len(held))
 	for _, each := range held {
 		listed = append(listed, s.lately(each))
@@ -107,11 +107,11 @@ func (s *Server) lately(held instance.Instance) yours {
 // removeInstance takes an instance off the list. One with a turn still queued
 // or running keeps it, because that turn is working in its folder.
 func (s *Server) removeInstance(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if _, found := s.instances.Get(id); !found {
-		http.NotFound(w, r)
+	held, found := s.mine(w, r)
+	if !found {
 		return
 	}
+	id := held.ID
 	for _, record := range s.index.List() {
 		if record.Instance == id && !record.State.Done() {
 			s.turnAway(w, r, "/instances/"+id, "a turn is still "+string(record.State)+" here; remove it once that ends")

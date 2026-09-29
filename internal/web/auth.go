@@ -43,7 +43,7 @@ func (k *keeper) admits(given string) bool {
 // issue signs somebody in as nobody in particular, which is what a shared
 // password can say about them.
 func (k *keeper) issue(w http.ResponseWriter, r *http.Request) {
-	k.issueFor(w, r, "the shared sign-in")
+	k.issueFor(w, r, sharedSignIn)
 }
 
 // issueFor signs somebody in by name, so a job records who asked for it rather
@@ -90,7 +90,7 @@ func (k *keeper) read(r *http.Request) (string, bool) {
 		return "", false
 	}
 	if !named || who == "" {
-		return "the shared sign-in", true
+		return sharedSignIn, true
 	}
 	return who, true
 }

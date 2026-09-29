@@ -17,6 +17,12 @@ import (
 // restarts in the middle of a month still knows what each team has spent. The
 // lines in each job's out/proxy.jsonl are the ledger; this is a cache of them.
 func Rebuild(root string, policy Policy) (*Ledger, error) {
+	return RebuildWhere(root, policy, nil)
+}
+
+// RebuildWhere reads back only the jobs keep names, which is how a person's own
+// spend is told apart from everybody's. A nil keep reads them all.
+func RebuildWhere(root string, policy Policy, keep func(job string) bool) (*Ledger, error) {
 	ledger := NewLedger(policy)
 	listing, err := os.ReadDir(root)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -26,7 +32,7 @@ func Rebuild(root string, policy Policy) (*Ledger, error) {
 		return nil, err
 	}
 	for _, entry := range listing {
-		if !entry.IsDir() {
+		if !entry.IsDir() || (keep != nil && !keep(entry.Name())) {
 			continue
 		}
 		dir := job.Dir(filepath.Join(root, entry.Name()))

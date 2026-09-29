@@ -206,7 +206,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found {
+	if !found || !s.mayUse(r, record.Asked) {
 		return jobs.Record{}, "", false
 	}
 	return record, record.Dir(s.index.Root()), true

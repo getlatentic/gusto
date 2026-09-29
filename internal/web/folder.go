@@ -32,9 +32,8 @@ const mostShown = 512 << 10
 // resolved inside the folder and refused if it leaves it, a link included, so
 // nothing else on the machine can be asked for.
 func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	root, err := filepath.EvalSymlinks(s.instances.Workspace(held.ID))
@@ -99,9 +98,8 @@ const mostListed = 500
 // folderPage lists what is in an agent's folder, the most recently changed
 // first, because that is what a conversation has been working on.
 func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
-	agentHeld, found := s.instances.Get(r.PathValue("id"))
+	agentHeld, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	root := s.instances.Workspace(agentHeld.ID)

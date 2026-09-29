@@ -88,6 +88,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseLedger(way.ledger)
+	pages.UseAdmins(values("HAAS_ADMINS"))
 	// Setups are kept beside the instances. The MCP servers they choose from
 	// are the operator's, one file each in HAAS_MCP.
 	setups, err := setup.Open(setting("HAAS_SETUPS", "setups"))

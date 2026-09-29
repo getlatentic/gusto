@@ -18,9 +18,8 @@ import (
 // so it takes everything a job can be asked to carry: how sensitive the code
 // is, the team its spend counts against, and a cap on what its calls may cost.
 func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
-	held, found := s.instances.Get(r.PathValue("id"))
+	held, found := s.mine(w, r)
 	if !found {
-		http.NotFound(w, r)
 		return
 	}
 	where := "/instances/" + held.ID
