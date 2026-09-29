@@ -5,7 +5,7 @@
 # is where an image is today; a digest is which bytes it is.
 image:
   # `haas serve`, built from deploy/server/Dockerfile and pushed to a registry
-  # the cluster reaches. No public image exists yet, so these have no default.
+  # the cluster reaches. A release names them by digest, so these have no default.
   server:
     repository: ""
     digest: ""

@@ -5,7 +5,7 @@ not the machine that builds the image, not the box it is deployed to, not the
 server, and not a job's container. It may reach services inside the building: a
 registry mirror, a git host, an identity provider, a model server. This page
 names every place haas reaches outside, says what replaces each one, and ends
-with what the product commits to. It answers #29.
+with what the product commits to. It answers getlatentic/planning#255.
 
 Every claim below points at a file, or at a run described in
 [How this was found](#how-this-was-found), or is listed under

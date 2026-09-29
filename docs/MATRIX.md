@@ -36,9 +36,9 @@ haas matrix plan-matrix -json   # the same table, as the catalog reads it
 - **environment** names the place. The same harness on the same model has cost
   twenty times as much on a laptop, which carries its whole skill set into
   every request, as in a container that starts empty, so a row that does not
-  say where it ran cannot be read (#44).
+  say where it ran cannot be read (getlatentic/planning#270).
 
-[`matrix/issue-8.json`](matrix/issue-8.json) is the two local rows from #8, and
+[`matrix/issue-8.json`](matrix/issue-8.json) is the two local rows from getlatentic/planning#234, and
 [`matrix/box.json`](matrix/box.json) the thirteen pairs the box's three credentials
 make possible. A test reads the first, so it stays a plan the matrix accepts.
 

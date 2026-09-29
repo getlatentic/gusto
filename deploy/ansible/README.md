@@ -9,7 +9,7 @@ leaves everything else exactly as it was.
 ansible-galaxy collection install -r requirements.yml
 cp inventory.example.ini inventory.ini
 ansible-playbook site.yml -e @greencloud.vault.yml \
-  --vault-password-file ~/.config/lpcg/vault_pass.txt
+  --vault-password-file ~/.config/haas/vault_pass.txt
 ```
 
 Code reaches the box by `git pull`, so **push the branch first**. The playbook
@@ -94,7 +94,7 @@ Then deploy with the broken fixture, from the laptop:
 
 ```bash
 ansible-playbook site.yml -e @greencloud.vault.yml \
-  --vault-password-file ~/.config/lpcg/vault_pass.txt -e smoke_fixture=broken.json
+  --vault-password-file ~/.config/haas/vault_pass.txt -e smoke_fixture=broken.json
 ```
 
 It has to fail at "The job runs in a container and passes its gate", because
@@ -142,11 +142,9 @@ The trade, written down:
   readable by root alone. Root could already reach what the vault's values
   unlock on this box: the model keys and the sign-in secrets are written to
   `/opt/haas/var/haas.env` and the credential files, and root administers the
-  MySQL the database password opens. What is new is the password itself. `greencloud.vault.yml` shares it
-  with the other apps' vaults, so re-key this app's vault with a password of
-  its own before turning autodeploy on
-  (`ansible-vault rekey greencloud.vault.yml`) and point
-  `autodeploy_vault_password_file` at it.
+  MySQL the database password opens. What is new is the password itself. `greencloud.vault.yml` has a password
+  of its own, which no other app's vault uses: `~/.config/haas/vault_pass.txt`
+  here, and the file `autodeploy_vault_password_file` names on the box.
 - The box runs a playbook it fetched as root. That was true of every hand
   deploy too, with a laptop in the middle. The checkout it runs from belongs to
   root, not to the `haas` user, so the code the server runs cannot rewrite the
@@ -284,8 +282,8 @@ was free. Raise them only against a fresh reading of `free -m`.
 ## Secrets
 
 `greencloud.vault.yml` is this app's own vault, gitignored and
-ansible-vault-encrypted with the box's shared vault password
-(`~/.config/lpcg/vault_pass.txt`). It holds `db_password` and `haas_password`,
+ansible-vault-encrypted with a password of its own
+(`~/.config/haas/vault_pass.txt`). It holds `db_password` and `haas_password`,
 the shared credential that stands in for sign-in until there is an identity
 provider.
 
