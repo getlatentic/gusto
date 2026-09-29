@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/repoaccess"
 )
 
 // setUp is the step between picking a harness and having one: what it thinks
@@ -41,6 +42,12 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		Setup:   strings.TrimSpace(r.FormValue("setup")),
 		Title:   strings.TrimSpace(r.FormValue("title")),
 		Who:     s.keeper.who(r),
+	}
+	if wanted.Repo != "" {
+		if err := repoaccess.Acceptable(wanted.Repo, s.localRepos); err != nil {
+			s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, err.Error())
+			return
+		}
 	}
 	if wanted.Harness == "" {
 		wanted.Harness = s.firstReady()

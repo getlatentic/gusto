@@ -31,6 +31,7 @@ start() {
   HAAS_PASSWORD=upgrade-check HAAS_ADDR="$address" HAAS_SANDBOX=here \
     HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" \
     HAAS_COMPARISONS="$data/comparisons" HAAS_CHANGES="$data/changes/changes.jsonl" \
+    HAAS_LOCAL_REPOS="$data/repo" \
     HAAS_SIGNING_KEY="$data/signing/upgrade.key" HAAS_KEYRING="$data/keyring" \
     "$1" serve > "$data/serve.log" 2>&1 &
   pid=$!

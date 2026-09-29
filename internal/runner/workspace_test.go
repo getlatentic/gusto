@@ -58,3 +58,52 @@ func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
 		t.Errorf("the workspace's own index was changed: %q", status)
 	}
 }
+
+// The runner is root in the box, and a workspace's git configuration belongs to
+// the agent. Staging the workspace runs nothing the workspace's own .git names.
+func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	workspace := dir.Workspace()
+	run := func(args ...string) {
+		t.Helper()
+		if output, err := exec.Command("git", append([]string{"-C", workspace}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, output)
+		}
+	}
+	run("init", "--quiet")
+	marker := filepath.Join(t.TempDir(), "ran")
+	write(t, filepath.Join(workspace, ".gitattributes"), "* filter=x diff=x\n")
+	write(t, filepath.Join(workspace, "code.txt"), "one\n")
+	run("config", "filter.x.clean", "sh -c 'touch "+marker+"; cat'")
+	run("config", "diff.x.textconv", "sh -c 'touch "+marker+"; cat'")
+	run("config", "core.fsmonitor", "sh -c 'touch "+marker+"; exit 1'")
+	run("config", "core.hooksPath", "/nonexistent")
+
+	before, err := runner.Snapshot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(workspace, "code.txt"), "two\n")
+	if err := runner.Diff(dir, before); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("the runner ran a program the workspace's git configuration named")
+	}
+	patch, _ := os.ReadFile(dir.OutFile("diff.patch"))
+	if !strings.Contains(string(patch), "+two") || !strings.Contains(string(patch), "-one") {
+		t.Errorf("the patch does not say what changed:\n%s", patch)
+	}
+	if entries, _ := os.ReadDir(os.TempDir()); len(entries) > 0 {
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "haas-trees-") {
+				if _, err := os.Stat(filepath.Join(os.TempDir(), entry.Name(), "HEAD")); err == nil {
+					t.Errorf("%s was left behind", entry.Name())
+				}
+			}
+		}
+	}
+}

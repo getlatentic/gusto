@@ -5,7 +5,7 @@
   <h1>Spending</h1>
   <form class="month" method="get" action="/spend">
     <label class="inline"><span class="sr">Month</span>
-      <select name="month" onchange="this.form.submit()">
+      <select name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>

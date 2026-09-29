@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/haas/internal/apitoken"
 )
@@ -39,6 +40,11 @@ func callerOf(r *http.Request) string {
 // everything else uses. A server with none takes the shared password.
 func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if s.wrong.blocked(clientOf(r), time.Now()) {
+			s.noteRefused(r, "", s.presented(), "too many wrong attempts from this source")
+			tooMany(w)
+			return
+		}
 		given, bearing := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !bearing {
 			s.turnBack(w, r, "no Authorization: Bearer header", "the "+s.credential()+" goes in an Authorization: Bearer header")
@@ -88,6 +94,7 @@ func refusalOf(err error) string {
 // one get one answer, so a guess cannot learn that a token once existed; the
 // record says which it was.
 func (s *Server) turnBack(w http.ResponseWriter, r *http.Request, why, said string) {
+	s.wrong.failed(clientOf(r), time.Now())
 	s.noteRefused(r, "", s.presented(), why)
 	w.Header().Set("WWW-Authenticate", `Bearer realm="haas"`)
 	reply(w, http.StatusUnauthorized, Answer{Refused: said})

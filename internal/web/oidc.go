@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -74,17 +75,24 @@ func (s *Server) start(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	raw := make([]byte, 24)
-	if _, err := rand.Read(raw); err != nil {
+	state, nonce := randomValue(), randomValue()
+	if state == "" || nonce == "" {
 		http.Error(w, "could not begin signing in", http.StatusInternalServerError)
 		return
 	}
-	state := base64.RawURLEncoding.EncodeToString(raw)
-	http.SetCookie(w, &http.Cookie{
-		Name: "haas-state", Value: state, Path: "/auth", HttpOnly: true,
-		SameSite: http.SameSiteLaxMode, Secure: overTLS(r), Expires: time.Now().Add(10 * time.Minute),
-	})
-	http.Redirect(w, r, s.identity.config.AuthCodeURL(state), http.StatusSeeOther)
+	// The verifier stays here and only its hash goes to the provider, so a code
+	// that is intercepted on its way back cannot be traded for a token by
+	// anybody who lacks it. The nonce comes back inside the signed token, so a
+	// token the provider issued for another sign-in is not accepted for this one.
+	verifier := oauth2.GenerateVerifier()
+	for name, value := range map[string]string{stateCookie: state, verifierCookie: verifier, nonceCookie: nonce} {
+		http.SetCookie(w, &http.Cookie{
+			Name: name, Value: value, Path: "/auth", HttpOnly: true,
+			SameSite: http.SameSiteLaxMode, Secure: overTLS(r), Expires: time.Now().Add(10 * time.Minute),
+		})
+	}
+	http.Redirect(w, r, s.identity.config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier),
+		oauth2.SetAuthURLParam("nonce", nonce)), http.StatusSeeOther)
 }
 
 // back receives somebody returning from their provider.
@@ -93,15 +101,21 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	given, err := r.Cookie("haas-state")
-	if err != nil || given.Value == "" || given.Value != r.URL.Query().Get("state") {
+	given, err := r.Cookie(stateCookie)
+	if err != nil || given.Value == "" || subtle.ConstantTimeCompare([]byte(given.Value), []byte(r.URL.Query().Get("state"))) != 1 {
 		// An answer this server did not ask for, so it is not acted on.
 		s.noteRefused(r, "", "the provider", "the answer did not come from a sign-in started here")
 		refuse(w, r, "that sign-in did not start here")
 		return
 	}
-	who, err := s.identity.person(r.Context(), r.URL.Query().Get("code"))
+	verifier, nonce := cookieValue(r, verifierCookie), cookieValue(r, nonceCookie)
+	// Each sign-in is one try: whatever happens next, the values are spent.
+	for _, name := range []string{stateCookie, verifierCookie, nonceCookie} {
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/auth", MaxAge: -1})
+	}
+	who, err := s.identity.person(r.Context(), r.URL.Query().Get("code"), verifier, nonce)
 	if err != nil {
+		slog.Warn("a sign-in could not be checked", "error", err)
 		s.noteRefused(r, "", "the provider", "the sign-in could not be checked")
 		refuse(w, r, "that sign-in could not be checked")
 		return
@@ -126,8 +140,11 @@ func refuse(w http.ResponseWriter, r *http.Request, why string) {
 
 // person exchanges the code and reads who signed in out of the token the
 // provider signed, verifying that signature rather than trusting the answer.
-func (i *Identity) person(ctx context.Context, code string) (Person, error) {
-	token, err := i.config.Exchange(ctx, code)
+func (i *Identity) person(ctx context.Context, code, verifier, nonce string) (Person, error) {
+	if verifier == "" || nonce == "" {
+		return Person{}, errors.New("the sign-in carried no verifier")
+	}
+	token, err := i.config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
 		return Person{}, err
 	}
@@ -138,6 +155,9 @@ func (i *Identity) person(ctx context.Context, code string) (Person, error) {
 	checked, err := i.verifier.Verify(ctx, raw)
 	if err != nil {
 		return Person{}, err
+	}
+	if subtle.ConstantTimeCompare([]byte(checked.Nonce), []byte(nonce)) != 1 {
+		return Person{}, errors.New("the identity token was not issued for this sign-in")
 	}
 	var claims map[string]json.RawMessage
 	if err := checked.Claims(&claims); err != nil {
@@ -155,4 +175,26 @@ func (i *Identity) person(ctx context.Context, code string) (Person, error) {
 
 func overTLS(r *http.Request) bool {
 	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+}
+
+const (
+	stateCookie    = "haas-state"
+	verifierCookie = "haas-verifier"
+	nonceCookie    = "haas-nonce"
+)
+
+// randomValue is 24 random bytes as text, or nothing when none can be had.
+func randomValue() string {
+	raw := make([]byte, 24)
+	if _, err := rand.Read(raw); err != nil {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func cookieValue(r *http.Request, name string) string {
+	if cookie, err := r.Cookie(name); err == nil {
+		return cookie.Value
+	}
+	return ""
 }

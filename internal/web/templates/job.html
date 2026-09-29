@@ -156,7 +156,7 @@
 </aside>
 </div>
 
-<script>
+<script nonce="{{.Nonce}}">
 (function () {
   var button = document.getElementById("copy-verify");
   if (!button) return;
@@ -168,7 +168,7 @@
 })();
 </script>
 
-<script>
+<script nonce="{{.Nonce}}">
 (function () {
   var box = document.getElementById("stream");
   var state = document.getElementById("state");

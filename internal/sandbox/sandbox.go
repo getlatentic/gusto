@@ -109,6 +109,7 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 		args = append(args, "-v", absolute+":"+mount.To)
 	}
 	args = append(args, Limits()...)
+	args = append(args, Hardening()...)
 	args = append(args, Image(), "inside", "/job")
 	return args, nil
 }
@@ -168,6 +169,20 @@ func Limits() []string {
 		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
 		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
 		"--pids-limit=512",
+	}
+}
+
+// Hardening is what a job's container is denied. The runner is root in the box
+// so that it alone can write the record; it needs to give the agent its files
+// (CHOWN), read them whatever their mode (DAC_OVERRIDE), and start the harness
+// as the agent (SETUID, SETGID). Nothing else, so a process that gets root in the
+// box has no more than that, and no program can gain a privilege by being
+// setuid, which is what no-new-privileges refuses.
+func Hardening() []string {
+	return []string{
+		"--cap-drop=ALL",
+		"--cap-add=CHOWN", "--cap-add=DAC_OVERRIDE", "--cap-add=FOWNER", "--cap-add=SETUID", "--cap-add=SETGID",
+		"--security-opt=no-new-privileges",
 	}
 }
 

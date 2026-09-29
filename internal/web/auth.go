@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,11 @@ import (
 type keeper struct {
 	password string
 	key      []byte
+	// ended holds the signatures of sessions somebody signed out of, until the
+	// time each would have expired anyway, so a cookie that was copied before
+	// signing out stops working when they do.
+	mu    sync.Mutex
+	ended map[string]int64
 }
 
 func newKeeper(password string) (*keeper, error) {
@@ -28,7 +34,7 @@ func newKeeper(password string) (*keeper, error) {
 	}
 	// The key is made at boot, so a restart asks everybody to sign in again.
 	// That is the honest trade for keeping no secret on disk.
-	return &keeper{password: password, key: key}, nil
+	return &keeper{password: password, key: key, ended: map[string]int64{}}, nil
 }
 
 const cookieName = "haas"
@@ -63,6 +69,43 @@ func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, ro
 	})
 }
 
+// end makes the session in this request's cookie stop working, and forgets
+// those that would have expired by now.
+func (k *keeper) end(r *http.Request) {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return
+	}
+	cut := strings.LastIndex(cookie.Value, ".")
+	if cut < 0 {
+		return
+	}
+	value, signature := cookie.Value[:cut], cookie.Value[cut+1:]
+	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
+		return
+	}
+	until, err := strconv.ParseInt(strings.SplitN(value, "|", 2)[0], 10, 64)
+	if err != nil {
+		return
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	now := time.Now().Unix()
+	for held, expires := range k.ended {
+		if expires <= now {
+			delete(k.ended, held)
+		}
+	}
+	k.ended[signature] = until
+}
+
+func (k *keeper) hasEnded(signature string) bool {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	_, gone := k.ended[signature]
+	return gone
+}
+
 func (k *keeper) clear(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1})
 }
@@ -83,7 +126,7 @@ func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
 		return "", "", false
 	}
 	value, signature := cookie.Value[:cut], cookie.Value[cut+1:]
-	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
+	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) || k.hasEnded(signature) {
 		return "", "", false
 	}
 	parts := strings.SplitN(value, "|", 3)
