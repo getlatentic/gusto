@@ -33,12 +33,16 @@ func (a Attestation) String() string {
 }
 
 // Seal signs manifest.json as it is on disk.
-func Seal(dir job.Dir, key signing.Key) error {
+func Seal(dir job.Dir, signer signing.Signer) error {
 	manifest, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if err != nil {
 		return err
 	}
-	text, err := signing.Sign(key, manifest).Encode()
+	signature, err := signing.Sign(signer, manifest)
+	if err != nil {
+		return err
+	}
+	text, err := signature.Encode()
 	if err != nil {
 		return err
 	}
@@ -49,14 +53,14 @@ func Seal(dir job.Dir, key signing.Key) error {
 // record unsigned when it names none. A directory with no manifest has nothing
 // to sign: a run that died before writing one is reported by its own error.
 func SealAsConfigured(dir job.Dir) error {
-	key, found, err := signing.Configured()
+	signer, found, err := signing.Configured()
 	if err != nil || !found {
 		return err
 	}
 	if _, err := os.Stat(dir.OutFile("manifest.json")); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	return Seal(dir, key)
+	return Seal(dir, signer)
 }
 
 // Attest names who signed the record, from the keyring. An unsigned record is

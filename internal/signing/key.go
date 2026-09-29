@@ -8,6 +8,7 @@
 package signing
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -21,14 +22,19 @@ import (
 	"strings"
 )
 
-// KeyEnv names the file holding the private key a runner signs with. It lives
-// on the machine that runs haas, never in a job directory or a container.
+// KeyEnv names the private key a runner signs with: a file on the machine that
+// runs haas, never in a job directory or a container, or a KMS key written
+// awskms://<key>.
 const KeyEnv = "HAAS_SIGNING_KEY"
 
-// Key is a private key a runner signs with.
+// Key is a private key a runner holds in a file and signs with.
 type Key struct {
 	private ed25519.PrivateKey
 }
+
+func (k Key) Scheme() string { return Scheme }
+
+func (k Key) Sign(message []byte) ([]byte, error) { return ed25519.Sign(k.private, message), nil }
 
 // ID is the id of the key's public half, which a signature names.
 func (k Key) ID() string { return IDOf(k.Public()) }
@@ -46,17 +52,20 @@ func IDOf(public ed25519.PublicKey) string {
 	return "sha256:" + hex.EncodeToString(sum[:16])
 }
 
-// Configured is the key HAAS_SIGNING_KEY names. Found is false when the
+// Configured is the signer HAAS_SIGNING_KEY names. Found is false when the
 // variable is unset, which leaves a run unsigned rather than failing it; a
 // variable naming a file that is not a key is an error, because a runner that
 // meant to sign must not quietly stop.
-func Configured() (key Key, found bool, err error) {
+func Configured() (signer Signer, found bool, err error) {
 	path := os.Getenv(KeyEnv)
 	if path == "" {
-		return Key{}, false, nil
+		return nil, false, nil
 	}
-	key, err = ReadKey(path)
-	return key, err == nil, err
+	signer, err = signerFor(context.Background(), path)
+	if err != nil {
+		return nil, false, err
+	}
+	return signer, true, nil
 }
 
 // ReadKey reads a PEM PKCS#8 Ed25519 private key.
@@ -110,18 +119,28 @@ func Generate(dir, name string) (Key, error) {
 	if err != nil {
 		return Key{}, err
 	}
-	publicDER, err := x509.MarshalPKIXPublicKey(key.Public())
-	if err != nil {
-		return Key{}, err
-	}
 	privatePath := filepath.Join(dir, name+".key")
 	if err := writeNew(privatePath, "PRIVATE KEY", privateDER, 0o600); err != nil {
 		return Key{}, err
 	}
-	if err := writeNew(filepath.Join(dir, name+".pub"), "PUBLIC KEY", publicDER, 0o644); err != nil {
+	if err := WritePublic(dir, name, key.Public()); err != nil {
 		return Key{}, errors.Join(err, os.Remove(privatePath))
 	}
 	return key, nil
+}
+
+// WritePublic writes the public half of a key into dir as <name>.pub, which is
+// the file a keyring holds and whose name is the signer's. A key held in a key
+// service has only this file to put in a keyring. It refuses to replace one.
+func WritePublic(dir, name string, public ed25519.PublicKey) error {
+	if err := plainName(name); err != nil {
+		return err
+	}
+	der, err := x509.MarshalPKIXPublicKey(public)
+	if err != nil {
+		return err
+	}
+	return writeNew(filepath.Join(dir, name+".pub"), "PUBLIC KEY", der, 0o644)
 }
 
 // plainName keeps a signer's name a file name and nothing more, so it cannot

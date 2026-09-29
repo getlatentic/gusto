@@ -12,8 +12,8 @@
       "const": 1
     },
     "scheme": {
-      "description": "The signature scheme. Ed25519, over the manifest's bytes as written.",
-      "const": "ed25519"
+      "description": "The signature scheme. ed25519 signs the manifest's bytes as written. ed25519-sha512 signs their SHA-512 digest with plain Ed25519, for a key a key service holds and limits the size of what it signs.",
+      "enum": ["ed25519", "ed25519-sha512"]
     },
     "key": {
       "description": "The id of the key that signed: \"sha256:\" and the first 16 bytes of the SHA-256 of the raw 32-byte public key, as lowercase hex. A keyring finds the signer's name by it.",
