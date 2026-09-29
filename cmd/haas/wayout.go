@@ -168,7 +168,7 @@ func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) 
 		return 0, err
 	}
 	box, err := openshell.New(cfg, filepath.Base(dir.Path()), configured.Adapter,
-		"http://"+cfg.Host+":"+port+"/model/v1", token)
+		"http://"+cfg.Host+":"+port+"/model/v1", "http://127.0.0.1:"+port+"/model/v1", token)
 	if err != nil {
 		return 0, err
 	}

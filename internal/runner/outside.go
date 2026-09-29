@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/rules"
 	"github.com/getlatentic/haas/internal/signing"
 )
 
@@ -27,6 +29,9 @@ type Box interface {
 	Fetch(into string) error
 	// Equip puts the job's skills where the harness finds them in the box.
 	Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error
+	// HostModelURL is where the proxy is from this process, which is not where the
+	// box sees it: the box names this machine by a name of its own.
+	HostModelURL() string
 	// Env is what a harness in the box is started with: where its model is, and
 	// nothing of this process's environment.
 	Env() harness.Env
@@ -67,10 +72,13 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		return 0, err
 	}
 	adapter := configured.Adapter
-	if err := admit(spec, adapter); err != nil {
+	endpoint := adapter.EndpointOf()
+	if adapter.Needs == harness.NeedsLocal {
+		endpoint = box.HostModelURL()
+	}
+	if err := admitOutside(spec, adapter, endpoint); err != nil {
 		return 0, Refuse(dir, err)
 	}
-	endpoint := adapter.EndpointOf()
 	if err := dir.Make(); err != nil {
 		return 0, err
 	}
@@ -94,6 +102,10 @@ func Outside(dir job.Dir, box Box) (int, error) {
 	if err := box.Start(ctx, dir.Workspace()); err != nil {
 		record.Close()
 		return 0, err
+	}
+	if err := carriedIn(ctx, box, spec.Harness, adapter); err != nil {
+		record.Close()
+		return 0, Refuse(dir, err)
 	}
 	if err := box.Equip(ctx, dir, spec, adapter); err != nil {
 		record.Close()
@@ -182,4 +194,32 @@ func keepGuard(dir job.Dir, box Box) error {
 		return err
 	}
 	return os.WriteFile(dir.OutFile(GuardPolicy), policy, 0o644)
+}
+
+// admitOutside is admit for a harness that runs in a box: the program is the
+// box's to have, so it is asked of the box once it is up, and the model is
+// reached from this process by the address it has for the proxy.
+func admitOutside(spec job.Spec, adapter harness.Adapter, endpoint string) error {
+	if err := fits(spec, adapter); err != nil {
+		return err
+	}
+	if err := rules.Allows(spec, endpoint); err != nil {
+		return err
+	}
+	if adapter.Needs == harness.NeedsLocal {
+		return Reachable(endpoint)
+	}
+	return nil
+}
+
+// carriedIn checks the program a harness runs is on the box's PATH, which is the
+// image answering for itself at the moment it matters.
+func carriedIn(ctx context.Context, box Box, name string, adapter harness.Adapter) error {
+	check := box.Wrap(ctx, exec.CommandContext(ctx, "sh", "-c", `command -v "$1" >/dev/null`, "sh", adapter.Program))
+	if err := check.Run(); err != nil {
+		return fmt.Errorf("this sandbox's image does not carry %s, the program the %s harness runs: "+
+			"build the image with %s in its HARNESSES, or choose a harness the catalog offers",
+			adapter.Program, name, name)
+	}
+	return nil
 }
