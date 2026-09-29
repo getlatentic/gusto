@@ -59,14 +59,33 @@ is done. Without an App it uses `HAAS_GITHUB_TOKEN`, as before.
 
 ## What was tested
 
-The tests run against a fake GitHub API and a real `git http-backend` that
+The unit tests run against a fake GitHub API and a real `git http-backend` that
 answers only a token the fake minted and has not revoked. They show that the
 token names one repository, that a clone uses it, that it is revoked after, and
 that neither the job directory nor the checkout's `.git/config` holds it.
 
-This has not yet run against github.com. Run the live test on your own App:
+The live test runs against github.com with the App `getlatentic-haas` installed
+on one repository. It clones the repository, checks that a repository the App is
+not installed on is refused by name, and checks that a revoked token is refused.
+It passed five runs in a row. In those runs a revoked token was refused over the
+API after 100 to 200 ms and over git after 400 to 700 ms. One earlier
+measurement saw git take 5.6 s, so a revoked token can still clone for a few
+seconds. Its own expiry is one hour. Run it on your own App:
 
 ```bash
-HAAS_TEST_GITHUB_REPO=acme/api HAAS_GITHUB_APP_ID=... HAAS_GITHUB_APP_KEY=app.pem \
+HAAS_TEST_GITHUB_REPO=acme/api HAAS_TEST_GITHUB_OTHER=acme/not-installed \
+  HAAS_GITHUB_APP_ID=... HAAS_GITHUB_APP_KEY=app.pem \
   go test -tags githublive -run Live ./internal/repoaccess
 ```
+
+## GitHub answers "not found" now and then
+
+GitHub's git servers sometimes answer `Repository not found` to a token the API
+has just minted and vouches for. In 25 clones on one afternoon, 4 got that answer
+and the next try worked. A clone with a token therefore tries up to four times,
+waiting 1 s, 2 s and 4 s between tries, and only for that refusal. A clone that
+fails for another reason fails at once.
+
+The first clone after installing the App on a repository can hit the same
+answer. If it keeps failing after four tries, the message says GitHub refused
+the token four times running.

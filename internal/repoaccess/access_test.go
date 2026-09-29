@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/repoaccess"
@@ -311,5 +312,49 @@ func TestAnAppNamedByHalfIsAnErrorAndNoneIsNoApp(t *testing.T) {
 	t.Setenv(repoaccess.AppIDEnv, "1")
 	if _, err := repoaccess.FromEnv(); err == nil {
 		t.Error("a key that is not there was accepted")
+	}
+}
+
+// GitHub's git servers now and then answer "not found" to a token the API has
+// just minted, and the next try works. The clone waits and tries again, and
+// reports it when the refusals do not stop.
+func TestACloneTriesAgainWhenGitHubSaysNotFoundToAValidToken(t *testing.T) {
+	defer repoaccess.SetRetryDelay(5 * time.Millisecond)()
+	f := newForge(t)
+	address := f.private("acme", "private", 7)
+
+	f.flake = 2
+	dir := t.TempDir()
+	if err := f.forge().Clone(context.Background(), address, dir, "workspace"); err != nil {
+		t.Fatalf("two refusals then success should clone: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "workspace", "secret.txt")); err != nil {
+		t.Error(err)
+	}
+	if len(f.minted) != 1 {
+		t.Errorf("%d tokens were minted, and a retry must reuse the one", len(f.minted))
+	}
+
+	f.flake = 100
+	err := f.forge().Clone(context.Background(), address, t.TempDir(), "workspace")
+	if err == nil || !strings.Contains(err.Error(), "refused the repository's token 4 times running") {
+		t.Fatalf("a refusal that never stops: %v", err)
+	}
+}
+
+// Only a refusal that looks like an unrecognised token is tried again: a clone
+// that fails for another reason fails at once.
+func TestACloneThatFailsForAnotherReasonIsNotTriedAgain(t *testing.T) {
+	defer repoaccess.SetRetryDelay(5 * time.Second)()
+	f := newForge(t)
+	f.private("acme", "private", 7)
+	f.installed["acme/gone"] = 9
+	start := time.Now()
+	err := f.forge().Clone(context.Background(), f.server.URL+"/acme/gone.git", t.TempDir(), "workspace")
+	if err == nil {
+		t.Fatal("a clone of a repository the forge does not hold succeeded")
+	}
+	if strings.Contains(err.Error(), "times running") || time.Since(start) > 4*time.Second {
+		t.Errorf("a failure that is not a token refusal was retried (%v): %v", time.Since(start), err)
 	}
 }

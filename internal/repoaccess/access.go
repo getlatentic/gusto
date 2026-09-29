@@ -122,7 +122,43 @@ func (f Forge) Clone(ctx context.Context, remote, dir, into string) error {
 		return err
 	}
 	defer release(token)
-	return clone(ctx, WithToken(os.Environ(), f.Web, token.Value), f.Web+"/"+repo.String()+".git", dir, into)
+	return cloneWithToken(ctx, WithToken(os.Environ(), f.Web, token.Value), f.Web+"/"+repo.String()+".git", dir, into)
+}
+
+// retryDelay is the wait before the first retry, and it doubles each time.
+var retryDelay = time.Second
+
+// attempts is how many times a clone with a token is tried.
+const attempts = 4
+
+// cloneWithToken tries again when GitHub's git servers refuse a token the API
+// has just minted and vouches for. Some of them answer "Repository not found"
+// to a valid token now and then, and the next try succeeds, so a job for a
+// repository the App reaches is not failed by it.
+func cloneWithToken(ctx context.Context, env []string, remote, dir, into string) error {
+	delay := retryDelay
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if err = clone(ctx, env, remote, dir, into); err == nil || !refusedForNow(err) {
+			return err
+		}
+		if attempt == attempts {
+			break
+		}
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return err
+		}
+		delay *= 2
+	}
+	return fmt.Errorf("GitHub refused the repository's token %d times running: %w", attempts, err)
+}
+
+// refusedForNow is a clone that failed the way an unrecognised token does.
+func refusedForNow(err error) bool {
+	said := err.Error()
+	return strings.Contains(said, "Repository not found") || strings.Contains(said, "Invalid username or token") || strings.Contains(said, "Authentication failed")
 }
 
 func clone(ctx context.Context, env []string, remote, dir, into string) error {
