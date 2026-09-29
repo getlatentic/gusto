@@ -47,6 +47,9 @@ func (i *Index) Reserve(brief string, at time.Time) (string, error) {
 	base := Name(brief, at)
 	i.guard.Lock()
 	defer i.guard.Unlock()
+	if err := i.overQuota(at); err != nil {
+		return "", err
+	}
 	for attempt := 1; ; attempt++ {
 		name := base
 		if attempt > 1 {
