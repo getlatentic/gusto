@@ -1,0 +1,41 @@
+# Runs on the instance. Starts the front door as an operator would, with every
+# organisation's server given the OpenShell settings and the model credentials, then drives it
+# with e2e/cloud as people would. Nothing is removed at the end, so the pages can be looked at.
+set -uo pipefail
+C=$HOME/e2e/cloud
+export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
+export XDG_CONFIG_HOME=/etc/openshell-xdg XDG_STATE_HOME=/var/lib/openshell-xdg
+export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
+G="openshell --gateway spike"
+
+pkill -f "[h]aas cloud" 2>/dev/null; pkill -f "[h]aas serve" 2>/dev/null; sleep 1
+for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && ($1 ~ /^haas-/ || $1 ~ /^c-/) {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
+rm -rf "$C/cloud" "$C/creds"
+bash "$C/credentials.sh" "$C/creds"
+[ -s "$C/creds/platform.json" ] || { echo "no credentials: is /haas/poc/model-key stored? (./put-key.sh)"; exit 1; }
+
+MODEL=${MODEL:-platform/qwen.qwen3-vl-235b-a22b-instruct}
+cat > "$C/org.env" <<ENV
+PATH=/opt/openshell/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin
+XDG_CONFIG_HOME=$XDG_CONFIG_HOME
+XDG_STATE_HOME=$XDG_STATE_HOME
+OPENSHELL_LOCAL_TLS_DIR=$OPENSHELL_LOCAL_TLS_DIR
+HAAS_SANDBOX=openshell
+HAAS_OPENSHELL_IMAGE=$HOME/e2e/runner-all-rootfs.tar.gz
+HAAS_OPENSHELL_GATEWAY=spike
+HAAS_OPENSHELL_MEMORY=3Gi
+HAAS_OPENSHELL_CPU=2
+HAAS_CREDENTIALS=$C/creds
+HAAS_MODELS=$MODEL
+ENV
+chmod 600 "$C/org.env"
+
+HAAS_CLOUD_ROOT=$C/cloud HAAS_CLOUD_ADDR=127.0.0.1:8050 HAAS_CLOUD_URL=http://haas.test:8050 HAAS_CLOUD_DOMAIN=haas.test \
+  HAAS_CLOUD_ORG_ENV=$C/org.env HAAS_CLOUD_PORT_FROM=9100 \
+  setsid nohup "$C/haas" cloud > "$C/front-door.log" 2>&1 < /dev/null &
+for _ in $(seq 1 20); do curl -fs http://127.0.0.1:8050/healthz >/dev/null && break; sleep 1; done
+curl -fs http://127.0.0.1:8050/healthz >/dev/null || { echo "the front door did not start"; cat "$C/front-door.log"; exit 1; }
+
+"$C/drive" -root "$C/cloud" -haas "$C/haas" -gateway spike -model "$MODEL" -within 12m
+echo "exit $?"
+echo; echo "the front door is left running on port 8050; its log is $C/front-door.log"

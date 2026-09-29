@@ -88,9 +88,12 @@ type Sandbox struct {
 	// directory of its own in it, and the job's part of the guard's log is what came
 	// after the lines that were there when it began.
 	persistent bool
-	workdir    string
-	job        string
-	logBase    int
+	// keepDir is a directory that is left when the job ends: a conversation's, which its
+	// next turn works in.
+	keepDir bool
+	workdir string
+	job     string
+	logBase int
 }
 
 // New prepares the sandbox for a job. modelURL is where the sandbox reaches the
@@ -143,12 +146,20 @@ func dirName(id string) string {
 // NewComputer prepares a job in a computer: a sandbox that lasts, called name, that this
 // job works in a directory of. The sandbox is made when it is not there, and is
 // not removed when the job ends.
-func NewComputer(cfg Config, name, job string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
+//
+// A turn in a conversation is given the instance it is a turn on. The harness ties a
+// conversation to the directory it began in, so every turn of an instance works in the
+// same directory of the computer, which is kept between turns. Any other job works in one
+// of its own, which goes when the job does.
+func NewComputer(cfg Config, name, job, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
 	s, err := New(cfg, job, adapter, modelURL, hostModelURL, token)
 	if err != nil {
 		return nil, err
 	}
 	s.name, s.persistent, s.job = name, true, dirName(job)
+	if instance != "" {
+		s.job, s.keepDir = dirName("instance-"+instance), true
+	}
 	s.workdir = jobsDir + "/" + s.job + "/workspace"
 	return s, nil
 }

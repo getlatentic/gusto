@@ -69,7 +69,7 @@ func (w *WayOut) RunInComputer(dir job.Dir, spec job.Spec, cfg openshell.Config,
 		return 0, err
 	}
 	port := w.proxyPort()
-	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), configured.Adapter,
+	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), spec.Session, configured.Adapter,
 		"http://"+cfg.Host+":"+port+"/model/v1", "http://127.0.0.1:"+port+"/model/v1", token)
 	if err != nil {
 		return 0, err
