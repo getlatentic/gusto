@@ -25,6 +25,10 @@ type Box interface {
 	// Wrap is a command that runs the one given inside the box, with its
 	// standard input, output and exit status carried through.
 	Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd
+	// Attach is Wrap for a command that is spoken to while it runs: what is
+	// written to its standard input arrives at once, and what it writes is read
+	// as it is written.
+	Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error)
 	// Fetch replaces into with the workspace as the box now holds it.
 	Fetch(into string) error
 	// Equip puts the job's skills where the harness finds them in the box.
@@ -111,13 +115,7 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		record.Close()
 		return 0, err
 	}
-	command := box.Wrap(ctx, adapter.CommandIn(ctx, spec, box.Workdir(), box.Env()))
-	var exit int
-	if adapter.Stream == harness.ACP {
-		exit, err = converse(ctx, command, box.Workdir(), spec, nil, record)
-	} else {
-		exit, err = stream(ctx, command, record)
-	}
+	exit, err := talk(ctx, box, adapter, spec, record)
 	tokens, cost := record.Spent()
 	if closeErr := record.Close(); closeErr != nil && err == nil {
 		err = closeErr
@@ -227,4 +225,18 @@ func carriedIn(ctx context.Context, box Box, name string, adapter harness.Adapte
 			adapter.Program, name, name)
 	}
 	return nil
+}
+
+// talk runs the harness in the box and records what it does: an ACP agent is
+// held a conversation with, and any other harness's output is read as it comes.
+func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, record *Record) (int, error) {
+	command := adapter.CommandIn(ctx, spec, box.Workdir(), box.Env())
+	if adapter.Stream != harness.ACP {
+		return stream(ctx, box.Wrap(ctx, command), record)
+	}
+	live, err := box.Attach(ctx, command)
+	if err != nil {
+		return 0, err
+	}
+	return converse(ctx, live, box.Workdir(), spec, nil, record)
 }
