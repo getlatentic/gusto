@@ -37,6 +37,9 @@ const (
 	PersonAtLimit
 	// TeamAtLimit is a job whose team already runs as many as it may.
 	TeamAtLimit
+	// OrgAtLimit is a job whose organisation already runs as many as its quota
+	// allows.
+	OrgAtLimit
 	// PoolFull is a job that may run, with every worker busy.
 	PoolFull
 )
@@ -90,6 +93,9 @@ func (i *Index) hold(record Record, now running) (Wait, bool) {
 		return Wait{Reason: PersonAtLimit, Running: now.byPerson[record.Asked], Limit: i.limits.Person, Who: record.Asked}, true
 	case i.limits.Team > 0 && record.Team != "" && now.byTeam[record.Team] >= i.limits.Team:
 		return Wait{Reason: TeamAtLimit, Running: now.byTeam[record.Team], Limit: i.limits.Team, Who: record.Team}, true
+	case i.orgFull(now.total):
+		limit, _ := i.orgLimit()
+		return Wait{Reason: OrgAtLimit, Running: now.total, Limit: limit}, true
 	case i.limits.Slots > 0 && now.total >= i.limits.Slots:
 		return Wait{Reason: PoolFull, Running: now.total, Limit: i.limits.Slots}, true
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/quota"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
@@ -49,6 +50,15 @@ func serve(args []string) int {
 	index, err := jobs.Open(setting("HAAS_JOBS", "jobs"))
 	if err != nil {
 		return fail(err)
+	}
+	// An organisation's front door writes what it may run, and this server reads it
+	// as it goes. One that cannot read it does not start.
+	if path := os.Getenv("HAAS_QUOTA"); path != "" {
+		limits := quota.Open(path)
+		if _, err := limits.Current(); err != nil {
+			return fail(err)
+		}
+		index.UseQuota(limits)
 	}
 	// The directory keeps the name it was written under: what is in it is the
 	// same thing, read now as an instance with threads rather than as one

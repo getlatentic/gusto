@@ -27,6 +27,8 @@ func waitWords(wait jobs.Wait) string {
 	case jobs.TeamAtLimit:
 		return fmt.Sprintf("The team %s already has %d running, the most a team may run at once. It starts when one ends. %s",
 			wait.Who, wait.Running, place)
+	case jobs.OrgAtLimit:
+		return fmt.Sprintf("This organisation may run %d at a time and has %d running. It starts when one ends. %s", wait.Limit, wait.Running, place)
 	case jobs.PoolFull:
 		return fmt.Sprintf("Every runner is busy: %d of %d. It starts when one is free. %s", wait.Running, wait.Limit, place)
 	}

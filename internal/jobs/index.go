@@ -5,9 +5,11 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 // Index is every job under one directory. One process owns it, so a mutex is
@@ -21,6 +23,8 @@ type Index struct {
 	// second still run in the order they were sent.
 	seq    int64
 	limits Limits
+	// quota is what the whole server may run, when it is under one.
+	quota *quota.File
 	// finished and the two times below are counted since this server started,
 	// for the metrics: what is on disk says how a job ended, and not how many
 	// ended today.
@@ -100,6 +104,11 @@ func (i *Index) Add(record Record) error {
 	defer i.guard.Unlock()
 	if _, taken := i.records[record.ID]; taken {
 		return fmt.Errorf("a job called %s is already here", record.ID)
+	}
+	// The check that counts: two jobs asked for together both passed the one in
+	// Reserve, and only one of them may pass this.
+	if err := i.overQuota(time.Now()); err != nil {
+		return err
 	}
 	if record.Seq == 0 {
 		record.Seq = i.seq

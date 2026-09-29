@@ -3,6 +3,8 @@ package cloud
 import (
 	"net/http"
 	"net/url"
+
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 // view is what a page is drawn from. Every page uses the fields it names.
@@ -19,9 +21,9 @@ type view struct {
 	Org      Org
 	Person   Person
 	Address  string
-	Quota    Quota
-	Trial    Quota
-	Verified Quota
+	Quota    quota.Quota
+	Trial    quota.Quota
+	Verified quota.Quota
 	Notice   string
 }
 
