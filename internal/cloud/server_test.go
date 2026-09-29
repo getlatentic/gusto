@@ -388,3 +388,80 @@ func TestEveryPageIsSentWithTheHeadersThatKeepItFromBeingFramedOrScripted(t *tes
 		t.Errorf("the design tokens: %d", status)
 	}
 }
+
+func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganisation(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	if _, page := f.browser().get("/"); strings.Contains(page, `name="org"`) || strings.Contains(page, `name="slug"`) || !strings.Contains(page, `name="email"`) {
+		t.Errorf("the form should ask for the email and nothing else:\n%s", page)
+	}
+	b := f.browser()
+	if status, _, _ := b.post("/signup", url.Values{"email": {"ada@acme-research.com"}}); status != http.StatusSeeOther {
+		t.Fatal(status)
+	}
+	if _, page := b.get("/org"); !strings.Contains(page, "Acme Research") || !strings.Contains(page, "acme-research.cloud.test") {
+		t.Errorf("the domain gave the name and the address:\n%s", page)
+	}
+}
+
+func TestAFreeMailSignUpIsAskedForANameAndKeepsTheEmailTyped(t *testing.T) {
+	f := newFront(t, Settings{AllowFreeMail: true}, nil)
+	status, page, _ := f.browser().post("/signup", url.Values{"email": {"ada@gmail.com"}})
+	if status != http.StatusUnprocessableEntity || !strings.Contains(page, "give your organisation a name") || !strings.Contains(page, `name="org"`) || !strings.Contains(page, `value="ada@gmail.com"`) {
+		t.Fatalf("%d\n%s", status, page)
+	}
+	b := f.browser()
+	if status, _, _ := b.post("/signup", url.Values{"email": {"ada@gmail.com"}, "org": {"Ada's Lab"}}); status != http.StatusSeeOther {
+		t.Errorf("%d", status)
+	}
+	if _, page := b.get("/org"); !strings.Contains(page, "Ada&#39;s Lab") || !strings.Contains(page, "ada-s-lab.cloud.test") {
+		t.Errorf("%s", page)
+	}
+}
+
+func TestAnAddressTheDomainMakesAnUnusableOneOfIsAskedAboutAndKeepsAskingUntilItWorks(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	f.browser().post("/signup", url.Values{"email": {"ada@acme.com"}})
+	status, page, _ := f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}})
+	if status != http.StatusConflict || !strings.Contains(page, "is taken") || !strings.Contains(page, `name="slug"`) || !strings.Contains(page, `name="org"`) {
+		t.Fatalf("a taken address asks for another:\n%d %s", status, page)
+	}
+	// Still taken, and the form is still the longer one.
+	status, page, _ = f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}, "org": {"Acme"}, "slug": {"acme"}})
+	if status != http.StatusConflict || !strings.Contains(page, `name="slug"`) {
+		t.Errorf("%d %s", status, page)
+	}
+	if status, _, _ := f.browser().post("/signup", url.Values{"email": {"bob@acme.io"}, "org": {"Acme"}, "slug": {"acme-io"}}); status != http.StatusSeeOther {
+		t.Errorf("%d", status)
+	}
+}
+
+func TestACompanyThatHasAnOrganisationSendsAnotherFromItsDomainToItsAdmin(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	first := f.browser()
+	first.post("/signup", url.Values{"email": {"ada@acme.com"}})
+	second := f.browser()
+	second.post("/signup", url.Values{"email": {"bob@acme.com"}, "org": {"Bob Ltd"}})
+	f.mails()
+	verify := func(to string) {
+		for _, mail := range f.mails() {
+			if strings.Contains(mail, "To: "+to) && strings.Contains(mail, "/verify?t=") {
+				link := linkInMail.FindStringSubmatch(mail)[1]
+				f.browser().post("/verify", url.Values{"t": {link[strings.Index(link, "t=")+2:]}})
+			}
+		}
+	}
+	verify("ada@acme.com")
+
+	status, page, _ := f.browser().post("/signup", url.Values{"email": {"carol@acme.com"}, "org": {"Carol Ltd"}})
+	if status != http.StatusConflict || !strings.Contains(page, "already has an organisation here") {
+		t.Errorf("the domain is Ada's now: %d\n%s", status, page)
+	}
+	// Bob confirms his address too, and is told that the domain is another organisation's.
+	verify("bob@acme.com")
+	if _, page := second.get("/org"); !strings.Contains(page, "acme.com already has an organisation here") || strings.Contains(page, "200 a month") {
+		t.Errorf("Bob's organisation stays on the trial and says why:\n%s", page)
+	}
+	if _, page := first.get("/org"); strings.Contains(page, "already has an organisation here") {
+		t.Errorf("Ada's says nothing of it:\n%s", page)
+	}
+}

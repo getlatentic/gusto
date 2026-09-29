@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // Refusals a sign-up can meet, each one a sentence a person can act on.
@@ -22,6 +24,10 @@ var (
 	ErrEmailTaken   = errors.New("that address already has an account, so sign in instead")
 	ErrSlugTaken    = errors.New("that organisation address is taken, so pick another")
 	ErrDomainFull   = errors.New("this company already has the most organisations it may make, so ask an admin there to invite you")
+	// ErrNeedName is a sign-up with no name for an organisation, from an address
+	// that is not a company's, so its name cannot come from the domain.
+	ErrNeedName      = errors.New("that address is not a company's, so give your organisation a name")
+	ErrDomainClaimed = errors.New("this company already has an organisation here, so ask its admin to invite you")
 )
 
 // freeMail is the providers a person has for themselves and not for a company.
@@ -136,4 +142,33 @@ func ValidSlug(slug string) error {
 		return ErrReservedSlug
 	}
 	return nil
+}
+
+// company is the part of a domain that names the company: acme in acme.com, in
+// mail.acme.co.uk and in acme.io, found with the public suffix list so that a
+// second-level suffix such as co.uk is not taken for the company.
+func company(domain string) string {
+	registrable, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	if err != nil {
+		registrable = domain
+	}
+	name, _, _ := strings.Cut(registrable, ".")
+	return name
+}
+
+// FromDomain is the name an organisation is given when its admin gave none, and
+// the address that follows from it: acme-research.com is "Acme Research" at
+// acme-research. An address at a free mail provider names nobody's company, so
+// the admin is asked.
+func FromDomain(domain string) (name string, err error) {
+	if freeMail[domain] || disposable[domain] {
+		return "", ErrNeedName
+	}
+	words := strings.Split(company(domain), "-")
+	for i, word := range words {
+		if word != "" {
+			words[i] = strings.ToUpper(word[:1]) + word[1:]
+		}
+	}
+	return strings.Join(strings.Fields(strings.Join(words, " ")), " "), nil
 }

@@ -13,6 +13,11 @@ type view struct {
 	// Error is a sentence for the person, and Email and OrgName are what they
 	// typed, so a refused form is not typed again.
 	Error, Email, OrgName string
+	// More says the form also asks for the organisation's name and address: a
+	// person is asked when the domain could not name it, and keeps being asked
+	// after they have been.
+	More bool
+	Slug string
 	// Sent says a sign-in link was asked for.
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
@@ -27,6 +32,9 @@ type view struct {
 	Notice   string
 	// Computers is how many computers the organisation has.
 	Computers int
+	// Domain is the company's, and Claimed says another organisation has it.
+	Domain  string
+	Claimed bool
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {

@@ -4,7 +4,10 @@
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <form method="post" action="/signup">
     <label>Work email <input type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
+    {{if .More}}
     <label>Organisation name <input type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
+    <label>Address <input type="text" name="slug" value="{{.Slug}}" maxlength="32" autocomplete="off" placeholder="made from the name"></label>
+    {{end}}
     <button type="submit">Create organisation</button>
   </form>
   <p class="other">Already have one? <a href="/signin">Sign in</a></p>
