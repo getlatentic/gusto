@@ -303,3 +303,41 @@ func waitFor(t *testing.T, done func() bool) {
 }
 
 var _ = io.Discard
+
+// Ports are written down as they are given, so the next organisation to be given
+// some, at the same moment, is not given the same. Nothing is listening on them yet,
+// so the record is all that keeps two apart.
+func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
+	s := open(t, Settings{PerDomain: 100})
+	c := controlled(t, s)
+	var orgs []Org
+	for i := range 25 {
+		orgs = append(orgs, made(t, s, fmt.Sprintf("a@company%d.com", i), fmt.Sprintf("Company %d", i)))
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	given := map[int]string{}
+	for _, org := range orgs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			runtime, err := c.givePorts(org.Slug, Runtime{})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			for _, port := range []int{runtime.Port, runtime.ProxyPort} {
+				if other, twice := given[port]; twice {
+					t.Errorf("port %d was given to %s and to %s", port, other, org.Slug)
+				}
+				given[port] = org.Slug
+			}
+		}()
+	}
+	wg.Wait()
+	if len(given) != 50 {
+		t.Errorf("%d ports were given to 25 organisations", len(given))
+	}
+}
