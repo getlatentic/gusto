@@ -5,7 +5,6 @@ package cloud
 
 import (
 	"errors"
-	"fmt"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -138,5 +137,3 @@ func ValidSlug(slug string) error {
 	}
 	return nil
 }
-
-func wrap(what string, err error) error { return fmt.Errorf("%s: %w", what, err) }

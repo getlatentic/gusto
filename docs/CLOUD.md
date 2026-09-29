@@ -58,8 +58,9 @@ file name, and only the hash of a link's secret is stored.
 | Jobs at once | 1 | 4 |
 | Invite colleagues | no | yes |
 
-The numbers are settings, and `quota.json` in the organisation's directory is
-where the organisation's server reads them.
+The numbers are settings. `quota.json` in the organisation's directory is where
+the organisation's server reads them, through `HAAS_QUOTA`, and
+[LIMITS.md](LIMITS.md) says what the server does with them.
 
 ### Abuse limits
 

@@ -69,3 +69,9 @@ func TestAQuotaThatCannotBeReadIsAnErrorAndNotNoLimit(t *testing.T) {
 		}
 	}
 }
+
+func TestOneJobIsNotJobs(t *testing.T) {
+	if err := (Quota{Jobs: 1}).Refuse(1); err == nil || !strings.Contains(err.Error(), "1 job in all") {
+		t.Errorf("%v", err)
+	}
+}
