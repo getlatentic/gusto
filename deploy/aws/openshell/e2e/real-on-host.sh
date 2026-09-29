@@ -17,17 +17,17 @@ cp "$E"/sample/* "$E/rsample/"
 
 if [ -f "$E/model.env" ]; then
   set -a; . "$E/model.env"; set +a
-  echo "model: the real one at $HAAS_MODEL_UPSTREAM"
+  echo "model: $HAAS_MODEL_NAME/$HAAS_MODEL_ID at $HAAS_MODEL_UPSTREAM"
 else
   python3 "$E/fake_model.py" >/dev/null 2>&1 </dev/null &
-  HAAS_MODEL_UPSTREAM=http://127.0.0.1:9000; HAAS_MODEL_KEY=not-a-real-key
+  HAAS_MODEL_UPSTREAM=http://127.0.0.1:9000; HAAS_MODEL_KEY=not-a-real-key; HAAS_MODEL_NAME=deepseek; HAAS_MODEL_ID=deepseek-flash
   echo "model: a fake one that answers pong"
 fi
 mkdir -p "$E/keys" && "$E/haas" keygen e2e -dir "$E/keys" >/dev/null 2>&1
 
 cd "$E"
 HAAS_PASSWORD=e2e HAAS_ADDR=127.0.0.1:8040 HAAS_SANDBOX=openshell HAAS_OPENSHELL_IMAGE="$E/runner-rootfs.tar.gz" HAAS_OPENSHELL_GATEWAY=spike \
-  HAAS_MODEL_UPSTREAM="$HAAS_MODEL_UPSTREAM" HAAS_MODEL_KEY="$HAAS_MODEL_KEY" HAAS_MODEL_NAME=deepseek HAAS_MODELS=deepseek/deepseek-flash \
+  HAAS_MODEL_UPSTREAM="$HAAS_MODEL_UPSTREAM" HAAS_MODEL_KEY="$HAAS_MODEL_KEY" HAAS_MODEL_NAME="$HAAS_MODEL_NAME" HAAS_MODELS="$HAAS_MODEL_NAME/$HAAS_MODEL_ID" \
   HAAS_LOCAL_REPOS="$E/rsample" HAAS_JOB_CONCURRENCY=1 HAAS_SIGNING_KEY="$E/keys/e2e.key" HAAS_KEYRING="$E/keys" HAAS_SIGNER=e2e \
   HAAS_OPENSHELL_MEMORY=3Gi HAAS_OPENSHELL_CPU=2 \
   HAAS_JOBS="$E/rdata/jobs" HAAS_SESSIONS="$E/rdata/sessions" HAAS_SETUPS="$E/rdata/setups" HAAS_COMPARISONS="$E/rdata/comparisons" HAAS_CHANGES="$E/rdata/changes/changes.jsonl" \
@@ -36,7 +36,7 @@ for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&
 echo "== engines the image offers"; grep -E "opencode|not offered" "$E/rserve.log" | head -4 | cut -c1-200
 
 "$E/haas" new "$E/rjob" -repo "$E/rsample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
-  -harness opencode -model deepseek/deepseek-flash -- node --test >/dev/null
+  -harness opencode -model "$HAAS_MODEL_NAME/$HAAS_MODEL_ID" -- node --test >/dev/null
 id=$(HAAS_SERVER=http://127.0.0.1:8040 HAAS_PASSWORD=e2e "$E/haas" submit "$E/rjob" | head -n 1)
 echo "submitted $id"
 for _ in $(seq 1 360); do [ -f "$E/rdata/jobs/$id/out/manifest.json" ] && break; grep -q '"state":"failed"' "$E/rdata/jobs/$id/state.json" 2>/dev/null && break; sleep 1; done
