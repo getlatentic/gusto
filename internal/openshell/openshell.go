@@ -132,7 +132,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// where the sandbox user can read it, and belongs in the home the harness will
 	// look in. An image without it has nothing to copy, and that is not an error.
 	place := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", `[ -d /opt/haas/harness ] && mkdir -p "$HOME/.config" && cp -R /opt/haas/harness/. "$HOME/.config/"; true`)
+		"sh", "-c", placeConfig("/opt/haas/harness", Home))
 	if _, err := output(place); err != nil {
 		return err
 	}
@@ -163,6 +163,19 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	return nil
 }
 
+// placeConfig is the shell that copies the image's harness configuration from
+// one folder into a home, and points what the copies say of the runner's home at
+// this one. A harness reads paths from its own configuration files, where the
+// rewrite of a command line does not reach.
+func placeConfig(from, home string) string {
+	return fmt.Sprintf(`[ -d %[1]s ] || exit 0
+mkdir -p %[2]s/.config && cp -R %[1]s/. %[2]s/.config/ && cd %[1]s || exit 1
+find . -type f | while IFS= read -r file; do
+  grep -q /root/ "$file" && sed 's|/root/|%[2]s/|g' "$file" > %[2]s/.config/"$file.copy" && mv %[2]s/.config/"$file.copy" %[2]s/.config/"$file"
+done
+exit 0`, from, home)
+}
+
 // nameOf is the sandbox's name. A gateway takes at most 19 characters and a job's
 // name is longer, so the name is a fixed-length digest of it: the same job is
 // always the same sandbox, and two jobs cannot be.
@@ -179,6 +192,7 @@ func Name(id string) string { return nameOf(id) }
 // environment goes in.
 func (s *Sandbox) Env() harness.Env {
 	return harness.Env{
+		Boxed: true,
 		// The two variables a container is started with, so a harness that reads
 		// them finds them where it does there.
 		Base:     []string{"HAAS_MODEL_URL=" + s.model, "HAAS_MODEL_TOKEN=" + s.token},

@@ -99,6 +99,11 @@ type Adapter struct {
 	// looks for a conversation that is gone. The runner makes it, because some
 	// harnesses refuse to start without it.
 	Keeps string `json:"keeps,omitempty"`
+	// WhenBoxed swaps an argument for another when the box the harness runs in
+	// confines it already. A harness that makes its own sandbox out of namespaces
+	// cannot make one inside a sandbox that forbids them, and there the box is
+	// the boundary.
+	WhenBoxed map[string]string `json:"whenBoxed,omitempty"`
 	// MCP is how the harness takes MCP servers, or nil when it takes none.
 	MCP    *MCP   `json:"mcp,omitempty"`
 	Needs  Needs  `json:"needs"`
@@ -181,6 +186,9 @@ func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *
 // credential. A box that is not this process names them itself, so nothing of
 // this process's environment, which holds the server's own secrets, reaches it.
 type Env struct {
+	// Boxed says the box the harness starts in confines it, so an adapter's
+	// WhenBoxed applies.
+	Boxed      bool
 	Base       []string
 	ModelURL   string
 	ModelToken string
@@ -204,6 +212,9 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 		// bare flag: a harness asked for "--model=" refuses to start, and the
 		// job meant "whatever you are configured with".
 		filled := a.fill(argument, spec, env)
+		if instead, swapped := a.WhenBoxed[filled]; swapped && env.Boxed {
+			filled = instead
+		}
 		if filled == "" || strings.HasSuffix(filled, "=") {
 			continue
 		}

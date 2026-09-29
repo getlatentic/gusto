@@ -47,6 +47,9 @@
   "needs": "key",
   "skills": "/root/.local/share/codex/skills",
   "keeps": "/root/.local/share/codex",
+  "whenBoxed": {
+    "workspace-write": "danger-full-access"
+  },
   "mcp": {
     "format": "codex",
     "argv": [
