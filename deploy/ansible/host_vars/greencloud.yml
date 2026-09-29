@@ -102,11 +102,13 @@ spend_policy:
 # ufw is active and default-deny, and already allows nginx. The service binds
 # localhost, so there is no rule to add.
 
-# Sign-in is Google, and one address. The app is in testing mode with that
-# address as its only test user, so the provider refuses anybody else before
-# this server is even asked.
+# Sign-in is Google, and two addresses: the owner, who is an admin, and a second
+# person who is not, so what one sees of the other's work can be checked. The
+# app is in testing mode with those addresses as its only test users, so the
+# provider refuses anybody else before this server is even asked.
 oidc_issuer: "https://accounts.google.com"
-oidc_allowed: "tosinamuda@gmail.com"
+oidc_allowed: "tosinamuda@gmail.com,amudatosin@gmail.com"
+haas_admins: "tosinamuda@gmail.com"
 
 # Autodeploy stays off here until its key exists. To turn it on, put the public
 # half of the key GitHub holds in autodeploy_public_key, set autodeploy_enabled,

@@ -40,7 +40,7 @@ func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lineup, found := s.lineups.Get(r.PathValue("id"))
-	if !found {
+	if !found || !s.mayUse(r, lineup.Who) {
 		http.NotFound(w, r)
 		return
 	}
