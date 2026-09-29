@@ -77,9 +77,12 @@ func (b *browser) do(method, path string, form url.Values, header map[string]str
 		req.Header.Set("Origin", b.f.http.URL)
 	}
 	for k, v := range header {
-		if v == "" {
+		switch {
+		case k == "Host":
+			req.Host = v
+		case v == "":
 			req.Header.Del(k)
-		} else {
+		default:
 			req.Header.Set(k, v)
 		}
 	}

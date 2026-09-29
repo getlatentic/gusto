@@ -70,3 +70,16 @@ func readFile(path string, into any) error {
 }
 
 func missing(err error) bool { return errors.Is(err, fs.ErrNotExist) }
+
+// readDir is the names in a directory.
+func readDir(path string) ([]string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, len(entries))
+	for i, entry := range entries {
+		names[i] = entry.Name()
+	}
+	return names, nil
+}
