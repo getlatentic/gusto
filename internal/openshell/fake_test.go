@@ -17,6 +17,11 @@ while [ "${1:-}" = "--gateway" ]; do shift 2; done
 cmd=$1; sub=${2:-}
 case "$cmd $sub" in
 "sandbox create")
+  # A gateway that is staging as many archives as it will refuses the next ones, and takes them a moment later.
+  if [ -s "$root/busy" ] && [ "$(cat "$root/busy")" -gt 0 ]; then
+    echo $(( $(cat "$root/busy") - 1 )) > "$root/busy"; echo "Error:   × failed to allocate a rootfs tar staging slot on the gateway" >&2; exit 1
+  fi
+  if [ -e "$root/broken" ]; then echo "Error:   × the gateway cannot make this sandbox" >&2; exit 1; fi
   shift 2; name=""; policy=""
   while [ $# -gt 0 ]; do case "$1" in
     --name) name=$2; shift 2;; --policy) policy=$2; shift 2;; --) break;; *) shift;; esac; done

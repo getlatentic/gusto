@@ -272,8 +272,7 @@ func (s *Sandbox) Start(ctx context.Context, workspace string) error {
 	if s.cfg.Image != "" {
 		args = append(args, "--from", s.cfg.Image)
 	}
-	create := s.run(ctx, append(args, "--", "sleep", "infinity")...)
-	if _, err := output(create); err != nil {
+	if err := s.create(ctx, append(args, "--", "sleep", "infinity")); err != nil {
 		return err
 	}
 	absolute, err := filepath.Abs(workspace)
@@ -287,6 +286,32 @@ func (s *Sandbox) Start(ctx context.Context, workspace string) error {
 	}
 	_, err = output(s.run(ctx, "sandbox", "upload", s.name, absolute, filepath.Dir(Workdir)))
 	return err
+}
+
+// slotsBusy is in what a gateway says when it is already staging as many root
+// file system archives as it will at once, which is about four. Sandboxes that
+// exist are not affected, and the same request a moment later is accepted.
+const slotsBusy = "rootfs tar staging slot"
+
+// How long a sandbox is asked for again when the gateway's slots are busy, and
+// how long to wait between asks.
+var retryFor, retryEvery = 2 * time.Minute, time.Second
+
+// create asks the gateway for the sandbox, again and again while its staging
+// slots are busy. A job is not to fail because five others started with it.
+func (s *Sandbox) create(ctx context.Context, args []string) error {
+	deadline := time.Now().Add(retryFor)
+	for {
+		_, err := output(s.run(ctx, args...))
+		if err == nil || !strings.Contains(err.Error(), slotsBusy) || time.Now().After(deadline) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(retryEvery):
+		}
+	}
 }
 
 // Wrap runs a command in the sandbox. The command's own environment goes in

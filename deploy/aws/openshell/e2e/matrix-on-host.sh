@@ -20,24 +20,7 @@ if [ ! -d "$M/sample/.git" ]; then
 fi
 [ -f "$M/keys/e2e.key" ] || "$E/haas" keygen e2e -dir "$M/keys" >/dev/null 2>&1
 
-# Which credentials there are, and which harnesses each answers, as greencloud's host_vars say.
-python3 - "$BEDROCK_PARAMETER" "$DEEPSEEK_PARAMETER" "$M/creds" <<'PY'
-import json, os, subprocess, sys
-def secret(name):
-    return subprocess.run(["aws", "ssm", "get-parameter", "--with-decryption", "--name", name,
-                           "--query", "Parameter.Value", "--output", "text"],
-                          check=True, capture_output=True, text=True).stdout.strip()
-bedrock, deepseek = secret(sys.argv[1]), secret(sys.argv[2])
-held = {
-    "platform": {"address": "https://bedrock-mantle.us-east-1.api.aws", "auth": "bearer", "key": bedrock, "harnesses": ["opencode"]},
-    "deepseek": {"address": "https://api.deepseek.com", "auth": "bearer", "key": deepseek},
-    "anthropic": {"address": "https://api.deepseek.com/anthropic", "auth": "anthropic", "key": deepseek, "harnesses": ["claude"]},
-}
-for name, credential in held.items():
-    fd = os.open(os.path.join(sys.argv[3], name + ".json"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as out:
-        json.dump(credential, out)
-PY
+bash "$E/credentials.sh" "$M/creds"
 [ -s "$M/creds/deepseek.json" ] || { echo "no credentials: is /haas/poc/deepseek-key stored? (./put-key.sh)"; touch "$M/done"; exit 1; }
 
 # The one job every pair is given, with a time limit a hung harness cannot outlast.

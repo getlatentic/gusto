@@ -169,3 +169,66 @@ in one of two runs; once `glob` and `grep` worked it passed in four of four. In 
 failed run `find . -name invoice.js` printed nothing in a workspace that held the file,
 and it did not happen again. The cause is not known.
 
+## One sandbox for several harnesses, a shared app, and many sandboxes
+
+Measured on 2026-09-29 on an `m8i.2xlarge` (8 vCPU, 32 GiB) with the runner image that
+carries all six harnesses. The scripts are `e2e-shared.sh` and `e2e-concurrency.sh` in
+`deploy/aws/openshell`.
+
+**Two harnesses, one sandbox.** Claude Code and then Codex worked on one project in one
+sandbox. Claude wrote `server.js`, a page that shows an invoice total. Codex fixed the
+discount in `invoice.js` and added a `/health` route to `server.js`. The project's
+tests then passed, 3 of 3. The turns took 45 s and 31 s. Each turn had a token of its
+own, and the proxy recorded 16 calls through the `anthropic` credential for the first
+and 13 through `deepseek` for the second, so the calls of a turn can be told apart. Between
+them the harnesses asked for `api.anthropic.com`, `chatgpt.com`, `ab.chatgpt.com`,
+`github.com` and `api.github.com`, and the sandbox denied each.
+
+An upload leaves `.git` behind, so a sandbox holds the files and no history. The diff of
+a turn is taken on the host after the workspace is fetched, or from a repository made in
+the sandbox before the turn. Both harnesses ran without one.
+
+**A web app shared from a sandbox.** `openshell service expose <sandbox> <port> <name>`
+gives the service a URL on the gateway, `http://default--<sandbox>--<name>.openshell.localhost:18080/`,
+and the page the harnesses wrote answered there with HTTP 200. Through an SSH tunnel to the
+gateway's port it was drawn in a browser. `openshell forward start` gave the same page on
+a port of the host. Asked with no credential and only the host name, the gateway answered,
+so the URL has no sign-in of its own, and sharing with colleagues has to go through the
+organisation's own pages.
+
+What the app has to know about the sandbox's network:
+
+- A server that listens on `::`, which is what Node's `listen(port)` does, resets an IPv4
+  client at `127.0.0.1` and answers one at `::1`. One that listens on `0.0.0.0` or
+  `127.0.0.1` answers on `127.0.0.1`.
+- `localhost` does not resolve.
+- A process started with `setsid nohup` in one `exec` was still there in the next.
+
+The first app failed for the first reason, and Claude said so in its own answer.
+
+**Several sandboxes at once.** A gateway makes many microVMs on its host. These sandboxes
+had 2 CPUs and 3 GiB each. Every one took 18 to 24 s to be ready at 1, 2, 4 and 8 running,
+and up to 34 s at 12, with the 1.6 GB image. A fixed piece of CPU work took 2.5 s in one
+sandbox and 2.5 to 2.6 s with four running. It took 5.1 to 5.4 s with eight and
+7.3 to 8.2 s with twelve: about what four cores' worth of CPU shared among them gives, and
+the host has 8 vCPUs, which are threads and not eight cores. That reading is an inference
+from the times, and the core count was not checked.
+
+| Running | Ready in | The same work in | Host memory in use |
+| --- | --- | --- | --- |
+| 1 | 19 s | 2.5 s | 1.3 GB |
+| 2 | 18 to 20 s | 2.5 s | 1.6 GB |
+| 4 | 20 to 22 s | 2.5 to 2.6 s | 2.2 GB |
+| 8 | 20 to 24 s | 5.1 to 5.4 s | 3.3 GB |
+| 12 | 23 to 34 s | 7.3 to 8.2 s | 4.4 GB |
+
+The gateway stages about four root file system archives at once. A fifth sandbox made
+from an archive at the same moment was refused with `failed to allocate a rootfs tar
+staging slot on the gateway`, at 6 and at 8 created together. Sandboxes that were
+running were not affected, and the request is accepted a moment later, so haas asks again
+for up to two minutes. Making sandboxes in waves of four reached 12 running.
+
+Not measured: harnesses at these counts (the work was one busy loop and not an agent, and
+agents wait for a model most of the time), a `.metal` instance, and memory under a real
+workload.
+
