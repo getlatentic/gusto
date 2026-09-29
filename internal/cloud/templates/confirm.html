@@ -1,6 +1,7 @@
 {{define "confirm"}}{{template "head" .}}
   <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
   <h1>{{.Title}}</h1>
+  {{if .Inviter}}<p class="muted">{{.Inviter}} invited you.</p>{{end}}
   <form method="post" action="{{.Action}}">
     <input type="hidden" name="t" value="{{.Token}}">
     <button type="submit">{{.Button}}</button>

@@ -39,6 +39,13 @@ type view struct {
 	Server  string
 	CanOpen bool
 	Refresh bool
+	// The people: who is in, who has been invited and has not answered, whether the
+	// person looking is an admin, and whether they may invite one more.
+	Members   []Person
+	Invited   []Invitation
+	IsAdmin   bool
+	CanInvite bool
+	Inviter   string
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {

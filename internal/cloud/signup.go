@@ -54,12 +54,17 @@ func asksForMore(err error) bool {
 	return false
 }
 
+// refusalSentence is a refusal as a sentence.
+func refusalSentence(known error) string {
+	return strings.ToUpper(known.Error()[:1]) + known.Error()[1:] + "."
+}
+
 // refusalText is what a person is told when a sign-up cannot go ahead. An
 // error that is not one of ours is ours to log, and says nothing of itself.
 func refusalText(err error) string {
 	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrNeedName, ErrSameCompany} {
 		if errors.Is(err, known) {
-			return strings.ToUpper(known.Error()[:1]) + known.Error()[1:] + "."
+			return refusalSentence(known)
 		}
 	}
 	log.Printf("cloud: a sign-up failed: %v", err)

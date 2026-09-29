@@ -24,6 +24,8 @@ type Person struct {
 	Role     Role      `json:"role"`
 	Created  time.Time `json:"created"`
 	Verified time.Time `json:"verified,omitzero"`
+	// By is who invited them, and empty for the admin who made the organisation.
+	By string `json:"by,omitempty"`
 }
 
 // Org is an organisation as the front door knows it. Its work is in its own

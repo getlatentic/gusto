@@ -35,3 +35,10 @@ header button { padding: var(--yg-space-2) var(--yg-space-3); }
 .state { display: inline-flex; align-items: center; gap: var(--yg-space-2); }
 .state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--yg-warning); }
 .state.ok::before { background: var(--yg-success); }
+h2 { margin: 0; font: 600 .9375rem/1.3 var(--yg-font-display); }
+.people { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); }
+.people li { display: flex; align-items: center; gap: var(--yg-space-3); }
+.people li span:first-child { flex: 1; overflow-wrap: anywhere; }
+.people form { display: block; }
+.people button { padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
+form.invite { grid-template-columns: 1fr auto; align-items: center; }
