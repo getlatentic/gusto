@@ -44,6 +44,9 @@ const (
 	SettingsChanged = "settings.changed"
 	TokenCreated    = "token.created"
 	TokenRevoked    = "token.revoked"
+	HoldSet         = "retention.hold"
+	HoldReleased    = "retention.release"
+	Swept           = "retention.swept"
 )
 
 // Event is one line of the log.

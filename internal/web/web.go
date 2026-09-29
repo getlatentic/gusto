@@ -43,6 +43,7 @@ type Server struct {
 	// counts the sign-ins written to it.
 	changes    *changelog.Log
 	tokens     *apitoken.Store
+	retention  *retained
 	turnedAway refusals
 	lineups    *compare.Board
 	setups     *setup.Store
@@ -64,6 +65,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"takesTokens": func() bool { return s.tokens != nil },
 		"waiting":     s.waiting,
 		"askedBy":     askerOf,
+		"keepsWork":   func() bool { return s.retention != nil },
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
@@ -119,6 +121,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /tokens", s.guard(s.tokenAdmin(s.tokensPage)))
 	mux.HandleFunc("POST /tokens", s.guard(s.tokenAdmin(s.makeToken)))
 	mux.HandleFunc("POST /tokens/{id}/revoke", s.guard(s.tokenAdmin(s.revokeToken)))
+	mux.HandleFunc("GET /retention", s.guard(s.retentionAdmin(s.retentionPage)))
+	mux.HandleFunc("POST /retention/sweep", s.guard(s.retentionAdmin(s.sweepNow)))
+	mux.HandleFunc("POST /retention/holds", s.guard(s.retentionAdmin(s.holdPerson)))
+	mux.HandleFunc("POST /retention/holds/release", s.guard(s.retentionAdmin(s.releasePerson)))
+	mux.HandleFunc("POST /jobs/{id}/hold", s.guard(s.retentionAdmin(s.holdJob)))
+	mux.HandleFunc("POST /jobs/{id}/release", s.guard(s.retentionAdmin(s.releaseJob)))
 	mux.HandleFunc("GET /api/changes", s.sent(apitoken.Audit, s.changesScript))
 	mux.HandleFunc("GET /api/spend", s.sent(apitoken.Spend, s.spendJSON))
 	// Conversations were held at /talk before an instance could hold more than
