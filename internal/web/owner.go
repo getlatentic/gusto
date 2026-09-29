@@ -10,7 +10,7 @@ import (
 )
 
 // sharedSignIn is who the shared password signs somebody in as. It is the
-// operator's own sign-in, so it sees everything, and what it made belongs to no
+// operator's own sign-in, so it is an admin, and what it made belongs to no
 // one person.
 const sharedSignIn = "the shared sign-in"
 
@@ -22,9 +22,29 @@ func (s *Server) UseAdmins(emails []string) {
 	}
 }
 
-func (s *Server) admin(r *http.Request) bool {
-	who := s.keeper.who(r)
-	return who == sharedSignIn || s.admins[strings.ToLower(who)]
+// roleFor is the role a person the provider vouched for signs in with, or that
+// they are refused. An address named in HAAS_ADMINS is an admin whatever their
+// groups say, so the operator cannot lock themselves out by mapping groups.
+func (s *Server) roleFor(who Person) (Role, bool) {
+	if s.admins[strings.ToLower(strings.TrimSpace(who.Email))] {
+		return Admin, true
+	}
+	return s.identity.access.roleOf(who)
+}
+
+func (s *Server) admin(r *http.Request) bool { return s.keeper.role(r) == Admin }
+
+// adminOnly lets through only an admin. Changing what agents are given changes
+// what every later run may do, so it is not something a person who runs work
+// can do; the answer is 403 rather than 404 because the page is theirs to read.
+func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.admin(r) {
+			http.Error(w, "changing what agents are given is for an administrator", http.StatusForbidden)
+			return
+		}
+		next(w, r)
+	}
 }
 
 // mayUse says whether the person asking may see what owner made. Work with no

@@ -149,6 +149,14 @@ autodeploy_self: false
 oidc_issuer: ""
 oidc_allowed: ""
 haas_admins: ""
+# With a company's own provider, its groups grant the roles and oidc_allowed can
+# stay empty: a person in neither list is refused. oidc_groups_claim and
+# oidc_scopes are for a provider that names groups elsewhere or wants a scope
+# asked before it releases them (Okta: "groups").
+oidc_runner_groups: ""
+oidc_admin_groups: ""
+oidc_groups_claim: ""
+oidc_scopes: ""
 oidc_redirect: "{{ 'https' if enable_tls else 'http' }}://{{ server_name }}/auth/callback"
 # oidc_client_id and oidc_client_secret come from the vault.
 

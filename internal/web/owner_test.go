@@ -19,8 +19,9 @@ const (
 // as is the site seen by somebody a provider signed in by address.
 func (s *site) as(t *testing.T, who string) *site {
 	t.Helper()
+	role, _ := s.server.roleFor(Person{Email: who})
 	issued := httptest.NewRecorder()
-	s.server.keeper.issueFor(issued, httptest.NewRequest("GET", "/auth/callback", nil), who)
+	s.server.keeper.issueFor(issued, httptest.NewRequest("GET", "/auth/callback", nil), who, role)
 	seen := *s
 	for _, cookie := range issued.Result().Cookies() {
 		if cookie.Name == cookieName {
