@@ -241,6 +241,10 @@ the lines that were there when it began are not its.
 
 - A job asked for by a script or a token has no person, so it runs in a sandbox of its
   own that goes when the job does.
+- A turn in a conversation on an instance works on the instance's files. They are copied
+  into the job's directory before the turn and back after it, and only when the turn got as far
+  as writing its record, so a turn that failed on the way leaves the instance as it was. What the
+  harness calls the conversation is learned from the record, so the next turn resumes it.
 - A person's harnesses take turns, one job at a time in a computer, since they share its files.
 - A person past the organisation's number of computers is refused in their job's
   record, with how to raise it, and nothing is made.
