@@ -10,3 +10,6 @@ compute_driver = "vm"
 [openshell.drivers.vm]
 vcpus = {{ openshell_vcpus }}
 mem_mib = {{ openshell_mem_mib }}
+# A sandbox made from a root file system archive is a driver setting, which a
+# gateway takes from a caller only when its administrator has said so.
+allow_driver_config = true

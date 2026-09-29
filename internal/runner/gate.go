@@ -21,6 +21,11 @@ func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
 	command.Dir = dir.Workspace()
 	// The gate runs the repository's own code, as untrusted as the harness.
 	agentHere().runAs(command)
+	return askWith(spec, command)
+}
+
+// askWith runs a gate command already prepared, in a box or here.
+func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error) {
 	output, err := command.CombinedOutput()
 	return evidence.Verdict{
 		Command: spec.Gate,
@@ -35,12 +40,17 @@ func Gate(spec job.Spec, dir job.Dir) (evidence.Verdict, error) {
 	if err != nil {
 		return evidence.Verdict{}, err
 	}
+	return verdict, keepGate(dir, verdict, output)
+}
+
+// keepGate writes the gate's answer and its whole output into the record.
+func keepGate(dir job.Dir, verdict evidence.Verdict, output []byte) error {
 	if err := os.WriteFile(dir.OutFile("gate.log"), output, 0o644); err != nil {
-		return evidence.Verdict{}, err
+		return err
 	}
 	text, err := json.MarshalIndent(verdict, "", "  ")
 	if err != nil {
-		return evidence.Verdict{}, err
+		return err
 	}
-	return verdict, os.WriteFile(dir.OutFile("gates.json"), append(text, '\n'), 0o644)
+	return os.WriteFile(dir.OutFile("gates.json"), append(text, '\n'), 0o644)
 }

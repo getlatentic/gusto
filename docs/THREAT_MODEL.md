@@ -78,6 +78,22 @@ Trusts nothing the agent produced except as bytes to be hashed and shown.
 | Limits | Memory, CPU and processes per job |
 | Secrets | Only the per-job token and the proxy address enter the box. The password, the signing key, the model keys and the GitHub App's key are read by the server alone |
 
+### The OpenShell backend
+
+With `HAAS_SANDBOX=openshell` the harness runs in a microVM on a gateway, and the
+runner stays on the host. The gateway, which controls every sandbox, is trusted
+as the server is. What differs from a container:
+
+| Boundary | Control |
+| --- | --- |
+| The record | Written on the host by the runner, after the harness has finished. The harness has no record to write, and the runner is never root inside a sandbox for the sake of one |
+| The network | A policy per job, deny by default: the proxy and the operator's allowed hosts. The sandbox's log of what it allowed and denied is in the record and signed |
+| What comes back | The workspace, links kept as links and never followed |
+| What the sandbox is given | The proxy's address and a per-job token, and skills. Nothing of the server's environment |
+| Where the token shows | In the arguments of the `openshell` command on the host, for as long as the job runs. It is worth nothing once the job ends |
+
+The gate runs in the sandbox. `haas verify` re-runs it where verify is run.
+
 ## What the design does not defend against
 
 - **A malicious operator or admin.** They can read everything and change settings.
