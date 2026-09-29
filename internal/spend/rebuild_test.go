@@ -121,3 +121,24 @@ func TestACallCountedBeforeItsModelHadAPriceIsPricedOnRebuild(t *testing.T) {
 		t.Errorf("total %+v", total)
 	}
 }
+
+// A person's own spend is the jobs they may see and nothing else, so a report
+// read back for them cannot carry somebody else's cost.
+func TestOnlyTheJobsAskedForAreReadBack(t *testing.T) {
+	root := t.TempDir()
+	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h", Team: "platform"}
+	jobWithCalls(t, root, "mine", spec, answered(0.7, september))
+	jobWithCalls(t, root, "theirs", spec, answered(0.4, september))
+
+	ledger, err := RebuildWhere(root, fixturePolicy(), func(id string) bool { return id == "mine" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := ledger.Report(september.Format("2006-01"))
+	if report.Total.USD != 0.7 {
+		t.Errorf("the total is %v, want only the one job's 0.7", report.Total.USD)
+	}
+	if len(report.Jobs) != 1 || report.Jobs[0].Name != "mine" {
+		t.Errorf("jobs %+v, want only mine", report.Jobs)
+	}
+}

@@ -32,7 +32,10 @@ type Lineup struct {
 	Commit   string   `json:"commit"`
 	Check    []string `json:"check"`
 	At       int64    `json:"at"`
-	Runs     []Entry  `json:"runs"`
+	// Who is the person who started it, and the only one besides an admin who
+	// may read it.
+	Who  string  `json:"who,omitempty"`
+	Runs []Entry `json:"runs"`
 }
 
 // Entry is one engine's run in a lineup.

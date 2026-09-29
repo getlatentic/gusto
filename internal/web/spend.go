@@ -22,26 +22,36 @@ func (s *Server) spending() (*spend.Ledger, error) {
 
 var aMonth = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
 
-// report is the month the request asks for, or this month.
-func (s *Server) report(r *http.Request) (spend.Report, []string, error) {
-	ledger, err := s.spending()
-	if err != nil {
-		return spend.Report{}, nil, err
+// spendOf is the ledger this person may read: all of it for an admin, and the
+// jobs they may see otherwise, priced as the whole ledger is.
+func (s *Server) spendOf(r *http.Request) (*spend.Ledger, error) {
+	whole, err := s.spending()
+	if err != nil || s.admin(r) {
+		return whole, err
 	}
+	return spend.RebuildWhere(s.index.Root(), whole.Policy(), func(id string) bool {
+		record, found := s.index.Get(id)
+		return found && s.mayUse(r, record.Asked)
+	})
+}
+
+// report is the month the request asks for, or this month.
+func reportOf(ledger *spend.Ledger, r *http.Request) (spend.Report, []string) {
 	month := r.URL.Query().Get("month")
 	if !aMonth.MatchString(month) {
 		month = ledger.ThisMonth()
 	}
-	return ledger.Report(month), ledger.Months(), nil
+	return ledger.Report(month), ledger.Months()
 }
 
 // spendPage shows what the agents cost by team, project and job.
 func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
-	report, months, err := s.report(r)
+	ledger, err := s.spendOf(r)
 	if err != nil {
 		http.Error(w, "the spend could not be read: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	report, months := reportOf(ledger, r)
 	s.render(w, "spend.html", map[string]any{
 		"Title":  "haas — spend",
 		"Nav":    "spend",
@@ -52,10 +62,11 @@ func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 // spendJSON is the same report for a script, behind the same password the API
 // takes.
 func (s *Server) spendJSON(w http.ResponseWriter, r *http.Request) {
-	report, _, err := s.report(r)
+	ledger, err := s.spending()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	report, _ := reportOf(ledger, r)
 	s.asJSON(w, report)
 }

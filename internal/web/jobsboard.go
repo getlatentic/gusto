@@ -89,7 +89,7 @@ func filed(state jobs.State) string {
 func (s *Server) board(r *http.Request) board {
 	query := r.URL.Query()
 	shown := board{State: query.Get("state"), Harness: query.Get("harness")}
-	all := s.index.List()
+	all := s.ownJobs(r, s.index.List())
 	since := time.Now().Add(-lately).Unix()
 	counts := map[string]int{}
 	var kept []jobs.Record

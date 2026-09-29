@@ -36,7 +36,7 @@ func comparable() []industry.Template {
 func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
 	page := map[string]any{"Title": "haas — compare agents", "Nav": "compare", "Refused": r.URL.Query().Get("refused")}
 	if s.lineups != nil {
-		page["Lineups"] = s.lineups.List()
+		page["Lineups"] = s.ownLineups(r, s.lineups.List())
 	}
 	if fit := comparable(); len(fit) > 0 {
 		held := fit[0]
@@ -120,7 +120,7 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		return "", err
 	}
 	lineup := compare.Lineup{ID: id, Brief: brief, Template: held.Name,
-		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix()}
+		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
 	for _, harness := range harnesses {
 		spec, err := s.sideSpec(held, harness, named, brief, repo, commit)
 		if err != nil {
