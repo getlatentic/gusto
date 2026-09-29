@@ -96,3 +96,25 @@ func TestACompanyDomainNamesItsOrganisationAndAFreeOneDoesNot(t *testing.T) {
 		t.Errorf("%q gives %q", name, SlugFor(name))
 	}
 }
+
+func TestADomainWrittenWithAnotherAlphabetIsTheDifferentDomainItIs(t *testing.T) {
+	// The first letter is Cyrillic, which draws as an a.
+	got, err := NormalEmail("ada@\u0430cme.com")
+	if err != nil || got == "ada@acme.com" || !strings.HasPrefix(DomainOf(got), "xn--") {
+		t.Fatalf("%q %v", got, err)
+	}
+	if _, err := FromDomain(DomainOf(got)); !errors.Is(err, ErrNeedName) {
+		t.Errorf("a lookalike gives no name to show: %v", err)
+	}
+	if again, _ := NormalEmail("ADA@\u0430cme.com"); again != got {
+		t.Errorf("the same lookalike is the same address: %q %q", again, got)
+	}
+	// And a name drawn from a domain is never cut through the middle of a letter.
+	if name, err := FromDomain("\u00e9cole.fr"); err != nil || !strings.HasPrefix(name, "\u00c9") {
+		t.Errorf("%q %v", name, err)
+	}
+	// A letter that cannot be seen is dropped, so it is the real domain and no lookalike of it.
+	if same, err := NormalEmail("ada@exa\u200bmple.com"); err != nil || same != "ada@example.com" {
+		t.Errorf("%q %v", same, err)
+	}
+}
