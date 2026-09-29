@@ -9,6 +9,26 @@
 # when the candidate differs from it. Deploying one commit twice therefore
 # never overwrites the version a rollback would go back to.
 
+# The candidate is asked, before it is promoted, whether it can take the data as
+# it stands: an upgrade it would refuse, such as data a newer release wrote or a
+# migration that cannot be undone and has not been allowed, stops the play here,
+# with the live version still serving. docs/UPGRADE.md.
+- name: The candidate can take the data as it stands
+  ansible.builtin.command:
+    cmd: "{{ candidate_bin }} data check"
+  become_user: "{{ app_user }}"
+  environment:
+    HAAS_JOBS: "{{ app_root }}/var/jobs"
+    HAAS_SESSIONS: "{{ app_root }}/var/sessions"
+    HAAS_SETUPS: "{{ app_root }}/var/setups"
+    HAAS_COMPARISONS: "{{ app_root }}/var/comparisons"
+    HAAS_CHANGES: "{{ app_root }}/var/changes/changes.jsonl"
+    HAAS_RETENTION: "{{ app_root }}/var/retention"
+    HAAS_API_TOKENS: "{{ (app_root ~ '/var/tokens/tokens.json') if (api_tokens | bool) else '' }}"
+    HAAS_MIGRATE_IRREVERSIBLE: "{{ '1' if (migrate_irreversible | default(false) | bool) else '' }}"
+  changed_when: false
+  when: serve_enabled | bool
+
 - name: The candidate binary and the live one
   ansible.builtin.stat:
     path: "{{ item }}"

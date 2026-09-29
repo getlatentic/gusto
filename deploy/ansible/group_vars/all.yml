@@ -243,3 +243,8 @@ api_tokens: false
 retention_policy: {}
 #  workspaceDays: { passed: 14, failed: 30, interrupted: 7 }
 #  recordDays: { passed: 365, failed: 365, interrupted: 90 }
+
+# A release whose upgrade cannot be undone stops the deploy before it is
+# promoted. Back the data up, then set this to let that one through. Turn it off
+# again after: it is for one upgrade. docs/UPGRADE.md.
+migrate_irreversible: false
