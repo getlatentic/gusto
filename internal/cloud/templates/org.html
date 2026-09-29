@@ -19,7 +19,7 @@
   </dl>
   <h2>People</h2>
   <ul class="people">
-    {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}</span>
+    {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}{{with index $.ComputerOf .Email}}, computer {{.}}{{end}}</span>
       {{if and $.IsAdmin (ne .Email $.Person.Email)}}<form method="post" action="/org/people/remove"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Remove</button></form>{{end}}</li>{{end}}
     {{range .Invited}}<li><span>{{.Email}}</span><span class="muted">invited</span>
       {{if $.IsAdmin}}<form method="post" action="/org/invites/cancel"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Cancel</button></form>{{end}}</li>{{end}}
