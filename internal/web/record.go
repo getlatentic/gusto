@@ -2,14 +2,11 @@ package web
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/spend"
 )
-
-// sentOverHTTP is who asked for a job that arrived at POST /api/jobs. The
-// server knows how such a job arrived and not who sent it.
-const sentOverHTTP = "sent over HTTP"
 
 // run is one line of the record: the job, what it cost, and what it ran on.
 // Spent is the proxy's count when the job reached a model through it, and Cost
@@ -36,7 +33,7 @@ type origin struct {
 // and it still lists and opens.
 func (s *Server) origin(record jobs.Record) origin {
 	if record.Instance == "" {
-		if record.Asked == sentOverHTTP {
+		if record.Asked == sentOverHTTP || strings.HasPrefix(record.Asked, tokenAsker) {
 			return origin{Named: "API", Why: "none: sent to POST /api/jobs, from the command line or another machine"}
 		}
 		return origin{Named: "before instances", Why: "none: made before runs belonged to an instance"}

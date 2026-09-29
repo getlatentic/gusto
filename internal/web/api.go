@@ -34,31 +34,6 @@ type Answer struct {
 	Refused string `json:"refused,omitempty"`
 }
 
-// sent guards an endpoint a program calls. It takes the same shared password the
-// pages take, from the Authorization header rather than the cookie: no script
-// can fill in a sign-in page, and the cookie's signing key is made at boot, so a
-// saved cookie dies with every restart while the password does not. Accepting
-// nothing a browser sends by itself also leaves no way to post from another
-// origin on a signed-in person's behalf.
-func (s *Server) sent(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		given, bearing := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !bearing || !s.keeper.admits(given) {
-			// Saying which of the two went wrong tells whoever sent this
-			// nothing they did not already send, and saves them looking for a
-			// header they wrote correctly.
-			reason := "that is not the shared password"
-			if !bearing {
-				reason = "the shared password goes in an Authorization: Bearer header"
-			}
-			w.Header().Set("WWW-Authenticate", `Bearer realm="haas"`)
-			reply(w, http.StatusUnauthorized, Answer{Refused: reason})
-			return
-		}
-		next(w, r)
-	}
-}
-
 // accept queues a job somebody made somewhere else, and refuses by name anything
 // the runner would refuse: whoever sent it is at a terminal waiting for an
 // answer, and a job that cannot run should not become a failed job to go and
@@ -96,7 +71,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
-	id, err := s.queued(sent.Spec, sent.Adapter, sentOverHTTP)
+	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r))
 	if err != nil {
 		reply(w, http.StatusInternalServerError, Answer{Refused: err.Error()})
 		return

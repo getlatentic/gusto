@@ -56,6 +56,7 @@
     - { name: keyring, mode: "0755" }
     - { name: github, mode: "0700" }
     - { name: changes, mode: "0750" }
+    - { name: tokens, mode: "0700" }
 
 - name: The signing key
   ansible.builtin.command:

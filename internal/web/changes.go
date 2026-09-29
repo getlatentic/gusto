@@ -283,6 +283,10 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("wrote the skill %s in %s", w["skill"], w["setup"])
 	case changelog.SkillDropped:
 		return fmt.Sprintf("removed the skill %s from %s", w["skill"], w["setup"])
+	case changelog.TokenCreated:
+		return fmt.Sprintf("made the API token %s, which may %s", w["name"], or(w["scopes"], "do nothing"))
+	case changelog.TokenRevoked:
+		return fmt.Sprintf("revoked the API token %s", w["name"])
 	case changelog.ServerStarted:
 		return "the server started"
 	case changelog.SettingsChanged:

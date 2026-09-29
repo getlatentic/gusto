@@ -9,11 +9,12 @@ setup, and which settings changed. An admin reads it at `/changes`.
 | Event | When |
 | --- | --- |
 | `signin` | somebody signs in, with the method |
-| `signin.refused` | a sign-in is turned away, and why |
+| `signin.refused` | a sign-in or an API call is turned away, and why |
 | `signout` | somebody signs out |
 | `role.changed` | somebody signs in with a role that is not the one they last had |
 | `setup.saved` | a skill set is created or its tools change |
 | `skill.written`, `skill.dropped` | a skill is added to a skill set or removed |
+| `token.created`, `token.revoked` | an admin makes or revokes an API token, with what it may do. The secret is never written |
 | `server.started` | the server starts, with the settings that decide who may do what |
 | `settings.changed` | one of those settings differs from the last start |
 
@@ -22,7 +23,7 @@ holds a password: a wrong password is recorded as wrong, not as typed.
 
 The settings are `HAAS_ALLOWED`, `HAAS_ADMINS`, `HAAS_RUNNER_GROUPS`,
 `HAAS_ADMIN_GROUPS`, `HAAS_OIDC_GROUPS_CLAIM`, `HAAS_OIDC_ISSUER`,
-`HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, and the hash of the
+`HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, `HAAS_API_TOKENS`, and the hash of the
 spend policy file. They change outside the pages, so `who` is `the server` and
 `when` is when it next started.
 
@@ -41,8 +42,8 @@ that is written.
 the filesystem allows, so that not even the user the server runs as can rewrite
 or shorten it, and says when the filesystem would not.
 
-An admin downloads it from `/changes.jsonl`. A script with the shared password
-reads `/api/changes`. Both give the file as it is.
+An admin downloads it from `/changes.jsonl`. A script with the shared password,
+or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 
 ## Why an edit shows
 

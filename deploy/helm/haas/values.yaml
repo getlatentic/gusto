@@ -40,6 +40,9 @@ runnerPullSecret: ""
 auth:
   existingSecret: ""
   password: ""
+  # The API takes scoped, revocable tokens an admin makes at /tokens, and not
+  # the shared password. docs/TOKENS.md.
+  apiTokens: false
 
 # The way out of a job's box. With an upstream the proxy is on, every job runs
 # with no network but the proxy's socket, and the key never enters a job.

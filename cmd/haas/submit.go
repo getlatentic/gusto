@@ -28,9 +28,9 @@ func submit(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	password := os.Getenv("HAAS_PASSWORD")
-	if password == "" {
-		return fail(errors.New("set HAAS_PASSWORD to the server's shared sign-in"))
+	secret := credential()
+	if secret == "" {
+		return fail(errors.New("set HAAS_TOKEN to an API token from the server's Tokens page, or HAAS_PASSWORD to its shared sign-in"))
 	}
 	spec, err := job.Read(dir)
 	if err != nil {
@@ -42,12 +42,21 @@ func submit(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	id, err := post(server, password, web.Submission{Spec: spec, Adapter: adapter})
+	id, err := post(server, secret, web.Submission{Spec: spec, Adapter: adapter})
 	if err != nil {
 		return fail(err)
 	}
 	fmt.Printf("%s\n%s/jobs/%s\n", id, server, id)
 	return 0
+}
+
+// credential is what to send the server: an API token when there is one, and
+// otherwise the shared password a server with no tokens takes.
+func credential() string {
+	if token := os.Getenv("HAAS_TOKEN"); token != "" {
+		return token
+	}
+	return os.Getenv("HAAS_PASSWORD")
 }
 
 // sending is the server to send to. A scheme is asked for rather than assumed,
@@ -81,7 +90,7 @@ func carriedAdapter(dir job.Dir, name string) (*harness.Adapter, error) {
 	return &adapter, nil
 }
 
-func post(server, password string, sent web.Submission) (string, error) {
+func post(server, secret string, sent web.Submission) (string, error) {
 	body, err := json.Marshal(sent)
 	if err != nil {
 		return "", err
@@ -91,7 +100,7 @@ func post(server, password string, sent web.Submission) (string, error) {
 		return "", err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+password)
+	request.Header.Set("Authorization", "Bearer "+secret)
 	answer, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
 	if err != nil {
 		return "", err
