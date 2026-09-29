@@ -16,6 +16,8 @@ import (
 )
 
 func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
+	// A test binary is not a haas that can serve an organisation.
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	root := filepath.Join(t.TempDir(), "cloud")
 	t.Setenv("HAAS_CLOUD_ROOT", root)
 	t.Setenv("HAAS_CLOUD_URL", "https://cloud.example.com")
@@ -53,6 +55,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 }
 
 func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	for name, set := range map[string]map[string]string{
 		"a link address that is not one": {"HAAS_CLOUD_URL": "cloud.example.com"},
 		"a mail setting that is not one": {"HAAS_CLOUD_MAIL": "smtp://mail.example.com"},
@@ -74,6 +77,7 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 // organisation's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
+	t.Setenv("HAAS_CLOUD_SERVERS", "off")
 	t.Setenv("HAAS_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
 	front, _, err := openCloud()
 	if err != nil {
