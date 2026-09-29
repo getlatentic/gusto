@@ -29,9 +29,12 @@ type Person struct {
 // Org is an organisation as the front door knows it. Its work is in its own
 // directory and its own server, and this is only who it is and who made it.
 type Org struct {
-	Slug    string    `json:"slug"`
-	Name    string    `json:"name"`
-	Admin   string    `json:"admin"`
+	Slug  string `json:"slug"`
+	Name  string `json:"name"`
+	Admin string `json:"admin"`
+	// Domain is the company's domain when the admin signed up from one, and is
+	// empty for an address at a free mail provider.
+	Domain  string    `json:"domain,omitempty"`
 	Created time.Time `json:"created"`
 }
 
