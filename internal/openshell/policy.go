@@ -48,12 +48,13 @@ func Policy(cfg Config, modelURL string, writable []string) ([]byte, error) {
 // filesystem is what a sandbox may read and write. A policy that names no
 // system path leaves the sandbox unable to start its own supervisor, and one
 // with no network rule gets none of the baseline paths the gateway would add,
-// /dev/null among them, so these are always there.
+// /dev/null among them, so these are always there. A pseudo-terminal is what a
+// harness's shell tool opens to run a command: codex fails every one without it.
 func filesystem(writable []string) map[string]any {
 	return map[string]any{
 		"include_workdir": false,
 		"read_only":       []string{"/usr", "/lib", "/bin", "/etc", "/opt", "/proc", "/dev/urandom", "/var/log"},
-		"read_write":      append([]string{"/sandbox", "/tmp", "/dev/null"}, writable...),
+		"read_write":      append([]string{"/sandbox", "/tmp", "/dev/null", "/dev/ptmx", "/dev/pts"}, writable...),
 	}
 }
 

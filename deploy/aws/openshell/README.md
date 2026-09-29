@@ -82,6 +82,20 @@ The standard tier of Parameter Store and the AWS-managed key cost nothing.
 The parameter outlives `./down.sh`. Delete it with
 `aws ssm delete-parameter --name /haas/poc/model-key`.
 
+## The box's matrix
+
+`e2e-matrix.sh` runs `docs/matrix/box.json` on this backend: thirteen pairs across
+six harnesses, each started in a sandbox made from an image that carries them all.
+`image.sh` builds that image on the instance. The instance reads both keys from
+Parameter Store, so store DeepSeek's too:
+
+```bash
+python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth.json")))["deepseek"]["apiKey"])' \
+  | HAAS_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh
+./e2e-matrix.sh                       # about 15 minutes after the image is built
+AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
+```
+
 ## Files
 
 ```
@@ -92,6 +106,7 @@ probe/inside.sh                                  runs inside a sandbox
 probe/on-host.sh                                 runs on the instance and starts the sandboxes
 probe/expected.txt                               what the first run printed
 e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
+e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
 put-key.sh                                       stores a model's key in Parameter Store
 ```
 
