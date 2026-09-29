@@ -56,7 +56,15 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 			computers = len(all)
 		}
 	}
-	v := view{Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
+	server, canOpen := "", false
+	if s.Controller != nil {
+		_, state := s.Controller.Route(org.Slug)
+		if state == "" {
+			state = Provisioning
+		}
+		server, canOpen = string(state), state == Ready
+	}
+	v := view{Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice}
 	s.render(w, status, "org", v)
 }

@@ -32,6 +32,9 @@ type Config struct {
 	// The most sign-ups from one address in an hour, mail to one address in an
 	// hour, and sign-ups in all in an hour.
 	PerAddress, PerMailbox, InAll int
+	// Controller runs the organisations' servers. Without one the front door has
+	// accounts and no organisation to open.
+	Controller *Controller
 }
 
 // Server is the front door's pages.
@@ -42,6 +45,7 @@ type Server struct {
 	mails   *Limiter
 	all     *Limiter
 	sending sync.WaitGroup
+	making  sync.WaitGroup
 }
 
 // New makes the front door.
@@ -55,7 +59,7 @@ func New(c Config) (*Server, error) {
 	if c.InAll <= 0 {
 		c.InAll = 200
 	}
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset}).ParseFS(files, "templates/*.html")
+	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted}).ParseFS(files, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +67,20 @@ func New(c Config) (*Server, error) {
 		signups: NewLimiter(c.PerAddress, time.Hour), mails: NewLimiter(c.PerMailbox, time.Hour), all: NewLimiter(c.InAll, time.Hour)}, nil
 }
 
-// Handler is every page the front door has.
+// Handler is every page the front door has, and every organisation's server behind
+// its own host name.
 func (s *Server) Handler() http.Handler {
+	pages := s.routes()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if slug, ok := s.orgSlug(r.Host); ok {
+			s.route(w, r, slug)
+			return
+		}
+		pages.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("POST /signup", s.signUp)
@@ -76,6 +92,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
+	mux.HandleFunc("GET /open", s.guard(s.open))
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
@@ -83,8 +100,12 @@ func (s *Server) Handler() http.Handler {
 	return s.secure(mux)
 }
 
-// Wait returns when every mail started so far has been handed on.
-func (s *Server) Wait() { s.sending.Wait() }
+// Wait returns when every mail started so far has been handed on, and every
+// organisation started so far has answered or failed.
+func (s *Server) Wait() {
+	s.sending.Wait()
+	s.making.Wait()
+}
 
 // secure gives every response headers that keep a page from being framed,
 // sniffed or scripted, refuses a form that another site sent, and keeps a

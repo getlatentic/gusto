@@ -25,6 +25,8 @@ type keeper struct {
 	// signing out stops working when they do.
 	mu    sync.Mutex
 	ended map[string]int64
+	// life is how long a sign-in lasts.
+	life time.Duration
 }
 
 func newKeeper(password string) (*keeper, error) {
@@ -34,7 +36,7 @@ func newKeeper(password string) (*keeper, error) {
 	}
 	// The key is made at boot, so a restart asks everybody to sign in again.
 	// That is the honest trade for keeping no secret on disk.
-	return &keeper{password: password, key: key, ended: map[string]int64{}}, nil
+	return &keeper{password: password, key: key, ended: map[string]int64{}, life: 12 * time.Hour}, nil
 }
 
 const cookieName = "haas"
@@ -56,7 +58,7 @@ func (k *keeper) issue(w http.ResponseWriter, r *http.Request) {
 // it rather than that somebody did, and every request carries what they may do
 // without asking the provider again.
 func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, role Role) {
-	until := time.Now().Add(12 * time.Hour).Unix()
+	until := time.Now().Add(k.life).Unix()
 	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + who
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
