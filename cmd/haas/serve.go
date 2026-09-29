@@ -76,7 +76,13 @@ func serve(args []string) int {
 	identity, err := web.NewIdentity(context.Background(),
 		os.Getenv("HAAS_OIDC_ISSUER"), os.Getenv("HAAS_OIDC_CLIENT_ID"),
 		os.Getenv("HAAS_OIDC_CLIENT_SECRET"), os.Getenv("HAAS_OIDC_REDIRECT"),
-		values("HAAS_ALLOWED"))
+		web.Access{
+			Allowed:      values("HAAS_ALLOWED"),
+			RunnerGroups: values("HAAS_RUNNER_GROUPS"),
+			AdminGroups:  values("HAAS_ADMIN_GROUPS"),
+			GroupsClaim:  os.Getenv("HAAS_OIDC_GROUPS_CLAIM"),
+			Scopes:       values("HAAS_OIDC_SCOPES"),
+		})
 	if err != nil {
 		return fail(err)
 	}

@@ -41,6 +41,7 @@ func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
 		"Offered": s.servers,
 		"Keeps":   s.setups != nil,
 		"Refused": r.URL.Query().Get("refused"),
+		"Admin":   s.admin(r),
 	})
 }
 
@@ -128,6 +129,7 @@ func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
 		"Offered": s.servers,
 		"Catalog": s.catalog,
 		"Refused": r.URL.Query().Get("refused"),
+		"Admin":   s.admin(r),
 	})
 }
 
