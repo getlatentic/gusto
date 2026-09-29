@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/haas/internal/apitoken"
 	"github.com/getlatentic/haas/internal/catalog"
@@ -44,6 +45,9 @@ type Server struct {
 	changes    *changelog.Log
 	tokens     *apitoken.Store
 	retention  *retained
+	health     Health
+	startedAt  time.Time
+	disk       diskUse
 	turnedAway refusals
 	lineups    *compare.Board
 	setups     *setup.Store
@@ -127,6 +131,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /retention/holds/release", s.guard(s.retentionAdmin(s.releasePerson)))
 	mux.HandleFunc("POST /jobs/{id}/hold", s.guard(s.retentionAdmin(s.holdJob)))
 	mux.HandleFunc("POST /jobs/{id}/release", s.guard(s.retentionAdmin(s.releaseJob)))
+	mux.HandleFunc("GET /readyz", s.ready)
+	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
 	mux.HandleFunc("GET /api/changes", s.sent(apitoken.Audit, s.changesScript))
 	mux.HandleFunc("GET /api/spend", s.sent(apitoken.Spend, s.spendJSON))
 	// Conversations were held at /talk before an instance could hold more than

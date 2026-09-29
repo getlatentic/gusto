@@ -21,6 +21,11 @@ type Index struct {
 	// second still run in the order they were sent.
 	seq    int64
 	limits Limits
+	// finished and the two times below are counted since this server started,
+	// for the metrics: what is on disk says how a job ended, and not how many
+	// ended today.
+	finished                  map[State]int64
+	lastStarted, lastFinished int64
 }
 
 // Open reads what is on disk, and lets the evidence decide.
@@ -34,7 +39,7 @@ func Open(root string) (*Index, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
 	}
-	index := &Index{root: root, records: map[string]Record{}}
+	index := &Index{root: root, records: map[string]Record{}, finished: map[State]int64{}}
 	listing, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err
@@ -151,6 +156,7 @@ func (i *Index) Claim() (Record, bool, error) {
 	}
 	oldest.State = Running
 	oldest.Started = Now()
+	i.lastStarted = oldest.Started
 	// A manifest left by an earlier run of this directory would be read as this
 	// run's verdict if this run never reaches the end. The run about to start
 	// overwrites the rest of out/ anyway, so the old verdict goes with it.
@@ -179,6 +185,8 @@ func (i *Index) Finish(id string, state State, exit int) error {
 		return err
 	}
 	i.records[id] = record
+	i.finished[state]++
+	i.lastFinished = record.Ended
 	return nil
 }
 

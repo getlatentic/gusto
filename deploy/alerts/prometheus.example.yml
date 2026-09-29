@@ -1,0 +1,16 @@
+# A scrape of haas, and the rules. Make a token at /tokens that may read
+# metrics, and put it in the file below. On a server with no API tokens, the
+# shared password is the credential.
+rule_files:
+  - haas.rules.yml
+
+scrape_configs:
+  - job_name: haas
+    scrape_interval: 15s
+    scheme: https
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/haas-token
+    static_configs:
+      - targets: ["haas.example.com"]
