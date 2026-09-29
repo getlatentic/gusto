@@ -151,8 +151,7 @@ for, and passed under `platform`.
 The plan in `docs/matrix/box.json`, run with `e2e-matrix.sh` from one image that carries
 all six harnesses: thirteen harness and model pairs on the sample project's one-line
 fix, each in its own sandbox through the proxy, on Qwen3 VL 235B (Bedrock) and on
-DeepSeek Flash and V4 Pro. All thirteen finished, in 27 s to 48 s each, and every
-record verified against its signature.
+DeepSeek Flash and V4 Pro. All thirteen finished, in 27 s to 48 s each.
 
 | harness | models | wall clock |
 | --- | --- | --- |
@@ -166,7 +165,7 @@ record verified against its signature.
 Billed tokens are the proxy's count, and only pi, dsh and hermes left one: the other
 harnesses' calls read "unmeasured", and no price is set for any of these models, so
 no cost is in dollars. Before the image carried `ripgrep`, opencode on Qwen3 VL passed
-in two of three runs; once `glob` and `grep` worked it passed in three of three. In the
+in one of two runs; once `glob` and `grep` worked it passed in four of four. In the
 failed run `find . -name invoice.js` printed nothing in a workspace that held the file,
 and it did not happen again. The cause is not known.
 
