@@ -166,7 +166,7 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		ID: id, State: jobs.Queued,
 		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
-		Asked: s.keeper.who(r), Queued: jobs.Now(),
+		Asked: s.keeper.who(r), Team: spec.Team, Queued: jobs.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())

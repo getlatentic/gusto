@@ -108,6 +108,8 @@ spec:
             # containers share in memory, whatever the storage class is.
             - { name: HAAS_PROXY_SOCKET, value: /run/haas/proxy/proxy.sock }
             - { name: HAAS_JOB_CONCURRENCY, value: {{ .Values.jobs.concurrency | quote }} }
+            - { name: HAAS_LIMIT_PERSON, value: {{ .Values.jobs.limitPerson | quote }} }
+            - { name: HAAS_LIMIT_TEAM, value: {{ .Values.jobs.limitTeam | quote }} }
             - { name: HAAS_JOB_MEMORY, value: {{ .Values.jobs.memory | quote }} }
             - { name: HAAS_JOB_CPUS, value: {{ .Values.jobs.cpus | quote }} }
             - { name: HAAS_MODELS, value: {{ .Values.model.models | quote }} }

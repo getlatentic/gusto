@@ -45,6 +45,8 @@ type Record struct {
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	Asked    string `json:"asked"`
+	// Team is who the job counts against, for the team limit.
+	Team string `json:"team,omitempty"`
 	// Seq is the order this job arrived in. Queued is a second, and two jobs
 	// submitted in one second are two messages a person sent in order, so the
 	// clock alone cannot say which of them goes first.
