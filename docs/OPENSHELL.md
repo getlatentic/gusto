@@ -16,6 +16,7 @@ command. It uses OpenShell as a component below it and does not modify it.
 | Hardware virtualization on the gateway's machine: KVM on Linux, Hypervisor.framework on macOS | The VM driver needs it |
 | `allow_driver_config = true` under `[openshell.drivers.vm]`, when the image is a root file system archive | The gateway takes an archive from a caller only when its administrator has said so |
 | A model credential | The sandbox reaches its model only through haas's proxy |
+| An `ssh` client on the machine that runs `haas serve` | An agent that speaks the Agent Client Protocol (dsh, hermes) is spoken to over ssh through the gateway. `openshell sandbox exec` carries standard input as one piece when it ends, so the agent would never hear its first message |
 
 greencloud is a KVM guest with no `/dev/kvm`, so the VM driver does not run there.
 On AWS an `m8i.xlarge` launched with nested virtualization does, and
@@ -45,7 +46,8 @@ writes the record itself:
 1. The repository is checked out on the host, as for a container.
 2. A sandbox is made with the job's policy, and the workspace and the job's
    skills are put in it.
-3. The harness runs in the sandbox through `openshell sandbox exec`. Its output
+3. The harness runs in the sandbox through `openshell sandbox exec`, or over ssh
+   through the gateway when it is an ACP agent. Its output
    is the record's transcript, written on the host. Its environment is the proxy
    address and the per-job token and nothing of the server's own.
 4. The workspace comes back, links kept as links and not followed, and the patch
@@ -69,6 +71,7 @@ A policy is written for each job. Everything not named is denied.
 | each allowed host and port | `HAAS_ALLOWED_HOSTS`: a host is ports 80 and 443, `host:port` is one, and `*.domain` is every name under it |
 | `/usr`, `/lib`, `/bin`, `/etc`, `/proc` read-only | the system a sandbox needs to start |
 | `/sandbox`, `/tmp` and the harness's own folder read-write | the workspace is `/sandbox/workspace` |
+| `/dev/ptmx` and `/dev/pts` read-write | a harness's shell tool opens a pseudo-terminal for each command. codex failed every one without them |
 
 The file rules need Landlock, and a sandbox that cannot enforce them does not
 start. An entry of `HAAS_ALLOWED_HOSTS` that cannot be written as a rule is
@@ -86,6 +89,20 @@ harness written for a container, three things are done:
 - Every mention of `/root` in what a harness is told, the paths of its state and
   its skills among them, is rewritten to `/sandbox`.
 - The program is asked of the sandbox and not of the machine that runs the server.
+- The copies of a harness's configuration are rewritten the same way. hermes names
+  `/root/.agents/skills` in a configuration file, where a rewrite of the command
+  line does not reach.
+- The harness's own state folder is made before it starts, as in a container.
+  codex refuses a home that does not exist.
+- An adapter can say what to change when the box confines the harness already
+  (`whenBoxed`). codex builds its own sandbox from namespaces, which a sandbox that
+  forbids them cannot allow, and every command it ran failed with `bwrap: No
+  permissions to create a new namespace`. Inside a gateway's sandbox it is given
+  `danger-full-access` in place of `workspace-write`, and the gateway's policy is
+  the boundary.
+- The image carries `ripgrep`. opencode's `glob` and `grep` tools download one on
+  first use, which a box with no network cannot, so every search failed and the
+  model fell back to `find`.
 
 A harness reaches the network only through the policy, so what a harness does on
 its own is denied and recorded. opencode asks `models.opencode.ai` and
@@ -111,9 +128,6 @@ batches and the last moment of a run arrives late.
 - **Conversations and tool servers.** A job with a skill set runs; a turn in a
   conversation, or a set with MCP servers, is refused by name before anything
   starts.
-- **The rest of the matrix.** opencode and pi have edited a file in a sandbox made
-  from the runner image, on a real model, and passed the project's tests. Claude Code,
-  codex, dsh and hermes have not run in a sandbox.
 - **`haas verify`.** It re-runs the gate where it is run, which for a job that ran
   in a sandbox is the verifier's machine and not a sandbox.
 - **A process limit.** The VM driver says it cannot enforce one.
@@ -133,3 +147,26 @@ opencode asked for `models.opencode.ai`, `registry.npmjs.org` and `github.com`;
 each was denied and it carried on. The credential name has to be one the harness's
 adapter knows: opencode failed under `bedrock`, which its adapter has no provider
 for, and passed under `platform`.
+
+The plan in `docs/matrix/box.json`, run with `e2e-matrix.sh` from one image that carries
+all six harnesses: thirteen harness and model pairs on the sample project's one-line
+fix, each in its own sandbox through the proxy, on Qwen3 VL 235B (Bedrock) and on
+DeepSeek Flash and V4 Pro. All thirteen finished, in 27 s to 48 s each, and every
+record verified against its signature.
+
+| harness | models | wall clock |
+| --- | --- | --- |
+| opencode | Qwen3 VL, DeepSeek Flash, DeepSeek V4 Pro | 34 s to 48 s |
+| codex | DeepSeek Flash, DeepSeek V4 Pro | 28 s, 44 s |
+| claude | DeepSeek Flash, DeepSeek V4 Pro, through the Anthropic-shaped address | 29 s, 38 s |
+| pi | DeepSeek Flash, DeepSeek V4 Pro | 27 s, 34 s |
+| dsh | DeepSeek Flash, DeepSeek V4 Pro | 40 s, 40 s |
+| hermes | DeepSeek Flash, DeepSeek V4 Pro | 40 s, 43 s |
+
+Billed tokens are the proxy's count, and only pi, dsh and hermes left one: the other
+harnesses' calls read "unmeasured", and no price is set for any of these models, so
+no cost is in dollars. Before the image carried `ripgrep`, opencode on Qwen3 VL passed
+in two of three runs; once `glob` and `grep` worked it passed in three of three. In the
+failed run `find . -name invoice.js` printed nothing in a workspace that held the file,
+and it did not happen again. The cause is not known.
+
