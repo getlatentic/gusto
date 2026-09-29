@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	neturl "net/url"
-	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -26,10 +27,9 @@ type Identity struct {
 	provider *oidc.Provider
 	config   oauth2.Config
 	verifier *oidc.IDTokenVerifier
-	// Allowed is the addresses and domains that may sign in. A provider says
-	// who somebody is; it does not say whether they may spend this server's
-	// credential.
-	allowed []string
+	// access is what turns who somebody is into whether they may spend this
+	// server's credential, and as which role.
+	access Access
 }
 
 // Configured reports whether an identity provider was named. Without one the
@@ -39,15 +39,15 @@ func (i *Identity) Configured() bool { return i != nil && i.provider != nil }
 
 // NewIdentity reaches the provider's discovery document, so a wrong issuer
 // fails at startup rather than at somebody's first sign-in.
-func NewIdentity(ctx context.Context, issuer, id, secret, redirect string, allowed []string) (*Identity, error) {
+func NewIdentity(ctx context.Context, issuer, id, secret, redirect string, access Access) (*Identity, error) {
 	if issuer == "" {
 		return &Identity{}, nil
 	}
 	if id == "" || secret == "" || redirect == "" {
 		return nil, errors.New("an identity provider needs a client id, a secret and a redirect address")
 	}
-	if len(allowed) == 0 {
-		return nil, errors.New("name who may sign in, or anybody with an account at that provider can spend this server's credential")
+	if !access.gated() {
+		return nil, errUngated
 	}
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
@@ -61,28 +61,10 @@ func NewIdentity(ctx context.Context, issuer, id, secret, redirect string, allow
 			ClientSecret: secret,
 			RedirectURL:  redirect,
 			Endpoint:     provider.Endpoint(),
-			Scopes:       []string{oidc.ScopeOpenID, "email"},
+			Scopes:       append([]string{oidc.ScopeOpenID, "email"}, access.Scopes...),
 		},
-		allowed: allowed,
+		access: access,
 	}, nil
-}
-
-// Admits reports whether this address may sign in. An entry is an address, or a
-// domain that any address at it may use.
-func (i *Identity) Admits(email string) bool {
-	email = strings.ToLower(strings.TrimSpace(email))
-	_, domain, found := strings.Cut(email, "@")
-	for _, allowed := range i.allowed {
-		allowed = strings.ToLower(strings.TrimSpace(allowed))
-		switch {
-		case allowed == "":
-		case allowed == email:
-			return true
-		case found && strings.HasPrefix(allowed, "@") && allowed[1:] == domain:
-			return true
-		}
-	}
-	return false
 }
 
 // start sends somebody to their provider, carrying a value that comes back with
@@ -117,18 +99,20 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 		refuse(w, r, "that sign-in did not start here")
 		return
 	}
-	email, err := s.identity.who(r.Context(), r.URL.Query().Get("code"))
+	who, err := s.identity.person(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
 		refuse(w, r, "that sign-in could not be checked")
 		return
 	}
-	if !s.identity.Admits(email) {
+	role, admitted := s.roleFor(who)
+	if !admitted {
 		// Who they are is settled; whether they may spend this server's
 		// credential is a separate question, and the answer is no.
-		refuse(w, r, email+" is not allowed here")
+		slog.Info("a sign-in was refused: no role maps to this person", "email", who.Email, "groups", len(who.Groups))
+		refuse(w, r, who.Email+" is not allowed here")
 		return
 	}
-	s.keeper.issueFor(w, r, email)
+	s.keeper.issueFor(w, r, who.Email, role)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -136,32 +120,33 @@ func refuse(w http.ResponseWriter, r *http.Request, why string) {
 	http.Redirect(w, r, "/login?refused="+neturl.QueryEscape(why), http.StatusSeeOther)
 }
 
-// who exchanges the code and reads the address out of the token the provider
-// signed, verifying that signature rather than trusting the answer.
-func (i *Identity) who(ctx context.Context, code string) (string, error) {
+// person exchanges the code and reads who signed in out of the token the
+// provider signed, verifying that signature rather than trusting the answer.
+func (i *Identity) person(ctx context.Context, code string) (Person, error) {
 	token, err := i.config.Exchange(ctx, code)
 	if err != nil {
-		return "", err
+		return Person{}, err
 	}
 	raw, carried := token.Extra("id_token").(string)
 	if !carried {
-		return "", errors.New("the provider returned no identity token")
+		return Person{}, errors.New("the provider returned no identity token")
 	}
 	checked, err := i.verifier.Verify(ctx, raw)
 	if err != nil {
-		return "", err
+		return Person{}, err
 	}
-	var claims struct {
-		Email    string `json:"email"`
-		Verified bool   `json:"email_verified"`
-	}
+	var claims map[string]json.RawMessage
 	if err := checked.Claims(&claims); err != nil {
-		return "", err
+		return Person{}, err
 	}
-	if claims.Email == "" || !claims.Verified {
-		return "", errors.New("the provider did not confirm an address")
+	var email string
+	var verified bool
+	json.Unmarshal(claims["email"], &email)
+	json.Unmarshal(claims["email_verified"], &verified)
+	if email == "" || !verified {
+		return Person{}, errors.New("the provider did not confirm an address")
 	}
-	return claims.Email, nil
+	return Person{Email: email, Groups: groupsIn(claims[i.access.groupsClaim()])}, nil
 }
 
 func overTLS(r *http.Request) bool {
