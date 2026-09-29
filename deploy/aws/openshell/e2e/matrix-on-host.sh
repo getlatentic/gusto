@@ -10,9 +10,14 @@ export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
 for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
 
 mkdir -p "$M/keys" "$M/creds" "$M/sample"
-rm -rf "$M/plan-matrix" "$M/one-line-fix" "$M/done" "$M/run.log"
-cp "$E"/sample/* "$M/sample/"
-(cd "$M/sample" && rm -rf .git && git init -q . && git add -A && git -c user.email=a@b -c user.name=x commit -qm sample)
+# With AGAIN set the matrix that is there is kept, and only the pairs it names run again.
+[ -n "${AGAIN:-}" ] || rm -rf "$M/plan-matrix" "$M/one-line-fix"
+rm -rf "$M/done" "$M/run.log"
+# The job is pinned to this repository's commit, so a run that keeps the matrix keeps it too.
+if [ ! -d "$M/sample/.git" ]; then
+  cp "$E"/sample/* "$M/sample/"
+  (cd "$M/sample" && git init -q . && git add -A && git -c user.email=a@b -c user.name=x commit -qm sample)
+fi
 [ -f "$M/keys/e2e.key" ] || "$E/haas" keygen e2e -dir "$M/keys" >/dev/null 2>&1
 
 # Which credentials there are, and which harnesses each answers, as greencloud's host_vars say.
@@ -36,9 +41,9 @@ PY
 [ -s "$M/creds/deepseek.json" ] || { echo "no credentials: is /haas/poc/deepseek-key stored? (./put-key.sh)"; touch "$M/done"; exit 1; }
 
 # The one job every pair is given, with a time limit a hung harness cannot outlast.
-"$E/haas" new "$M/one-line-fix" -repo "$M/sample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
+[ -d "$M/one-line-fix" ] || "$E/haas" new "$M/one-line-fix" -repo "$M/sample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
   -harness opencode -model platform/qwen.qwen3-vl-235b-a22b-instruct -- node --test >/dev/null
-python3 - "$M/one-line-fix/job.json" <<'PY'
+[ -n "${AGAIN:-}" ] || python3 - "$M/one-line-fix/job.json" <<'PY'
 import json, sys
 spec = json.load(open(sys.argv[1]))
 spec["budget"]["seconds"] = 420
@@ -49,6 +54,6 @@ cd "$M"
 HAAS_SANDBOX=openshell HAAS_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" HAAS_OPENSHELL_GATEWAY=spike \
   HAAS_OPENSHELL_MEMORY=3Gi HAAS_OPENSHELL_CPU=2 HAAS_CREDENTIALS="$M/creds" \
   HAAS_SIGNING_KEY="$M/keys/e2e.key" HAAS_KEYRING="$M/keys" HAAS_SIGNER=e2e \
-  "$E/haas" matrix "$M/plan.json" > "$M/table.txt" 2> "$M/run.log"
+  "$E/haas" matrix ${AGAIN:+-again "$AGAIN"} "$M/plan.json" > "$M/table.txt" 2> "$M/run.log"
 echo "exit $?" >> "$M/run.log"
 touch "$M/done"
