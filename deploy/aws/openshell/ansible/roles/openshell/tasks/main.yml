@@ -5,6 +5,19 @@
     state: present
     update_cache: true
 
+- name: The AWS command, for reading parameters with the instance's own role
+  community.general.snap:
+    name: aws-cli
+    classic: true
+  failed_when: false
+  register: awscli
+
+- name: The AWS command, when snap could not install it
+  ansible.builtin.command:
+    cmd: bash -c "curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscli.zip && apt-get install -y -qq unzip >/dev/null && unzip -qo /tmp/awscli.zip -d /tmp && /tmp/aws/install --update"
+    creates: /usr/local/bin/aws
+  when: awscli is failed
+
 - name: The user that runs the gateway may use KVM
   ansible.builtin.user:
     name: "{{ openshell_user }}"

@@ -46,10 +46,44 @@ resource "aws_security_group" "spike" {
   }
 }
 
+data "aws_caller_identity" "here" {}
+
+# The instance reads the model's key from Parameter Store itself, so no key is
+# ever an argument, a file on the machine that runs these scripts, or anything
+# the scripts hold. It may read what is under /haas/poc/ and nothing else.
+resource "aws_iam_role" "spike" {
+  name = var.name
+  tags = local.tags
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+
+resource "aws_iam_role_policy" "spike" {
+  name = "${var.name}-parameters"
+  role = aws_iam_role.spike.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+      Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/haas/poc/*"
+    }]
+  })
+}
+
+resource "aws_iam_instance_profile" "spike" {
+  name = var.name
+  role = aws_iam_role.spike.name
+  tags = local.tags
+}
+
 resource "aws_instance" "spike" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = var.instance_type
   key_name               = aws_key_pair.spike.key_name
+  iam_instance_profile   = aws_iam_instance_profile.spike.name
   vpc_security_group_ids = [aws_security_group.spike.id]
   tags                   = local.tags
   volume_tags            = local.tags

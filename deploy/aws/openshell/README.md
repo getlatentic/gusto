@@ -63,6 +63,24 @@ idler Fake | Tests fail | 9 s
 Each record was signed, and its `sandbox-events.log` and `sandbox-policy.json`
 were among the files the manifest hashes.
 
+## A real harness on a real model
+
+`e2e-real.sh` runs opencode, then a comparison of opencode and pi, from the
+runner image. Without a model it uses one that only answers "pong". With a
+model it reads the key on the instance, from Parameter Store, with the
+instance's own role. That role may read `/haas/poc/*` and nothing else.
+
+```bash
+./up.sh
+./put-key.sh                                   # once: hidden prompt, key goes to AWS on standard input
+HAAS_MODEL_UPSTREAM=https://api.deepseek.com ./e2e-real.sh
+./down.sh
+```
+
+The standard tier of Parameter Store and the AWS-managed key cost nothing.
+The parameter outlives `./down.sh`. Delete it with
+`aws ssm delete-parameter --name /haas/poc/model-key`.
+
 ## Files
 
 ```
@@ -72,7 +90,8 @@ ansible/                                         the role: pinned, checksummed b
 probe/inside.sh                                  runs inside a sandbox
 probe/on-host.sh                                 runs on the instance and starts the sandboxes
 probe/expected.txt                               what the first run printed
-e2e.sh, e2e-compare.sh, e2e/                      haas on the instance, with jobs in sandboxes
+e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
+put-key.sh                                       stores a model's key in Parameter Store
 ```
 
 The binaries are OpenShell 0.1.2. Their checksums are pinned in
