@@ -54,6 +54,7 @@
   loop:
     - { name: signing, mode: "0700" }
     - { name: keyring, mode: "0755" }
+    - { name: github, mode: "0700" }
 
 - name: The signing key
   ansible.builtin.command:
@@ -70,6 +71,20 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0644"
+  notify: Restart haas
+
+# The App's key is the one long-lived secret for reaching repositories: every
+# token a job gets is minted from it, for one repository, and revoked after. The
+# server reads it; the boxes jobs run in never do.
+- name: The GitHub App's private key
+  ansible.builtin.copy:
+    content: "{{ github_app_private_key }}\n"
+    dest: "{{ app_root }}/var/github/app.pem"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  no_log: true
+  when: github_app_id | length > 0
   notify: Restart haas
 
 - name: The MCP servers directory

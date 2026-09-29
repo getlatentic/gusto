@@ -3,20 +3,22 @@ package ship
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/repoaccess"
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
 // job's workspace, which is evidence, is never touched.
 type Git struct {
-	// Token, when set, is sent to github.com and to no other host.
+	// Token, when set, is sent to Host and to no other.
 	Token string
+	// Host is the forge's address, https://github.com when empty.
+	Host string
 }
 
 // Push makes the change and evidence commits again and pushes both in one push,
@@ -53,16 +55,13 @@ func authored(when int64) []string {
 }
 
 // env carries the token by environment rather than argument, where any process
-// listing would show it, and scopes the header to github.com.
+// listing would show it, and scopes the header to the forge.
 func (g Git) env() []string {
 	env := os.Environ()
 	if g.Token == "" {
 		return env
 	}
-	basic := base64.StdEncoding.EncodeToString([]byte("x-access-token:" + g.Token))
-	return append(env, "GIT_CONFIG_COUNT=1",
-		"GIT_CONFIG_KEY_0=http.https://github.com/.extraheader",
-		"GIT_CONFIG_VALUE_0=AUTHORIZATION: basic "+basic)
+	return repoaccess.WithToken(env, or(g.Host, "https://github.com"), g.Token)
 }
 
 // ranAgainst is the commit the workspace was checked out at. The patch is a
