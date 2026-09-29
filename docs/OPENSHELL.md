@@ -74,6 +74,23 @@ The file rules need Landlock, and a sandbox that cannot enforce them does not
 start. An entry of `HAAS_ALLOWED_HOSTS` that cannot be written as a rule is
 refused and not dropped.
 
+## The runner image as a sandbox
+
+The image the container runner uses is exported as a root file system and
+serves as the sandbox's image (`podman export`, then `HAAS_OPENSHELL_IMAGE`). For a
+harness written for a container, three things are done:
+
+- The image keeps a second copy of each harness's configuration under
+  `/opt/haas/harness`, where the sandbox user can read it, and the backend
+  copies it into the user's home, `/sandbox`, before the harness starts.
+- Every mention of `/root` in what a harness is told, the paths of its state and
+  its skills among them, is rewritten to `/sandbox`.
+- The program is asked of the sandbox and not of the machine that runs the server.
+
+A harness reaches the network only through the policy, so what a harness does on
+its own is denied and recorded. opencode asks `models.opencode.ai` and
+`registry.npmjs.org` on every start, and both were denied without harm.
+
 ## What is in the record
 
 `out/sandbox-events.log` is the gateway's and the sandbox's log for the run. On the
@@ -94,14 +111,16 @@ batches and the last moment of a run arrives late.
 - **Conversations and tool servers.** A job with a skill set runs; a turn in a
   conversation, or a set with MCP servers, is refused by name before anything
   starts.
-- **A real harness on a real model.** The tests run harnesses that are scripts,
-  through the real proxy to a model that always answers the same. Claude Code, opencode
-  and the others have not been run in a sandbox.
+- **A real model.** opencode and pi have run in sandboxes made from the runner image,
+  through the real proxy, against a model that only answers "pong": each started,
+  reached the proxy, was denied everything else, and left a signed record. Neither has
+  edited a file, because that model cannot. The run on a real model is
+  `deploy/aws/openshell/e2e-real.sh` with `HAAS_MODEL_UPSTREAM` and `HAAS_MODEL_KEY`
+  set by the person running it. Claude Code, codex, dsh and hermes have not run in a
+  sandbox.
 - **`haas verify`.** It re-runs the gate where it is run, which for a job that ran
   in a sandbox is the verifier's machine and not a sandbox.
 - **A process limit.** The VM driver says it cannot enforce one.
-- **The runner image as a root file system.** The image the container runner uses is
-  not yet exported and tried as one.
 
 ## Measured
 

@@ -54,6 +54,9 @@ COPY --from=build /haas /usr/local/bin/haas
 # keeps between turns, its sessions and settings, is under /root/.local/share,
 # the instance's own state; each adapter points its harness there.
 COPY image/harness/ /root/.config/
+# The same files where a sandbox on a gateway can read them: its user has a home
+# of its own and cannot read /root, and copies these into it before a harness starts.
+COPY image/harness/ /opt/haas/harness/
 # The harness runs as node (uid 1000, which the base image has) and the runner
 # as root, so only the runner can write the record in /job/out. The runner
 # gives the harness its workspace and /root before starting it.

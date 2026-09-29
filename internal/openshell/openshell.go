@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -72,19 +73,21 @@ const Workdir = "/sandbox/workspace"
 
 // Sandbox is one job's sandbox. It implements runner.Box.
 type Sandbox struct {
-	cfg    Config
-	name   string
-	model  string
-	token  string
-	policy []byte
-	keeps  []string
+	cfg   Config
+	name  string
+	model string
+	// hostModel is the proxy as this machine reaches it.
+	hostModel string
+	token     string
+	policy    []byte
+	keeps     []string
 }
 
 // New prepares the sandbox for a job. modelURL is where the sandbox reaches the
 // haas proxy, on the name the sandbox gives the gateway's machine, and token
 // stands in for the credential the proxy holds.
-func New(cfg Config, id string, adapter harness.Adapter, modelURL, token string) (*Sandbox, error) {
-	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, token: token}
+func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
+	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token}
 	if adapter.Keeps != "" {
 		s.keeps = append(s.keeps, inHome(adapter.Keeps))
 	}
@@ -108,10 +111,28 @@ func inHome(path string) string {
 	return path
 }
 
+// inSandbox rewrites every mention of the runner's home in a command line, an
+// adapter being written once for a container where the harness's home is /root.
+func inSandbox(text string) string {
+	return runnersHome.ReplaceAllString(text, "${1}"+Home+"${2}")
+}
+
+// runnersHome finds /root as a path of its own: at the start of a word, and not
+// inside another path such as /usr/root or /rootless.
+var runnersHome = regexp.MustCompile(`(^|[^\w./-])/root($|/)`)
+
 // Equip puts the job's skills in the folder the harness finds them in, each in a
 // folder of its own name. The skills were written by this server, and the
 // sandbox is only handed them.
 func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error {
+	// A harness's own configuration is part of the image, under /opt/haas/harness
+	// where the sandbox user can read it, and belongs in the home the harness will
+	// look in. An image without it has nothing to copy, and that is not an error.
+	place := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
+		"sh", "-c", `[ -d /opt/haas/harness ] && mkdir -p "$HOME/.config" && cp -R /opt/haas/harness/. "$HOME/.config/"; true`)
+	if _, err := output(place); err != nil {
+		return err
+	}
 	if spec.Setup == nil || adapter.Skills == "" {
 		return nil
 	}
@@ -154,6 +175,9 @@ func (s *Sandbox) Env() harness.Env {
 }
 
 func (s *Sandbox) Workdir() string { return Workdir }
+
+// HostModelURL is where the proxy is from the machine that runs the server.
+func (s *Sandbox) HostModelURL() string { return s.hostModel }
 
 // run is the openshell command with the environment it needs and no more: the
 // server's own secrets stay out of a process that talks to another server.
@@ -250,11 +274,13 @@ func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 		args = append(args, "env")
 		for _, entry := range command.Env {
 			if strings.Contains(entry, "=") {
-				args = append(args, entry)
+				args = append(args, inSandbox(entry))
 			}
 		}
 	}
-	args = append(args, command.Args...)
+	for _, argument := range command.Args {
+		args = append(args, inSandbox(argument))
+	}
 	wrapped := s.run(ctx, args...)
 	wrapped.Stdin = command.Stdin
 	return wrapped
