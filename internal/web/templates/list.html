@@ -33,7 +33,7 @@
       <div class="what">
         <p class="where">{{template "origin" .On}}<span class="model">{{with .Model}} · {{brain .}}{{end}}</span></p>
         <a class="brief" href="/jobs/{{.ID}}" title="{{.Brief}}">{{.Brief}}</a>
-        {{with waiting .ID}}<span class="muted">{{.}}</span>{{end}}
+        {{$asked := .Asked}}{{with waiting .ID}}<span class="muted">Asked by {{askedBy $asked}}. {{.}}</span>{{end}}
       </div>
       <div class="how">
         <span class="outcome">{{outcome .}}</span>
