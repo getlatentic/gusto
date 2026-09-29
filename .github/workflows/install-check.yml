@@ -107,3 +107,72 @@ jobs:
         if: always()
         working-directory: deploy/compose
         run: docker compose down -v
+
+  chart:
+    needs: compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TAG: ${{ inputs.tag || 'v0.1.0-rc.1' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The digests the release names
+        id: digests
+        run: |
+          notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
+          echo "server=$(sed -n 's/^HAAS_SERVER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
+          echo "runner=$(sed -n 's/^HAAS_RUNNER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
+
+      - name: A cluster to install into
+        run: |
+          kind create cluster --wait 120s
+          kubectl create namespace haas
+          kubectl label namespace haas pod-security.kubernetes.io/enforce=privileged --overwrite
+
+      # The images are private. The kubelet pulls the server and the daemon in
+      # the pod pulls the runner, and both read this one Secret.
+      - name: Let the cluster pull the private images
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          kubectl -n haas create secret docker-registry ghcr \
+            --docker-server=ghcr.io --docker-username="$GITHUB_ACTOR" --docker-password="$REGISTRY_TOKEN"
+
+      - name: Install the chart from the digests
+        env:
+          SERVER: ${{ steps.digests.outputs.server }}
+          RUNNER: ${{ steps.digests.outputs.runner }}
+        run: |
+          helm install haas deploy/helm/haas --namespace haas \
+            --set image.server.repository="${SERVER%@*}" --set image.server.digest="${SERVER#*@}" \
+            --set image.runner.repository="${RUNNER%@*}" --set image.runner.digest="${RUNNER#*@}" \
+            --set 'imagePullSecrets[0].name=ghcr' --set runnerPullSecret=ghcr \
+            --set auth.password=install-check \
+            --wait --timeout 12m
+
+      - name: What is running is what the release named
+        env:
+          SERVER: ${{ steps.digests.outputs.server }}
+        run: |
+          running="$(kubectl -n haas get deploy haas -o jsonpath='{.spec.template.spec.containers[?(@.name=="server")].image}')"
+          test "$running" = "$SERVER" || { echo "the server runs $running, and the release named $SERVER"; exit 1; }
+          echo "the server runs $running"
+
+      - name: Sign in and reach the pages
+        run: |
+          kubectl -n haas port-forward svc/haas 8040:80 > /dev/null 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break; sleep 1; done
+          code="$(curl -s -o /dev/null -w '%{http_code}' -c jar --data-urlencode password=install-check http://127.0.0.1:8040/login)"
+          test "$code" = 303 || { echo "signing in answered $code"; exit 1; }
+          code="$(curl -s -o /dev/null -w '%{http_code}' -b jar http://127.0.0.1:8040/)"
+          test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
+          echo "signed in, and the home page answered $code"
+
+      - name: What the pod says, when something failed
+        if: failure()
+        run: |
+          kubectl -n haas get pods -o wide
+          kubectl -n haas describe pods | tail -60
+          kubectl -n haas logs deploy/haas --all-containers --tail=60 || true
