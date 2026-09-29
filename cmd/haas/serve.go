@@ -119,6 +119,15 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseKeyring(keyring)
+	// What changes on the platform is recorded beside the jobs, in a file only
+	// this server appends to.
+	changes, err := openChanges(keyring)
+	if err != nil {
+		return fail(err)
+	}
+	defer changes.Close()
+	pages.UseChanges(changes)
+	pages.UseSettings(governing())
 	address := setting("HAAS_ADDR", "127.0.0.1:8040")
 	server := &http.Server{
 		Addr:              address,
