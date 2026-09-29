@@ -45,7 +45,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 // asksForMore says the form needs the organisation's name and address, because
 // the domain could not give them or gave ones that will not do.
 func asksForMore(err error) bool {
-	for _, known := range []error{ErrNeedName, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {
+	for _, known := range []error{ErrNeedName, ErrSameCompany, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {
 		if errors.Is(err, known) {
 			return true
 		}
@@ -56,7 +56,7 @@ func asksForMore(err error) bool {
 // refusalText is what a person is told when a sign-up cannot go ahead. An
 // error that is not one of ours is ours to log, and says nothing of itself.
 func refusalText(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrNeedName, ErrDomainClaimed} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrNeedName, ErrSameCompany} {
 		if errors.Is(err, known) {
 			return strings.ToUpper(known.Error()[:1]) + known.Error()[1:] + "."
 		}
@@ -66,12 +66,12 @@ func refusalText(err error) string {
 }
 
 func refusalStatus(err error) int {
-	for _, known := range []error{ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrDomainClaimed} {
+	for _, known := range []error{ErrEmailTaken, ErrSlugTaken, ErrDomainFull} {
 		if errors.Is(err, known) {
 			return http.StatusConflict
 		}
 	}
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrNeedName} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrNeedName, ErrSameCompany} {
 		if errors.Is(err, known) {
 			return http.StatusUnprocessableEntity
 		}
@@ -144,7 +144,7 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 			return
 		}
 		if purpose == Verify {
-			if _, err := s.Store.Verify(email); err != nil && !errors.Is(err, ErrDomainClaimed) {
+			if _, err := s.Store.Verify(email); err != nil {
 				log.Printf("cloud: an address was not verified: %v", err)
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return

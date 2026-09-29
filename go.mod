@@ -23,4 +23,5 @@ require (
 	github.com/yuin/goldmark v1.8.6 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 )

@@ -32,9 +32,8 @@ type view struct {
 	Notice   string
 	// Computers is how many computers the organisation has.
 	Computers int
-	// Domain is the company's, and Claimed says another organisation has it.
-	Domain  string
-	Claimed bool
+	// Domain is the company's.
+	Domain string
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {

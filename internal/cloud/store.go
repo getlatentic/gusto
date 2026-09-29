@@ -13,6 +13,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/computer"
 	"github.com/getlatentic/haas/internal/quota"
+	"golang.org/x/net/publicsuffix"
 )
 
 // Settings are what an operator chooses about sign-ups.
@@ -48,7 +49,7 @@ func Open(root string, set Settings) (*Store, error) {
 	if set.Limits == (Limits{}) {
 		set.Limits = DefaultLimits()
 	}
-	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox", "domains"} {
+	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0o700); err != nil {
 			return nil, err
 		}
@@ -103,17 +104,7 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	if err := workEmail(email, s.set.AllowFreeMail, s.refused); err != nil {
 		return Person{}, Org{}, err
 	}
-	name, err := s.nameFor(in.OrgName, email)
-	if err != nil {
-		return Person{}, Org{}, err
-	}
-	slug := strings.ToLower(strings.TrimSpace(in.Slug))
-	if slug == "" {
-		slug = SlugFor(name)
-	}
-	if err := ValidSlug(slug); err != nil {
-		return Person{}, Org{}, err
-	}
+	domain := s.companyDomain(email)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -123,24 +114,89 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 		}
 		return Person{}, Org{}, err
 	}
-	domain := s.companyDomain(email)
-	if domain != "" {
-		if _, claimed, err := s.DomainOwner(domain); err != nil || claimed {
-			if err == nil {
-				err = ErrDomainClaimed
-			}
-			return Person{}, Org{}, err
-		}
-		if made, err := s.orgsOfDomain(domain); err != nil {
-			return Person{}, Org{}, err
-		} else if made >= s.set.PerDomain {
-			return Person{}, Org{}, ErrDomainFull
-		}
+	existing, pending, err := s.orgsAt(domain)
+	if err != nil {
+		return Person{}, Org{}, err
+	}
+	if domain != "" && pending >= s.set.PerDomain {
+		return Person{}, Org{}, ErrDomainFull
+	}
+	name, slug, derived, err := s.identify(in, email, domain, existing)
+	if err != nil {
+		return Person{}, Org{}, err
+	}
+	if err := ValidSlug(slug); err != nil {
+		return Person{}, Org{}, err
 	}
 	now := s.now().UTC().Truncate(time.Second)
+	return s.createAt(email, name, slug, domain, derived, now)
+}
+
+// identify is the organisation's name and address. The first at a company's
+// domain has the address that domain gives, so no company is put behind another
+// by arriving later. A company can have more than one organisation, a subsidiary or
+// a team, and each after the first is named by whoever makes it and has an address
+// from that name. An address at a free mail provider has only a name to go on.
+func (s *Store) identify(in Signup, email, domain string, existing int) (name, slug string, derived bool, err error) {
+	given := strings.TrimSpace(in.OrgName) != ""
+	slug = strings.ToLower(strings.TrimSpace(in.Slug))
+	switch {
+	case slug != "":
+		name, err = s.nameFor(in.OrgName, email)
+	case domain == "":
+		if name, err = s.nameFor(in.OrgName, email); err == nil {
+			slug = SlugFor(name)
+		}
+	case existing == 0:
+		if name, err = s.nameFor(in.OrgName, email); err == nil {
+			slug, derived = AddressFor(domain), true
+		}
+	case !given:
+		err = ErrSameCompany
+	default:
+		if name, err = OrgName(in.OrgName); err == nil {
+			slug = SlugFor(name)
+		}
+	}
+	return name, slug, derived, err
+}
+
+// orgsAt is how many organisations a company's domain has, and how many of them
+// have an admin who has not yet confirmed their address. It is the second that
+// is limited: a company may have as many organisations as it has real people to
+// make them, and not more than a few that nobody has answered for.
+func (s *Store) orgsAt(domain string) (existing, pending int, err error) {
+	if domain == "" {
+		return 0, 0, nil
+	}
+	entries, err := os.ReadDir(filepath.Join(s.root, "orgs"))
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, entry := range entries {
+		var org Org
+		if readFile(filepath.Join(s.root, "orgs", entry.Name(), "org.json"), &org) != nil || org.Domain != domain {
+			continue
+		}
+		existing++
+		if admin, found, err := s.person(org.Admin); err == nil && found && admin.Trial() {
+			pending++
+		}
+	}
+	return existing, pending, nil
+}
+
+// createAt makes the organisation at the address. An address that came from the
+// company's domain and is taken means the company has an organisation now, made
+// a moment ago, so this one is asked for a name of its own.
+func (s *Store) createAt(email, name, slug, domain string, derived bool, now time.Time) (Person, Org, error) {
 	person := Person{Email: email, Org: slug, Role: Admin, Created: now}
 	org := Org{Slug: slug, Name: name, Admin: email, Domain: domain, Created: now}
-	return person, org, s.create(person, org)
+	err := s.create(person, org)
+	if derived && errors.Is(err, ErrSlugTaken) {
+		err = ErrSameCompany
+	}
+	return person, org, err
 }
 
 // nameFor is the organisation's name: the one given, or the one the company's
@@ -156,12 +212,16 @@ func (s *Store) nameFor(given, email string) (string, error) {
 	return OrgName(suggested)
 }
 
-// companyDomain is the address's domain when it is a company's, and empty when
-// it is at a free mail provider, which is nobody's to claim.
+// companyDomain is the company's domain an address is at: the registrable part,
+// so ada@mail.acme.com and bob@acme.com are one company's. It is empty at a free
+// mail provider, which is nobody's to claim.
 func (s *Store) companyDomain(email string) string {
 	domain := DomainOf(email)
 	if freeMail[domain] {
 		return ""
+	}
+	if registrable, err := publicsuffix.EffectiveTLDPlusOne(domain); err == nil {
+		return registrable
 	}
 	return domain
 }
@@ -200,24 +260,6 @@ func (s *Store) create(person Person, org Org) error {
 		return undo(err)
 	}
 	return nil
-}
-
-func (s *Store) orgsOfDomain(domain string) (int, error) {
-	entries, err := os.ReadDir(filepath.Join(s.root, "orgs"))
-	if err != nil {
-		return 0, err
-	}
-	count := 0
-	for _, entry := range entries {
-		var org Org
-		if err := readFile(filepath.Join(s.root, "orgs", entry.Name(), "org.json"), &org); err != nil {
-			continue
-		}
-		if DomainOf(org.Admin) == domain {
-			count++
-		}
-	}
-	return count, nil
 }
 
 // Person is the account at an address.
@@ -274,16 +316,6 @@ func (s *Store) Verify(email string) (Person, error) {
 	}
 	if person.Role != Admin {
 		return person, nil
-	}
-	// The first organisation whose admin confirms an address at a company's
-	// domain has the domain. One that is second is verified as a person and keeps
-	// the trial: the domain is another's, and its admin is who invites them.
-	if org, found, err := s.Org(person.Org); err == nil && found && org.Domain != "" {
-		if has, err := s.claimDomain(org.Domain, org.Slug); err != nil {
-			return person, err
-		} else if !has {
-			return person, ErrDomainClaimed
-		}
 	}
 	return person, s.setQuota(person.Org, s.set.Limits.Verified)
 }
