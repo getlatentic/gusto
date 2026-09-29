@@ -54,12 +54,26 @@ cd "$checkout/deploy/ansible"
 
 echo "Deploying $sha"
 "$state/venv/bin/ansible-galaxy" collection install -r requirements.yml
-"$state/venv/bin/ansible-playbook" site.yml \
+# How the deploy ended is left where the server reads it, so /metrics says it and
+# an alert can: whichever step failed, and a play that rolled back, both leave
+# ok false. The server the deploy leaves running is the one that reports it.
+result={{ app_root }}/var/deploy.json
+record() {
+  printf '{"release":"%s","ok":%s,"at":%s}\n' "$(echo "$sha" | cut -c1-7)" "$1" "$(date +%s)" > "$result.tmp" \
+    && chown {{ app_user }}: "$result.tmp" && chmod 0644 "$result.tmp" && mv -f "$result.tmp" "$result" || true
+}
+
+if ! "$state/venv/bin/ansible-playbook" site.yml \
   -i "$etc/inventory.ini" \
   -e @"$etc/vault.yml" \
   --vault-password-file "$etc/vault_pass" \
   -e repo_version="$sha" \
-  -e autodeploy_self=true
+  -e autodeploy_self=true; then
+  record false
+  echo "Deploying $sha failed" >&2
+  exit 1
+fi
+record true
 
 echo "$sha" > "$state/deployed"
 echo "Deployed $sha"
