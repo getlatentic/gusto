@@ -73,7 +73,8 @@ instance's own role. That role may read `/haas/poc/*` and nothing else.
 ```bash
 ./up.sh
 ./put-key.sh                                   # once: hidden prompt, key goes to AWS on standard input
-HAAS_MODEL_UPSTREAM=https://api.deepseek.com ./e2e-real.sh
+HAAS_MODEL_UPSTREAM=https://bedrock-mantle.us-east-1.api.aws HAAS_MODEL_NAME=bedrock \
+  HAAS_MODEL_ID=qwen.qwen3-vl-235b-a22b-instruct ./e2e-real.sh
 ./down.sh
 ```
 
