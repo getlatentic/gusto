@@ -130,12 +130,13 @@ file name, and only the hash of a link's secret is stored.
 1. A person gives a work email. The address is checked, and refused when it is a
    disposable one, or at a free mail provider unless the operator allows it.
 2. The organisation is named from the company's domain, found with the public
-   suffix list: `ada@acme-research.com` makes "Acme Research" at `acme-research`, and
-   `mail.acme.co.uk` makes "Acme". A free mail address names no company, so the
-   person is asked for a name, and anyone whose domain gives a name or an address
-   that will not do (a kept one such as `admin`, one that is taken, one too short)
-   is asked for those two. The address is a field of its own and not the domain,
-   so a company can be renamed or hold two domains without moving its links.
+   suffix list: `ada@acme-research.com` makes "Acme Research", and `mail.acme.co.uk`
+   makes "Acme". Its address is the whole registrable domain, hyphenated:
+   `acme-research-com` for `acme-research.com` and `acme-research-co` for
+   `acme-research.co`. A domain is one company's alone, so two companies whose names
+   are alike each have an address, and neither is put behind the other for arriving
+   first. A free mail address names no company, so the person is asked for a name,
+   and the address is made from it.
 3. The person, the organisation and the organisation's directory are made, the
    person is signed in, and a verification link is mailed.
 4. Until the link is followed, the organisation may run a small trial. Following
@@ -143,31 +144,26 @@ file name, and only the hash of a link's secret is stored.
 
 ### A company's domain
 
-The first organisation whose admin confirms an address at a company's domain has
-the domain, and the claim is a file made exclusively, so two confirmed together
-cannot both have it. Signing up claims nothing, because anybody can type an address
-they do not own. A second sign-up from a claimed domain is told the company already
-has an organisation and to ask its admin to invite them. An organisation that was
-made before the claim and confirms afterwards is verified as a person, keeps the
-trial, and says on its page that the domain is another's. A free mail domain is
-nobody's to claim.
+A company can have more than one organisation: subsidiaries, divisions and teams
+that keep apart, with people at the same domain. The first organisation at a domain
+has the address the domain gives. Each after it is named by whoever makes it, and its
+address is made from that name. A second sign-up at a domain with no name is asked for
+one, and is told the company already has an organisation, in case they meant to ask
+its admin for an invitation. Every organisation's page shows its domain, since two
+organisations can have the same name.
 
-A confirmed link proves one mailbox and not the domain, so nobody joins an
-organisation by having an address at its domain. That waits for a DNS record that
-shows the domain is the admin's (getlatentic/planning#396), and until then people
-join by invitation.
+A domain is written in its ASCII form, so a lookalike spelled with letters from another
+alphabet is a different domain and is not given a name to show.
 
-| | Unverified | Verified |
-| --- | --- | --- |
-| Jobs in total | 3 | 200 a month |
-| Jobs at once | 1 | 4 |
-| Invite colleagues | no | yes |
-| People in all | 1 | 4 |
-| Computers | 1 | 4 |
+What is limited is organisations whose admin has not confirmed their address, three
+for one domain by default. A company with all of its organisations confirmed can have
+as many as it has people to make them.
 
-The numbers are settings. `quota.json` in the organisation's directory is where
-the organisation's server reads them, through `HAAS_QUOTA`, and
-[LIMITS.md](LIMITS.md) says what the server does with them.
+A confirmed link proves one mailbox and not the domain, so it decides nothing about who
+owns a domain and nobody joins an organisation by having an address at it. That waits
+for a DNS record that shows the domain is the admin's (getlatentic/planning#396),
+which is also what will give an organisation a mark that its domain is proven. Until
+then people join by invitation.
 
 ### Abuse limits
 
@@ -176,7 +172,7 @@ the organisation's server reads them, through `HAAS_QUOTA`, and
 | Sign-up attempts from one address, refused ones too | 10 an hour |
 | Mail to one address | 3 an hour |
 | Sign-ups in all | 200 an hour |
-| Organisations that have not yet claimed one email domain | 3 |
+| Organisations for one company domain whose admin has not confirmed their address | 3 |
 
 A sign-in link is always answered the same way, whether or not the address has
 an account, so the form cannot be used to find out who is a customer.

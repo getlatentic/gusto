@@ -79,16 +79,17 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := front.Store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"}); err != nil {
+	_, org, err := front.Store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err != nil {
 		t.Fatal(err)
 	}
 	// The organisation's server, as it would be started: a jobs directory of its
 	// own under the organisation's data directory, and the quota the front door wrote.
-	index, err := jobs.Open(filepath.Join(front.Store.DataDir("acme"), "jobs"))
+	index, err := jobs.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	index.UseQuota(quota.Open(front.Store.QuotaFile("acme")))
+	index.UseQuota(quota.Open(front.Store.QuotaFile(org.Slug)))
 
 	start := func(brief string) error {
 		id, err := index.Reserve(brief, time.Now())

@@ -4,12 +4,15 @@
 package cloud
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/mail"
 	"regexp"
 	"strings"
 	"unicode"
 
+	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -26,8 +29,11 @@ var (
 	ErrDomainFull   = errors.New("this company already has the most organisations it may make, so ask an admin there to invite you")
 	// ErrNeedName is a sign-up with no name for an organisation, from an address
 	// that is not a company's, so its name cannot come from the domain.
-	ErrNeedName      = errors.New("that address is not a company's, so give your organisation a name")
-	ErrDomainClaimed = errors.New("this company already has an organisation here, so ask its admin to invite you")
+	ErrNeedName = errors.New("that address is not a company's, so give your organisation a name")
+	// ErrSameCompany is a sign-up at a domain that has an organisation already,
+	// with no name for this one: a company can have several, a subsidiary or a
+	// team, and each has a name of its own.
+	ErrSameCompany = errors.New("this company already has an organisation here, so name this one, a subsidiary or a team, or ask its admin to invite you")
 )
 
 // freeMail is the providers a person has for themselves and not for a company.
@@ -67,7 +73,13 @@ func NormalEmail(text string) (string, error) {
 	if !found || local == "" || len(local) > 64 || !strings.Contains(domain, ".") || strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") || strings.Contains(domain, "..") {
 		return "", ErrBadEmail
 	}
-	return local + "@" + domain, nil
+	// A domain is kept in its ASCII form, so a lookalike written with letters from
+	// another alphabet is the different domain it is, and not a copy of a company's.
+	ascii, err := idna.Lookup.ToASCII(domain)
+	if err != nil || ascii == "" {
+		return "", ErrBadEmail
+	}
+	return local + "@" + ascii, nil
 }
 
 // DomainOf is what follows the @ of a normal address.
@@ -114,6 +126,15 @@ var reserved = setOf("www", "api", "app", "admin", "cloud", "static", "mail", "s
 // SlugFor is the address a name suggests: its letters and digits, joined by
 // hyphens. It may be too short to use, and then a person picks one.
 func SlugFor(name string) string {
+	slug := slugify(name)
+	if len(slug) > 32 {
+		slug = strings.Trim(slug[:32], "-")
+	}
+	return slug
+}
+
+// slugify is a name's letters and digits, lower case, joined by single hyphens.
+func slugify(name string) string {
 	var out strings.Builder
 	hyphen := false
 	for _, r := range strings.ToLower(name) {
@@ -126,11 +147,7 @@ func SlugFor(name string) string {
 			hyphen = true
 		}
 	}
-	slug := strings.Trim(out.String(), "-")
-	if len(slug) > 32 {
-		slug = strings.Trim(slug[:32], "-")
-	}
-	return slug
+	return strings.Trim(out.String(), "-")
 }
 
 // ValidSlug says whether an address can name an organisation.
@@ -164,11 +181,31 @@ func FromDomain(domain string) (name string, err error) {
 	if freeMail[domain] || disposable[domain] {
 		return "", ErrNeedName
 	}
-	words := strings.Split(company(domain), "-")
+	label := company(domain)
+	// A company written in another alphabet has a label that is not a name to show.
+	if strings.HasPrefix(label, "xn--") {
+		return "", ErrNeedName
+	}
+	words := strings.Split(label, "-")
 	for i, word := range words {
-		if word != "" {
-			words[i] = strings.ToUpper(word[:1]) + word[1:]
+		if r := []rune(word); len(r) > 0 {
+			words[i] = string(unicode.ToUpper(r[0])) + string(r[1:])
 		}
 	}
 	return strings.Join(strings.Fields(strings.Join(words, " ")), " "), nil
+}
+
+// AddressFor is the address a company's domain gives its organisation: the whole
+// of its registrable domain, hyphenated, so acme-research.com is acme-research-com
+// and acme-research.co is acme-research-co. A domain is one company's alone, so
+// nobody is put ahead of another by arriving first, and nobody is asked to take
+// a worse address. One too long for an address is cut and given a digest of the
+// whole, so two long domains that begin alike stay two.
+func AddressFor(registrable string) string {
+	slug := slugify(strings.ReplaceAll(registrable, ".", "-"))
+	if len(slug) <= 32 {
+		return slug
+	}
+	sum := sha256.Sum256([]byte(registrable))
+	return strings.Trim(slug[:23], "-") + "-" + hex.EncodeToString(sum[:])[:8]
 }
