@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 // onlyBuiltIn is a site whose harnesses are the ones every haas has, so what the
@@ -225,4 +227,30 @@ func TestAHarnessNamedAsAPathIsRefusedBeforeAnythingIsWritten(t *testing.T) {
 		t.Fatalf("the reason is %q", answer.Refused)
 	}
 	site.nothing(t)
+}
+
+// An organisation over its limit is told so, and can tell that from a fault:
+// the answer is "too many" with the reason and how to lift it, and nothing is
+// left on disk.
+func TestAJobPastTheOrganisationsQuotaIsAnswered429WithTheReason(t *testing.T) {
+	site := onlyBuiltIn(t)
+	path := filepath.Join(t.TempDir(), "quota.json")
+	if err := quota.Write(path, quota.Quota{Jobs: 1, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."}); err != nil {
+		t.Fatal(err)
+	}
+	site.index.UseQuota(quota.Open(path))
+
+	if code, answer := site.send(t, password, Submission{Spec: aJob()}); code != http.StatusCreated {
+		t.Fatalf("the first job is within the quota: %d %+v", code, answer)
+	}
+	code, answer := site.send(t, password, Submission{Spec: aJob()})
+	if code != http.StatusTooManyRequests {
+		t.Fatalf("the second job is over it: %d %+v", code, answer)
+	}
+	if !strings.Contains(answer.Refused, "1 job in all") || !strings.Contains(answer.Refused, "Confirm the admin's email address") {
+		t.Errorf("the refusal should say what was allowed and how to lift it: %q", answer.Refused)
+	}
+	if len(site.index.List()) != 1 {
+		t.Errorf("the refused job is in the index: %d jobs", len(site.index.List()))
+	}
 }

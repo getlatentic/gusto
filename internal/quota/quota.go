@@ -42,7 +42,11 @@ func (q Quota) Refuse(started int) error {
 	if q.Monthly {
 		within = "a month"
 	}
-	message := fmt.Sprintf("This organisation may start %d jobs %s and has started %d.", q.Jobs, within, started)
+	jobs := "jobs"
+	if q.Jobs == 1 {
+		jobs = "job"
+	}
+	message := fmt.Sprintf("This organisation may start %d %s %s and has started %d.", q.Jobs, jobs, within, started)
 	if q.Note != "" {
 		message += " " + q.Note
 	}

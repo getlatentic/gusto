@@ -1,11 +1,18 @@
 package main
 
 import (
+	"errors"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
@@ -59,5 +66,56 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 				t.Errorf("%v", err)
 			}
 		})
+	}
+}
+
+// The criterion the story ends on: a sign-up cannot make more than a small amount
+// of work until it is verified. The front door writes the limit and the
+// organisation's own server enforces it, and confirming the address lifts it
+// without the server being restarted.
+func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
+	t.Setenv("HAAS_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
+	front, err := openCloud()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := front.Store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"}); err != nil {
+		t.Fatal(err)
+	}
+	// The organisation's server, as it would be started: a jobs directory of its
+	// own under the organisation's data directory, and the quota the front door wrote.
+	index, err := jobs.Open(filepath.Join(front.Store.DataDir("acme"), "jobs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	index.UseQuota(quota.Open(front.Store.QuotaFile("acme")))
+
+	start := func(brief string) error {
+		id, err := index.Reserve(brief, time.Now())
+		if err != nil {
+			return err
+		}
+		record := jobs.Record{ID: id, State: jobs.Queued, Brief: brief, Harness: "fixture", Asked: "ada@acme.com", Queued: jobs.Now()}
+		if err := os.MkdirAll(record.Dir(index.Root()).Path(), 0o755); err != nil {
+			return err
+		}
+		return index.Add(record)
+	}
+	for _, brief := range []string{"one", "two", "three"} {
+		if err := start(brief); err != nil {
+			t.Fatalf("%s is within the trial: %v", brief, err)
+		}
+	}
+	err = start("four")
+	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "3 jobs in all") || !strings.Contains(err.Error(), "Confirm the admin's email address") {
+		t.Fatalf("the fourth job is over the trial, and the refusal says how to lift it: %v", err)
+	}
+
+	if _, err := front.Store.Verify("ada@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1100 * time.Millisecond)
+	if err := start("four"); err != nil {
+		t.Errorf("verifying lifts the limit for the running server: %v", err)
 	}
 }
