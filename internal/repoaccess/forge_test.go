@@ -53,6 +53,9 @@ type forge struct {
 	refused    int
 	// root is where the forge keeps its bare repositories.
 	root string
+	// flake is how many authorised git requests the forge answers "not found"
+	// to before it answers properly, as GitHub's git servers sometimes do.
+	flake int
 }
 
 func newForge(t *testing.T) *forge {
@@ -227,12 +230,21 @@ func (f *forge) gated(next http.Handler) http.Handler {
 				ok = user == "x-access-token" && f.live[token]
 			}
 		}
+		flaking := false
+		if ok && f.flake > 0 {
+			f.flake--
+			ok, flaking = false, true
+		}
 		if ok {
 			f.authorised++
 		} else {
 			f.refused++
 		}
 		f.guard.Unlock()
+		if flaking {
+			http.Error(w, "Repository not found.", http.StatusNotFound)
+			return
+		}
 		if !ok {
 			w.Header().Set("WWW-Authenticate", `Basic realm="forge"`)
 			http.Error(w, "authentication required", http.StatusUnauthorized)
