@@ -229,6 +229,30 @@ can remove a person, but not themselves or the last admin. A removed person is s
 of the front door at once, and the organisation's own server stops trusting them within
 the hour it last did. Twenty invitations an hour are allowed for one organisation.
 
+## Computers
+
+A person's jobs run in their own computer, made the first time they run one and kept
+after it. Their record is in the organisation's directory (`internal/computer`), and the
+organisation's server is what makes it, since it reaches the gateway. Each job works in
+a directory of its own in the computer, at `/sandbox/jobs/<job>/workspace`, which is removed when
+the job ends, so what a person keeps is what they put in the rest of it and what their
+harnesses keep of their own. Each job's record has only its own part of the guard's log:
+the lines that were there when it began are not its.
+
+- A job asked for by a script or a token has no person, so it runs in a sandbox of its
+  own that goes when the job does.
+- A person's harnesses take turns, one job at a time in a computer, since they share its files.
+- A person past the organisation's number of computers is refused in their job's
+  record, with how to raise it, and nothing is made.
+- A computer nobody has used for half an hour, and no job of theirs is running, is stopped, which
+  keeps its files. It is started again for the next job. `HAAS_COMPUTER_IDLE_MINUTES`
+  changes the half hour.
+- Removing a person marks their computer, and the organisation's server removes it. The
+  front door only marks it because it does not reach the gateway, and because two processes
+  changing one record would lose a change.
+- `haas cloud computers` lists every computer on the host with its organisation and person.
+  An organisation's page shows its admin which people have one and how it is.
+
 ## What is built
 
 The controller provisions an organisation's directories, its signing key and its entry
