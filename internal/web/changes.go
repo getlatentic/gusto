@@ -1,0 +1,299 @@
+package web
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/getlatentic/haas/internal/changelog"
+)
+
+// UseChanges gives the server the log it records what changes in. Without one,
+// nothing is recorded and the pages that show it answer 404.
+func (s *Server) UseChanges(log *changelog.Log) { s.changes = log }
+
+// UseSettings records the settings that decide who may do what, as this server
+// started with them, and every one that differs from the last start. Whoever
+// changed them did it outside the pages, so the record says the server saw it.
+func (s *Server) UseSettings(now map[string]string) {
+	if s.changes == nil {
+		return
+	}
+	before := s.changes.LastSettings()
+	if len(before) > 0 {
+		for _, key := range differing(before, now) {
+			s.record(changelog.Event{Who: "the server", Kind: changelog.SettingsChanged,
+				What: map[string]string{"setting": key, "was": before[key], "now": now[key]}})
+		}
+	}
+	s.record(changelog.Event{Who: "the server", Kind: changelog.ServerStarted, What: now})
+}
+
+func differing(was, now map[string]string) []string {
+	var keys []string
+	seen := map[string]bool{}
+	for key := range was {
+		seen[key] = true
+	}
+	for key := range now {
+		seen[key] = true
+	}
+	for key := range seen {
+		if was[key] != now[key] {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// note records something the person making this request just did.
+func (s *Server) note(r *http.Request, kind string, what map[string]string) {
+	if s.changes == nil {
+		return
+	}
+	who, role, _ := s.keeper.session(r)
+	s.record(changelog.Event{Who: who, Role: string(role), From: clientOf(r), Kind: kind, What: what})
+}
+
+// record writes an event. A change has already happened by the time it is
+// written, so a failure to write is said loudly and does not undo it.
+func (s *Server) record(e changelog.Event) {
+	if _, err := s.changes.Append(e); err != nil {
+		slog.Error("a change could not be recorded", "kind", e.Kind, "error", err)
+	}
+}
+
+// noteSignIn records somebody signing in, and a role that is not the one they
+// last signed in with.
+func (s *Server) noteSignIn(r *http.Request, who string, role Role, how string) {
+	if s.changes == nil {
+		return
+	}
+	from := clientOf(r)
+	if was, known := s.changes.LastRole(who); known && was != string(role) {
+		s.record(changelog.Event{Who: who, Role: string(role), From: from, Kind: changelog.RoleChanged,
+			What: map[string]string{"was": was, "now": string(role)}})
+	}
+	s.record(changelog.Event{Who: who, Role: string(role), From: from, Kind: changelog.SignedIn, What: map[string]string{"how": how}})
+}
+
+// noteRefused records a sign-in that was turned away, and why. Anybody can cause
+// one, so a source that causes more than a few a minute has the rest counted and
+// not written, or the log would be a way to fill the disk.
+func (s *Server) noteRefused(r *http.Request, who, how, why string) {
+	if s.changes == nil {
+		return
+	}
+	from := clientOf(r)
+	what := map[string]string{"how": how, "why": why}
+	allowed, suppressed := s.turnedAway.allow(from, time.Now())
+	if !allowed {
+		return
+	}
+	if suppressed > 0 {
+		what["suppressed"] = fmt.Sprint(suppressed)
+	}
+	s.record(changelog.Event{Who: who, From: from, Kind: changelog.Refused, What: what})
+}
+
+// refusals counts sign-ins turned away, by where they came from.
+type refusals struct {
+	mu      sync.Mutex
+	sources map[string]*window
+}
+
+type window struct {
+	from       time.Time
+	written    int
+	suppressed int
+}
+
+const (
+	refusalsPerMinute = 10
+	refusalWindow     = time.Minute
+)
+
+// allow says whether this refusal is written, and how many from the same source
+// were not since the last that was.
+func (f *refusals) allow(from string, now time.Time) (bool, int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.sources == nil {
+		f.sources = map[string]*window{}
+	}
+	for key, w := range f.sources {
+		if now.Sub(w.from) > 10*refusalWindow {
+			delete(f.sources, key)
+		}
+	}
+	w := f.sources[from]
+	if w == nil {
+		w = &window{from: now}
+		f.sources[from] = w
+	}
+	if now.Sub(w.from) > refusalWindow {
+		w.from, w.written = now, 0
+	}
+	if w.written >= refusalsPerMinute {
+		w.suppressed++
+		return false, 0
+	}
+	w.written++
+	carried := w.suppressed
+	w.suppressed = 0
+	return true, carried
+}
+
+// clientOf is where a request came from. The address a reverse proxy on this
+// machine forwards is believed, and one from anywhere else is not, because
+// anybody can write that header.
+func clientOf(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		if forwarded, _, _ := strings.Cut(r.Header.Get("X-Forwarded-For"), ","); strings.TrimSpace(forwarded) != "" {
+			return strings.TrimSpace(forwarded)
+		}
+	}
+	return host
+}
+
+// adminPage answers 404 to anybody who is not an admin: what they may not see
+// is not something they need to know is there.
+func (s *Server) adminPage(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.changes == nil || !s.admin(r) {
+			http.NotFound(w, r)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// changesFile is the whole log, as the file holds it, for an admin to export
+// and for a verifier to check.
+func (s *Server) changesFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="changes.jsonl"`)
+	http.ServeFile(w, r, s.changes.Path())
+}
+
+// changesScript is the same file for a script with the shared password.
+func (s *Server) changesScript(w http.ResponseWriter, r *http.Request) {
+	if s.changes == nil {
+		http.NotFound(w, r)
+		return
+	}
+	s.changesFile(w, r)
+}
+
+// shownChanges is how many of the newest events the page lists.
+const shownChanges = 200
+
+// row is one event as the page says it.
+type row struct {
+	At   string
+	Who  string
+	Said string
+	From string
+}
+
+func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
+	page := map[string]any{"Title": "haas — changes", "Nav": "changes", "Admin": true, "Shown": shownChanges}
+	if file, err := os.Open(s.changes.Path()); err == nil {
+		report, verr := changelog.Verify(file, s.keyring)
+		file.Close()
+		page["Events"], page["Head"] = report.Events, report.Head
+		page["Signed"], page["Unsigned"] = report.Signed, report.Unsigned
+		if verr != nil {
+			page["Broken"] = verr.Error()
+		}
+	}
+	page["Rows"] = s.recentChanges()
+	s.render(w, "changes.html", page)
+}
+
+// recentChanges is the newest events first.
+func (s *Server) recentChanges() []row {
+	file, err := os.Open(s.changes.Path())
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+	var rows []row
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 64*1024), 4<<20)
+	for scanner.Scan() {
+		var e changelog.Event
+		if json.Unmarshal(scanner.Bytes(), &e) != nil {
+			continue
+		}
+		at := e.At
+		if when, err := time.Parse(time.RFC3339Nano, e.At); err == nil {
+			at = when.UTC().Format("2 Jan 2006 15:04:05 UTC")
+		}
+		rows = append(rows, row{At: at, Who: whoOf(e), Said: saidOf(e), From: e.From})
+	}
+	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
+		rows[i], rows[j] = rows[j], rows[i]
+	}
+	if len(rows) > shownChanges {
+		rows = rows[:shownChanges]
+	}
+	return rows
+}
+
+func whoOf(e changelog.Event) string {
+	if e.Who == "" {
+		return "nobody signed in"
+	}
+	return e.Who
+}
+
+// saidOf says an event in words a person reads.
+func saidOf(e changelog.Event) string {
+	w := e.What
+	switch e.Kind {
+	case changelog.SignedIn:
+		return fmt.Sprintf("signed in as %s, with %s", or(e.Role, "no role"), or(w["how"], "an unknown method"))
+	case changelog.Refused:
+		said := "was refused with " + or(w["how"], "an unknown method") + ": " + or(w["why"], "no reason given")
+		if w["suppressed"] != "" {
+			said += " (" + w["suppressed"] + " more from here were not written)"
+		}
+		return said
+	case changelog.SignedOut:
+		return "signed out"
+	case changelog.RoleChanged:
+		return fmt.Sprintf("role changed from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
+	case changelog.SetupSaved:
+		return fmt.Sprintf("%s skill set %s, with tools: %s", w["action"], w["setup"], or(w["servers"], "none"))
+	case changelog.SkillWritten:
+		return fmt.Sprintf("wrote the skill %s in %s", w["skill"], w["setup"])
+	case changelog.SkillDropped:
+		return fmt.Sprintf("removed the skill %s from %s", w["skill"], w["setup"])
+	case changelog.ServerStarted:
+		return "the server started"
+	case changelog.SettingsChanged:
+		return fmt.Sprintf("the setting %s changed from %q to %q", w["setting"], w["was"], w["now"])
+	}
+	return e.Kind
+}
+
+func or(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}

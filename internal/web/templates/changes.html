@@ -1,0 +1,34 @@
+{{template "head" .}}
+
+<div class="page-head">
+  <h1>Changes</h1>
+  <p class="muted">Who signed in, who was refused, and who changed a setup or a setting. The server can only add to this record, and each line names the one before it, so an edit shows.</p>
+</div>
+
+{{if .Broken}}
+<p class="refused">This record does not hold together. {{.Broken}}</p>
+{{else}}
+<section class="panel">
+  <p>{{.Events}} event{{if ne .Events 1}}s{{end}}, and the chain holds{{if .Signed}}; {{.Signed}} signed{{end}}{{if .Unsigned}}; {{.Unsigned}} not signed{{end}}.</p>
+  {{if .Head}}<p class="muted">Its head is <code>{{.Head}}</code>. Keep it: <code>haas changes verify -head {{.Head}} changes.jsonl</code> says later whether lines were cut off the end.</p>{{end}}
+  <p><a href="/changes.jsonl">Download the whole record</a> to check it with <code>haas changes verify</code>.</p>
+</section>
+{{end}}
+
+{{if .Rows}}
+<section class="panel">
+  <table>
+    <thead><tr><th>When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr><td>{{.At}}</td><td>{{.Who}}</td><td>{{.Said}}</td><td class="muted">{{.From}}</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+  <p class="muted">The newest {{.Shown}}, newest first.</p>
+</section>
+{{else}}
+<p class="muted">Nothing has been recorded yet.</p>
+{{end}}
+
+{{template "foot" .}}

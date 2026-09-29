@@ -55,6 +55,8 @@ services:
       HAAS_JOBS: ${HAAS_DATA:-/var/lib/haas}/jobs
       HAAS_SESSIONS: ${HAAS_DATA:-/var/lib/haas}/sessions
       HAAS_SETUPS: ${HAAS_DATA:-/var/lib/haas}/setups
+      HAAS_CHANGES: ${HAAS_DATA:-/var/lib/haas}/changes/changes.jsonl
+      HAAS_COMPARISONS: ${HAAS_DATA:-/var/lib/haas}/comparisons
       DOCKER_HOST: unix:///run/haas/runtime.sock
     ports:
       # Loopback by default: the shared password travels in the clear over

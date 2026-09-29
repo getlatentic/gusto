@@ -55,6 +55,7 @@
     - { name: signing, mode: "0700" }
     - { name: keyring, mode: "0755" }
     - { name: github, mode: "0700" }
+    - { name: changes, mode: "0750" }
 
 - name: The signing key
   ansible.builtin.command:
@@ -72,6 +73,30 @@
     group: "{{ app_user }}"
     mode: "0644"
   notify: Restart haas
+
+# The record of what changes on the platform. The server opens it to append, and
+# where the filesystem allows it the file is made append-only, so not even the
+# user the server runs as can rewrite or shorten it.
+- name: The change log's file
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ app_root }}/var/changes/changes.jsonl"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+    force: false
+
+- name: The change log takes appends only
+  ansible.builtin.file:
+    path: "{{ app_root }}/var/changes/changes.jsonl"
+    attributes: "+a"
+  register: append_only
+  failed_when: false
+
+- name: Say when the change log could not be made append-only
+  ansible.builtin.debug:
+    msg: "the change log is hash-chained and signed, but this filesystem would not make it append-only: {{ append_only.msg | default('') }}"
+  when: append_only is failed or (append_only.failed | default(false))
 
 # The App's key is the one long-lived secret for reaching repositories: every
 # token a job gets is minted from it, for one repository, and revoked after. The
