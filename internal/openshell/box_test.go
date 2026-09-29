@@ -408,3 +408,44 @@ func TestAHarnessIsToldItsOwnSandboxIsNotNeededInsideOne(t *testing.T) {
 		t.Errorf("outside a box the argument stays: %q", got)
 	}
 }
+
+// A gateway that is staging as many archives as it will at once refuses a sandbox
+// for a moment. A job that starts with several others is not failed for it: the
+// sandbox is asked for again, and any other refusal is still a refusal.
+func TestASandboxIsAskedForAgainWhileTheGatewaysStagingSlotsAreBusy(t *testing.T) {
+	root := installFake(t)
+	openshell.SetRetry(5*time.Second, time.Millisecond)
+	defer openshell.SetRetry(2*time.Minute, time.Second)
+	dir, _ := aJob(t)
+
+	write(t, filepath.Join(root, "busy"), "3")
+	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+		t.Fatalf("a busy gateway should be waited for: exit %d, %v", exit, err)
+	}
+	if left, _ := os.ReadFile(filepath.Join(root, "busy")); strings.TrimSpace(string(left)) != "0" {
+		t.Errorf("the sandbox should have been asked for four times, after three refusals: %q left", left)
+	}
+
+	// A gateway that stays busy past the time allowed is an error, and says why.
+	openshell.SetRetry(50*time.Millisecond, time.Millisecond)
+	write(t, filepath.Join(root, "busy"), "100000")
+	other, _ := aJob(t)
+	if _, err := runner.Outside(other, sandboxFor(t, other)); err == nil || !strings.Contains(err.Error(), "staging slot") {
+		t.Errorf("a gateway that never has room is a failure that names the slots: %v", err)
+	}
+}
+
+func TestAnyOtherRefusalToMakeASandboxIsNotAskedAgain(t *testing.T) {
+	root := installFake(t)
+	openshell.SetRetry(5*time.Second, time.Millisecond)
+	defer openshell.SetRetry(2*time.Minute, time.Second)
+	dir, _ := aJob(t)
+	write(t, filepath.Join(root, "broken"), "")
+	if _, err := runner.Outside(dir, sandboxFor(t, dir)); err == nil || !strings.Contains(err.Error(), "cannot make this sandbox") {
+		t.Fatalf("%v", err)
+	}
+	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
+	if n := strings.Count(string(calls), "sandbox create"); n != 1 {
+		t.Errorf("a refusal that is not about slots was asked %d times", n)
+	}
+}
