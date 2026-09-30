@@ -57,6 +57,14 @@ type view struct {
 	// Computers of each member by address, for the people who have one.
 	ComputerOf map[string]string
 	Inviter    string
+	// A demo: the time it has, the state of its server in words, where a call is booked, and whether it may be extended.
+	DemoLeft   time.Duration
+	DemoWords  string
+	Book       string
+	Extendable bool
+	Ended      bool
+	// Name is who a demo is for.
+	Name string
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {

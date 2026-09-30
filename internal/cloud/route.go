@@ -100,7 +100,9 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 	address, state := s.Controller.Route(slug)
 	if state == "" {
 		if _, found, _ := s.Store.Org(slug); !found {
-			http.NotFound(w, r)
+			if !s.demoEnded(w, slug) {
+				http.NotFound(w, r)
+			}
 			return
 		}
 		state = Provisioning
