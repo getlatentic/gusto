@@ -38,7 +38,10 @@ aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sh
 # Nothing of the bundle is run until it is the one CI made.
 (cd "$tmp" && sha256sum -c bundle.tgz.sha256)
 tar -xzf "$tmp/bundle.tgz" -C "$dir"
-aws ssm get-parameter --name /haas/poc/demo-config --query Parameter.Value --output text > "$dir/demo-vars.json"
+# The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
+# into a variable.
+demo_vars=$(aws ssm get-parameter --name /haas/poc/demo-config --query Parameter.Value --output text)
+printf '%s\n' "$demo_vars" > "$dir/demo-vars.json"
 
 if [ "$LIVE" = on ]; then
   mkdir -p "$(dirname "$live_env")"
