@@ -99,6 +99,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		// Where a host that has a lease is extended, which is at the front door.
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,
+		"costOf":      s.costOf,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err

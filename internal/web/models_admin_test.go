@@ -299,3 +299,30 @@ func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *test
 }
 
 func bob2() string { return "someone@example.com" }
+
+func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
+	here, reg, offered := registered(t, registry.Rules{})
+	ledger := spend.NewLedger(spend.Policy{Prices: map[string]spend.Price{"platform/qwen": {InputPerMillion: 1, OutputPerMillion: 2}}})
+	here.server.UseLedger(ledger)
+	reg.OnChange(func(e registry.Effective) {
+		ledger.SetPrices(e.Prices)
+		m := Models{"": e.Models}
+		offered.Store(&m)
+	})
+	admin := here.as(t, boss)
+	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}, "input": {"0.25"}, "output": {"1.5"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"free-ish"}})
+	page := here.as(t, alice).ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
+	for _, want := range []string{"platform/qwen · $1 in, $2 out per million tokens", "acme/big · $0.25 in, $1.5 out per million tokens", "acme/free-ish · no price"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the chooser does not say %q:\n%s", want, page)
+		}
+	}
+	none := open(t)
+	none.server.UseLedger(spend.NewLedger(spend.Policy{}))
+	none.signIn(t)
+	if strings.Contains(none.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(), "no price") {
+		t.Error("a deployment with no prices at all says so against every model")
+	}
+}
