@@ -97,7 +97,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	mail, err := cloud.MailFrom(os.Getenv("HAAS_CLOUD_MAIL"), filepath.Join(root, "outbox"))
+	mail, err := cloud.MailFrom(os.Getenv("HAAS_CLOUD_MAIL"), filepath.Join(root, "outbox"), os.Getenv("HAAS_CLOUD_MAIL_TOKEN"))
 	if err != nil {
 		return nil, nil, err
 	}

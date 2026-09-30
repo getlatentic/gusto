@@ -1,0 +1,21 @@
+---
+# The name organisations are served under, and the zone in Cloudflare it belongs to.
+demo_region: us-east-1
+demo_name: ""
+demo_zone: ""
+demo_bucket: ""
+# cloudflare://<account id>?from=..., or smtp://..., or outbox.
+demo_mail: ""
+demo_cert_email: ""
+demo_free_mail: allow
+demo_image_key: ""
+demo_models: platform/qwen.qwen3-vl-235b-a22b-instruct
+demo_computer_memory: 3Gi
+demo_computer_cpu: "2"
+demo_dns_token_parameter: /haas/poc/cloudflare-dns-token
+demo_mail_token_parameter: /haas/poc/cloudflare-mail-token
+demo_model_parameter: /haas/poc/model-key
+demo_deepseek_parameter: /haas/poc/deepseek-key
+demo_user: ubuntu
+demo_state: /var/lib/haas-cloud
+demo_lib: /var/lib/haas

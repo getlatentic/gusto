@@ -40,10 +40,10 @@ func TestTheOutboxKeepsWhatAPersonWouldRead(t *testing.T) {
 }
 
 func TestMailSettingsAreReadOrRefusedByName(t *testing.T) {
-	if m, err := MailFrom("", t.TempDir()); err != nil || m == nil {
+	if m, err := MailFrom("", t.TempDir(), ""); err != nil || m == nil {
 		t.Errorf("no setting means the outbox: %v", err)
 	}
-	m, err := MailFrom("smtp://user:p%40ss@mail.example.com:587?from=haas@example.com", "")
+	m, err := MailFrom("smtp://user:p%40ss@mail.example.com:587?from=haas@example.com", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestMailSettingsAreReadOrRefusedByName(t *testing.T) {
 		t.Errorf("%+v", got)
 	}
 	for _, bad := range []string{"smtp://mail.example.com:587", "http://x", "smtp://", "nonsense"} {
-		if _, err := MailFrom(bad, ""); err == nil {
+		if _, err := MailFrom(bad, "", ""); err == nil {
 			t.Errorf("%q should be refused", bad)
 		}
 	}

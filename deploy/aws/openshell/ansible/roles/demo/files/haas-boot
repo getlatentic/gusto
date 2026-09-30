@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Runs as root when a demo host starts, before nginx and haas cloud. It reads the tokens
+# from Parameter Store, has a certificate for the wildcard name, has the runner image,
+# builds the model credentials, and last of all points the name at this host.
+#
+# A certificate is kept in the store and reused until it has under 30 days left, because
+# Let's Encrypt allows five certificates a week for one set of names and a host that
+# asked for a new one at every start would run out of them.
+#
+# The paths can be moved with HAAS_RUN, HAAS_LE, HAAS_LIB and HAAS_CONF, and the owner of the
+# files with HAAS_OWNER (empty leaves them alone), which is how a test runs it.
+set -euo pipefail
+CONF=${HAAS_CONF:-/etc/haas/demo.conf}
+run=${HAAS_RUN:-/run/haas}
+le=${HAAS_LE:-/etc/letsencrypt}
+lib=${HAAS_LIB:-/var/lib/haas}
+owner=${HAAS_OWNER-ubuntu}
+# shellcheck disable=SC1090
+. "$CONF"
+export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=/usr/local/bin:/snap/bin:$PATH
+
+own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
+param() { aws ssm get-parameter --with-decryption --name "$1" --query Parameter.Value --output text; }
+
+install -d -m 0755 "$run" "$lib"
+install -d -m 0700 "$run/secrets"
+(
+  umask 077
+  # Each is read into a variable first: a failure inside an argument does not stop the script.
+  dns_token=$(param "$DNS_TOKEN_PARAMETER")
+  mail_token=$(param "$MAIL_TOKEN_PARAMETER")
+  printf '%s' "$dns_token" > "$run/secrets/cf-dns-token"
+  printf 'dns_cloudflare_api_token = %s\n' "$dns_token" > "$run/secrets/certbot-cf.ini"
+  printf 'HAAS_CLOUD_MAIL_TOKEN=%s\n' "$mail_token" > "$run/secrets/mail.env"
+)
+
+live=$le/live/$NAME
+if [ ! -e "$live/fullchain.pem" ]; then
+  fetched=$(mktemp)
+  if aws s3 cp "s3://$BUCKET/tls/$NAME.tgz" "$fetched" >/dev/null 2>&1; then
+    mkdir -p "$le" && tar xzf "$fetched" -C "$le"
+  fi
+  rm -f "$fetched"
+fi
+if ! openssl x509 -checkend $((30 * 86400)) -noout -in "$live/fullchain.pem" >/dev/null 2>&1; then
+  certbot certonly --non-interactive --agree-tos -m "$CERT_EMAIL" --cert-name "$NAME" \
+    --dns-cloudflare --dns-cloudflare-credentials "$run/secrets/certbot-cf.ini" --dns-cloudflare-propagation-seconds 30 \
+    -d "$NAME" -d "*.$NAME"
+  kept=$(mktemp)
+  tar czf "$kept" -C "$le" .
+  aws s3 cp "$kept" "s3://$BUCKET/tls/$NAME.tgz" >/dev/null
+  rm -f "$kept"
+fi
+
+image=$lib/runner-all-rootfs.tar.gz
+if [ "$(cat "$lib/image.key" 2>/dev/null || true)" != "$IMAGE_KEY" ] || [ ! -s "$image" ]; then
+  aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.tar.gz" "$image.part" >/dev/null
+  mv "$image.part" "$image"
+  printf '%s' "$IMAGE_KEY" > "$lib/image.key"
+  own "$lib"
+fi
+
+rm -rf "$run/creds"
+BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/haas/credentials.sh}" "$run/creds"
+chmod 0700 "$run/creds"
+own "$run/creds"
+
+token=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
+ip=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/public-ipv4)
+haas-dns -zone "$ZONE" -name "$NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
+echo "haas-boot: $NAME and *.$NAME point at $ip"
