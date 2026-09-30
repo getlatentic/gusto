@@ -139,6 +139,10 @@ files, so a changed asset fails the install.
 
 ## A demo host on a public name
 
+`demo-up.sh` is the way to try a change from a laptop. The way to make a host without one is the
+workflows described in `../platform/README.md`.
+
+
 `demo-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
 door and `https://<slug>.<name>` for each organisation, with a certificate and mail that
 arrive. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,

@@ -1,0 +1,45 @@
+# Removes the demo host now. It is told to power off, which has it take its DNS records away and
+# terminates it and its disk, and is terminated from here when it does not.
+name: demo down
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  down:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.HAAS_AWS_ROLE }}
+          aws-region: us-east-1
+      - name: Remove
+        run: |
+          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running,stopping \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          if [ -z "$up" ]; then echo "no host is up"; exit 0; fi
+          read -ra ids <<< "$up"
+          for id in "${ids[@]}"; do
+            aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$id" \
+              --parameters 'commands=["systemctl poweroff"]' --query Command.CommandId --output text \
+              || echo "$id could not be told to power off"
+          done
+          for _ in $(seq 1 20); do
+            # The backticks are a JMESPath literal, not a command.
+            # shellcheck disable=SC2016
+            left="$(aws ec2 describe-instances --instance-ids "${ids[@]}" \
+              --query 'Reservations[].Instances[?State.Name!=`terminated`].InstanceId' --output text)"
+            if [ -z "$left" ]; then echo "removed ${ids[*]}"; exit 0; fi
+            sleep 15
+          done
+          echo "still there after five minutes: terminating $left"
+          read -ra rest <<< "$left"
+          aws ec2 terminate-instances --instance-ids "${rest[@]}" >/dev/null

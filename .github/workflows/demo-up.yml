@@ -1,0 +1,70 @@
+# Launches a demo host of the public cloud from a release bundle, and says when it answers. The host
+# is made from the launch template and configures itself, and it removes itself when its lease
+# ends unless somebody extends it at /lease. Only main can run it.
+name: demo up
+
+on:
+  workflow_dispatch:
+    inputs:
+      lease_minutes:
+        description: How long the host has, in minutes. Anybody signed in extends it.
+        default: "30"
+      release:
+        description: The commit whose bundle it is made from. The newest when empty.
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  up:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.HAAS_AWS_ROLE }}
+          aws-region: us-east-1
+      - name: Launch
+        id: launch
+        env:
+          BUCKET: ${{ vars.HAAS_BUCKET }}
+          LEASE: ${{ inputs.lease_minutes }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          case "$LEASE" in ''|*[!0-9]*) echo "the lease is a number of minutes"; exit 1;; esac
+          [ "$LEASE" -ge 5 ] && [ "$LEASE" -le 240 ] || { echo "the lease is from 5 to 240 minutes"; exit 1; }
+          [ -n "$RELEASE" ] || RELEASE="$(aws s3 cp "s3://$BUCKET/releases/latest" -)"
+          aws s3api head-object --bucket "$BUCKET" --key "releases/$RELEASE/bundle.tgz" >/dev/null \
+            || { echo "there is no bundle for $RELEASE: run the demo bundle workflow"; exit 1; }
+          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          [ -z "$up" ] || { echo "a host is already up: $up"; exit 1; }
+          sed -e "s/@RELEASE@/$RELEASE/" -e "s/@BUCKET@/$BUCKET/" -e "s/@REGION@/$AWS_REGION/" \
+              -e "s/@LEASE_MINUTES@/$LEASE/" -e "s/@MAX_HOURS@/4/" deploy/aws/platform/user-data.sh > user-data.sh
+          # $Latest is EC2's word for the newest version of the template, not a variable.
+          # shellcheck disable=SC2016
+          id="$(aws ec2 run-instances --launch-template LaunchTemplateName=haas-poc-demo-host,Version='$Latest' \
+            --user-data file://user-data.sh --query 'Instances[0].InstanceId' --output text)"
+          echo "instance=$id" >> "$GITHUB_OUTPUT"
+          echo "launched $id from release $RELEASE at $(date -u +%H:%M:%S) UTC"
+      - name: Wait until it answers
+        env:
+          NAME: ${{ vars.HAAS_DEMO_NAME }}
+          LEASE: ${{ inputs.lease_minutes }}
+        run: |
+          for i in $(seq 1 100); do
+            if curl -fsS -m 10 "https://$NAME/healthz" >/dev/null 2>&1; then
+              echo "### Demo host up" >> "$GITHUB_STEP_SUMMARY"
+              echo "https://$NAME, answering after about $((i * 15)) s. It removes itself $LEASE minutes after it started unless it is extended at https://$NAME/lease." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "it did not answer in 25 minutes; the demo down workflow removes it"
+          exit 1
