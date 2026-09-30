@@ -88,19 +88,28 @@ func (m SMTP) Send(to, subject, body string) error {
 	return smtp.SendMail(m.Addr, auth, from.Address, []string{to}, text)
 }
 
-// MailFrom reads HAAS_CLOUD_MAIL: `outbox`, or
-// smtp://user:password@host:587?from=name@example.com.
-func MailFrom(setting, outbox string) (Mailer, error) {
+// MailFrom reads HAAS_CLOUD_MAIL: `outbox`,
+// smtp://user:password@host:587?from=name@example.com, or
+// cloudflare://<account id>?from=name@example.com, whose API token is given apart from
+// the setting so that it is kept where a secret is.
+func MailFrom(setting, outbox, cloudflareToken string) (Mailer, error) {
 	if setting == "" || setting == "outbox" {
 		return Outbox{Dir: outbox, From: "haas <no-reply@localhost>"}, nil
 	}
+	const usage = "HAAS_CLOUD_MAIL is outbox, smtp://user:password@host:587?from=name@example.com, or cloudflare://<account id>?from=name@example.com"
 	parsed, err := url.Parse(setting)
-	if err != nil || parsed.Scheme != "smtp" || parsed.Host == "" {
-		return nil, errors.New("HAAS_CLOUD_MAIL is outbox, or smtp://user:password@host:587?from=name@example.com")
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "smtp" && parsed.Scheme != "cloudflare") {
+		return nil, errors.New(usage)
 	}
 	from := parsed.Query().Get("from")
 	if _, err := mail.ParseAddress(from); err != nil {
 		return nil, errors.New("HAAS_CLOUD_MAIL needs ?from=name@example.com, the address the mail is sent from")
+	}
+	if parsed.Scheme == "cloudflare" {
+		if cloudflareToken == "" {
+			return nil, errors.New("HAAS_CLOUD_MAIL_TOKEN is the Cloudflare API token that may send mail, and it is not set")
+		}
+		return Cloudflare{Account: parsed.Host, Token: cloudflareToken, From: from, Wait: time.Second}, nil
 	}
 	password, _ := parsed.User.Password()
 	return SMTP{Addr: parsed.Host, User: parsed.User.Username(), Password: password, From: from}, nil
