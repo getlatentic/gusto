@@ -209,7 +209,7 @@ func lowered(members []string) []string {
 
 // demoSettings make the front door offer a demo when HAAS_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
 // from when it is ready, HAAS_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), HAAS_CLOUD_DEMO_MAX for the
-// most at once (5), HAAS_CLOUD_DEMO_PER_DAY for the most in a day (40), and HAAS_CLOUD_BOOK_URL for where a call is booked.
+// most at once (5), HAAS_CLOUD_DEMO_PER_DAY for the most in a day (40), HAAS_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and HAAS_CLOUD_BOOK_URL for where a call is booked.
 func demoSettings() cloud.DemoSettings {
 	length := number("HAAS_CLOUD_DEMO_MINUTES", 0)
 	if length == 0 {
@@ -222,5 +222,6 @@ func demoSettings() cloud.DemoSettings {
 		MaxOrgs:  number("HAAS_CLOUD_DEMO_MAX", 5),
 		PerDay:   number("HAAS_CLOUD_DEMO_PER_DAY", 40),
 		BookURL:  os.Getenv("HAAS_CLOUD_BOOK_URL"),
+		VideoURL: os.Getenv("HAAS_CLOUD_DEMO_VIDEO"),
 	}
 }
