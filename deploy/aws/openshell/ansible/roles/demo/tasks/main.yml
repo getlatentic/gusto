@@ -129,6 +129,7 @@
     url: "https://{{ demo_name }}/healthz"
   delegate_to: localhost
   become: false
+  when: demo_check_public | default(true) | bool
   register: answered
   until: answered.status == 200
   retries: 30

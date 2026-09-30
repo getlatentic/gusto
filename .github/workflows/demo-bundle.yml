@@ -1,0 +1,69 @@
+# A merge to main that changes what a demo host is made from puts a release bundle in the store
+# bucket, and the runner image too when the image itself changed. A host configures itself from the
+# newest bundle, so nothing is built or copied from anybody's machine. The AWS role can put objects
+# in the bucket and launch and remove hosts tagged for the project, and nothing else.
+name: demo bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - cmd/**
+      - internal/**
+      - go.mod
+      - go.sum
+      - Dockerfile
+      - image/**
+      - deploy/aws/openshell/**
+      - deploy/aws/platform/user-data.sh
+      - .github/workflows/demo-bundle.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: demo-bundle
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.HAAS_AWS_ROLE }}
+          aws-region: us-east-1
+      - name: The runner image, when it is not in the bucket
+        env:
+          BUCKET: ${{ vars.HAAS_BUCKET }}
+        run: |
+          key="$(deploy/aws/openshell/image-key.sh)"
+          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1; then
+            echo "the image $key is in the bucket"
+            exit 0
+          fi
+          docker build --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t haas-runner .
+          container="$(docker create haas-runner true)"
+          docker export "$container" | gzip -1 > image.tar.gz
+          aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
+          echo "made the image $key: $(du -h image.tar.gz | cut -f1)"
+      - name: The bundle
+        env:
+          BUCKET: ${{ vars.HAAS_BUCKET }}
+        run: |
+          deploy/aws/openshell/bundle.sh out
+          prefix="s3://$BUCKET/releases/$GITHUB_SHA"
+          aws s3 cp out/bundle.tgz "$prefix/bundle.tgz" --only-show-errors
+          aws s3 cp out/bundle.tgz.sha256 "$prefix/bundle.tgz.sha256" --only-show-errors
+          printf '%s' "$GITHUB_SHA" | aws s3 cp - "s3://$BUCKET/releases/latest" --only-show-errors
+          echo "release $GITHUB_SHA is the latest"
