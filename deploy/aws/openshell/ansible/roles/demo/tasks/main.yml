@@ -104,6 +104,13 @@
     enabled: true
   loop: [nginx, haas-cloud]
 
+# nginx starts when it is installed, with its default site, and a play that fails drops
+# the reloads it had queued, so the site is loaded here every time, once its certificate is there.
+- name: The web server loads the site
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+
 - name: The name resolves from here, and the web server answers for it with a certificate that holds
   ansible.builtin.uri:
     url: "https://{{ demo_name }}/healthz"
