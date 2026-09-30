@@ -68,7 +68,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
+	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: unservedMarked(offered, models), models: models}
 	// The layout asks whether to link to the tokens page, and only a server
 	// that takes tokens has one.
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
@@ -114,6 +114,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
+	mux.HandleFunc("POST /instances/{id}/model", s.guard(s.changeModel))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))

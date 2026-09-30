@@ -60,6 +60,10 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
 		return
 	}
+	if why := s.unusable(wanted.Harness, wanted.Model); why != "" {
+		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
+		return
+	}
 	// Starting from the catalog names no model, so it gets the first this
 	// deployment offers *that harness* — not the first it offers at all, which
 	// may be one this harness cannot use.
@@ -105,6 +109,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Agent":     s.agentOf(held),
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
+		"Models":    s.models.For(held.Harness),
 		"Tasks":     s.tasks(held.ID),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
@@ -147,4 +152,54 @@ func (s *Server) firstReady() string {
 		}
 	}
 	return ""
+}
+
+// unusable says why a harness cannot be started on a model, or is empty when it can. An
+// agent is never started on a pair that cannot work, however the request was made.
+func (s *Server) unusable(harness, model string) string {
+	if !s.models.Serves(harness) {
+		return "no model this deployment offers works with " + harness
+	}
+	if model == "" {
+		return ""
+	}
+	if !s.models.Offers(harness, model) {
+		return harness + " cannot use " + modelName(model) + choose(s.models.For(harness))
+	}
+	return ""
+}
+
+// choose is what to say a person may use instead, when there is something.
+func choose(offered []string) string {
+	if len(offered) == 0 {
+		return ""
+	}
+	names := make([]string, len(offered))
+	for i, each := range offered {
+		names[i] = modelName(each)
+	}
+	return ": choose " + strings.Join(names, " or ")
+}
+
+// changeModel points an agent at another model its harness can use, from the next message
+// on. What was said so far stays as it was, and each turn's record names the model it ran on.
+func (s *Server) changeModel(w http.ResponseWriter, r *http.Request) {
+	held, found := s.mine(w, r)
+	if !found {
+		return
+	}
+	back := "/instances/" + held.ID
+	model := strings.TrimSpace(r.FormValue("model"))
+	if why := s.unusable(held.Harness, model); why != "" || model == "" {
+		if why == "" {
+			why = "choose a model"
+		}
+		s.turnAway(w, r, back, why)
+		return
+	}
+	if err := s.instances.SetModel(held.ID, model); err != nil {
+		s.turnAway(w, r, back, err.Error())
+		return
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }

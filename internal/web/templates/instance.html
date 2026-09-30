@@ -67,7 +67,11 @@
 <aside class="run-side">
   <section class="panel">
     <dl class="facts">
-      <dt>Model</dt><dd>{{.Agent.Brain}}</dd>
+      <dt>Model</dt>
+      <dd>{{if gt (len .Models) 1}}<form method="post" action="/instances/{{.Instance.ID}}/model" class="row">
+        <select name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}</option>{{end}}</select>
+        <button type="submit" class="quiet">Use</button>
+      </form>{{else}}{{.Agent.Brain}}{{end}}</dd>
       <dt>Engine</dt><dd>{{.Agent.Engine}}</dd>
       {{with .Instance.Setup}}<dt>Skills</dt><dd><a href="/setups/{{.}}">{{.}}</a></dd>{{end}}
       {{with .Instance.Repo}}<dt>Repository</dt><dd>{{.}}</dd>{{end}}

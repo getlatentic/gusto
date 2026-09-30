@@ -56,6 +56,12 @@ func openOffering(t *testing.T, entries []catalog.Entry) *site {
 
 func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry) *site {
 	t.Helper()
+	return buildOffering(t, root, keyring, entries, Everything([]string{"platform/test-model"}))
+}
+
+// buildOffering is a server that offers the models given, which are what an agent may think with.
+func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry, models Models) *site {
+	t.Helper()
 	index, err := jobs.Open(root)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +82,7 @@ func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(index, instances, queue, password, &Identity{}, entries, Everything([]string{"platform/test-model"}))
+	server, err := New(index, instances, queue, password, &Identity{}, entries, models)
 	if err != nil {
 		t.Fatal(err)
 	}
