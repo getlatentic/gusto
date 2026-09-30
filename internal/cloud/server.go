@@ -65,7 +65,7 @@ func New(c Config) (*Server, error) {
 	if c.InAll <= 0 {
 		c.InAll = 200
 	}
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "clock": clock}).ParseFS(files, "templates/*.html")
+	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "minuteLong": minuteLong, "clock": clock}).ParseFS(files, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
