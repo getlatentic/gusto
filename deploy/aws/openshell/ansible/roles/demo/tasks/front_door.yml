@@ -44,3 +44,11 @@
     - { src: /etc/nginx/sites-available/haas, dest: /etc/nginx/sites-enabled/haas, state: link }
     - { dest: /etc/nginx/sites-enabled/default, state: absent }
   notify: Reload nginx
+
+- name: The script a host for a cell is started with, where the front door may read it
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../user-data.sh"
+    dest: "{{ demo_cell_userdata }}"
+    mode: "0644"
+  when: demo_live | bool
+  notify: Restart the front door
