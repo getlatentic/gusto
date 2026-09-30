@@ -39,6 +39,10 @@ case "$cmd $sub" in
   cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${envs[@]}" "${mapped[@]}";;
 "sandbox download")
   dest=$5; mkdir -p "$dest"; cp -R "$root/$3$4/." "$dest/";;
+"service expose")
+  # The address a real gateway gives, on the port a test says its gateway is on.
+  echo "✓ Exposed service $5 on sandbox $3 -> 127.0.0.1:$4"; echo "  URL: http://default--$3--$5.openshell.localhost:${OPENSHELL_FAKE_GATEWAY_PORT:-18080}/"; echo "$3 $4 $5" >> "$root/exposed.log";;
+"service delete") echo "$3 $4" >> "$root/unexposed.log"; grep -q "^$3 .* $4$" "$root/exposed.log" 2>/dev/null || { echo "Error:   × service not found" >&2; exit 1; };;
 "sandbox ssh-config") printf 'Host openshell-%s.default\n    User sandbox\n' "$3";;
 "sandbox get") [ -d "$root/$3" ] && echo "Name: $3" || { echo "Error:   × sandbox not found" >&2; exit 1; };;
 "sandbox start") touch "$root/starts.log"; echo "$3" >> "$root/starts.log"; rm -f "$root/$3/stopped";;

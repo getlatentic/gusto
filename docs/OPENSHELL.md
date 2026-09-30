@@ -195,6 +195,19 @@ a port of the host. Asked with no credential and only the host name, the gateway
 so the URL has no sign-in of its own, and sharing with colleagues has to go through the
 organisation's own pages.
 
+haas shares such an app for a person. On an agent's page, "Share an app this agent built" takes the line that
+starts it and the port it listens on. The organisation's server runs the command in the agent's
+folder in the person's computer, with `PORT` and `HOST=0.0.0.0` set, gives the port an address on the
+gateway, and asks it until something answers. Only then is the link shown, at
+`/apps/<id>/` on the organisation's own address, and only signed-in members of the organisation can
+open it. The gateway's own address has no sign-in and is never given to a person: the server asks it as
+itself and passes the answer on, with the person's cookies and credentials taken out of the request.
+What comes back is treated as not this server's own. Its cookies are dropped, and it is sent with
+`Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-modals`, so the page runs
+with no origin of its own and cannot read or act on the person's session. An app that stops answering,
+and one that is stopped, no longer opens. A computer with an app people use is not stopped for being
+idle. Every agent is also given a skill, `haas-sandbox`, that says what follows.
+
 What the app has to know about the sandbox's network:
 
 - A server that listens on `::`, which is what Node's `listen(port)` does, resets an IPv4
