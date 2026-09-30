@@ -15,11 +15,6 @@ import (
 	"github.com/getlatentic/haas/internal/atomicfile"
 )
 
-// Source is how a key is read from where a provider's Key says it is.
-type Source interface {
-	Read(reference string) (string, error)
-}
-
 // Sources reads "stored" keys from a directory and the other kinds from where they say. Only the kinds an
 // operator allows are read; the rest are refused when a provider is added and again here.
 type Sources struct {
@@ -129,8 +124,5 @@ func (r *Registry) read(p Provider) (string, error) {
 		}
 		return held.Key, nil
 	}
-	if r.source == nil {
-		return "", errors.New("this deployment reads no keys from elsewhere")
-	}
-	return r.source.Read(p.Key)
+	return Sources{Allowed: r.Rules().KeySources, Run: r.run}.Read(p.Key)
 }

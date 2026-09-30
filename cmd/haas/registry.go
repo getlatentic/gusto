@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"os"
 	"sync/atomic"
 
 	"github.com/getlatentic/haas/internal/harness"
@@ -26,7 +27,7 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 	}
 	kinds := values("HAAS_REGISTRY_KEYS")
 	allowed := registry.Rules{Harnesses: harness.Names(), PrivateAddresses: setting("HAAS_REGISTRY_PRIVATE", "") == "allow", KeySources: kinds}
-	reg, err := registry.Open(dir, way.platform, allowed, registry.Sources{Allowed: kinds})
+	reg, err := registry.Open(dir, way.platform, allowed, os.Getenv("HAAS_FRONT_DOOR") == "")
 	if err != nil {
 		return nil, nil, err
 	}

@@ -36,11 +36,11 @@ func (r *Registry) checkAddress(address string) (string, error) {
 		return "", errors.New("an address is a scheme, a host and perhaps a path, and nothing else")
 	case len(address) > 300:
 		return "", errors.New("that address is too long")
-	case parsed.Scheme != "https" && !(parsed.Scheme == "http" && r.rules.PrivateAddresses):
+	case parsed.Scheme != "https" && !(parsed.Scheme == "http" && r.Rules().PrivateAddresses):
 		return "", errors.New("a provider is reached over https")
 	}
 	parsed.Path = strings.TrimRight(parsed.Path, "/")
-	if r.rules.PrivateAddresses {
+	if r.Rules().PrivateAddresses {
 		return parsed.String(), nil
 	}
 	if err := r.publicHost(parsed.Hostname()); err != nil {
