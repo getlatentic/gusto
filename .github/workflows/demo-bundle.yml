@@ -32,7 +32,7 @@ env:
 
 jobs:
   bundle:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, haas]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,7 +52,7 @@ jobs:
             echo "the image $key is in the bucket"
             exit 0
           fi
-          docker build --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t haas-runner .
+          docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t haas-runner .
           container="$(docker create haas-runner true)"
           docker export "$container" | gzip -1 > image.tar.gz
           aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
