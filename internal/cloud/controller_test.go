@@ -326,7 +326,7 @@ func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			runtime, err := c.givePorts(org.Slug, Runtime{})
+			runtime, err := c.givePorts(org.Slug, Runtime{Cell: "local"}, c.Cell)
 			if err != nil {
 				t.Error(err)
 				return

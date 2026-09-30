@@ -1,136 +1,30 @@
 ---
-- name: What must be said for a demo host
+- name: What must be said for a host of this role
   ansible.builtin.assert:
     that:
-      - demo_name | length > 0
-      - demo_zone | length > 0
+      - demo_role in ['all', 'orchestrator', 'cell']
       - demo_bucket | length > 0
-      - demo_mail | length > 0
-      - demo_cert_email | length > 0
       - demo_image_key | length > 0
-    fail_msg: "demo_name, demo_zone, demo_bucket, demo_mail, demo_cert_email and demo_image_key are all needed"
+      - demo_role == 'cell' or (demo_name | length > 0 and demo_zone | length > 0 and demo_mail | length > 0 and demo_cert_email | length > 0)
+      - demo_role == 'all' or (demo_efs | length > 0 and demo_run | length > 0)
+    fail_msg: >-
+      a host needs demo_role (all, orchestrator or cell), demo_bucket and demo_image_key; a front door also
+      demo_name, demo_zone, demo_mail and demo_cert_email; an orchestrator or a cell also demo_efs and demo_run
 
-- name: The web server, and the tool that gets a certificate from Let's Encrypt with a DNS record
-  ansible.builtin.apt:
-    name: [nginx, certbot, python3-certbot-dns-cloudflare]
-    state: present
-    update_cache: true
+- name: The shared file system
+  ansible.builtin.import_tasks: shared_files.yml
+  when: demo_role != 'all'
 
-- name: Directories
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.owner | default('root') }}"
-    mode: "0755"
-  loop:
-    - { path: /etc/haas }
-    - { path: /usr/local/lib/haas }
-    - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
-    - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
+- name: Directories, programs and the start-up script
+  ansible.builtin.import_tasks: common.yml
 
-- name: The front door and the organisations' servers
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/haas"
-    dest: /usr/local/bin/haas
-    mode: "0755"
-  notify: Restart the front door
+- name: The web server and the front door
+  ansible.builtin.import_tasks: front_door.yml
+  when: demo_role != 'cell'
 
-- name: The program that points the name at this host
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/haas-dns"
-    dest: /usr/local/bin/haas-dns
-    mode: "0755"
+- name: The runner image and the agent
+  ansible.builtin.import_tasks: cell.yml
+  when: demo_role != 'orchestrator'
 
-- name: The script that builds the model credentials from Parameter Store
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../e2e/credentials.sh"
-    dest: /usr/local/lib/haas/credentials.sh
-    mode: "0755"
-
-- name: The script that powers the host off when its lease ends
-  ansible.builtin.copy:
-    src: haas-lease-reaper
-    dest: /usr/local/bin/haas-lease-reaper
-    mode: "0755"
-
-- name: The script that runs when the host starts
-  ansible.builtin.copy:
-    src: haas-boot
-    dest: /usr/local/bin/haas-boot
-    mode: "0755"
-
-- name: Configuration
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    mode: "0644"
-  loop:
-    - { src: demo.conf.j2, dest: /etc/haas/demo.conf }
-    - { src: org.env.j2, dest: /etc/haas/org.env }
-    - { src: cloud.env.j2, dest: /etc/haas/cloud.env }
-  notify: Restart the front door
-
-- name: Services
-  ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
-    mode: "0644"
-  loop: [haas-boot.service, haas-cloud.service, haas-lease.service, haas-lease.timer]
-  notify: Restart the front door
-
-- name: The web server's site
-  ansible.builtin.template:
-    src: nginx-site.conf.j2
-    dest: /etc/nginx/sites-available/haas
-    mode: "0644"
-  notify: Reload nginx
-
-- name: The site is on, and the default one is off
-  ansible.builtin.file:
-    src: "{{ item.src | default(omit) }}"
-    dest: "{{ item.dest }}"
-    state: "{{ item.state }}"
-  loop:
-    - { src: /etc/nginx/sites-available/haas, dest: /etc/nginx/sites-enabled/haas, state: link }
-    - { dest: /etc/nginx/sites-enabled/default, state: absent }
-  notify: Reload nginx
-
-- name: The host's start-up work runs now, which gets the certificate and the image and points the name here
-  ansible.builtin.systemd:
-    name: haas-boot
-    state: restarted
-    enabled: true
-    daemon_reload: true
-
-- name: The lease is watched
-  ansible.builtin.systemd:
-    name: haas-lease.timer
-    state: started
-    enabled: true
-    daemon_reload: true
-
-- name: The web server and the front door are running
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: started
-    enabled: true
-  loop: [nginx, haas-cloud]
-
-# nginx starts when it is installed, with its default site, and a play that fails drops
-# the reloads it had queued, so the site is loaded here every time, once its certificate is there.
-- name: The web server loads the site
-  ansible.builtin.systemd:
-    name: nginx
-    state: reloaded
-
-- name: The name resolves from here, and the web server answers for it with a certificate that holds
-  ansible.builtin.uri:
-    url: "https://{{ demo_name }}/healthz"
-  delegate_to: localhost
-  become: false
-  when: demo_check_public | default(true) | bool
-  register: answered
-  until: answered.status == 200
-  retries: 30
-  delay: 10
+- name: Start it
+  ansible.builtin.import_tasks: start.yml

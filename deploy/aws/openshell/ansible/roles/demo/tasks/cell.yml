@@ -1,0 +1,22 @@
+---
+- name: The script that builds the model credentials from Parameter Store
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../e2e/credentials.sh"
+    dest: /usr/local/lib/haas/credentials.sh
+    mode: "0755"
+
+- name: What the agent of a cell is started with
+  ansible.builtin.template:
+    src: cell.env.j2
+    dest: /etc/haas/cell.env
+    mode: "0644"
+  when: demo_role == 'cell'
+  notify: Restart the cell
+
+- name: The cell's service
+  ansible.builtin.template:
+    src: haas-cell.service.j2
+    dest: /etc/systemd/system/haas-cell.service
+    mode: "0644"
+  when: demo_role == 'cell'
+  notify: Restart the cell

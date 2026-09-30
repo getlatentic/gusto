@@ -47,7 +47,7 @@ func newBoot(t *testing.T) *boot {
 		os.WriteFile(filepath.Join(bin, name), []byte(text+"\n"), 0o755)
 	}
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3",
+		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=",
 		"HAAS_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "HAAS_TMP="+filepath.Join(dir, "tmp"), "HAAS_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
@@ -160,5 +160,48 @@ func TestAHostWithNoBundleOrWhoseConfigurationFailsGoesInFifteenMinutes(t *testi
 	lines, err = failing.run("FAKE_ANSIBLE_FAILS=1")
 	if err == nil || index(lines, "systemd-run --on-active=15m --unit=haas-failed") < 0 {
 		t.Errorf("a configuration that failed: %v, %v", err, lines)
+	}
+}
+
+func playOf(t *testing.T, role string) string {
+	t.Helper()
+	b := newBoot(t)
+	b.release(false)
+	lines, err := b.run("ROLE="+role, "RUN=run-42", "EFS=fs-0123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	play := index(lines, "ansible-playbook ")
+	if play < 0 {
+		t.Fatalf("nothing was configured: %v", lines)
+	}
+	return lines[play]
+}
+
+func TestAHostThatIsAllOfItHasOpenShellAndTheFrontDoorAndNoSharedFileSystem(t *testing.T) {
+	play := playOf(t, "all")
+	if !strings.Contains(play, "site.yml") || !strings.Contains(play, "demo_role=all") || strings.Contains(play, "demo_efs") || strings.Contains(play, "demo_run") {
+		t.Errorf("%s", play)
+	}
+}
+
+func TestAnOrchestratorIsConfiguredWithoutOpenShellAndWithTheSharedFileSystem(t *testing.T) {
+	play := playOf(t, "orchestrator")
+	for _, want := range []string{"demo_role=orchestrator", "demo_efs=fs-0123.efs.us-east-1.amazonaws.com", "demo_run=run-42", "demo.yml"} {
+		if !strings.Contains(play, want) {
+			t.Errorf("%q is not in %s", want, play)
+		}
+	}
+	if strings.Contains(play, "site.yml") {
+		t.Errorf("a front door that runs no computer has no use for OpenShell: %s", play)
+	}
+}
+
+func TestACellIsConfiguredWithOpenShellAndTheSharedFileSystem(t *testing.T) {
+	play := playOf(t, "cell")
+	for _, want := range []string{"demo_role=cell", "demo_efs=fs-0123.efs.us-east-1.amazonaws.com", "demo_run=run-42", "site.yml", "demo.yml"} {
+		if !strings.Contains(play, want) {
+			t.Errorf("%q is not in %s", want, play)
+		}
 	}
 }

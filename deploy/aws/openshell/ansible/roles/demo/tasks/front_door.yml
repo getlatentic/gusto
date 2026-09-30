@@ -1,0 +1,46 @@
+---
+- name: The web server, and the tool that gets a certificate from Let's Encrypt with a DNS record
+  ansible.builtin.apt:
+    name: [nginx, certbot, python3-certbot-dns-cloudflare]
+    state: present
+    update_cache: true
+
+- name: The program that points the name at this host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.state/haas-dns"
+    dest: /usr/local/bin/haas-dns
+    mode: "0755"
+
+- name: The front door's settings, and what every organisation's server is started with
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: org.env.j2, dest: /etc/haas/org.env }
+    - { src: cloud.env.j2, dest: /etc/haas/cloud.env }
+  notify: Restart the front door
+
+- name: The front door's service
+  ansible.builtin.template:
+    src: haas-cloud.service.j2
+    dest: /etc/systemd/system/haas-cloud.service
+    mode: "0644"
+  notify: Restart the front door
+
+- name: The web server's site
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: /etc/nginx/sites-available/haas
+    mode: "0644"
+  notify: Reload nginx
+
+- name: The site is on, and the default one is off
+  ansible.builtin.file:
+    src: "{{ item.src | default(omit) }}"
+    dest: "{{ item.dest }}"
+    state: "{{ item.state }}"
+  loop:
+    - { src: /etc/nginx/sites-available/haas, dest: /etc/nginx/sites-enabled/haas, state: link }
+    - { dest: /etc/nginx/sites-enabled/default, state: absent }
+  notify: Reload nginx

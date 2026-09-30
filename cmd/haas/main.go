@@ -43,6 +43,7 @@ func run(args []string) int {
 		"harnesses": list,
 		"serve":     serve,
 		"cloud":     cloudCommand,
+		"cell":      cellCommand,
 		"spend":     spendReport,
 		"doctor":    checkMachine,
 		"keygen":    makeKey,
@@ -77,6 +78,7 @@ func usage() {
   haas serve            the pages: submit a job, watch it, read the record
   haas cloud            the front door of a hosted haas: sign-up, sign-in and organisations
   haas cloud computers  every computer on this host, its organisation and its person
+  haas cell             the agent on a host that runs organisations' servers for a front door on another
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
   haas harnesses        the harnesses this binary knows
   haas doctor           check this machine can run a job, before one is sent

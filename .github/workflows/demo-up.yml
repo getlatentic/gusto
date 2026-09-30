@@ -1,6 +1,7 @@
-# Launches a demo host of the public cloud from a release bundle, and says when it answers. The host
-# is made from the launch template and configures itself, and it removes itself when its lease
-# ends unless somebody extends it at /lease. Only main can run it.
+# Launches a demo of the public cloud from a release bundle, and says when it answers. With no cells it is
+# one host. With cells it is a front door and that many hosts that run the organisations' servers, which share
+# a file system. Each host is made from a launch template and configures itself, and removes itself when its
+# lease ends unless somebody extends it at /lease, or, for a cell, when its front door is gone. Only main can run it.
 name: demo up
 
 on:
@@ -9,6 +10,9 @@ on:
       lease_minutes:
         description: How long the host has, in minutes. Anybody signed in extends it.
         default: "30"
+      cells:
+        description: How many hosts run the organisations' servers, from 0 to 4. None makes one host that does everything.
+        default: "0"
       release:
         description: The commit whose bundle it is made from. The newest when empty.
         default: ""
@@ -36,6 +40,8 @@ jobs:
           BUCKET: ${{ vars.HAAS_BUCKET }}
           LEASE: ${{ inputs.lease_minutes }}
           RELEASE: ${{ inputs.release }}
+          CELLS: ${{ inputs.cells }}
+          EFS: ${{ vars.HAAS_EFS }}
         run: |
           case "$LEASE" in ''|*[!0-9]*) echo "the lease is a number of minutes"; exit 1;; esac
           [ "$LEASE" -ge 5 ] && [ "$LEASE" -le 240 ] || { echo "the lease is from 5 to 240 minutes"; exit 1; }
@@ -45,23 +51,35 @@ jobs:
           up="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [ -z "$up" ] || { echo "a host is already up: $up"; exit 1; }
-          sed -e "s/@RELEASE@/$RELEASE/" -e "s/@BUCKET@/$BUCKET/" -e "s/@REGION@/$AWS_REGION/" \
-              -e "s/@LEASE_MINUTES@/$LEASE/" -e "s/@MAX_HOURS@/4/" deploy/aws/platform/user-data.sh > user-data.sh
+          case "$CELLS" in [0-4]) ;; *) echo "the cells are from 0 to 4"; exit 1;; esac
+          [ "$CELLS" = 0 ] || [ -n "$EFS" ] || { echo "cells share a file system, and the repository variable HAAS_EFS is not set"; exit 1; }
+          run="run-$GITHUB_RUN_ID"
           # $Latest is EC2's word for the newest version of the template, not a variable.
           # shellcheck disable=SC2016
-          id="$(aws ec2 run-instances --launch-template LaunchTemplateName=haas-poc-demo-host,Version='$Latest' \
-            --user-data file://user-data.sh --query 'Instances[0].InstanceId' --output text)"
-          echo "instance=$id" >> "$GITHUB_OUTPUT"
-          echo "launched $id from release $RELEASE at $(date -u +%H:%M:%S) UTC"
+          launch() { # role template count
+            sed -e "s/@RELEASE@/$RELEASE/" -e "s/@BUCKET@/$BUCKET/" -e "s/@REGION@/$AWS_REGION/" \
+                -e "s/@LEASE_MINUTES@/$LEASE/" -e "s/@MAX_HOURS@/4/" -e "s/@ROLE@/$1/" -e "s/@RUN@/$run/" -e "s/@EFS@/$EFS/" \
+                deploy/aws/platform/user-data.sh > "user-data-$1.sh"
+            aws ec2 run-instances --launch-template "LaunchTemplateName=$2,Version=\$Latest" --count "$3" \
+              --user-data "file://user-data-$1.sh" --query 'Instances[].InstanceId' --output text
+          }
+          if [ "$CELLS" = 0 ]; then
+            ids="$(launch all haas-poc-demo-host 1)"
+          else
+            ids="$(launch orchestrator haas-poc-demo-host-orchestrator 1) $(launch cell haas-poc-demo-host-cell "$CELLS")"
+          fi
+          echo "instances=$ids" >> "$GITHUB_OUTPUT"
+          echo "launched $ids from release $RELEASE at $(date -u +%H:%M:%S) UTC"
       - name: Wait until it answers
         env:
           NAME: ${{ vars.HAAS_DEMO_NAME }}
           LEASE: ${{ inputs.lease_minutes }}
+          CELLS: ${{ inputs.cells }}
         run: |
           for i in $(seq 1 100); do
             if curl -fsS -m 10 "https://$NAME/healthz" >/dev/null 2>&1; then
               echo "### Demo host up" >> "$GITHUB_STEP_SUMMARY"
-              echo "https://$NAME, answering after about $((i * 15)) s. It removes itself $LEASE minutes after it started unless it is extended at https://$NAME/lease." >> "$GITHUB_STEP_SUMMARY"
+              echo "https://$NAME, answering after about $((i * 15)) s, with $CELLS cells (a cell registers a few minutes after the front door answers). It removes itself $LEASE minutes after it started unless it is extended at https://$NAME/lease." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 15

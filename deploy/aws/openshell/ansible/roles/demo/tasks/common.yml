@@ -1,0 +1,47 @@
+---
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.owner | default('root') }}"
+    mode: "0755"
+  loop:
+    - { path: /etc/haas }
+    - { path: /usr/local/lib/haas }
+    - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
+    - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
+
+- name: The front door, the agent of a cell, and the organisations' servers
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.state/haas"
+    dest: /usr/local/bin/haas
+    mode: "0755"
+  notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"
+
+- name: The script that powers the host off when its lease ends, or its front door is gone
+  ansible.builtin.copy:
+    src: haas-lease-reaper
+    dest: /usr/local/bin/haas-lease-reaper
+    mode: "0755"
+
+- name: The script that runs when the host starts
+  ansible.builtin.copy:
+    src: haas-boot
+    dest: /usr/local/bin/haas-boot
+    mode: "0755"
+
+- name: The settings of the start-up script and the reaper
+  ansible.builtin.template:
+    src: demo.conf.j2
+    dest: /etc/haas/demo.conf
+    mode: "0644"
+  notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"
+
+- name: Services
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: "0644"
+  loop: [haas-boot.service, haas-lease.service, haas-lease.timer]
+  notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"
