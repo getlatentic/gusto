@@ -36,12 +36,12 @@ The server will not start on a policy it refuses.
 
 `HAAS_RETENTION` names the directory. It holds `policy.json`, `holds.json` and
 `last.json`, the newest sweep's report. With no policy the server removes
-nothing, and `/retention` still shows the disk and the holds.
+nothing, and `/admin/retention` still shows the disk and the holds.
 
 ## What a sweep touches
 
 The server sweeps every 60 minutes, and an admin can sweep at once from
-`/retention`. `HAAS_RETENTION_MINUTES` changes the interval.
+`/admin/retention`. `HAAS_RETENTION_MINUTES` changes the interval.
 
 A sweep touches only jobs that ended and that no agent owns. A task or a message
 on an agent belongs to that agent's conversation, and goes when the agent is
@@ -49,15 +49,15 @@ removed. A job that is queued or running is never touched.
 
 ## Holds
 
-A hold keeps work whole whatever the policy says. An admin holds one job from
-its page, or everything a person asked for from `/retention`. A hold on a
+A hold keeps work whole whatever the policy says. An admin holds one job by its
+id, or everything a person asked for, on the Retention page of the admin console. A hold on a
 person covers work they ask for later too.
 
 A sweep that cannot read the holds removes nothing.
 
 ## Seeing it
 
-`/retention` shows the disk the jobs use, how much of it is workspaces, the
+`/admin/retention` shows the disk the jobs use, how much of it is workspaces, the
 oldest finished job kept, the policy in force, what the next sweep would
 remove, and the last sweep.
 

@@ -293,3 +293,38 @@ func TestWhatALogLearnedSurvivesBeingOpenedAgain(t *testing.T) {
 		t.Errorf("the settings it last started with: %q", got)
 	}
 }
+
+func TestAnInboxFileWhoseEventIsInTheLogIsKnownAfterARestart(t *testing.T) {
+	log, path, keyring := opened(t)
+	if _, err := log.Append(changelog.Event{Who: "ada@acme.com", Kind: changelog.MemberRemoved, What: map[string]string{changelog.InboxKey: "0001-abcd", "email": "bob@acme.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	if !log.Taken("0001-abcd") || log.Taken("0002-ffff") {
+		t.Fatal("the log does not know which inbox files it has")
+	}
+	log.Close()
+	reopened, err := changelog.Open(path, nil, keyring)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	if !reopened.Taken("0001-abcd") {
+		t.Error("a restarted server would write an event twice")
+	}
+	if reopened.Taken("0002-ffff") {
+		t.Error("a file that was never taken is known")
+	}
+}
+
+func TestOnlyTheChangesTheFrontDoorReportsAreItsToReport(t *testing.T) {
+	for _, kind := range []string{changelog.MemberInvited, changelog.MemberRole, changelog.MemberRemoved} {
+		if !changelog.FromFrontDoor(kind) {
+			t.Errorf("%s is the front door's", kind)
+		}
+	}
+	for _, kind := range []string{changelog.SignedIn, changelog.RoleChanged, changelog.SettingsChanged, changelog.ServerStarted, changelog.TokenCreated, ""} {
+		if changelog.FromFrontDoor(kind) {
+			t.Errorf("the front door may not report %q", kind)
+		}
+	}
+}

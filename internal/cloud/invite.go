@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"github.com/getlatentic/haas/internal/changelog"
 )
 
 // invite sends an invitation to join the organisation, from an admin. It is mailed
@@ -20,6 +22,7 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	email, _ := NormalEmail(address)
+	s.record(r, person, changelog.MemberInvited, map[string]string{"email": email, "role": string(Runner)})
 	if !s.mails.Allow(email) {
 		s.drawOrg(w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
 		return
@@ -43,9 +46,28 @@ func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person
 // stops at once, since what it says is looked up on each request, and the organisation's
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {
-	if err := s.Store.Remove(person.Org, person, r.PostFormValue("email")); err != nil {
+	email, _ := NormalEmail(r.PostFormValue("email"))
+	target, _, _ := s.Store.Person(email)
+	if err := s.Store.Remove(person.Org, person, email); err != nil {
 		s.drawOrg(w, refusedStatus(err), person, sentence(err))
 		return
+	}
+	s.record(r, person, changelog.MemberRemoved, map[string]string{"email": email, "role": string(target.Role)})
+	http.Redirect(w, r, "/org", http.StatusSeeOther)
+}
+
+// changeRole makes a person of the organisation an admin or a runner. A role that is
+// the one they have changes nothing and is not recorded.
+func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Person) {
+	email, _ := NormalEmail(r.PostFormValue("email"))
+	role := Role(r.PostFormValue("role"))
+	was, err := s.Store.SetRole(person.Org, person, email, role)
+	if err != nil {
+		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+		return
+	}
+	if was != role {
+		s.record(r, person, changelog.MemberRole, map[string]string{"email": email, "was": string(was), "now": string(role)})
 	}
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
@@ -84,7 +106,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 
 // sentence is what a person is told of a refusal we made, and nothing of one we did not.
 func sentence(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrLink} {
+	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
@@ -99,7 +121,7 @@ func refusedStatus(err error) int {
 		return http.StatusForbidden
 	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin):
 		return http.StatusConflict
-	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember):
+	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole):
 		return http.StatusUnprocessableEntity
 	}
 	return http.StatusInternalServerError

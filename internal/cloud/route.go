@@ -201,6 +201,9 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 		return
 	}
+	if err := s.Store.RecordSignIn(person.Email); err != nil {
+		slog.Error("a sign-in to an organisation was not recorded", "org", person.Org, "error", err)
+	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 }
 

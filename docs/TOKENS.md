@@ -21,7 +21,7 @@ shared password, as before. The pages keep their own sign-in either way.
 
 ## Make one
 
-An admin opens **Tokens** and gives a name in lowercase letters, digits and
+An admin opens **Tokens** in the admin console and gives a name in lowercase letters, digits and
 dashes, and what the token may do.
 
 | It may | What that opens |

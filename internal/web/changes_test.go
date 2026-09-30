@@ -115,12 +115,12 @@ func TestEverySetupAndSkillChangeIsRecordedWithWhoMadeIt(t *testing.T) {
 	here.server.UseAdmins([]string{"admin@example.com"})
 	admin, runner := here.as(t, "admin@example.com"), here.as(t, alice)
 
-	admin.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}})
-	admin.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}, "server": {"memory"}})
-	admin.ask(t, "POST", "/setups/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
-	admin.ask(t, "POST", "/setups/reviewer/skills/review/drop", nil)
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}, "server": {"memory"}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills/review/drop", nil)
 	// A refused attempt changes nothing, so it writes nothing.
-	runner.ask(t, "POST", "/setups", url.Values{"name": {"another"}})
+	runner.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"another"}})
 
 	events := written(t, log)
 	saved := ofKind(events, changelog.SetupSaved)
@@ -225,9 +225,9 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	here, log := recording(t)
 	here.server.UseAdmins([]string{"admin@example.com"})
 	admin, runner := here.as(t, "admin@example.com"), here.as(t, alice)
-	admin.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}})
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
 
-	page := admin.ask(t, "GET", "/changes", nil)
+	page := admin.ask(t, "GET", "/admin/activity", nil)
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
@@ -236,7 +236,7 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 			t.Errorf("the page does not say %q:\n%s", want, page.Body.String())
 		}
 	}
-	download := admin.ask(t, "GET", "/changes.jsonl", nil)
+	download := admin.ask(t, "GET", "/admin/activity.jsonl", nil)
 	if download.Code != http.StatusOK || !strings.Contains(download.Header().Get("Content-Disposition"), "changes.jsonl") {
 		t.Fatalf("the download: %d %v", download.Code, download.Header())
 	}
@@ -245,13 +245,13 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 		t.Errorf("what was downloaded does not verify: %+v %v", report, err)
 	}
 
-	for _, path := range []string{"/changes", "/changes.jsonl"} {
-		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+	for _, path := range []string{"/admin/activity", "/admin/activity.jsonl"} {
+		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusForbidden {
 			t.Errorf("a runner asking for %s got %d", path, got.Code)
 		}
 	}
 	stranger := httptest.NewRecorder()
-	here.handler.ServeHTTP(stranger, httptest.NewRequest("GET", "/changes", nil))
+	here.handler.ServeHTTP(stranger, httptest.NewRequest("GET", "/admin/activity", nil))
 	if stranger.Code != http.StatusSeeOther {
 		t.Errorf("somebody not signed in got %d", stranger.Code)
 	}
@@ -279,7 +279,7 @@ func TestAScriptWithThePasswordReadsTheSameRecord(t *testing.T) {
 func TestWithNoLogNothingIsRecordedAndNobodyIsShownAPage(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	if got := here.ask(t, "GET", "/changes", nil); got.Code != http.StatusNotFound {
+	if got := here.ask(t, "GET", "/admin/activity", nil); got.Code != http.StatusNotFound {
 		t.Errorf("with no log the page answered %d", got.Code)
 	}
 }

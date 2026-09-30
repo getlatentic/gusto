@@ -52,7 +52,7 @@ func fakeOrgServer() {
 		json.NewEncoder(w).Encode(map[string]any{
 			"org": org, "pid": os.Getpid(), "addr": addr, "host": r.Host, "xff": r.Header.Get("X-Forwarded-For"),
 			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Haas-App"),
-			"jobs": os.Getenv("HAAS_JOBS"), "quota": os.Getenv("HAAS_QUOTA"), "home": os.Getenv("HOME"),
+			"jobs": os.Getenv("HAAS_JOBS"), "quota": os.Getenv("HAAS_QUOTA"), "members": os.Getenv("HAAS_MEMBERS"), "inbox": os.Getenv("HAAS_INBOX"), "orgSettings": os.Getenv("HAAS_ORG_SETTINGS"), "home": os.Getenv("HOME"),
 			"entryKey": os.Getenv("HAAS_ENTRY_KEY"), "signingKey": os.Getenv("HAAS_SIGNING_KEY"),
 			"proxyAddr": os.Getenv("HAAS_PROXY_ADDR"), "front": os.Getenv("HAAS_FRONT_DOOR"), "concurrency": os.Getenv("HAAS_JOB_CONCURRENCY"),
 			"mailVisible": os.Getenv("HAAS_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
