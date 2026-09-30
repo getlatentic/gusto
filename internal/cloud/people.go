@@ -41,6 +41,8 @@ type Org struct {
 	// empty for an address at a free mail provider.
 	Domain  string    `json:"domain,omitempty"`
 	Created time.Time `json:"created"`
+	// Demo is set when the organisation is a demo, which is deleted when its time is up.
+	Demo *Demo `json:"demo,omitempty"`
 }
 
 // Limits are the two quotas an organisation moves between, and the settings that

@@ -1,0 +1,13 @@
+{{define "demo"}}{{template "head" .}}
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+  <h1>Try haas for {{minutes .DemoLeft}}</h1>
+  <p class="muted">Agents that work in their own computers, for your whole team. You get an organisation of your own, with no sign-up to finish. It is deleted when your time is up.</p>
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="/demo">
+    <label>Your name <input type="text" name="name" value="{{.Name}}" maxlength="80" autocomplete="name" autofocus required></label>
+    <label>Work email <input type="email" name="email" value="{{.Email}}" autocomplete="email" required></label>
+    <label>Company <input type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
+    <button type="submit">Start my demo</button>
+  </form>
+  {{if .Book}}<p class="other">Rather be shown? <a href="{{.Book}}">Book a call</a></p>{{end}}
+{{template "foot"}}{{end}}

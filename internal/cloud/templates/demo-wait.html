@@ -1,0 +1,14 @@
+{{define "demo-wait"}}{{template "head" .}}
+  <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
+  <h1>Your haas demo</h1>
+  {{if .Notice}}<p class="error" role="status">{{.Notice}}</p>{{end}}
+  {{if .DemoWords}}
+  <p role="status">{{.DemoWords}}</p>
+  <p class="muted">You have {{minutes .DemoLeft}} once it is ready. This page looks again by itself.</p>
+  {{else}}
+  <p>You have <strong>{{minutes .DemoLeft}}</strong> left. Your organisation, its computers and everything in it are deleted when it ends.</p>
+  {{if .CanOpen}}<p><a class="button" href="/open">Open my demo</a></p>{{end}}
+  {{if .Extendable}}<form method="post" action="/demo/extend"><button type="submit">Give me 10 more minutes</button></form>{{end}}
+  {{end}}
+  {{if .Book}}<p class="other">Want this for your team? <a href="{{.Book}}">Book a call</a></p>{{end}}
+{{template "foot"}}{{end}}

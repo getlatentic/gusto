@@ -26,6 +26,8 @@ type Settings struct {
 	// PerDomain is how many organisations one email domain may make.
 	PerDomain int
 	Limits    Limits
+	// Demo, when it is set, makes the front door offer a demo.
+	Demo DemoSettings
 }
 
 // Store is the front door's accounts, kept as files under one directory. A file
@@ -49,7 +51,10 @@ func Open(root string, set Settings) (*Store, error) {
 	if set.Limits == (Limits{}) {
 		set.Limits = DefaultLimits()
 	}
-	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox"} {
+	if set.Demo.Enabled() && set.Demo.Limits == (quota.Quota{}) {
+		set.Demo.Limits = DefaultDemoLimits()
+	}
+	for _, dir := range []string{"", "people", "orgs", "tokens", "outbox", "demos"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0o700); err != nil {
 			return nil, err
 		}
