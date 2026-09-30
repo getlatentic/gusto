@@ -473,3 +473,52 @@ func TestWhereTheOperatorFixesThePolicyAnAdminCannotChangeItAndAStoredChoiceIsIg
 		t.Error("the page offers a choice that is not there")
 	}
 }
+
+func TestAPersonIsLimitedToSomeModelsAndNobodyElseIs(t *testing.T) {
+	r, dir := opened(t, Rules{})
+	r.AddProvider(theirs("acme"))
+	r.AddModel("acme", "big", nil)
+	r.AddModel("acme", "small", nil)
+	if _, limited := r.AllowedFor("ada@acme.com"); limited {
+		t.Fatal("a person nobody said anything about is limited")
+	}
+	if err := r.SetAccess(" Ada@Acme.com ", []string{"acme/small", "platform/qwen", "acme/small"}); err != nil {
+		t.Fatal(err)
+	}
+	got, limited := r.AllowedFor("ADA@acme.com")
+	if !limited || len(got) != 2 || got[0] != "acme/small" || got[1] != "platform/qwen" {
+		t.Errorf("an address is one person whatever its case, and a model is listed once: %v %v", got, limited)
+	}
+	if _, limited := r.AllowedFor("bob@acme.com"); limited {
+		t.Error("another person was limited")
+	}
+	again, _ := Open(dir, operators, Rules{}, false)
+	if list := again.Limits(); len(list) != 1 || list[0].Email != "ada@acme.com" {
+		t.Errorf("kept: %+v", list)
+	}
+	if view := r.View(); len(view.Limits) != 1 || len(view.Available) != 3 {
+		t.Errorf("%+v", view)
+	}
+	for name, call := range map[string]func() error{
+		"a model there is not":         func() error { return r.SetAccess("ada@acme.com", []string{"acme/nothing"}) },
+		"not an address":               func() error { return r.SetAccess("ada", []string{"acme/big"}) },
+		"a name and address":           func() error { return r.SetAccess("Ada <ada@acme.com>", []string{"acme/big"}) },
+		"a limit removed that was not": func() error { return r.SetAccess("bob@acme.com", nil) },
+	} {
+		if call() == nil {
+			t.Errorf("%s was accepted", name)
+		}
+	}
+	before := r.Document().Version
+	if err := r.SetAccess("ada@acme.com", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, limited := r.AllowedFor("ada@acme.com"); limited || r.Document().Version != before+1 {
+		t.Error("no models is no limit")
+	}
+	r.RetireModel("acme", "small")
+	r.SetAccess("cy@acme.com", []string{"acme/big"})
+	if err := r.SetAccess("cy@acme.com", []string{"acme/small"}); err == nil {
+		t.Error("a retired model can be given to somebody")
+	}
+}

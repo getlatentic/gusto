@@ -42,19 +42,19 @@ func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
 		held := fit[0]
 		page["Template"] = held
 		page["Engines"] = s.runnersOf(held)
-		page["Models"] = s.sharedModels(held)
+		page["Models"] = s.sharedModels(held, s.offeredTo(r))
 	}
 	s.render(w, "compare.html", page)
 }
 
 // sharedModels is each model, by the name a person reads, that at least two
 // of the template's engines can be pointed at, whichever credential reaches it.
-func (s *Server) sharedModels(held industry.Template) []string {
+func (s *Server) sharedModels(held industry.Template, models Models) []string {
 	reach := map[string]int{}
 	var order []string
 	for _, entry := range s.runnersOf(held) {
 		seen := map[string]bool{}
-		for _, model := range s.offered().For(entry.Name) {
+		for _, model := range models.For(entry.Name) {
 			named := modelOf(model)
 			if seen[named] {
 				continue
@@ -71,8 +71,8 @@ func (s *Server) sharedModels(held industry.Template) []string {
 
 // modelFor is the model a harness is pointed at for a plain model name: the
 // first it is offered that goes by that name.
-func (s *Server) modelFor(harness, named string) (string, bool) {
-	for _, model := range s.offered().For(harness) {
+func (s *Server) modelFor(models Models, harness, named string) (string, bool) {
+	for _, model := range models.For(harness) {
 		if modelOf(model) == named {
 			return model, true
 		}
@@ -121,8 +121,9 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 	}
 	lineup := compare.Lineup{ID: id, Brief: brief, Template: held.Name,
 		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
+	models := s.offeredTo(r)
 	for _, harness := range harnesses {
-		spec, err := s.sideSpec(held, harness, named, brief, repo, commit)
+		spec, err := s.sideSpec(models, held, harness, named, brief, repo, commit)
 		if err != nil {
 			return "", err
 		}
@@ -137,11 +138,11 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 
 // sideSpec is one engine's run in a lineup, refused here rather than in the
 // queue when the engine is not offered or cannot reach the model.
-func (s *Server) sideSpec(held industry.Template, harness, named, brief, repo, commit string) (job.Spec, error) {
+func (s *Server) sideSpec(models Models, held industry.Template, harness, named, brief, repo, commit string) (job.Spec, error) {
 	if !slices.ContainsFunc(s.runnersOf(held), func(entry catalog.Entry) bool { return entry.Name == harness }) {
 		return job.Spec{}, fmt.Errorf("%s is not offered here", harness)
 	}
-	model, found := s.modelFor(harness, named)
+	model, found := s.modelFor(models, harness, named)
 	if !found {
 		return job.Spec{}, fmt.Errorf("%s cannot use %s here", s.engineName(harness), named)
 	}

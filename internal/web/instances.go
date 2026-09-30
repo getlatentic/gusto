@@ -21,7 +21,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Title":   "haas — " + entry.Name,
 				"Nav":     "harnesses",
 				"Harness": entry,
-				"Models":  s.offered().For(entry.Name),
+				"Models":  s.offeredTo(r).For(entry.Name),
 				"Setups":  s.fitting(entry),
 				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
@@ -60,7 +60,7 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
 		return
 	}
-	if why := s.unusable(wanted.Harness, wanted.Model); why != "" {
+	if why := s.unusable(r, wanted.Harness, wanted.Model); why != "" {
 		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
 		return
 	}
@@ -68,7 +68,7 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 	// deployment offers *that harness* — not the first it offers at all, which
 	// may be one this harness cannot use.
 	if wanted.Model == "" {
-		wanted.Model = s.offered().First(wanted.Harness)
+		wanted.Model = s.offeredTo(r).First(wanted.Harness)
 	}
 	name := wanted.Harness
 	if wanted.Repo != "" {
@@ -109,7 +109,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Agent":     s.agentOf(held),
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.offered().For(held.Harness),
+		"Models":    s.offeredTo(r).For(held.Harness),
 		"Sharing":   s.apps != nil,
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
@@ -159,15 +159,19 @@ func (s *Server) firstReady() string {
 
 // unusable says why a harness cannot be started on a model, or is empty when it can. An
 // agent is never started on a pair that cannot work, however the request was made.
-func (s *Server) unusable(harness, model string) string {
-	if !s.offered().Serves(harness) {
+func (s *Server) unusable(r *http.Request, harness, model string) string {
+	offered := s.offeredTo(r)
+	if s.limitedAway(r, harness) {
+		return "you may not use any model that works with " + harness
+	}
+	if !offered.Serves(harness) {
 		return "no model this deployment offers works with " + harness
 	}
 	if model == "" {
 		return ""
 	}
-	if !s.offered().Offers(harness, model) {
-		return harness + " cannot use " + modelName(model) + choose(s.offered().For(harness))
+	if !offered.Offers(harness, model) {
+		return harness + " cannot use " + modelName(model) + choose(offered.For(harness))
 	}
 	return ""
 }
@@ -193,7 +197,7 @@ func (s *Server) changeModel(w http.ResponseWriter, r *http.Request) {
 	}
 	back := "/instances/" + held.ID
 	model := strings.TrimSpace(r.FormValue("model"))
-	if why := s.unusable(held.Harness, model); why != "" || model == "" {
+	if why := s.unusable(r, held.Harness, model); why != "" || model == "" {
 		if why == "" {
 			why = "choose a model"
 		}

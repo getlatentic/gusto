@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/registry"
+	"github.com/getlatentic/haas/internal/roster"
 	"github.com/getlatentic/haas/internal/spend"
 )
 
@@ -27,7 +28,7 @@ const formLimit = 16 << 10
 
 func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
 	view := s.registry.View()
-	page := map[string]any{"Title": "haas — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view)}
+	page := map[string]any{"Title": "haas — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view), "People": s.memberEmails()}
 	s.drawConsole(w, "admin-models.html", "models", page)
 }
 
@@ -65,6 +66,8 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/models/providers/{name}/retire", guard(s.registryAction(changelog.ProviderRetired, s.retireProvider)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models", guard(s.registryAction(changelog.ModelAdded, s.addModel)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/price", guard(s.registryAction(changelog.PriceSet, s.setPrice)))
+	mux.HandleFunc("POST /admin/models/access", guard(s.registryAction(changelog.AccessSet, s.setAccess)))
+	mux.HandleFunc("POST /admin/models/access/clear", guard(s.registryAction(changelog.AccessSet, s.clearAccess)))
 	mux.HandleFunc("POST /admin/models/policy", guard(s.registryAction(changelog.PolicySet, s.setPolicy)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, s.retireModel)))
 }
@@ -203,4 +206,41 @@ func keySources(view registry.View) []keySource {
 		all[i].On = slices.Contains(view.Kinds, all[i].Kind)
 	}
 	return all
+}
+
+// setAccess limits a person to the models an admin ticked. Ticking none is no limit, which is said on the form.
+func (s *Server) setAccess(r *http.Request) (map[string]string, error) {
+	email, models := strings.TrimSpace(r.FormValue("email")), r.Form["model"]
+	if len(models) == 0 {
+		return nil, errors.New("tick the models this person may use, or use Let use everything to remove a limit")
+	}
+	if err := s.registry.SetAccess(email, models); err != nil {
+		return nil, err
+	}
+	slices.Sort(models)
+	return map[string]string{"email": strings.ToLower(email), "models": strings.Join(slices.Compact(models), ", ")}, nil
+}
+
+func (s *Server) clearAccess(r *http.Request) (map[string]string, error) {
+	email := strings.TrimSpace(r.FormValue("email"))
+	if err := s.registry.SetAccess(email, nil); err != nil {
+		return nil, err
+	}
+	return map[string]string{"email": strings.ToLower(email)}, nil
+}
+
+// memberEmails is who is in the organisation, for the form that limits a person, or nobody when the list cannot be read.
+func (s *Server) memberEmails() []string {
+	if !s.hasRoster() {
+		return nil
+	}
+	list, err := roster.Read(s.rosterPath)
+	if err != nil {
+		return nil
+	}
+	emails := make([]string, 0, len(list.Members))
+	for _, member := range list.Members {
+		emails = append(emails, member.Email)
+	}
+	return emails
 }
