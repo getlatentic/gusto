@@ -11,13 +11,15 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH" TF_IN_AUTOMATION=1 TF_CLI
 export AWS_PROFILE="${AWS_PROFILE:-haas-poc}" AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
 bucket="$(../openshell/demo-store.sh)"
 terraform init -input=false -reconfigure -backend-config="bucket=$bucket" -backend-config="region=$AWS_REGION" >/dev/null
-if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION"; then
+if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}"; then
   cat >&2 <<MSG
 
-If the error is about GitHub's identity provider, it is not in this account yet. It is made once, by an
-identity that may make one (the console, or an admin profile), and this is run again:
+If the error is about GitHub's identity provider, this profile may not make one. Make it once, with an
+identity that may (CloudShell in the console, or an admin profile), and run this again:
 
   aws iam create-open-id-connect-provider --url https://token.actions.githubusercontent.com --client-id-list sts.amazonaws.com
+
+An admin profile can let this script make it instead: MANAGE_GITHUB_PROVIDER=true ./bootstrap.sh
 MSG
   exit 1
 fi
