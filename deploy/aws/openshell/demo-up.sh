@@ -23,10 +23,7 @@ bucket="$(./demo-store.sh)"
 [[ "$bucket" =~ ^haas-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
-# What names the image: the harnesses, the Dockerfile and image/. The haas program inside it
-# belongs to the container backend, and a sandbox on a gateway runs nothing of it, so a
-# change to the Go sources does not make a new image.
-image_key="$({ printf '%s\n' "$harnesses"; cat "$root/Dockerfile"; (cd "$root" && git ls-files -z image | xargs -0 shasum -a 256); } | shasum -a 256 | cut -c1-16)"
+image_key="$(./image-key.sh)"
 
 (cd "$root" && for program in haas:./cmd/haas haas-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
