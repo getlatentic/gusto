@@ -113,8 +113,11 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 
 // waitingWords says what a visitor is waiting for.
 func waitingWords(state State) string {
-	if state == Failed {
+	switch state {
+	case Failed:
 		return "Something went wrong starting your demo. It is being tried again."
+	case Waiting:
+		return "Starting a machine for your demo. When none is running this takes about two minutes, and your time starts when it is ready, not before."
 	}
 	return "Getting your demo ready. When nothing else is running this takes about two minutes, and your time starts when it is ready, not before."
 }

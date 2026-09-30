@@ -104,3 +104,37 @@ func beatForCells(ctx context.Context, dir string) {
 		}
 	}
 }
+
+// cellScaler starts a host for a cell when an organisation waits for room and stops one that has had nothing on it, so
+// no host runs while nobody is using one. It is on when HAAS_CLOUD_CELL_LAUNCH is ec2, and then needs
+// HAAS_CLOUD_CELL_TEMPLATE (the launch template), HAAS_CLOUD_CELL_USERDATA (the start-up script) and
+// HAAS_CLOUD_CELL_SETTINGS, NAME=value pairs separated by commas that fill in the script. HAAS_CLOUD_CELL_MAX (3) is
+// the most hosts, HAAS_CLOUD_CELL_IDLE_MINUTES (10) how long a cell may have nothing on it, and
+// HAAS_CLOUD_CELL_BOOT_MINUTES (10) how long a host has to become a cell.
+func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
+	if os.Getenv("HAAS_CLOUD_CELL_LAUNCH") != "ec2" || controller == nil {
+		return nil, nil
+	}
+	pool, ok := controller.Cells.(*cell.Pool)
+	if !ok {
+		return nil, errors.New("HAAS_CLOUD_CELL_LAUNCH needs HAAS_CLOUD_CELLS_DIR, which says where cells register")
+	}
+	template, script := os.Getenv("HAAS_CLOUD_CELL_TEMPLATE"), os.Getenv("HAAS_CLOUD_CELL_USERDATA")
+	if template == "" || script == "" {
+		return nil, errors.New("HAAS_CLOUD_CELL_TEMPLATE and HAAS_CLOUD_CELL_USERDATA say what a host for a cell is made from")
+	}
+	settings := map[string]string{}
+	for _, pair := range values("HAAS_CLOUD_CELL_SETTINGS") {
+		name, value, found := strings.Cut(pair, "=")
+		if !found || name == "" {
+			return nil, errors.New("HAAS_CLOUD_CELL_SETTINGS is NAME=value pairs separated by commas")
+		}
+		settings[name] = value
+	}
+	return &cell.Scaler{
+		Pool: pool, Launcher: &cell.EC2{Template: template, UserData: script, Settings: settings}, Waiting: controller.Waiting,
+		Max:  number("HAAS_CLOUD_CELL_MAX", 3),
+		Idle: time.Duration(number("HAAS_CLOUD_CELL_IDLE_MINUTES", 10)) * time.Minute,
+		Boot: time.Duration(number("HAAS_CLOUD_CELL_BOOT_MINUTES", 10)) * time.Minute,
+	}, nil
+}

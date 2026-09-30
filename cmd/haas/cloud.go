@@ -50,6 +50,13 @@ func cloudCommand(args []string) int {
 		go beatForCells(ctx, dir)
 	}
 	go front.RunDemos(ctx, 15*time.Second)
+	scaler, err := cellScaler(controller)
+	if err != nil {
+		return fail(err)
+	}
+	if scaler != nil {
+		go scaler.Run(ctx, 10*time.Second)
+	}
 	controlled := make(chan struct{})
 	go func() {
 		defer close(controlled)
