@@ -3,7 +3,7 @@
 
 <div class="title-row">
   <h1>Spending</h1>
-  <form class="month" method="get" action="/spend">
+  <form class="month" method="get" action="{{$.Base}}">
     <label class="inline"><span class="sr">Month</span>
       <select name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}

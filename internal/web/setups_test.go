@@ -17,11 +17,11 @@ import (
 func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	made := site.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}, "server": {"memory"}})
-	if made.Code != http.StatusSeeOther || made.Header().Get("Location") != "/setups/reviewer" {
+	made := site.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}, "server": {"memory"}})
+	if made.Code != http.StatusSeeOther || made.Header().Get("Location") != "/admin/skill-sets/reviewer" {
 		t.Fatalf("making a setup answered %d to %q", made.Code, made.Header().Get("Location"))
 	}
-	site.ask(t, "POST", "/setups/reviewer/skills", url.Values{
+	site.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{
 		"skill": {"review"}, "description": {"Use when asked to review."}, "body": {"Read the diff first."},
 	})
 	if page := site.ask(t, "GET", "/setups/reviewer", nil).Body.String(); !strings.Contains(page, "Use when asked to review.") {
@@ -55,12 +55,12 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 func TestASetupAHarnessCannotTakeIsRefused(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.ask(t, "POST", "/setups", url.Values{"name": {"nothing-fits"}, "server": {"memory"}})
+	site.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"nothing-fits"}, "server": {"memory"}})
 	answer := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"no-such-setup"}})
 	if !strings.Contains(answer.Header().Get("Location"), "refused=") {
 		t.Errorf("a setup that does not exist was accepted: %q", answer.Header().Get("Location"))
 	}
-	if made := site.ask(t, "POST", "/setups", url.Values{"name": {"x"}, "server": {"not-offered"}}); !strings.Contains(made.Header().Get("Location"), "refused=") {
+	if made := site.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"x"}, "server": {"not-offered"}}); !strings.Contains(made.Header().Get("Location"), "refused=") {
 		t.Error("a setup named a server the deployment does not offer")
 	}
 }

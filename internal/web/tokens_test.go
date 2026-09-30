@@ -129,7 +129,7 @@ func TestAWrongTokenAndARevokedOneGetTheSameAnswer(t *testing.T) {
 		t.Fatalf("a live token gave %d", got.Code)
 	}
 	before := here.call("GET", "/api/spend", "haas_00000000_nothing")
-	if revoked := here.ask(t, "POST", "/tokens/"+id+"/revoke", url.Values{}); revoked.Code != http.StatusSeeOther {
+	if revoked := here.ask(t, "POST", "/admin/tokens/"+id+"/revoke", url.Values{}); revoked.Code != http.StatusSeeOther {
 		t.Fatalf("revoking gave %d", revoked.Code)
 	}
 	after := here.call("GET", "/api/spend", here.secrets["ci"])
@@ -145,7 +145,7 @@ func TestAWrongTokenAndARevokedOneGetTheSameAnswer(t *testing.T) {
 func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	here := withTokens(t)
 	here.signIn(t)
-	made := here.ask(t, "POST", "/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
+	made := here.ask(t, "POST", "/admin/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
 	secret := regexp.MustCompile(`haas_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if secret == "" {
 		t.Fatalf("the page did not show the secret:\n%s", made.Body.String())
@@ -153,7 +153,7 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	if made.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("the secret's page may be cached: %q", made.Header().Get("Cache-Control"))
 	}
-	if again := here.ask(t, "GET", "/tokens", nil).Body.String(); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
+	if again := here.ask(t, "GET", "/admin/tokens", nil).Body.String(); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
 		t.Fatalf("the secret is shown again, or the token is not listed")
 	}
 	if got := here.call("GET", "/api/spend", secret); got.Code != http.StatusOK {
@@ -178,7 +178,7 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	}
 	for _, held := range here.server.tokens.List() {
 		if held.Name == "nightly" {
-			here.ask(t, "POST", "/tokens/"+held.ID+"/revoke", url.Values{})
+			here.ask(t, "POST", "/admin/tokens/"+held.ID+"/revoke", url.Values{})
 		}
 	}
 	if len(ofKind(written(t, here.log), changelog.TokenRevoked)) != 1 {
@@ -189,8 +189,8 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 func TestTheTokensPageIsAnAdminsAndOnlyOnAServerThatTakesTokens(t *testing.T) {
 	here := withTokens(t)
 	runner := here.as(t, "amy@acme.test")
-	for _, target := range [][2]string{{"GET", "/tokens"}, {"POST", "/tokens"}, {"POST", "/tokens/abcdef12/revoke"}} {
-		if got := runner.ask(t, target[0], target[1], url.Values{"name": {"x"}, "scope": {"submit"}}); got.Code != http.StatusNotFound {
+	for _, target := range [][2]string{{"GET", "/admin/tokens"}, {"POST", "/admin/tokens"}, {"POST", "/admin/tokens/abcdef12/revoke"}} {
+		if got := runner.ask(t, target[0], target[1], url.Values{"name": {"x"}, "scope": {"submit"}}); got.Code != http.StatusForbidden {
 			t.Errorf("a person who runs work got %d from %s %s", got.Code, target[0], target[1])
 		}
 	}
@@ -200,14 +200,14 @@ func TestTheTokensPageIsAnAdminsAndOnlyOnAServerThatTakesTokens(t *testing.T) {
 
 	plain := open(t)
 	plain.signIn(t)
-	if got := plain.ask(t, "GET", "/tokens", nil); got.Code != http.StatusNotFound {
+	if got := plain.ask(t, "GET", "/admin/tokens", nil); got.Code != http.StatusNotFound {
 		t.Fatalf("a server with no tokens gave %d at /tokens", got.Code)
 	}
-	if page := plain.ask(t, "GET", "/spend", nil).Body.String(); strings.Contains(page, `href="/tokens"`) {
+	if page := plain.ask(t, "GET", "/admin", nil).Body.String(); strings.Contains(page, `href="/admin/tokens"`) {
 		t.Fatal("a server with no tokens links to its tokens page")
 	}
 	here.signIn(t)
-	if page := here.ask(t, "GET", "/spend", nil).Body.String(); !strings.Contains(page, `href="/tokens"`) {
+	if page := here.ask(t, "GET", "/admin", nil).Body.String(); !strings.Contains(page, `href="/admin/tokens"`) {
 		t.Fatal("an admin is not offered the tokens page")
 	}
 }
@@ -221,7 +221,7 @@ func TestATokenNeedsAValidNameAndAScopeAndKeepsNoSecret(t *testing.T) {
 		"a made-up scope":    {"name": {"nightly"}, "scope": {"root"}},
 		"a name in use":      {"name": {"ci"}, "scope": {"submit"}},
 	} {
-		page := here.ask(t, "POST", "/tokens", form).Body.String()
+		page := here.ask(t, "POST", "/admin/tokens", form).Body.String()
 		if !strings.Contains(page, `class="refused"`) || strings.Contains(page, "haas_") {
 			t.Errorf("%s was not refused, or showed a secret:\n%s", name, page)
 		}

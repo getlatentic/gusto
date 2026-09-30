@@ -113,16 +113,16 @@ func TestARunnerCannotChangeWhatAgentsAreGiven(t *testing.T) {
 	site.server.UseAdmins([]string{"admin@example.com"})
 	admin, runner := site.as(t, "admin@example.com"), site.as(t, alice)
 
-	if made := admin.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}}); made.Code != http.StatusSeeOther {
+	if made := admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}}); made.Code != http.StatusSeeOther {
 		t.Fatalf("an admin could not make a setup: %d %s", made.Code, made.Body.String())
 	}
 	for _, change := range []struct {
 		path string
 		form url.Values
 	}{
-		{"/setups", url.Values{"name": {"another"}}},
-		{"/setups/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}}},
-		{"/setups/reviewer/skills/review/drop", nil},
+		{"/admin/skill-sets", url.Values{"name": {"another"}}},
+		{"/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}}},
+		{"/admin/skill-sets/reviewer/skills/review/drop", nil},
 	} {
 		if got := runner.ask(t, "POST", change.path, change.form); got.Code != http.StatusForbidden {
 			t.Errorf("a runner POSTing %s got %d", change.path, got.Code)
@@ -131,36 +131,44 @@ func TestARunnerCannotChangeWhatAgentsAreGiven(t *testing.T) {
 	if _, found := site.server.setups.Get("another"); found {
 		t.Error("a runner made a setup")
 	}
-	if got := admin.ask(t, "POST", "/setups/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}}); got.Code != http.StatusSeeOther {
+	if got := admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}}); got.Code != http.StatusSeeOther {
 		t.Errorf("an admin adding a skill got %d", got.Code)
 	}
 }
 
-// A runner may read what agents are given, and is not offered what they cannot
-// use.
-func TestARunnerReadsSetupsAndIsNotOfferedTheControlsToChangeThem(t *testing.T) {
-	site := open(t)
-	site.server.UseAdmins([]string{"admin@example.com"})
-	admin, runner := site.as(t, "admin@example.com"), site.as(t, alice)
-	admin.ask(t, "POST", "/setups", url.Values{"name": {"reviewer"}})
-	admin.ask(t, "POST", "/setups/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
+// Anybody may read what agents are given. The controls to change it are the
+// console's, so the pages everybody reads carry none, an admin's included.
+func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
+	here := open(t)
+	here.server.UseAdmins([]string{"admin@example.com"})
+	admin, runner := here.as(t, "admin@example.com"), here.as(t, alice)
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
 
-	for path, controls := range map[string][]string{
+	controls := map[string][]string{
 		"/setups":          {"New skill set"},
 		"/setups/reviewer": {"Add a skill", "/skills/review/drop"},
-	} {
-		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusOK {
-			t.Fatalf("a runner reading %s got %d", path, got.Code)
-		} else {
-			for _, control := range controls {
+	}
+	for path, wanted := range controls {
+		for name, who := range map[string]*site{"a runner": runner, "an admin": admin} {
+			got := who.ask(t, "GET", path, nil)
+			if got.Code != http.StatusOK {
+				t.Fatalf("%s reading %s got %d", name, path, got.Code)
+			}
+			for _, control := range wanted {
 				if strings.Contains(got.Body.String(), control) {
-					t.Errorf("%s offers a runner %q", path, control)
+					t.Errorf("%s offers %s %q", path, name, control)
 				}
 			}
 		}
-		for _, control := range controls {
-			if !strings.Contains(admin.ask(t, "GET", path, nil).Body.String(), control) {
-				t.Errorf("%s does not offer an admin %q", path, control)
+		console := "/admin/skill-sets" + strings.TrimPrefix(path, "/setups")
+		if got := runner.ask(t, "GET", console, nil); got.Code != http.StatusForbidden {
+			t.Errorf("a runner reading %s got %d", console, got.Code)
+		}
+		page := admin.ask(t, "GET", console, nil).Body.String()
+		for _, control := range wanted {
+			if !strings.Contains(page, control) {
+				t.Errorf("%s does not offer an admin %q", console, control)
 			}
 		}
 	}

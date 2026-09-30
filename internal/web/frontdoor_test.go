@@ -71,10 +71,10 @@ func TestARunnerIsNotAnAdminAndAnAdminIs(t *testing.T) {
 	}
 	admin.cookie = cookieOf(t, admin.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	runner.cookie = cookieOf(t, runner.enterWith(t, tokenFor(t, "acme-com", "bob@acme.com", "runner", time.Now())))
-	if got := admin.ask(t, "GET", "/changes", nil).Code; got != http.StatusOK {
+	if got := admin.ask(t, "GET", "/admin/activity", nil).Code; got != http.StatusOK {
 		t.Errorf("an admin reads the record of changes: %d", got)
 	}
-	if got := runner.ask(t, "GET", "/changes", nil).Code; got == http.StatusOK {
+	if got := runner.ask(t, "GET", "/admin/activity", nil).Code; got == http.StatusOK {
 		t.Errorf("a runner does not: %d", got)
 	}
 }

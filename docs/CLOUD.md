@@ -128,6 +128,9 @@ root/
   orgs/<slug>/org.json        an organisation: name, admin, when made
   orgs/<slug>/data/           the organisation's haas data directory, 0700
   orgs/<slug>/data/quota.json what the organisation may run now
+  orgs/<slug>/data/members.json who is in the organisation, for its server to show
+  orgs/<slug>/data/inbox/     what its admins did to its people, for its server to record
+  orgs/<slug>/data/settings.json  what its admins chose, kept by its server: the monthly budget
   tokens/<hash>.json          a single-use link for verifying or signing in
   outbox/                     mail, when mail goes to files
 ```
@@ -242,6 +245,37 @@ can remove a person, but not themselves or the last admin. A removed person is s
 of the front door at once, and the organisation's own server stops trusting them within
 the hour it last did. Twenty invitations an hour are allowed for one organisation.
 
+An admin can make a person an admin or a runner from the organisation's page. The
+organisation keeps its last admin: an admin who is the only one is not offered to become a
+runner, and the front door refuses it if it is asked. A person keeps the role their token
+named for up to an hour, as with removal, and has the new one the next time they are
+signed in through the front door.
+
+### What the organisation's server is told
+
+The front door owns the people, so the organisation's server holds no copy that could
+disagree. Two files in the organisation's data directory carry what the server needs.
+
+- `members.json` is the list of people, their roles, when each was last signed in and the
+  invitations that nobody has answered. The front door writes it by renaming a finished file
+  into place, as it does the quota, when the organisation's server is started and after each
+  invitation, cancellation, acceptance, removal, change of role and sign-in. The server reads it
+  when the People page is drawn. A server that cannot read it says so on that page and shows no
+  one, and does not fail to start. If the front door could not write the list after a change, it
+  says so in its log, and the next change or a restart writes it again.
+- `inbox/` is where the front door leaves an event for each invitation, change of role and
+  removal: who did it, from where, and what. The change record has one writer, the
+  organisation's server, since two processes appending to a chained file would fork it. The
+  server takes the events into its record in the order they were left, every few seconds and
+  whenever the Activity page is drawn, and removes each file. An event that is already in the
+  record is not written twice, and a file that is not one of these three kinds is set aside as
+  `.rejected` and not recorded, so the inbox cannot be used to write a sign-in into the record.
+  Refused changes, and a change of role to the role a person has, are not recorded, since
+  nothing changed.
+
+The front door notes when a person was last signed in to their organisation's server when
+they press Open. Opening a shared app is not counted.
+
 ## Computers
 
 A person's jobs run in their own computer, made the first time they run one and kept
@@ -277,6 +311,54 @@ the lines that were there when it began are not its.
 - `haas cloud computers` lists every computer on the host with its organisation and person.
   An organisation's page shows its admin which people have one and how it is.
 
+## The admin console
+
+An organisation's server has a console for its admins at `/admin`. It has its own layout
+and navigation. It is the only place the admin controls are: the pages a person who runs
+work uses carry none, and an admin sees one link to the console, "Admin". The console has
+one link back, "Back to haas". A person who runs work gets 403 on every page of the console
+and on every form it posts. A person who is not signed in is sent to sign in. Each server is
+one organisation's, so the console shows that organisation and nobody else's.
+
+| Section | Address | What it holds | Listed when |
+| --- | --- | --- | --- |
+| Overview | `/admin` | this month's spending, the limits and how much of each is used, the jobs running, waiting and failed this week, the computers and the shared apps, and the budget | always |
+| Spending | `/admin/spending` | the spend report for the whole organisation | always |
+| Activity | `/admin/activity` | the change record, and its download at `/admin/activity.jsonl` | the server keeps a change record |
+| Tokens | `/admin/tokens` | API tokens | the server takes tokens |
+| Retention | `/admin/retention` | the disk, the policy, sweeps and holds, of a job or of a person | the server removes finished work |
+| Skill sets | `/admin/skill-sets` | making skill sets, and adding and removing their skills | the server keeps skill sets |
+| People | `/admin/people` | each person's role, when they last signed in and what they have spent this month, and the invitations not yet answered. Inviting, removing and changing a role are at the front door, which the page links to | the server has a list of people from its front door |
+
+A section that the server has nothing for is not listed and answers 404.
+
+### The Overview
+
+The Overview reads what the pages it summarises read. Spending is the ledger the caps are
+checked against, by person, team, model and repository, for the current month in UTC. The
+jobs are the queue's own counts, the same as `/metrics` reports, and failed is over the last
+seven days, as the Activity page counts it. Computers are the organisation's record of them,
+and apps are the record of what people shared.
+
+The Limits table has a row for each limit that exists and no row for one that does not: the
+budget, each team the spend policy caps, and, where the front door writes a quota, the jobs the
+organisation may start, how many may run at once and how many computers it may have. A row is
+marked when its limit is used up. A quota that cannot be read is said, and is not shown as no
+limit.
+
+An admin can set one alert, a monthly budget in dollars, on the Overview. It is kept in
+`settings.json` in the organisation's data directory, which only its server writes, and
+`HAAS_ORG_SETTINGS` names it. When the month's spending passes the budget the Overview shows a
+banner that says by how much. Spending that has no price is not in the sum, so the banner then says
+"at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
+written to the change record. A budget that cannot be read is said and is not checked, and the
+file is not written over.
+The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and
+`/retention`, redirect to their place in the console, and the forms that were posted to `/tokens`,
+`/retention/...` and `/setups/...` are sent again to the console with their method kept. A
+person who runs work who follows one of them gets the same 403. A single job is held from the
+Retention page, by its id, and no longer from the job's own page.
+
 ## What is built
 
 The controller provisions an organisation's directories, its signing key and its entry
@@ -289,5 +371,5 @@ first is this machine.
 ## What comes next
 
 Inviting people (getlatentic/planning#396), the computers' lifecycle
-(getlatentic/planning#430), the admin's and the operator's views, the stack on AWS from
+(getlatentic/planning#430), the operator's view, the stack on AWS from
 code (getlatentic/planning#397), and payment.

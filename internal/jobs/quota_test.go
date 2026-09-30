@@ -163,3 +163,34 @@ func TestAnIndexWithNoQuotaIsNotLimited(t *testing.T) {
 		by(t, index, "amy", "", "job "+string(rune('a'+i%26))+string(rune('a'+i/26)))
 	}
 }
+
+func TestTheAllowanceSaysHowMuchOfTheQuotaIsUsedAndFailsWhenItCannotBeRead(t *testing.T) {
+	plain, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, under, err := plain.Allowance(time.Now()); under || err != nil {
+		t.Errorf("an index under no quota: %v %v", under, err)
+	}
+
+	index, path := limited(t, quota.Quota{Jobs: 10, Monthly: true, Concurrent: 2, Computers: 4})
+	lastMonth := time.Now().UTC().AddDate(0, -1, -1)
+	record := Record{ID: "old", State: Passed, Brief: "old", Harness: "fixture", Asked: "amy", Queued: lastMonth.Unix()}
+	os.MkdirAll(record.Dir(index.Root()).Path(), 0o755)
+	if err := index.Add(record); err != nil {
+		t.Fatal(err)
+	}
+	by(t, index, "amy", "", "this month")
+	allowed, under, err := index.Allowance(time.Now())
+	if err != nil || !under || allowed.Started != 1 || allowed.Quota.Jobs != 10 || allowed.Quota.Computers != 4 {
+		t.Errorf("a monthly quota counts this month's jobs: %+v %v %v", allowed, under, err)
+	}
+
+	if err := os.WriteFile(path, []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1100 * time.Millisecond)
+	if _, under, err := index.Allowance(time.Now()); !under || err == nil {
+		t.Errorf("a quota that cannot be read is an error: %v %v", under, err)
+	}
+}

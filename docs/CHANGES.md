@@ -2,7 +2,7 @@
 
 A job's record says what an agent did. This record says what the people who run
 the platform did to it: who signed in, who was refused, who changed a role or a
-setup, and which settings changed. An admin reads it at `/changes`.
+setup, and which settings changed. An admin reads it under Activity in the admin console, at `/admin/activity`.
 
 ## What is written
 
@@ -15,6 +15,8 @@ setup, and which settings changed. An admin reads it at `/changes`.
 | `setup.saved` | a skill set is created or its tools change |
 | `skill.written`, `skill.dropped` | a skill is added to a skill set or removed |
 | `token.created`, `token.revoked` | an admin makes or revokes an API token, with what it may do. The secret is never written |
+| `member.invited`, `member.role`, `member.removed` | in an organisation behind a front door, an admin invites a person, changes their role or removes them. The front door reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
+| `budget.set` | an admin sets, changes or clears the monthly budget, with the figure before and after |
 | `retention.hold`, `retention.release` | an admin keeps a job or a person's work from being removed, or lets it go |
 | `retention.swept` | a sweep removed workspaces or records, with the counts and the records named |
 | `server.started` | the server starts, with the settings that decide who may do what |
@@ -45,7 +47,7 @@ that is written.
 the filesystem allows, so that not even the user the server runs as can rewrite
 or shorten it, and says when the filesystem would not.
 
-An admin downloads it from `/changes.jsonl`. A script with the shared password,
+An admin downloads it from `/admin/activity.jsonl`. A script with the shared password,
 or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 
 ## Why an edit shows

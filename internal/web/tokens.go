@@ -14,19 +14,6 @@ import (
 // answer 404.
 func (s *Server) UseTokens(store *apitoken.Store) { s.tokens = store }
 
-// tokenAdmin answers 404 to anybody who is not an admin, and to every request
-// when the server takes no tokens: what they may not see is not something they
-// need to know is there.
-func (s *Server) tokenAdmin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if s.tokens == nil || !s.admin(r) {
-			http.NotFound(w, r)
-			return
-		}
-		next(w, r)
-	}
-}
-
 // tokenRow is one token as the page says it.
 type tokenRow struct {
 	ID       string
@@ -65,10 +52,10 @@ func (s *Server) showTokens(w http.ResponseWriter, r *http.Request, page map[str
 	for _, scope := range apitoken.Scopes {
 		offered = append(offered, map[string]string{"Scope": scope, "Words": tokenScopeWords[scope]})
 	}
-	page["Title"], page["Nav"], page["Admin"] = "haas — API tokens", "tokens", true
+	page["Title"] = "haas — API tokens"
 	page["Tokens"], page["Offered"] = rows, offered
 	w.Header().Set("Cache-Control", "no-store")
-	s.render(w, "tokens.html", page)
+	s.drawConsole(w, "admin-tokens.html", "tokens", page)
 }
 
 func describeScopes(scopes []string) string {
@@ -117,5 +104,5 @@ func (s *Server) revokeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.note(r, changelog.TokenRevoked, map[string]string{"id": held.ID, "name": held.Name})
-	http.Redirect(w, r, "/tokens", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/tokens", http.StatusSeeOther)
 }

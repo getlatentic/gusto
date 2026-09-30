@@ -93,12 +93,7 @@ var helpers = template.FuncMap{
 	"add":      func(a, b int64) int64 { return a + b },
 	// usd is an amount of money as a headline shows it: cents once there are
 	// dollars, and the fractions of a cent an agent's calls cost until then.
-	"usd": func(amount float64) string {
-		if amount >= 1 {
-			return fmt.Sprintf("$%.2f", amount)
-		}
-		return fmt.Sprintf("$%.4f", amount)
-	},
+	"usd": headlineUSD,
 	// ago is how long ago something happened, as a list read at a glance says
 	// it, with the date itself once it is more than a day old.
 	"ago": func(unix int64) string {
@@ -129,6 +124,15 @@ var helpers = template.FuncMap{
 		}
 		return (time.Duration(to-from) * time.Second).String()
 	},
+}
+
+// headlineUSD is an amount of money as a headline shows it: cents once there are
+// dollars, and the fractions of a cent an agent's calls cost until then.
+func headlineUSD(amount float64) string {
+	if amount >= 1 {
+		return fmt.Sprintf("$%.2f", amount)
+	}
+	return fmt.Sprintf("$%.4f", amount)
 }
 
 func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {

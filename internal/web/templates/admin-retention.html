@@ -41,7 +41,7 @@
   {{else}}
   <p class="muted">Nothing is due.</p>
   {{end}}
-  <form method="post" action="/retention/sweep"><button type="submit">Sweep now</button></form>
+  <form method="post" action="/admin/retention/sweep"><button type="submit">Sweep now</button></form>
   {{with .Last}}<p class="muted">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
 </section>
 
@@ -53,18 +53,22 @@
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
       {{range $id, $h := .HeldJobs}}<tr><td>job <a href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td><form method="post" action="/jobs/{{$id}}/release"><button type="submit">Release</button></form></td></tr>{{end}}
+        <td><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td><form method="post" action="/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit">Release</button></form></td></tr>{{end}}
+        <td><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit">Release</button></form></td></tr>{{end}}
     </tbody>
   </table>
   {{end}}
-  <form method="post" action="/retention/holds" class="inline">
+  <form method="post" action="/admin/retention/jobs/hold" class="inline">
+    <label>Job <input name="job" placeholder="the job's id, as in its address" required></label>
+    <label>Why <input name="why" placeholder="for the record"></label>
+    <button type="submit">Keep the job</button>
+  </form>
+  <form method="post" action="/admin/retention/holds" class="inline">
     <label>Person <input name="who" placeholder="amy@acme.test" required></label>
     <label>Why <input name="why" placeholder="for the record"></label>
     <button type="submit">Keep their work</button>
   </form>
-  <p class="muted">A single job is held from its own page.</p>
 </section>
 
 {{template "foot" .}}

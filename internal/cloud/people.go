@@ -26,6 +26,9 @@ type Person struct {
 	Verified time.Time `json:"verified,omitzero"`
 	// By is who invited them, and empty for the admin who made the organisation.
 	By string `json:"by,omitempty"`
+	// LastSignIn is when the front door last signed them in to their organisation's
+	// server, and the zero time until it has.
+	LastSignIn time.Time `json:"lastSignIn,omitzero"`
 }
 
 // Org is an organisation as the front door knows it. Its work is in its own

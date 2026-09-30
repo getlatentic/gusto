@@ -53,7 +53,6 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	page["Calls"] = callsOf(dir)
 	page["Files"] = hashed(listing(dir), manifest)
 	page["Proof"] = s.proofOf(record.ID, dir, manifest)
-	s.drawHold(page, r, record.ID)
 	s.render(w, "job.html", page)
 }
 

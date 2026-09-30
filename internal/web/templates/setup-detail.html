@@ -2,7 +2,8 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>setup</span></nav>
+{{if .Console}}<nav class="crumb" aria-label="Where this is"><a href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
+{{else}}<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>setup</span></nav>{{end}}
 <div class="title-row">
   <h1>{{.Setup.Name}}</h1>
 </div>
@@ -17,7 +18,7 @@
       <li>
         <div class="skill-head">
           <span class="name">{{.Name}}</span>
-          {{if $.Admin}}<form method="post" action="/setups/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>{{end}}
+          {{if $.Console}}<form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>{{end}}
         </div>
         <p class="muted">{{.Description}}</p>
         <details><summary>Instructions</summary><div class="reply">{{markdown .Body}}</div></details>
@@ -29,10 +30,10 @@
     {{end}}
   </section>
 
-  {{if .Admin}}
+  {{if .Console}}
   <section class="panel">
     <h2>Add a skill</h2>
-    <form class="stack" method="post" action="/setups/{{.Setup.Name}}/skills">
+    <form class="stack" method="post" action="{{.Base}}/{{.Setup.Name}}/skills">
       <label>Name <input name="skill" placeholder="review-a-diff" pattern="[a-z0-9][a-z0-9-]*" required></label>
       <label><span class="line">When to use it <span class="muted">the harness decides by this</span></span>
         <input name="description" placeholder="Use when asked to review a change before it is merged." required></label>
@@ -46,8 +47,8 @@
 <aside class="run-side">
   <section class="panel">
     <h2>MCP servers</h2>
-    {{if and .Offered .Admin}}
-    <form class="stack" method="post" action="/setups">
+    {{if and .Offered .Console}}
+    <form class="stack" method="post" action="{{.Base}}">
       <input type="hidden" name="name" value="{{.Setup.Name}}">
       {{$chosen := .Setup.Servers}}
       {{range $name, $server := .Offered}}
@@ -62,6 +63,7 @@
     <p class="muted">This deployment offers no MCP servers. Its operator declares them, because each one runs inside the box or is an address the box may reach.</p>
     {{end}}
   </section>
+  {{if not .Console}}
   <section class="panel">
     <h2>Start with it</h2>
     <ul class="starts">
@@ -70,6 +72,7 @@
       {{end}}{{end}}
     </ul>
   </section>
+  {{end}}
 </aside>
 </div>
 
