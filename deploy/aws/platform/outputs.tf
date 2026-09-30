@@ -18,3 +18,8 @@ output "file_system" {
   description = "Its id is the repository variable HAAS_EFS."
   value       = aws_efs_file_system.shared.id
 }
+
+output "front_door" {
+  description = "The instance id and address of the front door that stays up."
+  value       = { instance = aws_instance.live.id, address = aws_eip.live.public_ip }
+}

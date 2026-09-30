@@ -12,6 +12,7 @@
     state: started
     enabled: true
     daemon_reload: true
+  when: not demo_live | bool
 
 - name: The web server and the front door are running
   ansible.builtin.systemd:

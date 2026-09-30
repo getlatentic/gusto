@@ -39,6 +39,28 @@ made with `cells` at 0, as before.
 - Requests to a cell are signed with `/haas/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
   reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
+## The front door that stays up
+
+`aws_instance.live` is a small host (`t3.small`, with a fixed address) that runs the public demo all the time: nginx and
+the certificate, the front door at `https://<name>`, and the scaler that starts a host for a cell when an organisation
+waits for one and stops a cell that has had nothing on it for ten minutes. With nobody using it there is no cell and
+nothing is paid for but this host, its address and the file system.
+
+- It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **demo bundle** run
+  then brings it to that release (an SSM command that runs the start-up script again), which restarts the front door
+  and leaves the cells and the organisations on them as they are.
+- Its role is its own, and is the only one that may start and stop hosts. It starts hosts only from the
+  `cell-live` template, which tags them `project=haas-live`, and stops only hosts with that tag that it started
+  (`scaler=on`). A cell, which runs other people's code, can start nothing. The demo workflows tag and stop
+  `project=haas-poc`, so they never touch it, and it never touches theirs.
+- It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
+  replaced.
+- Sign-up for a visitor is at `https://<name>/demo`. `DEMO_VISITOR_MINUTES` and `DEMO_BOOK_URL` in `demo.env`, stored
+  with `../openshell/put-demo-config.sh`, turn it on and say where a call is booked.
+- The `demo up` workflow makes a separate, short-lived demo with its own name in the same way as before. Both use the
+  same name, so only one of them is up at a time: take the live front door down (`aws ec2 stop-instances`) before
+  running `demo up`.
+
 ## Once
 
 GitHub's identity provider must be in the AWS account before the workflows can sign in. IAM does not check that
