@@ -320,3 +320,31 @@ func TestTwoInstancesProposedOneIdStayTwo(t *testing.T) {
 		t.Errorf("the first instance's harness is now %q", held.Harness)
 	}
 }
+
+func TestAnInstancesModelIsChangedAndKeptAcrossARestart(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	held, err := store.Start("20260930-1200-notes", Instance{Harness: "fixture", Model: "a/one"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetModel(held.ID, "a/two"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := store.Get(held.ID); got.Model != "a/two" {
+		t.Errorf("%+v", got)
+	}
+	reopened, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := reopened.Get(held.ID); got.Model != "a/two" {
+		t.Errorf("the change was not kept: %+v", got)
+	}
+	if err := store.SetModel("no-such-instance", "a/two"); err == nil {
+		t.Error("an instance that is not there has no model to change")
+	}
+}
