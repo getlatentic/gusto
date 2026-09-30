@@ -45,6 +45,8 @@ type Controller struct {
 	// StopGrace is how long a server is given to end its jobs' records when it is
 	// asked to stop, before it is made to.
 	StopGrace time.Duration
+	// WaitEvery is how often an organisation waiting for a cell is tried again. It is five seconds when not set.
+	WaitEvery time.Duration
 
 	// mu guards the two maps below and is held only to read or change them, so
 	// routing never waits on a server that is starting. Each organisation is
@@ -88,6 +90,9 @@ func (c *Controller) provision(slug string) error {
 		return c.fail(slug, runtime, err)
 	}
 	cell, err := c.placement(slug, &runtime)
+	if errors.Is(err, ErrNoCapacity) {
+		return c.wait(slug, runtime, err)
+	}
 	if err != nil {
 		return c.fail(slug, runtime, err)
 	}
@@ -293,6 +298,39 @@ func (c *Controller) set(slug string, runtime Runtime, state State, why string) 
 	}
 }
 
+// wait leaves an organisation waiting for a cell with room, which it is tried for again shortly. It is not a failure
+// and is not counted as one, since what it waits for is being made.
+func (c *Controller) wait(slug string, runtime Runtime, err error) error {
+	c.set(slug, runtime, Waiting, err.Error())
+	c.mu.Lock()
+	if c.retry == nil {
+		c.retry = map[string]time.Time{}
+	}
+	c.retry[slug] = time.Now().Add(c.waitEvery())
+	c.mu.Unlock()
+	return err
+}
+
+func (c *Controller) waitEvery() time.Duration {
+	if c.WaitEvery > 0 {
+		return c.WaitEvery
+	}
+	return 5 * time.Second
+}
+
+// Waiting is how many organisations are waiting for a cell with room, which is what makes another start.
+func (c *Controller) Waiting() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	waiting := 0
+	for _, runtime := range c.states {
+		if runtime.State == Waiting {
+			waiting++
+		}
+	}
+	return waiting
+}
+
 func (c *Controller) fail(slug string, runtime Runtime, err error) error {
 	slog.Error("an organisation's server could not be made ready", "org", slug, "error", err)
 	c.set(slug, runtime, Failed, err.Error())
@@ -351,7 +389,7 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 }
 
 func (c *Controller) supervise() {
-	var due []string
+	var due, waiting []string
 	c.mu.Lock()
 	now := time.Now()
 	for slug, runtime := range c.states {
@@ -360,11 +398,16 @@ func (c *Controller) supervise() {
 			due = append(due, slug)
 		case runtime.State == Failed && !now.Before(c.retry[slug]):
 			due = append(due, slug)
+		case runtime.State == Waiting && !now.Before(c.retry[slug]):
+			waiting = append(waiting, slug)
 		}
 	}
 	c.mu.Unlock()
 	for _, slug := range due {
 		c.restart(slug)
+	}
+	for _, slug := range waiting {
+		go c.Provision(slug)
 	}
 }
 

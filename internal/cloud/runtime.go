@@ -12,7 +12,9 @@ const (
 	Provisioning State = "provisioning"
 	Starting     State = "starting"
 	Ready        State = "ready"
-	Failed       State = "failed"
+	// Waiting is an organisation no cell has room for yet, which is tried again in a few seconds.
+	Waiting State = "waiting"
+	Failed  State = "failed"
 )
 
 // Runtime is what the front door knows of an organisation's server: which cell it
