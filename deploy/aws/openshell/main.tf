@@ -38,6 +38,17 @@ resource "aws_security_group" "spike" {
     cidr_blocks = var.operator_cidrs
   }
 
+  dynamic "ingress" {
+    for_each = var.public_https ? [1] : []
+    content {
+      description = "https for the public cloud"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -55,7 +66,7 @@ resource "aws_iam_role" "spike" {
   name = var.name
   tags = local.tags
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
   })
 }
@@ -65,11 +76,17 @@ resource "aws_iam_role_policy" "spike" {
   role = aws_iam_role.spike.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
-      Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/haas/poc/*"
-    }]
+    Statement = concat(
+      [{
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/haas/poc/*"
+      }],
+      var.demo_bucket == "" ? [] : [
+        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${var.demo_bucket}/*" },
+        { Effect = "Allow", Action = ["s3:ListBucket"], Resource = "arn:aws:s3:::${var.demo_bucket}" },
+      ]
+    )
   })
 }
 

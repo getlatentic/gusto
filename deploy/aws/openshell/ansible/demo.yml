@@ -1,0 +1,11 @@
+---
+# Turns the host up.sh made into a demo host of the public cloud: the front door under
+# systemd, TLS for the wildcard name, and the name pointed at the host. OpenShell's role
+# has already run, and its settings are read here.
+- name: The public cloud on a demo host
+  hosts: spike
+  become: true
+  vars_files:
+    - roles/openshell/defaults/main.yml
+  roles:
+    - demo

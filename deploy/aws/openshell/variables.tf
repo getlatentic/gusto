@@ -25,3 +25,15 @@ variable "name" {
   type        = string
   default     = "haas-poc-openshell"
 }
+
+variable "public_https" {
+  description = "Open port 443 to everyone, for a host that serves the public cloud's pages. SSH stays open to operator_cidrs only."
+  type        = bool
+  default     = false
+}
+
+variable "demo_bucket" {
+  description = "A bucket the instance may read and write, which holds what outlives it: the certificate and the runner image. demo-store.sh makes it, and this stack does not manage it, so down.sh leaves it."
+  type        = string
+  default     = ""
+}

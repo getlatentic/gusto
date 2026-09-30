@@ -2,3 +2,4 @@
 out/
 .terraform/
 terraform.tfstate*
+demo.env
