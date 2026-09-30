@@ -35,7 +35,7 @@ func (s *Server) enginesPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "engines.html", map[string]any{
 		"Title":    "haas — how each engine did",
 		"Nav":      "new",
-		"Measured": measuredOf(s.catalog),
+		"Measured": measuredOf(s.entries()),
 	})
 }
 

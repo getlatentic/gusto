@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/haas/internal/spend"
@@ -19,27 +20,28 @@ type Where func(job string) (string, bool)
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
 type Proxy struct {
-	tokens      *Tokens
-	credentials Credentials
-	where       Where
-	ledger      *spend.Ledger
-	allowed     Allowlist
-	client      *http.Client
-	guard       sync.Mutex
-	counts      counters
-	resolve     Resolver
+	tokens   *Tokens
+	held     atomic.Pointer[Credentials]
+	registry atomic.Int64
+	where    Where
+	ledger   *spend.Ledger
+	allowed  Allowlist
+	client   *http.Client
+	public   *http.Client
+	guard    sync.Mutex
+	counts   counters
+	resolve  Resolver
 }
 
 // New takes the ledger every call is counted in and every cap is checked
 // against, so what the proxy refuses and what a report says was spent are read
 // from one place, and the hosts a job may reach besides its model.
 func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
-	return &Proxy{
-		tokens:      tokens,
-		credentials: credentials,
-		where:       where,
-		ledger:      ledger,
-		allowed:     allowed,
+	p := &Proxy{
+		tokens:  tokens,
+		where:   where,
+		ledger:  ledger,
+		allowed: allowed,
 		// A model answers slowly and streams. There is no timeout to set here
 		// that is not a guess at somebody's slowest prompt; the job's own budget
 		// is what stops a run that will not end.
@@ -51,7 +53,19 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 	}
+	p.public = publicClient(p.lookup)
+	p.SetCredentials(credentials, 0)
+	return p
 }
+
+// SetCredentials changes what the proxy holds, and says which version of the organisation's registry
+// that is. A call in flight keeps the credential it began with; the next one finds what is set here.
+func (p *Proxy) SetCredentials(credentials Credentials, registry int64) {
+	p.held.Store(&credentials)
+	p.registry.Store(registry)
+}
+
+func (p *Proxy) credentials() Credentials { return *p.held.Load() }
 
 // Handler answers the address a container was given. It is deliberately not
 // behind the sign-in: a container has no cookie, and the token is what says who
@@ -101,7 +115,7 @@ func split(full string) (token, rest string) {
 
 func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
 	job := ticket.Job
-	credential, held := p.credentials.Get(ticket.Credential)
+	credential, held := p.credentials().Get(ticket.Credential)
 	if !held {
 		// The job was given this credential when it started, so losing it here
 		// means the deployment changed underneath a running job.
@@ -136,8 +150,8 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	// the answer is readable here. A compression the container chose would pass
 	// through packed, and the call would go uncounted.
 	out.Header.Del("Accept-Encoding")
-	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name}
-	answer, err := p.client.Do(out)
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Registry: p.registry.Load()}
+	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
 		p.note(job, call)

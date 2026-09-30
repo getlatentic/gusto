@@ -353,6 +353,33 @@ banner that says by how much. Spending that has no price is not in the sum, so t
 "at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
 written to the change record. A budget that cannot be read is said and is not checked, and the
 file is not written over.
+## Models
+
+An organisation's admins choose the models its people may use at `/admin/models`. The page lists
+the operator's own providers, which cannot be changed from it, and the organisation's, which can.
+A provider is an address, how it takes its key, and perhaps the harnesses it works with. A model
+belongs to a provider, is named as the provider names it, and may have a price: dollars for a
+million tokens of input, output and cached input. A model with no price has an unknown cost, which
+is not the same as nothing, and a team's cap cannot count it. Each change is a version of the
+registry, is written to the change record without the key, and takes effect for the next model
+call: a job already running keeps the credential it began with, and every call the proxy makes is
+written to `out/proxy.jsonl` with the version it was sent under. `audit.json` lists the versions
+in `model.registry`.
+
+A key is typed into the page once, is kept in a file only the server can read, and is never shown
+again. Retiring a provider forgets it. Where the operator allows it (`HAAS_REGISTRY_KEYS`), a key
+is named instead as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. Those let an admin name
+anything the machine can read, so a deployment that hosts other people's organisations leaves them
+out.
+
+An organisation chose the address of its providers, and the key is sent there from a machine that
+other organisations' servers are on too. So a provider must be at an https address that resolves to a
+public address, which is checked when it is added and again each time the proxy connects, and a
+call to it is refused if it would reach this machine, a private network or a cloud's metadata
+service. `HAAS_REGISTRY_PRIVATE=allow` lifts this for a deployment that runs a model inside its
+own network. A provider whose key cannot be read is left out, with the reason, and so are its
+models. An organisation cannot add a provider beside an operator's credential that has no name.
+
 The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and
 `/retention`, redirect to their place in the console, and the forms that were posted to `/tokens`,
 `/retention/...` and `/setups/...` are sent again to the console with their method kept. A

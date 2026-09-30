@@ -53,7 +53,7 @@ func (s *Server) agentOf(held instance.Instance) agent {
 
 // engineName is the program's name for a person.
 func (s *Server) engineName(harness string) string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if entry.Name == harness && entry.Title != "" {
 			return entry.Title
 		}

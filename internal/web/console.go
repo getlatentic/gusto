@@ -30,6 +30,9 @@ func (s *Server) sections() []section {
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}
+	if s.hasRegistry() {
+		all = append(all, section{"models", "/admin/models", "Models"})
+	}
 	return all
 }
 
@@ -101,6 +104,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 
+	s.modelRoutes(mux)
 	s.movedRoutes(mux)
 }
 

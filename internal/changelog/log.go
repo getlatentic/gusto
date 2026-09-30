@@ -51,6 +51,12 @@ const (
 	MemberRole      = "member.role"
 	MemberRemoved   = "member.removed"
 	BudgetSet       = "budget.set"
+	ProviderAdded   = "provider.added"
+	ProviderRetired = "provider.retired"
+	KeyReplaced     = "provider.key"
+	ModelAdded      = "model.added"
+	ModelRetired    = "model.retired"
+	PriceSet        = "model.price"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organisation's front

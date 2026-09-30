@@ -93,6 +93,9 @@ type Model struct {
 	Asked       Fact[any]      `json:"asked"`
 	Endpoint    string         `json:"endpoint"`
 	Credentials Fact[[]string] `json:"credentials"`
+	// Registry is the versions of the organisation's model registry the calls were sent under. Nothing is
+	// listed for a deployment with no registry.
+	Registry Fact[[]int64] `json:"registry"`
 }
 
 // Spend holds two counts that are deliberately kept apart: what the harness
