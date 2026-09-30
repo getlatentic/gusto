@@ -1,0 +1,18 @@
+[Unit]
+Description=haas cell: starts and stops organisations' servers for the front door
+After=haas-boot.service openshell-gateway.service
+Requires=haas-boot.service
+RequiresMountsFor={{ demo_state }}
+
+[Service]
+User={{ demo_user }}
+SupplementaryGroups=kvm
+WorkingDirectory={{ demo_lib }}
+EnvironmentFile=/etc/haas/cell.env
+EnvironmentFile=/run/haas/cell.env
+ExecStart=/usr/local/bin/haas cell
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

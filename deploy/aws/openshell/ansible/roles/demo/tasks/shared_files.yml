@@ -1,0 +1,50 @@
+---
+# The organisations' data is on a file system every host of a demo mounts, in a directory of its own for the
+# demo, at the path a single host keeps it: the front door and a cell both write and read it by that path.
+- name: The tool that mounts the file system
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: true
+
+- name: Where the file system and the demo's directory of it are mounted
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: ["/mnt/efs", "{{ demo_state }}"]
+
+# A mount target answers a little after it is made, and the name of the file system resolves after it does.
+- name: The file system
+  ansible.posix.mount:
+    path: /mnt/efs
+    src: "{{ demo_efs }}:/"
+    fstype: nfs4
+    opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev
+    state: mounted
+  register: mounted
+  until: mounted is succeeded
+  retries: 30
+  delay: 10
+
+- name: The demo's directory of it
+  ansible.builtin.file:
+    path: "/mnt/efs/runs/{{ demo_run }}"
+    state: directory
+    owner: "{{ demo_user }}"
+    group: "{{ demo_user }}"
+    mode: "0755"
+
+# What an earlier demo left is not carried into this one: its organisations' computers went with its hosts.
+- name: The directories of earlier demos are removed
+  ansible.builtin.command: find /mnt/efs/runs -mindepth 1 -maxdepth 1 -not -name "{{ demo_run }}" -exec rm -rf {} +
+  changed_when: false
+  when: demo_role == 'orchestrator'
+
+- name: The demo's directory is where the organisations' data is
+  ansible.posix.mount:
+    path: "{{ demo_state }}"
+    src: "/mnt/efs/runs/{{ demo_run }}"
+    fstype: none
+    opts: bind,x-systemd.requires-mounts-for=/mnt/efs
+    state: mounted

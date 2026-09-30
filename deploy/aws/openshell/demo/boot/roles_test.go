@@ -1,0 +1,93 @@
+package boot
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func (h *host) as(role string) {
+	h.t.Helper()
+	os.WriteFile(h.conf, []byte(mustRead(h.t, h.conf)+"ROLE="+role+"\n"), 0o644)
+}
+
+func (h *host) has(path string) bool {
+	_, err := os.Stat(filepath.Join(h.dir, path))
+	return err == nil
+}
+
+func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T) {
+	h := newHost(t)
+	h.as("orchestrator")
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "certbot ") != 1 || count(done, "haas-dns ") != 1 {
+		t.Errorf("the front door has a certificate and the name: %v", done)
+	}
+	if count(done, "credentials ") != 0 || h.has("lib/runner-all-rootfs.tar.gz") {
+		t.Errorf("it runs no computer, so it has no image and no model credentials: %v", done)
+	}
+	if !h.has("lease/lease.json") {
+		t.Error("the lease is the front door's")
+	}
+	secret := filepath.Join(h.dir, "run", "cell-secret")
+	info, err := os.Stat(secret)
+	if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, secret) != "value-of-/haas/poc/cell-secret\n" {
+		t.Errorf("the secret cells are told with is kept for its owner alone: %v %v", info, err)
+	}
+	if h.has("run/cell.env") {
+		t.Error("an orchestrator is not a cell")
+	}
+}
+
+func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "the image")
+	h.as("cell")
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "certbot ") != 0 || count(done, "haas-dns ") != 0 {
+		t.Errorf("a cell does not take the name: %v", done)
+	}
+	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
+		t.Errorf("the image: %q", got)
+	}
+	if count(done, "credentials ") != 1 {
+		t.Errorf("computers on a cell reach the models: %v", done)
+	}
+	identity := mustRead(t, filepath.Join(h.dir, "run", "cell.env"))
+	if want := "HAAS_CELL_NAME=cell-0abc123def4567890\nHAAS_CELL_PRIVATE=10.0.7.21\n"; identity != want {
+		t.Errorf("who it is: %q", identity)
+	}
+	if h.has("run/secrets/cf-dns-token") || h.has("run/secrets/mail.env") || h.has("lease/lease.json") {
+		t.Error("a cell holds neither the Cloudflare tokens nor a lease")
+	}
+	if name := strings.Split(strings.Split(identity, "\n")[0], "=")[1]; len(name) > 31 {
+		t.Errorf("%q is too long to be a cell's name", name)
+	}
+}
+
+func TestACellWithNoSecretDoesNotStart(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "x")
+	h.as("cell")
+	if _, err := h.boot("FAKE_MISSING=/haas/poc/cell-secret"); err == nil {
+		t.Fatal("a cell that cannot be told what to do by anyone must not start")
+	}
+	if h.has("run/cell.env") {
+		t.Error("the host said who it was before it had a secret")
+	}
+}
+
+func TestAnUnknownRoleIsRefused(t *testing.T) {
+	h := newHost(t)
+	h.as("both")
+	if _, err := h.boot(); err == nil {
+		t.Fatal("a role that is not one is refused")
+	}
+}

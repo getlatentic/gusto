@@ -5,7 +5,7 @@ outlives a host, and the script a host starts with.
 
 | Piece | What it is |
 | --- | --- |
-| `main.tf` | The role and profile every host has, the launch template a host is made from, the security group (https only), and the role GitHub Actions takes. |
+| `main.tf` | The role and profile every host has, the launch templates a host is made from, the security group (https from anywhere, and the demo's own hosts to each other), the file system the hosts of a demo share, and the role GitHub Actions takes. |
 | `bootstrap.sh` | Applies `main.tf`, from a machine with the rights to make IAM roles, and prints the repository variables to set. Rare. |
 | `user-data.sh` | What a host runs when it starts: it fetches the release bundle, checks its checksum, and configures itself. |
 
@@ -20,6 +20,24 @@ objects under `releases/` and `image/`. It has no IAM right, so it cannot widen 
 
 A host that fails to start powers off 15 minutes after the failure, and every host has a timer for the most it
 may be up. There is no SSH: `aws ssm start-session --target <instance id>` is how a person reaches one.
+
+## More than one host
+
+**demo up** with `cells` from 1 to 4 makes a front door (the `orchestrator` template, `t3.medium`, no computers) and that
+many hosts that run the organisations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
+made with `cells` at 0, as before.
+
+- The hosts of one demo share an encrypted file system, mounted at `/var/lib/haas-cloud` on each, in a directory of it
+  named for the run. The front door starts an organisation's server on a cell through the cell's agent
+  (`haas cell`, port 8060), and the server reads and writes its data by the path the front door knows it by. The
+  front door removes the directories of earlier runs when it starts, since the computers they describe went with their hosts.
+- A cell registers in `cells/` of that directory every ten seconds. A new organisation is placed on the cell with the
+  most free memory, and stays there. When its cell has been silent for five minutes it is placed on another, and its
+  people start it again from the front door.
+- The front door writes `cells/orchestrator.beat` every ten seconds. A cell that has not seen it for five minutes powers
+  itself off (and so terminates), after the front door has had 15 minutes to start. A cell has no lease of its own.
+- Requests to a cell are signed with `/haas/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
+  reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
 ## Once
 
@@ -40,4 +58,5 @@ other, not both. Then the rest:
 ./bootstrap.sh                                  # this directory
 ../openshell/put-cloudflare.sh                  # the two Cloudflare tokens
 ../openshell/put-demo-config.sh                 # what a host reads that is not secret, from demo.env
+../openshell/put-cell-secret.sh                 # the secret cells are told what to do with; only for demos with cells
 ```

@@ -9,3 +9,9 @@
   ansible.builtin.systemd:
     name: nginx
     state: reloaded
+
+- name: Restart the cell
+  ansible.builtin.systemd:
+    name: haas-cell
+    state: restarted
+    daemon_reload: true

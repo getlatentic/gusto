@@ -22,3 +22,12 @@ demo_max_hours: 4
 demo_user: ubuntu
 demo_state: /var/lib/haas-cloud
 demo_lib: /var/lib/haas
+# all is one host that is the front door and runs the organisations' servers. orchestrator is the front door
+# alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one demo share
+# demo_efs, the address of a shared file system, and the directory demo_run of it, where the organisations' data is.
+demo_role: all
+demo_efs: ""
+demo_run: ""
+demo_cell_secret_parameter: /haas/poc/cell-secret
+demo_cell_gone_minutes: 5
+demo_cell_port: 8060

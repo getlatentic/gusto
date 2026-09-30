@@ -38,6 +38,14 @@ resource "aws_security_group" "host" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "the hosts of one demo reach each other: the front door reaches the agent of a cell and the servers on it"
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    self        = true
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -122,6 +130,98 @@ resource "aws_launch_template" "host" {
   }
 }
 
+# The front door and the cells of a demo, when it has more than one host. Each is made from a template of
+# its own: a front door runs no computer, so it needs no nested virtualization and a small type will do.
+locals {
+  host_tags = { project = "haas-poc" }
+  hosts = {
+    orchestrator = { type = var.orchestrator_instance_type, nested = false }
+    cell         = { type = var.cell_instance_type, nested = true }
+  }
+}
+
+resource "aws_launch_template" "role" {
+  for_each                             = local.hosts
+  name                                 = "${local.host}-${each.key}"
+  image_id                             = data.aws_ssm_parameter.ubuntu.value
+  instance_type                        = each.value.type
+  instance_initiated_shutdown_behavior = "terminate"
+  vpc_security_group_ids               = [aws_security_group.host.id]
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.host.name
+  }
+
+  dynamic "cpu_options" {
+    for_each = each.value.nested ? [1] : []
+    content {
+      nested_virtualization = "enabled"
+    }
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  block_device_mappings {
+    device_name = "/dev/sda1"
+    ebs {
+      volume_size           = 40
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = merge(local.host_tags, { name = "demo-${each.key}" })
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags          = merge(local.host_tags, { name = "demo-${each.key}" })
+  }
+}
+
+# ── The file system the hosts of a demo share ────────────────────────────────
+
+# The organisations' data, which the front door and a cell both read and write. It is not in a
+# host's disk, since a cell is a host that goes, and each demo has a directory of it that the next
+# one removes. It costs 30 cents a gigabyte-month, and a demo holds a few megabytes.
+resource "aws_efs_file_system" "shared" {
+  encrypted = true
+  tags      = { project = "haas-poc", Name = "${local.host}-shared" }
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+resource "aws_security_group" "efs" {
+  name        = "${local.host}-shared"
+  description = "NFS from the demo hosts"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    description     = "NFS from a demo host"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_security_group.host.id]
+  }
+}
+
+resource "aws_efs_mount_target" "shared" {
+  for_each        = toset(data.aws_subnets.default.ids)
+  file_system_id  = aws_efs_file_system.shared.id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs.id]
+}
+
 # ── GitHub Actions ───────────────────────────────────────────────────────────
 
 # GitHub's identity provider is one for the whole account. Whoever applies this stack with the rights to
@@ -181,6 +281,8 @@ resource "aws_iam_role_policy" "ci" {
         Action = "ec2:RunInstances"
         Resource = [
           "arn:aws:ec2:${var.region}:${local.account}:launch-template/${aws_launch_template.host.id}",
+          "arn:aws:ec2:${var.region}:${local.account}:launch-template/${aws_launch_template.role["orchestrator"].id}",
+          "arn:aws:ec2:${var.region}:${local.account}:launch-template/${aws_launch_template.role["cell"].id}",
           "arn:aws:ec2:${var.region}:${local.account}:subnet/*",
           "arn:aws:ec2:${var.region}:${local.account}:network-interface/*",
           "arn:aws:ec2:${var.region}:${local.account}:security-group/${aws_security_group.host.id}",

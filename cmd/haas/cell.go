@@ -71,7 +71,8 @@ func cellSecret(setting string) ([]byte, error) {
 
 // cellPool is the cells the front door may place organisations on, or nothing when there is one machine.
 // HAAS_CLOUD_CELLS_DIR is the directory cells register in, and HAAS_CLOUD_CELL_SECRET_FILE the secret. This
-// machine is a cell too when HAAS_CLOUD_LOCAL_CELL is on.
+// machine is a cell too when HAAS_CLOUD_LOCAL_CELL is on. A cell silent for HAAS_CLOUD_CELL_GONE_MINUTES (30)
+// is taken to be gone, and the organisations on it are placed on another.
 func cellPool(local *cloud.LocalCell) (*cell.Pool, error) {
 	dir := os.Getenv("HAAS_CLOUD_CELLS_DIR")
 	if dir == "" {
@@ -81,7 +82,8 @@ func cellPool(local *cloud.LocalCell) (*cell.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	pool := &cell.Pool{Dir: dir, Secret: secret, MaxAge: 30 * time.Second, MinFreeMiB: number("HAAS_CLOUD_CELL_MIN_FREE_MIB", 4096)}
+	pool := &cell.Pool{Dir: dir, Secret: secret, MaxAge: 30 * time.Second, MinFreeMiB: number("HAAS_CLOUD_CELL_MIN_FREE_MIB", 4096),
+		GoneAfter: time.Duration(number("HAAS_CLOUD_CELL_GONE_MINUTES", 30)) * time.Minute}
 	if os.Getenv("HAAS_CLOUD_LOCAL_CELL") == "on" {
 		pool.Local = local
 	}
