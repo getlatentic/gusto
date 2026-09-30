@@ -170,7 +170,7 @@ resource "aws_iam_role_policy" "ci" {
         Sid      = "LaunchInstancesTaggedForTheProject"
         Effect   = "Allow"
         Action   = "ec2:RunInstances"
-        Resource = ["arn:aws:ec2:${var.region}:${local.account}:instance/*", "arn:aws:ec2:${var.region}:${local.account}:volume/*", "arn:aws:ec2:${var.region}:${local.account}:network-interface/*"]
+        Resource = ["arn:aws:ec2:${var.region}:${local.account}:instance/*", "arn:aws:ec2:${var.region}:${local.account}:volume/*"]
         Condition = {
           StringEquals = { "aws:RequestTag/project" = "haas-poc" }
         }
@@ -182,6 +182,7 @@ resource "aws_iam_role_policy" "ci" {
         Resource = [
           "arn:aws:ec2:${var.region}:${local.account}:launch-template/${aws_launch_template.host.id}",
           "arn:aws:ec2:${var.region}:${local.account}:subnet/*",
+          "arn:aws:ec2:${var.region}:${local.account}:network-interface/*",
           "arn:aws:ec2:${var.region}:${local.account}:security-group/${aws_security_group.host.id}",
           "arn:aws:ec2:${var.region}::image/*",
         ]
