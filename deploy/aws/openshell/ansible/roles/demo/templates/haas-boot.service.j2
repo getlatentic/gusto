@@ -8,7 +8,7 @@ Before=nginx.service haas-cloud.service haas-cell.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/bin/haas-boot
-{% if demo_role != 'cell' %}
+{% if demo_role != 'cell' and not demo_live | bool %}
 ExecStop=/usr/local/bin/haas-dns -zone {{ demo_zone }} -name {{ demo_name }} -remove -token-file /run/haas/secrets/cf-dns-token
 {% endif %}
 TimeoutStartSec=900

@@ -43,5 +43,5 @@
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
     mode: "0644"
-  loop: [haas-boot.service, haas-lease.service, haas-lease.timer]
+  loop: "{{ ['haas-boot.service'] if demo_live | bool else ['haas-boot.service', 'haas-lease.service', 'haas-lease.timer'] }}"
   notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"

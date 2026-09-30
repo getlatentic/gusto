@@ -11,7 +11,7 @@ WorkingDirectory={{ demo_state }}
 EnvironmentFile=/etc/haas/cloud.env
 EnvironmentFile=/run/haas/secrets/mail.env
 ExecStart=/usr/local/bin/haas cloud
-Restart=on-failure
+Restart={{ "always" if demo_live | bool else "on-failure" }}
 LimitNOFILE=65536
 
 [Install]

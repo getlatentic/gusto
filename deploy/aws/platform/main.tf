@@ -133,10 +133,12 @@ resource "aws_launch_template" "host" {
 # The front door and the cells of a demo, when it has more than one host. Each is made from a template of
 # its own: a front door runs no computer, so it needs no nested virtualization and a small type will do.
 locals {
-  host_tags = { project = "haas-poc" }
   hosts = {
-    orchestrator = { type = var.orchestrator_instance_type, nested = false }
-    cell         = { type = var.cell_instance_type, nested = true }
+    orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "haas-poc" }
+    cell         = { type = var.cell_instance_type, nested = true, project = "haas-poc" }
+    # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a demo's
+    # hosts never reach them, and it never reaches theirs.
+    cell-live = { type = var.cell_instance_type, nested = true, project = "haas-live" }
   }
 }
 
@@ -175,13 +177,129 @@ resource "aws_launch_template" "role" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(local.host_tags, { name = "demo-${each.key}" })
+    tags          = { project = each.value.project, name = "demo-${each.key}" }
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = merge(local.host_tags, { name = "demo-${each.key}" })
+    tags          = { project = each.value.project, name = "demo-${each.key}" }
   }
+}
+
+# ── The front door that stays up ─────────────────────────────────────────────
+
+# It runs the public demo: nginx and the certificate, the front door, and the scaler that starts a host for a cell when
+# an organisation needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
+# when they are tagged for it, so a cell, which runs other people's code, can start nothing.
+locals {
+  live      = "haas-live-front-door"
+  live_tag  = "haas-live"
+  ec2_arn   = "arn:aws:ec2:${var.region}:${local.account}"
+  cell_live = aws_launch_template.role["cell-live"]
+}
+
+resource "aws_iam_role" "live" {
+  name = local.live
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "live_ssm" {
+  role       = aws_iam_role.live.name
+  policy_arn = "arn:${data.aws_partition.here.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy" "live" {
+  name = "${local.live}-reads-keeps-and-scales-its-cells"
+  role = aws_iam_role.live.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      { Effect = "Allow", Action = ["ssm:GetParameter", "ssm:GetParameters"], Resource = local.ssm_path },
+      { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "${local.bucket}/*" },
+      { Effect = "Allow", Action = ["s3:ListBucket"], Resource = local.bucket },
+      {
+        Sid       = "StartCellsTaggedForTheLiveFrontDoor"
+        Effect    = "Allow"
+        Action    = "ec2:RunInstances"
+        Resource  = ["${local.ec2_arn}:instance/*", "${local.ec2_arn}:volume/*"]
+        Condition = { StringEquals = { "aws:RequestTag/project" = local.live_tag } }
+      },
+      {
+        Sid    = "FromTheLiveCellTemplateOnly"
+        Effect = "Allow"
+        Action = "ec2:RunInstances"
+        Resource = [
+          "${local.ec2_arn}:launch-template/${local.cell_live.id}",
+          "${local.ec2_arn}:subnet/*",
+          "${local.ec2_arn}:network-interface/*",
+          "${local.ec2_arn}:security-group/${aws_security_group.host.id}",
+          "arn:aws:ec2:${var.region}::image/*",
+        ]
+      },
+      { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
+      { Sid = "GiveACellItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
+      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"], Resource = "*" },
+      {
+        Sid       = "StopOnlyWhatItStarted"
+        Effect    = "Allow"
+        Action    = "ec2:TerminateInstances"
+        Resource  = "${local.ec2_arn}:instance/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "live" {
+  name = local.live
+  role = aws_iam_role.live.name
+}
+
+resource "aws_eip" "live" {
+  domain = "vpc"
+  tags   = { project = local.live_tag, name = "front-door" }
+}
+
+# It is started from the bundle like any host and keeps up to date by running the script again (haas-upgrade). Its
+# disk is what it needs to start from and holds nothing that is not on the file system or in the bucket, so it may
+# be replaced. It is stopped, not removed, if it is powered off.
+resource "aws_instance" "live" {
+  ami                                  = data.aws_ssm_parameter.ubuntu.value
+  instance_type                        = var.front_door_instance_type
+  iam_instance_profile                 = aws_iam_instance_profile.live.name
+  vpc_security_group_ids               = [aws_security_group.host.id]
+  instance_initiated_shutdown_behavior = "stop"
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
+
+  # The start-up script reads what it is to be from its environment, which is set here. It runs once, on the first
+  # start, and what it was started with is kept on the host for the upgrades after.
+  user_data = join("\n", [
+    "#!/bin/bash",
+    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=orchestrator RUN=live EFS=${aws_efs_file_system.shared.id} LIVE=on LEASE_MINUTES=30 MAX_HOURS=24",
+    file("${path.module}/user-data.sh"),
+  ])
+  tags = { project = local.live_tag, name = "front-door" }
+
+  lifecycle {
+    ignore_changes = [ami, user_data]
+  }
+}
+
+resource "aws_eip_association" "live" {
+  instance_id   = aws_instance.live.id
+  allocation_id = aws_eip.live.id
 }
 
 # ── The file system the hosts of a demo share ────────────────────────────────
@@ -302,6 +420,13 @@ resource "aws_iam_role_policy" "ci" {
         }
       },
       { Sid = "TellATaggedHostToPowerOff", Effect = "Allow", Action = "ssm:SendCommand", Resource = "arn:aws:ssm:${var.region}::document/AWS-RunShellScript" },
+      {
+        Sid       = "TellTheLiveFrontDoorToUpgrade"
+        Effect    = "Allow"
+        Action    = "ssm:SendCommand"
+        Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
+        Condition = { StringEquals = { "ssm:resourceTag/project" = "haas-live" } }
+      },
       {
         Sid       = "TellATaggedHostToPowerOffOnlyTagged"
         Effect    = "Allow"

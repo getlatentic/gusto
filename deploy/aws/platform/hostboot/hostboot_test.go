@@ -19,7 +19,7 @@ echo "apt-get $*" >> "$FAKE_LOG"`,
 	"aws": `#!/bin/bash
 echo "aws $1 $2 ${3:-}" >> "$FAKE_LOG"
 case "$1 $2" in
-"s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; cp "$f" "$dst";;
+"s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; if [ "$dst" = - ]; then cat "$f"; else cp "$f" "$dst"; fi;;
 "ssm get-parameter") echo '{"demo_name":"agentcloud.example.com","demo_zone":"example.com"}';;
 esac`,
 	"sha256sum": `#!/bin/bash
@@ -47,7 +47,7 @@ func newBoot(t *testing.T) *boot {
 		os.WriteFile(filepath.Join(bin, name), []byte(text+"\n"), 0o755)
 	}
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=",
+		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
 		"HAAS_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "HAAS_TMP="+filepath.Join(dir, "tmp"), "HAAS_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
@@ -203,5 +203,57 @@ func TestACellIsConfiguredWithOpenShellAndTheSharedFileSystem(t *testing.T) {
 		if !strings.Contains(play, want) {
 			t.Errorf("%q is not in %s", want, play)
 		}
+	}
+}
+
+func TestAHostThatStaysUpHasNoDeadmanNoFailureTimerAndKeepsWhatItWasStartedWith(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	os.WriteFile(filepath.Join(b.store, "releases", "latest"), []byte("abc123"), 0o644)
+	liveEnv := filepath.Join(b.dir, "etc", "live.env")
+	lines, err := b.run("ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "RELEASE=latest", "HAAS_LIVE_ENV="+liveEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "systemd-run") >= 0 {
+		t.Errorf("a host meant to stay is scheduled to go: %v", lines)
+	}
+	play := index(lines, "ansible-playbook ")
+	if play < 0 || !strings.Contains(lines[play], "demo_live=true") || !strings.Contains(lines[play], "demo_run=live") || !strings.Contains(lines[play], "demo_release=abc123") {
+		t.Fatalf("the newest release is resolved and the host is told it is live: %v", lines)
+	}
+	text, _ := os.ReadFile(liveEnv)
+	for _, want := range []string{"ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "BUCKET=store"} {
+		if !strings.Contains(string(text), want) {
+			t.Errorf("%q is not kept in %s", want, text)
+		}
+	}
+}
+
+func TestAHostThatStaysUpIsNotPoweredOffWhenItsConfigurationFails(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	lines, err := b.run("LIVE=on", "FAKE_ANSIBLE_FAILS=1", "HAAS_LIVE_ENV="+filepath.Join(b.dir, "live.env"))
+	if err == nil {
+		t.Fatal("a failed configuration succeeded")
+	}
+	if index(lines, "systemd-run") >= 0 {
+		t.Errorf("a live host that fails to configure is left for a person to look at: %v", lines)
+	}
+}
+
+func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	liveEnv := filepath.Join(b.dir, "live.env")
+	lines, err := b.run("HAAS_LIVE_ENV=" + liveEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "systemd-run --on-active=3h --unit=haas-deadman") != 0 {
+		t.Errorf("%v", lines)
+	}
+	if _, err := os.Stat(liveEnv); err == nil {
+		t.Error("a demo host kept an environment to be started again from")
 	}
 }
