@@ -217,7 +217,14 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 			return err
 		}
 	}
-	if spec.Setup == nil || adapter.Skills == "" {
+	if adapter.Skills == "" {
+		return nil
+	}
+	if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
+		"sh", "-c", equipGuidance, "sh", inHome(adapter.Skills), networkGuidance)); err != nil {
+		return err
+	}
+	if spec.Setup == nil {
 		return nil
 	}
 	for _, name := range spec.Setup.Skills {

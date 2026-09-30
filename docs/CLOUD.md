@@ -262,6 +262,9 @@ the lines that were there when it began are not its.
   into the job's directory before the turn and back after it, and only when the turn got as far
   as writing its record, so a turn that failed on the way leaves the instance as it was. What the
   harness calls the conversation is learned from the record, so the next turn resumes it.
+- A person can share a web app their agent built, from the agent's page. It runs in their computer, is
+  opened through the organisation's own address by its members only, and is described in
+  `docs/OPENSHELL.md`. `HAAS_APPS` is where an organisation's server keeps its record of them.
 - A person's harnesses take turns, one job at a time in a computer, since they share its files.
 - A person past the organisation's number of computers is refused in their job's
   record, with how to raise it, and nothing is made.

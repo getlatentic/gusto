@@ -14,6 +14,7 @@ import (
 
 	"github.com/getlatentic/haas/internal/accesslog"
 	"github.com/getlatentic/haas/internal/apitoken"
+	"github.com/getlatentic/haas/internal/apps"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/computer"
@@ -86,14 +87,20 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	var sharing *sharedApps
 	if computers != nil {
 		cfg, err := openshell.FromEnv()
 		if err != nil {
 			return fail(err)
 		}
+		shared, err := apps.Open(setting("HAAS_APPS", "apps"))
+		if err != nil {
+			return fail(err)
+		}
+		sharing = newSharedApps(cfg, computers, shared)
 		tending, stopTending := context.WithCancel(context.Background())
 		defer stopTending()
-		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) },
+		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) || sharing.serving(person) },
 			30*time.Second, time.Duration(number("HAAS_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
 	}
 	queue := jobs.Start(index, work, number("HAAS_JOB_CONCURRENCY", 1))
@@ -128,6 +135,9 @@ func serve(args []string) int {
 	pages, err := web.New(index, instances, queue, password, identity, offered, offeredModels(way.credentials, values("HAAS_MODELS"), harness.Names()))
 	if err != nil {
 		return fail(err)
+	}
+	if sharing != nil {
+		pages.UseApps(sharing.store, sharing)
 	}
 	pages.UseLedger(way.ledger)
 	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})

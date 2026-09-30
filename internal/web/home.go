@@ -119,6 +119,9 @@ func (s *Server) removeInstance(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	for _, each := range s.appsOf(id) {
+		s.stopApp(each)
+	}
 	if err := s.instances.Remove(id); err != nil {
 		s.turnAway(w, r, "/instances/"+id, err.Error())
 		return

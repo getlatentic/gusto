@@ -1,0 +1,29 @@
+{{define "apps"}}<section class="panel" id="apps">
+  <h2 class="section-title">Web apps</h2>
+  {{range .Apps}}
+  <div class="row" style="justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
+    <div>
+      {{if eq .State "live"}}<a href="/apps/{{.ID}}/" target="_blank" rel="noopener">Open the app</a>
+      {{else if eq .State "starting"}}<span class="muted">Starting…</span>
+      {{else if eq .State "failed"}}<span class="restricted">It did not start</span>
+      {{else}}<span class="muted">Stopped</span>{{end}}
+      <span class="muted"><code>{{.Command}}</code> on {{.Port}}</span>
+      {{if .Note}}<pre class="muted small" style="white-space:pre-wrap;margin:4px 0 0">{{.Note}}</pre>{{end}}
+    </div>
+    <form method="post" action="/instances/{{$.Instance.ID}}/apps/{{.ID}}/remove"><button type="submit" class="quiet">{{if or (eq .State "live") (eq .State "starting")}}Stop{{else}}Dismiss{{end}}</button></form>
+  </div>
+  {{end}}
+  <details{{if not .Apps}} open{{end}}>
+    <summary>Share an app this agent built</summary>
+    <form class="stack" method="post" action="/instances/{{.Instance.ID}}/apps">
+      <label>The line that starts it
+        <input name="command" placeholder="node server.js" required>
+      </label>
+      <label>The port it listens on
+        <input name="port" inputmode="numeric" value="8080" required>
+      </label>
+      <button type="submit">Start it and share it</button>
+    </form>
+    <p class="muted small">It runs in this agent's computer, in its folder, with the port in <code>$PORT</code>. It has to listen on <code>0.0.0.0</code> and use links that are relative, such as <code>style.css</code> and not <code>/style.css</code>. Colleagues signed in to this organisation open it here, and nobody else can. The page it draws runs with no access to your account.</p>
+  </details>
+</section>{{end}}

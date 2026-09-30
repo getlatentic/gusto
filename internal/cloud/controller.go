@@ -167,6 +167,7 @@ func (c *Controller) environment(slug string, runtime Runtime) ([]string, error)
 		"HAAS_ORG":         slug,
 		"HAAS_FRONT_DOOR":  c.FrontDoor,
 		"HAAS_COMPUTERS":   filepath.Join(data, "computers"),
+		"HAAS_APPS":        filepath.Join(data, "apps"),
 		"HAAS_CELL":        c.Cell.Name(),
 		// A person's harnesses share their computer's files and their own state, so they
 		// take turns.

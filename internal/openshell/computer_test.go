@@ -156,7 +156,7 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	if _, err := runner.Outside(first, inComputer(t, first, name, "20260929-1200-first")); err != nil {
 		t.Fatal(err)
 	}
-	if said, _ := os.ReadFile(first.OutFile("transcript.log")); !strings.Contains(string(said), "skills: review") {
+	if said, _ := os.ReadFile(first.OutFile("transcript.log")); !strings.Contains(string(said), "skills: haas-sandbox review") {
 		t.Fatalf("the first job has its skill:\n%s", said)
 	}
 	second, _ := aJob(t)
@@ -164,7 +164,7 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	if _, err := runner.Outside(second, inComputer(t, second, name, "20260929-1201-second")); err != nil {
 		t.Fatal(err)
 	}
-	if said, _ := os.ReadFile(second.OutFile("transcript.log")); strings.Contains(string(said), "review") {
+	if said, _ := os.ReadFile(second.OutFile("transcript.log")); strings.Contains(string(said), "review") || !strings.Contains(string(said), "haas-sandbox") {
 		t.Errorf("the second job was left the first's skill:\n%s", said)
 	}
 	_ = root
