@@ -2,6 +2,9 @@ package web
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httputil"
@@ -146,16 +149,111 @@ func (s *Server) stopApp(app apps.App) {
 	s.apps.Delete(app.ID)
 }
 
-// app is a shared app, asked for by somebody signed in to this organisation's server. The request
-// goes to the gateway as this server, with none of the person's credentials, and what comes back is
-// stopped from being treated as part of these pages: a page the agent's code drew is not one this
-// server drew, so it runs with no origin, no cookies of the person's, and nothing to do to their session.
+// AppHeader says which app a request is for. The front door sets it, for a request to an
+// app's own host name, and signs it with the key it shares with this server, so a client
+// cannot write it and the request it arrives on can reach nothing but that app.
+const AppHeader = "X-Haas-App"
+
+// SignApp is the header's value for an app: its id, and a signature only the front door and this server can make.
+func SignApp(key []byte, id string) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte("app:" + id))
+	return id + "." + hex.EncodeToString(mac.Sum(nil))
+}
+
+// verifiedApp is the app id in a header the front door signed, or nothing.
+func (s *Server) verifiedApp(header string) (string, bool) {
+	if s.front == nil {
+		return "", false
+	}
+	id, _, found := strings.Cut(header, ".")
+	if !found || !apps.Valid(id) || !hmac.Equal([]byte(header), []byte(SignApp(s.front.Key, id))) {
+		return "", false
+	}
+	return id, true
+}
+
+// byApp keeps a request for an app's own host name away from everything else on this
+// server: it is signed in with the token the front door made, and passed to the app, and
+// nothing of the organisation's pages can be reached on that name.
+func (s *Server) byApp(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get(AppHeader)
+		if header == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		id, ok := s.verifiedApp(header)
+		if !ok {
+			http.Error(w, "that is not an app's address", http.StatusBadRequest)
+			return
+		}
+		s.appOrigin(w, r, id)
+	})
+}
+
+// appOrigin serves an app at the root of its own host name, so that what the app wrote works
+// as it wrote it, absolute paths included, and the browser keeps it apart from the organisation's pages.
+func (s *Server) appOrigin(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method == http.MethodGet && r.URL.Path == "/auth/entry" {
+		s.enter(w, r)
+		return
+	}
+	if !s.keeper.knows(r) {
+		http.Redirect(w, r, s.front.URL+"/open?app="+id, http.StatusSeeOther)
+		return
+	}
+	s.serveApp(w, r, id, "")
+}
+
+// appLink is where an app is opened: its own host name behind a front door, and a path on this
+// server's own where there is none.
+func (s *Server) appLink(app apps.App) string {
+	if s.front == nil {
+		return "/apps/" + app.ID + "/"
+	}
+	parsed, err := url.Parse(s.front.URL)
+	if err != nil {
+		return "/apps/" + app.ID + "/"
+	}
+	return parsed.Scheme + "://" + s.front.Org + "--" + app.ID + "." + parsed.Host + "/"
+}
+
+// app is the path an app is opened at on a server with no front door. Behind one, an app has a host
+// name of its own, and this sends a link somebody kept there.
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	if s.apps == nil {
 		http.NotFound(w, r)
 		return
 	}
-	app, err := s.apps.Get(r.PathValue("id"))
+	id := r.PathValue("id")
+	if s.front != nil {
+		if app, err := s.apps.Get(id); err == nil {
+			http.Redirect(w, r, s.appLink(app), http.StatusSeeOther)
+			return
+		}
+		http.NotFound(w, r)
+		return
+	}
+	prefix := "/apps/" + id
+	if r.URL.Path == prefix {
+		http.Redirect(w, r, prefix+"/", http.StatusSeeOther)
+		return
+	}
+	s.serveApp(w, r, id, prefix)
+}
+
+// serveApp passes a request to a shared app as this server, with the person's credentials taken out
+// of it. With a prefix the app is served under a path of this server's own origin, so what comes back
+// is stopped from being treated as one of these pages: it runs sandboxed, with no origin, no cookies and
+// nothing to do to the person's session. With none the app has an origin of its own, and needs no such
+// fence, only that it cannot set what belongs to this server's.
+func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix string) {
+	if s.apps == nil {
+		http.NotFound(w, r)
+		return
+	}
+	app, err := s.apps.Get(id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -169,33 +267,51 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	prefix := "/apps/" + app.ID
-	if r.URL.Path == prefix {
-		http.Redirect(w, r, prefix+"/", http.StatusSeeOther)
-		return
+	// What the pages set on every response would stop the app's own scripts and styles, and
+	// would be said twice beside the ones set below.
+	for _, header := range []string{"Content-Security-Policy", "Referrer-Policy", "Cache-Control", "X-Content-Type-Options", "Strict-Transport-Security"} {
+		w.Header().Del(header)
 	}
-	// What the pages set on every response would stop the app's own scripts and styles.
-	w.Header().Del("Content-Security-Policy")
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL.Scheme = "http"
 			pr.Out.URL.Host = app.Target
 			pr.Out.Host = app.Host
-			path := strings.TrimPrefix(r.URL.Path, prefix)
-			raw := ""
+			pr.Out.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+			pr.Out.URL.RawPath = ""
 			if r.URL.RawPath != "" {
-				raw = strings.TrimPrefix(r.URL.RawPath, prefix)
+				pr.Out.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
 			}
-			pr.Out.URL.Path, pr.Out.URL.RawPath = path, raw
-			for _, header := range []string{"Cookie", "Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip"} {
+			for _, header := range []string{"Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip", AppHeader} {
 				pr.Out.Header.Del(header)
+			}
+			pr.Out.Header.Del("Cookie")
+			// The gateway refuses a request whose Origin is not its own, as a defence for the apps behind
+			// it, and a browser sends the address it drew the page at. This server stands in for the
+			// gateway's own address, so a request that names an origin names that.
+			pr.Out.Header.Del("Referer")
+			if r.Header.Get("Origin") != "" || (r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions) {
+				pr.Out.Header.Set("Origin", "http://"+app.Host)
+			}
+			if prefix == "" {
+				for _, cookie := range r.Cookies() {
+					if cookie.Name != cookieName && cookie.Name != secureCookieName {
+						pr.Out.AddCookie(cookie)
+					}
+				}
 			}
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			for _, header := range []string{"Set-Cookie", "Strict-Transport-Security", "Clear-Site-Data", "Content-Security-Policy-Report-Only"} {
+			for _, header := range []string{"Strict-Transport-Security", "Clear-Site-Data", "Content-Security-Policy-Report-Only"} {
 				resp.Header.Del(header)
 			}
-			resp.Header.Add("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-popups allow-modals")
+			cookies := resp.Header.Values("Set-Cookie")
+			resp.Header.Del("Set-Cookie")
+			if prefix == "" {
+				keepAppCookies(resp, cookies)
+			} else {
+				resp.Header.Add("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-popups allow-modals")
+			}
 			resp.Header.Set("X-Content-Type-Options", "nosniff")
 			resp.Header.Set("Referrer-Policy", "no-referrer")
 			resp.Header.Set("Cache-Control", "no-store")
@@ -215,6 +331,20 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+// keepAppCookies gives back the cookies an app set for itself. They are the app's own, host only, and
+// none is one of this server's: a cookie with a Domain would be sent to the organisation's pages as well,
+// and one with this server's session name would sign a person out of, or in as somebody, on this host.
+func keepAppCookies(resp *http.Response, lines []string) {
+	for _, line := range lines {
+		cookie, err := http.ParseSetCookie(line)
+		if err != nil || cookie.Name == cookieName || cookie.Name == secureCookieName || strings.HasPrefix(cookie.Name, "__Host-") || strings.HasPrefix(cookie.Name, "__Secure-") {
+			continue
+		}
+		cookie.Domain = ""
+		resp.Header.Add("Set-Cookie", cookie.String())
+	}
 }
 
 // Wait returns when every app started so far has answered or failed. A test uses it.

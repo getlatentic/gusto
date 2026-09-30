@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/haas/internal/apps"
 	"github.com/getlatentic/haas/internal/entry"
+	"github.com/getlatentic/haas/internal/web"
 )
 
 // provision starts an organisation's server, without making the person wait for it.
@@ -42,6 +44,37 @@ func (s *Server) orgSlug(host string) (string, bool) {
 	return slug, true
 }
 
+// appHost is the app a host name is, when it is <slug>--<id>.<domain>: an app a person
+// shared from an agent of the organisation, at a name of its own so that the browser keeps it
+// apart from the organisation's pages. An organisation's address never has two hyphens in a row,
+// so the two are never mistaken.
+func (s *Server) appHost(host string) (slug, id string, ok bool) {
+	if s.Controller == nil {
+		return "", "", false
+	}
+	if name, _, err := net.SplitHostPort(host); err == nil {
+		host = name
+	}
+	label, found := strings.CutSuffix(strings.ToLower(host), "."+s.Domain)
+	if !found || strings.Contains(label, ".") {
+		return "", "", false
+	}
+	slug, id, found = strings.Cut(label, "--")
+	if !found || ValidSlug(slug) != nil || !apps.Valid(id) {
+		return "", "", false
+	}
+	return slug, id, true
+}
+
+// appURL is the address of a shared app as a browser reaches it.
+func (s *Server) appURL(slug, id string) string {
+	host := slug + "--" + id + "." + s.Domain
+	if port := s.URL.Port(); port != "" {
+		host += ":" + port
+	}
+	return s.URL.Scheme + "://" + host
+}
+
 // orgURL is the address of an organisation's server as a browser reaches it.
 func (s *Server) orgURL(slug string) string {
 	host := slug + "." + s.Domain
@@ -53,6 +86,17 @@ func (s *Server) orgURL(slug string) string {
 
 // route sends a request to the organisation's server, or says why it cannot.
 func (s *Server) route(w http.ResponseWriter, r *http.Request, slug string) {
+	s.forward(w, r, slug, "")
+}
+
+// routeApp sends a request for an app's own host name to the organisation's server, signed as
+// being for that app, which is all the request can then reach there.
+func (s *Server) routeApp(w http.ResponseWriter, r *http.Request, slug, id string) {
+	s.forward(w, r, slug, id)
+}
+
+// forward sends a request to the organisation's server, for one of its apps when an app is named.
+func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app string) {
 	address, state := s.Controller.Route(slug)
 	if state == "" {
 		if _, found, _ := s.Store.Org(slug); !found {
@@ -69,7 +113,7 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request, slug string) {
 		return
 	}
 	(&httputil.ReverseProxy{
-		Rewrite:       s.rewrite(address),
+		Rewrite:       s.rewrite(address, s.appSignature(slug, app)),
 		FlushInterval: -1,
 		Transport:     &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * time.Second, MaxIdleConnsPerHost: 8},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -85,7 +129,7 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request, slug string) {
 // is who the front door says, and none of the front door's own cookies go. What the
 // client claimed about itself is not believed, since the organisation's server
 // writes down where a person signed in from.
-func (s *Server) rewrite(address string) func(*httputil.ProxyRequest) {
+func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyRequest) {
 	target := &url.URL{Scheme: "http", Host: address}
 	scheme := "http"
 	if s.Sessions.secure {
@@ -97,6 +141,12 @@ func (s *Server) rewrite(address string) func(*httputil.ProxyRequest) {
 		pr.Out.Header.Set("X-Forwarded-For", s.source(pr.In))
 		pr.Out.Header.Set("X-Forwarded-Proto", scheme)
 		pr.Out.Header.Set("X-Forwarded-Host", pr.In.Host)
+		// Which app a request is for is said by the front door alone: whatever the client sent is
+		// dropped, and a request that is not for an app carries none.
+		pr.Out.Header.Del(web.AppHeader)
+		if appSignature != "" {
+			pr.Out.Header.Set(web.AppHeader, appSignature)
+		}
 		pr.Out.Header.Del("Cookie")
 		for _, cookie := range pr.In.Cookies() {
 			if cookie.Name != "haas_cloud" && cookie.Name != "__Host-haas_cloud" {
@@ -106,8 +156,23 @@ func (s *Server) rewrite(address string) func(*httputil.ProxyRequest) {
 	}
 }
 
+// appSignature is the signed header value for an app of an organisation, or nothing when no
+// app is named or the organisation's key cannot be read.
+func (s *Server) appSignature(slug, id string) string {
+	if id == "" {
+		return ""
+	}
+	key, err := s.Controller.EntryKey(slug)
+	if err != nil {
+		slog.Error("an organisation's entry key could not be read", "org", slug, "error", err)
+		return ""
+	}
+	return web.SignApp(key, id)
+}
+
 // open signs a person in to their organisation's server, with a token that server
-// checks, and sends their browser there.
+// checks, and sends their browser there. For an app it is the app's own host name they
+// are signed in on, which is a different origin from the organisation's.
 func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	if s.Controller == nil {
 		http.NotFound(w, r)
@@ -126,6 +191,14 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	token, err := entry.Mint(key, person.Org, person.Email, string(person.Role), time.Now())
 	if err != nil {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		return
+	}
+	if id := r.URL.Query().Get("app"); id != "" {
+		if !apps.Valid(id) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)

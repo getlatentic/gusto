@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/getlatentic/haas/internal/apps"
 )
@@ -27,6 +28,11 @@ func newGateway(t *testing.T) *gatewayFake {
 		g.mu.Lock()
 		g.seen = append(g.seen, r.Clone(context.Background()))
 		g.mu.Unlock()
+		// A gateway answers a request that names an origin other than its own with a refusal.
+		if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host {
+			http.Error(w, "Cross-origin service request rejected", http.StatusForbidden)
+			return
+		}
 		switch r.URL.Path {
 		case "/go":
 			http.Redirect(w, r, "/somewhere?x=1", http.StatusFound)
@@ -285,5 +291,218 @@ func TestAnAppIsRemovedOnlyThroughTheAgentItBelongsTo(t *testing.T) {
 	}
 	if _, err := site.server.apps.Get(id); err != nil {
 		t.Error("the app is gone")
+	}
+}
+
+// behindAFrontDoorSharing is a server that is acme-com's in a hosted haas, and shares apps.
+func behindAFrontDoorSharing(t *testing.T) (*site, *runnerFake, *gatewayFake) {
+	t.Helper()
+	site, runner, gateway := sharingSite(t)
+	site.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	site.handler = site.server.Handler()
+	return site, runner, gateway
+}
+
+// appRequest is a request as the front door passes one for an app's own host name.
+func (s *site) appRequest(t *testing.T, id, method, path string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
+	request := httptest.NewRequest(method, path, nil)
+	request.Header.Set(AppHeader, SignApp(entryKey, id))
+	request.Header.Set("X-Forwarded-Proto", "https")
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	recorder := httptest.NewRecorder()
+	s.handler.ServeHTTP(recorder, request)
+	return recorder
+}
+
+// signedInTo is a person the front door signed in on the app's host name, with the cookie they were given.
+func (s *site) signedInTo(t *testing.T, id string) *http.Cookie {
+	t.Helper()
+	token := tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())
+	answer := s.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(token))
+	if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/" {
+		t.Fatalf("entering: %d %v", answer.Code, answer.Header())
+	}
+	for _, cookie := range answer.Result().Cookies() {
+		if strings.HasSuffix(cookie.Name, "haas") {
+			return cookie
+		}
+	}
+	t.Fatal("entering gave no cookie")
+	return nil
+}
+
+// An app the agent wrote with absolute paths, which is what an agent writes, works: it has its own
+// host name, so /click is the app's and not the organisation's.
+func TestAnAppHasAHostNameOfItsOwnSoWhatItWroteWorksAsItWroteIt(t *testing.T) {
+	site, _, gateway := behindAFrontDoorSharing(t)
+	where := startedInstance(t, site)
+	id := sharedApp(t, site, where)
+	app, _ := site.server.apps.Get(id)
+
+	if page := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `href="https://acme-com--`+id+`.cloud.test/"`) {
+		t.Errorf("the agent's page links the app at its own host name:\n%s", page)
+	}
+	if got := site.ask(t, "GET", "/apps/"+id+"/x", nil); got.Header().Get("Location") != "https://acme-com--"+id+".cloud.test/" {
+		t.Errorf("a path link somebody kept goes to the app's host: %d %q", got.Code, got.Header().Get("Location"))
+	}
+
+	cookie := site.signedInTo(t, id)
+	got := site.appRequest(t, id, "POST", "/click", cookie)
+	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "/click") {
+		t.Fatalf("the app's own /click: %d %s", got.Code, got.Body)
+	}
+	if asked := gateway.last(); asked.URL.Path != "/click" || asked.Host != app.Host {
+		t.Errorf("the app was asked for %q as %q", asked.URL.Path, asked.Host)
+	}
+	if policy := got.Header().Values("Content-Security-Policy"); len(policy) != 0 {
+		t.Errorf("an app with an origin of its own is not fenced by this server's policy: %v", policy)
+	}
+}
+
+func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *testing.T) {
+	site, _, _ := behindAFrontDoorSharing(t)
+	id := sharedApp(t, site, startedInstance(t, site))
+
+	stranger := site.appRequest(t, id, "GET", "/")
+	if stranger.Code != http.StatusSeeOther || stranger.Header().Get("Location") != "https://cloud.test/open?app="+id {
+		t.Errorf("a stranger is sent to be signed in where people are: %d %q", stranger.Code, stranger.Header().Get("Location"))
+	}
+	cookie := site.signedInTo(t, id)
+	if cookie.Name != "__Host-haas" || !cookie.Secure || cookie.Path != "/" || cookie.Domain != "" {
+		t.Errorf("the session over TLS is one a sibling host name cannot set: %+v", cookie)
+	}
+	if got := site.appRequest(t, id, "GET", "/", cookie); got.Code != http.StatusOK {
+		t.Errorf("a person signed in opens the app: %d", got.Code)
+	}
+	// A token is used once, and one for another organisation is not one.
+	token := tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())
+	site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(token))
+	if again := site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(token)); again.Code != http.StatusForbidden {
+		t.Errorf("a token was used twice: %d", again.Code)
+	}
+	other := tokenFor(t, "globex-com", "eve@globex.com", "runner", time.Now())
+	if got := site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(other)); got.Code != http.StatusForbidden {
+		t.Errorf("another organisation's token signed somebody in: %d", got.Code)
+	}
+}
+
+func TestOnlyTheFrontDoorCanNameAnApp(t *testing.T) {
+	site, _, _ := behindAFrontDoorSharing(t)
+	id := sharedApp(t, site, startedInstance(t, site))
+	for name, header := range map[string]string{
+		"an unsigned id":         id,
+		"another id's signature": id + "." + strings.Split(SignApp(entryKey, "0000000000"), ".")[1],
+		"a signature of no key":  id + ".00",
+		"a wrong key":            SignApp([]byte("fedcba9876543210fedcba9876543210"), id),
+	} {
+		request := httptest.NewRequest("GET", "/", nil)
+		request.Header.Set(AppHeader, header)
+		recorder := httptest.NewRecorder()
+		site.handler.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusBadRequest {
+			t.Errorf("%s: %d", name, recorder.Code)
+		}
+	}
+	// A server that is not behind a front door has no key to check it by, and believes nobody.
+	alone, _, _ := sharingSite(t)
+	request := httptest.NewRequest("GET", "/", nil)
+	request.Header.Set(AppHeader, SignApp(entryKey, id))
+	recorder := httptest.NewRecorder()
+	alone.handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("a server with no front door took an app's header: %d", recorder.Code)
+	}
+}
+
+// On an app's host name nothing of the organisation's own pages can be reached, whatever is asked for.
+func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganisation(t *testing.T) {
+	site, _, gateway := behindAFrontDoorSharing(t)
+	id := sharedApp(t, site, startedInstance(t, site))
+	cookie := site.signedInTo(t, id)
+	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/app.css"} {
+		got := site.appRequest(t, id, "GET", path, cookie)
+		if !strings.Contains(got.Body.String(), "<h1>the app</h1> "+path) {
+			t.Errorf("%s was not the app's: %d %.100s", path, got.Code, got.Body)
+		}
+		if gateway.last().URL.Path != path {
+			t.Errorf("%s: the app was asked for %q", path, gateway.last().URL.Path)
+		}
+	}
+	if got := site.appRequest(t, id, "POST", "/logout", cookie); strings.Contains(strings.Join(got.Header().Values("Set-Cookie"), ";"), "haas=;") {
+		t.Errorf("the app's /logout signed the person out of their session: %v", got.Header())
+	}
+}
+
+func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganisationsOrForTheWholeDomain(t *testing.T) {
+	site, _, gateway := behindAFrontDoorSharing(t)
+	id := sharedApp(t, site, startedInstance(t, site))
+	cookie := site.signedInTo(t, id)
+	gateway.Server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gateway.mu.Lock()
+		gateway.seen = append(gateway.seen, r.Clone(context.Background()))
+		gateway.mu.Unlock()
+		w.Header().Add("Set-Cookie", "theme=dark; Path=/; Domain=.cloud.test")
+		w.Header().Add("Set-Cookie", "__Host-haas=evil; Path=/; Secure")
+		w.Header().Add("Set-Cookie", "haas=evil; Path=/")
+		w.Header().Add("Set-Cookie", "__Secure-x=1; Path=/; Secure")
+		w.Write([]byte("ok"))
+	})
+	request := httptest.NewRequest("GET", "/", nil)
+	request.Header.Set(AppHeader, SignApp(entryKey, id))
+	request.Header.Set("X-Forwarded-Proto", "https")
+	request.AddCookie(cookie)
+	request.AddCookie(&http.Cookie{Name: "theme", Value: "light"})
+	recorder := httptest.NewRecorder()
+	site.handler.ServeHTTP(recorder, request)
+
+	set := recorder.Header().Values("Set-Cookie")
+	if len(set) != 1 || !strings.HasPrefix(set[0], "theme=dark") || strings.Contains(strings.ToLower(set[0]), "domain") {
+		t.Errorf("only the app's own cookie, and for its host alone: %v", set)
+	}
+	asked := gateway.last()
+	if _, err := asked.Cookie("theme"); err != nil {
+		t.Error("the app's own cookie was not sent back to it")
+	}
+	if asked.Header.Get("Cookie") == "" || strings.Contains(asked.Header.Get("Cookie"), "haas") {
+		t.Errorf("the app was sent the person's session: %q", asked.Header.Get("Cookie"))
+	}
+}
+
+// A browser's POST names the origin it drew the page at, and the gateway refuses one that is not its own.
+// That is what stopped the first app an agent built from counting a click.
+func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServed(t *testing.T) {
+	site, _, gateway := behindAFrontDoorSharing(t)
+	id := sharedApp(t, site, startedInstance(t, site))
+	app, _ := site.server.apps.Get(id)
+	cookie := site.signedInTo(t, id)
+
+	post := httptest.NewRequest("POST", "/click", nil)
+	post.Header.Set(AppHeader, SignApp(entryKey, id))
+	post.Header.Set("X-Forwarded-Proto", "https")
+	post.Header.Set("Origin", "https://acme-com--"+id+".cloud.test")
+	post.Header.Set("Referer", "https://acme-com--"+id+".cloud.test/")
+	post.AddCookie(cookie)
+	recorder := httptest.NewRecorder()
+	site.handler.ServeHTTP(recorder, post)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("the app's own page could not post to it: %d %s", recorder.Code, recorder.Body)
+	}
+	if asked := gateway.last(); asked.Header.Get("Origin") != "http://"+app.Host || asked.Header.Get("Referer") != "" {
+		t.Errorf("the gateway was asked as %q, referred by %q", asked.Header.Get("Origin"), asked.Header.Get("Referer"))
+	}
+
+	// The same, on a server with no front door, where the app is a path of the organisation's own origin.
+	alone, _, aloneGateway := sharingSite(t)
+	aloneID := sharedApp(t, alone, startedInstance(t, alone))
+	request := httptest.NewRequest("POST", "/apps/"+aloneID+"/click", nil)
+	request.Header.Set("Origin", "https://acme.test")
+	request.AddCookie(alone.cookie)
+	recorder = httptest.NewRecorder()
+	alone.handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK || aloneGateway.last().Header.Get("Origin") == "https://acme.test" {
+		t.Errorf("a path-served app's post: %d, asked as %q", recorder.Code, aloneGateway.last().Header.Get("Origin"))
 	}
 }
