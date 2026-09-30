@@ -17,7 +17,8 @@ lib=${HAAS_LIB:-/var/lib/haas}
 owner=${HAAS_OWNER-ubuntu}
 # shellcheck disable=SC1090
 . "$CONF"
-export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=/usr/local/bin:/snap/bin:$PATH
+# Where the AWS command is on a host is added to the end, so a command that is already found first stays.
+export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=$PATH:/usr/local/bin:/snap/bin
 
 own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
 param() { aws ssm get-parameter --with-decryption --name "$1" --query Parameter.Value --output text; }
