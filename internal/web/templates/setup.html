@@ -15,7 +15,7 @@
   <input type="hidden" name="harness" value="{{.Harness.Name}}">
   {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
   <label>Model
-    {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select name="model">{{range .Models}}<option value="{{.}}">{{.}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
+    {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select name="model">{{range .Models}}<option value="{{.}}">{{.}}{{with costOf .}} · {{.}}{{end}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
     {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
   </label>
   <label><span class="line">Repository <span class="muted">optional; without one it starts in an empty folder</span></span>

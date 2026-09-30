@@ -1,10 +1,13 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/proxy"
 )
 
 // Models is what a deployment offers to think with, by harness.
@@ -106,3 +109,27 @@ func (s *Server) offeredTo(r *http.Request) Models {
 func (s *Server) limitedAway(r *http.Request, harness string) bool {
 	return len(s.offeredTo(r).For(harness)) == 0 && len(s.offered().For(harness)) > 0
 }
+
+// costOf is what a model costs, for a person choosing between them: dollars for a million tokens of input and of
+// output. A model with no price says so, since an unknown cost is not a low one.
+func (s *Server) costOf(model string) string {
+	if s.ledger == nil {
+		return ""
+	}
+	prices := s.ledger.Policy().Prices
+	if len(prices) == 0 {
+		return ""
+	}
+	price, priced := prices[model]
+	if !priced {
+		if credential, bare := proxy.Named(model); credential != "" {
+			price, priced = prices[bare]
+		}
+	}
+	if !priced {
+		return "no price"
+	}
+	return fmt.Sprintf("$%s in, $%s out per million tokens", trimmed(price.InputPerMillion), trimmed(price.OutputPerMillion))
+}
+
+func trimmed(rate float64) string { return strconv.FormatFloat(rate, 'f', -1, 64) }
