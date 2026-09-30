@@ -34,6 +34,8 @@ type turn struct {
 	// files it left different.
 	Steps   []step
 	Changed []string
+	// Previews are the folders among Changed that hold a page, which can be looked at.
+	Previews []string
 	// Spent is the proxy's count of what the turn's calls cost.
 	Spent   spend.Tally
 	Metered bool
@@ -67,6 +69,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		}
 		dir := record.Dir(s.index.Root())
 		shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir), Changed: changed(dir)}
+		shown.Previews = previewsOf(shown.Changed)
 		shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 		if record.State == jobs.Failed || record.State == jobs.Interrupted {
 			shown.Stopped = stopped(dir)
@@ -78,6 +81,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		shown.Signed = err == nil && attested.Signed
 		turns = append(turns, shown)
 	}
+	liveApps, appsStarting := previewing(s.appsOf(held.ID))
 	running := ""
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
@@ -98,8 +102,13 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Thread":   thread,
 		"Path":     threadPath(thread),
 		"Turns":    turns,
-		"Waiting":  running != "",
-		"Latest":   running,
+		"Sharing":  s.apps != nil,
+		"Apps":     liveApps,
+		"Starting": appsStarting,
+		// While a preview starts the page looks again, so its link appears without being asked for.
+		"Refresh": appsStarting,
+		"Waiting": running != "",
+		"Latest":  running,
 	}, true
 }
 

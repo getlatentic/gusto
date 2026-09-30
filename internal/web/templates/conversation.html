@@ -33,6 +33,8 @@
         <span class="chip">{{template "icon-lock"}} Key stays with haas</span>
         {{if eq .Instance.Sensitivity "restricted"}}<span class="chip">Stays in your network</span>{{end}}
       </span>
+      {{range .Apps}}<a class="files-link" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
+      {{if .Starting}}<span class="chip">Starting the preview…</span>{{end}}
       <a class="files-link" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}} Files</a>
     </div>
 
@@ -182,6 +184,12 @@
         {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
         {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
         <a href="/jobs/{{.ID}}">Details</a></p>
+      {{if $.Sharing}}{{range .Previews}}
+      <form class="preview" method="post" action="/instances/{{$.Instance.ID}}/apps">
+        <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
+        <button type="submit" class="quiet">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
+      </form>
+      {{end}}{{end}}
     </div>
   </div>
   {{end}}

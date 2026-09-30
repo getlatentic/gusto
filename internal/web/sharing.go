@@ -70,11 +70,23 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 	back := "/instances/" + held.ID
 	command := strings.TrimSpace(r.FormValue("command"))
 	port, err := strconv.Atoi(strings.TrimSpace(r.FormValue("port")))
+	folder := r.FormValue("preview")
+	if folder != "" {
+		// A page an agent built is served from its folder by a server of ours, so nobody has to write one. The person
+		// is sent back to the conversation they asked from.
+		back = s.backTo(held.ID, r.FormValue("back"), back)
+		if command, port = previewCommand(folder), previewPort(s.appsOf(held.ID)); command == "" || port == 0 {
+			s.turnAway(w, r, back, "that is not a folder of this agent's that can be previewed")
+			return
+		}
+		err = nil
+	}
 	switch {
-	case command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00"):
+	// What a person types is one short line; the server of ours for a preview is longer and is not typed.
+	case folder == "" && (command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00")):
 		s.turnAway(w, r, back, "give the one line that starts the app, such as node server.js")
 		return
-	case err != nil || port < 1024 || port > 65535:
+	case folder == "" && (err != nil || port < 1024 || port > 65535):
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
@@ -99,6 +111,17 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		s.startApp(app)
 	}()
 	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+}
+
+// backTo is where to send a person after they started an app: the conversation they asked from when it is one of this
+// agent's, and the agent's own page otherwise.
+func (s *Server) backTo(instance, asked, otherwise string) string {
+	prefix := "/instances/" + instance + "/threads/"
+	rest, found := strings.CutPrefix(asked, prefix)
+	if !found || rest == "" || strings.ContainsAny(rest, "/?#\\ ") {
+		return otherwise
+	}
+	return asked
 }
 
 // startApp waits for the runner to have the app answering, and records how that went.
