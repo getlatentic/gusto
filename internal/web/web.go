@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -75,13 +76,9 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		return nil, err
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: unservedMarked(offered, models), models: models}
-	// The layout asks whether to link to the tokens page, and only a server
-	// that takes tokens has one.
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"takesTokens": func() bool { return s.tokens != nil },
-		"waiting":     s.waiting,
-		"askedBy":     askerOf,
-		"keepsWork":   func() bool { return s.retention != nil },
+		"waiting": s.waiting,
+		"askedBy": askerOf,
 		// Where a host that has a lease is extended, which is at the front door.
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,
@@ -135,9 +132,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
-	mux.HandleFunc("POST /setups", s.guard(s.adminOnly(s.saveSetup)))
-	mux.HandleFunc("POST /setups/{name}/skills", s.guard(s.adminOnly(s.writeSkill)))
-	mux.HandleFunc("POST /setups/{name}/skills/{skill}/drop", s.guard(s.adminOnly(s.dropSkill)))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	mux.HandleFunc("POST /api/jobs", s.sent(apitoken.Submit, s.accept))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
@@ -145,17 +139,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
-	mux.HandleFunc("GET /changes", s.guard(s.adminPage(s.changesPage)))
-	mux.HandleFunc("GET /changes.jsonl", s.guard(s.adminPage(s.changesFile)))
-	mux.HandleFunc("GET /tokens", s.guard(s.tokenAdmin(s.tokensPage)))
-	mux.HandleFunc("POST /tokens", s.guard(s.tokenAdmin(s.makeToken)))
-	mux.HandleFunc("POST /tokens/{id}/revoke", s.guard(s.tokenAdmin(s.revokeToken)))
-	mux.HandleFunc("GET /retention", s.guard(s.retentionAdmin(s.retentionPage)))
-	mux.HandleFunc("POST /retention/sweep", s.guard(s.retentionAdmin(s.sweepNow)))
-	mux.HandleFunc("POST /retention/holds", s.guard(s.retentionAdmin(s.holdPerson)))
-	mux.HandleFunc("POST /retention/holds/release", s.guard(s.retentionAdmin(s.releasePerson)))
-	mux.HandleFunc("POST /jobs/{id}/hold", s.guard(s.retentionAdmin(s.holdJob)))
-	mux.HandleFunc("POST /jobs/{id}/release", s.guard(s.retentionAdmin(s.releaseJob)))
+	s.consoleRoutes(mux)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
 	mux.HandleFunc("GET /api/changes", s.sent(apitoken.Audit, s.changesScript))
@@ -169,9 +153,15 @@ func (s *Server) Handler() http.Handler {
 
 // moved redirects an address that used to mean something here to where it
 // means it now, filling {id} from the request.
-func moved(to string) http.HandlerFunc {
+func moved(to string) http.HandlerFunc { return redirected(to, http.StatusMovedPermanently) }
+
+// redirected sends a request to another address with the status given, filling
+// the names in {braces} from the request's path.
+func redirected(to string, status int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, strings.ReplaceAll(to, "{id}", r.PathValue("id")), http.StatusMovedPermanently)
+		escaped := func(name string) string { return url.PathEscape(r.PathValue(name)) }
+		filled := strings.NewReplacer("{id}", escaped("id"), "{name}", escaped("name"), "{skill}", escaped("skill")).Replace(to)
+		http.Redirect(w, r, filled, status)
 	}
 }
 
@@ -180,6 +170,7 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	// An inline script runs only with the nonce this response's policy names.
 	if fields, ok := data.(map[string]any); ok {
 		fields["Nonce"] = nonceOf(w)
+		fields["Admin"] = markOf(w).admin
 	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
 		slog.Error("a page could not be drawn", "page", page, "error", err)

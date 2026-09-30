@@ -651,7 +651,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_GITHUB_APP_ID`, `HAAS_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](docs/REPOS.md) |
 | `HAAS_GITHUB_URL` | a GitHub Enterprise Server's address, with `HAAS_GITHUB_API`; github.com when unset |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
-| `HAAS_TOKEN` | the API token `haas submit` sends, made by an admin at `/tokens`; `HAAS_PASSWORD` is sent when it is unset |
+| `HAAS_TOKEN` | the API token `haas submit` sends, made by an admin at `/admin/tokens`; `HAAS_PASSWORD` is sent when it is unset |
 | `HAAS_API_TOKENS` | the file API tokens are kept in. With it the API takes scoped, revocable tokens and refuses the shared password. [docs/TOKENS.md](docs/TOKENS.md) |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
