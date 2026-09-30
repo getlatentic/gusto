@@ -127,9 +127,13 @@
 # runtime never uses, and the image the previous tag named until now is
 # untagged too. The live and previous images stay, so a rollback has something
 # to go back to and a rebuild does not re-pull the named bases.
+#
+# A build that was interrupted leaves its working container in storage, and podman
+# refuses to remove an image that container is using. --external removes those images
+# anyway. It removes untagged images only, so nothing a tag names goes with them.
 - name: Dangling images reclaimed
   ansible.builtin.command:
-    cmd: "{{ container_runtime }} image prune -f"
+    cmd: "{{ container_runtime }} image prune -f --external"
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
