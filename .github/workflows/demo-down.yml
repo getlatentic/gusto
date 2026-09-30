@@ -14,7 +14,7 @@ env:
 
 jobs:
   down:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, haas]
     timeout-minutes: 15
     steps:
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0

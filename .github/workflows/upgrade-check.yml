@@ -32,4 +32,5 @@ jobs:
           git fetch --tags --quiet
           releases=$(git tag --list 'v*' --sort=-v:refname | head -n 2)
           test -n "$releases" || { echo "no release tag to upgrade from" >&2; exit 1; }
+          # shellcheck disable=SC2086 # one argument for each release
           deploy/upgrade-check.sh $releases
