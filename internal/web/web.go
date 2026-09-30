@@ -76,6 +76,8 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"waiting":     s.waiting,
 		"askedBy":     askerOf,
 		"keepsWork":   func() bool { return s.retention != nil },
+		// Where a host that has a lease is extended, which is at the front door.
+		"leaseExtend": s.leaseExtend,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err

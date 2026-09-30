@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
+{{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script>{{end}}
   <script nonce="{{.Nonce}}">
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,

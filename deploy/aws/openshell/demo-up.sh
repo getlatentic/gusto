@@ -34,7 +34,7 @@ done)
 
 started="$(date -u +%H:%M:%S)"
 if [ -z "${ONLY_CONFIGURE:-}" ]; then
-  export TF_VAR_instance_type="${INSTANCE_TYPE:-m8i.2xlarge}" TF_VAR_public_https=true TF_VAR_demo_bucket="$bucket"
+  export TF_VAR_instance_type="${INSTANCE_TYPE:-m8i.2xlarge}" TF_VAR_public_https=true TF_VAR_demo_bucket="$bucket" TF_VAR_self_terminate=true
   ./up.sh
   address="$(terraform output -raw address)"
   if ! aws s3api head-object --bucket "$bucket" --key "image/$image_key.tar.gz" >/dev/null 2>&1; then
@@ -48,5 +48,6 @@ ansible-playbook -i "$state/inventory.ini" ansible/demo.yml \
   -e demo_name="$DEMO_NAME" -e demo_zone="$DEMO_ZONE" -e demo_bucket="$bucket" -e demo_image_key="$image_key" \
   -e demo_mail="$mail" -e demo_cert_email="$DEMO_CERT_EMAIL" -e demo_free_mail="${DEMO_FREE_MAIL:-allow}" \
   -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-platform/qwen.qwen3-vl-235b-a22b-instruct}" \
-  -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}"
-echo "configured at $started UTC: https://$DEMO_NAME. ./demo-down.sh removes the host, and every hour it is up costs money."
+  -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}" \
+  -e demo_lease_minutes="${DEMO_LEASE_MINUTES:-30}" -e demo_max_hours="${DEMO_MAX_HOURS:-4}"
+echo "configured at $started UTC: https://$DEMO_NAME. The host removes itself ${DEMO_LEASE_MINUTES:-30} minutes after it started unless it is extended at https://$DEMO_NAME/lease, and never runs past ${DEMO_MAX_HOURS:-4} hours. ./demo-down.sh removes it now."

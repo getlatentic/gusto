@@ -32,6 +32,12 @@ variable "public_https" {
   default     = false
 }
 
+variable "self_terminate" {
+  description = "Whether an operating-system shutdown terminates the instance, which is how a demo host removes itself when its lease ends. The disk goes with it."
+  type        = bool
+  default     = false
+}
+
 variable "demo_bucket" {
   description = "A bucket the instance may read and write, which holds what outlives it: the certificate and the runner image. demo-store.sh makes it, and this stack does not manage it, so down.sh leaves it."
   type        = string

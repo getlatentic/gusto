@@ -3,6 +3,7 @@ package cloud
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/getlatentic/haas/internal/quota"
 )
@@ -10,6 +11,11 @@ import (
 // view is what a page is drawn from. Every page uses the fields it names.
 type view struct {
 	Title string
+	// Lease is set when the host has one, so a page carries the script that warns of its end.
+	Lease bool
+	// Left and Step draw the lease page.
+	Left Left
+	Step time.Duration
 	// Error is a sentence for the person, and Email and OrgName are what they
 	// typed, so a refused form is not typed again.
 	Error, Email, OrgName string
@@ -51,6 +57,7 @@ type view struct {
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
+	v.Lease = s.Lease != nil
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {
