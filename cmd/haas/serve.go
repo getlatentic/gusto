@@ -410,7 +410,7 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 func surveyed(names []string) []catalog.Entry {
 	if os.Getenv("HAAS_SANDBOX") == "openshell" {
 		if cfg, err := openshell.FromEnv(); err == nil {
-			return catalog.SurveyOf(openshell.Image(cfg), names)
+			return catalog.SurveyOf(openshell.Remembered(openshell.Image(cfg), cfg.Image), names)
 		}
 	}
 	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())

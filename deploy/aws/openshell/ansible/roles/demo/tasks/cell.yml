@@ -5,11 +5,12 @@
     dest: /usr/local/lib/haas/credentials.sh
     mode: "0755"
 
-- name: What the agent of a cell is started with
+- name: What the agent of a cell is started with, and what the servers it starts are
   ansible.builtin.template:
-    src: cell.env.j2
-    dest: /etc/haas/cell.env
+    src: "{{ item }}.j2"
+    dest: "/etc/haas/{{ item }}"
     mode: "0644"
+  loop: [cell.env, org.env]
   when: demo_role == 'cell'
   notify: Restart the cell
 
