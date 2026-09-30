@@ -283,6 +283,8 @@ func saidOf(e changelog.Event) string {
 	case changelog.Swept:
 		return fmt.Sprintf("retention removed %s workspaces and %s records, freeing %s bytes%s",
 			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
+	case changelog.BudgetSet:
+		return fmt.Sprintf("changed the monthly budget from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
 	case changelog.MemberInvited:
 		return fmt.Sprintf("invited %s to join as a %s", w["email"], or(w["role"], "runner"))
 	case changelog.MemberRole:

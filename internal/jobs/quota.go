@@ -31,6 +31,29 @@ func (i *Index) overQuota(now time.Time) error {
 	return q.Refuse(i.startedWithin(q.Monthly, now))
 }
 
+// Allowance is what the quota lets the organisation start, and how many jobs it has
+// started within that: in all, or in this calendar month when the quota is monthly.
+type Allowance struct {
+	Quota   quota.Quota
+	Started int
+}
+
+// Allowance reads the quota and how much of it is used. It says false when the index
+// is under no quota, and an error when the quota cannot be read, since a page that
+// showed the organisation with no limit would be wrong and look right.
+func (i *Index) Allowance(now time.Time) (Allowance, bool, error) {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	if i.quota == nil {
+		return Allowance{}, false, nil
+	}
+	q, err := i.quota.Current()
+	if err != nil {
+		return Allowance{}, true, err
+	}
+	return Allowance{Quota: q, Started: i.startedWithin(q.Monthly, now)}, true, nil
+}
+
 // startedWithin is how many jobs were started in all, or in the calendar month
 // (in UTC) that now falls in.
 func (i *Index) startedWithin(monthly bool, now time.Time) int {

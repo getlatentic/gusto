@@ -130,6 +130,7 @@ root/
   orgs/<slug>/data/quota.json what the organisation may run now
   orgs/<slug>/data/members.json who is in the organisation, for its server to show
   orgs/<slug>/data/inbox/     what its admins did to its people, for its server to record
+  orgs/<slug>/data/settings.json  what its admins chose, kept by its server: the monthly budget
   tokens/<hash>.json          a single-use link for verifying or signing in
   outbox/                     mail, when mail goes to files
 ```
@@ -321,7 +322,7 @@ one organisation's, so the console shows that organisation and nobody else's.
 
 | Section | Address | What it holds | Listed when |
 | --- | --- | --- | --- |
-| Overview | `/admin` | this month's spending, and the jobs running, waiting and failed this week | always |
+| Overview | `/admin` | this month's spending, the limits and how much of each is used, the jobs running, waiting and failed this week, the computers and the shared apps, and the budget | always |
 | Spending | `/admin/spending` | the spend report for the whole organisation | always |
 | Activity | `/admin/activity` | the change record, and its download at `/admin/activity.jsonl` | the server keeps a change record |
 | Tokens | `/admin/tokens` | API tokens | the server takes tokens |
@@ -330,6 +331,28 @@ one organisation's, so the console shows that organisation and nobody else's.
 | People | `/admin/people` | each person's role, when they last signed in and what they have spent this month, and the invitations not yet answered. Inviting, removing and changing a role are at the front door, which the page links to | the server has a list of people from its front door |
 
 A section that the server has nothing for is not listed and answers 404.
+
+### The Overview
+
+The Overview reads what the pages it summarises read. Spending is the ledger the caps are
+checked against, by person, team, model and repository, for the current month in UTC. The
+jobs are the queue's own counts, the same as `/metrics` reports, and failed is over the last
+seven days, as the Activity page counts it. Computers are the organisation's record of them,
+and apps are the record of what people shared.
+
+The Limits table has a row for each limit that exists and no row for one that does not: the
+budget, each team the spend policy caps, and, where the front door writes a quota, the jobs the
+organisation may start, how many may run at once and how many computers it may have. A row is
+marked when its limit is used up. A quota that cannot be read is said, and is not shown as no
+limit.
+
+An admin can set one alert, a monthly budget in dollars, on the Overview. It is kept in
+`settings.json` in the organisation's data directory, which only its server writes, and
+`HAAS_ORG_SETTINGS` names it. When the month's spending passes the budget the Overview shows a
+banner that says by how much. Spending that has no price is not in the sum, so the banner then says
+"at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
+written to the change record. A budget that cannot be read is said and is not checked, and the
+file is not written over.
 The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and
 `/retention`, redirect to their place in the console, and the forms that were posted to `/tokens`,
 `/retention/...` and `/setups/...` are sent again to the console with their method kept. A
@@ -348,5 +371,5 @@ first is this machine.
 ## What comes next
 
 Inviting people (getlatentic/planning#396), the computers' lifecycle
-(getlatentic/planning#430), the admin's and the operator's views, the stack on AWS from
+(getlatentic/planning#430), the operator's view, the stack on AWS from
 code (getlatentic/planning#397), and payment.

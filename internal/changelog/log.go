@@ -50,6 +50,7 @@ const (
 	MemberInvited   = "member.invited"
 	MemberRole      = "member.role"
 	MemberRemoved   = "member.removed"
+	BudgetSet       = "budget.set"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organisation's front
