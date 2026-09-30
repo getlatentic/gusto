@@ -47,11 +47,11 @@ func oldJob(t *testing.T, site *site, id string, days int) {
 func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 	here, _, _ := keeping(t)
 	oldJob(t, here, "a-week-old", 10)
-	if got := here.as(t, "amy@acme.test").ask(t, "GET", "/retention", nil); got.Code != http.StatusNotFound {
+	if got := here.as(t, "amy@acme.test").ask(t, "GET", "/admin/retention", nil); got.Code != http.StatusForbidden {
 		t.Errorf("a person who runs work got %d", got.Code)
 	}
-	for _, target := range [][2]string{{"POST", "/retention/sweep"}, {"POST", "/jobs/a-week-old/hold"}, {"POST", "/retention/holds"}} {
-		if got := here.as(t, "amy@acme.test").ask(t, target[0], target[1], url.Values{"who": {"x"}}); got.Code != http.StatusNotFound {
+	for _, target := range [][2]string{{"POST", "/admin/retention/sweep"}, {"POST", "/admin/retention/jobs/hold"}, {"POST", "/admin/retention/holds"}} {
+		if got := here.as(t, "amy@acme.test").ask(t, target[0], target[1], url.Values{"who": {"x"}, "job": {"a-week-old"}}); got.Code != http.StatusForbidden {
 			t.Errorf("%s %s gave a person who runs work %d", target[0], target[1], got.Code)
 		}
 	}
@@ -59,18 +59,18 @@ func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 		t.Error("a person who runs work swept a workspace")
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/retention", nil)
+	page := here.ask(t, "GET", "/admin/retention", nil)
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
-	for _, want := range []string{"2.0 KB", "a-week-old", "workspace", "7 days", "90 days", `href="/retention"`} {
+	for _, want := range []string{"2.0 KB", "a-week-old", "workspace", "7 days", "90 days", `href="/admin/retention"`} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page lacks %q:\n%s", want, page.Body.String())
 		}
 	}
 	plain := open(t)
 	plain.signIn(t)
-	if got := plain.ask(t, "GET", "/retention", nil); got.Code != http.StatusNotFound {
+	if got := plain.ask(t, "GET", "/admin/retention", nil); got.Code != http.StatusNotFound {
 		t.Errorf("a server that removes nothing gave %d", got.Code)
 	}
 }
@@ -81,7 +81,7 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	oldJob(t, here, "hundred-days", 100)
 	oldJob(t, here, "one-day", 1)
 	here.signIn(t)
-	if got := here.ask(t, "POST", "/retention/sweep", nil); got.Code != http.StatusSeeOther {
+	if got := here.ask(t, "POST", "/admin/retention/sweep", nil); got.Code != http.StatusSeeOther {
 		t.Fatalf("sweeping gave %d", got.Code)
 	}
 	root := here.index.Root()
@@ -101,7 +101,7 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, lastSweepFile)); err != nil {
 		t.Error("the last sweep was not kept")
 	}
-	if page := here.ask(t, "GET", "/retention", nil).Body.String(); !strings.Contains(page, "The last sweep was") {
+	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "The last sweep was") {
 		t.Errorf("the page does not show the last sweep:\n%s", page)
 	}
 }
@@ -112,16 +112,19 @@ func TestAHoldKeepsAJobAndIsRecordedAndReleased(t *testing.T) {
 	oldJob(t, here, "free", 200)
 	here.signIn(t)
 
-	if page := here.ask(t, "GET", "/jobs/held", nil).Body.String(); !strings.Contains(page, `action="/jobs/held/hold"`) {
-		t.Fatalf("an admin cannot hold from the job page:\n%s", page)
+	if page := here.ask(t, "GET", "/jobs/held", nil).Body.String(); strings.Contains(page, "/hold") || strings.Contains(page, "Keep this job whole") {
+		t.Fatalf("the job page carries a control that is the console's:\n%s", page)
 	}
-	if got := here.ask(t, "POST", "/jobs/held/hold", url.Values{"why": {"the audit"}}); got.Code != http.StatusSeeOther {
+	if got := here.ask(t, "POST", "/admin/retention/jobs/hold", url.Values{"job": {"nothing-by-this-id"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
+		t.Errorf("a job that is not there was held: %d %q", got.Code, got.Header().Get("Location"))
+	}
+	if got := here.ask(t, "POST", "/admin/retention/jobs/hold", url.Values{"job": {"held"}, "why": {"the audit"}}); got.Code != http.StatusSeeOther {
 		t.Fatalf("holding gave %d", got.Code)
 	}
-	if page := here.ask(t, "GET", "/jobs/held", nil).Body.String(); !strings.Contains(page, "Kept from removal by the shared sign-in: the audit") {
-		t.Errorf("the job page does not say it is held:\n%s", page)
+	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "the audit") || !strings.Contains(page, `action="/admin/retention/jobs/release"`) {
+		t.Errorf("the retention page does not say the job is held:\n%s", page)
 	}
-	here.ask(t, "POST", "/retention/sweep", nil)
+	here.ask(t, "POST", "/admin/retention/sweep", nil)
 	root := here.index.Root()
 	if _, err := os.Stat(filepath.Join(root, "held", "workspace")); err != nil {
 		t.Error("a held job was swept")
@@ -130,8 +133,8 @@ func TestAHoldKeepsAJobAndIsRecordedAndReleased(t *testing.T) {
 		t.Error("a job that was not held stayed")
 	}
 
-	here.ask(t, "POST", "/jobs/held/release", nil)
-	here.ask(t, "POST", "/retention/sweep", nil)
+	here.ask(t, "POST", "/admin/retention/jobs/release", url.Values{"job": {"held"}})
+	here.ask(t, "POST", "/admin/retention/sweep", nil)
 	if _, found := here.index.Get("held"); found {
 		t.Error("a released job was kept")
 	}
@@ -148,16 +151,16 @@ func TestAHoldOnAPersonKeepsEverythingTheyAskedFor(t *testing.T) {
 	here, _, _ := keeping(t)
 	oldJob(t, here, "amys", 200)
 	here.signIn(t)
-	here.ask(t, "POST", "/retention/holds", url.Values{"who": {"Amy@Acme.test"}, "why": {"legal"}})
-	here.ask(t, "POST", "/retention/sweep", nil)
+	here.ask(t, "POST", "/admin/retention/holds", url.Values{"who": {"Amy@Acme.test"}, "why": {"legal"}})
+	here.ask(t, "POST", "/admin/retention/sweep", nil)
 	if _, found := here.index.Get("amys"); !found {
 		t.Fatal("work of a held person was removed")
 	}
-	if page := here.ask(t, "GET", "/retention", nil).Body.String(); !strings.Contains(page, "everything asked for by amy@acme.test") {
+	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "everything asked for by amy@acme.test") {
 		t.Errorf("the hold is not listed:\n%s", page)
 	}
-	here.ask(t, "POST", "/retention/holds/release", url.Values{"who": {"amy@acme.test"}})
-	here.ask(t, "POST", "/retention/sweep", nil)
+	here.ask(t, "POST", "/admin/retention/holds/release", url.Values{"who": {"amy@acme.test"}})
+	here.ask(t, "POST", "/admin/retention/sweep", nil)
 	if _, found := here.index.Get("amys"); found {
 		t.Error("a released person's work was kept")
 	}

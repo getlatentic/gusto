@@ -815,3 +815,16 @@ label.engine input { width: auto; padding: 0; margin: 0; flex: none; }
 label.engine:has(input:checked) { border-color: var(--yg-accent); background: var(--yg-accent-surface); }
 table.lineup .badge { display: inline-block; margin-left: var(--yg-space-2); padding: 1px var(--yg-space-2); border-radius: var(--yg-radius-full);
   font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; background: var(--yg-accent-surface); color: var(--yg-accent-hover); }
+
+/* The console: its sections down the side and the page beside them. */
+.console { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: var(--yg-space-8); align-items: start; }
+.console main { min-width: 0; }
+.sections { display: grid; gap: var(--yg-space-1); position: sticky; top: var(--yg-space-6); font-size: .9375rem; }
+.sections a { padding: var(--yg-space-2) var(--yg-space-3); border-radius: var(--yg-radius-sm);
+  color: var(--yg-text-muted); text-decoration: none; }
+.sections a:hover { color: var(--yg-text); }
+.sections a[aria-current] { background: var(--yg-bg-subtle); color: var(--yg-text); font-weight: 600; }
+@media (max-width: 48rem) {
+  .console { grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-4); }
+  .sections { display: flex; flex-wrap: wrap; position: static; }
+}

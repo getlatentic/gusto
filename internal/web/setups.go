@@ -33,17 +33,29 @@ func (s *Server) UseSetups(store *setup.Store, servers setup.Servers) {
 // UseInBuilding tells the pages whether restricted work can run here.
 func (s *Server) UseInBuilding(reachable bool) { s.inBuilding = reachable }
 
-// setupsPage is every skill set, and the way to make another.
+// setupsPath is where the console keeps the skill sets, for whoever changes them.
+const setupsPath = "/admin/skill-sets"
+
+// setupsPage is every skill set, for anybody to read.
 func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "setups.html", map[string]any{
+	s.render(w, "setups.html", s.setupsData(r, "/setups"))
+}
+
+// skillSetsPage is every skill set, and the way to make another.
+func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
+	s.drawConsole(w, "setups.html", "skill-sets", s.setupsData(r, setupsPath))
+}
+
+func (s *Server) setupsData(r *http.Request, base string) map[string]any {
+	return map[string]any{
 		"Title":   "haas — skill sets",
 		"Nav":     "new",
+		"Base":    base,
 		"Setups":  s.setupsList(),
 		"Offered": s.servers,
 		"Keeps":   s.setups != nil,
 		"Refused": r.URL.Query().Get("refused"),
-		"Admin":   s.admin(r),
-	})
+	}
 }
 
 // setupOf is what a job on this instance is given, named for job.json.
@@ -93,11 +105,11 @@ func (s *Server) setupsList() []setup.Setup {
 // saveSetup makes a setup, or changes which servers one names.
 func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	if s.setups == nil {
-		s.turnAway(w, r, "/new", "this server keeps no setups")
+		s.turnAway(w, r, setupsPath, "this server keeps no setups")
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		s.turnAway(w, r, "/new", err.Error())
+		s.turnAway(w, r, setupsPath, err.Error())
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -108,38 +120,53 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 		action = "changed"
 	}
 	if err := s.setups.Save(wanted, s.servers); err != nil {
-		s.turnAway(w, r, "/new", err.Error())
+		s.turnAway(w, r, setupsPath, err.Error())
 		return
 	}
 	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", ")})
-	http.Redirect(w, r, "/setups/"+name, http.StatusSeeOther)
+	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
-// setupPage is one setup: its skills, its servers, and the way to change both.
+// setupPage is one setup: its skills and its servers, for anybody to read.
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
+	if page, ok := s.setupData(w, r, "/setups"); ok {
+		s.render(w, "setup-detail.html", page)
+	}
+}
+
+// skillSetPage is one setup, and the way to change its skills and servers.
+func (s *Server) skillSetPage(w http.ResponseWriter, r *http.Request) {
+	if page, ok := s.setupData(w, r, setupsPath); ok {
+		s.drawConsole(w, "setup-detail.html", "skill-sets", page)
+	}
+}
+
+// setupData is what a page of the setup the path names is drawn from, and
+// answers 404 itself when there is none.
+func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) (map[string]any, bool) {
 	if s.setups == nil {
 		http.NotFound(w, r)
-		return
+		return nil, false
 	}
 	held, found := s.setups.Get(r.PathValue("name"))
 	if !found {
 		http.NotFound(w, r)
-		return
+		return nil, false
 	}
-	s.render(w, "setup-detail.html", map[string]any{
+	return map[string]any{
 		"Title":   "haas — " + held.Name,
 		"Nav":     "new",
+		"Base":    base,
 		"Setup":   held,
 		"Offered": s.servers,
 		"Catalog": s.catalog,
 		"Refused": r.URL.Query().Get("refused"),
-		"Admin":   s.admin(r),
-	})
+	}, true
 }
 
 func (s *Server) writeSkill(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	back := "/setups/" + name
+	back := setupsPath + "/" + name
 	if s.setups == nil {
 		http.NotFound(w, r)
 		return
@@ -164,11 +191,11 @@ func (s *Server) dropSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.setups.Drop(name, r.PathValue("skill")); err != nil {
-		s.turnAway(w, r, "/setups/"+name, err.Error())
+		s.turnAway(w, r, setupsPath+"/"+name, err.Error())
 		return
 	}
 	s.note(r, changelog.SkillDropped, map[string]string{"setup": name, "skill": r.PathValue("skill")})
-	http.Redirect(w, r, "/setups/"+name, http.StatusSeeOther)
+	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
 // fitting is the setups a harness can take, so the form offers no setup the

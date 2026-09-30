@@ -169,18 +169,6 @@ func clientOf(r *http.Request) string {
 	return host
 }
 
-// adminPage answers 404 to anybody who is not an admin: what they may not see
-// is not something they need to know is there.
-func (s *Server) adminPage(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if s.changes == nil || !s.admin(r) {
-			http.NotFound(w, r)
-			return
-		}
-		next(w, r)
-	}
-}
-
 // changesFile is the whole log, as the file holds it, for an admin to export
 // and for a verifier to check.
 func (s *Server) changesFile(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +198,7 @@ type row struct {
 }
 
 func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": "haas — changes", "Nav": "changes", "Admin": true, "Shown": shownChanges}
+	page := map[string]any{"Title": "haas — activity", "Shown": shownChanges}
 	if file, err := os.Open(s.changes.Path()); err == nil {
 		report, verr := changelog.Verify(file, s.keyring)
 		file.Close()
@@ -221,7 +209,7 @@ func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	page["Rows"] = s.recentChanges()
-	s.render(w, "changes.html", page)
+	s.drawConsole(w, "admin-activity.html", "activity", page)
 }
 
 // recentChanges is the newest events first.

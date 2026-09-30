@@ -2,7 +2,7 @@
 
 A job's record says what an agent did. This record says what the people who run
 the platform did to it: who signed in, who was refused, who changed a role or a
-setup, and which settings changed. An admin reads it at `/changes`.
+setup, and which settings changed. An admin reads it under Activity in the admin console, at `/admin/activity`.
 
 ## What is written
 
@@ -45,7 +45,7 @@ that is written.
 the filesystem allows, so that not even the user the server runs as can rewrite
 or shorten it, and says when the filesystem would not.
 
-An admin downloads it from `/changes.jsonl`. A script with the shared password,
+An admin downloads it from `/admin/activity.jsonl`. A script with the shared password,
 or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 
 ## Why an edit shows

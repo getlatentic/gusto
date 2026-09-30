@@ -1,0 +1,17 @@
+{{template "head" .}}
+
+<div class="title-row">
+  <h1>Overview</h1>
+</div>
+
+<section class="figures">
+  <a class="figure headline" href="/admin/spending">
+    <span class="value">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
+    <span class="label">spent in {{.Month}}</span>
+  </a>
+  <a class="figure running" href="/jobs?state=running"><span class="value">{{.Running}}</span><span class="label">running</span></a>
+  <a class="figure queued" href="/jobs?state=queued"><span class="value">{{.Waiting}}</span><span class="label">waiting</span></a>
+  <a class="figure failed" href="/jobs?state=failed"><span class="value">{{.Failed}}</span><span class="label">failed this week</span></a>
+</section>
+
+{{template "foot" .}}

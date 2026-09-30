@@ -39,40 +39,46 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBody)
 		}
-		next.ServeHTTP(&nonced{ResponseWriter: w, nonce: nonce}, r)
+		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r)}, r)
 	})
 }
 
-// nonced carries the request's nonce to the page that draws it.
-type nonced struct {
+// marked carries what a page needs to know of its request: the nonce its inline
+// scripts run with, and whether an admin asked, which is what shows the link to
+// the console on every page.
+type marked struct {
 	http.ResponseWriter
 	nonce string
+	admin bool
 }
 
 // Unwrap lets a handler reach the connection's own controls, such as the write
 // deadline a stream sets.
-func (n *nonced) Unwrap() http.ResponseWriter { return n.ResponseWriter }
+func (m *marked) Unwrap() http.ResponseWriter { return m.ResponseWriter }
 
-func (n *nonced) Flush() {
-	if flusher, ok := n.ResponseWriter.(http.Flusher); ok {
+func (m *marked) Flush() {
+	if flusher, ok := m.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
 }
 
-// nonceOf is the nonce of the response w belongs to, or nothing.
-func nonceOf(w http.ResponseWriter) string {
+// markOf is what the response w was marked with, or nothing.
+func markOf(w http.ResponseWriter) marked {
 	for w != nil {
 		switch held := w.(type) {
-		case *nonced:
-			return held.nonce
+		case *marked:
+			return marked{nonce: held.nonce, admin: held.admin}
 		case interface{ Unwrap() http.ResponseWriter }:
 			w = held.Unwrap()
 		default:
-			return ""
+			return marked{}
 		}
 	}
-	return ""
+	return marked{}
 }
+
+// nonceOf is the nonce of the response w belongs to, or nothing.
+func nonceOf(w http.ResponseWriter) string { return markOf(w).nonce }
 
 const (
 	// failuresAllowed is how many wrong credentials one source may present

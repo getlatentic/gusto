@@ -277,6 +277,31 @@ the lines that were there when it began are not its.
 - `haas cloud computers` lists every computer on the host with its organisation and person.
   An organisation's page shows its admin which people have one and how it is.
 
+## The admin console
+
+An organisation's server has a console for its admins at `/admin`. It has its own layout
+and navigation. It is the only place the admin controls are: the pages a person who runs
+work uses carry none, and an admin sees one link to the console, "Admin". The console has
+one link back, "Back to haas". A person who runs work gets 403 on every page of the console
+and on every form it posts. A person who is not signed in is sent to sign in. Each server is
+one organisation's, so the console shows that organisation and nobody else's.
+
+| Section | Address | What it holds | Listed when |
+| --- | --- | --- | --- |
+| Overview | `/admin` | this month's spending, and the jobs running, waiting and failed this week | always |
+| Spending | `/admin/spending` | the spend report for the whole organisation | always |
+| Activity | `/admin/activity` | the change record, and its download at `/admin/activity.jsonl` | the server keeps a change record |
+| Tokens | `/admin/tokens` | API tokens | the server takes tokens |
+| Retention | `/admin/retention` | the disk, the policy, sweeps and holds, of a job or of a person | the server removes finished work |
+| Skill sets | `/admin/skill-sets` | making skill sets, and adding and removing their skills | the server keeps skill sets |
+
+A section that the server has nothing for is not listed and answers 404.
+The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and
+`/retention`, redirect to their place in the console, and the forms that were posted to `/tokens`,
+`/retention/...` and `/setups/...` are sent again to the console with their method kept. A
+person who runs work who follows one of them gets the same 403. A single job is held from the
+Retention page, by its id, and no longer from the job's own page.
+
 ## What is built
 
 The controller provisions an organisation's directories, its signing key and its entry
