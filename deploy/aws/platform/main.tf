@@ -124,13 +124,22 @@ resource "aws_launch_template" "host" {
 
 # ── GitHub Actions ───────────────────────────────────────────────────────────
 
-# GitHub's identity provider is made once for the account, by somebody with the rights to, and
-# is not managed here: bootstrap.sh says how. Its address is fixed.
+# GitHub's identity provider is one for the whole account. Whoever applies this stack with the rights to
+# make one lets this stack make it (manage_github_provider); otherwise it is made once by hand, which
+# README.md says how. IAM does not check that the provider a trust policy names is there, so a role
+# made without one exists and cannot be assumed.
+resource "aws_iam_openid_connect_provider" "github" {
+  count          = var.manage_github_provider ? 1 : 0
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
 locals {
   github_provider = "arn:${data.aws_partition.here.partition}:iam::${local.account}:oidc-provider/token.actions.githubusercontent.com"
 }
 
 resource "aws_iam_role" "ci" {
+  depends_on           = [aws_iam_openid_connect_provider.github]
   name                 = local.ci
   max_session_duration = 3600
   assume_role_policy = jsonencode({

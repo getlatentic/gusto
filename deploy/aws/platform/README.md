@@ -23,6 +23,19 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 
 ## Once
 
+GitHub's identity provider must be in the AWS account before the workflows can sign in. IAM does not check that
+one exists when the CI role is made, so a missing one shows only when a workflow fails with "The web identity
+token could not be validated". Check, and make it when it is not there, as an identity that may (CloudShell in the
+console, or an admin profile):
+
+```bash
+aws iam get-open-id-connect-provider --open-id-connect-provider-arn arn:aws:iam::<account id>:oidc-provider/token.actions.githubusercontent.com
+aws iam create-open-id-connect-provider --url https://token.actions.githubusercontent.com --client-id-list sts.amazonaws.com
+```
+
+With an admin profile, `MANAGE_GITHUB_PROVIDER=true ./bootstrap.sh` makes it as part of the stack instead. Do one or the
+other, not both. Then the rest:
+
 ```bash
 ./bootstrap.sh                                  # this directory
 ../openshell/put-cloudflare.sh                  # the two Cloudflare tokens
