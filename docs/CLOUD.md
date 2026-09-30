@@ -366,6 +366,11 @@ stops the server, and deletes the organisation, its people and its data. The add
 `HAAS_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
 ever deleted this way.
 
+At most `HAAS_CLOUD_DEMO_MAX` demos run at once and `HAAS_CLOUD_DEMO_PER_DAY` (40) start in a day, which bounds
+what a day of demos can cost. Creating the file `demos.off` in the front door's directory pauses new
+demos at once, and removing it lets them start again; demos that are running go on. A visitor who
+is turned away is told to book a call.
+
 Each visitor is kept as a lead in `demos/<address>.json` in the front door's directory, with
 when they asked, when it was ready, whether they extended it and when it ended. The lead stays
 when the demo is gone. An address can start another demo once its first has ended.

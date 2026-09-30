@@ -25,6 +25,8 @@ type DemoSettings struct {
 	BookURL string
 	// Limits is what a demo may run.
 	Limits quota.Quota
+	// PerDay is the most demos started in a day, in all, which bounds what a day of demos can cost. Zero is no limit.
+	PerDay int
 }
 
 // Enabled says the front door offers a demo.
@@ -72,6 +74,8 @@ var (
 	ErrNeedCompany   = errors.New("say which company you are with")
 	ErrDemoNeedsName = errors.New("say who you are")
 	ErrNoExtension   = errors.New("this demo cannot be extended any more")
+	ErrDemoPaused    = errors.New("demos are paused")
+	ErrDemoDaily     = errors.New("today's demos are all taken")
 )
 
 func (s *Store) leadFile(slug string) string { return filepath.Join(s.root, "demos", slug+".json") }
@@ -82,6 +86,8 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 	switch {
 	case !s.set.Demo.Enabled():
 		return Person{}, Org{}, errors.New("this host offers no demo")
+	case s.DemosPaused():
+		return Person{}, Org{}, ErrDemoPaused
 	case name == "" || len(name) > 80:
 		return Person{}, Org{}, ErrDemoNeedsName
 	case strings.TrimSpace(company) == "":
@@ -103,6 +109,12 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 	if _, found, err := s.person(address); err != nil || found {
 		if err == nil {
 			err = ErrEmailTaken
+		}
+		return Person{}, Org{}, err
+	}
+	if started, err := s.startedToday(); err != nil || (s.set.Demo.PerDay > 0 && started >= s.set.Demo.PerDay) {
+		if err == nil {
+			err = ErrDemoDaily
 		}
 		return Person{}, Org{}, err
 	}
@@ -311,4 +323,30 @@ func (s *Store) LeadOf(slug string) (Lead, bool) {
 		return Lead{}, false
 	}
 	return lead, true
+}
+
+// pauseFile is the file whose presence pauses demos, which an operator makes or removes without restarting anything.
+func (s *Store) pauseFile() string { return filepath.Join(s.root, "demos.off") }
+
+// DemosPaused says an operator has paused demos. Demos that are running go on.
+func (s *Store) DemosPaused() bool {
+	_, err := os.Stat(s.pauseFile())
+	return err == nil
+}
+
+// startedToday is how many demos were asked for since midnight UTC.
+func (s *Store) startedToday() (int, error) {
+	entries, err := os.ReadDir(filepath.Join(s.root, "demos"))
+	if err != nil {
+		return 0, err
+	}
+	midnight := s.now().UTC().Truncate(24 * time.Hour)
+	count := 0
+	for _, entry := range entries {
+		var lead Lead
+		if readFile(filepath.Join(s.root, "demos", entry.Name()), &lead) == nil && !lead.Requested.Before(midnight) {
+			count++
+		}
+	}
+	return count, nil
 }

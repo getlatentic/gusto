@@ -215,3 +215,32 @@ func TestOnlyAsManyDemosRunAtOnceAsTheHostAllows(t *testing.T) {
 		t.Errorf("a demo that ended makes room: %v", err)
 	}
 }
+
+func TestDemosCanBePausedByAFileAndAreLimitedInADay(t *testing.T) {
+	set := demoSet
+	set.Demo.PerDay = 2
+	s, now := clocked(t, set)
+	if _, _, err := s.StartDemo("A", "a@one.com", "One"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.pauseFile(), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.StartDemo("B", "b@two.com", "Two"); !errors.Is(err, ErrDemoPaused) {
+		t.Errorf("a paused host started one: %v", err)
+	}
+	os.Remove(s.pauseFile())
+	if _, _, err := s.StartDemo("B", "b@two.com", "Two"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.StartDemo("C", "c@three.com", "Three"); !errors.Is(err, ErrDemoDaily) {
+		t.Errorf("the day's limit: %v", err)
+	}
+	*now = now.Add(24 * time.Hour)
+	if _, _, err := s.StartDemo("C", "c@three.com", "Three"); err != nil {
+		t.Errorf("a new day has room: %v", err)
+	}
+	if s.DemosPaused() {
+		t.Error("paused with no file")
+	}
+}
