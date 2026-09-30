@@ -217,7 +217,7 @@ func stateWords(state State) string {
 	case Starting:
 		return "This organisation's server is starting."
 	case Waiting:
-		return "A machine is starting for this organisation. That takes about two minutes when none is running."
+		return "A machine is starting for this organisation. That takes a few minutes when none is running."
 	}
 	return "This organisation is being set up."
 }

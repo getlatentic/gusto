@@ -54,6 +54,8 @@ func demoText(err error) string {
 	switch {
 	case errors.Is(err, ErrDemoFull):
 		return "Every demo is in use right now. Book a call and we will show you."
+	case errors.Is(err, ErrDemoPaused), errors.Is(err, ErrDemoDaily):
+		return "We are not starting new demos right now. Book a call and we will show you."
 	case errors.Is(err, ErrEmailTaken):
 		return "That address has a demo running. Sign in to get back to it."
 	case errors.Is(err, ErrDemoNeedsName), errors.Is(err, ErrNeedCompany):
@@ -70,7 +72,7 @@ func demoText(err error) string {
 
 func demoStatus(err error) int {
 	switch {
-	case errors.Is(err, ErrDemoFull):
+	case errors.Is(err, ErrDemoFull), errors.Is(err, ErrDemoPaused), errors.Is(err, ErrDemoDaily):
 		return http.StatusServiceUnavailable
 	case errors.Is(err, ErrEmailTaken):
 		return http.StatusConflict
@@ -117,9 +119,9 @@ func waitingWords(state State) string {
 	case Failed:
 		return "Something went wrong starting your demo. It is being tried again."
 	case Waiting:
-		return "Starting a machine for your demo. When none is running this takes about two minutes, and your time starts when it is ready, not before."
+		return "Starting a machine for your demo. When none is running this takes a few minutes, and your time starts when it is ready, not before."
 	}
-	return "Getting your demo ready. When nothing else is running this takes about two minutes, and your time starts when it is ready, not before."
+	return "Getting your demo ready. When nothing else is running this takes a few minutes, and your time starts when it is ready, not before."
 }
 
 func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Person) {
