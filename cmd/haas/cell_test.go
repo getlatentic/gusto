@@ -117,3 +117,43 @@ func TestTheFrontDoorPlacesOnCellsOnlyWhenTheyAreConfigured(t *testing.T) {
 		t.Errorf("cells: %v %+v", err, placed)
 	}
 }
+
+func TestTheFrontDoorStartsHostsForCellsOnlyWhenItIsToldHowAndToldEnough(t *testing.T) {
+	plain := &cloud.Controller{}
+	if scaler, err := cellScaler(plain); scaler != nil || err != nil {
+		t.Fatalf("off unless asked for: %v %v", scaler, err)
+	}
+	t.Setenv("HAAS_CLOUD_CELL_LAUNCH", "ec2")
+	if _, err := cellScaler(plain); err == nil {
+		t.Error("hosts for cells with nowhere for cells to register")
+	}
+	dir := t.TempDir()
+	secret := filepath.Join(dir, "secret")
+	os.WriteFile(secret, []byte(goodSecret), 0o600)
+	t.Setenv("HAAS_CLOUD_CELLS_DIR", filepath.Join(dir, "cells"))
+	t.Setenv("HAAS_CLOUD_CELL_SECRET_FILE", secret)
+	pool, err := cellPool(&cloud.LocalCell{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	controller := &cloud.Controller{Cells: pool}
+	if _, err := cellScaler(controller); err == nil {
+		t.Error("no template or script")
+	}
+	t.Setenv("HAAS_CLOUD_CELL_TEMPLATE", "haas-poc-demo-host-cell")
+	t.Setenv("HAAS_CLOUD_CELL_USERDATA", "/opt/haas-bundle/user-data.sh")
+	t.Setenv("HAAS_CLOUD_CELL_SETTINGS", "ROLE=cell,RUN=live")
+	scaler, err := cellScaler(controller)
+	if err != nil || scaler == nil || scaler.Max != 3 || scaler.Idle != 10*time.Minute || scaler.Boot != 10*time.Minute {
+		t.Fatalf("%+v %v", scaler, err)
+	}
+	t.Setenv("HAAS_CLOUD_CELL_MAX", "1")
+	t.Setenv("HAAS_CLOUD_CELL_IDLE_MINUTES", "2")
+	if scaler, _ := cellScaler(controller); scaler.Max != 1 || scaler.Idle != 2*time.Minute {
+		t.Errorf("%+v", scaler)
+	}
+	t.Setenv("HAAS_CLOUD_CELL_SETTINGS", "ROLE")
+	if _, err := cellScaler(controller); err == nil {
+		t.Error("a setting with no value")
+	}
+}

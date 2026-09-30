@@ -114,7 +114,7 @@ func (p *Pool) Place() (cloud.Cell, error) {
 		return found[a].cell.Name() < found[b].cell.Name()
 	})
 	if len(found) == 0 || found[0].free < p.MinFreeMiB {
-		return nil, fmt.Errorf("no cell has %d MiB to give another organisation", p.MinFreeMiB)
+		return nil, fmt.Errorf("no cell has %d MiB to give another organisation: %w", p.MinFreeMiB, cloud.ErrNoCapacity)
 	}
 	return found[0].cell, nil
 }
