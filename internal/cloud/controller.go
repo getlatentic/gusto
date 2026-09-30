@@ -24,7 +24,11 @@ import (
 // it goes, so a crash between two steps leaves something the next pass finishes.
 type Controller struct {
 	Store *Store
-	Cell  Cell
+	// Cell is the one place servers run, when Cells is not set.
+	Cell Cell
+	// Cells is where servers may run when there is more than one. An organisation is placed on
+	// one when it is made and stays there, because its computers are on that cell's gateway.
+	Cells CellSet
 	// Command is the program that is an organisation's server, and its arguments.
 	Command []string
 	// Env is the settings every organisation's server has, and only those and
@@ -83,26 +87,61 @@ func (c *Controller) provision(slug string) error {
 	if err := c.prepare(slug); err != nil {
 		return c.fail(slug, runtime, err)
 	}
+	cell, err := c.placement(slug, &runtime)
+	if err != nil {
+		return c.fail(slug, runtime, err)
+	}
 	if runtime.Port == 0 {
-		if runtime, err = c.givePorts(slug, runtime); err != nil {
+		if runtime, err = c.givePorts(slug, runtime, cell); err != nil {
 			return c.fail(slug, runtime, err)
 		}
 	}
-	runtime.Cell = c.Cell.Name()
 	c.set(slug, runtime, Starting, "")
-	env, err := c.environment(slug, runtime)
+	env, err := c.environment(slug, runtime, cell)
 	if err != nil {
 		return c.fail(slug, runtime, err)
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
-	if err := c.Cell.Start(spec); err != nil {
+	if err := cell.Start(spec); err != nil {
 		return c.fail(slug, runtime, err)
 	}
-	if err := c.answers(runtime.Port); err != nil {
+	if err := c.answers(cell, runtime.Port); err != nil {
 		return c.fail(slug, runtime, err)
 	}
 	c.set(slug, runtime, Ready, "")
 	return nil
+}
+
+// cellNamed is the cell an organisation was placed on.
+func (c *Controller) cellNamed(name string) (Cell, error) {
+	if c.Cells == nil {
+		return c.Cell, nil
+	}
+	return c.Cells.Get(name)
+}
+
+// placement is the cell an organisation's server runs on. One that was placed stays there, since its
+// computers are on that cell's gateway, and one that was not is put on the cell with the most room and
+// has that written down before anything is started on it.
+func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
+	if runtime.Cell != "" {
+		cell, err := c.cellNamed(runtime.Cell)
+		if !errors.Is(err, ErrCellGone) {
+			return cell, err
+		}
+		slog.Warn("an organisation's cell is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
+		// The ports were the gone cell's, and are not this one's.
+		runtime.Cell, runtime.Port, runtime.ProxyPort = "", 0, 0
+	}
+	cell := c.Cell
+	if c.Cells != nil {
+		var err error
+		if cell, err = c.Cells.Place(); err != nil {
+			return nil, err
+		}
+	}
+	runtime.Cell = cell.Name()
+	return cell, c.Store.SetRuntime(slug, *runtime)
 }
 
 // prepare makes what an organisation's server keeps: its directories, the key it signs
@@ -147,14 +186,14 @@ func (c *Controller) EntryKey(slug string) ([]byte, error) { return os.ReadFile(
 
 // environment is the whole environment of an organisation's server: the operator's
 // settings, then what is the organisation's own, which wins.
-func (c *Controller) environment(slug string, runtime Runtime) ([]string, error) {
+func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]string, error) {
 	password := make([]byte, 24)
 	if _, err := rand.Read(password); err != nil {
 		return nil, err
 	}
 	data := c.Store.DataDir(slug)
 	own := map[string]string{
-		"HAAS_ADDR":         "127.0.0.1:" + strconv.Itoa(runtime.Port),
+		"HAAS_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
 		"HAAS_PROXY_ADDR":   "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
 		"HAAS_JOBS":         filepath.Join(data, "jobs"),
 		"HAAS_SESSIONS":     filepath.Join(data, "sessions"),
@@ -174,7 +213,7 @@ func (c *Controller) environment(slug string, runtime Runtime) ([]string, error)
 		"HAAS_FRONT_DOOR":   c.FrontDoor,
 		"HAAS_COMPUTERS":    filepath.Join(data, "computers"),
 		"HAAS_APPS":         filepath.Join(data, "apps"),
-		"HAAS_CELL":         c.Cell.Name(),
+		"HAAS_CELL":         cell.Name(),
 		// A person's harnesses share their computer's files and their own state, so they
 		// take turns.
 		"HAAS_LIMIT_PERSON":    "1",
@@ -190,43 +229,27 @@ func (c *Controller) environment(slug string, runtime Runtime) ([]string, error)
 	return env, nil
 }
 
-// givePorts gives an organisation two ports and writes them down before anyone
+// givePorts gives an organisation two ports on its cell and writes them down before anyone
 // else is given any, so two organisations provisioned together do not share one.
-func (c *Controller) givePorts(slug string, runtime Runtime) (Runtime, error) {
+func (c *Controller) givePorts(slug string, runtime Runtime, cell Cell) (Runtime, error) {
 	c.portMu.Lock()
 	defer c.portMu.Unlock()
-	server, proxy, err := c.ports()
+	orgs, err := c.Store.Orgs()
+	if err != nil {
+		return runtime, err
+	}
+	given := map[int]bool{}
+	for _, org := range orgs {
+		if other, err := c.Store.Runtime(org.Slug); err == nil && other.Cell == runtime.Cell {
+			given[other.Port], given[other.ProxyPort] = true, true
+		}
+	}
+	server, proxy, err := cell.Ports(c.PortFrom, given)
 	if err != nil {
 		return runtime, err
 	}
 	runtime.Port, runtime.ProxyPort = server, proxy
 	return runtime, c.Store.SetRuntime(slug, runtime)
-}
-
-// ports finds two ports on this cell that nothing has: nobody's server has been
-// given them, and nothing is listening on them.
-func (c *Controller) ports() (server, proxy int, err error) {
-	orgs, err := c.Store.Orgs()
-	if err != nil {
-		return 0, 0, err
-	}
-	given := map[int]bool{}
-	for _, org := range orgs {
-		if runtime, err := c.Store.Runtime(org.Slug); err == nil {
-			given[runtime.Port], given[runtime.ProxyPort] = true, true
-		}
-	}
-	var found []int
-	for port := c.PortFrom; port < c.PortFrom+20000 && len(found) < 2; port++ {
-		if given[port] || !free(port) {
-			continue
-		}
-		found = append(found, port)
-	}
-	if len(found) < 2 {
-		return 0, 0, errors.New("no ports are free for another organisation's server")
-	}
-	return found[0], found[1], nil
 }
 
 func free(port int) bool {
@@ -239,10 +262,10 @@ func free(port int) bool {
 }
 
 // answers waits until the server on the port says it is well.
-func (c *Controller) answers(port int) error {
+func (c *Controller) answers(cell Cell, port int) error {
 	deadline := time.Now().Add(c.Wait)
 	for {
-		if response, err := http.Get("http://127.0.0.1:" + strconv.Itoa(port) + "/healthz"); err == nil {
+		if response, err := http.Get("http://" + net.JoinHostPort(cell.Host(), strconv.Itoa(port)) + "/healthz"); err == nil {
 			response.Body.Close()
 			if response.StatusCode == http.StatusOK {
 				return nil
@@ -284,13 +307,14 @@ func (c *Controller) Route(slug string) (address string, state State) {
 	if !known {
 		return "", ""
 	}
-	if runtime.State == Ready && !c.Cell.Alive(slug) {
-		return "", Starting
-	}
 	if runtime.State != Ready {
 		return "", runtime.State
 	}
-	return "127.0.0.1:" + strconv.Itoa(runtime.Port), Ready
+	cell, err := c.cellNamed(runtime.Cell)
+	if err != nil || !cell.Alive(slug) {
+		return "", Starting
+	}
+	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
 }
 
 // Run provisions every organisation there is and then keeps their servers running,
@@ -331,7 +355,7 @@ func (c *Controller) supervise() {
 	now := time.Now()
 	for slug, runtime := range c.states {
 		switch {
-		case runtime.State == Ready && !c.Cell.Alive(slug):
+		case runtime.State == Ready && !c.alive(slug, runtime):
 			due = append(due, slug)
 		case runtime.State == Failed && !now.Before(c.retry[slug]):
 			due = append(due, slug)
@@ -361,19 +385,35 @@ func (c *Controller) restart(slug string) {
 	}
 }
 
+// alive is whether an organisation's server is running on its cell, and a cell that cannot be
+// reached is one whose servers are not known to be.
+func (c *Controller) alive(slug string, runtime Runtime) bool {
+	cell, err := c.cellNamed(runtime.Cell)
+	return err == nil && cell.Alive(slug)
+}
+
 func (c *Controller) stopAll() {
 	c.mu.Lock()
-	slugs := make([]string, 0, len(c.states))
-	for slug := range c.states {
-		slugs = append(slugs, slug)
+	held := make(map[string]Runtime, len(c.states))
+	for slug, runtime := range c.states {
+		held[slug] = runtime
 	}
 	c.mu.Unlock()
 	var wg sync.WaitGroup
-	for _, slug := range slugs {
+	for slug, runtime := range held {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.Cell.Stop(slug, c.grace())
+			cell, err := c.cellNamed(runtime.Cell)
+			if err != nil {
+				return
+			}
+			// A server on another host does not end with the front door, which is restarted at every deploy, and is
+			// found running by the one that starts.
+			if apart, ok := cell.(interface{ Detached() bool }); ok && apart.Detached() {
+				return
+			}
+			cell.Stop(slug, c.grace())
 		}()
 	}
 	wg.Wait()

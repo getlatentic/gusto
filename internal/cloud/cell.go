@@ -1,9 +1,11 @@
 package cloud
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"sync"
 	"syscall"
 	"time"
@@ -22,8 +24,18 @@ type ServerSpec struct {
 
 // Cell is where organisations' servers run. The first is this machine. Another is
 // a host with an agent on it, which the controller asks in the same words.
+//
+// An organisation's data is on storage every cell and the front door see at the same paths, so a
+// server started on any cell reads and writes what the front door does.
 type Cell interface {
 	Name() string
+	// Host is where the front door reaches the servers on this cell, and Listen the address they
+	// bind to. On this machine they are both loopback; on another host Listen is the address of
+	// its private network, which only the front door's hosts may reach.
+	Host() string
+	Listen() string
+	// Ports finds two ports the cell has free, from the first up, that are not in taken.
+	Ports(from int, taken map[int]bool) (server, proxy int, err error)
 	// Start runs the server, and does nothing when it is already running.
 	Start(spec ServerSpec) error
 	// Stop ends it, asking first and waiting up to grace before it insists.
@@ -45,7 +57,22 @@ type child struct {
 	done    chan struct{}
 }
 
-func (l *LocalCell) Name() string { return "local" }
+func (l *LocalCell) Name() string   { return "local" }
+func (l *LocalCell) Host() string   { return "127.0.0.1" }
+func (l *LocalCell) Listen() string { return "127.0.0.1" }
+
+func (l *LocalCell) Ports(from int, taken map[int]bool) (server, proxy int, err error) {
+	var found []int
+	for port := from; port < from+20000 && len(found) < 2; port++ {
+		if !taken[port] && free(port) {
+			found = append(found, port)
+		}
+	}
+	if len(found) < 2 {
+		return 0, 0, errors.New("no ports are free for another organisation's server")
+	}
+	return found[0], found[1], nil
+}
 
 func (l *LocalCell) Start(spec ServerSpec) error {
 	l.mu.Lock()
@@ -90,6 +117,20 @@ func finished(c *child) bool {
 	}
 }
 
+// Running is the organisations whose servers are running here.
+func (l *LocalCell) Running() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var slugs []string
+	for slug, held := range l.children {
+		if !finished(held) {
+			slugs = append(slugs, slug)
+		}
+	}
+	sort.Strings(slugs)
+	return slugs
+}
+
 func (l *LocalCell) Alive(slug string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -112,4 +153,16 @@ func (l *LocalCell) Stop(slug string, grace time.Duration) error {
 		<-held.done
 	}
 	return nil
+}
+
+// ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.
+// An organisation placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
+var ErrCellGone = errors.New("the cell is gone")
+
+// CellSet is the cells organisations' servers may be placed on.
+type CellSet interface {
+	// Get is the cell with that name, or says why it cannot be reached.
+	Get(name string) (Cell, error)
+	// Place chooses the cell for an organisation that has none: the one with the most room.
+	Place() (Cell, error)
 }

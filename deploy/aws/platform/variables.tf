@@ -26,3 +26,15 @@ variable "github_subject" {
   type        = string
   default     = "repo:getlatentic/haas"
 }
+
+variable "orchestrator_instance_type" {
+  description = "The type of a demo's front door, which runs no computer."
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "cell_instance_type" {
+  description = "The type of a cell, which runs computers: an x86-64 type with nested virtualization, or a .metal type."
+  type        = string
+  default     = "m8i.xlarge"
+}
