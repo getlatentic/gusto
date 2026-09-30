@@ -196,6 +196,8 @@ an account, so the form cannot be used to find out who is a customer.
 | `HAAS_CLOUD_URL` | the address links in mail begin with |
 | `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `HAAS_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
+| `HAAS_CLOUD_LEASE_FILE` | The file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
+| `HAAS_CLOUD_LEASE_STEP_MINUTES` | How much each extension adds. Thirty by default |
 | `HAAS_CLOUD_MAIL_TOKEN` | The Cloudflare API token that may send mail, for the `cloudflare://` setting. It is kept apart from the setting so that it can be kept where a secret is. |
 | `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
 | `HAAS_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |

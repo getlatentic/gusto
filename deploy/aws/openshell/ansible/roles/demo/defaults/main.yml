@@ -16,6 +16,9 @@ demo_dns_token_parameter: /haas/poc/cloudflare-dns-token
 demo_mail_token_parameter: /haas/poc/cloudflare-mail-token
 demo_model_parameter: /haas/poc/model-key
 demo_deepseek_parameter: /haas/poc/deepseek-key
+# How long a host has when it starts, and each extension adds, and the most a host may ever be up.
+demo_lease_minutes: 30
+demo_max_hours: 4
 demo_user: ubuntu
 demo_state: /var/lib/haas-cloud
 demo_lib: /var/lib/haas

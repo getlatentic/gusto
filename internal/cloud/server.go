@@ -35,6 +35,8 @@ type Config struct {
 	// Controller runs the organisations' servers. Without one the front door has
 	// accounts and no organisation to open.
 	Controller *Controller
+	// Lease, when there is one, is how long this host has before it removes itself.
+	Lease *Lease
 }
 
 // Server is the front door's pages.
@@ -60,7 +62,7 @@ func New(c Config) (*Server, error) {
 	if c.InAll <= 0 {
 		c.InAll = 200
 	}
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted}).ParseFS(files, "templates/*.html")
+	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "clock": clock}).ParseFS(files, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +76,11 @@ func New(c Config) (*Server, error) {
 func (s *Server) Handler() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Asked on every host name, so a page of an organisation can warn of the end of the host.
+		if r.Method == http.MethodGet && r.URL.Path == "/.haas/lease" {
+			s.leaseJSON(w, r)
+			return
+		}
 		if slug, ok := s.orgSlug(r.Host); ok {
 			s.route(w, r, slug)
 			return
@@ -100,6 +107,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
+	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
+	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))

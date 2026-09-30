@@ -107,8 +107,12 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 			return nil, nil, err
 		}
 	}
+	var lease *cloud.Lease
+	if path := os.Getenv("HAAS_CLOUD_LEASE_FILE"); path != "" {
+		lease = cloud.OpenLease(path, time.Duration(number("HAAS_CLOUD_LEASE_STEP_MINUTES", 30))*time.Minute)
+	}
 	front, err := cloud.New(cloud.Config{
-		Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
+		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("HAAS_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("HAAS_CLOUD_TRUST_PROXY") == "1",
 		PerAddress: number("HAAS_CLOUD_PER_ADDRESS", 0), PerMailbox: number("HAAS_CLOUD_PER_MAILBOX", 0), InAll: number("HAAS_CLOUD_IN_ALL", 0),

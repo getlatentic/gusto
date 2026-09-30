@@ -1,11 +1,13 @@
 package boot
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const script = "../../ansible/roles/demo/files/haas-boot"
@@ -63,11 +65,11 @@ func newHost(t *testing.T) *host {
 	os.WriteFile(h.conf, []byte(strings.Join([]string{
 		"AWS_REGION=us-east-1", "NAME=agentcloud.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
 		"DNS_TOKEN_PARAMETER=/haas/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/haas/poc/cloudflare-mail-token",
-		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key",
+		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"HAAS_CONF="+h.conf, "HAAS_RUN="+filepath.Join(dir, "run"), "HAAS_LE="+filepath.Join(dir, "le"), "HAAS_LIB="+filepath.Join(dir, "lib"),
-		"HAAS_OWNER=", "CREDENTIALS="+filepath.Join(bin, "credentials.sh"), "FAKE_STORE="+h.store, "FAKE_LOG="+h.log)
+		"HAAS_OWNER=", "HAAS_LEASE_FILE="+filepath.Join(dir, "lease", "lease.json"), "CREDENTIALS="+filepath.Join(bin, "credentials.sh"), "FAKE_STORE="+h.store, "FAKE_LOG="+h.log)
 	return h
 }
 
@@ -263,5 +265,44 @@ func TestAMissingImageStopsTheBootBeforeTheNameIsPointed(t *testing.T) {
 	}
 	if count(done, "haas-dns ") != 0 {
 		t.Errorf("a host that cannot run computers does not take the name: %v", done)
+	}
+}
+
+func leaseOf(t *testing.T, h *host) (deadline, hardMax int64) {
+	t.Helper()
+	text := mustRead(t, filepath.Join(h.dir, "lease", "lease.json"))
+	if _, err := fmt.Sscanf(strings.Join(strings.Fields(text), " "), `{"deadline": %d, "hardMax": %d}`, &deadline, &hardMax); err != nil {
+		t.Fatalf("%q: %v", text, err)
+	}
+	return deadline, hardMax
+}
+
+func TestTheFirstBootStartsTheLeaseAndALaterOneDoesNotGiveMoreTime(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "x")
+	before := time.Now().Unix()
+	if _, err := h.boot(); err != nil {
+		t.Fatal(err)
+	}
+	deadline, hardMax := leaseOf(t, h)
+	if deadline < before+30*60 || deadline > time.Now().Unix()+30*60 {
+		t.Errorf("thirty minutes from the start: %d, started at %d", deadline, before)
+	}
+	if hardMax < before+4*3600 || hardMax > time.Now().Unix()+4*3600 {
+		t.Errorf("four hours at most: %d", hardMax)
+	}
+	info, _ := os.Stat(filepath.Join(h.dir, "lease", "lease.json"))
+	if info.Mode().Perm() != 0o644 {
+		t.Errorf("the front door and the reaper both read it: %v", info.Mode())
+	}
+	// Somebody extended it, and the script ran again.
+	extended := fmt.Sprintf(`{"deadline": %d, "hardMax": %d}`, deadline+1800, hardMax)
+	os.WriteFile(filepath.Join(h.dir, "lease", "lease.json"), []byte(extended), 0o644)
+	time.Sleep(1100 * time.Millisecond)
+	if _, err := h.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := leaseOf(t, h); again != deadline+1800 {
+		t.Errorf("a second boot changed the lease: %d, wanted %d", again, deadline+1800)
 	}
 }
