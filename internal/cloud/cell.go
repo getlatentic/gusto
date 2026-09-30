@@ -22,6 +22,10 @@ type ServerSpec struct {
 	Log     string
 }
 
+// ErrNoCapacity says no cell has room for another organisation yet. A cell may be starting for it, so an organisation
+// that meets it waits and is tried again soon, and is not failed.
+var ErrNoCapacity = errors.New("no cell has room yet")
+
 // Cell is where organisations' servers run. The first is this machine. Another is
 // a host with an agent on it, which the controller asks in the same words.
 //
