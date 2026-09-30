@@ -100,6 +100,8 @@ AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,.
 
 ```bash
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
+./demo-up.sh           # a host that serves the public cloud at https://$DEMO_NAME (see below)
+./demo-down.sh         # its DNS records, then the host
 ./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organisation
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
@@ -122,7 +124,9 @@ probe/on-host.sh                                 runs on the instance and starts
 probe/expected.txt                               what the first run printed
 e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
 e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
-put-key.sh                                       stores a model's key in Parameter Store
+put-key.sh, put-cloudflare.sh                    store a model's key, and the two Cloudflare tokens, in Parameter Store
+demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
+demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS and the test of the boot script, the role
 e2e-cloud.sh, e2e/cloud/                         the front door driven through its pages, on a real model
 e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two harnesses in one sandbox, a shared app, many sandboxes
 harnesses.sh, e2e/credentials.sh                 the harness list and the proxy's credentials, shared by the runs
@@ -131,3 +135,37 @@ harnesses.sh, e2e/credentials.sh                 the harness list and the proxy'
 The binaries are OpenShell 0.1.2. Their checksums are pinned in
 `ansible/roles/openshell/defaults/main.yml`, from the release's own checksum
 files, so a changed asset fails the install.
+
+## A demo host on a public name
+
+`demo-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
+door and `https://<slug>.<name>` for each organisation, with a certificate and mail that
+arrive. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
+Let's Encrypt is free, and the store bucket costs cents.
+
+| Piece | How |
+| --- | --- |
+| Name | An A record for `<name>` and one for `*.<name>`, set by `haas-dns` when the host starts, 60 s TTL. |
+| Certificate | Let's Encrypt, for `<name>` and `*.<name>`, by a DNS challenge through Cloudflare. It is kept in the store bucket and reused until it has under 30 days left. |
+| Web server | nginx on the host passes to the front door on `127.0.0.1:8050`, and answers no name that is not this one. |
+| Mail | Cloudflare Email Sending, `HAAS_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
+| Image | Built on the first run, ten minutes, and kept in the store bucket. |
+
+Once, from your machine:
+
+```bash
+./put-key.sh            # the model key
+HAAS_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh   # and the second
+./put-cloudflare.sh     # the DNS token, then the mail token
+cp demo.env.example demo.env   # and fill it in
+```
+
+Each demo:
+
+```bash
+./demo-up.sh            # about 15 minutes the first time and fewer after
+./demo-down.sh          # removes the DNS records and the host, and says if anything is left
+```
+
+The DNS token is limited to the zone's DNS records. The mail token can send mail and
+nothing else. Both stay in Parameter Store, and the host reads them with its own role.

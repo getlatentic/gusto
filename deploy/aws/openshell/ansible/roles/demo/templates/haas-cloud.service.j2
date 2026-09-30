@@ -1,0 +1,17 @@
+[Unit]
+Description=haas public cloud: the front door and each organisation's server
+After=haas-boot.service openshell-gateway.service
+Requires=haas-boot.service
+
+[Service]
+User={{ demo_user }}
+SupplementaryGroups=kvm
+WorkingDirectory={{ demo_state }}
+EnvironmentFile=/etc/haas/cloud.env
+EnvironmentFile=/run/haas/secrets/mail.env
+ExecStart=/usr/local/bin/haas cloud
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

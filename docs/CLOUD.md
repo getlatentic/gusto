@@ -38,7 +38,8 @@ gateway.
    it is in. The operator sees every computer on the host, and whose organisation
    it belongs to.
 
-`deploy/aws/openshell/e2e-cloud.sh` runs these steps on a host as people would, through the
+`deploy/aws/openshell/demo-up.sh` makes a host that serves this at a public name with a
+certificate and mail, and its README says how. `deploy/aws/openshell/e2e-cloud.sh` runs these steps on a host as people would, through the
 pages, with a real model, and checks what the host holds afterwards. On an `m8i.2xlarge`, on
 2026-09-29: an admin and three invited people each had a computer, and each computer was
 a sandbox on the gateway. All three people's first turns ran at once, and a second turn in
@@ -194,7 +195,8 @@ an account, so the form cannot be used to find out who is a customer.
 | `HAAS_CLOUD_ADDR` | where the front door listens, `127.0.0.1:8050` by default |
 | `HAAS_CLOUD_URL` | the address links in mail begin with |
 | `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
-| `HAAS_CLOUD_MAIL` | `outbox`, or `smtp://user:password@host:587?from=name@example.com` |
+| `HAAS_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
+| `HAAS_CLOUD_MAIL_TOKEN` | The Cloudflare API token that may send mail, for the `cloudflare://` setting. It is kept apart from the setting so that it can be kept where a secret is. |
 | `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
 | `HAAS_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
 | `HAAS_CLOUD_PORT_FROM` | the first port an organisation's server is given, two each, 9100 by default |
