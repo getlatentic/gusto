@@ -15,13 +15,13 @@ import (
 // with, and what it starts out working on.
 func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	wanted := r.URL.Query().Get("harness")
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
 				"Title":   "haas — " + entry.Name,
 				"Nav":     "harnesses",
 				"Harness": entry,
-				"Models":  s.models.For(entry.Name),
+				"Models":  s.offered().For(entry.Name),
 				"Setups":  s.fitting(entry),
 				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
@@ -68,7 +68,7 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 	// deployment offers *that harness* — not the first it offers at all, which
 	// may be one this harness cannot use.
 	if wanted.Model == "" {
-		wanted.Model = s.models.First(wanted.Harness)
+		wanted.Model = s.offered().First(wanted.Harness)
 	}
 	name := wanted.Harness
 	if wanted.Repo != "" {
@@ -109,7 +109,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Agent":     s.agentOf(held),
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.models.For(held.Harness),
+		"Models":    s.offered().For(held.Harness),
 		"Sharing":   s.apps != nil,
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
@@ -149,7 +149,7 @@ func threadPath(thread instance.Thread) string {
 // firstReady is the engine a blank agent gets when nobody chooses: the
 // first this deployment can run, in the catalog's order.
 func (s *Server) firstReady() string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if entry.Ready {
 			return entry.Name
 		}
@@ -160,14 +160,14 @@ func (s *Server) firstReady() string {
 // unusable says why a harness cannot be started on a model, or is empty when it can. An
 // agent is never started on a pair that cannot work, however the request was made.
 func (s *Server) unusable(harness, model string) string {
-	if !s.models.Serves(harness) {
+	if !s.offered().Serves(harness) {
 		return "no model this deployment offers works with " + harness
 	}
 	if model == "" {
 		return ""
 	}
-	if !s.models.Offers(harness, model) {
-		return harness + " cannot use " + modelName(model) + choose(s.models.For(harness))
+	if !s.offered().Offers(harness, model) {
+		return harness + " cannot use " + modelName(model) + choose(s.offered().For(harness))
 	}
 	return ""
 }

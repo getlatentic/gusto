@@ -163,3 +163,17 @@ func TestACallTheProviderRefusedCostsNothing(t *testing.T) {
 		t.Errorf("total %+v", total)
 	}
 }
+
+func TestPricesChangedWhileRunningApplyToTheNextCallAndNotToOnesAlreadyCosted(t *testing.T) {
+	ledger := NewLedger(Policy{Prices: map[string]Price{"a/m": {InputPerMillion: 1, OutputPerMillion: 1}}})
+	usage := &Usage{Input: 1_000_000}
+	before := ledger.Policy().Cost("a", "m", usage, time.Unix(0, 0))
+	ledger.SetPrices(map[string]Price{"a/m": {InputPerMillion: 5, OutputPerMillion: 5}})
+	after := ledger.Policy().Cost("a", "m", usage, time.Unix(0, 0))
+	if before == nil || after == nil || *before != 1 || *after != 5 {
+		t.Errorf("%v then %v", before, after)
+	}
+	if ledger.Policy().Priced("a", "gone") {
+		t.Error("a model with no price is priced")
+	}
+}

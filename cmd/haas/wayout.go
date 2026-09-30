@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/registry"
 	"github.com/getlatentic/haas/internal/rules"
 	"github.com/getlatentic/haas/internal/runner"
 	"github.com/getlatentic/haas/internal/sandbox"
@@ -24,11 +26,14 @@ import (
 // the model's own address, which is the local case where there is no credential
 // to keep out of anywhere.
 type WayOut struct {
-	proxy       *proxy.Proxy
-	tokens      *proxy.Tokens
-	credentials proxy.Credentials
-	ledger      *spend.Ledger
-	direct      string
+	proxy  *proxy.Proxy
+	tokens *proxy.Tokens
+	ledger *spend.Ledger
+	// held is every credential this deployment holds now, which changes when an organisation's registry does.
+	held atomic.Pointer[proxy.Credentials]
+	// platform is what the operator configured, which a registry is added to.
+	platform registry.Platform
+	direct   string
 	// sealed containers have no network, and reach the proxy through socket.
 	// An unsealed one reaches it on address, over the runtime's own network.
 	sealed  bool
@@ -60,6 +65,7 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 	if len(credentials) == 0 {
 		return &WayOut{direct: direct, ledger: ledger}, nil
 	}
+	platform := registry.Platform{Credentials: credentials, Models: values("HAAS_MODELS"), Prices: policy.Prices}
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) {
 		if strings.ContainsAny(id, `/\`) {
@@ -67,15 +73,33 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		}
 		return filepath.Join(jobsRoot, id, "out", "proxy.jsonl"), true
 	}
-	return &WayOut{
-		proxy:       proxy.New(tokens, credentials, where, ledger, proxy.ParseAllowlist(os.Getenv("HAAS_ALLOWED_HOSTS"))),
-		credentials: credentials,
-		tokens:      tokens,
-		ledger:      ledger,
-		sealed:      os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell",
-		socket:      setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
-		address:     setting("HAAS_PROXY_ADDR", proxyAddress()),
-	}, nil
+	way := &WayOut{
+		proxy:    proxy.New(tokens, credentials, where, ledger, proxy.ParseAllowlist(os.Getenv("HAAS_ALLOWED_HOSTS"))),
+		platform: platform,
+		tokens:   tokens,
+		ledger:   ledger,
+		sealed:   os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell",
+		socket:   setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
+		address:  setting("HAAS_PROXY_ADDR", proxyAddress()),
+	}
+	way.held.Store(&credentials)
+	return way, nil
+}
+
+// credentials is every credential this deployment holds now.
+func (w *WayOut) credentials() proxy.Credentials {
+	if held := w.held.Load(); held != nil {
+		return *held
+	}
+	return nil
+}
+
+// Apply makes what an organisation's registry comes to what the proxy holds and the ledger prices at, from the
+// next call on. A job already running keeps the credential it began with, which the proxy finds again by name.
+func (w *WayOut) Apply(effective registry.Effective) {
+	w.held.Store(&effective.Credentials)
+	w.proxy.SetCredentials(effective.Credentials, effective.Version)
+	w.ledger.SetPrices(effective.Prices)
 }
 
 // Listen starts the proxy where the containers will look for it: a socket for
@@ -132,10 +156,10 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 	id := filepath.Base(dir.Path())
 	named, _ := proxy.Named(spec.Model)
-	credential, held := w.credentials.Get(named)
+	credential, held := w.credentials().Get(named)
 	if !held {
 		return "", fmt.Errorf("no credential called %q here; this deployment holds %s",
-			named, strings.Join(w.credentials.Names(), ", "))
+			named, strings.Join(w.credentials().Names(), ", "))
 	}
 	// Every call a sealed box makes to a model leaves through this credential,
 	// so its address is where the code goes. The runner inside checks the
@@ -214,8 +238,9 @@ func (w *WayOut) InBuilding() bool {
 	if w.proxy == nil {
 		return rules.Local(w.direct)
 	}
-	for _, name := range w.credentials.Names() {
-		if credential, held := w.credentials.Get(name); held && rules.Local(credential.Address) {
+	held := w.credentials()
+	for _, name := range held.Names() {
+		if credential, found := held.Get(name); found && rules.Local(credential.Address) {
 			return true
 		}
 	}

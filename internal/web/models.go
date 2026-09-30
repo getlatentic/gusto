@@ -63,3 +63,15 @@ func unservedMarked(offered []catalog.Entry, models Models) []catalog.Entry {
 	}
 	return marked
 }
+
+// offered is what this deployment offers to think with now. It changes when an organisation's admin changes the
+// registry, so what a page says is read when the page is drawn.
+func (s *Server) offered() Models {
+	if s.live != nil {
+		return s.live()
+	}
+	return s.models
+}
+
+// entries is the catalog as it stands: each harness that no model offered now serves is not ready, and says why.
+func (s *Server) entries() []catalog.Entry { return unservedMarked(s.catalog, s.offered()) }

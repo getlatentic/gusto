@@ -285,6 +285,18 @@ func saidOf(e changelog.Event) string {
 			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
 	case changelog.BudgetSet:
 		return fmt.Sprintf("changed the monthly budget from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
+	case changelog.ProviderAdded:
+		return fmt.Sprintf("added the model provider %s at %s, with its key %s", w["provider"], w["address"], or(w["key"], "kept"))
+	case changelog.ProviderRetired:
+		return fmt.Sprintf("retired the model provider %s", w["provider"])
+	case changelog.KeyReplaced:
+		return fmt.Sprintf("gave the model provider %s another key", w["provider"])
+	case changelog.ModelAdded:
+		return fmt.Sprintf("added the model %s, priced %s", w["model"], or(w["price"], "none"))
+	case changelog.ModelRetired:
+		return fmt.Sprintf("retired the model %s", w["model"])
+	case changelog.PriceSet:
+		return fmt.Sprintf("priced the model %s at %s", w["model"], or(w["price"], "none"))
 	case changelog.MemberInvited:
 		return fmt.Sprintf("invited %s to join as a %s", w["email"], or(w["role"], "runner"))
 	case changelog.MemberRole:

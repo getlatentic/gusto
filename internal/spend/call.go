@@ -22,8 +22,10 @@ type Call struct {
 	Took   int64  `json:"tookMs"`
 	// Credential names the key the proxy added. The key itself is never here.
 	Credential string `json:"credential,omitempty"`
-	Error      string `json:"error,omitempty"`
-	AtUnix     int64  `json:"atUnix"`
+	// Registry is the version of the organisation's model registry the call was sent under.
+	Registry int64  `json:"registry,omitempty"`
+	Error    string `json:"error,omitempty"`
+	AtUnix   int64  `json:"atUnix"`
 	// Model is what the request asked for, and the name the price is found by.
 	Model        string `json:"model,omitempty"`
 	InputTokens  *int64 `json:"inputTokens"`

@@ -31,7 +31,7 @@ func (s *Server) UseSetups(store *setup.Store, servers setup.Servers) {
 }
 
 // UseInBuilding tells the pages whether restricted work can run here.
-func (s *Server) UseInBuilding(reachable bool) { s.inBuilding = reachable }
+func (s *Server) UseInBuilding(reachable bool) { s.inBuilding.Store(reachable) }
 
 // setupsPath is where the console keeps the skill sets, for whoever changes them.
 const setupsPath = "/admin/skill-sets"
@@ -159,7 +159,7 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		"Base":    base,
 		"Setup":   held,
 		"Offered": s.servers,
-		"Catalog": s.catalog,
+		"Catalog": s.entries(),
 		"Refused": r.URL.Query().Get("refused"),
 	}, true
 }
@@ -222,7 +222,7 @@ func (s *Server) unfit(wanted instance.Instance) string {
 	if !found {
 		return "no setup called " + wanted.Setup
 	}
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if entry.Name == wanted.Harness {
 			if why := held.Fits(entry.Skills, entry.MCP); why != "" {
 				return wanted.Harness + " cannot take " + held.Name + ": " + why

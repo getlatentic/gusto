@@ -1,0 +1,93 @@
+{{template "head" .}}
+
+<div class="page-head">
+  <h1>Models</h1>
+  <p class="muted">The models this organisation may use, where each answers and what it costs. A model that is not here cannot be chosen, and an agent is offered only the models its harness can use. Registry version {{.View.Version}}: every call a job makes is written with the version it was sent under.</p>
+</div>
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+{{range .View.Providers}}{{if not .Retired}}
+<section class="panel">
+  <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}</h2>
+  <p class="muted">{{.Address}} · {{.Auth}}{{if .Harnesses}} · only for {{range $i, $h := .Harnesses}}{{if $i}}, {{end}}{{$h}}{{end}}{{end}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
+  {{if .Problem}}<p class="refused">Not in use: {{.Problem}}</p>{{end}}
+  <table>
+    <thead><tr><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cached input</th>{{if not .Operator}}<th></th>{{end}}</tr></thead>
+    <tbody>
+      {{$provider := .}}
+      {{range .Models}}{{if not .Retired}}
+      <tr>
+        <td><code>{{.Full}}</code></td>
+        {{if .Price}}
+        <td class="num">${{.Price.InputPerMillion}}</td><td class="num">${{.Price.OutputPerMillion}}</td>
+        <td class="num">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="muted">as input</span>{{end}}</td>
+        {{else}}
+        <td class="num muted" colspan="3">no price, so its cost is not counted against a cap</td>
+        {{end}}
+        {{if not $provider.Operator}}
+        <td>
+          <form method="post" action="/admin/models/providers/{{$provider.Name}}/price" class="inline">
+            <input type="hidden" name="model" value="{{.Name}}">
+            <label>Input <input name="input" inputmode="decimal" size="6" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></label>
+            <label>Output <input name="output" inputmode="decimal" size="6" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></label>
+            <label>Cached <input name="cached" inputmode="decimal" size="6" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></label>
+            <button type="submit">Set price</button>
+          </form>
+          <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit">Retire</button></form>
+        </td>
+        {{end}}
+      </tr>
+      {{end}}{{else}}
+      <tr><td class="muted" colspan="5">No models yet.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{if not .Operator}}
+  <form method="post" action="/admin/models/providers/{{.Name}}/models" class="inline">
+    <label>Model, as {{.Name}} names it <input name="model" placeholder="model-name" required></label>
+    <label>Input <input name="input" inputmode="decimal" size="6" placeholder="$ per million"></label>
+    <label>Output <input name="output" inputmode="decimal" size="6" placeholder="$ per million"></label>
+    <label>Cached input <input name="cached" inputmode="decimal" size="6" placeholder="optional"></label>
+    <button type="submit">Add model</button>
+  </form>
+  {{if eq .Key "stored"}}
+  <form method="post" action="/admin/models/providers/{{.Name}}/key" class="inline">
+    <label>New key <input type="password" name="key" autocomplete="off" required></label>
+    <button type="submit">Replace key</button>
+    <span class="muted">A key is never shown again.</span>
+  </form>
+  {{end}}
+  <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit">Retire {{.Name}}</button></form>
+  {{end}}
+</section>
+{{end}}{{end}}
+
+{{if .View.Unnamed}}
+<p class="muted">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>
+{{else}}
+<section class="panel">
+  <h2>Add a provider</h2>
+  <p class="muted">A provider is where models answer and how to be let in.{{if not .View.Private}} It must be at a public https address.{{end}}</p>
+  <form method="post" action="/admin/models/providers">
+    <label>Name <input name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
+    <label>Address <input name="address" placeholder="https://api.example.com" required></label>
+    <label>Sends its key as
+      <select name="auth"><option value="">a bearer token (OpenAI-shaped)</option><option value="anthropic">Anthropic's header</option></select>
+    </label>
+    <label>Key comes from
+      <select name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
+    </label>
+    <label>Key <input type="password" name="key" autocomplete="off"></label>
+    <label>Reference, when the key is not typed here <input name="reference" placeholder="/path, parameter name or secret id"></label>
+    {{if .View.Harnesses}}
+    <fieldset class="servers"><legend class="muted">Works with, when it does not work with every harness</legend>
+      {{range .View.Harnesses}}<label class="check"><input type="checkbox" name="harness" value="{{.}}"> {{.}}</label>{{end}}
+    </fieldset>
+    {{end}}
+    <button type="submit">Add provider</button>
+  </form>
+</section>
+{{end}}
+
+{{template "foot" .}}
