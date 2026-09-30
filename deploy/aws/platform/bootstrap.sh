@@ -9,9 +9,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH" TF_IN_AUTOMATION=1 TF_CLI_ARGS="-no-color"
 export AWS_PROFILE="${AWS_PROFILE:-haas-poc}" AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
+# How GitHub names this repository in a workflow's token depends on the repository: the immutable form
+# carries the ids of the owner and the repository. Asking GitHub is the only way to know.
+subject="$(gh api repos/getlatentic/haas/actions/oidc/customization/sub --jq .sub_claim_prefix 2>/dev/null || true)"
+subject="${subject:-repo:getlatentic/haas}"
+echo "the workflows' token names the repository as $subject"
 bucket="$(../openshell/demo-store.sh)"
 terraform init -input=false -reconfigure -backend-config="bucket=$bucket" -backend-config="region=$AWS_REGION" >/dev/null
-if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}"; then
+if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}" -var "github_subject=$subject"; then
   cat >&2 <<MSG
 
 If the error is about GitHub's identity provider, this profile may not make one. Make it once, with an
