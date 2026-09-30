@@ -28,6 +28,8 @@
     </ol>
   </section>
 
+  {{if .Sharing}}{{template "apps" .}}{{end}}
+
   <section class="panel">
     <details id="task"{{if .Tasks}} open{{end}}>
       <summary><h2>Checked tasks</h2> <span class="muted">for developers: a task that passes only when a command succeeds</span></summary>

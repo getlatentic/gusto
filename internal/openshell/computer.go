@@ -139,3 +139,15 @@ func Stop(cfg Config, name string) error {
 	_, err := output((&Sandbox{cfg: cfg}).run(context.Background(), "sandbox", "stop", name))
 	return err
 }
+
+// Wake has a computer answering, starting it if it was stopped, which is what a person's
+// computer is after nobody used it for a while.
+func Wake(ctx context.Context, cfg Config, name string) error {
+	s := &Sandbox{cfg: cfg, name: name}
+	if s.answers(ctx) != nil {
+		if _, err := output(s.run(ctx, "sandbox", "start", name)); err != nil {
+			return err
+		}
+	}
+	return s.answering(ctx)
+}

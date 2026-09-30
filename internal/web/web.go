@@ -12,9 +12,11 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/getlatentic/haas/internal/apitoken"
+	"github.com/getlatentic/haas/internal/apps"
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/compare"
@@ -37,8 +39,12 @@ type Server struct {
 	identity  *Identity
 	catalog   []catalog.Entry
 	models    Models
-	ledger    *spend.Ledger
-	keyring   signing.Keyring
+	// apps and runner are the web apps people share from their agents' computers.
+	apps       *apps.Store
+	runner     AppRunner
+	publishing sync.WaitGroup
+	ledger     *spend.Ledger
+	keyring    signing.Keyring
 	// front is set when this server is one organisation's in a hosted haas.
 	front  *frontDoor
 	admins map[string]bool
@@ -117,6 +123,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
 	mux.HandleFunc("POST /instances/{id}/model", s.guard(s.changeModel))
+	mux.HandleFunc("POST /instances/{id}/apps", s.guard(s.publishApp))
+	mux.HandleFunc("POST /instances/{id}/apps/{app}/remove", s.guard(s.removeApp))
+	mux.HandleFunc("/apps/{id}/{rest...}", s.guard(s.app))
+	mux.HandleFunc("/apps/{id}", s.guard(s.app))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))

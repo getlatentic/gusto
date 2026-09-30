@@ -35,6 +35,8 @@ case "$cmd $sub" in
   cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${mapped[@]}";;
 "sandbox download") mkdir -p "$5"; cp -R "$root/$3$4/." "$5/";;
 "sandbox delete") rm -rf "$root/$3"; echo "$3" >> "$root/deleted.log";;
+"service expose") echo "✓ Exposed service $5 on sandbox $3 -> 127.0.0.1:$4"; echo "  URL: http://default--$3--$5.openshell.localhost:${OPENSHELL_FAKE_GATEWAY_PORT:-18080}/"; echo "$3 $4 $5" >> "$root/exposed.log";;
+"service delete") echo "$3 $4" >> "$root/unexposed.log";;
 "logs "*|"logs") echo '{"event":"net.allow"}';;
 "policy get") echo "policy";;
 *) echo "fake gateway: unexpected $*" >&2; exit 2;;
