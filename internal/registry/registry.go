@@ -56,6 +56,8 @@ type Document struct {
 	Policy    *Policy    `json:"policy,omitempty"`
 	Providers []Provider `json:"providers"`
 	Models    []Model    `json:"models"`
+	// Access is the people who may use only some of the models.
+	Access []Access `json:"access,omitempty"`
 }
 
 // Platform is what the operator configured, which an organisation's registry is added to.
@@ -135,6 +137,7 @@ func (r *Registry) Document() Document {
 func clone(d Document) Document {
 	d.Providers = slices.Clone(d.Providers)
 	d.Models = slices.Clone(d.Models)
+	d.Access = slices.Clone(d.Access)
 	return d
 }
 

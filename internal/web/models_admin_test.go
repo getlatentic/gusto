@@ -236,3 +236,66 @@ func TestAnAdminOfADeploymentThatIsTheirsChoosesWhatProvidersMayBeAndAHostedOneC
 		t.Error("a hosted page offers the choice")
 	}
 }
+
+func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *testing.T) {
+	here, reg, _ := registered(t, registry.Rules{})
+	admin, ada, bob := here.as(t, boss), here.as(t, alice), here.as(t, bob)
+	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}})
+	if got := admin.ask(t, "POST", "/admin/models/access", url.Values{"email": {alice}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
+		t.Errorf("a limit to nothing is refused, since it reads as no limit: %v", got.Header())
+	}
+	if got := admin.ask(t, "POST", "/admin/models/access", url.Values{"email": {alice}, "model": {"acme/big"}}); strings.Contains(got.Header().Get("Location"), "refused") {
+		t.Fatalf("%v", got.Header())
+	}
+	if limits := reg.Limits(); len(limits) != 1 || limits[0].Email != alice {
+		t.Fatalf("%+v", limits)
+	}
+
+	setUp := ada.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
+	if !strings.Contains(setUp, "acme/big") || strings.Contains(setUp, "platform/qwen") {
+		t.Errorf("a limited person is offered what they may use and no more:\n%s", setUp)
+	}
+	if bobs := bob.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(); !strings.Contains(bobs, "platform/qwen") || !strings.Contains(bobs, "acme/big") {
+		t.Error("somebody who is not limited is offered everything")
+	}
+	refused := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}})
+	if !strings.Contains(refused.Header().Get("Location"), "refused=") || len(here.server.instances.List()) != 0 {
+		t.Errorf("a limited person started an agent on a model they may not use: %v", refused.Header())
+	}
+	allowed := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"acme/big"}})
+	if !strings.Contains(allowed.Header().Get("Location"), "/threads/") {
+		t.Errorf("%v", allowed.Header())
+	}
+	blank := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
+	instance := strings.TrimPrefix(blank.Header().Get("Location"), "/instances/")
+	if held, _ := here.server.instances.Get(instance[:strings.Index(instance, "/")]); held.Model != "acme/big" {
+		t.Errorf("an agent started with no model is given one the person may use: %q", held.Model)
+	}
+	if bobOnQwen := bob.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}}); !strings.Contains(bobOnQwen.Header().Get("Location"), "/threads/") {
+		t.Errorf("somebody who is not limited was refused: %v", bobOnQwen.Header())
+	}
+
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/retire", url.Values{"model": {"big"}})
+	if got := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
+		t.Errorf("a person limited to models that are gone is not given the default of a deployment with none: %v", got.Header())
+	}
+	admin.ask(t, "POST", "/admin/models/access/clear", url.Values{"email": {alice}})
+	if got := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
+		t.Errorf("a limit that is removed is gone: %v", got.Header())
+	}
+	var said []string
+	for _, event := range written(t, here.log) {
+		if event.Kind == changelog.AccessSet {
+			said = append(said, event.What["email"]+" "+event.What["models"])
+		}
+	}
+	if len(said) != 2 || said[0] != alice+" acme/big" || said[1] != alice+" " {
+		t.Errorf("both changes are in the record: %q", said)
+	}
+	if runner := ada.ask(t, "POST", "/admin/models/access", url.Values{"email": {bob2()}, "model": {"platform/qwen"}}); runner.Code != http.StatusForbidden {
+		t.Errorf("a runner limited somebody: %d", runner.Code)
+	}
+}
+
+func bob2() string { return "someone@example.com" }

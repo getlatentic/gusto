@@ -90,6 +90,35 @@
 </section>
 {{end}}
 
+<section class="panel">
+  <h2>Who may use which models</h2>
+  <p class="muted">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
+  {{if .View.Limits}}
+  <table>
+    <thead><tr><th>Person</th><th>May use</th><th></th></tr></thead>
+    <tbody>
+      {{range .View.Limits}}
+      <tr>
+        <td>{{.Email}}</td>
+        <td>{{range $i, $m := .Models}}{{if $i}}, {{end}}<code>{{$m}}</code>{{end}}</td>
+        <td><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit">Let use everything</button></form></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+  {{if .View.Available}}
+  <form method="post" action="/admin/models/access">
+    <label>Person <input name="email" type="email" list="people" placeholder="ada@example.com" required></label>
+    <datalist id="people">{{range .People}}<option value="{{.}}">{{end}}</datalist>
+    <fieldset class="servers"><legend class="muted">May use</legend>
+      {{range .View.Available}}<label class="check"><input type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
+    </fieldset>
+    <button type="submit">Limit this person</button>
+  </form>
+  {{end}}
+</section>
+
 {{if .View.Editable}}
 <section class="panel">
   <h2>What providers may be</h2>

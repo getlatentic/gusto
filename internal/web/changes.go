@@ -299,6 +299,11 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("priced the model %s at %s", w["model"], or(w["price"], "none"))
 	case changelog.PolicySet:
 		return fmt.Sprintf("set what model providers may be: private addresses %s, keys from %s", or(w["private"], "no"), or(w["keys"], "a typed key only"))
+	case changelog.AccessSet:
+		if w["models"] == "" {
+			return fmt.Sprintf("let %s use every model again", w["email"])
+		}
+		return fmt.Sprintf("limited %s to the models %s", w["email"], w["models"])
 	case changelog.MemberInvited:
 		return fmt.Sprintf("invited %s to join as a %s", w["email"], or(w["role"], "runner"))
 	case changelog.MemberRole:

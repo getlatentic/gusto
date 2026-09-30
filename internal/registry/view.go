@@ -19,6 +19,9 @@ type View struct {
 	Harnesses []string
 	// Private says whether a provider may be at a private address.
 	Private bool
+	// Limits are the people who may use only some of the models, and Available the models there are to choose from.
+	Limits    []Access
+	Available []string
 	// Editable says whether the admin may change what is allowed, which is the two settings Private and Kinds say.
 	Editable bool
 	// Unnamed is set when the operator's own provider has no name, which an organisation cannot add beside.
@@ -57,6 +60,7 @@ func (r *Registry) View() View {
 	view := View{
 		Version: document.Version, Kinds: append([]string{"stored"}, rules.KeySources...), Harnesses: slices.Clone(rules.Harnesses),
 		Private: rules.PrivateAddresses, Unnamed: r.platform.Credentials[""].Address != "", Editable: r.editable,
+		Limits: r.Limits(), Available: effective.Models,
 	}
 	for _, name := range r.platform.Credentials.Names() {
 		view.Providers = append(view.Providers, r.operators(name, effective))

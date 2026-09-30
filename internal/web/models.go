@@ -1,6 +1,7 @@
 package web
 
 import (
+	"net/http"
 	"slices"
 
 	"github.com/getlatentic/haas/internal/catalog"
@@ -75,3 +76,33 @@ func (s *Server) offered() Models {
 
 // entries is the catalog as it stands: each harness that no model offered now serves is not ready, and says why.
 func (s *Server) entries() []catalog.Entry { return unservedMarked(s.catalog, s.offered()) }
+
+// offeredTo is what the person who made this request may think with: what is offered, less what the organisation
+// has limited them away from. A person limited to models that are no longer offered is offered none, which is
+// different from a deployment that names no model and leaves a harness to its own default.
+func (s *Server) offeredTo(r *http.Request) Models {
+	offered := s.offered()
+	if s.registry == nil {
+		return offered
+	}
+	allowed, limited := s.registry.AllowedFor(s.keeper.who(r))
+	if !limited {
+		return offered
+	}
+	narrowed := Models{}
+	for name, models := range offered {
+		narrowed[name] = slices.DeleteFunc(slices.Clone(models), func(model string) bool { return !slices.Contains(allowed, model) })
+	}
+	for _, entry := range s.catalog {
+		if _, found := narrowed[entry.Name]; !found {
+			narrowed[entry.Name] = slices.DeleteFunc(slices.Clone(offered.For(entry.Name)), func(model string) bool { return !slices.Contains(allowed, model) })
+		}
+	}
+	return narrowed
+}
+
+// limitedAway says whether this person is offered no model for a harness that this deployment offers models for.
+// A deployment that offers none leaves a harness to its own default, which is another thing.
+func (s *Server) limitedAway(r *http.Request, harness string) bool {
+	return len(s.offeredTo(r).For(harness)) == 0 && len(s.offered().For(harness)) > 0
+}

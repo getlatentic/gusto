@@ -58,6 +58,7 @@ const (
 	ModelRetired    = "model.retired"
 	PriceSet        = "model.price"
 	PolicySet       = "model.policy"
+	AccessSet       = "model.access"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organisation's front
