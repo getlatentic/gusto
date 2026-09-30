@@ -174,6 +174,7 @@ func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[proxied]) Mo
 		Asked:       asked,
 		Endpoint:    manifest.ModelEndpoint,
 		Credentials: fromProxy(proxy, func(p proxied) Fact[[]string] { return known(p.credentials) }),
+		Registry:    fromProxy(proxy, func(p proxied) Fact[[]int64] { return known(p.registries) }),
 	}
 }
 

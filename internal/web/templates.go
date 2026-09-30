@@ -25,7 +25,7 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 		"Nav":        "new",
 		"Template":   held,
 		"Harnesses":  s.runnersOf(held),
-		"InBuilding": s.inBuilding,
+		"InBuilding": s.inBuilding.Load(),
 		"Refused":    r.URL.Query().Get("refused"),
 	})
 }
@@ -38,13 +38,13 @@ func (s *Server) runnersOf(held industry.Template) []catalog.Entry {
 	}
 	var fit []catalog.Entry
 	for _, name := range held.Harnesses {
-		for _, entry := range s.catalog {
+		for _, entry := range s.entries() {
 			if entry.Name == name && takes(entry) {
 				fit = append(fit, entry)
 			}
 		}
 	}
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if takes(entry) && !slices.Contains(held.Harnesses, entry.Name) {
 			fit = append(fit, entry)
 		}
@@ -82,13 +82,13 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
-	if held.Restricted() && !s.inBuilding {
+	if held.Restricted() && !s.inBuilding.Load() {
 		s.turnAway(w, r, back, "this work has to stay in your network, and no model here is")
 		return
 	}
 	wanted := instance.Instance{
 		Title:   held.Title,
-		Harness: chosen, Model: s.models.First(chosen), Setup: held.Name,
+		Harness: chosen, Model: s.offered().First(chosen), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}
 	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)

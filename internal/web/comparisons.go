@@ -54,7 +54,7 @@ func (s *Server) sharedModels(held industry.Template) []string {
 	var order []string
 	for _, entry := range s.runnersOf(held) {
 		seen := map[string]bool{}
-		for _, model := range s.models.For(entry.Name) {
+		for _, model := range s.offered().For(entry.Name) {
 			named := modelOf(model)
 			if seen[named] {
 				continue
@@ -72,7 +72,7 @@ func (s *Server) sharedModels(held industry.Template) []string {
 // modelFor is the model a harness is pointed at for a plain model name: the
 // first it is offered that goes by that name.
 func (s *Server) modelFor(harness, named string) (string, bool) {
-	for _, model := range s.models.For(harness) {
+	for _, model := range s.offered().For(harness) {
 		if modelOf(model) == named {
 			return model, true
 		}

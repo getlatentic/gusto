@@ -75,11 +75,12 @@ func TestAWorkspaceWithSomethingInItIsNotReplacedByALink(t *testing.T) {
 // a run somebody then has to go and read.
 func TestAJobNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
 	way := &WayOut{
-		proxy:       &proxy.Proxy{},
-		tokens:      proxy.NewTokens(),
-		credentials: proxy.Credentials{"platform": {Name: "platform", Address: "https://example.invalid"}},
-		ledger:      spend.NewLedger(spend.Policy{}),
+		proxy:  &proxy.Proxy{},
+		tokens: proxy.NewTokens(),
+		ledger: spend.NewLedger(spend.Policy{}),
 	}
+	held := proxy.Credentials{"platform": {Name: "platform", Address: "https://example.invalid"}}
+	way.held.Store(&held)
 	dir := job.Dir(t.TempDir())
 	_, err := way.Run(dir, job.Spec{Model: "nowhere/some-model"})
 	if err == nil {

@@ -110,3 +110,24 @@ func TestADroppedProxyRecordIsRedacted(t *testing.T) {
 		}
 	}
 }
+
+// Every call is written with the version of the organisation's registry it was sent under, and the
+// record says which versions a job's calls were sent under, so a change of models or prices is never
+// mistaken for a change of what the job did.
+func TestTheRecordSaysWhichVersionsOfTheModelRegistryTheCallsWereSentUnder(t *testing.T) {
+	calls := []string{
+		`{"path":"/v1/chat/completions","status":200,"tookMs":5,"atUnix":100,"credential":"acme","registry":7,"model":"m","inputTokens":10,"outputTokens":5,"usd":0.1}`,
+		`{"path":"/v1/chat/completions","status":200,"tookMs":5,"atUnix":101,"credential":"acme","registry":9,"model":"m","inputTokens":10,"outputTokens":5,"usd":0.1}`,
+		`{"path":"/v1/chat/completions","status":200,"tookMs":5,"atUnix":102,"credential":"acme","registry":7,"model":"m","inputTokens":10,"outputTokens":5,"usd":0.1}`,
+	}
+	export := exported(t, ranWith(t, calls...), audit.Options{})
+	matchesTheSchema(t, export)
+	versions, _ := at(summary(t, export), "model", "registry").([]any)
+	if len(versions) != 2 || versions[0] != 7.0 || versions[1] != 9.0 {
+		t.Errorf("the versions, once each and in order: %#v", versions)
+	}
+	bare := exported(t, ranWith(t, refusedCall), audit.Options{})
+	if got, _ := at(summary(t, bare), "model", "registry").([]any); len(got) != 0 {
+		t.Errorf("a deployment with no registry lists none: %#v", got)
+	}
+}

@@ -43,6 +43,9 @@ type Credential struct {
 	// is the ordinary case; naming some is how a deployment records that a
 	// provider refuses what a particular harness sends it.
 	Harnesses []string `json:"harnesses,omitempty"`
+	// Public marks a credential an organisation added for itself. Its address is reached only at a public
+	// address, since the organisation chose it and this machine is on a network that others are on too.
+	Public bool `json:"-"`
 }
 
 // Serves reports whether this credential will answer that harness. A credential

@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/haas/internal/apitoken"
@@ -25,6 +26,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/orgsettings"
+	"github.com/getlatentic/haas/internal/registry"
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/spend"
@@ -42,6 +44,9 @@ type Server struct {
 	identity  *Identity
 	catalog   []catalog.Entry
 	models    Models
+	// live is what the registry makes of the models now, when there is one.
+	live     func() Models
+	registry *registry.Registry
 	// apps and runner are the web apps people share from their agents' computers.
 	apps       *apps.Store
 	runner     AppRunner
@@ -79,7 +84,7 @@ type Server struct {
 	servers    setup.Servers
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
-	inBuilding bool
+	inBuilding atomic.Bool
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -87,7 +92,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: unservedMarked(offered, models), models: models}
+	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
 		"waiting": s.waiting,
 		"askedBy": askerOf,

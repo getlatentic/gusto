@@ -151,6 +151,11 @@
           "description": "The names of the credentials the proxy added, from out/proxy.jsonl. Never a key. A word in their place when the job did not go through the proxy.",
           "type": ["array", "string"],
           "items": {"type": "string"}
+        },
+        "registry": {
+          "description": "The versions of the organisation's model registry the job's model calls were sent under, from out/proxy.jsonl. Empty for a deployment with no registry. A word in its place when the job did not go through the proxy.",
+          "type": ["array", "string"],
+          "items": {"type": "integer"}
         }
       }
     },
