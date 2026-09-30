@@ -21,8 +21,8 @@ variable "manage_github_provider" {
   default     = false
 }
 
-variable "repository" {
-  description = "The GitHub repository whose main branch may launch and remove demo hosts."
+variable "github_subject" {
+  description = "How GitHub names the repository in the token it gives a workflow: repo:<owner>/<name>, or with the repository's ids when the repository uses the immutable form. bootstrap.sh reads it from GitHub."
   type        = string
-  default     = "getlatentic/haas"
+  default     = "repo:getlatentic/haas"
 }
