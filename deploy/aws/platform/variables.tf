@@ -38,3 +38,9 @@ variable "cell_instance_type" {
   type        = string
   default     = "m8i.xlarge"
 }
+
+variable "front_door_instance_type" {
+  description = "The type of the front door that stays up. It runs no computer, and a cell is started for those."
+  type        = string
+  default     = "t3.small"
+}

@@ -124,7 +124,7 @@ case "$role" in
 all)
   tokens; certificate; runner_image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; cell_secret; certificate; lease; point_the_name_here ;;
+  tokens; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; runner_image; credentials; cell_identity
   echo "haas-boot: this host is a cell" ;;

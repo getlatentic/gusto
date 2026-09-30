@@ -19,11 +19,20 @@ type EC2 struct {
 	// UserData is the start-up script with its @NAME@ settings, and Settings what they are to be.
 	UserData string
 	Settings map[string]string
+	// Project is the value of the project tag, which says whose hosts they are. It is haas-poc when not set.
+	Project string
 	// Run runs the AWS command and gives what it printed. It is exec by default, and a test gives its own.
 	Run func(args ...string) ([]byte, error)
 }
 
 var instanceID = regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
+
+func (e *EC2) project() string {
+	if e.Project != "" {
+		return e.Project
+	}
+	return "haas-poc"
+}
 
 func (e *EC2) run(args ...string) ([]byte, error) {
 	if e.Run != nil {
@@ -71,7 +80,7 @@ func (e *EC2) Launch() (string, error) {
 	out, err := e.run("ec2", "run-instances",
 		"--launch-template", "LaunchTemplateName="+e.Template+",Version=$Latest",
 		"--user-data", "file://"+file.Name(),
-		"--tag-specifications", "ResourceType=instance,Tags=[{Key=project,Value=haas-poc},{Key=name,Value=demo-cell},{Key=scaler,Value=on}]",
+		"--tag-specifications", "ResourceType=instance,Tags=[{Key=project,Value="+e.project()+"},{Key=name,Value=demo-cell},{Key=scaler,Value=on}]",
 		"--query", "Instances[0].InstanceId", "--output", "text")
 	if err != nil {
 		return "", err
@@ -93,7 +102,7 @@ func (e *EC2) Terminate(id string) error {
 
 func (e *EC2) Running() ([]Instance, error) {
 	out, err := e.run("ec2", "describe-instances",
-		"--filters", "Name=tag:scaler,Values=on", "Name=tag:project,Values=haas-poc", "Name=instance-state-name,Values=pending,running",
+		"--filters", "Name=tag:scaler,Values=on", "Name=tag:project,Values="+e.project(), "Name=instance-state-name,Values=pending,running",
 		"--query", "Reservations[].Instances[].[InstanceId,LaunchTime]", "--output", "text")
 	if err != nil {
 		return nil, err
