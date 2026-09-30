@@ -4,14 +4,84 @@
   <h1>Overview</h1>
 </div>
 
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{if .Budget.Passed}}<p class="alert" role="alert">The budget for {{.Month}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
+{{if .Budget.Err}}<p class="refused">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
+
 <section class="figures">
   <a class="figure headline" href="/admin/spending">
     <span class="value">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
     <span class="label">spent in {{.Month}}</span>
   </a>
-  <a class="figure running" href="/jobs?state=running"><span class="value">{{.Running}}</span><span class="label">running</span></a>
+  <a class="figure running" href="/jobs?state=running"><span class="value">{{.Running}}</span><span class="label">running, up to {{.Slots}} at once</span></a>
   <a class="figure queued" href="/jobs?state=queued"><span class="value">{{.Waiting}}</span><span class="label">waiting</span></a>
   <a class="figure failed" href="/jobs?state=failed"><span class="value">{{.Failed}}</span><span class="label">failed this week</span></a>
 </section>
+
+<div class="panels">
+  <section class="panel">
+    <h2>Limits</h2>
+    {{if .LimitsUnreadable}}<p class="refused">The limits could not be read. {{.LimitsUnreadable}}</p>{{end}}
+    {{if .Limits}}
+    <table>
+      <thead><tr><th>What</th><th class="num">Used</th><th class="num">Of</th></tr></thead>
+      <tbody>
+        {{range .Limits}}<tr><td>{{.What}}</td><td class="num">{{if .Over}}<span class="state failed">{{.Used}}</span>{{else}}{{.Used}}{{end}}</td><td class="num">{{.Of}}</td></tr>{{end}}
+      </tbody>
+    </table>
+    {{else if not .LimitsUnreadable}}
+    <p class="muted">Nothing limits this organisation.</p>
+    {{end}}
+  </section>
+
+  {{if .Budget.Editable}}
+  <section class="panel">
+    <h2>Budget</h2>
+    <p>{{if .Budget.Set}}{{usd .Budget.Limit}} a month.{{else}}No budget is set.{{end}}</p>
+    <form method="post" action="/admin/budget" class="inline">
+      <label>Dollars a month <input name="usd" type="number" min="0" step="0.01" placeholder="no budget"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
+      <button type="submit">Save</button>
+    </form>
+    <p class="muted">When the month's spending passes it, this page says so. It stops no job. A team's cap does that.</p>
+  </section>
+  {{end}}
+</div>
+
+<div class="panels">
+  {{template "shares" (dict "Title" "By person" "Lines" .People)}}
+  {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
+  {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
+  {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
+</div>
+
+{{if .KeepsComputers}}
+<section class="panel">
+  <h2>Computers</h2>
+  {{if .Computers}}
+  <table>
+    <thead><tr><th>Person</th><th>State</th><th>Last used</th></tr></thead>
+    <tbody>
+      {{range .Computers}}<tr><td>{{.Person}}</td><td><span class="state {{.State}}">{{.State}}</span>{{with .Note}} <span class="muted">{{.}}</span>{{end}}</td><td class="muted">{{if .LastActive}}{{ago .LastActive}}{{else}}never{{end}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody has a computer yet. A person's is made when they first run a job.</p>{{end}}
+</section>
+{{end}}
+{{if .ComputersUnreadable}}<p class="refused">The computers could not be read. {{.ComputersUnreadable}}</p>{{end}}
+
+{{if .SharesApps}}
+<section class="panel">
+  <h2>Apps</h2>
+  {{if .Apps}}
+  <table>
+    <thead><tr><th>Shared by</th><th>From</th><th>State</th><th>Started</th></tr></thead>
+    <tbody>
+      {{range .Apps}}<tr><td>{{.Owner}}</td><td>{{.Agent}}</td><td><span class="state {{.State}}">{{.State}}</span>{{with .Note}} <span class="muted">{{.}}</span>{{end}}</td><td class="muted">{{ago .Started}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nobody has shared an app.</p>{{end}}
+</section>
+{{end}}
+{{if .AppsUnreadable}}<p class="refused">The apps could not be read. {{.AppsUnreadable}}</p>{{end}}
 
 {{template "foot" .}}

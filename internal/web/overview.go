@@ -7,8 +7,10 @@ import (
 	"github.com/getlatentic/haas/internal/jobs"
 )
 
-// overviewPage is where an admin starts: what the organisation has spent this
-// month and what its jobs are doing now.
+// overviewPage is where an admin starts: what the organisation has spent this month
+// and against which limits, what its jobs are doing, and what computers and apps it has.
+// The figures are the ledger's, the queue's and the records' own, so this page and the
+// pages they came from cannot disagree.
 func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	ledger, err := s.spending()
 	if err != nil {
@@ -16,16 +18,35 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	stats := s.index.Stats(now)
 	report := ledger.Report(ledger.ThisMonth())
-	s.drawConsole(w, "admin-overview.html", "overview", map[string]any{
-		"Title":   "haas — admin",
-		"Month":   report.Month,
-		"Spent":   report.Total,
-		"Running": stats.ByState[jobs.Running],
-		"Waiting": stats.ByState[jobs.Queued],
-		"Failed":  s.failedSince(now.Add(-lately)),
-	})
+	view := s.viewLedger(report, nil, now)
+	page := map[string]any{
+		"Title":    "haas — admin",
+		"Refused":  r.URL.Query().Get("refused"),
+		"Month":    report.Month,
+		"Spent":    report.Total,
+		"People":   shares(s.byAsker(report.Jobs), view.Measure),
+		"Teams":    view.Teams,
+		"Models":   view.Models,
+		"Projects": view.Projects,
+	}
+	budget := s.budgetOf(report.Total.USD)
+	page["Budget"] = budget
+	running := s.addJobs(page, now)
+	s.addLimits(page, ledger.Policy(), report, budget, running, now)
+	s.addComputers(page)
+	s.addApps(page)
+	s.drawConsole(w, "admin-overview.html", "overview", page)
+}
+
+// addJobs says what the queue is doing, and how many jobs are running now.
+func (s *Server) addJobs(page map[string]any, now time.Time) (running int) {
+	stats := s.index.Stats(now)
+	running = stats.ByState[jobs.Running]
+	page["Running"], page["Slots"] = running, stats.Slots
+	page["Waiting"] = stats.ByState[jobs.Queued]
+	page["Failed"] = s.failedSince(now.Add(-lately))
+	return running
 }
 
 // failedSince is how many jobs asked for after a time failed or were

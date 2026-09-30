@@ -139,6 +139,12 @@ func serve(args []string) int {
 	if sharing != nil {
 		pages.UseApps(sharing.store, sharing)
 	}
+	if computers != nil {
+		pages.UseComputers(computers)
+	}
+	if path := os.Getenv("HAAS_ORG_SETTINGS"); path != "" {
+		pages.UseOrgSettings(path)
+	}
 	pages.UseLedger(way.ledger)
 	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})
 	pages.UseAdmins(values("HAAS_ADMINS"))

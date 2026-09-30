@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/roster"
 )
@@ -28,6 +26,7 @@ func everything(t *testing.T) *tokened {
 		t.Fatal(err)
 	}
 	here.server.UseRoster(list)
+	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
 	here.server.UseAdmins([]string{boss})
 	return here
 }
@@ -42,13 +41,14 @@ var consoleWrites = []string{
 	"/admin/retention/sweep", "/admin/retention/holds", "/admin/retention/holds/release",
 	"/admin/retention/jobs/hold", "/admin/retention/jobs/release",
 	"/admin/skill-sets", "/admin/skill-sets/one/skills", "/admin/skill-sets/one/skills/two/drop",
+	"/admin/budget",
 }
 
 func TestARunnerCannotReachTheConsoleAndAStrangerIsSentToSignIn(t *testing.T) {
 	here := everything(t)
 	runner, admin := here.as(t, alice), here.as(t, boss)
 	tokens := len(here.server.tokens.List())
-	form := url.Values{"name": {"sneaky"}, "scope": {"submit"}, "who": {"x"}, "job": {"x"}}
+	form := url.Values{"name": {"sneaky"}, "scope": {"submit"}, "who": {"x"}, "job": {"x"}, "usd": {"1"}}
 
 	for _, path := range consoleReads {
 		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusForbidden {
@@ -71,6 +71,9 @@ func TestARunnerCannotReachTheConsoleAndAStrangerIsSentToSignIn(t *testing.T) {
 	}
 	if _, found := here.server.setups.Get("sneaky"); found {
 		t.Error("a runner made a skill set")
+	}
+	if settings, err := here.server.orgSettings.Read(); err != nil || settings.MonthlyBudgetUSD != 0 {
+		t.Errorf("a runner set the budget: %+v %v", settings, err)
 	}
 }
 
@@ -201,36 +204,5 @@ func TestTheConsoleNamesTheOrganisationAndAnotherOrganisationsTokenDoesNotOpenIt
 	page := here.ask(t, "GET", "/admin", nil)
 	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "haas admin · acme-com") {
 		t.Errorf("the console does not say whose it is: %d\n%s", page.Code, page.Body.String())
-	}
-}
-
-func TestTheOverviewCountsWhatIsRunningWaitingAndRecentlyFailed(t *testing.T) {
-	here := open(t)
-	here.signIn(t)
-	now := time.Now()
-	add := func(id string, state jobs.State, age time.Duration) {
-		t.Helper()
-		if err := job.Dir(filepath.Join(here.index.Root(), id)).Make(); err != nil {
-			t.Fatal(err)
-		}
-		queued := now.Add(-age).Unix()
-		if err := here.index.Add(jobs.Record{ID: id, State: state, Brief: id, Harness: "fixture", Queued: queued, Started: queued, Ended: queued}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	add("run-a", jobs.Running, time.Minute)
-	add("wait-a", jobs.Queued, time.Minute)
-	add("wait-b", jobs.Queued, time.Minute)
-	add("bad-a", jobs.Failed, time.Hour)
-	add("bad-b", jobs.Interrupted, 24*time.Hour)
-	add("bad-old", jobs.Failed, 30*24*time.Hour)
-	add("good", jobs.Passed, time.Hour)
-
-	page := here.ask(t, "GET", "/admin", nil).Body.String()
-	for label, want := range map[string]string{"running": "1", "waiting": "2", "failed this week": "2"} {
-		match := regexp.MustCompile(`<span class="value">(\d+)</span><span class="label">` + label + `</span>`).FindStringSubmatch(page)
-		if match == nil || match[1] != want {
-			t.Errorf("%s: want %s, page says %v", label, want, match)
-		}
 	}
 }

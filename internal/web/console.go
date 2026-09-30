@@ -99,14 +99,14 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/drop", setups(s.dropSkill))
 
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
+	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 
 	s.movedRoutes(mux)
 }
 
-// movedRoutes keep the addresses the admin pages had before the console, so a
-// bookmark or a form that was open when this server was updated still works.
-// The pages go to where they are now, and a form is sent again to the same
-// place with its method kept.
+// movedRoutes answer at the addresses a bookmark or a form left open across an
+// update names. A page goes to its place in the console, and a form is sent again
+// to the same place with its method kept.
 func (s *Server) movedRoutes(mux *http.ServeMux) {
 	for from, to := range map[string]string{
 		"/changes":       "/admin/activity",

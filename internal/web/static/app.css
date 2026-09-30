@@ -420,8 +420,9 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
   margin: 0 0 var(--yg-space-3); font-size: .8125rem; color: var(--yg-text-subtle); }
 .crumb a { color: var(--yg-text-muted); text-decoration: none; }
 .crumb a:hover { color: var(--yg-accent-text); }
-.refused { background: var(--yg-danger-surface); color: var(--yg-danger);
+.refused, .alert { background: var(--yg-danger-surface); color: var(--yg-danger);
   padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); }
+.alert { font-weight: 600; margin: 0 0 var(--yg-space-6); }
 
 
 /* Setups. */
@@ -828,3 +829,7 @@ table.lineup .badge { display: inline-block; margin-left: var(--yg-space-2); pad
   .console { grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-4); }
   .sections { display: flex; flex-wrap: wrap; position: static; }
 }
+
+/* A form that is a field or two and a button, on one line where it fits. */
+form.inline { display: flex; flex-wrap: wrap; align-items: end; gap: var(--yg-space-3); margin: var(--yg-space-3) 0; }
+form.inline label { flex: 1 1 12rem; }

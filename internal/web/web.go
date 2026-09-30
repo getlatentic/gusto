@@ -21,8 +21,10 @@ import (
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/compare"
+	"github.com/getlatentic/haas/internal/computer"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/orgsettings"
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/spend"
@@ -55,6 +57,10 @@ type Server struct {
 	inbox      string
 	taking     sync.Mutex
 	admins     map[string]bool
+	// orgSettings is what the organisation's admins choose for it, and computers is
+	// the record of the computers its people have.
+	orgSettings *orgsettings.File
+	computers   *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes   *changelog.Log
