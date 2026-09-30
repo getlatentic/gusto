@@ -23,3 +23,8 @@ func minutes(d time.Duration) string {
 
 // clock is a time of day, in UTC, which is what the host's own log uses.
 func clock(t time.Time) string { return t.UTC().Format("15:04") + " UTC" }
+
+// minuteLong is a length as an adjective: "30-minute".
+func minuteLong(d time.Duration) string {
+	return fmt.Sprintf("%d-minute", int((d+30*time.Second)/time.Minute))
+}
