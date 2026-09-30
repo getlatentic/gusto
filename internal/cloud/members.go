@@ -147,7 +147,11 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 	if earlier := s.readInvitation(slug, email); earlier.Link != "" {
 		os.Remove(filepath.Join(s.root, "tokens", earlier.Link+".json"))
 	}
-	return secret, writeFile(s.invitationFile(slug, email), invitation, 0o600)
+	if err := writeFile(s.invitationFile(slug, email), invitation, 0o600); err != nil {
+		return "", err
+	}
+	s.publishRoster(slug)
+	return secret, nil
 }
 
 // roomFor is a refusal when one more person would pass the number the organisation may
@@ -197,6 +201,7 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if err := os.Remove(s.invitationFile(slug, email)); err != nil && !missing(err) {
 		return err
 	}
+	s.publishRoster(slug)
 	return nil
 }
 
@@ -234,6 +239,7 @@ func (s *Store) Accept(secret string) (Person, Org, error) {
 		}
 		return Person{}, Org{}, err
 	}
+	s.publishRoster(org.Slug)
 	return person, org, nil
 }
 
@@ -257,15 +263,9 @@ func (s *Store) Remove(slug string, by Person, address string) error {
 		return ErrNoMember
 	}
 	if target.Role == Admin {
-		members, err := s.members(slug)
+		admins, err := s.admins(slug)
 		if err != nil {
 			return err
-		}
-		admins := 0
-		for _, member := range members {
-			if member.Role == Admin {
-				admins++
-			}
 		}
 		if admins <= 1 || target.Email == by.Email {
 			return ErrLastAdmin
@@ -274,6 +274,7 @@ func (s *Store) Remove(slug string, by Person, address string) error {
 	if err := os.Remove(s.personFile(email)); err != nil {
 		return err
 	}
+	s.publishRoster(slug)
 	// Their computer is marked, and the organisation's server, which reaches the gateway,
 	// removes it. A person who never had one has nothing marked.
 	registry, err := s.Computers(slug)

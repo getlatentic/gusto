@@ -1,8 +1,8 @@
 {{template "head" .}}
 
 <div class="page-head">
-  <h1>Changes</h1>
-  <p class="muted">Who signed in, who was refused, and who changed a setup or a setting. The server can only add to this record, and each line names the one before it, so an edit shows.</p>
+  <h1>Activity</h1>
+  <p class="muted">Who signed in, who was refused, and who changed a setup, a setting or a person's access. The server can only add to this record, and each line names the one before it, so an edit shows.</p>
 </div>
 
 {{if .Broken}}
@@ -11,7 +11,7 @@
 <section class="panel">
   <p>{{.Events}} event{{if ne .Events 1}}s{{end}}, and the chain holds{{if .Signed}}; {{.Signed}} signed{{end}}{{if .Unsigned}}; {{.Unsigned}} not signed{{end}}.</p>
   {{if .Head}}<p class="muted">Its head is <code>{{.Head}}</code>. Keep it: <code>haas changes verify -head {{.Head}} changes.jsonl</code> says later whether lines were cut off the end.</p>{{end}}
-  <p><a href="/changes.jsonl">Download the whole record</a> to check it with <code>haas changes verify</code>.</p>
+  <p><a href="/admin/activity.jsonl">Download the whole record</a> to check it with <code>haas changes verify</code>.</p>
 </section>
 {{end}}
 

@@ -47,7 +47,26 @@ const (
 	HoldSet         = "retention.hold"
 	HoldReleased    = "retention.release"
 	Swept           = "retention.swept"
+	MemberInvited   = "member.invited"
+	MemberRole      = "member.role"
+	MemberRemoved   = "member.removed"
+	BudgetSet       = "budget.set"
 )
+
+// FromFrontDoor says whether a kind of event is one that an organisation's front
+// door reports. Only these are taken from its inbox: what else is in the record was
+// written by this server about itself.
+func FromFrontDoor(kind string) bool {
+	switch kind {
+	case MemberInvited, MemberRole, MemberRemoved:
+		return true
+	}
+	return false
+}
+
+// InboxKey is the field of an event's details that names the inbox file it came from,
+// which is how an event that was taken twice is written once.
+const InboxKey = "inbox"
 
 // Event is one line of the log.
 type Event struct {
@@ -169,7 +188,9 @@ type Log struct {
 	head   string
 	roles  map[string]string
 	start  map[string]string
-	now    func() time.Time
+	// taken is the inbox files whose events are in the log.
+	taken map[string]bool
+	now   func() time.Time
 }
 
 // Open reads the log at path, refusing one that does not hold together, and
@@ -180,7 +201,7 @@ func Open(path string, signer signing.Signer, keyring signing.Keyring) (*Log, er
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return nil, err
 	}
-	l := &Log{path: path, signer: signer, roles: map[string]string{}, start: map[string]string{}, now: time.Now}
+	l := &Log{path: path, signer: signer, roles: map[string]string{}, start: map[string]string{}, taken: map[string]bool{}, now: time.Now}
 	if err := l.load(path, keyring); err != nil {
 		return nil, err
 	}
@@ -231,6 +252,17 @@ func (l *Log) learn(e Event) {
 	case ServerStarted:
 		l.start = e.What
 	}
+	if id := e.What[InboxKey]; id != "" {
+		l.taken[id] = true
+	}
+}
+
+// Taken says whether the event of an inbox file is already in the log. A server that
+// stopped between writing an event and removing its file finds it there.
+func (l *Log) Taken(id string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.taken[id]
 }
 
 // Append writes one event, numbered, chained to the one before, and signed.

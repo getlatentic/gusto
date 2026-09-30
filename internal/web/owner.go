@@ -34,19 +34,6 @@ func (s *Server) roleFor(who Person) (Role, bool) {
 
 func (s *Server) admin(r *http.Request) bool { return s.keeper.role(r) == Admin }
 
-// adminOnly lets through only an admin. Changing what agents are given changes
-// what every later run may do, so it is not something a person who runs work
-// can do; the answer is 403 rather than 404 because the page is theirs to read.
-func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.admin(r) {
-			http.Error(w, "changing what agents are given is for an administrator", http.StatusForbidden)
-			return
-		}
-		next(w, r)
-	}
-}
-
 // mayUse says whether the person asking may see what owner made. Work with no
 // owner, and work the shared sign-in made, has no person to belong to, so only
 // an admin sees it.

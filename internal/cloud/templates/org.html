@@ -20,7 +20,11 @@
   <h2>People</h2>
   <ul class="people">
     {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}{{with index $.ComputerOf .Email}}, computer {{.}}{{end}}</span>
-      {{if and $.IsAdmin (ne .Email $.Person.Email)}}<form method="post" action="/org/people/remove"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Remove</button></form>{{end}}</li>{{end}}
+      {{if $.IsAdmin}}
+      {{if eq .Role "admin"}}{{if gt $.Admins 1}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="runner"><button class="quiet" type="submit">Make runner</button></form>{{end}}
+      {{else}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="admin"><button class="quiet" type="submit">Make admin</button></form>{{end}}
+      {{if ne .Email $.Person.Email}}<form method="post" action="/org/people/remove"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Remove</button></form>{{end}}
+      {{end}}</li>{{end}}
     {{range .Invited}}<li><span>{{.Email}}</span><span class="muted">invited</span>
       {{if $.IsAdmin}}<form method="post" action="/org/invites/cancel"><input type="hidden" name="email" value="{{.Email}}"><button class="quiet" type="submit">Cancel</button></form>{{end}}</li>{{end}}
   </ul>
