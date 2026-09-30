@@ -128,6 +128,8 @@ root/
   orgs/<slug>/org.json        an organisation: name, admin, when made
   orgs/<slug>/data/           the organisation's haas data directory, 0700
   orgs/<slug>/data/quota.json what the organisation may run now
+  orgs/<slug>/data/members.json who is in the organisation, for its server to show
+  orgs/<slug>/data/inbox/     what its admins did to its people, for its server to record
   tokens/<hash>.json          a single-use link for verifying or signing in
   outbox/                     mail, when mail goes to files
 ```
@@ -242,6 +244,37 @@ can remove a person, but not themselves or the last admin. A removed person is s
 of the front door at once, and the organisation's own server stops trusting them within
 the hour it last did. Twenty invitations an hour are allowed for one organisation.
 
+An admin can make a person an admin or a runner from the organisation's page. The
+organisation keeps its last admin: an admin who is the only one is not offered to become a
+runner, and the front door refuses it if it is asked. A person keeps the role their token
+named for up to an hour, as with removal, and has the new one the next time they are
+signed in through the front door.
+
+### What the organisation's server is told
+
+The front door owns the people, so the organisation's server holds no copy that could
+disagree. Two files in the organisation's data directory carry what the server needs.
+
+- `members.json` is the list of people, their roles, when each was last signed in and the
+  invitations that nobody has answered. The front door writes it by renaming a finished file
+  into place, as it does the quota, when the organisation's server is started and after each
+  invitation, cancellation, acceptance, removal, change of role and sign-in. The server reads it
+  when the People page is drawn. A server that cannot read it says so on that page and shows no
+  one, and does not fail to start. If the front door could not write the list after a change, it
+  says so in its log, and the next change or a restart writes it again.
+- `inbox/` is where the front door leaves an event for each invitation, change of role and
+  removal: who did it, from where, and what. The change record has one writer, the
+  organisation's server, since two processes appending to a chained file would fork it. The
+  server takes the events into its record in the order they were left, every few seconds and
+  whenever the Activity page is drawn, and removes each file. An event that is already in the
+  record is not written twice, and a file that is not one of these three kinds is set aside as
+  `.rejected` and not recorded, so the inbox cannot be used to write a sign-in into the record.
+  Refused changes, and a change of role to the role a person has, are not recorded, since
+  nothing changed.
+
+The front door notes when a person was last signed in to their organisation's server when
+they press Open. Opening a shared app is not counted.
+
 ## Computers
 
 A person's jobs run in their own computer, made the first time they run one and kept
@@ -294,6 +327,7 @@ one organisation's, so the console shows that organisation and nobody else's.
 | Tokens | `/admin/tokens` | API tokens | the server takes tokens |
 | Retention | `/admin/retention` | the disk, the policy, sweeps and holds, of a job or of a person | the server removes finished work |
 | Skill sets | `/admin/skill-sets` | making skill sets, and adding and removing their skills | the server keeps skill sets |
+| People | `/admin/people` | each person's role, when they last signed in and what they have spent this month, and the invitations not yet answered. Inviting, removing and changing a role are at the front door, which the page links to | the server has a list of people from its front door |
 
 A section that the server has nothing for is not listed and answers 404.
 The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and

@@ -109,12 +109,15 @@ func (c *Controller) provision(slug string) error {
 // its records with, and the key it and the front door share.
 func (c *Controller) prepare(slug string) error {
 	data := c.Store.DataDir(slug)
-	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers"} {
+	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
 		if err := os.MkdirAll(filepath.Join(data, dir), 0o700); err != nil {
 			return err
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(c.orgDir(slug), "home"), 0o700); err != nil {
+		return err
+	}
+	if err := c.Store.PublishRoster(slug); err != nil {
 		return err
 	}
 	keys := filepath.Join(data, "keys")
@@ -163,6 +166,8 @@ func (c *Controller) environment(slug string, runtime Runtime) ([]string, error)
 		signing.KeyringEnv: filepath.Join(data, "keys"),
 		"HAAS_SIGNER":      slug,
 		"HAAS_QUOTA":       c.Store.QuotaFile(slug),
+		"HAAS_MEMBERS":     c.Store.RosterFile(slug),
+		"HAAS_INBOX":       c.Store.InboxDir(slug),
 		"HAAS_ENTRY_KEY":   c.entryKeyFile(slug),
 		"HAAS_ORG":         slug,
 		"HAAS_FRONT_DOOR":  c.FrontDoor,

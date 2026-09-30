@@ -27,6 +27,9 @@ func (s *Server) sections() []section {
 	if s.setups != nil {
 		all = append(all, section{"skill-sets", "/admin/skill-sets", "Skill sets"})
 	}
+	if s.hasRoster() {
+		all = append(all, section{"people", "/admin/people", "People"})
+	}
 	return all
 }
 
@@ -94,6 +97,8 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/skill-sets/{name}", setups(s.skillSetPage))
 	mux.HandleFunc("POST /admin/skill-sets/{name}/skills", setups(s.writeSkill))
 	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/drop", setups(s.dropSkill))
+
+	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 
 	s.movedRoutes(mux)
 }

@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/getlatentic/haas/internal/roster"
 )
 
 func whoIs(t *testing.T, address string) map[string]any {
@@ -51,7 +53,7 @@ func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 	said := whoIs(t, address)
 	data := s.DataDir(org.Slug)
 	for field, want := range map[string]string{
-		"org": org.Slug, "jobs": filepath.Join(data, "jobs"), "quota": s.QuotaFile(org.Slug), "home": filepath.Join(s.OrgDir(org.Slug), "home"),
+		"org": org.Slug, "jobs": filepath.Join(data, "jobs"), "quota": s.QuotaFile(org.Slug), "members": s.RosterFile(org.Slug), "inbox": s.InboxDir(org.Slug), "home": filepath.Join(s.OrgDir(org.Slug), "home"),
 		"entryKey": filepath.Join(s.OrgDir(org.Slug), "entry.key"), "signingKey": filepath.Join(data, "keys", org.Slug+".key"),
 		"front": "https://cloud.test", "concurrency": "2", "operatorSetting": "given",
 	} {
@@ -65,7 +67,10 @@ func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 	if !strings.HasPrefix(fmt.Sprint(said["addr"]), "127.0.0.1:") || said["addr"] == said["proxyAddr"] {
 		t.Errorf("a server listens on the loopback, and its proxy is another port: %v %v", said["addr"], said["proxyAddr"])
 	}
-	for _, private := range []string{filepath.Join(s.OrgDir(org.Slug), "entry.key"), filepath.Join(data, "keys", org.Slug+".key"), filepath.Join(s.OrgDir(org.Slug), "runtime.json")} {
+	if list, err := roster.Read(s.RosterFile(org.Slug)); err != nil || len(list.Members) != 1 || list.Members[0].Email != "ada@acme.com" {
+		t.Errorf("the server is started with the list of its people already written: %+v %v", list, err)
+	}
+	for _, private := range []string{s.RosterFile(org.Slug), filepath.Join(s.OrgDir(org.Slug), "entry.key"), filepath.Join(data, "keys", org.Slug+".key"), filepath.Join(s.OrgDir(org.Slug), "runtime.json")} {
 		if info, err := os.Stat(private); err != nil || info.Mode().Perm()&0o077 != 0 {
 			t.Errorf("%s should be private: %v %v", private, info, err)
 		}
@@ -73,7 +78,7 @@ func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 	if key, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "entry.key")); len(key) < 32 {
 		t.Errorf("the entry key is too short: %d", len(key))
 	}
-	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers"} {
+	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
 		if info, err := os.Stat(filepath.Join(data, dir)); err != nil || !info.IsDir() || info.Mode().Perm() != 0o700 {
 			t.Errorf("%s: %v %v", dir, info, err)
 		}

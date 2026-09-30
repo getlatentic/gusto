@@ -51,6 +51,9 @@ type view struct {
 	Invited   []Invitation
 	IsAdmin   bool
 	CanInvite bool
+	// Admins is how many of the members are admins, since the last one cannot be made
+	// a runner and is not offered it.
+	Admins int
 	// Computers of each member by address, for the people who have one.
 	ComputerOf map[string]string
 	Inviter    string

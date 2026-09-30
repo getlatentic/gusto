@@ -192,6 +192,13 @@ func serve(args []string) int {
 		pages.UseRetention(dir, policy)
 		go pages.RunRetention(background, time.Duration(number("HAAS_RETENTION_MINUTES", 60))*time.Minute)
 	}
+	if path := os.Getenv("HAAS_MEMBERS"); path != "" {
+		pages.UseRoster(path)
+	}
+	if dir := os.Getenv("HAAS_INBOX"); dir != "" {
+		pages.UseInbox(dir)
+		go pages.RunInbox(background, 2*time.Second)
+	}
 	pages.UseSettings(governing())
 	front, err := frontDoorFromEnv()
 	if err != nil {
