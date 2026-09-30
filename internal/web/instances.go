@@ -110,6 +110,9 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
 		"Models":    s.models.For(held.Harness),
+		"Sharing":   s.apps != nil,
+		"Apps":      s.appsOf(held.ID),
+		"Refresh":   startingApp(s.appsOf(held.ID)),
 		"Tasks":     s.tasks(held.ID),
 		"Refused":   r.URL.Query().Get("refused"),
 	})

@@ -223,7 +223,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{
   "name": "fixture", "program": "sh", "skills": "/root/.config/fixture/skills",
-  "argv": ["-c", "printf yes > answer.txt; cat .config/fixture/skills/review/SKILL.md 2>/dev/null | head -1 > /dev/null; echo skills: $(ls ../.config/fixture/skills 2>&1 | head -1)"],
+  "argv": ["-c", "printf yes > answer.txt; cat .config/fixture/skills/review/SKILL.md 2>/dev/null | head -1 > /dev/null; echo skills: $(ls ../.config/fixture/skills 2>&1 | tr '\\n' ' ')"],
   "needs": "nothing", "stream": "plain"}`)
 	t.Setenv("HAAS_HARNESSES", harnesses)
 	if err := os.MkdirAll(filepath.Join(dir.SetupDir(), "skills", "review"), 0o755); err != nil {
@@ -240,7 +240,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	// The fake keeps a sandbox as a directory, and it is gone after the run, so
 	// the run itself is what shows it: the harness listed the skills folder.
 	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
-	if !strings.Contains(string(said), "skills: review") {
+	if !strings.Contains(string(said), "skills: haas-sandbox review") {
 		t.Errorf("the skill was not where the harness looks:\n%s", said)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
