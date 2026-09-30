@@ -366,6 +366,14 @@ call: a job already running keeps the credential it began with, and every call t
 written to `out/proxy.jsonl` with the version it was sent under. `audit.json` lists the versions
 in `model.registry`.
 
+An admin can limit a person to some of the models, on the same page. Everybody may use every model
+unless they are limited. A person who is limited is offered only the models they are limited to when
+they start an agent, change its model or compare agents, and a request for another is refused. A
+person limited to models that are since retired is offered none, and cannot start an agent on a
+harness that then has no model, rather than being given the harness's own default. The limit is
+kept in the registry, is a version of it, and is written to the change record. It applies to people
+who sign in; work started with an API token belongs to nobody, so it is not limited.
+
 A key is typed into the page once, is kept in a file only the server can read, and is never shown
 again. Retiring a provider forgets it. Where the operator allows it (`HAAS_REGISTRY_KEYS`), a key
 is named instead as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. Those let an admin name
