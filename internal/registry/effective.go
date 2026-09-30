@@ -36,6 +36,7 @@ func (r *Registry) Effective() Effective {
 	if out.Prices == nil {
 		out.Prices = map[string]spend.Price{}
 	}
+	rules := r.Rules()
 	for _, provider := range document.Providers {
 		if provider.Retired {
 			continue
@@ -47,7 +48,7 @@ func (r *Registry) Effective() Effective {
 		}
 		out.Credentials[provider.Name] = proxy.Credential{
 			Name: provider.Name, Address: provider.Address, Key: key, Auth: provider.Auth,
-			Harnesses: provider.Harnesses, Public: !r.rules.PrivateAddresses,
+			Harnesses: provider.Harnesses, Public: !rules.PrivateAddresses,
 		}
 	}
 	for _, model := range document.Models {
