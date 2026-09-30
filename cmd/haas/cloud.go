@@ -46,6 +46,9 @@ func cloudCommand(args []string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	if dir := os.Getenv("HAAS_CLOUD_CELLS_DIR"); dir != "" && controller != nil {
+		go beatForCells(ctx, dir)
+	}
 	controlled := make(chan struct{})
 	go func() {
 		defer close(controlled)
@@ -137,11 +140,20 @@ func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 	if err != nil {
 		return nil, err
 	}
-	return &cloud.Controller{
-		Store: store, Cell: &cloud.LocalCell{}, Command: []string{exe, "serve"}, Env: env,
+	local := &cloud.LocalCell{}
+	controller := &cloud.Controller{
+		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env,
 		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: number("HAAS_CLOUD_PORT_FROM", 9100),
 		Wait: time.Duration(number("HAAS_CLOUD_START_WAIT_SECONDS", 120)) * time.Second, Concurrent: limits.Verified.Concurrent,
-	}, nil
+	}
+	pool, err := cellPool(local)
+	if err != nil {
+		return nil, err
+	}
+	if pool != nil {
+		controller.Cells = pool
+	}
+	return controller, nil
 }
 
 // operatorEnv reads the settings every organisation's server gets. A line is

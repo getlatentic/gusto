@@ -1,6 +1,7 @@
 package cell
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -341,4 +342,109 @@ func containsEnv(env []string, want string) bool {
 		}
 	}
 	return false
+}
+
+// A front door is restarted at every deploy, and the servers on other hosts keep running through it and are found
+// running by the one that starts.
+func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByTheNext(t *testing.T) {
+	host := newAgent(t, "cell-a", 12000)
+	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
+	first, store := controlledOn(t, pool)
+	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err := first.Provision(org.Slug); err != nil {
+		t.Fatal(err)
+	}
+	before, state := first.Route(org.Slug)
+	if state != cloud.Ready {
+		t.Fatal(state)
+	}
+	first.Run(canceled(), time.Hour)
+	if !host.servers.Alive(org.Slug) {
+		t.Fatal("the server ended with the front door that started it")
+	}
+
+	next := &cloud.Controller{Store: store, Cells: pool, Command: first.Command, Env: first.Env, FrontDoor: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
+	pids := func() string { return strings.Join(host.servers.Running(), ",") }
+	was := pids()
+	if err := next.Provision(org.Slug); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := next.Route(org.Slug)
+	if after != before || pids() != was {
+		t.Errorf("the next front door started another: %q then %q, %q then %q", before, after, was, pids())
+	}
+}
+
+func canceled() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return ctx
+}
+
+func TestACellRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "cells")
+	servers := &cloud.LocalCell{}
+	agent := &Agent{Name: "cell-a", Private: "127.0.0.1", Secret: secret, Servers: servers}
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- agent.Run(ctx, "127.0.0.1:0", dir, 50*time.Millisecond) }()
+	waitFor(t, "the cell registering", func() bool { fresh, _ := Fresh(dir, time.Now(), time.Second); return len(fresh) == 1 })
+	first, _, _ := Registered(dir, "cell-a", time.Now())
+	if first.Private != "127.0.0.1" || !strings.HasPrefix(first.Agent, "127.0.0.1:") {
+		t.Fatalf("%+v", first)
+	}
+	waitFor(t, "a later beat", func() bool { again, _, _ := Registered(dir, "cell-a", time.Now()); return again.Beat > first.Beat })
+	// It answers, at the address it registered, to the front door.
+	remote := newRemote(first, secret)
+	if status, err := remote.Status(); err != nil || status.Name != "cell-a" {
+		t.Fatalf("%+v %v", status, err)
+	}
+	spec := fakeOrg(t, "acme-com", 27000+int(time.Now().UnixNano()%9000))
+	if err := remote.Start(spec); err != nil {
+		t.Fatal(err)
+	}
+	stop()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if servers.Alive("acme-com") {
+		t.Error("a cell that is going left its servers running")
+	}
+	if fresh, _ := Fresh(dir, time.Now(), time.Hour); len(fresh) != 0 {
+		t.Errorf("a cell that stopped is still registered: %+v", fresh)
+	}
+}
+
+func TestAnOrganisationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlySilentIsNot(t *testing.T) {
+	old, fresh := newAgent(t, "cell-old", 12000), newAgent(t, "cell-new", 9000)
+	pool := pooled(t, 1000, map[string]*agentHost{"cell-old": old, "cell-new": fresh})
+	pool.GoneAfter = 10 * time.Minute
+	c, store := controlledOn(t, pool)
+	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err := c.Provision(org.Slug); err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
+		t.Fatalf("placed on %s", r.Cell)
+	}
+	// Silent for five minutes: the host may come back, and the organisation's computers are on it.
+	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-5*time.Minute)))
+	if err := c.Provision(org.Slug); err == nil {
+		t.Fatal("an organisation was moved off a cell that was only quiet")
+	}
+	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
+		t.Errorf("moved to %s", r.Cell)
+	}
+	// Silent for a quarter of an hour: it is gone.
+	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-15*time.Minute)))
+	if err := c.Provision(org.Slug); err != nil {
+		t.Fatalf("it was not placed again: %v", err)
+	}
+	r, _ := store.Runtime(org.Slug)
+	if r.Cell != "cell-new" || r.State != cloud.Ready || r.Port == 0 {
+		t.Errorf("%+v", r)
+	}
+	if address, state := c.Route(org.Slug); state != cloud.Ready || whoami(t, address)["cell"] != "cell-new" {
+		t.Errorf("%q %v", address, state)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -124,7 +125,13 @@ func (c *Controller) cellNamed(name string) (Cell, error) {
 // has that written down before anything is started on it.
 func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 	if runtime.Cell != "" {
-		return c.cellNamed(runtime.Cell)
+		cell, err := c.cellNamed(runtime.Cell)
+		if !errors.Is(err, ErrCellGone) {
+			return cell, err
+		}
+		slog.Warn("an organisation's cell is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
+		// The ports were the gone cell's, and are not this one's.
+		runtime.Cell, runtime.Port, runtime.ProxyPort = "", 0, 0
 	}
 	cell := c.Cell
 	if c.Cells != nil {
@@ -397,9 +404,16 @@ func (c *Controller) stopAll() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if cell, err := c.cellNamed(runtime.Cell); err == nil {
-				cell.Stop(slug, c.grace())
+			cell, err := c.cellNamed(runtime.Cell)
+			if err != nil {
+				return
 			}
+			// A server on another host does not end with the front door, which is restarted at every deploy, and is
+			// found running by the one that starts.
+			if apart, ok := cell.(interface{ Detached() bool }); ok && apart.Detached() {
+				return
+			}
+			cell.Stop(slug, c.grace())
 		}()
 	}
 	wg.Wait()
