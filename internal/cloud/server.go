@@ -37,6 +37,8 @@ type Config struct {
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
+	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
+	ComputersWait time.Duration
 }
 
 // Server is the front door's pages.
@@ -49,6 +51,7 @@ type Server struct {
 	invites *Limiter
 	sending sync.WaitGroup
 	making  sync.WaitGroup
+	ender   demoEnder
 }
 
 // New makes the front door.
@@ -78,6 +81,9 @@ func (s *Server) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Asked on every host name, so a page of an organisation can warn of the end of the host.
 		if r.Method == http.MethodGet && r.URL.Path == "/.haas/lease" {
+			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(w, slug) {
+				return
+			}
 			s.leaseJSON(w, r)
 			return
 		}
@@ -112,6 +118,10 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /org/people/role", s.guard(s.changeRole))
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
+	mux.HandleFunc("GET /demo", s.demoForm)
+	mux.HandleFunc("POST /demo", s.startDemo)
+	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
+	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))
 	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
 	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
 	mux.HandleFunc("POST /signout", s.signOut)

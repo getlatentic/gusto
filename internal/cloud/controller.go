@@ -420,6 +420,27 @@ func (c *Controller) stopAll() {
 	wg.Wait()
 }
 
+// Remove stops an organisation's server and forgets it, so it is not started again. What the organisation's
+// directory holds is the store's to delete, after this.
+func (c *Controller) Remove(slug string) {
+	held := c.lock(slug)
+	held.Lock()
+	defer held.Unlock()
+	c.mu.Lock()
+	runtime := c.states[slug]
+	delete(c.states, slug)
+	delete(c.retry, slug)
+	c.mu.Unlock()
+	if runtime.Cell == "" {
+		if stored, err := c.Store.Runtime(slug); err == nil {
+			runtime = stored
+		}
+	}
+	if cell, err := c.cellNamed(runtime.Cell); err == nil {
+		cell.Stop(slug, c.grace())
+	}
+}
+
 func (c *Controller) grace() time.Duration {
 	if c.StopGrace > 0 {
 		return c.StopGrace
