@@ -141,12 +141,15 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 // its records with, and the key it and the front door share.
 func (c *Controller) prepare(slug string) error {
 	data := c.Store.DataDir(slug)
-	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers"} {
+	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
 		if err := os.MkdirAll(filepath.Join(data, dir), 0o700); err != nil {
 			return err
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(c.orgDir(slug), "home"), 0o700); err != nil {
+		return err
+	}
+	if err := c.Store.PublishRoster(slug); err != nil {
 		return err
 	}
 	keys := filepath.Join(data, "keys")
@@ -183,24 +186,27 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 	}
 	data := c.Store.DataDir(slug)
 	own := map[string]string{
-		"HAAS_ADDR":        cell.Listen() + ":" + strconv.Itoa(runtime.Port),
-		"HAAS_PROXY_ADDR":  "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
-		"HAAS_JOBS":        filepath.Join(data, "jobs"),
-		"HAAS_SESSIONS":    filepath.Join(data, "sessions"),
-		"HAAS_SETUPS":      filepath.Join(data, "setups"),
-		"HAAS_COMPARISONS": filepath.Join(data, "comparisons"),
-		"HAAS_CHANGES":     filepath.Join(data, "changes", "changes.jsonl"),
-		"HAAS_RETENTION":   filepath.Join(data, "retention"),
-		signing.KeyEnv:     filepath.Join(data, "keys", slug+".key"),
-		signing.KeyringEnv: filepath.Join(data, "keys"),
-		"HAAS_SIGNER":      slug,
-		"HAAS_QUOTA":       c.Store.QuotaFile(slug),
-		"HAAS_ENTRY_KEY":   c.entryKeyFile(slug),
-		"HAAS_ORG":         slug,
-		"HAAS_FRONT_DOOR":  c.FrontDoor,
-		"HAAS_COMPUTERS":   filepath.Join(data, "computers"),
-		"HAAS_APPS":        filepath.Join(data, "apps"),
-		"HAAS_CELL":        cell.Name(),
+		"HAAS_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
+		"HAAS_PROXY_ADDR":   "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
+		"HAAS_JOBS":         filepath.Join(data, "jobs"),
+		"HAAS_SESSIONS":     filepath.Join(data, "sessions"),
+		"HAAS_SETUPS":       filepath.Join(data, "setups"),
+		"HAAS_COMPARISONS":  filepath.Join(data, "comparisons"),
+		"HAAS_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
+		"HAAS_RETENTION":    filepath.Join(data, "retention"),
+		signing.KeyEnv:      filepath.Join(data, "keys", slug+".key"),
+		signing.KeyringEnv:  filepath.Join(data, "keys"),
+		"HAAS_SIGNER":       slug,
+		"HAAS_QUOTA":        c.Store.QuotaFile(slug),
+		"HAAS_MEMBERS":      c.Store.RosterFile(slug),
+		"HAAS_ORG_SETTINGS": filepath.Join(data, "settings.json"),
+		"HAAS_INBOX":        c.Store.InboxDir(slug),
+		"HAAS_ENTRY_KEY":    c.entryKeyFile(slug),
+		"HAAS_ORG":          slug,
+		"HAAS_FRONT_DOOR":   c.FrontDoor,
+		"HAAS_COMPUTERS":    filepath.Join(data, "computers"),
+		"HAAS_APPS":         filepath.Join(data, "apps"),
+		"HAAS_CELL":         cell.Name(),
 		// A person's harnesses share their computer's files and their own state, so they
 		// take turns.
 		"HAAS_LIMIT_PERSON":    "1",

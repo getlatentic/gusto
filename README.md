@@ -646,12 +646,14 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_LOCAL_REPOS` | directories on the server a job's repository may be cloned from. Unset, a repository is an https or ssh address and nothing on the server's own disk can be named. Compose and the chart allow `deploy/smoke.sh`'s. [docs/SECURITY.md](docs/SECURITY.md) |
 | `HAAS_SANDBOX` | how a job runs: unset is a container, `here` is this process, `openshell` is a sandbox on an OpenShell gateway, configured by `HAAS_OPENSHELL`, `HAAS_OPENSHELL_GATEWAY`, `HAAS_OPENSHELL_IMAGE`, `HAAS_OPENSHELL_HOST`, `HAAS_OPENSHELL_CPU` and `HAAS_OPENSHELL_MEMORY`. [docs/OPENSHELL.md](docs/OPENSHELL.md) |
 | `HAAS_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. Finished work is removed on the policy's schedule: a job's workspace first, its signed record later. `HAAS_RETENTION_MINUTES` sets the interval, 60 by default. `haas retention` lists what a sweep would remove. [docs/RETENTION.md](docs/RETENTION.md) |
+| `HAAS_ORG_SETTINGS` | the file an organisation's admins' choices are kept in: the monthly budget, set on the Overview of the admin console. Set by an organisation's front door. Without it the console keeps no budget. [docs/CLOUD.md](docs/CLOUD.md) |
+| `HAAS_MEMBERS`, `HAAS_INBOX` | set by an organisation's front door. `HAAS_MEMBERS` is the file the front door writes its people to, which the console shows at `/admin/people`. `HAAS_INBOX` is the directory where the front door leaves what its admins did to those people, which the server writes to its change record. [docs/CLOUD.md](docs/CLOUD.md) |
 | `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
 | `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
 | `HAAS_GITHUB_APP_ID`, `HAAS_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](docs/REPOS.md) |
 | `HAAS_GITHUB_URL` | a GitHub Enterprise Server's address, with `HAAS_GITHUB_API`; github.com when unset |
 | `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
-| `HAAS_TOKEN` | the API token `haas submit` sends, made by an admin at `/tokens`; `HAAS_PASSWORD` is sent when it is unset |
+| `HAAS_TOKEN` | the API token `haas submit` sends, made by an admin at `/admin/tokens`; `HAAS_PASSWORD` is sent when it is unset |
 | `HAAS_API_TOKENS` | the file API tokens are kept in. With it the API takes scoped, revocable tokens and refuses the shared password. [docs/TOKENS.md](docs/TOKENS.md) |
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |

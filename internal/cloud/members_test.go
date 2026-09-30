@@ -37,6 +37,25 @@ func joined(t *testing.T, s *Store, org Org, admin Person, email string) Person 
 	return person
 }
 
+func TestOnlyAnAdminOfAnOrganisationMayChangeARoleInIt(t *testing.T) {
+	s := open(t, Settings{})
+	ada, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
+	bob := joined(t, s, org, ada, "bob@acme.com")
+	eve, _ := verifiedOrg(t, s, "eve@globex.com", "Globex")
+	if _, err := s.SetRole(org.Slug, bob, "bob@acme.com", Admin); !errors.Is(err, ErrNotAdmin) {
+		t.Errorf("a runner cannot: %v", err)
+	}
+	if _, err := s.SetRole(org.Slug, eve, "bob@acme.com", Admin); !errors.Is(err, ErrNotAdmin) {
+		t.Errorf("an admin of another organisation cannot: %v", err)
+	}
+	if was, err := s.SetRole(org.Slug, ada, "BOB@acme.com", Admin); err != nil || was != Runner {
+		t.Errorf("an admin can, at an address written in any case: %v %v", was, err)
+	}
+	if got, _, _ := s.Person("bob@acme.com"); got.Role != Admin {
+		t.Errorf("%+v", got)
+	}
+}
+
 func TestOnlyAnAdminOfAnOrganisationWhoseAddressIsConfirmedMayInvite(t *testing.T) {
 	s := open(t, Settings{})
 	ada, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})

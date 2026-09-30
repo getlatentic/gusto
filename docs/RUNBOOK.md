@@ -11,7 +11,7 @@ What to watch on a haas server, and what to do when an alert fires.
 | `/metrics` | the Prometheus text format | scraping |
 
 `/metrics` needs `Authorization: Bearer`. On a server with API tokens
-([TOKENS.md](TOKENS.md)), make a token that may **read metrics** at `/tokens`.
+([TOKENS.md](TOKENS.md)), make a token that may **read metrics** at `/admin/tokens`.
 On a server without, the shared password is the credential.
 
 ## Metrics
@@ -50,7 +50,7 @@ Prometheus could not scrape `/metrics` for two minutes. The server is down,
 unreachable, or the token no longer works.
 
 1. `curl -sS https://<host>/healthz`. If that answers and `/metrics` gives 401,
-   the token was revoked or the credential changed: make a new one at `/tokens`.
+   the token was revoked or the credential changed: make a new one at `/admin/tokens`.
 2. If nothing answers: `systemctl status haas` and `journalctl -u haas -n 100`.
    A server that will not start says why. Two refusals are deliberate: a
    change record that does not hold together, and data a newer release wrote
@@ -106,7 +106,7 @@ did. A job fails when its check does or when it cannot run.
 Less than a tenth of the volume the jobs are on is free. Jobs then fail to
 write, and the queue stalls.
 
-1. `/retention` shows what the jobs take and what a sweep would free. Set or
+1. `/admin/retention` shows what the jobs take and what a sweep would free. Set or
    shorten the policy ([RETENTION.md](RETENTION.md)), then sweep.
 2. `haas retention` lists a dry run from the command line.
 3. Other things on the same volume take space too: check with `du`.

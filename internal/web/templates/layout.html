@@ -24,23 +24,42 @@
   </script>
 </head>
 <body{{if .Chat}} class="chat"{{end}}>
-<header>
+{{if .Console}}{{template "console-bar" .}}{{else}}{{template "bar" .}}{{end}}
+{{end}}
+
+{{define "bar"}}<header>
   <a class="brand" href="/"><img src="/static/mark.png" alt=""> haas</a>
   <nav>
     <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Agents</span></a>
     <a href="/compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}} <span>Compare</span></a>
     <a href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Activity</span></a>
     <a href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spending</span></a>
-    {{if and .Admin takesTokens}}<a href="/tokens"{{if eq .Nav "tokens"}} aria-current="page"{{end}}>{{template "icon-lock"}} <span>Tokens</span></a>{{end}}
-    {{if and .Admin keepsWork}}<a href="/retention"{{if eq .Nav "retention"}} aria-current="page"{{end}}>{{template "icon-disk"}} <span>Retention</span></a>{{end}}
-    {{if .Admin}}<a href="/changes"{{if eq .Nav "changes"}} aria-current="page"{{end}}>{{template "icon-log"}} <span>Changes</span></a>{{end}}
+    {{if .Admin}}<a href="/admin">{{template "icon-shield"}} <span>Admin</span></a>{{end}}
     <a class="new" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New agent</span></a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
   </nav>
 </header>
 {{end}}
 
-{{define "foot"}}</body></html>{{end}}
+{{/* The console is the admin's own place: its sections down the side, one way
+     back to the pages everybody uses, and no other link between the two. */}}
+{{define "console-bar"}}<header>
+  <span class="brand"><img src="/static/mark.png" alt=""> haas admin{{with .Org}} · {{.}}{{end}}</span>
+  <nav>
+    <a href="/">Back to haas</a>
+    <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
+  </nav>
+</header>
+<div class="console">
+<nav class="sections" aria-label="Admin">
+  {{range .Sections}}<a href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+</nav>
+<main>
+{{end}}
+
+{{define "foot"}}{{if .Console}}</main>
+</div>
+{{end}}</body></html>{{end}}
 
 {{/* origin is the instance a run belonged to: a link when there is one to go
      to, and otherwise a short word for why there is none, never an empty link.

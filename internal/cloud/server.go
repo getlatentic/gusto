@@ -109,6 +109,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /org/invite", s.guard(s.invite))
 	mux.HandleFunc("POST /org/invites/cancel", s.guard(s.cancelInvitation))
 	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
+	mux.HandleFunc("POST /org/people/role", s.guard(s.changeRole))
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /lease", s.guard(s.leasePage))

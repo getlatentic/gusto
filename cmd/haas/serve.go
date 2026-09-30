@@ -139,6 +139,12 @@ func serve(args []string) int {
 	if sharing != nil {
 		pages.UseApps(sharing.store, sharing)
 	}
+	if computers != nil {
+		pages.UseComputers(computers)
+	}
+	if path := os.Getenv("HAAS_ORG_SETTINGS"); path != "" {
+		pages.UseOrgSettings(path)
+	}
 	pages.UseLedger(way.ledger)
 	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})
 	pages.UseAdmins(values("HAAS_ADMINS"))
@@ -191,6 +197,13 @@ func serve(args []string) int {
 		}
 		pages.UseRetention(dir, policy)
 		go pages.RunRetention(background, time.Duration(number("HAAS_RETENTION_MINUTES", 60))*time.Minute)
+	}
+	if path := os.Getenv("HAAS_MEMBERS"); path != "" {
+		pages.UseRoster(path)
+	}
+	if dir := os.Getenv("HAAS_INBOX"); dir != "" {
+		pages.UseInbox(dir)
+		go pages.RunInbox(background, 2*time.Second)
 	}
 	pages.UseSettings(governing())
 	front, err := frontDoorFromEnv()
