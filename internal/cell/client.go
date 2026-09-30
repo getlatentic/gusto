@@ -27,6 +27,9 @@ func newRemote(r Registration, secret []byte) *Remote {
 	return &Remote{name: r.Name, agent: r.Agent, private: r.Private, secret: secret, client: &http.Client{Timeout: 10 * time.Second}, now: time.Now}
 }
 
+// Detached says the servers on this cell outlive the front door that started them.
+func (c *Remote) Detached() bool { return true }
+
 func (c *Remote) Name() string   { return c.name }
 func (c *Remote) Host() string   { return c.private }
 func (c *Remote) Listen() string { return c.private }

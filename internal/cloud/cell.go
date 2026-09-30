@@ -155,6 +155,10 @@ func (l *LocalCell) Stop(slug string, grace time.Duration) error {
 	return nil
 }
 
+// ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.
+// An organisation placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
+var ErrCellGone = errors.New("the cell is gone")
+
 // CellSet is the cells organisations' servers may be placed on.
 type CellSet interface {
 	// Get is the cell with that name, or says why it cannot be reached.

@@ -18,6 +18,9 @@ type Pool struct {
 	Secret []byte
 	// MaxAge is how long a cell may be silent before it is not placed on or reached.
 	MaxAge time.Duration
+	// GoneAfter is how long a cell may be silent before it is taken to be gone for good, when the
+	// organisations placed on it are placed again. It is thirty minutes when not set.
+	GoneAfter time.Duration
 	// MinFreeMiB is the least memory a cell needs to be given another organisation.
 	MinFreeMiB int
 	// Local is this machine as a cell, or nothing when it only runs the front door.
@@ -47,11 +50,17 @@ func (p *Pool) Get(name string) (cloud.Cell, error) {
 		return p.Local, nil
 	}
 	registered, age, err := Registered(p.Dir, name, p.clock())
+	gone := p.GoneAfter
+	if gone <= 0 {
+		gone = 30 * time.Minute
+	}
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return nil, fmt.Errorf("there is no cell called %q", name)
+		return nil, fmt.Errorf("there is no cell called %q: %w", name, cloud.ErrCellGone)
 	case err != nil:
 		return nil, err
+	case age > gone:
+		return nil, fmt.Errorf("the cell %s has not been heard from for %s: %w", name, age.Round(time.Second), cloud.ErrCellGone)
 	case age > p.maxAge():
 		return nil, fmt.Errorf("the cell %s has not been heard from for %s", name, age.Round(time.Second))
 	}
