@@ -192,7 +192,7 @@ resource "aws_launch_template" "role" {
 # an organisation needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
 # when they are tagged for it, so a cell, which runs other people's code, can start nothing.
 locals {
-  live      = "haas-live-front-door"
+  live      = "haas-poc-front-door"
   live_tag  = "haas-live"
   ec2_arn   = "arn:aws:ec2:${var.region}:${local.account}"
   cell_live = aws_launch_template.role["cell-live"]
