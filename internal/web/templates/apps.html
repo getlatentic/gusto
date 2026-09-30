@@ -3,7 +3,7 @@
   {{range .Apps}}
   <div class="row" style="justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
     <div>
-      {{if eq .State "live"}}<a href="/apps/{{.ID}}/" target="_blank" rel="noopener">Open the app</a>
+      {{if eq .State "live"}}<a href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>
       {{else if eq .State "starting"}}<span class="muted">Starting…</span>
       {{else if eq .State "failed"}}<span class="restricted">It did not start</span>
       {{else}}<span class="muted">Stopped</span>{{end}}

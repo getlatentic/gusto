@@ -81,6 +81,10 @@ func (s *Server) Handler() http.Handler {
 			s.leaseJSON(w, r)
 			return
 		}
+		if slug, id, ok := s.appHost(r.Host); ok {
+			s.routeApp(w, r, slug, id)
+			return
+		}
 		if slug, ok := s.orgSlug(r.Host); ok {
 			s.route(w, r, slug)
 			return

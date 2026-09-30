@@ -41,6 +41,19 @@ func newKeeper(password string) (*keeper, error) {
 
 const cookieName = "haas"
 
+// secureCookieName is what the session cookie is called over TLS. A browser accepts a name with
+// this prefix only from the host itself, with Secure and no Domain, so a page on a sibling host
+// name, a shared app's for one, cannot set or overwrite it for this one.
+const secureCookieName = "__Host-haas"
+
+// sessionCookie is the name of the session cookie for a request.
+func sessionCookie(r *http.Request) string {
+	if overTLS(r) {
+		return secureCookieName
+	}
+	return cookieName
+}
+
 func (k *keeper) admits(given string) bool {
 	return subtle.ConstantTimeCompare([]byte(given), []byte(k.password)) == 1
 }
@@ -61,7 +74,7 @@ func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, ro
 	until := time.Now().Add(k.life).Unix()
 	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + who
 	http.SetCookie(w, &http.Cookie{
-		Name:     cookieName,
+		Name:     sessionCookie(r),
 		Value:    value + "." + k.sign(value),
 		Path:     "/",
 		HttpOnly: true,
@@ -74,7 +87,7 @@ func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, ro
 // end makes the session in this request's cookie stop working, and forgets
 // those that would have expired by now.
 func (k *keeper) end(r *http.Request) {
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(sessionCookie(r))
 	if err != nil {
 		return
 	}
@@ -108,8 +121,8 @@ func (k *keeper) hasEnded(signature string) bool {
 	return gone
 }
 
-func (k *keeper) clear(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1})
+func (k *keeper) clear(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookie(r), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: overTLS(r)})
 }
 
 // session is who is in a signature this server made and has not yet expired,
@@ -119,7 +132,7 @@ func (k *keeper) clear(w http.ResponseWriter) {
 // name is an address and an address has dots in it. A signature is base64url,
 // which has none, so the last dot is always the one that separates them.
 func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(sessionCookie(r))
 	if err != nil {
 		return "", "", false
 	}

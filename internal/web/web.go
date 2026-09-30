@@ -84,6 +84,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"keepsWork":   func() bool { return s.retention != nil },
 		// Where a host that has a lease is extended, which is at the front door.
 		"leaseExtend": s.leaseExtend,
+		"appLink":     s.appLink,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
@@ -163,7 +164,7 @@ func (s *Server) Handler() http.Handler {
 	// one. A link somebody kept still finds its instance.
 	mux.HandleFunc("GET /talk", moved("/"))
 	mux.HandleFunc("GET /talk/{id}", moved("/instances/{id}"))
-	return s.secure(mux)
+	return s.secure(s.byApp(mux))
 }
 
 // moved redirects an address that used to mean something here to where it
