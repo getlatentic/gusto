@@ -5,7 +5,8 @@
 #
 # The first run builds the runner image on the host, about ten minutes, and keeps it in the
 # store bucket. Later runs download it. The certificate is kept there the same way.
-# INSTANCE_TYPE changes the size (m8i.2xlarge by default, $0.42 an hour), and ./demo-down.sh
+# ONLY_CONFIGURE=1 skips the host and the image and applies the configuration again to the host
+# that is up. INSTANCE_TYPE changes the size (m8i.2xlarge by default, $0.42 an hour), and ./demo-down.sh
 # removes the host.
 source "$(dirname "$0")/env.sh"
 [ -f demo.env ] || { echo "no demo.env: copy demo.env.example and fill it in" >&2; exit 2; }
@@ -19,6 +20,7 @@ for parameter in cloudflare-dns-token cloudflare-mail-token model-key deepseek-k
 done
 
 bucket="$(./demo-store.sh)"
+[[ "$bucket" =~ ^haas-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
 # What names the image: the harnesses, the Dockerfile and image/. The haas program inside it
@@ -30,14 +32,15 @@ image_key="$({ printf '%s\n' "$harnesses"; cat "$root/Dockerfile"; (cd "$root" &
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
 done)
 
-export TF_VAR_instance_type="${INSTANCE_TYPE:-m8i.2xlarge}" TF_VAR_public_https=true TF_VAR_demo_bucket="$bucket"
 started="$(date -u +%H:%M:%S)"
-./up.sh
-address="$(terraform output -raw address)"
-
-if ! aws s3api head-object --bucket "$bucket" --key "image/$image_key.tar.gz" >/dev/null 2>&1; then
-  ./image.sh runner-all-rootfs "$harnesses"
-  ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
+if [ -z "${ONLY_CONFIGURE:-}" ]; then
+  export TF_VAR_instance_type="${INSTANCE_TYPE:-m8i.2xlarge}" TF_VAR_public_https=true TF_VAR_demo_bucket="$bucket"
+  ./up.sh
+  address="$(terraform output -raw address)"
+  if ! aws s3api head-object --bucket "$bucket" --key "image/$image_key.tar.gz" >/dev/null 2>&1; then
+    ./image.sh runner-all-rootfs "$harnesses"
+    ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
+  fi
 fi
 
 mail="cloudflare://$DEMO_ACCOUNT_ID?from=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$DEMO_MAIL_FROM")"
@@ -46,4 +49,4 @@ ansible-playbook -i "$state/inventory.ini" ansible/demo.yml \
   -e demo_mail="$mail" -e demo_cert_email="$DEMO_CERT_EMAIL" -e demo_free_mail="${DEMO_FREE_MAIL:-allow}" \
   -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-platform/qwen.qwen3-vl-235b-a22b-instruct}" \
   -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}"
-echo "up since $started UTC: https://$DEMO_NAME. ./demo-down.sh removes the host, and every hour it is up costs money."
+echo "configured at $started UTC: https://$DEMO_NAME. ./demo-down.sh removes the host, and every hour it is up costs money."
