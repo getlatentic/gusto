@@ -6,7 +6,7 @@
 source "$(dirname "$0")/env.sh"
 account="$(aws sts get-caller-identity --query Account --output text)"
 bucket="haas-poc-demo-$account"
-if ! aws s3api head-bucket --bucket "$bucket" 2>/dev/null; then
+if ! aws s3api head-bucket --bucket "$bucket" >/dev/null 2>&1; then
   if [ "$AWS_REGION" = us-east-1 ]; then
     aws s3api create-bucket --bucket "$bucket" >/dev/null
   else
@@ -14,5 +14,5 @@ if ! aws s3api head-bucket --bucket "$bucket" 2>/dev/null; then
   fi
 fi
 aws s3api put-public-access-block --bucket "$bucket" \
-  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true >/dev/null
 echo "$bucket"
