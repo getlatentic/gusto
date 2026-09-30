@@ -39,7 +39,7 @@
 - name: The directories of earlier demos are removed
   ansible.builtin.command: find /mnt/efs/runs -mindepth 1 -maxdepth 1 -not -name "{{ demo_run }}" -exec rm -rf {} +
   changed_when: false
-  when: demo_role == 'orchestrator'
+  when: demo_role == 'orchestrator' and not demo_live | bool
 
 - name: The demo's directory is where the organisations' data is
   ansible.posix.mount:

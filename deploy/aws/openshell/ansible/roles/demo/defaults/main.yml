@@ -32,6 +32,16 @@ demo_cell_secret_parameter: /haas/poc/cell-secret
 demo_cell_gone_minutes: 5
 demo_cell_port: 8060
 # A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
+# The front door that stays up: no lease, what is on the file system kept, and hosts for cells started when
+# organisations need one, from the launch template demo_cell_template, tagged demo_project.
+demo_live: false
+demo_release: ""
+demo_bundle_dir: /opt/haas-bundle
+demo_cell_template: haas-poc-demo-host-cell-live
+demo_cell_max: 3
+demo_cell_idle_minutes: 10
+demo_cell_max_hours: 12
+demo_project: haas-live
 demo_visitor_minutes: 0
 demo_visitor_max: 5
 demo_book_url: ""
