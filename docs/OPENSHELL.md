@@ -198,15 +198,31 @@ organisation's own pages.
 haas shares such an app for a person. On an agent's page, "Share an app this agent built" takes the line that
 starts it and the port it listens on. The organisation's server runs the command in the agent's
 folder in the person's computer, with `PORT` and `HOST=0.0.0.0` set, gives the port an address on the
-gateway, and asks it until something answers. Only then is the link shown, at
-`/apps/<id>/` on the organisation's own address, and only signed-in members of the organisation can
-open it. The gateway's own address has no sign-in and is never given to a person: the server asks it as
-itself and passes the answer on, with the person's cookies and credentials taken out of the request.
-What comes back is treated as not this server's own. Its cookies are dropped, and it is sent with
-`Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-modals`, so the page runs
-with no origin of its own and cannot read or act on the person's session. An app that stops answering,
-and one that is stopped, no longer opens. A computer with an app people use is not stopped for being
-idle. Every agent is also given a skill, `haas-sandbox`, that says what follows.
+gateway, and asks it until something answers. Only then is the link shown, and only signed-in
+members of the organisation can open it. An app that stops answering, and one that is stopped,
+no longer opens. A computer with an app people use is not stopped for being idle. Every agent is
+also given a skill, `haas-sandbox`, that says what follows.
+
+The gateway's own address has no sign-in and is never given to a person: the server asks it as
+itself, with the person's credentials taken out of the request. The gateway also refuses a request
+whose `Origin` is not its own, which stops every form or `fetch` a browser posts, so the server passes
+a request on as from the gateway's own origin.
+
+Behind a front door each app has a host name of its own, `<organisation>--<id>.<domain>`, one label
+under the wildcard certificate, so the page an agent wrote has an origin of its own and its absolute
+paths, such as `fetch('/click')`, are its own. The first app an agent built used one, and did not work
+at a path of the organisation's address. The front door signs a header that says which app a request
+is for, and a request with it reaches nothing but that app. A person is signed in on the app's name with
+the same token that signs them in to the organisation, and a stranger is sent to the front door. What
+the app sets is its own: a cookie is kept for that host name alone, and one with the organisation's
+session name or a `__Host-` prefix is dropped. The organisation's session cookie is named `__Host-haas`
+over TLS, which a sibling host name cannot set. Checked live on 2026-09-30: an agent built a counter, it
+was shared, and its button counted through the app's own name.
+
+On a server with no front door an app is a path of the organisation's address, `/apps/<id>/`, and
+what comes back is sent with `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups
+allow-modals`, so it runs with no origin and cannot read or act on the person's session. Its links have
+to be relative there.
 
 What the app has to know about the sandbox's network:
 
