@@ -8,8 +8,13 @@ RequiresMountsFor={{ demo_state }}
 User={{ demo_user }}
 SupplementaryGroups=kvm
 WorkingDirectory={{ demo_lib }}
+EnvironmentFile=/etc/haas/org.env
 EnvironmentFile=/etc/haas/cell.env
 EnvironmentFile=/run/haas/cell.env
+# The first question asked of the image waits for the gateway to import it. It is asked here, so the cell registers,
+# and is given organisations, once the servers it starts will not wait for that.
+ExecStartPre=/usr/local/bin/haas survey
+TimeoutStartSec=900
 ExecStart=/usr/local/bin/haas cell
 Restart=on-failure
 LimitNOFILE=65536
