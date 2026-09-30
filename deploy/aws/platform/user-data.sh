@@ -22,6 +22,7 @@ if [ "$LIVE" != on ]; then
   trap 'echo "haas-bootstrap: failed, so the host powers off in 15 minutes"; systemd-run --on-active=15m --unit=haas-failed systemctl poweroff' ERR
 fi
 
+export HOME=${HOME:-/root}
 export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION PATH=$PATH:/snap/bin:/usr/local/bin
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
