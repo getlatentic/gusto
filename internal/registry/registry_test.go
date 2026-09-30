@@ -36,7 +36,7 @@ func opened(t *testing.T, rules Rules) (*Registry, string) {
 	if rules.Harnesses == nil {
 		rules.Harnesses = []string{"opencode", "claude"}
 	}
-	r, err := Open(dir, operators, rules, nil)
+	r, err := Open(dir, operators, rules, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +279,7 @@ func TestARegistryIsReadBackAsItWasKeptAndOneThatCannotBeReadIsAnErrorAndNotNoth
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
 	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1})
-	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, nil)
+	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestARegistryIsReadBackAsItWasKeptAndOneThatCannotBeReadIsAnErrorAndNotNoth
 		t.Errorf("%+v", got)
 	}
 	os.WriteFile(filepath.Join(dir, "registry.json"), []byte("{not json"), 0o600)
-	if _, err := Open(dir, operators, Rules{}, nil); err == nil {
+	if _, err := Open(dir, operators, Rules{}, false); err == nil {
 		t.Error("a file that is not a registry was read as an empty one")
 	}
 }
@@ -329,7 +329,7 @@ func TestAKeyIsReplacedWithoutChangingAnythingElse(t *testing.T) {
 
 func TestAnOrganisationCannotAddAProviderBesideAnUnnamedOne(t *testing.T) {
 	legacy := Platform{Credentials: proxy.Credentials{"": {Address: "https://models.operator.example", Key: "k"}}, Models: []string{"qwen"}}
-	r, err := Open(t.TempDir(), legacy, Rules{}, nil)
+	r, err := Open(t.TempDir(), legacy, Rules{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,12 +341,12 @@ func TestAnOrganisationCannotAddAProviderBesideAnUnnamedOne(t *testing.T) {
 
 func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShell(t *testing.T) {
 	var ran [][]string
-	source := Sources{Allowed: []string{"ssm", "file"}, Run: func(name string, args ...string) ([]byte, error) {
+	run := func(name string, args ...string) ([]byte, error) {
 		ran = append(ran, append([]string{name}, args...))
 		return []byte(" sk-from-parameter-store\n"), nil
-	}}
+	}
 	r, dir := opened(t, Rules{KeySources: []string{"ssm", "file"}})
-	r.source = source
+	r.run = run
 	if err := r.AddProvider(Give{Name: "acme", Address: "https://api.theirs.example", Reference: "ssm:/acme/model-key"}); err != nil {
 		t.Fatal(err)
 	}
@@ -369,8 +369,12 @@ func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShe
 		t.Error("a key that is read from elsewhere was copied here")
 	}
 	// A deployment that has stopped allowing a kind stops reading it, whatever was kept.
-	r.source = Sources{Allowed: nil, Run: source.Run}
-	if _, held := r.Effective().Credentials["acme"]; held {
+	stricter, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stricter.run = run
+	if _, held := stricter.Effective().Credentials["acme"]; held {
 		t.Error("a kind that is no longer allowed is still read")
 	}
 }
@@ -413,5 +417,59 @@ func TestARefusedSecondProviderOfTheSameNameDoesNotTakeTheFirstOnesKey(t *testin
 	}
 	if _, err := os.Stat(filepath.Join(dir, "keys", "acme.json")); err != nil {
 		t.Errorf("the first provider's key file is gone: %v", err)
+	}
+}
+
+func TestAnAdminWhereTheRegistryIsEditableChoosesWhatIsAllowedAndItTakesEffectAtOnce(t *testing.T) {
+	dir := t.TempDir()
+	r, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetResolver(dns(map[string]string{"api.theirs.example": "93.184.216.34", "inside.example": "10.0.4.7"}))
+	inside := Give{Name: "inside", Address: "http://inside.example:11434", Reference: "stored", Key: "k"}
+	if err := r.AddProvider(inside); err == nil {
+		t.Fatal("a private address is refused until the admin allows it")
+	}
+	if err := r.SetPolicy(Policy{PrivateAddresses: true, KeySources: []string{"ssm", "file", "ssm"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Rules(); !got.PrivateAddresses || len(got.KeySources) != 2 || got.KeySources[0] != "file" || got.Harnesses[0] != "opencode" {
+		t.Errorf("%+v", got)
+	}
+	if err := r.AddProvider(inside); err != nil {
+		t.Fatalf("the choice applies to the next change: %v", err)
+	}
+	if r.Effective().Credentials["inside"].Public {
+		t.Error("a provider at a private address is not held to public ones once that is allowed")
+	}
+	if view := r.View(); !view.Editable || !view.Private || len(view.Kinds) != 3 {
+		t.Errorf("%+v", view)
+	}
+	again, _ := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, true)
+	if !again.Rules().PrivateAddresses || again.Document().Version != 2 {
+		t.Errorf("the choice is kept: %+v %d", again.Rules(), again.Document().Version)
+	}
+	if err := r.SetPolicy(Policy{KeySources: []string{"env"}}); err == nil {
+		t.Error("a kind that is not one was accepted")
+	}
+}
+
+func TestWhereTheOperatorFixesThePolicyAnAdminCannotChangeItAndAStoredChoiceIsIgnored(t *testing.T) {
+	dir := t.TempDir()
+	editable, _ := Open(dir, operators, Rules{}, true)
+	editable.SetPolicy(Policy{PrivateAddresses: true, KeySources: []string{"file"}})
+	fixed, err := Open(dir, operators, Rules{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fixed.Rules(); got.PrivateAddresses || len(got.KeySources) != 0 {
+		t.Errorf("a file left by an editable deployment loosens a fixed one: %+v", got)
+	}
+	if err := fixed.SetPolicy(Policy{PrivateAddresses: true}); !errors.Is(err, ErrFixed) {
+		t.Errorf("%v", err)
+	}
+	if fixed.View().Editable {
+		t.Error("the page offers a choice that is not there")
 	}
 }

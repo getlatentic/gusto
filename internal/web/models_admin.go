@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -25,7 +26,8 @@ func (s *Server) hasRegistry() bool { return s.registry != nil }
 const formLimit = 16 << 10
 
 func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": "haas — models", "View": s.registry.View(), "Refused": r.URL.Query().Get("refused")}
+	view := s.registry.View()
+	page := map[string]any{"Title": "haas — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view)}
 	s.drawConsole(w, "admin-models.html", "models", page)
 }
 
@@ -63,6 +65,7 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/models/providers/{name}/retire", guard(s.registryAction(changelog.ProviderRetired, s.retireProvider)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models", guard(s.registryAction(changelog.ModelAdded, s.addModel)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/price", guard(s.registryAction(changelog.PriceSet, s.setPrice)))
+	mux.HandleFunc("POST /admin/models/policy", guard(s.registryAction(changelog.PolicySet, s.setPolicy)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, s.retireModel)))
 }
 
@@ -173,4 +176,31 @@ func priceWords(p *spend.Price) string {
 		return "none"
 	}
 	return fmt.Sprintf("$%g in, $%g out", p.InputPerMillion, p.OutputPerMillion)
+}
+
+// setPolicy is what an admin allows of providers, where the deployment leaves that to them.
+func (s *Server) setPolicy(r *http.Request) (map[string]string, error) {
+	policy := registry.Policy{PrivateAddresses: r.FormValue("private") == "on", KeySources: r.Form["keys"]}
+	if err := s.registry.SetPolicy(policy); err != nil {
+		return nil, err
+	}
+	what := map[string]string{"private": "no", "keys": strings.Join(s.registry.Rules().KeySources, ", ")}
+	if policy.PrivateAddresses {
+		what["private"] = "yes"
+	}
+	return what, nil
+}
+
+// keySource is one kind of reference a key may be named as, for the policy form.
+type keySource struct {
+	Kind, Words string
+	On          bool
+}
+
+func keySources(view registry.View) []keySource {
+	all := []keySource{{Kind: "file", Words: "a file on this machine"}, {Kind: "ssm", Words: "an AWS Parameter Store parameter"}, {Kind: "secretsmanager", Words: "an AWS Secrets Manager secret"}}
+	for i := range all {
+		all[i].On = slices.Contains(view.Kinds, all[i].Kind)
+	}
+	return all
 }

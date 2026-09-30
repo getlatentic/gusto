@@ -90,11 +90,11 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	if give.Auth != "" && give.Auth != proxy.Bearer && give.Auth != proxy.Anthropic {
 		return Provider{}, errors.New("a provider takes a bearer token or Anthropic's header")
 	}
-	if err := Check(give.Reference, r.rules.KeySources); err != nil {
+	if err := Check(give.Reference, r.Rules().KeySources); err != nil {
 		return Provider{}, err
 	}
 	for _, harness := range give.Harnesses {
-		if !slices.Contains(r.rules.Harnesses, harness) {
+		if !slices.Contains(r.Rules().Harnesses, harness) {
 			return Provider{}, fmt.Errorf("%s is not a harness this deployment has", harness)
 		}
 	}

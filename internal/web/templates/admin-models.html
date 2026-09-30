@@ -90,4 +90,20 @@
 </section>
 {{end}}
 
+{{if .View.Editable}}
+<section class="panel">
+  <h2>What providers may be</h2>
+  <p class="muted">This haas is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
+  <form method="post" action="/admin/models/policy">
+    <label class="check"><input type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
+    <fieldset class="servers"><legend class="muted">A key may be named as a reference to</legend>
+      {{range $kind := .Sources}}<label class="check"><input type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
+    </fieldset>
+    <button type="submit">Save</button>
+  </form>
+</section>
+{{else}}
+<p class="muted">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
+{{end}}
+
 {{template "foot" .}}
