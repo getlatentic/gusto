@@ -375,6 +375,15 @@ Each visitor is kept as a lead in `demos/<address>.json` in the front door's dir
 when they asked, when it was ready, whether they extended it and when it ended. The lead stays
 when the demo is gone. An address can start another demo once its first has ended.
 
+## Previewing what an agent built
+
+When a turn leaves a page in the agent's folder (an `index.html`), its message has a **Preview** button for that
+folder. It starts a small static file server, which is part of haas and needs only node, in the agent's computer on the
+first free port from 8080, and shares it the way any web app an agent built is shared: the organisation's members open
+it at an address of its own, and nobody else can. The conversation then has an **Open the app** link. An agent that
+builds a server of its own is shared from the agent's page, by the line that starts it and its port. Previews need
+sharing, which a deployment has when its agents run in computers.
+
 ## Models
 
 An organisation's admins choose the models its people may use at `/admin/models`. The page lists
