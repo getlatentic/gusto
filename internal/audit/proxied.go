@@ -17,6 +17,7 @@ type proxied struct {
 	tokens       measured[int64]
 	usd          measured[float64]
 	credentials  []string
+	registries   []int64
 	refused      int
 	hostsReached []string
 	hostsDenied  []string
@@ -25,6 +26,7 @@ type proxied struct {
 func proxyCounts(lines []any) proxied {
 	counts := proxied{}
 	credentials, reached, denied := set{}, set{}, set{}
+	registries := map[int64]bool{}
 	for _, line := range lines {
 		call, _ := line.(map[string]any)
 		switch {
@@ -38,16 +40,21 @@ func proxyCounts(lines []any) proxied {
 		case present(call["refused"]):
 			counts.refused++
 		default:
-			counts.modelCall(call, credentials)
+			counts.modelCall(call, credentials, registries)
 		}
 	}
 	counts.credentials = credentials.sorted()
+	counts.registries = []int64{}
+	for version := range registries {
+		counts.registries = append(counts.registries, version)
+	}
+	sort.Slice(counts.registries, func(i, j int) bool { return counts.registries[i] < counts.registries[j] })
 	counts.hostsReached, counts.hostsDenied = reached.sorted(), denied.sorted()
 	return counts
 }
 
 // modelCall counts a call that left the box for the model.
-func (p *proxied) modelCall(call map[string]any, credentials set) {
+func (p *proxied) modelCall(call map[string]any, credentials set, registries map[int64]bool) {
 	p.calls++
 	p.bytes += integer(call["bytes"])
 	p.tokens.add(call["inputTokens"], json.Number.Int64)
@@ -55,6 +62,9 @@ func (p *proxied) modelCall(call map[string]any, credentials set) {
 	p.usd.add(call["usd"], json.Number.Float64)
 	if name, ok := call["credential"].(string); ok {
 		credentials.add(name)
+	}
+	if version := integer(call["registry"]); version > 0 {
+		registries[version] = true
 	}
 }
 

@@ -207,6 +207,7 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"HAAS_QUOTA":        c.Store.QuotaFile(slug),
 		"HAAS_MEMBERS":      c.Store.RosterFile(slug),
 		"HAAS_ORG_SETTINGS": filepath.Join(data, "settings.json"),
+		"HAAS_REGISTRY":     filepath.Join(data, "registry"),
 		"HAAS_INBOX":        c.Store.InboxDir(slug),
 		"HAAS_ENTRY_KEY":    c.entryKeyFile(slug),
 		"HAAS_ORG":          slug,

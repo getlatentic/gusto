@@ -72,7 +72,7 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 // and skill set for whoever wants to choose them.
 func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 	var ready []catalog.Entry
-	for _, entry := range s.catalog {
+	for _, entry := range s.entries() {
 		if entry.Ready {
 			ready = append(ready, entry)
 		}

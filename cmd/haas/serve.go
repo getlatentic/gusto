@@ -132,7 +132,7 @@ func serve(args []string) int {
 	if identity.Configured() {
 		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
 	}
-	pages, err := web.New(index, instances, queue, password, identity, offered, offeredModels(way.credentials, values("HAAS_MODELS"), harness.Names()))
+	pages, err := web.New(index, instances, queue, password, identity, offered, offeredModels(way.credentials(), values("HAAS_MODELS"), harness.Names()))
 	if err != nil {
 		return fail(err)
 	}
@@ -144,6 +144,13 @@ func serve(args []string) int {
 	}
 	if path := os.Getenv("HAAS_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)
+	}
+	reg, offeredNow, err := openRegistry(way, func() { pages.UseInBuilding(way.InBuilding()) })
+	if err != nil {
+		return fail(err)
+	}
+	if reg != nil {
+		pages.UseRegistry(reg, offeredNow)
 	}
 	pages.UseLedger(way.ledger)
 	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})

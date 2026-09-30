@@ -112,7 +112,19 @@ func NewLedger(policy Policy) *Ledger {
 }
 
 // Policy is the prices and team caps this ledger counts with.
-func (l *Ledger) Policy() Policy { return l.policy }
+func (l *Ledger) Policy() Policy {
+	l.guard.Lock()
+	defer l.guard.Unlock()
+	return l.policy
+}
+
+// SetPrices changes what the ledger prices a model at, from the next call on. Calls it has counted keep
+// the cost they were written with. The map is kept, not copied, so it is not written to afterwards.
+func (l *Ledger) SetPrices(prices map[string]Price) {
+	l.guard.Lock()
+	defer l.guard.Unlock()
+	l.policy.Prices = prices
+}
 
 // Begin records a job's terms. A job run again keeps what it already spent,
 // because its evidence still holds those calls.
