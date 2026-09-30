@@ -38,7 +38,7 @@ mkdir -p "$HAAS_LE/live/$name"; echo "VALID issued" > "$HAAS_LE/live/$name/fullc
 	"haas-dns": `#!/bin/bash
 echo "haas-dns $*" >> "$FAKE_LOG"`,
 	"curl": `#!/bin/bash
-case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *) exit 22;; esac`,
+case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *local-ipv4*) echo 10.0.7.21;; *instance-id*) echo i-0abc123def4567890;; *) exit 22;; esac`,
 	"credentials.sh": `#!/bin/bash
 echo "credentials $BEDROCK_PARAMETER $DEEPSEEK_PARAMETER $1" >> "$FAKE_LOG"
 mkdir -p "$1"; echo '{}' > "$1/platform.json"`,
@@ -66,6 +66,7 @@ func newHost(t *testing.T) *host {
 		"AWS_REGION=us-east-1", "NAME=agentcloud.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
 		"DNS_TOKEN_PARAMETER=/haas/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/haas/poc/cloudflare-mail-token",
 		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
+		"CELL_SECRET_PARAMETER=/haas/poc/cell-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"HAAS_CONF="+h.conf, "HAAS_RUN="+filepath.Join(dir, "run"), "HAAS_LE="+filepath.Join(dir, "le"), "HAAS_LIB="+filepath.Join(dir, "lib"),

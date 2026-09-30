@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getlatentic/haas/internal/cloud"
 )
@@ -87,9 +88,13 @@ func TestTheFrontDoorHasNoPoolUntilItIsToldWhereCellsRegisterAndIsThisMachineACe
 	if err != nil || pool.Local != nil || pool.MinFreeMiB != 4096 {
 		t.Fatalf("%+v %v", pool, err)
 	}
+	if pool.GoneAfter != 30*time.Minute {
+		t.Errorf("a cell is gone after half an hour unless it is said otherwise: %s", pool.GoneAfter)
+	}
 	t.Setenv("HAAS_CLOUD_LOCAL_CELL", "on")
 	t.Setenv("HAAS_CLOUD_CELL_MIN_FREE_MIB", "6000")
-	if pool, _ := cellPool(local); pool.Local != local || pool.MinFreeMiB != 6000 {
+	t.Setenv("HAAS_CLOUD_CELL_GONE_MINUTES", "5")
+	if pool, _ := cellPool(local); pool.Local != local || pool.MinFreeMiB != 6000 || pool.GoneAfter != 5*time.Minute {
 		t.Errorf("%+v", pool)
 	}
 }

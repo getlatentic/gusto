@@ -5,24 +5,46 @@
 # nothing here has an AWS credential. A host with no lease file yet, and time left, is left
 # alone: the start-up script writes it, and a host that never gets one meets the limit.
 #
-# HAAS_LEASE_FILE, HAAS_NOW and HAAS_UPTIME move what it reads, and HAAS_CONF where the
+# A cell has no lease of its own. It works for a front door, which says every few seconds that it is
+# there, and a cell that has not heard it for BEAT_STALE_SECONDS powers off, once it has been up long
+# enough for the front door to have been started (BEAT_GRACE_SECONDS).
+#
+# HAAS_LEASE_FILE, HAAS_BEAT_FILE, HAAS_NOW and HAAS_UPTIME move what it reads, and HAAS_CONF where the
 # limit is kept, which is how a test runs it.
 set -euo pipefail
 # shellcheck disable=SC1090
 . "${HAAS_CONF:-/etc/haas/demo.conf}"
-lease=${HAAS_LEASE_FILE:-/var/lib/haas-cloud/lease.json}
+lease=${HAAS_LEASE_FILE:-/var/lib/haas/lease.json}
+beat=${HAAS_BEAT_FILE:-/var/lib/haas-cloud/cells/orchestrator.beat}
 now=${HAAS_NOW:-$(date +%s)}
 uptime=${HAAS_UPTIME:-$(cut -d. -f1 /proc/uptime)}
+stale=${BEAT_STALE_SECONDS:-300}
+grace=${BEAT_GRACE_SECONDS:-900}
+
+lease_over() {
+  local deadline
+  [ -e "$lease" ] || return 1
+  if deadline=$(python3 -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["deadline"]))' "$lease" 2>/dev/null); then
+    [ "$now" -ge "$deadline" ] && echo "its lease ended"
+  else
+    echo "its lease file is not a lease"
+  fi
+}
+
+front_door_gone() {
+  local seen
+  [ "$uptime" -ge "$grace" ] || return 0
+  seen=$(python3 -c 'import os,sys; print(int(os.path.getmtime(sys.argv[1])))' "$beat" 2>/dev/null || echo 0)
+  [ $((now - seen)) -lt "$stale" ] || echo "the front door has not been heard from for ${stale} s"
+}
 
 why=""
 if [ "$uptime" -ge $((MAX_HOURS * 3600)) ]; then
   why="it has been up ${uptime} s, the most any host may be"
-elif [ -e "$lease" ]; then
-  if deadline=$(python3 -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["deadline"]))' "$lease" 2>/dev/null); then
-    if [ "$now" -ge "$deadline" ]; then why="its lease ended"; fi
-  else
-    why="its lease file is not a lease"
-  fi
+elif [ "${ROLE:-all}" = cell ]; then
+  why=$(front_door_gone)
+else
+  why=$(lease_over || true)
 fi
 if [ -n "$why" ]; then
   echo "haas-lease: $why, so the host is powering off"
