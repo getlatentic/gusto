@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -161,4 +162,36 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 	w.Header().Set("Cache-Control", "no-store")
 	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.Store.set.Demo.BookURL)
 	return true
+}
+
+// landing is what a visitor sees first where a demo is offered: what haas is, the video if there is one, and where
+// to start a demo or book a call.
+func (s *Server) landing(w http.ResponseWriter) {
+	demo := s.Store.set.Demo
+	page := view{Title: "haas", DemoLeft: demo.Length, Book: demo.BookURL}
+	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+	if video, file, frame := videoOf(demo.VideoURL); video != "" {
+		page.Video, page.VideoFile = video, file
+		if file {
+			csp += "; media-src 'self' https:"
+		} else {
+			csp += "; frame-src " + frame
+		}
+	}
+	w.Header().Set("Content-Security-Policy", csp)
+	s.render(w, http.StatusOK, "landing", page)
+}
+
+// videoOf is the video to show for an address, whether it is a file, and the origin a page for it is embedded from. An
+// address that is not https is not shown.
+func videoOf(address string) (video string, file bool, origin string) {
+	parsed, err := url.Parse(strings.TrimSpace(address))
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+		return "", false, ""
+	}
+	path := strings.ToLower(parsed.Path)
+	if strings.HasSuffix(path, ".mp4") || strings.HasSuffix(path, ".webm") {
+		return parsed.String(), true, ""
+	}
+	return parsed.String(), false, parsed.Scheme + "://" + parsed.Host
 }

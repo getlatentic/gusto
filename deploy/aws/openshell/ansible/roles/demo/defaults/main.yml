@@ -47,3 +47,5 @@ demo_project: haas-live
 demo_visitor_minutes: 0
 demo_visitor_max: 5
 demo_book_url: ""
+# An https address of a video file, or of a page that may be embedded, which the landing page shows.
+demo_video_url: ""

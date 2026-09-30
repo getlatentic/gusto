@@ -19,6 +19,7 @@ print(json.dumps({
     "demo_visitor_minutes": int(os.environ.get("DEMO_VISITOR_MINUTES", "0")),
     "demo_visitor_max": int(os.environ.get("DEMO_VISITOR_MAX", "5")),
     "demo_book_url": os.environ.get("DEMO_BOOK_URL", ""),
+    "demo_video_url": os.environ.get("DEMO_VIDEO_URL", ""),
 }))
 PY
 )"

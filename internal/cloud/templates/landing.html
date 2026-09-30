@@ -1,0 +1,75 @@
+{{define "landing"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>haas — coding agents for your whole team, in computers of their own</title>
+<meta name="description" content="Give every person on your team coding agents that work in a sandboxed computer of their own, under rules you set. Try it for {{minutes .DemoLeft}}.">
+<link rel="icon" href="{{asset "/static/mark.png"}}">
+<link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
+<link rel="stylesheet" href="{{own "/static/landing.css"}}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> haas</a>
+  <nav>
+    <a href="#how">How it works</a>
+    <a href="#control">What you control</a>
+    {{if .Book}}<a href="{{.Book}}">Book a call</a>{{end}}
+    <a class="cta small" href="/demo">Try it</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero">
+  <h1>Coding agents for your whole team, in computers of their own</h1>
+  <p class="lede">Each person gets agents that work in a sandboxed computer, on your repositories, with the models you choose. You set who may use what, see what it costs, and keep a signed record of what every agent did.</p>
+  <div class="actions">
+    <a class="cta" href="/demo">Start a {{minutes .DemoLeft}} demo</a>
+    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a call</a>{{end}}
+  </div>
+  <p class="fine">No sign-up to finish. Your demo organisation, its computers and everything in it are deleted when the time is up.</p>
+</section>
+
+{{if .Video}}
+<section class="video" aria-label="The demo in two minutes">
+  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"></video>
+  {{else}}<iframe src="{{.Video}}" title="haas in two minutes" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
+</section>
+{{end}}
+
+<section id="how" class="steps">
+  <h2>What the demo shows</h2>
+  <ol>
+    <li><h3>Start</h3><p>Give a name, a work email and your company. You land in an organisation of your own, signed in. The first demo of the hour takes a few minutes while a machine starts, and your time begins when it is ready.</p></li>
+    <li><h3>Ask an agent</h3><p>Start an agent in your computer, pick a model, and ask it for something. It works in a sandbox that can reach the models and nothing else you have not allowed.</p></li>
+    <li><h3>See the admin side</h3><p>Open the console: people and roles, what has been spent, which models are allowed and what each costs, and who may use which.</p></li>
+  </ol>
+</section>
+
+<section id="control" class="points">
+  <h2>What you control</h2>
+  <ul>
+    <li><h3>A computer for each person</h3><p>Every person's agents run in a virtual machine of their own. One person's work cannot reach another's.</p></li>
+    <li><h3>Your models, your keys</h3><p>Choose the models your organisation may use and what each costs. Keys stay outside the sandbox, added on the way out and never shown to an agent.</p></li>
+    <li><h3>Limits that hold</h3><p>Cap what a job or a team may spend, limit a person to some models, and set how many computers and jobs an organisation may run.</p></li>
+    <li><h3>A record you can check</h3><p>Every job leaves a signed record of what was asked, what ran and what it cost, which anybody can verify later.</p></li>
+  </ul>
+</section>
+
+<section class="close">
+  <h2>See it on your own work</h2>
+  <p>Thirty minutes is enough to start an agent on a real task. If it fits, a call is the next step.</p>
+  <div class="actions">
+    <a class="cta" href="/demo">Start a demo</a>
+    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a call</a>{{end}}
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>We keep the name, email and company you give so that we can follow up about the demo. Nothing else from it is kept. <a href="/signin">Sign in</a></p>
+</footer>
+</body>
+</html>
+{{end}}

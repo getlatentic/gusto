@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/haas/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css
+//go:embed templates/*.html static/cloud.css static/landing.css
 var files embed.FS
 
 // Config is what a front door is made from.
@@ -102,6 +102,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /signup", s.signUpPage)
 	mux.HandleFunc("POST /signup", s.signUp)
 	mux.HandleFunc("GET /signin", s.signInPage)
 	mux.HandleFunc("POST /signin", s.signIn)
@@ -127,6 +128,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/landing.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/", web.Static())
 	return s.secure(mux)
 }
