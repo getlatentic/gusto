@@ -151,3 +151,23 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 	}
 	return nil
 }
+
+// A host that removes itself warns on every page, and the warning links to where it is extended, which
+// is the front door. A server that is not behind one has nowhere to send a person, and carries no script.
+func TestAnOrganisationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
+	behind := behindAFrontDoor(t)
+	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
+	page := behind.ask(t, "GET", "/", nil).Body.String()
+	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease"`) {
+		t.Errorf("the page does not warn of the end of the host:\n%s", page[:min(len(page), 900)])
+	}
+	if script := behind.ask(t, "GET", "/static/lease.js", nil); script.Code != http.StatusOK || !strings.Contains(script.Body.String(), "/.haas/lease") {
+		t.Errorf("the script is not served: %d", script.Code)
+	}
+
+	alone := open(t)
+	alone.signIn(t)
+	if page := alone.ask(t, "GET", "/", nil).Body.String(); strings.Contains(page, "lease.js") {
+		t.Error("a server with no front door carries the script")
+	}
+}

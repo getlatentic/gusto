@@ -64,3 +64,13 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 	s.noteSignIn(r, claims.Email, role, "the front door")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
+// leaseExtend is where a person extends the host this organisation runs on, or nothing
+// when the server is not behind a front door. The page asks the host, and the host says
+// whether it has a lease, so the script is harmless on one that has none.
+func (s *Server) leaseExtend() string {
+	if s.front == nil {
+		return ""
+	}
+	return s.front.URL + "/lease"
+}

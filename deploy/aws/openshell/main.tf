@@ -97,13 +97,15 @@ resource "aws_iam_instance_profile" "spike" {
 }
 
 resource "aws_instance" "spike" {
-  ami                    = data.aws_ssm_parameter.ubuntu.value
-  instance_type          = var.instance_type
-  key_name               = aws_key_pair.spike.key_name
-  iam_instance_profile   = aws_iam_instance_profile.spike.name
-  vpc_security_group_ids = [aws_security_group.spike.id]
-  tags                   = local.tags
-  volume_tags            = local.tags
+  ami                  = data.aws_ssm_parameter.ubuntu.value
+  instance_type        = var.instance_type
+  key_name             = aws_key_pair.spike.key_name
+  iam_instance_profile = aws_iam_instance_profile.spike.name
+  # A host that powers itself off is removed by that, and its disk with it.
+  instance_initiated_shutdown_behavior = var.self_terminate ? "terminate" : "stop"
+  vpc_security_group_ids               = [aws_security_group.spike.id]
+  tags                                 = local.tags
+  volume_tags                          = local.tags
 
   cpu_options {
     nested_virtualization = "enabled"
