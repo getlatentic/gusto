@@ -12,6 +12,14 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
+	if s.demoOffered() {
+		s.landing(w)
+		return
+	}
+	s.signUpPage(w, r)
+}
+
+func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, http.StatusOK, "signup", view{Title: "Create your organisation"})
 }
 

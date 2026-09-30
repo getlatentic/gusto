@@ -25,6 +25,8 @@ type DemoSettings struct {
 	BookURL string
 	// Limits is what a demo may run.
 	Limits quota.Quota
+	// VideoURL is a video the landing page shows: a file (.mp4 or .webm) or a page that may be embedded, at https.
+	VideoURL string
 	// PerDay is the most demos started in a day, in all, which bounds what a day of demos can cost. Zero is no limit.
 	PerDay int
 }

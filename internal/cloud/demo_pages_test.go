@@ -186,3 +186,69 @@ func TestDemosAreLimitedInNumberAndAVisitorOverTheLimitIsToldToBookACall(t *test
 	}
 	f.server.Wait()
 }
+
+func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
+	t.Helper()
+	f := newFront(t, set, nil)
+	return f.browser().do("GET", "/", nil, nil)
+}
+
+func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
+	status, page, header := landingAt(t, demoSet)
+	for _, want := range []string{"coding agents for your whole team", `href="/demo"`, "Start a 30 minutes demo", `href="https://cal.example/haas"`, "What the demo shows", "What you control", `rel="stylesheet" href="/static/landing.css`} {
+		if !strings.Contains(strings.ToLower(page), strings.ToLower(want)) {
+			t.Errorf("the landing page does not say %q", want)
+		}
+	}
+	if status != http.StatusOK || strings.Contains(page, "<video") || strings.Contains(page, "<iframe") {
+		t.Errorf("%d: there is no video to show", status)
+	}
+	if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
+		t.Errorf("a landing page with no video opens nothing up: %s", csp)
+	}
+	f := newFront(t, demoSet, nil)
+	if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organisation") {
+		t.Errorf("sign-up is still there: %d", status)
+	}
+	if status, css, _ := f.browser().do("GET", "/static/landing.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".hero") {
+		t.Errorf("its stylesheet is served: %d", status)
+	}
+	if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organisation") {
+		t.Errorf("a host that offers no demo still has the sign-up page at the front: %d", status)
+	}
+}
+
+func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsAndNeverAnAddressThatIsNotHttps(t *testing.T) {
+	for name, tc := range map[string]struct {
+		video     string
+		tag, csp  string
+		notInPage string
+	}{
+		"a file":          {"https://media.example/haas.mp4", "<video", "media-src 'self' https:", "<iframe"},
+		"a page to embed": {"https://www.loom.com/embed/abc123", "<iframe", "frame-src https://www.loom.com", "<video"},
+	} {
+		set := demoSet
+		set.Demo.VideoURL = tc.video
+		_, page, header := landingAt(t, set)
+		if !strings.Contains(page, tc.tag) || !strings.Contains(page, tc.video) || strings.Contains(page, tc.notInPage) || !strings.Contains(header.Get("Content-Security-Policy"), tc.csp) {
+			t.Errorf("%s:\n%s\n%s", name, header.Get("Content-Security-Policy"), page)
+		}
+	}
+	for _, bad := range []string{"http://media.example/haas.mp4", "javascript:alert(1)", "//media.example/x.mp4", "https://user:pw@media.example/x.mp4", "not a url"} {
+		set := demoSet
+		set.Demo.VideoURL = bad
+		_, page, header := landingAt(t, set)
+		if strings.Contains(page, "<video") || strings.Contains(page, "<iframe") || strings.Contains(header.Get("Content-Security-Policy"), "frame-src") {
+			t.Errorf("%q was shown", bad)
+		}
+	}
+}
+
+func TestASignedInVisitorIsSentToTheirOrganisationAndNotShownTheLandingPage(t *testing.T) {
+	f := demoFront(t)
+	b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
+	if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		t.Errorf("%d %v", status, header)
+	}
+	f.server.Wait()
+}
