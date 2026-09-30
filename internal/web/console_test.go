@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/retention"
+	"github.com/getlatentic/haas/internal/roster"
 )
 
 const boss = "boss@example.com"
@@ -22,13 +23,18 @@ func everything(t *testing.T) *tokened {
 	t.Helper()
 	here := withTokens(t)
 	here.server.UseRetention(t.TempDir(), retention.Policy{})
+	list := filepath.Join(t.TempDir(), "members.json")
+	if err := roster.Write(list, roster.Roster{}); err != nil {
+		t.Fatal(err)
+	}
+	here.server.UseRoster(list)
 	here.server.UseAdmins([]string{boss})
 	return here
 }
 
 var consoleReads = []string{
 	"/admin", "/admin/spending", "/admin/activity", "/admin/activity.jsonl",
-	"/admin/tokens", "/admin/retention", "/admin/skill-sets",
+	"/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/people",
 }
 
 var consoleWrites = []string{
@@ -88,7 +94,7 @@ func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 			t.Errorf("a plain server does not list %s: %s", want, seen)
 		}
 	}
-	for _, not := range []string{"/admin/activity", "/admin/tokens", "/admin/retention"} {
+	for _, not := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/people"} {
 		if strings.Contains(seen, not) {
 			t.Errorf("a plain server lists %s, which it has nothing behind: %s", not, seen)
 		}
@@ -96,12 +102,12 @@ func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 
 	full := everything(t).as(t, boss)
 	seen = sectionsOf(t, full.ask(t, "GET", "/admin", nil).Body.String())
-	for _, want := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/spending"} {
+	for _, want := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/spending", "/admin/people"} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("a full server does not list %s: %s", want, seen)
 		}
 	}
-	if strings.Contains(seen, "Policy") || strings.Contains(seen, "People") {
+	if strings.Contains(seen, "Policy") {
 		t.Errorf("the console lists a section that has no page: %s", seen)
 	}
 }
@@ -130,7 +136,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin", "/admin/spending", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/activity"} {
+	for _, path := range []string{"/admin", "/admin/spending", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/activity", "/admin/people"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to haas") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)

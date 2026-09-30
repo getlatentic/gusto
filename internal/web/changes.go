@@ -198,6 +198,7 @@ type row struct {
 }
 
 func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
+	s.TakeInbox()
 	page := map[string]any{"Title": "haas — activity", "Shown": shownChanges}
 	if file, err := os.Open(s.changes.Path()); err == nil {
 		report, verr := changelog.Verify(file, s.keyring)
@@ -282,6 +283,12 @@ func saidOf(e changelog.Event) string {
 	case changelog.Swept:
 		return fmt.Sprintf("retention removed %s workspaces and %s records, freeing %s bytes%s",
 			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
+	case changelog.MemberInvited:
+		return fmt.Sprintf("invited %s to join as a %s", w["email"], or(w["role"], "runner"))
+	case changelog.MemberRole:
+		return fmt.Sprintf("changed the role of %s from %s to %s", w["email"], or(w["was"], "none"), or(w["now"], "none"))
+	case changelog.MemberRemoved:
+		return fmt.Sprintf("removed %s, who was %s", w["email"], or(w["role"], "a member"))
 	case changelog.ServerStarted:
 		return "the server started"
 	case changelog.SettingsChanged:

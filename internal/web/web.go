@@ -46,9 +46,15 @@ type Server struct {
 	publishing sync.WaitGroup
 	ledger     *spend.Ledger
 	keyring    signing.Keyring
-	// front is set when this server is one organisation's in a hosted haas.
-	front  *frontDoor
-	admins map[string]bool
+	// front is set when this server is one organisation's in a hosted haas, and
+	// then rosterPath is the list of its people that the front door writes, and
+	// inbox is where the front door leaves what its admins did, for the change
+	// record.
+	front      *frontDoor
+	rosterPath string
+	inbox      string
+	taking     sync.Mutex
+	admins     map[string]bool
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes   *changelog.Log
