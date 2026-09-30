@@ -86,9 +86,13 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "this work has to stay in your network, and no model here is")
 		return
 	}
+	if s.limitedAway(r, chosen) {
+		s.turnAway(w, r, back, "you may not use any model that works with "+chosen)
+		return
+	}
 	wanted := instance.Instance{
 		Title:   held.Title,
-		Harness: chosen, Model: s.offered().First(chosen), Setup: held.Name,
+		Harness: chosen, Model: s.offeredTo(r).First(chosen), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}
 	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)
