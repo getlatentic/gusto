@@ -148,3 +148,27 @@ func TestAHarnessIsOnlyOfferedModelsInTheShapeItSpeaks(t *testing.T) {
 		t.Errorf("codex is offered %v", got)
 	}
 }
+
+// A harness that no credential serves is offered nothing. It used to have no entry at all, and a
+// harness with no entry is offered everything, so on a host whose one model was served to
+// OpenCode alone, Claude Code was offered that model and failed on its first message.
+func TestAHarnessNoCredentialServesIsOfferedNoModelAndNotEveryModel(t *testing.T) {
+	credentials := proxy.Credentials{
+		"platform":  {Name: "platform", Address: "https://one.invalid", Harnesses: []string{"opencode"}},
+		"anthropic": {Name: "anthropic", Address: "https://two.invalid/anthropic", Auth: proxy.Anthropic, Harnesses: []string{"claude"}},
+	}
+	offered := offeredModels(credentials, []string{"platform/qwen"}, []string{"opencode", "claude"})
+
+	if got := offered.For("claude"); len(got) != 0 {
+		t.Errorf("claude is offered %v, and nothing here serves it", got)
+	}
+	if got := offered.First("claude"); got != "" {
+		t.Errorf("claude would be started on %q", got)
+	}
+	if offered.Serves("claude") {
+		t.Error("claude cannot be given a model here")
+	}
+	if got := offered.For("opencode"); len(got) != 1 || got[0] != "platform/qwen" || !offered.Serves("opencode") {
+		t.Errorf("opencode is offered %v", got)
+	}
+}

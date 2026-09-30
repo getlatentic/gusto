@@ -169,6 +169,22 @@ func (s *Store) List() []Instance {
 	return all
 }
 
+// SetModel points an instance at another model, from its next turn.
+func (s *Store) SetModel(id, model string) error {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	held, found := s.held[id]
+	if !found {
+		return fmt.Errorf("no instance called %s", id)
+	}
+	held.Model = model
+	if err := s.write(held); err != nil {
+		return err
+	}
+	s.held[id] = held
+	return nil
+}
+
 func (s *Store) write(held Instance) error {
 	return writeJSON(filepath.Join(s.Dir(held.ID), "instance.json"), held)
 }

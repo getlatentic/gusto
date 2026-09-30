@@ -17,6 +17,7 @@ import (
 )
 
 var helpers = template.FuncMap{
+	"modelName": modelName,
 	// dict passes more than one value to a template defined in another, which
 	// html/template has no literal for.
 	"dict": func(pairs ...any) map[string]any {

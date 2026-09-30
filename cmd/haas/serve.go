@@ -332,6 +332,9 @@ func offeredModels(credentials proxy.Credentials, models, harnesses []string) we
 	}
 	offered := web.Models{"": models}
 	for _, name := range harnesses {
+		// An entry of its own, empty when no model suits it, so that a harness nothing
+		// serves is not offered every model as one with no entry is.
+		offered[name] = []string{}
 		speaks := "openai"
 		if adapter, err := harness.Load("", name); err == nil && adapter.Speaks != "" {
 			speaks = adapter.Speaks
