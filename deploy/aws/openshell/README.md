@@ -126,7 +126,8 @@ e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with job
 e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
 put-key.sh, put-cloudflare.sh                    store a model's key, and the two Cloudflare tokens, in Parameter Store
 demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
-demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS and the test of the boot script, the role
+demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS, the tests of the boot script and the lease reaper, the role
+demo-sweep.sh                                    terminates a demo host that has been up longer than any may be
 e2e-cloud.sh, e2e/cloud/                         the front door driven through its pages, on a real model
 e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two harnesses in one sandbox, a shared app, many sandboxes
 harnesses.sh, e2e/credentials.sh                 the harness list and the proxy's credentials, shared by the runs
@@ -166,6 +167,15 @@ Each demo:
 ./demo-up.sh            # about 15 minutes the first time and fewer after
 ./demo-down.sh          # removes the DNS records and the host, and says if anything is left
 ```
+
+A demo host removes itself. When it starts it writes a lease, `DEMO_LEASE_MINUTES` long
+(thirty by default), and a timer on the host powers it off when the lease ends. The instance is
+launched to terminate on shutdown, so the power-off removes it and its disk, and the host needs no
+AWS credential to do it. A person signed in at `https://<name>/lease` can add thirty minutes at a time,
+and every page shows a banner for the last five minutes with a link to that page. No extension passes
+`DEMO_MAX_HOURS` (four by default), and a host that has been up that long goes whatever its lease says.
+`demo-sweep.sh` is the backstop from somewhere that is not the host: it terminates anything tagged
+`haas-poc` that has been up more than `MAX_HOURS` (six by default).
 
 The DNS token is limited to the zone's DNS records. The mail token can send mail and
 nothing else. Both stay in Parameter Store, and the host reads them with its own role.

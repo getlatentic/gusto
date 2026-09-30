@@ -48,6 +48,12 @@
     dest: /usr/local/lib/haas/credentials.sh
     mode: "0755"
 
+- name: The script that powers the host off when its lease ends
+  ansible.builtin.copy:
+    src: haas-lease-reaper
+    dest: /usr/local/bin/haas-lease-reaper
+    mode: "0755"
+
 - name: The script that runs when the host starts
   ansible.builtin.copy:
     src: haas-boot
@@ -70,7 +76,7 @@
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
     mode: "0644"
-  loop: [haas-boot.service, haas-cloud.service]
+  loop: [haas-boot.service, haas-cloud.service, haas-lease.service, haas-lease.timer]
   notify: Restart the front door
 
 - name: The web server's site
@@ -94,6 +100,13 @@
   ansible.builtin.systemd:
     name: haas-boot
     state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: The lease is watched
+  ansible.builtin.systemd:
+    name: haas-lease.timer
+    state: started
     enabled: true
     daemon_reload: true
 

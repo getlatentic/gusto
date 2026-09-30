@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Runs as root every 30 seconds. It powers the host off when its lease has ended, when the
+# lease file is not a lease, or when the host has been up as long as any host may be, whatever
+# the lease says. An instance launched to terminate on shutdown is removed by that, so
+# nothing here has an AWS credential. A host with no lease file yet, and time left, is left
+# alone: the start-up script writes it, and a host that never gets one meets the limit.
+#
+# HAAS_LEASE_FILE, HAAS_NOW and HAAS_UPTIME move what it reads, and HAAS_CONF where the
+# limit is kept, which is how a test runs it.
+set -euo pipefail
+# shellcheck disable=SC1090
+. "${HAAS_CONF:-/etc/haas/demo.conf}"
+lease=${HAAS_LEASE_FILE:-/var/lib/haas-cloud/lease.json}
+now=${HAAS_NOW:-$(date +%s)}
+uptime=${HAAS_UPTIME:-$(cut -d. -f1 /proc/uptime)}
+
+why=""
+if [ "$uptime" -ge $((MAX_HOURS * 3600)) ]; then
+  why="it has been up ${uptime} s, the most any host may be"
+elif [ -e "$lease" ]; then
+  if deadline=$(python3 -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["deadline"]))' "$lease" 2>/dev/null); then
+    if [ "$now" -ge "$deadline" ]; then why="its lease ended"; fi
+  else
+    why="its lease file is not a lease"
+  fi
+fi
+if [ -n "$why" ]; then
+  echo "haas-lease: $why, so the host is powering off"
+  systemctl poweroff
+fi
