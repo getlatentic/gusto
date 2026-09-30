@@ -73,7 +73,8 @@ jobs:
             --query 'Reservations[0].Instances[0].InstanceId' --output text)"
           if [ -z "$id" ] || [ "$id" = None ]; then echo "no front door is up, so there is nothing to upgrade"; exit 0; fi
           # What the host was started with is kept in /etc/haas/live.env, and the script in the bundle it has.
-          command="set -a; . /etc/haas/live.env; set +a; RELEASE=$GITHUB_SHA bash /opt/haas-bundle/user-data.sh"
+          # A command sent over SSM has no home directory, which the AWS command needs.
+          command="export HOME=/root; set -a; . /etc/haas/live.env; set +a; RELEASE=$GITHUB_SHA bash /opt/haas-bundle/user-data.sh"
           run="$(aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$id" \
             --parameters "commands=[\"$command\"]" --query Command.CommandId --output text)"
           for _ in $(seq 1 60); do
