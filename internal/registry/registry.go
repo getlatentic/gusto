@@ -43,9 +43,17 @@ type Model struct {
 // Full is the name a job asks for: the provider, then the model.
 func (m Model) Full() string { return m.Provider + "/" + m.Name }
 
+// Policy is what an admin has chosen to allow, for a deployment where the admin is the operator.
+type Policy struct {
+	PrivateAddresses bool     `json:"privateAddresses,omitempty"`
+	KeySources       []string `json:"keySources,omitempty"`
+}
+
 // Document is what is kept.
 type Document struct {
-	Version   int64      `json:"version"`
+	Version int64 `json:"version"`
+	// Policy is set once an admin has chosen. It is used only where the registry is editable.
+	Policy    *Policy    `json:"policy,omitempty"`
 	Providers []Provider `json:"providers"`
 	Models    []Model    `json:"models"`
 }
@@ -58,7 +66,9 @@ type Platform struct {
 	Prices map[string]spend.Price
 }
 
-// Rules are what an organisation's admin may and may not do, which the operator sets.
+// Rules are what an organisation's admin may and may not do. The operator sets them, and where the registry is
+// editable, which is a deployment for one company whose admin is its operator, an admin changes the two that are
+// about trust from the console.
 type Rules struct {
 	// Harnesses are the names a provider may be said to serve.
 	Harnesses []string
@@ -78,7 +88,8 @@ type Registry struct {
 	keys     string
 	platform Platform
 	rules    Rules
-	source   Source
+	editable bool
+	run      func(name string, args ...string) ([]byte, error)
 	resolve  Resolver
 
 	mu       sync.Mutex
@@ -88,10 +99,10 @@ type Registry struct {
 
 // Open is the registry kept in dir, which is empty until something is added. A file that is there and cannot
 // be read is an error and not an empty registry: a page that showed nothing would be wrong and look right.
-func Open(dir string, platform Platform, rules Rules, source Source) (*Registry, error) {
+func Open(dir string, platform Platform, rules Rules, editable bool) (*Registry, error) {
 	r := &Registry{
 		path: filepath.Join(dir, "registry.json"), keys: filepath.Join(dir, "keys"),
-		platform: platform, rules: rules, source: source, resolve: systemResolver,
+		platform: platform, rules: rules, editable: editable, resolve: systemResolver,
 	}
 	text, err := os.ReadFile(r.path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -152,4 +163,43 @@ func (r *Registry) change(make func(*Document) error) error {
 		listener(r.Effective())
 	}
 	return nil
+}
+
+// Rules are what an admin may do now: the operator's, with the two that are about trust replaced by the admin's
+// choice where the registry is editable and one has been made.
+func (r *Registry) Rules() Rules {
+	rules := r.rules
+	if !r.editable {
+		return rules
+	}
+	if chosen := r.Document().Policy; chosen != nil {
+		rules.PrivateAddresses, rules.KeySources = chosen.PrivateAddresses, slices.Clone(chosen.KeySources)
+	}
+	return rules
+}
+
+// Editable says whether the admin may change the policy.
+func (r *Registry) Editable() bool { return r.editable }
+
+// ErrFixed is a policy that the operator fixed.
+var ErrFixed = errors.New("this deployment's operator fixes that, so it is not changed here")
+
+// SetPolicy changes what an admin allows: providers at private addresses and plain http, and the kinds of
+// reference a key may be named as. Only a deployment that is not hosted allows it, since elsewhere the admin
+// is one of many and these are what keep the machine safe from them.
+func (r *Registry) SetPolicy(policy Policy) error {
+	if !r.editable {
+		return ErrFixed
+	}
+	for _, kind := range policy.KeySources {
+		if !slices.Contains([]string{"file", "ssm", "secretsmanager"}, kind) {
+			return fmt.Errorf("%q is not a place a key is read from", kind)
+		}
+	}
+	slices.Sort(policy.KeySources)
+	policy.KeySources = slices.Compact(policy.KeySources)
+	return r.change(func(d *Document) error {
+		d.Policy = &policy
+		return nil
+	})
 }

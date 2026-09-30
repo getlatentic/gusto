@@ -377,7 +377,9 @@ other organisations' servers are on too. So a provider must be at an https addre
 public address, which is checked when it is added and again each time the proxy connects, and a
 call to it is refused if it would reach this machine, a private network or a cloud's metadata
 service. `HAAS_REGISTRY_PRIVATE=allow` lifts this for a deployment that runs a model inside its
-own network. A provider whose key cannot be read is left out, with the reason, and so are its
+own network. On a server that is not behind a front door the admin is the operator, and sets this
+and the kinds of key reference on the Models page, where each change is written to the change
+record; behind a front door they are fixed by the environment and the page says so. A provider whose key cannot be read is left out, with the reason, and so are its
 models. An organisation cannot add a provider beside an operator's credential that has no name.
 
 The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and

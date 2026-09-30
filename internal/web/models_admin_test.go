@@ -19,6 +19,11 @@ import (
 // registered is a console whose organisation has a registry, and the models the forms offer as that registry comes to.
 func registered(t *testing.T, rules registry.Rules) (*tokened, *registry.Registry, *atomic.Pointer[Models]) {
 	t.Helper()
+	return registeredAs(t, rules, false)
+}
+
+func registeredAs(t *testing.T, rules registry.Rules, editable bool) (*tokened, *registry.Registry, *atomic.Pointer[Models]) {
+	t.Helper()
 	here := everything(t)
 	platform := registry.Platform{
 		Credentials: proxy.Credentials{"platform": {Name: "platform", Address: "https://models.operator.example", Key: "the-operators-key"}},
@@ -26,7 +31,7 @@ func registered(t *testing.T, rules registry.Rules) (*tokened, *registry.Registr
 		Prices:      map[string]spend.Price{"platform/qwen": {InputPerMillion: 1, OutputPerMillion: 2}},
 	}
 	rules.Harnesses = []string{"fixture", "claude"}
-	reg, err := registry.Open(t.TempDir(), platform, rules, nil)
+	reg, err := registry.Open(t.TempDir(), platform, rules, editable)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,5 +189,50 @@ func TestOnlyAnAdminReachesTheModelsPageAndAServerWithNoRegistryHasNoPage(t *tes
 	}
 	if strings.Contains(bare.as(t, boss).ask(t, "GET", "/admin", nil).Body.String(), `href="/admin/models"`) {
 		t.Error("the console lists a page there is not")
+	}
+}
+
+func TestAnAdminOfADeploymentThatIsTheirsChoosesWhatProvidersMayBeAndAHostedOneCannot(t *testing.T) {
+	here, reg, _ := registeredAs(t, registry.Rules{}, true)
+	admin := here.as(t, boss)
+	page := admin.ask(t, "GET", "/admin/models", nil).Body.String()
+	if !strings.Contains(page, `action="/admin/models/policy"`) || strings.Contains(page, " checked") {
+		t.Errorf("the form is there, with everything off:\n%s", page)
+	}
+	got := admin.ask(t, "POST", "/admin/models/policy", url.Values{"private": {"on"}, "keys": {"ssm", "file"}})
+	if got.Code != http.StatusSeeOther || strings.Contains(got.Header().Get("Location"), "refused") {
+		t.Fatalf("%d %v", got.Code, got.Header())
+	}
+	if rules := reg.Rules(); !rules.PrivateAddresses || len(rules.KeySources) != 2 {
+		t.Errorf("%+v", rules)
+	}
+	page = admin.ask(t, "GET", "/admin/models", nil).Body.String()
+	if strings.Count(page, " checked") != 3 {
+		t.Errorf("the form says what is chosen: %d checked", strings.Count(page, " checked"))
+	}
+	var said []string
+	for _, event := range written(t, here.log) {
+		if event.Kind == changelog.PolicySet {
+			said = append(said, event.What["private"]+"/"+event.What["keys"])
+		}
+	}
+	if len(said) != 1 || said[0] != "yes/file, ssm" {
+		t.Errorf("the choice is in the record of changes: %v", said)
+	}
+	if bad := admin.ask(t, "POST", "/admin/models/policy", url.Values{"keys": {"env"}}); !strings.Contains(bad.Header().Get("Location"), "refused=") {
+		t.Errorf("a kind that is not one: %v", bad.Header())
+	}
+	if runner := here.as(t, alice).ask(t, "POST", "/admin/models/policy", url.Values{"private": {"on"}}); runner.Code != http.StatusForbidden {
+		t.Errorf("a runner chose: %d", runner.Code)
+	}
+
+	hosted, hostedReg, _ := registeredAs(t, registry.Rules{}, false)
+	boss := hosted.as(t, boss)
+	refused := boss.ask(t, "POST", "/admin/models/policy", url.Values{"private": {"on"}})
+	if !strings.Contains(refused.Header().Get("Location"), "refused=") || hostedReg.Rules().PrivateAddresses {
+		t.Errorf("a hosted admin loosened what keeps the machine safe: %v", refused.Header())
+	}
+	if hostedPage := boss.ask(t, "GET", "/admin/models", nil).Body.String(); strings.Contains(hostedPage, "/admin/models/policy") || !strings.Contains(hostedPage, "operator fixes") {
+		t.Error("a hosted page offers the choice")
 	}
 }
