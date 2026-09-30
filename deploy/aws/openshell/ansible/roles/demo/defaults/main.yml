@@ -31,3 +31,7 @@ demo_run: ""
 demo_cell_secret_parameter: /haas/poc/cell-secret
 demo_cell_gone_minutes: 5
 demo_cell_port: 8060
+# A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
+demo_visitor_minutes: 0
+demo_visitor_max: 5
+demo_book_url: ""

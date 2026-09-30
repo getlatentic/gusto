@@ -353,6 +353,23 @@ banner that says by how much. Spending that has no price is not in the sum, so t
 "at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
 written to the change record. A budget that cannot be read is said and is not checked, and the
 file is not written over.
+## Demos
+
+With `HAAS_CLOUD_DEMO_MINUTES` set, `/demo` on the front door lets a visitor start a demo with a name, a
+work email and a company. They get an organisation of their own, signed in, on a small quota (one
+computer, one person), and are sent to a page that waits for its server. Their time starts when the
+server first answers, and is shown on every page of the organisation by the banner, with one
+extension and a link to book a call (`HAAS_CLOUD_BOOK_URL`). When the time is up the front door
+asks the organisation's server to remove its computers, waits up to ninety seconds for it to,
+stops the server, and deletes the organisation, its people and its data. The address then answers
+"Your demo has ended" with the link to book a call. A demo that was never ready within
+`HAAS_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
+ever deleted this way.
+
+Each visitor is kept as a lead in `demos/<address>.json` in the front door's directory, with
+when they asked, when it was ready, whether they extended it and when it ended. The lead stays
+when the demo is gone. An address can start another demo once its first has ended.
+
 ## Models
 
 An organisation's admins choose the models its people may use at `/admin/models`. The page lists

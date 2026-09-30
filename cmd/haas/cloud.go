@@ -49,6 +49,7 @@ func cloudCommand(args []string) int {
 	if dir := os.Getenv("HAAS_CLOUD_CELLS_DIR"); dir != "" && controller != nil {
 		go beatForCells(ctx, dir)
 	}
+	go front.RunDemos(ctx, 15*time.Second)
 	controlled := make(chan struct{})
 	go func() {
 		defer close(controlled)
@@ -92,6 +93,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		RefusedDomains: lowered(values("HAAS_CLOUD_REFUSED_DOMAINS")),
 		PerDomain:      number("HAAS_CLOUD_PER_DOMAIN", 3),
 		Limits:         limits,
+		Demo:           demoSettings(),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -196,4 +198,21 @@ func lowered(members []string) []string {
 		out[i] = strings.ToLower(member)
 	}
 	return out
+}
+
+// demoSettings make the front door offer a demo when HAAS_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
+// from when it is ready, HAAS_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), HAAS_CLOUD_DEMO_MAX for the
+// most at once (5), and HAAS_CLOUD_BOOK_URL for where a call is booked.
+func demoSettings() cloud.DemoSettings {
+	length := number("HAAS_CLOUD_DEMO_MINUTES", 0)
+	if length == 0 {
+		return cloud.DemoSettings{}
+	}
+	return cloud.DemoSettings{
+		Length:   time.Duration(length) * time.Minute,
+		Extend:   time.Duration(number("HAAS_CLOUD_DEMO_EXTEND_MINUTES", 10)) * time.Minute,
+		Patience: time.Duration(number("HAAS_CLOUD_DEMO_PATIENCE_MINUTES", 15)) * time.Minute,
+		MaxOrgs:  number("HAAS_CLOUD_DEMO_MAX", 5),
+		BookURL:  os.Getenv("HAAS_CLOUD_BOOK_URL"),
+	}
 }

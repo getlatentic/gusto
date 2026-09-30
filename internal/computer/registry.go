@@ -220,6 +220,27 @@ func (r *Registry) Retire(user string) error {
 	return file.Close()
 }
 
+// RetireAll asks for every computer of the organisation to be removed, which is what ending the organisation does.
+func (r *Registry) RetireAll() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	all, err := r.all()
+	if err != nil {
+		return err
+	}
+	for _, each := range all {
+		if !each.Live() {
+			continue
+		}
+		file, err := os.OpenFile(r.retireFile(each.ID), os.O_WRONLY|os.O_CREATE, 0o600)
+		if err != nil {
+			return err
+		}
+		file.Close()
+	}
+	return nil
+}
+
 // Retiring is the computers that were asked to be removed and have not been.
 func (r *Registry) Retiring() ([]Computer, error) {
 	r.mu.Lock()
