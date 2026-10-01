@@ -16,6 +16,7 @@ print(json.dumps({
     "demo_cert_email": os.environ["DEMO_CERT_EMAIL"], "demo_free_mail": os.environ.get("DEMO_FREE_MAIL", "allow"),
     "demo_models": os.environ.get("DEMO_MODELS", "platform/qwen.qwen3-vl-235b-a22b-instruct"),
     "demo_computer_memory": os.environ.get("DEMO_COMPUTER_MEMORY", "3Gi"),
+    "demo_turnstile_site": os.environ.get("DEMO_TURNSTILE_SITE", ""),
     "demo_visitor_minutes": int(os.environ.get("DEMO_VISITOR_MINUTES", "0")),
     "demo_visitor_max": int(os.environ.get("DEMO_VISITOR_MAX", "5")),
     "demo_book_url": os.environ.get("DEMO_BOOK_URL", ""),

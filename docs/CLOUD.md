@@ -366,6 +366,11 @@ stops the server, and deletes the organisation, its people and its data. The add
 `HAAS_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
 ever deleted this way.
 
+The form has a bot check when `HAAS_CLOUD_TURNSTILE_SITE` and `HAAS_CLOUD_TURNSTILE_SECRET` are set: Cloudflare's Turnstile,
+which is free and asks the visitor nothing in most cases. The page then may load Cloudflare's script and frame, and no other.
+The limits below are checked first, so a flood costs Cloudflare no questions. A visitor Cloudflare does not accept, or
+whom it cannot be asked about, is turned away and told to try again: the check fails closed.
+
 At most `HAAS_CLOUD_DEMO_MAX` demos run at once and `HAAS_CLOUD_DEMO_PER_DAY` (40) start in a day, which bounds
 what a day of demos can cost. Creating the file `demos.off` in the front door's directory pauses new
 demos at once, and removing it lets them start again; demos that are running go on. A visitor who
