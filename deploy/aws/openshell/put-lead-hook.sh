@@ -10,7 +10,14 @@ case "$address" in https://script.google.com/macros/s/*/exec) ;; *) echo "that i
 read -r -s -p "The secret (the script's property SECRET): " secret
 echo
 [ -n "$secret" ] || { echo "nothing was typed" >&2; exit 2; }
-aws ssm put-parameter --name /haas/poc/lead-hook-url --type SecureString --overwrite --value "$address" --query Version --output text >/dev/null
-aws ssm put-parameter --name /haas/poc/lead-hook-secret --type SecureString --overwrite --value "$secret" --query Version --output text >/dev/null
+# The AWS command fetches a value that begins with https:// as a web address, so each value is given as a file, which it
+# reads as it is. The files are readable by this user only and are gone when this ends.
+umask 077
+held="$(mktemp -d)"
+trap 'rm -rf "$held"' EXIT
+printf '%s' "$address" > "$held/url"
+printf '%s' "$secret" > "$held/secret"
 unset address secret
+aws ssm put-parameter --name /haas/poc/lead-hook-url --type SecureString --overwrite --value "file://$held/url" --query Version --output text >/dev/null
+aws ssm put-parameter --name /haas/poc/lead-hook-secret --type SecureString --overwrite --value "file://$held/secret" --query Version --output text >/dev/null
 echo "stored /haas/poc/lead-hook-url and /haas/poc/lead-hook-secret in $AWS_REGION"
