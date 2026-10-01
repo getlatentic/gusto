@@ -1,0 +1,107 @@
+package owner
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/getlatentic/haas/internal/cell"
+	"github.com/getlatentic/haas/internal/cloud"
+)
+
+type hosts []cell.Instance
+
+func (h hosts) Running() ([]cell.Instance, error) { return h, nil }
+
+func app(t *testing.T) (*App, *cloud.Store) {
+	t.Helper()
+	store, err := cloud.Open(t.TempDir(), cloud.Settings{Demo: cloud.DemoSettings{Length: 30 * time.Minute}, PerDomain: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(store, hosts{{ID: "i-0123456789abcdef0", Launched: time.Now().Add(-5 * time.Minute)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return a, store
+}
+
+func ask(a *App, method, path, host string, header map[string]string, form url.Values) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, "http://"+host+path, strings.NewReader(form.Encode()))
+	if form != nil {
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	for k, v := range header {
+		r.Header.Set(k, v)
+	}
+	w := httptest.NewRecorder()
+	a.Handler().ServeHTTP(w, r)
+	return w
+}
+
+func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
+	a, _ := app(t)
+	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "haas owner") {
+		t.Fatalf("%d", got.Code)
+	}
+	for name, c := range map[string]struct {
+		host   string
+		header map[string]string
+	}{
+		"another host name":  {"agentcloud.getlatentic.com", nil},
+		"a rebinding name":   {"evil.example:8090", nil},
+		"through a proxy":    {"127.0.0.1:8090", map[string]string{"X-Forwarded-For": "203.0.113.9"}},
+		"a forwarded header": {"localhost:8090", map[string]string{"Forwarded": "for=203.0.113.9"}},
+	} {
+		if got := ask(a, "GET", "/", c.host, c.header, nil); got.Code != http.StatusForbidden || strings.Contains(got.Body.String(), "Leads") {
+			t.Errorf("%s: %d", name, got.Code)
+		}
+	}
+}
+
+func TestTheOwnerSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
+	a, store := app(t)
+	if _, _, err := store.StartDemo("Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
+		t.Fatal(err)
+	}
+	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
+	for _, want := range []string{"Ada Lovelace", "ada@acme.com", "Acme Research", "i-0123456789abcdef0", "5 min ago", "1 so far"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page does not say %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestDemosArePausedAndResumedFromThePageAndOnlyFromThisSite(t *testing.T) {
+	a, store := app(t)
+	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, url.Values{"paused": {"on"}}); got.Code != http.StatusForbidden || store.DemosPaused() {
+		t.Fatalf("another site paused demos: %d", got.Code)
+	}
+	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, url.Values{"paused": {"on"}}); got.Code != http.StatusSeeOther || !store.DemosPaused() {
+		t.Fatalf("demos were not paused: %d", got.Code)
+	}
+	if body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String(); !strings.Contains(body, "New demos are paused") || !strings.Contains(body, "Accept new demos") {
+		t.Errorf("the page does not say so:\n%s", body)
+	}
+	ask(a, "POST", "/demos/pause", "localhost:8090", nil, url.Values{"paused": {"off"}})
+	if store.DemosPaused() {
+		t.Error("demos were not resumed")
+	}
+}
+
+func TestTheLeadsCsvWritesWhatAVisitorTypedAsTextAndNotAsAFormula(t *testing.T) {
+	a, store := app(t)
+	if _, _, err := store.StartDemo("=HYPERLINK(\"http://evil.example\")", "mallory@acme.com", "+cmd Co"); err != nil {
+		t.Skip("the store refused the name: ", err)
+	}
+	got := ask(a, "GET", "/leads.csv", "localhost:8090", nil, nil)
+	if !strings.HasPrefix(got.Header().Get("Content-Type"), "text/csv") || !strings.HasPrefix(got.Body.String(), "requested,name,email,company") {
+		t.Fatalf("%v\n%s", got.Header(), got.Body.String())
+	}
+	if strings.Contains(got.Body.String(), ",=HYPERLINK") || strings.Contains(got.Body.String(), ",+cmd") {
+		t.Errorf("a formula reaches the spreadsheet:\n%s", got.Body.String())
+	}
+}

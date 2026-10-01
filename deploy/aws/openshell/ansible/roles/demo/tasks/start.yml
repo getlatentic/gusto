@@ -19,7 +19,7 @@
     name: "{{ item }}"
     state: started
     enabled: true
-  loop: [nginx, haas-cloud]
+  loop: [nginx, haas-cloud, haas-owner]
   when: demo_role != 'cell'
 
 # nginx starts when it is installed, with its default site, and a play that fails drops

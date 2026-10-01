@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -61,6 +62,15 @@ func Open(root string, set Settings) (*Store, error) {
 	}
 	s := &Store{root: root, set: set, refused: setOf(set.RefusedDomains...), now: time.Now}
 	return s, s.clearUnfinished()
+}
+
+// Attach is a second program's view of a store another program runs. It changes nothing in it when it opens, since a
+// sign-up that looks unfinished to it may be one the other program is part way through.
+func Attach(root string, set Settings) (*Store, error) {
+	if _, err := os.Stat(filepath.Join(root, "orgs")); err != nil {
+		return nil, fmt.Errorf("%s holds no organisations: %w", root, err)
+	}
+	return &Store{root: root, set: set, refused: setOf(set.RefusedDomains...), now: time.Now}, nil
 }
 
 func (s *Store) clearUnfinished() error {
