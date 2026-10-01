@@ -63,7 +63,10 @@ func (r *Registry) View() View {
 		Limits: r.Limits(), Available: effective.Models,
 	}
 	for _, name := range r.platform.Credentials.Names() {
-		view.Providers = append(view.Providers, r.operators(name, effective))
+		// A provider of the operator's that offers no model is not something an admin can use, so it is not shown.
+		if row := r.operators(name, effective); len(row.Models) > 0 {
+			view.Providers = append(view.Providers, row)
+		}
 	}
 	for _, provider := range document.Providers {
 		row := ProviderView{

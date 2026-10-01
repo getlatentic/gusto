@@ -170,10 +170,17 @@ func (s *Server) landing(w http.ResponseWriter) {
 	demo := s.Store.set.Demo
 	page := view{Title: "haas", DemoLeft: demo.Length, Book: demo.BookURL}
 	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
-	if video, file, frame := videoOf(demo.VideoURL); video != "" {
+	address := demo.VideoURL
+	if address == "" {
+		// The video that comes with haas is the one shown unless an operator names another.
+		address, page.Poster = "/static/demo.mp4", "/static/demo-poster.jpg"
+	}
+	if video, file, frame := videoOf(address); video != "" {
 		page.Video, page.VideoFile = video, file
 		if file {
-			csp += "; media-src 'self' https:"
+			if video != "/static/demo.mp4" {
+				csp += "; media-src 'self' https:"
+			}
 		} else {
 			csp += "; frame-src " + frame
 		}
@@ -185,6 +192,9 @@ func (s *Server) landing(w http.ResponseWriter) {
 // videoOf is the video to show for an address, whether it is a file, and the origin a page for it is embedded from. An
 // address that is not https is not shown.
 func videoOf(address string) (video string, file bool, origin string) {
+	if address == "/static/demo.mp4" {
+		return address, true, ""
+	}
 	parsed, err := url.Parse(strings.TrimSpace(address))
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
 		return "", false, ""
