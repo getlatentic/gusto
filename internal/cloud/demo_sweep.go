@@ -79,6 +79,7 @@ func (s *Server) endDemo(slug, reason string) {
 		return
 	}
 	slog.Info("a demo ended", "org", slug, "reason", reason)
+	s.tell("ended", slug)
 }
 
 // removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may.

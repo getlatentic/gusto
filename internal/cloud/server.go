@@ -39,6 +39,8 @@ type Config struct {
 	Lease *Lease
 	// Turnstile is the bot check on the demo form, when it is set.
 	Turnstile Turnstile
+	// Leads sends each lead to where it is followed up, when it is set.
+	Leads *LeadHook
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
 }
@@ -72,6 +74,9 @@ func New(c Config) (*Server, error) {
 		return nil, err
 	}
 	if err := c.Turnstile.Complete(); err != nil {
+		return nil, err
+	}
+	if err := c.Leads.Complete(); err != nil {
 		return nil, err
 	}
 	return &Server{Config: c, pages: pages,
