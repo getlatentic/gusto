@@ -1,6 +1,7 @@
 package hostboot
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +23,12 @@ case "$1 $2" in
 "s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; if [ "$dst" = - ]; then cat "$f"; else cp "$f" "$dst"; fi;;
 "ssm get-parameter") echo '{"demo_name":"agentcloud.example.com","demo_zone":"example.com"}';;
 esac`,
+	"fallocate": `#!/bin/bash
+echo "fallocate $*" >> "$FAKE_LOG"; : > "$3"`,
+	"mkswap": `#!/bin/bash
+echo "mkswap $*" >> "$FAKE_LOG"`,
+	"swapon": `#!/bin/bash
+echo "swapon $*" >> "$FAKE_LOG"`,
 	"sha256sum": `#!/bin/bash
 exec shasum -a 256 "$@"`,
 	"ansible-playbook": `#!/bin/bash
@@ -49,9 +56,17 @@ func newBoot(t *testing.T) *boot {
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
 		"HAAS_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "HAAS_TMP="+filepath.Join(dir, "tmp"), "HAAS_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
+		"HAAS_SWAPFILE="+filepath.Join(dir, "swapfile"), "HAAS_FSTAB="+filepath.Join(dir, "fstab"), "HAAS_MEMINFO="+b.meminfo(8000),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
 	return b
+}
+
+// meminfo is a file that says how much memory the host has, in megabytes.
+func (b *boot) meminfo(megabytes int) string {
+	path := filepath.Join(b.dir, "meminfo")
+	os.WriteFile(path, []byte(fmt.Sprintf("MemTotal:       %d kB\n", megabytes*1024)), 0o644)
+	return path
 }
 
 // release puts a bundle of two playbooks and an image key in the store, with the checksum CI would write.
@@ -255,5 +270,38 @@ func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *te
 	}
 	if _, err := os.Stat(liveEnv); err == nil {
 		t.Error("a demo host kept an environment to be started again from")
+	}
+}
+
+func TestASmallHostGetsASwapFileOnceAndALargeOneGetsNone(t *testing.T) {
+	small := newBoot(t)
+	small.release(false)
+	small.env = append(small.env, "HAAS_MEMINFO="+small.meminfo(1024))
+	lines, err := small.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "fallocate -l 1G ") < 0 || index(lines, "mkswap ") < 0 || index(lines, "swapon ") < 0 {
+		t.Errorf("a host with a gigabyte has no swap: %v", lines)
+	}
+	if fstab, _ := os.ReadFile(filepath.Join(small.dir, "fstab")); strings.Count(string(fstab), "swapfile") != 1 {
+		t.Errorf("the swap file is not in fstab once: %q", fstab)
+	}
+	again, err := small.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(strings.Join(again, "\n"), "swapon "); n != 1 {
+		t.Errorf("an upgrade made swap again: %d\n%v", n, again)
+	}
+
+	large := newBoot(t)
+	large.release(false)
+	lines, err = large.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "fallocate ") >= 0 {
+		t.Errorf("a host with 8 gigabytes got swap: %v", lines)
 	}
 }

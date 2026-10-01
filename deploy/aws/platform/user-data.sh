@@ -22,6 +22,13 @@ if [ "$LIVE" != on ]; then
   trap 'echo "haas-bootstrap: failed, so the host powers off in 15 minutes"; systemd-run --on-active=15m --unit=haas-failed systemctl poweroff' ERR
 fi
 
+# A small host needs room for the installs of a start and of an upgrade, which the memory it runs in does not leave.
+if [ ! -e "${HAAS_SWAPFILE:-/swapfile}" ] && [ "$(awk '/MemTotal/ {print int($2/1024)}' "${HAAS_MEMINFO:-/proc/meminfo}")" -lt 3000 ]; then
+  swapfile=${HAAS_SWAPFILE:-/swapfile}
+  fallocate -l 1G "$swapfile" && chmod 600 "$swapfile" && mkswap "$swapfile" >/dev/null && swapon "$swapfile"
+  grep -q "^$swapfile " "${HAAS_FSTAB:-/etc/fstab}" || echo "$swapfile none swap sw 0 0" >> "${HAAS_FSTAB:-/etc/fstab}"
+fi
+
 export HOME=${HOME:-/root}
 export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION PATH=$PATH:/snap/bin:/usr/local/bin
 export DEBIAN_FRONTEND=noninteractive

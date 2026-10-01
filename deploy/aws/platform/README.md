@@ -41,7 +41,7 @@ made with `cells` at 0, as before.
 
 ## The front door that stays up
 
-`aws_instance.live` is a small host (`t3.small`, with a fixed address) that runs the public demo all the time: nginx and
+`aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs the public demo all the time: nginx and
 the certificate, the front door at `https://<name>`, and the scaler that starts a host for a cell when an organisation
 waits for one and stops a cell that has had nothing on it for ten minutes. With nobody using it there is no cell and
 nothing is paid for but this host, its address and the file system.

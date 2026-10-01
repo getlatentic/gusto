@@ -279,7 +279,7 @@ resource "aws_instance" "live" {
   }
 
   root_block_device {
-    volume_size = 30
+    volume_size = 10
     volume_type = "gp3"
   }
 
