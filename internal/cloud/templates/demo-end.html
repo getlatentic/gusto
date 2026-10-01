@@ -1,8 +1,10 @@
 {{define "demo-end"}}{{template "head" .}}
   <div class="brand"><img src="/static/mark.png" alt=""> haas</div>
-  <h1>Your demo has ended</h1>
-  <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>
-  {{if .Book}}<p>The next step is a call, to see how this fits your team.</p>
+  {{if .Ending}}<h1>Ending your demo</h1>
+  <p role="status">Deleting your computers and everything in them. This takes a minute, and this page looks again by itself.</p>
+  {{else}}<h1>Your demo has ended</h1>
+  <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>{{end}}
+  {{if and .Book (not .Ending)}}<p>The next step is a call, to see how this fits your team.</p>
   <p><a class="button" href="{{.Book}}">Book a call</a></p>{{end}}
-  <p class="other"><a href="/demo">Start another demo</a></p>
+  {{if not .Ending}}<p class="other"><a href="/demo">Start another demo</a></p>{{end}}
 {{template "foot"}}{{end}}

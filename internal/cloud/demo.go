@@ -54,6 +54,8 @@ type Demo struct {
 	Ready    time.Time `json:"ready,omitzero"`
 	Expires  time.Time `json:"expires,omitzero"`
 	Extended bool      `json:"extended,omitempty"`
+	// Stopped is a demo whose visitor ended it before its time was up.
+	Stopped bool `json:"stopped,omitempty"`
 }
 
 // Lead is a visitor who started a demo, kept after the demo is gone.
@@ -76,6 +78,7 @@ var (
 	ErrNeedCompany   = errors.New("say which company you are with")
 	ErrDemoNeedsName = errors.New("say who you are")
 	ErrNoExtension   = errors.New("this demo cannot be extended any more")
+	ErrNotDemo       = errors.New("this organisation is not a demo")
 	ErrDemoPaused    = errors.New("demos are paused")
 	ErrDemoDaily     = errors.New("today's demos are all taken")
 )
@@ -246,6 +249,20 @@ func (s *Store) ExtendDemo(slug string) (Demo, error) {
 	return *org.Demo, nil
 }
 
+// StopDemo makes a demo due now, for a visitor who is finished with it.
+func (s *Store) StopDemo(slug string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, err := s.updateOrg(slug, func(org *Org) error {
+		if org.Demo == nil {
+			return ErrNotDemo
+		}
+		org.Demo.Stopped = true
+		return nil
+	})
+	return err
+}
+
 // DemoLeft is a demo's record and how long it has, and whether the organisation is a demo at all. A demo that is not
 // ready has its whole time still, which is not counting down.
 func (s *Store) DemoLeft(slug string) (Demo, time.Duration, bool) {
@@ -270,6 +287,8 @@ func (s *Store) DemosDue() (map[string]string, error) {
 	for _, org := range orgs {
 		switch {
 		case org.Demo == nil:
+		case org.Demo.Stopped:
+			due[org.Slug] = "the visitor ended it"
 		case !org.Demo.Expires.IsZero() && !now.Before(org.Demo.Expires):
 			due[org.Slug] = "its time was up"
 		case org.Demo.Ready.IsZero() && now.Sub(org.Created) > s.set.Demo.patience():
