@@ -30,6 +30,12 @@
     - Restart the front door
     - Restart the owner's page
 
+- name: What each model costs, which the organisations' servers price their spending by
+  ansible.builtin.copy:
+    src: spend-policy.json
+    dest: /etc/haas/spend-policy.json
+    mode: "0644"
+
 - name: The script that powers the host off when its lease ends, or its front door is gone
   ansible.builtin.copy:
     src: haas-lease-reaper

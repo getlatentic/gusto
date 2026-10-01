@@ -1,0 +1,33 @@
+{
+  "environment": "box",
+  "jobs": [
+    "one-line-fix"
+  ],
+  "simplest": "one-line-fix",
+  "pairs": [
+    {
+      "harness": "opencode",
+      "model": "gemma/google.gemma-4-26b-a4b"
+    },
+    {
+      "harness": "pi",
+      "model": "gemma/google.gemma-4-26b-a4b"
+    },
+    {
+      "harness": "hermes",
+      "model": "gemma/google.gemma-4-26b-a4b"
+    },
+    {
+      "harness": "opencode",
+      "model": "gemma/google.gemma-4-31b"
+    },
+    {
+      "harness": "pi",
+      "model": "gemma/google.gemma-4-31b"
+    },
+    {
+      "harness": "hermes",
+      "model": "gemma/google.gemma-4-31b"
+    }
+  ]
+}
