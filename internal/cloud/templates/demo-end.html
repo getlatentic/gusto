@@ -3,7 +3,8 @@
   {{if .Ending}}<h1>Ending your demo</h1>
   <p role="status">Deleting your computers and everything in them. This takes a minute, and this page looks again by itself.</p>
   {{else}}<h1>Your demo has ended</h1>
-  <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>{{end}}
+  <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>
+  <p class="muted">We keep your name, work email and company so that we can follow up about a call.</p>{{end}}
   {{if and .Book (not .Ending)}}<p>The next step is a call, to see how this fits your team.</p>
   <p><a class="button" href="{{.Book}}">Book a call</a></p>{{end}}
   {{if not .Ending}}<p class="other"><a href="/demo">Start another demo</a></p>{{end}}

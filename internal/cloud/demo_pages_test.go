@@ -144,7 +144,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddr
 		t.Errorf("the server was not stopped and forgotten: %q %q", address, state)
 	}
 	status, body, _ := b.at(slug+".cloud.test", "GET", "/", nil)
-	if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/haas"`) || !strings.Contains(body, "Ada") {
+	if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/haas"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
 		t.Errorf("%d\n%s", status, body)
 	}
 	if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".brand") {
