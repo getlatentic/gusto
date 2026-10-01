@@ -59,6 +59,18 @@ turnstile() {
   fi
 }
 
+# Where a lead is sent when a demo starts and ends, which the front door's own service reads as its environment. A host
+# without both parameters sends nowhere, which the front door says, and which a visitor does not see.
+lead_hook() {
+  local address secret
+  rm -f "$run/secrets/leadhook.env"
+  if address=$(param "$LEAD_HOOK_URL_PARAMETER" 2>/dev/null) && secret=$(param "$LEAD_HOOK_SECRET_PARAMETER" 2>/dev/null) && [ -n "$address" ] && [ -n "$secret" ]; then
+    (umask 077; printf 'HAAS_CLOUD_LEAD_HOOK_URL=%s\nHAAS_CLOUD_LEAD_HOOK_SECRET=%s\n' "$address" "$secret" > "$run/secrets/leadhook.env")
+  else
+    echo "haas-boot: no lead hook, since $LEAD_HOOK_URL_PARAMETER and $LEAD_HOOK_SECRET_PARAMETER are not both stored"
+  fi
+}
+
 certificate() {
   local live=$le/live/$NAME fetched kept
   if [ ! -e "$live/fullchain.pem" ]; then
@@ -134,9 +146,9 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; certificate; runner_image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; certificate; runner_image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; turnstile; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; runner_image; credentials; cell_identity
   echo "haas-boot: this host is a cell" ;;
