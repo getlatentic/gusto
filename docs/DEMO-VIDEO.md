@@ -8,7 +8,7 @@ setting `DEMO_VIDEO_URL` in `demo.env`, stored with `deploy/aws/openshell/put-de
 ## Recording it again
 
 `deploy/demo-video/record.mjs` drives the live demo as a person already in the platform and records it, with captions: choosing
-an agent, an agent building a loan repayment calculator for Maria Okafor of Future Acme Bank, its preview, the admin console
+an agent, an agent building a loan repayment calculator for John Smith of Future Acme Bank, its preview, the admin console
 and the end page. The demo is started off camera. To have an end page to show, make and end a demo for the same person first,
 and give its address as the second argument. It marks the waits it makes.
 `encode.sh` plays those fast and makes `haas-demo.mp4` and `poster.jpg`, about a minute and a quarter in all. Copy them to

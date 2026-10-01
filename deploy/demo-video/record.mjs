@@ -1,6 +1,6 @@
 // Records the demo as a person already in the platform sees it, on the live front door, into recording/haas-demo.webm,
 // with the waits it had to make marked in recording/segments.json so encode.sh can speed them up. The demo is started
-// off camera, as Maria Okafor of Future Acme Bank, and the recording begins inside the organisation. Nothing is faked:
+// off camera, as John Smith of Future Acme Bank, and the recording begins inside the organisation. Nothing is faked:
 // each step is the page the person gets. End every demo on the host first: one address has one demo, and only a few run.
 //
 //   PLAYWRIGHT_CORE=<path to playwright-core> CHROME=<a chromium to use, when the library's own is not installed> node record.mjs [base url] [an ended demo's address]
@@ -12,7 +12,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_CORE || "playwright-core");
 
 const base = process.argv[2] || "https://agentcloud.getlatentic.com";
 const ended = process.argv[3] || "";
-const person = { name: "Maria Okafor", email: "maria.okafor@futureacmebank.com", company: "Future Acme Bank" };
+const person = { name: "John Smith", email: "john.smith@futureacmebank.com", company: "Future Acme Bank" };
 const task = "Create a loan repayment calculator in a folder called loan-calculator, with an index.html I can open";
 const folder = "loan-calculator";
 const out = new URL("./recording/", import.meta.url).pathname;
@@ -29,6 +29,10 @@ await first.goto(base + "/demo");
 await first.fill('input[name="name"]', person.name);
 await first.fill('input[name="email"]', person.email);
 await first.fill('input[name="company"]', person.company);
+// The bot check answers by itself in a browser, a moment after the page is drawn, and the form is sent with its answer.
+if (await first.locator(".cf-turnstile").count()) {
+  await first.waitForFunction(() => document.querySelector('[name="cf-turnstile-response"]')?.value, null, { timeout: 30000 });
+}
 await first.click('button[type="submit"]');
 await first.waitForSelector("a.choice", { timeout: 480000 });
 const home = first.url();
