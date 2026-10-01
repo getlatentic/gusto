@@ -450,7 +450,13 @@ code (getlatentic/planning#397), and payment.
 ## The owner's page
 
 `haas owner` serves the page the owner of a hosted haas manages it from: who asked for a demo (with a spreadsheet
-download), the demos running and their time left, a switch that pauses new demos, and the hosts that are up.
+download), the demos running and their time left, a switch that pauses new demos, the limits on how many demos start, and
+the hosts that are up.
+
+The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once.
+The owner sets them on the page and they hold from the next demo, with no restart; they are kept in `demo-limits.json` in
+the front door's directory. `HAAS_CLOUD_DEMO_PER_DAY`, `HAAS_CLOUD_DEMO_PER_PERSON`, `HAAS_CLOUD_DEMO_PER_COMPANY` and
+`HAAS_CLOUD_DEMO_MAX` are what a front door starts with, and the page can go back to them.
 
 It is its own program with its own service, `haas-owner`, and it listens on `127.0.0.1:8090` of the front door's host
 only. It refuses any other address (`HAAS_OWNER_ADDR`), any request that names another host or comes through a proxy,

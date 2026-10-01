@@ -12,7 +12,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,6 +54,7 @@ func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", a.dashboard)
 	mux.HandleFunc("POST /demos/pause", a.pause)
+	mux.HandleFunc("POST /demos/limits", a.limits)
 	mux.HandleFunc("GET /leads.csv", a.leadsCSV)
 	mux.Handle("GET /static/", web.Static())
 	return local(mux)
@@ -98,7 +101,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	page := map[string]any{"Title": "haas owner", "Leads": leads, "Paused": a.Store.DemosPaused(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
+	page := map[string]any{"Title": "haas owner", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
 	page["Running"] = a.running()
 	if a.Hosts != nil {
 		if hosts, err := a.Hosts.Running(); err != nil {
@@ -143,7 +146,38 @@ func (a *App) pause(w http.ResponseWriter, r *http.Request) {
 		slog.Error("demos were not paused or resumed", "error", err)
 		notice = "That did not change: " + err.Error()
 	}
-	http.Redirect(w, r, "/?notice="+strings.ReplaceAll(notice, " ", "+"), http.StatusSeeOther)
+	http.Redirect(w, r, "/?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// limits keeps the limits the owner chose, or goes back to the ones the front door started with.
+func (a *App) limits(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	notice := "The limits are saved. They hold from the next demo."
+	var err error
+	if r.PostForm.Get("reset") != "" {
+		err = a.Store.ResetDemoLimits()
+		notice = "The limits are the ones the front door started with."
+	} else {
+		err = a.Store.SetDemoLimits(cloud.DemoLimits{
+			PerDay: number(r, "perDay"), PerPerson: number(r, "perPerson"), PerCompany: number(r, "perCompany"), MaxOrgs: number(r, "maxOrgs"),
+		})
+	}
+	if err != nil {
+		notice = "That did not change: " + err.Error()
+	}
+	http.Redirect(w, r, "/?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// number is a field of the form as a whole number, and -1 when it is not one, which no limit allows.
+func number(r *http.Request, name string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(r.PostForm.Get(name)))
+	if err != nil {
+		return -1
+	}
+	return n
 }
 
 // leadsCSV is every lead for a spreadsheet. A cell a spreadsheet would read as a formula is written as text, since
