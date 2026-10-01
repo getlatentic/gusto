@@ -91,3 +91,46 @@ func TestAnUnknownRoleIsRefused(t *testing.T) {
 		t.Fatal("a role that is not one is refused")
 	}
 }
+
+func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "turnstile.env")
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "HAAS_CLOUD_TURNSTILE_SECRET=value-of-/haas/poc/turnstile-secret\n" {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+	}
+	cell := newHost(t)
+	cell.put("image/key1.tar.gz", "x")
+	cell.as("cell")
+	if _, err := cell.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if cell.has("run/secrets/turnstile.env") {
+		t.Error("a cell, which runs other people's code, holds the bot check's secret")
+	}
+}
+
+func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecretBehind(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "x")
+	h.as("orchestrator")
+	if _, err := h.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if !h.has("run/secrets/turnstile.env") {
+		t.Fatal("the secret was not kept")
+	}
+	if _, err := h.boot("FAKE_MISSING=/haas/poc/turnstile-secret"); err != nil {
+		t.Fatalf("a host with no bot check is still a host: %v", err)
+	}
+	if h.has("run/secrets/turnstile.env") {
+		t.Error("a secret that is no longer stored is still on the host")
+	}
+}

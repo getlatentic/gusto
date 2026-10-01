@@ -47,6 +47,18 @@ tokens() {
   )
 }
 
+# The secret of the bot check on the demo form, kept for the front door's own service to read as the environment. A host
+# whose parameter is not stored has no bot check, which the front door says, and which a visitor does not see.
+turnstile() {
+  local secret
+  rm -f "$run/secrets/turnstile.env"
+  if secret=$(param "$TURNSTILE_PARAMETER" 2>/dev/null) && [ -n "$secret" ]; then
+    (umask 077; printf 'HAAS_CLOUD_TURNSTILE_SECRET=%s\n' "$secret" > "$run/secrets/turnstile.env")
+  else
+    echo "haas-boot: no bot check, since $TURNSTILE_PARAMETER is not stored"
+  fi
+}
+
 certificate() {
   local live=$le/live/$NAME fetched kept
   if [ ! -e "$live/fullchain.pem" ]; then
@@ -122,9 +134,9 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; certificate; runner_image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; certificate; runner_image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
+  tokens; turnstile; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; runner_image; credentials; cell_identity
   echo "haas-boot: this host is a cell" ;;

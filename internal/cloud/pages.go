@@ -64,9 +64,11 @@ type view struct {
 	Extendable bool
 	Ended      bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed.
-	Video     string
-	Poster    string
-	VideoFile bool
+	Video  string
+	Poster string
+	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
+	TurnstileSite string
+	VideoFile     bool
 	// Name is who a demo is for.
 	Name string
 }

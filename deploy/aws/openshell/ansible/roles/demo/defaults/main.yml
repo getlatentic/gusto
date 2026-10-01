@@ -45,6 +45,9 @@ demo_cell_idle_minutes: 10
 demo_cell_max_hours: 12
 demo_project: haas-live
 demo_visitor_minutes: 0
+# The public key of the bot check on the demo form, and where its secret is kept. Without the key there is no check.
+demo_turnstile_site: ""
+demo_turnstile_parameter: /haas/poc/turnstile-secret
 demo_visitor_max: 5
 demo_book_url: ""
 # An https address of a video file, or of a page that may be embedded, which the landing page shows.
