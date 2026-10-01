@@ -4,30 +4,33 @@
 
 <section class="hero hue-general">
   <div>
-    <p class="eyebrow">New agent</p>
-    <h1>Start from blank</h1>
-    <p class="lede">A general agent with a folder of its own.</p>
+    <p class="eyebrow">Your own agent</p>
+    <h1>Choose how it works</h1>
+    <p class="lede">Pick the engine it thinks with, give it a skill set if you have one, and name it.</p>
   </div>
 </section>
 
 {{if .Engines}}
 <form class="panel stack start-form" method="post" action="/instances">
   <label>Name it <input name="title" placeholder="Agent" maxlength="60"></label>
-  <details class="more">
-    <summary>Advanced</summary>
-    <div class="stack">
-      <label>Engine
-        <select name="harness">{{range .Engines}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
-      </label>
-      <a class="link-quiet" href="/engines">How each engine did →</a>
-      {{if .Setups}}
-      <label>Skill set
-        <select name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
-      </label>
-      {{end}}
-      <label>Start from a repository <input name="repo" placeholder="git@github.com:you/repo.git"></label>
-    </div>
-  </details>
+  <fieldset class="engines">
+    <legend>Engine</legend>
+    {{range $i, $each := .Engines}}
+    <label class="engine">
+      <input type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
+      <span class="name">{{$each.Title}}</span>
+      <span class="what">{{$each.What}}</span>
+    </label>
+    {{end}}
+    <a class="link-quiet" href="/engines">How each engine did →</a>
+  </fieldset>
+  {{if .Setups}}
+  <label>Skill set
+    <select name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+  </label>
+  {{end}}
+  <label>Start from a repository <span class="sub">optional</span>
+    <input name="repo" placeholder="git@github.com:you/repo.git"></label>
   <button type="submit" class="cta">Start</button>
 </form>
 {{else}}
