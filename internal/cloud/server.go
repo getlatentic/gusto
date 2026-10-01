@@ -97,6 +97,11 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		if slug, ok := s.orgSlug(r.Host); ok {
+			// The page of a demo that has ended is made of the front door's own styles, which the gone server cannot send.
+			if _, found := s.Store.LeadOf(slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(slug) {
+				pages.ServeHTTP(w, r)
+				return
+			}
 			s.route(w, r, slug)
 			return
 		}

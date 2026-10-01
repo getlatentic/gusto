@@ -122,6 +122,10 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 		Notice: r.URL.Query().Get("notice")}
 	if state != Ready {
 		page.Refresh, page.DemoWords = true, waitingWords(state)
+		page.Steps = demoSteps(state)
+		if lead, found := s.Store.LeadOf(person.Org); found {
+			page.Waited = waited(lead.Requested, time.Now())
+		}
 		s.render(w, http.StatusOK, "demo-wait", page)
 		return
 	}
