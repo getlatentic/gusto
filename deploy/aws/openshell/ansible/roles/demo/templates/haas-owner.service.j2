@@ -13,10 +13,6 @@ EnvironmentFile=/etc/haas/cloud.env
 Environment=HAAS_OWNER_ADDR=127.0.0.1:8090
 ExecStart=/usr/local/bin/haas owner
 Restart=always
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths={{ demo_state }}
-PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
