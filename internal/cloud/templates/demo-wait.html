@@ -4,6 +4,8 @@
   {{if .Notice}}<p class="error" role="status">{{.Notice}}</p>{{end}}
   {{if .DemoWords}}
   <p role="status">{{.DemoWords}}</p>
+  <ol class="steps" aria-label="Progress">{{range .Steps}}<li class="{{.Mark}}"{{if eq .Mark "now"}} aria-current="step"{{end}}>{{.Label}}</li>{{end}}</ol>
+  {{with .Waited}}<p class="muted">Waiting for {{.}}.</p>{{end}}
   <p class="muted">You have {{minutes .DemoLeft}} once it is ready. This page looks again by itself.</p>
   {{else}}
   <p>You have <strong>{{minutes .DemoLeft}}</strong> left. Your organisation, its computers and everything in it are deleted when it ends.</p>
