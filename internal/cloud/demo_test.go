@@ -244,3 +244,51 @@ func TestDemosCanBePausedByAFileAndAreLimitedInADay(t *testing.T) {
 		t.Error("paused with no file")
 	}
 }
+
+func TestOneAddressAndOneCompanyGetOnlySoManyDemosInADayAndTheCountSurvivesTheDemosBeingDeleted(t *testing.T) {
+	set := demoSet
+	set.Demo.PerPerson, set.Demo.PerCompany = 2, 3
+	s, now := clocked(t, set)
+	start := func(name, email string) error {
+		_, org, err := s.StartDemo(name, email, "Acme")
+		if err == nil {
+			err = s.EndDemo(org.Slug, "its time was up")
+		}
+		return err
+	}
+	for range 2 {
+		if err := start("Ada", "ada@acme.com"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := s.StartDemo("Ada", "Ada@Acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		t.Fatalf("a third demo for one address, in another case, after the others were deleted: %v", err)
+	}
+	if _, _, err := s.StartDemo("Ada", "ada+again@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		t.Fatalf("a tag on the name made a new address: %v", err)
+	}
+	if err := start("Bo", "bo@acme.com"); err != nil {
+		t.Fatalf("a colleague has demos of their own: %v", err)
+	}
+	if _, _, err := s.StartDemo("Cy", "cy@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		t.Errorf("a fourth demo for one company: %v", err)
+	}
+	if err := start("Di", "di@other.com"); err != nil {
+		t.Errorf("another company is not counted: %v", err)
+	}
+	*now = now.Add(24*time.Hour + time.Minute)
+	if err := start("Ada", "ada@acme.com"); err != nil {
+		t.Errorf("a day later there is room: %v", err)
+	}
+}
+
+func TestADemoLimitOfZeroIsNoLimit(t *testing.T) {
+	s, _ := clocked(t, demoSet)
+	for i := range 5 {
+		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		if err != nil {
+			t.Fatalf("demo %d: %v", i, err)
+		}
+		s.EndDemo(org.Slug, "its time was up")
+	}
+}
