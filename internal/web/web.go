@@ -45,8 +45,10 @@ type Server struct {
 	catalog   []catalog.Entry
 	models    Models
 	// live is what the registry makes of the models now, when there is one.
-	live     func() Models
-	registry *registry.Registry
+	live func() Models
+	// appFirstByte is how long a young app has to begin to answer, which a test shortens.
+	appFirstByte time.Duration
+	registry     *registry.Registry
 	// apps and runner are the web apps people share from their agents' computers.
 	apps       *apps.Store
 	runner     AppRunner

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -296,6 +297,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 		w.Header().Del(header)
 	}
 	proxy := &httputil.ReverseProxy{
+		Transport: s.appTransport(app),
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL.Scheme = "http"
 			pr.Out.URL.Host = app.Target
@@ -347,7 +349,9 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			if !errors.Is(err, context.Canceled) {
+			// An app that is slow, or that a person gave up on, has not stopped; one that refuses a connection has.
+			var timeout net.Error
+			if !errors.Is(err, context.Canceled) && !(errors.As(err, &timeout) && timeout.Timeout()) {
 				s.apps.Change(app.ID, func(a *apps.App) { a.State, a.Note = apps.Stopped, "it stopped answering" })
 			}
 			http.Error(w, "this app is not answering", http.StatusBadGateway)
