@@ -18,7 +18,18 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.render(w, http.StatusOK, "demo", view{Title: "Try haas", Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
+	s.drawDemoForm(w, http.StatusOK, view{Title: "Try haas", Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
+}
+
+// drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
+// frame its answer, from Cloudflare and from nowhere else.
+func (s *Server) drawDemoForm(w http.ResponseWriter, status int, page view) {
+	if s.Turnstile.Enabled() {
+		page.TurnstileSite = s.Turnstile.Site
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; "+
+			"script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://challenges.cloudflare.com")
+	}
+	s.render(w, status, "demo", page)
 }
 
 // startDemo makes a demo for a visitor, signs them in to it and sends them to wait for it. A visitor who was refused
@@ -30,9 +41,10 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 	}
 	name, email, company := r.PostFormValue("name"), r.PostFormValue("email"), r.PostFormValue("company")
 	again := func(status int, why string) {
-		s.render(w, status, "demo", view{Title: "Try haas", Error: why, Email: email, OrgName: company, Name: name,
+		s.drawDemoForm(w, status, view{Title: "Try haas", Error: why, Email: email, OrgName: company, Name: name,
 			Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
 	}
+
 	if !s.all.Allow("demo") {
 		again(http.StatusServiceUnavailable, "Demos are busy right now. Try again in a little while, or book a call.")
 		return
@@ -40,6 +52,16 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 	if !s.signups.Allow("demo:" + s.source(r)) {
 		again(http.StatusTooManyRequests, "That is a lot of demos from one place. Try again later.")
 		return
+	}
+	if s.Turnstile.Enabled() {
+		if err := s.Turnstile.Check(r.Context(), r.PostFormValue("cf-turnstile-response"), s.source(r)); err != nil {
+			status := http.StatusForbidden
+			if errors.Is(err, ErrCheckDown) {
+				status = http.StatusServiceUnavailable
+			}
+			again(status, refusalSentence(err)+" Try again.")
+			return
+		}
 	}
 	person, org, err := s.Store.StartDemo(name, email, company)
 	if err != nil {

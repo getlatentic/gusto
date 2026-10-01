@@ -37,6 +37,8 @@ type Config struct {
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
+	// Turnstile is the bot check on the demo form, when it is set.
+	Turnstile Turnstile
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
 }
@@ -67,6 +69,9 @@ func New(c Config) (*Server, error) {
 	}
 	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "minuteLong": minuteLong, "clock": clock}).ParseFS(files, "templates/*.html")
 	if err != nil {
+		return nil, err
+	}
+	if err := c.Turnstile.Complete(); err != nil {
 		return nil, err
 	}
 	return &Server{Config: c, pages: pages,
