@@ -5,6 +5,12 @@
     state: restarted
     daemon_reload: true
 
+- name: Restart the owner's page
+  ansible.builtin.systemd:
+    name: haas-owner
+    state: restarted
+    daemon_reload: true
+
 - name: Reload nginx
   ansible.builtin.systemd:
     name: nginx

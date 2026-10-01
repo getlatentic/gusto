@@ -446,3 +446,16 @@ first is this machine.
 Inviting people (getlatentic/planning#396), the computers' lifecycle
 (getlatentic/planning#430), the operator's view, the stack on AWS from
 code (getlatentic/planning#397), and payment.
+
+## The owner's page
+
+`haas owner` serves the page the owner of a hosted haas manages it from: who asked for a demo (with a spreadsheet
+download), the demos running and their time left, a switch that pauses new demos, and the hosts that are up.
+
+It is its own program with its own service, `haas-owner`, and it listens on `127.0.0.1:8090` of the front door's host
+only. It refuses any other address (`HAAS_OWNER_ADDR`), any request that names another host or comes through a proxy,
+and any form sent from another site. The front door's web server does not serve it, so the internet cannot reach it.
+
+`deploy/aws/openshell/owner.sh` opens a tunnel to it with AWS Systems Manager, so it is at `http://localhost:8090`
+for as long as the command runs. Who may open it is who may start a session on the front door in AWS. It needs the
+Session Manager plugin: `brew install --cask session-manager-plugin`.
