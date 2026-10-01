@@ -266,3 +266,36 @@ func TestTheVideoThatComesWithHaasIsServedAsAVideoThatCanBeSeekedIn(t *testing.T
 		t.Errorf("%d %q", status, header.Get("Content-Type"))
 	}
 }
+
+func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *testing.T) {
+	f := demoFront(t)
+	b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
+	f.server.Wait()
+	b.get("/demo/wait")
+	slug := demoSlugOf(t, f)
+
+	if status, page, _ := b.get2("/demo/end"); status != http.StatusOK || !strings.Contains(page, "End your demo now?") {
+		t.Fatalf("the visitor is not asked: %d\n%s", status, page)
+	}
+	if _, found, _ := f.store.Org(slug); !found {
+		t.Fatal("asking ended the demo")
+	}
+	status, _, header := b.post("/demo/end", url.Values{})
+	f.server.ender.running.Wait()
+	if status != http.StatusSeeOther || header.Get("Location") != "/demo/ended/"+slug {
+		t.Fatalf("%d %v", status, header)
+	}
+	if _, found, _ := f.store.Org(slug); found {
+		t.Error("the organisation is still there")
+	}
+	if lead, _ := f.store.LeadOf(slug); lead.Reason != "the visitor ended it" || lead.Ended.IsZero() {
+		t.Errorf("%+v", lead)
+	}
+	status, page, _ := b.get2("/demo/ended/" + slug)
+	if status != http.StatusOK || !strings.Contains(page, "Your demo has ended") || !strings.Contains(page, `href="https://cal.example/haas"`) {
+		t.Errorf("%d\n%s", status, page)
+	}
+	if status, _, _ := f.browser().get2("/demo/ended/nobody"); status != http.StatusNotFound {
+		t.Errorf("a demo that never was has a page: %d", status)
+	}
+}

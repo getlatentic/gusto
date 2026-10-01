@@ -833,3 +833,14 @@ table.lineup .badge { display: inline-block; margin-left: var(--yg-space-2); pad
 /* A form that is a field or two and a button, on one line where it fits. */
 form.inline { display: flex; flex-wrap: wrap; align-items: end; gap: var(--yg-space-3); margin: var(--yg-space-3) 0; }
 form.inline label { flex: 1 1 12rem; }
+
+fieldset.engines { display: grid; gap: var(--yg-space-2); margin: 0; padding: 0; border: 0; }
+fieldset.engines legend { padding: 0; margin-bottom: var(--yg-space-2); color: var(--yg-text-muted); font-size: .9375rem; }
+label.engine { display: grid; grid-template-columns: auto 1fr; column-gap: var(--yg-space-3); align-items: baseline;
+  padding: var(--yg-space-3) var(--yg-space-4); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md);
+  background: var(--yg-surface); color: var(--yg-text); cursor: pointer; }
+label.engine:hover { border-color: var(--yg-border-strong); }
+label.engine:has(input:checked) { border-color: var(--yg-accent); box-shadow: 0 0 0 1px var(--yg-accent); }
+label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0; }
+label.engine .name { font-weight: 600; }
+label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/getlatentic/haas/internal/apps"
@@ -40,10 +42,21 @@ func TestThePreviewPortIsTheFirstOneTheAgentIsNotUsing(t *testing.T) {
 }
 
 // sharingSite is a server whose agents can share apps, through a runner that only says it ran them.
-type ranApps struct{ started []apps.App }
+type ranApps struct {
+	mu      sync.Mutex
+	started []apps.App
+}
+
+func (r *ranApps) ran() []apps.App {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return slices.Clone(r.started)
+}
 
 func (r *ranApps) Start(_ context.Context, app apps.App) (apps.App, error) {
+	r.mu.Lock()
 	r.started = append(r.started, app)
+	r.mu.Unlock()
 	app.Host, app.Target = "a.example", "127.0.0.1:1"
 	return app, nil
 }
@@ -70,14 +83,14 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 	if code != http.StatusSeeOther || where != thread+"#apps" {
 		t.Fatalf("the person is sent back to the conversation: %d %q", code, where)
 	}
-	if len(runner.started) != 1 || runner.started[0].Port != previewPorts || !strings.HasSuffix(runner.started[0].Command, "' 2048-app") {
-		t.Fatalf("%+v", runner.started)
+	if len(runner.ran()) != 1 || runner.ran()[0].Port != previewPorts || !strings.HasSuffix(runner.ran()[0].Command, "' 2048-app") {
+		t.Fatalf("%+v", runner.ran())
 	}
 	if page := site.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Open the app") {
 		t.Errorf("the conversation links to the app that is live:\n%s", page)
 	}
 	code, where = submit(url.Values{"preview": {"../secrets"}, "back": {thread}})
-	if !strings.Contains(where, "refused=") || !strings.HasPrefix(where, thread) || len(runner.started) != 1 {
+	if !strings.Contains(where, "refused=") || !strings.HasPrefix(where, thread) || len(runner.ran()) != 1 {
 		t.Errorf("a folder outside the agent's own was started: %d %q", code, where)
 	}
 	for _, back := range []string{"//evil.example/x", "https://evil.example/", "/instances/other/threads/1", thread + "/../../x", thread + "?a=1"} {
@@ -87,9 +100,9 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 		}
 	}
 	site.server.publishing.Wait()
-	for i, app := range runner.started {
+	for i, app := range runner.ran() {
 		if app.Port != previewPorts+i {
-			t.Errorf("each preview has a port of its own: %+v", runner.started)
+			t.Errorf("each preview has a port of its own: %+v", runner.ran())
 			break
 		}
 	}

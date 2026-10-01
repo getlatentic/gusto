@@ -439,7 +439,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	body := site.ask(t, "GET", "/new/blank", nil).Body.String()
-	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, `<option value="fixture">`) {
+	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, `value="fixture"`) {
 		t.Error("the blank page does not offer to start anything")
 	}
 	started := site.ask(t, "POST", "/instances", url.Values{"title": {"Research helper"}})
