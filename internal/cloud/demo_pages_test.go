@@ -147,6 +147,9 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddr
 	if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/haas"`) || !strings.Contains(body, "Ada") {
 		t.Errorf("%d\n%s", status, body)
 	}
+	if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".brand") {
+		t.Errorf("the page of an ended demo has no styles: %d %v", status, header)
+	}
 	if status, _, header := b.get2("/demo/wait"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
 		t.Errorf("the visitor's sign-in went with their account: %d %v", status, header)
 	}
