@@ -13,6 +13,7 @@ Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
 EnvironmentFile=/etc/haas/cloud.env
 EnvironmentFile=/run/haas/secrets/mail.env
 EnvironmentFile=-/run/haas/secrets/turnstile.env
+EnvironmentFile=-/run/haas/secrets/leadhook.env
 ExecStart=/usr/local/bin/haas cloud
 Restart={{ "always" if demo_live | bool else "on-failure" }}
 LimitNOFILE=65536

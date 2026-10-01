@@ -134,3 +134,35 @@ func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecr
 		t.Error("a secret that is no longer stored is still on the host")
 	}
 }
+
+func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "leadhook.env")
+		info, err := os.Stat(path)
+		want := "HAAS_CLOUD_LEAD_HOOK_URL=value-of-/haas/poc/lead-hook-url\nHAAS_CLOUD_LEAD_HOOK_SECRET=value-of-/haas/poc/lead-hook-secret\n"
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+		if _, err := h.boot("FAKE_MISSING=/haas/poc/lead-hook-secret"); err != nil {
+			t.Fatalf("a host with no lead hook is still a host: %v", err)
+		}
+		if h.has("run/secrets/leadhook.env") {
+			t.Errorf("%s: half a hook, or a hook no longer stored, is still on the host", role)
+		}
+	}
+	cell := newHost(t)
+	cell.put("image/key1.tar.gz", "x")
+	cell.as("cell")
+	if _, err := cell.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if cell.has("run/secrets/leadhook.env") {
+		t.Error("a cell, which runs other people's code, holds the lead hook")
+	}
+}
