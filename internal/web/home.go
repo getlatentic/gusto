@@ -46,6 +46,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		"From":      from + 1,
 		"To":        to,
 		"Templates": industry.All(),
+		"Engines":   s.readyEngines(),
 		"Refused":   r.URL.Query().Get("refused"),
 	}
 	if page > 1 {
@@ -64,23 +65,29 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 		"Title":     "haas — new agent",
 		"Nav":       "new",
 		"Templates": industry.All(),
+		"Engines":   s.readyEngines(),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }
 
-// blankPage starts an agent with nothing set up: a name, and the engine
-// and skill set for whoever wants to choose them.
-func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
+// readyEngines is the agents this deployment can start now.
+func (s *Server) readyEngines() []catalog.Entry {
 	var ready []catalog.Entry
 	for _, entry := range s.entries() {
 		if entry.Ready {
 			ready = append(ready, entry)
 		}
 	}
+	return ready
+}
+
+// blankPage starts an agent with nothing set up: a name, and the engine
+// and skill set for whoever wants to choose them.
+func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "blank.html", map[string]any{
 		"Title":   "haas — new agent",
 		"Nav":     "new",
-		"Engines": ready,
+		"Engines": s.readyEngines(),
 		"Setups":  s.setupsList(),
 		"Refused": r.URL.Query().Get("refused"),
 	})
