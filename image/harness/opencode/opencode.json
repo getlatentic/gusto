@@ -41,6 +41,25 @@
           "name": "DeepSeek Flash"
         }
       }
+    },
+    "gemma": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Gemma 4",
+      "options": {
+        "baseURL": "{env:HAAS_MODEL_URL}",
+        "apiKey": "{env:HAAS_MODEL_TOKEN}"
+      },
+      "models": {
+        "google.gemma-4-31b": {
+          "name": "Gemma 4 31B"
+        },
+        "google.gemma-4-26b-a4b": {
+          "name": "Gemma 4 26B A4B"
+        },
+        "google.gemma-4-e2b": {
+          "name": "Gemma 4 E2B"
+        }
+      }
     }
   },
   "permission": {
