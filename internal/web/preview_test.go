@@ -94,3 +94,22 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 		}
 	}
 }
+
+func TestWhileAPreviewStartsTheConversationLooksAgainAndSaysSo(t *testing.T) {
+	site := open(t)
+	store, err := apps.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	site.server.UseApps(store, &ranApps{})
+	site.signIn(t)
+	thread := startedThread(t, site)
+	instance := strings.TrimPrefix(thread[:strings.Index(thread, "/threads/")], "/instances/")
+	if _, err := store.New(instance, "", "node x.js", 8080); err != nil {
+		t.Fatal(err)
+	}
+	page := site.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "Starting the preview") || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(page, "location.reload()") {
+		t.Errorf("a page that waits for an app looks again:\n%s", page[:min(len(page), 1500)])
+	}
+}
