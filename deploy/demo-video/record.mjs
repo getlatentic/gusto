@@ -97,7 +97,7 @@ await page.waitForSelector("textarea");
 await say("Sealed, and the model key stays with haas");
 await pause(3);
 await page.click("textarea");
-await page.keyboard.type("create a 2048 app", { delay: 90 });
+await page.keyboard.type("create a 2048 game in a folder called 2048-app, with an index.html I can open", { delay: 55 });
 await pause(1);
 await page.keyboard.press("Enter");
 await say("It works in the sandbox and writes the files there");
@@ -114,7 +114,7 @@ await waiting("starting the preview", () => page.waitForSelector("a:has-text('Op
 const app = await page.getAttribute("a:has-text('Open the app')", "href");
 await say("Shared only with people in your organisation");
 await pause(3);
-await page.goto(new URL(app, home).href);
+await page.goto(new URL(app, home).href, { waitUntil: "domcontentloaded", timeout: 90000 });
 await pause(2);
 await say("Your 2048, running in the agent's computer");
 for (const key of ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"]) { await page.keyboard.press(key); await pause(0.6); }
