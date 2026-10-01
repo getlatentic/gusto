@@ -81,7 +81,7 @@
     <label>Key <input type="password" name="key" autocomplete="off"></label>
     <label>Reference, when the key is not typed here <input name="reference" placeholder="/path, parameter name or secret id"></label>
     {{if .View.Harnesses}}
-    <fieldset class="servers"><legend class="muted">Works with, when it does not work with every harness</legend>
+    <fieldset class="servers"><legend class="muted">Works with, when it does not work with every agent</legend>
       {{range .View.Harnesses}}<label class="check"><input type="checkbox" name="harness" value="{{.}}"> {{.}}</label>{{end}}
     </fieldset>
     {{end}}
