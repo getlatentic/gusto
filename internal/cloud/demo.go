@@ -122,16 +122,17 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 		}
 		return Person{}, Org{}, err
 	}
-	if err := s.withinHabit(address); err != nil {
+	limits := s.DemoLimits()
+	if err := s.withinHabit(address, limits); err != nil {
 		return Person{}, Org{}, err
 	}
-	if started, err := s.startedToday(); err != nil || (s.set.Demo.PerDay > 0 && started >= s.set.Demo.PerDay) {
+	if started, err := s.startedToday(); err != nil || (limits.PerDay > 0 && started >= limits.PerDay) {
 		if err == nil {
 			err = ErrDemoDaily
 		}
 		return Person{}, Org{}, err
 	}
-	if live, err := s.demoCount(); err != nil || live >= max(s.set.Demo.MaxOrgs, 1) {
+	if live, err := s.demoCount(); err != nil || live >= limits.MaxOrgs {
 		if err == nil {
 			err = ErrDemoFull
 		}
@@ -393,8 +394,7 @@ func (s *Store) DemosPaused() bool {
 
 // withinHabit refuses a visitor whose address, or whose company, has started as many demos as one may in the last
 // twenty-four hours, which is counted from the leads that demos left, so it holds after a demo is deleted.
-func (s *Store) withinHabit(address string) error {
-	d := s.set.Demo
+func (s *Store) withinHabit(address string, d DemoLimits) error {
 	if d.PerPerson <= 0 && d.PerCompany <= 0 {
 		return nil
 	}
