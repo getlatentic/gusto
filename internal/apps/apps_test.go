@@ -75,3 +75,14 @@ func TestAFileThatIsNotAnAppIsSaidSoAndNotSkipped(t *testing.T) {
 		t.Error("a broken record was skipped")
 	}
 }
+
+func TestAPreviewIsToldFromACommandAPersonTyped(t *testing.T) {
+	if !(App{Command: PreviewPrefix + `"http"]...`}).IsPreview() {
+		t.Error("a preview is not known")
+	}
+	for _, typed := range []string{"", "node server.js", "node -e 'console.log(1)'", "python3 -m http.server"} {
+		if (App{Command: typed}).IsPreview() {
+			t.Errorf("%q is taken for a preview, which would be held to its header", typed)
+		}
+	}
+}

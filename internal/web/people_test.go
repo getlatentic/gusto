@@ -44,6 +44,12 @@ func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 	}
 }
 
+// unmeasuredNow is a call with no count and no cost that was sent this moment, which a test about this month needs: a
+// call on a fixed date is in this month only until the month ends.
+func unmeasuredNow() string {
+	return fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":null,"outputTokens":null,"usd":null}`, time.Now().Unix())
+}
+
 func rowOf(t *testing.T, page, email string) string {
 	t.Helper()
 	found := regexp.MustCompile(`(?s)<tr>\s*<td>` + regexp.QuoteMeta(email) + `</td>(.*?)</tr>`).FindStringSubmatch(page)
