@@ -451,6 +451,18 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	}
 }
 
+func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	for _, path := range []string{"/new", "/", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
+		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
+		if strings.Contains(strings.ToLower(body), "harness") {
+			i := strings.Index(strings.ToLower(body), "harness")
+			t.Errorf("%s says harness to a person: ...%s...", path, body[max(i-60, 0):min(i+60, len(body))])
+		}
+	}
+}
+
 func TestTheNewAgentPageOffersTheAgentsToStartWithBesideTheTemplatesAndNeverSaysHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)

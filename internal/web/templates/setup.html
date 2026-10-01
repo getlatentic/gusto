@@ -2,7 +2,7 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>{{.Harness.Title}}</span></nav>
+<nav class="crumb" aria-label="Where this is"><a href="/new">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
 <header class="instance-head">
   {{template "mark" (dict "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="who">
