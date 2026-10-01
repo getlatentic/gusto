@@ -3,18 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>haas — coding agents for your whole team, in computers of their own</title>
-<meta name="description" content="Give every person on your team coding agents that work in a sandboxed computer of their own, under rules you set. Try it for {{minutes .DemoLeft}}.">
+<title>Latentic Agent Cloud — run agents across your team with control and compliance built in</title>
+<meta name="description" content="One place to use approved AI agents and models, run work in isolated environments, and control what agents can access, what they can spend, and what they do. Try it for {{minutes .DemoLeft}}.">
 <link rel="icon" href="{{asset "/static/mark.png"}}">
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{own "/static/landing.css"}}">
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> haas</a>
+  <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> Latentic Agent Cloud</a>
   <nav>
-    <a href="#how">How it works</a>
+    <a href="#why">Why</a>
     <a href="#control">What you control</a>
+    <a href="#how">How it works</a>
     {{if .Book}}<a href="{{.Book}}">Book a call</a>{{end}}
     <a class="cta small" href="/demo">Try it</a>
   </nav>
@@ -22,47 +23,114 @@
 
 <main>
 <section class="hero">
-  <h1>Coding agents for your whole team, in computers of their own</h1>
-  <p class="lede">Each person gets agents that work in a sandboxed computer, on your repositories, with the models you choose. You set who may use what, see what it costs, and keep a signed record of what every agent did.</p>
+  <h1>Beyond AI chat.</h1>
+  <p class="lede">Run agents across your team with control and compliance built in.</p>
+  <p class="body">Latentic Agent Cloud gives teams one place to use approved AI agents and models, run work in isolated environments, and control what agents can access, what they can spend, and what they do.</p>
   <div class="actions">
     <a class="cta" href="/demo">Start a {{minuteLong .DemoLeft}} demo</a>
     {{if .Book}}<a class="ghost" href="{{.Book}}">Book a call</a>{{end}}
   </div>
-  <p class="fine">No sign-up to finish. Your demo organisation, its computers and everything in it are deleted when the time is up.</p>
+  <p class="fine">For enterprises, government, regulated industries, and teams that need greater control over how AI operates.</p>
 </section>
 
 {{if .Video}}
-<section class="video" aria-label="The demo in two minutes">
+<section class="video" aria-label="The Agent Cloud, from inside">
   {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"{{with .Poster}} poster="{{.}}"{{end}}></video>
-  {{else}}<iframe src="{{.Video}}" title="haas in two minutes" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
+  {{else}}<iframe src="{{.Video}}" title="Latentic Agent Cloud" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{end}}
 
-<section id="how" class="steps">
-  <h2>What the demo shows</h2>
-  <ol>
-    <li><h3>Start</h3><p>Give a name, a work email and your company. You land in an organisation of your own, signed in. The first demo of the hour takes a few minutes while a machine starts, and your time begins when it is ready.</p></li>
-    <li><h3>Ask an agent</h3><p>Start an agent in your computer, pick a model, and ask it for something. It works in a sandbox that can reach the models and nothing else you have not allowed.</p></li>
-    <li><h3>See the admin side</h3><p>Open the console: people and roles, what has been spent, which models are allowed and what each costs, and who may use which.</p></li>
-  </ol>
-</section>
-
-<section id="control" class="points">
-  <h2>What you control</h2>
-  <ul>
-    <li><h3>A computer for each person</h3><p>Every person's agents run in a virtual machine of their own. One person's work cannot reach another's.</p></li>
-    <li><h3>Your models, your keys</h3><p>Choose the models your organisation may use and what each costs. Keys stay outside the sandbox, added on the way out and never shown to an agent.</p></li>
-    <li><h3>Limits that hold</h3><p>Cap what a job or a team may spend, limit a person to some models, and set how many computers and jobs an organisation may run.</p></li>
-    <li><h3>A record you can check</h3><p>Every job leaves a signed record of what was asked, what ran and what it cost, which anybody can verify later.</p></li>
+<section id="why" class="prose">
+  <h2>Agents are becoming part of the workforce.</h2>
+  <p class="lead">They need more than access to a model.</p>
+  <p>Teams are adopting coding agents, research agents, internal agents and autonomous workflows. But every new agent introduces another set of models, credentials, permissions, computers, network access, costs and logs to manage.</p>
+  <p>Latentic Agent Cloud gives your organisation a common environment for running them.</p>
+  <ul class="plain">
+    <li>Agents and models your organisation approves.</li>
+    <li>Secure places for them to work.</li>
+    <li>Controls over what they can access.</li>
+    <li>A record of what they did.</li>
   </ul>
 </section>
 
+<section id="control" class="points">
+  <h2>One place for your organisation's agents.</h2>
+  <ul>
+    <li>
+      <h3>Approved agents and models</h3>
+      <p>Decide which agents, harnesses and models are available to your teams. Give different people and teams access to different capabilities without managing every AI tool separately.</p>
+      <p class="aside">Your agents. Your models. Your choice.</p>
+    </li>
+    <li>
+      <h3>Secure computers for agent work</h3>
+      <p>Agents do more than generate text. They read files, write code, run software, use tools and interact with systems. Give them isolated computers where they can perform that work without unrestricted access to the rest of your organisation.</p>
+      <p class="aside">Each person's work remains isolated, with access opened only where you allow it.</p>
+    </li>
+    <li>
+      <h3>Control what agents can reach</h3>
+      <p>Define what an agent can use before it starts working. Control access to:</p>
+      <ul class="tags"><li>models</li><li>tools</li><li>files and repositories</li><li>networks</li><li>internal systems</li><li>credentials</li><li>external services</li></ul>
+      <p class="aside">Credentials remain outside the agent's environment and can be provided only when needed.</p>
+    </li>
+    <li>
+      <h3>Control usage and spend</h3>
+      <p>Set limits at the organisation, team, user or job level. Choose which models people may use, how much work can run, and how much it may cost. See usage across your organisation from one place.</p>
+    </li>
+    <li>
+      <h3>Know what happened</h3>
+      <p>Agent work should not disappear into a chat history. Keep a record of:</p>
+      <ul class="tags"><li>who started the work</li><li>which agent ran</li><li>which model it used</li><li>what was requested</li><li>what it accessed</li><li>what it changed</li><li>what it cost</li></ul>
+      <p class="aside">Create an auditable history of agent activity across your organisation.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="prose">
+  <h2>Bring your agents. Bring your models.</h2>
+  <p class="lead">Latentic Agent Cloud is not another AI assistant. It is the environment your organisation uses to run AI assistants and agents.</p>
+  <p>Use coding agents, research agents, internal agents, third-party agents or your own agent harnesses. Make approved models available through the same organisational controls.</p>
+  <p>As new agents and models appear, teams can adopt them without rebuilding security, access control, execution and oversight around every tool.</p>
+</section>
+
+<section class="points">
+  <h2>Built for teams, not individual AI subscriptions.</h2>
+  <ul>
+    <li><h3>For employees</h3><p>A secure environment for their agents to work with the files, tools and applications needed to get work done.</p></li>
+    <li><h3>For teams</h3><p>A common set of approved agents and models, with consistent access and spending policies.</p></li>
+    <li><h3>For IT and security</h3><p>Central control over identity, permissions, credentials, networks, execution environments and AI providers.</p></li>
+    <li><h3>For compliance</h3><p>A verifiable record of agent execution, access and usage.</p></li>
+  </ul>
+</section>
+
+<section id="how" class="steps">
+  <h2>From agent request to controlled execution.</h2>
+  <ol>
+    <li><h3>Your organisation decides what is available</h3><p>Administrators approve agents, models and access policies.</p></li>
+    <li><h3>A person chooses an agent</h3><p>The user starts from the capabilities their organisation has made available.</p></li>
+    <li><h3>The agent gets a secure place to work</h3><p>Work runs inside an isolated environment with only the access it needs.</p></li>
+    <li><h3>Latentic enforces the organisation's controls</h3><p>Model access, credentials, networks, tools, permissions and spending limits are applied during execution.</p></li>
+    <li><h3>The work leaves a record</h3><p>The organisation can see what ran, which resources it used and what it cost.</p></li>
+  </ol>
+</section>
+
+<section class="try">
+  <h2>Try the Agent Cloud</h2>
+  <p class="lead">Create a temporary organisation and experience both sides of the platform.</p>
+  <ul class="plain">
+    <li>Run an agent inside your own isolated computer.</li>
+    <li>Choose from the models your organisation allows.</li>
+    <li>Then open the admin console to see people, permissions, model access, spend and execution records.</li>
+  </ul>
+  <p class="fine">Your demo organisation, computers and their contents are removed when the demo ends.</p>
+  <div class="actions"><a class="cta" href="/demo">Start a {{minuteLong .DemoLeft}} demo</a></div>
+</section>
+
 <section class="close">
-  <h2>See it on your own work</h2>
-  <p>Thirty minutes is enough to start an agent on a real task. If it fits, a call is the next step.</p>
+  <h2>AI agents, ready for organisational use.</h2>
+  <p class="lead">Move beyond individual chat subscriptions and disconnected agent tools. Give your teams the agents they need while keeping control of how AI runs across your organisation.</p>
   <div class="actions">
     <a class="cta" href="/demo">Start a demo</a>
-    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a call</a>{{end}}
+    {{if .Book}}<a class="ghost" href="{{.Book}}">Talk to us</a>{{end}}
   </div>
 </section>
 </main>
