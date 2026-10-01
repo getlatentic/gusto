@@ -114,20 +114,38 @@ is what it was, and a table it cannot read is logged and passed over.
 `haas matrix` exits 0 when every cell left a verdict and its evidence checks,
 whichever pairs finished, and 2 otherwise.
 
-## What `gpt-oss-120b` did on the box
+## Low-priced Bedrock models on the box
 
-[`matrix/gpt-oss.json`](matrix/gpt-oss.json) is the plan for the two harnesses that finished the job on `openai.gpt-oss-120b`,
-through the Bedrock endpoint, in an OpenShell sandbox on one `m8i.xlarge` (about 15 minutes of it, for under ten cents).
-Five harnesses were tried, each on the one-line-fix job:
+Each pair ran the one-line-fix job in an OpenShell sandbox on one `m8i.xlarge`, through the Bedrock endpoint (Mantle). Mantle
+serves Gemma 4 under `/openai/v1` and the other models, `gpt-oss` among them, under `/v1`, so Gemma 4 has a credential of its
+own, `gemma`, whose address ends in `/openai`. [`matrix/gemma4.json`](matrix/gemma4.json) is the plan for the pairs the demo offers.
 
-| harness | finished | wall clock | what happened |
-| --- | --- | --- | --- |
-| `pi` | yes | 42 s | 8 model calls, 14,517 tokens |
-| `hermes` | yes | 43 s | 13 model calls, 90,457 tokens |
-| `opencode` | no | 2 m 30 s | no model call was recorded; it finishes the same job on Qwen |
-| `dsh` | no | 24 s | the model refused its first request: it asked for 256,000 output tokens and the model allows 131,072 |
-| `codex` | no | 23 s | one model call, then its requests were denied |
+| model | `opencode` | `pi` | `hermes` | `dsh` | `codex` |
+| --- | --- | --- | --- | --- | --- |
+| `google.gemma-4-26b-a4b` | yes, 52 s | yes, 27 s | yes, 41 s | no | no |
+| `google.gemma-4-31b` | yes, 2 m 46 s | yes, 29 s | yes, 41 s | no | no |
+| `google.gemma-4-e2b` | no | yes, 33 s | no | no | no |
+| `openai.gpt-oss-120b` | not tried again | yes, 42 s | yes, 43 s | no | no |
 
-The demo offers `gpt-oss-120b` to the two that finished, through a credential of its own, `oss`, so that `opencode` stays on Qwen
-and `dsh` and `codex` are not offered a model they did not finish a job on. The model has no price in the policy, so its
-cost is shown as unknown, as the Qwen model's is.
+What stopped each that did not finish:
+
+- `opencode` runs only models its configuration declares. Before `image/harness/opencode/opencode.json` named the Gemma 4
+  models it made no model call; with them declared it finishes on the 26B and 31B models. `gemma-4-e2b` ends the job with the
+  tests still failing.
+- `dsh` asked `gpt-oss-120b` and `gemma-4-e2b` for 256,000 output tokens, which they do not allow, and on the other two Gemma 4
+  models was answered with a response with no content.
+- `codex` makes one model call and then has its requests denied, on every model here. It finished the job on DeepSeek Flash and
+  Pro through DeepSeek's own API, so what is wrong is how it meets the Bedrock endpoint, not the model.
+- `hermes` ends the job without a fix on `gemma-4-e2b`.
+
+The demo offers `google.gemma-4-26b-a4b` and `google.gemma-4-31b` to `opencode`, `pi` and `hermes`. A model's price per million
+tokens, from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01, is in
+`deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`, so the organisation's spending page shows what a demo cost:
+
+| model | input | output |
+| --- | --- | --- |
+| `google.gemma-4-26b-a4b` | $0.13 | $0.40 |
+| `google.gemma-4-31b` | $0.14 | $0.40 |
+| `google.gemma-4-e2b` | $0.04 | $0.08 |
+
+For comparison, DeepSeek Flash is $0.15 and $0.60, and the Qwen model the demo offered before is $0.53 and $2.66.

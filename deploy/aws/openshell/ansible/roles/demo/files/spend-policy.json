@@ -1,0 +1,17 @@
+{
+  "prices": {
+    "google.gemma-4-26b-a4b": {
+      "inputPerMillion": 0.13,
+      "outputPerMillion": 0.4
+    },
+    "google.gemma-4-31b": {
+      "inputPerMillion": 0.14,
+      "outputPerMillion": 0.4
+    },
+    "google.gemma-4-e2b": {
+      "inputPerMillion": 0.04,
+      "outputPerMillion": 0.08
+    }
+  },
+  "teams": {}
+}
