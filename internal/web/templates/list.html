@@ -12,7 +12,7 @@
     {{range .Figures}}<a class="is-{{.Label}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span class="dot"></span>{{.Label}} <span class="n">{{.Count}}</span></a>{{end}}
   </nav>
   {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
-  <label class="inline"><span class="sr">Harness</span>
+  <label class="inline"><span class="sr">Agent</span>
     <select name="harness" data-autosubmit>
       <option value="">every engine</option>
       {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
