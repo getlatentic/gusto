@@ -38,9 +38,13 @@ type Scaler struct {
 	Boot time.Duration
 	// Backoff is how long after a host could not be started another is not tried.
 	Backoff time.Duration
+	// Settle is how long a cell that has just registered is given to take the organisations that wait, which are placed
+	// on it when the controller next looks. A host is not started for them in that time, since they are about to have room.
+	Settle time.Duration
 
 	now       func() time.Time
 	idleSince map[string]time.Time
+	firstSeen map[string]time.Time
 	retryAt   time.Time
 }
 
@@ -96,7 +100,7 @@ func (s *Scaler) Tick() {
 	starting := s.reap(hosts, alive)
 	waiting := s.Waiting()
 	s.retire(hosts, alive, waiting)
-	if waiting > 0 && starting == 0 && len(hosts) < s.Max && !s.clock().Before(s.retryAt) {
+	if waiting > 0 && starting == 0 && !s.settling(alive) && len(hosts) < s.Max && !s.clock().Before(s.retryAt) {
 		id, err := s.Launcher.Launch()
 		if err != nil {
 			s.retryAt = s.clock().Add(orDefault(s.Backoff, time.Minute))
@@ -105,6 +109,28 @@ func (s *Scaler) Tick() {
 		}
 		slog.Info("a host was started for a cell, because organisations are waiting", "host", id, "waiting", waiting)
 	}
+}
+
+// settling says a cell registered a moment ago. It is counted from when it was first seen to be a cell, so a front door
+// that starts again waits the same moment for the cells it finds.
+func (s *Scaler) settling(alive map[string]Registration) bool {
+	if s.firstSeen == nil {
+		s.firstSeen = map[string]time.Time{}
+	}
+	now, settling := s.clock(), false
+	for id := range alive {
+		first, seen := s.firstSeen[id]
+		if !seen {
+			s.firstSeen[id], first = now, now
+		}
+		settling = settling || now.Sub(first) < orDefault(s.Settle, 30*time.Second)
+	}
+	for id := range s.firstSeen {
+		if _, there := alive[id]; !there {
+			delete(s.firstSeen, id)
+		}
+	}
+	return settling
 }
 
 // reap stops a host that was started and has not registered in the time it has, and says how many are still starting.

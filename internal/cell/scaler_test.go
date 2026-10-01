@@ -101,14 +101,42 @@ func TestOneHostIsStartedForWhoeverWaitsAndNotAnotherWhileItIsOnItsWay(t *testin
 	r.cell("i-0aaa1111", true)
 	r.hosts.next = "i-0bbb2222"
 	r.tick(time.Minute)
+	r.tick(time.Minute)
 	if r.hosts.launched != 2 {
 		t.Errorf("a cell that cannot take them all is joined by another: %d", r.hosts.launched)
 	}
 	r.cell("i-0bbb2222", true)
 	r.hosts.next = "i-0ccc3333"
 	r.tick(time.Minute)
+	r.tick(time.Minute)
 	if r.hosts.launched != 2 {
 		t.Errorf("there is a most: %d", r.hosts.launched)
+	}
+}
+
+func TestACellThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHostIsStarted(t *testing.T) {
+	r := scaling(t)
+	r.waiting = 1
+	r.tick(0)
+	r.cell("i-0aaa1111", false)
+	r.hosts.next = "i-0bbb2222"
+	// The cell is up, and the organisation that waited has not been placed on it yet.
+	r.tick(10 * time.Second)
+	r.tick(10 * time.Second)
+	if r.hosts.launched != 1 {
+		t.Fatalf("a second host was started for an organisation that was about to be placed: %d", r.hosts.launched)
+	}
+	// Placed, so nobody waits, and none is started.
+	r.waiting = 0
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("%d", r.hosts.launched)
+	}
+	// Still waiting well after it registered, which is a cell that has no room.
+	r.waiting = 1
+	r.tick(time.Minute)
+	if r.hosts.launched != 2 {
+		t.Errorf("a cell that could not take them did not get another: %d", r.hosts.launched)
 	}
 }
 
