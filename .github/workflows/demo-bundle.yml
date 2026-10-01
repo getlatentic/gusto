@@ -52,6 +52,10 @@ jobs:
             echo "the image $key is in the bucket"
             exit 0
           fi
+          if [ "$(uname -m)" != x86_64 ]; then
+            echo "::error::the image $key is not in the bucket, and this runner is $(uname -m), which cannot build it. Run deploy/aws/openshell/publish-image.sh, which builds it on an x86 host, and run this again."
+            exit 1
+          fi
           docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t haas-runner .
           container="$(docker create haas-runner true)"
           docker export "$container" | gzip -1 > image.tar.gz
