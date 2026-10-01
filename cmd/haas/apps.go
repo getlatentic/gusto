@@ -72,7 +72,7 @@ func (a *sharedApps) wait(ctx context.Context, app apps.App) (address openshell.
 			}
 		}
 		if exposed {
-			if last = a.answers(ctx, address); last == nil {
+			if last = a.answers(ctx, app, address); last == nil {
 				return address, nil
 			}
 		}
@@ -85,7 +85,7 @@ func (a *sharedApps) wait(ctx context.Context, app apps.App) (address openshell.
 }
 
 // answers is whether the app answers a request with anything but a server error.
-func (a *sharedApps) answers(ctx context.Context, address openshell.Address) error {
+func (a *sharedApps) answers(ctx context.Context, app apps.App, address openshell.Address) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+address.Target+"/", nil)
 	if err != nil {
 		return err
@@ -98,6 +98,9 @@ func (a *sharedApps) answers(ctx context.Context, address openshell.Address) err
 	response.Body.Close()
 	if response.StatusCode >= 500 {
 		return fmt.Errorf("it answered %s", response.Status)
+	}
+	if app.IsPreview() && response.Header.Get(apps.PreviewHeader) == "" {
+		return errors.New("something else answers on that port, not the preview")
 	}
 	return nil
 }

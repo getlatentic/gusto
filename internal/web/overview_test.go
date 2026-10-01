@@ -407,7 +407,7 @@ func TestSpendingThatHasNoPriceMakesTheBudgetPassedByAtLeast(t *testing.T) {
 	here, _, _ := budgeted(t)
 	setBudget(t, here, "10")
 	spentNow(t, here, "priced", "ada@acme.com", 12)
-	spentJob(t, here.index.Root(), "unpriced", "", unmeasured)
+	spentJob(t, here.index.Root(), "unpriced", "", unmeasuredNow())
 	page := overview(t, here)
 	alert := regexp.MustCompile(`(?s)<p class="alert" role="alert">(.*?)</p>`).FindStringSubmatch(page)
 	if alert == nil || !strings.Contains(alert[1], "more that has no price") || !strings.Contains(alert[1], "at least") {

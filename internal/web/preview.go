@@ -13,7 +13,7 @@ import (
 const previewScript = `const[h,f,p]=["http","fs","path"].map(require),d=p.resolve(process.argv[1]),t={".html":"text/html",".js":"text/javascript",".css":"text/css",".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".jpg":"image/jpeg",".ico":"image/x-icon"};` +
 	`h.createServer((q,s)=>{let u=p.join(d,decodeURIComponent(q.url.split("?")[0]));if(u!==d&&!u.startsWith(d+p.sep)){s.writeHead(403);return s.end()}` +
 	`if(f.existsSync(u)&&f.statSync(u).isDirectory())u=p.join(u,"index.html");` +
-	`f.readFile(u,(e,b)=>{if(e){s.writeHead(404);return s.end("not found")}s.writeHead(200,{"Content-Type":t[p.extname(u)]||"application/octet-stream"});s.end(b)})}).listen(+process.env.PORT,"0.0.0.0")`
+	`f.readFile(u,(e,b)=>{if(e){s.writeHead(404);return s.end("not found")}s.writeHead(200,{"Content-Type":t[p.extname(u)]||"application/octet-stream","X-Haas-Preview":"1"});s.end(b)})}).listen(+process.env.PORT,"0.0.0.0")`
 
 // previewFolder is a folder in the agent's folder, as it is named in a command.
 var previewFolder = regexp.MustCompile(`^(?:\.|[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9_][A-Za-z0-9._-]*)*)$`)
@@ -51,9 +51,13 @@ func contains(list []string, want string) bool {
 	return false
 }
 
-// previewPort is the first port from 8080 that none of the agent's apps has.
+// previewPorts is where previews begin. It is not 8080, which is the first port an agent that starts a server of its own
+// reaches for, and a preview that could not have it would be answered by that server.
+const previewPorts = 8765
+
+// previewPort is the first port from previewPorts that none of the agent's apps has.
 func previewPort(found []apps.App) int {
-	for port := 8080; port < 8100; port++ {
+	for port := previewPorts; port < previewPorts+20; port++ {
 		free := true
 		for _, each := range found {
 			if each.Port == port && (each.State == apps.Starting || each.State == apps.Live) {
