@@ -9,7 +9,7 @@ demo_mail: ""
 demo_cert_email: ""
 demo_free_mail: allow
 demo_image_key: ""
-demo_models: platform/qwen.qwen3-vl-235b-a22b-instruct
+demo_models: platform/qwen.qwen3-vl-235b-a22b-instruct,oss/openai.gpt-oss-120b
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
 demo_dns_token_parameter: /haas/poc/cloudflare-dns-token

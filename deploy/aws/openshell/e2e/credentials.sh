@@ -1,5 +1,6 @@
 # Builds the proxy's credentials in the directory given, from Parameter Store, with the
-# instance's role: $BEDROCK_PARAMETER and $DEEPSEEK_PARAMETER name the two keys. Which
+# instance's role: $BEDROCK_PARAMETER and $DEEPSEEK_PARAMETER name the two keys. "platform" and "oss" are one Bedrock key
+# under two names, so that each model is offered only to the harnesses that finished a job on it. Which
 # harnesses each credential answers is what greencloud's host_vars say.
 set -euo pipefail
 dir=${1:?the directory to write the credentials in}
@@ -13,6 +14,7 @@ def secret(name):
 bedrock, deepseek = secret(sys.argv[1]), secret(sys.argv[2])
 held = {
     "platform": {"address": "https://bedrock-mantle.us-east-1.api.aws", "auth": "bearer", "key": bedrock, "harnesses": ["opencode"]},
+    "oss": {"address": "https://bedrock-mantle.us-east-1.api.aws", "auth": "bearer", "key": bedrock, "harnesses": ["pi", "hermes"]},
     "deepseek": {"address": "https://api.deepseek.com", "auth": "bearer", "key": deepseek},
     "anthropic": {"address": "https://api.deepseek.com/anthropic", "auth": "anthropic", "key": deepseek, "harnesses": ["claude"]},
 }
