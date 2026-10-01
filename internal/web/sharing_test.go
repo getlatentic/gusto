@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -504,5 +505,67 @@ func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServe
 	alone.handler.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusOK || aloneGateway.last().Header.Get("Origin") == "https://acme.test" {
 		t.Errorf("a path-served app's post: %d, asked as %q", recorder.Code, aloneGateway.last().Header.Get("Origin"))
+	}
+}
+
+// quietGateway answers every request except the first for a path, which it holds without a word until the test is over,
+// as a gateway was seen to do for the first request to the first app on a new cell.
+func quietGateway(t *testing.T) (*gatewayFake, *int32) {
+	t.Helper()
+	var tried sync.Map
+	var held int32
+	release := make(chan struct{})
+	g := &gatewayFake{}
+	g.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, again := tried.LoadOrStore(r.Method+" "+r.URL.Path, true); !again || r.URL.Path == "/never" {
+			atomic.AddInt32(&held, 1)
+			<-release
+			return
+		}
+		w.Write([]byte("<h1>the app</h1>"))
+	}))
+	// Cleanups run last in first out: the held requests are let go before the server waits for them.
+	t.Cleanup(g.Close)
+	t.Cleanup(func() { close(release) })
+	return g, &held
+}
+
+func TestARequestToAYoungAppThatIsNotAnsweredIsAskedAgainOnANewConnectionAndALaterOneIsNot(t *testing.T) {
+	site, runner, _ := behindAFrontDoorSharing(t)
+	gateway, held := quietGateway(t)
+	runner.gateway = gateway
+	site.server.appFirstByte = 200 * time.Millisecond
+	id := sharedApp(t, site, startedInstance(t, site))
+	cookie := site.signedInTo(t, id)
+
+	began := time.Now()
+	answer := site.appRequest(t, id, "GET", "/", cookie)
+	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), "the app") {
+		t.Fatalf("the first request was not answered: %d %q", answer.Code, answer.Body)
+	}
+	if took := time.Since(began); took > 3*time.Second {
+		t.Errorf("a request that was held took %s to be answered", took)
+	}
+	if atomic.LoadInt32(held) != 1 {
+		t.Errorf("one request was held and asked again: %d", atomic.LoadInt32(held))
+	}
+
+	// A request that changes something is not asked again: it may have been done.
+	before := atomic.LoadInt32(held)
+	posted := httptest.NewRequest("POST", "/save", strings.NewReader("x=1"))
+	posted.Header.Set(AppHeader, SignApp(entryKey, id))
+	posted.Header.Set("X-Forwarded-Proto", "https")
+	posted.AddCookie(cookie)
+	recorder := httptest.NewRecorder()
+	site.handler.ServeHTTP(recorder, posted)
+	if recorder.Code != http.StatusBadGateway || atomic.LoadInt32(held)-before != 1 {
+		t.Errorf("a post was %d and sent %d times", recorder.Code, atomic.LoadInt32(held)-before)
+	}
+
+	// A page that is never answered is given up on, not waited for for ever.
+	began = time.Now()
+	gave := site.appRequest(t, id, "GET", "/never", cookie)
+	if gave.Code != http.StatusBadGateway || time.Since(began) > 5*time.Second {
+		t.Errorf("%d after %s", gave.Code, time.Since(began))
 	}
 }
