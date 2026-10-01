@@ -30,11 +30,11 @@ func TestAFolderWithAPageInItCanBePreviewedAndNothingElseCan(t *testing.T) {
 }
 
 func TestThePreviewPortIsTheFirstOneTheAgentIsNotUsing(t *testing.T) {
-	if got := previewPort(nil); got != 8080 {
+	if got := previewPort(nil); got != previewPorts {
 		t.Errorf("%d", got)
 	}
-	taken := []apps.App{{Port: 8080, State: apps.Live}, {Port: 8081, State: apps.Starting}, {Port: 8082, State: apps.Failed}}
-	if got := previewPort(taken); got != 8082 {
+	taken := []apps.App{{Port: previewPorts, State: apps.Live}, {Port: previewPorts + 1, State: apps.Starting}, {Port: previewPorts + 2, State: apps.Failed}}
+	if got := previewPort(taken); got != previewPorts+2 {
 		t.Errorf("a port of an app that is gone is free again: %d", got)
 	}
 }
@@ -70,7 +70,7 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 	if code != http.StatusSeeOther || where != thread+"#apps" {
 		t.Fatalf("the person is sent back to the conversation: %d %q", code, where)
 	}
-	if len(runner.started) != 1 || runner.started[0].Port != 8080 || !strings.HasSuffix(runner.started[0].Command, "' 2048-app") {
+	if len(runner.started) != 1 || runner.started[0].Port != previewPorts || !strings.HasSuffix(runner.started[0].Command, "' 2048-app") {
 		t.Fatalf("%+v", runner.started)
 	}
 	if page := site.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Open the app") {
@@ -88,7 +88,7 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 	}
 	site.server.publishing.Wait()
 	for i, app := range runner.started {
-		if app.Port != 8080+i {
+		if app.Port != previewPorts+i {
 			t.Errorf("each preview has a port of its own: %+v", runner.started)
 			break
 		}

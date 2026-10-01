@@ -98,7 +98,7 @@ func controlled(t *testing.T, store *Store, extra ...string) *Controller {
 	c := &Controller{
 		Store: store, Cell: &LocalCell{}, Command: []string{exe, "serve"},
 		Env:       append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),
-		FrontDoor: "https://cloud.test", PortFrom: 21000 + int(time.Now().UnixNano()%15000),
+		FrontDoor: "https://cloud.test", PortFrom: 38000 + int(time.Now().UnixNano()%5000),
 		Wait: 20 * time.Second, Concurrent: 2, StopGrace: time.Second,
 	}
 	t.Cleanup(c.stopAll)

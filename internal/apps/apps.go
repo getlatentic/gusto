@@ -198,3 +198,15 @@ func (s *Store) Delete(id string) error {
 	}
 	return nil
 }
+
+// PreviewHeader is the header the preview server of haas puts on everything it answers, so that what answers on a
+// preview's port can be told from something else an agent started there.
+const PreviewHeader = "X-Haas-Preview"
+
+// PreviewPrefix begins the command of every preview. A command a person typed does not begin so.
+const PreviewPrefix = "node -e 'const[h,f,p]="
+
+// IsPreview says an app is a preview of haas's own, which must answer with PreviewHeader.
+func (a App) IsPreview() bool {
+	return len(a.Command) >= len(PreviewPrefix) && a.Command[:len(PreviewPrefix)] == PreviewPrefix
+}
