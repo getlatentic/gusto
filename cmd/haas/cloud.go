@@ -50,6 +50,7 @@ func cloudCommand(args []string) int {
 		go beatForCells(ctx, dir)
 	}
 	go front.RunDemos(ctx, 15*time.Second)
+	go front.RunLeads(ctx, 30*time.Second)
 	scaler, err := cellScaler(controller)
 	if err != nil {
 		return fail(err)
@@ -127,6 +128,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("HAAS_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("HAAS_CLOUD_TRUST_PROXY") == "1",
+		Leads:      &cloud.LeadHook{URL: os.Getenv("HAAS_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("HAAS_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: os.Getenv("HAAS_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("HAAS_CLOUD_TURNSTILE_SECRET")},
 		PerAddress: number("HAAS_CLOUD_PER_ADDRESS", 0), PerMailbox: number("HAAS_CLOUD_PER_MAILBOX", 0), InAll: number("HAAS_CLOUD_IN_ALL", 0),
 	})
