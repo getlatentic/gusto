@@ -65,6 +65,7 @@ type view struct {
 	Ended      bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed.
 	Video     string
+	Poster    string
 	VideoFile bool
 	// Name is who a demo is for.
 	Name string
