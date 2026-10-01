@@ -3,7 +3,7 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 {{if .Console}}<nav class="crumb" aria-label="Where this is"><a href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
-{{else}}<nav class="crumb" aria-label="Where this is"><a href="/new">Start a harness</a><span>/</span><span>setup</span></nav>{{end}}
+{{else}}<nav class="crumb" aria-label="Where this is"><a href="/new">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
 <div class="title-row">
   <h1>{{.Setup.Name}}</h1>
 </div>
@@ -26,7 +26,7 @@
       {{end}}
     </ul>
     {{else}}
-    <p class="muted">No skills yet. A skill is instructions a harness reads when its description matches what it was asked.</p>
+    <p class="muted">No skills yet. A skill is instructions an agent reads when its description matches what it was asked.</p>
     {{end}}
   </section>
 
@@ -35,7 +35,7 @@
     <h2>Add a skill</h2>
     <form class="stack" method="post" action="{{.Base}}/{{.Setup.Name}}/skills">
       <label>Name <input name="skill" placeholder="review-a-diff" pattern="[a-z0-9][a-z0-9-]*" required></label>
-      <label><span class="line">When to use it <span class="muted">the harness decides by this</span></span>
+      <label><span class="line">When to use it <span class="muted">the agent decides by this</span></span>
         <input name="description" placeholder="Use when asked to review a change before it is merged." required></label>
       <label>Instructions <textarea name="body" rows="8" placeholder="Read the whole diff before commenting. Name the file and line of each problem." required></textarea></label>
       <button type="submit">Add the skill</button>
