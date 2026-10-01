@@ -97,6 +97,21 @@
   </a>
 </section>
 {{end}}
+{{/* engine-choices is a card for each agent a person may start with, for one who knows which they want. */}}
+{{define "engine-choices"}}{{if .}}
+<div class="page-head">
+  <h2 class="plain">Or start with an agent you know</h2>
+  <p class="muted">The same workspace and the same controls, with the agent you choose.</p>
+</div>
+<section class="choices">
+  {{range .}}
+  <a class="choice hue-general" href="/instances/new?harness={{.Name}}">
+    {{template "mark" (dict "Field" "" "Name" .Title "Size" "")}}
+    <span class="name">{{.Title}}</span>
+    <span class="what">{{.What}}</span>
+  </a>
+  {{end}}
+</section>{{end}}{{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
 {{define "steps"}}<ol class="did">{{range .}}<li><span class="what">{{.What}}</span>{{with .Detail}} <span class="detail">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
 {{define "icon-shield"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l5 1.9v3.9c0 3-2.2 5.3-5 6.2-2.8-.9-5-3.2-5-6.2V3.7l5-1.9z"/></svg>{{end}}

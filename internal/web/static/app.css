@@ -844,3 +844,4 @@ label.engine:has(input:checked) { border-color: var(--yg-accent); box-shadow: 0 
 label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0; }
 label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }
+h2.plain { margin: 0; font: 600 1.125rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
