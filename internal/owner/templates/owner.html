@@ -19,6 +19,18 @@
   <button type="submit" class="cta">{{if .Paused}}Accept new demos{{else}}Pause new demos{{end}}</button>
 </form>
 
+<h2>Limits</h2>
+<form class="panel stack" method="post" action="/demos/limits">
+  <p class="muted">How many demos may start. A limit of 0 is no limit. A day is the last twenty-four hours, and a person or a company is counted
+  from the leads, so it holds after their demos are deleted.{{if .LimitsSet}} These are the limits you set.{{else}} These are the limits the front door started with.{{end}}</p>
+  <label>Most in a day, in all <input type="number" name="perDay" min="0" max="1000" value="{{.Limits.PerDay}}" required></label>
+  <label>Most one address may start in a day <input type="number" name="perPerson" min="0" max="1000" value="{{.Limits.PerPerson}}" required></label>
+  <label>Most one company may start in a day <input type="number" name="perCompany" min="0" max="1000" value="{{.Limits.PerCompany}}" required></label>
+  <label>Most running at once <input type="number" name="maxOrgs" min="1" max="50" value="{{.Limits.MaxOrgs}}" required></label>
+  <button type="submit" class="cta">Save the limits</button>
+  {{if .LimitsSet}}<button type="submit" name="reset" value="1" class="quiet" formnovalidate>Go back to the starting limits</button>{{end}}
+</form>
+
 <h2>Running now</h2>
 {{if .Running}}
 <table>
