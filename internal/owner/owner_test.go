@@ -105,3 +105,48 @@ func TestTheLeadsCsvWritesWhatAVisitorTypedAsTextAndNotAsAFormula(t *testing.T) 
 		t.Errorf("a formula reaches the spreadsheet:\n%s", got.Body.String())
 	}
 }
+
+func TestTheOwnerChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) {
+	a, store := app(t)
+	if got := store.DemoLimits(); got.PerPerson != 0 || got.MaxOrgs != 1 {
+		t.Fatalf("the starting limits: %+v", got)
+	}
+	form := url.Values{"perDay": {"25"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"3"}}
+	if got := ask(a, "POST", "/demos/limits", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, form); got.Code != http.StatusForbidden || store.DemoLimitsSet() {
+		t.Fatalf("another site set the limits: %d", got.Code)
+	}
+	if got := ask(a, "POST", "/demos/limits", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, form); got.Code != http.StatusSeeOther {
+		t.Fatalf("%d", got.Code)
+	}
+	if got := store.DemoLimits(); got != (cloud.DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
+		t.Errorf("%+v", got)
+	}
+	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
+	for _, want := range []string{`name="perPerson" min="0" max="1000" value="1"`, `name="maxOrgs" min="1" max="50" value="3"`, "limits you set", "Go back to the starting limits"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page does not say %q", want)
+		}
+	}
+	// It holds on the very next demo, with no restart.
+	if _, _, err := store.StartDemo("Ada", "ada@acme.com", "Acme"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.StartDemo("Ada", "ada+2@acme.com", "Acme"); err == nil || !strings.Contains(err.Error(), "demos for today") {
+		t.Errorf("a person limit of 1 did not hold: %v", err)
+	}
+	for name, bad := range map[string]url.Values{
+		"a negative":       {"perDay": {"-1"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"3"}},
+		"not a number":     {"perDay": {"x"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"3"}},
+		"none at once":     {"perDay": {"1"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"0"}},
+		"too many at once": {"perDay": {"1"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"51"}},
+	} {
+		ask(a, "POST", "/demos/limits", "localhost:8090", nil, bad)
+		if got := store.DemoLimits(); got.PerDay != 25 {
+			t.Errorf("%s was kept: %+v", name, got)
+		}
+	}
+	ask(a, "POST", "/demos/limits", "localhost:8090", nil, url.Values{"reset": {"1"}})
+	if store.DemoLimitsSet() || store.DemoLimits().PerPerson != 0 {
+		t.Errorf("not back to the starting limits: %+v", store.DemoLimits())
+	}
+}
