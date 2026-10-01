@@ -28,6 +28,13 @@
     mode: "0644"
   notify: Restart the front door
 
+- name: The owner's page, which listens on this host's loopback and is not in the web server's site
+  ansible.builtin.template:
+    src: haas-owner.service.j2
+    dest: /etc/systemd/system/haas-owner.service
+    mode: "0644"
+  notify: Restart the owner's page
+
 - name: The web server's site
   ansible.builtin.template:
     src: nginx-site.conf.j2

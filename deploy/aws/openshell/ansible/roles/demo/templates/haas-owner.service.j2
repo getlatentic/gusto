@@ -1,0 +1,22 @@
+[Unit]
+Description=haas owner: the page the owner manages the public cloud from, on this machine's loopback only
+After=haas-cloud.service
+RequiresMountsFor={{ demo_state }}
+
+[Service]
+User={{ demo_user }}
+WorkingDirectory={{ demo_state }}
+# The AWS command is a snap, which the default path does not have.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
+Environment=HOME=/home/{{ demo_user }}
+EnvironmentFile=/etc/haas/cloud.env
+Environment=HAAS_OWNER_ADDR=127.0.0.1:8090
+ExecStart=/usr/local/bin/haas owner
+Restart=always
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths={{ demo_state }}
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

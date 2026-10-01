@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -344,6 +345,34 @@ func (s *Store) LeadOf(slug string) (Lead, bool) {
 		return Lead{}, false
 	}
 	return lead, true
+}
+
+// Leads are every visitor who started a demo, newest first.
+func (s *Store) Leads() ([]Lead, error) {
+	names, err := readDir(filepath.Join(s.root, "demos"))
+	if err != nil {
+		return nil, err
+	}
+	var leads []Lead
+	for _, name := range names {
+		var lead Lead
+		if readFile(filepath.Join(s.root, "demos", name), &lead) == nil && lead.Slug != "" {
+			leads = append(leads, lead)
+		}
+	}
+	slices.SortFunc(leads, func(a, b Lead) int { return b.Requested.Compare(a.Requested) })
+	return leads, nil
+}
+
+// SetDemosPaused pauses or resumes new demos, which an operator does without restarting anything.
+func (s *Store) SetDemosPaused(paused bool) error {
+	if paused {
+		return os.WriteFile(s.pauseFile(), nil, 0o600)
+	}
+	if err := os.Remove(s.pauseFile()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // pauseFile is the file whose presence pauses demos, which an operator makes or removes without restarting anything.

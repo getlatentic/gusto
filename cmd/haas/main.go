@@ -44,6 +44,7 @@ func run(args []string) int {
 		"serve":     serve,
 		"cloud":     cloudCommand,
 		"cell":      cellCommand,
+		"owner":     ownerCommand,
 		"survey":    surveyCommand,
 		"spend":     spendReport,
 		"doctor":    checkMachine,
@@ -79,6 +80,7 @@ func usage() {
   haas serve            the pages: submit a job, watch it, read the record
   haas cloud            the front door of a hosted haas: sign-up, sign-in and organisations
   haas cloud computers  every computer on this host, its organisation and its person
+  haas owner            the owner's page for a hosted haas, on this machine's loopback only
   haas cell             the agent on a host that runs organisations' servers for a front door on another
   haas survey           ask the runner image what it carries and keep the answer beside it, for the servers that start after
   haas spend            what the jobs spent this month, by team, project and job [-month 2006-01]
