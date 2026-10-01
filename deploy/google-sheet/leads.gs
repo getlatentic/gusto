@@ -1,10 +1,20 @@
 // The receiving side of the lead hook, for a Google Sheet: a script bound to the sheet and deployed as a web app.
 // The front door posts a lead as JSON when a demo starts and again when it ends, with the secret in the body, since a
 // web app cannot read request headers. A lead is one row, found by its slug, added when it starts and filled in when it
-// ends, so a lead that is sent twice is still one row. SECRET is a script property, set in Project Settings.
+// ends, so a lead that is sent twice is still one row. SECRET is a script property: run setup once to make it, and read
+// it in Project Settings, under Script properties.
 
 const COLUMNS = ['slug', 'requested', 'name', 'email', 'company', 'ready', 'ended', 'extended', 'outcome'];
 const SHEET = 'Leads';
+
+// Makes the secret, once. It is a script property, which is kept in Google and read by nothing but this script.
+function setup() {
+  const properties = PropertiesService.getScriptProperties();
+  if (!properties.getProperty('SECRET')) {
+    properties.setProperty('SECRET', Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''));
+  }
+  leadsSheet();
+}
 
 function doPost(e) {
   let body;

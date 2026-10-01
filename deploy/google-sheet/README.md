@@ -6,17 +6,17 @@ is one row.
 ## Set up
 
 1. Make a Google Sheet. Choose **Extensions → Apps Script**.
-2. Replace the code with `leads.gs` from this directory.
-3. Choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Choose **Deploy**
-   and give the script the access it asks for. Copy the web app address, which ends in `/exec`.
-4. Run this on your machine, and paste the address at the first prompt. Press Enter at the second prompt, and the script
-   shows a secret once.
+2. Replace the code with `leads.gs` from this directory. Run `setup` once and give the script the access it asks for. It
+   makes the secret and the `Leads` tab.
+3. Choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Choose **Deploy**.
+   Copy the web app address, which ends in `/exec`.
+4. In the script, open **Project Settings → Script properties** and copy the value of `SECRET`.
+5. Run this on your machine. Paste the address at the first prompt and the secret at the second.
 
    ```bash
    deploy/aws/openshell/put-lead-hook.sh
    ```
 
-5. In the script, choose **Project Settings → Script properties → Add**. Set `SECRET` to the secret from step 4.
 6. Upgrade the front door, or restart it. Start a demo, and a row appears in the sheet's `Leads` tab.
 
 ## What protects it
