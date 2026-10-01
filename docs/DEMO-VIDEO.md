@@ -1,9 +1,28 @@
 # The demo video
 
-The landing page at `https://<name>/` shows a video when `DEMO_VIDEO_URL` is set in `demo.env` and stored with
-`deploy/aws/openshell/put-demo-config.sh`. It is an https address of a file (`.mp4` or `.webm`) or of a page that may
-be embedded (Loom, YouTube's `youtube-nocookie.com/embed/...`, Vimeo's player). The next release of the front door
-shows it; nothing else changes.
+The landing page at `https://<name>/` shows a video recorded from the live demo. It is
+`internal/cloud/static/demo.mp4`, which the front door carries, so nothing else hosts it. An operator may show another by
+setting `DEMO_VIDEO_URL` in `demo.env`, stored with `deploy/aws/openshell/put-demo-config.sh`: an https address of a file
+(`.mp4` or `.webm`) or of a page that may be embedded (Loom, YouTube's `youtube-nocookie.com/embed/...`, Vimeo's player).
+
+## Recording it again
+
+`deploy/demo-video/record.mjs` drives the live demo as a visitor and records it, with captions: the landing page, starting
+a demo, an agent building a 2048 game, its preview, the admin console and the end page. It marks the waits it makes.
+`encode.sh` plays those fast and makes `haas-demo.mp4` and `poster.jpg`, about two minutes in all. Copy them to
+`internal/cloud/static/demo.mp4` and `demo-poster.jpg`.
+
+```bash
+cd deploy/demo-video
+PLAYWRIGHT_CORE=<playwright-core> CHROME=<a chromium> node record.mjs https://<name> https://<an ended demo's address>
+./encode.sh
+```
+
+Before recording: end every demo on the host, since only five run at once and a full host turns the recording away,
+and stop the cells so that the next one starts from the release you are showing. The first demo on a new cell waits a few
+minutes, which `encode.sh` shortens. The model decides what the agent writes, so look at the result before keeping it.
+
+The script of what it shows, for a person to record instead:
 
 ## Script, about two minutes
 
