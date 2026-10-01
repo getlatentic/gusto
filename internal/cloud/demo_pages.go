@@ -80,6 +80,8 @@ func demoText(err error) string {
 		return "Every demo is in use right now. Book a call and we will show you."
 	case errors.Is(err, ErrDemoPaused), errors.Is(err, ErrDemoDaily):
 		return "We are not starting new demos right now. Book a call and we will show you."
+	case errors.Is(err, ErrDemoRepeat):
+		return "You have had the demos this address or company gets in a day. Book a call and we will show you the rest."
 	case errors.Is(err, ErrEmailTaken):
 		return "That address has a demo running. Sign in to get back to it."
 	case errors.Is(err, ErrDemoNeedsName), errors.Is(err, ErrNeedCompany):
@@ -98,6 +100,8 @@ func demoStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrDemoFull), errors.Is(err, ErrDemoPaused), errors.Is(err, ErrDemoDaily):
 		return http.StatusServiceUnavailable
+	case errors.Is(err, ErrDemoRepeat):
+		return http.StatusTooManyRequests
 	case errors.Is(err, ErrEmailTaken):
 		return http.StatusConflict
 	case errors.Is(err, ErrDemoNeedsName), errors.Is(err, ErrNeedCompany), errors.Is(err, ErrBadEmail), errors.Is(err, ErrFreeMail), errors.Is(err, ErrDisposable), errors.Is(err, ErrBadOrgName):
