@@ -450,3 +450,17 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 		t.Error("the agent is not listed by the name it was given")
 	}
 }
+
+func TestTheNewAgentPageOffersTheAgentsToStartWithBesideTheTemplatesAndNeverSaysHarness(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	for _, path := range []string{"/new", "/"} {
+		body := site.ask(t, "GET", path, nil).Body.String()
+		if !strings.Contains(body, `href="/instances/new?harness=fixture"`) || !strings.Contains(body, `href="/templates/health"`) {
+			t.Errorf("%s offers only one of the two ways to start:\n%s", path, body)
+		}
+		if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
+			t.Errorf("%s says harness to a person", path)
+		}
+	}
+}
