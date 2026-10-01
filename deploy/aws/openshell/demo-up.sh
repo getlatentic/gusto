@@ -44,7 +44,7 @@ mail="cloudflare://$DEMO_ACCOUNT_ID?from=$(python3 -c 'import sys,urllib.parse; 
 ansible-playbook -i "$state/inventory.ini" ansible/demo.yml \
   -e demo_name="$DEMO_NAME" -e demo_zone="$DEMO_ZONE" -e demo_bucket="$bucket" -e demo_image_key="$image_key" \
   -e demo_mail="$mail" -e demo_cert_email="$DEMO_CERT_EMAIL" -e demo_free_mail="${DEMO_FREE_MAIL:-allow}" \
-  -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-platform/qwen.qwen3-vl-235b-a22b-instruct,oss/openai.gpt-oss-120b}" \
+  -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b}" \
   -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}" \
   -e demo_lease_minutes="${DEMO_LEASE_MINUTES:-30}" -e demo_max_hours="${DEMO_MAX_HOURS:-4}"
 echo "configured at $started UTC: https://$DEMO_NAME. The host removes itself ${DEMO_LEASE_MINUTES:-30} minutes after it started unless it is extended at https://$DEMO_NAME/lease, and never runs past ${DEMO_MAX_HOURS:-4} hours. ./demo-down.sh removes it now."
