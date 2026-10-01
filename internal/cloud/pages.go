@@ -66,6 +66,8 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
+	// Ending is a demo that has been stopped and is being deleted.
+	Ending bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed.
 	Video  string
 	Poster string

@@ -168,6 +168,41 @@ func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Perso
 	http.Redirect(w, r, "/demo/wait?notice="+strings.ReplaceAll(notice, " ", "+"), http.StatusSeeOther)
 }
 
+// stopDemoPage asks a visitor whether to end their demo now, since everything in it is deleted with it.
+func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Person) {
+	if _, _, found := s.Store.DemoLeft(person.Org); !found {
+		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		return
+	}
+	s.render(w, http.StatusOK, "demo-stop", view{Title: "End your haas demo"})
+}
+
+// stopDemo ends a visitor's demo now, which is what it does at the end of its time, and takes them to the page that
+// says when it is done.
+func (s *Server) stopDemo(w http.ResponseWriter, r *http.Request, person Person) {
+	if err := s.Store.StopDemo(person.Org); err != nil {
+		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		return
+	}
+	s.EndDueDemos()
+	http.Redirect(w, r, "/demo/ended/"+person.Org, http.StatusSeeOther)
+}
+
+// demoEndedPage is where a visitor who ended their demo waits for it to be deleted, and reads that it has been.
+func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	lead, found := s.Store.LeadOf(slug)
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	page := view{Title: "Your haas demo has ended", Ended: true, Name: lead.Name, Book: s.Store.set.Demo.BookURL}
+	if lead.Ended.IsZero() {
+		page.Title, page.Ending, page.Refresh = "Ending your haas demo", true, true
+	}
+	s.render(w, http.StatusOK, "demo-end", page)
+}
+
 // demoEnded is what an address shows after its demo has been deleted: that it has ended, and where to book a call.
 func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
 	lead, found := s.Store.LeadOf(slug)
@@ -186,7 +221,7 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.Store.set.Demo.BookURL)
+	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"end":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.URL.JoinPath("/demo/end").String(), s.Store.set.Demo.BookURL)
 	return true
 }
 
