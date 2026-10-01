@@ -12,12 +12,23 @@
     - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
     - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
 
-- name: The front door, the agent of a cell, and the organisations' servers
+- name: The agent of a cell, and the organisations' servers
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/haas"
     dest: /usr/local/bin/haas
     mode: "0755"
-  notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"
+  when: demo_role == 'cell'
+  notify: Restart the cell
+
+- name: The front door, the owner's page, and the organisations' servers
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.state/haas"
+    dest: /usr/local/bin/haas
+    mode: "0755"
+  when: demo_role != 'cell'
+  notify:
+    - Restart the front door
+    - Restart the owner's page
 
 - name: The script that powers the host off when its lease ends, or its front door is gone
   ansible.builtin.copy:
