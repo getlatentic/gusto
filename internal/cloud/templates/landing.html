@@ -33,7 +33,7 @@
 
 {{if .Video}}
 <section class="video" aria-label="The demo in two minutes">
-  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"></video>
+  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"{{with .Poster}} poster="{{.}}"{{end}}></video>
   {{else}}<iframe src="{{.Video}}" title="haas in two minutes" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{end}}

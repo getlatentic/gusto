@@ -200,11 +200,11 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 			t.Errorf("the landing page does not say %q", want)
 		}
 	}
-	if status != http.StatusOK || strings.Contains(page, "<video") || strings.Contains(page, "<iframe") {
-		t.Errorf("%d: there is no video to show", status)
+	if status != http.StatusOK || !strings.Contains(page, `<video controls preload="metadata" src="/static/demo.mp4" poster="/static/demo-poster.jpg">`) || strings.Contains(page, "<iframe") {
+		t.Errorf("%d: the video that comes with haas is shown\n%s", status, page)
 	}
 	if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
-		t.Errorf("a landing page with no video opens nothing up: %s", csp)
+		t.Errorf("a video of its own opens nothing up: %s", csp)
 	}
 	f := newFront(t, demoSet, nil)
 	if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organisation") {
@@ -251,4 +251,15 @@ func TestASignedInVisitorIsSentToTheirOrganisationAndNotShownTheLandingPage(t *t
 		t.Errorf("%d %v", status, header)
 	}
 	f.server.Wait()
+}
+
+func TestTheVideoThatComesWithHaasIsServedAsAVideoThatCanBeSeekedIn(t *testing.T) {
+	f := newFront(t, demoSet, nil)
+	status, body, header := f.browser().do("GET", "/static/demo.mp4", nil, map[string]string{"Range": "bytes=0-99"})
+	if status != http.StatusPartialContent || len(body) != 100 || !strings.HasPrefix(header.Get("Content-Type"), "video/mp4") || !strings.Contains(header.Get("Content-Range"), "bytes 0-99/") {
+		t.Errorf("%d %d bytes %q %q", status, len(body), header.Get("Content-Type"), header.Get("Content-Range"))
+	}
+	if status, _, header := f.browser().do("GET", "/static/demo-poster.jpg", nil, nil); status != http.StatusOK || header.Get("Content-Type") != "image/jpeg" {
+		t.Errorf("%d %q", status, header.Get("Content-Type"))
+	}
 }
