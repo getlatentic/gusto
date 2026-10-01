@@ -299,3 +299,20 @@ func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *test
 		t.Errorf("a demo that never was has a page: %d", status)
 	}
 }
+
+func TestAVisitorWhoHasHadTheirDemosForTheDayIsToldToBookACall(t *testing.T) {
+	set := demoSet
+	set.Demo.PerPerson = 1
+	f := newFront(t, set, func(c *Config) {
+		c.Controller = controlled(t, c.Store)
+		c.ComputersWait = 50 * time.Millisecond
+	})
+	b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
+	f.server.Wait()
+	b.post("/demo/end", url.Values{})
+	f.server.ender.running.Wait()
+	status, page, _ := f.browser().post("/demo", url.Values{"name": {"Ada"}, "email": {"ada@acme.com"}, "company": {"Acme"}})
+	if status != http.StatusTooManyRequests || !strings.Contains(page, "Book a call") || !strings.Contains(page, "demos this address or company gets in a day") {
+		t.Errorf("%d\n%s", status, page)
+	}
+}

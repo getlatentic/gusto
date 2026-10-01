@@ -30,6 +30,9 @@ type DemoSettings struct {
 	VideoURL string
 	// PerDay is the most demos started in a day, in all, which bounds what a day of demos can cost. Zero is no limit.
 	PerDay int
+	// PerPerson is the most demos one address may start in a day, and PerCompany the most that one company's addresses
+	// may: a day is the last twenty-four hours. A visitor who has had them is asked to book a call. Zero is no limit.
+	PerPerson, PerCompany int
 }
 
 // Enabled says the front door offers a demo.
@@ -82,6 +85,7 @@ var (
 	ErrNotDemo       = errors.New("this organisation is not a demo")
 	ErrDemoPaused    = errors.New("demos are paused")
 	ErrDemoDaily     = errors.New("today's demos are all taken")
+	ErrDemoRepeat    = errors.New("that address has had its demos for today")
 )
 
 func (s *Store) leadFile(slug string) string { return filepath.Join(s.root, "demos", slug+".json") }
@@ -116,6 +120,9 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 		if err == nil {
 			err = ErrEmailTaken
 		}
+		return Person{}, Org{}, err
+	}
+	if err := s.withinHabit(address); err != nil {
 		return Person{}, Org{}, err
 	}
 	if started, err := s.startedToday(); err != nil || (s.set.Demo.PerDay > 0 && started >= s.set.Demo.PerDay) {
@@ -382,6 +389,43 @@ func (s *Store) pauseFile() string { return filepath.Join(s.root, "demos.off") }
 func (s *Store) DemosPaused() bool {
 	_, err := os.Stat(s.pauseFile())
 	return err == nil
+}
+
+// withinHabit refuses a visitor whose address, or whose company, has started as many demos as one may in the last
+// twenty-four hours, which is counted from the leads that demos left, so it holds after a demo is deleted.
+func (s *Store) withinHabit(address string) error {
+	d := s.set.Demo
+	if d.PerPerson <= 0 && d.PerCompany <= 0 {
+		return nil
+	}
+	leads, err := s.Leads()
+	if err != nil {
+		return err
+	}
+	since, domain, who := s.now().Add(-24*time.Hour), DomainOf(address), withoutTag(address)
+	person, company := 0, 0
+	for _, lead := range leads {
+		if lead.Requested.Before(since) {
+			continue
+		}
+		if withoutTag(lead.Email) == who {
+			person++
+		}
+		if DomainOf(lead.Email) == domain {
+			company++
+		}
+	}
+	if (d.PerPerson > 0 && person >= d.PerPerson) || (d.PerCompany > 0 && company >= d.PerCompany) {
+		return ErrDemoRepeat
+	}
+	return nil
+}
+
+// withoutTag is an address without the part after a plus in its name, which is a way of making many addresses of one.
+func withoutTag(address string) string {
+	local, domain, _ := strings.Cut(strings.ToLower(address), "@")
+	local, _, _ = strings.Cut(local, "+")
+	return local + "@" + domain
 }
 
 // startedToday is how many demos were asked for since midnight UTC.

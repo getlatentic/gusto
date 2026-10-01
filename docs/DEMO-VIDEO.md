@@ -20,6 +20,14 @@ PLAYWRIGHT_CORE=<playwright-core> CHROME=<a chromium> node record.mjs https://<n
 ./encode.sh
 ```
 
+A recording is a demo of its own, so a day's recordings count against the limits of one address and one company
+(`HAAS_CLOUD_DEMO_PER_PERSON`, `HAAS_CLOUD_DEMO_PER_COMPANY`, `HAAS_CLOUD_DEMO_PER_DAY`). To record more than once in a day,
+lift them on the host for the run only, with a systemd drop-in whose `EnvironmentFile` is in `/run`, and take it off after.
+The bot check also stops a recording, since a script is what it is for: for the run, the same drop-in can hold
+Cloudflare's published test keys (`HAAS_CLOUD_TURNSTILE_SITE=1x00000000000000000000AA`,
+`HAAS_CLOUD_TURNSTILE_SECRET=1x0000000000000000000000000000000AA`), which pass every check. Take the drop-in off and
+restart the front door at once afterwards.
+
 Before recording: end every demo on the host, since only five run at once and a full host turns the recording away,
 and stop the cells so that the next one starts from the release you are showing. The first demo on a new cell waits a few
 minutes, which `encode.sh` shortens. The model decides what the agent writes, so look at the result before keeping it.
