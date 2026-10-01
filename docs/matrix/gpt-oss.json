@@ -1,0 +1,17 @@
+{
+  "environment": "box",
+  "jobs": [
+    "one-line-fix"
+  ],
+  "simplest": "one-line-fix",
+  "pairs": [
+    {
+      "harness": "pi",
+      "model": "oss/openai.gpt-oss-120b"
+    },
+    {
+      "harness": "hermes",
+      "model": "oss/openai.gpt-oss-120b"
+    }
+  ]
+}

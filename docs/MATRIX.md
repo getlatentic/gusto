@@ -113,3 +113,21 @@ is what it was, and a table it cannot read is logged and passed over.
 
 `haas matrix` exits 0 when every cell left a verdict and its evidence checks,
 whichever pairs finished, and 2 otherwise.
+
+## What `gpt-oss-120b` did on the box
+
+[`matrix/gpt-oss.json`](matrix/gpt-oss.json) is the plan for the two harnesses that finished the job on `openai.gpt-oss-120b`,
+through the Bedrock endpoint, in an OpenShell sandbox on one `m8i.xlarge` (about 15 minutes of it, for under ten cents).
+Five harnesses were tried, each on the one-line-fix job:
+
+| harness | finished | wall clock | what happened |
+| --- | --- | --- | --- |
+| `pi` | yes | 42 s | 8 model calls, 14,517 tokens |
+| `hermes` | yes | 43 s | 13 model calls, 90,457 tokens |
+| `opencode` | no | 2 m 30 s | no model call was recorded; it finishes the same job on Qwen |
+| `dsh` | no | 24 s | the model refused its first request: it asked for 256,000 output tokens and the model allows 131,072 |
+| `codex` | no | 23 s | one model call, then its requests were denied |
+
+The demo offers `gpt-oss-120b` to the two that finished, through a credential of its own, `oss`, so that `opencode` stays on Qwen
+and `dsh` and `codex` are not offered a model they did not finish a job on. The model has no price in the policy, so its
+cost is shown as unknown, as the Qwen model's is.
