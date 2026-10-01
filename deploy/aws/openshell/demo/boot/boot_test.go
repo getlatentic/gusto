@@ -66,7 +66,7 @@ func newHost(t *testing.T) *host {
 		"AWS_REGION=us-east-1", "NAME=agentcloud.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
 		"DNS_TOKEN_PARAMETER=/haas/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/haas/poc/cloudflare-mail-token",
 		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
-		"CELL_SECRET_PARAMETER=/haas/poc/cell-secret",
+		"CELL_SECRET_PARAMETER=/haas/poc/cell-secret", "TURNSTILE_PARAMETER=/haas/poc/turnstile-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"HAAS_CONF="+h.conf, "HAAS_RUN="+filepath.Join(dir, "run"), "HAAS_LE="+filepath.Join(dir, "le"), "HAAS_LIB="+filepath.Join(dir, "lib"),

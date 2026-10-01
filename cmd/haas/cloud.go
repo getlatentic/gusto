@@ -127,6 +127,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("HAAS_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("HAAS_CLOUD_TRUST_PROXY") == "1",
+		Turnstile:  cloud.Turnstile{Site: os.Getenv("HAAS_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("HAAS_CLOUD_TURNSTILE_SECRET")},
 		PerAddress: number("HAAS_CLOUD_PER_ADDRESS", 0), PerMailbox: number("HAAS_CLOUD_PER_MAILBOX", 0), InAll: number("HAAS_CLOUD_IN_ALL", 0),
 	})
 	if err != nil {
