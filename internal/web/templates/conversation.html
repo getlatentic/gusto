@@ -35,6 +35,7 @@
       </span>
       {{range .Apps}}<a class="files-link" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
       {{if .Starting}}<span class="chip">Starting the preview…</span>{{end}}
+      {{if .Starting}}<script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
       <a class="files-link" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}} Files</a>
     </div>
 
