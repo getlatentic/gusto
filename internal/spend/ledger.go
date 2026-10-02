@@ -146,6 +146,9 @@ func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	if refusal := l.teamSpent(held); refusal != nil {
 		return refusal
 	}
+	if refusal := l.organisationSpent(); refusal != nil {
+		return refusal
+	}
 	return l.uncountable(held, credential, model)
 }
 
@@ -220,6 +223,29 @@ func (l *Ledger) teamSpent(held *account) *Refusal {
 	}
 }
 
+// organisationSpent is what every job has spent this month, against the cap on the whole server. It is summed from the jobs,
+// which is the sum the report gives as its total, so the cap and the report cannot disagree.
+func (l *Ledger) organisationSpent() *Refusal {
+	limit, capped := l.policy.organisationCap()
+	if !capped {
+		return nil
+	}
+	month := monthOf(l.now())
+	spent := 0.0
+	for key, tally := range l.months {
+		if key.scope == ByJob && key.month == month {
+			spent += tally.USD
+		}
+	}
+	if spent < limit {
+		return nil
+	}
+	return &Refusal{
+		Cap: "organisation", LimitUSD: limit, SpentUSD: spent,
+		Reason: fmt.Sprintf("this organisation has spent $%.4f of its $%.4f cap for %s", spent, limit, month),
+	}
+}
+
 // uncountable refuses a call a cap could not count. A cap that cannot see
 // what is spent is not holding anything, so it fails closed: before the call
 // when the model has no price, and after an answer that carried no usage.
@@ -247,6 +273,9 @@ func (l *Ledger) governing(held *account) (*Refusal, bool) {
 	if limit, capped := l.policy.teamCap(held.terms.Team); capped {
 		spent := l.tally(ByTeam, held.terms.Team, monthOf(l.now())).USD
 		return &Refusal{Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent}, true
+	}
+	if limit, capped := l.policy.organisationCap(); capped {
+		return &Refusal{Cap: "organisation", LimitUSD: limit}, true
 	}
 	return nil, false
 }

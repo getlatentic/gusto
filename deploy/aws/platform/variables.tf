@@ -44,3 +44,21 @@ variable "front_door_instance_type" {
   type        = string
   default     = "t3.micro"
 }
+
+variable "alert_email" {
+  description = "Who is told when spending runs past what the public cloud should cost. No address makes no budget. bootstrap.sh reads ALERT_EMAIL."
+  type        = string
+  default     = ""
+}
+
+variable "monthly_budget_usd" {
+  description = "What a month of the public cloud's AWS usage should stay under, before credits. September's was 39.85, 37.10 of it model usage while engines were being measured, and a demo costs cents."
+  type        = number
+  default     = 60
+}
+
+variable "daily_budget_usd" {
+  description = "What a day should stay under, before credits. A demo machine left on is 5.30 a day and a measurement run is 2 to 10, so this tells of a runaway the same day."
+  type        = number
+  default     = 10
+}
