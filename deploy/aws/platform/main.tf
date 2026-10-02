@@ -186,6 +186,10 @@ resource "aws_launch_template" "role" {
       volume_size           = 40
       volume_type           = "gp3"
       delete_on_termination = true
+      # A disk made from the image of a cell is read from its snapshot a block at a time, and is read whole to start the first sandbox. A
+      # host of a cell is given the throughput to be read in many streams, which is about five cents an hour while it runs.
+      iops       = each.key == "cell-live" ? 6000 : null
+      throughput = each.key == "cell-live" ? 500 : null
     }
   }
 

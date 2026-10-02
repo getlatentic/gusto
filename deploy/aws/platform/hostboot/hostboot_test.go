@@ -372,3 +372,68 @@ func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
 		t.Error("an ordinary host says it is ready to be imaged")
 	}
 }
+
+func TestAHostMadeFromTheImageOfACellGoesStraightToConfiguringItselfOnlyWhenTheReleaseIsForThatImage(t *testing.T) {
+	for name, c := range map[string]struct {
+		marker, bundleKey string
+		fast              bool
+	}{
+		"the release is for the image":      {"abc123\n", "abc123\n", true},
+		"the release expects another image": {"abc123\n", "def456\n", false},
+		"the release carries no key":        {"abc123\n", "", false},
+		"a host that is not from an image":  {"", "abc123\n", false},
+	} {
+		b := newBoot(t)
+		b.release(false)
+		release := filepath.Join(b.store, "releases", "abc123")
+		src := filepath.Join(b.dir, "src")
+		if c.bundleKey != "" {
+			os.WriteFile(filepath.Join(src, "bake.key"), []byte(c.bundleKey), 0o644)
+			if out, err := exec.Command("tar", "-czf", filepath.Join(release, "bundle.tgz"), "-C", src, ".").CombinedOutput(); err != nil {
+				t.Fatalf("%v: %s", err, out)
+			}
+			sum, _ := exec.Command("shasum", "-a", "256", filepath.Join(release, "bundle.tgz")).Output()
+			os.WriteFile(filepath.Join(release, "bundle.tgz.sha256"), []byte(strings.Fields(string(sum))[0]+"  bundle.tgz\n"), 0o644)
+		}
+		marker := filepath.Join(b.dir, "baked")
+		if c.marker != "" {
+			os.WriteFile(marker, []byte(c.marker), 0o644)
+		}
+		lines, err := b.run("HAAS_BAKED="+marker, "ROLE=cell")
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		play := index(lines, "ansible-playbook ")
+		if play < 0 {
+			t.Fatalf("%s: nothing was configured: %v", name, lines)
+		}
+		installs := strings.Contains(lines[play], "site.yml")
+		if c.fast && (installs || !strings.Contains(lines[play], "demo_baked=true")) {
+			t.Errorf("%s: the host installed what the image has:\n%s", name, lines[play])
+		}
+		if !c.fast && (!installs || !strings.Contains(lines[play], "demo_baked=false")) {
+			t.Errorf("%s: the host did not install what it needs:\n%s", name, lines[play])
+		}
+	}
+}
+
+func TestAHostMadeFromTheImageOfACellWarmsItsDiskAndAnOrdinaryHostDoesNot(t *testing.T) {
+	baked := newBoot(t)
+	baked.release(false)
+	marker := filepath.Join(baked.dir, "baked")
+	os.WriteFile(marker, []byte("key\n"), 0o644)
+	if _, err := baked.run("HAAS_BAKED="+marker, "HAAS_WARM_DIR="+baked.dir, "HAAS_WARM_IMAGES="+baked.dir); err != nil {
+		t.Fatal(err)
+	}
+	if log, _ := os.ReadFile(filepath.Join(baked.dir, "boot.log")); !strings.Contains(string(log), "warming the disk of the image") {
+		t.Errorf("a host from the image did not warm its disk:\n%s", log)
+	}
+	ordinary := newBoot(t)
+	ordinary.release(false)
+	if _, err := ordinary.run(); err != nil {
+		t.Fatal(err)
+	}
+	if log, _ := os.ReadFile(filepath.Join(ordinary.dir, "boot.log")); strings.Contains(string(log), "warming the disk") {
+		t.Errorf("an ordinary host warmed a disk it does not have:\n%s", log)
+	}
+}
