@@ -36,6 +36,51 @@ fi
 export HOME=${HOME:-/root}
 export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION PATH=$PATH:/snap/bin:/usr/local/bin
 export DEBIAN_FRONTEND=noninteractive
+# A host made from the image of a cell gets the disk the image was taken from a block at a time, as each is first read, which is slow and
+# was seen to cost a first sandbox two and a half minutes: the runner image is read whole to be named, and the disk a sandbox starts from
+# is read to be copied. They are read here, in many streams, while the rest of the start-up goes on, so that the first sandbox finds them.
+warm_the_disk() {
+  python3 - <<'PY'
+import concurrent.futures as futures, os, sys
+CHUNK = 8 << 20
+roots = [os.environ.get("HAAS_WARM_DIR", "/var/lib/haas"), os.environ.get("HAAS_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
+spans = []
+for root in roots:
+    for dirpath, _, names in os.walk(root):
+        for name in names:
+            path = os.path.join(dirpath, name)
+            try:
+                fd = os.open(path, os.O_RDONLY)
+                size, at = os.fstat(fd).st_size, 0
+                while at < size:
+                    try:
+                        data = os.lseek(fd, at, os.SEEK_DATA)
+                    except OSError:
+                        break
+                    hole = os.lseek(fd, data, os.SEEK_HOLE)
+                    spans.append((path, data, hole))
+                    at = hole
+                os.close(fd)
+            except OSError:
+                pass
+def read(span):
+    path, start, end = span
+    try:
+        with open(path, "rb", buffering=0) as handle:
+            for at in range(start, end, CHUNK):
+                os.pread(handle.fileno(), min(CHUNK, end - at), at)
+    except OSError:
+        pass
+with futures.ThreadPoolExecutor(max_workers=16) as pool:
+    chunks = [(p, a, min(a + 64 * CHUNK, e)) for p, s, e in spans for a in range(s, e, 64 * CHUNK)]
+    list(pool.map(read, chunks))
+PY
+}
+if [ -e "$baked_marker" ]; then
+  echo "haas-bootstrap: warming the disk of the image in the background"
+  warm_the_disk > /dev/null 2>&1 &
+fi
+
 # A host made from the image of a cell has these, and the packages are not fetched again.
 if [ ! -e "$baked_marker" ]; then
   apt-get update -qq
@@ -62,15 +107,21 @@ if [ "$LIVE" = on ]; then
   printf 'BUCKET=%s\nREGION=%s\nROLE=%s\nRUN=%s\nEFS=%s\nLIVE=on\nLEASE_MINUTES=%s\nMAX_HOURS=%s\n' "$BUCKET" "$REGION" "$ROLE" "$RUN" "$EFS" "$LEASE_MINUTES" "$MAX_HOURS" > "$live_env"
 fi
 
-# A front door alone runs no computer, so it has no use for OpenShell.
+# A host made from the image of a cell goes straight to configuring itself when the release was made for that image, which is when its key
+# is the one the image was made with. A release that expects another image gets everything installed, which is slower and right.
+demo_baked=false
+if [ -e "$baked_marker" ] && [ -f "$dir/bake.key" ] && [ "$(cat "$baked_marker")" = "$(cat "$dir/bake.key")" ]; then
+  demo_baked=true
+fi
+# A front door alone runs no computer, so it has no use for OpenShell, and nor has a host that has it already.
 playbooks=("$dir/ansible/site.yml" "$dir/ansible/demo.yml")
-[ "$ROLE" != orchestrator ] || playbooks=("$dir/ansible/demo.yml")
+{ [ "$ROLE" = orchestrator ] || [ "$demo_baked" = true ]; } && playbooks=("$dir/ansible/demo.yml")
 shared=()
 [ "$ROLE" = all ] || shared=(-e "demo_efs=$EFS.efs.$REGION.amazonaws.com" -e "demo_run=$RUN")
 
 ansible-playbook -c local -i 'spike,' \
   -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
-  -e "demo_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "demo_lease_minutes=$LEASE_MINUTES" -e "demo_max_hours=$MAX_HOURS" -e demo_check_public=false -e "demo_role=$ROLE" -e "demo_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "demo_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
+  -e "demo_baked=$demo_baked" -e "demo_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "demo_lease_minutes=$LEASE_MINUTES" -e "demo_max_hours=$MAX_HOURS" -e demo_check_public=false -e "demo_role=$ROLE" -e "demo_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "demo_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
   "${playbooks[@]}"
 if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a

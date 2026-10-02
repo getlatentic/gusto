@@ -15,11 +15,25 @@ export AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION="$AWS_REGION"
 root="$(git rev-parse --show-toplevel)"
 param=/haas/poc/cell-ami
 
-# What is in the image: the runner image, the playbook that installs the gateway and its tools, and this script.
-key="$({ ./image-key.sh; (cd "$root" && git ls-files -z deploy/aws/openshell/ansible/roles/openshell deploy/aws/platform/user-data.sh deploy/aws/openshell/bake-cell-image.sh deploy/aws/openshell/ansible/roles/demo/tasks/cell.yml deploy/aws/openshell/ansible/roles/demo/templates/haas-cell.service.j2 | xargs -0 shasum -a 256); } | shasum -a 256 | cut -c1-16)"
+key="$(./bake-key.sh)"
 
-existing="$(aws ec2 describe-images --owners self --filters "Name=tag:haas-bake-key,Values=$key" Name=state,Values=available --query 'Images[0].ImageId' --output text)"
+[ -z "${ONLY_KEY:-}" ] || { echo "$key"; exit 0; }
+
+# An image takes a quarter of an hour to be made from a 40 GB disk, and the default wait is ten minutes, so it is waited for here.
+wait_for_image() {
+  local state
+  for _ in $(seq 1 270); do
+    state="$(aws ec2 describe-images --image-ids "$1" --query 'Images[0].State' --output text)"
+    case "$state" in available) return 0 ;; failed) echo "AWS could not make the image $1" >&2; return 1 ;; esac
+    sleep 10
+  done
+  echo "the image $1 was not made in 45 minutes" >&2
+  return 1
+}
+
+existing="$(aws ec2 describe-images --owners self --filters "Name=tag:haas-bake-key,Values=$key" Name=state,Values=available,pending --query 'sort_by(Images,&CreationDate)[-1].ImageId' --output text)"
 if [ "$existing" != None ] && [ -z "${FORCE:-}" ]; then
+  wait_for_image "$existing"
   aws ssm put-parameter --name "$param" --type String --data-type aws:ec2:image --overwrite --value "$existing" >/dev/null
   echo "the image $existing has this key, $key, and the cell template uses it"
   exit 0
@@ -67,7 +81,9 @@ done
 run 'test -e /etc/haas/bake-done' >/dev/null || { echo "the host was not made in time: see /var/log/haas-bootstrap.log on $host" >&2; exit 1; }
 
 # What is the host's own is taken out, so that a host made from the image is a new one: it fetches its own secrets and takes its own name.
-run "systemctl stop openshell-gateway haas-boot 2>/dev/null; printf '%s\\n' '$key' > /etc/haas/baked; rm -f /etc/haas/bake-done /var/log/haas-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
+# The file system is taken out of fstab too: a host that has it there before it has its network orders it before the network, and
+# systemd breaks the cycle by deleting the network jobs, which cost a host a minute and a half. The playbook mounts it again.
+run "systemctl stop openshell-gateway haas-boot 2>/dev/null; umount /var/lib/haas-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/haas-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/haas/baked; rm -f /etc/haas/bake-done /var/log/haas-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
 aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="haas-cell-$key-$(date -u +%Y%m%d%H%M)"
@@ -75,7 +91,7 @@ image="$(aws ec2 create-image --instance-id "$host" --name "$name" --description
   --tag-specifications "ResourceType=image,Tags=[{Key=haas-bake-key,Value=$key},{Key=project,Value=haas-poc}]" "ResourceType=snapshot,Tags=[{Key=haas-bake-key,Value=$key},{Key=project,Value=haas-poc}]" \
   --query ImageId --output text)"
 echo "making the image $image"
-aws ec2 wait image-available --image-ids "$image"
+wait_for_image "$image"
 aws ssm put-parameter --name "$param" --type String --data-type aws:ec2:image --overwrite --value "$image" >/dev/null
 
 # Two images are kept, the new one and the one before it, which a cell that is starting may still be made from.

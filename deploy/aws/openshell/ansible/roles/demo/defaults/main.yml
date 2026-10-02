@@ -57,3 +57,6 @@ demo_video_url: ""
 
 # Whether this host is made to have an image taken of it, and so is not started as a cell.
 demo_bake: false
+
+# Whether this host was made from the image of a cell that has what the release installs, so that it is not installed again.
+demo_baked: false
