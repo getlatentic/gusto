@@ -14,10 +14,9 @@
   <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> Latentic Agent Cloud</a>
   <nav>
     <a href="#harnesses">Harnesses</a>
-    <a href="#control">Controls</a>
     <a href="#how">How it works</a>
+    <a href="#control">Controls</a>
     <a href="#proof">Proof</a>
-    {{if .Book}}<a href="{{.Book}}">Book a demo</a>{{end}}
     <a class="cta small" href="/demo">Explore a live workspace</a>
   </nav>
 </header>
@@ -30,8 +29,7 @@
     <a class="cta" href="/demo">Explore a live workspace</a>
     {{if .Book}}<a class="ghost" href="{{.Book}}">Book a demo</a>{{end}}
   </div>
-  <ul class="tags"><li>Multiple harnesses</li><li>One set of controls</li><li>Full activity history</li></ul>
-  <p class="fine">No setup. Your demo organisation lasts {{minutes .DemoLeft}} and is deleted when it ends.</p>
+  <p class="fine">No sign-up. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.</p>
 </section>
 
 {{if .Video}}
@@ -41,99 +39,73 @@
 </section>
 {{end}}
 
-<section id="harnesses" class="points">
-  <h2>Your team's agents, without a different setup for every one.</h2>
-  <p class="lead">Different agents are good at different things. Your team can use Claude Code for one task, Codex for another, and OpenCode or Pi for something else, with the same credentials, approved models, spend controls and activity history around all of them.</p>
-  <ul>
-    <li><h3>Claude Code</h3><p>Runs in an isolated workspace, on the models and credentials your organisation controls.</p></li>
-    <li><h3>Codex</h3><p>Gets the files and tools it needs without a separate operating model of its own.</p></li>
-    <li><h3>OpenCode</h3><p>An open harness, under the same policies and visibility as the rest.</p></li>
-    <li><h3>Pi</h3><p>Runs alongside the others rather than in an environment of its own.</p></li>
-    <li><h3>Hermes</h3><p>A general-purpose agent, in the same place as the rest.</p></li>
-    <li><h3>And your own</h3><p>Bring an internal or custom harness into the same operating model.</p></li>
+<section id="harnesses" class="harnesses">
+  <h2>Use the agents your team already wants.</h2>
+  <ul class="tiles">
+    <li><span class="glyph" aria-hidden="true">C</span>Claude Code</li>
+    <li><span class="glyph" aria-hidden="true">X</span>Codex</li>
+    <li><span class="glyph" aria-hidden="true">O</span>OpenCode</li>
+    <li><span class="glyph" aria-hidden="true">π</span>Pi</li>
+    <li><span class="glyph" aria-hidden="true">H</span>Hermes</li>
+    <li class="own"><span class="glyph" aria-hidden="true">+</span>Your own</li>
   </ul>
-  <p class="fine">The live demo offers OpenCode, Pi and Hermes on open models. The platform runs the others on the models your organisation connects.</p>
+  <p class="lead">Switch harnesses without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
 </section>
 
 <section id="how" class="steps">
   <h2>How it works</h2>
   <ol>
-    <li><h3>Pick a harness</h3><p>Start with Claude Code, Codex, OpenCode, Pi or another available harness. You choose the agent that suits the work.</p></li>
-    <li><h3>Give it a workspace</h3><p>The agent gets an isolated computer with the files, tools and context the task needs.</p></li>
-    <li><h3>Keep the same controls</h3><p>Credentials, model access, network rules and spending limits stay outside the harness, so changing the agent does not mean rebuilding them.</p></li>
-    <li><h3>See what happened</h3><p>Model calls, files changed, cost and results are recorded in one place.</p></li>
+    <li><h3>Pick a harness</h3><p>Choose the agent for the work.</p></li>
+    <li><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p></li>
+    <li><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the harness.</p></li>
+    <li><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p></li>
   </ol>
 </section>
 
 <section id="control" class="points">
-  <h2>Change the agent. Keep the controls.</h2>
-  <p class="lead">Agent harnesses come and go. Latentic keeps the controls around the harness instead of burying them inside it.</p>
+  <h2>One workspace. One set of controls. One record.</h2>
   <ul>
-    <li><h3>Credentials</h3><p>Model keys stay outside the agent's computer. The agent reaches a model through a proxy and never holds the key.</p></li>
-    <li><h3>Models</h3><p>Choose which models your people can use, and which harnesses can reach them.</p></li>
-    <li><h3>Spend</h3><p>Set limits for the organisation, a team or a job, and see what each model and harness costs.</p></li>
-    <li><h3>Network access</h3><p>An agent's computer can reach only what you allow.</p></li>
-    <li><h3>Activity history</h3><p>See who started work, which agent ran, which model it used and what it changed.</p></li>
-    <li><h3>Evidence</h3><p>Keep the checks, logs and results with the run that produced them.</p></li>
+    <li><h3>Protected credentials</h3><p>Model keys stay outside the harness. The agent reaches a model through a proxy and never holds the key.</p></li>
+    <li><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></li>
+    <li><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></li>
   </ul>
-</section>
-
-<section class="prose">
-  <h2>A workspace your team can use, not another chat window.</h2>
-  <p class="lead">Files, the agent's conversation and its results stay together.</p>
-  <ul class="plain">
-    <li>Watch an agent work as it happens, without waiting for a final answer.</li>
-    <li>Open its files and results, and carry on from the same workspace.</li>
-    <li>One person's work cannot reach another's.</li>
-  </ul>
-  <div class="actions"><a class="cta" href="/demo">Explore a live workspace</a></div>
-</section>
-
-<section class="prose">
-  <h2>See what actually happened.</h2>
-  <p class="lead">Instead of relying on an agent saying the work is finished, inspect what occurred.</p>
-  <ul class="tags"><li>model calls and tokens</li><li>files changed</li><li>checks and tests that decided the outcome</li><li>output and logs</li><li>cost</li></ul>
-  <p>Every run is kept as a bundle that can be verified and replayed.</p>
 </section>
 
 <section id="proof" class="proof">
-  <h2>Measured, not promised.</h2>
-  <p class="lead">One job, a one-line fix with a test that decides the result, run on every harness with the same model, DeepSeek Flash, inside the platform's isolated computers.</p>
+  <h2>Tested across multiple harnesses.</h2>
+  <p class="lead">Same task. Same model. Same environment.</p>
   <table>
     <thead><tr><th>Harness</th><th>Finished</th><th>Time</th></tr></thead>
     <tbody>
-      <tr><td>Claude Code</td><td>Yes</td><td>30 s</td></tr>
-      <tr><td>Codex</td><td>Yes</td><td>35 s</td></tr>
-      <tr><td>Pi</td><td>Yes</td><td>28 s</td></tr>
-      <tr><td>Hermes</td><td>Yes</td><td>40 s</td></tr>
-      <tr><td>DSH</td><td>Yes</td><td>39 s</td></tr>
-      <tr><td>OpenCode</td><td>Yes</td><td>2 m 46 s</td></tr>
+      <tr><td>Pi</td><td>Yes</td><td><progress max="166" value="28" aria-hidden="true"></progress>28 s</td></tr>
+      <tr><td>Claude Code</td><td>Yes</td><td><progress max="166" value="30" aria-hidden="true"></progress>30 s</td></tr>
+      <tr><td>Codex</td><td>Yes</td><td><progress max="166" value="35" aria-hidden="true"></progress>35 s</td></tr>
+      <tr><td>Hermes</td><td>Yes</td><td><progress max="166" value="40" aria-hidden="true"></progress>40 s</td></tr>
+      <tr><td>OpenCode</td><td>Yes</td><td><progress max="166" value="166" aria-hidden="true"></progress>2 m 46 s</td></tr>
     </tbody>
   </table>
-  <p class="fine">Test-environment measurements from 2 October 2026, not customer results. One small job says that a harness runs here, not how good it is at your work.</p>
-  <h3>Compare agents on your own work</h3>
-  <p>Benchmarks cannot tell you which harness suits your team and your tasks. Run the same job through each and compare completion, cost, model use, time and changes, because you measured it.</p>
+  <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each harness runs here, not which is best for your work.</p>
 </section>
 
-<section class="prose">
-  <h2>You do not need to build another agent.</h2>
-  <p class="lead">Agent development platforms help you create and deploy new agents. Latentic starts with the harnesses your team already wants to use.</p>
-  <p>Claude Code remains Claude Code. Codex remains Codex. Latentic provides the shared layer around them: the computer, the controls and the record.</p>
+<section class="audience">
+  <p>Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
+  <ul class="tags"><li>Engineering teams</li><li>Platform teams</li><li>Regulated organisations</li></ul>
 </section>
 
-<section class="try">
-  <h2>Try the product yourself.</h2>
-  <p class="lead">Start an agent, watch it work, then open the admin console to see people, model access, spend and records.</p>
-  <p class="fine">Your demo organisation, computers and their contents are removed when the demo ends.</p>
+<section class="faq">
+  <h2>Questions</h2>
+  <details><summary>What gets uploaded?</summary><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></details>
+  <details><summary>Which harnesses and models work?</summary><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above, on the models your organisation connects. The public demo offers OpenCode, Pi and Hermes on open models.</p></details>
+  <details><summary>What happens when the demo ends?</summary><p>The organisation, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></details>
+  <details><summary>Who can see my workspace and runs?</summary><p>A demo organisation is yours alone, on an address of its own. Within an organisation, administrators see people, spend and the record of runs.</p></details>
+</section>
+
+<section class="close">
+  <h2>Use different AI agents without setting up each one from scratch.</h2>
   <div class="actions">
     <a class="cta" href="/demo">Explore a live workspace</a>
     {{if .Book}}<a class="ghost" href="{{.Book}}">Book a demo</a>{{end}}
   </div>
-</section>
-
-<section class="close">
-  <h2>Your team will use more than one AI agent.</h2>
-  <p class="lead">You should not need a different setup for credentials, models, spend and oversight each time they adopt another. Give them one place to use all of them.</p>
 </section>
 </main>
 

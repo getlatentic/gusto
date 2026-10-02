@@ -163,7 +163,7 @@ func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	home := site.ask(t, "GET", "/", nil).Body.String()
-	for _, want := range []string{"Set up your first agent", `href="/templates/health"`, `href="/new/blank"`} {
+	for _, want := range []string{"Start an agent", "Or start from a kind of work", `href="/templates/health"`, `href="/new/blank"`} {
 		if !strings.Contains(home, want) {
 			t.Errorf("an empty home page does not offer %s", want)
 		}
