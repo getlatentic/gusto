@@ -46,3 +46,12 @@ ul.tags li { padding: var(--yg-space-1) var(--yg-space-3); border: 1px solid var
 .points li .aside { margin-top: var(--yg-space-3); color: var(--yg-text); font-weight: 500; font-size: .9375rem; }
 .steps ol { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
 .try { display: grid; gap: var(--yg-space-4); }
+.points > .lead, .proof > .lead { font-size: 1.1875rem; color: var(--yg-text-muted); max-width: 46rem; margin: calc(-1 * var(--yg-space-2)) 0 var(--yg-space-5); }
+.points > .fine { margin-top: var(--yg-space-4); }
+.hero .tags { margin: 0; }
+.proof { display: grid; gap: var(--yg-space-4); }
+.proof table { width: 100%; max-width: 32rem; border-collapse: collapse; font-size: .9375rem; }
+.proof th, .proof td { padding: var(--yg-space-2) var(--yg-space-3); text-align: left; border-bottom: 1px solid var(--yg-border-strong); }
+.proof th { color: var(--yg-text-muted); font-weight: 500; }
+.proof h3 { margin-top: var(--yg-space-4); }
+.top nav a.cta.small { white-space: nowrap; }
