@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"html/template"
 	"net/http"
 	"net/url"
 	"time"
@@ -11,6 +12,11 @@ import (
 // view is what a page is drawn from. Every page uses the fields it names.
 type view struct {
 	Title string
+	// Index says a search engine may list the page, which only the landing page and the demo form are. Description, Canonical and Share
+	// are what it is told of it and what a link to it shows, and LD is data about it for a search engine.
+	Index                         bool
+	Description, Canonical, Share string
+	LD                            template.JS
 	// Lease is set when the host has one, so a page carries the script that warns of its end.
 	Lease bool
 	// Left and Step draw the lease page.
