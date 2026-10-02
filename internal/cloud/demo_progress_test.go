@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -29,5 +30,13 @@ func TestHowLongAVisitorHasWaitedIsToTheSecond(t *testing.T) {
 	}
 	if waited(time.Time{}, now) != "" {
 		t.Error("a demo with no start has waited")
+	}
+}
+
+func TestTheWaitPageSaysAboutAMinuteWhichIsWhatAColdStartTakesFromTheImage(t *testing.T) {
+	for _, state := range []State{Waiting, Provisioning, Starting} {
+		if words := waitingWords(state); state != Failed && !strings.Contains(words, "about a minute") {
+			t.Errorf("%s: %q", state, words)
+		}
 	}
 }
