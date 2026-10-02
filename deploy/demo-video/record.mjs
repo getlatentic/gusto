@@ -82,11 +82,11 @@ process.on("uncaughtException", failed);
 
 // 1. In the organisation, choosing an agent.
 await page.goto(home);
-await say("Your organisation decides which agents people can use");
+await say("Choose the agent to work with. Each gets the same workspace and controls");
 await pause(5);
-await page.click("a.choice.hue-engineering");
+await page.click('a.choice[href^="/instances/new"]');
 await page.waitForSelector("button.cta");
-await say("Start an agent. It gets an isolated computer of its own");
+await say("Start it. The agent gets an isolated workspace of its own");
 await pause(4);
 await page.click("button.cta");
 await page.waitForSelector("textarea");
@@ -110,7 +110,7 @@ await waiting("starting the preview", () => page.waitForSelector("a:has-text('Op
 const app = await page.getAttribute("a:has-text('Open the app')", "href");
 await pause(2);
 await page.goto(new URL(app, home).href, { waitUntil: "domcontentloaded", timeout: 90000 });
-await say("A loan calculator, running in the agent's computer");
+await say("A loan calculator, running in the agent's workspace");
 await pause(7);
 
 // 3. The admin side.
