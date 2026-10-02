@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/haas/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css static/landing.css static/demo.mp4 static/demo-poster.jpg
+//go:embed templates/*.html static/cloud.css static/landing.css static/demo.mp4 static/demo-poster.jpg static/og.png
 var files embed.FS
 
 // Config is what a front door is made from.
@@ -97,8 +97,14 @@ func (s *Server) Handler() http.Handler {
 			s.leaseJSON(w, r)
 			return
 		}
+		if _, _, ok := s.appHost(r.Host); ok && unlisted(w, r) {
+			return
+		}
 		if slug, id, ok := s.appHost(r.Host); ok {
 			s.routeApp(w, r, slug, id)
+			return
+		}
+		if _, ok := s.orgSlug(r.Host); ok && unlisted(w, r) {
 			return
 		}
 		if slug, ok := s.orgSlug(r.Host); ok {
@@ -148,6 +154,9 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/landing.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/demo.mp4", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
+	mux.HandleFunc("GET /robots.txt", s.robots)
+	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /static/demo-poster.jpg", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/", web.Static())
 	return s.secure(mux)

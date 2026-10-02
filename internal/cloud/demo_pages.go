@@ -18,7 +18,8 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.drawDemoForm(w, http.StatusOK, view{Title: "Try haas", Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
+	page := view{Title: demoFormTitle, Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length}
+	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organisation, with agents working in computers of their own, and nothing to sign up for."))
 }
 
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
@@ -41,7 +42,7 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 	}
 	name, email, company := r.PostFormValue("name"), r.PostFormValue("email"), r.PostFormValue("company")
 	again := func(status int, why string) {
-		s.drawDemoForm(w, status, view{Title: "Try haas", Error: why, Email: email, OrgName: company, Name: name,
+		s.drawDemoForm(w, status, view{Title: demoFormTitle, Error: why, Email: email, OrgName: company, Name: name,
 			Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
 	}
 
@@ -234,7 +235,10 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 // to start a demo or book a call.
 func (s *Server) landing(w http.ResponseWriter) {
 	demo := s.Store.set.Demo
-	page := view{Title: "haas", DemoLeft: demo.Length, Book: demo.BookURL}
+	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL}
+	description := landingDescription(page)
+	page = s.seen(page, "/", description)
+	page.LD = s.structured(description)
 	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 	address := demo.VideoURL
 	if address == "" {
