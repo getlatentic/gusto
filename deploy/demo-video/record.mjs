@@ -3,6 +3,10 @@
 // off camera, as John Smith of Future Acme Bank, and the recording begins inside the organisation. Nothing is faked:
 // each step is the page the person gets. End every demo on the host first: one address has one demo, and only a few run.
 //
+// Each caption is also written, with the time it was said, to recording/marks.json, so that edit/ can draw its own captions and
+// aim its camera. CAPTIONS=off records the page without the captions drawn on it. HEADED=1 shows the browser, which the bot check
+// is more likely to pass. SCALE=1.5 records at 1920 by 1080.
+//
 //   PLAYWRIGHT_CORE=<path to playwright-core> CHROME=<a chromium to use, when the library's own is not installed> node record.mjs [base url] [an ended demo's address]
 import { createRequire } from "node:module";
 import { mkdirSync, rmSync, writeFileSync, readdirSync, renameSync } from "node:fs";
@@ -19,7 +23,10 @@ const out = new URL("./recording/", import.meta.url).pathname;
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
-const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME || undefined });
+const scale = Number(process.env.SCALE || 1);
+const size = { width: Math.round(1280 * scale), height: Math.round(720 * scale) };
+const captions = process.env.CAPTIONS !== "off";
+const browser = await chromium.launch({ headless: !process.env.HEADED, executablePath: process.env.CHROME || undefined });
 
 // The demo is started off camera: the video is of the platform, where a person already is. Only the sign-in it
 // leaves behind is carried over.
@@ -39,7 +46,7 @@ const home = first.url();
 const signedIn = await setup.storageState();
 await setup.close();
 
-const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, storageState: signedIn, recordVideo: { dir: out, size: { width: 1280, height: 720 } } });
+const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: scale, storageState: signedIn, recordVideo: { dir: out, size } });
 const started = Date.now();
 const page = await context.newPage();
 const segments = [];
@@ -59,7 +66,11 @@ await page.addInitScript(() => {
     bar.textContent = text;
   };
 });
-const say = async (text) => { await page.evaluate((t) => window.__caption && window.__caption(t), text).catch(() => {}); };
+const marks = [];
+const say = async (text) => {
+  marks.push({ t: since(), text });
+  if (captions) await page.evaluate((t) => window.__caption && window.__caption(t), text).catch(() => {});
+};
 const pause = (seconds) => page.waitForTimeout(seconds * 1000);
 // waiting is a stretch of the video that encode.sh plays fast.
 async function waiting(label, action) {
@@ -141,4 +152,5 @@ await browser.close();
 const file = readdirSync(out).find((name) => name.endsWith(".webm"));
 renameSync(out + file, out + "haas-demo.webm");
 writeFileSync(out + "segments.json", JSON.stringify(segments, null, 1));
+writeFileSync(out + "marks.json", JSON.stringify(marks, null, 1));
 console.log(`recorded ${since().toFixed(0)} s, ${segments.length} waits: ${segments.map((s) => `${s.label} ${(s.to - s.from).toFixed(0)}s`).join(", ")}`);
