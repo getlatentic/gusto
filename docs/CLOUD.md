@@ -478,3 +478,20 @@ up inside the sandbox is answered inside it, with an address in `198.18.0.0/15`,
 A sandbox exists only while an agent has been started in a demo, so start a demo, start an agent in it, and run the check. It runs
 `e2e/isolation-on-host.sh` on the demo machine through Systems Manager, and exits 0 on a pass. Run it after a change to the
 sandbox's policy, the OpenShell version or the machine's network. What it does not test is UDP other than names, or IPv6.
+
+## What a demo may spend
+
+A demo is capped as a whole organisation: `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json` sets `organisation`
+to 0.50 dollars, and every agent's calls count against it together, whichever job or team they belong to. Once the
+organisation has spent it, the proxy refuses the next call, and the job says it was stopped by the organisation cap. A model with
+no price is refused too, since a cap that cannot count a call is not holding anything; a test fails if a model the demo offers has
+no price. Calls already in flight can take the total a few cents past the cap. At the Gemma 4 prices a whole calculator costs
+under a cent, so the cap is far above what a demo needs and far below what a run-away costs.
+
+## When spending runs away
+
+`deploy/aws/platform/budgets.tf` makes two AWS budgets that mail `ALERT_EMAIL` when `bootstrap.sh` is run with it set: one a month
+(`monthly_budget_usd`, 60 dollars) that mails at 80% and when the forecast passes 100%, and one a day (`daily_budget_usd`, 10
+dollars) that mails when the day passes it. Both count usage before credits, since credits hide a bill until they run out. A demo
+machine left on costs about 5.30 dollars a day, and a measurement run costs 2 to 10, so the daily budget tells of either the same
+day. September's usage was 39.85 dollars, 37.10 of it Bedrock models while engines were measured and 2.65 of it servers.
