@@ -465,3 +465,16 @@ and any form sent from another site. The front door's web server does not serve 
 `deploy/aws/openshell/owner.sh` opens a tunnel to it with AWS Systems Manager, so it is at `http://localhost:8090`
 for as long as the command runs. Who may open it is who may start a session on the front door in AWS. It needs the
 Session Manager plugin: `brew install --cask session-manager-plugin`.
+
+## Checking that an agent cannot reach the operator's network
+
+A demo computer is a sandbox with a policy that denies everything but the model proxy on its machine. `deploy/aws/openshell/check-isolation.sh`
+tests that from inside a running sandbox: it tries to open a connection to the machine's AWS metadata address (whose role reads
+the stored secrets), the machine's own ports, the front door, the shared file system, the VPC resolver and the internet, and to the
+model proxy. It passes only when the proxy is open and nothing else is, and fails when the proxy is closed too, since a probe that
+opens nothing cannot tell blocked from broken. It also checks that the sandbox's policy names no other rule, and that a name made
+up inside the sandbox is answered inside it, with an address in `198.18.0.0/15`, so a lookup does not leave the sandbox.
+
+A sandbox exists only while an agent has been started in a demo, so start a demo, start an agent in it, and run the check. It runs
+`e2e/isolation-on-host.sh` on the demo machine through Systems Manager, and exits 0 on a pass. Run it after a change to the
+sandbox's policy, the OpenShell version or the machine's network. What it does not test is UDP other than names, or IPv6.
