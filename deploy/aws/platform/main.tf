@@ -142,10 +142,24 @@ locals {
   }
 }
 
+# The image a cell of the live front door is started from. It begins as Ubuntu's, so a cell starts as it always did, and
+# bake-cell-image.sh puts the image it makes here, which is read each time a host is started and so needs no change to this stack.
+resource "aws_ssm_parameter" "cell_image" {
+  name        = "/haas/poc/cell-ami"
+  description = "The image a cell of the live front door is started from, made by bake-cell-image.sh"
+  type        = "String"
+  data_type   = "aws:ec2:image"
+  value       = data.aws_ssm_parameter.ubuntu.value
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_launch_template" "role" {
   for_each                             = local.hosts
   name                                 = "${local.host}-${each.key}"
-  image_id                             = data.aws_ssm_parameter.ubuntu.value
+  image_id                             = each.key == "cell-live" ? "resolve:ssm:${aws_ssm_parameter.cell_image.name}" : data.aws_ssm_parameter.ubuntu.value
   instance_type                        = each.value.type
   instance_initiated_shutdown_behavior = "terminate"
   vpc_security_group_ids               = [aws_security_group.host.id]
@@ -237,6 +251,9 @@ resource "aws_iam_role_policy" "live" {
           "${local.ec2_arn}:network-interface/*",
           "${local.ec2_arn}:security-group/${aws_security_group.host.id}",
           "arn:aws:ec2:${var.region}::image/*",
+          "${local.ec2_arn}:image/*",
+          "arn:aws:ec2:${var.region}::snapshot/*",
+          "${local.ec2_arn}:snapshot/*",
         ]
       },
       { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
