@@ -16,7 +16,7 @@ subject="${subject:-repo:getlatentic/haas}"
 echo "the workflows' token names the repository as $subject"
 bucket="$(../openshell/demo-store.sh)"
 terraform init -input=false -reconfigure -backend-config="bucket=$bucket" -backend-config="region=$AWS_REGION" >/dev/null
-if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}" -var "github_subject=$subject"; then
+if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}" -var "github_subject=$subject" -var "alert_email=${ALERT_EMAIL:-}"; then
   cat >&2 <<MSG
 
 If the error is about GitHub's identity provider, this profile may not make one. Make it once, with an
