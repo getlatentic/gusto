@@ -10,7 +10,7 @@ import (
 
 const (
 	siteName        = "Latentic Agent Cloud"
-	landingTitle    = siteName + " — run agents across your team with control and compliance built in"
+	landingTitle    = siteName + " — one place for every AI agent your team needs"
 	demoFormTitle   = "Start a demo of " + siteName
 	organisationURL = "https://getlatentic.com"
 )
@@ -24,7 +24,7 @@ func (s *Server) seen(page view, path, description string) view {
 
 // landingDescription is what the landing page says it is, for the page's description and for a link to it.
 func landingDescription(page view) string {
-	return "One place to use approved AI agents and models, run work in isolated environments, and control what agents can access, what they can spend, and what they do. Try it for " + minutes(page.DemoLeft) + "."
+	return "Run Claude Code, Codex, Pi, OpenCode and other agent harnesses with the same controls for credentials, models, spend and oversight. Try it for " + minutes(page.DemoLeft) + "."
 }
 
 // structured is what the landing page says about who makes it and what it is, as data a search engine reads. It says only what the
