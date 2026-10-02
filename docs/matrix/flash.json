@@ -1,0 +1,13 @@
+{
+  "environment": "box",
+  "jobs": ["one-line-fix"],
+  "simplest": "one-line-fix",
+  "pairs": [
+    { "harness": "opencode", "model": "deepseek/deepseek-flash" },
+    { "harness": "codex", "model": "deepseek/deepseek-flash" },
+    { "harness": "claude", "model": "anthropic/deepseek-flash" },
+    { "harness": "pi", "model": "deepseek/deepseek-flash" },
+    { "harness": "dsh", "model": "deepseek/deepseek-flash" },
+    { "harness": "hermes", "model": "deepseek/deepseek-flash" }
+  ]
+}
