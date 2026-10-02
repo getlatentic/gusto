@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
+{{template "seo" .}}
 <link rel="icon" href="{{asset "/static/mark.png"}}">
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{own "/static/cloud.css"}}">
@@ -18,3 +19,21 @@
 </body>
 </html>
 {{end}}
+{{/* seo is what a search engine and a link preview read: whether the page may be listed, what it is, and its address and image. */}}
+{{define "seo"}}<meta name="robots" content="{{if .Index}}index,follow,max-image-preview:large{{else}}noindex,nofollow{{end}}">
+{{with .Description}}<meta name="description" content="{{.}}">{{end}}
+{{if .Canonical}}<link rel="canonical" href="{{.Canonical}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Latentic Agent Cloud">
+<meta property="og:title" content="{{.Title}}">
+{{with .Description}}<meta property="og:description" content="{{.}}">{{end}}
+<meta property="og:url" content="{{.Canonical}}">
+<meta property="og:image" content="{{.Share}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Latentic Agent Cloud: run agents across your team with control and compliance built in">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{.Title}}">
+{{with .Description}}<meta name="twitter:description" content="{{.}}">{{end}}
+<meta name="twitter:image" content="{{.Share}}">{{end}}
+{{with .LD}}<script type="application/ld+json">{{.}}</script>{{end}}{{end}}
