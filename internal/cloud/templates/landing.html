@@ -13,24 +13,25 @@
 <header class="top">
   <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> Latentic Agent Cloud</a>
   <nav>
-    <a href="#why">Why</a>
-    <a href="#control">What you control</a>
+    <a href="#harnesses">Harnesses</a>
+    <a href="#control">Controls</a>
     <a href="#how">How it works</a>
-    {{if .Book}}<a href="{{.Book}}">Book a call</a>{{end}}
-    <a class="cta small" href="/demo">Try it</a>
+    <a href="#proof">Proof</a>
+    {{if .Book}}<a href="{{.Book}}">Book a demo</a>{{end}}
+    <a class="cta small" href="/demo">Explore a live workspace</a>
   </nav>
 </header>
 
 <main>
 <section class="hero">
-  <h1>Beyond AI chat.</h1>
-  <p class="lede">Run agents across your team with control and compliance built in.</p>
-  <p class="body">Latentic Agent Cloud gives teams one place to use approved AI agents and models, run work in isolated environments, and control what agents can access, what they can spend, and what they do.</p>
+  <h1>One place for every AI agent your team needs.</h1>
+  <p class="lede">Run Claude Code, Codex, Pi, OpenCode and other agent harnesses with the same controls for credentials, models, spend and oversight.</p>
   <div class="actions">
-    <a class="cta" href="/demo">Start a {{minuteLong .DemoLeft}} demo</a>
-    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a call</a>{{end}}
+    <a class="cta" href="/demo">Explore a live workspace</a>
+    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a demo</a>{{end}}
   </div>
-  <p class="fine">For enterprises, government, regulated industries, and teams that need greater control over how AI operates.</p>
+  <ul class="tags"><li>Multiple harnesses</li><li>One set of controls</li><li>Full activity history</li></ul>
+  <p class="fine">No setup. Your demo organisation lasts {{minutes .DemoLeft}} and is deleted when it ends.</p>
 </section>
 
 {{if .Video}}
@@ -40,98 +41,99 @@
 </section>
 {{end}}
 
-<section id="why" class="prose">
-  <h2>Agents are becoming part of the workforce.</h2>
-  <p class="lead">They need more than access to a model.</p>
-  <p>Teams are adopting coding agents, research agents, internal agents and autonomous workflows. But every new agent introduces another set of models, credentials, permissions, computers, network access, costs and logs to manage.</p>
-  <p>Latentic Agent Cloud gives your organisation a common environment for running them.</p>
-  <ul class="plain">
-    <li>Agents and models your organisation approves.</li>
-    <li>Secure places for them to work.</li>
-    <li>Controls over what they can access.</li>
-    <li>A record of what they did.</li>
+<section id="harnesses" class="points">
+  <h2>Your team's agents, without a different setup for every one.</h2>
+  <p class="lead">Different agents are good at different things. Your team can use Claude Code for one task, Codex for another, and OpenCode or Pi for something else, with the same credentials, approved models, spend controls and activity history around all of them.</p>
+  <ul>
+    <li><h3>Claude Code</h3><p>Runs in an isolated workspace, on the models and credentials your organisation controls.</p></li>
+    <li><h3>Codex</h3><p>Gets the files and tools it needs without a separate operating model of its own.</p></li>
+    <li><h3>OpenCode</h3><p>An open harness, under the same policies and visibility as the rest.</p></li>
+    <li><h3>Pi</h3><p>Runs alongside the others rather than in an environment of its own.</p></li>
+    <li><h3>Hermes</h3><p>A general-purpose agent, in the same place as the rest.</p></li>
+    <li><h3>And your own</h3><p>Bring an internal or custom harness into the same operating model.</p></li>
   </ul>
+  <p class="fine">The live demo offers OpenCode, Pi and Hermes on open models. The platform runs the others on the models your organisation connects.</p>
+</section>
+
+<section id="how" class="steps">
+  <h2>How it works</h2>
+  <ol>
+    <li><h3>Pick a harness</h3><p>Start with Claude Code, Codex, OpenCode, Pi or another available harness. You choose the agent that suits the work.</p></li>
+    <li><h3>Give it a workspace</h3><p>The agent gets an isolated computer with the files, tools and context the task needs.</p></li>
+    <li><h3>Keep the same controls</h3><p>Credentials, model access, network rules and spending limits stay outside the harness, so changing the agent does not mean rebuilding them.</p></li>
+    <li><h3>See what happened</h3><p>Model calls, files changed, cost and results are recorded in one place.</p></li>
+  </ol>
 </section>
 
 <section id="control" class="points">
-  <h2>One place for your organisation's agents.</h2>
+  <h2>Change the agent. Keep the controls.</h2>
+  <p class="lead">Agent harnesses come and go. Latentic keeps the controls around the harness instead of burying them inside it.</p>
   <ul>
-    <li>
-      <h3>Approved agents and models</h3>
-      <p>Decide which agents, harnesses and models are available to your teams. Give different people and teams access to different capabilities without managing every AI tool separately.</p>
-      <p class="aside">Your agents. Your models. Your choice.</p>
-    </li>
-    <li>
-      <h3>Secure computers for agent work</h3>
-      <p>Agents do more than generate text. They read files, write code, run software, use tools and interact with systems. Give them isolated computers where they can perform that work without unrestricted access to the rest of your organisation.</p>
-      <p class="aside">Each person's work remains isolated, with access opened only where you allow it.</p>
-    </li>
-    <li>
-      <h3>Control what agents can reach</h3>
-      <p>Define what an agent can use before it starts working. Control access to:</p>
-      <ul class="tags"><li>models</li><li>tools</li><li>files and repositories</li><li>networks</li><li>internal systems</li><li>credentials</li><li>external services</li></ul>
-      <p class="aside">Credentials remain outside the agent's environment and can be provided only when needed.</p>
-    </li>
-    <li>
-      <h3>Control usage and spend</h3>
-      <p>Set limits at the organisation, team, user or job level. Choose which models people may use, how much work can run, and how much it may cost. See usage across your organisation from one place.</p>
-    </li>
-    <li>
-      <h3>Know what happened</h3>
-      <p>Agent work should not disappear into a chat history. Keep a record of:</p>
-      <ul class="tags"><li>who started the work</li><li>which agent ran</li><li>which model it used</li><li>what was requested</li><li>what it accessed</li><li>what it changed</li><li>what it cost</li></ul>
-      <p class="aside">Create an auditable history of agent activity across your organisation.</p>
-    </li>
+    <li><h3>Credentials</h3><p>Model keys stay outside the agent's computer. The agent reaches a model through a proxy and never holds the key.</p></li>
+    <li><h3>Models</h3><p>Choose which models your people can use, and which harnesses can reach them.</p></li>
+    <li><h3>Spend</h3><p>Set limits for the organisation, a team or a job, and see what each model and harness costs.</p></li>
+    <li><h3>Network access</h3><p>An agent's computer can reach only what you allow.</p></li>
+    <li><h3>Activity history</h3><p>See who started work, which agent ran, which model it used and what it changed.</p></li>
+    <li><h3>Evidence</h3><p>Keep the checks, logs and results with the run that produced them.</p></li>
   </ul>
 </section>
 
 <section class="prose">
-  <h2>Bring your agents. Bring your models.</h2>
-  <p class="lead">Latentic Agent Cloud is not another AI assistant. It is the environment your organisation uses to run AI assistants and agents.</p>
-  <p>Use coding agents, research agents, internal agents, third-party agents or your own agent harnesses. Make approved models available through the same organisational controls.</p>
-  <p>As new agents and models appear, teams can adopt them without rebuilding security, access control, execution and oversight around every tool.</p>
-</section>
-
-<section class="points">
-  <h2>Built for teams, not individual AI subscriptions.</h2>
-  <ul>
-    <li><h3>For employees</h3><p>A secure environment for their agents to work with the files, tools and applications needed to get work done.</p></li>
-    <li><h3>For teams</h3><p>A common set of approved agents and models, with consistent access and spending policies.</p></li>
-    <li><h3>For IT and security</h3><p>Central control over identity, permissions, credentials, networks, execution environments and AI providers.</p></li>
-    <li><h3>For compliance</h3><p>A verifiable record of agent execution, access and usage.</p></li>
+  <h2>A workspace your team can use, not another chat window.</h2>
+  <p class="lead">Files, the agent's conversation and its results stay together.</p>
+  <ul class="plain">
+    <li>Watch an agent work as it happens, without waiting for a final answer.</li>
+    <li>Open its files and results, and carry on from the same workspace.</li>
+    <li>One person's work cannot reach another's.</li>
   </ul>
+  <div class="actions"><a class="cta" href="/demo">Explore a live workspace</a></div>
 </section>
 
-<section id="how" class="steps">
-  <h2>From agent request to controlled execution.</h2>
-  <ol>
-    <li><h3>Your organisation decides what is available</h3><p>Administrators approve agents, models and access policies.</p></li>
-    <li><h3>A person chooses an agent</h3><p>The user starts from the capabilities their organisation has made available.</p></li>
-    <li><h3>The agent gets a secure place to work</h3><p>Work runs inside an isolated environment with only the access it needs.</p></li>
-    <li><h3>Latentic enforces the organisation's controls</h3><p>Model access, credentials, networks, tools, permissions and spending limits are applied during execution.</p></li>
-    <li><h3>The work leaves a record</h3><p>The organisation can see what ran, which resources it used and what it cost.</p></li>
-  </ol>
+<section class="prose">
+  <h2>See what actually happened.</h2>
+  <p class="lead">Instead of relying on an agent saying the work is finished, inspect what occurred.</p>
+  <ul class="tags"><li>model calls and tokens</li><li>files changed</li><li>checks and tests that decided the outcome</li><li>output and logs</li><li>cost</li></ul>
+  <p>Every run is kept as a bundle that can be verified and replayed.</p>
+</section>
+
+<section id="proof" class="proof">
+  <h2>Measured, not promised.</h2>
+  <p class="lead">One job, a one-line fix with a test that decides the result, run on every harness with the same model, DeepSeek Flash, inside the platform's isolated computers.</p>
+  <table>
+    <thead><tr><th>Harness</th><th>Finished</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Code</td><td>Yes</td><td>30 s</td></tr>
+      <tr><td>Codex</td><td>Yes</td><td>35 s</td></tr>
+      <tr><td>Pi</td><td>Yes</td><td>28 s</td></tr>
+      <tr><td>Hermes</td><td>Yes</td><td>40 s</td></tr>
+      <tr><td>DSH</td><td>Yes</td><td>39 s</td></tr>
+      <tr><td>OpenCode</td><td>Yes</td><td>2 m 46 s</td></tr>
+    </tbody>
+  </table>
+  <p class="fine">Test-environment measurements from 2 October 2026, not customer results. One small job says that a harness runs here, not how good it is at your work.</p>
+  <h3>Compare agents on your own work</h3>
+  <p>Benchmarks cannot tell you which harness suits your team and your tasks. Run the same job through each and compare completion, cost, model use, time and changes, because you measured it.</p>
+</section>
+
+<section class="prose">
+  <h2>You do not need to build another agent.</h2>
+  <p class="lead">Agent development platforms help you create and deploy new agents. Latentic starts with the harnesses your team already wants to use.</p>
+  <p>Claude Code remains Claude Code. Codex remains Codex. Latentic provides the shared layer around them: the computer, the controls and the record.</p>
 </section>
 
 <section class="try">
-  <h2>Try the Agent Cloud</h2>
-  <p class="lead">Create a temporary organisation and experience both sides of the platform.</p>
-  <ul class="plain">
-    <li>Run an agent inside your own isolated computer.</li>
-    <li>Choose from the models your organisation allows.</li>
-    <li>Then open the admin console to see people, permissions, model access, spend and execution records.</li>
-  </ul>
+  <h2>Try the product yourself.</h2>
+  <p class="lead">Start an agent, watch it work, then open the admin console to see people, model access, spend and records.</p>
   <p class="fine">Your demo organisation, computers and their contents are removed when the demo ends.</p>
-  <div class="actions"><a class="cta" href="/demo">Start a {{minuteLong .DemoLeft}} demo</a></div>
+  <div class="actions">
+    <a class="cta" href="/demo">Explore a live workspace</a>
+    {{if .Book}}<a class="ghost" href="{{.Book}}">Book a demo</a>{{end}}
+  </div>
 </section>
 
 <section class="close">
-  <h2>AI agents, ready for organisational use.</h2>
-  <p class="lead">Move beyond individual chat subscriptions and disconnected agent tools. Give your teams the agents they need while keeping control of how AI runs across your organisation.</p>
-  <div class="actions">
-    <a class="cta" href="/demo">Start a demo</a>
-    {{if .Book}}<a class="ghost" href="{{.Book}}">Talk to us</a>{{end}}
-  </div>
+  <h2>Your team will use more than one AI agent.</h2>
+  <p class="lead">You should not need a different setup for credentials, models, spend and oversight each time they adopt another. Give them one place to use all of them.</p>
 </section>
 </main>
 
