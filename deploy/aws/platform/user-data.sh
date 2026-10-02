@@ -4,13 +4,17 @@
 # fills in the settings on the next lines. ROLE is all (a host that is the front door and runs the
 # organisations' servers), orchestrator (the front door alone) or cell (runs servers for a front door);
 # the last two share the file system EFS, and RUN is the directory of it that this demo's hosts use.
+# BAKE is on for the host an image of a cell is made from: it is made as a cell is, its runner image is prepared for the gateway,
+# and it is not started as a cell, so that the image holds everything a cell has to wait for and nothing that is its own. A host made
+# from that image has /etc/haas/baked and goes straight to configuring itself.
 # LIVE is on for the front door that stays up: it has no lease and no limit on how long it runs, keeps what
 # is on the file system, starts hosts for cells when organisations need one, and is brought up to a newer
 # release by running this again (HAAS_LIVE_ENV names the file that keeps what it was started with).
 set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
 LEASE_MINUTES=${LEASE_MINUTES:-@LEASE_MINUTES@} MAX_HOURS=${MAX_HOURS:-@MAX_HOURS@}
-ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@}
+ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@} BAKE=${BAKE:-off}
+baked_marker=${HAAS_BAKED:-/etc/haas/baked}
 live_env=${HAAS_LIVE_ENV:-/etc/haas/live.env}
 dir=${HAAS_BUNDLE_DIR:-/opt/haas-bundle} tmp=${HAAS_TMP:-/tmp}
 exec > >(tee -a "${HAAS_BOOTSTRAP_LOG:-/var/log/haas-bootstrap.log}") 2>&1
@@ -32,9 +36,12 @@ fi
 export HOME=${HOME:-/root}
 export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION PATH=$PATH:/snap/bin:/usr/local/bin
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq ansible unzip curl ca-certificates
-command -v aws >/dev/null || snap install aws-cli --classic
+# A host made from the image of a cell has these, and the packages are not fetched again.
+if [ ! -e "$baked_marker" ]; then
+  apt-get update -qq
+  apt-get install -y -qq ansible unzip curl ca-certificates
+  command -v aws >/dev/null || snap install aws-cli --classic
+fi
 
 # The newest release is the one CI last made, for a host that is started by hand.
 [ "$RELEASE" != latest ] || RELEASE=$(aws s3 cp "s3://$BUCKET/releases/latest" -)
@@ -63,6 +70,13 @@ shared=()
 
 ansible-playbook -c local -i 'spike,' \
   -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
-  -e "demo_lease_minutes=$LEASE_MINUTES" -e "demo_max_hours=$MAX_HOURS" -e demo_check_public=false -e "demo_role=$ROLE" -e "demo_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "demo_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
+  -e "demo_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "demo_lease_minutes=$LEASE_MINUTES" -e "demo_max_hours=$MAX_HOURS" -e demo_check_public=false -e "demo_role=$ROLE" -e "demo_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "demo_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
   "${playbooks[@]}"
+if [ "$BAKE" = on ]; then
+  # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
+  # cold start. It is asked here, as the cell asks it, and the disk is kept in the image.
+  systemd-run --wait --collect --unit=haas-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/haas \
+    -p EnvironmentFile=/etc/haas/org.env -p EnvironmentFile=/etc/haas/cell.env -p EnvironmentFile=/run/haas/cell.env /usr/local/bin/haas survey
+  touch "${HAAS_BAKE_DONE:-/etc/haas/bake-done}"
+fi
 echo "haas-bootstrap: done"

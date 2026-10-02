@@ -54,3 +54,6 @@ demo_visitor_max: 5
 demo_book_url: ""
 # An https address of a video file, or of a page that may be embedded, which the landing page shows.
 demo_video_url: ""
+
+# Whether this host is made to have an image taken of it, and so is not started as a cell.
+demo_bake: false

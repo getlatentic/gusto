@@ -56,7 +56,7 @@ func newBoot(t *testing.T) *boot {
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
 		"HAAS_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "HAAS_TMP="+filepath.Join(dir, "tmp"), "HAAS_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
-		"HAAS_SWAPFILE="+filepath.Join(dir, "swapfile"), "HAAS_FSTAB="+filepath.Join(dir, "fstab"), "HAAS_MEMINFO="+b.meminfo(8000),
+		"HAAS_BAKED="+filepath.Join(dir, "not-baked"), "HAAS_SWAPFILE="+filepath.Join(dir, "swapfile"), "HAAS_FSTAB="+filepath.Join(dir, "fstab"), "HAAS_MEMINFO="+b.meminfo(8000),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
 	return b
@@ -303,5 +303,72 @@ func TestASmallHostGetsASwapFileOnceAndALargeOneGetsNone(t *testing.T) {
 	}
 	if index(lines, "fallocate ") >= 0 {
 		t.Errorf("a host with 8 gigabytes got swap: %v", lines)
+	}
+}
+
+func TestAHostMadeFromTheImageOfACellDoesNotFetchPackagesAndAnOrdinaryHostDoes(t *testing.T) {
+	ordinary := newBoot(t)
+	ordinary.release(false)
+	lines, err := ordinary.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "apt-get ") < 0 {
+		t.Errorf("an ordinary host installed no packages: %v", lines)
+	}
+	if play := index(lines, "ansible-playbook "); play < 0 || !strings.Contains(lines[play], "demo_bake=false") {
+		t.Errorf("an ordinary host is told it is made to be imaged: %v", lines)
+	}
+
+	baked := newBoot(t)
+	baked.release(false)
+	marker := filepath.Join(baked.dir, "baked")
+	os.WriteFile(marker, []byte("key\n"), 0o644)
+	lines, err = baked.run("HAAS_BAKED=" + marker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "apt-get ") >= 0 {
+		t.Errorf("a host from the image fetched packages: %v", lines)
+	}
+	if index(lines, "ansible-playbook ") < 0 {
+		t.Errorf("a host from the image did not configure itself: %v", lines)
+	}
+}
+
+func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsACell(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	done := filepath.Join(b.dir, "bake-done")
+	lines, err := b.run("BAKE=on", "ROLE=cell", "HAAS_BAKE_DONE="+done)
+	if err != nil {
+		t.Fatal(err)
+	}
+	play := index(lines, "ansible-playbook ")
+	if play < 0 || !strings.Contains(lines[play], "demo_bake=true") {
+		t.Fatalf("the playbook was not told this host is made to be imaged: %v", lines)
+	}
+	survey := index(lines, "systemd-run --wait --collect --unit=haas-bake-survey")
+	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/haas survey") || survey < play {
+		t.Errorf("the runner image was not prepared after the playbook: %v", lines)
+	}
+	if _, err := os.Stat(done); err != nil {
+		t.Errorf("nothing says the host is ready to be imaged: %v", err)
+	}
+}
+
+func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	done := filepath.Join(b.dir, "bake-done")
+	lines, err := b.run("HAAS_BAKE_DONE=" + done)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index(lines, "systemd-run --wait --collect --unit=haas-bake-survey") >= 0 {
+		t.Errorf("an ordinary host prepared an image: %v", lines)
+	}
+	if _, err := os.Stat(done); err == nil {
+		t.Error("an ordinary host says it is ready to be imaged")
 	}
 }
