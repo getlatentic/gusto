@@ -495,3 +495,31 @@ under a cent, so the cap is far above what a demo needs and far below what a run
 dollars) that mails when the day passes it. Both count usage before credits, since credits hide a bill until they run out. A demo
 machine left on costs about 5.30 dollars a day, and a measurement run costs 2 to 10, so the daily budget tells of either the same
 day. September's usage was 39.85 dollars, 37.10 of it Bedrock models while engines were measured and 2.65 of it servers.
+
+## How long a cold start takes
+
+When no demo machine is running, a visitor waits for one to start. Measured on 2026-10-02 from a visitor asking to the demo being ready,
+with no image: 270 seconds. Of them, about 40 were the machine starting and installing packages, 40 the playbook, 13 downloading the
+runner image, 139 the gateway turning the runner image into the disk a sandbox starts from (once on each host), and the rest the
+organisation starting.
+
+`deploy/aws/openshell/bake-cell-image.sh` makes the machine image of a cell with all of that done, and puts its id in the parameter
+`/haas/poc/cell-ami`, which the live cell launch template reads each time a host is started. It makes a cell as the front door would, does
+not start it, has the gateway prepare the runner image's disk, takes out what is the host's own, and takes an image. It takes about 25
+minutes, mostly AWS making a snapshot of a 40 GB disk, and costs about 0.10 dollars and 0.60 dollars a month for the snapshot. Its key
+(`bake-key.sh`) is the runner image's key and a hash of what installs the gateway; the release's bundle carries it as `bake.key`, so a
+change to either is a new image to make before cells start from it.
+
+A host made from the image skips the package installs and the openshell role when its release's `bake.key` is the one in
+`/etc/haas/baked`. It configures itself from the release it is told to be, as any host does. A host whose image is older than its
+release, which is what a cell is between a change and the image being made again, installs everything and is slower, and right.
+
+Three things were learned making it, and are why it is as it is:
+
+- A disk made from a snapshot is read from it a block at a time, as each block is first used. The runner image is read whole to be named
+  and the sandbox disk to be copied, and a first sandbox took over two minutes. The host reads those files in sixteen streams from the start
+  of its boot (`warm_the_disk` in `user-data.sh`), and its root disk has 500 MB a second.
+- The shared file system must not be in the image's `/etc/fstab`. A host that has it there before it has its network orders it before
+  the network, systemd breaks the cycle by deleting the network jobs, and the host waited a minute and a half for them.
+- The image is made when its key changes, not when a release does, so a release does not wait for it. The bundle workflow cannot build
+  it, since it needs a host of its own: run the script when the key changes.
