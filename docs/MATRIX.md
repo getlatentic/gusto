@@ -149,3 +149,22 @@ tokens, from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pri
 | `google.gemma-4-e2b` | $0.04 | $0.08 |
 
 For comparison, DeepSeek Flash is $0.15 and $0.60, and the Qwen model the demo offered before is $0.53 and $2.66.
+
+## DeepSeek Flash on every harness
+
+[`matrix/flash.json`](matrix/flash.json) runs the one-line-fix job on all six harnesses with `deepseek-flash`, in an OpenShell
+sandbox on one `m8i.xlarge`, on 2026-10-02. `claude` reaches it through DeepSeek's Anthropic-shaped endpoint
+(`https://api.deepseek.com/anthropic`), the others through `https://api.deepseek.com`. Every harness finished and the gate passed.
+
+| harness | finished | wall clock | model calls |
+| --- | --- | --- | --- |
+| `opencode` | yes | 2 m 46 s | 8 |
+| `codex` | yes | 35 s | 6 |
+| `claude` | yes | 30 s | 5 |
+| `pi` | yes | 28 s | 6 |
+| `dsh` | yes | 39 s | 7 |
+| `hermes` | yes | 40 s | 8 |
+
+So `codex` and `dsh` finish on a model served by DeepSeek and not on the Bedrock models above. The cost column read "unmeasured"
+for `codex`, `claude` and `dsh`, because those harnesses did not report tokens the proxy could price. The measured host's spend
+policy had no DeepSeek prices either.
