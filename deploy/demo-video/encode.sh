@@ -18,10 +18,27 @@ def add(a, b, fast):
 for a, b in cuts:
     add(at, a, False); add(a, b, True); at = b
 add(at, 1e6, False)
-print(";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0,scale=1280:720,format=yuv420p[out]")
+print(";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0,scale=${W:-1280}:${H:-720},format=yuv420p[out]")
 PY
 )"
-ffmpeg -y -loglevel error -i haas-demo.webm -filter_complex "$filter" -map "[out]" -c:v libx264 -crf 27 -preset slow -r 25 -movflags +faststart haas-demo.mp4
+ffmpeg -y -loglevel error -i haas-demo.webm -filter_complex "$filter" -map "[out]" -c:v libx264 -crf 27 -preset slow -r 30 -movflags +faststart haas-demo.mp4
 ffmpeg -y -loglevel error -ss 2 -i haas-demo.mp4 -frames:v 1 -q:v 4 poster.jpg
+# Where each caption falls in the shortened video, for edit/.
+python3 - "$speed" <<'PY'
+import json, sys
+speed = float(sys.argv[1])
+cuts = sorted((s["from"], s["to"]) for s in json.load(open("segments.json")) if s["to"] - s["from"] > 3)
+def encoded(t):
+    out, at = 0.0, 0.0
+    for a, b in cuts:
+        if t <= a: return out + (t - at)
+        out += a - at
+        if t <= b: return out + (t - a) / speed
+        out += (b - a) / speed
+        at = b
+    return out + (t - at)
+marks = json.load(open("marks.json"))
+json.dump([{"t": round(encoded(m["t"]), 3), "text": m["text"]} for m in marks], open("timeline.json", "w"), indent=1)
+PY
 ls -lh haas-demo.mp4 poster.jpg
 ffprobe -v error -show_entries format=duration -of csv=p=0 haas-demo.mp4
