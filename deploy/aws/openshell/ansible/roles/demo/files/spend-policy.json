@@ -13,5 +13,8 @@
       "outputPerMillion": 0.08
     }
   },
-  "teams": {}
+  "teams": {},
+  "organisation": {
+    "usdPerMonth": 0.5
+  }
 }

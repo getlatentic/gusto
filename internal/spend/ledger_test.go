@@ -177,3 +177,64 @@ func TestPricesChangedWhileRunningApplyToTheNextCallAndNotToOnesAlreadyCosted(t 
 		t.Error("a model with no price is priced")
 	}
 }
+
+func organisationLedger(at time.Time, cap float64) *Ledger {
+	policy := fixturePolicy()
+	policy.Organisation = &TeamCap{USDPerMonth: cap}
+	ledger := NewLedger(policy)
+	ledger.now = func() time.Time { return at }
+	return ledger
+}
+
+func TestAnOrganisationCapStopsEveryJobOnceTheJobsTogetherHaveSpentIt(t *testing.T) {
+	ledger := organisationLedger(september, 0.5)
+	ledger.Begin("first", Terms{Team: "red"})
+	ledger.Begin("second", Terms{Team: "blue"})
+	ledger.Begin("third", Terms{})
+	ledger.Count("first", answered(0.3, september))
+	ledger.Count("second", answered(0.15, september))
+	for _, job := range []string{"first", "second", "third"} {
+		if refusal := ledger.Allow(job, "", "fixture-model"); refusal != nil {
+			t.Fatalf("%s was refused under the cap: %+v", job, refusal)
+		}
+	}
+	ledger.Count("second", answered(0.1, september))
+	for _, job := range []string{"first", "second", "third"} {
+		refusal := ledger.Allow(job, "", "fixture-model")
+		if refusal == nil || refusal.Cap != "organisation" || refusal.LimitUSD != 0.5 || refusal.SpentUSD < 0.55 || !strings.Contains(refusal.Reason, "this organisation has spent") {
+			t.Errorf("%s: %+v", job, refusal)
+		}
+	}
+}
+
+func TestAnOrganisationCapIsForAMonthAndAJobCapStillComesFirst(t *testing.T) {
+	ledger := organisationLedger(september, 0.5)
+	ledger.Begin("old", Terms{})
+	ledger.Count("old", answered(0.6, september.AddDate(0, -1, 0)))
+	if refusal := ledger.Allow("old", "", "fixture-model"); refusal != nil {
+		t.Errorf("last month's spending counted: %+v", refusal)
+	}
+	ledger.Begin("capped", Terms{CapUSD: dollars(0.1)})
+	ledger.Count("capped", answered(0.2, september))
+	if refusal := ledger.Allow("capped", "", "fixture-model"); refusal == nil || refusal.Cap != "job" {
+		t.Errorf("the job's own cap is not the one named: %+v", refusal)
+	}
+}
+
+func TestAnOrganisationCapFailsClosedOnAModelItCannotPrice(t *testing.T) {
+	ledger := organisationLedger(september, 0.5)
+	ledger.Begin("a-job", Terms{})
+	refusal := ledger.Allow("a-job", "", "unpriced-model")
+	if refusal == nil || refusal.Cap != "organisation" || !strings.Contains(refusal.Reason, "no price in the spend policy") {
+		t.Errorf("a call that cannot be counted was let go: %+v", refusal)
+	}
+}
+
+func TestNoOrganisationCapIsNoLimit(t *testing.T) {
+	ledger := fixedLedger(september)
+	ledger.Begin("a-job", Terms{})
+	ledger.Count("a-job", answered(1000, september))
+	if refusal := ledger.Allow("a-job", "", "fixture-model"); refusal != nil {
+		t.Errorf("%+v", refusal)
+	}
+}

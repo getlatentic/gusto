@@ -82,7 +82,7 @@ func (c Call) billed() bool { return c.answered() && c.Model != "" }
 // Refusal says which cap stopped a call and why, in words the person who asked
 // for the job can act on.
 type Refusal struct {
-	// Cap is "job" or "team".
+	// Cap is "job", "team" or "organisation".
 	Cap      string  `json:"cap"`
 	Team     string  `json:"team,omitempty"`
 	LimitUSD float64 `json:"limitUsd"`
