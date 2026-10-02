@@ -17,6 +17,7 @@ cp "$here/probe/inside.sh" "$stage/probe/"
 cp "$root/deploy/aws/platform/user-data.sh" "$stage/user-data.sh"
 cp "$here/e2e/credentials.sh" "$stage/e2e/"
 "$here/image-key.sh" > "$stage/image.key"
+"$here/bake-key.sh" > "$stage/bake.key"
 COPYFILE_DISABLE=1 tar --no-xattrs -czf "$out/bundle.tgz" -C "$stage" . 2>/dev/null || tar -czf "$out/bundle.tgz" -C "$stage" .
 (cd "$out" && { command -v sha256sum >/dev/null && sha256sum bundle.tgz || shasum -a 256 bundle.tgz; } > bundle.tgz.sha256)
 echo "$(cat "$stage/image.key") image key; $(du -h "$out/bundle.tgz" | cut -f1) bundle"

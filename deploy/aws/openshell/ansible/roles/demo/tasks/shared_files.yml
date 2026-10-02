@@ -6,6 +6,7 @@
     name: nfs-common
     state: present
     update_cache: true
+  when: not (demo_baked | bool)
 
 - name: Where the file system and the demo's directory of it are mounted
   ansible.builtin.file:
