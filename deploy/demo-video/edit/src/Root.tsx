@@ -1,5 +1,5 @@
 import { Composition, staticFile } from "remotion";
-import { Demo, DemoProps, INTRO, OUTRO } from "./Demo";
+import { Demo, DemoProps, INTRO, OUTRO, TRIM } from "./Demo";
 
 const FPS = 30;
 
@@ -13,7 +13,7 @@ export const Root: React.FC = () => (
     durationInFrames={FPS * 90}
     defaultProps={{ footageSeconds: 80 } as DemoProps}
     calculateMetadata={async () => {
-      const seconds = await footageSeconds();
+      const seconds = (await footageSeconds()) - TRIM;
       return { durationInFrames: Math.round((INTRO + seconds + OUTRO) * FPS), props: { footageSeconds: seconds } };
     }}
   />
