@@ -3,7 +3,7 @@
 # SPEED times their speed and leaving the rest as it was.
 set -euo pipefail
 cd "$(dirname "$0")/recording"
-speed=${SPEED:-12}
+speed=${SPEED:-5}
 filter="$(python3 - "$speed" "${W:-iw}" "${H:-ih}" <<'PY'
 import json, sys
 speed = float(sys.argv[1])
