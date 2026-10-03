@@ -4,9 +4,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/recording"
 speed=${SPEED:-12}
-filter="$(python3 - "$speed" <<'PY'
+filter="$(python3 - "$speed" "${W:-1280}" "${H:-720}" <<'PY'
 import json, sys
 speed = float(sys.argv[1])
+w, h = sys.argv[2], sys.argv[3]
 cuts = sorted((s["from"], s["to"]) for s in json.load(open("segments.json")) if s["to"] - s["from"] > 3)
 parts, at, n = [], 0.0, 0
 def add(a, b, fast):
@@ -18,7 +19,7 @@ def add(a, b, fast):
 for a, b in cuts:
     add(at, a, False); add(a, b, True); at = b
 add(at, 1e6, False)
-print(";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0,scale=${W:-1280}:${H:-720},format=yuv420p[out]")
+print(";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0,scale={w}:{h},format=yuv420p[out]")
 PY
 )"
 ffmpeg -y -loglevel error -i haas-demo.webm -filter_complex "$filter" -map "[out]" -c:v libx264 -crf 27 -preset slow -r 30 -movflags +faststart haas-demo.mp4

@@ -38,12 +38,12 @@ The script of what it shows, for a person to record instead:
 
 `deploy/demo-video/edit` is a [Remotion](https://www.remotion.dev) project that turns the recording into the video the page shows:
 the camera moves in on what each caption is about (`src/shots.ts`), captions are drawn over it, and a title card and an end
-card are added. Record without the captions drawn on the page, at 1920 by 1080, shorten the waits, and edit:
+card are added. Record without the captions drawn on the page, shorten the waits, and edit.:
 
 ```bash
 cd deploy/demo-video
-CAPTIONS=off SCALE=1.5 PLAYWRIGHT_CORE=<playwright-core> CHROME=<a chromium> node record.mjs https://<name>
-W=1920 H=1080 ./encode.sh
+CAPTIONS=off PLAYWRIGHT_CORE=<playwright-core> CHROME=<a chromium> node record.mjs https://<name>
+./encode.sh
 INSTALL=1 ./edit/make.sh        # renders edit/out/demo.mp4 and copies it and its poster into internal/cloud/static
 ```
 
