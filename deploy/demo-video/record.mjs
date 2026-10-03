@@ -9,7 +9,8 @@
 //
 //   PLAYWRIGHT_CORE=<path to playwright-core> CHROME=<a chromium to use, when the library's own is not installed> node record.mjs [base url] [an ended demo's address]
 import { createRequire } from "node:module";
-import { mkdirSync, rmSync, writeFileSync, readdirSync, renameSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || "playwright-core");
@@ -23,9 +24,9 @@ const out = new URL("./recording/", import.meta.url).pathname;
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
-const size = { width: 1280, height: 720 };
+const pixels = Number(process.env.PIXELS || 3);
 const captions = process.env.CAPTIONS !== "off";
-const browser = await chromium.launch({ headless: !process.env.HEADED, executablePath: process.env.CHROME || undefined });
+const browser = await chromium.launch({ headless: !process.env.HEADED, executablePath: process.env.CHROME || undefined, args: [`--force-device-scale-factor=${pixels}`] });
 
 // The demo is started off camera: the video is of the platform, where a person already is. Only the sign-in it
 // leaves behind is carried over.
@@ -50,11 +51,25 @@ const home = first.url();
 const signedIn = await setup.storageState();
 await setup.close();
 
-const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, storageState: signedIn, recordVideo: { dir: out, size } });
-const started = Date.now();
+const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: pixels, storageState: signedIn });
+let started = Date.now();
 const page = await context.newPage();
 const segments = [];
 const since = () => (Date.now() - started) / 1000;
+
+// The browser's own screencast, frame by frame, at the pixels the screen has: the browser's recorder keeps the page's size and
+// compresses it hard. Each frame says when it was drawn, and the video is made from them when the recording ends.
+mkdirSync(out + "frames");
+const frames = [];
+const screencast = await context.newCDPSession(page);
+screencast.on("Page.screencastFrame", async (frame) => {
+  if (!frames.length) started = Date.now();
+  const name = `frames/${String(frames.length).padStart(6, "0")}.jpg`;
+  writeFileSync(out + name, Buffer.from(frame.data, "base64"));
+  frames.push({ name, at: frame.metadata.timestamp });
+  await screencast.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => {});
+});
+await screencast.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: 1280 * pixels, maxHeight: 720 * pixels, everyNthFrame: 1 });
 
 // A caption over the top of the page, kept across navigations.
 await page.addInitScript(() => {
@@ -151,10 +166,20 @@ if (ended) {
 await say("");
 await pause(1);
 
+await screencast.send("Page.stopScreencast").catch(() => {});
 await context.close();
 await browser.close();
-const file = readdirSync(out).find((name) => name.endsWith(".webm"));
-renameSync(out + file, out + "haas-demo.webm");
+makeVideo(frames);
 writeFileSync(out + "segments.json", JSON.stringify(segments, null, 1));
 writeFileSync(out + "marks.json", JSON.stringify(marks, null, 1));
 console.log(`recorded ${since().toFixed(0)} s, ${segments.length} waits: ${segments.map((s) => `${s.label} ${(s.to - s.from).toFixed(0)}s`).join(", ")}`);
+
+// raw.mp4 shows each frame for as long as it was on the screen, at 30 frames a second.
+function makeVideo(frames) {
+  const list = frames.map((frame, i) => `file '${frame.name}'\nduration ${((frames[i + 1]?.at ?? frame.at + 0.1) - frame.at).toFixed(4)}`).join("\n");
+  writeFileSync(out + "frames.txt", list + `\nfile '${frames[frames.length - 1].name}'\n`);
+  const made = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", out + "frames.txt", "-vf", "fps=30", "-c:v", "libx264", "-crf", "14", "-preset", "veryfast", "-pix_fmt", "yuv420p", out + "raw.mp4"], { stdio: "inherit" });
+  if (made.status !== 0) throw new Error("ffmpeg could not make the video from the frames");
+  rmSync(out + "frames", { recursive: true, force: true });
+  rmSync(out + "frames.txt");
+}

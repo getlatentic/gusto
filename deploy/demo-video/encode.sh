@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/recording"
 speed=${SPEED:-12}
-filter="$(python3 - "$speed" "${W:-1280}" "${H:-720}" <<'PY'
+filter="$(python3 - "$speed" "${W:-iw}" "${H:-ih}" <<'PY'
 import json, sys
 speed = float(sys.argv[1])
 w, h = sys.argv[2], sys.argv[3]
@@ -22,7 +22,7 @@ add(at, 1e6, False)
 print(";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0,scale={w}:{h},format=yuv420p[out]")
 PY
 )"
-ffmpeg -y -loglevel error -i haas-demo.webm -filter_complex "$filter" -map "[out]" -c:v libx264 -crf 27 -preset slow -r 30 -movflags +faststart haas-demo.mp4
+ffmpeg -y -loglevel error -i raw.mp4 -filter_complex "$filter" -map "[out]" -c:v libx264 -crf "${CRF:-16}" -preset medium -r 30 -movflags +faststart haas-demo.mp4
 ffmpeg -y -loglevel error -ss 2 -i haas-demo.mp4 -frames:v 1 -q:v 4 poster.jpg
 # Where each caption falls in the shortened video, for edit/.
 python3 - "$speed" <<'PY'
