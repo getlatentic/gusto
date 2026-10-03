@@ -12,7 +12,7 @@ cp ../recording/timeline.json public/timeline.json
 [ -d node_modules ] || npm install --no-audit --no-fund
 npx tsc --noEmit
 cp "$root/internal/web/static/sora.woff2" public/sora.woff2
-npx remotion render src/index.ts Demo out/demo.mp4 --scale=1.5 --crf=22
+npx remotion render src/index.ts Demo out/demo.mp4 --scale=1.5 --crf=26
 [ "${MASTER:-}" = 1 ] && npx remotion render src/index.ts Demo out/demo-4k.mp4 --scale=3 --crf=18
 ffmpeg -y -loglevel error -ss 1.5 -i out/demo.mp4 -frames:v 1 -q:v 4 out/poster.jpg
 if [ "${INSTALL:-}" = 1 ]; then

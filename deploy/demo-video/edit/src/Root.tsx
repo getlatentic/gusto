@@ -1,5 +1,7 @@
 import { Composition, staticFile } from "remotion";
 import { Demo, DemoProps, INTRO, OUTRO, TRIM } from "./Demo";
+import { lengthOf, takesOf } from "./camera";
+import timeline from "../public/timeline.json";
 
 const FPS = 30;
 
@@ -14,7 +16,8 @@ export const Root: React.FC = () => (
     defaultProps={{ footageSeconds: 80 } as DemoProps}
     calculateMetadata={async () => {
       const seconds = (await footageSeconds()) - TRIM;
-      return { durationInFrames: Math.round((INTRO + seconds + OUTRO) * FPS), props: { footageSeconds: seconds } };
+      const shown = lengthOf(takesOf(timeline.map((m) => ({ ...m, t: Math.max(0, m.t - TRIM) })), seconds));
+      return { durationInFrames: Math.round((INTRO + shown + OUTRO) * FPS), props: { footageSeconds: seconds } };
     }}
   />
 );
