@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { brand } from "./brand";
-import { poseAt, takesOf, lengthOf, transformOf } from "./camera";
+import { Mark, marksOf, poseAt, takesOf, lengthOf, transformOf } from "./camera";
 import { captionAtTop } from "./shots";
 import { useFont } from "./font";
 import timeline from "../public/timeline.json";
@@ -10,8 +10,9 @@ export const INTRO = 2.2;
 export const OUTRO = 3.2;
 // The page is blank while it loads, for the first moments of the recording.
 export const TRIM = 1;
-// A page dissolves into the next over this long, so the viewer never sees one page replaced by another between two frames.
-export const FADE = 0.45;
+// A page fades out and the next fades in over this long, through the cream behind them: two pages laid over each other show both
+// at once, and one page replaced by another between two frames is a jump.
+export const FADE = 0.4;
 
 export type DemoProps = { footageSeconds: number };
 
@@ -27,14 +28,20 @@ const Caption: React.FC<{ text: string; local: number; length: number; top: bool
 
 const FadeIn: React.FC<{ frames: number; children: React.ReactNode }> = ({ frames, children }) => {
   const frame = useCurrentFrame();
-  const opacity = frames ? interpolate(frame, [0, frames], [0, 1], { extrapolateRight: "clamp" }) : 1;
+  const opacity = frames ? interpolate(frame, [frames / 2, frames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
+  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
+};
+
+const FadeOut: React.FC<{ frames: number; children: React.ReactNode }> = ({ frames, children }) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, frames / 2], [1, 0], { extrapolateRight: "clamp" });
   return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
 };
 
 const Lapse: React.FC<{ speed: number; local: number; length: number }> = ({ speed, local, length }) => {
   const opacity = interpolate(local, [0, 0.3, length - 0.3, length], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", top: 24, right: 28, opacity, padding: "7px 14px", borderRadius: 999, background: brand.orange, color: brand.ink, font: `700 18px/1 ${brand.font}` }}>
+    <div style={{ position: "absolute", bottom: 22, left: 28, opacity, padding: "7px 14px", borderRadius: 999, background: brand.orange, color: brand.ink, font: `700 18px/1 ${brand.font}` }}>
       Time-lapse ×{speed}
     </div>
   );
@@ -54,7 +61,7 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const now = frame / fps;
-  const takes = takesOf(timeline.map((m) => ({ ...m, t: Math.max(0, m.t - TRIM) })), footageSeconds);
+  const takes = takesOf(marksOf(timeline as Mark[], TRIM), footageSeconds);
   const time = now - INTRO;
   const take = takes.find((t) => time >= t.start && time < t.start + t.length);
   const local = take ? time - take.start : 0;
@@ -62,7 +69,7 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
   return (
     <AbsoluteFill style={{ background: brand.cream }}>
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <AbsoluteFill style={{ transform: transformOf(pose), transformOrigin: "50% 50%" }}>
+        <AbsoluteFill style={transformOf(pose)}>
           {takes.map((t, i) => {
             const at = Math.round((INTRO + t.start) * fps);
             const length = Math.max(1, Math.round(t.length * fps));
@@ -77,9 +84,11 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
                 </Sequence>
                 {i < takes.length - 1 ? (
                   <Sequence from={at + length} durationInFrames={dissolve}>
-                    <Freeze frame={0}>
-                      <OffthreadVideo src={staticFile("footage.mp4")} startFrom={last} style={{ width: "100%", height: "100%" }} />
-                    </Freeze>
+                    <FadeOut frames={dissolve}>
+                      <Freeze frame={0}>
+                        <OffthreadVideo src={staticFile("footage.mp4")} startFrom={last} style={{ width: "100%", height: "100%" }} />
+                      </Freeze>
+                    </FadeOut>
                   </Sequence>
                 ) : null}
               </React.Fragment>
@@ -87,7 +96,7 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
           })}
         </AbsoluteFill>
         {take?.shot?.lapse ? <Lapse speed={take.shot.lapse} local={local} length={take.length} /> : null}
-        {take?.caption ? <Caption text={take.caption} local={local} length={take.length} top={captionAtTop(take.shot)} /> : null}
+        {take?.caption ? <Caption text={take.caption} local={local} length={take.length} top={captionAtTop(take.shot, take.aim?.at)} /> : null}
       </AbsoluteFill>
       <Sequence durationInFrames={Math.round(INTRO * fps)}>
         <Card local={now} length={INTRO}>
