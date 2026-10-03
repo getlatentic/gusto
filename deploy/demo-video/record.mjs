@@ -5,7 +5,7 @@
 //
 // Each caption is also written, with the time it was said, to recording/marks.json, so that edit/ can draw its own captions and
 // aim its camera. CAPTIONS=off records the page without the captions drawn on it. HEADED=1 shows the browser, which the bot check
-// is more likely to pass. SCALE=1.5 records at 1920 by 1080.
+// is more likely to pass.
 //
 //   PLAYWRIGHT_CORE=<path to playwright-core> CHROME=<a chromium to use, when the library's own is not installed> node record.mjs [base url] [an ended demo's address]
 import { createRequire } from "node:module";
@@ -23,8 +23,7 @@ const out = new URL("./recording/", import.meta.url).pathname;
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
-const scale = Number(process.env.SCALE || 1);
-const size = { width: Math.round(1280 * scale), height: Math.round(720 * scale) };
+const size = { width: 1280, height: 720 };
 const captions = process.env.CAPTIONS !== "off";
 const browser = await chromium.launch({ headless: !process.env.HEADED, executablePath: process.env.CHROME || undefined });
 
@@ -41,12 +40,17 @@ if (await first.locator(".cf-turnstile").count()) {
   await first.waitForFunction(() => document.querySelector('[name="cf-turnstile-response"]')?.value, null, { timeout: 30000 });
 }
 await first.click('button[type="submit"]');
-await first.waitForSelector("a.choice", { timeout: 480000 });
+await first.waitForSelector("a.choice", { timeout: 480000 }).catch(async (error) => {
+  console.error(error.message);
+  console.error(first.url());
+  console.error((await first.innerText("body").catch(() => "")).slice(0, 800));
+  process.exit(1);
+});
 const home = first.url();
 const signedIn = await setup.storageState();
 await setup.close();
 
-const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: scale, storageState: signedIn, recordVideo: { dir: out, size } });
+const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, storageState: signedIn, recordVideo: { dir: out, size } });
 const started = Date.now();
 const page = await context.newPage();
 const segments = [];

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Edits the recording into the video the landing page shows: the camera moves in on what each caption is about, captions are
-# drawn over it, and a title and an end card are added. Run record.mjs with CAPTIONS=off and SCALE=1.5, then ../encode.sh with
-# W=1920 H=1080, first. Writes out/demo.mp4 and, with INSTALL=1, copies it and a poster to internal/cloud/static.
+# drawn over it, and a title and an end card are added. Run record.mjs with CAPTIONS=off, then ../encode.sh, first.
+# Writes out/demo.mp4 and, with INSTALL=1, copies it and a poster to internal/cloud/static.
 set -euo pipefail
 cd "$(dirname "$0")"
 root="$(git rev-parse --show-toplevel)"
