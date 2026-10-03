@@ -18,7 +18,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_CORE || "playwright-core");
 const base = process.argv[2] || "https://agentcloud.getlatentic.com";
 const ended = process.argv[3] || "";
 const person = { name: "John Smith", email: "john.smith@futureacmebank.com", company: "Future Acme Bank" };
-const task = "Create a loan repayment calculator in a folder called loan-calculator, with an index.html I can open";
+const task = "Create a loan repayment calculator as a single file, index.html, in the current folder. It has fields for the loan amount, the yearly interest rate and the years, a Calculate button, and shows the monthly payment.";
 const folder = "loan-calculator";
 const out = new URL("./recording/", import.meta.url).pathname;
 rmSync(out, { recursive: true, force: true });
@@ -71,7 +71,8 @@ screencast.on("Page.screencastFrame", async (frame) => {
 });
 await screencast.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: 1280 * pixels, maxHeight: 720 * pixels, everyNthFrame: 1 });
 
-// A caption over the top of the page, kept across navigations.
+// A caption over the top of the page, and the pointer, kept across navigations. The browser's screencast draws no pointer, so the
+// page draws one that follows the mouse, with a ring where it clicks.
 await page.addInitScript(() => {
   window.__caption = (text) => {
     let bar = document.getElementById("__cap");
@@ -84,13 +85,87 @@ await page.addInitScript(() => {
     }
     bar.textContent = text;
   };
+  const pointer = () => {
+    let el = document.getElementById("__ptr");
+    if (!el && document.documentElement) {
+      el = document.createElement("div");
+      el.id = "__ptr";
+      el.style.cssText = "position:fixed;left:0;top:0;width:30px;height:30px;z-index:2147483646;pointer-events:none;transform:translate(-200px,-200px);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))";
+      el.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M4 2l0 17 4.5-4.2 3 6.7 3.1-1.4-3-6.6 6.1-.3z" fill="#171717" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+      document.documentElement.appendChild(el);
+    }
+    return el;
+  };
+  addEventListener("mousemove", (e) => { const el = pointer(); if (el) el.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 2}px)`; }, true);
+  addEventListener("mousedown", (e) => {
+    const ring = document.createElement("div");
+    ring.style.cssText = `position:fixed;left:${e.clientX - 22}px;top:${e.clientY - 22}px;width:44px;height:44px;border-radius:50%;border:3px solid #FF8A1F;z-index:2147483645;pointer-events:none`;
+    document.documentElement.appendChild(ring);
+    ring.animate([{ transform: "scale(.4)", opacity: 1 }, { transform: "scale(1.5)", opacity: 0 }], { duration: 520, easing: "ease-out" }).onfinish = () => ring.remove();
+  }, true);
 });
+
+// Where a step is on the page, as fractions of the page's size, so that edit/ can aim its camera at it. A target is a selector, or
+// { all: selector } for every element it matches.
+const rectOf = async (targets, pad = 0) => {
+  const boxes = [];
+  for (const target of targets || []) {
+    const locator = page.locator(typeof target === "string" ? target : target.all);
+    const found = typeof target === "string" ? [locator.first()] : await locator.all();
+    for (const each of found) {
+      const box = await each.boundingBox({ timeout: 1500 }).catch(() => null);
+      if (box) boxes.push(box);
+    }
+  }
+  if (!boxes.length) return undefined;
+  const left = Math.max(0, Math.min(...boxes.map((b) => b.x)) - pad);
+  const top = Math.max(0, Math.min(...boxes.map((b) => b.y)) - pad);
+  const right = Math.min(1280, Math.max(...boxes.map((b) => b.x + b.width)) + pad);
+  const bottom = Math.min(720, Math.max(...boxes.map((b) => b.y + b.height)) + pad);
+  if (right <= left || bottom <= top) return undefined;
+  return { x: left / 1280, y: top / 720, w: (right - left) / 1280, h: (bottom - top) / 720 };
+};
+// A take ends when the click or the navigation that leaves its page happens, and the next begins when its page is drawn: the footage
+// between, a page loading, is left out of the edit. leaving is when the last such step happened.
 const marks = [];
-const say = async (text) => {
-  marks.push({ t: since(), text });
+let leaving;
+const say = async (text, targets, pad) => {
+  const rect = await rectOf(targets, pad);
+  marks.push({ t: since(), text, ...(rect ? { rect } : {}), ...(leaving !== undefined ? { cut: leaving } : {}) });
+  leaving = undefined;
   if (captions) await page.evaluate((t) => window.__caption && window.__caption(t), text).catch(() => {});
 };
 const pause = (seconds) => page.waitForTimeout(seconds * 1000);
+
+// The pointer moves to an element over most of a second, rests on it, then presses. A click that opens another page ends the take.
+let pointer = { x: 640, y: 360 };
+page.on("domcontentloaded", () => { page.mouse.move(pointer.x, pointer.y).catch(() => {}); });
+async function clickOn(selector, { rest = 0.45, leaves = true } = {}) {
+  const target = page.locator(selector).first();
+  await target.scrollIntoViewIfNeeded().catch(() => {});
+  const box = await target.boundingBox();
+  const to = { x: box.x + box.width * 0.5, y: box.y + box.height * 0.55 };
+  const from = pointer;
+  const steps = 32;
+  for (let i = 1; i <= steps; i++) {
+    const k = i / steps;
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    pointer = { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e };
+    await page.mouse.move(pointer.x, pointer.y);
+    await page.waitForTimeout(24);
+  }
+  await pause(rest);
+  await page.mouse.down();
+  await page.waitForTimeout(110);
+  await page.mouse.up();
+  // The page that a click leaves is gone a few frames after the button comes up, so the take ends there.
+  if (leaves) leaving = since() - 0.06;
+  await page.waitForTimeout(260);
+}
+const go = async (address, options) => {
+  leaving = since();
+  await page.goto(address, options);
+};
 // waiting is a stretch of the video that encode.sh plays fast.
 async function waiting(label, action) {
   const from = since();
@@ -112,56 +187,68 @@ process.on("uncaughtException", failed);
 
 // 1. In the organisation, choosing an agent.
 await page.goto(home);
-await say("Choose the agent to work with. Each gets the same workspace and controls");
-await pause(5);
-await page.click('a.choice[href^="/instances/new"]');
+await say("Choose the agent to work with. Each gets the same workspace and controls", [{ all: 'a.choice[href^="/instances/new"]' }]);
+await pause(3.2);
+await clickOn('a.choice[href^="/instances/new"]');
 await page.waitForSelector("button.cta");
-await say("Start it. The agent gets an isolated workspace of its own");
-await pause(4);
-await page.click("button.cta");
+await say("Start it. The agent gets an isolated workspace of its own", ["form.start-form"]);
+await pause(2.4);
+await clickOn("button.cta");
 await page.waitForSelector("textarea");
-await say("Only the models your organisation allows, and the model key never enters the sandbox");
-await pause(4);
-await page.click("textarea");
+await say("Only the models your organisation allows, and the model key never enters the sandbox", ["textarea"]);
+await pause(1.5);
+await clickOn("textarea", { rest: 0.2, leaves: false });
 await page.keyboard.type(task, { delay: 45 });
-await pause(1);
+await pause(0.8);
 await page.keyboard.press("Enter");
-await say("The agent works inside its sandbox and writes the files there");
+leaving = since() - 0.05;
+await say("The agent works inside its sandbox and writes the files there", ["text=Key stays with"], 14);
 await waiting("the agent works", () => page.waitForSelector("form.preview button", { timeout: 360000 }));
-await say("Every step it took is recorded, by the names of its files");
-await page.click("details.steps summary").catch(() => {});
-await pause(5);
+await say("Every step it took is recorded, by the names of its files", ["details.steps"]);
+await pause(1.2);
+await clickOn("details.steps summary", { leaves: false }).catch(() => {});
+await pause(3);
 
 // 2. What it built.
-await say("Preview what it built, shared only with your organisation");
-await pause(2);
-await page.click("form.preview button");
+await say("Preview what it built, shared only with your organisation", ["form.preview button"], 24);
+await pause(1.4);
+await clickOn("form.preview button");
 await waiting("starting the preview", () => page.waitForSelector("a:has-text('Open the app')", { timeout: 420000 }));
 const app = await page.getAttribute("a:has-text('Open the app')", "href");
-await pause(2);
-await page.goto(new URL(app, home).href, { waitUntil: "domcontentloaded", timeout: 90000 });
+await pause(1);
+await go(new URL(app, home).href, { waitUntil: "domcontentloaded", timeout: 90000 });
 await say("A loan calculator, running in the agent's workspace");
-await pause(7);
+await pause(1.4);
+// The calculator is what the model wrote, so what is done to it is only what it has: three fields and a button.
+const fields = page.locator("input");
+if ((await fields.count()) >= 3 && (await page.locator("button").count()) >= 1) {
+  for (const [i, value] of ["250000", "6.5", "30"].entries()) {
+    await clickOn(`input >> nth=${i}`, { rest: 0.25, leaves: false });
+    await page.keyboard.type(value, { delay: 90 });
+  }
+  await clickOn("button >> nth=-1", { leaves: false });
+}
+await pause(2.4);
 
 // 3. The admin side.
-await page.goto(new URL("/admin", home).href);
-await say("The admin console: what has been spent, who is in, what is running");
-await pause(5);
-await page.goto(new URL("/admin/models", home).href);
-await say("Which models are approved, what each costs, and who may use which");
-await pause(6);
-await page.goto(new URL("/admin/activity", home).href);
-await say("A record of what happened, who did it, and when");
-await pause(5);
-await page.goto(new URL("/admin/people", home).href);
-await say("People and their roles");
-await pause(4);
+await go(new URL("/admin", home).href);
+await say("The admin console: what has been spent, who is in, what is running", ["text=/spent in 20/"], 70);
+await pause(3.4);
+await go(new URL("/admin/models", home).href);
+await say("Which models are approved, what each costs, and who may use which", ["table"], 20);
+await pause(3.4);
+await go(new URL("/admin/activity", home).href);
+await say("A record of what happened, who did it, and when", ["table"], 20);
+await pause(3.4);
+await go(new URL("/admin/people", home).href);
+await say("People and their roles", ["table"], 30);
+await pause(3);
 
 // 4. The end.
 if (ended) {
-  await page.goto(ended);
+  await go(ended);
   await say("When the demo ends, the organisation and everything in it is removed");
-  await pause(6);
+  await pause(5);
 }
 await say("");
 await pause(1);

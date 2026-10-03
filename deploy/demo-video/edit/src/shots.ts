@@ -1,10 +1,10 @@
 // A shot aims the camera while one caption is on screen: where to look, as a fraction of the frame, and how close.
 // The first caption that matches decides the shot. A caption no shot matches is shown at full frame.
-export type Shot = { match: RegExp; at: [number, number]; zoom: number; caption?: string; top?: boolean; speed?: number; lapse?: number };
+export type Shot = { match: RegExp; at: [number, number]; zoom: number; caption?: string; top?: boolean; speed?: number; lapse?: number; maxZoom?: number };
 
 // A caption goes at the top when the shot looks at the lower half of the frame, so that it never covers what the shot is about,
 // unless the shot says where.
-export const captionAtTop = (shot?: Shot): boolean => shot?.top ?? (shot ? shot.at[1] > 0.55 : false);
+export const captionAtTop = (shot?: Shot, at?: [number, number]): boolean => shot?.top ?? ((at ?? shot?.at)?.[1] ?? 0.5) > 0.55;
 
 export const shots: Shot[] = [
   { match: /Choose the agent/, at: [0.32, 0.6], zoom: 1.35, top: false, caption: "Choose the agent to work with. Each gets the same workspace and controls." },

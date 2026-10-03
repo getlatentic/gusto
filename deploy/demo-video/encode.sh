@@ -39,7 +39,7 @@ def encoded(t):
         at = b
     return out + (t - at)
 marks = json.load(open("marks.json"))
-json.dump([{"t": round(encoded(m["t"]), 3), "text": m["text"]} for m in marks], open("timeline.json", "w"), indent=1)
+json.dump([{**m, "t": round(encoded(m["t"]), 3), **({"cut": round(encoded(m["cut"]), 3)} if "cut" in m else {})} for m in marks], open("timeline.json", "w"), indent=1)
 PY
 ls -lh haas-demo.mp4 poster.jpg
 ffprobe -v error -show_entries format=duration -of csv=p=0 haas-demo.mp4
