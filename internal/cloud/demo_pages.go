@@ -123,7 +123,7 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 	if s.Controller != nil {
 		_, state = s.Controller.Route(person.Org)
 	}
-	page := view{Title: "Your haas demo", Org: Org{Slug: person.Org, Name: demo.Company}, Person: person, DemoLeft: left,
+	page := view{Title: "Your Latentic Agent Cloud demo", Org: Org{Slug: person.Org, Name: demo.Company}, Person: person, DemoLeft: left,
 		Book: s.Store.set.Demo.BookURL, Extendable: !demo.Extended && s.Store.set.Demo.Extend > 0 && !demo.Expires.IsZero(),
 		Notice: r.URL.Query().Get("notice")}
 	if state != Ready {
@@ -180,7 +180,7 @@ func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Per
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	s.render(w, http.StatusOK, "demo-stop", view{Title: "End your haas demo"})
+	s.render(w, http.StatusOK, "demo-stop", view{Title: "End your Latentic Agent Cloud demo"})
 }
 
 // stopDemo ends a visitor's demo now, which is what it does at the end of its time, and takes them to the page that
@@ -202,9 +202,9 @@ func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	page := view{Title: "Your haas demo has ended", Ended: true, Name: lead.Name, Book: s.Store.set.Demo.BookURL}
+	page := view{Title: "Your Latentic Agent Cloud demo has ended", Ended: true, Name: lead.Name, Book: s.Store.set.Demo.BookURL}
 	if lead.Ended.IsZero() {
-		page.Title, page.Ending, page.Refresh = "Ending your haas demo", true, true
+		page.Title, page.Ending, page.Refresh = "Ending your Latentic Agent Cloud demo", true, true
 	}
 	s.render(w, http.StatusOK, "demo-end", page)
 }
@@ -215,7 +215,7 @@ func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
 	if !found || lead.Ended.IsZero() {
 		return false
 	}
-	s.render(w, http.StatusGone, "demo-end", view{Title: "Your haas demo has ended", Ended: true, Name: lead.Name, Book: s.Store.set.Demo.BookURL})
+	s.render(w, http.StatusGone, "demo-end", view{Title: "Your Latentic Agent Cloud demo has ended", Ended: true, Name: lead.Name, Book: s.Store.set.Demo.BookURL})
 	return true
 }
 
