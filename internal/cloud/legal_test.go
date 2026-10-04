@@ -12,7 +12,7 @@ func TestThePrivacyNoticeNamesWhatTheFrontDoorCollectsAndWhoHandlesIt(t *testing
 	if status != http.StatusOK {
 		t.Fatalf("%d", status)
 	}
-	for _, want := range []string{"name, work email address and company", "Cloudflare", "Amazon Web Services", "DeepSeek", "Google", "removed when the demo ends", "one cookie", "Do not put confidential"} {
+	for _, want := range []string{"name, work email address and company", "Cloudflare", "Amazon Web Services", "DeepSeek", "Google", "It is removed when its time is up", "one cookie", "Do not put confidential"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the privacy notice does not say %q", want)
 		}
@@ -22,7 +22,7 @@ func TestThePrivacyNoticeNamesWhatTheFrontDoorCollectsAndWhoHandlesIt(t *testing
 	}
 }
 
-func TestTheTermsSayHowLongADemoLastsAndWhatMayNotBePutIntoIt(t *testing.T) {
+func TestTheTermsSayHowLongALiveWorkspaceLastsAndWhatMayNotBePutIntoIt(t *testing.T) {
 	f := demoFront(t)
 	status, page, _ := f.browser().get2("/terms")
 	if status != http.StatusOK || !strings.Contains(page, "for 30 minutes") || !strings.Contains(page, "Do not put confidential, personal or regulated information") {
@@ -48,6 +48,20 @@ func TestTheLegalPagesAreNotListedInSearch(t *testing.T) {
 		_, page, _ := f.browser().get2(path)
 		if !strings.Contains(page, `content="noindex,nofollow"`) {
 			t.Errorf("%s may be listed", path)
+		}
+	}
+}
+
+func TestTheLegalPagesAreAboutTheProductAndNotAboutADemo(t *testing.T) {
+	f := demoFront(t)
+	for _, path := range []string{"/privacy", "/terms"} {
+		_, page, _ := f.browser().get2(path)
+		text := strings.ToLower(page)
+		if strings.Contains(text, " demo") || strings.Contains(text, ">demo") || strings.Contains(text, "haas") {
+			t.Errorf("%s speaks of a demo or of haas", path)
+		}
+		if !strings.Contains(page, "Latentic Agent Cloud") {
+			t.Errorf("%s does not name the product", path)
 		}
 	}
 }
