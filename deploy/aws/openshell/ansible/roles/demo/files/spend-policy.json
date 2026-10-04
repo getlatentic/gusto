@@ -11,6 +11,32 @@
     "google.gemma-4-e2b": {
       "inputPerMillion": 0.04,
       "outputPerMillion": 0.08
+    },
+    "deepseek-flash": {
+      "inputPerMillion": 0.15,
+      "cachedInputPerMillion": 0.003,
+      "outputPerMillion": 0.6,
+      "peak": {
+        "multiplier": 2,
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "hoursUtc": [
+          [
+            1,
+            4
+          ],
+          [
+            6,
+            10
+          ]
+        ],
+        "except": []
+      }
     }
   },
   "teams": {},
