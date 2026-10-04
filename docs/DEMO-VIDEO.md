@@ -34,6 +34,21 @@ minutes, which `encode.sh` shortens. The model decides what the agent writes, so
 
 The script of what it shows, for a person to record instead:
 
+## Editing it
+
+`deploy/demo-video/edit` is a [Remotion](https://www.remotion.dev) project that turns the recording into the video the page shows:
+the camera moves in on what each caption is about (`src/shots.ts`), captions are drawn over it, and a title card and an end
+card are added. Record without the captions drawn on the page, shorten the waits, and edit.:
+
+```bash
+cd deploy/demo-video
+CAPTIONS=off PLAYWRIGHT_CORE=<playwright-core> CHROME=<a chromium> node record.mjs https://<name>
+./encode.sh
+INSTALL=1 ./edit/make.sh        # renders edit/out/demo.mp4 and copies it and its poster into internal/cloud/static
+```
+
+`npm run studio` in `edit/` opens the project to adjust a shot with the footage playing.
+
 ## Script, about two minutes
 
 Record it at 1280 × 720 on the live demo, in a window with nothing else open. Use a work address and a real company
