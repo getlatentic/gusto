@@ -9,7 +9,10 @@ demo_mail: ""
 demo_cert_email: ""
 demo_free_mail: allow
 demo_image_key: ""
-demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b
+# Claude Code speaks only Anthropic's wire and Codex only the responses API, which the Gemma models on Bedrock do not give them, so DeepSeek Flash
+# serves those two; the others stay on Gemma. The credential answers the harnesses named in demo_deepseek_harnesses.
+demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/deepseek-flash,deepseek/deepseek-flash
+demo_deepseek_harnesses: codex
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
 demo_dns_token_parameter: /haas/poc/cloudflare-dns-token
