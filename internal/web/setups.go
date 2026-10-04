@@ -48,7 +48,7 @@ func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) setupsData(r *http.Request, base string) map[string]any {
 	return map[string]any{
-		"Title":   "haas — skill sets",
+		"Title":   productName + " — skill sets",
 		"Nav":     "new",
 		"Base":    base,
 		"Setups":  s.setupsList(),
@@ -154,7 +154,7 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		return nil, false
 	}
 	return map[string]any{
-		"Title":   "haas — " + held.Name,
+		"Title":   productName + " — " + held.Name,
 		"Nav":     "new",
 		"Base":    base,
 		"Setup":   held,

@@ -48,7 +48,7 @@ func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
 	ledger, _ := s.spending()
 	sides, running := s.sidesOf(lineup, ledger)
 	page := map[string]any{
-		"Title": "haas — " + lineup.Brief, "Nav": "compare",
+		"Title": productName + " — " + lineup.Brief, "Nav": "compare",
 		"Lineup": lineup, "Sides": sides, "Running": running,
 		"Passed": passedCount(sides),
 	}

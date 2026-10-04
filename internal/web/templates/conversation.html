@@ -30,7 +30,7 @@
       <span class="which">{{.Named}}</span>
       <span class="guards" title="What keeps this agent's work safe">
         <span class="chip">{{template "icon-shield"}} Sealed</span>
-        <span class="chip">{{template "icon-lock"}} Key stays with haas</span>
+        <span class="chip">{{template "icon-lock"}} Key stays with Agent Cloud</span>
         {{if eq .Instance.Sensitivity "restricted"}}<span class="chip">Stays in your network</span>{{end}}
       </span>
       {{range .Apps}}<a class="files-link" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
