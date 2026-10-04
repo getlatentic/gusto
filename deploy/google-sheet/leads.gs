@@ -39,6 +39,9 @@ function doPost(e) {
     const row = rowOf(sheet, lead.slug);
     if (row === 0) {
       sheet.appendRow(values);
+      if (body.event === 'started') {
+        notify(lead);
+      }
     } else {
       sheet.getRange(row, 1, 1, values.length).setValues([values]);
     }
@@ -46,6 +49,23 @@ function doPost(e) {
     lock.releaseLock();
   }
   return reply({ ok: true });
+}
+
+// Tells whoever follows the leads up that someone has asked for a demo: the owner of the script, or the address in the script
+// property NOTIFY. It is mail to the owner and never to the visitor, and a lead is kept when the mail cannot be sent.
+function notify(lead) {
+  try {
+    const to = PropertiesService.getScriptProperties().getProperty('NOTIFY') || Session.getEffectiveUser().getEmail();
+    const line = (value) => String(value === undefined || value === null ? '' : value).replace(/[\r\n]+/g, ' ').slice(0, 200);
+    MailApp.sendEmail({
+      to: to,
+      subject: 'Demo started: ' + line(lead.name) + ', ' + line(lead.company),
+      body: ['Someone started a demo of Latentic Agent Cloud.', '', 'Name: ' + line(lead.name), 'Email: ' + line(lead.email),
+        'Company: ' + line(lead.company), 'Asked at: ' + line(lead.requested)].join('\n'),
+    });
+  } catch (err) {
+    console.error('the lead was kept but its mail was not sent: ' + err);
+  }
 }
 
 // A page opened in a browser says nothing about the sheet.
