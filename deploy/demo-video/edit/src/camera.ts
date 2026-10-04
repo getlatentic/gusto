@@ -32,6 +32,7 @@ export function takesOf(marks: Mark[], total: number): Take[] {
 // than the shot allows. Without a measurement it looks where the shot says.
 const aimOf = (rect: Mark["rect"], shot?: Shot): Take["aim"] => {
   const fallback = shot ? { at: shot.at, zoom: shot.zoom } : undefined;
+  if (shot?.fixed) return fallback;
   if (!rect || (rect.w < 0.08 && rect.h < 0.06)) return fallback;
   const zoom = Math.min(shot?.maxZoom ?? 1.8, 0.6 / Math.max(rect.w, rect.h));
   if (zoom < 1.15) return undefined;
