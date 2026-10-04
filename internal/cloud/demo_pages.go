@@ -71,6 +71,7 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 	}
 	s.provision(org.Slug)
 	s.tell("started", org.Slug)
+	s.noticeOfDemo(org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	http.Redirect(w, r, "/demo/wait", http.StatusSeeOther)
 }

@@ -41,6 +41,8 @@ type Config struct {
 	Turnstile Turnstile
 	// Leads sends each lead to where it is followed up, when it is set.
 	Leads *LeadHook
+	// Notify is the address mailed when a visitor starts a demo, when it is set.
+	Notify string
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
 }

@@ -128,6 +128,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("HAAS_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("HAAS_CLOUD_TRUST_PROXY") == "1",
+		Notify:     os.Getenv("HAAS_CLOUD_DEMO_NOTIFY"),
 		Leads:      &cloud.LeadHook{URL: os.Getenv("HAAS_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("HAAS_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: os.Getenv("HAAS_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("HAAS_CLOUD_TURNSTILE_SECRET")},
 		PerAddress: number("HAAS_CLOUD_PER_ADDRESS", 0), PerMailbox: number("HAAS_CLOUD_PER_MAILBOX", 0), InAll: number("HAAS_CLOUD_IN_ALL", 0),
@@ -212,7 +213,7 @@ func lowered(members []string) []string {
 
 // demoSettings make the front door offer a demo when HAAS_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
 // from when it is ready, HAAS_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), HAAS_CLOUD_DEMO_MAX for the
-// most at once (5), HAAS_CLOUD_DEMO_PER_DAY for the most in a day (40), HAAS_CLOUD_DEMO_PER_PERSON and HAAS_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, HAAS_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and HAAS_CLOUD_BOOK_URL for where a call is booked.
+// most at once (5), HAAS_CLOUD_DEMO_PER_DAY for the most in a day (40), HAAS_CLOUD_DEMO_PER_PERSON and HAAS_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, HAAS_CLOUD_DEMO_NOTIFY for an address that is mailed when a visitor starts a demo, HAAS_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and HAAS_CLOUD_BOOK_URL for where a call is booked.
 func demoSettings() cloud.DemoSettings {
 	length := number("HAAS_CLOUD_DEMO_MINUTES", 0)
 	if length == 0 {
