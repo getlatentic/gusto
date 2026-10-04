@@ -189,7 +189,7 @@ process.on("uncaughtException", failed);
 await page.goto(home);
 await say("Choose the agent to work with. Each gets the same workspace and controls", [{ all: 'a.choice[href^="/instances/new"]' }]);
 await pause(3.2);
-await clickOn('a.choice[href^="/instances/new"]');
+await clickOn('a.choice[href="/instances/new?harness=claude"]');
 await page.waitForSelector("button.cta");
 await say("Start it. The agent gets an isolated workspace of its own", ["form.start-form"]);
 await pause(2.4);
@@ -219,11 +219,13 @@ await pause(1);
 await go(new URL(app, home).href, { waitUntil: "domcontentloaded", timeout: 90000 });
 await say("A loan calculator, running in the agent's workspace");
 await pause(1.4);
-// The calculator is what the model wrote, so what is done to it is only what it has: three fields and a button.
+// The calculator is what the model wrote, so what is done to it is only what it has: three fields and a button. A field may come filled in,
+// so what is in it is selected before the value is typed.
 const fields = page.locator("input");
 if ((await fields.count()) >= 3 && (await page.locator("button").count()) >= 1) {
   for (const [i, value] of ["250000", "6.5", "30"].entries()) {
     await clickOn(`input >> nth=${i}`, { rest: 0.25, leaves: false });
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type(value, { delay: 90 });
   }
   await clickOn("button >> nth=-1", { leaves: false });
