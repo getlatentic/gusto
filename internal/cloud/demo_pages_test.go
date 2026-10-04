@@ -39,7 +39,7 @@ func TestAHostThatOffersNoDemoHasNoDemoPage(t *testing.T) {
 
 func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testing.T) {
 	f := demoFront(t, "FAKE_DELAY=1500ms")
-	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try haas for 30 minutes") || !strings.Contains(page, "https://cal.example/haas") {
+	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try Latentic Agent Cloud for 30 minutes") || !strings.Contains(page, "https://cal.example/haas") {
 		t.Fatalf("%d\n%s", status, page)
 	}
 	b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")

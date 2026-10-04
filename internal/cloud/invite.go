@@ -28,8 +28,8 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	org, _, _ := s.Store.Org(person.Org)
-	s.send(email, person.Email+" invited you to "+org.Name+" on haas",
-		person.Email+" invited you to join "+org.Name+" on haas:\n\n"+s.link("/invite", secret)+
+	s.send(email, person.Email+" invited you to "+org.Name+" on Latentic Agent Cloud",
+		person.Email+" invited you to join "+org.Name+" on Latentic Agent Cloud:\n\n"+s.link("/invite", secret)+
 			"\n\nThe link works once and expires in seven days. If you were not expecting it, ignore this mail.\n")
 	http.Redirect(w, r, "/org?sent=1", http.StatusSeeOther)
 }
