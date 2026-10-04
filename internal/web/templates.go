@@ -21,7 +21,7 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "template.html", map[string]any{
-		"Title":      "haas — " + held.Title,
+		"Title":      productName + " — " + held.Title,
 		"Nav":        "new",
 		"Template":   held,
 		"Harnesses":  s.runnersOf(held),

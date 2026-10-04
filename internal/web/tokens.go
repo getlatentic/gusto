@@ -52,7 +52,7 @@ func (s *Server) showTokens(w http.ResponseWriter, r *http.Request, page map[str
 	for _, scope := range apitoken.Scopes {
 		offered = append(offered, map[string]string{"Scope": scope, "Words": tokenScopeWords[scope]})
 	}
-	page["Title"] = "haas — API tokens"
+	page["Title"] = productName + " — API tokens"
 	page["Tokens"], page["Offered"] = rows, offered
 	w.Header().Set("Cache-Control", "no-store")
 	s.drawConsole(w, "admin-tokens.html", "tokens", page)

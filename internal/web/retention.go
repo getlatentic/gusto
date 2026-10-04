@@ -144,7 +144,7 @@ func (s *Server) retentionPage(w http.ResponseWriter, r *http.Request) {
 	}
 	used := s.retention.measure(s)
 	page := map[string]any{
-		"Title":   "haas — retention",
+		"Title":   productName + " — retention",
 		"Refused": r.URL.Query().Get("refused"),
 		"Used":    size(used.Bytes), "Workspaces": size(used.Workspaces), "Jobs": used.Jobs,
 		"Policy": s.retention.policy.Rows(), "Removes": s.retention.policy.Any(),

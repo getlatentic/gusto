@@ -141,7 +141,7 @@ func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
 	for _, path := range []string{"/admin", "/admin/spending", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/activity", "/admin/people"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
-		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to haas") {
+		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to Latentic Agent Cloud") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)
 		}
 		for _, employee := range []string{`href="/compare"`, `href="/jobs"`, `href="/new"`, `href="/spend"`} {
@@ -202,7 +202,7 @@ func TestTheConsoleNamesTheOrganisationAndAnotherOrganisationsTokenDoesNotOpenIt
 	}
 	here.cookie = cookieOf(t, here.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := here.ask(t, "GET", "/admin", nil)
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "haas admin · acme-com") {
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Admin · acme-com") {
 		t.Errorf("the console does not say whose it is: %d\n%s", page.Code, page.Body.String())
 	}
 }

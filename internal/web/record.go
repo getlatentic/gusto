@@ -57,7 +57,7 @@ func (s *Server) origin(record jobs.Record) origin {
 // happens on an instance.
 func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "list.html", map[string]any{
-		"Title": "haas — jobs",
+		"Title": productName + " — jobs",
 		"Nav":   "jobs",
 		"Board": s.board(r),
 	})
