@@ -14,7 +14,7 @@ mail = "cloudflare://%s?from=%s" % (os.environ["DEMO_ACCOUNT_ID"], urllib.parse.
 print(json.dumps({
     "demo_name": os.environ["DEMO_NAME"], "demo_zone": os.environ["DEMO_ZONE"], "demo_mail": mail,
     "demo_cert_email": os.environ["DEMO_CERT_EMAIL"], "demo_free_mail": os.environ.get("DEMO_FREE_MAIL", "allow"),
-    "demo_models": os.environ.get("DEMO_MODELS", "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b"),
+    "demo_models": os.environ.get("DEMO_MODELS", "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/deepseek-flash,deepseek/deepseek-flash"),
     "demo_computer_memory": os.environ.get("DEMO_COMPUTER_MEMORY", "3Gi"),
     "demo_turnstile_site": os.environ.get("DEMO_TURNSTILE_SITE", ""),
     "demo_visitor_minutes": int(os.environ.get("DEMO_VISITOR_MINUTES", "0")),
