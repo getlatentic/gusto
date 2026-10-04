@@ -199,7 +199,7 @@ type row struct {
 
 func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
 	s.TakeInbox()
-	page := map[string]any{"Title": "haas — activity", "Shown": shownChanges}
+	page := map[string]any{"Title": productName + " — activity", "Shown": shownChanges}
 	if file, err := os.Open(s.changes.Path()); err == nil {
 		report, verr := changelog.Verify(file, s.keyring)
 		file.Close()

@@ -18,7 +18,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	for _, entry := range s.entries() {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
-				"Title":   "haas — " + entry.Name,
+				"Title":   productName + " — " + entry.Name,
 				"Nav":     "harnesses",
 				"Harness": entry,
 				"Models":  s.offeredTo(r).For(entry.Name),
@@ -103,7 +103,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
 	}
 	s.render(w, "instance.html", map[string]any{
-		"Title":     "haas — " + s.agentOf(held).Name,
+		"Title":     productName + " — " + s.agentOf(held).Name,
 		"Nav":       "harnesses",
 		"Instance":  held,
 		"Agent":     s.agentOf(held),

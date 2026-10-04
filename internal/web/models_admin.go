@@ -28,7 +28,7 @@ const formLimit = 16 << 10
 
 func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
 	view := s.registry.View()
-	page := map[string]any{"Title": "haas — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view), "People": s.memberEmails()}
+	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view), "People": s.memberEmails()}
 	s.drawConsole(w, "admin-models.html", "models", page)
 }
 

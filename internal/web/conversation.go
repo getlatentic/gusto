@@ -96,7 +96,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Starters": s.startersOf(held),
 		// A chat fills the window rather than sitting in a document.
 		"Chat":     true,
-		"Title":    "haas — " + s.nameOf(thread),
+		"Title":    productName + " — " + s.nameOf(thread),
 		"Nav":      "harnesses",
 		"Instance": held,
 		"Thread":   thread,

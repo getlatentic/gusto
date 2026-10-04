@@ -34,7 +34,7 @@ func comparable() []industry.Template {
 }
 
 func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": "haas — compare agents", "Nav": "compare", "Refused": r.URL.Query().Get("refused")}
+	page := map[string]any{"Title": productName + " — compare agents", "Nav": "compare", "Refused": r.URL.Query().Get("refused")}
 	if s.lineups != nil {
 		page["Lineups"] = s.ownLineups(r, s.lineups.List())
 	}
