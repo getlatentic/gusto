@@ -61,7 +61,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "file.html", map[string]any{
-		"Title":    "haas — " + filepath.Base(asked),
+		"Title":    productName + " — " + filepath.Base(asked),
 		"Nav":      "harnesses",
 		"Instance": held,
 		"Agent":    s.agentOf(held),
@@ -127,7 +127,7 @@ func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
 	})
 	sort.Slice(files, func(a, b int) bool { return files[a].Modified > files[b].Modified })
 	s.render(w, "files.html", map[string]any{
-		"Title": "haas — files",
+		"Title": productName + " — files",
 		"Nav":   "harnesses",
 		"Agent": s.agentOf(agentHeld),
 		"Files": files,

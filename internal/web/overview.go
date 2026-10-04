@@ -21,7 +21,7 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	report := ledger.Report(ledger.ThisMonth())
 	view := s.viewLedger(report, nil, now)
 	page := map[string]any{
-		"Title":    "haas — admin",
+		"Title":    productName + " — admin",
 		"Refused":  r.URL.Query().Get("refused"),
 		"Month":    report.Month,
 		"Spent":    report.Total,

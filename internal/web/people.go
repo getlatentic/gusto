@@ -34,7 +34,7 @@ type inviteRow struct {
 
 // peoplePage is who is in the organisation, with what each has spent this month.
 func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": "haas — people"}
+	page := map[string]any{"Title": productName + " — people"}
 	if s.front != nil {
 		page["Manage"] = s.front.URL + "/org"
 	}

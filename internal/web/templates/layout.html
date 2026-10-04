@@ -28,7 +28,7 @@
 {{end}}
 
 {{define "bar"}}<header>
-  <a class="brand" href="/"><img src="/static/mark.png" alt=""> haas</a>
+  <a class="brand" href="/"><img src="/static/mark.png" alt=""> Latentic Agent Cloud</a>
   <nav>
     <a href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Agents</span></a>
     <a href="/compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}} <span>Compare</span></a>
@@ -44,9 +44,9 @@
 {{/* The console is the admin's own place: its sections down the side, one way
      back to the pages everybody uses, and no other link between the two. */}}
 {{define "console-bar"}}<header>
-  <span class="brand"><img src="/static/mark.png" alt=""> haas admin{{with .Org}} · {{.}}{{end}}</span>
+  <span class="brand"><img src="/static/mark.png" alt=""> Admin{{with .Org}} · {{.}}{{end}}</span>
   <nav>
-    <a href="/">Back to haas</a>
+    <a href="/">Back to Latentic Agent Cloud</a>
     <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
   </nav>
 </header>

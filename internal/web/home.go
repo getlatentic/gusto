@@ -62,7 +62,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 // or blank.
 func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "catalog.html", map[string]any{
-		"Title":     "haas — new agent",
+		"Title":     productName + " — new agent",
 		"Nav":       "new",
 		"Templates": industry.All(),
 		"Engines":   s.readyEngines(),
@@ -85,7 +85,7 @@ func (s *Server) readyEngines() []catalog.Entry {
 // and skill set for whoever wants to choose them.
 func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "blank.html", map[string]any{
-		"Title":   "haas — new agent",
+		"Title":   productName + " — new agent",
 		"Nav":     "new",
 		"Engines": s.readyEngines(),
 		"Setups":  s.setupsList(),
