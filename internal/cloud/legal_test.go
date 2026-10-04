@@ -12,7 +12,7 @@ func TestThePrivacyNoticeNamesWhatTheFrontDoorCollectsAndWhoHandlesIt(t *testing
 	if status != http.StatusOK {
 		t.Fatalf("%d", status)
 	}
-	for _, want := range []string{"name, work email address and company", "Cloudflare", "Amazon Web Services", "DeepSeek", "Google", "It is removed when its time is up", "one cookie", "Do not put confidential"} {
+	for _, want := range []string{"name, work email address and company", "Cloudflare", "Amazon Web Services", "DeepSeek", "Google", "It is removed when its time is up", "one cookie", "Do not put confidential", "Nigeria Data Protection Act 2023", "Nigeria Data Protection Commission", "run by Latentic"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the privacy notice does not say %q", want)
 		}
@@ -63,5 +63,13 @@ func TestTheLegalPagesAreAboutTheProductAndNotAboutADemo(t *testing.T) {
 		if !strings.Contains(page, "Latentic Agent Cloud") {
 			t.Errorf("%s does not name the product", path)
 		}
+	}
+}
+
+func TestTheTermsAreGovernedByNigerianLaw(t *testing.T) {
+	f := demoFront(t)
+	_, page, _ := f.browser().get2("/terms")
+	if !strings.Contains(page, "laws of the Federal Republic of Nigeria") || !strings.Contains(page, "These terms are from Latentic") {
+		t.Errorf("the terms do not name the law and the company:\n%s", page)
 	}
 }
