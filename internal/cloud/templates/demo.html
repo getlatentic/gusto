@@ -9,6 +9,7 @@
     <label>Company <input type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
     {{with .TurnstileSite}}<div class="cf-turnstile" data-sitekey="{{.}}"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
+    <p class="muted">By starting a demo you agree to the <a href="/terms">demo terms</a>. See the <a href="/privacy">privacy notice</a> for what we keep.</p>
     <button type="submit">Start my demo</button>
   </form>
   {{if .Book}}<p class="other">Rather be shown? <a href="{{.Book}}">Book a call</a></p>{{end}}
