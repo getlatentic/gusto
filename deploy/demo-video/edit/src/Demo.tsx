@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Freeze, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { brand } from "./brand";
 import { Mark, marksOf, poseAt, takesOf, lengthOf, transformOf } from "./camera";
 import { captionAtTop } from "./shots";
@@ -100,12 +100,14 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
       </AbsoluteFill>
       <Sequence durationInFrames={Math.round(INTRO * fps)}>
         <Card local={now} length={INTRO}>
+          <Img src={staticFile("mark.png")} style={{ width: 64 }} />
           <div style={{ font: `700 56px/1.1 ${brand.font}`, letterSpacing: "-0.02em" }}>Latentic Agent Cloud</div>
           <div style={{ font: `500 28px/1.3 ${brand.font}`, color: brand.muted }}>Every agent, in one workspace, under one set of controls</div>
         </Card>
       </Sequence>
       <Sequence from={Math.round((INTRO + lengthOf(takes)) * fps)} durationInFrames={Math.round(OUTRO * fps)}>
         <Card local={now - INTRO - lengthOf(takes)} length={OUTRO}>
+          <Img src={staticFile("mark.png")} style={{ width: 64 }} />
           <div style={{ font: `700 52px/1.15 ${brand.font}`, letterSpacing: "-0.02em", maxWidth: 900 }}>Explore a live workspace</div>
           <div style={{ padding: "16px 34px", borderRadius: 12, background: brand.orange, font: `700 30px/1 ${brand.font}` }}>agentcloud.getlatentic.com</div>
           <div style={{ font: `500 24px/1.3 ${brand.font}`, color: brand.muted }}>No sign-up. Deleted when it ends.</div>
