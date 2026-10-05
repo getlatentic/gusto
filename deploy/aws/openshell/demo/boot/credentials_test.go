@@ -13,6 +13,7 @@ import (
 func credentialsWith(t *testing.T, harnesses string) map[string]struct {
 	Address   string   `json:"address"`
 	Harnesses []string `json:"harnesses"`
+	Wires     []string `json:"wires"`
 } {
 	t.Helper()
 	dir := t.TempDir()
@@ -36,6 +37,7 @@ func credentialsWith(t *testing.T, harnesses string) map[string]struct {
 	held := map[string]struct {
 		Address   string   `json:"address"`
 		Harnesses []string `json:"harnesses"`
+		Wires     []string `json:"wires"`
 	}{}
 	files, _ := filepath.Glob(filepath.Join(out, "*.json"))
 	for _, file := range files {
@@ -46,6 +48,7 @@ func credentialsWith(t *testing.T, harnesses string) map[string]struct {
 		var one struct {
 			Address   string   `json:"address"`
 			Harnesses []string `json:"harnesses"`
+			Wires     []string `json:"wires"`
 		}
 		if err := json.Unmarshal(raw, &one); err != nil {
 			t.Fatal(err)
@@ -55,7 +58,7 @@ func credentialsWith(t *testing.T, harnesses string) map[string]struct {
 	return held
 }
 
-func TestTheDemoGivesDeepSeekToCodexAndTheAnthropicRouteToClaudeCodeAndGemmaToTheRest(t *testing.T) {
+func TestTheDemoGivesDeepSeekToCodexTheAnthropicRouteToClaudeCodeAndGemmaToEveryOneTranslated(t *testing.T) {
 	held := credentialsWith(t, "codex")
 	if got := held["deepseek"].Harnesses; !slices.Equal(got, []string{"codex"}) {
 		t.Errorf("the deepseek credential answers %v, not codex alone", got)
@@ -63,8 +66,11 @@ func TestTheDemoGivesDeepSeekToCodexAndTheAnthropicRouteToClaudeCodeAndGemmaToTh
 	if got := held["anthropic"].Harnesses; !slices.Equal(got, []string{"claude"}) {
 		t.Errorf("the anthropic credential answers %v, not claude alone", got)
 	}
-	if got := held["gemma"].Harnesses; !slices.Equal(got, []string{"opencode", "pi", "hermes"}) {
+	if got := held["gemma"].Harnesses; !slices.Equal(got, []string{"opencode", "pi", "hermes", "claude", "codex"}) {
 		t.Errorf("the gemma credential answers %v", got)
+	}
+	if got := held["gemma"].Wires; !slices.Equal(got, []string{"chat"}) {
+		t.Errorf("the gemma credential says its provider answers %v, so Claude Code's and Codex's calls are not translated", got)
 	}
 }
 
