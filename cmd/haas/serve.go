@@ -32,6 +32,7 @@ import (
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/web"
+	"github.com/getlatentic/haas/internal/wire"
 )
 
 func serve(args []string) int {
@@ -365,16 +366,16 @@ func offeredModels(credentials proxy.Credentials, models, harnesses []string) we
 		// An entry of its own, empty when no model suits it, so that a harness nothing
 		// serves is not offered every model as one with no entry is.
 		offered[name] = []string{}
-		speaks := "openai"
-		if adapter, err := harness.Load("", name); err == nil && adapter.Speaks != "" {
-			speaks = adapter.Speaks
+		speaks := wire.Chat
+		if adapter, err := harness.Load("", name); err == nil {
+			speaks = adapter.Shape()
 		}
 		for _, model := range models {
 			credential, held := credentials.Get(credentialOf(model))
 			// A harness is offered a model only through a credential that
-			// answers in the shape it calls: Claude Code sent to an
-			// OpenAI-shaped endpoint is told its model does not exist.
-			if !held || (credential.Serves(name) && credential.Speaks() == speaks) {
+			// answers in the shape it calls, or translates it: Claude Code sent
+			// to an OpenAI-shaped endpoint is told its model does not exist.
+			if !held || (credential.Serves(name) && credential.Reaches(speaks)) {
 				offered[name] = append(offered[name], model)
 			}
 		}

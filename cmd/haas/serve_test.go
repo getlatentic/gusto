@@ -173,3 +173,21 @@ func TestAHarnessNoCredentialServesIsOfferedNoModelAndNotEveryModel(t *testing.T
 		t.Errorf("opencode is offered %v", got)
 	}
 }
+
+// A credential that says its provider answers Chat Completions alone has calls in the other shapes translated for it,
+// so Claude Code and Codex are offered its models as OpenCode is. One harness the credential does not serve still is
+// not.
+func TestAHarnessIsOfferedTheModelsOfACredentialThatTranslatesItsShape(t *testing.T) {
+	credentials := proxy.Credentials{
+		"gemma": {Name: "gemma", Address: "https://bedrock.invalid/openai", Wires: []string{"chat"}, Harnesses: []string{"opencode", "claude", "codex"}},
+	}
+	offered := offeredModels(credentials, []string{"gemma/google.gemma-4-26b-a4b"}, []string{"opencode", "claude", "codex", "pi"})
+	for _, name := range []string{"opencode", "claude", "codex"} {
+		if got := offered.First(name); got != "gemma/google.gemma-4-26b-a4b" {
+			t.Errorf("%s would be started on %q", name, got)
+		}
+	}
+	if offered.Serves("pi") {
+		t.Error("pi is offered a model its credential does not serve")
+	}
+}

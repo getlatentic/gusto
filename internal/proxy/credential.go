@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
+
+	"github.com/getlatentic/haas/internal/wire"
 )
 
 // Auth is how a credential is presented to its provider. Most take a bearer
@@ -43,24 +46,43 @@ type Credential struct {
 	// is the ordinary case; naming some is how a deployment records that a
 	// provider refuses what a particular harness sends it.
 	Harnesses []string `json:"harnesses,omitempty"`
+	// Wires is the shapes of API the provider answers in: "chat", "messages" or "responses". A call in a shape it
+	// does not answer is translated into Chat Completions when it answers that, so that any harness can use its models.
+	// Naming none is a provider that answers what its authentication says, and nothing is translated for it.
+	Wires []string `json:"wires,omitempty"`
+	// MaxOutput is the most the provider lets a model write in one answer. A translated call that asks for more is
+	// held to it, since a harness asks for what its own provider allows. Zero holds no call to anything.
+	MaxOutput int `json:"maxOutput,omitempty"`
 	// Public marks a credential an organisation added for itself. Its address is reached only at a public
 	// address, since the organisation chose it and this machine is on a network that others are on too.
 	Public bool `json:"-"`
 }
 
+// Answers says whether the provider takes a call in that shape as it is. One that names its wires answers those; one
+// that does not answers Anthropic's Messages when it is authenticated the Anthropic way, and OpenAI's two shapes
+// otherwise.
+func (c Credential) Answers(shape wire.Shape) bool {
+	if len(c.Wires) > 0 {
+		return slices.Contains(c.Wires, string(shape))
+	}
+	if c.Auth == Anthropic {
+		return shape == wire.Messages
+	}
+	return shape == wire.Chat || shape == wire.Responses
+}
+
+// Translates says whether a call in that shape is translated into Chat Completions for this provider: one that names
+// its wires, answers Chat Completions, and does not answer this shape itself.
+func (c Credential) Translates(shape wire.Shape) bool {
+	return len(c.Wires) > 0 && (shape == wire.Messages || shape == wire.Responses) && !c.Answers(shape) && c.Answers(wire.Chat)
+}
+
+// Reaches says whether a harness calling in that shape can use this provider's models, as they are or translated.
+func (c Credential) Reaches(shape wire.Shape) bool { return c.Answers(shape) || c.Translates(shape) }
+
 // Serves reports whether this credential will answer that harness. A credential
 // naming no harnesses answers every one, so a deployment says nothing until it
 // has found out otherwise.
-// Speaks is the shape of API the credential's provider answers in: an
-// Anthropic-authenticated one answers Anthropic's messages, and a bearer one
-// OpenAI's.
-func (c Credential) Speaks() string {
-	if c.Auth == Anthropic {
-		return "anthropic"
-	}
-	return "openai"
-}
-
 func (c Credential) Serves(harness string) bool {
 	if len(c.Harnesses) == 0 {
 		return true

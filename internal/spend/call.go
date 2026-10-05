@@ -26,6 +26,9 @@ type Call struct {
 	Registry int64  `json:"registry,omitempty"`
 	Error    string `json:"error,omitempty"`
 	AtUnix   int64  `json:"atUnix"`
+	// Translated is the shape of API the harness called in when the call was translated into Chat Completions for
+	// a provider that answers only that: "messages" or "responses". It is empty for a call that went as it came.
+	Translated string `json:"translated,omitempty"`
 	// Model is what the request asked for, and the name the price is found by.
 	Model        string `json:"model,omitempty"`
 	InputTokens  *int64 `json:"inputTokens"`
