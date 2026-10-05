@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/wire"
 )
 
 //go:embed adapters/*.json
@@ -89,9 +90,9 @@ type Adapter struct {
 	// is a harness that takes none.
 	Skills string `json:"skills,omitempty"`
 	// Speaks is the shape of API the harness calls a model in: "anthropic"
-	// for Anthropic's messages, and OpenAI's when it is left out, which is
-	// what every other harness here speaks. A model is only offered to a
-	// harness through a credential that answers in its shape.
+	// for Anthropic's Messages, "responses" for OpenAI's Responses, and Chat
+	// Completions when it is left out. A model is only offered to a harness
+	// through a credential that answers in its shape or translates it.
 	Speaks string `json:"speaks,omitempty"`
 	// Keeps is the folder the harness keeps its own state in: its settings and
 	// the conversations it resumes. It has to be under the instance's state,
@@ -177,6 +178,17 @@ func parse(text []byte) (Adapter, error) {
 
 // Command builds the process to run. The context carries the time budget, so a
 // harness that will not stop is killed rather than waited for.
+// Shape is the API the harness calls a model in.
+func (a Adapter) Shape() wire.Shape {
+	switch a.Speaks {
+	case "anthropic":
+		return wire.Messages
+	case "responses":
+		return wire.Responses
+	}
+	return wire.Chat
+}
+
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
 	return a.CommandIn(ctx, spec, workspace, Here())
 }

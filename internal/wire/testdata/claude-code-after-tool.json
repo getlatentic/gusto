@@ -1,0 +1,205 @@
+{
+ "model": "test-model",
+ "messages": [
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "text",
+     "text": "(user text)"
+    },
+    {
+     "type": "text",
+     "text": "(user text)"
+    },
+    {
+     "type": "text",
+     "text": "(user text)"
+    }
+   ]
+  },
+  {
+   "role": "system",
+   "content": "(system text)"
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "type": "tool_use",
+     "id": "toolu_1",
+     "name": "Bash",
+     "input": {
+      "command": "echo hi",
+      "description": "Say hi"
+     }
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "tool_use_id": "toolu_1",
+     "type": "tool_result",
+     "content": "hi",
+     "is_error": false
+    }
+   ]
+  },
+  {
+   "role": "system",
+   "content": [
+    {
+     "type": "text",
+     "text": "(system text)",
+     "cache_control": {
+      "type": "ephemeral"
+     }
+    }
+   ]
+  }
+ ],
+ "system": [
+  {
+   "type": "text",
+   "text": "(system 0)"
+  },
+  {
+   "type": "text",
+   "text": "(system 1)",
+   "cache_control": {
+    "type": "ephemeral"
+   }
+  },
+  {
+   "type": "text",
+   "text": "(system 2)",
+   "cache_control": {
+    "type": "ephemeral"
+   }
+  }
+ ],
+ "tools": [
+  {
+   "name": "Bash",
+   "description": "(described)",
+   "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+     "command": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "timeout": {
+      "description": "(described)",
+      "type": "number"
+     },
+     "description": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "run_in_background": {
+      "description": "(described)",
+      "type": "boolean"
+     },
+     "dangerouslyDisableSandbox": {
+      "description": "(described)",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "command"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "Edit",
+   "description": "(described)",
+   "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+     "file_path": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "old_string": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "new_string": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "replace_all": {
+      "description": "(described)",
+      "default": false,
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "file_path",
+     "old_string",
+     "new_string"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "Read",
+   "description": "(described)",
+   "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+     "file_path": {
+      "description": "(described)",
+      "type": "string"
+     },
+     "offset": {
+      "description": "(described)",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     },
+     "limit": {
+      "description": "(described)",
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+     },
+     "pages": {
+      "description": "(described)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "file_path"
+    ],
+    "additionalProperties": false
+   }
+  }
+ ],
+ "metadata": {
+  "user_id": "(user)"
+ },
+ "max_tokens": 32000,
+ "thinking": {
+  "type": "adaptive"
+ },
+ "context_management": {
+  "edits": [
+   {
+    "type": "clear_thinking_20251015",
+    "keep": "all"
+   }
+  ]
+ },
+ "output_config": {
+  "effort": "high"
+ },
+ "stream": true
+}

@@ -1,0 +1,12 @@
+{
+  "environment": "box",
+  "jobs": ["one-line-fix"],
+  "simplest": "one-line-fix",
+  "pairs": [
+    { "harness": "claude", "model": "gemma/google.gemma-4-26b-a4b" },
+    { "harness": "claude", "model": "gemma/google.gemma-4-31b" },
+    { "harness": "codex", "model": "gemma/google.gemma-4-26b-a4b" },
+    { "harness": "codex", "model": "gemma/google.gemma-4-31b" },
+    { "harness": "opencode", "model": "gemma/google.gemma-4-26b-a4b" }
+  ]
+}

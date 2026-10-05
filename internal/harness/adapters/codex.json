@@ -45,6 +45,7 @@
   ],
   "stdin": "{brief}",
   "needs": "key",
+  "speaks": "responses",
   "skills": "/root/.local/share/codex/skills",
   "keeps": "/root/.local/share/codex",
   "whenBoxed": {

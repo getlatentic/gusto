@@ -1,6 +1,7 @@
 # Builds the proxy's credentials in the directory given, from Parameter Store, with the
 # instance's role: $BEDROCK_PARAMETER and $DEEPSEEK_PARAMETER name the two keys. "platform" and "gemma" are one Bedrock key
-# under two names, because Mantle serves Gemma 4 under /openai and the other models under /. DEEPSEEK_HARNESSES, when set, is the
+# under two names, because Mantle serves Gemma 4 under /openai and the other models under /. Gemma answers Chat Completions
+# alone, so Claude Code's and Codex's calls to it are translated. DEEPSEEK_HARNESSES, when set, is the
 # harnesses the deepseek credential answers, as names separated by spaces, and when not set it answers every one. A credential names only the
 # harnesses that finished a job on its models. Which
 # harnesses each credential answers is what greencloud's host_vars say.
@@ -17,7 +18,8 @@ bedrock, deepseek = secret(sys.argv[1]), secret(sys.argv[2])
 only = os.environ.get("DEEPSEEK_HARNESSES", "").split()
 held = {
     "platform": {"address": "https://bedrock-mantle.us-east-1.api.aws", "auth": "bearer", "key": bedrock, "harnesses": ["opencode"]},
-    "gemma": {"address": "https://bedrock-mantle.us-east-1.api.aws/openai", "auth": "bearer", "key": bedrock, "harnesses": ["opencode", "pi", "hermes"]},
+    "gemma": {"address": "https://bedrock-mantle.us-east-1.api.aws/openai", "auth": "bearer", "key": bedrock, "wires": ["chat"], "maxOutput": 8192,
+              "harnesses": ["opencode", "pi", "hermes", "claude", "codex"]},
     "deepseek": {"address": "https://api.deepseek.com", "auth": "bearer", "key": deepseek, **({"harnesses": only} if only else {})},
     "anthropic": {"address": "https://api.deepseek.com/anthropic", "auth": "anthropic", "key": deepseek, "harnesses": ["claude"]},
 }
