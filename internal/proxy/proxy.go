@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/haas/internal/wire"
 )
 
 // Where says which file in a job directory the proxy writes its record to.
@@ -122,11 +123,6 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		http.Error(w, "this job's credential is no longer held here", http.StatusBadGateway)
 		return
 	}
-	to, err := url.JoinPath(credential.Address, rest)
-	if err != nil {
-		http.Error(w, "that is not an address", http.StatusBadRequest)
-		return
-	}
 	asked, err := readQuestion(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
@@ -137,12 +133,25 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
 		return
 	}
-	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, bytes.NewReader(asked.body))
+	body, path, translated, err := translation(credential, rest, asked.body)
+	if err != nil {
+		wire.Fail(w, translated.From, http.StatusBadRequest, err.Error())
+		return
+	}
+	to, err := url.JoinPath(credential.Address, path)
+	if err != nil {
+		http.Error(w, "that is not an address", http.StatusBadRequest)
+		return
+	}
+	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, bytes.NewReader(body))
 	if err != nil {
 		http.Error(w, "that request could not be made", http.StatusBadGateway)
 		return
 	}
 	copyHeaders(out.Header, r.Header)
+	if translated.From != "" {
+		asChat(out.Header)
+	}
 	// The credential is added here and nowhere else. Whatever the container sent
 	// in its place is discarded rather than forwarded.
 	credential.apply(out.Header)
@@ -150,7 +159,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	// the answer is readable here. A compression the container chose would pass
 	// through packed, and the call would go uncounted.
 	out.Header.Del("Accept-Encoding")
-	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Registry: p.registry.Load()}
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Registry: p.registry.Load(), Translated: string(translated.From)}
 	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
@@ -159,10 +168,18 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		return
 	}
 	defer answer.Body.Close()
-	copyHeaders(w.Header(), answer.Header)
-	w.WriteHeader(answer.StatusCode)
 	meter := spend.NewMeter(answer.Header.Get("Content-Type"))
-	call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: w}, meter), answer.Body)
+	if translated.From != "" {
+		read := &countedReader{from: io.TeeReader(answer.Body, meter)}
+		if err := translated.Answer(w, answer.StatusCode, answer.Header.Get("Content-Type"), read); err != nil {
+			call.Error = err.Error()
+		}
+		call.Bytes = read.n
+	} else {
+		copyHeaders(w.Header(), answer.Header)
+		w.WriteHeader(answer.StatusCode)
+		call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: w}, meter), answer.Body)
+	}
 	call.Status, call.Took = answer.StatusCode, since(sent)
 	p.note(job, p.priced(call, meter.Usage()))
 }

@@ -168,3 +168,23 @@ sandbox on one `m8i.xlarge`, on 2026-10-02. `claude` reaches it through DeepSeek
 So `codex` and `dsh` finish on a model served by DeepSeek and not on the Bedrock models above. The cost column read "unmeasured"
 for `codex`, `claude` and `dsh`, because those harnesses did not report tokens the proxy could price. The measured host's spend
 policy had no DeepSeek prices either.
+
+## Claude Code and Codex on Gemma, translated
+
+The Gemma models on Bedrock answer Chat Completions alone. Claude Code calls in Anthropic's Messages API and Codex in the
+Responses API, so the proxy translates their calls (docs/GATEWAY.md). [`matrix/gemma-translated.json`](matrix/gemma-translated.json)
+ran the one-line-fix job in an OpenShell sandbox on one `m8i.xlarge` on 2026-10-05, with the `gemma` credential naming
+`"wires": ["chat"]` and `"maxOutput": 8192`. OpenCode, which calls in Chat Completions, is the pair that is not translated.
+
+| harness | model | finished | wall clock | model calls |
+| --- | --- | --- | --- | --- |
+| `claude` | `google.gemma-4-26b-a4b` | yes | 33 s | 8 |
+| `claude` | `google.gemma-4-31b` | yes | 40 s | 8 |
+| `codex` | `google.gemma-4-26b-a4b` | yes | 1 m 13 s | 41 |
+| `codex` | `google.gemma-4-31b` | yes | 35 s | 11 |
+| `opencode` | `google.gemma-4-26b-a4b` | yes | 38 s | 10 |
+
+Codex on these models had failed when its calls went to Bedrock's own Responses endpoint, which refuses a tool type
+Codex sends (the table above). Claude Code first ran 213 calls without finishing: Bedrock numbers the tool calls of every
+answer from `call_0`, and Claude Code took a second call by an identifier it had answered as answered already. The
+translation now gives each call an identifier of its own.
