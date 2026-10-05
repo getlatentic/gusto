@@ -102,8 +102,8 @@ func TestAStreamedChatAnswerIsAMessagesStreamClaudeCodeCanFollow(t *testing.T) {
 	if text != "Hello" {
 		t.Errorf("text %q", text)
 	}
-	if blocks[1]["id"] != "call_a" || blocks[1]["name"] != "Bash" || blocks[1]["partial"] != `{"command":"ls"}` ||
-		blocks[2]["id"] != "call_b" || blocks[2]["partial"] != `{"path":"a.go"}` {
+	if blocks[1]["name"] != "Bash" || blocks[1]["partial"] != `{"command":"ls"}` || blocks[2]["name"] != "Read" || blocks[2]["partial"] != `{"path":"a.go"}` ||
+		blocks[1]["id"] == blocks[2]["id"] || !strings.HasPrefix(blocks[1]["id"].(string), "call_") {
 		t.Errorf("tool blocks %v", blocks)
 	}
 	usage := stop["usage"].(map[string]any)
@@ -136,7 +136,7 @@ func TestAStreamedChatAnswerIsAResponsesStreamCodexCanFollow(t *testing.T) {
 	}
 	message := output[0].(map[string]any)["content"].([]any)[0].(map[string]any)
 	first, second := output[1].(map[string]any), output[2].(map[string]any)
-	if message["text"] != "Hello" || first["call_id"] != "call_a" || first["arguments"] != `{"command":"ls"}` || second["name"] != "Read" || second["arguments"] != `{"path":"a.go"}` {
+	if message["text"] != "Hello" || first["call_id"] == second["call_id"] || first["arguments"] != `{"command":"ls"}` || second["name"] != "Read" || second["arguments"] != `{"path":"a.go"}` {
 		t.Errorf("%v", output)
 	}
 	usage := done["usage"].(map[string]any)
@@ -163,7 +163,7 @@ func TestAWholeAnswerIsOneMessageOrOneResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	call := response["output"].([]any)[1].(map[string]any)
-	if response["object"] != "response" || call["type"] != "custom_tool_call" || call["input"] != "*** Begin Patch" || call["call_id"] != "call_a" {
+	if response["object"] != "response" || call["type"] != "custom_tool_call" || call["input"] != "*** Begin Patch" || call["call_id"] == "" {
 		t.Errorf("%v", response)
 	}
 }
@@ -227,5 +227,23 @@ func TestEachShapeIsKnownByItsPathAndGoesToChatCompletionsAtTheSamePrefix(t *tes
 	}
 	if ChatPath("/v1/messages") != "/v1/chat/completions" || ChatPath("/v1/responses") != "/v1/chat/completions" || ChatPath("/responses") != "/chat/completions" {
 		t.Errorf("%s %s", ChatPath("/v1/messages"), ChatPath("/v1/responses"))
+	}
+}
+
+// Bedrock numbers the tool calls of every answer from call_0. Given the same identifier twice, Claude Code takes the
+// second call as one it already answered, marks it interrupted and asks again, for as long as its budget lasts.
+func TestTwoAnswersWhoseProviderNumberedTheirCallsAlikeGiveTheHarnessTwoIdentifiers(t *testing.T) {
+	answer := "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_0\",\"function\":{\"name\":\"Bash\",\"arguments\":\"{}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n"
+	ids := map[string]bool{}
+	for i := 0; i < 2; i++ {
+		got := answered(t, Call{From: Messages, streamed: true, model: "g"}, 200, "text/event-stream", answer)
+		for _, each := range eventsIn(t, got.Body.String()) {
+			if each.kind == "content_block_start" {
+				ids[each.data["content_block"].(map[string]any)["id"].(string)] = true
+			}
+		}
+	}
+	if len(ids) != 2 || ids["call_0"] {
+		t.Errorf("the harness was given %v", ids)
 	}
 }

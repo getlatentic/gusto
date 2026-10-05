@@ -24,8 +24,9 @@ import (
 	"github.com/getlatentic/haas/internal/spend"
 )
 
-// toolModel answers Chat Completions the way a model that uses tools does: asked with a shell tool and no result yet,
-// it calls the tool to run `echo hi`; given the result, it says it is done.
+// toolModel answers Chat Completions the way a model that uses tools does: asked with a shell tool, it calls it to run
+// `echo hi`, then `echo bye`, and given both results it says it is done. It numbers the calls of every answer from
+// call_0, as Bedrock does, which a harness must not be given twice.
 type toolModel struct {
 	mu      sync.Mutex
 	results []string
@@ -48,10 +49,10 @@ func (m *toolModel) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "this model answers Chat Completions only", http.StatusNotFound)
 		return
 	}
-	answered := false
+	answered := 0
 	for _, message := range asked.Messages {
 		if message.Role == "tool" {
-			answered = true
+			answered++
 			m.mu.Lock()
 			m.results = append(m.results, string(message.Content))
 			m.mu.Unlock()
@@ -66,11 +67,13 @@ func (m *toolModel) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	chunk := func(data string) { fmt.Fprintf(w, "data: %s\n\n", data) }
 	switch {
-	case !answered && shell == "Bash":
-		chunk(`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"Bash","arguments":"{\"command\":\"echo hi\",\"description\":\"Say hi\"}"}}]}}]}`)
-		chunk(`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`)
-	case !answered && shell == "exec_command":
-		chunk(`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"exec_command","arguments":"{\"cmd\":\"echo hi\"}"}}]}}]}`)
+	case answered < 2 && shell != "":
+		word := []string{"hi", "bye"}[answered]
+		arguments := fmt.Sprintf(`{\"command\":\"echo %s\",\"description\":\"Say %s\"}`, word, word)
+		if shell == "exec_command" {
+			arguments = fmt.Sprintf(`{\"cmd\":\"echo %s\"}`, word)
+		}
+		chunk(`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_0","type":"function","function":{"name":"` + shell + `","arguments":"` + arguments + `"}}]}}]}`)
 		chunk(`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`)
 	default:
 		chunk(`{"choices":[{"delta":{"content":"done"}}]}`)
@@ -115,8 +118,10 @@ func TestRealHarnessesFinishATurnWithATool(t *testing.T) {
 				t.Fatal(err)
 			}
 			said := run(t, harness, front.URL, token)
-			if !model.sawResult("hi") {
-				t.Errorf("%s never sent back what `echo hi` printed:\n%s", harness, said)
+			for _, word := range []string{"hi", "bye"} {
+				if !model.sawResult(word) {
+					t.Errorf("%s never sent back what `echo %s` printed:\n%s", harness, word, said)
+				}
 			}
 			if !strings.Contains(said, "done") {
 				t.Errorf("%s did not finish its turn:\n%s", harness, said)
@@ -142,7 +147,7 @@ func run(t *testing.T, harness, proxy, token string) string {
 	var command *exec.Cmd
 	switch harness {
 	case "claude":
-		command = exec.Command("claude", "-p", "Run echo hi with Bash", "--output-format", "stream-json", "--verbose",
+		command = exec.Command("claude", "-p", "Run echo hi, then echo bye, with Bash", "--output-format", "stream-json", "--verbose",
 			"--permission-mode", "acceptEdits", "--allowedTools", "Bash", "--model=a-model")
 		command.Env = append(os.Environ(), "ANTHROPIC_BASE_URL="+proxy+"/model", "ANTHROPIC_API_KEY="+token, "CLAUDE_CONFIG_DIR="+home,
 			"DISABLE_TELEMETRY=1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1")
@@ -150,7 +155,7 @@ func run(t *testing.T, harness, proxy, token string) string {
 		command = exec.Command("codex", "exec", "--json", "--skip-git-repo-check", "-s", "read-only",
 			"-c", "model_providers.haas.name=haas", "-c", "model_providers.haas.base_url="+proxy+"/model/v1",
 			"-c", "model_providers.haas.env_key=HAAS_MODEL_TOKEN", "-c", "model_providers.haas.wire_api=responses",
-			"-c", "model_provider=haas", "--model=a-model", "Run echo hi in the shell")
+			"-c", "model_provider=haas", "--model=a-model", "Run echo hi, then echo bye, in the shell")
 		command.Env = append(os.Environ(), "HAAS_MODEL_TOKEN="+token, "CODEX_HOME="+home)
 	}
 	command.Dir = work

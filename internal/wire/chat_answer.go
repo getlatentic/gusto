@@ -75,18 +75,17 @@ func stopOf(reason string) Stop {
 	return StopEnd
 }
 
-// toolsSeen tells a sink each tool call once, however many events name it, and gives one a provider left unnamed an
-// identifier, since the harness answers a call by it.
+// toolsSeen tells a sink each tool call once, however many events name it. Each call is given an identifier of its
+// own rather than the provider's, since some providers number the calls of every answer from call_0, and a harness
+// that is given a second call by the identifier of one it already answered takes it as answered: Claude Code marks
+// it interrupted and asks again. The provider never needs its own back, since the conversation it is sent next names
+// the calls by these.
 type toolsSeen map[int]bool
 
 func (seen toolsSeen) tell(to sink, delta chatToolDelta) error {
 	if !seen[delta.Index] {
 		seen[delta.Index] = true
-		id := delta.ID
-		if id == "" {
-			id = newID("call_")
-		}
-		if err := to.tool(delta.Index, id, delta.Function.Name); err != nil {
+		if err := to.tool(delta.Index, newID("call_"), delta.Function.Name); err != nil {
 			return err
 		}
 	}
