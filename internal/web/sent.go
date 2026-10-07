@@ -68,7 +68,11 @@ func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 			s.turnBackForbidden(w, r, who, scope)
 			return
 		}
-		next(w, r.WithContext(context.WithValue(r.Context(), callerKey{}, who)))
+		ctx := context.WithValue(r.Context(), callerKey{}, who)
+		if token.Person != "" {
+			ctx = context.WithValue(ctx, personKey{}, token.Person)
+		}
+		next(w, r.WithContext(ctx))
 	}
 }
 

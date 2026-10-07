@@ -37,7 +37,11 @@ const (
 	Metrics = "metrics"
 )
 
-// Scopes is every scope there is, in the order a person reads them.
+// Work is what a token a person's own computer holds may do: act as that person, on their own work and nobody else's.
+// It is not one of Scopes, since an admin cannot grant it from a form: it is made only for a person who approved it.
+const Work = "work"
+
+// Scopes is every scope an admin may grant, in the order a person reads them.
 var Scopes = []string{Submit, Spend, Audit, Metrics}
 
 // Prefix starts every secret, so one found in a repository or a log is known for
@@ -61,7 +65,9 @@ type Token struct {
 	Name   string   `json:"name"`
 	Scopes []string `json:"scopes"`
 	// Hash is the SHA-256 of the secret's random part.
-	Hash      string `json:"hash"`
+	Hash string `json:"hash"`
+	// Person is who a token with the Work scope acts as. Empty for the organisation's tokens.
+	Person    string `json:"person,omitempty"`
 	Made      int64  `json:"made"`
 	By        string `json:"by"`
 	Revoked   int64  `json:"revoked,omitempty"`
@@ -279,6 +285,75 @@ func (s *Store) Check(secret string) (Token, error) {
 			}
 		}
 		return s.tokens[i], nil
+	}
+	return Token{}, ErrUnknown
+}
+
+// CreateFor makes a token that acts as one person, for the computer they approved. It can do nothing else, and the person
+// may end it. Its name says whose it is and which computer, and is made unique so that two computers of one person can
+// both hold one.
+func (s *Store) CreateFor(person, label string) (Token, string, error) {
+	person = strings.TrimSpace(person)
+	if person == "" {
+		return Token{}, "", errors.New("a token for a person needs the person")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.fresh()
+	id, err := random(4)
+	if err != nil {
+		return Token{}, "", err
+	}
+	part, err := random(32)
+	if err != nil {
+		return Token{}, "", err
+	}
+	random := base64.RawURLEncoding.EncodeToString(part)
+	token := Token{
+		ID: hex.EncodeToString(id), Name: nameFor(person, label, hex.EncodeToString(id)), Scopes: []string{Work}, Hash: digest(random),
+		Person: person, Made: s.now().Unix(), By: person,
+	}
+	s.tokens = append(s.tokens, token)
+	if err := s.save(); err != nil {
+		s.tokens = s.tokens[:len(s.tokens)-1]
+		return Token{}, "", err
+	}
+	return token, Prefix + token.ID + "_" + random, nil
+}
+
+var notPlain = regexp.MustCompile(`[^a-z0-9]+`)
+
+// nameFor is a token's name from its person and the label of their computer, ending in the token's own id so that it is
+// unique, and short enough for the name rule.
+func nameFor(person, label, id string) string {
+	slug := func(text string, most int) string {
+		text = strings.Trim(notPlain.ReplaceAllString(strings.ToLower(text), "-"), "-")
+		if len(text) > most {
+			text = strings.Trim(text[:most], "-")
+		}
+		return text
+	}
+	return strings.Trim(slug(label, 16)+"-"+slug(person, 30)+"-"+id, "-")
+}
+
+// ListFor is a person's own tokens, the newest first, revoked ones included.
+func (s *Store) ListFor(person string) []Token {
+	var own []Token
+	for _, held := range s.List() {
+		if held.Person != "" && strings.EqualFold(held.Person, person) {
+			own = append(own, held)
+		}
+	}
+	return own
+}
+
+// RevokeOwn ends a token of this person's. A token that is not theirs is answered as unknown, so a person cannot learn
+// which ids exist.
+func (s *Store) RevokeOwn(id, person string) (Token, error) {
+	for _, held := range s.ListFor(person) {
+		if held.ID == id {
+			return s.Revoke(id, person)
+		}
 	}
 	return Token{}, ErrUnknown
 }

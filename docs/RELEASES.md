@@ -17,6 +17,8 @@ copies the section into the release's notes. Changes made after a release go und
 - `HAAS_OPENSHELL_REMOTE=1`: the OpenShell gateway is on another machine, so this one needs no `/dev/kvm`.
 - The chart's `auth.oidc` and `spend` values, and the OIDC settings in `deploy/compose/env.example`. The server already took these settings; [SSO.md](SSO.md) now says what they do.
 
+- With `HAAS_API_TOKENS` set, a person's computer can sign in by the device flow and hold a token that acts as them ([TOKENS.md](TOKENS.md)). It has the one scope `work`, which no admin form grants.
+
 **Refused now**
 
 - `HAAS_SANDBOX=openshell` on a Linux machine with no `/dev/kvm`. The server does not start, and `haas doctor` reports it.
