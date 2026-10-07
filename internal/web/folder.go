@@ -39,14 +39,9 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	root, err := filepath.EvalSymlinks(s.instances.Workspace(held.ID))
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, err := filepath.EvalSymlinks(filepath.Join(root, asked))
-	if err != nil || !strings.HasPrefix(resolved, root+string(filepath.Separator)) || strings.Contains(asked, "/.git/") || strings.HasPrefix(asked, "/.git") {
+	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
@@ -71,6 +66,20 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		"Markdown": strings.EqualFold(filepath.Ext(asked), ".md"),
 		"Back":     r.URL.Query().Get("from"),
 	})
+}
+
+// resolveInFolder resolves a path inside a workspace, and refuses it when it leaves it, by a link or otherwise, or reaches
+// into git's own directory. The path is as the person asked, cleaned and rooted.
+func resolveInFolder(workspace, asked string) (string, bool) {
+	root, err := filepath.EvalSymlinks(workspace)
+	if err != nil {
+		return "", false
+	}
+	resolved, err := filepath.EvalSymlinks(filepath.Join(root, asked))
+	if err != nil || !strings.HasPrefix(resolved, root+string(filepath.Separator)) || strings.Contains(asked, "/.git/") || strings.HasPrefix(asked, "/.git") {
+		return "", false
+	}
+	return resolved, true
 }
 
 func readSome(path string) ([]byte, error) {
