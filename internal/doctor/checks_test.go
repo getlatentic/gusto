@@ -232,3 +232,18 @@ func write(t *testing.T, path, text string) {
 		t.Fatal(err)
 	}
 }
+
+func TestHardwareVirtualizationIsSkippedForADeploymentThatRunsJobsInContainers(t *testing.T) {
+	t.Setenv("HAAS_SANDBOX", "")
+	if verdict := sandboxHardware(); verdict.Status != Skipped {
+		t.Errorf("a deployment with no sandboxes was asked for hardware virtualization: %+v", verdict)
+	}
+}
+
+func TestHardwareVirtualizationIsDemandedOfAMachineThatRunsSandboxesAndHasNone(t *testing.T) {
+	t.Setenv("HAAS_SANDBOX", "openshell")
+	t.Setenv("HAAS_OPENSHELL_REMOTE", "1")
+	if verdict := sandboxHardware(); verdict.Status != Pass {
+		t.Errorf("a machine whose gateway is elsewhere was refused: %+v", verdict)
+	}
+}
