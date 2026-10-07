@@ -12,6 +12,8 @@ origin and no front end to build.
 | Compose | one Linux machine of your own | [compose/README.md](compose/README.md) |
 | Helm | a Kubernetes cluster of your own | [helm/haas/README.md](helm/haas/README.md) |
 
+To run a pilot for somebody else on their infrastructure, [../docs/PILOT.md](../docs/PILOT.md) lists what they provide and the checks to run before they sign in.
+
 ## What is installed
 
 | image | built from | what it is |
