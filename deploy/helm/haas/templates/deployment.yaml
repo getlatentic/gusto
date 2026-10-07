@@ -119,6 +119,22 @@ spec:
             - name: HAAS_PASSWORD
               valueFrom:
                 secretKeyRef: { name: {{ include "haas.secretName" . }}, key: HAAS_PASSWORD }
+            {{- with .Values.auth.oidc }}
+            {{- if .issuer }}
+            - { name: HAAS_OIDC_ISSUER, value: {{ .issuer | quote }} }
+            - { name: HAAS_OIDC_CLIENT_ID, value: {{ required "set auth.oidc.clientId" .clientId | quote }} }
+            - { name: HAAS_OIDC_REDIRECT, value: {{ required "set auth.oidc.redirect" .redirect | quote }} }
+            - { name: HAAS_OIDC_SCOPES, value: {{ .scopes | quote }} }
+            - { name: HAAS_OIDC_GROUPS_CLAIM, value: {{ .groupsClaim | quote }} }
+            - { name: HAAS_RUNNER_GROUPS, value: {{ .runnerGroups | quote }} }
+            - { name: HAAS_ADMIN_GROUPS, value: {{ .adminGroups | quote }} }
+            - { name: HAAS_ALLOWED, value: {{ .allowed | quote }} }
+            - { name: HAAS_ADMINS, value: {{ .admins | quote }} }
+            - name: HAAS_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: {{ include "haas.oidcSecretName" $ }}, key: HAAS_OIDC_CLIENT_SECRET }
+            {{- end }}
+            {{- end }}
             {{- if .Values.auth.apiTokens }}
             - { name: HAAS_API_TOKENS, value: /var/lib/haas/tokens/tokens.json }
             {{- end }}

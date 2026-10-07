@@ -1,0 +1,14 @@
+# A provider for the install check: Dex with its mock connector, which signs in one
+# fixed person, kilgore@kilgore.trout, who is in the group "authors", and asks for
+# nothing. The redirect address is where an install under check publishes its pages.
+issuer: http://dex:5556/dex
+storage: { type: memory }
+web: { http: 0.0.0.0:5556 }
+oauth2: { skipApprovalScreen: true }
+connectors:
+  - { type: mockCallback, id: mock, name: Mock }
+staticClients:
+  - id: haas
+    secret: haas-secret
+    name: haas
+    redirectURIs: ["http://127.0.0.1:8040/auth/callback"]

@@ -76,11 +76,20 @@ jobs:
             echo "HAAS_CREDENTIALS=$RUNNER_TEMP/haas/credentials"
             echo "HAAS_MODELS=stub/stub-model"
             echo "HAAS_SPEND_POLICY=$RUNNER_TEMP/haas/spend.json"
+            echo "HAAS_OIDC_ISSUER=http://dex:5556/dex"
+            echo "HAAS_OIDC_CLIENT_ID=haas"
+            echo "HAAS_OIDC_CLIENT_SECRET=haas-secret"
+            echo "HAAS_OIDC_REDIRECT=http://127.0.0.1:8040/auth/callback"
+            echo "HAAS_OIDC_SCOPES=groups"
+            echo "HAAS_ADMIN_GROUPS=authors"
           } > .env
           mkdir -p "$RUNNER_TEMP/haas/credentials"
           echo '{"name":"stub","address":"http://stub:9000","key":"not-a-key"}' > "$RUNNER_TEMP/haas/credentials/stub.json"
           echo '{"prices":{"stub-model":{"inputPerMillion":1000,"outputPerMillion":10000}}}' > "$RUNNER_TEMP/haas/spend.json"
           docker compose pull
+          docker compose create --no-build
+          docker run -d --name dex --network haas_default -p 127.0.0.1:5556:5556 \
+            -v "$GITHUB_WORKSPACE/deploy/ssocheck/dex.yaml:/etc/dex/config.docker.yaml:ro" ghcr.io/dexidp/dex:v2.42.0@sha256:1b4a6eee8550240b0faedad04d984ca939513650e1d9bd423502c67355e3822f
           docker compose up -d --no-build
           docker run -d --name stub --network haas_default -v "$GITHUB_WORKSPACE/deploy/stubmodel/stub.py:/stub.py:ro" python:3.13-alpine python -u /stub.py
           for _ in $(seq 1 60); do
@@ -114,18 +123,33 @@ jobs:
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke.sh
 
+      - name: Sign in through the identity provider, as an admin
+        run: deploy/ssocheck/sign-in.sh http://127.0.0.1:8040 admin
+
+      - name: Sign in as somebody no group maps to, and be refused
+        working-directory: deploy/compose
+        run: |
+          { echo "HAAS_ADMIN_GROUPS=nobody"; echo "HAAS_RUNNER_GROUPS=nobody"; } >> .env
+          docker compose up -d --no-build
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break
+            sleep 2
+          done
+          ../ssocheck/sign-in.sh http://127.0.0.1:8040 refused
+
       - name: The server's log, when something failed
         if: failure()
         working-directory: deploy/compose
         run: |
           docker compose logs --no-color | tail -80
           docker logs stub 2>&1 | tail -20
+          docker logs dex 2>&1 | tail -20
 
       - name: Take it down
         if: always()
         working-directory: deploy/compose
         run: |
-          docker rm -f stub || true
+          docker rm -f stub dex || true
           docker compose down -v
 
   chart:
@@ -193,6 +217,34 @@ jobs:
           YAML
           kubectl -n haas rollout status deploy/stub --timeout=120s
 
+      - name: An identity provider for the chart to sign in through
+        run: |
+          kubectl -n haas create configmap dex --from-file=config.docker.yaml=deploy/ssocheck/dex.yaml
+          kubectl -n haas apply -f - <<'YAML'
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata: { name: dex }
+          spec:
+            replicas: 1
+            selector: { matchLabels: { app: dex } }
+            template:
+              metadata: { labels: { app: dex } }
+              spec:
+                containers:
+                  - name: dex
+                    image: ghcr.io/dexidp/dex:v2.42.0@sha256:1b4a6eee8550240b0faedad04d984ca939513650e1d9bd423502c67355e3822f
+                    volumeMounts: [{ name: config, mountPath: /etc/dex }]
+                volumes: [{ name: config, configMap: { name: dex } }]
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata: { name: dex }
+          spec:
+            selector: { app: dex }
+            ports: [{ port: 5556 }]
+          YAML
+          kubectl -n haas rollout status deploy/dex --timeout=120s
+
       - name: Install the chart from the digests
         env:
           SERVER: ${{ steps.digests.outputs.server }}
@@ -203,6 +255,8 @@ jobs:
             --set image.runner.repository="${RUNNER%@*}" --set image.runner.digest="${RUNNER#*@}" \
             --set 'imagePullSecrets[0].name=ghcr' --set runnerPullSecret=ghcr \
             --set auth.password=install-check \
+            --set auth.oidc.issuer=http://dex:5556/dex --set auth.oidc.clientId=haas --set auth.oidc.clientSecret=haas-secret \
+            --set auth.oidc.redirect=http://127.0.0.1:8040/auth/callback --set auth.oidc.scopes=groups --set auth.oidc.adminGroups=authors \
             --set credentials.existingSecret=credentials --set model.models=stub/stub-model \
             --set spend.prices.stub-model.inputPerMillion=1000 --set spend.prices.stub-model.outputPerMillion=10000 \
             --wait --timeout 12m
@@ -230,6 +284,12 @@ jobs:
 
       - name: Run a job and verify its record
         run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke.sh
+
+      - name: Sign in through the identity provider, as an admin
+        run: |
+          kubectl -n haas port-forward svc/dex 5556:5556 > /dev/null 2>&1 &
+          sleep 3
+          deploy/ssocheck/sign-in.sh http://127.0.0.1:8040 admin
 
       - name: What the pod says, when something failed
         if: failure()
