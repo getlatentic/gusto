@@ -87,6 +87,7 @@ format adds itself here and to `internal/datadir/releases.go`.
 | --- | --- | --- |
 | v0.1.0-rc.1 | every store at format 1, unstamped | `haas data rollback -to v0.1.0-rc.1`. Nothing to undo: no release has changed a format |
 | v0.0.1-alpha.1 | every store at format 1, stamped with the release | `haas data rollback -to v0.0.1-alpha.1`. Nothing to undo: no release has changed a format |
+| v0.0.1-alpha.2 | every store at format 1, stamped with the release | `haas data rollback -to v0.0.1-alpha.2`. Nothing to undo: no release has changed a format |
 
 ## Checked on every change
 
