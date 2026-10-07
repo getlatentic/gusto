@@ -106,13 +106,13 @@ jobs:
           test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
           echo "signed in, and the home page answered $code"
 
-      - name: Run a job and verify its record
-        working-directory: deploy/compose
-        run: docker compose exec -T server sh < ../smoke.sh
-
       - name: Run a job that asks a model, and check what the proxy counted
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke-model.sh
+
+      - name: Run a job and verify its record
+        working-directory: deploy/compose
+        run: docker compose exec -T server sh < ../smoke.sh
 
       - name: The server's log, when something failed
         if: failure()
