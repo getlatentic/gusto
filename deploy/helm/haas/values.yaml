@@ -111,6 +111,13 @@ ingress:
 # ended in. A job loses its workspace first, then its signed record. Empty
 # removes nothing. docs/RETENTION.md.
 retention: {}
+# What a model costs and what a team may spend a month: the proxy's price list
+# and team caps, in the shape README.md gives for HAAS_SPEND_POLICY. Empty leaves
+# every model unpriced and no team capped.
+spend: {}
+# spend:
+#   prices: { some-model: { inputPerMillion: 2.5, outputPerMillion: 10 } }
+#   teams: { platform: { usdPerMonth: 200 } }
 # retention:
 #   workspaceDays: { passed: 14, failed: 30, interrupted: 7 }
 #   recordDays: { passed: 365, failed: 365, interrupted: 90 }
