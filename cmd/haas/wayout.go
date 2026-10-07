@@ -135,9 +135,12 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 	if w.proxy == nil {
 		return sandbox.Run(dir, w.direct, "", mounts...)
 	}
-	token, err := w.admit(dir, spec)
-	if err != nil {
-		return 0, err
+	token := ""
+	if needsModel(dir, spec) {
+		var err error
+		if token, err = w.admit(dir, spec); err != nil {
+			return 0, err
+		}
 	}
 	if w.sealed {
 		return sandbox.Sealed(dir, w.socket, token, mounts...)
@@ -147,6 +150,13 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 		port = "8041"
 	}
 	return sandbox.Run(dir, "http://localhost:"+port+"/model/v1", token, mounts...)
+}
+
+// needsModel is whether a job's harness asks a model at all. One that needs none, such as the program the smoke check
+// runs, is not refused for want of a credential, and is given no token.
+func needsModel(dir job.Dir, spec job.Spec) bool {
+	configured, err := harness.Open(dir, spec.Harness)
+	return err != nil || configured.Adapter.Needs != harness.NeedsNothing
 }
 
 // admit checks that the job may reach its model, and gives it the token that
