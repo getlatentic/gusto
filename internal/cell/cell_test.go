@@ -56,12 +56,18 @@ func newAgent(t *testing.T, name string, free int) *agentHost {
 	}}
 	h.server = httptest.NewServer(agent.Handler())
 	t.Cleanup(func() {
-		for _, slug := range h.servers.Running() {
-			h.servers.Stop(slug, time.Second)
-		}
+		h.stopServers()
 		h.server.Close()
 	})
 	return h
+}
+
+// stopServers ends every organisation's server on the host. A test that leaves servers running registers it after it
+// makes the folders they write to, because cleanups run last first and a folder cannot be removed under a server.
+func (h *agentHost) stopServers() {
+	for _, slug := range h.servers.Running() {
+		h.servers.Stop(slug, time.Second)
+	}
 }
 
 func (h *agentHost) setFree(n int) { h.mu.Lock(); h.free = n; h.mu.Unlock() }

@@ -350,6 +350,7 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 	host := newAgent(t, "cell-a", 12000)
 	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
 	first, store := controlledOn(t, pool)
+	t.Cleanup(host.stopServers)
 	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err := first.Provision(org.Slug); err != nil {
 		t.Fatal(err)
