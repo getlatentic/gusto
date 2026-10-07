@@ -1,5 +1,6 @@
 # Installs haas the way a customer does: from the digests a release names, with
-# no build, after checking each image's signature. It runs by hand against any
+# no build, after checking each image's signature. Each install then runs a job
+# and verifies its signed record. It runs by hand against any
 # release tag, and when this file or the compose install changes on an issue
 # branch. The images are private, so the workflow's own token is what reads them.
 name: install-check
@@ -98,6 +99,10 @@ jobs:
           test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
           echo "signed in, and the home page answered $code"
 
+      - name: Run a job and verify its record
+        working-directory: deploy/compose
+        run: docker compose exec -T server sh < ../smoke.sh
+
       - name: The server's log, when something failed
         if: failure()
         working-directory: deploy/compose
@@ -169,6 +174,9 @@ jobs:
           code="$(curl -s -o /dev/null -w '%{http_code}' -b jar http://127.0.0.1:8040/)"
           test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
           echo "signed in, and the home page answered $code"
+
+      - name: Run a job and verify its record
+        run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke.sh
 
       - name: What the pod says, when something failed
         if: failure()
