@@ -87,6 +87,18 @@ JSON
   stop
   HAAS_KEYRING="$data/keyring" "$old" verify "$data/jobs/$id" >/dev/null
 
+  echo "  rehearsing the upgrade on a copy"
+  HAAS_KEYRING="$data/keyring" "$root/deploy/rehearse-upgrade.sh" "$new" "$data" "$ref" > "$work/rehearsal.log" 2>&1 \
+    || { cat "$work/rehearsal.log" >&2; echo "$ref: the rehearsal on a copy failed" >&2; exit 1; }
+  tail -n 1 "$work/rehearsal.log" | sed 's/^/  /'
+  # A rehearsal that cannot fail proves nothing: a job whose record was edited has to be reported.
+  rm -rf "$work/tampered" && cp -R "$data" "$work/tampered"
+  echo "edited after it was signed" >> "$work/tampered/jobs/$id/out/transcript.log"
+  if HAAS_KEYRING="$data/keyring" "$root/deploy/rehearse-upgrade.sh" "$new" "$work/tampered" > "$work/tampered.log" 2>&1; then
+    echo "$ref: the rehearsal passed a job whose record had been edited" >&2; exit 1
+  fi
+  echo "  and it reports a record that was edited"
+
   echo "  upgrading to this checkout"
   export HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" \
     HAAS_COMPARISONS="$data/comparisons" HAAS_CHANGES="$data/changes/changes.jsonl"

@@ -89,6 +89,18 @@ format adds itself here and to `internal/datadir/releases.go`.
 | v0.0.1-alpha.1 | every store at format 1, stamped with the release | `haas data rollback -to v0.0.1-alpha.1`. Nothing to undo: no release has changed a format |
 | v0.0.1-alpha.2 | every store at format 1, stamped with the release | `haas data rollback -to v0.0.1-alpha.2`. Nothing to undo: no release has changed a format |
 
+## Rehearse it on your data
+
+```bash
+deploy/rehearse-upgrade.sh ./haas /var/lib/haas v0.0.1-alpha.2
+```
+
+It copies your data directory and never changes the original. On the copy it
+shows what the new binary would migrate, starts it as a server, loads each job's
+page, and runs `haas verify` on every record. With a release named, it then rolls
+the copy back to that release's formats. It exits 1 and says which job when a page
+does not load or a record does not verify.
+
 ## Checked on every change
 
 `deploy/upgrade-check.sh` builds each of the last two release tags, has it make a
