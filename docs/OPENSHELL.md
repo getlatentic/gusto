@@ -20,6 +20,17 @@ command. It uses OpenShell as a component below it and does not modify it.
 
 greencloud is a KVM guest with no `/dev/kvm`, so the VM driver does not run there.
 A server started with `HAAS_SANDBOX=openshell` on a Linux machine with no `/dev/kvm` refuses to start and says so, and `haas doctor` reports it. When the gateway runs on another machine, set `HAAS_OPENSHELL_REMOTE=1`.
+
+`/dev/kvm` appears when the kernel's KVM module loads, and that works only if the CPU's virtualization features reach the operating system. Haas cannot make it. What does depends on where the machine runs:
+
+| Where it runs | What makes `/dev/kvm` appear |
+| --- | --- |
+| A physical server | Turn on VT-x or AMD-V in the BIOS, then `modprobe kvm_intel` or `modprobe kvm_amd`. The user that runs the gateway needs to be in the `kvm` group |
+| A virtual machine on VMware, Proxmox or similar | The hypervisor's administrator exposes hardware virtualization to the VM, and the VM restarts |
+| A cloud machine | A type that supports nested virtualization, with it enabled at launch. On AWS that is `c8i`, `m8i` or `r8i` with nested virtualization on, or a `.metal` type (`deploy/aws/openshell` does this). Other clouds have their own list, which this repository has not tried |
+| A container | The host's device passed in, as `--device /dev/kvm` |
+
+Emulating the hardware in software is too slow to run an agent on, and is not supported.
 On AWS an `m8i.xlarge` launched with nested virtualization does, and
 `deploy/aws/openshell` makes one and removes it.
 

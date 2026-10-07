@@ -21,6 +21,9 @@ func noHardware(goos string, exists func(string) bool, remote bool) error {
 		return nil
 	}
 	return fmt.Errorf("HAAS_SANDBOX=openshell needs hardware virtualization, and this machine has no %s, so an OpenShell gateway here "+
-		"cannot make a sandbox. Run on a host with KVM (on a cloud machine, one launched with nested virtualization), "+
-		"or set HAAS_OPENSHELL_REMOTE=1 if the gateway runs on another machine", kvm)
+		"cannot make a sandbox. What makes it appear depends on where this machine runs: on your own server, turn on VT-x or AMD-V in "+
+		"the BIOS and run `modprobe kvm_intel` (or kvm_amd); in a virtual machine, ask whoever runs the hypervisor to expose "+
+		"hardware virtualization to it; on a cloud machine, use a type that supports nested virtualization and enable it at launch; "+
+		"in a container, pass the host's device in with --device %s. If the gateway runs on another machine, set HAAS_OPENSHELL_REMOTE=1. "+
+		"docs/OPENSHELL.md has the detail", kvm, kvm)
 }
