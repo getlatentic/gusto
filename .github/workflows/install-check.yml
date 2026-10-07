@@ -86,7 +86,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/haas/credentials"
           echo '{"name":"stub","address":"http://stub:9000","key":"not-a-key"}' > "$RUNNER_TEMP/haas/credentials/stub.json"
           echo '{"prices":{"stub-model":{"inputPerMillion":1000,"outputPerMillion":10000}}}' > "$RUNNER_TEMP/haas/spend.json"
+          start=$(date +%s.%N)
           docker compose pull
+          pulled=$(date +%s.%N)
           docker compose create --no-build
           docker run -d --name dex --network haas_default -p 127.0.0.1:5556:5556 \
             -v "$GITHUB_WORKSPACE/deploy/ssocheck/dex.yaml:/etc/dex/config.docker.yaml:ro" ghcr.io/dexidp/dex:v2.42.0@sha256:1b4a6eee8550240b0faedad04d984ca939513650e1d9bd423502c67355e3822f
@@ -97,6 +99,8 @@ jobs:
             sleep 2
           done
           curl -fsS http://127.0.0.1:8040/healthz
+          up=$(date +%s.%N)
+          echo "MEASURED pull both images: $(echo "$pulled - $start" | bc) s; create to /healthz answering, with the sign-in provider and the stub model started: $(echo "$up - $pulled" | bc) s"
 
       - name: What is running is what the release named
         working-directory: deploy/compose
