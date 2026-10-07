@@ -65,6 +65,22 @@ them there, and an admin sees them all at `/admin/tokens`. Making one and ending
 are in the record of what changed on the platform. A server with no token file has
 no device flow, and its pages answer 404.
 
+With that token a program reads the person's own work as JSON. Every route answers
+about the person's own agents, and somebody else's is answered as one that is not
+there.
+
+| Route | Answers |
+| --- | --- |
+| `GET /api/instances` | the person's agents |
+| `GET /api/instances/{id}` | one agent and its threads |
+| `GET /api/instances/{id}/threads` | its threads |
+| `GET /api/instances/{id}/threads/{thread}` | one thread, and the turns said in it as the jobs they were |
+| `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
+| `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
+
+A request that carries a person's token is never an admin's, even when it also
+carries an admin's cookie.
+
 ## What is recorded
 
 | Where | What it says |
