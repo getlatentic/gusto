@@ -76,8 +76,11 @@ and counts the call. It says nothing about the client's model.
 ## After the handover
 
 - **Back up** by copying `HAAS_DATA`.
-- **Upgrade** by installing the next release's digests the same way.
-  [UPGRADE.md](UPGRADE.md) says what it migrates, and how to go back with
+- **Upgrade** by installing the next release's digests the same way. Read the
+  release's section in [RELEASES.md](RELEASES.md) first: it lists the settings
+  added and what is refused now. Rehearse it on a copy of the client's data with
+  `deploy/rehearse-upgrade.sh <new haas binary> <HAAS_DATA>`, which never changes the
+  original. [UPGRADE.md](UPGRADE.md) says what it migrates, and how to go back with
   `haas data rollback -to <release>`.
 - **Watch** `/healthz`, `/readyz` and `/metrics`, and the alerts in
   [RUNBOOK.md](RUNBOOK.md).
