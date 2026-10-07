@@ -72,6 +72,7 @@ type Server struct {
 	// counts the sign-ins written to it.
 	changes   *changelog.Log
 	tokens    *apitoken.Store
+	devices   deviceCodes
 	retention *retained
 	health    Health
 	wrong     attempts
@@ -154,6 +155,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	mux.HandleFunc("POST /api/jobs", s.sent(apitoken.Submit, s.accept))
+	mux.HandleFunc("POST /api/device", s.startDevice)
+	mux.HandleFunc("POST /api/device/token", s.pollDevice)
+	mux.HandleFunc("GET /api/me", s.sent(apitoken.Work, s.me))
+	mux.HandleFunc("GET /device", s.guard(s.devicePage))
+	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
+	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))

@@ -32,6 +32,7 @@ var tokenScopeWords = map[string]string{
 	apitoken.Spend:   "read spending",
 	apitoken.Audit:   "read the change record",
 	apitoken.Metrics: "read metrics",
+	apitoken.Work:    "act as one person, on their own work",
 }
 
 func (s *Server) tokensPage(w http.ResponseWriter, r *http.Request) {
