@@ -123,6 +123,10 @@ jobs:
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke.sh
 
+      - name: Probe a job's box from inside it
+        working-directory: deploy/compose
+        run: docker compose exec -T server sh < ../smoke-isolation.sh
+
       - name: Sign in through the identity provider, as an admin
         run: deploy/ssocheck/sign-in.sh http://127.0.0.1:8040 admin
 
@@ -284,6 +288,9 @@ jobs:
 
       - name: Run a job and verify its record
         run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke.sh
+
+      - name: Probe a job's box from inside it
+        run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke-isolation.sh
 
       - name: Sign in through the identity provider, as an admin
         run: |
