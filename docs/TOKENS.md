@@ -44,6 +44,27 @@ haas submit ./job
 `haas submit` sends `HAAS_TOKEN` when it is set, and `HAAS_PASSWORD` otherwise.
 Any other caller sends `Authorization: Bearer <token>`.
 
+## A token for a person
+
+A person's own computer gets a token that acts as that person, by the device flow.
+It needs the token file above, and it is not made at `/admin/tokens`.
+
+1. The computer asks the server for a code: `POST /api/device`, with `{"label":"Laptop"}`.
+   The answer has a `device_code` for the computer, a `user_code` for the person,
+   and the address to visit.
+2. The person signs in as usual, opens `/device`, types the user code and approves it.
+   The shared sign-in cannot approve one, since it is nobody in particular.
+3. The computer asks `POST /api/device/token` with its `device_code` every few seconds.
+   It is told `authorization_pending` until the person approves, and then given the
+   token once. A code lasts ten minutes.
+
+The token has one scope, `work`. It can do nothing an organisation's token does:
+it cannot send a job, read spending, the change record or metrics. `GET /api/me`
+says who it acts as. The person sees their own tokens at `/device` and ends any of
+them there, and an admin sees them all at `/admin/tokens`. Making one and ending one
+are in the record of what changed on the platform. A server with no token file has
+no device flow, and its pages answer 404.
+
 ## What is recorded
 
 | Where | What it says |
