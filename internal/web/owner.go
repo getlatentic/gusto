@@ -32,7 +32,16 @@ func (s *Server) roleFor(who Person) (Role, bool) {
 	return s.identity.access.roleOf(who)
 }
 
-func (s *Server) admin(r *http.Request) bool { return s.keeper.role(r) == Admin }
+// admin is whether an admin asked. A request made with a person's token is never an admin's, whatever else it carries.
+func (s *Server) admin(r *http.Request) bool { return personOf(r) == "" && s.keeper.role(r) == Admin }
+
+// askerName is who is asking: the person a token acts as, or whoever the session says.
+func (s *Server) askerName(r *http.Request) string {
+	if person := personOf(r); person != "" {
+		return person
+	}
+	return s.keeper.who(r)
+}
 
 // mayUse says whether the person asking may see what owner made. Work with no
 // owner, and work the shared sign-in made, has no person to belong to, so only
@@ -41,7 +50,7 @@ func (s *Server) mayUse(r *http.Request, owner string) bool {
 	if s.admin(r) {
 		return true
 	}
-	return owner != "" && owner != sharedSignIn && strings.EqualFold(owner, s.keeper.who(r))
+	return owner != "" && owner != sharedSignIn && strings.EqualFold(owner, s.askerName(r))
 }
 
 // owned is the instance the path names when the person asking may use it.
