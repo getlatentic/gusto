@@ -59,7 +59,7 @@ cat "$seen"
 
 fail=0
 need() { grep -q "$1" "$seen" || { echo "FAIL: $2" >&2; fail=1; }; }
-need '^interfaces=lo $' "the box has a network interface besides loopback"
+need '^interfaces=lo *$' "the box has a network interface besides loopback"
 if grep -q '^OPEN ' "$seen"; then echo "FAIL: the box opened a connection: $(grep '^OPEN ' "$seen" | tr '\n' ' ')" >&2; fail=1; fi
 need '^closed dns$' "the box resolved a name"
 grep -q '^docker-socket=.*No such file' "$seen" || { echo "FAIL: the box sees a container runtime socket" >&2; fail=1; }
