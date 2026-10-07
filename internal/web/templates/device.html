@@ -1,0 +1,37 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<div class="page-head">
+  <h1>Your computers</h1>
+  <p class="muted">A computer you approve acts as you, on your own work only. You can end it here at any time.</p>
+</div>
+
+{{if .Approved}}<p>Approved <strong>{{.Approved}}</strong>. Go back to the computer: it signs in on its own.</p>{{end}}
+
+{{if .Shared}}
+<p class="muted">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
+{{else}}
+<form method="post" action="/device" class="inline">
+  <label for="code">The code your computer shows</label>
+  <input id="code" name="code" value="{{.Code}}" placeholder="BCDF-GHJK" autocomplete="off" required>
+  <button type="submit">Approve</button>
+</form>
+
+<h2>Approved</h2>
+{{if .Tokens}}
+<table>
+  <thead><tr><th>Computer</th><th>Approved</th><th>Last used</th><th></th></tr></thead>
+  <tbody>
+  {{range .Tokens}}
+    <tr>
+      <td>{{.Name}}</td><td>{{.Made}}</td><td>{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
+      <td>{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit">End</button></form>{{else}}ended {{.Ended}}{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}<p class="muted">None yet.</p>{{end}}
+{{end}}
+
+{{template "foot" .}}

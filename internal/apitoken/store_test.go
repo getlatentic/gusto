@@ -153,3 +153,57 @@ func TestAStoreThatIsNotAListOfTokensIsRefused(t *testing.T) {
 		t.Fatal("a file that is not tokens was opened")
 	}
 }
+
+func TestATokenForAPersonActsAsThemAndCanDoNothingElse(t *testing.T) {
+	store := func() *apitoken.Store { store, _ := opened(t); return store }()
+	made, secret, err := store.CreateFor("ada@acme.example", "Laptop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if made.Person != "ada@acme.example" || !made.May(apitoken.Work) || made.May(apitoken.Submit) || made.May(apitoken.Spend) || made.May(apitoken.Audit) || made.May(apitoken.Metrics) {
+		t.Errorf("the token is %+v", made)
+	}
+	got, err := store.Check(secret)
+	if err != nil || got.Person != "ada@acme.example" {
+		t.Fatalf("%+v %v", got, err)
+	}
+	if made.Name == "" || strings.ToLower(made.Name) != made.Name || strings.ContainsAny(made.Name, " @.") {
+		t.Errorf("the name %q is not one the name rule allows", made.Name)
+	}
+}
+
+func TestTwoComputersOfOnePersonBothHoldAToken(t *testing.T) {
+	store := func() *apitoken.Store { store, _ := opened(t); return store }()
+	a, _, err := store.CreateFor("ada@acme.example", "laptop")
+	b, _, err2 := store.CreateFor("ada@acme.example", "laptop")
+	if err != nil || err2 != nil || a.Name == b.Name {
+		t.Fatalf("%v %v %q %q", err, err2, a.Name, b.Name)
+	}
+}
+
+func TestAPersonSeesAndEndsOnlyTheirOwnTokens(t *testing.T) {
+	store := func() *apitoken.Store { store, _ := opened(t); return store }()
+	mine, secret, _ := store.CreateFor("ada@acme.example", "laptop")
+	theirs, _, _ := store.CreateFor("bob@acme.example", "laptop")
+	if _, _, err := store.Create("ci", []string{apitoken.Submit}, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	if listed := store.ListFor("ADA@acme.example"); len(listed) != 1 || listed[0].ID != mine.ID {
+		t.Errorf("ada was shown %+v", listed)
+	}
+	if _, err := store.RevokeOwn(theirs.ID, "ada@acme.example"); !errors.Is(err, apitoken.ErrUnknown) {
+		t.Errorf("ada ended bob's token: %v", err)
+	}
+	if _, err := store.RevokeOwn(mine.ID, "ada@acme.example"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Check(secret); !errors.Is(err, apitoken.ErrRevoked) {
+		t.Errorf("a revoked token was still taken: %v", err)
+	}
+}
+
+func TestAnAdminCannotGrantTheWorkScopeFromAForm(t *testing.T) {
+	if _, _, err := func() *apitoken.Store { store, _ := opened(t); return store }().Create("sneaky", []string{apitoken.Work}, "admin"); err == nil {
+		t.Error("an admin made a token that acts as a person, with no person")
+	}
+}
