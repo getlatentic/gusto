@@ -9,11 +9,16 @@ machine.**
 
 ## What the machine needs
 
-- Linux on x86-64 is the target. Both images also built and ran on linux/arm64,
-  in the Rancher Desktop VM on an Apple Silicon Mac. That cold install measured
-  1.3 s to clone, 48 s to build both images, and about 15 s from `up` until the
-  server read `healthy`. On a Mac the engine is a VM, so `HAAS_DATA` has to be a
-  path the VM shares with the Mac. No other host has been tried.
+- Linux on x86-64 is the target. On a GitHub-hosted Ubuntu runner (AMD EPYC, 2 vCPU,
+  7 GiB, kernel 6.17.0-1022-azure), one run each, building both images from source
+  took 83 s and the server read `healthy` 11 s after `up`. Installing a release from
+  its digests took 80 s to pull both images and 6 s from `create` until `/healthz`
+  answered.
+- Both images also built and ran on linux/arm64, in the Rancher Desktop VM on an
+  Apple Silicon Mac. That cold install measured 1.3 s to clone, 48 s to build both
+  images, and about 15 s from `up` until the server read `healthy`. On a Mac the
+  engine is a VM, so `HAAS_DATA` has to be a path the VM shares with the Mac. No
+  other host has been tried.
 - Docker Engine with the Compose plugin, v2.24 or later, which is the first to
   read the `env_file` form `compose.yaml` uses. `docker compose version` says.
 - Nothing else of value on it, for the reason above.
