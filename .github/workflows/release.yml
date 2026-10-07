@@ -141,6 +141,10 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
           \`\`\`
           EOF
+          {
+            printf '\n## What changed\n\n'
+            gh api "repos/${{ github.repository }}/releases/generate-notes" -f tag_name="$TAG" --jq .body
+          } >> notes.md
           # A tag with a hyphen, v0.1.0-rc.1, is a release candidate.
           case "$TAG" in *-*) pre=--prerelease ;; *) pre= ;; esac
           gh release create "$TAG" --repo "${{ github.repository }}" --title "$TAG" --notes-file notes.md $pre
