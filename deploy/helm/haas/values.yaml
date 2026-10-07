@@ -43,6 +43,31 @@ auth:
   # The API takes scoped, revocable tokens an admin makes at /tokens, and not
   # the shared password. docs/TOKENS.md.
   apiTokens: false
+  # Sign in with the company's identity provider instead of the shared password
+  # alone. docs/SSO.md says what to set at the provider. Naming an issuer needs a
+  # client id, a secret and a redirect, and at least one of runnerGroups,
+  # adminGroups or allowed, or the server will not start.
+  oidc:
+    issuer: ""
+    clientId: ""
+    # The client secret, here for the chart to make a Secret, or in a Secret you
+    # name below with a HAAS_OIDC_CLIENT_SECRET key.
+    clientSecret: ""
+    existingSecret: ""
+    # Where the provider sends somebody back: https://<the pages' address>/auth/callback
+    redirect: ""
+    # Scopes besides openid and email, comma separated. Groups need the one that
+    # makes the provider send them, which is often `groups`.
+    scopes: ""
+    groupsClaim: ""
+    # Groups that make somebody a runner, or an admin. Comma separated.
+    runnerGroups: ""
+    adminGroups: ""
+    # Email addresses, or a domain with a leading @ (@example.com), that may sign
+    # in, comma separated. Optional when groups are named.
+    allowed: ""
+    # People who are admins whatever their groups say.
+    admins: ""
 
 # The way out of a job's box. With an upstream the proxy is on, every job runs
 # with no network but the proxy's socket, and the key never enters a job.

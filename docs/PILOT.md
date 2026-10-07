@@ -14,7 +14,7 @@ not.
 | Outbound access to `ghcr.io` and to the model provider | pulling the images, and the model calls. [deploy/README.md](../deploy/README.md#what-it-needs-outbound-and-what-it-does-not) lists the rest |
 | A token that can read the packages in `ghcr.io/getlatentic` | pulling the images. The repository is private, so its images are too |
 | A model provider's address and key | a harness that asks a model |
-| An identity provider, or a shared password | sign-in. Single sign-on is not yet checked on a release: getlatentic/planning#252 |
+| An identity provider, or a shared password | sign-in. [SSO.md](SSO.md) says what to set at the provider and on the server |
 
 The server holds the host's container runtime socket, which is root on the
 machine. Put nothing else of value on it ([deploy/README.md](../deploy/README.md#how-a-job-gets-its-box)).
@@ -52,16 +52,17 @@ The chart takes the same digests. [deploy/helm/haas/README.md](../deploy/helm/ha
 | It signs in | `curl -s -o /dev/null -w '%{http_code}' --data-urlencode "password=<the password>" http://127.0.0.1:8040/login` | `303` |
 | It runs a job and keeps a record | `docker compose exec -T server sh < ../smoke.sh` | the last line says the gate still exits 0, and the job page named on a failure says why |
 | It counts a model call | submit a job on a real model, then read `$HAAS_DATA/jobs/<id>/out/proxy.jsonl` | the line has `inputTokens`, `outputTokens` and a `usd`. A model with no price in `HAAS_SPEND_POLICY` has none, and that is unmeasured, not free |
+| It signs people in through your provider | set the `HAAS_OIDC_*` settings and a group ([SSO.md](SSO.md)), then sign in from a browser | a person in an admin group sees the admin pages, and one in no group is sent back to the login page with a refusal |
 | It signs the record | set `HAAS_SIGNING_KEY` ([the Compose README](../deploy/compose/README.md#sign-the-record)), run the job again | the check prints `signed by <name>` |
 
-The install check runs the first three on every release, against a stub model
+The install check runs the first three, and the sign-in through Dex, on every release, against a stub model
 for the counting. A stub shows that the proxy holds the key, reaches the model
 and counts the call. It says nothing about the client's model.
 
 ## What is not proven
 
-- Single sign-on. The server has the settings, but no install README lists them.
-  No check signs in through a provider (getlatentic/planning#252).
+- Your identity provider. The install check signs in through Dex, not through a
+  company's own provider, so try yours before the handover ([SSO.md](SSO.md)).
 - Isolation. Jobs run in Docker containers with no network but the proxy's
   socket. They do not run in the microVMs the hosted cloud uses
   (getlatentic/planning#525).

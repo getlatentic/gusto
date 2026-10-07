@@ -40,6 +40,10 @@ An image by digest, and nothing else. Called with (list "server" .Values.image.s
 {{- default (include "haas.fullname" .) .Values.model.existingSecret -}}
 {{- end -}}
 
+{{- define "haas.oidcSecretName" -}}
+{{- default (include "haas.fullname" .) .Values.auth.oidc.existingSecret -}}
+{{- end -}}
+
 {{- define "haas.claimName" -}}
 {{- default (printf "%s-data" (include "haas.fullname" .)) .Values.persistence.existingClaim -}}
 {{- end -}}
