@@ -57,6 +57,47 @@ getlatentic/planning#372.
   repository, handed to git by environment, and revoked afterwards.
 - The gate runs without a shell and as the agent user.
 
+## How a job is isolated
+
+A job runs its agent in a container, or in an OpenShell sandbox, which is a
+microVM. `deploy/smoke-isolation.sh` runs one job whose harness probes its own box
+from inside it, and `deploy/aws/openshell/box-probe.sh` runs the same probe in a
+sandbox. Both were run on 2026-10-07 against release v0.0.1-alpha.2. The
+container side runs on every release, in the Compose install and in the chart
+([PILOT.md](PILOT.md)).
+
+| What the probe found | Container | OpenShell sandbox |
+| --- | --- | --- |
+| Kernel | the host's. The probe saw `6.17.0-1022-azure`, on a GitHub runner | its own: `6.12.76`, on a host running `7.0.0-1014-aws` |
+| Outbound connections | none opened: 1.1.1.1:443, 8.8.8.8:53, 169.254.169.254:80, the host's bridge on 22 and 8040, and `host.docker.internal` were all closed | the same six closed |
+| Network | `--network=none`: only loopback, and the model proxy's socket relayed to it | a policy that denies everything except the model proxy |
+| Names | none resolve | resolve inside the sandbox, to addresses the sandbox makes up, so a lookup does not leave it |
+| Who the agent is | user 1000, no capabilities held (`CapEff` 0), `no-new-privileges`, a seccomp filter | the same, and no capabilities in the bounding set either (`CapBnd` 0) |
+| Capabilities a process could still be given | `CapBnd` is `cb`: chown, override of file modes, file ownership, setuid and setgid, kept for the runner that writes the record | none |
+| The container runtime's socket | not in the box | not in the box |
+| The server's data (`/var/lib/haas`) | not in the box | not in the box |
+| Limits | `--cpus`, `--memory` and `--pids-limit=512` | `HAAS_OPENSHELL_CPU` and `HAAS_OPENSHELL_MEMORY` |
+| What the host must have | Docker or Podman | KVM, which a cloud machine has only with nested virtualization. A server refuses `HAAS_SANDBOX=openshell` on a Linux machine without `/dev/kvm`, and says why |
+
+**What a container does not isolate.** It shares the host's kernel, so a kernel
+flaw reaches every job and the machine. On Compose the server also holds the host's
+runtime socket, which is root on that machine ([deploy/README.md](../deploy/README.md#how-a-job-gets-its-box)).
+On Kubernetes the jobs run in a Docker daemon in a privileged pod. Neither
+install has an agent's code and the operator's machine in separate kernels.
+
+**What a sandbox does not isolate.** The gateway and the server are on the same
+machine as the sandboxes. UDP other than names, and IPv6, are not probed
+(`docs/CLOUD.md`).
+
+**What the probe does not do.** It tries no exploit, and it does not test that
+one job cannot read another's files or exhaust the machine's memory. A pass means
+the box has nothing open that it should not, not that it cannot be escaped.
+
+**Which to run.** A pilot where the agents run the team's own code can run in
+containers. A pilot where an agent runs code the client does not trust, or where
+the client's reviewer needs a kernel between the agent and the machine, runs in
+OpenShell on a host with KVM.
+
 ## Reporting
 
 Report a vulnerability to the operator of the deployment. A change to anything

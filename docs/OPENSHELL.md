@@ -19,6 +19,7 @@ command. It uses OpenShell as a component below it and does not modify it.
 | An `ssh` client on the machine that runs `haas serve` | An agent that speaks the Agent Client Protocol (dsh, hermes) is spoken to over ssh through the gateway. `openshell sandbox exec` carries standard input as one piece when it ends, so the agent would never hear its first message |
 
 greencloud is a KVM guest with no `/dev/kvm`, so the VM driver does not run there.
+A server started with `HAAS_SANDBOX=openshell` on a Linux machine with no `/dev/kvm` refuses to start and says so, and `haas doctor` reports it. When the gateway runs on another machine, set `HAAS_OPENSHELL_REMOTE=1`.
 On AWS an `m8i.xlarge` launched with nested virtualization does, and
 `deploy/aws/openshell` makes one and removes it.
 
@@ -28,6 +29,7 @@ On AWS an `m8i.xlarge` launched with nested virtualization does, and
 | --- | --- |
 | `HAAS_SANDBOX=openshell` | run each job's harness in a sandbox |
 | `HAAS_OPENSHELL` | the `openshell` command, `openshell` by default |
+| `HAAS_OPENSHELL_REMOTE` | `1` when the gateway runs on another machine, so this one needs no `/dev/kvm` |
 | `HAAS_OPENSHELL_GATEWAY` | the registered gateway to use, or the selected one |
 | `HAAS_OPENSHELL_IMAGE` | what a sandbox is made from: an image reference the gateway can pull, or the path of a root file system archive on the gateway's machine. It carries the harness programs. Unset is the gateway's own image, which carries none |
 | `HAAS_OPENSHELL_HOST` | the name a sandbox gives the gateway's machine, `host.openshell.internal` by default |

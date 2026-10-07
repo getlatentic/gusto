@@ -19,6 +19,7 @@ func Checks(machine Machine) []Check {
 		{Name: "git", Try: func() Verdict { return gitOnPath(machine) }},
 		{Name: jobsDirectory, Try: func() Verdict { return jobsWritable(machine) }},
 		{Name: "bind mount", Needs: []string{image, jobsDirectory}, Try: func() Verdict { return mountShows(machine) }},
+		{Name: "hardware virtualization", Try: sandboxHardware},
 		{Name: "model", Try: modelAnswers},
 		{Name: "adapters", Try: adaptersParse},
 		{Name: "sign-in", Try: signIn},

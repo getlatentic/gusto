@@ -251,6 +251,9 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 	case "here":
 		return here(instances), nil
 	case "openshell":
+		if err := openshell.HostCannotMakeVMs(); err != nil {
+			return nil, err
+		}
 		cfg, err := openshell.FromEnv()
 		if err != nil {
 			return nil, err
