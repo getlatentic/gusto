@@ -663,6 +663,11 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
 | `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
 | `HAAS_PASSWORD` | the shared sign-in. `haas serve` refuses to start without it |
+| `HAAS_OIDC_ISSUER`, `HAAS_OIDC_CLIENT_ID`, `HAAS_OIDC_CLIENT_SECRET`, `HAAS_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on; it needs the other three, and `HAAS_RUNNER_GROUPS`, `HAAS_ADMIN_GROUPS` or `HAAS_ALLOWED`, or the server refuses to start. [docs/SSO.md](docs/SSO.md) |
+| `HAAS_OIDC_SCOPES`, `HAAS_OIDC_GROUPS_CLAIM` | the scopes to ask for besides `openid` and `email`, and the claim the provider's groups arrive in (`groups` unless said otherwise) |
+| `HAAS_RUNNER_GROUPS`, `HAAS_ADMIN_GROUPS` | the provider's groups whose members are runners, and admins. A person in neither is refused |
+| `HAAS_ALLOWED` | addresses, or a domain written `@example.com`, that may sign in. With no groups named it is the whole gate |
+| `HAAS_ADMINS` | addresses that are admins whatever their groups say |
 | `HAAS_JOB_CONCURRENCY` | how many jobs run at once |
 | `HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM` | the most one person, or one team, runs at once. A job over its limit waits, and its page says why. 0 or unset is no limit. [docs/LIMITS.md](docs/LIMITS.md) |
 | `HAAS_MODELS` | the models the pages offer, comma separated. Only a deployment knows which its credential reaches. When credentials are configured, an engine is offered only the models a credential that answers it serves, and an engine none serves is not offered at all. A person can change their agent's model on its page, among those its engine is offered |
