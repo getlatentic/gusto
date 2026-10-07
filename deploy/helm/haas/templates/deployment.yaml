@@ -133,6 +133,9 @@ spec:
                 secretKeyRef: { name: {{ include "haas.modelSecretName" . }}, key: HAAS_MODEL_KEY }
             {{- end }}
             {{- end }}
+            {{- if .Values.spend }}
+            - { name: HAAS_SPEND_POLICY, value: /etc/haas/spend/spend.json }
+            {{- end }}
             {{- range $name, $value := .Values.env }}
             - { name: {{ $name }}, value: {{ $value | toString | quote }} }
             {{- end }}
@@ -161,6 +164,9 @@ spec:
             {{- if .Values.credentials.existingSecret }}
             - { name: credentials, mountPath: /etc/haas/credentials, readOnly: true }
             {{- end }}
+            {{- if .Values.spend }}
+            - { name: spend-policy, mountPath: /etc/haas/spend, readOnly: true }
+            {{- end }}
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -178,6 +184,11 @@ spec:
           secret:
             secretName: {{ .Values.credentials.existingSecret }}
             defaultMode: 0400
+        {{- end }}
+        {{- if .Values.spend }}
+        - name: spend-policy
+          configMap:
+            name: {{ include "haas.fullname" . }}-spend
         {{- end }}
         {{- if .Values.runnerPullSecret }}
         - name: runner-pull
