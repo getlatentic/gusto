@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/harness"
+	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/runner"
 )
 
@@ -84,4 +85,16 @@ func signIn() Verdict {
 			"set HAAS_PASSWORD in the environment haas serve starts with")
 	}
 	return pass("HAAS_PASSWORD is set")
+}
+
+// sandboxHardware is whether this machine can be where an OpenShell gateway makes microVMs. A deployment that runs jobs
+// in containers needs none, so the check is skipped for it.
+func sandboxHardware() Verdict {
+	if os.Getenv("HAAS_SANDBOX") != "openshell" {
+		return skip("HAAS_SANDBOX is not openshell")
+	}
+	if err := openshell.HostCannotMakeVMs(); err != nil {
+		return fail(err.Error(), "run on a host with KVM, or set HAAS_OPENSHELL_REMOTE=1 when the gateway is on another machine")
+	}
+	return pass("this machine can host the gateway's microVMs, or the gateway is elsewhere")
 }
