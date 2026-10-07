@@ -73,9 +73,16 @@ jobs:
             echo "HAAS_DATA=$RUNNER_TEMP/haas"
             echo "HAAS_SERVER_IMAGE=$SERVER"
             echo "HAAS_RUNNER_IMAGE=$RUNNER"
+            echo "HAAS_CREDENTIALS=$RUNNER_TEMP/haas/credentials"
+            echo "HAAS_MODELS=stub/stub-model"
+            echo "HAAS_SPEND_POLICY=$RUNNER_TEMP/haas/spend.json"
           } > .env
+          mkdir -p "$RUNNER_TEMP/haas/credentials"
+          echo '{"name":"stub","address":"http://stub:9000","key":"not-a-key"}' > "$RUNNER_TEMP/haas/credentials/stub.json"
+          echo '{"prices":{"stub-model":{"inputPerMillion":1000,"outputPerMillion":10000}}}' > "$RUNNER_TEMP/haas/spend.json"
           docker compose pull
           docker compose up -d --no-build
+          docker run -d --name stub --network haas_default -v "$GITHUB_WORKSPACE/deploy/stubmodel/stub.py:/stub.py:ro" python:3.13-alpine python -u /stub.py
           for _ in $(seq 1 60); do
             curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break
             sleep 2
@@ -103,15 +110,23 @@ jobs:
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke.sh
 
+      - name: Run a job that asks a model, and check what the proxy counted
+        working-directory: deploy/compose
+        run: docker compose exec -T server sh < ../smoke-model.sh
+
       - name: The server's log, when something failed
         if: failure()
         working-directory: deploy/compose
-        run: docker compose logs --no-color | tail -80
+        run: |
+          docker compose logs --no-color | tail -80
+          docker logs stub 2>&1 | tail -20
 
       - name: Take it down
         if: always()
         working-directory: deploy/compose
-        run: docker compose down -v
+        run: |
+          docker rm -f stub || true
+          docker compose down -v
 
   chart:
     needs: compose
