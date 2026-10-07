@@ -53,9 +53,10 @@ The chart takes the same digests. [deploy/helm/haas/README.md](../deploy/helm/ha
 | It runs a job and keeps a record | `docker compose exec -T server sh < ../smoke.sh` | the last line says the gate still exits 0, and the job page named on a failure says why |
 | It counts a model call | submit a job on a real model, then read `$HAAS_DATA/jobs/<id>/out/proxy.jsonl` | the line has `inputTokens`, `outputTokens` and a `usd`. A model with no price in `HAAS_SPEND_POLICY` has none, and that is unmeasured, not free |
 | It signs people in through your provider | set the `HAAS_OIDC_*` settings and a group ([SSO.md](SSO.md)), then sign in from a browser | a person in an admin group sees the admin pages, and one in no group is sent back to the login page with a refusal |
+| It isolates a job | `docker compose exec -T server sh < ../smoke-isolation.sh` | it ends by saying the box has no network but loopback, no runtime socket, none of the server's data, and cannot gain a privilege |
 | It signs the record | set `HAAS_SIGNING_KEY` ([the Compose README](../deploy/compose/README.md#sign-the-record)), run the job again | the check prints `signed by <name>` |
 
-The install check runs the first three, and the sign-in through Dex, on every release, against a stub model
+The install check runs the first three, the isolation probe, and the sign-in through Dex, on every release, against a stub model
 for the counting. A stub shows that the proxy holds the key, reaches the model
 and counts the call. It says nothing about the client's model.
 
@@ -63,9 +64,10 @@ and counts the call. It says nothing about the client's model.
 
 - Your identity provider. The install check signs in through Dex, not through a
   company's own provider, so try yours before the handover ([SSO.md](SSO.md)).
-- Isolation. Jobs run in Docker containers with no network but the proxy's
-  socket. They do not run in the microVMs the hosted cloud uses
-  (getlatentic/planning#525).
+- Escape from a container. Jobs run in Docker containers with no network but the
+  proxy's socket, which share the host's kernel. [SECURITY.md](SECURITY.md#how-a-job-is-isolated)
+  says what was probed and what was not. Where that is not enough, run OpenShell
+  microVMs on a host with KVM.
 - A model of the client's. The install check uses a stub. Run one real job on
   the client's model before the handover and read its record.
 - Podman, rootless Docker, and any host other than Linux on x86-64 and arm64 in
