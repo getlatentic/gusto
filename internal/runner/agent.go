@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"syscall"
 
 	"github.com/getlatentic/haas/internal/job"
 )
@@ -61,17 +60,6 @@ func (a agent) own(root string) error {
 		}
 		return os.Lchown(path, a.uid, a.gid)
 	})
-}
-
-// runAs starts the command as the agent, in a process group of its own.
-func (a agent) runAs(command *exec.Cmd) {
-	if !a.present {
-		return
-	}
-	if command.SysProcAttr == nil {
-		command.SysProcAttr = &syscall.SysProcAttr{}
-	}
-	command.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(a.uid), Gid: uint32(a.gid)}
 }
 
 // endAll stops every process the agent left behind, so nothing it started is
