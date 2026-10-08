@@ -10,9 +10,6 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 )
 
-// recentChats is how many conversations the chat page lists beside the box.
-const recentChats = 30
-
 // pick is one harness in the chat's chooser with the models it may be pointed at.
 type pick struct {
 	catalog.Entry
@@ -23,14 +20,8 @@ type pick struct {
 // go to, and the conversations already held. What it offers first is what the
 // person used last, because somebody coming back wants to carry on.
 func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
-	held := s.ownInstances(r, s.instances.List())
-	recent := make([]yours, 0, len(held))
-	for _, each := range held {
-		recent = append(recent, s.lately(each))
-	}
-	sort.SliceStable(recent, func(a, b int) bool { return recent[a].Active > recent[b].Active })
 	picks := s.picksFor(r)
-	harness, model := defaultPick(picks, recent)
+	harness, model := defaultPick(picks, s.lastUsed(r))
 	s.render(w, "chat.html", map[string]any{
 		"Title":   productName + " — chat",
 		"Nav":     "chat",
@@ -38,7 +29,8 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"Picks":   picks,
 		"Harness": harness,
 		"Model":   model,
-		"Recent":  recent[:min(len(recent), recentChats)],
+		"Rail":    s.railFor(r),
+		"Here":    "/chat",
 		"Refused": r.URL.Query().Get("refused"),
 	})
 }
@@ -145,4 +137,15 @@ func (s *Server) plainAgent(r *http.Request, harness string) (instance.Instance,
 		}
 	}
 	return best, best.ID != ""
+}
+
+// lastUsed is the person's agents, the one used last first.
+func (s *Server) lastUsed(r *http.Request) []yours {
+	held := s.ownInstances(r, s.instances.List())
+	used := make([]yours, 0, len(held))
+	for _, each := range held {
+		used = append(used, s.lately(each))
+	}
+	sort.SliceStable(used, func(a, b int) bool { return used[a].Active > used[b].Active })
+	return used
 }
