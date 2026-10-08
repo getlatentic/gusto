@@ -16,7 +16,7 @@ import (
 
 func official(t *testing.T, name string) *jsonschema.Schema {
 	t.Helper()
-	path := filepath.Join("..", "..", "schema", "agent-plugins", Version, name)
+	path := filepath.Join("..", "..", "schema", "agent-plugins", Format, name)
 	text, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
