@@ -14,6 +14,14 @@ copies the section into the release's notes. Changes made after a release go und
 
 Nothing yet.
 
+## v0.0.1-alpha.4
+
+Since `v0.0.1-alpha.3`. Nothing to set and nothing new refused.
+
+**Fixed**
+
+- Stopping a job that runs in a container took the container's whole grace of sixty seconds and left no manifest, because the runner in the box cannot signal the agent's processes. The agent's processes are now ended as the agent, so a stop ends the run in about a second and the manifest says who stopped it.
+
 ## v0.0.1-alpha.3
 
 Since `v0.0.1-alpha.2`. The data stays at format 1 in every store.
