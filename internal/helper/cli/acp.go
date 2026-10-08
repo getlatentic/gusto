@@ -113,5 +113,5 @@ func ACP(args []string) int {
 	return 0
 }
 
-// Version is what the helper says its release is, set when it is built.
+// Version is what the helper says its release is, set when it is built with -ldflags "-X .../internal/helper/cli.Version=<tag>".
 var Version = "dev"

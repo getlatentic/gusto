@@ -48,6 +48,36 @@ first, which getlatentic/planning#588 files:
 The same API is what a native UI would need. A native UI is not planned, and is not
 a reason to build this API.
 
+## Installing the helper
+
+Each release has the helper for macOS, Linux and Windows, on Intel and Arm, as
+`haas-helper_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), with a `SHA256SUMS`
+that the release workflow signs with its own identity (cosign, keyless). The releases are
+private, so the install scripts use the GitHub command line, signed in to an account that can
+read them:
+
+```bash
+gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.sh -O - | sh -s -- v0.0.1-alpha.5
+```
+
+```powershell
+gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.ps1 -O install.ps1; ./install.ps1 -Tag v0.0.1-alpha.5
+```
+
+The script downloads the package for this system, checks it against the checksums, checks the
+checksums' signature when `cosign` is installed (`HAAS_REQUIRE_COSIGN=1` refuses to go on
+without it), and puts `haas-helper` in `~/.local/bin` (`HAAS_HELPER_DIR` changes that) or, on
+Windows, in `%LOCALAPPDATA%\haas-helper`, which it adds to the user's PATH: the only setting it
+changes. `haas-helper version` says which release is installed. The packages are built by
+`deploy/helper/build.sh`, with no C compiler and no paths of the build machine, so a person can
+build the same bytes from the source.
+
+**Not signed for the operating systems.** The programs are not signed with an Apple developer
+certificate or a Windows code-signing certificate, which this project does not have. A package
+downloaded with `gh` or `curl` is not quarantined, so macOS runs it; one downloaded in a
+browser is, and macOS refuses it until it is allowed in Privacy & Security. Windows may show
+SmartScreen. The checksum and the cosign signature are what vouch for it until then.
+
 ## The helper
 
 It is its own program, `haas-helper` (`cmd/haas-helper`), with its commands in
