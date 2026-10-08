@@ -27,6 +27,7 @@ func run(args []string) int {
 		"service": cli.Service,
 		"acp":     cli.ACP,
 		"sync":    cli.Sync,
+		"version": cli.ShowVersion,
 	}[verb]
 	if !found {
 		usage()
@@ -45,6 +46,7 @@ func usage() {
   haas-helper status  what the running helper says of itself
   haas-helper service install|uninstall|status  start the helper at login [-server]
   haas-helper sync    keep a folder here the same as your agent's folder in the cloud [-folder, -instance, -dry-run, -once, -force]
+  haas-helper version which release this is
   haas-helper acp     be an agent for an editor that speaks the Agent Client Protocol [-server, -instance, -agent]
 `)
 }
