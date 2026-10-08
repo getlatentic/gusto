@@ -99,3 +99,21 @@ overwrite nothing. A harness that cannot take skills or servers is told so befor
 
 `job.json` says, for each integration, the version (its fingerprint and the version the plugin
 calls itself) and the commit it was pinned to. The servers' addresses and headers stay out of it.
+
+## Skills on each harness
+
+A skill is placed as its whole folder, so the `references/`, `scripts/` and `assets/` beside its `SKILL.md` go with it, in the folder
+the harness's adapter names. Measured on 2026-10-08 with a skill that says its answer is in `references/word.md`, through the path a
+job takes (import, setup, carry, place), and a question that only the skill can answer:
+
+| Harness | Reads skills from | Result |
+| --- | --- | --- |
+| Codex 0.154 | `$CODEX_HOME/skills` | found the skill, read its reference, answered |
+| OpenCode 1.18 | `$XDG_CONFIG_HOME/opencode/skills` | found the skill through its `skill` tool, read its reference, answered |
+| Claude Code 2.1.270 | `$CLAUDE_CONFIG_DIR/skills` | in a project's `.claude/skills`, which it reads the same way: listed the skill, and read its reference in 3 of 3 calls. Its own folder was not measured, since Claude Code's login belongs to that folder and the one made for the test is not signed in |
+| Pi | `~/.pi/agent/skills` | not measured: not signed in to a model here |
+| Hermes | `~/.agents/skills` | not measured: not connected to a provider here |
+| DeepSeek harness (`dsh`) | `~/.agents/skills` | not measured: no key here |
+
+`HAAS_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the harnesses that are signed in. It
+makes short calls to their models. A small model may not use a skill it has, which is the model's choice and not the placement's.
