@@ -158,6 +158,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/device", s.startDevice)
 	mux.HandleFunc("POST /api/device/token", s.pollDevice)
 	mux.HandleFunc("GET /api/me", s.sent(apitoken.Work, s.me))
+	mux.HandleFunc("DELETE /api/me", s.asPerson(s.endMe))
 	mux.HandleFunc("GET /api/instances", s.asPerson(s.instancesJSON))
 	mux.HandleFunc("GET /api/instances/{id}", s.asPerson(s.instanceJSON))
 	mux.HandleFunc("GET /api/instances/{id}/threads", s.asPerson(s.threadsJSON))

@@ -195,6 +195,21 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 
 type personKey struct{}
 
+type tokenIDKey struct{}
+
+// endMe is a computer signing itself out: its own token is ended, so nothing that still works stays behind.
+func (s *Server) endMe(w http.ResponseWriter, r *http.Request) {
+	id, _ := r.Context().Value(tokenIDKey{}).(string)
+	held, err := s.tokens.RevokeOwn(id, personOf(r))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	s.record(changelog.Event{Who: held.Person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenRevoked,
+		What: map[string]string{"id": held.ID, "name": held.Name}})
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // personOf is who a personal token acts as.
 func personOf(r *http.Request) string {
 	who, _ := r.Context().Value(personKey{}).(string)
