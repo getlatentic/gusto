@@ -19,6 +19,7 @@ type Tray struct {
 	Server string
 	Status func() helper.Status
 	Icon   []byte
+	Shown  func()
 }
 
 // Run says there is no icon.
