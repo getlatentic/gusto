@@ -164,6 +164,7 @@ appearing in the directory while a server runs waits for the next start.
 | the harness, on its own non-zero exit | `harnessExit` is that code | the gate decides |
 | the harness, by a signal | `harnessExit` -1 | the gate decides |
 | the harness, at the time budget | `harnessExit` -1, `stoppedAtBudget` true | the gate decides |
+| the harness, because a person stopped the job | `harnessExit` -1, `stoppedBy` the person (or `a signal` when nobody is named) | `interrupted`, whatever the gate would say |
 | the harness, with its model refused at a spending cap | whatever it exits with, and `stoppedByCap` | the gate decides |
 | a process the harness started | `harnessExit` is what the harness reports for it | the gate decides |
 | the runner, PID 1 in the box | no manifest | `failed`, with the container's exit |
@@ -180,8 +181,8 @@ gate decides, on whatever the harness left in the workspace.
 deeper. Measured under the same memory cap: a harness that allocates without
 bound itself leaves `harnessExit: -1`, and a harness that is a shell whose child
 allocates leaves `harnessExit: 137`, because the shell reports its child's kill
-as its own status. `stoppedAtBudget` is the only field that names a cause
-(`inside.go:96`).
+as its own status. `stoppedAtBudget` and `stoppedBy` are the fields that name a cause
+(`inside.go`): the time ran out, or somebody stopped the job.
 
 The last runner row has two answers because the boundary is in the middle of it.
 Inside the box, `haas inside` turns an error into exit 2
@@ -344,3 +345,21 @@ is what makes the sweep over `running` jobs correct rather than a guess. Claimin
 a job with an atomic create per job would make two servers safe instead of
 refusing the second, and that is a larger decision: it is the first piece of a
 fleet, and the queue is one process today.
+
+## Stopping a job
+
+A person stops a turn of their own, and an admin stops anybody's: with the Stop button on the conversation, or
+`POST /api/jobs/{id}/stop` with a person's token.
+
+- **A job that is queued** is interrupted at once and never runs. Its record has `stoppedBy`.
+- **A job that is running** is told to stop. The server writes `stop.json` in the job's directory (who, and when), then
+  interrupts the container's client, which hands it to `haas inside`; `haas inside` kills the harness *and everything the
+  harness started*, keeps what it did in the workspace, writes the manifest with `stoppedBy`, and the server signs it.
+  The job ends `interrupted`, not `failed`: whoever stopped it ended it, and the gate's answer over half a piece of work
+  is not a verdict on the agent. A container that is still there after sixty seconds is removed by its name,
+  `haas-<job id>`.
+- **A job that is over** answers 409 and is not changed.
+- A run that is stopped by a signal alone, as when a server is shut down, has `stoppedBy: "a signal"`.
+
+Not stopped by this: what the agent started in the workspace and left running after its turn (an app it served). Those
+are the agent's apps, and have their own page.

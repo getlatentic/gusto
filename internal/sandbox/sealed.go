@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/getlatentic/haas/internal/job"
@@ -23,6 +24,11 @@ const (
 // The repository is cloned before the container starts, so the box needs no
 // route to it either.
 func Sealed(dir job.Dir, socket, token string, mounts ...Mount) (int, error) {
+	return SealedContext(context.Background(), dir, socket, token, mounts...)
+}
+
+// SealedContext is Sealed that stops the container when its context ends.
+func SealedContext(ctx context.Context, dir job.Dir, socket, token string, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -34,7 +40,7 @@ func Sealed(dir job.Dir, socket, token string, mounts ...Mount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return start(dir, args)
+	return start(ctx, dir, args)
 }
 
 func sealedArgv(absolute, socket, token string, mounts []Mount) ([]string, error) {

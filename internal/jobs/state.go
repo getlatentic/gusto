@@ -26,6 +26,9 @@ const (
 )
 
 // Done reports whether a job will change no further without being asked again.
+// String is the word for the state, so a message can say it.
+func (s State) String() string { return string(s) }
+
 func (s State) Done() bool {
 	return s == Passed || s == Failed || s == Interrupted
 }
@@ -47,6 +50,8 @@ type Record struct {
 	Asked    string `json:"asked"`
 	// Key is the request id the sender gave, so that the same send made twice is one job. It belongs to the asker.
 	Key string `json:"requestId,omitempty"`
+	// StoppedBy is who asked for the job to be stopped. A job with it ends interrupted, whatever its harness said on the way out.
+	StoppedBy string `json:"stoppedBy,omitempty"`
 	// Team is who the job counts against, for the team limit.
 	Team string `json:"team,omitempty"`
 	// Seq is the order this job arrived in. Queued is a second, and two jobs
