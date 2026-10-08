@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -60,7 +59,7 @@ func absolute(goos, path string) bool {
 	if goos == "windows" {
 		return len(path) >= 3 && path[1] == ':' && (path[2] == '\\' || path[2] == '/') || strings.HasPrefix(path, `\\`)
 	}
-	return filepath.IsAbs(path)
+	return strings.HasPrefix(path, "/")
 }
 
 func (s Spec) check(goos string) error {

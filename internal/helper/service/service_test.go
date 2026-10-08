@@ -26,8 +26,7 @@ func (c *calls) run(name string, args ...string) (string, error) {
 
 func spec(t *testing.T) Spec {
 	t.Helper()
-	program := filepath.Join(t.TempDir(), "haas-helper")
-	return Spec{Program: program, Server: "https://haas.example.com/?a=1&b=2", Home: t.TempDir()}
+	return Spec{Program: "/usr/local/bin/haas-helper", Server: "https://haas.example.com/?a=1&b=2", Home: t.TempDir()}
 }
 
 func TestOnMacOSTheHelperIsALaunchAgentStartedNowAndAtLogin(t *testing.T) {
