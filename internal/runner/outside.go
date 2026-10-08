@@ -59,6 +59,11 @@ const (
 // exit code the gate earned, as Inside does for one in this process. The
 // workspace must already hold the repository.
 func Outside(dir job.Dir, box Box) (int, error) {
+	return OutsideContext(context.Background(), dir, box)
+}
+
+// OutsideContext is Outside that stops early when its context ends, as Inside does.
+func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 	key, keyed, err := signing.Configured()
 	if err != nil {
 		return 0, err
@@ -98,7 +103,7 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		return 0, err
 	}
 	budget := time.Duration(spec.Budget.Seconds) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), budget)
+	ctx, cancel := context.WithTimeout(parent, budget)
 	defer cancel()
 
 	// Closed however Start ends: a box that was half made is still there.
@@ -158,6 +163,7 @@ func Outside(dir job.Dir, box Box) (int, error) {
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
+		StoppedBy:       stoppedBy(ctx, dir),
 		StoppedByCap:    capped,
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,

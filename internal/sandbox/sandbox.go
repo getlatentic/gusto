@@ -2,11 +2,13 @@
 package sandbox
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
@@ -49,6 +51,11 @@ type Mount struct {
 // a model on the host and no credential to keep out. A job with a proxy runs
 // Sealed instead.
 func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
+	return RunContext(context.Background(), dir, model, token, mounts...)
+}
+
+// RunContext is Run that stops the container when its context ends.
+func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -70,23 +77,43 @@ func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return start(dir, args)
+	return start(ctx, dir, args)
 }
 
 // start runs the container, then signs the manifest it left. The manifest is
 // written inside the box, where the agent runs, so the key never goes in: the
 // host signs once the box is gone, with the key HAAS_SIGNING_KEY names here.
-func start(dir job.Dir, args []string) (int, error) {
-	command := exec.Command(Runtime(), args...)
+func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
+	command := exec.CommandContext(ctx, Runtime(), args...)
+	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `haas inside`. That
+	// ends the harness and writes down what it did. Killing the client would leave the container running and spending.
+	command.Cancel = func() error { return command.Process.Signal(os.Interrupt) }
+	command.WaitDelay = stopGrace
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
-	if err := command.Run(); err != nil && !isExit(err) {
+	err := command.Run()
+	if ctx.Err() != nil {
+		// The client may have been killed after its grace, and the container with it not at all: it is removed by name.
+		_ = exec.Command(Runtime(), "rm", "-f", containerName(dir)).Run()
+		_ = evidence.SealAsConfigured(dir)
+		return -1, ctx.Err()
+	}
+	if err != nil && !isExit(err) {
 		return 0, err
 	}
 	if err := evidence.SealAsConfigured(dir); err != nil {
 		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil
+}
+
+// stopGrace is how long a container is given to write down what a stopped job did before its client is killed.
+const stopGrace = 60 * time.Second
+
+// containerName is the name a job's container has, so that it can be removed by it whatever became of the client that
+// started it. A job's id is already a name a container may have.
+func containerName(dir job.Dir) string {
+	return "haas-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 
 // argv is the container's command line: the job directory, what reaches the
@@ -96,7 +123,7 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"run", "--rm",
+	args := []string{"run", "--rm", "--name", "haas-" + filepath.Base(absolute),
 		"-v", absolute + ":/job",
 		"-e", "HAAS_SIGNER=" + signer,
 	}

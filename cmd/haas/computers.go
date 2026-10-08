@@ -52,7 +52,7 @@ func personWhoAsked(index *jobs.Index, dir job.Dir) string {
 // RunInComputer runs a job in the computer of the person who asked for it, making it
 // when they have none. What is refused, a computer past the organisation's quota
 // among it, is said in the job's record like any other refusal.
-func (w *WayOut) RunInComputer(dir job.Dir, spec job.Spec, cfg openshell.Config, registry *computer.Registry, person string) (int, error) {
+func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, cfg openshell.Config, registry *computer.Registry, person string) (int, error) {
 	if w.proxy == nil {
 		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
@@ -74,7 +74,7 @@ func (w *WayOut) RunInComputer(dir job.Dir, spec job.Spec, cfg openshell.Config,
 	if err != nil {
 		return 0, err
 	}
-	return runner.Outside(dir, &computerBox{Sandbox: box, registry: registry, id: held.ID})
+	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: registry, id: held.ID})
 }
 
 // computerBox is a computer for a job that says in the record what became of it.

@@ -23,7 +23,11 @@ import (
 
 // Inside does the whole run and returns the exit code the gate earned, so a
 // caller needs nothing but the process status to know what happened.
-func Inside(dir job.Dir) (int, error) {
+func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(), dir) }
+
+// InsideContext is Inside that stops early when its context ends, as it does when the budget's seconds run out: the harness
+// is killed, what it did is kept, and the manifest says why it stopped.
+func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	stopRelay, err := relayOut()
 	if err != nil {
 		return 0, err
@@ -69,7 +73,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 	budget := time.Duration(spec.Budget.Seconds) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), budget)
+	ctx, cancel := context.WithTimeout(parent, budget)
 	defer cancel()
 	servers, err := Servers(dir)
 	if err != nil {
@@ -84,6 +88,7 @@ func Inside(dir job.Dir) (int, error) {
 		return 0, err
 	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
+	ownGroup(command)
 	var exit int
 	if adapter.Stream != harness.ACP {
 		err = adapter.Give(command, servers)
@@ -136,6 +141,7 @@ func Inside(dir job.Dir) (int, error) {
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
+		StoppedBy:       stoppedBy(ctx, dir),
 		StoppedByCap:    capped,
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,

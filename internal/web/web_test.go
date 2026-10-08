@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -29,6 +30,9 @@ type site struct {
 	cookie  *http.Cookie
 	ran     chan string
 }
+
+// testWork replaces what the test server's queue does with a job, for the test that sets it.
+var testWork jobs.StoppableWork
 
 func open(t *testing.T) *site {
 	t.Helper()
@@ -67,7 +71,7 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 		t.Fatal(err)
 	}
 	ran := make(chan string, 4)
-	queue := jobs.Start(index, func(dir job.Dir) (int, error) {
+	work := func(_ context.Context, dir job.Dir) (int, error) {
 		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 			return 0, err
 		}
@@ -76,7 +80,11 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 		}
 		ran <- dir.Path()
 		return 0, nil
-	}, 1)
+	}
+	if testWork != nil {
+		work = testWork
+	}
+	queue := jobs.StartStoppable(index, work, 1)
 	t.Cleanup(queue.Stop)
 	instances, err := instance.Open(t.TempDir())
 	if err != nil {
