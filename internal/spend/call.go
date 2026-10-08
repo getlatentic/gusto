@@ -38,6 +38,10 @@ type Call struct {
 	// none, and is priced as if nothing was cached.
 	CachedTokens *int64   `json:"cachedTokens,omitempty"`
 	USD          *float64 `json:"usd"`
+	// Redacted is how many of each kind of data were masked in the request before it left, and RedactedAnswer in what came back,
+	// by the name of the kind. What was masked is not kept.
+	Redacted       map[string]int `json:"redacted,omitempty"`
+	RedactedAnswer map[string]int `json:"redactedAnswer,omitempty"`
 	// Host is where a request other than a model call was going, as
 	// host:port. Such a request costs no model money and is not counted.
 	Host string `json:"host,omitempty"`

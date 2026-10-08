@@ -11,6 +11,7 @@ import (
 
 	tools "github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/redact"
 	"github.com/getlatentic/haas/internal/setup"
 )
 
@@ -20,9 +21,11 @@ import (
 type gateways struct {
 	jobs string
 	// policy is the tool policy as it is now, which a change to its file replaces and a job that is running asks for at each call.
-	policy  atomic.Pointer[tools.Policy]
-	mode    tools.Mode
-	private bool
+	policy atomic.Pointer[tools.Policy]
+	mode   tools.Mode
+	// redactor is what masks the answers of tools, which a change to HAAS_REDACTION replaces.
+	redactor atomic.Pointer[redact.Redactor]
+	private  bool
 
 	mu       sync.Mutex
 	sessions map[string]*tools.Session
@@ -55,6 +58,8 @@ func (g *gateways) reload() error {
 }
 
 func (g *gateways) currentPolicy() tools.Policy { return *g.policy.Load() }
+
+func (g *gateways) currentRedactor() *redact.Redactor { return g.redactor.Load() }
 
 // For is the gateway of a job, or false when the job has no servers behind it.
 func (g *gateways) For(id string) (http.Handler, bool) {
@@ -99,7 +104,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 	}
 	caller := tools.Caller{Job: id, Team: spec.Team, Person: askerOf(dir)}
 	return tools.New(tools.Config{
-		Caller: caller, Servers: servers, Live: g.currentPolicy, Mode: g.mode, Private: g.private,
+		Caller: caller, Servers: servers, Live: g.currentPolicy, Redactor: g.currentRedactor, Mode: g.mode, Private: g.private,
 		Record: tools.OpenRecord(dir.OutFile(tools.RecordFile)),
 	}), true
 }

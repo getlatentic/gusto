@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/getlatentic/haas/internal/redact"
 )
 
 func namesOf(t *testing.T, h *harness) []string {
@@ -389,5 +391,40 @@ func TestAChangeToThePolicyReachesAJobThatIsAlreadyRunning(t *testing.T) {
 	mu.Unlock()
 	if _, failed := h.call("tool_call", map[string]any{"name": "reports/send_email"}); failed {
 		t.Error("the tool stayed refused after the policy was loosened")
+	}
+}
+
+func TestWhatAToolAnswersIsMaskedBeforeTheJobSeesItAndCountedInTheRecord(t *testing.T) {
+	_, server := reports(t)
+	redactor, err := redact.New("email", "card")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := start(t, Config{Servers: []Server{server}, Redactor: func() *redact.Redactor { return redactor }})
+	said, failed := h.call("tool_call", map[string]any{"name": "reports/get_report", "arguments": map[string]any{"owner": "ada@example.com", "card": "4111 1111 1111 1111"}})
+	if failed || strings.Contains(said, "ada@example.com") || strings.Contains(said, "4111") || !strings.Contains(said, "[redacted:email]") || !strings.Contains(said, "[redacted:card]") {
+		t.Errorf("the job was given %q", said)
+	}
+	var call Entry
+	for _, entry := range h.entries() {
+		if entry.Kind == "call" {
+			call = entry
+		}
+	}
+	if call.Redacted["email"] != 1 || call.Redacted["card"] != 1 {
+		t.Errorf("the record says %+v", call)
+	}
+	data, _ := os.ReadFile(h.record)
+	if strings.Contains(string(data), "ada@example.com") {
+		t.Error("the record keeps what was masked")
+	}
+}
+
+func TestWithNoRedactorWhatAToolAnswersIsGivenAsItIs(t *testing.T) {
+	_, server := reports(t)
+	h := start(t, Config{Servers: []Server{server}})
+	said, _ := h.call("tool_call", map[string]any{"name": "reports/get_report", "arguments": map[string]any{"owner": "ada@example.com"}})
+	if !strings.Contains(said, "ada@example.com") {
+		t.Errorf("the job was given %q", said)
 	}
 }
