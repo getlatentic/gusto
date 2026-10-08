@@ -12,6 +12,16 @@
 </div>
 
 <section class="panel">
+  <h2>Who it is on for</h2>
+  <p class="muted">Addresses people sign in with, one to a line: <code>ada@example.com</code>, or <code>*@example.com</code> for everybody at a company. Leave it empty for everybody. A team is a label a person chooses, and does not decide who may have what.</p>
+  <form class="stack" method="post" action="/admin/integrations/{{.Held.Name}}/for">
+    <textarea name="for" rows="3">{{range .Held.For}}{{.}}
+{{end}}</textarea>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
+<section class="panel">
   <h2>Versions <span class="muted">{{len .Held.Versions}}</span></h2>
   <table>
     <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
