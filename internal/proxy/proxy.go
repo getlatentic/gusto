@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/getlatentic/haas/internal/redact"
 	"github.com/getlatentic/haas/internal/spend"
 	"github.com/getlatentic/haas/internal/wire"
 )
@@ -33,6 +34,7 @@ type Proxy struct {
 	counts   counters
 	resolve  Resolver
 	gateways atomic.Pointer[Gateways]
+	redactor atomic.Pointer[redact.Redactor]
 }
 
 // New takes the ledger every call is counted in and every cap is checked
@@ -138,6 +140,10 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
 		return
 	}
+	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the harness called in.
+	redactor := p.redactor.Load()
+	masked, maskedRequest := maskRequest(redactor, asked.body)
+	asked.body = masked
 	body, path, translated, err := translation(credential, rest, asked.body)
 	if err != nil {
 		wire.Fail(w, translated.From, http.StatusBadRequest, err.Error())
@@ -174,16 +180,29 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	}
 	defer answer.Body.Close()
 	meter := spend.NewMeter(answer.Header.Get("Content-Type"))
+	var masking *maskedAnswer
+	var toHarness http.ResponseWriter = w
+	if redactor.On() {
+		masking = newMaskedAnswer(w, redactor)
+		toHarness = masking
+	}
 	if translated.From != "" {
 		read := &countedReader{from: io.TeeReader(answer.Body, meter)}
-		if err := translated.Answer(w, answer.StatusCode, answer.Header.Get("Content-Type"), read); err != nil {
+		if err := translated.Answer(toHarness, answer.StatusCode, answer.Header.Get("Content-Type"), read); err != nil {
 			call.Error = err.Error()
 		}
 		call.Bytes = read.n
 	} else {
-		copyHeaders(w.Header(), answer.Header)
-		w.WriteHeader(answer.StatusCode)
-		call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: w}, meter), answer.Body)
+		copyHeaders(toHarness.Header(), answer.Header)
+		toHarness.WriteHeader(answer.StatusCode)
+		call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: toHarness}, meter), answer.Body)
+	}
+	call.Redacted = maskedRequest
+	if masking != nil {
+		if err := masking.Close(); err != nil && call.Error == "" {
+			call.Error = err.Error()
+		}
+		call.RedactedAnswer = masking.counts
 	}
 	call.Status, call.Took = answer.StatusCode, since(sent)
 	p.note(job, p.priced(call, meter.Usage()))

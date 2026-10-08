@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/getlatentic/haas/internal/redact"
 )
 
 // Mode is how a job is shown its tools.
@@ -35,7 +37,9 @@ type Config struct {
 	Policy  Policy
 	// Live, when set, is the policy as it is now, asked for at each call, and Policy is not used.
 	Live func() Policy
-	Mode Mode
+	// Redactor, when set, is what masks personal data and secrets in what a tool answers, asked for at each call.
+	Redactor func() *redact.Redactor
+	Mode     Mode
 	// Private lets the servers be on a private network.
 	Private bool
 	Record  *Record
@@ -303,6 +307,7 @@ func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage
 		s.note(entry)
 		return text("the call could not be made: "+err.Error(), true)
 	}
+	result, entry.Redacted = s.masked(result)
 	size, _ := json.Marshal(result)
 	entry.ResultBytes, entry.Outcome = len(size), "ok"
 	if result.IsError {
@@ -310,6 +315,31 @@ func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage
 	}
 	s.note(entry)
 	return result
+}
+
+// masked is what a tool answered with the personal data and secrets in it masked, and how many of each. The answer is masked as the
+// message it is, so that it is the same shape, and what was masked is not kept.
+func (s *Session) masked(result Result) (Result, map[string]int) {
+	if s.config.Redactor == nil {
+		return result, nil
+	}
+	redactor := s.config.Redactor()
+	if !redactor.On() {
+		return result, nil
+	}
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		return result, nil
+	}
+	masked, counts := redactor.JSON(encoded)
+	if len(counts) == 0 {
+		return result, nil
+	}
+	var again Result
+	if json.Unmarshal(masked, &again) != nil {
+		return text("the answer held something that had to be masked, and it could not be returned masked", true), counts
+	}
+	return again, counts
 }
 
 func oneLine(text string) string {

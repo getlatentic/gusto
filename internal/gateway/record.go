@@ -26,6 +26,8 @@ type Entry struct {
 	// ArgBytes and ResultBytes are how much went in and came back, not what it was.
 	ArgBytes    int `json:"argBytes,omitempty"`
 	ResultBytes int `json:"resultBytes,omitempty"`
+	// Redacted is how many of each kind of data were masked in what the tool answered. What was masked is not kept.
+	Redacted map[string]int `json:"redacted,omitempty"`
 	// Definitions are how many tools there were and about how many tokens loading all their definitions would cost, against what
 	// the job was shown.
 	Tools       int `json:"tools,omitempty"`

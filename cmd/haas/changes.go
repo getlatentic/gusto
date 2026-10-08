@@ -45,7 +45,7 @@ func governing() map[string]string {
 			settings["HAAS_RETENTION policy sha256"] = hex.EncodeToString(sum[:])
 		}
 	}
-	for _, name := range []string{"HAAS_LIVE", "HAAS_CREDENTIALS"} {
+	for _, name := range []string{"HAAS_LIVE", "HAAS_CREDENTIALS", "HAAS_REDACTION"} {
 		if path := os.Getenv(name); path != "" {
 			if sum, err := live.Fingerprint(path); err == nil && sum != "" {
 				settings[name+" sha256"] = sum

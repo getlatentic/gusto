@@ -10,6 +10,7 @@ a minute at the default.
 | `HAAS_LIVE` | `limitPerson`, `limitTeam` (jobs at once) and `models` | The queue takes the limits from the next job it picks. The pages offer the new models. A field the file leaves out keeps the value the server started with from `HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM` and `HAAS_MODELS`. |
 | `HAAS_SPEND_POLICY` | prices, team caps, the organisation's cap | From the next call. What has been spent is kept, so a cap lowered below it refuses the next call. |
 | `HAAS_TOOL_POLICY` | rules that take tools from callers | A job that is running asks the policy at each call, so a rule reaches it at once. |
+| `HAAS_REDACTION` | the kinds of data to mask (see [GATEWAY.md](GATEWAY.md)) | The next model call, and the next tool answer. A bad file keeps what was masked before. |
 | `HAAS_CREDENTIALS` | a `<name>.json` for each credential | The next model call through the proxy uses the new key and address, including a job that is running. A folder with no credential is refused. |
 
 A file that does not read is refused whole, and what was in force stays. A misspelt field is refused, because a misspelt limit would

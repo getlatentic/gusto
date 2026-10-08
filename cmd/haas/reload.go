@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/live"
+	"github.com/getlatentic/haas/internal/redact"
 	"github.com/getlatentic/haas/internal/spend"
 	"github.com/getlatentic/haas/internal/web"
 )
@@ -46,6 +48,9 @@ func startLive(ctx context.Context, way *WayOut, index *jobs.Index, pages pageHo
 	if err := l.applyFile(); err != nil {
 		return nil, err
 	}
+	if err := l.applyRedaction(); err != nil {
+		return nil, err
+	}
 	l.refresh()
 	if !managed {
 		pages.UseLiveModels(func() web.Models { return *l.offered.Load() })
@@ -63,10 +68,25 @@ func (l *liveSettings) sources() []live.Source {
 	if l.way.gateways != nil {
 		sources = append(sources, live.Source{Name: "HAAS_TOOL_POLICY", Path: os.Getenv("HAAS_TOOL_POLICY"), Apply: l.way.gateways.reload})
 	}
+	sources = append(sources, live.Source{Name: "HAAS_REDACTION", Path: os.Getenv("HAAS_REDACTION"), Apply: l.applyRedaction})
 	if !l.managed && l.way.proxy != nil {
 		sources = append(sources, live.Source{Name: "HAAS_CREDENTIALS", Path: os.Getenv("HAAS_CREDENTIALS"), Apply: l.applyCredentials})
 	}
 	return sources
+}
+
+// applyRedaction reads which kinds of data are masked. A deployment with no proxy has no way to mask what goes to a model, so one
+// that asks for it is refused, and not left to send what it meant to hide.
+func (l *liveSettings) applyRedaction() error {
+	redactor, err := redact.ReadConfig(os.Getenv("HAAS_REDACTION"))
+	if err != nil {
+		return err
+	}
+	if redactor.On() && l.way.proxy == nil {
+		return fmt.Errorf("HAAS_REDACTION asks for %s to be masked, and this server holds no credential, so its jobs call their model directly and there is no proxy to mask what they send", strings.Join(redactor.Kinds(), ", "))
+	}
+	l.way.UseRedaction(redactor)
+	return nil
 }
 
 // applyFile reads HAAS_LIVE: the limits, which the queue takes from the next job it picks, and the models.

@@ -14,6 +14,7 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/redact"
 	"github.com/getlatentic/haas/internal/registry"
 	"github.com/getlatentic/haas/internal/rules"
 	"github.com/getlatentic/haas/internal/runner"
@@ -100,6 +101,15 @@ func (w *WayOut) credentials() proxy.Credentials {
 		return *held
 	}
 	return nil
+}
+
+// UseRedaction sets what is masked in what passes through the proxy and the gateway, from the next call on.
+func (w *WayOut) UseRedaction(redactor *redact.Redactor) {
+	if w.proxy == nil {
+		return
+	}
+	w.proxy.UseRedaction(redactor)
+	w.gateways.redactor.Store(redactor)
 }
 
 // SetCredentials changes what the proxy holds from the next call on, for a deployment with no registry. A call in flight keeps the
