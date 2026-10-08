@@ -164,6 +164,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/instances/{id}/threads/{thread}", s.asPerson(s.threadJSON))
 	mux.HandleFunc("GET /api/instances/{id}/files", s.asPerson(s.filesJSON))
 	mux.HandleFunc("GET /api/instances/{id}/file", s.asPerson(s.fileBytes))
+	mux.HandleFunc("GET /api/events", s.asPerson(s.eventsJSON))
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
