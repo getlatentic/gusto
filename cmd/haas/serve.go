@@ -155,6 +155,11 @@ func serve(args []string) int {
 		pages.UseRegistry(reg, offeredNow)
 	}
 	pages.UseLedger(way.ledger)
+	liveCtx, stopLive := context.WithCancel(context.Background())
+	defer stopLive()
+	if _, err := startLive(liveCtx, way, index, pages, reg != nil); err != nil {
+		return fail(err)
+	}
 	pages.UseHealth(web.Health{Release: releaseName(), DeployResult: os.Getenv("HAAS_DEPLOY_RESULT"), Proxy: way.ProxyCounts()})
 	pages.UseAdmins(values("HAAS_ADMINS"))
 	pages.UseLocalRepos(values("HAAS_LOCAL_REPOS"))

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/haas/internal/live"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/signing"
 )
@@ -42,6 +43,13 @@ func governing() map[string]string {
 		if text, err := os.ReadFile(filepath.Join(dir, retention.PolicyFile)); err == nil {
 			sum := sha256.Sum256(text)
 			settings["HAAS_RETENTION policy sha256"] = hex.EncodeToString(sum[:])
+		}
+	}
+	for _, name := range []string{"HAAS_LIVE", "HAAS_CREDENTIALS"} {
+		if path := os.Getenv(name); path != "" {
+			if sum, err := live.Fingerprint(path); err == nil && sum != "" {
+				settings[name+" sha256"] = sum
+			}
 		}
 	}
 	if path := os.Getenv("HAAS_TOOL_POLICY"); path != "" {

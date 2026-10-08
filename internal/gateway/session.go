@@ -33,7 +33,9 @@ type Config struct {
 	Caller  Caller
 	Servers []Server
 	Policy  Policy
-	Mode    Mode
+	// Live, when set, is the policy as it is now, asked for at each call, and Policy is not used.
+	Live func() Policy
+	Mode Mode
 	// Private lets the servers be on a private network.
 	Private bool
 	Record  *Record
@@ -53,7 +55,11 @@ func New(config Config) *Session {
 	if config.Mode == "" {
 		config.Mode = Discover
 	}
-	return &Session{config: config, now: time.Now, catalogue: newCatalogue(config.Servers, config.Private, config.Policy, config.Caller, config.Record)}
+	policy := config.Live
+	if policy == nil {
+		policy = func() Policy { return config.Policy }
+	}
+	return &Session{config: config, now: time.Now, catalogue: newCatalogue(config.Servers, config.Private, policy, config.Caller, config.Record)}
 }
 
 // Close ends the sessions with the servers.
@@ -167,13 +173,13 @@ func (s *Session) list(r *http.Request) []Tool {
 	shown := s.shownTools()
 	if s.config.Mode == All {
 		shown = shown[:0]
-		for _, candidate := range s.catalogue.entries {
+		for _, candidate := range s.catalogue.visible() {
 			tool := candidate.Tool
 			tool.Name = candidate.Flat
 			shown = append(shown, tool)
 		}
 	}
-	s.note(Entry{Kind: "list", Tools: len(s.catalogue.entries), TokensAll: definitionsTokens(s.catalogue.tools()), TokensShown: definitionsTokens(shown)})
+	s.note(Entry{Kind: "list", Tools: len(s.catalogue.visible()), TokensAll: definitionsTokens(s.catalogue.tools()), TokensShown: definitionsTokens(shown)})
 	return shown
 }
 
@@ -276,11 +282,12 @@ func (s *Session) schema(arguments json.RawMessage) Result {
 func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage) Result {
 	entry := Entry{Kind: "call", Tool: name, ArgBytes: len(arguments)}
 	found, ok := s.catalogue.find(name)
-	if why, denied := s.catalogue.denied[name]; denied && !ok {
-		server, tool, _ := strings.Cut(name, "/")
-		entry.Server, entry.Tool, entry.Outcome, entry.Why = server, tool, "refused", why
-		s.note(entry)
-		return text(why, true)
+	if ok {
+		if allowed, why := s.catalogue.allows(found); !allowed {
+			entry.Server, entry.Tool, entry.Outcome, entry.Why = found.Server, found.Tool.Name, "refused", why
+			s.note(entry)
+			return text(why, true)
+		}
 	}
 	if !ok {
 		entry.Outcome, entry.Why = "refused", "no such tool for this caller"

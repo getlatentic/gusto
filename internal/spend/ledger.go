@@ -118,6 +118,14 @@ func (l *Ledger) Policy() Policy {
 	return l.policy
 }
 
+// SetPolicy changes the prices and the caps, from the next call on. What has been counted is kept: a cap that is lowered below
+// what a team has spent refuses its next call, and one that is raised allows more.
+func (l *Ledger) SetPolicy(policy Policy) {
+	l.guard.Lock()
+	defer l.guard.Unlock()
+	l.policy = policy
+}
+
 // SetPrices changes what the ledger prices a model at, from the next call on. Calls it has counted keep
 // the cost they were written with. The map is kept, not copied, so it is not written to afterwards.
 func (l *Ledger) SetPrices(prices map[string]Price) {
