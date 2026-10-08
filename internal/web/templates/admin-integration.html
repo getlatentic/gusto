@@ -36,6 +36,23 @@
   <ul>{{range .Plugin.Skills}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Description}}</span></li>{{else}}<li class="muted">none</li>{{end}}</ul>
   <h3>MCP servers <span class="muted">{{len .Plugin.Servers}}</span></h3>
   <ul>{{range .Plugin.Servers}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Transport}}{{with .URL}} {{.}}{{end}}{{with .Command}} runs {{.}}{{end}}</span>{{if eq (printf "%s" .Transport) "stdio"}} <span class="muted">· waits for the gateway</span>{{else if eq (printf "%s" .Transport) "sse"}} <span class="muted">· older transport, not used yet</span>{{end}}</li>{{else}}<li class="muted">none</li>{{end}}</ul>
+  {{if .Plugin.Servers}}{{$programs := false}}{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}{{$programs = true}}{{end}}{{end}}
+  {{if $programs}}
+  <h3>Programs</h3>
+  <p class="muted">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the job or to any credential, and nothing it can write but a folder of the job's.</p>
+  <ul>{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
+  {{if eq $.Held.Programs .ID}}
+  <p><strong>Allowed.</strong></p>
+  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="quiet">Stop allowing them</button></form>
+  {{else}}
+  <form class="stack" method="post" action="/admin/integrations/{{$.Held.Name}}/programs/allow">
+    <input type="hidden" name="version" value="{{.ID}}">
+    <label class="check"><input type="checkbox" name="understood" value="yes"> I have read what these programs are and I allow this version's to run.</label>
+    <button type="submit">Allow the programs</button>
+  </form>
+  {{end}}
+  {{end}}
+  {{end}}
   {{if .Plugin.Problems}}
   <h3>Left out or ignored</h3>
   <ul>{{range .Plugin.Problems}}<li><code>{{.Where}}</code> {{.Message}}{{if .Left}} <span class="muted">· left out</span>{{end}}</li>{{end}}</ul>
