@@ -20,7 +20,7 @@ func installed(t *testing.T) map[datadir.Store]string {
 	t.Helper()
 	root := t.TempDir()
 	for name, path := range map[string]string{
-		"HAAS_JOBS": "jobs", "HAAS_SESSIONS": "sessions", "HAAS_SETUPS": "setups", "HAAS_COMPARISONS": "comparisons",
+		"HAAS_JOBS": "jobs", "HAAS_SESSIONS": "sessions", "HAAS_SETUPS": "setups", "HAAS_COMPARISONS": "comparisons", "HAAS_INTEGRATIONS": "integrations",
 		"HAAS_CHANGES": "changes/changes.jsonl", "HAAS_API_TOKENS": "tokens/tokens.json", "HAAS_RETENTION": "retention",
 	} {
 		t.Setenv(name, filepath.Join(root, path))

@@ -27,6 +27,9 @@ func (s *Server) sections() []section {
 	if s.setups != nil {
 		all = append(all, section{"skill-sets", "/admin/skill-sets", "Skill sets"})
 	}
+	if s.hasIntegrations() {
+		all = append(all, section{"integrations", integrationsPath, "Integrations"})
+	}
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}
@@ -104,6 +107,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 
+	s.integrationRoutes(mux)
 	s.modelRoutes(mux)
 	s.movedRoutes(mux)
 }

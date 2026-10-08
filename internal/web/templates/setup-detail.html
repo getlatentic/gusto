@@ -63,6 +63,25 @@
     <p class="muted">This deployment offers no MCP servers. Its operator declares them, because each one runs inside the box or is an address the box may reach.</p>
     {{end}}
   </section>
+  {{if or .Imported .Setup.Uses}}
+  <section class="panel">
+    <h2>Integrations</h2>
+    {{if and .Imported .Console}}
+    <form class="stack" method="post" action="{{.Base}}">
+      <input type="hidden" name="name" value="{{.Setup.Name}}">
+      {{range $server := .Setup.Servers}}<input type="hidden" name="server" value="{{$server}}">{{end}}
+      {{$named := .Setup.Integrations}}
+      {{range .Imported}}{{$n := .Name}}
+      <label class="check"><input type="checkbox" name="integration" value="{{$n}}"{{range $named}}{{if eq . $n}} checked{{end}}{{end}}> {{$n}}{{if not .On}} <span class="muted">off</span>{{end}}</label>
+      {{end}}
+      <button type="submit" class="quiet">Save</button>
+    </form>
+    {{end}}
+    {{range .Setup.Uses}}
+    <p class="muted">{{.Name}}: {{if .On}}{{.Skills}} skill{{if ne .Skills 1}}s{{end}}, {{.Servers}} server{{if ne .Servers 1}}s{{end}}{{range .Held}} · not used: {{.}}{{end}}{{else}}off, so a job with this setup does not start until an administrator turns it on{{end}}</p>
+    {{end}}
+  </section>
+  {{end}}
   {{if not .Console}}
   <section class="panel">
     <h2>Start with it</h2>

@@ -1,0 +1,45 @@
+{{template "head" .}}
+
+<div class="page-head">
+  <h1>Integrations</h1>
+  <p class="muted">Skills and MCP servers an organisation adds once, in the open Agent Plugins format. An imported integration is off until you turn a version on, and a setup then gives it to its agents.</p>
+</div>
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<section class="panel">
+  <h2>Import</h2>
+  <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+    <input type="hidden" name="kind" value="git">
+    <label>Git address <input name="address" placeholder="https://github.com/example/plugin.git" required></label>
+    <label>Branch, tag or commit <span class="muted">the version is pinned to the commit it is then</span> <input name="ref" placeholder="main"></label>
+    <label>Folder in the repository <span class="muted">when the plugin is not at the top</span> <input name="folder" placeholder="plugins/reports"></label>
+    <button type="submit">Import from git</button>
+  </form>
+  <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+    <input type="hidden" name="kind" value="upload">
+    <label>A .zip or .tar.gz of the plugin <input type="file" name="archive" accept=".zip,.gz,.tgz" required></label>
+    <button type="submit">Import the upload</button>
+  </form>
+</section>
+
+{{if .Integrations}}
+<section class="panel">
+  <table>
+    <thead><tr><th>Name</th><th>On</th><th>Versions</th></tr></thead>
+    <tbody>
+      {{range .Integrations}}
+      <tr>
+        <td><a href="/admin/integrations/{{.Name}}">{{.Name}}</a></td>
+        <td>{{if .On}}on{{else}}<span class="muted">off</span>{{end}}</td>
+        <td>{{len .Versions}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{else}}
+<p class="muted">Nothing has been imported yet.</p>
+{{end}}
+
+{{template "foot" .}}

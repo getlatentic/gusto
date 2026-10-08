@@ -10,6 +10,7 @@ import (
 	"github.com/getlatentic/haas/internal/changelog"
 	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/setup"
 )
@@ -48,13 +49,14 @@ func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) setupsData(r *http.Request, base string) map[string]any {
 	return map[string]any{
-		"Title":   productName + " — skill sets",
-		"Nav":     "new",
-		"Base":    base,
-		"Setups":  s.setupsList(),
-		"Offered": s.servers,
-		"Keeps":   s.setups != nil,
-		"Refused": r.URL.Query().Get("refused"),
+		"Title":    productName + " — skill sets",
+		"Nav":      "new",
+		"Base":     base,
+		"Setups":   s.setupsList(),
+		"Offered":  s.servers,
+		"Imported": s.importedIntegrations(),
+		"Keeps":    s.setups != nil,
+		"Refused":  r.URL.Query().Get("refused"),
 	}
 }
 
@@ -113,17 +115,18 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
-	wanted := setup.Setup{Name: name, Servers: r.Form["server"], Who: s.keeper.who(r)}
+	wanted := setup.Setup{Name: name, Who: s.keeper.who(r)}
 	action := "created"
 	if held, found := s.setups.Get(name); found {
-		wanted.Made, wanted.Who = held.Made, held.Who
+		wanted = held
 		action = "changed"
 	}
+	wanted.Servers, wanted.Integrations = r.Form["server"], r.Form["integration"]
 	if err := s.setups.Save(wanted, s.servers); err != nil {
 		s.turnAway(w, r, setupsPath, err.Error())
 		return
 	}
-	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", ")})
+	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", "), "integrations": strings.Join(wanted.Integrations, ", ")})
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
@@ -154,13 +157,14 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		return nil, false
 	}
 	return map[string]any{
-		"Title":   productName + " — " + held.Name,
-		"Nav":     "new",
-		"Base":    base,
-		"Setup":   held,
-		"Offered": s.servers,
-		"Catalog": s.entries(),
-		"Refused": r.URL.Query().Get("refused"),
+		"Title":    productName + " — " + held.Name,
+		"Nav":      "new",
+		"Base":     base,
+		"Setup":    held,
+		"Offered":  s.servers,
+		"Imported": s.importedIntegrations(),
+		"Catalog":  s.entries(),
+		"Refused":  r.URL.Query().Get("refused"),
 	}, true
 }
 
@@ -230,4 +234,16 @@ func (s *Server) unfit(wanted instance.Instance) string {
 		}
 	}
 	return ""
+}
+
+// importedIntegrations is the integrations a setup may name, or none where the server keeps none.
+func (s *Server) importedIntegrations() []*integration.Integration {
+	if s.integrations == nil {
+		return nil
+	}
+	all, err := s.integrations.List()
+	if err != nil {
+		slog.Warn("the integrations could not be listed", "error", err)
+	}
+	return all
 }

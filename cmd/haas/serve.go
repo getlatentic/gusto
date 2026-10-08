@@ -21,6 +21,7 @@ import (
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/openshell"
@@ -167,6 +168,13 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	// Integrations are plugins an administrator imported. A setup names them, and a job gets the version that is on.
+	integrations, err := integration.Open(setting("HAAS_INTEGRATIONS", "integrations"))
+	if err != nil {
+		return fail(err)
+	}
+	setups.UseIntegrations(integrations)
+	pages.UseIntegrations(integrations, integration.Clone{AllowPrivate: os.Getenv("HAAS_INTEGRATIONS_PRIVATE") == "1"})
 	pages.UseSetups(setups, servers)
 	pages.UseInBuilding(way.InBuilding())
 	lineups, err := compare.OpenBoard(setting("HAAS_COMPARISONS", "comparisons"))
