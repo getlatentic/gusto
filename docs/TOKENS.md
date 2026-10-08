@@ -89,6 +89,8 @@ there.
 | `GET /api/instances/{id}` | one agent and its threads |
 | `GET /api/instances/{id}/threads` | its threads |
 | `GET /api/instances/{id}/threads/{thread}` | one thread, and the turns said in it as the jobs they were |
+| `POST /api/instances/{id}/threads` | opens a thread: `{"title": "..."}`, answered `201` with the thread |
+| `POST /api/instances/{id}/threads/{thread}/say` | says something in it: `{"said": "..."}`, answered `202` with the job, the turn the harness will take |
 | `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
 | `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
 
@@ -109,6 +111,14 @@ that. After it, each job's change is one event:
 Each carries `{"job","instance","thread","brief","state","at"}`. A comment line every
 twenty seconds keeps the connection open through a proxy. A job that waits for an
 approval has no event yet, because the product has no approval to wait for.
+
+**A send made twice is one send.** `POST /api/jobs` and a thread's `say` take an
+`Idempotency-Key` header: up to 128 printable characters with no spaces. A second send with
+the same key from the same asker starts nothing and gives back the first job (`say` also
+says `"already": true`; `POST /api/jobs` answers `200` and not `201`). The key belongs to
+the asker, so another person's identical key is another send, and it is kept in the job's
+record for as long as the job is, so a retry after a restart still finds it. Sends that
+carry a key go one at a time, so two arriving together are one.
 
 A request that carries a person's token is never an admin's, even when it also
 carries an admin's cookie.

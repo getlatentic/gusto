@@ -70,9 +70,11 @@ type Server struct {
 	computers   *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
-	changes   *changelog.Log
-	tokens    *apitoken.Store
-	devices   deviceCodes
+	changes *changelog.Log
+	tokens  *apitoken.Store
+	devices deviceCodes
+	// keyed serialises the sends that carry a request id, so that two arriving together are one.
+	keyed     sync.Mutex
 	retention *retained
 	health    Health
 	wrong     attempts
@@ -163,6 +165,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/instances/{id}", s.asPerson(s.instanceJSON))
 	mux.HandleFunc("GET /api/instances/{id}/threads", s.asPerson(s.threadsJSON))
 	mux.HandleFunc("GET /api/instances/{id}/threads/{thread}", s.asPerson(s.threadJSON))
+	mux.HandleFunc("POST /api/instances/{id}/threads", s.asPerson(s.newThreadJSON))
+	mux.HandleFunc("POST /api/instances/{id}/threads/{thread}/say", s.asPerson(s.saidJSON))
 	mux.HandleFunc("GET /api/instances/{id}/files", s.asPerson(s.filesJSON))
 	mux.HandleFunc("GET /api/instances/{id}/file", s.asPerson(s.fileBytes))
 	mux.HandleFunc("GET /api/events", s.asPerson(s.eventsJSON))

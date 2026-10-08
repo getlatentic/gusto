@@ -45,6 +45,8 @@ type Record struct {
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	Asked    string `json:"asked"`
+	// Key is the request id the sender gave, so that the same send made twice is one job. It belongs to the asker.
+	Key string `json:"requestId,omitempty"`
 	// Team is who the job counts against, for the team limit.
 	Team string `json:"team,omitempty"`
 	// Seq is the order this job arrived in. Queued is a second, and two jobs

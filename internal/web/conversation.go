@@ -158,6 +158,25 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
 		return
 	}
+	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")
+	if err != nil {
+		s.turnAway(w, r, threadPath(thread), err.Error())
+		return
+	}
+	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+}
+
+// startTurn queues what somebody said in a thread as a job and records it there. With a request id it first looks for the
+// job that same asker made with it, and gives that one back, so a send that was retried is one turn. It says whether the
+// job was already there. Sends with an id go one at a time, so two of them arriving together cannot both find nothing.
+func (s *Server) startTurn(asked string, held instance.Instance, thread instance.Thread, brief, key string) (jobs.Record, bool, error) {
+	if key != "" {
+		s.keyed.Lock()
+		defer s.keyed.Unlock()
+		if already, found := s.index.FindKey(asked, key); found {
+			return already, true, nil
+		}
+	}
 	spec := job.Spec{
 		Brief:       brief,
 		Harness:     held.Harness,
@@ -171,29 +190,25 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := s.index.Reserve(brief, time.Now())
 	if err != nil {
-		s.turnAway(w, r, threadPath(thread), err.Error())
-		return
+		return jobs.Record{}, false, err
 	}
 	record := jobs.Record{
 		ID: id, State: jobs.Queued,
 		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
-		Asked: s.keeper.who(r), Team: spec.Team, Queued: jobs.Now(),
+		Asked: asked, Key: key, Team: spec.Team, Queued: jobs.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
-		s.turnAway(w, r, threadPath(thread), err.Error())
-		return
+		return jobs.Record{}, false, err
 	}
 	if err := s.instances.Said(held.ID, thread.ID, record.ID, ""); err != nil {
-		s.turnAway(w, r, threadPath(thread), err.Error())
-		return
+		return jobs.Record{}, false, err
 	}
 	if err := s.instances.Name(held.ID, thread.ID, instance.TitleOf(brief)); err != nil {
-		s.turnAway(w, r, threadPath(thread), err.Error())
-		return
+		return jobs.Record{}, false, err
 	}
 	s.queue.Wake()
-	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+	return record, false, nil
 }
 
 // stopped is the last thing the harness or the runner said on its way out.
