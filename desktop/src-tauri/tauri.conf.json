@@ -3,19 +3,42 @@
   "productName": "Latentic Agent Cloud",
   "version": "0.1.0",
   "identifier": "com.latentic.agentcloud",
-  "build": { "frontendDist": "../dist" },
+  "build": {
+    "frontendDist": "../dist"
+  },
   "app": {
     "withGlobalTauri": true,
     "windows": [],
-    "security": { "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost" }
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
-    "externalBin": ["binaries/haas-helper"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/haas-helper"
+    ],
     "category": "DeveloperTool",
     "shortDescription": "Latentic Agent Cloud",
-    "macOS": { "minimumSystemVersion": "12.0" }
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "latentic"
+        ]
+      }
+    }
   }
 }

@@ -1,16 +1,17 @@
 //! The icon, its menu, and the notification when a turn ends. What is in them comes from the helper, which follows the person's turns.
 
-use crate::{config, helper, window};
+use crate::{config, helper, notice, window};
 use std::{
     collections::HashMap,
     sync::Mutex,
     time::Duration,
 };
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItemBuilder},
+    menu::{CheckMenuItemBuilder, Menu, MenuBuilder, MenuItemBuilder},
     tray::TrayIconBuilder,
     AppHandle, Manager,
 };
+use tauri_plugin_autostart::ManagerExt;
 
 const SLOTS: usize = 8;
 const ID: &str = "latentic";
@@ -25,6 +26,7 @@ struct View {
     standing: String,
     turns: Vec<(String, String)>,
     sign_in: bool,
+    login: bool,
 }
 
 fn word(state: &str) -> &str {
@@ -89,14 +91,20 @@ fn menu(app: &AppHandle, view: &View) -> tauri::Result<Menu<tauri::Wry>> {
         builder = builder.item(&MenuItemBuilder::with_id("signin", "Sign in…").build(app)?);
     }
     builder
+        .item(&CheckMenuItemBuilder::with_id("login", "Start at login").checked(view.login).build(app)?)
         .item(&MenuItemBuilder::with_id("server", "Change server…").build(app)?)
         .separator()
         .item(&MenuItemBuilder::with_id("quit", "Quit").build(app)?)
         .build()
 }
 
+/// Whether the app starts when the person signs in to the computer.
+fn login(app: &AppHandle) -> bool {
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
-    let empty = menu(app, &View { standing: "Starting…".into(), turns: vec![], sign_in: false })?;
+    let empty = menu(app, &View { standing: "Starting…".into(), turns: vec![], sign_in: false, login: login(app) })?;
     TrayIconBuilder::with_id(ID)
         .icon(tauri::include_image!("icons/tray.png"))
         .icon_as_template(true)
@@ -107,6 +115,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             match id.as_str() {
                 "open" => window::show(app),
                 "server" => window::ask_for_server(app),
+                "login" => {
+                    let launch = app.autolaunch();
+                    let _ = if launch.is_enabled().unwrap_or(false) { launch.disable() } else { launch.enable() };
+                }
                 "signin" => {
                     if let Some(server) = config::load(app).server {
                         helper::sign_in(&server);
@@ -141,6 +153,7 @@ fn watch(app: AppHandle) {
                 standing: standing(&status),
                 turns: listed(&turns, &server),
                 sign_in: status.as_ref().map(|s| !s.signed_in).unwrap_or(false) && !server.is_empty(),
+                login: login(&app),
             };
             if last.as_ref() != Some(&view) {
                 if let (Some(tray), Ok(built)) = (app.tray_by_id(ID), menu(&app, &view)) {
@@ -153,20 +166,12 @@ fn watch(app: AppHandle) {
                 going.insert(turn.job.clone(), !ended(&turn.state));
                 // A turn the helper told of for the first time already ended, which is what a reconnect or a start repeats, is not news.
                 if !first && was_going == Some(true) && ended(&turn.state) {
-                    announce(&turn.brief, &turn.state);
+                    notice::send(&app, &format!("Your agent {}", word(&turn.state)), &short(&turn.brief), &helper::page_of(&server, turn));
                 }
             }
             first = false;
         }
     });
-}
-
-fn announce(brief: &str, state: &str) {
-    let _ = notify_rust::Notification::new()
-        .appname("Latentic Agent Cloud")
-        .summary(&format!("Your agent {}", word(state)))
-        .body(&short(brief))
-        .show();
 }
 
 #[cfg(test)]
