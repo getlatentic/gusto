@@ -51,6 +51,7 @@ func Run(args []string) int {
 	fmt.Println("following", server)
 	daemon := &helper.Daemon{Server: server, Vault: vault, Dir: dir, Hub: helper.NewHub()}
 	if !*withTray {
+		daemon.SetTray("off: it was started with -tray=false")
 		return finish(daemon.Run(ctx))
 	}
 	return runWithTray(ctx, stop, daemon)
@@ -70,11 +71,12 @@ func runWithTray(ctx context.Context, stop context.CancelFunc, daemon *helper.Da
 	served := make(chan error, 1)
 	go func() { served <- daemon.Run(ctx) }()
 	go (&desk.Announcer{Hub: daemon.Hub, Server: daemon.Server, Say: desk.Notify}).Run(ctx)
-	err := desk.Tray{Hub: daemon.Hub, Server: daemon.Server, Status: daemon.Status, Icon: desk.Icon()}.Run(ctx)
+	err := desk.Tray{Hub: daemon.Hub, Server: daemon.Server, Status: daemon.Status, Icon: desk.Icon(), Shown: func() { daemon.SetTray("shown") }}.Run(ctx)
 	if err == nil {
 		stop()
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {
+		daemon.SetTray("none: " + err.Error())
 		fmt.Fprintln(os.Stderr, "no tray icon:", err)
 	}
 	return finish(<-served)
@@ -101,15 +103,25 @@ func Status(args []string) int {
 		fmt.Fprintln(os.Stderr, "the helper does not answer:", err)
 		return 1
 	}
+	fmt.Print(statusWords(status))
+	return 0
+}
+
+// statusWords is what the helper says of itself: how it stands with the server, and whether the icon is shown and why not.
+func statusWords(status helper.Status) string {
+	var words string
 	switch {
 	case !status.SignedIn:
-		fmt.Printf("running, following %s, but not signed in: run `haas-helper login`\n", status.Server)
+		words = fmt.Sprintf("running, following %s, but not signed in: run `haas-helper login`\n", status.Server)
 	case !status.Connected:
-		fmt.Printf("running, signed in as %s, and trying to reach %s\n", status.Person, status.Server)
+		words = fmt.Sprintf("running, signed in as %s, and trying to reach %s\n", status.Person, status.Server)
 	default:
-		fmt.Printf("running, signed in as %s, and following %s\n", status.Person, status.Server)
+		words = fmt.Sprintf("running, signed in as %s, and following %s\n", status.Person, status.Server)
 	}
-	return 0
+	if status.Tray != "" {
+		words += "icon: " + status.Tray + "\n"
+	}
+	return words
 }
 
 // Service installs or removes the helper's start at login.
