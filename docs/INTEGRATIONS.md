@@ -45,3 +45,24 @@ that says which version is on.
   folder is not kept.
 - Every change is in the integration's own history, with who and when. A record that cannot be read
   is an error and not an empty list.
+
+## Getting a plugin in
+
+A plugin arrives as an upload or from a git address, and in both it is a stranger's files.
+
+**An upload** is a `.zip` or a `.tar.gz` of up to 50 MiB. It is unpacked by this project's own
+code and not a tool's: a name that is absolute, has a drive, or climbs out is refused; a link,
+a device and a pipe are refused; a name written twice is refused; and files, folders and bytes
+are counted as they are written, so a small archive that unpacks to a great deal stops at 5000
+files or 100 MiB. A refused archive leaves nothing behind. An archive made from a repository,
+which puts everything in one folder, has that folder taken off.
+
+**A git address** must be https, with no user name or password. The host must not resolve to a
+private, loopback or link-local address unless an administrator allows it, so the address cannot
+be used to look at what the server can see and the internet cannot. A branch, a tag or a commit
+is fetched at depth one, and a folder in the repository may be named. The version is pinned to
+the commit that was fetched. Git runs with none of the machine's configuration, no questions, no
+hooks, no submodules and no redirects, and a link in the repository is written as a plain file,
+so a repository cannot point out of its own folder.
+
+Both fetches only produce a folder. The folder is then read and kept as in the sections above.
