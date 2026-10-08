@@ -12,22 +12,28 @@ copies the section into the release's notes. Changes made after a release go und
 
 ## Next release
 
+Nothing yet.
+
+## v0.0.1-alpha.3
+
+Since `v0.0.1-alpha.2`. The data stays at format 1 in every store.
+
 **Settings added**
 
 - `HAAS_OPENSHELL_REMOTE=1`: the OpenShell gateway is on another machine, so this one needs no `/dev/kvm`.
 - The chart's `auth.oidc` and `spend` values, and the OIDC settings in `deploy/compose/env.example`. The server already took these settings; [SSO.md](SSO.md) now says what they do.
 
-- **Stop a turn:** a Stop button on the conversation and `POST /api/jobs/{id}/stop`. A stopped turn ends `interrupted` and its manifest has the new `stoppedBy` field (`schema/manifest/v1.json`). A harness that is stopped, or whose time runs out, now has its whole process group killed, so what it started cannot hold the run open. Containers are named `haas-<job id>`.
-- A person's token can start an agent, list the agents and models it may use, and read or follow a turn as JSON ([TOKENS.md](TOKENS.md)).
-- **Refused now:** starting an agent this server does not offer or cannot run, which the page used to accept and fail later.
-- `Idempotency-Key` on `POST /api/jobs` and on a thread's `say`: a send made twice with one key is one job ([TOKENS.md](TOKENS.md)). A person's token can open a thread and say something in it.
-- `haas-helper run`, `status` and `service`: the helper follows a person's jobs and answers on a loopback port, and starts at login as a launch agent, a systemd user unit or a scheduled task ([DESKTOP.md](DESKTOP.md)).
-- `haas login`, `haas whoami` and `haas logout`: a person's computer signs in to a server that takes API tokens, and keeps its token in the operating system's keychain ([TOKENS.md](TOKENS.md)).
-- With `HAAS_API_TOKENS` set, a person's computer can sign in by the device flow and hold a token that acts as them ([TOKENS.md](TOKENS.md)). It has the one scope `work`, which no admin form grants.
+**New**
+
+- **Stop a turn:** a Stop button on the conversation and `POST /api/jobs/{id}/stop`. A stopped turn ends `interrupted`, and its manifest has a new `stoppedBy` field (`schema/manifest/v1.json`). A harness that is stopped, or whose time runs out, has its whole process group killed, so what it started cannot hold the run open. Containers are named `haas-<job id>` ([STATES.md](STATES.md#stopping-a-job)).
+- **A person's computer:** `haas-helper login`, `whoami`, `logout`, `run`, `status` and `service`. With `HAAS_API_TOKENS` set, a computer signs in by the device flow and holds a token that acts as one person, with the one scope `work`, which no admin form grants. It keeps the token in the operating system's keychain, follows the person's jobs, and starts at login ([TOKENS.md](TOKENS.md), [DESKTOP.md](DESKTOP.md)). `haas` has `login`, `whoami` and `logout` too, and now builds for Windows.
+- **A person's token reads and acts as JSON:** it lists their agents and the models they may use, starts an agent, opens a thread and says something in it, reads or follows a turn, and hears `GET /api/events` ([TOKENS.md](TOKENS.md)).
+- **`Idempotency-Key`** on `POST /api/jobs` and on a thread's `say`: a send made twice with one key is one job.
 
 **Refused now**
 
 - `HAAS_SANDBOX=openshell` on a Linux machine with no `/dev/kvm`. The server does not start, and `haas doctor` reports it.
+- Starting an agent this server does not offer or cannot run, which the page used to accept and fail later.
 
 ## v0.0.1-alpha.2
 
