@@ -76,6 +76,9 @@ func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	ctx, cancel := context.WithTimeout(parent, budget)
 	defer cancel()
 	servers, err := Servers(dir)
+	if err == nil {
+		servers, err = withGateway(servers, spec)
+	}
 	if err != nil {
 		return 0, Refuse(dir, err)
 	}

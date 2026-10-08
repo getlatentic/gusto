@@ -126,7 +126,7 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	admin.wait(t, id)
 	dir := job.Dir(filepath.Join(here.index.Root(), id))
 	spec, err := job.Read(dir)
-	if err != nil || spec.Setup == nil || strings.Join(spec.Setup.Skills, ",") != "summarize" || strings.Join(spec.Setup.Servers, ",") != "reports-api" {
+	if err != nil || spec.Setup == nil || strings.Join(spec.Setup.Skills, ",") != "summarize" || strings.Join(spec.Setup.Gateway, ",") != "reports-api" || len(spec.Setup.Servers) != 0 {
 		t.Fatalf("job.json names %+v (%v)", spec.Setup, err)
 	}
 	if use := spec.Setup.Integrations; len(use) != 1 || use[0].Name != "reports" || use[0].Version != version {

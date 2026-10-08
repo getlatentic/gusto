@@ -340,3 +340,25 @@ func TestManyCallsAtOnceAreAllAnsweredAndAllRecorded(t *testing.T) {
 		t.Errorf("%d calls were recorded, want 20", calls)
 	}
 }
+
+func TestTheToolsTheJobIsShownAreSchemasAClientTakes(t *testing.T) {
+	_, server := reports(t)
+	h := start(t, Config{Servers: []Server{server}})
+	for _, mode := range []Mode{Discover, All} {
+		h.session.config.Mode = mode
+		listing := h.send("tools/list", nil).Result.(map[string]any)["tools"].([]any)
+		for _, one := range listing {
+			tool := one.(map[string]any)
+			schema, ok := tool["inputSchema"].(map[string]any)
+			if !ok || schema["type"] != "object" {
+				t.Errorf("%s: inputSchema = %v", tool["name"], tool["inputSchema"])
+				continue
+			}
+			if required, there := schema["required"]; there {
+				if _, isList := required.([]any); !isList {
+					t.Errorf("%s: required is %v, which a client refuses unless it is a list", tool["name"], required)
+				}
+			}
+		}
+	}
+}

@@ -34,7 +34,7 @@ func governing() map[string]string {
 	settings := map[string]string{}
 	for _, name := range []string{
 		"HAAS_ALLOWED", "HAAS_ADMINS", "HAAS_RUNNER_GROUPS", "HAAS_ADMIN_GROUPS",
-		"HAAS_OIDC_GROUPS_CLAIM", "HAAS_OIDC_ISSUER", "HAAS_ALLOWED_HOSTS", "HAAS_MODELS", "HAAS_REGISTRY", "HAAS_REGISTRY_KEYS", "HAAS_REGISTRY_PRIVATE", "HAAS_JOB_NETWORK", "HAAS_API_TOKENS", "HAAS_RETENTION", "HAAS_INTEGRATIONS_PRIVATE", "HAAS_LIMIT_PERSON", "HAAS_LIMIT_TEAM",
+		"HAAS_OIDC_GROUPS_CLAIM", "HAAS_OIDC_ISSUER", "HAAS_ALLOWED_HOSTS", "HAAS_MODELS", "HAAS_REGISTRY", "HAAS_REGISTRY_KEYS", "HAAS_REGISTRY_PRIVATE", "HAAS_JOB_NETWORK", "HAAS_API_TOKENS", "HAAS_RETENTION", "HAAS_INTEGRATIONS_PRIVATE", "HAAS_GATEWAY_MODE", "HAAS_GATEWAY_PRIVATE", "HAAS_LIMIT_PERSON", "HAAS_LIMIT_TEAM",
 	} {
 		settings[name] = os.Getenv(name)
 	}
@@ -42,6 +42,12 @@ func governing() map[string]string {
 		if text, err := os.ReadFile(filepath.Join(dir, retention.PolicyFile)); err == nil {
 			sum := sha256.Sum256(text)
 			settings["HAAS_RETENTION policy sha256"] = hex.EncodeToString(sum[:])
+		}
+	}
+	if path := os.Getenv("HAAS_TOOL_POLICY"); path != "" {
+		if text, err := os.ReadFile(path); err == nil {
+			sum := sha256.Sum256(text)
+			settings["HAAS_TOOL_POLICY sha256"] = hex.EncodeToString(sum[:])
 		}
 	}
 	if path := os.Getenv("HAAS_SPEND_POLICY"); path != "" {
