@@ -59,3 +59,12 @@ jobs:
           ./haas-helper.exe
           code=$?
           [ "$code" = 2 ] || { echo "haas-helper with no verb exited $code, not 2"; exit 1; }
+      - name: The helper as a scheduled task, started now and gone after
+        shell: bash
+        run: |
+          ./haas-helper.exe service install -server http://127.0.0.1:1
+          sleep 5
+          ./haas-helper.exe status
+          ./haas-helper.exe service status
+          ./haas-helper.exe service uninstall
+          if ./haas-helper.exe service status; then echo "the task is still there"; exit 1; fi
