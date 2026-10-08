@@ -93,7 +93,8 @@ func (l Local) Ask(ctx context.Context) (Status, error) {
 	return status, json.NewDecoder(response.Body).Decode(&status)
 }
 
-func (d *Daemon) status() Status {
+// Status is how the helper stands now.
+func (d *Daemon) Status() Status {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return Status{Server: d.Server, SignedIn: d.signedIn, Person: d.person, Connected: d.connected}
@@ -205,7 +206,7 @@ func (d *Daemon) pause(ctx context.Context, wait time.Duration) { _ = sleep(ctx,
 // a page that guesses the port out.
 func (d *Daemon) handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/status", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, d.status()) })
+	mux.HandleFunc("GET /v1/status", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, d.Status()) })
 	mux.HandleFunc("GET /v1/turns", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, d.Hub.Turns()) })
 	mux.HandleFunc("GET /v1/events", d.events)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

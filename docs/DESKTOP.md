@@ -69,8 +69,9 @@ checksums' signature when `cosign` is installed (`HAAS_REQUIRE_COSIGN=1` refuses
 without it), and puts `haas-helper` in `~/.local/bin` (`HAAS_HELPER_DIR` changes that) or, on
 Windows, in `%LOCALAPPDATA%\haas-helper`, which it adds to the user's PATH: the only setting it
 changes. `haas-helper version` says which release is installed. The packages are built by
-`deploy/helper/build.sh`, with no C compiler and no paths of the build machine, so a person can
-build the same bytes from the source.
+`deploy/helper/build.sh`. Linux and Windows programs are built with no C compiler. macOS programs
+are built on macOS, because the menu bar icon is drawn through the system's libraries. No package
+holds a path of the build machine.
 
 **Not signed for the operating systems.** The programs are not signed with an Apple developer
 certificate or a Windows code-signing certificate, which this project does not have. A package
@@ -110,8 +111,8 @@ another name, and has to carry the token as `Authorization: Bearer`.
 | `GET /v1/events` | the same events the server sends (`turn.queued`, `turn.started`, `turn.finished`, `turn.failed`, `turn.interrupted`): each job's latest, then `ready`, then each change |
 
 A second `run` refuses while one answers. No route has cross-origin headers: a shell
-that is a web view on another origin needs the helper told to allow it, which is
-decided with the shell (getlatentic/planning#587).
+that is a web view on another origin needs the helper told to allow it. The tray
+(see Attention) is part of the helper, so it needs no such route.
 
 **`haas-helper service install -server <address>`** makes the helper start at login
 and starts it now, with what each system has for a program a person runs: a launch
@@ -241,16 +242,39 @@ cancel that ends `cancelled` and reaches the server as a stop. No editor has bee
 
 ## Attention
 
-A tray icon, or the menu bar, lists running, waiting and finished turns, and a
-notification names a turn that finished or needs an approval. A click opens the
-page in the browser. There is no window in the first version. A person who wants
+`haas-helper run` shows an icon in the menu bar or tray (`-tray=false` turns it off). Its menu says
+how the helper stands and lists up to eight turns, running ones first. A click on a turn opens its
+conversation in the browser. A notification names a turn that finished, failed or was stopped, and
+only a turn the helper saw going: the turns the server repeats on a reconnect are silent. A turn
+that waits for an approval is not announced, because the server sends no event for it yet.
+A computer with no desktop session (Linux with no D-Bus session) runs the helper with no icon.
+A macOS helper built without a C compiler has no icon either. There is no window in the first version. A person who wants
 the conversation uses the web, an editor or the terminal.
+
+The tray is part of the helper process. There is no shell around it. The spike
+(getlatentic/planning#587) built the same tray, with one notification, three ways on
+macOS 27 (Apple silicon):
+
+| | Tauri 2 | Wails v3 (beta.28) | Helper alone (`fyne.io/systray`) |
+| --- | --- | --- | --- |
+| Toolchains | Go and Rust | Go | Go |
+| Cold build | 3 min 17 s | 55 s | 4.5 s |
+| Binary | 3.5 MB | 15.4 MB | 4.2 MB |
+| Idle memory | 87.5 MB | 82.0 MB | 75.4 MB |
+| Extra process for the helper | yes | no | no |
+| Notification needs an app bundle | yes | yes (refuses to start without one) | no |
+| Click on a notification opens a page | yes, in a bundle | yes, in a bundle | no |
+
+The helper alone wins on build, size, memory and parts. Its cost is that a
+notification cannot be clicked: on macOS it comes from `osascript` and belongs to
+Script Editor. The tray menu holds the same turns, so a click there opens the page.
+A shell returns when the helper needs a window. Tauri is then the choice, because
+Wails v3 is still a beta. Measured on macOS only: the Windows and Linux trays are
+not measured. The `latentic://` link and the notification permission prompt were
+not shown working in either bundle, so neither is a reason to choose.
 
 ## What is not decided
 
-- Whether the tray needs a shell. The spike builds the same thing in Tauri 2,
-  Wails v3 and the helper alone, and measures it (getlatentic/planning#587).
-  Wails v3 is a beta, and its signing and update support is checked, not assumed.
 - A native UI, which waits on people asking for more than this and needs the API
   above.
 

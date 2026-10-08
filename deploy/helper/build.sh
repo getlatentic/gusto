@@ -4,7 +4,9 @@
 #
 #   deploy/helper/build.sh v0.0.1-alpha.5 linux amd64 dist
 #
-# The program is built with no C compiler and no paths of the machine it was built on, so the same source gives the same bytes.
+# Linux and Windows programs are built with no C compiler. A macOS program is built on macOS with its C compiler, because the
+# menu bar icon is drawn through the system's libraries; built anywhere else it has no icon. No build holds a path of the
+# machine it was built on.
 set -eu
 tag=${1:?the release, such as v0.0.1-alpha.5, or dev}
 os=${2:?linux, darwin or windows}
@@ -18,7 +20,10 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 root=$(git rev-parse --show-toplevel)
 
-(cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
+cgo=0
+[ "$os" = darwin ] && [ "$(uname -s)" = Darwin ] && cgo=1
+
+(cd "$root" && CGO_ENABLED=$cgo GOOS=$os GOARCH=$arch go build -trimpath \
   -ldflags "-s -w -X github.com/getlatentic/haas/internal/helper/cli.Version=$tag" -o "$work/$exe" ./cmd/haas-helper)
 
 mkdir -p "$out"
