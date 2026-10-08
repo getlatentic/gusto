@@ -241,3 +241,126 @@ func (c Client) FollowJob(ctx context.Context, job string, told Follower) (Ended
 
 // patient is how long a send is tried before it is given up on, with the same key each time.
 const patient = 20 * time.Second
+
+// RemoteFile is a file of an agent's folder as the listing gives it.
+type RemoteFile struct {
+	Path       string `json:"path"`
+	Size       int64  `json:"size"`
+	ModifiedNs int64  `json:"modifiedNs"`
+}
+
+// Files lists the regular files of an agent's folder, and says when the list was cut.
+func (c Client) Files(ctx context.Context, instance string) (files []RemoteFile, cut bool, err error) {
+	var out struct {
+		Files []RemoteFile `json:"files"`
+		Cut   bool         `json:"cut"`
+	}
+	err = c.send(ctx, http.MethodGet, "/api/instances/"+url.PathEscape(instance)+"/files", nil, nil, &out)
+	return out.Files, out.Cut, err
+}
+
+// Hashes gives the hash of each file named. A file that is not there, or is not a plain file, is left out.
+func (c Client) Hashes(ctx context.Context, instance string, paths []string) (map[string]string, error) {
+	var out struct {
+		Hashes map[string]string `json:"hashes"`
+	}
+	err := c.send(ctx, http.MethodPost, "/api/instances/"+url.PathEscape(instance)+"/hashes", nil, map[string][]string{"paths": paths}, &out)
+	return out.Hashes, err
+}
+
+// Changed is the server refusing a write or a delete because the file is not what the writer saw. Hash is what it is.
+type Changed struct{ Hash string }
+
+func (c *Changed) Error() string { return "the file changed in the cloud since it was read" }
+
+// Download writes a file of the agent's folder to w.
+func (c Client) Download(ctx context.Context, instance, path string, w io.Writer) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.Server, "/")+"/api/instances/"+url.PathEscape(instance)+"/file?path="+url.QueryEscape(path), nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+c.Token)
+	response, err := (&http.Client{Transport: c.transport()}).Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return &Refused{Status: response.StatusCode, Message: "the file could not be read"}
+	}
+	_, err = io.Copy(w, response.Body)
+	return err
+}
+
+// Upload puts a file in the agent's folder, whole. saw is the hash the file had when it was read, or "absent" when it was not
+// there, and the server refuses with Changed when the file is something else now. It gives the hash the server computed.
+func (c Client) Upload(ctx context.Context, instance, path string, body io.Reader, saw string, executable bool) (string, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodPut, strings.TrimRight(c.Server, "/")+"/api/instances/"+url.PathEscape(instance)+"/file?path="+url.QueryEscape(path), body)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Authorization", "Bearer "+c.Token)
+	request.Header.Set("X-If-Hash", saw)
+	if executable {
+		request.Header.Set("X-Mode", "755")
+	}
+	response, err := (&http.Client{Transport: c.transport()}).Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	text, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	var answer struct {
+		Hash  string `json:"hash"`
+		Error string `json:"error"`
+	}
+	_ = json.Unmarshal(text, &answer)
+	switch response.StatusCode {
+	case http.StatusOK:
+		return answer.Hash, nil
+	case http.StatusPreconditionFailed:
+		return "", &Changed{Hash: answer.Hash}
+	case http.StatusUnauthorized:
+		return "", fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+	}
+	return "", &Refused{Status: response.StatusCode, Message: firstNonEmpty(answer.Error, "the file could not be put")}
+}
+
+// Remove deletes a file of the agent's folder, when it is what the writer saw.
+func (c Client) Remove(ctx context.Context, instance, path, saw string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodDelete, strings.TrimRight(c.Server, "/")+"/api/instances/"+url.PathEscape(instance)+"/file?path="+url.QueryEscape(path), nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+c.Token)
+	request.Header.Set("X-If-Hash", saw)
+	response, err := c.http().Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	text, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	var answer struct {
+		Hash  string `json:"hash"`
+		Error string `json:"error"`
+	}
+	_ = json.Unmarshal(text, &answer)
+	switch response.StatusCode {
+	case http.StatusNoContent, http.StatusOK:
+		return nil
+	case http.StatusPreconditionFailed:
+		return &Changed{Hash: answer.Hash}
+	case http.StatusUnauthorized:
+		return fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+	}
+	return &Refused{Status: response.StatusCode, Message: firstNonEmpty(answer.Error, "the file could not be removed")}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
