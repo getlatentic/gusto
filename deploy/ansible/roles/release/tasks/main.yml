@@ -21,6 +21,7 @@
     HAAS_JOBS: "{{ app_root }}/var/jobs"
     HAAS_SESSIONS: "{{ app_root }}/var/sessions"
     HAAS_SETUPS: "{{ app_root }}/var/setups"
+    HAAS_INTEGRATIONS: "{{ app_root }}/var/integrations"
     HAAS_COMPARISONS: "{{ app_root }}/var/comparisons"
     HAAS_CHANGES: "{{ app_root }}/var/changes/changes.jsonl"
     HAAS_RETENTION: "{{ app_root }}/var/retention"

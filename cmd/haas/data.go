@@ -15,11 +15,12 @@ import (
 // server reads. A store that is not set up here is left out.
 func dataDirs() map[datadir.Store]string {
 	dirs := map[datadir.Store]string{
-		datadir.Jobs:        setting("HAAS_JOBS", "jobs"),
-		datadir.Sessions:    setting("HAAS_SESSIONS", "sessions"),
-		datadir.Setups:      setting("HAAS_SETUPS", "setups"),
-		datadir.Comparisons: setting("HAAS_COMPARISONS", "comparisons"),
-		datadir.Changes:     filepath.Dir(setting("HAAS_CHANGES", filepath.Join("changes", "changes.jsonl"))),
+		datadir.Jobs:         setting("HAAS_JOBS", "jobs"),
+		datadir.Sessions:     setting("HAAS_SESSIONS", "sessions"),
+		datadir.Setups:       setting("HAAS_SETUPS", "setups"),
+		datadir.Comparisons:  setting("HAAS_COMPARISONS", "comparisons"),
+		datadir.Integrations: setting("HAAS_INTEGRATIONS", "integrations"),
+		datadir.Changes:      filepath.Dir(setting("HAAS_CHANGES", filepath.Join("changes", "changes.jsonl"))),
 	}
 	if path := os.Getenv("HAAS_API_TOKENS"); path != "" {
 		dirs[datadir.Tokens] = filepath.Dir(path)

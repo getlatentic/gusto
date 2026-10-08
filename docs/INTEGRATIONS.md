@@ -66,3 +66,29 @@ hooks, no submodules and no redirects, and a link in the repository is written a
 so a repository cannot point out of its own folder.
 
 Both fetches only produce a folder. The folder is then read and kept as in the sections above.
+
+## Using them
+
+**The console** has an Integrations page for an administrator (`/admin/integrations`). It imports
+from a git address or an upload, lists the versions of each integration with where each came from,
+shows what a version holds and what it left out, and turns a version on, turns the integration
+off, or puts the earlier version back. Choosing a version other than the one that is on shows
+what would change: skills added, removed or changed, servers added, removed or changed, and the
+descriptive fields. Each import and each change is in the change record with what was on and what
+is on now. `HAAS_INTEGRATIONS` is the directory (a stamped data directory, in
+[UPGRADE.md](UPGRADE.md)), and `HAAS_INTEGRATIONS_PRIVATE=1` lets a git address be on a private
+network. The server needs `git`, which its image has.
+
+**A setup** names the integrations it is given. A job gets, for each one that is on:
+
+- every skill, as a whole folder with its scripts and references, in the place the harness reads skills;
+- every streamable HTTP server, named `<integration>-<server>`, which the harness is given as it is given any MCP server.
+
+A server that is a program (stdio) or uses the older SSE transport is held back, and the setup's
+page says so. Programs wait for the gateway (getlatentic/planning#519): a plugin's program should
+not run inside the sandbox. A setup that names an integration that is off starts no job, and the
+page says why. Two skills of one name, or two servers whose names become one, stop the job and
+overwrite nothing. A harness that cannot take skills or servers is told so before the job starts.
+
+`job.json` says, for each integration, the version (its fingerprint and the version the plugin
+calls itself) and the commit it was pinned to. The servers' addresses and headers stay out of it.

@@ -102,7 +102,7 @@ jobs:
   cpus: "1"
 
 # Any other HAAS_ setting, as name: value. README.md at the repository root has
-# the table. HAAS_ADDR, HAAS_JOBS, HAAS_SESSIONS, HAAS_SETUPS, HAAS_IMAGE,
+# the table. HAAS_ADDR, HAAS_JOBS, HAAS_SESSIONS, HAAS_SETUPS, HAAS_INTEGRATIONS, HAAS_IMAGE,
 # HAAS_CONTAINER and HAAS_PROXY_SOCKET belong to the chart and are refused here.
 env: {}
 

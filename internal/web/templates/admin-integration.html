@@ -1,0 +1,67 @@
+{{template "head" .}}
+
+{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+
+<nav class="crumb" aria-label="Where this is"><a href="/admin/integrations">Integrations</a><span>/</span><span>{{.Held.Name}}</span></nav>
+<div class="title-row">
+  <h1>{{.Held.Name}} <span class="muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
+  <div>
+    {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit">Turn off</button></form>{{end}}
+    {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="quiet">Put the earlier version back</button></form>{{end}}
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Versions <span class="muted">{{len .Held.Versions}}</span></h2>
+  <table>
+    <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
+    <tbody>
+      {{range .Held.Versions}}
+      <tr>
+        <td><a href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <strong>on</strong>{{end}}</td>
+        <td class="muted">{{.Source.Kind}}{{with .Source.Address}} {{.}}{{end}}{{with .Source.Commit}} @ {{.}}{{end}}</td>
+        <td class="muted">{{when .Imported}} by {{.By}}</td>
+        <td>{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit">Turn on</button></form>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+
+{{with .Shown}}
+<section class="panel">
+  <h2>{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</h2>
+  {{with .Plugin.Description}}<p>{{.}}</p>{{end}}
+  <h3>Skills <span class="muted">{{len .Plugin.Skills}}</span></h3>
+  <ul>{{range .Plugin.Skills}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Description}}</span></li>{{else}}<li class="muted">none</li>{{end}}</ul>
+  <h3>MCP servers <span class="muted">{{len .Plugin.Servers}}</span></h3>
+  <ul>{{range .Plugin.Servers}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Transport}}{{with .URL}} {{.}}{{end}}{{with .Command}} runs {{.}}{{end}}</span>{{if eq (printf "%s" .Transport) "stdio"}} <span class="muted">· waits for the gateway</span>{{else if eq (printf "%s" .Transport) "sse"}} <span class="muted">· older transport, not used yet</span>{{end}}</li>{{else}}<li class="muted">none</li>{{end}}</ul>
+  {{if .Plugin.Problems}}
+  <h3>Left out or ignored</h3>
+  <ul>{{range .Plugin.Problems}}<li><code>{{.Where}}</code> {{.Message}}{{if .Left}} <span class="muted">· left out</span>{{end}}</li>{{end}}</ul>
+  {{end}}
+</section>
+{{with $.Changes}}
+<section class="panel">
+  <h2>What turning this on changes <span class="muted">against the version that is on</span></h2>
+  {{if .None}}<p class="muted">Nothing differs in skills, servers or manifest.</p>{{else}}
+  <ul>
+    {{with .SkillsAdded}}<li>Skills added: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .SkillsRemoved}}<li>Skills removed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .SkillsChanged}}<li>Skills changed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .ServersAdded}}<li>Servers added: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .ServersRemoved}}<li>Servers removed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .ServersChanged}}<li><strong>Servers changed</strong> (address, program or headers): {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+    {{with .Manifest}}<li>Described differently: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
+  </ul>
+  {{end}}
+</section>
+{{end}}
+{{end}}
+
+<section class="panel">
+  <h2>History</h2>
+  <ul>{{range .Held.History}}<li class="muted">{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
+</section>
+
+{{template "foot" .}}

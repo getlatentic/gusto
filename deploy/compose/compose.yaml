@@ -55,6 +55,7 @@ services:
       HAAS_JOBS: ${HAAS_DATA:-/var/lib/haas}/jobs
       HAAS_SESSIONS: ${HAAS_DATA:-/var/lib/haas}/sessions
       HAAS_SETUPS: ${HAAS_DATA:-/var/lib/haas}/setups
+      HAAS_INTEGRATIONS: ${HAAS_DATA:-/var/lib/haas}/integrations
       HAAS_CHANGES: ${HAAS_DATA:-/var/lib/haas}/changes/changes.jsonl
       HAAS_RETENTION: ${HAAS_DATA:-/var/lib/haas}/retention
       # The one place on the volume a job may clone from disk: deploy/smoke.sh's

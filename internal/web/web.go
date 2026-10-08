@@ -24,6 +24,7 @@ import (
 	"github.com/getlatentic/haas/internal/compare"
 	"github.com/getlatentic/haas/internal/computer"
 	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/orgsettings"
 	"github.com/getlatentic/haas/internal/registry"
@@ -91,6 +92,9 @@ type Server struct {
 	lineups    *compare.Board
 	setups     *setup.Store
 	servers    setup.Servers
+	// integrations is the store of imported plugins, and cloner fetches one from a git address.
+	integrations *integration.Store
+	cloner       integration.Clone
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
 	inBuilding atomic.Bool
