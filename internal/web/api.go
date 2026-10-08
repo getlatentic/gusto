@@ -52,6 +52,19 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: "this is not a job spec: " + err.Error()})
 		return
 	}
+	key, err := requestID(r)
+	if err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
+	if key != "" {
+		s.keyed.Lock()
+		defer s.keyed.Unlock()
+		if already, found := s.index.FindKey(callerOf(r), key); found {
+			reply(w, http.StatusOK, Answer{ID: already.ID})
+			return
+		}
+	}
 	if short := missing(sent.Spec); short != "" {
 		reply(w, http.StatusBadRequest, Answer{Refused: short})
 		return
@@ -81,7 +94,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
-	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r))
+	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r), key)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, quota.ErrExceeded) {
@@ -106,7 +119,7 @@ func reachable(ctx context.Context, repo string) error {
 
 // queued writes the job directory and takes it into the index, so a sent job
 // leaves on disk what `haas new` leaves and the queue picks it up the same way.
-func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked string) (string, error) {
+func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked, key string) (string, error) {
 	id, err := s.index.Reserve(spec.Brief, time.Now())
 	if err != nil {
 		return "", err
@@ -126,7 +139,7 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked string) (
 	}
 	record := jobs.Record{
 		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: asked, Team: spec.Team,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team,
 		Queued: jobs.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
@@ -216,4 +229,22 @@ func reply(w http.ResponseWriter, status int, answer Answer) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(answer)
+}
+
+// mostKey is the longest request id taken, which is more than any generated one needs.
+const mostKey = 128
+
+// requestID is the id a sender gave a send, in the Idempotency-Key header, or none. A send made again with the same id is
+// the same send. The id is printable text and short, so it can be kept in a record and read in a log.
+func requestID(r *http.Request) (string, error) {
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if len(key) > mostKey {
+		return "", fmt.Errorf("an Idempotency-Key is at most %d characters", mostKey)
+	}
+	for _, c := range key {
+		if c < 0x21 || c > 0x7e {
+			return "", errors.New("an Idempotency-Key is printable characters with no spaces")
+		}
+	}
+	return key, nil
 }

@@ -128,6 +128,22 @@ func (i *Index) Get(id string) (Record, bool) {
 	return record, found
 }
 
+// FindKey is the job the asker already made with this request id, so that a send made twice is one job. An id is the
+// asker's own: the same words from somebody else are another request.
+func (i *Index) FindKey(asked, key string) (Record, bool) {
+	if key == "" {
+		return Record{}, false
+	}
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	for _, record := range i.records {
+		if record.Key == key && record.Asked == asked {
+			return record, true
+		}
+	}
+	return Record{}, false
+}
+
 // List is newest first, which is the order a person reads.
 func (i *Index) List() []Record {
 	i.guard.Lock()
