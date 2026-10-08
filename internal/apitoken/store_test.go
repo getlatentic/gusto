@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -40,8 +41,8 @@ func TestATokenIsMadeOnceAndItsSecretIsNeverKept(t *testing.T) {
 	if !strings.Contains(string(text), `"hash"`) || !strings.Contains(string(text), "admin@example.com") {
 		t.Errorf("the file should hold the hash and who made it:\n%s", text)
 	}
-	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o600 {
+	// Windows keeps no permission bits for a file, so what its mode says is not a thing to hold it to.
+	if info, err := os.Stat(path); runtime.GOOS != "windows" && (err != nil || info.Mode().Perm() != 0o600) {
 		t.Errorf("the file is %v: %v", info.Mode(), err)
 	}
 }
