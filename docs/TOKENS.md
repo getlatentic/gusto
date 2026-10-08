@@ -97,6 +97,9 @@ there.
 | `GET /api/jobs/{id}/follow` | the same turn as server-sent events while it goes: `step` for each step, `reply` with what has been said so far when that changes, and `ended` with the whole turn. A turn that is over is told at once |
 | `POST /api/jobs/{id}/stop` | stops a turn: a queued one never runs, and a running one is told to stop and ends `interrupted` a moment later. Answered `200` with the job and whether it was running; `409` when it is already over ([STATES.md](STATES.md#stopping-a-job)) |
 | `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
+| `PUT /api/instances/{id}/file?path=` | puts a file in the agent's folder, whole or not at all, folders made as needed. `X-If-Hash` says what the writer saw (a hash, or `absent`) and the server answers `412` with the hash it is when it is anything else; `X-Mode: 755` keeps the executable bit. Files over 64 MiB are `413`. A path with `..`, a backslash, a `.git` part, or a link on the way is `400` |
+| `DELETE /api/instances/{id}/file?path=` | deletes one, under the same `X-If-Hash` check; answered `204` |
+| `POST /api/instances/{id}/hashes` | `{"paths": [...]}`, at most 5000, answered with the sha256 of each that is a plain file, so a helper reads only what changed |
 | `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
 
 `GET /api/events` is a stream of server-sent events about the person's own jobs, for a

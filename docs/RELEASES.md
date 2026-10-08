@@ -14,6 +14,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 **New**
 
+- `haas-helper sync`: a folder on a person's computer kept the same as their agent's folder in the cloud, with a written rule for a file both sides changed ([DESKTOP.md](DESKTOP.md#files)). The server gains `PUT` and `DELETE` on `/api/instances/{id}/file` and `POST .../hashes` for a person's token, and the file listing says each file's time to the nanosecond.
 - `haas-helper acp`: the helper as an agent for an editor that speaks the Agent Client Protocol ([DESKTOP.md](DESKTOP.md#editors)).
 
 ## v0.0.1-alpha.4

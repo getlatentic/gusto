@@ -93,27 +93,72 @@ a real macOS launch agent: it started, restarted after it was killed, and left n
 after `uninstall`. The Windows scheduled task is installed, queried and removed on a
 Windows runner by the builds workflow.
 
-Next: folder sync.
+
 
 ## Files
 
-A folder the person picks is kept in step with a workspace in their cloud
-computer, in both directions, as real files on the local disk. There is no virtual
+`haas-helper sync -folder ~/work/project` keeps that folder the same as the person's agent's
+folder in the cloud, in both directions, as real files on both sides. There is no virtual
 file system and no kernel extension: those are three hard integrations (macOS File
-Provider, Windows Cloud Files, Linux FUSE), and are added only when a measured
-workspace is too large to sync.
+Provider, Windows Cloud Files, Linux FUSE), and are added only when a measured workspace is
+too large to keep this way. `-dry-run` says what it would do and does nothing, `-once`
+compares once, and without either it compares every three seconds while there are changes
+and every thirty when there are none. Only a workspace is shared, never the rest of the cloud
+computer.
 
-- Only a workspace is shared. The rest of the cloud computer is not.
-- An agent's change arrives locally as it is made, and a save arrives in the
-  workspace before the next turn reads it.
-- Ignore rules keep `node_modules` and build output off the wire.
-- Local edits work offline and catch up on reconnect.
+**The rule** is in `internal/helper/mirror/plan.go`, with its tests, and is the whole of what
+decides what happens to a file. The helper keeps a record of what both sides held when they
+last agreed, so it can tell a change from a deletion, and a change on one side from a change
+on both.
 
-**The conflict rule.** The workspace and the local folder can both change the same
-file. Neither change is lost. The helper keeps the local file as it is, writes the
-workspace's version beside it as `<name>.conflict-<time>`, and says so in the tray
-and in the next turn's context, so the agent knows. It never merges text, and never
-picks a winner. The rule is written first, with tests, before any sync code.
+- A change on one side only goes to the other: a file that is new, changed or deleted on one
+  side while the other did not touch it is made so on the other.
+- **A change beats a deletion.** If one side deleted a file and the other changed it, the
+  changed file stays, on both sides. Nothing somebody edited is removed because somebody else
+  removed the file.
+- **When both sides changed a file**, or both made a new one of the same name with different
+  content, neither version is lost and neither is merged. The local file stays where it is,
+  as it is, with its name. The cloud's version is saved beside it as
+  `<name>.conflict-<time>.<ext>` (`report.conflict-20261008T143005Z.md`), and both then go
+  to the cloud, so the agent has them too. The local side wins the name because a person
+  saving a file by hand while an agent edits it is the person's act, and what the agent wrote
+  is one rename away. The helper says so when it happens.
+- A property test over thousands of random pairs of folders shows that after a plan the two
+  sides agree, a second plan has nothing to do, and no change anybody made is gone from both.
+
+**What it will not do.**
+
+- It does not overwrite a file that changed while it was working: the local file is looked at
+  again after a download and before it is replaced, and the cloud refuses an upload over a file
+  that is not the one the helper saw (`X-If-Hash`). That is looked at again next time, which is
+  when it becomes a conflict, not a loss.
+- It does not follow links, and a path from the cloud that would leave the folder or go
+  through a link is refused, on both sides. A file over 64 MiB is left where it is on either
+  side, and is never taken for a deleted one.
+- It stops before doing anything when the run looks like a mistake: a folder that is your
+  whole home or the root of a disk; more than 20,000 files on a first run; a run that would
+  delete 20 or more files and half of what is kept (a disk that did not mount, a folder
+  moved); and a listing in the cloud that was cut short, in which the files not listed would
+  look deleted. `-force` goes on anyway.
+- It leaves out `.git/` (the agent's copy and the person's are two clones), `node_modules/`,
+  `.venv/`, `__pycache__/`, `*.pyc` and operating-system litter, and whatever a `.haasignore`
+  in the folder's root adds, one pattern to a line: a name (`*.log`), a folder (`build/`), or
+  a path from the root (`docs/drafts`). A `!` line is not understood and is said so. An
+  ignored file is never deleted on either side.
+
+**What it does not do yet.** It looks at the folder every few seconds and does not watch it,
+so a change reaches the other side in seconds and not at once. Empty folders are not kept.
+Names are compared exactly, so two names that differ only in case are two files, which a
+case-insensitive disk (the default on macOS and Windows) cannot hold. An executable file is
+kept executable, but no other mode, owner or time is. The record is in the helper's settings
+folder, in `sync/`, one file for each pair of server, agent and folder.
+
+**What was checked.** The rule's tests; the engine against an in-memory cloud, with a person
+saving during a download, the agent writing during an upload, a conflict that cannot be sent,
+links, large files, paths that leave the folder, the guards, ignored files, and a restart; and
+the whole of it against the real server, where the agent writes into its folder by the file
+system as it does. The server's own checks are in [TOKENS.md](TOKENS.md). Nothing has been run
+on Windows, and not against a very large folder.
 
 ## Editors
 

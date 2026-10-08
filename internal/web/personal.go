@@ -94,6 +94,8 @@ type workspaceFile struct {
 	Path     string `json:"path"`
 	Size     int64  `json:"size"`
 	Modified int64  `json:"modified"`
+	// ModifiedNs is the time to the nanosecond, which is what tells a file that changed within a second.
+	ModifiedNs int64 `json:"modifiedNs"`
 }
 
 // mostFiles bounds one listing. A folder a build ran in can hold hundreds of thousands, and a copy of one is not the
@@ -129,7 +131,7 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil
 		}
-		files = append(files, workspaceFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix()})
+		files = append(files, workspaceFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix(), ModifiedNs: info.ModTime().UnixNano()})
 		return nil
 	})
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
