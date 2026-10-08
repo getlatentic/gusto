@@ -5,8 +5,13 @@
 {{if .Console}}<nav class="crumb" aria-label="Where this is"><a href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
 {{else}}<nav class="crumb" aria-label="Where this is"><a href="/new">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
 <div class="title-row">
-  <h1>{{.Setup.Name}}</h1>
+  <h1>{{.Setup.Name}}{{if .Setup.Off}} <span class="muted">off</span>{{end}}</h1>
+  {{if .Console}}
+  {{if .Setup.Off}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/enable"><button type="submit">Turn on</button></form>
+  {{else}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/disable"><button type="submit" class="quiet">Turn off</button></form>{{end}}
+  {{end}}
 </div>
+{{if and .Console .Setup.Off}}<p class="refused">This skill set is off: it is not offered to anybody, and no agent starts with it, until you turn it on.</p>{{end}}
 
 <div class="run">
 <div class="run-main">
@@ -30,6 +35,18 @@
     {{end}}
   </section>
 
+  {{if and .Console .Earlier}}
+  <section class="panel">
+    <h2>Earlier versions</h2>
+    <p class="muted">A skill that is changed or removed is kept as it was, ten times over. Putting one back is a change like any other.</p>
+    <table><tbody>
+      {{range .Earlier}}
+      <tr><td><code>{{.Skill}}</code>{{if not .Present}} <span class="muted">removed</span>{{end}}</td><td class="muted">{{.Fingerprint}}</td>
+      <td><form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Skill}}/restore"><input type="hidden" name="at" value="{{.At}}"><button type="submit">Put it back</button></form></td></tr>
+      {{end}}
+    </tbody></table>
+  </section>
+  {{end}}
   {{if .Console}}
   {{if .Setup.Skills}}<p class="muted"><a href="{{.Base}}/{{.Setup.Name}}/plugin.zip">Download as an Agent Plugin</a>: a plugin of these skills and no servers, which another deployment, or this one, imports as an integration.</p>{{end}}
   <section class="panel">

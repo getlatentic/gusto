@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/getlatentic/haas/internal/catalog"
@@ -48,11 +49,15 @@ func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) setupsData(r *http.Request, base string) map[string]any {
+	list := s.setupsList()
+	if base == setupsPath {
+		list = s.setupsAll()
+	}
 	return map[string]any{
 		"Title":    productName + " — skill sets",
 		"Nav":      "new",
 		"Base":     base,
-		"Setups":   s.setupsList(),
+		"Setups":   list,
 		"Offered":  s.servers,
 		"Imported": s.importedIntegrations(),
 		"Keeps":    s.setups != nil,
@@ -96,8 +101,19 @@ func (s *Server) equip(spec *job.Spec, dir job.Dir, asker string) error {
 
 var errNoSetups = errors.New("this server keeps no setups")
 
-// setupsList is every setup, for a page to offer.
+// setupsList is the setups people are offered: every one that is on.
 func (s *Server) setupsList() []setup.Setup {
+	var on []setup.Setup
+	for _, held := range s.setupsAll() {
+		if !held.Off {
+			on = append(on, held)
+		}
+	}
+	return on
+}
+
+// setupsAll is every setup, off ones too, for the console.
+func (s *Server) setupsAll() []setup.Setup {
 	if s.setups == nil {
 		return nil
 	}
@@ -115,18 +131,22 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
-	wanted := setup.Setup{Name: name, Who: s.keeper.who(r)}
+	// A setup an administrator makes is off until an administrator turns it on, as a provider or an integration is.
+	wanted := setup.Setup{Name: name, Who: s.keeper.who(r), Off: true}
 	action := "created"
+	was := map[string]string{}
 	if held, found := s.setups.Get(name); found {
 		wanted = held
 		action = "changed"
+		was["servers"], was["integrations"] = strings.Join(held.Servers, ", "), strings.Join(held.Integrations, ", ")
 	}
 	wanted.Servers, wanted.Integrations = r.Form["server"], r.Form["integration"]
 	if err := s.setups.Save(wanted, s.servers); err != nil {
 		s.turnAway(w, r, setupsPath, err.Error())
 		return
 	}
-	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", "), "integrations": strings.Join(wanted.Integrations, ", ")})
+	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", "), "integrations": strings.Join(wanted.Integrations, ", "),
+		"servers was": was["servers"], "integrations was": was["integrations"], "off": strconv.FormatBool(wanted.Off)})
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
@@ -165,11 +185,12 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		return nil, false
 	}
 	held, found := s.setups.Get(r.PathValue("name"))
-	if !found {
+	if !found || (held.Off && base != setupsPath) {
 		http.NotFound(w, r)
 		return nil, false
 	}
 	return map[string]any{
+		"Earlier":  s.setups.Earlier(held.Name),
 		"Title":    productName + " — " + held.Name,
 		"Nav":      "new",
 		"Base":     base,
@@ -193,12 +214,56 @@ func (s *Server) writeSkill(w http.ResponseWriter, r *http.Request) {
 		Description: r.FormValue("description"),
 		Body:        r.FormValue("body"),
 	}
+	was := s.setups.Fingerprint(name, skill.Name)
 	if err := s.setups.Write(name, skill); err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
-	s.note(r, changelog.SkillWritten, map[string]string{"setup": name, "skill": skill.Name})
+	s.note(r, changelog.SkillWritten, map[string]string{"setup": name, "skill": skill.Name, "was": was, "now": s.setups.Fingerprint(name, skill.Name)})
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// restoreSkill puts a kept version of a skill back.
+func (s *Server) restoreSkill(w http.ResponseWriter, r *http.Request) {
+	name, skill := r.PathValue("name"), r.PathValue("skill")
+	back := setupsPath + "/" + name
+	if s.setups == nil {
+		http.NotFound(w, r)
+		return
+	}
+	at, err := strconv.ParseInt(r.FormValue("at"), 10, 64)
+	if err != nil {
+		s.turnAway(w, r, back, "say which version to put back")
+		return
+	}
+	was := s.setups.Fingerprint(name, skill)
+	if err := s.setups.RestoreSkill(name, skill, at); err != nil {
+		s.turnAway(w, r, back, err.Error())
+		return
+	}
+	s.note(r, changelog.SkillRestored, map[string]string{"setup": name, "skill": skill, "was": was, "now": s.setups.Fingerprint(name, skill)})
+	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// turnSetup turns a setup on, which is what makes what an administrator made available to people, or off.
+func (s *Server) turnSetup(off bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		if s.setups == nil {
+			http.NotFound(w, r)
+			return
+		}
+		if err := s.setups.SetOff(name, off); err != nil {
+			s.turnAway(w, r, setupsPath+"/"+name, err.Error())
+			return
+		}
+		kind, was, now := changelog.SetupEnabled, "off", "on"
+		if off {
+			kind, was, now = changelog.SetupDisabled, "on", "off"
+		}
+		s.note(r, kind, map[string]string{"setup": name, "was": was, "now": now})
+		http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
+	}
 }
 
 func (s *Server) dropSkill(w http.ResponseWriter, r *http.Request) {
@@ -207,11 +272,12 @@ func (s *Server) dropSkill(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	was := s.setups.Fingerprint(name, r.PathValue("skill"))
 	if err := s.setups.Drop(name, r.PathValue("skill")); err != nil {
 		s.turnAway(w, r, setupsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, changelog.SkillDropped, map[string]string{"setup": name, "skill": r.PathValue("skill")})
+	s.note(r, changelog.SkillDropped, map[string]string{"setup": name, "skill": r.PathValue("skill"), "was": was, "now": "none"})
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
@@ -238,6 +304,9 @@ func (s *Server) unfit(wanted instance.Instance) string {
 	held, found := s.setups.Get(wanted.Setup)
 	if !found {
 		return "no setup called " + wanted.Setup
+	}
+	if held.Off {
+		return "the setup " + wanted.Setup + " is off: an administrator turns it on"
 	}
 	for _, entry := range s.entries() {
 		if entry.Name == wanted.Harness {

@@ -12,7 +12,7 @@
 <section class="picks">
   {{range .Setups}}
   <a class="pick" href="{{$.Base}}/{{.Name}}">
-    <span class="name">{{.Name}}</span>
+    <span class="name">{{.Name}}{{if .Off}} <span class="muted">off</span>{{end}}</span>
     <span class="what">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>
   {{end}}

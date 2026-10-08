@@ -98,6 +98,7 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"team"}, "integration": {"reports"}})
+	admin.ask(t, "POST", "/admin/skill-sets/team/enable", nil)
 	if held, _ := here.server.setups.Get("team"); len(held.Integrations) != 1 {
 		t.Fatalf("the setup does not name it: %+v", held)
 	}
@@ -283,6 +284,7 @@ func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndAJobForSomebodyElseDoes
 		t.Errorf("the change record has %+v", events)
 	}
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"team"}, "integration": {"reports"}})
+	admin.ask(t, "POST", "/admin/skill-sets/team/enable", nil)
 
 	send := func(who *site) string {
 		started := who.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"team"}})
