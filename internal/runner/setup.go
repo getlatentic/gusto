@@ -33,6 +33,24 @@ func Servers(dir job.Dir) ([]job.Server, error) {
 	return located(servers)
 }
 
+// GatewayName is what a harness calls the one server that fronts the servers behind the gateway.
+const GatewayName = "gateway"
+
+// withGateway gives a job that has servers behind the gateway the one server that reaches them: the proxy's, at the address the
+// harness reaches its model by, called with the token that stands in for a credential. The definitions of the servers behind it
+// are not here: they stay with the proxy.
+func withGateway(servers []job.Server, spec job.Spec) ([]job.Server, error) {
+	if spec.Setup == nil || len(spec.Setup.Gateway) == 0 {
+		return servers, nil
+	}
+	token := harness.ModelToken()
+	if token == "" {
+		return nil, fmt.Errorf("the setup %s reaches %d servers through the gateway, which is part of the proxy, and this run has no proxy",
+			spec.Setup.Name, len(spec.Setup.Gateway))
+	}
+	return append(servers, job.Server{Name: GatewayName, URL: harness.ModelRoot() + "/mcp", Headers: map[string]string{"Authorization": "Bearer " + token}}), nil
+}
+
 // located names each server's program by its full path, found on this box's
 // PATH. ACP asks for one, and a program the image does not carry is better
 // refused here, by name, than failing inside the harness where only its log
@@ -62,8 +80,8 @@ func fits(spec job.Spec, adapter harness.Adapter) error {
 	if len(spec.Setup.Skills) > 0 && adapter.Skills == "" {
 		return fmt.Errorf("%s takes no skills, and the setup %s gives it %d", adapter.Name, spec.Setup.Name, len(spec.Setup.Skills))
 	}
-	if len(spec.Setup.Servers) > 0 && !adapter.TakesMCP() {
-		return fmt.Errorf("%s takes no MCP servers, and the setup %s gives it %d", adapter.Name, spec.Setup.Name, len(spec.Setup.Servers))
+	if served := len(spec.Setup.Servers) + len(spec.Setup.Gateway); served > 0 && !adapter.TakesMCP() {
+		return fmt.Errorf("%s takes no MCP servers, and the setup %s gives it %d", adapter.Name, spec.Setup.Name, served)
 	}
 	return nil
 }

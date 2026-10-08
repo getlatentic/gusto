@@ -82,11 +82,14 @@ network. The server needs `git`, which its image has.
 **A setup** names the integrations it is given. A job gets, for each one that is on:
 
 - every skill, as a whole folder with its scripts and references, in the place the harness reads skills;
-- every streamable HTTP server, named `<integration>-<server>`, which the harness is given as it is given any MCP server.
+- every streamable HTTP server, behind the gateway ([GATEWAY.md](GATEWAY.md)): the harness is given
+  one server, `gateway`, and finds a tool with `tool_search` when it needs one. The server's address
+  and credentials stay with the proxy and are not in the sandbox. A server is called
+  `<integration>-<server>`, and a tool `<integration>-<server>/<tool>`.
 
 A server that is a program (stdio) or uses the older SSE transport is held back, and the setup's
-page says so. Programs wait for the gateway (getlatentic/planning#519): a plugin's program should
-not run inside the sandbox. A setup that names an integration that is off starts no job, and the
+page says so. A plugin's program should not run inside the sandbox, so programs wait for a place
+outside it to run (getlatentic/planning#519). A setup that names an integration that is off starts no job, and the
 page says why. Two skills of one name, or two servers whose names become one, stop the job and
 overwrite nothing. A harness that cannot take skills or servers is told so before the job starts.
 

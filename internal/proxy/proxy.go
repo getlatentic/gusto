@@ -32,6 +32,7 @@ type Proxy struct {
 	guard    sync.Mutex
 	counts   counters
 	resolve  Resolver
+	gateways atomic.Pointer[Gateways]
 }
 
 // New takes the ledger every call is counted in and every cap is checked
@@ -98,6 +99,10 @@ func (p *Proxy) Handler() http.Handler {
 			// The same answer for a token that never existed and one that has
 			// ended, so this cannot be used to learn which jobs are running.
 			http.Error(w, "no", http.StatusForbidden)
+			return
+		}
+		if toolsPath(rest) {
+			p.tools(w, r, ticket)
 			return
 		}
 		p.pass(w, r, ticket, rest)
