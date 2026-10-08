@@ -59,9 +59,12 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           dir="$(mktemp -d)"
-          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS -p SHA256SUMS.sigstore.json -p install.sh
-          for file in "$dir"/haas-helper_*"$(uname -s | tr A-Z a-z)"*; do printf 'x' >> "$file"; done
-          # The script downloads for itself, so the damage is made in its place: it checks what it was given against the sums.
-          cd "$dir" && grep " haas-helper_" SHA256SUMS | head -1 > one.sum
-          if (sha256sum -c one.sum || shasum -a 256 -c one.sum) > /dev/null 2>&1; then echo "a damaged package passed its checksum"; exit 1; fi
-          echo "a damaged package fails its checksum"
+          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS
+          cd "$dir"
+          # Every package is damaged by one byte, and each is checked against the list the release signs: none may pass.
+          for file in haas-helper_*; do printf 'x' >> "$file"; done
+          for file in haas-helper_*; do
+            grep " $file\$" SHA256SUMS > one.sum
+            if (sha256sum -c one.sum || shasum -a 256 -c one.sum) > /dev/null 2>&1; then echo "a damaged $file passed its checksum"; exit 1; fi
+          done
+          echo "every damaged package fails its checksum"
