@@ -9,7 +9,7 @@
 
 {{range .View.Providers}}{{if not .Retired}}
 <section class="panel">
-  <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}</h2>
+  <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}{{if .Pending}} <span class="refused">off: waiting for you to turn it on</span>{{end}}</h2>
   <p class="muted">{{.Address}} · {{.Auth}}{{if .Harnesses}} · only for {{range $i, $h := .Harnesses}}{{if $i}}, {{end}}{{$h}}{{end}}{{end}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
   {{if .Problem}}<p class="refused">Not in use: {{.Problem}}</p>{{end}}
   <table>
@@ -18,7 +18,7 @@
       {{$provider := .}}
       {{range .Models}}{{if not .Retired}}
       <tr>
-        <td><code>{{.Full}}</code></td>
+        <td><code>{{.Full}}</code>{{if .Pending}} <span class="muted">off</span>{{end}}</td>
         {{if .Price}}
         <td class="num">${{.Price.InputPerMillion}}</td><td class="num">${{.Price.OutputPerMillion}}</td>
         <td class="num">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="muted">as input</span>{{end}}</td>
@@ -34,6 +34,8 @@
             <label>Cached <input name="cached" inputmode="decimal" size="6" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></label>
             <button type="submit">Set price</button>
           </form>
+          {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit">Turn on</button></form>
+          {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="quiet">Turn off</button></form>{{end}}
           <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit">Retire</button></form>
         </td>
         {{end}}
@@ -58,6 +60,8 @@
     <span class="muted">A key is never shown again.</span>
   </form>
   {{end}}
+  {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit">Turn on {{.Name}}</button></form>
+  {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="quiet">Turn off {{.Name}}</button></form>{{end}}
   <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit">Retire {{.Name}}</button></form>
   {{end}}
 </section>
@@ -87,6 +91,25 @@
     {{end}}
     <button type="submit">Add provider</button>
   </form>
+</section>
+{{end}}
+
+{{if .Steps}}
+<section class="panel">
+  <h2>Go back</h2>
+  <p class="muted">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
+  <table>
+    <tbody>
+      {{range .Steps}}
+      <tr>
+        <td>Version {{.Version}}</td>
+        <td class="muted">{{when .At}}</td>
+        <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
+        <td><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit">Go back to it</button></form></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
 </section>
 {{end}}
 
