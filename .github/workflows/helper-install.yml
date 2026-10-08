@@ -59,7 +59,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           dir="$(mktemp -d)"
-          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS -p SHA256SUMS.sig -p SHA256SUMS.pem -p install.sh
+          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS -p SHA256SUMS.sigstore.json -p install.sh
           for file in "$dir"/haas-helper_*"$(uname -s | tr A-Z a-z)"*; do printf 'x' >> "$file"; done
           # The script downloads for itself, so the damage is made in its place: it checks what it was given against the sums.
           cd "$dir" && grep " haas-helper_" SHA256SUMS | head -1 > one.sum

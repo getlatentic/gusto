@@ -27,7 +27,7 @@ $work = Join-Path ([System.IO.Path]::GetTempPath()) ("haas-helper-" + [guid]::Ne
 New-Item -ItemType Directory -Path $work | Out-Null
 try {
   Write-Host "Downloading $archive from $Repo $Tag"
-  gh release download $Tag -R $Repo -D $work -p $archive -p SHA256SUMS -p SHA256SUMS.sig -p SHA256SUMS.pem
+  gh release download $Tag -R $Repo -D $work -p $archive -p SHA256SUMS -p SHA256SUMS.sigstore.json
   if ($LASTEXITCODE -ne 0) { Fail "the release $Tag has no package for windows $arch, or this account cannot read it" }
 
   $line = Get-Content (Join-Path $work "SHA256SUMS") | Where-Object { $_ -match [regex]::Escape($archive) + '$' } | Select-Object -First 1
@@ -38,7 +38,7 @@ try {
   Write-Host "The package matches the release's checksum."
 
   if (Get-Command cosign -ErrorAction SilentlyContinue) {
-    cosign verify-blob (Join-Path $work "SHA256SUMS") --signature (Join-Path $work "SHA256SUMS.sig") --certificate (Join-Path $work "SHA256SUMS.pem") `
+    cosign verify-blob (Join-Path $work "SHA256SUMS") --bundle (Join-Path $work "SHA256SUMS.sigstore.json") `
       --certificate-identity "https://github.com/$Repo/.github/workflows/release.yml@refs/tags/$Tag" `
       --certificate-oidc-issuer https://token.actions.githubusercontent.com 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail "the checksums' signature does not hold: do not use this package" }

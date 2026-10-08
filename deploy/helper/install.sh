@@ -36,7 +36,7 @@ archive="haas-helper_${tag}_${os}_${arch}.tar.gz"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 echo "Downloading $archive from $repo $tag"
-gh release download "$tag" -R "$repo" -D "$work" -p "$archive" -p SHA256SUMS -p SHA256SUMS.sig -p SHA256SUMS.pem \
+gh release download "$tag" -R "$repo" -D "$work" -p "$archive" -p SHA256SUMS -p SHA256SUMS.sigstore.json \
   || fail "the release $tag has no package for $os $arch, or this account cannot read it"
 
 # The checksum of the one package, from the list the release signs.
@@ -49,7 +49,7 @@ fi
 echo "The package matches the release's checksum."
 
 if command -v cosign >/dev/null 2>&1; then
-  cosign verify-blob "$work/SHA256SUMS" --signature "$work/SHA256SUMS.sig" --certificate "$work/SHA256SUMS.pem" \
+  cosign verify-blob "$work/SHA256SUMS" --bundle "$work/SHA256SUMS.sigstore.json" \
     --certificate-identity "https://github.com/$repo/.github/workflows/release.yml@refs/tags/$tag" \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null 2>&1 \
     || fail "the checksums' signature does not hold: do not use this package"
