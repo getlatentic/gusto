@@ -31,6 +31,11 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # The macOS helper and its tests link the system's own libraries through cgo. A C compiler that is not Apple's, such as
+      # Homebrew's, cannot read the SDK's current text stubs, so the link fails.
+      - name: Use the platform's C compiler
+        if: runner.os == 'macOS'
+        run: echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
       - name: Formatted
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - name: go vet
