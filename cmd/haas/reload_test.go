@@ -37,26 +37,29 @@ func (f *fakePages) NoteSetting(setting, was, now, refused string) {
 // reloading is a server's way out with one credential that reaches a provider which says which key it was called with, a live
 // settings file, a spend policy, and the pieces that read them again.
 type reloading struct {
-	t        *testing.T
-	way      *WayOut
-	live     *liveSettings
-	pages    *fakePages
-	index    *jobs.Index
-	creds    string
-	liveFile string
-	spend    string
-	front    *httptest.Server
-	token    string
-	keys     []string
-	mu       sync.Mutex
+	t         *testing.T
+	way       *WayOut
+	live      *liveSettings
+	pages     *fakePages
+	index     *jobs.Index
+	creds     string
+	liveFile  string
+	spend     string
+	front     *httptest.Server
+	token     string
+	keys      []string
+	bodies    []string
+	redaction string
+	mu        sync.Mutex
 }
 
 func newReloading(t *testing.T) *reloading {
 	t.Helper()
 	r := &reloading{t: t, pages: &fakePages{}}
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		io.Copy(io.Discard, req.Body)
+		sent, _ := io.ReadAll(req.Body)
 		r.mu.Lock()
+		r.bodies = append(r.bodies, string(sent))
 		r.keys = append(r.keys, req.Header.Get("Authorization"))
 		r.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -70,6 +73,8 @@ func newReloading(t *testing.T) *reloading {
 	t.Setenv("HAAS_CREDENTIALS", r.creds)
 	t.Setenv("HAAS_LIVE", r.liveFile)
 	t.Setenv("HAAS_SPEND_POLICY", r.spend)
+	r.redaction = filepath.Join(dir, "redaction.json")
+	t.Setenv("HAAS_REDACTION", r.redaction)
 	t.Setenv("HAAS_MODELS", "platform/first")
 	t.Setenv("HAAS_LIMIT_PERSON", "1")
 	os.WriteFile(r.spend, []byte(`{"teams":{"payments":{"usdPerMonth":10}}}`), 0o644)
@@ -207,5 +212,59 @@ func TestTheWatcherTakesAChangeWithoutAnyoneAskingForIt(t *testing.T) {
 	defer r.pages.mu.Unlock()
 	if len(r.pages.notes) != 1 || !strings.HasPrefix(r.pages.notes[0], "HAAS_LIVE") {
 		t.Errorf("the change record was told %v", r.pages.notes)
+	}
+}
+
+func TestRedactionTurnedOnInTheFileReachesTheNextCallOfARunningJob(t *testing.T) {
+	r := newReloading(t)
+	send := func() string {
+		request, _ := http.NewRequest("POST", r.front.URL+"/model/v1/chat/completions", strings.NewReader(`{"model":"first","messages":[{"role":"user","content":"mail ada@example.com and AKIAIOSFODNN7EXAMPLE"}]}`))
+		request.Header.Set("Authorization", "Bearer "+r.token)
+		answer, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.Copy(io.Discard, answer.Body)
+		answer.Body.Close()
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		return r.bodies[len(r.bodies)-1]
+	}
+	if got := send(); !strings.Contains(got, "ada@example.com") {
+		t.Fatalf("redaction was on before it was asked for: %s", got)
+	}
+	os.WriteFile(r.redaction, []byte(`{"patterns":["email","key"]}`), 0o644)
+	if err := r.live.applyRedaction(); err != nil {
+		t.Fatal(err)
+	}
+	if got := send(); strings.Contains(got, "ada@example.com") || strings.Contains(got, "AKIAIOSFODNN7EXAMPLE") || !strings.Contains(got, "[redacted:email]") {
+		t.Errorf("the provider was sent %s", got)
+	}
+	os.WriteFile(r.redaction, []byte(`{"patterns":["emial"]}`), 0o644)
+	if err := r.live.applyRedaction(); err == nil {
+		t.Error("a misspelt kind was taken")
+	}
+	if got := send(); strings.Contains(got, "ada@example.com") {
+		t.Errorf("a refused file turned redaction off: %s", got)
+	}
+}
+
+func TestAServerWithNoProxyCannotPromiseToMaskWhatItSends(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "redaction.json")
+	os.WriteFile(file, []byte(`{"patterns":["email"]}`), 0o644)
+	t.Setenv("HAAS_REDACTION", file)
+	t.Setenv("HAAS_CREDENTIALS", "")
+	t.Setenv("HAAS_MODEL_UPSTREAM", "")
+	index, err := jobs.Open(filepath.Join(dir, "jobs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	way, err := openWayOut(filepath.Join(dir, "jobs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := startLive(t.Context(), way, index, &fakePages{}, false); err == nil || !strings.Contains(err.Error(), "no proxy") {
+		t.Errorf("err = %v", err)
 	}
 }
