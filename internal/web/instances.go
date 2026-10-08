@@ -220,6 +220,9 @@ func (s *Server) changeModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back := "/instances/" + held.ID
+	if from := r.FormValue("back"); strings.HasPrefix(from, back+"/threads/") && !strings.ContainsAny(from, "?#\\") {
+		back = from
+	}
 	model := strings.TrimSpace(r.FormValue("model"))
 	if why := s.unusable(r, held.Harness, model); why != "" || model == "" {
 		if why == "" {

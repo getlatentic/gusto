@@ -1,0 +1,148 @@
+package web
+
+import (
+	"net/http"
+	"slices"
+	"sort"
+	"strings"
+
+	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/instance"
+)
+
+// recentChats is how many conversations the chat page lists beside the box.
+const recentChats = 30
+
+// pick is one harness in the chat's chooser with the models it may be pointed at.
+type pick struct {
+	catalog.Entry
+	Models []string
+}
+
+// chatPage is the place to start talking: a box, the harness and model it will
+// go to, and the conversations already held. What it offers first is what the
+// person used last, because somebody coming back wants to carry on.
+func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
+	held := s.ownInstances(r, s.instances.List())
+	recent := make([]yours, 0, len(held))
+	for _, each := range held {
+		recent = append(recent, s.lately(each))
+	}
+	sort.SliceStable(recent, func(a, b int) bool { return recent[a].Active > recent[b].Active })
+	picks := s.picksFor(r)
+	harness, model := defaultPick(picks, recent)
+	s.render(w, "chat.html", map[string]any{
+		"Title":   productName + " — chat",
+		"Nav":     "chat",
+		"Chat":    true,
+		"Picks":   picks,
+		"Harness": harness,
+		"Model":   model,
+		"Recent":  recent[:min(len(recent), recentChats)],
+		"Refused": r.URL.Query().Get("refused"),
+	})
+}
+
+// picksFor is each harness this deployment can run for this person, with the models it may use.
+func (s *Server) picksFor(r *http.Request) []pick {
+	offered := s.offeredTo(r)
+	var picks []pick
+	for _, entry := range s.readyEngines() {
+		if offered.Serves(entry.Name) && !s.limitedAway(r, entry.Name) {
+			picks = append(picks, pick{Entry: entry, Models: offered.For(entry.Name)})
+		}
+	}
+	return picks
+}
+
+// defaultPick is the harness and model last used that can still be used, or the first harness and its first model.
+func defaultPick(picks []pick, recent []yours) (harness, model string) {
+	for _, each := range recent {
+		for _, candidate := range picks {
+			if candidate.Name != each.Harness {
+				continue
+			}
+			if each.Model == "" || slices.Contains(candidate.Models, each.Model) {
+				return each.Harness, each.Model
+			}
+			return each.Harness, first(candidate.Models)
+		}
+	}
+	if len(picks) == 0 {
+		return "", ""
+	}
+	return picks[0].Name, first(picks[0].Models)
+}
+
+func first(all []string) string {
+	if len(all) == 0 {
+		return ""
+	}
+	return all[0]
+}
+
+// startChat sends what somebody wrote to the harness and model they chose. It carries on in the plain agent they
+// already have for that harness, so what it worked on is still there, and starts one when they have none.
+func (s *Server) startChat(w http.ResponseWriter, r *http.Request) {
+	brief := strings.TrimSpace(r.FormValue("said"))
+	if brief == "" {
+		http.Redirect(w, r, "/chat", http.StatusSeeOther)
+		return
+	}
+	held, thread, why := s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), strings.TrimSpace(r.FormValue("model")))
+	if why != "" {
+		s.turnAway(w, r, "/chat", why)
+		return
+	}
+	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")
+	if err != nil {
+		s.turnAway(w, r, "/chat", err.Error())
+		return
+	}
+	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+}
+
+// chatThread is the agent and the empty conversation a new chat goes into, on the model chosen, or why there is none.
+func (s *Server) chatThread(r *http.Request, harness, model string) (instance.Instance, instance.Thread, string) {
+	held, found := s.plainAgent(r, harness)
+	if !found {
+		started, _, why := s.beginInstance(r, instance.Instance{Harness: harness, Model: model, Who: s.keeper.who(r)})
+		if why != "" {
+			return started, instance.Thread{}, why
+		}
+		return started, s.instances.Latest(started.ID), ""
+	}
+	if why := s.unusable(r, held.Harness, model); why != "" {
+		return held, instance.Thread{}, why
+	}
+	if model != "" && model != held.Model {
+		if err := s.instances.SetModel(held.ID, model); err != nil {
+			return held, instance.Thread{}, err.Error()
+		}
+		held.Model = model
+	}
+	thread := s.instances.Latest(held.ID)
+	if len(thread.Turns) > 0 {
+		var err error
+		if thread, err = s.instances.NewThread(held.ID, ""); err != nil {
+			return held, thread, err.Error()
+		}
+	}
+	return held, thread, ""
+}
+
+// plainAgent is the agent this person used last for a harness that was started for no repository, setup or
+// sensitivity, which is what a chat is.
+func (s *Server) plainAgent(r *http.Request, harness string) (instance.Instance, bool) {
+	var best instance.Instance
+	var seen int64
+	for _, each := range s.ownInstances(r, s.instances.List()) {
+		if each.Harness != harness || each.Repo != "" || each.Setup != "" || each.Sensitivity != "" {
+			continue
+		}
+		if active := s.lately(each).Active; best.ID == "" || active > seen {
+			best, seen = each, active
+		}
+	}
+	return best, best.ID != ""
+}

@@ -460,11 +460,11 @@ ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
 .rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
 .rail .whose .model { font-size: .8125rem; line-height: 1.35; color: var(--yg-text-muted); }
 .rail { grid-template-rows: auto auto minmax(0, 1fr); }
-button.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
+button.new-thread, a.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
   gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
   background: var(--yg-surface); color: var(--yg-text); font-weight: 500;
-  border: 1px solid var(--yg-border-strong); }
-button.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
+  border: 1px solid var(--yg-border-strong); text-decoration: none; }
+button.new-thread:hover, a.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
 .talk-top { gap: var(--yg-space-3); padding: var(--yg-space-3) var(--yg-space-6);
   border-bottom: 1px solid var(--yg-border); min-height: 3.25rem; }
 .talk-top .rail-toggle { display: none; padding: var(--yg-space-2); }
@@ -845,3 +845,9 @@ label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0
 label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }
 h2.plain { margin: 0; font: 600 1.125rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
+
+/* What the next message goes to: the agent and the model, under the box it is written in. */
+.picks { display: flex; gap: var(--yg-space-2); margin-top: var(--yg-space-2); }
+.picks select { width: auto; max-width: 100%; padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
+.talk-top .model-pick select { width: auto; padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
+.talk-top .model-pick { margin: 0; }

@@ -28,6 +28,11 @@
         {{template "icon-menu"}}
       </button>
       <span class="which">{{.Named}}</span>
+      <span class="muted">{{.Agent.Engine}}</span>
+      {{if gt (len .Models) 1}}<form method="post" action="/instances/{{.Instance.ID}}/model" class="model-pick">
+        <input type="hidden" name="back" value="{{.Path}}">
+        <select name="model" aria-label="Model" data-submit>{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}</option>{{end}}</select>
+      </form>{{else}}<span class="muted">{{.Agent.Brain}}</span>{{end}}
       <span class="guards" title="What keeps this agent's work safe">
         <span class="chip">{{template "icon-shield"}} Sealed</span>
         <span class="chip">{{template "icon-lock"}} Key stays with Agent Cloud</span>
@@ -96,6 +101,10 @@
   scrim.addEventListener("click", shut);
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") { shut(); }
+  });
+
+  document.querySelectorAll("select[data-submit]").forEach(function (pick) {
+    pick.addEventListener("change", function () { pick.form.submit(); });
   });
 
   var said = document.getElementById("said");
