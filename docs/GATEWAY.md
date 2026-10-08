@@ -106,11 +106,41 @@ policy's fingerprint, are in the settings the change record watches.
 `claude` and the protocol's own TypeScript client library to the gateway. Running the SDK found a
 schema that the in-process tests had passed and the library refused, so both are kept.
 
+## Masking personal data and secrets
+
+`HAAS_REDACTION` is a file of the kinds to mask for the whole deployment: `{"patterns": ["email", "card", "key"]}`. It is read
+again while the server runs ([LIVE.md](LIVE.md)); a name that is not a kind is refused, and a server with no proxy refuses to start
+with it, since its jobs call their model directly and nothing could mask what they send.
+
+| Kind | What it finds |
+| --- | --- |
+| `email` | an email address |
+| `card` | 13 to 19 digits, which may have single spaces or hyphens between them, that pass the card check digit (Luhn); a number that fails it is an identifier and is left |
+| `key` | private key blocks, AWS access key ids, GitHub tokens, Anthropic and OpenAI style keys (`sk-`), Slack, Google, Stripe, JSON web tokens, and `Bearer` followed by a long token |
+
+A match is replaced by `[redacted:<kind>]`.
+
+| Where | What is masked |
+| --- | --- |
+| A request to a model | Every string of the request, before it is translated, so the provider sees the mask whatever shape the harness called in. A card written as a bare JSON number becomes the string. |
+| An answer from a model | Every string of a whole answer, and each event of a stream as it is sent, so a stream still arrives event by event. |
+| What a tool answers | Before the harness sees it, so it is not in the conversation, the transcript or the next request. What is sent to a tool is not masked, because a tool may need the address it is asked about. |
+
+Each call's line in `out/proxy.jsonl` has `redacted` (the request) and `redactedAnswer`, the count of each kind, and a tool call's
+line in `out/gateway.jsonl` has `redacted`. What was masked is not kept.
+
+What it does not do: a value a model writes across two events of a stream is whole in neither, so it is not found. A value
+written with JSON's `\u` escapes for its letters is read unescaped, but a harness that spells a secret in pieces, or encodes it,
+is not caught by patterns. These are patterns and not a guarantee, and a kind of data they do not describe is not masked.
+
+**Cost**, measured with `go test -bench . ./internal/redact` on one machine: about 5 ms for a megabyte of ordinary conversation
+(190 MB/s), and 120 ms for a megabyte that is almost all secrets. A message is looked at for a pattern only where it shows a sign
+of it, which is why ordinary text costs so little.
+
 ## What comes next
 
 | Part | Issue |
 | --- | --- |
-| Redaction of personal data and secrets in what is sent and received | planning#518 |
 | New models, tools and skill sets off until an admin enables them | planning#517 |
 | Tools reached through the gateway, with a policy for each caller | planning#519 |
 | Settings that change without a restart | planning#520 |
