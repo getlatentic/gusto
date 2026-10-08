@@ -93,7 +93,7 @@ a real macOS launch agent: it started, restarted after it was killed, and left n
 after `uninstall`. The Windows scheduled task is installed, queried and removed on a
 Windows runner by the builds workflow.
 
-Next: `haas-helper acp`, and folder sync.
+Next: folder sync.
 
 ## Files
 
@@ -117,12 +117,52 @@ picks a winner. The rule is written first, with tests, before any sync code.
 
 ## Editors
 
-`haas acp` runs on the person's computer and speaks the Agent Client Protocol on
-standard input and output, so Zed, JetBrains, the VS Code extensions and Neovim and
-Emacs plugins start it as an agent. A session is a thread on one of the person's
-instances. Closing the editor does not stop a turn. The server already speaks ACP
-to its harnesses (`internal/acp`), so the helper maps the editor's session methods
-onto instances and threads.
+`haas-helper acp` is the helper as an agent for an editor that speaks the
+[Agent Client Protocol](https://agentclientprotocol.com): the editor starts it, and they talk
+on standard input and output, one JSON-RPC message to a line. Nothing else is written to
+standard output; what the helper has to say goes to standard error, where an editor's
+log shows it.
+
+| The editor does | The helper does |
+| --- | --- |
+| `initialize` | answers protocol version 1, with no `loadSession`, no images or audio, and no authentication to do |
+| `session/new` | opens a thread on one of the person's agents in the cloud: the one named by `-instance`, else their newest, else a new one of the kind `-agent` names (the first this server can run). All an editor's sessions are on that one agent. The thread's id is the session's |
+| `session/prompt` | says it in the thread with a request id made from the session, the turn's place and the words, so a send that is tried again is one turn, and follows the turn: each step is a `tool_call` (kind `read`, `edit`, `execute`, `search`, `fetch`, `think` or `other` by the verb), and what the agent says arrives as `agent_message_chunk`s of only the new words |
+| `session/cancel` | stops the turn in the cloud ([STATES.md](STATES.md#stopping-a-job)), and the prompt ends `cancelled` when the turn's own end arrives. A cancel that comes before the turn was sent stops it as it is sent |
+
+A turn that fails is said so in words after what the agent said, and ends `end_turn`, since the
+protocol's reasons have none for a failure. A reply the server cut short, as it does past
+40 KB, is not told again from its new start: an editor cannot take words back.
+
+Closing the editor ends the helper and not the turn: the agent is in the cloud, and the turn
+finishes there. Signed out, `session/new` answers with the protocol's authentication error
+and says to run `haas-helper login`; signing in later needs no restart of the editor.
+
+**What the editor does not get yet.** The agent works in its folder in the cloud, not in the
+folder the editor has open: the first thing it says in a session is that. `cwd` is read and
+ignored until the two folders are kept in step (getlatentic/planning#502). `session/load`
+is not offered, though threads persist and a reopened session could be replayed. The
+editor's file and terminal methods are not used, since the agent is not on the person's
+machine. MCP servers an editor passes are ignored.
+
+**Setting it up.** From the two editors' own documentation (neither tried here):
+
+```jsonc
+// Zed, settings.json
+{ "agent_servers": { "haas": { "type": "custom", "command": "haas-helper", "args": ["acp", "-server", "https://haas.example.com"], "env": {} } } }
+
+// JetBrains, ~/.jetbrains/acp.json
+{ "agent_servers": { "Latentic Agent Cloud": { "command": "/path/to/haas-helper", "args": ["acp", "-server", "https://haas.example.com"] } } }
+```
+
+Zed's `dev: open acp logs` shows the conversation with the helper.
+
+**What was checked.** The bridge is driven in tests by a scripted editor, and against the
+real server, for an answer and for a cancel that really stops the turn. The official
+TypeScript client library (`@agentclientprotocol/sdk` 1.7.0, which checks messages against the
+protocol's schema) was also run against `haas-helper acp` and a stub of the server:
+`login` by the device flow, `initialize`, `session/new`, a prompt with steps and a reply, and a
+cancel that ends `cancelled` and reaches the server as a stop. No editor has been used.
 
 ## Attention
 
