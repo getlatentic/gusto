@@ -6,3 +6,8 @@
 .claude/
 AGENTS.md
 CLAUDE.md
+
+# The desktop app's build output, and the helper it carries, which prepare.sh builds
+/desktop/src-tauri/target/
+/desktop/src-tauri/binaries/
+/desktop/src-tauri/gen/

@@ -1,0 +1,31 @@
+[package]
+name = "latentic-agent-cloud"
+version = "0.1.0"
+description = "The window, the tray and the notifications for Latentic Agent Cloud. The work is done by haas-helper, which this starts."
+edition = "2021"
+rust-version = "1.80"
+publish = false
+
+[lib]
+name = "latentic_agent_cloud_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }
+notify-rust = "4"
+url = "2"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
