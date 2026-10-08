@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latentic Agent Cloud</title>
+<style>
+  :root { --bg: #ffffff; --text: #141414; --muted: #6b6b6b; --line: #d8d8d8; --accent: #141414; --on-accent: #ffffff; --bad: #b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #141414; --text: #f2f2f2; --muted: #9a9a9a; --line: #333333; --accent: #f2f2f2; --on-accent: #141414; --bad: #f2928b; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 26rem; margin: 0 auto; padding: 18vh 24px 24px; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 .25rem; }
+  p { color: var(--muted); margin: 0 0 1.5rem; }
+  label { display: block; font-size: .85rem; margin-bottom: .35rem; }
+  input { width: 100%; box-sizing: border-box; padding: .6rem .7rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { margin-top: 1rem; padding: .6rem 1rem; font: inherit; color: var(--on-accent); background: var(--accent); border: 0; border-radius: 6px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #problem { color: var(--bad); min-height: 1.5em; margin: .75rem 0 0; font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Latentic Agent Cloud</h1>
+  <p>Connect this computer to your organisation's server.</p>
+  <form id="form">
+    <label for="server">Server address</label>
+    <input id="server" name="server" placeholder="agents.example.com" autocomplete="url" autofocus required>
+    <button id="go" type="submit">Connect</button>
+    <div id="problem" role="alert"></div>
+  </form>
+</main>
+<script>
+  const form = document.getElementById('form'), problem = document.getElementById('problem'), go = document.getElementById('go');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    problem.textContent = '';
+    go.disabled = true;
+    go.textContent = 'Connecting…';
+    try {
+      await window.__TAURI__.core.invoke('connect', { server: document.getElementById('server').value });
+    } catch (error) {
+      problem.textContent = String(error);
+      go.disabled = false;
+      go.textContent = 'Connect';
+    }
+  });
+</script>
+</body>
+</html>

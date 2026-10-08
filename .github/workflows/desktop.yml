@@ -1,0 +1,48 @@
+# The desktop app is a Rust program around the system's web view, with the helper beside it. It has to build and pass its tests on the
+# three systems people have, and on macOS it is bundled as the app people would open.
+name: desktop
+
+on:
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "internal/helper/**"
+      - "cmd/haas-helper/**"
+      - .github/workflows/desktop.yml
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: The web view's libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
+      - name: The helper the app carries
+        run: desktop/prepare.sh
+      - name: The app's tests
+        working-directory: desktop/src-tauri
+        run: cargo test --locked
+      - name: The app, bundled
+        if: runner.os == 'macOS'
+        working-directory: desktop/src-tauri
+        run: |
+          cargo install tauri-cli --version "^2" --locked
+          cargo tauri build --bundles app
+          test -x "target/release/bundle/macos/Latentic Agent Cloud.app/Contents/MacOS/haas-helper"
