@@ -59,17 +59,41 @@ compiler for macOS, Windows and Linux, on Intel and Arm, and a workflow builds a
 vets all of it for all six on each Go change, and runs the helper's tests and the real
 Credential Manager on a Windows runner.
 
-Built so far: `login` by the device flow, `whoami`, and `logout`, which ends the token
-on the server. Next: the local API, `haas acp`, folder sync.
+Built so far: `login` by the device flow, `whoami`, `logout` (which ends the token on
+the server), `run`, `status` and `service`.
 
-- **Sign-in.** The device flow above. The token goes in the operating system's
-  keychain (macOS Keychain, Windows Credential Manager, the Secret Service on
-  Linux), never in a file.
-- **A local API on a random loopback port,** protected by a token the helper makes
-  at start. A web page the person visits can try to call loopback, so the port and
-  the token are what stop it. A shell is told both when it starts the helper.
-- **Runs at login** as a user service on each operating system, and stops cleanly.
-- **One Go codebase** for macOS, Windows and Linux, with no web view.
+**`haas-helper run`** is the helper. It keeps one connection to the server's event
+stream, gets it back after it drops (asking the server to catch up from a minute
+before the last event it heard), and tells every program on the computer what it
+hears. A person who signs in or out while it runs needs no restart: it looks again.
+
+**The local API** is on `127.0.0.1` at a port the system picks. How to reach it is in
+`helper.json` in the helper's settings folder, written for its owner alone: the address
+and a token made when the helper started. Every request has to come to that address
+(or `localhost` on its port), which keeps a web page out that reaches this computer by
+another name, and has to carry the token as `Authorization: Bearer`.
+
+| Route | Answers |
+| --- | --- |
+| `GET /v1/status` | the server it follows, whether the person is signed in, who, and whether it is connected |
+| `GET /v1/turns` | the latest word on each of the person's jobs, newest first |
+| `GET /v1/events` | the same events the server sends (`turn.queued`, `turn.started`, `turn.finished`, `turn.failed`, `turn.interrupted`): each job's latest, then `ready`, then each change |
+
+A second `run` refuses while one answers. No route has cross-origin headers: a shell
+that is a web view on another origin needs the helper told to allow it, which is
+decided with the shell (getlatentic/planning#587).
+
+**`haas-helper service install -server <address>`** makes the helper start at login
+and starts it now, with what each system has for a program a person runs: a launch
+agent on macOS, a user unit of systemd on Linux, and a scheduled task at logon on
+Windows. None needs an administrator. `uninstall` stops it and removes the start,
+and `status` says whether it is there. A second install replaces the first. On Linux,
+`loginctl enable-linger` keeps it running when the person is not logged in. Tried on
+a real macOS launch agent: it started, restarted after it was killed, and left nothing
+after `uninstall`. The Windows scheduled task is installed, queried and removed on a
+Windows runner by the builds workflow.
+
+Next: `haas-helper acp`, and folder sync.
 
 ## Files
 
