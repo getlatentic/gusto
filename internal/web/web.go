@@ -74,7 +74,11 @@ type Server struct {
 	tokens  *apitoken.Store
 	devices deviceCodes
 	// keyed serialises the sends that carry a request id, so that two arriving together are one.
-	keyed     sync.Mutex
+	keyed sync.Mutex
+	// known remembers the hash of files in agents' folders; locks, with writers, make one writer at a time of each folder.
+	known     hashes
+	locks     map[string]*sync.Mutex
+	writers   sync.Mutex
 	retention *retained
 	health    Health
 	wrong     attempts
@@ -174,6 +178,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/instances/{id}/threads/{thread}/say", s.asPerson(s.saidJSON))
 	mux.HandleFunc("GET /api/instances/{id}/files", s.asPerson(s.filesJSON))
 	mux.HandleFunc("GET /api/instances/{id}/file", s.asPerson(s.fileBytes))
+	mux.HandleFunc("PUT /api/instances/{id}/file", s.asPerson(s.writeFile))
+	mux.HandleFunc("DELETE /api/instances/{id}/file", s.asPerson(s.removeFile))
+	mux.HandleFunc("POST /api/instances/{id}/hashes", s.asPerson(s.hashesJSON))
 	mux.HandleFunc("GET /api/events", s.asPerson(s.eventsJSON))
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
