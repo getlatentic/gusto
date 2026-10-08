@@ -131,6 +131,16 @@ jobs:
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke-isolation.sh
 
+      - name: Stop a job that is running, and see what it left
+        working-directory: deploy/compose
+        run: |
+          id="$(docker compose exec -T server sh -s -- start < ../smoke-stop.sh | tail -n 1)"
+          echo "a job is running: $id"
+          curl -s -c jar -o /dev/null --data-urlencode password=install-check http://127.0.0.1:8040/login
+          code="$(curl -s -b jar -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8040/jobs/$id/stop")"
+          test "$code" = 303 || { echo "stopping answered $code"; exit 1; }
+          docker compose exec -T server sh -s -- check "$id" < ../smoke-stop.sh
+
       - name: Sign in through the identity provider, as an admin
         run: deploy/ssocheck/sign-in.sh http://127.0.0.1:8040 admin
 
@@ -295,6 +305,15 @@ jobs:
 
       - name: Probe a job's box from inside it
         run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke-isolation.sh
+
+      - name: Stop a job that is running, and see what it left
+        run: |
+          id="$(kubectl -n haas exec -i deploy/haas -c server -- sh -s -- start < deploy/smoke-stop.sh | tail -n 1)"
+          echo "a job is running: $id"
+          curl -s -c jar -o /dev/null --data-urlencode password=install-check http://127.0.0.1:8040/login
+          code="$(curl -s -b jar -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8040/jobs/$id/stop")"
+          test "$code" = 303 || { echo "stopping answered $code"; exit 1; }
+          kubectl -n haas exec -i deploy/haas -c server -- sh -s -- check "$id" < deploy/smoke-stop.sh
 
       - name: Sign in through the identity provider, as an admin
         run: |
