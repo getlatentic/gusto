@@ -104,6 +104,9 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/skill-sets/{name}/plugin.zip", setups(s.exportSetup))
 	mux.HandleFunc("POST /admin/skill-sets/{name}/skills", setups(s.writeSkill))
 	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/drop", setups(s.dropSkill))
+	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/restore", setups(s.restoreSkill))
+	mux.HandleFunc("POST /admin/skill-sets/{name}/enable", setups(s.turnSetup(false)))
+	mux.HandleFunc("POST /admin/skill-sets/{name}/disable", setups(s.turnSetup(true)))
 
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))

@@ -107,6 +107,11 @@ An administrator may choose who an integration is on for, by the address people 
 names nobody, is refused when its setup names the integration, and the page says why. It is by person and not by team because a team
 is a label a person chooses for a job, and nothing proves they belong to it.
 
+A skill set an administrator makes in the console is **off** until an administrator turns it on, as an integration, a model provider and
+a model are: it is not offered to people, and no agent starts with it. A skill set kept before there was an off switch is on, and so
+are the ones haas ships. A skill that is changed or removed is kept as it was, up to ten times, and the page puts one back as a change
+of its own. The change record says, for a skill, what it was and what it became as a short fingerprint of each, never the text.
+
 A skill set is a plugin with no servers. **Download as an Agent Plugin** on a skill set's page gives a zip that another deployment, or
 this one, imports as an integration like any other. The skill sets a deployment keeps for itself stay as they are: they are edited
 in place and are on for everybody, which an integration is not until an administrator turns it on.

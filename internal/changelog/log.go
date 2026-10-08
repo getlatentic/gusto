@@ -64,6 +64,9 @@ const (
 	ModelEnabled     = "model.enabled"
 	ModelDisabled    = "model.disabled"
 	RegistryRestored = "registry.restored"
+	SetupEnabled     = "setup.enabled"
+	SetupDisabled    = "setup.disabled"
+	SkillRestored    = "skill.restored"
 
 	IntegrationImported = "integration.imported"
 	IntegrationEnabled  = "integration.enabled"

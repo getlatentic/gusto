@@ -143,6 +143,7 @@ func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
 	here.server.UseAdmins([]string{"admin@example.com"})
 	admin, runner := here.as(t, "admin@example.com"), here.as(t, alice)
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/enable", nil)
 	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
 
 	controls := map[string][]string{
