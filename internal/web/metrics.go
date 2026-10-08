@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/getlatentic/haas/internal/jobs"
@@ -111,15 +110,6 @@ func (s *Server) diskMetrics(out *exposition) {
 	if used.Oldest != nil {
 		out.gauge("haas_oldest_finished_job_timestamp_seconds", "When the finished job kept longest ended.", float64(used.Oldest.Ended))
 	}
-}
-
-// volume is the free and total bytes of the filesystem a path is on.
-func volume(path string) (free, total uint64, err error) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(path, &stat); err != nil {
-		return 0, 0, err
-	}
-	return uint64(stat.Bavail) * uint64(stat.Bsize), uint64(stat.Blocks) * uint64(stat.Bsize), nil
 }
 
 // DeployResult is what a deploy writes when it ends.

@@ -51,11 +51,13 @@ a reason to build this API.
 ## The helper
 
 It is its own program, `haas-helper` (`cmd/haas-helper`), with its commands in
-`internal/helper/cli`. The server's program (`haas`) does not build for Windows, and
-a person's computer should not carry a server, so the helper is not part of it.
-`haas-helper` builds without a C compiler for macOS, Windows and Linux, on Intel and
-Arm, and a workflow builds all six on each change to it. `haas` has the same
-`login`, `logout` and `whoami` for those who already have it.
+`internal/helper/cli`, so that a person's computer does not carry the server's
+program. `haas` itself builds for Windows too, for the verbs a person uses there
+(`login`, `whoami`, `submit`, `verify`, `show`); the server's own verbs need Docker
+and a Linux box, and are not what Windows is for. Both programs build without a C
+compiler for macOS, Windows and Linux, on Intel and Arm, and a workflow builds and
+vets all of it for all six on each Go change, and runs the helper's tests and the real
+Credential Manager on a Windows runner.
 
 Built so far: `login` by the device flow, `whoami`, and `logout`, which ends the token
 on the server. Next: the local API, `haas acp`, folder sync.

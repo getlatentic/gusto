@@ -1,3 +1,5 @@
+//go:build !windows
+
 package openshell_test
 
 import (
