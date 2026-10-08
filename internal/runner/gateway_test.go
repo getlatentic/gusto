@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -51,6 +52,65 @@ func TestAJobWithServersBehindTheGatewayAndNoProxyIsRefusedByName(t *testing.T) 
 func TestAHarnessWithNoMCPIsRefusedAGatewayJob(t *testing.T) {
 	spec := job.Spec{Setup: &job.Setup{Name: "team", Gateway: []string{"crm"}}}
 	if err := fits(spec, harness.Adapter{Name: "plain"}); err == nil || !strings.Contains(err.Error(), "takes no MCP servers") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func inABox(t *testing.T, name string) (harness.Adapter, harness.Env) {
+	t.Helper()
+	adapter, err := harness.Load("", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return adapter, harness.Env{Boxed: true, ModelURL: "http://host.openshell.internal:8041/model/v1", ModelToken: "box-token"}
+}
+
+func TestAHarnessInABoxIsGivenTheGatewayAtTheProxyItReachesItsModelAt(t *testing.T) {
+	for _, name := range []string{"claude", "codex", "opencode"} {
+		adapter, env := inABox(t, name)
+		command, servers, err := boxCommand(context.Background(), adapter, gatewaySpec(), "/sandbox/work", env)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if len(servers) != 1 || servers[0].URL != "http://host.openshell.internal:8041/model/mcp" || servers[0].Headers["Authorization"] != "Bearer box-token" {
+			t.Errorf("%s: servers = %+v", name, servers)
+		}
+		line := strings.Join(append(command.Args, command.Env...), " ")
+		if !strings.Contains(line, "host.openshell.internal:8041/model/mcp") || !strings.Contains(line, "box-token") {
+			t.Errorf("%s: the command does not carry the gateway: %s", name, line)
+		}
+		if strings.Contains(line, "crm") || strings.Contains(line, "billing") {
+			t.Errorf("%s: a server behind the gateway is named to the harness", name)
+		}
+	}
+}
+
+func TestAnACPHarnessInABoxIsGivenTheGatewayOnItsSession(t *testing.T) {
+	adapter, env := inABox(t, "hermes")
+	command, servers, err := boxCommand(context.Background(), adapter, gatewaySpec(), "/sandbox/work", env)
+	if err != nil || len(servers) != 1 || servers[0].Name != GatewayName {
+		t.Fatalf("%+v %v", servers, err)
+	}
+	if strings.Contains(strings.Join(command.Args, " "), "model/mcp") {
+		t.Error("an ACP harness is given its servers on the session and not on its command line")
+	}
+}
+
+func TestAHarnessThatReadsItsServersFromAFileIsRefusedInABoxByName(t *testing.T) {
+	adapter, env := inABox(t, "pi")
+	if _, _, err := boxCommand(context.Background(), adapter, gatewaySpec(), "/sandbox/work", env); err == nil || !strings.Contains(err.Error(), "pi reads its servers from a file") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestAJobWithNothingBehindTheGatewayIsGivenNothingInABoxAndOneWithNoTokenIsRefused(t *testing.T) {
+	adapter, env := inABox(t, "claude")
+	command, servers, err := boxCommand(context.Background(), adapter, job.Spec{Setup: &job.Setup{Name: "x"}}, "/w", env)
+	if err != nil || len(servers) != 0 || strings.Contains(strings.Join(command.Args, " "), "mcp-config") {
+		t.Errorf("%+v %v %v", servers, err, command.Args)
+	}
+	env.ModelToken = ""
+	if _, _, err := boxCommand(context.Background(), adapter, gatewaySpec(), "/w", env); err == nil || !strings.Contains(err.Error(), "no proxy") {
 		t.Errorf("err = %v", err)
 	}
 }

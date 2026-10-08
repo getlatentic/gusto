@@ -48,6 +48,7 @@ instance with `HAAS_SANDBOX=openshell`:
 ```bash
 ./e2e.sh           # one job: a harness in a sandbox asks the model through haas's proxy, and tries a host nobody allowed
 ./e2e-compare.sh   # one comparison from the pages' form, in sandboxes made from a Node root file system
+./e2e-integrations.sh   # an integration imported in the console and used by Claude Code and Codex from sandboxes, through the gateway
 ```
 
 `e2e-compare.sh` makes the root file system from `node:24-slim` for x86-64 with
