@@ -52,6 +52,9 @@ const (
 	Enabled  = "enabled"
 	Disabled = "disabled"
 	Restored = "restored"
+	// ProgramsAllowed and ProgramsRefused are an administrator letting the programs of a version run, and taking it back.
+	ProgramsAllowed = "programs-allowed"
+	ProgramsRefused = "programs-refused"
 )
 
 // Integration is one plugin by name, with every version imported and which one is on. An integration that was imported is off
@@ -62,8 +65,11 @@ type Integration struct {
 	// On is the version people get, or empty when it is off.
 	On string `json:"on,omitempty"`
 	// Before is the version that was on before the one that is, which Restore turns on again.
-	Before  string  `json:"before,omitempty"`
-	History []Event `json:"history,omitempty"`
+	Before string `json:"before,omitempty"`
+	// Programs is the version whose programs an administrator allowed to run, which is only that version: a new version is a new
+	// program, and has to be allowed again.
+	Programs string  `json:"programs,omitempty"`
+	History  []Event `json:"history,omitempty"`
 }
 
 // Store is every integration an organisation has imported, one folder each, with a file that says what is on.
@@ -262,12 +268,38 @@ func (s *Store) change(name, by string, do func(*Integration) (action, version s
 	return held, s.write(held)
 }
 
+// AllowPrograms lets the programs of a version run, which is to say the servers it brings that are programs and not addresses. They run
+// in a box, and an administrator decides they may: a program is code that somebody else wrote.
+func (s *Store) AllowPrograms(name, id, by string) (*Integration, error) {
+	return s.change(name, by, func(held *Integration) (string, string, error) {
+		if _, found := held.version(id); !found {
+			return "", "", ErrNoVersion
+		}
+		held.Programs = id
+		return ProgramsAllowed, id, nil
+	})
+}
+
+// RefusePrograms takes the permission back.
+func (s *Store) RefusePrograms(name, by string) (*Integration, error) {
+	return s.change(name, by, func(held *Integration) (string, string, error) {
+		version := held.Programs
+		held.Programs = ""
+		return ProgramsRefused, version, nil
+	})
+}
+
+// ProgramsRun says whether the programs of the version that is on may run.
+func (held *Integration) ProgramsRun() bool { return held.On != "" && held.Programs == held.On }
+
 // Active is an integration that is on, with the folder of the version people get.
 type Active struct {
 	Name    string
 	Version Version
 	// Dir is the plugin's own folder. It is read-only to everything that uses it.
 	Dir string
+	// Programs says an administrator allowed this version's programs to run.
+	Programs bool
 }
 
 // Active is every integration that is on.
@@ -279,7 +311,7 @@ func (s *Store) Active() ([]Active, error) {
 	var on []Active
 	for _, held := range all {
 		if version, found := held.version(held.On); found {
-			on = append(on, Active{Name: held.Name, Version: version, Dir: s.folder(held.Name, version.ID)})
+			on = append(on, Active{Name: held.Name, Version: version, Dir: s.folder(held.Name, version.ID), Programs: held.ProgramsRun()})
 		}
 	}
 	return on, nil

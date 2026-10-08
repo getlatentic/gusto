@@ -236,3 +236,34 @@ func TestSavingASetupsServersKeepsWhatElseItHolds(t *testing.T) {
 func setupWithStarters() setup.Setup {
 	return setup.Setup{Name: "starters", Starters: []string{"Say hello"}, Wrote: map[string]string{"x": "fp"}}
 }
+
+func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.T) {
+	here, admin := withIntegrations(t)
+	files := pluginFiles("1.0.0", "Summarise a report.")
+	files["mcp.json"] = `{` + mcpHead + `, "mcpServers": {"db": {"type": "stdio", "command": "node", "args": ["${PLUGIN_ROOT}/db.js"]}}}`
+	made := upload(t, admin, zipped(t, files))
+	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
+	page := admin.ask(t, "GET", made.Header().Get("Location"), nil).Body.String()
+	if !strings.Contains(page, "node ${PLUGIN_ROOT}/db.js") || !strings.Contains(page, "Allow the programs") {
+		t.Errorf("the page does not show the program and the way to allow it:\n%s", page)
+	}
+	if refused := admin.ask(t, "POST", "/admin/integrations/reports/programs/allow", url.Values{"version": {version}}); !strings.Contains(refused.Header().Get("Location"), "refused=") {
+		t.Errorf("the programs were allowed without the box being ticked: %q", refused.Header().Get("Location"))
+	}
+	if held, _ := here.server.integrations.Get("reports"); held.Programs != "" {
+		t.Fatal("the programs were allowed without the box being ticked")
+	}
+	admin.ask(t, "POST", "/admin/integrations/reports/programs/allow", url.Values{"version": {version}, "understood": {"yes"}})
+	held, _ := here.server.integrations.Get("reports")
+	if held.Programs != version {
+		t.Fatalf("programs = %q", held.Programs)
+	}
+	if page := admin.ask(t, "GET", made.Header().Get("Location"), nil).Body.String(); !strings.Contains(page, "Allowed.") || !strings.Contains(page, "Stop allowing them") {
+		t.Error("the page does not say the programs are allowed")
+	}
+	admin.ask(t, "POST", "/admin/integrations/reports/programs/refuse", nil)
+	events := ofKind(written(t, here.log), changelog.IntegrationPrograms)
+	if len(events) != 2 || events[0].What["allowed"] != version || events[1].What["allowed"] != "" || events[1].What["was"] != version {
+		t.Errorf("the change record has %+v", events)
+	}
+}

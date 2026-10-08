@@ -51,17 +51,31 @@ func serverName(plugin, server string) string {
 	return name
 }
 
-// usable is the server as a job can call it now. Only a streamable HTTP server is: a program that an integration brings would run
-// inside the job's box, which is what integrations are for not doing, and waits for the gateway, and the older SSE transport is
-// not one the harnesses here take.
-func usable(plugin string, server integration.Server) (job.Server, string) {
+// whyHeld says why a server of an integration cannot be used, or nothing. A streamable HTTP server is used. A program is used when an
+// administrator allowed that version's programs, and runs in a box of its own, outside the job's. The older SSE transport is not one
+// the harnesses here take.
+func whyHeld(server integration.Server, programs bool) string {
 	switch server.Transport {
 	case integration.StreamableHTTP:
-		return job.Server{Name: serverName(plugin, server.Name), URL: server.URL, Headers: server.Headers}, ""
+		return ""
 	case integration.Stdio:
-		return job.Server{}, server.Name + " runs a program, which waits for the gateway"
+		if programs {
+			return ""
+		}
+		return server.Name + " runs a program, which an administrator has not allowed"
 	}
-	return job.Server{}, server.Name + " uses the older SSE transport"
+	return server.Name + " uses the older SSE transport"
+}
+
+// definition is the server as the gateway is given it. A program is given the plugin's folder, to read, and a folder of this job's to
+// write.
+func definition(one integration.Active, server integration.Server, data string) gateway.Server {
+	name := serverName(one.Name, server.Name)
+	if server.Transport == integration.Stdio {
+		return gateway.Server{Name: name, Command: server.Command, Args: server.Args, Env: server.Env, Cwd: server.Cwd, Plugin: one.Dir,
+			Data: filepath.Join(data, name)}
+	}
+	return gateway.Server{Name: name, URL: server.URL, Headers: server.Headers}
 }
 
 // uses is what each integration a setup names gives it now.
@@ -76,7 +90,7 @@ func (s *Store) uses(held Setup) []Use {
 			if version, on := found.Version(found.On); on {
 				use.On, use.Skills = true, len(version.Plugin.Skills)
 				for _, server := range version.Plugin.Servers {
-					if _, why := usable(name, server); why != "" {
+					if why := whyHeld(server, found.ProgramsRun()); why != "" {
 						use.Held = append(use.Held, why)
 					} else {
 						use.Servers++
@@ -156,16 +170,16 @@ func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, b
 			carried.Skills = append(carried.Skills, skill.Name)
 		}
 		for _, server := range one.Version.Plugin.Servers {
-			definition, why := usable(name, server)
-			if why != "" {
+			if whyHeld(server, one.Programs) != "" {
 				continue
 			}
-			if taken[definition.Name] {
-				return fmt.Errorf("the setup %s gets an MCP server called %s more than once", held.Name, definition.Name)
+			made := definition(one, server, filepath.Join(dir.SetupDir(), "tooldata"))
+			if taken[made.Name] {
+				return fmt.Errorf("the setup %s gets an MCP server called %s more than once", held.Name, made.Name)
 			}
-			taken[definition.Name] = true
-			*behind = append(*behind, gateway.Server{Name: definition.Name, URL: definition.URL, Headers: definition.Headers})
-			carried.Gateway = append(carried.Gateway, definition.Name)
+			taken[made.Name] = true
+			*behind = append(*behind, made)
+			carried.Gateway = append(carried.Gateway, made.Name)
 		}
 		carried.Integrations = append(carried.Integrations, job.IntegrationUse{
 			Name: name, Version: one.Version.ID, Label: one.Version.Label, Commit: one.Version.Source.Commit})

@@ -236,3 +236,46 @@ func TestAnUnknownIntegrationOrVersionIsRefusedAndANameThatClimbsIsNotLooked(t *
 		t.Error("there is nothing to restore")
 	}
 }
+
+func TestTheProgramsOfAVersionRunOnlyWhileThatVersionIsOnAndAllowed(t *testing.T) {
+	store := openStore(t)
+	_, one, _ := store.Import(folder(t, versionOf("1.0.0", nil)), git, "ada")
+	_, two, _ := store.Import(folder(t, versionOf("1.1.0", nil)), git, "ada")
+	store.Enable("reports", one.ID, "ada")
+	held, _ := store.Get("reports")
+	if held.ProgramsRun() {
+		t.Fatal("programs run before anybody allowed them")
+	}
+	held, err := store.AllowPrograms("reports", one.ID, "ada")
+	if err != nil || !held.ProgramsRun() {
+		t.Fatalf("%+v %v", held, err)
+	}
+	if on, _ := store.Active(); !on[0].Programs {
+		t.Error("the active integration does not say its programs are allowed")
+	}
+	held, _ = store.Enable("reports", two.ID, "ada")
+	if held.ProgramsRun() {
+		t.Error("the programs of a new version ran on the old version's permission")
+	}
+	if on, _ := store.Active(); on[0].Programs {
+		t.Error("the active integration says the new version's programs are allowed")
+	}
+	store.Restore("reports", "ada")
+	if held, _ = store.Get("reports"); !held.ProgramsRun() {
+		t.Error("the permission was lost when the version came back")
+	}
+	held, _ = store.RefusePrograms("reports", "ada")
+	if held.ProgramsRun() || held.Programs != "" {
+		t.Errorf("%+v", held)
+	}
+	if _, err := store.AllowPrograms("reports", "nope", "ada"); !errors.Is(err, ErrNoVersion) {
+		t.Errorf("err = %v", err)
+	}
+	var actions []string
+	for _, event := range held.History {
+		actions = append(actions, event.Action)
+	}
+	if !strings.Contains(strings.Join(actions, ","), "programs-allowed,enabled,restored,programs-refused") {
+		t.Errorf("history = %v", actions)
+	}
+}

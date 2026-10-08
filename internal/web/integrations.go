@@ -34,6 +34,8 @@ func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/enable", offered(s.enableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/disable", offered(s.disableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/restore", offered(s.restoreIntegration))
+	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/allow", offered(s.allowPrograms))
+	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/refuse", offered(s.refusePrograms))
 }
 
 func (s *Server) integrationsPage(w http.ResponseWriter, r *http.Request) {
@@ -162,6 +164,44 @@ func (s *Server) turnIntegration(w http.ResponseWriter, r *http.Request, kind st
 		return
 	}
 	s.note(r, kind, map[string]string{"integration": name, "from": before.On, "to": held.On})
+	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
+}
+
+// allowPrograms lets the programs of one version run, in a box of their own. It is a separate step from turning the version on, and it
+// is for that version only.
+func (s *Server) allowPrograms(w http.ResponseWriter, r *http.Request) {
+	name, version := r.PathValue("name"), r.FormValue("version")
+	before, err := s.integrations.Get(name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if r.FormValue("understood") != "yes" {
+		s.turnAway(w, r, integrationsPath+"/"+name, "tick that you have read what the programs are, and that they run in a box that has no network unless this server was set up to give it one")
+		return
+	}
+	held, err := s.integrations.AllowPrograms(name, version, s.keeper.who(r))
+	if err != nil {
+		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
+		return
+	}
+	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": before.Programs})
+	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
+}
+
+func (s *Server) refusePrograms(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	before, err := s.integrations.Get(name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	held, err := s.integrations.RefusePrograms(name, s.keeper.who(r))
+	if err != nil {
+		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
+		return
+	}
+	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": before.Programs})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 
