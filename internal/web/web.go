@@ -94,7 +94,9 @@ type Server struct {
 	servers    setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
-	cloner       integration.Clone
+	// desktop is the folder of the desktop app's releases, which the server hands out so that an app updates from the server it is connected to.
+	desktop string
+	cloner  integration.Clone
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
 	inBuilding atomic.Bool
@@ -134,6 +136,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /keys/{file}", s.key)
+	s.desktopRoutes(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
