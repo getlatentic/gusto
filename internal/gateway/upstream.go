@@ -24,11 +24,24 @@ const (
 
 // Server is one MCP server the gateway calls on a job's behalf: an address, and the headers it is called with, which may be a
 // credential. They are held here and never given to the job.
+//
+// A server may instead be a program: the gateway starts it, by the launcher it is given, and speaks to it over its standard input and
+// output. Plugin is the folder of the plugin it came with, which it reads and may not change.
 type Server struct {
 	Name    string            `json:"name"`
-	URL     string            `json:"url"`
+	URL     string            `json:"url,omitempty"`
 	Headers map[string]string `json:"headers,omitempty"`
+	Command string            `json:"command,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	Cwd     string            `json:"cwd,omitempty"`
+	Plugin  string            `json:"plugin,omitempty"`
+	// Data is a folder the program may write, which belongs to this job and goes with it.
+	Data string `json:"data,omitempty"`
 }
+
+// IsProgram says the server is a program and not an address.
+func (s Server) IsProgram() bool { return s.Command != "" }
 
 // Upstream is a connection to one Streamable HTTP server. It starts the session the first time it is used and starts it again
 // when the server says the session is gone.
@@ -69,47 +82,12 @@ func publicOnly(private bool) func(ctx context.Context, network, address string)
 
 // Tools is every tool the server has, all its pages.
 func (u *Upstream) Tools(ctx context.Context) ([]Tool, error) {
-	var all []Tool
-	cursor := ""
-	for range 50 {
-		params := map[string]any{}
-		if cursor != "" {
-			params["cursor"] = cursor
-		}
-		raw, err := u.call(ctx, "tools/list", params)
-		if err != nil {
-			return nil, err
-		}
-		var page struct {
-			Tools      []Tool `json:"tools"`
-			NextCursor string `json:"nextCursor"`
-		}
-		if err := json.Unmarshal(raw, &page); err != nil {
-			return nil, fmt.Errorf("%s answered tools/list with something that is not a list: %w", u.server.Name, err)
-		}
-		all = append(all, page.Tools...)
-		if cursor = page.NextCursor; cursor == "" {
-			return all, nil
-		}
-	}
-	return nil, fmt.Errorf("%s lists more pages of tools than the gateway reads", u.server.Name)
+	return listTools(ctx, u.server.Name, u.call)
 }
 
 // Call calls one tool.
 func (u *Upstream) Call(ctx context.Context, tool string, arguments json.RawMessage) (Result, error) {
-	params := map[string]any{"name": tool}
-	if len(arguments) > 0 {
-		params["arguments"] = arguments
-	}
-	raw, err := u.call(ctx, "tools/call", params)
-	if err != nil {
-		return Result{}, err
-	}
-	var result Result
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return Result{}, fmt.Errorf("%s answered a call with something that is not a result: %w", u.server.Name, err)
-	}
-	return result, nil
+	return callTool(ctx, u.server.Name, u.call, tool, arguments)
 }
 
 // Close ends the session.

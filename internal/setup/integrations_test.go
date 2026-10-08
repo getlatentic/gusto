@@ -186,7 +186,7 @@ func TestWhatASetupNeedsOfAHarnessIncludesWhatItsIntegrationsGive(t *testing.T) 
 		t.Errorf("uses = %+v", held.Uses)
 	}
 	for _, why := range held.Uses[0].Held {
-		if !strings.Contains(why, "gateway") && !strings.Contains(why, "SSE") {
+		if !strings.Contains(why, "not allowed") && !strings.Contains(why, "SSE") {
 			t.Errorf("a held-back server does not say why: %q", why)
 		}
 	}
@@ -240,5 +240,52 @@ func TestTwoServersWhoseNamesBecomeTheSameNameStopTheJobAndNotOverwriteEachOther
 	store.Save(Setup{Name: "team", Integrations: []string{"clash"}}, Servers{})
 	if _, _, err := carry(t, store, "team"); err == nil || !strings.Contains(err.Error(), "more than once") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestAProgramIsGivenToTheGatewayOnlyForTheVersionAnAdministratorAllowed(t *testing.T) {
+	store, integrations, first := world(t, true)
+	store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{})
+	_, dir, err := carry(t, store, "team")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text, _ := os.ReadFile(filepath.Join(dir.SetupDir(), GatewayFile)); strings.Contains(string(text), "tool") {
+		t.Fatalf("a program that nobody allowed was given to the gateway: %s", text)
+	}
+
+	if _, err := integrations.AllowPrograms("reports", first, "ada"); err != nil {
+		t.Fatal(err)
+	}
+	held, _ := store.Get("team")
+	if held.Uses[0].Servers != 2 || len(held.Uses[0].Held) != 1 {
+		t.Errorf("uses after the programs were allowed: %+v", held.Uses[0])
+	}
+	carried, dir, err := carry(t, store, "team")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(carried.Gateway, ",") != "reports-api,reports-local" {
+		t.Fatalf("gateway = %v", carried.Gateway)
+	}
+	var behind []gateway.Server
+	text, _ := os.ReadFile(filepath.Join(dir.SetupDir(), GatewayFile))
+	json.Unmarshal(text, &behind)
+	var program gateway.Server
+	for _, server := range behind {
+		if server.IsProgram() {
+			program = server
+		}
+	}
+	active, _ := integrations.Active()
+	if program.Command != "tool" || program.Plugin != active[0].Dir || program.Data != filepath.Join(dir.SetupDir(), "tooldata", "reports-local") {
+		t.Errorf("the program as the gateway has it: %+v", program)
+	}
+
+	_, second, _ := integrations.Import(plugin(t, "reports", map[string]string{"mcp.json": `{` + mcpSchema + `, "mcpServers": {"local": {"type": "stdio", "command": "tool"}}}`}), integration.Source{Kind: "upload"}, "ada")
+	integrations.Enable("reports", second.ID, "ada")
+	carried, _, err = carry(t, store, "team")
+	if err != nil || len(carried.Gateway) != 0 {
+		t.Errorf("a new version's program ran on the old version's permission: %+v %v", carried, err)
 	}
 }

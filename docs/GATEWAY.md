@@ -88,6 +88,7 @@ sandbox.
 | The record | `out/gateway.jsonl` has a line for each listing, search, schema and call: who, which server and tool, the outcome (`ok`, `error`, `refused`, `failed`), how long, and how many bytes went in and came back. It does not hold what was sent or what came back. A listing says how many tools there were and about how many tokens showing all of them would cost, against what the job was shown. |
 | Reaching a server | Streamable HTTP, answered as JSON or as an event stream, with the session started again when the server drops it. A redirect is not followed. An address on a private network is refused where the connection is made, so a name that answers with a private address later is refused too. |
 | A call that cannot be written down | Is not made. |
+| A server that is a program | Run in a box of its own, started when the job first uses it and ended with the job, spoken to over its standard input and output. See below. |
 
 The tokens in the record are estimated at four characters each, which is a rule of thumb and not a count. The section below
 has what real harnesses read.
@@ -125,6 +126,29 @@ policy's fingerprint, are in the settings the change record watches.
 **Checked against real clients.** `go test -tags realclients -run RealClient ./internal/gateway` connects
 `claude` and the protocol's own TypeScript client library to the gateway. Running the SDK found a
 schema that the in-process tests had passed and the library refused, so both are kept.
+
+## Programs
+
+A plugin's MCP server may be a program (`"type": "stdio"`). It is somebody else's code, so it runs only when an administrator allows
+the programs of that version, and then in a box that is not the job's:
+
+| What the box has | |
+| --- | --- |
+| The plugin | its folder, mounted read-only at `/plugin` (`${PLUGIN_ROOT}`) |
+| A place to write | a folder of this job's, at `/data` (`${PLUGIN_DATA}`), which goes with the job and is not kept between jobs |
+| The rest of the file system | read-only, with 64 MiB of scratch space in `/tmp` |
+| The network | none. `HAAS_TOOLS_NETWORK=open` gives it the runtime's own network, which lets a program send what it is given to any host on it, and is for an administrator to choose |
+| Privilege | no capability, no new privilege, user 65534, at most 0.5 CPU, 512 MiB and 128 processes (`HAAS_TOOL_CPUS`, `HAAS_TOOL_MEMORY`) |
+| The job | nothing: not its folder, its files, its token, the proxy or the docker socket |
+
+The image is `HAAS_TOOLS_IMAGE`, or the job image. The image's own entry is replaced by the plugin's command, and the plugin's
+placeholders are expanded the way the format says. A plugin that needs a program the image lacks, a network it is not given, or a
+secret (the format has no way to give one) cannot run yet. A job that runs in the server's own process (`HAAS_SANDBOX=here`) has no
+container to put a program in, and runs none.
+
+The gateway speaks to the program a line of JSON at a time, answers a ping, tells it this client does not do what else it asks, ends
+it with the job (by closing its input, and then by removing the container by name), and says what it wrote to its error output when
+it did not start or died in a call.
 
 ## Masking personal data and secrets
 

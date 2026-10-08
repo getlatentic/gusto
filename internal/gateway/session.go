@@ -42,7 +42,9 @@ type Config struct {
 	Mode     Mode
 	// Private lets the servers be on a private network.
 	Private bool
-	Record  *Record
+	// Launch makes the command that runs a server that is a program. Without it a program is not run.
+	Launch Launcher
+	Record *Record
 }
 
 // Session is the gateway for one job: an MCP server the job's harness calls.
@@ -63,7 +65,7 @@ func New(config Config) *Session {
 	if policy == nil {
 		policy = func() Policy { return config.Policy }
 	}
-	return &Session{config: config, now: time.Now, catalogue: newCatalogue(config.Servers, config.Private, policy, config.Caller, config.Record)}
+	return &Session{config: config, now: time.Now, catalogue: newCatalogue(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record)}
 }
 
 // Close ends the sessions with the servers.
