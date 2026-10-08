@@ -133,8 +133,17 @@ folder in the cloud, in both directions, as real files on both sides. There is n
 file system and no kernel extension: those are three hard integrations (macOS File
 Provider, Windows Cloud Files, Linux FUSE), and are added only when a measured workspace is
 too large to keep this way. `-dry-run` says what it would do and does nothing, `-once`
-compares once, and without either it compares every three seconds while there are changes
-and every thirty when there are none. Only a workspace is shared, never the rest of the cloud
+compares once, and without either it keeps the folders. A save in the folder starts a
+comparison, and so does any word of the agent's turns: the end of a turn is when its files have
+just changed. A burst of saves, such as a build or a `git checkout`, is one comparison, which
+starts when the saves have stopped for 0.3 s (3 s at most). A comparison that did something is
+followed by another in three seconds. When nothing has changed, the timed comparison is the
+backstop for a watcher that drops an event, every five minutes. A build with no folder watcher
+compares every three seconds while there are changes and every thirty when there are none.
+The watcher is FSEvents on macOS (one stream for the tree), and inotify and
+ReadDirectoryChangesW elsewhere, with one watch for each folder. When Linux's
+`fs.inotify.max_user_watches` is reached, the helper says so and the timed comparison keeps the
+rest. Only a workspace is shared, never the rest of the cloud
 computer.
 
 **The rule** is in `internal/helper/mirror/plan.go`, with its tests, and is the whole of what
@@ -177,8 +186,8 @@ on both.
   a path from the root (`docs/drafts`). A `!` line is not understood and is said so. An
   ignored file is never deleted on either side.
 
-**What it does not do yet.** It looks at the folder every few seconds and does not watch it,
-so a change reaches the other side in seconds and not at once. Empty folders are not kept.
+**What it does not do yet.** Empty folders are not kept. A file the agent writes crosses when
+its turn ends or changes state, and not while the turn is running.
 Names are compared exactly, so two names that differ only in case are two files, which a
 case-insensitive disk (the default on macOS and Windows) cannot hold. An executable file is
 kept executable, but no other mode, owner or time is. The record is in the helper's settings
