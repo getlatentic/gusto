@@ -87,7 +87,22 @@
       "properties": {
         "name": {"type": "string"},
         "skills": {"type": "array", "items": {"type": "string"}},
-        "servers": {"type": "array", "items": {"type": "string"}}
+        "servers": {"type": "array", "items": {"type": "string"}},
+        "integrations": {
+          "description": "Each integration the skills and servers came from, with the version that was on when the job started.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": {"type": "string"},
+              "version": {"type": "string"},
+              "label": {"type": "string"},
+              "commit": {"type": "string"}
+            }
+          }
+        }
       }
     }
   }

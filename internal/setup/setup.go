@@ -26,6 +26,9 @@ import (
 type Setup struct {
 	Name    string   `json:"name"`
 	Servers []string `json:"servers,omitempty"`
+	// Integrations are the integrations whose skills and servers the setup is given, by name, in the version an administrator has
+	// turned on when a job starts.
+	Integrations []string `json:"integrations,omitempty"`
 	// Starters are things to say that show what the setup is for, offered in
 	// an empty thread.
 	Starters []string `json:"starters,omitempty"`
@@ -38,6 +41,8 @@ type Setup struct {
 	// Skills is filled from the folder rather than kept in the file, so the
 	// folder is the one account of what a setup holds.
 	Skills []Skill `json:"-"`
+	// Uses is what each integration named gives the setup now. It is worked out when the setup is read.
+	Uses []Use `json:"-"`
 }
 
 // Skill is one skill: a folder holding a SKILL.md.
@@ -49,8 +54,9 @@ type Skill struct {
 
 // Store is every setup under one directory, one folder each.
 type Store struct {
-	root  string
-	guard sync.Mutex
+	root         string
+	guard        sync.Mutex
+	integrations Integrations
 }
 
 func Open(root string) (*Store, error) {
@@ -76,6 +82,9 @@ func (s *Store) Save(wanted Setup, offered Servers) error {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
+	if err := s.checkIntegrations(wanted.Integrations); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(s.skillsDir(wanted.Name), 0o755); err != nil {
 		return err
 	}
@@ -107,6 +116,7 @@ func (s *Store) Get(name string) (Setup, bool) {
 		return Setup{}, false
 	}
 	held.Skills = s.skills(name)
+	held.Uses = s.uses(held)
 	return held, true
 }
 
@@ -210,6 +220,9 @@ func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, er
 		}
 		servers = append(servers, definition)
 	}
+	if err := s.carryIntegrations(held, dir, carried, &servers); err != nil {
+		return nil, err
+	}
 	if len(servers) == 0 {
 		return carried, nil
 	}
@@ -222,10 +235,16 @@ func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, er
 
 // Fits says why a harness cannot take a setup, or nothing when it can.
 func (held Setup) Fits(skills, mcp bool) string {
+	given := 0
+	served := len(held.Servers)
+	for _, use := range held.Uses {
+		given += use.Skills
+		served += use.Servers
+	}
 	switch {
-	case len(held.Skills) > 0 && !skills:
+	case (len(held.Skills) > 0 || given > 0) && !skills:
 		return "it takes no skills"
-	case len(held.Servers) > 0 && !mcp:
+	case served > 0 && !mcp:
 		return "it takes no MCP servers"
 	}
 	return ""
