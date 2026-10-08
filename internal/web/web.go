@@ -140,6 +140,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
+	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
+	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
 	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))

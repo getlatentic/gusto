@@ -2,25 +2,7 @@
 
 <div class="desk">
   <div class="scrim" id="scrim"></div>
-  <aside class="rail" id="rail">
-    <a class="whose" href="/instances/{{.Instance.ID}}" title="About this agent">
-      {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "sm")}}
-      <span class="who">
-        <span class="name">{{.Agent.Name}}</span>
-        <span class="model">{{.Agent.Runs}}</span>
-      </span>
-    </a>
-
-    <form method="post" action="/instances/{{.Instance.ID}}/threads">
-      <button type="submit" class="new-thread">{{template "icon-add"}} New conversation</button>
-    </form>
-
-    <ol>
-      {{range .Threads}}
-      <li><a href="/instances/{{.Instance}}/threads/{{.ID}}"{{if eq .ID $.Thread.ID}} aria-current="page"{{end}}>{{.Name}}</a></li>
-      {{end}}
-    </ol>
-  </aside>
+  {{template "rail" .}}
 
   <main class="talk">
     <div class="talk-top">
@@ -28,6 +10,7 @@
         {{template "icon-menu"}}
       </button>
       <span class="which">{{.Named}}</span>
+      <a class="muted" href="/instances/{{.Instance.ID}}" title="About this agent">{{.Agent.Name}}</a>
       <span class="guards" title="What keeps this agent's work safe">
         <span class="chip">{{template "icon-shield"}} Sealed</span>
         <span class="chip">{{template "icon-lock"}} Key stays with Agent Cloud</span>
@@ -67,11 +50,18 @@
       </div>
     </div>
 
+    <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
     <div class="composer">
       <form class="column" method="post" action="{{.Path}}/say">
         <div class="box">
           <textarea name="said" rows="1" placeholder="Message {{.Agent.Name}}" autofocus required></textarea>
-          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+          <div class="tools">
+            <span class="picks">
+              {{if gt (len .Models) 1}}<select name="model" form="model-form" aria-label="Model" data-submit>{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
+              {{else}}<span class="muted">{{.Agent.Brain}}</span>{{end}}
+            </span>
+            <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+          </div>
         </div>
         <p class="hint">Enter sends. Shift and Enter start a new line.</p>
       </form>
@@ -96,6 +86,10 @@
   scrim.addEventListener("click", shut);
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") { shut(); }
+  });
+
+  document.querySelectorAll("select[data-submit]").forEach(function (pick) {
+    pick.addEventListener("change", function () { pick.form.submit(); });
   });
 
   var said = document.getElementById("said");

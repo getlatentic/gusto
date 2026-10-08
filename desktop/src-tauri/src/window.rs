@@ -26,6 +26,11 @@ fn build(app: &AppHandle, target: WebviewUrl) -> tauri::Result<WebviewWindow> {
     Ok(window)
 }
 
+/// The chat is where the app opens: the one place to write to an agent, choosing which agent and model.
+pub fn chat_address(server: &str) -> String {
+    format!("{}/chat", server.trim_end_matches('/'))
+}
+
 /// Shows the window: the server's pages when the app is connected to one, and the page that asks for its address when it is not.
 pub fn show(app: &AppHandle) {
     if let Some(window) = main_window(app) {
@@ -34,8 +39,8 @@ pub fn show(app: &AppHandle) {
         let _ = window.set_focus();
         return;
     }
-    let target = match config::load(app).server.and_then(|server| server.parse().ok()) {
-        Some(server) => WebviewUrl::External(server),
+    let target = match config::load(app).server.and_then(|server| chat_address(&server).parse().ok()) {
+        Some(chat) => WebviewUrl::External(chat),
         None => WebviewUrl::App("index.html".into()),
     };
     if let Ok(window) = build(app, target) {
@@ -58,5 +63,16 @@ pub fn ask_for_server(app: &AppHandle) {
     }
     if let Ok(window) = build(app, WebviewUrl::App("index.html".into())) {
         let _ = window.set_focus();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::chat_address;
+
+    #[test]
+    fn the_chat_is_under_the_server() {
+        assert_eq!(chat_address("https://haas.example.com"), "https://haas.example.com/chat");
+        assert_eq!(chat_address("http://127.0.0.1:8040/"), "http://127.0.0.1:8040/chat");
     }
 }
