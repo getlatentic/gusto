@@ -52,7 +52,10 @@ jobs:
           HAAS_REAL_KEYCHAIN: "1"
         run: go test -count=1 ./internal/helper/... ./internal/apitoken/...
       - name: The helper program runs
+        shell: bash
         run: |
           go build -o haas-helper.exe ./cmd/haas-helper
-          ./haas-helper.exe 2>&1 | Out-Host
-          if ($LASTEXITCODE -ne 2) { throw "haas-helper with no verb exited $LASTEXITCODE, not 2" }
+          set +e
+          ./haas-helper.exe
+          code=$?
+          [ "$code" = 2 ] || { echo "haas-helper with no verb exited $code, not 2"; exit 1; }
