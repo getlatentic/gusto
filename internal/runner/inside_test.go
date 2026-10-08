@@ -201,6 +201,23 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 	}
 }
 
+// waitForFile waits until the harness has done what it does first, so that a stop comes while it is working and not while it
+// is being set up, which takes longer on a busy machine.
+func waitForFile(t *testing.T, path string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		if _, err := os.Stat(path); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Error("the harness never started")
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 func write(t *testing.T, path, text string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
@@ -233,7 +250,7 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 	done := make(chan error, 1)
 	started := time.Now()
 	go func() { _, err := runner.InsideContext(ctx, dir); done <- err }()
-	time.Sleep(700 * time.Millisecond)
+	waitForFile(t, filepath.Join(dir.Workspace(), "made.txt"))
 	stop()
 	select {
 	case err := <-done:
@@ -260,14 +277,14 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 
 func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.T) {
 	harnesses := t.TempDir()
-	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","sleep 30"],"needs":"nothing","stream":"plain"}`)
+	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","echo up > up.txt; sleep 30"],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("HAAS_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	dir.Make()
 	spec := job.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
 	spec.Write(dir)
 	ctx, stop := context.WithCancel(context.Background())
-	go func() { time.Sleep(500 * time.Millisecond); stop() }()
+	go func() { waitForFile(t, filepath.Join(dir.Workspace(), "up.txt")); stop() }()
 	if _, err := runner.InsideContext(ctx, dir); err != nil {
 		t.Fatal(err)
 	}
