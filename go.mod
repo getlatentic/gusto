@@ -30,6 +30,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.1 // indirect
 	github.com/aws/smithy-go v1.28.1 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
+	github.com/fsnotify/fsevents v0.2.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	golang.org/x/text v0.42.0 // indirect
 )
