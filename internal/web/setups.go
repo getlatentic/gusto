@@ -79,14 +79,14 @@ func sensitivityOf(held instance.Instance) job.Sensitivity {
 
 // equip carries the setup a job names into its directory, and puts in
 // job.json what it actually held, whatever the sender said it held.
-func (s *Server) equip(spec *job.Spec, dir job.Dir) error {
+func (s *Server) equip(spec *job.Spec, dir job.Dir, asker string) error {
 	if spec.Setup == nil {
 		return nil
 	}
 	if s.setups == nil {
 		return errNoSetups
 	}
-	carried, err := s.setups.Carry(spec.Setup.Name, s.servers, dir)
+	carried, err := s.setups.CarryFor(spec.Setup.Name, s.servers, dir, asker)
 	if err != nil {
 		return err
 	}
@@ -135,6 +135,19 @@ func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.setupData(w, r, "/setups"); ok {
 		s.render(w, "setup-detail.html", page)
 	}
+}
+
+// exportSetup is a skill set as an Agent Plugin, for another deployment to import, or this one.
+func (s *Server) exportSetup(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	data, err := s.setups.Export(name)
+	if err != nil {
+		s.turnAway(w, r, setupsPath+"/"+name, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`-plugin.zip"`)
+	w.Write(data)
 }
 
 // skillSetPage is one setup, and the way to change its skills and servers.

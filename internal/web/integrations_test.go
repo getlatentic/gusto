@@ -267,3 +267,52 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 		t.Errorf("the change record has %+v", events)
 	}
 }
+
+func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndAJobForSomebodyElseDoesNotStart(t *testing.T) {
+	here, admin := withIntegrations(t)
+	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
+	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
+	admin.ask(t, "POST", "/admin/integrations/reports/enable", url.Values{"version": {version}})
+	admin.ask(t, "POST", "/admin/integrations/reports/for", url.Values{"for": {"boss@example.com\n*@finance.example.com\n"}})
+	held, _ := here.server.integrations.Get("reports")
+	if strings.Join(held.For, ",") != "boss@example.com,*@finance.example.com" {
+		t.Fatalf("for = %v", held.For)
+	}
+	events := ofKind(written(t, here.log), changelog.IntegrationScoped)
+	if len(events) != 1 || events[0].What["now"] != "boss@example.com *@finance.example.com" {
+		t.Errorf("the change record has %+v", events)
+	}
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"team"}, "integration": {"reports"}})
+
+	send := func(who *site) string {
+		started := who.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"team"}})
+		where := started.Header().Get("Location")
+		return who.ask(t, "POST", where+"/say", url.Values{"said": {"go"}}).Header().Get("Location")
+	}
+	if got := send(here.as(t, alice)); !strings.Contains(got, "refused=") {
+		t.Errorf("a job for somebody the integration is not on for started: %q", got)
+	}
+	if got := send(admin); strings.Contains(got, "refused=") {
+		t.Errorf("a job for somebody it is on for was refused: %q", got)
+	}
+}
+
+func TestASkillSetIsDownloadedAsAPluginThatImportsAsAnIntegration(t *testing.T) {
+	here, admin := withIntegrations(t)
+	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"Use to review."}, "body": {"Read the diff."}})
+	got := admin.ask(t, "GET", "/admin/skill-sets/reviewer/plugin.zip", nil)
+	if got.Code != http.StatusOK || got.Header().Get("Content-Type") != "application/zip" {
+		t.Fatalf("answered %d %q", got.Code, got.Header().Get("Content-Type"))
+	}
+	if forbidden := here.as(t, alice).ask(t, "GET", "/admin/skill-sets/reviewer/plugin.zip", nil); forbidden.Code != http.StatusForbidden {
+		t.Errorf("a runner downloaded it: %d", forbidden.Code)
+	}
+	made := upload(t, admin, got.Body.Bytes())
+	if !strings.HasPrefix(made.Header().Get("Location"), "/admin/integrations/reviewer") {
+		t.Errorf("the download did not import: %q", made.Header().Get("Location"))
+	}
+	if held, err := here.server.integrations.Get("reviewer"); err != nil || len(held.Versions[0].Plugin.Skills) != 1 {
+		t.Errorf("%+v %v", held, err)
+	}
+}
