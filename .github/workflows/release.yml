@@ -154,7 +154,7 @@ jobs:
           cp deploy/helper/install.sh deploy/helper/install.ps1 dist/
           cd dist
           sha256sum haas-helper_* install.sh install.ps1 > SHA256SUMS
-          cosign sign-blob --yes SHA256SUMS --output-signature SHA256SUMS.sig --output-certificate SHA256SUMS.pem
+          cosign sign-blob --yes SHA256SUMS --bundle SHA256SUMS.sigstore.json
           ls -la
       - name: Release
         env:
