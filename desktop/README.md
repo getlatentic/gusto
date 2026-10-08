@@ -14,6 +14,16 @@ your turns), which the app carries, starts with its own icon turned off, and kee
 | `src-tauri/src/window.rs` | the window: closing it leaves the app and its icon running |
 | `prepare.sh` | builds the helper the app carries, named for its platform |
 
+## Links, notifications and login
+
+- **A link** `latentic://open?path=/instances/<id>/threads/<id>` shows that page of the server the app is connected to. It is only ever
+  a page of that server: a path that names another host, another scheme or no path is ignored, so a link in a message cannot take the
+  window anywhere. (`src-tauri/src/links.rs`, with its tests.)
+- **A notification** says a turn that was going has ended, and a click on it shows the turn in the window. macOS asks the first time
+  whether the app may send notifications, and it must be allowed in System Settings for them to appear. `Latentic Agent Cloud
+  --test-notification` sends one, to find out why they do not.
+- **Start at login** is in the icon's menu, off until it is turned on.
+
 ## Build
 
 You need Go, Rust (stable) and the Tauri command line, `cargo install tauri-cli --version "^2" --locked`. On Linux the web view's
