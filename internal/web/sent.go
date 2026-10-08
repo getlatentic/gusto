@@ -71,6 +71,7 @@ func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 		ctx := context.WithValue(r.Context(), callerKey{}, who)
 		if token.Person != "" {
 			ctx = context.WithValue(ctx, personKey{}, token.Person)
+			ctx = context.WithValue(ctx, tokenIDKey{}, token.ID)
 		}
 		next(w, r.WithContext(ctx))
 	}

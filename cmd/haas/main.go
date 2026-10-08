@@ -53,6 +53,9 @@ func run(args []string) int {
 		"changes":   changesCommand,
 		"retention": retentionCommand,
 		"data":      dataCommand,
+		"login":     login,
+		"logout":    logout,
+		"whoami":    whoami,
 		"version":   versionCommand,
 	}[verb]
 	if !found {
@@ -90,6 +93,9 @@ func usage() {
   haas changes verify <file>  check a record of what changed on the platform, and who signed it [-head <hash>]
   haas retention        what a sweep would remove now, and frees, and removes nothing [-jobs <dir>, -dir <dir>]
   haas data status|check|rollback -to <release>  the format of each data directory, what starting this release would do to it, and how to go back
+  haas login            sign this computer in as you, by your organisation's server [-server, -label]
+  haas logout           end this computer's sign-in and forget it
+  haas whoami           who this computer is signed in as
   haas version          which release this is
   haas keys             which key signed each record, and which no key in the keyring can vouch for [-jobs <dir>]
 
