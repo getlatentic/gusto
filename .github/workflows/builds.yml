@@ -1,6 +1,5 @@
-# haas and the helper on a person's computer have to build for every system a person has, and the keychain code has to work on
-# the ones that have one. This builds both programs for each system on every Go change, and on Windows runs the helper's tests
-# and keeps a token in the real Credential Manager.
+# haas and the helper on a person's computer have to build for every system a person has. This builds both programs for each
+# system on every Go change. The helper's keychain code is tested on Windows by builds-windows.
 name: builds
 
 on:
@@ -38,36 +37,3 @@ jobs:
         run: |
           target="${{ matrix.target }}"
           GOOS="${target%/*}" GOARCH="${target#*/}" go vet ./...
-
-  windows:
-    runs-on: windows-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: The helper's tests, and a token in the real Credential Manager
-        env:
-          HAAS_REAL_KEYCHAIN: "1"
-        run: go test -count=1 ./internal/helper/... ./internal/apitoken/...
-      - name: The helper program runs
-        shell: bash
-        run: |
-          # Built as the release builds it: with no window of its own, which must not cost it its output.
-          go build -ldflags "-H=windowsgui" -o haas-helper.exe ./cmd/haas-helper
-          said=$(./haas-helper.exe version)
-          case "$said" in haas-helper*) ;; *) echo "haas-helper version said: [$said]"; exit 1;; esac
-          set +e
-          ./haas-helper.exe
-          code=$?
-          [ "$code" = 2 ] || { echo "haas-helper with no verb exited $code, not 2"; exit 1; }
-      - name: The helper as a scheduled task, started now and gone after
-        shell: bash
-        run: |
-          ./haas-helper.exe service install -server http://127.0.0.1:1
-          sleep 5
-          ./haas-helper.exe status
-          ./haas-helper.exe service status
-          ./haas-helper.exe service uninstall
-          if ./haas-helper.exe service status; then echo "the task is still there"; exit 1; fi
