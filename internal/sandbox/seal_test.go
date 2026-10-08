@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -69,7 +70,7 @@ func TestTheHostSignsTheManifestTheBoxLeft(t *testing.T) {
 	if err := evidence.Write(dir, evidence.Manifest{Signer: "the box"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := start(dir, nil); err != nil {
+	if _, err := start(context.Background(), dir, nil); err != nil {
 		t.Fatal(err)
 	}
 	attested, err := evidence.Attest(dir, keyring)

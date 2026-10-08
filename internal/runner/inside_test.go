@@ -1,11 +1,13 @@
 package runner_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/job"
@@ -203,5 +205,85 @@ func write(t *testing.T, path, text string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testing.T) {
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "slow.json"), `{
+  "name": "slow",
+  "program": "sh",
+  "argv": ["-c", "echo started-work > made.txt; sleep 30"],
+  "needs": "nothing",
+  "stream": "plain"
+}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{Brief: "a long job", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	if err := spec.Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.NoteStop(dir, "ada@acme.example", 100); err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	started := time.Now()
+	go func() { _, err := runner.InsideContext(ctx, dir); done <- err }()
+	time.Sleep(700 * time.Millisecond)
+	stop()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(15 * time.Second):
+		t.Fatal("a stopped job did not stop")
+	}
+	if time.Since(started) > 10*time.Second {
+		t.Errorf("stopping took %v, which is waiting for the harness's sleep", time.Since(started))
+	}
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.StoppedBy != "ada@acme.example" || manifest.StoppedAtBudget {
+		t.Errorf("the manifest says %+v", manifest)
+	}
+	if made, err := os.ReadFile(filepath.Join(dir.Workspace(), "made.txt")); err != nil || !strings.Contains(string(made), "started-work") {
+		t.Errorf("what the job had done was not kept: %q %v", made, err)
+	}
+}
+
+func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.T) {
+	harnesses := t.TempDir()
+	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","sleep 30"],"needs":"nothing","stream":"plain"}`)
+	t.Setenv("HAAS_HARNESSES", harnesses)
+	dir := job.Dir(t.TempDir())
+	dir.Make()
+	spec := job.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	spec.Write(dir)
+	ctx, stop := context.WithCancel(context.Background())
+	go func() { time.Sleep(500 * time.Millisecond); stop() }()
+	if _, err := runner.InsideContext(ctx, dir); err != nil {
+		t.Fatal(err)
+	}
+	if manifest, _ := evidence.Read(dir); manifest.StoppedBy != "a signal" {
+		t.Errorf("a stop with no note said %q", manifest.StoppedBy)
+	}
+
+	finished := job.Dir(t.TempDir())
+	finished.Make()
+	quick := job.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Gate: []string{"true"}, Budget: job.Budget{Turns: 1, Seconds: 60}}
+	quick.Write(finished)
+	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing","stream":"plain"}`)
+	if _, err := runner.Inside(finished); err != nil {
+		t.Fatal(err)
+	}
+	if manifest, _ := evidence.Read(finished); manifest.StoppedBy != "" {
+		t.Errorf("a job that was not stopped says it was by %q", manifest.StoppedBy)
 	}
 }

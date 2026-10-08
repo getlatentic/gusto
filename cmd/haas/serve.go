@@ -104,7 +104,7 @@ func serve(args []string) int {
 		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) || sharing.serving(person) },
 			30*time.Second, time.Duration(number("HAAS_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
 	}
-	queue := jobs.Start(index, work, number("HAAS_JOB_CONCURRENCY", 1))
+	queue := jobs.StartStoppable(index, work, number("HAAS_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
 	// Asked once, at startup: the answer changes only when the image does, and
@@ -246,7 +246,7 @@ func serve(args []string) int {
 
 // chosenWork decides where a job runs. A container is the product; running a
 // job in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.Work, error) {
+func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.StoppableWork, error) {
 	switch os.Getenv("HAAS_SANDBOX") {
 	case "here":
 		return here(instances), nil
@@ -260,7 +260,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		}
 		return inSandbox(way, cfg, index, registry, instances), nil
 	}
-	return func(dir job.Dir) (int, error) {
+	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
 			return 0, err
@@ -271,7 +271,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 			return 0, err
 		}
 		defer way.Done(dir)
-		exit, err := way.Run(dir, spec, staying(instances, spec)...)
+		exit, err := way.RunContext(ctx, dir, spec, staying(instances, spec)...)
 		// A turn learns what the harness calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
 		if manifest, read := evidence.Read(dir); read == nil {
@@ -283,8 +283,8 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 
 // inSandbox runs each job's harness in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
-func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.Work {
-	return func(dir job.Dir) (int, error) {
+func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.StoppableWork {
+	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
 			return 0, err
@@ -296,7 +296,7 @@ func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *c
 		if err := beforeTurn(instances, spec, dir); err != nil {
 			return 0, err
 		}
-		exit, err := ranInSandbox(way, cfg, index, registry, dir, spec)
+		exit, err := ranInSandbox(ctx, way, cfg, index, registry, dir, spec)
 		if afterErr := afterTurn(instances, spec, dir); afterErr != nil && err == nil {
 			err = afterErr
 		}
@@ -336,8 +336,8 @@ func number(name string, fallback int) int {
 // has. A turn in a container gets the instance's workspace mounted over its
 // own; without one, the job's workspace is made a link to it instead, so a
 // conversation works the same way in both places.
-func here(instances *instance.Store) jobs.Work {
-	return func(dir job.Dir) (int, error) {
+func here(instances *instance.Store) jobs.StoppableWork {
+	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
 			return 0, err
@@ -347,7 +347,7 @@ func here(instances *instance.Store) jobs.Work {
 				return 0, err
 			}
 		}
-		return runner.Inside(dir)
+		return runner.InsideContext(ctx, dir)
 	}
 }
 
@@ -429,9 +429,9 @@ func surveyed(names []string) []catalog.Entry {
 
 // ranInSandbox runs a job in the computer of the person who asked for it, and one asked
 // for by a script or a token, which is nobody's, in a sandbox of its own.
-func ranInSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
+func ranInSandbox(ctx context.Context, way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
 	if person := personWhoAsked(index, dir); registry != nil && person != "" {
-		return way.RunInComputer(dir, spec, cfg, registry, person)
+		return way.RunInComputer(ctx, dir, spec, cfg, registry, person)
 	}
-	return way.RunInSandbox(dir, spec, cfg)
+	return way.RunInSandboxContext(ctx, dir, spec, cfg)
 }

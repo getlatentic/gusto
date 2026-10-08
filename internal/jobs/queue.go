@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -14,11 +15,18 @@ import (
 // running a job here or in a box.
 type Work func(job.Dir) (int, error)
 
+// StoppableWork is Work that is told when to stop. The context ends when somebody stops the job, and the work then ends the
+// job as it would at the end of its budget: what it did is kept, and the record says it did not finish.
+type StoppableWork func(context.Context, job.Dir) (int, error)
+
 // Queue runs a fixed number of jobs at once. The number comes from what the
 // machine can hold, which is memory a job at a time rather than cores.
 type Queue struct {
-	index   *Index
-	work    Work
+	index *Index
+	work  StoppableWork
+	// running holds what ends each job that is running now.
+	running map[string]context.CancelFunc
+	guard   sync.Mutex
 	wake    chan struct{}
 	stop    chan struct{}
 	stopped sync.Once
@@ -28,16 +36,22 @@ type Queue struct {
 }
 
 func Start(index *Index, work Work, workers int) *Queue {
+	return StartStoppable(index, func(_ context.Context, dir job.Dir) (int, error) { return work(dir) }, workers)
+}
+
+// StartStoppable is Start for work that ends when it is told to.
+func StartStoppable(index *Index, work StoppableWork, workers int) *Queue {
 	if workers < 1 {
 		workers = 1
 	}
 	index.setSlots(workers)
 	queue := &Queue{
-		slots: workers,
-		index: index,
-		work:  work,
-		wake:  make(chan struct{}, workers),
-		stop:  make(chan struct{}),
+		slots:   workers,
+		index:   index,
+		work:    work,
+		running: map[string]context.CancelFunc{},
+		wake:    make(chan struct{}, workers),
+		stop:    make(chan struct{}),
 	}
 	queue.workers.Add(workers)
 	for worker := 0; worker < workers; worker++ {
@@ -105,9 +119,32 @@ func (q *Queue) one() bool {
 	if !found {
 		return false
 	}
-	exit, err := q.work(record.Dir(q.index.Root()))
+	ctx, cancel := context.WithCancel(context.Background())
+	q.guard.Lock()
+	q.running[record.ID] = cancel
+	q.guard.Unlock()
+	// A stop that came between the job being claimed and its work being given a way to hear it is honoured now.
+	if now, found := q.index.Get(record.ID); found && now.StoppedBy != "" {
+		cancel()
+	}
+	exit, err := q.work(ctx, record.Dir(q.index.Root()))
+	q.guard.Lock()
+	delete(q.running, record.ID)
+	q.guard.Unlock()
+	cancel()
 	state := Passed
+	stopped := false
+	if now, found := q.index.Get(record.ID); found && now.StoppedBy != "" {
+		stopped = true
+	}
 	switch {
+	case stopped:
+		// Whoever stopped it ended it: a nonzero exit or an error is what stopping does, and is not the job failing.
+		state = Interrupted
+		if err != nil {
+			slog.Warn("a stopped job ended with an error", "job", record.ID, "error", err)
+		}
+		exit = -1
 	case err != nil:
 		slog.Error("the job could not run", "job", record.ID, "error", err)
 		state = Failed
@@ -122,4 +159,22 @@ func (q *Queue) one() bool {
 	// worker is asleep on.
 	q.Wake()
 	return true
+}
+
+// Cancel stops a job for somebody: a queued job never runs, and a running one is told to stop and ends interrupted. A job
+// that is over is not stoppable. It says whether the job was running.
+func (q *Queue) Cancel(id, by string) (Record, bool, error) {
+	record, wasRunning, err := q.index.Stop(id, by)
+	if err != nil {
+		return record, false, err
+	}
+	if wasRunning {
+		q.guard.Lock()
+		cancel := q.running[id]
+		q.guard.Unlock()
+		if cancel != nil {
+			cancel()
+		}
+	}
+	return record, wasRunning, nil
 }
