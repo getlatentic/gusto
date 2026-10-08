@@ -6,6 +6,7 @@ mod helper;
 mod links;
 mod notice;
 mod tray;
+mod updates;
 mod window;
 
 use tauri::{AppHandle, RunEvent};
@@ -28,13 +29,16 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _arguments, _directory| window::show(app)))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .manage(helper::Helper::default())
         .manage(tray::Pages::default())
+        .manage(updates::Available::default())
         .invoke_handler(tauri::generate_handler![connect])
         .setup(|app| {
             let handle = app.handle().clone();
             tray::build(&handle)?;
+            updates::watch(handle.clone());
             if let Some(server) = config::load(&handle).server {
                 helper::start(&handle, &server);
             }

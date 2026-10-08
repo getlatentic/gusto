@@ -38,6 +38,18 @@ cargo tauri build --bundles app    # macOS: target/release/bundle/macos/Latentic
 
 The app is not signed yet (getlatentic/planning#601), so macOS asks you to allow it the first time.
 
+## Updates
+
+The app asks the server it is connected to for `/desktop/latest.json` 30 seconds after it starts, then every few hours. When the
+file names a newer version, the tray shows "Update to X and restart". The app checks the minisign signature in the file against the
+public key in `tauri.conf.json`, so the server does not need to be trusted.
+
+To publish an update:
+
+1. Build with the private key in the environment: `TAURI_SIGNING_PRIVATE_KEY=$(cat desktop-updater.key) cargo tauri build`.
+2. Put `latest.json` and the update archives in one folder. The format is the Tauri updater format.
+3. Start the server with `HAAS_DESKTOP=<folder>`. The server serves the folder under `/desktop/`.
+
 ## Settings
 
 The server's address is in `config.json` in the app's settings folder (`~/Library/Application Support/com.latentic.agentcloud` on

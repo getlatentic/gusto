@@ -1,6 +1,6 @@
 //! The icon, its menu, and the notification when a turn ends. What is in them comes from the helper, which follows the person's turns.
 
-use crate::{config, helper, notice, window};
+use crate::{config, helper, notice, updates, window};
 use std::{
     collections::HashMap,
     sync::Mutex,
@@ -27,6 +27,7 @@ struct View {
     turns: Vec<(String, String)>,
     sign_in: bool,
     login: bool,
+    update: Option<String>,
 }
 
 fn word(state: &str) -> &str {
@@ -90,6 +91,9 @@ fn menu(app: &AppHandle, view: &View) -> tauri::Result<Menu<tauri::Wry>> {
     if view.sign_in {
         builder = builder.item(&MenuItemBuilder::with_id("signin", "Sign in…").build(app)?);
     }
+    if let Some(version) = &view.update {
+        builder = builder.item(&MenuItemBuilder::with_id("update", format!("Update to {version} and restart")).build(app)?);
+    }
     builder
         .item(&CheckMenuItemBuilder::with_id("login", "Start at login").checked(view.login).build(app)?)
         .item(&MenuItemBuilder::with_id("server", "Change server…").build(app)?)
@@ -104,7 +108,7 @@ fn login(app: &AppHandle) -> bool {
 }
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
-    let empty = menu(app, &View { standing: "Starting…".into(), turns: vec![], sign_in: false, login: login(app) })?;
+    let empty = menu(app, &View { standing: "Starting…".into(), turns: vec![], sign_in: false, login: login(app), update: updates::found(app) })?;
     TrayIconBuilder::with_id(ID)
         .icon(tauri::include_image!("icons/tray.png"))
         .icon_as_template(true)
@@ -115,6 +119,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             match id.as_str() {
                 "open" => window::show(app),
                 "server" => window::ask_for_server(app),
+                "update" => updates::install(app),
                 "login" => {
                     let launch = app.autolaunch();
                     let _ = if launch.is_enabled().unwrap_or(false) { launch.disable() } else { launch.enable() };
@@ -154,6 +159,7 @@ fn watch(app: AppHandle) {
                 turns: listed(&turns, &server),
                 sign_in: status.as_ref().map(|s| !s.signed_in).unwrap_or(false) && !server.is_empty(),
                 login: login(&app),
+                update: updates::found(&app),
             };
             if last.as_ref() != Some(&view) {
                 if let (Some(tray), Ok(built)) = (app.tray_by_id(ID), menu(&app, &view)) {
