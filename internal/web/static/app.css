@@ -460,11 +460,11 @@ ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
 .rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
 .rail .whose .model { font-size: .8125rem; line-height: 1.35; color: var(--yg-text-muted); }
 .rail { grid-template-rows: auto auto minmax(0, 1fr); }
-button.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
+button.new-thread, a.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
   gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
   background: var(--yg-surface); color: var(--yg-text); font-weight: 500;
-  border: 1px solid var(--yg-border-strong); }
-button.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
+  border: 1px solid var(--yg-border-strong); text-decoration: none; }
+button.new-thread:hover, a.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
 .talk-top { gap: var(--yg-space-3); padding: var(--yg-space-3) var(--yg-space-6);
   border-bottom: 1px solid var(--yg-border); min-height: 3.25rem; }
 .talk-top .rail-toggle { display: none; padding: var(--yg-space-2); }
@@ -511,8 +511,8 @@ button.starter { text-align: left; font-weight: 400; font-size: .875rem; line-he
   border-radius: var(--yg-radius-md); justify-self: stretch; }
 button.starter:hover { background: var(--yg-surface); border-color: var(--yg-accent); }
 .composer { padding: var(--yg-space-3) var(--yg-space-6) var(--yg-space-4); }
-.composer .box { display: flex; align-items: flex-end; gap: var(--yg-space-2);
-  padding: var(--yg-space-2) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
+.composer .box { display: flex; flex-direction: column; gap: var(--yg-space-1);
+  padding: var(--yg-space-3) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
   background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-lg);
   box-shadow: var(--yg-shadow-1); }
 .composer .box:focus-within { border-color: var(--yg-accent); }
@@ -845,3 +845,15 @@ label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0
 label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }
 h2.plain { margin: 0; font: 600 1.125rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
+
+/* What the next message goes to sits in the box it is written in: the agent and the model, quiet until looked at. */
+.composer .tools { display: flex; align-items: center; justify-content: space-between; gap: var(--yg-space-2); }
+.composer .picks { display: flex; align-items: center; gap: var(--yg-space-1); min-width: 0; margin-left: auto; }
+.composer .picks select { width: auto; max-width: 14rem; padding: var(--yg-space-1) var(--yg-space-2); border: 0;
+  background: none; font-size: .8125rem; color: var(--yg-text-muted); cursor: pointer; }
+.composer .picks select:hover { color: var(--yg-text); }
+.rail .groups { overflow-y: auto; min-height: 0; display: grid; align-content: start; gap: var(--yg-space-4); }
+.rail .groups h3 { margin: 0 0 var(--yg-space-1); padding: 0 var(--yg-space-3); font-size: .75rem; font-weight: 600;
+  letter-spacing: .02em; color: var(--yg-text-subtle); text-transform: none; }
+.rail .groups ol { overflow: visible; }
+.rail { grid-template-rows: auto minmax(0, 1fr); }

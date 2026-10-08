@@ -1,0 +1,13 @@
+{{define "rail"}}<aside class="rail" id="rail">
+  <a class="new-thread" href="/chat"{{if eq .Here "/chat"}} aria-current="page"{{end}}>{{template "icon-add"}} New chat</a>
+  <div class="groups">
+    {{range .Rail}}
+    <section>
+      <h3 title="{{.Runs}}">{{.Name}}</h3>
+      <ol>
+        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}
+      </ol>
+    </section>
+    {{end}}
+  </div>
+</aside>{{end}}

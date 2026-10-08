@@ -1,0 +1,98 @@
+{{template "head" .}}
+
+<div class="desk">
+  <div class="scrim" id="scrim"></div>
+  {{template "rail" .}}
+
+  <main class="talk">
+    <div class="talk-top">
+      <button class="rail-toggle" type="button" id="open-rail" aria-controls="rail" aria-expanded="false" title="Conversations">
+        {{template "icon-menu"}}
+      </button>
+      <span class="which">New chat</span>
+    </div>
+
+    <div class="said-so-far">
+      <div class="column">
+        {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+        <div class="start">
+          <h2>What are we working on?</h2>
+          {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
+        </div>
+      </div>
+    </div>
+
+    {{if .Picks}}
+    <div class="composer">
+      <form class="column" method="post" action="/chat">
+        <div class="box">
+          <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
+          <div class="tools">
+            <span class="picks">
+              <select name="harness" id="harness" aria-label="Agent">{{range .Picks}}<option value="{{.Name}}"{{if eq .Name $.Harness}} selected{{end}}>{{if .Title}}{{.Title}}{{else}}{{.Name}}{{end}}</option>{{end}}</select>
+              <select name="model" id="model" aria-label="Model">{{range $pick := .Picks}}{{range .Models}}<option value="{{.}}" data-for="{{$pick.Name}}"{{if and (eq $pick.Name $.Harness) (eq . $.Model)}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}{{end}}</select>
+            </span>
+            <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+          </div>
+        </div>
+      </form>
+    </div>
+    {{end}}
+  </main>
+</div>
+
+<script nonce="{{.Nonce}}">
+(function () {
+  var open = document.getElementById("open-rail");
+  var scrim = document.getElementById("scrim");
+  var shut = function () {
+    document.body.classList.remove("rail-open");
+    open.setAttribute("aria-expanded", "false");
+  };
+  open.addEventListener("click", function () {
+    var nowOpen = document.body.classList.toggle("rail-open");
+    open.setAttribute("aria-expanded", String(nowOpen));
+  });
+  scrim.addEventListener("click", shut);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") { shut(); }
+  });
+
+  var harness = document.getElementById("harness");
+  var model = document.getElementById("model");
+  if (!harness || !model) { return; }
+  // A harness is offered the models it can use, so choosing one narrows the
+  // other to those and keeps the model when this harness has it too.
+  var narrow = function () {
+    var kept = model.value;
+    var first = null;
+    var keeps = null;
+    Array.prototype.forEach.call(model.options, function (option) {
+      var fits = option.dataset.for === harness.value;
+      option.hidden = !fits;
+      option.disabled = !fits;
+      if (fits && first === null) { first = option; }
+      if (fits && option.value === kept) { keeps = option; }
+    });
+    if (keeps) { keeps.selected = true; }
+    else if (first) { first.selected = true; }
+  };
+  harness.addEventListener("change", narrow);
+  narrow();
+
+  var box = document.querySelector(".composer textarea");
+  var grow = function () {
+    box.style.height = "auto";
+    box.style.height = box.scrollHeight + "px";
+  };
+  box.addEventListener("input", grow);
+  box.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      if (box.value.trim()) { box.form.requestSubmit(); }
+    }
+  });
+})();
+</script>
+
+{{template "foot" .}}
