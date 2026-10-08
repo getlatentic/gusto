@@ -127,7 +127,7 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		if err != nil {
 			return "", err
 		}
-		run, err := s.queued(spec, nil, s.keeper.who(r))
+		run, err := s.queued(spec, nil, s.keeper.who(r), "")
 		if err != nil {
 			return "", err
 		}

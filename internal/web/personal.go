@@ -1,6 +1,8 @@
 package web
 
 import (
+	"encoding/json"
+	"errors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"github.com/getlatentic/haas/internal/apitoken"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/quota"
 )
 
 // The routes below are a person's own work as JSON, for the helper on their computer, an editor and a tray. They are
@@ -159,4 +162,58 @@ func (s *Server) fileBytes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeContent(w, r, strings.TrimPrefix(asked, "/"), info.ModTime(), file)
+}
+
+// newThreadJSON opens a conversation on one of the person's agents.
+func (s *Server) newThreadJSON(w http.ResponseWriter, r *http.Request) {
+	held, found := s.mine(w, r)
+	if !found {
+		return
+	}
+	var asked struct {
+		Title string `json:"title"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&asked)
+	thread, err := s.instances.NewThread(held.ID, strings.TrimSpace(asked.Title))
+	if err != nil {
+		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	answerJSON(w, http.StatusCreated, thread)
+}
+
+// saidJSON is one turn said in a person's own thread. An Idempotency-Key makes a retry the same turn: the job the first
+// send made is given back, with `already` true, and nothing is started.
+func (s *Server) saidJSON(w http.ResponseWriter, r *http.Request) {
+	held, found := s.mine(w, r)
+	if !found {
+		return
+	}
+	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	key, err := requestID(r)
+	if err != nil {
+		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	var said struct {
+		Said string `json:"said"`
+	}
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&said) != nil || strings.TrimSpace(said.Said) == "" {
+		answerJSON(w, http.StatusBadRequest, map[string]string{"error": `send {"said": "..."}: what to say in this thread`})
+		return
+	}
+	record, already, err := s.startTurn(personOf(r), held, thread, strings.TrimSpace(said.Said), key)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, quota.ErrExceeded) {
+			status = http.StatusTooManyRequests
+		}
+		answerJSON(w, status, map[string]string{"error": err.Error()})
+		return
+	}
+	answerJSON(w, http.StatusAccepted, map[string]any{"job": record.ID, "state": record.State, "already": already})
 }
