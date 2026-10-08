@@ -17,6 +17,8 @@ copies the section into the release's notes. Changes made after a release go und
 - `HAAS_OPENSHELL_REMOTE=1`: the OpenShell gateway is on another machine, so this one needs no `/dev/kvm`.
 - The chart's `auth.oidc` and `spend` values, and the OIDC settings in `deploy/compose/env.example`. The server already took these settings; [SSO.md](SSO.md) now says what they do.
 
+- A person's token can start an agent, list the agents and models it may use, and read or follow a turn as JSON ([TOKENS.md](TOKENS.md)).
+- **Refused now:** starting an agent this server does not offer or cannot run, which the page used to accept and fail later.
 - `Idempotency-Key` on `POST /api/jobs` and on a thread's `say`: a send made twice with one key is one job ([TOKENS.md](TOKENS.md)). A person's token can open a thread and say something in it.
 - `haas-helper run`, `status` and `service`: the helper follows a person's jobs and answers on a loopback port, and starts at login as a launch agent, a systemd user unit or a scheduled task ([DESKTOP.md](DESKTOP.md)).
 - `haas login`, `haas whoami` and `haas logout`: a person's computer signs in to a server that takes API tokens, and keeps its token in the operating system's keychain ([TOKENS.md](TOKENS.md)).
