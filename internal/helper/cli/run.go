@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/haas/internal/helper/desk"
 	"github.com/getlatentic/haas/internal/helper/service"
 )
 
@@ -26,6 +28,7 @@ func settingsDir() (string, error) {
 func Run(args []string) int {
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
 	address := serverFlag(flags)
+	withTray := flags.Bool("tray", true, "show the icon in the menu bar or tray, and a notification when a turn ends")
 	if flags.Parse(args) != nil {
 		return 2
 	}
@@ -46,11 +49,35 @@ func Run(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	fmt.Println("following", server)
-	if err := (&helper.Daemon{Server: server, Vault: vault, Dir: dir}).Run(ctx); err != nil {
+	daemon := &helper.Daemon{Server: server, Vault: vault, Dir: dir, Hub: helper.NewHub()}
+	if !*withTray {
+		return finish(daemon.Run(ctx))
+	}
+	return runWithTray(ctx, stop, daemon)
+}
+
+func finish(err error) int {
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	return 0
+}
+
+// runWithTray serves in the background and keeps the icon in the foreground, which macOS needs of the main thread. A computer
+// with nowhere for an icon serves without one. Quitting from the icon ends the helper.
+func runWithTray(ctx context.Context, stop context.CancelFunc, daemon *helper.Daemon) int {
+	served := make(chan error, 1)
+	go func() { served <- daemon.Run(ctx) }()
+	go (&desk.Announcer{Hub: daemon.Hub, Server: daemon.Server, Say: desk.Notify}).Run(ctx)
+	err := desk.Tray{Hub: daemon.Hub, Server: daemon.Server, Status: daemon.Status, Icon: desk.Icon()}.Run(ctx)
+	if err == nil {
+		stop()
+	}
+	if err != nil && !errors.Is(err, context.Canceled) {
+		fmt.Fprintln(os.Stderr, "no tray icon:", err)
+	}
+	return finish(<-served)
 }
 
 // Status says what the running helper says of itself.
