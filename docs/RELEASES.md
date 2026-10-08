@@ -12,10 +12,17 @@ copies the section into the release's notes. Changes made after a release go und
 
 ## Next release
 
+Nothing yet.
+
+## v0.0.1-alpha.5
+
+Since `v0.0.1-alpha.4`. The data stays at format 1 in every store. Nothing to set and nothing new refused.
+
 **New**
 
-- `haas-helper sync`: a folder on a person's computer kept the same as their agent's folder in the cloud, with a written rule for a file both sides changed ([DESKTOP.md](DESKTOP.md#files)). The server gains `PUT` and `DELETE` on `/api/instances/{id}/file` and `POST .../hashes` for a person's token, and the file listing says each file's time to the nanosecond.
-- `haas-helper acp`: the helper as an agent for an editor that speaks the Agent Client Protocol ([DESKTOP.md](DESKTOP.md#editors)).
+- **The helper is a download.** Each release has `haas-helper` for macOS, Linux and Windows on Intel and Arm, a `SHA256SUMS` the release workflow signs, and `install.sh` and `install.ps1`, which check the package against the sums and the sums' signature when cosign is installed ([DESKTOP.md](DESKTOP.md#installing-the-helper)). `haas-helper version` says which release it is.
+- **`haas-helper sync`:** a folder on a person's computer kept the same as their agent's folder in the cloud, with a written rule for a file both sides changed ([DESKTOP.md](DESKTOP.md#files)). The server gains `PUT` and `DELETE` on `/api/instances/{id}/file` and `POST .../hashes` for a person's token, and the file listing says each file's time to the nanosecond.
+- **`haas-helper acp`:** the helper as an agent for an editor that speaks the Agent Client Protocol ([DESKTOP.md](DESKTOP.md#editors)).
 
 ## v0.0.1-alpha.4
 
