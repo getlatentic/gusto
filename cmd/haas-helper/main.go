@@ -19,9 +19,12 @@ func run(args []string) int {
 	}
 	verb, rest := args[0], args[1:]
 	do, found := map[string]func([]string) int{
-		"login":  cli.Login,
-		"logout": cli.Logout,
-		"whoami": cli.Whoami,
+		"login":   cli.Login,
+		"logout":  cli.Logout,
+		"whoami":  cli.Whoami,
+		"run":     cli.Run,
+		"status":  cli.Status,
+		"service": cli.Service,
 	}[verb]
 	if !found {
 		usage()
@@ -36,5 +39,8 @@ func usage() {
   haas-helper login   sign this computer in as you [-server, -label]
   haas-helper logout  end this computer's sign-in and forget it
   haas-helper whoami  who this computer is signed in as
+  haas-helper run     follow your jobs and answer what on this computer asks [-server]
+  haas-helper status  what the running helper says of itself
+  haas-helper service install|uninstall|status  start the helper at login [-server]
 `)
 }

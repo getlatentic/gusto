@@ -17,6 +17,7 @@ copies the section into the release's notes. Changes made after a release go und
 - `HAAS_OPENSHELL_REMOTE=1`: the OpenShell gateway is on another machine, so this one needs no `/dev/kvm`.
 - The chart's `auth.oidc` and `spend` values, and the OIDC settings in `deploy/compose/env.example`. The server already took these settings; [SSO.md](SSO.md) now says what they do.
 
+- `haas-helper run`, `status` and `service`: the helper follows a person's jobs and answers on a loopback port, and starts at login as a launch agent, a systemd user unit or a scheduled task ([DESKTOP.md](DESKTOP.md)).
 - `haas login`, `haas whoami` and `haas logout`: a person's computer signs in to a server that takes API tokens, and keeps its token in the operating system's keychain ([TOKENS.md](TOKENS.md)).
 - With `HAAS_API_TOKENS` set, a person's computer can sign in by the device flow and hold a token that acts as them ([TOKENS.md](TOKENS.md)). It has the one scope `work`, which no admin form grants.
 
