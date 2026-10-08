@@ -88,7 +88,7 @@ func (s *Server) offeredTo(r *http.Request) Models {
 	if s.registry == nil {
 		return offered
 	}
-	allowed, limited := s.registry.AllowedFor(s.keeper.who(r))
+	allowed, limited := s.registry.AllowedFor(s.askerName(r))
 	if !limited {
 		return offered
 	}

@@ -63,7 +63,10 @@ var inlineScript = regexp.MustCompile(`<script([^>]*)>`)
 func TestEveryInlineScriptCarriesTheResponsesNonceAndNoElementHasAHandler(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
-	where := startedThread(t, site)
+	where := site.ask(t, "POST", "/instances", url.Values{"harness": {"first"}}).Header().Get("Location")
+	if !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting an agent did not open a conversation: %q", where)
+	}
 	instance := where[:strings.Index(where, "/threads/")]
 	pages := []string{"/", "/jobs", "/spend", "/compare", "/new", "/setups", "/engines", instance, where}
 	seen := map[string]bool{}

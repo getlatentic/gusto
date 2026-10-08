@@ -91,6 +91,10 @@ there.
 | `GET /api/instances/{id}/threads/{thread}` | one thread, and the turns said in it as the jobs they were |
 | `POST /api/instances/{id}/threads` | opens a thread: `{"title": "..."}`, answered `201` with the thread |
 | `POST /api/instances/{id}/threads/{thread}/say` | says something in it: `{"said": "..."}`, answered `202` with the job, the turn the harness will take |
+| `POST /api/instances` | starts an agent: `{"harness": "...", "model": "...", "repo": "...", "setup": "...", "title": "..."}`, with only the harness required. It follows the page's rules: only an agent this server can run now, only a model the person may use, and a repository from where a repository may come. Answered `201` with the agent and its first thread |
+| `GET /api/engines` | the agents this server can start, whether each can run now and why not, and the models this person may use with each |
+| `GET /api/jobs/{id}` | one turn: how it stands, the steps the agent took in words (`Read main.go`), what it said, and the files it changed |
+| `GET /api/jobs/{id}/follow` | the same turn as server-sent events while it goes: `step` for each step, `reply` with what has been said so far when that changes, and `ended` with the whole turn. A turn that is over is told at once |
 | `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
 | `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
 
