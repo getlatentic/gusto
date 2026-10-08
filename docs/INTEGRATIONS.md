@@ -133,3 +133,17 @@ job takes (import, setup, carry, place), and a question that only the skill can 
 
 `HAAS_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the harnesses that are signed in. It
 makes short calls to their models. A small model may not use a skill it has, which is the model's choice and not the placement's.
+
+## Run end to end in OpenShell sandboxes
+
+`deploy/aws/openshell/e2e-integrations.sh` runs the whole way on an OpenShell gateway (2026-10-08, one `m8i.xlarge`, 25 minutes): a
+plugin with a skill, a reference file beside it and an MCP server is imported through the console, is off, is turned on, and is given
+to a skill set. Claude Code and Codex are each asked for a customer's account id from the pages' form, in a sandbox, through haas's
+proxy. The customer system is a server that answers only the key the gateway holds. Both harnesses searched for the tool, read how to
+call it, called it, read the skill's reference file and answered in its format with an id only the customer system holds. Each job's
+`out/gateway.jsonl` has the list, the search, the schema and the call, with who asked. The customer system's key is in nothing the
+job wrote, every request that reached the customer system carried it, and the signed records verify.
+
+Running it found that a harness in a sandbox was given a job's skills and not its servers behind the gateway: the runner that drives a
+sandbox did not hand the harness the gateway. It does now, for the harnesses that take their servers on the command line, in the
+environment or on an ACP session. A harness that reads them from a file in its own folder (Pi) is refused in a sandbox, by name.
