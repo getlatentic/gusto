@@ -110,11 +110,18 @@ jobs:
 
   helper:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     strategy:
       matrix:
-        target: [linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64, windows/arm64]
+        # macOS draws the menu bar icon through the system's libraries, so its helpers are built on macOS.
+        include:
+          - {target: linux/amd64, runner: ubuntu-latest}
+          - {target: linux/arm64, runner: ubuntu-latest}
+          - {target: darwin/amd64, runner: macos-latest}
+          - {target: darwin/arm64, runner: macos-latest}
+          - {target: windows/amd64, runner: ubuntu-latest}
+          - {target: windows/arm64, runner: ubuntu-latest}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
