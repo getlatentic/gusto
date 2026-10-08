@@ -24,20 +24,20 @@ type entry struct {
 type Catalogue struct {
 	servers map[string]*Upstream
 	order   []string
-	policy  Policy
+	policy  func() Policy
 	caller  Caller
 	record  *Record
 
-	once    sync.Once
+	once sync.Once
+	// entries is every tool the servers have, and what the caller may use is worked out from the policy as it is when the tool is
+	// asked for, so a change to the policy reaches a job that is already running.
 	entries []entry
 	byName  map[string]entry
 	byFlat  map[string]entry
 	broken  map[string]string
-	// denied is the tools the policy takes from this caller, by name, with what to say when one is asked for.
-	denied map[string]string
 }
 
-func newCatalogue(servers []Server, private bool, policy Policy, caller Caller, record *Record) *Catalogue {
+func newCatalogue(servers []Server, private bool, policy func() Policy, caller Caller, record *Record) *Catalogue {
 	c := &Catalogue{servers: map[string]*Upstream{}, policy: policy, caller: caller, record: record}
 	for _, server := range servers {
 		c.servers[server.Name] = Dial(server, private)
@@ -54,7 +54,7 @@ func (c *Catalogue) close() {
 
 func (c *Catalogue) load(ctx context.Context) {
 	c.once.Do(func() {
-		c.byName, c.byFlat, c.broken, c.denied = map[string]entry{}, map[string]entry{}, map[string]string{}, map[string]string{}
+		c.byName, c.byFlat, c.broken = map[string]entry{}, map[string]entry{}, map[string]string{}
 		for _, name := range c.order {
 			tools, err := c.servers[name].Tools(ctx)
 			if err != nil {
@@ -62,10 +62,6 @@ func (c *Catalogue) load(ctx context.Context) {
 				continue
 			}
 			for _, tool := range tools {
-				if allowed, why := c.policy.Allows(c.caller, name, tool.Name); !allowed {
-					c.denied[name+"/"+tool.Name] = why
-					continue
-				}
 				found := entry{Server: name, Tool: tool, Name: name + "/" + tool.Name}
 				found.Flat = c.flat(name, tool.Name)
 				c.entries = append(c.entries, found)
@@ -93,6 +89,22 @@ func (c *Catalogue) flat(server, tool string) string {
 	}
 }
 
+// allows says whether the caller may use a tool now, and what to say when not.
+func (c *Catalogue) allows(found entry) (bool, string) {
+	return c.policy().Allows(c.caller, found.Server, found.Tool.Name)
+}
+
+// visible is the tools the caller may use now.
+func (c *Catalogue) visible() []entry {
+	out := make([]entry, 0, len(c.entries))
+	for _, candidate := range c.entries {
+		if allowed, _ := c.allows(candidate); allowed {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
 // find is the tool a name asks for. Both forms of its name are taken.
 func (c *Catalogue) find(name string) (entry, bool) {
 	if found, ok := c.byName[name]; ok {
@@ -110,7 +122,7 @@ func (c *Catalogue) search(query, server string, limit int) []entry {
 		score int
 	}
 	var found []scored
-	for _, candidate := range c.entries {
+	for _, candidate := range c.visible() {
 		if server != "" && candidate.Server != server {
 			continue
 		}
@@ -160,8 +172,9 @@ func definitionsTokens(tools []Tool) int {
 }
 
 func (c *Catalogue) tools() []Tool {
-	out := make([]Tool, 0, len(c.entries))
-	for _, candidate := range c.entries {
+	visible := c.visible()
+	out := make([]Tool, 0, len(visible))
+	for _, candidate := range visible {
 		out = append(out, candidate.Tool)
 	}
 	return out

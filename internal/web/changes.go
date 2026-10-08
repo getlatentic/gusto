@@ -37,6 +37,19 @@ func (s *Server) UseSettings(now map[string]string) {
 	s.record(changelog.Event{Who: "the server", Kind: changelog.ServerStarted, What: now})
 }
 
+// NoteSetting records that the server read a setting again and found it changed, or refused what it found. Fingerprints stand for
+// the contents, which are not kept.
+func (s *Server) NoteSetting(setting, was, now, refused string) {
+	if s.changes == nil {
+		return
+	}
+	what := map[string]string{"setting": setting, "was": was, "now": now}
+	if refused != "" {
+		what["refused"] = refused
+	}
+	s.record(changelog.Event{Who: "the server", Kind: changelog.SettingsChanged, What: what})
+}
+
 func differing(was, now map[string]string) []string {
 	var keys []string
 	seen := map[string]bool{}

@@ -19,6 +19,13 @@ func (i *Index) SetLimits(l Limits) {
 	i.limits = l
 }
 
+// Limits are the limits now.
+func (i *Index) Limits() Limits {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	return i.limits
+}
+
 func (i *Index) setSlots(slots int) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
