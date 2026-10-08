@@ -58,6 +58,20 @@ It needs the token file above, and it is not made at `/admin/tokens`.
    It is told `authorization_pending` until the person approves, and then given the
    token once. A code lasts ten minutes.
 
+`haas-helper login` (or `haas login`) does these steps on a person's computer: it shows the address and the
+code, opens the browser, waits for the approval, and keeps the token in the
+operating system's keychain (the Keychain on macOS, the Credential Manager on
+Windows, the Secret Service on Linux). With no keychain it keeps the token in a file
+in the person's own settings folder that only they can read, and says so;
+`HAAS_VAULT=file` asks for the file alone. `whoami` asks the server who the
+token acts as, and `logout` ends the token on the server and forgets it.
+
+```bash
+haas-helper login -server https://haas.example.com
+haas-helper whoami -server https://haas.example.com
+haas-helper logout -server https://haas.example.com
+```
+
 The token has one scope, `work`. It can do nothing an organisation's token does:
 it cannot send a job, read spending, the change record or metrics. `GET /api/me`
 says who it acts as. The person sees their own tokens at `/device` and ends any of

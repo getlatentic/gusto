@@ -50,6 +50,16 @@ a reason to build this API.
 
 ## The helper
 
+It is its own program, `haas-helper` (`cmd/haas-helper`), with its commands in
+`internal/helper/cli`. The server's program (`haas`) does not build for Windows, and
+a person's computer should not carry a server, so the helper is not part of it.
+`haas-helper` builds without a C compiler for macOS, Windows and Linux, on Intel and
+Arm, and a workflow builds all six on each change to it. `haas` has the same
+`login`, `logout` and `whoami` for those who already have it.
+
+Built so far: `login` by the device flow, `whoami`, and `logout`, which ends the token
+on the server. Next: the local API, `haas acp`, folder sync.
+
 - **Sign-in.** The device flow above. The token goes in the operating system's
   keychain (macOS Keychain, Windows Credential Manager, the Secret Service on
   Linux), never in a file.
