@@ -2,6 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "The connect page, which is part of the app, may ask the app to connect. A page of the server it connects to may not.",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
 }
