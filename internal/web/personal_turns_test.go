@@ -53,6 +53,8 @@ func TestALimitedPersonsTokenIsOfferedAndMayStartOnlyTheirModels(t *testing.T) {
 	admin := here.as(t, boss)
 	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	admin.ask(t, "POST", "/admin/models/access", url.Values{"email": {alice}, "model": {"acme/big"}})
 	ada, ben := signInADevice(t, here, alice), signInADevice(t, here, bob)
 

@@ -306,6 +306,24 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("gave the model provider %s another key", w["provider"])
 	case changelog.ModelAdded:
 		return fmt.Sprintf("added the model %s, priced %s", w["model"], or(w["price"], "none"))
+	case changelog.ProviderEnabled, changelog.ProviderDisabled:
+		return fmt.Sprintf("turned the model provider %s %s", w["provider"], w["now"])
+	case changelog.ModelEnabled, changelog.ModelDisabled:
+		return fmt.Sprintf("turned the model %s %s", w["model"], w["now"])
+	case changelog.RegistryRestored:
+		return fmt.Sprintf("put the models back as they were at version %s, which undid: %s", w["version"], or(w["undid"], "nothing"))
+	case changelog.IntegrationImported:
+		return fmt.Sprintf("imported %s %s (%s)", w["integration"], or(w["label"], w["version"]), or(w["source"], "upload"))
+	case changelog.IntegrationEnabled:
+		return fmt.Sprintf("turned on %s, version %s, in place of %s%s", w["integration"], w["to"], or(w["from"], "none"), becauseOf(w["changes"]))
+	case changelog.IntegrationDisabled:
+		return fmt.Sprintf("turned off %s, which was version %s", w["integration"], or(w["from"], "none"))
+	case changelog.IntegrationRestored:
+		return fmt.Sprintf("put %s back to version %s, from %s", w["integration"], w["to"], or(w["from"], "none"))
+	case changelog.IntegrationPrograms:
+		return fmt.Sprintf("changed which version of %s may run its programs, from %s to %s", w["integration"], or(w["was"], "none"), or(w["allowed"], "none"))
+	case changelog.IntegrationScoped:
+		return fmt.Sprintf("changed who %s is on for, from %s to %s", w["integration"], or(w["was"], "everybody"), or(w["now"], "everybody"))
 	case changelog.ModelRetired:
 		return fmt.Sprintf("retired the model %s", w["model"])
 	case changelog.PriceSet:

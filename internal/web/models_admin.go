@@ -36,7 +36,7 @@ const formLimit = 16 << 10
 
 func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
 	view := s.registry.View()
-	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view), "People": s.memberEmails()}
+	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view), "People": s.memberEmails(), "Steps": s.registry.Steps()}
 	s.drawConsole(w, "admin-models.html", "models", page)
 }
 
@@ -77,7 +77,48 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/models/access", guard(s.registryAction(changelog.AccessSet, s.setAccess)))
 	mux.HandleFunc("POST /admin/models/access/clear", guard(s.registryAction(changelog.AccessSet, s.clearAccess)))
 	mux.HandleFunc("POST /admin/models/policy", guard(s.registryAction(changelog.PolicySet, s.setPolicy)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/enable", guard(s.registryAction(changelog.ProviderEnabled, s.turn(true, false))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/disable", guard(s.registryAction(changelog.ProviderDisabled, s.turn(false, false))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models/enable", guard(s.registryAction(changelog.ModelEnabled, s.turn(true, true))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models/disable", guard(s.registryAction(changelog.ModelDisabled, s.turn(false, true))))
+	mux.HandleFunc("POST /admin/models/restore", guard(s.registryAction(changelog.RegistryRestored, s.restoreRegistry)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, s.retireModel)))
+}
+
+// turn turns a provider on or off, or one of its models, which is what makes something an administrator added available to people,
+// and takes it away again without retiring it.
+func (s *Server) turn(on, model bool) func(r *http.Request) (map[string]string, error) {
+	return func(r *http.Request) (map[string]string, error) {
+		provider, name := r.PathValue("name"), ""
+		what := map[string]string{"provider": provider}
+		if model {
+			name = strings.TrimSpace(r.FormValue("model"))
+			what = map[string]string{"model": provider + "/" + name}
+		}
+		change := s.registry.Disable
+		was, now := "on", "off"
+		if on {
+			change, was, now = s.registry.Enable, "off", "on"
+		}
+		if err := change(provider, name); err != nil {
+			return nil, err
+		}
+		what["was"], what["now"] = was, now
+		return what, nil
+	}
+}
+
+// restoreRegistry puts the registry back as it was at an earlier version, and says what that undid.
+func (s *Server) restoreRegistry(r *http.Request) (map[string]string, error) {
+	version, err := strconv.ParseInt(r.FormValue("version"), 10, 64)
+	if err != nil {
+		return nil, errors.New("say which version to go back to")
+	}
+	undone, err := s.registry.Restore(version)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"version": r.FormValue("version"), "undid": strings.Join(undone, "; ")}, nil
 }
 
 func (s *Server) addProvider(r *http.Request) (map[string]string, error) {

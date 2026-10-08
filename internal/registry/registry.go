@@ -30,6 +30,9 @@ type Provider struct {
 	Key       string     `json:"key"`
 	Harnesses []string   `json:"harnesses,omitempty"`
 	Retired   bool       `json:"retired,omitempty"`
+	// Pending says an administrator has added the provider and not yet turned it on. Nothing is sent to a provider that is
+	// pending. It is the flag that is kept, and not "enabled", so that a registry written before there was one has every provider on.
+	Pending bool `json:"pending,omitempty"`
 }
 
 // Model is one the provider serves, by the name the provider gives it.
@@ -38,6 +41,8 @@ type Model struct {
 	Name     string       `json:"name"`
 	Price    *spend.Price `json:"price,omitempty"`
 	Retired  bool         `json:"retired,omitempty"`
+	// Pending says the model was added and has not been turned on, and is not offered.
+	Pending bool `json:"pending,omitempty"`
 }
 
 // Full is the name a job asks for: the provider, then the model.
@@ -96,6 +101,7 @@ type Registry struct {
 
 	mu       sync.Mutex
 	document Document
+	history  []Revision
 	listener func(Effective)
 }
 
@@ -105,6 +111,9 @@ func Open(dir string, platform Platform, rules Rules, editable bool) (*Registry,
 	r := &Registry{
 		path: filepath.Join(dir, "registry.json"), keys: filepath.Join(dir, "keys"),
 		platform: platform, rules: rules, editable: editable, resolve: systemResolver,
+	}
+	if err := r.readHistory(); err != nil {
+		return nil, err
 	}
 	text, err := os.ReadFile(r.path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -152,6 +161,10 @@ func (r *Registry) change(make func(*Document) error) error {
 	}
 	next.Version++
 	if err := os.MkdirAll(filepath.Dir(r.path), 0o700); err != nil {
+		r.mu.Unlock()
+		return err
+	}
+	if err := r.remember(r.document); err != nil {
 		r.mu.Unlock()
 		return err
 	}
