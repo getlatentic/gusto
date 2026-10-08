@@ -43,26 +43,45 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 		Title:   strings.TrimSpace(r.FormValue("title")),
 		Who:     s.keeper.who(r),
 	}
+	started, back, why := s.beginInstance(r, wanted)
+	if why != "" {
+		s.turnAway(w, r, back, why)
+		return
+	}
+	// A one-off against a repository is an instance started for a task, and
+	// whoever asked for it wants the task form, not a conversation.
+	if r.FormValue("then") == "task" {
+		http.Redirect(w, r, "/instances/"+started.ID+"#task", http.StatusSeeOther)
+		return
+	}
+	// Somebody who started a harness wants to be talking to it, not reading a
+	// page about it, and starting it opened the first conversation.
+	http.Redirect(w, r, threadPath(s.instances.Latest(started.ID)), http.StatusSeeOther)
+}
+
+// beginInstance starts an agent for the person asking, when this deployment can run what they asked and they may use it.
+// It says why not when it cannot, and which page to send them back to: the page and the API both start an agent this way,
+// so what a person may start does not depend on how they asked.
+func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (started instance.Instance, back, why string) {
 	if wanted.Repo != "" {
 		if err := repoaccess.Acceptable(wanted.Repo, s.localRepos); err != nil {
-			s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, err.Error())
-			return
+			return started, "/instances/new?harness=" + wanted.Harness, err.Error()
 		}
 	}
 	if wanted.Harness == "" {
 		wanted.Harness = s.firstReady()
 	}
 	if wanted.Harness == "" {
-		s.turnAway(w, r, "/new", "this deployment cannot start an agent yet")
-		return
+		return started, "/new", "this deployment cannot start an agent yet"
+	}
+	if why := s.runnable(wanted.Harness); why != "" {
+		return started, "/new", why
 	}
 	if why := s.unfit(wanted); why != "" {
-		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
-		return
+		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
 	if why := s.unusable(r, wanted.Harness, wanted.Model); why != "" {
-		s.turnAway(w, r, "/instances/new?harness="+wanted.Harness, why)
-		return
+		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
 	// Starting from the catalog names no model, so it gets the first this
 	// deployment offers *that harness* — not the first it offers at all, which
@@ -76,18 +95,23 @@ func (s *Server) startInstance(w http.ResponseWriter, r *http.Request) {
 	}
 	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
 	if err != nil {
-		s.turnAway(w, r, "/new", err.Error())
-		return
+		return started, "/new", err.Error()
 	}
-	// A one-off against a repository is an instance started for a task, and
-	// whoever asked for it wants the task form, not a conversation.
-	if r.FormValue("then") == "task" {
-		http.Redirect(w, r, "/instances/"+started.ID+"#task", http.StatusSeeOther)
-		return
+	return started, "", ""
+}
+
+// runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
+func (s *Server) runnable(harness string) string {
+	for _, entry := range s.entries() {
+		if entry.Name != harness {
+			continue
+		}
+		if !entry.Ready {
+			return harness + " cannot run here: " + entry.Why
+		}
+		return ""
 	}
-	// Somebody who started a harness wants to be talking to it, not reading a
-	// page about it, and starting it opened the first conversation.
-	http.Redirect(w, r, threadPath(s.instances.Latest(started.ID)), http.StatusSeeOther)
+	return "there is no agent called " + harness + " here"
 }
 
 // instancePage is one computer: what it runs, what it works in, and every
