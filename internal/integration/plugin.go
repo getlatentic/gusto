@@ -11,12 +11,12 @@ import (
 	"fmt"
 )
 
-// Version is the one Agent Plugins version this reads. Version 1.1.0 is a working draft and is not read.
-const Version = "1.0.0"
+// Format is the one Agent Plugins version this reads. Version 1.1.0 is a working draft and is not read.
+const Format = "1.0.0"
 
 const (
-	manifestSchema = "https://agent-plugins.org/schemas/" + Version + "/plugin.schema.json"
-	mcpSchema      = "https://agent-plugins.org/schemas/" + Version + "/mcp.schema.json"
+	manifestSchema = "https://agent-plugins.org/schemas/" + Format + "/plugin.schema.json"
+	mcpSchema      = "https://agent-plugins.org/schemas/" + Format + "/mcp.schema.json"
 )
 
 // Plugin is what was read from a plugin folder.

@@ -28,3 +28,20 @@ fragment. Placeholders such as `${PLUGIN_ROOT}` are kept as written for whatever
 
 The tests check the reader against the format's own JSON Schemas (`schema/agent-plugins/1.0.0`):
 nothing the schema refuses is taken, and everything the format shows as valid is.
+
+## Keeping versions
+
+`integration.Store` keeps each imported plugin by name, one folder for each version, with a file
+that says which version is on.
+
+- An imported integration is **off**. An administrator turns a version on, for everyone.
+- A new version does not replace the one that is on. `Compare` says which skills and servers it
+  adds, removes or changes, and which descriptive fields differ, so the administrator reads that
+  before turning it on.
+- `Restore` turns on the version that was on before. `Disable` turns it off, and keeps every version.
+- A version is named by a fingerprint of its files, so the same files imported twice are one
+  version. A version is also pinned to where it came from: for a git address, the commit.
+- The kept files hold no link, so nothing in them points out of them, and version control's own
+  folder is not kept.
+- Every change is in the integration's own history, with who and when. A record that cannot be read
+  is an error and not an empty list.
