@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -12,6 +15,7 @@ import (
 	tools "github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/redact"
+	"github.com/getlatentic/haas/internal/sandbox"
 	"github.com/getlatentic/haas/internal/setup"
 )
 
@@ -104,7 +108,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 	}
 	caller := tools.Caller{Job: id, Team: spec.Team, Person: askerOf(dir)}
 	return tools.New(tools.Config{
-		Caller: caller, Servers: servers, Live: g.currentPolicy, Redactor: g.currentRedactor, Mode: g.mode, Private: g.private,
+		Caller: caller, Servers: servers, Live: g.currentPolicy, Redactor: g.currentRedactor, Launch: g.launch, Mode: g.mode, Private: g.private,
 		Record: tools.OpenRecord(dir.OutFile(tools.RecordFile)),
 	}), true
 }
@@ -120,6 +124,16 @@ func askerOf(dir job.Dir) string {
 	}
 	_ = json.Unmarshal(text, &state)
 	return state.Asked
+}
+
+// launch is the command that runs a server that is a program, in a box of its own. A job that runs in this server's own process has
+// no container to put a program in, and so no program runs.
+func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (*exec.Cmd, func(), error) {
+	if os.Getenv("HAAS_SANDBOX") == "here" {
+		return nil, nil, errors.New("a program runs in a container, and this server runs jobs in its own process")
+	}
+	return sandbox.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
+		Command: server.Command, Args: server.Args, Env: server.Env, Cwd: server.Cwd})
 }
 
 // Forget ends a job's gateway, and its sessions with the servers.

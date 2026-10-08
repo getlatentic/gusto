@@ -64,6 +64,7 @@ const (
 	IntegrationEnabled  = "integration.enabled"
 	IntegrationDisabled = "integration.disabled"
 	IntegrationRestored = "integration.restored"
+	IntegrationPrograms = "integration.programs"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organisation's front

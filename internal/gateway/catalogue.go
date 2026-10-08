@@ -22,7 +22,7 @@ type entry struct {
 
 // Catalogue is the tools of a job's servers that its caller may use. It is read from the servers the first time it is asked for.
 type Catalogue struct {
-	servers map[string]*Upstream
+	servers map[string]Conn
 	order   []string
 	policy  func() Policy
 	caller  Caller
@@ -37,10 +37,14 @@ type Catalogue struct {
 	broken  map[string]string
 }
 
-func newCatalogue(servers []Server, private bool, policy func() Policy, caller Caller, record *Record) *Catalogue {
-	c := &Catalogue{servers: map[string]*Upstream{}, policy: policy, caller: caller, record: record}
+func newCatalogue(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record) *Catalogue {
+	c := &Catalogue{servers: map[string]Conn{}, policy: policy, caller: caller, record: record}
 	for _, server := range servers {
-		c.servers[server.Name] = Dial(server, private)
+		if server.IsProgram() {
+			c.servers[server.Name] = StartProgram(server, caller.Job, launch)
+		} else {
+			c.servers[server.Name] = Dial(server, private)
+		}
 		c.order = append(c.order, server.Name)
 	}
 	return c

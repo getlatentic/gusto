@@ -7,12 +7,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/haas/internal/sandbox"
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/spend"
 )
@@ -161,4 +164,104 @@ func TestAJobWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
 		t.Error("a job id that climbs was taken")
 	}
 	_ = front
+}
+
+// A program an integration brought runs in a box, behind the proxy, and a job calls it through the gateway: the whole way, in a real
+// container. It needs a container runtime and node's image, and a folder the runtime can mount.
+func TestAProgramAnIntegrationBroughtRunsInABoxAndAJobCallsItThroughTheProxy(t *testing.T) {
+	if _, err := exec.LookPath(sandbox.Runtime()); err != nil || exec.Command(sandbox.Runtime(), "image", "inspect", "node:24-slim").Run() != nil {
+		t.Skip("no container runtime, or no node image")
+	}
+	t.Setenv("HAAS_TOOLS_IMAGE", "node:24-slim")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no home directory")
+	}
+	root, err := os.MkdirTemp(home, ".haas-gateway-test-")
+	if err != nil {
+		t.Skip(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(root) })
+
+	source := filepath.Join(root, "source")
+	os.MkdirAll(source, 0o755)
+	os.WriteFile(filepath.Join(source, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"crm","version":"1.0.0"}`), 0o644)
+	os.WriteFile(filepath.Join(source, "mcp.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/mcp.schema.json","mcpServers":{"db":{"type":"stdio","command":"node","args":["${PLUGIN_ROOT}/db.js"]}}}`), 0o644)
+	os.WriteFile(filepath.Join(source, "db.js"), []byte(`
+const rl = require("readline").createInterface({ input: process.stdin });
+const reply = (id, result) => console.log(JSON.stringify({ jsonrpc: "2.0", id, result }));
+rl.on("line", (line) => {
+  const m = JSON.parse(line);
+  if (m.id === undefined) return;
+  if (m.method === "initialize") return reply(m.id, { protocolVersion: "2025-06-18", capabilities: { tools: {} } });
+  if (m.method === "tools/list") return reply(m.id, { tools: [{ name: "find", description: "Finds a customer.", inputSchema: { type: "object" } }] });
+  reply(m.id, { content: [{ type: "text", text: "found " + JSON.stringify(m.params.arguments) + " as uid " + process.getuid() }] });
+});`), 0o644)
+	store, err := integration.Open(filepath.Join(root, "integrations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, version, err := store.Import(source, integration.Source{Kind: "upload"}, "ada")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.Enable("crm", version.ID, "ada")
+	setups, _ := setup.Open(filepath.Join(root, "setups"))
+	setups.UseIntegrations(store)
+	setups.Save(setup.Setup{Name: "team", Integrations: []string{"crm"}}, setup.Servers{})
+
+	carry := func() (job.Dir, *job.Setup) {
+		dir := job.Dir(filepath.Join(root, "jobs", "20261008-1200-a-turn"))
+		os.RemoveAll(dir.Path())
+		if err := dir.Make(); err != nil {
+			t.Fatal(err)
+		}
+		carried, err := setups.Carry("team", setup.Servers{}, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		spec := job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: job.Internal, Budget: job.Budget{Turns: 1, Seconds: 60}, Setup: carried}
+		spec.Write(dir)
+		os.WriteFile(filepath.Join(dir.Path(), "state.json"), []byte(`{"asked":"ada@acme.example"}`), 0o644)
+		return dir, carried
+	}
+	if _, carried := carry(); len(carried.Gateway) != 0 {
+		t.Fatalf("a program nobody allowed was given to the gateway: %v", carried.Gateway)
+	}
+	store.AllowPrograms("crm", version.ID, "ada")
+	dir, carried := carry()
+	if strings.Join(carried.Gateway, ",") != "crm-db" {
+		t.Fatalf("gateway = %v", carried.Gateway)
+	}
+
+	gates, err := openGateways(filepath.Join(root, "jobs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokens := proxy.NewTokens()
+	p := proxy.New(tokens, proxy.Credentials{}, func(id string) (string, bool) { return filepath.Join(root, "jobs", id, "out", "proxy.jsonl"), true }, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
+	p.UseGateways(gates.For)
+	front := httptest.NewServer(p.Handler())
+	defer front.Close()
+	token, _ := tokens.Mint("20261008-1200-a-turn", "")
+	defer gates.Forget("20261008-1200-a-turn")
+
+	endpoint := front.URL + "/model/mcp"
+	found := rpc(t, endpoint, token, "tools/call", map[string]any{"name": "tool_search", "arguments": map[string]any{"query": "customer"}})
+	if text := fmt.Sprint(found["result"]); !strings.Contains(text, "crm-db/find") {
+		t.Fatalf("search = %s", text)
+	}
+	called := rpc(t, endpoint, token, "tools/call", map[string]any{"name": "tool_call", "arguments": map[string]any{"name": "crm-db/find", "arguments": map[string]any{"who": "Acme"}}})
+	if text := fmt.Sprint(called["result"]); !strings.Contains(text, `found {"who":"Acme"} as uid 65534`) {
+		t.Errorf("the program answered %s", text)
+	}
+	record, _ := os.ReadFile(filepath.Join(dir.Path(), "out", "gateway.jsonl"))
+	if !strings.Contains(string(record), `"tool":"find"`) || !strings.Contains(string(record), `"outcome":"ok"`) {
+		t.Errorf("the record = %s", record)
+	}
+	gates.Forget("20261008-1200-a-turn")
+	out, _ := exec.Command(sandbox.Runtime(), "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
+	if strings.TrimSpace(string(out)) != "" {
+		t.Errorf("the program's box is still running after the job: %s", out)
+	}
 }

@@ -87,9 +87,13 @@ network. The server needs `git`, which its image has.
   and credentials stay with the proxy and are not in the sandbox. A server is called
   `<integration>-<server>`, and a tool `<integration>-<server>/<tool>`.
 
-A server that is a program (stdio) or uses the older SSE transport is held back, and the setup's
-page says so. A plugin's program should not run inside the sandbox, so programs wait for a place
-outside it to run (getlatentic/planning#519). A setup that names an integration that is off starts no job, and the
+A server that uses the older SSE transport is held back, and the setup's page says so.
+
+A server that is a program (stdio) runs only when an administrator allows the programs of that
+version, on the integration's page, with a box ticked to say they have read what the programs are.
+The permission is for that version: a new version is a new program, and is held back until it is
+allowed again. The program runs in a box of its own, started by the gateway, and never in the
+job's: [GATEWAY.md](GATEWAY.md) says what the box is. A setup that names an integration that is off starts no job, and the
 page says why. Two skills of one name, or two servers whose names become one, stop the job and
 overwrite nothing. A harness that cannot take skills or servers is told so before the job starts.
 
