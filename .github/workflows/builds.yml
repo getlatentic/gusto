@@ -54,7 +54,10 @@ jobs:
       - name: The helper program runs
         shell: bash
         run: |
-          go build -o haas-helper.exe ./cmd/haas-helper
+          # Built as the release builds it: with no window of its own, which must not cost it its output.
+          go build -ldflags "-H=windowsgui" -o haas-helper.exe ./cmd/haas-helper
+          said=$(./haas-helper.exe version)
+          case "$said" in haas-helper*) ;; *) echo "haas-helper version said: [$said]"; exit 1;; esac
           set +e
           ./haas-helper.exe
           code=$?

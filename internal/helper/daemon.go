@@ -35,6 +35,7 @@ type Daemon struct {
 	person    string
 	signedIn  bool
 	connected bool
+	tray      string
 	token     string
 	address   string
 }
@@ -72,6 +73,8 @@ type Status struct {
 	SignedIn  bool   `json:"signedIn"`
 	Person    string `json:"person,omitempty"`
 	Connected bool   `json:"connected"`
+	// Tray says whether the icon is shown, and why not when it is not.
+	Tray string `json:"tray,omitempty"`
 }
 
 // Ask asks the running helper for its status, which is also how a second one finds the first is there.
@@ -93,11 +96,14 @@ func (l Local) Ask(ctx context.Context) (Status, error) {
 	return status, json.NewDecoder(response.Body).Decode(&status)
 }
 
+// SetTray says whether the icon is shown ("shown", "off", or why there is none), which the status reports.
+func (d *Daemon) SetTray(state string) { d.set(func() { d.tray = state }) }
+
 // Status is how the helper stands now.
 func (d *Daemon) Status() Status {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return Status{Server: d.Server, SignedIn: d.signedIn, Person: d.person, Connected: d.connected}
+	return Status{Server: d.Server, SignedIn: d.signedIn, Person: d.person, Connected: d.connected, Tray: d.tray}
 }
 
 func (d *Daemon) set(update func()) {

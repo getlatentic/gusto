@@ -256,9 +256,29 @@ how the helper stands and lists up to eight turns, running ones first. A click o
 conversation in the browser. A notification names a turn that finished, failed or was stopped, and
 only a turn the helper saw going: the turns the server repeats on a reconnect are silent. A turn
 that waits for an approval is not announced, because the server sends no event for it yet.
-A computer with no desktop session (Linux with no D-Bus session) runs the helper with no icon.
-A macOS helper built without a C compiler has no icon either. There is no window in the first version. A person who wants
+A computer with nowhere to show the icon runs the helper with no icon, and `haas-helper status` says so and why (`icon: shown`, or
+`icon: none: ...`, or `icon: off` when it was started with `-tray=false`). Everything else, which is the sync, the editor bridge and the
+notifications where the system has them, goes on. A macOS helper built without a C compiler has no icon either.
+There is no window in the first version. A person who wants
 the conversation uses the web, an editor or the terminal.
+
+### Where the icon shows
+
+| Where | The icon |
+| --- | --- |
+| macOS | Always, in the menu bar. Tried on macOS 27 only |
+| Windows | In the notification area. Not tried: only the build and the program's output are checked, on a Windows runner |
+| Linux with KDE Plasma, or another desktop that shows status notifier icons | Shown, when a program on the session bus owns `org.kde.StatusNotifierWatcher`. Checked on a real session bus in a container, and not on a real desktop |
+| Linux with GNOME | Only with the AppIndicator extension ("AppIndicator and KStatusNotifierItem Support"). Without it the helper says so and runs with no icon |
+| Linux with no desktop session, such as a server | None. The helper runs without one |
+| Another Linux desktop that shows no tray icons | None, and the helper says so |
+
+Notifications on Linux go through `notify-send` and on Windows through a toast, so they depend on the desktop too; they are not
+clickable (see above). The tray is never the only way in: the web, an editor and the terminal reach everything it shows.
+
+On Windows the helper is built as a program with no window of its own, so that starting it at login does not open a black one. When
+it is started from a terminal it attaches to that terminal, so `haas-helper login` and `status` print there as they do elsewhere.
+Linux desktops and Windows were not tried by a person; what is checked is stated in the table.
 
 The tray is part of the helper process. There is no shell around it. The spike
 (getlatentic/planning#587) built the same tray, with one notification, three ways on

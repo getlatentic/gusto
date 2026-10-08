@@ -23,8 +23,12 @@ root=$(git rev-parse --show-toplevel)
 cgo=0
 [ "$os" = darwin ] && [ "$(uname -s)" = Darwin ] && cgo=1
 
-(cd "$root" && CGO_ENABLED=$cgo GOOS=$os GOARCH=$arch go build -trimpath \
-  -ldflags "-s -w -X github.com/getlatentic/haas/internal/helper/cli.Version=$tag" -o "$work/$exe" ./cmd/haas-helper)
+# A Windows program is built with no window of its own, so that starting it at login opens no black one: it attaches to the terminal
+# it was started from, when it was started from one (cmd/haas-helper/console_windows.go).
+flags="-s -w -X github.com/getlatentic/haas/internal/helper/cli.Version=$tag"
+[ "$os" = windows ] && flags="$flags -H=windowsgui"
+
+(cd "$root" && CGO_ENABLED=$cgo GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$flags" -o "$work/$exe" ./cmd/haas-helper)
 
 mkdir -p "$out"
 archive="${name}_${tag}_${os}_${arch}"

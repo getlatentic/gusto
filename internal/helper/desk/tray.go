@@ -5,8 +5,7 @@ package desk
 import (
 	"context"
 	"errors"
-	"os"
-	"runtime"
+	"fmt"
 	"time"
 
 	"fyne.io/systray"
@@ -24,13 +23,15 @@ type Tray struct {
 	// Status is how the helper stands, asked each time the menu is drawn.
 	Status func() helper.Status
 	Icon   []byte
+	// Shown, when set, is called once the icon is up.
+	Shown func()
 }
 
 // Run shows the icon and keeps its menu to the hub's turns until the person quits, which it says by returning nil, or the
 // context ends. It runs on the program's main thread, which macOS needs.
 func (t Tray) Run(ctx context.Context) error {
-	if runtime.GOOS == "linux" && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
-		return ErrNoTray
+	if why := Missing(); why != "" {
+		return fmt.Errorf("%w: %s", ErrNoTray, why)
 	}
 	go func() { <-ctx.Done(); systray.Quit() }()
 	systray.Run(t.ready, func() {})
@@ -39,6 +40,9 @@ func (t Tray) Run(ctx context.Context) error {
 
 func (t Tray) ready() {
 	systray.SetTemplateIcon(t.Icon, t.Icon)
+	if t.Shown != nil {
+		t.Shown()
+	}
 	systray.SetTooltip("Latentic Agent Cloud")
 	lines := make([]*systray.MenuItem, Slots+1)
 	pages := make([]string, Slots+1)
