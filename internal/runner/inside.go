@@ -89,6 +89,17 @@ func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	}
 	command := adapter.Command(ctx, spec, dir.Workspace())
 	ownGroup(command)
+	// The box does not give its root the right to signal another user's processes, and the harness runs as the agent. So the
+	// runner cannot kill it: the agent's own processes are ended as the agent, the way they are at the end of a run.
+	released := make(chan struct{})
+	defer close(released)
+	go func() {
+		select {
+		case <-ctx.Done():
+			agent.endAll()
+		case <-released:
+		}
+	}()
 	var exit int
 	if adapter.Stream != harness.ACP {
 		err = adapter.Give(command, servers)
