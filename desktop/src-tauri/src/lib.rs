@@ -20,7 +20,7 @@ fn connect(app: AppHandle, server: String) -> Result<(), String> {
     config::reachable(&server)?;
     config::save(&app, &config::Config { server: Some(server.clone()) })?;
     helper::start(&app, &server);
-    window::go(&app, &server);
+    window::go(&app, &window::chat_address(&server));
     Ok(())
 }
 

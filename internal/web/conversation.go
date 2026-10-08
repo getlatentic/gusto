@@ -94,6 +94,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Named":    s.nameOf(thread),
 		"Agent":    s.agentOf(held),
 		"Starters": s.startersOf(held),
+		"Models":   s.offeredTo(r).For(held.Harness),
 		// A chat fills the window rather than sitting in a document.
 		"Chat":     true,
 		"Title":    productName + " — " + s.nameOf(thread),
