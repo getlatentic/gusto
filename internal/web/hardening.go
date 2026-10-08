@@ -37,7 +37,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			h.Set("Cache-Control", "no-store")
 		}
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
-			r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
 		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r)}, r)
 	})
@@ -138,4 +138,12 @@ func (a *attempts) recent(from string, now time.Time) []time.Time {
 func tooMany(w http.ResponseWriter) {
 	w.Header().Set("Retry-After", "600")
 	http.Error(w, "too many wrong attempts from here: try again in ten minutes", http.StatusTooManyRequests)
+}
+
+// bodyLimit is the most a request may send. An integration upload is the one that sends more than a form.
+func bodyLimit(r *http.Request) int64 {
+	if r.URL.Path == integrationsPath+"/import" {
+		return importLimit
+	}
+	return maxBody
 }

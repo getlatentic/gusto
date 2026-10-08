@@ -33,14 +33,16 @@ const (
 	Changes     Store = "changes"
 	Tokens      Store = "tokens"
 	Retention   Store = "retention"
+	// Integrations is the plugins an administrator imported. A release before it never reads the directory, so none can be hurt by it.
+	Integrations Store = "integrations"
 )
 
 // Stores is every kind, in the order they are listed.
-var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention}
+var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations}
 
 // Current is the format each store has in this release.
 var Current = map[Store]int{
-	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1,
+	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1,
 }
 
 // Stamp is what a directory says about itself.

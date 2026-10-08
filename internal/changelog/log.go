@@ -59,6 +59,11 @@ const (
 	PriceSet        = "model.price"
 	PolicySet       = "model.policy"
 	AccessSet       = "model.access"
+
+	IntegrationImported = "integration.imported"
+	IntegrationEnabled  = "integration.enabled"
+	IntegrationDisabled = "integration.disabled"
+	IntegrationRestored = "integration.restored"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organisation's front

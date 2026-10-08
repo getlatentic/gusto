@@ -25,6 +25,11 @@
       {{range $name, $server := .}}<label class="check"><input type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
     </fieldset>
     {{end}}
+    {{with .Imported}}
+    <fieldset class="servers"><legend class="muted">Integrations</legend>
+      {{range .}}<label class="check"><input type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="muted">off</span>{{end}}</label>{{end}}
+    </fieldset>
+    {{end}}
     <span class="go"><button type="submit">Create</button></span>
   </form>
   {{end}}

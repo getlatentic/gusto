@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/roster"
 )
@@ -28,12 +29,18 @@ func everything(t *testing.T) *tokened {
 	here.server.UseRoster(list)
 	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
 	here.server.UseAdmins([]string{boss})
+	store, err := integration.Open(filepath.Join(t.TempDir(), "integrations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	here.server.setups.UseIntegrations(store)
+	here.server.UseIntegrations(store, integration.Clone{Schemes: []string{"file"}})
 	return here
 }
 
 var consoleReads = []string{
 	"/admin", "/admin/spending", "/admin/activity", "/admin/activity.jsonl",
-	"/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/people",
+	"/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/people", "/admin/integrations",
 }
 
 var consoleWrites = []string{
@@ -42,6 +49,7 @@ var consoleWrites = []string{
 	"/admin/retention/jobs/hold", "/admin/retention/jobs/release",
 	"/admin/skill-sets", "/admin/skill-sets/one/skills", "/admin/skill-sets/one/skills/two/drop",
 	"/admin/budget",
+	"/admin/integrations/import", "/admin/integrations/reports/enable", "/admin/integrations/reports/disable", "/admin/integrations/reports/restore",
 }
 
 func TestARunnerCannotReachTheConsoleAndAStrangerIsSentToSignIn(t *testing.T) {
