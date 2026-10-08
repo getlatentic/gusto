@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -64,6 +65,14 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
 		t.Fatalf("%d %v", added.Code, added.Header())
 	}
+	if got := (*offered.Load())[""]; len(got) != 1 {
+		t.Errorf("what was only added is offered before it was turned on: %v", got)
+	}
+	if body := admin.ask(t, "GET", "/admin/models", nil).Body.String(); !strings.Contains(body, "waiting for you to turn it on") || !strings.Contains(body, "Turn on acme") {
+		t.Error("the page does not say what is waiting")
+	}
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big-1"}})
 	if got := (*offered.Load())[""]; len(got) != 2 || got[1] != "acme/big-1" {
 		t.Errorf("the forms offer what the registry comes to: %v", got)
 	}
@@ -72,7 +81,7 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	}
 	page := admin.ask(t, "GET", "/admin/models", nil)
 	body := page.Body.String()
-	for _, want := range []string{"acme/big-1", "platform/qwen", "set by the operator", "$0.5", "$1.5", "Registry version 2"} {
+	for _, want := range []string{"acme/big-1", "platform/qwen", "set by the operator", "$0.5", "$1.5", "Registry version 4"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page does not say %q", want)
 		}
@@ -94,11 +103,16 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	for _, event := range written(t, here.log) {
 		kinds[event.Kind]++
 	}
-	if kinds[changelog.ProviderAdded] != 1 || kinds[changelog.ModelAdded] != 1 {
+	if kinds[changelog.ProviderAdded] != 1 || kinds[changelog.ModelAdded] != 1 || kinds[changelog.ProviderEnabled] != 1 || kinds[changelog.ModelEnabled] != 1 {
 		t.Errorf("each change is recorded: %v", kinds)
 	}
-	if reg.Document().Version != 2 {
-		t.Error("two changes are two versions")
+	for _, event := range written(t, here.log) {
+		if event.Kind == changelog.ModelEnabled && (event.What["was"] != "off" || event.What["now"] != "on" || event.What["model"] != "acme/big-1") {
+			t.Errorf("a turning on does not say what it was and became: %+v", event.What)
+		}
+	}
+	if reg.Document().Version != 4 {
+		t.Error("four changes are four versions")
 	}
 }
 
@@ -107,6 +121,8 @@ func TestAnAdminChangesPricesRetiresAndReplacesAKeyThroughThePage(t *testing.T) 
 	admin := here.as(t, boss)
 	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"org/big-1"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"org/big-1"}})
 	if got := admin.ask(t, "POST", "/admin/models/providers/acme/price", url.Values{"model": {"org/big-1"}, "input": {"3"}, "output": {"4"}, "cached": {"0.3"}}); strings.Contains(got.Header().Get("Location"), "refused") {
 		t.Fatalf("%v", got.Header())
 	}
@@ -242,6 +258,8 @@ func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *test
 	admin, ada, bob := here.as(t, boss), here.as(t, alice), here.as(t, bob)
 	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	if got := admin.ask(t, "POST", "/admin/models/access", url.Values{"email": {alice}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
 		t.Errorf("a limit to nothing is refused, since it reads as no limit: %v", got.Header())
 	}
@@ -313,6 +331,9 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}, "input": {"0.25"}, "output": {"1.5"}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"free-ish"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"free-ish"}})
 	page := here.as(t, alice).ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
 	for _, want := range []string{"platform/qwen · $1 in, $2 out per million tokens", "acme/big · $0.25 in, $1.5 out per million tokens", "acme/free-ish · no price"} {
 		if !strings.Contains(page, want) {
@@ -324,5 +345,42 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	none.signIn(t)
 	if strings.Contains(none.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(), "no price") {
 		t.Error("a deployment with no prices at all says so against every model")
+	}
+}
+
+func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatItUndid(t *testing.T) {
+	here, reg, offered := registered(t, registry.Rules{})
+	admin := here.as(t, boss)
+	admin.ask(t, "POST", "/admin/models/providers", url.Values{"name": {"acme"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {theirKey}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/models", url.Values{"model": {"big"}})
+	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
+	before := reg.Document().Version
+	admin.ask(t, "POST", "/admin/models/providers/acme/models/retire", url.Values{"model": {"big"}})
+	if got := (*offered.Load())[""]; len(got) != 1 {
+		t.Fatalf("retired and still offered: %v", got)
+	}
+	body := admin.ask(t, "GET", "/admin/models", nil).Body.String()
+	if !strings.Contains(body, "Go back") || !strings.Contains(body, "retired model acme/big") {
+		t.Errorf("the page does not offer going back, or say what was done after:\n%s", body)
+	}
+	got := admin.ask(t, "POST", "/admin/models/restore", url.Values{"version": {strconv.FormatInt(before, 10)}})
+	if strings.Contains(got.Header().Get("Location"), "refused") {
+		t.Fatalf("%v", got.Header())
+	}
+	if offered := (*offered.Load())[""]; len(offered) != 2 || offered[1] != "acme/big" {
+		t.Errorf("after going back: %v", offered)
+	}
+	var restored []changelog.Event
+	for _, event := range written(t, here.log) {
+		if event.Kind == changelog.RegistryRestored {
+			restored = append(restored, event)
+		}
+	}
+	if len(restored) != 1 || restored[0].What["undid"] != "brought back model acme/big" {
+		t.Errorf("the change record has %+v", restored)
+	}
+	if refused := admin.ask(t, "POST", "/admin/models/restore", url.Values{"version": {"9999"}}); !strings.Contains(refused.Header().Get("Location"), "refused=") {
+		t.Error("a version that was never kept was restored")
 	}
 }

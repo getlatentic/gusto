@@ -38,7 +38,7 @@ func (r *Registry) Effective() Effective {
 	}
 	rules := r.Rules()
 	for _, provider := range document.Providers {
-		if provider.Retired {
+		if provider.Retired || provider.Pending {
 			continue
 		}
 		key, err := r.read(provider)
@@ -52,7 +52,7 @@ func (r *Registry) Effective() Effective {
 		}
 	}
 	for _, model := range document.Models {
-		if _, usable := out.Credentials[model.Provider]; model.Retired || !usable {
+		if _, usable := out.Credentials[model.Provider]; model.Retired || model.Pending || !usable {
 			continue
 		}
 		out.Models = append(out.Models, model.Full())

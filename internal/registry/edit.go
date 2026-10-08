@@ -100,7 +100,7 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	}
 	harnesses := slices.Clone(give.Harnesses)
 	slices.Sort(harnesses)
-	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Harnesses: slices.Compact(harnesses)}, nil
+	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Harnesses: slices.Compact(harnesses), Pending: true}, nil
 }
 
 func (r *Registry) platformHas(name string) bool {
@@ -161,10 +161,36 @@ func (r *Registry) AddModel(provider, name string, price *spend.Price) error {
 			if !d.Models[i].Retired {
 				return fmt.Errorf("%s/%s is in the registry already", provider, name)
 			}
-			d.Models[i] = Model{Provider: provider, Name: name, Price: price}
+			d.Models[i] = Model{Provider: provider, Name: name, Price: price, Pending: true}
 			return nil
 		}
-		d.Models = append(d.Models, Model{Provider: provider, Name: name, Price: price})
+		d.Models = append(d.Models, Model{Provider: provider, Name: name, Price: price, Pending: true})
+		return nil
+	})
+}
+
+// Enable turns a provider on, or one of its models when a model is named. What an administrator adds is off until this: finding
+// or typing something in does not offer it to people.
+func (r *Registry) Enable(provider, model string) error { return r.setPending(provider, model, false) }
+
+// Disable turns a provider or a model off again. It is kept, and can be turned on, which retiring it is not.
+func (r *Registry) Disable(provider, model string) error { return r.setPending(provider, model, true) }
+
+func (r *Registry) setPending(provider, model string, pending bool) error {
+	return r.change(func(d *Document) error {
+		if model == "" {
+			i := indexOfProvider(d.Providers, provider)
+			if i < 0 || d.Providers[i].Retired {
+				return ErrNoSuch
+			}
+			d.Providers[i].Pending = pending
+			return nil
+		}
+		i := indexOfModel(d.Models, provider, model)
+		if i < 0 || d.Models[i].Retired {
+			return ErrNoSuch
+		}
+		d.Models[i].Pending = pending
 		return nil
 	})
 }
