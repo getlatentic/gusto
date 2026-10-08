@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,7 +93,8 @@ func organisationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	if err != nil {
 		t.Fatal(err)
 	}
-	return inSandbox(way, cfg, index, registry, instances), index, registry, cfg, root, instances
+	work := inSandbox(way, cfg, index, registry, instances)
+	return func(dir job.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
 }
 
 // jobBy is a job asked for by who, run by the work, and the directory it ran in.

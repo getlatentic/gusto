@@ -48,6 +48,7 @@
           <div class="body">
             <p class="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> Working <span class="elapsed" id="elapsed"></span></p>
             <pre id="stream" hidden></pre>
+            <form class="stop" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"><button type="submit" class="quiet">Stop</button></form>
           </div>
         </div>
         {{end}}
@@ -180,7 +181,7 @@
       {{end}}
       {{if .Replied}}<div class="reply">{{markdown .Replied}}</div>{{end}}
       {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
-      {{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}
+      {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
       <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
         {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
         {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}

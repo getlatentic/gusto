@@ -95,6 +95,7 @@ there.
 | `GET /api/engines` | the agents this server can start, whether each can run now and why not, and the models this person may use with each |
 | `GET /api/jobs/{id}` | one turn: how it stands, the steps the agent took in words (`Read main.go`), what it said, and the files it changed |
 | `GET /api/jobs/{id}/follow` | the same turn as server-sent events while it goes: `step` for each step, `reply` with what has been said so far when that changes, and `ended` with the whole turn. A turn that is over is told at once |
+| `POST /api/jobs/{id}/stop` | stops a turn: a queued one never runs, and a running one is told to stop and ends `interrupted` a moment later. Answered `200` with the job and whether it was running; `409` when it is already over ([STATES.md](STATES.md#stopping-a-job)) |
 | `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
 | `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
 

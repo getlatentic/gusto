@@ -66,6 +66,8 @@ type Manifest struct {
 	Session         string `json:"session,omitempty"`
 	HarnessExit     int    `json:"harnessExit"`
 	StoppedAtBudget bool   `json:"stoppedAtBudget"`
+	// StoppedBy is absent unless the run was told to stop: by the person who stopped it, or by "a signal".
+	StoppedBy string `json:"stoppedBy,omitempty"`
 	// StoppedByCap is absent unless a spending cap refused the run a call.
 	StoppedByCap  *CapStop `json:"stoppedByCap,omitempty"`
 	ModelEndpoint string   `json:"modelEndpoint"`

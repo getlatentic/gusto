@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -132,8 +133,13 @@ func (w *WayOut) Listen() (func(), error) {
 // configuration stays the same from one job to the next, and what this job
 // spends is attributed to it and counted against its caps.
 func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
+	return w.RunContext(context.Background(), dir, spec, mounts...)
+}
+
+// RunContext is Run that stops the container when its context ends.
+func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
 	if w.proxy == nil {
-		return sandbox.Run(dir, w.direct, "", mounts...)
+		return sandbox.RunContext(ctx, dir, w.direct, "", mounts...)
 	}
 	token := ""
 	if needsModel(dir, spec) {
@@ -143,13 +149,13 @@ func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, 
 		}
 	}
 	if w.sealed {
-		return sandbox.Sealed(dir, w.socket, token, mounts...)
+		return sandbox.SealedContext(ctx, dir, w.socket, token, mounts...)
 	}
 	_, port, err := net.SplitHostPort(w.address)
 	if err != nil {
 		port = "8041"
 	}
-	return sandbox.Run(dir, "http://localhost:"+port+"/model/v1", token, mounts...)
+	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, mounts...)
 }
 
 // needsModel is whether a job's harness asks a model at all. One that needs none, such as the program the smoke check
@@ -186,6 +192,11 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 // reached on the name the sandbox gives this machine, so it listens on a port
 // and not a socket, and the runner stays here and writes the record.
 func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
+	return w.RunInSandboxContext(context.Background(), dir, spec, cfg)
+}
+
+// RunInSandboxContext is RunInSandbox that stops the run when its context ends.
+func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
 	if w.proxy == nil {
 		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
@@ -203,7 +214,7 @@ func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) 
 	if err != nil {
 		return 0, err
 	}
-	return runner.Outside(dir, box)
+	return runner.OutsideContext(ctx, dir, box)
 }
 
 // proxyPort is the port the proxy listens on.

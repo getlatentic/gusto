@@ -6,10 +6,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/getlatentic/haas/internal/evidence"
 	"github.com/getlatentic/haas/internal/harness"
@@ -170,7 +173,11 @@ func inside(args []string) int {
 	if code != 0 {
 		return code
 	}
-	exit, err := runner.Inside(dir)
+	// An interrupt or a termination is somebody stopping the job, whether by the runtime's client or by the server on its way
+	// down: the harness is stopped, and the manifest says so.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	exit, err := runner.InsideContext(ctx, dir)
 	if err != nil {
 		return fail(err)
 	}

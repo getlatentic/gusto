@@ -195,6 +195,38 @@ func (i *Index) Claim() (Record, bool, error) {
 	return *oldest, true, nil
 }
 
+// ErrNotStoppable is the answer to stopping a job that is already over.
+var ErrNotStoppable = fmt.Errorf("that job is already over")
+
+// Stop marks a job as stopped by somebody. A job that is still queued is over at once, interrupted, and never runs. A job
+// that is running is marked, and ends interrupted when its work returns, which the queue arranges after it has told the
+// work to stop. It gives the job as it stands, and whether it was running.
+func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	record, found := i.records[id]
+	if !found {
+		return Record{}, false, fmt.Errorf("no job called %s", id)
+	}
+	if record.State.Done() {
+		return record, false, ErrNotStoppable
+	}
+	wasRunning = record.State == Running
+	record.StoppedBy = by
+	if !wasRunning {
+		record.State, record.Exit, record.Ended = Interrupted, -1, Now()
+	}
+	if err := write(record.Dir(i.root), record); err != nil {
+		return Record{}, false, err
+	}
+	i.records[id] = record
+	if !wasRunning {
+		i.finished[Interrupted]++
+		i.lastFinished = record.Ended
+	}
+	return record, wasRunning, nil
+}
+
 // Finish records how a job ended.
 func (i *Index) Finish(id string, state State, exit int) error {
 	i.guard.Lock()

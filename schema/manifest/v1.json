@@ -91,6 +91,10 @@
       "description": "Whether the harness was killed because the budget's seconds ran out.",
       "type": "boolean"
     },
+    "stoppedBy": {
+      "description": "Who told the run to stop before it ended on its own: the person who stopped it, or a signal when nobody is named. Absent when the run was not stopped.",
+      "type": "string"
+    },
     "stoppedByCap": {
       "description": "The spending cap that stopped the run, read from out/proxy.jsonl: the proxy refused the harness's next call to a model once it was spent. Absent when no cap refused anything.",
       "type": "object",
