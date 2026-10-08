@@ -12,7 +12,9 @@ copies the section into the release's notes. Changes made after a release go und
 
 ## Next release
 
-Nothing yet.
+**New**
+
+- `haas-helper acp`: the helper as an agent for an editor that speaks the Agent Client Protocol ([DESKTOP.md](DESKTOP.md#editors)).
 
 ## v0.0.1-alpha.4
 
