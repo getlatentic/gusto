@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/job"
 )
@@ -109,10 +110,11 @@ func (s *Store) checkIntegrations(names []string) error {
 	return nil
 }
 
-// carryIntegrations puts the skills and servers of the integrations a setup names into a job's directory, for the version that is
+// carryIntegrations puts the skills of the integrations a setup names into a job's directory, and the servers behind the gateway,
+// for the version that is on. The skills and servers of the integrations a setup names into a job's directory, for the version that is
 // on. An integration that is off, or gone, is a job that does not start, since a job that quietly lacked what its setup names
 // would run as a bare harness under the setup's name.
-func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, servers *[]job.Server) error {
+func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, behind *[]gateway.Server) error {
 	if len(held.Integrations) == 0 {
 		return nil
 	}
@@ -135,6 +137,7 @@ func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, s
 	for _, name := range carried.Servers {
 		taken[name] = true
 	}
+	taken["gateway"] = true
 	for _, name := range held.Integrations {
 		one, there := on[name]
 		if !there {
@@ -161,8 +164,8 @@ func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, s
 				return fmt.Errorf("the setup %s gets an MCP server called %s more than once", held.Name, definition.Name)
 			}
 			taken[definition.Name] = true
-			*servers = append(*servers, definition)
-			carried.Servers = append(carried.Servers, definition.Name)
+			*behind = append(*behind, gateway.Server{Name: definition.Name, URL: definition.URL, Headers: definition.Headers})
+			carried.Gateway = append(carried.Gateway, definition.Name)
 		}
 		carried.Integrations = append(carried.Integrations, job.IntegrationUse{
 			Name: name, Version: one.Version.ID, Label: one.Version.Label, Commit: one.Version.Source.Commit})

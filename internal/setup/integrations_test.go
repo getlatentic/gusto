@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/schema"
@@ -88,7 +89,7 @@ func TestAJobGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(carried.Skills, ",") != "summarize" || strings.Join(carried.Servers, ",") != "reports-api" {
+	if strings.Join(carried.Skills, ",") != "summarize" || strings.Join(carried.Gateway, ",") != "reports-api" || len(carried.Servers) != 0 {
 		t.Fatalf("carried %+v", carried)
 	}
 	for _, file := range []string{"SKILL.md", "scripts/run.sh", "references/guide.md"} {
@@ -99,10 +100,16 @@ func TestAJobGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t *
 	if use := carried.Integrations; len(use) != 1 || use[0].Name != "reports" || use[0].Version != id || use[0].Label != "2.0.0" || use[0].Commit != "abc" {
 		t.Errorf("the record does not say what version the job had: %+v", use)
 	}
-	text, _ := os.ReadFile(filepath.Join(dir.SetupDir(), "servers.json"))
-	var servers []job.Server
-	if err := json.Unmarshal(text, &servers); err != nil || len(servers) != 1 || servers[0].URL != "https://api.example.com/mcp" || servers[0].Headers["X-Tenant"] != "acme" {
-		t.Errorf("servers = %s (%v)", text, err)
+	text, _ := os.ReadFile(filepath.Join(dir.SetupDir(), GatewayFile))
+	var behind []gateway.Server
+	if err := json.Unmarshal(text, &behind); err != nil || len(behind) != 1 || behind[0].URL != "https://api.example.com/mcp" || behind[0].Headers["X-Tenant"] != "acme" {
+		t.Errorf("gateway.json = %s (%v)", text, err)
+	}
+	if info, err := os.Stat(filepath.Join(dir.SetupDir(), GatewayFile)); err != nil || info.Mode().Perm() != 0o600 {
+		t.Errorf("the definitions are readable by more than their owner: %v %v", info, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir.SetupDir(), "servers.json")); err == nil {
+		t.Error("a server behind the gateway is also given to the harness directly")
 	}
 	record, _ := json.Marshal(carried)
 	if strings.Contains(string(record), "api.example.com") || strings.Contains(string(record), "acme") {
@@ -191,7 +198,7 @@ func TestTwoIntegrationsWithAServerOfTheSameNameStayApart(t *testing.T) {
 	integrations.Enable("billing", other.ID, "ada")
 	store.Save(Setup{Name: "team", Integrations: []string{"reports", "billing"}}, Servers{})
 	carried, _, err := carry(t, store, "team")
-	if err != nil || strings.Join(carried.Servers, ",") != "reports-api,billing-api" {
+	if err != nil || strings.Join(carried.Gateway, ",") != "reports-api,billing-api" {
 		t.Fatalf("%+v %v", carried, err)
 	}
 	if got := serverName("My.Plugin", "Some_Server"); got != "my-plugin-some-server" {

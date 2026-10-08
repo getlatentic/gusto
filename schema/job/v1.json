@@ -88,6 +88,7 @@
         "name": {"type": "string"},
         "skills": {"type": "array", "items": {"type": "string"}},
         "servers": {"type": "array", "items": {"type": "string"}},
+        "gateway": {"type": "array", "items": {"type": "string"}, "description": "The servers the job reached through the gateway, whose addresses and credentials stayed outside the sandbox."},
         "integrations": {
           "description": "Each integration the skills and servers came from, with the version that was on when the job started.",
           "type": "array",

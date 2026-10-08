@@ -179,6 +179,9 @@ func (s *Session) list(r *http.Request) []Tool {
 
 func (s *Session) shownTools() []Tool {
 	object := func(properties string, required ...string) json.RawMessage {
+		if required == nil {
+			required = []string{}
+		}
 		need, _ := json.Marshal(required)
 		return json.RawMessage(`{"type":"object","properties":{` + properties + `},"required":` + string(need) + `}`)
 	}

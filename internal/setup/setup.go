@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/job"
 )
 
@@ -220,17 +221,30 @@ func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, er
 		}
 		servers = append(servers, definition)
 	}
-	if err := s.carryIntegrations(held, dir, carried, &servers); err != nil {
+	var behind []gateway.Server
+	if err := s.carryIntegrations(held, dir, carried, &behind); err != nil {
 		return nil, err
 	}
-	if len(servers) == 0 {
-		return carried, nil
+	if err := writeSecret(filepath.Join(dir.SetupDir(), "servers.json"), servers); err != nil {
+		return nil, err
 	}
-	text, err := json.Marshal(servers)
+	return carried, writeSecret(filepath.Join(dir.SetupDir(), GatewayFile), behind)
+}
+
+// GatewayFile is where the definitions of the servers behind the gateway wait in a job's setup directory. The proxy reads it and
+// the sandbox cannot: it is the owner's alone.
+const GatewayFile = "gateway.json"
+
+// writeSecret writes definitions, which may hold a credential, for their owner alone. Nothing to write is no file.
+func writeSecret[T any](path string, definitions []T) error {
+	if len(definitions) == 0 {
+		return nil
+	}
+	text, err := json.Marshal(definitions)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return carried, os.WriteFile(filepath.Join(dir.SetupDir(), "servers.json"), text, 0o600)
+	return os.WriteFile(path, text, 0o600)
 }
 
 // Fits says why a harness cannot take a setup, or nothing when it can.
