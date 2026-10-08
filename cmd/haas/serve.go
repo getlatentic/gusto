@@ -181,6 +181,7 @@ func serve(args []string) int {
 	setups.UseIntegrations(integrations)
 	pages.UseIntegrations(integrations, integration.Clone{AllowPrivate: os.Getenv("HAAS_INTEGRATIONS_PRIVATE") == "1"})
 	pages.UseSetups(setups, servers)
+	pages.UseDesktop(os.Getenv("HAAS_DESKTOP"))
 	pages.UseInBuilding(way.InBuilding())
 	lineups, err := compare.OpenBoard(setting("HAAS_COMPARISONS", "comparisons"))
 	if err != nil {
