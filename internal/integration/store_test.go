@@ -279,3 +279,38 @@ func TestTheProgramsOfAVersionRunOnlyWhileThatVersionIsOnAndAllowed(t *testing.T
 		t.Errorf("history = %v", actions)
 	}
 }
+
+func TestAnIntegrationIsOnForEverybodyUntilAnAdministratorNamesWho(t *testing.T) {
+	store := openStore(t)
+	_, one, _ := store.Import(folder(t, versionOf("1.0.0", nil)), git, "ada")
+	store.Enable("reports", one.ID, "ada")
+	held, _ := store.Get("reports")
+	if !held.OnFor("anybody@example.com") || !held.OnFor("") {
+		t.Fatal("an integration that names nobody is not on for everybody")
+	}
+	held, err := store.SetFor("reports", []string{" Ada@Acme.Example ", "*@finance.acme.example", ""}, "ada")
+	if err != nil || strings.Join(held.For, ",") != "ada@acme.example,*@finance.acme.example" {
+		t.Fatalf("%+v %v", held, err)
+	}
+	for person, want := range map[string]bool{
+		"ada@acme.example": true, "ADA@acme.example": true, "bo@finance.acme.example": true,
+		"bo@acme.example": false, "ada@acme.example.evil.example": false, "": false, "boss@finance.acme.example.x": false,
+	} {
+		if got := held.OnFor(person); got != want {
+			t.Errorf("OnFor(%q) = %v, want %v", person, got, want)
+		}
+	}
+	if on, _ := store.Active(); on[0].OnFor("bo@acme.example") || !on[0].OnFor("ada@acme.example") {
+		t.Error("the active integration does not carry who it is on for")
+	}
+	if _, err := store.SetFor("reports", []string{"["}, "ada"); err == nil {
+		t.Error("a bad pattern was taken")
+	}
+	held, _ = store.SetFor("reports", nil, "ada")
+	if !held.OnFor("bo@acme.example") {
+		t.Error("clearing the list did not make it everybody's")
+	}
+	if last := held.History[len(held.History)-1]; last.Action != Scoped {
+		t.Errorf("history = %+v", last)
+	}
+}

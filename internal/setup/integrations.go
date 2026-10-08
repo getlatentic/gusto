@@ -128,7 +128,7 @@ func (s *Store) checkIntegrations(names []string) error {
 // for the version that is on. The skills and servers of the integrations a setup names into a job's directory, for the version that is
 // on. An integration that is off, or gone, is a job that does not start, since a job that quietly lacked what its setup names
 // would run as a bare harness under the setup's name.
-func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, behind *[]gateway.Server) error {
+func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, behind *[]gateway.Server, asker string) error {
 	if len(held.Integrations) == 0 {
 		return nil
 	}
@@ -156,6 +156,9 @@ func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, b
 		one, there := on[name]
 		if !there {
 			return fmt.Errorf("the setup %s names the integration %s, which is off: an administrator turns it on", held.Name, name)
+		}
+		if !one.OnFor(asker) {
+			return fmt.Errorf("the setup %s names the integration %s, which an administrator has turned on for some people and not for you", held.Name, name)
 		}
 		for _, skill := range one.Version.Plugin.Skills {
 			if have[skill.Name] {

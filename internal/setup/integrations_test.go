@@ -289,3 +289,63 @@ func TestAProgramIsGivenToTheGatewayOnlyForTheVersionAnAdministratorAllowed(t *t
 		t.Errorf("a new version's program ran on the old version's permission: %+v %v", carried, err)
 	}
 }
+
+func TestAnIntegrationThatIsOnForSomePeopleIsCarriedForThemAndRefusesTheRest(t *testing.T) {
+	store, integrations, _ := world(t, true)
+	store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{})
+	integrations.SetFor("reports", []string{"ada@acme.example", "*@finance.acme.example"}, "ada")
+	for asker, allowed := range map[string]bool{"ada@acme.example": true, "bo@finance.acme.example": true, "cy@acme.example": false, "": false} {
+		dir := job.Dir(t.TempDir())
+		carried, err := store.CarryFor("team", Servers{}, dir, asker)
+		if allowed && (err != nil || len(carried.Skills) != 1) {
+			t.Errorf("%q: %+v %v", asker, carried, err)
+		}
+		if !allowed && (err == nil || !strings.Contains(err.Error(), "some people and not for you")) {
+			t.Errorf("%q was given what it is not on for: %v", asker, err)
+		}
+	}
+	integrations.SetFor("reports", nil, "ada")
+	if _, err := store.CarryFor("team", Servers{}, job.Dir(t.TempDir()), ""); err != nil {
+		t.Errorf("an integration on for everybody was refused: %v", err)
+	}
+}
+
+func TestASkillSetExportedAsAPluginIsAnIntegrationWithNoServers(t *testing.T) {
+	store, _ := Open(t.TempDir())
+	store.Save(Setup{Name: "reviewer", Servers: []string{"memory"}}, memory())
+	store.Write("reviewer", Skill{Name: "review", Description: "Use when asked: \"review this\".\nSecond line.", Body: "Read the diff first."})
+	store.Write("reviewer", Skill{Name: "summarise", Description: "Use to summarise.", Body: "Be brief."})
+	data, err := store.Export("reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := integration.Unpack(data, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plugin, err := integration.Read(dir)
+	if err != nil || len(plugin.Problems) != 0 {
+		t.Fatalf("%+v %v", plugin, err)
+	}
+	if plugin.Name != "reviewer" || len(plugin.Servers) != 0 || len(plugin.Skills) != 2 {
+		t.Errorf("the exported plugin = %+v", plugin)
+	}
+	if plugin.Skills[0].Name != "review" || plugin.Skills[0].Description != `Use when asked: "review this". Second line.` {
+		t.Errorf("a skill came back as %+v", plugin.Skills[0])
+	}
+	imported, err := integration.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, version, err := imported.Import(dir, integration.Source{Kind: "upload", Address: "reviewer.zip"}, "ada")
+	if err != nil || len(version.Plugin.Skills) != 2 {
+		t.Fatalf("%+v %v", version, err)
+	}
+	if _, err := store.Export("nothing"); err == nil {
+		t.Error("a setup that is not there was exported")
+	}
+	store.Save(Setup{Name: "empty"}, memory())
+	if _, err := store.Export("empty"); err == nil {
+		t.Error("a setup with no skills was exported")
+	}
+}

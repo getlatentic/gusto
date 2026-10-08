@@ -197,6 +197,12 @@ func (s *Store) skills(setup string) []Skill {
 // skills, and the definitions of the servers it names. It returns the names
 // for job.json, which is evidence and so holds no definition.
 func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, error) {
+	return s.CarryFor(name, offered, dir, "")
+}
+
+// CarryFor is Carry for the person who asked. An integration that is on for some people only is not carried for anybody else, and the
+// job does not start, since a job that quietly lacked what its setup names would run as a bare harness under the setup's name.
+func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string) (*job.Setup, error) {
 	held, found := s.Get(name)
 	if !found {
 		return nil, fmt.Errorf("no setup called %s", name)
@@ -222,7 +228,7 @@ func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, er
 		servers = append(servers, definition)
 	}
 	var behind []gateway.Server
-	if err := s.carryIntegrations(held, dir, carried, &behind); err != nil {
+	if err := s.carryIntegrations(held, dir, carried, &behind, asker); err != nil {
 		return nil, err
 	}
 	if err := writeSecret(filepath.Join(dir.SetupDir(), "servers.json"), servers); err != nil {
