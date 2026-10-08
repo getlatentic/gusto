@@ -22,6 +22,9 @@ func within(root, path string) bool {
 	if err != nil {
 		return false
 	}
+	if root, err = filepath.EvalSymlinks(root); err != nil {
+		return false
+	}
 	relative, err := filepath.Rel(root, real)
 	return err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) && !filepath.IsAbs(relative)
 }
