@@ -89,7 +89,27 @@ sandbox.
 | Reaching a server | Streamable HTTP, answered as JSON or as an event stream, with the session started again when the server drops it. A redirect is not followed. An address on a private network is refused where the connection is made, so a name that answers with a private address later is refused too. |
 | A call that cannot be written down | Is not made. |
 
-The tokens are estimated at four characters each, which is a rule of thumb and not a count.
+The tokens in the record are estimated at four characters each, which is a rule of thumb and not a count. The section below
+has what real harnesses read.
+
+**Measured on real harnesses**, on 2026-10-08, with an MCP server of 60 tools of about 200 tokens each (a description and a
+schema of the size real servers have), given directly through the gateway's `all` mode and through its three tools. Input tokens
+the model read for one short turn, in three calls each:
+
+| Harness (model) | No tools | All 60 tools | The three tools |
+| --- | --- | --- | --- |
+| Claude Code 2.1.270 (haiku) | 40401, 40401, 40403 | 41109, 41111, 41113 | 40501, 40502, 40734 |
+| Codex (gpt-5.5) | 22849 ×3 | 22864 ×3 | 22883 ×3 |
+| OpenCode (big-pickle) | 20901, 20907, 25359 | 30176, 30181, 39792 | 25660, 25661, 25666 |
+
+Claude Code and Codex do not put the definitions of an MCP server's tools in the first request: Claude Code adds about 710
+tokens for the 60 and Codex about 15, since each loads a tool's definition when it is needed. For them the gateway saves a few
+hundred tokens at most, and its worth is the control, the credentials kept outside the sandbox and the record. OpenCode puts every
+definition in the request, and the 60 cost it about 9,000 tokens more than none, against about 5,000 for the gateway's three on
+the same runs; the free model's counts move by several thousand between calls, so the OpenCode figures say a saving of the order
+of 5,000 to 9,000 tokens for 60 tools and not a precise one. The other harnesses were not measured.
+`HAAS_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway` repeats it: it makes short calls to the models those
+programs are signed in to.
 
 **How a job reaches it.** A setup's integrations put the servers they bring behind the gateway: their
 definitions are written to the job's `setup/gateway.json`, for its owner alone, and `job.json` names
