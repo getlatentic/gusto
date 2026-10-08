@@ -29,6 +29,23 @@ func runtimeThat(t *testing.T, onRun string) (script, log string) {
 	return script, log
 }
 
+// waitForLine waits until the script has installed its trap, which it says by writing the line, so that the interrupt is
+// heard and not lost to a shell that has not started yet.
+func waitForLine(t *testing.T, path, line string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		if text, _ := os.ReadFile(path); strings.Contains(string(text), line) {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Error("the script never started")
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 func theJob(t *testing.T) job.Dir {
 	t.Helper()
 	dir := job.Dir(filepath.Join(t.TempDir(), "20261008-0900-a-turn"))
@@ -39,7 +56,7 @@ func theJob(t *testing.T) job.Dir {
 }
 
 func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing.T) {
-	script, log := runtimeThat(t, "    trap 'echo heard-interrupt >> "+"$LOGFILE"+"; exit 130' INT\n    while true; do sleep 0.1; done")
+	script, log := runtimeThat(t, "    trap 'echo heard-interrupt >> "+"$LOGFILE"+"; exit 130' INT\n    echo ready >> "+"$LOGFILE"+"\n    while true; do sleep 0.1; done")
 	t.Setenv("HAAS_CONTAINER", script)
 	t.Setenv("LOGFILE", log)
 	dir := theJob(t)
@@ -49,7 +66,7 @@ func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing
 		_, err := start(ctx, dir, []string{"run", "--rm", "--name", containerName(dir), "image"})
 		done <- err
 	}()
-	time.Sleep(300 * time.Millisecond)
+	waitForLine(t, log, "ready")
 	stop()
 	select {
 	case err := <-done:
