@@ -23,4 +23,6 @@ type Tray struct {
 }
 
 // Run says there is no icon.
-func (Tray) Run(context.Context) error { return ErrNoTray }
+func (Tray) Run(context.Context) error {
+	return errors.New("this build has no menu bar icon: it was built without a C compiler, which macOS needs for one")
+}

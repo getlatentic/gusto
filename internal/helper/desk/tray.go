@@ -5,7 +5,6 @@ package desk
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"fyne.io/systray"
@@ -14,7 +13,13 @@ import (
 )
 
 // ErrNoTray is this computer having nowhere to show an icon: a session with no desktop, or a build with no menu bar.
-var ErrNoTray = errors.New("this computer has no place for a tray icon")
+var ErrNoTray = errors.New("no place for a tray icon")
+
+// noTray is why there is nowhere for the icon, which is an ErrNoTray and says it in its own words.
+type noTray string
+
+func (n noTray) Error() string        { return string(n) }
+func (n noTray) Is(target error) bool { return target == ErrNoTray }
 
 // Tray is the icon, and the menu behind it.
 type Tray struct {
@@ -31,7 +36,7 @@ type Tray struct {
 // context ends. It runs on the program's main thread, which macOS needs.
 func (t Tray) Run(ctx context.Context) error {
 	if why := Missing(); why != "" {
-		return fmt.Errorf("%w: %s", ErrNoTray, why)
+		return noTray(why)
 	}
 	go func() { <-ctx.Done(); systray.Quit() }()
 	systray.Run(t.ready, func() {})
