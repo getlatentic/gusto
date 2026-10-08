@@ -1,0 +1,58 @@
+# haas and the helper on a person's computer have to build for every system a person has, and the keychain code has to work on
+# the ones that have one. This builds both programs for each system on every Go change, and on Windows runs the helper's tests
+# and keeps a token in the real Credential Manager.
+name: builds
+
+on:
+  pull_request:
+    paths:
+      - "**.go"
+      - go.mod
+      - go.sum
+      - .github/workflows/builds.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        target: [linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64, windows/arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Build haas and haas-helper, with no C compiler
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          target="${{ matrix.target }}"
+          GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null ./cmd/haas ./cmd/haas-helper
+      - name: Vet every package and test for it
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          target="${{ matrix.target }}"
+          GOOS="${target%/*}" GOARCH="${target#*/}" go vet ./...
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: The helper's tests, and a token in the real Credential Manager
+        env:
+          HAAS_REAL_KEYCHAIN: "1"
+        run: go test -count=1 ./internal/helper/... ./internal/apitoken/...
+      - name: The helper program runs
+        run: |
+          go build -o haas-helper.exe ./cmd/haas-helper
+          ./haas-helper.exe 2>&1 | Out-Host
+          if ($LASTEXITCODE -ne 2) { throw "haas-helper with no verb exited $LASTEXITCODE, not 2" }
