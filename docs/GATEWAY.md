@@ -91,6 +91,21 @@ sandbox.
 
 The tokens are estimated at four characters each, which is a rule of thumb and not a count.
 
+**How a job reaches it.** A setup's integrations put the servers they bring behind the gateway: their
+definitions are written to the job's `setup/gateway.json`, for its owner alone, and `job.json` names
+them under `setup.gateway`. The runner gives the harness one server, `gateway`, at the proxy's address
+with the job's token, and the proxy answers `/mcp` for the job whose token it is. A job that needs no
+model but has servers behind the gateway is given a token that stands in for no credential.
+A job on a deployment with no proxy is refused by name.
+
+**Settings.** `HAAS_TOOL_POLICY` is the policy file, `HAAS_GATEWAY_MODE` is `discover` (the default) or
+`all`, and `HAAS_GATEWAY_PRIVATE=1` lets the servers be on a private network. All three, with the
+policy's fingerprint, are in the settings the change record watches.
+
+**Checked against real clients.** `go test -tags realclients -run RealClient ./internal/gateway` connects
+`claude` and the protocol's own TypeScript client library to the gateway. Running the SDK found a
+schema that the in-process tests had passed and the library refused, so both are kept.
+
 ## What comes next
 
 | Part | Issue |

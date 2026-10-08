@@ -87,6 +87,9 @@ type Setup struct {
 	Name    string   `json:"name"`
 	Skills  []string `json:"skills,omitempty"`
 	Servers []string `json:"servers,omitempty"`
+	// Gateway is the servers the job reaches only through the gateway, which holds their addresses and credentials. The
+	// harness is given one server for all of them.
+	Gateway []string `json:"gateway,omitempty"`
 	// Integrations is each integration the job was given skills or servers from, and the version of it: what was turned on when
 	// the job started.
 	Integrations []IntegrationUse `json:"integrations,omitempty"`

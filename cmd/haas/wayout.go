@@ -40,6 +40,8 @@ type WayOut struct {
 	sealed  bool
 	socket  string
 	address string
+	// gateways is the tool servers a job reaches through the proxy.
+	gateways *gateways
 }
 
 // openWayOut reads what is configured. HAAS_MODEL_UPSTREAM is the model's root,
@@ -84,6 +86,11 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		address:  setting("HAAS_PROXY_ADDR", proxyAddress()),
 	}
 	way.held.Store(&credentials)
+	way.gateways, err = openGateways(jobsRoot)
+	if err != nil {
+		return nil, err
+	}
+	way.proxy.UseGateways(way.gateways.For)
 	return way, nil
 }
 
@@ -141,12 +148,9 @@ func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, mou
 	if w.proxy == nil {
 		return sandbox.RunContext(ctx, dir, w.direct, "", mounts...)
 	}
-	token := ""
-	if needsModel(dir, spec) {
-		var err error
-		if token, err = w.admit(dir, spec); err != nil {
-			return 0, err
-		}
+	token, err := w.tokenFor(dir, spec)
+	if err != nil {
+		return 0, err
 	}
 	if w.sealed {
 		return sandbox.SealedContext(ctx, dir, w.socket, token, mounts...)
@@ -156,6 +160,18 @@ func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, mou
 		port = "8041"
 	}
 	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, mounts...)
+}
+
+// tokenFor is the token a job's box is given, or none when it needs neither a model nor the gateway. A job that needs no model but
+// has servers behind the gateway is given a token that stands in for no credential: it is how the proxy knows whose servers to call.
+func (w *WayOut) tokenFor(dir job.Dir, spec job.Spec) (string, error) {
+	switch {
+	case needsModel(dir, spec):
+		return w.admit(dir, spec)
+	case spec.Setup != nil && len(spec.Setup.Gateway) > 0:
+		return w.tokens.Mint(filepath.Base(dir.Path()), "")
+	}
+	return "", nil
 }
 
 // needsModel is whether a job's harness asks a model at all. One that needs none, such as the program the smoke check
@@ -229,7 +245,9 @@ func (w *WayOut) proxyPort() string {
 // keep spending.
 func (w *WayOut) Done(dir job.Dir) {
 	if w.proxy != nil {
-		w.tokens.Drop(filepath.Base(dir.Path()))
+		id := filepath.Base(dir.Path())
+		w.tokens.Drop(id)
+		w.gateways.Forget(id)
 	}
 }
 
