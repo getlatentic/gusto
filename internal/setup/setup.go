@@ -33,8 +33,11 @@ type Setup struct {
 	// Starters are things to say that show what the setup is for, offered in
 	// an empty thread.
 	Starters []string `json:"starters,omitempty"`
-	Who      string   `json:"who,omitempty"`
-	Made     int64    `json:"madeAt"`
+	// Off says an administrator made the setup and has not turned it on: it is not offered, and no job starts with it. It is the flag
+	// that is kept, and not "on", so that a setup kept before there was one is on.
+	Off  bool   `json:"off,omitempty"`
+	Who  string `json:"who,omitempty"`
+	Made int64  `json:"madeAt"`
 	// Wrote is the fingerprint of each SKILL.md haas itself last wrote, so a
 	// skill still matching it can take a newer version and one a person has
 	// edited is left alone.
@@ -162,6 +165,9 @@ func (s *Store) skillFile(setup, skill string) string {
 }
 
 func (s *Store) put(setup, skill, text string) error {
+	if err := s.archive(setup, skill); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(s.skillFile(setup, skill)), 0o755); err != nil {
 		return err
 	}
@@ -175,6 +181,9 @@ func (s *Store) Drop(setup, skill string) error {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
+	if err := s.archive(setup, skill); err != nil {
+		return err
+	}
 	return os.RemoveAll(filepath.Join(s.skillsDir(setup), skill))
 }
 
@@ -206,6 +215,9 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 	held, found := s.Get(name)
 	if !found {
 		return nil, fmt.Errorf("no setup called %s", name)
+	}
+	if held.Off {
+		return nil, fmt.Errorf("the setup %s is off: an administrator turns it on", name)
 	}
 	carried := &job.Setup{Name: held.Name, Servers: held.Servers}
 	if err := os.MkdirAll(dir.SetupDir(), 0o700); err != nil {
