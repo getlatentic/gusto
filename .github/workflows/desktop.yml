@@ -1,13 +1,15 @@
 # The desktop app is a Rust program around the system's web view, with the helper beside it. It has to build and pass its tests on the
 # three systems people have, and on macOS it is bundled as the app people would open.
+#
+# macOS runs on the machine that deploys, so it costs no hosted minutes, which count ten for each one on macOS. Windows and Linux
+# run on GitHub's. The helper the app carries is built, vetted and tested by builds and by deploy, so a change to the helper alone
+# does not start this.
 name: desktop
 
 on:
   pull_request:
     paths:
       - "desktop/**"
-      - "internal/helper/**"
-      - "cmd/haas-helper/**"
       - .github/workflows/desktop.yml
 
 permissions:
@@ -18,8 +20,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - {name: macOS, runner: '["self-hosted", "haas"]'}
+          - {name: Windows, runner: '"windows-latest"'}
+          - {name: Linux, runner: '"ubuntu-latest"'}
+    name: app (${{ matrix.name }})
+    runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 40
     defaults:
       run:
@@ -29,6 +35,11 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: Rust and the platform's C compiler, which this machine has already
+        if: runner.os == 'macOS'
+        run: |
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
       - name: The web view's libraries
         if: runner.os == 'Linux'
         run: |
