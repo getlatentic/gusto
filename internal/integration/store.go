@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +57,8 @@ const (
 	// ProgramsAllowed and ProgramsRefused are an administrator letting the programs of a version run, and taking it back.
 	ProgramsAllowed = "programs-allowed"
 	ProgramsRefused = "programs-refused"
+	// Scoped is an administrator choosing who an integration is on for.
+	Scoped = "scoped"
 )
 
 // Integration is one plugin by name, with every version imported and which one is on. An integration that was imported is off
@@ -68,8 +72,12 @@ type Integration struct {
 	Before string `json:"before,omitempty"`
 	// Programs is the version whose programs an administrator allowed to run, which is only that version: a new version is a new
 	// program, and has to be allowed again.
-	Programs string  `json:"programs,omitempty"`
-	History  []Event `json:"history,omitempty"`
+	Programs string `json:"programs,omitempty"`
+	// For is who the integration is on for, as patterns of the address a person signed in with ("ada@acme.example", "*@acme.example").
+	// None is everyone. A person is who the sign-in says: a team is a label a person chooses for a job, and nothing proves they belong
+	// to it, so it cannot decide who may have something.
+	For     []string `json:"for,omitempty"`
+	History []Event  `json:"history,omitempty"`
 }
 
 // Store is every integration an organisation has imported, one folder each, with a file that says what is on.
@@ -289,6 +297,45 @@ func (s *Store) RefusePrograms(name, by string) (*Integration, error) {
 	})
 }
 
+// SetFor chooses who the integration is on for. No patterns is everyone.
+func (s *Store) SetFor(name string, patterns []string, by string) (*Integration, error) {
+	cleaned := make([]string, 0, len(patterns))
+	for _, pattern := range patterns {
+		pattern = strings.ToLower(strings.TrimSpace(pattern))
+		if pattern == "" {
+			continue
+		}
+		if _, err := path.Match(pattern, ""); err != nil {
+			return nil, fmt.Errorf("%q is not a pattern of addresses: %w", pattern, err)
+		}
+		cleaned = append(cleaned, pattern)
+	}
+	return s.change(name, by, func(held *Integration) (string, string, error) {
+		held.For = cleaned
+		return Scoped, strings.Join(cleaned, " "), nil
+	})
+}
+
+// For says whether the integration is on for a person. Nobody named is everyone; somebody not known by name, such as a shared
+// sign-in or a program's token, is not on any list.
+func (held *Integration) OnFor(person string) bool { return onFor(held.For, person) }
+
+// OnFor says whether the integration that is on is on for a person.
+func (a Active) OnFor(person string) bool { return onFor(a.For, person) }
+
+func onFor(patterns []string, person string) bool {
+	if len(patterns) == 0 {
+		return true
+	}
+	person = strings.ToLower(strings.TrimSpace(person))
+	for _, pattern := range patterns {
+		if ok, err := path.Match(pattern, person); err == nil && ok && person != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // ProgramsRun says whether the programs of the version that is on may run.
 func (held *Integration) ProgramsRun() bool { return held.On != "" && held.Programs == held.On }
 
@@ -300,6 +347,8 @@ type Active struct {
 	Dir string
 	// Programs says an administrator allowed this version's programs to run.
 	Programs bool
+	// For is who it is on for: nobody named is everyone.
+	For []string
 }
 
 // Active is every integration that is on.
@@ -311,7 +360,7 @@ func (s *Store) Active() ([]Active, error) {
 	var on []Active
 	for _, held := range all {
 		if version, found := held.version(held.On); found {
-			on = append(on, Active{Name: held.Name, Version: version, Dir: s.folder(held.Name, version.ID), Programs: held.ProgramsRun()})
+			on = append(on, Active{Name: held.Name, Version: version, Dir: s.folder(held.Name, version.ID), Programs: held.ProgramsRun(), For: held.For})
 		}
 	}
 	return on, nil

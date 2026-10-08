@@ -100,6 +100,17 @@ overwrite nothing. A harness that cannot take skills or servers is told so befor
 `job.json` says, for each integration, the version (its fingerprint and the version the plugin
 calls itself) and the commit it was pinned to. The servers' addresses and headers stay out of it.
 
+## Who it is on for, and skill sets
+
+An administrator may choose who an integration is on for, by the address people sign in with: `ada@acme.example`, or
+`*@acme.example` for a company. None named is everybody. A job for somebody else, or for a shared sign-in or a program's token that
+names nobody, is refused when its setup names the integration, and the page says why. It is by person and not by team because a team
+is a label a person chooses for a job, and nothing proves they belong to it.
+
+A skill set is a plugin with no servers. **Download as an Agent Plugin** on a skill set's page gives a zip that another deployment, or
+this one, imports as an integration like any other. The skill sets a deployment keeps for itself stay as they are: they are edited
+in place and are on for everybody, which an integration is not until an administrator turns it on.
+
 ## Skills on each harness
 
 A skill is placed as its whole folder, so the `references/`, `scripts/` and `assets/` beside its `SKILL.md` go with it, in the folder

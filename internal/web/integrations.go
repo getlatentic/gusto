@@ -34,6 +34,7 @@ func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/enable", offered(s.enableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/disable", offered(s.disableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/restore", offered(s.restoreIntegration))
+	mux.HandleFunc("POST "+integrationsPath+"/{name}/for", offered(s.scopeIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/allow", offered(s.allowPrograms))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/refuse", offered(s.refusePrograms))
 }
@@ -164,6 +165,23 @@ func (s *Server) turnIntegration(w http.ResponseWriter, r *http.Request, kind st
 		return
 	}
 	s.note(r, kind, map[string]string{"integration": name, "from": before.On, "to": held.On})
+	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
+}
+
+// scopeIntegration chooses who the integration is on for, by the address people sign in with.
+func (s *Server) scopeIntegration(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	before, err := s.integrations.Get(name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	held, err := s.integrations.SetFor(name, strings.FieldsFunc(r.FormValue("for"), func(c rune) bool { return c == '\n' || c == ',' || c == ' ' || c == '\r' }), s.keeper.who(r))
+	if err != nil {
+		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
+		return
+	}
+	s.note(r, changelog.IntegrationScoped, map[string]string{"integration": name, "was": strings.Join(before.For, " "), "now": strings.Join(held.For, " ")})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 

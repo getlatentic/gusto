@@ -31,6 +31,7 @@
   </section>
 
   {{if .Console}}
+  {{if .Setup.Skills}}<p class="muted"><a href="{{.Base}}/{{.Setup.Name}}/plugin.zip">Download as an Agent Plugin</a>: a plugin of these skills and no servers, which another deployment, or this one, imports as an integration.</p>{{end}}
   <section class="panel">
     <h2>Add a skill</h2>
     <form class="stack" method="post" action="{{.Base}}/{{.Setup.Name}}/skills">
