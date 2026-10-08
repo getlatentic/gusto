@@ -75,6 +75,22 @@ provider's own answer, like any other call.
   through the proxy to such a provider. Each runs a tool, sends its result back, and finishes the turn. It needs
   both programs installed.
 
+## Tools
+
+A job's harness is given one MCP server, the gateway, and the gateway calls the real servers
+(`internal/gateway`). The servers' addresses and credentials stay in the gateway and are never in the
+sandbox.
+
+| What | How |
+| --- | --- |
+| Finding a tool | The harness is shown three tools: `tool_search`, `tool_schema` and `tool_call`. A job reads the definitions of the tools it uses, and not of the others. In `all` mode it is shown every tool it may use, as a harness is given a server directly. |
+| Policy | A rule names a server, a tool, a person or a team, as patterns, and allows or refuses. The first rule that matches decides, and a call no rule matches is allowed. A tool the policy takes from a caller is not found, and asking for it by name is refused with the rule's reason. |
+| The record | `out/gateway.jsonl` has a line for each listing, search, schema and call: who, which server and tool, the outcome (`ok`, `error`, `refused`, `failed`), how long, and how many bytes went in and came back. It does not hold what was sent or what came back. A listing says how many tools there were and about how many tokens showing all of them would cost, against what the job was shown. |
+| Reaching a server | Streamable HTTP, answered as JSON or as an event stream, with the session started again when the server drops it. A redirect is not followed. An address on a private network is refused where the connection is made, so a name that answers with a private address later is refused too. |
+| A call that cannot be written down | Is not made. |
+
+The tokens are estimated at four characters each, which is a rule of thumb and not a count.
+
 ## What comes next
 
 | Part | Issue |
