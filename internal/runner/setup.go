@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/job"
@@ -40,15 +41,22 @@ const GatewayName = "gateway"
 // harness reaches its model by, called with the token that stands in for a credential. The definitions of the servers behind it
 // are not here: they stay with the proxy.
 func withGateway(servers []job.Server, spec job.Spec) ([]job.Server, error) {
+	more, err := gatewayServers(spec, harness.ModelURL(), harness.ModelToken())
+	return append(servers, more...), err
+}
+
+// gatewayServers is the one server that reaches a job's servers behind the gateway, for a harness that reaches its model at modelURL
+// with token, or none when the job has none behind it. The gateway is at the same place as the model, and takes the same token.
+func gatewayServers(spec job.Spec, modelURL, token string) ([]job.Server, error) {
 	if spec.Setup == nil || len(spec.Setup.Gateway) == 0 {
-		return servers, nil
+		return nil, nil
 	}
-	token := harness.ModelToken()
 	if token == "" {
 		return nil, fmt.Errorf("the setup %s reaches %d servers through the gateway, which is part of the proxy, and this run has no proxy",
 			spec.Setup.Name, len(spec.Setup.Gateway))
 	}
-	return append(servers, job.Server{Name: GatewayName, URL: harness.ModelRoot() + "/mcp", Headers: map[string]string{"Authorization": "Bearer " + token}}), nil
+	root := strings.TrimSuffix(strings.TrimRight(modelURL, "/"), "/v1")
+	return []job.Server{{Name: GatewayName, URL: root + "/mcp", Headers: map[string]string{"Authorization": "Bearer " + token}}}, nil
 }
 
 // located names each server's program by its full path, found on this box's

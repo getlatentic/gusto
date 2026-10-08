@@ -236,7 +236,10 @@ func carriedIn(ctx context.Context, box Box, name string, adapter harness.Adapte
 // talk runs the harness in the box and records what it does: an ACP agent is
 // held a conversation with, and any other harness's output is read as it comes.
 func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, record *Record) (int, error) {
-	command := adapter.CommandIn(ctx, spec, box.Workdir(), box.Env())
+	command, servers, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
+	if err != nil {
+		return 0, err
+	}
 	if adapter.Stream != harness.ACP {
 		return stream(ctx, box.Wrap(ctx, command), record)
 	}
@@ -244,5 +247,26 @@ func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
-	return converse(ctx, live, box.Workdir(), spec, nil, record)
+	return converse(ctx, live, box.Workdir(), spec, servers, record)
+}
+
+// boxCommand is the command that starts the harness in a box, with the servers it is to be given. A job's servers behind the gateway
+// are reached at the proxy by the address the box has for it, the same way the harness reaches its model. A harness that reads its
+// servers from a file in its own folder is not given them: the box does not put a file there.
+func boxCommand(ctx context.Context, adapter harness.Adapter, spec job.Spec, workspace string, env harness.Env) (*exec.Cmd, []job.Server, error) {
+	servers, err := gatewayServers(spec, env.ModelURL, env.ModelToken)
+	if err != nil {
+		return nil, nil, err
+	}
+	command := adapter.CommandIn(ctx, spec, workspace, env)
+	if len(servers) == 0 || adapter.Stream == harness.ACP {
+		return command, servers, nil
+	}
+	if adapter.MCP != nil && adapter.MCP.File != "" {
+		return nil, nil, fmt.Errorf("%s reads its servers from a file in its own folder, which a sandbox on a gateway does not yet put there", adapter.Name)
+	}
+	if err := adapter.Give(command, servers); err != nil {
+		return nil, nil, err
+	}
+	return command, servers, nil
 }
