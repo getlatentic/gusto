@@ -21,6 +21,14 @@ func (s *Server) UseRegistry(r *registry.Registry, models func() Models) {
 	s.registry, s.live = r, models
 }
 
+// UseLiveModels says how the models this server offers are read when they come from a setting read again while it runs, and not
+// from the organisation's registry. The registry, when there is one, decides them.
+func (s *Server) UseLiveModels(models func() Models) {
+	if s.registry == nil {
+		s.live = models
+	}
+}
+
 func (s *Server) hasRegistry() bool { return s.registry != nil }
 
 // formLimit is the most a form to the registry may be.

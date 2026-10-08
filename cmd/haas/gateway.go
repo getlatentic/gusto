@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	tools "github.com/getlatentic/haas/internal/gateway"
 	"github.com/getlatentic/haas/internal/job"
@@ -17,8 +18,9 @@ import (
 // job. What a job may reach is read from its own directory, which only its owner and the proxy can read, and not from anything the
 // harness sends.
 type gateways struct {
-	jobs    string
-	policy  tools.Policy
+	jobs string
+	// policy is the tool policy as it is now, which a change to its file replaces and a job that is running asks for at each call.
+	policy  atomic.Pointer[tools.Policy]
 	mode    tools.Mode
 	private bool
 
@@ -37,8 +39,22 @@ func openGateways(jobsRoot string) (*gateways, error) {
 	if mode != tools.All {
 		mode = tools.Discover
 	}
-	return &gateways{jobs: jobsRoot, policy: policy, mode: mode, private: os.Getenv("HAAS_GATEWAY_PRIVATE") == "1", sessions: map[string]*tools.Session{}}, nil
+	g := &gateways{jobs: jobsRoot, mode: mode, private: os.Getenv("HAAS_GATEWAY_PRIVATE") == "1", sessions: map[string]*tools.Session{}}
+	g.policy.Store(&policy)
+	return g, nil
 }
+
+// reload reads the policy file again, and keeps the policy it has when the file does not read.
+func (g *gateways) reload() error {
+	policy, err := tools.ReadPolicy(os.Getenv("HAAS_TOOL_POLICY"))
+	if err != nil {
+		return err
+	}
+	g.policy.Store(&policy)
+	return nil
+}
+
+func (g *gateways) currentPolicy() tools.Policy { return *g.policy.Load() }
 
 // For is the gateway of a job, or false when the job has no servers behind it.
 func (g *gateways) For(id string) (http.Handler, bool) {
@@ -83,7 +99,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 	}
 	caller := tools.Caller{Job: id, Team: spec.Team, Person: askerOf(dir)}
 	return tools.New(tools.Config{
-		Caller: caller, Servers: servers, Policy: g.policy, Mode: g.mode, Private: g.private,
+		Caller: caller, Servers: servers, Live: g.currentPolicy, Mode: g.mode, Private: g.private,
 		Record: tools.OpenRecord(dir.OutFile(tools.RecordFile)),
 	}), true
 }

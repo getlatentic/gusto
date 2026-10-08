@@ -362,3 +362,32 @@ func TestTheToolsTheJobIsShownAreSchemasAClientTakes(t *testing.T) {
 		}
 	}
 }
+
+func TestAChangeToThePolicyReachesAJobThatIsAlreadyRunning(t *testing.T) {
+	fake, server := reports(t)
+	var mu sync.Mutex
+	current := Policy{}
+	h := start(t, Config{Servers: []Server{server}, Live: func() Policy { mu.Lock(); defer mu.Unlock(); return current }})
+	if _, failed := h.call("tool_call", map[string]any{"name": "reports/send_email"}); failed {
+		t.Fatal("the tool was refused before the policy changed")
+	}
+	mu.Lock()
+	current = Policy{Rules: []Rule{{Tool: "send_*", Effect: "deny", Why: "email is off since the incident"}}}
+	mu.Unlock()
+	said, failed := h.call("tool_call", map[string]any{"name": "reports/send_email"})
+	if !failed || said != "email is off since the incident" {
+		t.Errorf("after the change: %q %v", said, failed)
+	}
+	if found, _ := h.call("tool_search", map[string]any{"query": "email"}); strings.Contains(found, "send_email") {
+		t.Errorf("a tool the policy now takes is still found: %q", found)
+	}
+	if len(fake.calls) != 1 {
+		t.Errorf("calls = %v", fake.calls)
+	}
+	mu.Lock()
+	current = Policy{}
+	mu.Unlock()
+	if _, failed := h.call("tool_call", map[string]any{"name": "reports/send_email"}); failed {
+		t.Error("the tool stayed refused after the policy was loosened")
+	}
+}

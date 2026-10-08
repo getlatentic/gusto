@@ -102,6 +102,16 @@ func (w *WayOut) credentials() proxy.Credentials {
 	return nil
 }
 
+// SetCredentials changes what the proxy holds from the next call on, for a deployment with no registry. A call in flight keeps the
+// credential it began with.
+func (w *WayOut) SetCredentials(credentials proxy.Credentials) {
+	if w.proxy == nil {
+		return
+	}
+	w.held.Store(&credentials)
+	w.proxy.SetCredentials(credentials, 0)
+}
+
 // Apply makes what an organisation's registry comes to what the proxy holds and the ledger prices at, from the
 // next call on. A job already running keeps the credential it began with, which the proxy finds again by name.
 func (w *WayOut) Apply(effective registry.Effective) {
