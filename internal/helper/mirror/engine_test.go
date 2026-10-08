@@ -545,7 +545,7 @@ func TestKeepRunsAgainAndAgainAndStopsWhenAskedAndWaitsLongerWhenNothingChanges(
 	var failed int
 	done := make(chan struct{})
 	go func() {
-		engine.Keep(ctx, 10*time.Millisecond, 80*time.Millisecond, func(report *Report, err error) {
+		engine.Keep(ctx, 10*time.Millisecond, 80*time.Millisecond, nil, func(report *Report, err error) {
 			times = append(times, time.Now())
 			if err != nil {
 				failed++
