@@ -78,6 +78,24 @@ there.
 | `GET /api/instances/{id}/files` | the regular files of its folder: path, size and time changed. Links and git's own directory are left out, and a list is cut at 50,000 files, with `cut` set |
 | `GET /api/instances/{id}/file?path=` | one file whole, with ranges. A path that leaves the folder, by a link or otherwise, is not found |
 
+`GET /api/events` is a stream of server-sent events about the person's own jobs, for a
+tray or a notification. A connection first hears the state of every job that has not
+ended, and of every job that ended after `?since=<unix seconds>` when the client names
+one, which is how it catches up after it was away. An event `ready` marks the end of
+that. After it, each job's change is one event:
+
+| Event | When |
+| --- | --- |
+| `turn.queued` | the job waits |
+| `turn.started` | it runs |
+| `turn.finished` | it passed |
+| `turn.failed` | it failed |
+| `turn.interrupted` | it was stopped |
+
+Each carries `{"job","instance","thread","brief","state","at"}`. A comment line every
+twenty seconds keeps the connection open through a proxy. A job that waits for an
+approval has no event yet, because the product has no approval to wait for.
+
 A request that carries a person's token is never an admin's, even when it also
 carries an admin's cookie.
 
