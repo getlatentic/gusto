@@ -402,6 +402,19 @@ call: a job already running keeps the credential it began with, and every call t
 written to `out/proxy.jsonl` with the version it was sent under. `audit.json` lists the versions
 in `model.registry`.
 
+A provider or a model an admin adds is **off** until an admin turns it on, a second step on the same
+page: adding or finding something does not offer it to people. Turning it off again keeps it, and
+retiring it does not. A provider whose key cannot be read is left out with the reason, as before. A
+registry kept before there was an off switch has everything on, so an upgrade changes nothing.
+Turning on and off is a version of the registry and is in the change record, with what it was and
+what it became.
+
+The registry keeps its last twenty earlier states, and the page lists them with what was done after
+each. **Go back to it** puts one back as a change of its own, so that what it replaced is kept and
+can be gone back to, and the change record says what it undid. The history holds no key. A key kept
+here is forgotten when its provider is retired, so a provider that comes back that way has no key
+until one is given.
+
 An admin can limit a person to some of the models, on the same page. Everybody may use every model
 unless they are limited. A person who is limited is offered only the models they are limited to when
 they start an agent, change its model or compare agents, and a request for another is refused. A

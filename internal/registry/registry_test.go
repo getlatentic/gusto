@@ -62,8 +62,16 @@ func TestAnOrganisationAddsAProviderAndAModelAndTheProxyHoldsThemWithTheOperator
 	if err := r.AddModel("acme", "big-1", price); err != nil {
 		t.Fatal(err)
 	}
+	if held := r.Effective(); held.Credentials["acme"].Address != "" || slicesContain(held.Models, "acme/big-1") {
+		t.Fatalf("what was added is in use before it was turned on: %+v", held)
+	}
+	for _, step := range [][2]string{{"acme", ""}, {"acme", "big-1"}} {
+		if err := r.Enable(step[0], step[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
 	got := r.Effective()
-	if got.Version != 2 || !slicesEqual(told, []int64{1, 2}) {
+	if got.Version != 4 || !slicesEqual(told, []int64{1, 2, 3, 4}) {
 		t.Errorf("each change is a version, and the listener hears of each: %d %v", got.Version, told)
 	}
 	credential := got.Credentials["acme"]
@@ -172,10 +180,12 @@ func TestAnOperatorWhoRunsAModelInsideTheirNetworkMayNameItAndAnAdminOfTheirsIsH
 func TestADuplicateIsRefusedAndARetiredProviderCanBeAddedAgainAndItsKeyIsGone(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	if err := r.AddProvider(theirs("acme")); err == nil {
 		t.Fatal("two providers of one name")
 	}
 	r.AddModel("acme", "m", nil)
+	r.Enable("acme", "m")
 	if err := r.RetireProvider("acme"); err != nil {
 		t.Fatal(err)
 	}
@@ -212,9 +222,11 @@ func slicesContain(list []string, want string) bool {
 func TestModelsArePricedChangedRetiredAndBroughtBack(t *testing.T) {
 	r, _ := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	if err := r.AddModel("acme", "m", nil); err != nil {
 		t.Fatal(err)
 	}
+	r.Enable("acme", "m")
 	if _, priced := r.Effective().Prices["acme/m"]; priced {
 		t.Error("a model with no price is unpriced, which is not free")
 	}
@@ -238,8 +250,12 @@ func TestModelsArePricedChangedRetiredAndBroughtBack(t *testing.T) {
 	if err := r.SetPrice("acme", "m", nil); !errors.Is(err, ErrNoSuch) {
 		t.Errorf("%v", err)
 	}
-	if err := r.AddModel("acme", "m", nil); err != nil || !slicesContain(r.Effective().Models, "acme/m") {
-		t.Errorf("a retired model comes back: %v", err)
+	if err := r.AddModel("acme", "m", nil); err != nil || slicesContain(r.Effective().Models, "acme/m") {
+		t.Errorf("a retired model comes back, and waits to be turned on: %v", err)
+	}
+	r.Enable("acme", "m")
+	if !slicesContain(r.Effective().Models, "acme/m") {
+		t.Error("a model that was brought back and turned on is not offered")
 	}
 	if err := r.RetireModel("acme", "nothing"); !errors.Is(err, ErrNoSuch) {
 		t.Errorf("%v", err)
@@ -249,6 +265,7 @@ func TestModelsArePricedChangedRetiredAndBroughtBack(t *testing.T) {
 func TestAPriceOrAModelNameThatIsWrongIsRefused(t *testing.T) {
 	r, _ := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	neg, huge := -1.0, 20000.0
 	for name, price := range map[string]*spend.Price{
 		"below nothing":      {InputPerMillion: neg},
@@ -270,7 +287,7 @@ func TestAPriceOrAModelNameThatIsWrongIsRefused(t *testing.T) {
 			t.Errorf("%q: %v", name, err)
 		}
 	}
-	if r.Document().Version != 4 {
+	if r.Document().Version != 5 {
 		t.Errorf("only the changes that were made are versions: %d", r.Document().Version)
 	}
 }
@@ -278,12 +295,14 @@ func TestAPriceOrAModelNameThatIsWrongIsRefused(t *testing.T) {
 func TestARegistryIsReadBackAsItWasKeptAndOneThatCannotBeReadIsAnErrorAndNotNothing(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1})
+	r.Enable("acme", "m")
 	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := again.Effective(); got.Version != 2 || got.Credentials["acme"].Key != "sk-their-secret-key" || !slicesContain(got.Models, "acme/m") {
+	if got := again.Effective(); got.Version != 4 || got.Credentials["acme"].Key != "sk-their-secret-key" || !slicesContain(got.Models, "acme/m") {
 		t.Errorf("%+v", got)
 	}
 	os.WriteFile(filepath.Join(dir, "registry.json"), []byte("{not json"), 0o600)
@@ -295,7 +314,9 @@ func TestARegistryIsReadBackAsItWasKeptAndOneThatCannotBeReadIsAnErrorAndNotNoth
 func TestAProviderWhoseKeyCannotBeReadIsLeftOutWithTheReasonAndItsModelsWithIt(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	r.AddModel("acme", "m", nil)
+	r.Enable("acme", "m")
 	os.Remove(filepath.Join(dir, "keys", "acme.json"))
 	got := r.Effective()
 	if _, held := got.Credentials["acme"]; held || slicesContain(got.Models, "acme/m") {
@@ -312,11 +333,12 @@ func TestAProviderWhoseKeyCannotBeReadIsLeftOutWithTheReasonAndItsModelsWithIt(t
 func TestAKeyIsReplacedWithoutChangingAnythingElse(t *testing.T) {
 	r, _ := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	if err := r.ReplaceKey("acme", "sk-the-new-one"); err != nil {
 		t.Fatal(err)
 	}
 	got := r.Effective()
-	if got.Credentials["acme"].Key != "sk-the-new-one" || got.Version != 2 {
+	if got.Credentials["acme"].Key != "sk-the-new-one" || got.Version != 3 {
 		t.Errorf("%+v", got)
 	}
 	if err := r.ReplaceKey("platform", "x"); !errors.Is(err, ErrNoSuch) {
@@ -350,6 +372,7 @@ func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShe
 	if err := r.AddProvider(Give{Name: "acme", Address: "https://api.theirs.example", Reference: "ssm:/acme/model-key"}); err != nil {
 		t.Fatal(err)
 	}
+	r.Enable("acme", "")
 	if got := r.Effective().Credentials["acme"].Key; got != "sk-from-parameter-store" {
 		t.Errorf("%q", got)
 	}
@@ -362,6 +385,7 @@ func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShe
 	if err := r.AddProvider(Give{Name: "filed", Address: "https://api.theirs.example", Reference: "file:" + keyfile}); err != nil {
 		t.Fatal(err)
 	}
+	r.Enable("filed", "")
 	if got := r.Effective().Credentials["filed"].Key; got != "sk-from-file" {
 		t.Errorf("%q", got)
 	}
@@ -382,11 +406,14 @@ func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShe
 func TestTheViewSaysEveryProviderAndWhereItsKeyIsAndNeverTheKey(t *testing.T) {
 	r, _ := opened(t, Rules{KeySources: []string{"file"}})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1, OutputPerMillion: 2})
+	r.Enable("acme", "m")
 	r.AddModel("acme", "gone", nil)
+	r.Enable("acme", "gone")
 	r.RetireModel("acme", "gone")
 	view := r.View()
-	if view.Version != 4 || view.Private || view.Unnamed || !slicesEqual(view.Kinds, []string{"stored", "file"}) {
+	if view.Version != 7 || view.Private || view.Unnamed || !slicesEqual(view.Kinds, []string{"stored", "file"}) {
 		t.Errorf("%+v", view)
 	}
 	if len(view.Providers) != 2 || view.Providers[0].Name != "platform" || !view.Providers[0].Operator || view.Providers[0].Key != "the operator's" {
@@ -407,6 +434,7 @@ func TestTheViewSaysEveryProviderAndWhereItsKeyIsAndNeverTheKey(t *testing.T) {
 func TestARefusedSecondProviderOfTheSameNameDoesNotTakeTheFirstOnesKey(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	other := theirs("acme")
 	other.Key = "sk-somebody-elses-key"
 	if err := r.AddProvider(other); err == nil {
@@ -477,8 +505,11 @@ func TestWhereTheOperatorFixesThePolicyAnAdminCannotChangeItAndAStoredChoiceIsIg
 func TestAPersonIsLimitedToSomeModelsAndNobodyElseIs(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
 	r.AddModel("acme", "big", nil)
+	r.Enable("acme", "big")
 	r.AddModel("acme", "small", nil)
+	r.Enable("acme", "small")
 	if _, limited := r.AllowedFor("ada@acme.com"); limited {
 		t.Fatal("a person nobody said anything about is limited")
 	}
@@ -520,5 +551,108 @@ func TestAPersonIsLimitedToSomeModelsAndNobodyElseIs(t *testing.T) {
 	r.SetAccess("cy@acme.com", []string{"acme/big"})
 	if err := r.SetAccess("cy@acme.com", []string{"acme/small"}); err == nil {
 		t.Error("a retired model can be given to somebody")
+	}
+}
+
+func TestWhatIsAddedIsOffUntilAnAdministratorTurnsItOnAndCanBeTurnedOffAgain(t *testing.T) {
+	r, _ := opened(t, Rules{})
+	r.AddProvider(theirs("acme"))
+	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1, OutputPerMillion: 2})
+	view := r.View()
+	if !view.Providers[1].Pending || !view.Providers[1].Models[0].Pending {
+		t.Fatalf("the view does not say what is waiting: %+v", view.Providers[1])
+	}
+	if got := r.Effective(); got.Credentials["acme"].Address != "" || slicesContain(got.Models, "acme/m") || len(got.Problems) != 0 {
+		t.Fatalf("something that was only added is in use: %+v", got)
+	}
+	if err := r.Enable("acme", "m"); err != nil {
+		t.Fatal(err)
+	}
+	if slicesContain(r.Effective().Models, "acme/m") {
+		t.Error("a model is offered while its provider is off")
+	}
+	r.Enable("acme", "")
+	if got := r.Effective(); !slicesContain(got.Models, "acme/m") || got.Credentials["acme"].Key == "" {
+		t.Errorf("turned on, and not in use: %+v", got)
+	}
+	r.Disable("acme", "m")
+	if slicesContain(r.Effective().Models, "acme/m") {
+		t.Error("a model that was turned off is still offered")
+	}
+	r.Disable("acme", "")
+	if _, held := r.Effective().Credentials["acme"]; held {
+		t.Error("a provider that was turned off is still held")
+	}
+	if err := r.Enable("acme", "nothing"); !errors.Is(err, ErrNoSuch) {
+		t.Errorf("err = %v", err)
+	}
+	if err := r.Enable("nobody", ""); !errors.Is(err, ErrNoSuch) {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestARegistryKeptBeforeThereWasAnOffSwitchHasEverythingOn(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "registry.json"), []byte(`{"version":3,"providers":[{"name":"acme","address":"https://api.theirs.example/v1","key":"file:/nonexistent"}],"models":[{"provider":"acme","name":"m"}]}`), 0o600)
+	keyfile := filepath.Join(t.TempDir(), "key")
+	os.WriteFile(keyfile, []byte("sk-x\n"), 0o600)
+	os.WriteFile(filepath.Join(dir, "registry.json"), []byte(`{"version":3,"providers":[{"name":"acme","address":"https://api.theirs.example/v1","key":"file:`+keyfile+`"}],"models":[{"provider":"acme","name":"m"}]}`), 0o600)
+	r, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}, KeySources: []string{"file"}}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Effective(); !slicesContain(got.Models, "acme/m") || got.Credentials["acme"].Key != "sk-x" {
+		t.Errorf("a provider and a model that were on before are off after an upgrade: %+v", got)
+	}
+}
+
+func TestTheRegistryKeepsWhatItWasAndPutsItBackAsAChangeOfItsOwn(t *testing.T) {
+	r, dir := opened(t, Rules{})
+	r.AddProvider(theirs("acme"))
+	r.Enable("acme", "")
+	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1})
+	r.Enable("acme", "m")
+	before := r.Document().Version
+	r.SetPrice("acme", "m", &spend.Price{InputPerMillion: 99})
+	r.RetireModel("acme", "m")
+	steps := r.Steps()
+	if len(steps) != int(before)+1 || steps[0].Version != before+1 || strings.Join(steps[0].Then, ";") != "retired model acme/m" || strings.Join(steps[1].Then, ";") != "changed the price of acme/m" {
+		t.Fatalf("steps = %+v", steps)
+	}
+	var told []Effective
+	r.OnChange(func(e Effective) { told = append(told, e) })
+	undone, err := r.Restore(before)
+	if err != nil || strings.Join(undone, ";") != "brought back model acme/m;changed the price of acme/m" {
+		t.Fatalf("undone = %v, %v", undone, err)
+	}
+	got := r.Effective()
+	if !slicesContain(got.Models, "acme/m") || got.Prices["acme/m"].InputPerMillion != 1 || got.Version != before+3 || len(told) != 1 {
+		t.Errorf("after the restore: %+v (told %d)", got, len(told))
+	}
+	if _, err := r.Restore(before + 100); err == nil {
+		t.Error("a version the registry never had was restored")
+	}
+	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
+	if err != nil || len(again.Steps()) != len(r.Steps()) {
+		t.Errorf("what was kept is not there after a restart: %v", err)
+	}
+	if text, _ := os.ReadFile(filepath.Join(dir, "history.json")); strings.Contains(string(text), "sk-their-secret-key") {
+		t.Error("the history holds a key")
+	}
+}
+
+func TestTheHistoryIsBoundedAndADamagedOneIsAnErrorAndNotNothing(t *testing.T) {
+	r, dir := opened(t, Rules{})
+	r.AddProvider(theirs("acme"))
+	for range 30 {
+		r.Enable("acme", "")
+		r.Disable("acme", "")
+	}
+	if got := len(r.Steps()); got != mostRevisions {
+		t.Errorf("%d states are kept, and %d is the most", got, mostRevisions)
+	}
+	os.WriteFile(filepath.Join(dir, "history.json"), []byte("{not json"), 0o600)
+	if _, err := Open(dir, operators, Rules{}, false); err == nil {
+		t.Error("a history that is not one was read as none")
 	}
 }

@@ -37,6 +37,8 @@ type ProviderView struct {
 	// Operator says the deployment's own configuration made it, which is not changed here.
 	Operator bool
 	Retired  bool
+	// Pending says the provider was added and is waiting for an administrator to turn it on.
+	Pending bool
 	// Key is where its key is: "stored", a reference, or "the operator's" for an operator's provider.
 	Key string
 	// Problem is why a provider of the organisation's is not in use.
@@ -50,6 +52,7 @@ type ModelView struct {
 	Full    string
 	Price   *spend.Price
 	Retired bool
+	Pending bool
 }
 
 // View is what a page shows now.
@@ -71,11 +74,11 @@ func (r *Registry) View() View {
 	for _, provider := range document.Providers {
 		row := ProviderView{
 			Name: provider.Name, Address: provider.Address, Auth: authWords(provider.Auth), Harnesses: provider.Harnesses,
-			Retired: provider.Retired, Key: provider.Key, Problem: effective.Problems[provider.Name],
+			Retired: provider.Retired, Pending: provider.Pending, Key: provider.Key, Problem: effective.Problems[provider.Name],
 		}
 		for _, model := range document.Models {
 			if model.Provider == provider.Name {
-				row.Models = append(row.Models, ModelView{Name: model.Name, Full: model.Full(), Price: model.Price, Retired: model.Retired})
+				row.Models = append(row.Models, ModelView{Name: model.Name, Full: model.Full(), Price: model.Price, Retired: model.Retired, Pending: model.Pending})
 			}
 		}
 		view.Providers = append(view.Providers, row)
