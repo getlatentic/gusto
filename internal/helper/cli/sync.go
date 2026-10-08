@@ -77,8 +77,9 @@ func Sync(args []string) int {
 		report, err := engine.Once(ctx)
 		return said(report, err)
 	}
-	fmt.Println("Compares every few seconds. Press Ctrl+C to stop.")
-	_ = engine.Keep(ctx, *interval, 30*time.Second, func(report *mirror.Report, err error) {
+	wake, slow := wakes(ctx, root, engine.Ignore, client, chosen.ID)
+	fmt.Println("Compares when a file is saved or a turn changes, and every few seconds while there are changes. Press Ctrl+C to stop.")
+	_ = engine.Keep(ctx, *interval, slow, wake, func(report *mirror.Report, err error) {
 		if err != nil || (report != nil && (len(report.Errors) > 0 || changed(report))) {
 			said(report, err)
 		}
