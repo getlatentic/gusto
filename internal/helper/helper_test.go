@@ -188,3 +188,14 @@ func TestAClientSaysWhoItIsAndANoLongerAcceptedTokenSaysToSignInAgain(t *testing
 		t.Errorf("a stale token said %v", err)
 	}
 }
+
+func TestTheStatusCarriesWhetherTheIconIsShown(t *testing.T) {
+	daemon := &Daemon{Server: "https://s"}
+	if daemon.Status().Tray != "" {
+		t.Error("a helper that has not said invents a state for its icon")
+	}
+	daemon.SetTray("none: no D-Bus session")
+	if got := daemon.Status().Tray; got != "none: no D-Bus session" {
+		t.Errorf("tray = %q", got)
+	}
+}
