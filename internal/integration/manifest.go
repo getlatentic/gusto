@@ -97,6 +97,9 @@ func readManifest(path string) (*Plugin, error) {
 	return plugin, nil
 }
 
+// ValidName says whether a name can be a plugin's.
+func ValidName(name string) bool { return validName(name) }
+
 func validName(name string) bool {
 	return len(name) >= 1 && len(name) <= 64 && pluginName.MatchString(name) && !contains(name, "--") && !contains(name, "..")
 }

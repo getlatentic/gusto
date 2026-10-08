@@ -87,6 +87,19 @@ type Setup struct {
 	Name    string   `json:"name"`
 	Skills  []string `json:"skills,omitempty"`
 	Servers []string `json:"servers,omitempty"`
+	// Integrations is each integration the job was given skills or servers from, and the version of it: what was turned on when
+	// the job started.
+	Integrations []IntegrationUse `json:"integrations,omitempty"`
+}
+
+// IntegrationUse is one version of an integration a job ran with.
+type IntegrationUse struct {
+	Name string `json:"name"`
+	// Version is the fingerprint of the files, and Label the version the plugin calls itself.
+	Version string `json:"version"`
+	Label   string `json:"label,omitempty"`
+	// Commit is where a version fetched from git was pinned.
+	Commit string `json:"commit,omitempty"`
 }
 
 // named is what a skill or a server may be called: lower case, digits and
