@@ -21,6 +21,9 @@ var Releases = []Release{
 	{Name: "v0.0.1-alpha.2", Formats: map[Store]int{
 		Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1,
 	}},
+	{Name: "v0.0.1-alpha.3", Formats: map[Store]int{
+		Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1,
+	}},
 }
 
 // FormatsOf is what a named release wrote.
