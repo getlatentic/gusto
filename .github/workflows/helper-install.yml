@@ -1,0 +1,67 @@
+# Installs the helper from a release on each system it is built for, the way a person does, and checks that what was installed is
+# the release, runs, and passes the signature check. It runs by hand against any release tag. The releases are private, so the
+# workflow's own token is what reads them.
+name: helper-install
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to install
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      HAAS_REQUIRE_COSIGN: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Install it, as a person does
+        if: runner.os != 'Windows'
+        run: |
+          gh release download "$TAG" -p install.sh -O - | sh -s -- "$TAG"
+          "$HOME/.local/bin/haas-helper" version
+
+      - name: Install it, as a person does
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          gh release download $env:TAG -p install.ps1 -O install.ps1
+          ./install.ps1 -Tag $env:TAG
+          & "$env:LOCALAPPDATA\haas-helper\haas-helper.exe" version
+
+      - name: It is this release, and it runs
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then bin="$LOCALAPPDATA/haas-helper/haas-helper.exe"; else bin="$HOME/.local/bin/haas-helper"; fi
+          test "$("$bin" version)" = "haas-helper $TAG" || { echo "the installed program says $("$bin" version), not $TAG"; exit 1; }
+          set +e
+          "$bin" whoami 2> err.txt
+          code=$?
+          cat err.txt
+          test "$code" = 2 && grep -q "name the server" err.txt || { echo "whoami with no server exited $code"; exit 1; }
+          echo "ok on $RUNNER_OS $RUNNER_ARCH"
+
+      - name: A damaged package is refused
+        if: runner.os != 'Windows'
+        run: |
+          dir="$(mktemp -d)"
+          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS -p SHA256SUMS.sig -p SHA256SUMS.pem -p install.sh
+          for file in "$dir"/haas-helper_*"$(uname -s | tr A-Z a-z)"*; do printf 'x' >> "$file"; done
+          # The script downloads for itself, so the damage is made in its place: it checks what it was given against the sums.
+          cd "$dir" && grep " haas-helper_" SHA256SUMS | head -1 > one.sum
+          if (sha256sum -c one.sum || shasum -a 256 -c one.sum) > /dev/null 2>&1; then echo "a damaged package passed its checksum"; exit 1; fi
+          echo "a damaged package fails its checksum"

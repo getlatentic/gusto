@@ -154,3 +154,9 @@ func openBrowser(address string) {
 	}
 	_ = command.Start()
 }
+
+// ShowVersion says which release the helper is.
+func ShowVersion(args []string) int {
+	fmt.Println("haas-helper", Version)
+	return 0
+}
