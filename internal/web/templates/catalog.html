@@ -10,21 +10,20 @@
 <section class="presets" aria-label="Your presets">
   <h2 class="plain">Your presets</h2>
   {{if .Presets}}
-  <div class="list roles">
+  <div class="list preset-list">
     {{range .Presets}}
-    <div class="role preset">
+    <div class="preset">
       <span class="text">
         <strong>{{.Name}}</strong>
-        <span class="tags"><span class="tag"><em>Engine</em> {{.Engine}}</span>{{with .Model}}<span class="tag"><em>Model</em> {{.}}</span>{{end}}{{with .Role}}<span class="tag"><em>Role</em> {{.}}</span>{{end}}</span>
+        <span class="meta" title="Role, engine and model">{{or .Role "No role"}} · {{.Engine}}{{with .Model}} · {{.}}{{end}}</span>
       </span>
-      <a class="quiet-button" href="/chat?preset={{.ID}}">Use in a new chat</a>
-      <form method="post" action="/presets/{{.ID}}/delete"><button class="remove" type="submit">Remove</button></form>
+      <a class="quiet-button" href="/chat?preset={{.ID}}">New chat</a>
+      <form method="post" action="/presets/{{.ID}}/delete"><button class="icon-button" type="submit" aria-label="Remove {{.Name}}" title="Remove">{{template "icon-trash"}}</button></form>
     </div>
     {{end}}
   </div>
-  {{else}}
-  <p class="muted note">None yet. In a chat, choose an engine, a model and a role, then Save this setup as a preset in the Role menu.</p>
   {{end}}
+  <p class="note">Save one from a chat: choose the role, engine and model, then Save this setup as a preset.</p>
 </section>
 
 <h2 class="plain">Ready-made roles</h2>

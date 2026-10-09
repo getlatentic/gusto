@@ -266,3 +266,13 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side .proj ol a .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side .proj ol a .when { flex: none; font-size: .75rem; font-weight: 400; color: var(--yg-text-subtle); }
 .side .label { padding: var(--yg-space-3) var(--yg-space-3) var(--yg-space-1); font-size: .75rem; font-weight: 600; color: var(--yg-text-subtle); }
+
+/* A menu of several kinds of choice: headings between them, a line before what does something instead of choosing. */
+.picker .menu .group { padding: var(--yg-space-3) var(--yg-space-3) var(--yg-space-1); font-size: .75rem; font-weight: 600; color: var(--yg-text-subtle); }
+.picker .menu .sep { height: 0.0625rem; margin: var(--yg-space-2) var(--yg-space-1); background: var(--yg-border); }
+.picker .menu button.action .name { display: flex; align-items: center; gap: var(--yg-space-2); }
+.picker .menu button { min-height: 2.75rem; align-content: center; }
+.picker .menu button.action { min-height: 2.5rem; }
+.picker .menu { min-width: 18rem; max-width: 24rem; max-height: 26rem; overflow-y: auto; }
+.picker .menu { max-height: min(30rem, 70dvh); }
+.picker .menu button.action { position: sticky; bottom: 0; background: var(--yg-surface); box-shadow: 0 -0.5rem 0.5rem -0.25rem var(--yg-surface); }
