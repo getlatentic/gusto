@@ -124,6 +124,9 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	return s, nil
 }
 
+// UseSessionFile keeps what signs people in in a file, so that a restart does not sign everybody out.
+func (s *Server) UseSessionFile(path string) error { return s.keeper.keep(path) }
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	if s.front != nil {
