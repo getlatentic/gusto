@@ -1,9 +1,10 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>API tokens</h1>
-  <p class="muted">What programs use to call this server. A token may do only what you give it, is named in every record it makes, and stops working the moment you revoke it. The shared password no longer opens the API.</p>
+  <span class="count">What programs use to call this server</span>
 </div>
+<details class="how page-why"><summary>How this works</summary><p>A token may do only what you give it, is named in every record it makes, and stops working the moment you revoke it. The shared password no longer opens the API.</p></details>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 

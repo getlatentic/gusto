@@ -1,8 +1,8 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>People</h1>
-  <p class="muted">Who is in this organisation, their role, when they last signed in and what they have spent this month.{{with .Manage}} Invite, remove and change the role of people <a href="{{.}}">at the front door</a>.{{end}}</p>
+  <span class="count">Roles, last sign-in and spend this month{{with .Manage}} · <a href="{{.}}">Manage at the front door</a>{{end}}</span>
 </div>
 
 {{if .Unreadable}}

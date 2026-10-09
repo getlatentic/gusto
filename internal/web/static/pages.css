@@ -101,3 +101,14 @@ body:not(.app) > header nav a:hover { color: var(--yg-text); }
 .log td.actor, .log th.actor { width: 1%; white-space: nowrap; font-weight: 500; }
 .log td.from, .log th.from { width: 1%; white-space: nowrap; text-align: right; color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
 .log .times { display: inline-block; margin-left: var(--yg-space-2); padding: 0 var(--yg-space-2); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); font-size: .75rem; color: var(--yg-text-muted); }
+.page-why { margin: calc(var(--yg-space-3) * -1) 0 var(--yg-space-6); font-size: .875rem; }
+.page-why summary { width: fit-content; cursor: pointer; color: var(--yg-text-muted); }
+.page-why summary:hover { color: var(--yg-text); }
+.page-why p { max-width: 44rem; margin: var(--yg-space-3) 0 0; color: var(--yg-text-muted); }
+.title-row .count a { color: var(--yg-text-muted); }
+
+/* One style of table head across the app: a plain label, not capitals. */
+th { font-size: .8125rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--yg-text-muted); }
+
+/* A hint goes under its field, where it can be read after the field has been seen. */
+label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
