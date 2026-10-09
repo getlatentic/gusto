@@ -75,7 +75,7 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 // role is a ready-made kind of work as the new-agent page offers it: what it does, and whether it can be started here.
 type role struct {
 	industry.Template
-	Engines int
+	Fit     []catalog.Entry
 	Blocked string
 }
 
@@ -86,7 +86,7 @@ func (s *Server) rolesToChoose() ([]role, []string) {
 	seen := map[string]bool{}
 	for _, held := range industry.All() {
 		runners := s.runnersOf(held)
-		each := role{Template: held, Engines: len(runners)}
+		each := role{Template: held, Fit: runners}
 		switch {
 		case held.Restricted() && !s.inBuilding.Load():
 			each.Blocked = "This work only goes to models in your own network, and this deployment has none."

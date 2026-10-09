@@ -45,7 +45,12 @@
         <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
       </div>
       <form class="foot" method="post" action="/templates/{{$r.Name}}">
-        <span class="note">{{if $r.Engines}}Works with {{$r.Engines}} engine{{if ne $r.Engines 1}}s{{end}}. You can change the engine and model later.{{end}}</span>
+        {{if gt (len $r.Fit) 1}}
+        <label class="runs-on"><span>Runs on</span>
+          <select name="engine" aria-label="Engine">{{range $r.Fit}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
+        </label>
+        {{end}}
+        <span class="note">You can change the engine and model later.</span>
         <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
         <button type="submit" class="cta"{{if $r.Blocked}} disabled{{end}}>Start with this role</button>
       </form>
@@ -54,7 +59,7 @@
   </div>
 </div>
 
-{{template "engine-choices" .Engines}}
+{{if .Engines}}<details class="more engines-more"><summary>Start from an engine instead</summary>{{template "engine-choices" .Engines}}</details>{{end}}
 
 <p class="note"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
 
