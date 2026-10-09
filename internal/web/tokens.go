@@ -20,9 +20,11 @@ type tokenRow struct {
 	Name     string
 	May      string
 	Made     string
+	MadeDay  string
 	By       string
 	Ended    string
 	LastUsed string
+	UsedAt   int64
 	Live     bool
 }
 
@@ -46,7 +48,7 @@ func (s *Server) showTokens(w http.ResponseWriter, r *http.Request, page map[str
 	for _, held := range s.tokens.List() {
 		rows = append(rows, tokenRow{
 			ID: held.ID, Name: held.Name, May: describeScopes(held.Scopes), By: held.By, Live: held.Live(),
-			Made: shownTime(held.Made), Ended: endedOf(held), LastUsed: shownTime(held.LastUsed),
+			Made: shownTime(held.Made), MadeDay: shortDay(held.Made), Ended: endedOf(held), LastUsed: shownTime(held.LastUsed), UsedAt: held.LastUsed,
 		})
 	}
 	var offered []map[string]string
@@ -72,6 +74,18 @@ func shownTime(unix int64) string {
 		return ""
 	}
 	return time.Unix(unix, 0).UTC().Format("2 Jan 2006 15:04 UTC")
+}
+
+// shortDay is the day something happened, with the year only when it is not this one.
+func shortDay(unix int64) string {
+	if unix == 0 {
+		return ""
+	}
+	when := time.Unix(unix, 0).UTC()
+	if when.Year() == time.Now().UTC().Year() {
+		return when.Format("2 Jan")
+	}
+	return when.Format("2 Jan 2006")
 }
 
 func endedOf(held apitoken.Token) string {
