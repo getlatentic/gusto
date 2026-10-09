@@ -198,3 +198,24 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .role.preset form { margin: 0; }
 .role-detail .foot .cta { display: inline-flex; align-items: center; text-decoration: none; }
 .role-detail .foot .cta[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
+/* A preset says what it holds in tags that name each part, and Remove is the quiet thing it is. */
+.role.preset .text { gap: var(--yg-space-2); }
+.tags { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); }
+.tag { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 1.5rem; padding: 0 var(--yg-space-3); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); font-size: .8125rem; color: var(--yg-text); }
+.role .text .tag em { font-style: normal; font-size: .75rem; color: var(--yg-text-subtle); }
+.role.preset { flex-wrap: wrap; }
+.role.preset .quiet-button { flex: none; }
+button.remove { padding: 0 var(--yg-space-2); border: 0; background: none; color: var(--yg-text-subtle); font: 500 .8125rem/2rem var(--yg-font-text); cursor: pointer; }
+button.remove:hover { color: var(--yg-danger); text-decoration: underline; }
+
+/* Where the list and what the role does cannot sit side by side, a menu picks the role and what it does is right under it. */
+.role-select { display: none; }
+@container (max-width: 64rem) {
+  .roles-pane { flex-direction: column; align-items: stretch; gap: var(--yg-space-4); }
+  .role-list { max-width: none; flex: none; }
+  .role-list .search, .role-list .chips, .role-list .picks { display: none; }
+  .role-select { display: grid; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-muted); }
+  .role-select select { height: 2.5rem; padding: 0 var(--yg-space-3); font-size: .9375rem; }
+  .role-details { flex: none; width: 100%; }
+}

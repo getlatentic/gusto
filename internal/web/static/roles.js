@@ -7,11 +7,13 @@
   var chips = [].slice.call(root.querySelectorAll(".chip"));
   var search = document.getElementById("role-search");
   var none = root.querySelector(".none");
+  var select = document.getElementById("role-select");
   var field = "";
 
   function show(name) {
     picks.forEach(function (pick) { pick.setAttribute("aria-pressed", String(pick.dataset.role === name)); });
     details.forEach(function (detail) { detail.hidden = detail.dataset.for !== name; });
+    if (select) { select.value = name; }
   }
   function narrow() {
     var needle = search.value.trim().toLowerCase();
@@ -33,4 +35,5 @@
     });
   });
   search.addEventListener("input", narrow);
+  if (select) { select.addEventListener("change", function () { show(select.value); }); }
 })();
