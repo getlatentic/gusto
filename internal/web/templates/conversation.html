@@ -20,7 +20,7 @@
       <div class="turn-live" id="working">
         <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing">Working</span><span class="elapsed" id="elapsed"></span></p>
         <ol class="live" id="live" aria-live="polite"></ol>
-        <details class="raw"><summary>Output</summary><pre id="stream"></pre></details>
+        <p class="latest-words" id="stream" hidden></p>
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
@@ -137,7 +137,12 @@
 
   var box = document.getElementById("stream");
   var stream = new EventSource("/watch/{{.Latest}}");
-  stream.onmessage = function (event) { box.textContent += event.data + "\n"; };
+  var words = "";
+  stream.onmessage = function (event) {
+    words = (words + " " + event.data).replace(/\s+/g, " ").trim().slice(-320);
+    box.textContent = words;
+    box.hidden = false;
+  };
   stream.addEventListener("ended", function () {
     stream.close();
     clearInterval(clock);
