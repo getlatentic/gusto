@@ -23,22 +23,19 @@
 
 {{if .Days}}
 {{range .Days}}
-<section class="log">
+<section class="runs-day">
   <h2>{{.Named}}</h2>
   <ol>
     {{range .Runs}}
     <li class="event is-{{.State}}">
-      <span class="at" title="{{when .Queued}}">{{hourOf .Queued}}</span>
       <span class="dot" aria-hidden="true"></span>
       <div class="what">
-        <p class="where">{{template "origin" .On}}<span class="model">{{with .Model}} · {{brain .}}{{end}}</span></p>
         <a class="brief" href="/jobs/{{.ID}}" title="{{.Brief}}">{{.Brief}}</a>
+        <p class="where">{{template "origin" .On}}<span class="model">{{with .Model}} · {{brain .}}{{end}}</span></p>
         {{$asked := .Asked}}{{with waiting .ID}}<span class="muted">Asked by {{askedBy $asked}}. {{.}}</span>{{end}}
       </div>
-      <div class="how">
-        <span class="outcome">{{outcome .}}</span>
-        <span class="muted">{{$took := took .Started .Ended}}{{$took}}{{if and $took (or .Metered .Cost)}} · {{end}}{{template "cost" .}}</span>
-      </div>
+      <span class="outcome" title="{{when .Queued}}">{{outcome .}}</span>
+      <span class="how muted"><span title="{{when .Queued}}">{{hourOf .Queued}}</span>{{$took := took .Started .Ended}}{{if $took}} · {{$took}}{{end}}{{if or .Metered .Cost}} · {{template "cost" .}}{{end}}</span>
     </li>
     {{end}}
   </ol>

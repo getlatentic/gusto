@@ -64,7 +64,7 @@
     });
   </script>
 </head>
-<body{{if not .Console}} class="app"{{end}}>
+<body class="app">
 {{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell">
 {{template "side" .}}
 <div class="scrim"></div>
@@ -75,22 +75,21 @@
 
 {{/* The console is the admin's own place: its sections down the side, one way
      back to the pages everybody uses, and no other link between the two. */}}
-{{define "console-bar"}}<header>
-  <span class="brand"><img src="/static/mark.png" alt=""> Admin{{with .Org}} · {{.}}{{end}}</span>
-  <nav>
-    <a href="/">Back to Latentic Agent Cloud</a>
-    <form method="post" action="/logout"><button title="Sign out">{{template "icon-out"}}</button></form>
-  </nav>
-</header>
-<div class="console">
-<nav class="sections" aria-label="Admin">
+{{define "console-bar"}}<div class="shell console-shell">
+<nav class="console-nav" aria-label="Admin">
+  <div class="who"><span class="mark">{{template "icon-shield"}}</span><span class="text"><strong>Admin</strong>{{with .Org}}<span>{{.}}</span>{{end}}</span></div>
   {{range .Sections}}<a href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+  <span class="grow"></span>
+  <a class="back" href="/">{{template "icon-back"}} Back to Latentic Agent Cloud</a>
+  <form method="post" action="/logout"><button class="back" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
-<main>
+<main class="page"><div class="wrap">
 {{end}}
 
-{{define "foot"}}{{if .Console}}</main>
+{{define "foot"}}{{if .Console}}</div>
+</main>
 </div>
+<script src="{{asset "/static/appearance.js"}}"></script>
 {{else}}</div>
 </main>
 </div>
@@ -170,6 +169,7 @@
 {{define "icon-palette"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>{{end}}
 {{define "brand-glyph"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11.5" cy="12.5" r="7"/><path d="M18.5 3.5v3.5M16.75 5.25h3.5"/></svg>{{end}}
 {{define "icon-search"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>{{end}}
+{{define "icon-back"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>{{end}}
 {{define "icon-folder"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>{{end}}
 {{define "icon-x"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>{{end}}
 {{define "icon-stop"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5" fill="currentColor" stroke="none"/></svg>{{end}}
