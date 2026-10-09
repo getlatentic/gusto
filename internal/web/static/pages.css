@@ -192,3 +192,9 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .engines-more { margin-top: var(--yg-space-4); }
 .engines-more > summary { font-size: .875rem; }
 .engines-more h2 { display: none; }
+
+.presets { margin: 0 0 var(--yg-space-6); }
+.presets .roles { margin-bottom: 0; }
+.role.preset form { margin: 0; }
+.role-detail .foot .cta { display: inline-flex; align-items: center; text-decoration: none; }
+.role-detail .foot .cta[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }

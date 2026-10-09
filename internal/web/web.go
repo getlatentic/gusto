@@ -27,6 +27,7 @@ import (
 	"github.com/getlatentic/haas/internal/integration"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/orgsettings"
+	"github.com/getlatentic/haas/internal/preset"
 	"github.com/getlatentic/haas/internal/registry"
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
@@ -91,6 +92,7 @@ type Server struct {
 	turnedAway refusals
 	lineups    *compare.Board
 	setups     *setup.Store
+	presets    *preset.Store
 	servers    setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
@@ -154,6 +156,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
 	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
+	mux.HandleFunc("POST /presets", s.guard(s.savePreset))
+	mux.HandleFunc("POST /presets/{id}/delete", s.guard(s.deletePreset))
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
 	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))

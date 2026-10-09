@@ -70,3 +70,9 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 .composer button.send.stop { background: var(--yg-text); color: var(--yg-text-inverse); }
 .composer button.send.stop:hover { background: var(--yg-neutral-700); }
 .composer button.send[hidden] { display: none; }
+
+/* Saving what a chat is about to start with: a name, and where it goes. */
+.save-preset { display: flex; align-items: center; gap: var(--yg-space-2); margin-top: var(--yg-space-3); padding: var(--yg-space-3); background: var(--yg-surface); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.save-preset[hidden] { display: none; }
+.save-preset input[name="name"] { flex: 1; min-width: 0; height: 2.25rem; padding: 0 var(--yg-space-3); }
+.save-preset .cta { height: 2.25rem; }

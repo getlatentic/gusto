@@ -63,10 +63,11 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 	roles, fields := s.rolesToChoose()
 	s.render(w, "catalog.html", map[string]any{
-		"Title":   productName + " — new agent",
+		"Title":   productName + " — roles",
 		"Nav":     "new",
 		"Roles":   roles,
 		"Fields":  fields,
+		"Presets": s.presetRows(r),
 		"Engines": s.readyEngines(),
 		"Refused": r.URL.Query().Get("refused"),
 	})
