@@ -13,9 +13,12 @@
   <div class="list roles">
     {{range .Presets}}
     <div class="role preset">
-      <span class="text"><strong>{{.Name}}</strong><span>{{.Engine}}{{with .Model}} · {{.}}{{end}}{{with .Role}} · {{.}}{{end}}</span></span>
+      <span class="text">
+        <strong>{{.Name}}</strong>
+        <span class="tags"><span class="tag"><em>Engine</em> {{.Engine}}</span>{{with .Model}}<span class="tag"><em>Model</em> {{.}}</span>{{end}}{{with .Role}}<span class="tag"><em>Role</em> {{.}}</span>{{end}}</span>
+      </span>
       <a class="quiet-button" href="/chat?preset={{.ID}}">Use in a new chat</a>
-      <form method="post" action="/presets/{{.ID}}/delete"><button class="quiet" type="submit">Remove</button></form>
+      <form method="post" action="/presets/{{.ID}}/delete"><button class="remove" type="submit">Remove</button></form>
     </div>
     {{end}}
   </div>
@@ -27,6 +30,9 @@
 <h2 class="plain">Ready-made roles</h2>
 <div class="roles-pane" id="roles">
   <div class="role-list">
+    <label class="role-select"><span>Role</span>
+      <select id="role-select" aria-label="Role">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
+    </label>
     <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search roles" aria-label="Search roles"></label>
     <div class="chips" role="group" aria-label="Field of work">
       <button type="button" class="chip" data-field="" aria-pressed="true">All</button>
