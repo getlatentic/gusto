@@ -1,16 +1,21 @@
 {{define "side"}}<aside class="side" aria-label="Menu">
-  <a class="brand" href="/chat"><img src="/static/mark.png" alt=""> <span>Latentic Agent Cloud</span></a>
-  <nav>
-    <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
-    <a class="item" href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Agents</span></a>
-    <a class="item" href="/compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}} <span>Compare</span></a>
-    <a class="item" href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Activity</span></a>
-    <a class="item" href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spending</span></a>
-    <a class="item" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New agent</span></a>
-    {{if .Admin}}<a class="item" href="/admin">{{template "icon-shield"}} <span>Admin</span></a>{{end}}
+  <nav class="rail" aria-label="Places">
+    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud"><img src="/static/mark.png" alt=""></a>
+    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-compose"}}</a>
+    <a class="tool" href="/" data-tip="Agents" aria-label="Agents"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
+    <a class="tool" href="/compare" data-tip="Compare" aria-label="Compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}}</a>
+    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}}</a>
+    <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
+    <a class="tool" href="/new" data-tip="New agent" aria-label="New agent"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}}</a>
+    {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
+    <span class="grow"></span>
+    <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
-  {{if .Rail}}{{template "side-chats" .}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
-  <form class="out" method="post" action="/logout"><button class="item" type="submit">{{template "icon-out"}} <span>Sign out</span></button></form>
+  <div class="panel">
+    <div class="panel-head"><span class="name">Latentic Agent Cloud</span></div>
+    <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    {{if .Rail}}{{template "side-chats" .}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
+  </div>
 </aside>{{end}}
 
 {{define "side-chats"}}<div class="chats">
