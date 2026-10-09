@@ -1,6 +1,9 @@
 package web
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // option is one choice in a picker: what it is called, and a quieter word on what it costs or does.
 type option struct {
@@ -10,7 +13,7 @@ type option struct {
 }
 
 func (s *Server) modelOption(model string) option {
-	return option{Value: model, Label: modelName(model), Detail: s.costOf(model)}
+	return option{Value: model, Label: modelName(model), Detail: strings.Replace(s.costOf(model), " per million tokens", " per 1M", 1)}
 }
 
 // modelOptions are the models of a harness as a picker lists them.
