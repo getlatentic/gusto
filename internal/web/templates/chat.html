@@ -1,90 +1,54 @@
 {{template "head" .}}
 
-<div class="desk">
-  <div class="scrim" id="scrim"></div>
-  {{template "rail" .}}
-
-  <main class="talk">
-    <div class="talk-top">
-      <button class="rail-toggle" type="button" id="open-rail" aria-controls="rail" aria-expanded="false" title="Conversations">
-        {{template "icon-menu"}}
-      </button>
-      <span class="which">New chat</span>
-    </div>
-
-    <div class="said-so-far">
-      <div class="column">
-        {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
-        <div class="start">
-          <h2>What are we working on?</h2>
-          {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
-        </div>
-      </div>
-    </div>
-
+<section class="talk fresh">
+  <div class="hero">
+    <h2>What are we working on?</h2>
+    {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+    {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if .Picks}}
     <div class="composer">
-      <form class="column" method="post" action="/chat">
-        <div class="box">
-          <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
-          <div class="tools">
-            <span class="picks">
-              <select name="harness" id="harness" aria-label="Agent">{{range .Picks}}<option value="{{.Name}}"{{if eq .Name $.Harness}} selected{{end}}>{{if .Title}}{{.Title}}{{else}}{{.Name}}{{end}}</option>{{end}}</select>
-              <select name="model" id="model" aria-label="Model">{{range $pick := .Picks}}{{range .Models}}<option value="{{.}}" data-for="{{$pick.Name}}"{{if and (eq $pick.Name $.Harness) (eq . $.Model)}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}{{end}}</select>
-            </span>
-            <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+    <form class="column" method="post" action="/chat">
+      <div class="box">
+        <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
+        <div class="tools">
+          <span class="grow"></span>
+          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Agent">
+            <input type="hidden" name="harness" value="{{.Harness}}">
+            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <div class="menu" role="listbox"></div>
           </div>
+          <div class="picker" id="model-pick" data-picker data-label="Model">
+            <input type="hidden" name="model" value="{{.Model}}">
+            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <div class="menu" role="listbox"></div>
+          </div>
+          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
-      </form>
+      </div>
+    </form>
     </div>
     {{end}}
-  </main>
-</div>
+  </div>
+</section>
 
-<script nonce="{{.Nonce}}">
+{{if .Picks}}
+<script src="{{asset "/static/picker.js"}}"></script>
+<script nonce="{{.Nonce}}" data-models="{{.Models}}">
 (function () {
-  var open = document.getElementById("open-rail");
-  var scrim = document.getElementById("scrim");
-  var shut = function () {
-    document.body.classList.remove("rail-open");
-    open.setAttribute("aria-expanded", "false");
-  };
-  open.addEventListener("click", function () {
-    var nowOpen = document.body.classList.toggle("rail-open");
-    open.setAttribute("aria-expanded", String(nowOpen));
-  });
-  scrim.addEventListener("click", shut);
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") { shut(); }
-  });
-
-  var harness = document.getElementById("harness");
-  var model = document.getElementById("model");
-  if (!harness || !model) { return; }
-  // A harness is offered the models it can use, so choosing one narrows the
-  // other to those and keeps the model when this harness has it too.
+  var byHarness = JSON.parse(document.currentScript.dataset.models);
+  var harness = document.getElementById("harness-pick");
+  var model = document.getElementById("model-pick");
+  // A harness is offered the models it can use, so choosing one changes what the other lists, and keeps the model when it has it too.
   var narrow = function () {
-    var kept = model.value;
-    var first = null;
-    var keeps = null;
-    Array.prototype.forEach.call(model.options, function (option) {
-      var fits = option.dataset.for === harness.value;
-      option.hidden = !fits;
-      option.disabled = !fits;
-      if (fits && first === null) { first = option; }
-      if (fits && option.value === kept) { keeps = option; }
-    });
-    if (keeps) { keeps.selected = true; }
-    else if (first) { first.selected = true; }
+    var offered = byHarness[harness.picker.value] || [];
+    var kept = offered.some(function (each) { return each.value === model.picker.value; });
+    model.picker.setOptions(offered, kept ? model.picker.value : (offered[0] || {}).value);
   };
-  harness.addEventListener("change", narrow);
+  harness.addEventListener("pick", narrow);
   narrow();
 
   var box = document.querySelector(".composer textarea");
-  var grow = function () {
-    box.style.height = "auto";
-    box.style.height = box.scrollHeight + "px";
-  };
+  var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };
   box.addEventListener("input", grow);
   box.addEventListener("keydown", function (event) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -94,5 +58,6 @@
   });
 })();
 </script>
+{{end}}
 
 {{template "foot" .}}

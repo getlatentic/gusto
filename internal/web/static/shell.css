@@ -1,0 +1,139 @@
+/* The shell: a side list that is always there, and a page beside it. The side list holds where to go and the conversations to carry on
+   with; the page is whatever was asked for. */
+body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
+.shell { display: grid; height: 100dvh; }
+
+.shell { grid-template-columns: auto minmax(0, 1fr); }
+.side { display: flex; min-height: 0; min-width: 0; border-right: 1px solid var(--yg-border); }
+
+/* The first layer: where to go, as icons, with the way out at the foot. */
+.rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-1); width: 3.5rem; flex: none;
+  padding: var(--yg-space-3) 0; background: var(--yg-surface-sunken); border-right: 1px solid var(--yg-border); }
+.rail form { margin: 0; }
+.rail .grow { flex: 1; }
+.rail .mark { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: var(--yg-space-3); }
+.rail .mark img { width: 24px; height: auto; }
+.rail .tool { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0;
+  border-radius: var(--yg-radius-md); background: none; color: var(--yg-text-muted); cursor: pointer; text-decoration: none; }
+.rail .tool svg.i { width: 20px; height: 20px; opacity: .9; }
+.rail .tool:hover { background: rgb(23 23 23 / .06); color: var(--yg-text); }
+.rail .tool[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.rail .tool:focus-visible { outline: 2px solid var(--yg-focus); outline-offset: 1px; }
+.rail .tool::after { content: attr(data-tip); position: absolute; left: calc(100% + var(--yg-space-2)); top: 50%; transform: translateY(-50%);
+  z-index: 40; padding: var(--yg-space-1) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-text); color: var(--yg-text-inverse);
+  font: 500 .75rem/1.4 var(--yg-font-text); white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
+.rail .tool:hover::after, .rail .tool:focus-visible::after { opacity: 1; transition-delay: .35s; }
+
+/* The second layer: the conversations, with the way to start another. */
+.panel { display: flex; flex-direction: column; gap: var(--yg-space-3); width: 16rem; min-height: 0; min-width: 0;
+  padding: var(--yg-space-3); background: var(--yg-bg-subtle); }
+.panel-head { display: flex; align-items: center; min-height: 2.5rem; padding: 0 var(--yg-space-3); }
+.panel-head .name { font: 600 .9375rem/1.2 var(--yg-font-display); letter-spacing: -.01em; color: var(--yg-text); }
+.side .item { display: flex; align-items: center; gap: var(--yg-space-3); width: 100%; height: 2.25rem;
+  padding: 0 var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm); background: none;
+  font: 500 .875rem/1 var(--yg-font-text); color: var(--yg-text-muted); text-decoration: none; cursor: pointer; text-align: left; }
+.side .item svg.i { width: 18px; height: 18px; opacity: .85; }
+.side .item:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
+.side .item[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.side .item.new { color: var(--yg-text); font-weight: 600; }
+.side .chats { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: var(--yg-space-4); align-content: start;
+  margin: 0 calc(var(--yg-space-1) * -1); padding: 0 var(--yg-space-1); }
+.side h3 { margin: 0 0 var(--yg-space-1); padding: 0 var(--yg-space-3); font: 600 .6875rem/1.4 var(--yg-font-text);
+  letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); }
+.side ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.side ol a { display: block; padding: .4375rem var(--yg-space-3); border-radius: var(--yg-radius-sm); font-size: .875rem;
+  color: var(--yg-text-muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side ol a:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
+.side ol a[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+
+.page { min-width: 0; min-height: 0; overflow-y: auto; }
+.page > .wrap { max-width: 72rem; margin: 0 auto; padding: var(--yg-space-8) var(--yg-space-8) var(--yg-space-20); }
+.page.chat { overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); }
+.page.chat > .wrap { max-width: none; margin: 0; padding: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+.mobile-bar, .scrim { display: none; }
+
+/* The chat: what was said scrolls, and what is written stays on the floor of the page. */
+.talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+.talk-top { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 3.25rem;
+  padding: var(--yg-space-2) var(--yg-space-6); border-bottom: 1px solid var(--yg-border); }
+.talk-top .which { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.talk-top a.muted { font-size: .8125rem; color: var(--yg-text-muted); text-decoration: none; }
+.talk-top a.muted:hover { color: var(--yg-text); }
+.talk-top .guards { display: flex; gap: var(--yg-space-2); flex-wrap: wrap; }
+
+.composer { padding: var(--yg-space-2) var(--yg-space-6) var(--yg-space-5); }
+.composer .box { display: grid; gap: var(--yg-space-2); padding: var(--yg-space-4) var(--yg-space-3) var(--yg-space-3) var(--yg-space-5);
+  background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: 1.25rem; box-shadow: var(--yg-shadow-1);
+  transition: border-color var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
+.composer .box:focus-within { border-color: var(--yg-accent); box-shadow: 0 0 0 3px rgb(255 138 31 / .16); }
+.composer textarea { width: 100%; min-height: 1.75rem; max-height: 14rem; padding: 0; border: 0; background: none; resize: none;
+  font: inherit; line-height: 1.55; }
+.composer textarea:focus-visible { outline: none; }
+.composer .tools { display: flex; align-items: center; gap: var(--yg-space-1); }
+.composer .tools .grow { flex: 1; }
+.composer .tools > .muted { font-size: .8125rem; color: var(--yg-text-muted); padding: 0 var(--yg-space-3); }
+.composer button.send { flex: none; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; margin-left: var(--yg-space-1);
+  padding: 0; border: 0; border-radius: var(--yg-radius-full); background: var(--yg-accent); color: var(--yg-on-accent); cursor: pointer; }
+.composer button.send:hover { background: var(--yg-accent-hover); }
+.composer button.send svg.i { width: 18px; height: 18px; opacity: 1; stroke-width: 2; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* A new chat starts in the middle of the page, with the box under the question. A conversation has the box on the floor. */
+.talk.fresh { grid-template-rows: minmax(0, 1fr); }
+.talk.fresh .hero { display: grid; align-content: center; justify-items: center; gap: var(--yg-space-6); padding: var(--yg-space-6); min-height: 0; overflow-y: auto; }
+.talk.fresh .hero h2 { margin: 0; font: 600 1.75rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); text-align: center; }
+.talk.fresh .hero .composer { width: 100%; padding: 0; }
+.talk.fresh .hero .refused { margin: 0; }
+
+/* A picker: a quiet button that names the choice, and a menu above it. */
+.picker { position: relative; }
+.picker > button { display: inline-flex; align-items: center; gap: var(--yg-space-1); height: 2rem; padding: 0 var(--yg-space-2) 0 var(--yg-space-3);
+  border: 0; border-radius: var(--yg-radius-full); background: none; color: var(--yg-text-muted);
+  font: 500 .8125rem/1 var(--yg-font-text); cursor: pointer; max-width: 15rem; }
+.picker > button .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker > button:hover, .picker.open > button { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.picker svg.chevron { width: 14px; height: 14px; opacity: .7; }
+.picker .menu { display: none; position: absolute; right: 0; bottom: calc(100% + var(--yg-space-2)); z-index: 30; min-width: 14rem; max-width: 22rem;
+  max-height: 18rem; overflow-y: auto; padding: var(--yg-space-1); background: var(--yg-surface);
+  border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-3); }
+.picker.open .menu { display: grid; gap: 1px; }
+.picker .menu button { display: grid; gap: 2px; width: 100%; padding: var(--yg-space-2) var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm);
+  background: none; text-align: left; color: var(--yg-text); font: inherit; cursor: pointer; position: relative; }
+.picker .menu button:hover, .picker .menu button:focus-visible { background: var(--yg-bg-subtle); outline: none; }
+.picker .menu .name { font-size: .875rem; font-weight: 500; }
+.picker .menu .detail { font-size: .75rem; color: var(--yg-text-subtle); }
+.picker .menu button[aria-selected="true"] .name::after { content: "✓"; position: absolute; right: var(--yg-space-3); color: var(--yg-accent-text); }
+
+@media (max-width: 56rem) {
+  .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; background: var(--yg-bg-subtle);
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform var(--yg-dur-base) var(--yg-ease-standard), visibility var(--yg-dur-base); }
+  body.side-open .side { transform: none; visibility: visible; box-shadow: var(--yg-shadow-3); }
+  body.side-open .scrim { display: block; position: fixed; inset: 0; z-index: 10; background: rgb(23 23 23 / .32); }
+  .page.chat { grid-template-rows: auto minmax(0, 1fr); }
+  .mobile-bar { display: flex; align-items: center; gap: var(--yg-space-3); padding: var(--yg-space-2) var(--yg-space-4);
+    border-bottom: 1px solid var(--yg-border); }
+  .mobile-bar button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; background: none; color: var(--yg-text); }
+  .mobile-bar .brand { display: flex; align-items: center; gap: var(--yg-space-2); font: 600 .9375rem/1 var(--yg-font-display); color: inherit; text-decoration: none; }
+  .mobile-bar .brand img { width: 20px; }
+  .page > .wrap { padding: var(--yg-space-5) var(--yg-space-4) var(--yg-space-16); }
+  .talk-top { padding: var(--yg-space-2) var(--yg-space-4); }
+  .talk-top .guards { display: none; }
+  .composer { padding: var(--yg-space-2) var(--yg-space-3) var(--yg-space-3); }
+}
+@media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+
+.said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
+@media (max-width: 56rem) { .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); } }
+.composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
+@media (max-width: 56rem) { .composer .hint { display: none; } }
+
+/* The panel of conversations put away: the icons stay. */
+.panel-closed .panel { display: none; }
+.talk-top .sealed { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--yg-radius-full);
+  color: var(--yg-success); cursor: default; }
+.talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--yg-success-surface); outline: none; }
+.talk-top .sealed svg.i { width: 16px; height: 16px; opacity: 1; }
+@media (max-width: 56rem) { .panel-closed .panel { display: flex; } .rail .panel-toggle { display: none; } }
