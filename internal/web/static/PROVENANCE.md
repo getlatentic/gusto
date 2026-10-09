@@ -21,3 +21,5 @@ Sora, the display face, is vendored for headings. Noto Sans and Noto Sans Mono
 are **not**. Each stack falls back to the system's own, which is what the tokens
 declare. Vendoring them costs about a hundred kilobytes a weight, and nothing
 yet needs the exact letterforms.
+
+The icons in `templates/layout.html` and `static/explorer.js` are from Lucide (https://lucide.dev, ISC licence), on its 24 unit grid.

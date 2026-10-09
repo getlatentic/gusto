@@ -1,5 +1,10 @@
 /* The shell: a side list that is always there, and a page beside it. The side list holds where to go and the conversations to carry on
    with; the page is whatever was asked for. */
+/* The icon rail sits one step darker than the conversations beside it, which sit one step darker than the page. */
+:root { --yg-rail: var(--yg-neutral-200); }
+:root[data-theme="dark"] { --yg-rail: #0D0C0B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --yg-rail: #0D0C0B; } }
+
 body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
 .shell { display: grid; height: 100dvh; }
 
@@ -7,17 +12,18 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side { display: flex; min-height: 0; min-width: 0; border-right: 1px solid var(--yg-border); }
 
 /* The first layer: where to go, as icons, with the way out at the foot. */
-.rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-1); width: 3.5rem; flex: none;
+.rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-2); width: 4rem; flex: none;
   padding: var(--yg-space-3) 0; background: var(--yg-rail); border-right: 1px solid var(--yg-border-strong); }
 .rail form { margin: 0; }
 .rail .grow { flex: 1; }
 .rail .mark { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: var(--yg-space-3); }
 .rail .mark img { width: 1.5rem; height: auto; }
-.rail .tool { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0;
+.rail .tool { position: relative; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0;
   border-radius: var(--yg-radius-md); background: none; color: var(--yg-text-muted); cursor: pointer; text-decoration: none; }
-.rail .tool svg.i { width: 1.25rem; height: 1.25rem; opacity: 1; }
+.rail .tool svg.i { width: 1.375rem; height: 1.375rem; opacity: 1; }
 .rail .tool:hover { background: rgb(23 23 23 / .06); color: var(--yg-text); }
 .rail .tool[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.rail .tool[aria-current]::before { content: ""; position: absolute; left: -.5625rem; top: 50%; width: .1875rem; height: 1.25rem; border-radius: 0 .25rem .25rem 0; background: var(--yg-accent); transform: translateY(-50%); }
 .rail .tool:focus-visible { outline: 2px solid var(--yg-focus); outline-offset: 1px; }
 .rail .tool::after { content: attr(data-tip); position: absolute; left: calc(100% + var(--yg-space-2)); top: 50%; transform: translateY(-50%);
   z-index: 40; padding: var(--yg-space-1) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-text); color: var(--yg-text-inverse);
@@ -33,10 +39,11 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side .item { display: flex; align-items: center; gap: var(--yg-space-3); width: 100%; height: 2.25rem;
   padding: 0 var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm); background: none;
   font: 500 .9375rem/1 var(--yg-font-text); color: var(--yg-text-muted); text-decoration: none; cursor: pointer; text-align: left; }
-.side .item svg.i { width: 1.125rem; height: 1.125rem; opacity: .85; }
+.side .item svg.i { width: 1.125rem; height: 1.125rem; opacity: 1; }
 .side .item:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
 .side .item[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
-.side .item.new { color: var(--yg-text); font-weight: 600; }
+.side .item.new { color: var(--yg-text); font-weight: 600; background: var(--yg-surface); border: 1px solid var(--yg-border); box-shadow: var(--yg-shadow-1); }
+.side .item.new:hover { border-color: var(--yg-border-strong); background: var(--yg-surface); }
 .side .chats { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-2); align-content: start;
   margin: 0 calc(var(--yg-space-1) * -1); padding: 0 var(--yg-space-1); }
 
@@ -45,7 +52,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side .proj summary { display: flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-8) 0 var(--yg-space-3);
   border-radius: var(--yg-radius-sm); list-style: none; cursor: pointer; font: 600 .875rem/1 var(--yg-font-text); color: var(--yg-text); }
 .side .proj summary::-webkit-details-marker { display: none; }
-.side .proj summary svg.i { width: 1rem; height: 1rem; color: var(--yg-text-subtle); opacity: 1; }
+.side .proj summary svg.i { width: 1.125rem; height: 1.125rem; color: var(--yg-text-subtle); opacity: 1; }
 .side .proj summary .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side .proj summary:hover { background: var(--yg-surface-sunken); }
 .side .proj ol { list-style: none; margin: 2px 0 var(--yg-space-2); padding: 0; display: grid; gap: 1px; }
