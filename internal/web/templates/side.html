@@ -4,7 +4,7 @@
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
     <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
-    <a class="tool" href="/new" data-tip="Roles" aria-label="Roles"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
+    <a class="tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
     <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}

@@ -47,14 +47,14 @@ type roleChoice struct {
 
 // roleChoices is what the role menu offers: no role, what the person saved, then each ready-made kind of work.
 func (s *Server) roleChoices(r *http.Request) string {
-	choices := []roleChoice{{Value: "", Label: "No role"}}
+	choices := []roleChoice{{Value: "", Label: "No preset"}}
 	if saved := s.savedBy(r); len(saved) > 0 {
 		choices = append(choices, roleChoice{Kind: "heading", Label: "Your presets"})
 		for _, each := range saved {
 			choices = append(choices, roleChoice{Value: "p:" + each.ID, Label: each.Name, Detail: s.presetSummary(each), Harness: each.Harness, Model: each.Model, Role: each.Role})
 		}
 	}
-	choices = append(choices, roleChoice{Kind: "heading", Label: "Ready-made roles"})
+	choices = append(choices, roleChoice{Kind: "heading", Label: "Built-in presets"})
 	for _, held := range industry.All() {
 		choices = append(choices, roleChoice{Value: "r:" + held.Name, Label: held.Title, Detail: held.Industry, Role: held.Name})
 	}
@@ -64,15 +64,14 @@ func (s *Server) roleChoices(r *http.Request) string {
 	return asJSON(choices)
 }
 
-// presetSummary is what a preset holds, in the order the chat's menus come: the role, the engine, the model.
+// presetSummary says what a preset holds in a sentence: "Software engineer on Claude Code with Claude Sonnet".
 func (s *Server) presetSummary(saved preset.Preset) string {
-	role := "No role"
+	summary := s.engineTitle(saved.Harness)
 	if held, found := industry.Get(saved.Role); found {
-		role = held.Title
+		summary = held.Title + " on " + summary
 	}
-	summary := role + " · " + s.engineTitle(saved.Harness)
 	if saved.Model != "" {
-		summary += " · " + s.modelOption(saved.Model).Label
+		summary += " with " + s.modelOption(saved.Model).Label
 	}
 	return summary
 }
@@ -137,23 +136,14 @@ func (s *Server) deletePreset(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/new", http.StatusSeeOther)
 }
 
-// presetRow is a saved preset as the roles page says it.
-type presetRow struct {
-	ID, Name, Engine, Model, Role string
-}
+// presetRow is a saved preset as the presets page says it.
+type presetRow struct{ ID, Name, Line string }
 
 // presetRows is what the person saved, in words.
 func (s *Server) presetRows(r *http.Request) []presetRow {
 	var rows []presetRow
 	for _, saved := range s.savedBy(r) {
-		row := presetRow{ID: saved.ID, Name: saved.Name, Engine: s.engineTitle(saved.Harness)}
-		if saved.Model != "" {
-			row.Model = s.modelOption(saved.Model).Label
-		}
-		if held, found := industry.Get(saved.Role); found {
-			row.Role = held.Title
-		}
-		rows = append(rows, row)
+		rows = append(rows, presetRow{ID: saved.ID, Name: saved.Name, Line: s.presetSummary(saved)})
 	}
 	return rows
 }
