@@ -1,63 +1,60 @@
 {{template "head" .}}
 
 <section class="talk">
-    <div class="talk-top">
-      <span class="which">{{.Named}}</span>
-      <a class="muted" href="/instances/{{.Instance.ID}}" title="About this agent">{{.Agent.Name}}</a>
-      {{with .Thread.Dir}}<span class="in-folder" title="This conversation works in the folder {{.}} of the agent's computer">{{template "icon-folder"}} {{.}}</span>{{end}}
-      <span class="sealed" tabindex="0" title="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
-      {{range .Apps}}<a class="files-link" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
-      {{if .Starting}}<span class="chip">Starting the preview…</span>{{end}}
-      {{if .Starting}}<script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
-      <a class="files-link" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}} Files</a>
+  <header class="talk-top">
+    <h1 class="which">{{.Named}}</h1>
+    <div class="where">
+      <a class="project" href="/instances/{{.Instance.ID}}" title="About this project">{{template "icon-folder"}}<span>{{.Agent.Name}}</span></a>
+      {{with .Thread.Dir}}<span class="sep">/</span><span class="dir" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
+    <span class="sealed" tabindex="0" title="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
+    {{range .Apps}}<a class="quiet-button" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
+    {{if .Starting}}<span class="muted small">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
+    <a class="quiet-button" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
+  </header>
 
-    <div class="said-so-far" id="said">
-      <div class="column">
-        <div id="turns">{{template "turns" .}}</div>
-        {{if .Waiting}}
-        <div class="answer working" id="working">
-          {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "sm")}}
-          <div class="body">
-            <p class="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> Working <span class="elapsed" id="elapsed"></span></p>
-            <pre id="stream" hidden></pre>
-            <form class="stop" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"><button type="submit" class="quiet">Stop</button></form>
-          </div>
+  <div class="said-so-far" id="said">
+    <div class="column">
+      <div id="turns">{{template "turns" .}}</div>
+      {{if .Waiting}}
+      <div class="turn-live" id="working">
+        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing">Working</span><span class="elapsed" id="elapsed"></span></p>
+        <ol class="live" id="live" aria-live="polite"></ol>
+        <details class="raw"><summary>Output</summary><pre id="stream"></pre></details>
+      </div>
+      {{end}}
+      {{if not .Turns}}{{if not .Waiting}}
+      <div class="start">
+        <h2>How can I help?</h2>
+        {{with .Starters}}
+        <div class="starters">
+          {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
         </div>
         {{end}}
-        {{if not .Turns}}{{if not .Waiting}}
-        <div class="start">
-          {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
-          <h2>How can I help?</h2>
-          <p class="muted">{{.Agent.Name}} works in its own folder and remembers this conversation.</p>
-          {{with .Starters}}
-          <div class="starters">
-            {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
-          </div>
-          {{end}}
-        </div>
-        {{end}}{{end}}
       </div>
+      {{end}}{{end}}
     </div>
+  </div>
 
-    <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
-    <div class="composer">
-      <form class="column" method="post" action="{{.Path}}/say">
-        <div class="box">
-          <textarea name="said" rows="1" placeholder="Message {{.Agent.Name}}" autofocus required></textarea>
-          <div class="tools">
-            <span class="grow"></span>
-            {{if .Several}}<div class="picker" id="model-pick" data-picker data-label="Model" data-options="{{.Models}}">
-              <input type="hidden" name="model" value="{{.Instance.Model}}" form="model-form">
-              <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
-              <div class="menu" role="listbox"></div>
-            </div>{{else}}<span class="muted">{{.Agent.Brain}}</span>{{end}}
-            <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
-          </div>
+  <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
+  {{if .Waiting}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
+  <div class="composer">
+    <form class="column" method="post" action="{{.Path}}/say" id="say-form">
+      <div class="box">
+        <textarea name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
+        <div class="tools">
+          <span class="grow"></span>
+          {{if .Several}}<div class="picker" id="model-pick" data-picker data-label="Model" data-options="{{.Models}}">
+            <input type="hidden" name="model" value="{{.Instance.Model}}" form="model-form">
+            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <div class="menu" role="listbox"></div>
+          </div>{{else}}<span class="muted small">{{.Agent.Brain}}</span>{{end}}
+          <button type="submit" class="send" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr">Send</span></button>
+          {{if .Waiting}}<button type="submit" class="send stop" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span class="sr">Stop</span></button>{{end}}
         </div>
-        <p class="hint">Enter sends. Shift and Enter start a new line.</p>
-      </form>
-    </div>
+      </div>
+    </form>
+  </div>
 </section>
 
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
@@ -68,8 +65,7 @@
   if (model) { model.addEventListener("pick", function () { model.querySelector("input").form.submit(); }); }
 
   var said = document.getElementById("said");
-  // A starter is a suggestion, so it is put in the box to be read and sent,
-  // not sent on somebody's behalf.
+  // A starter is a suggestion, so it is put in the box to be read and sent, not sent on somebody's behalf.
   document.querySelectorAll(".starter").forEach(function (starter) {
     starter.addEventListener("click", function () {
       var box = document.querySelector(".composer textarea");
@@ -84,17 +80,14 @@
   // The box grows with what is typed, up to the height the stylesheet allows.
   var box = document.querySelector(".composer textarea");
   if (box) {
-    var grow = function () {
-      box.style.height = "auto";
-      box.style.height = box.scrollHeight + "px";
-    };
+    var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };
     box.addEventListener("input", grow);
     grow();
-    // Enter sends, because this is a conversation. A newline needs shift.
+    // Enter sends, because this is a conversation, and a new line needs shift. While a turn is running there is nothing to send to.
     box.addEventListener("keydown", function (event) {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        if (box.value.trim()) { box.form.requestSubmit(); }
+        if (box.value.trim() && !document.getElementById("send").hidden) { box.form.requestSubmit(); }
       }
     });
   }
@@ -104,7 +97,6 @@
 {{if .Waiting}}
 <script nonce="{{.Nonce}}">
 (function () {
-  var box = document.getElementById("stream");
   var said = document.getElementById("said");
   var elapsed = document.getElementById("elapsed");
   var began = Date.now();
@@ -112,19 +104,50 @@
     var seconds = Math.floor((Date.now() - began) / 1000);
     elapsed.textContent = seconds < 60 ? seconds + "s" : Math.floor(seconds / 60) + "m " + (seconds % 60) + "s";
   }, 1000);
-  var stream = new EventSource("/watch/{{.Latest}}");
-  stream.onmessage = function (event) {
-    box.hidden = false;
-    box.textContent += event.data + "\n";
-    said.scrollTop = said.scrollHeight;
+
+  // What it has done so far: the last few steps, the latest as what it is doing now.
+  var list = document.getElementById("live");
+  var doing = document.getElementById("doing");
+  var look = function () {
+    fetch("{{.Path}}/live", { credentials: "same-origin" }).then(function (answer) { return answer.ok ? answer.json() : null; }).then(function (live) {
+      if (!live) { return; }
+      list.textContent = "";
+      live.steps.forEach(function (step, i) {
+        var item = document.createElement("li");
+        var last = i === live.steps.length - 1;
+        item.className = last ? "now" : "done";
+        var what = document.createElement("span");
+        what.className = "what";
+        what.textContent = step.what;
+        item.appendChild(what);
+        if (step.detail) {
+          var detail = document.createElement("span");
+          detail.className = "detail";
+          detail.textContent = step.detail;
+          item.appendChild(detail);
+        }
+        list.appendChild(item);
+      });
+      doing.textContent = live.steps.length ? live.steps[live.steps.length - 1].what + (live.count > 1 ? " · step " + live.count : "") : "Working";
+      said.scrollTop = said.scrollHeight;
+    });
   };
+  look();
+  var watcher = setInterval(look, 1500);
+
+  var box = document.getElementById("stream");
+  var stream = new EventSource("/watch/{{.Latest}}");
+  stream.onmessage = function (event) { box.textContent += event.data + "\n"; };
   stream.addEventListener("ended", function () {
     stream.close();
     clearInterval(clock);
-    // Swap in the turn that just finished rather than reloading the page,
-    // which threw away the scroll position and everything already read.
+    clearInterval(watcher);
+    // Swap in the turn that just finished rather than reloading the page, which would throw away the scroll position and everything
+    // already read, and give the box its Send button back.
     htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
       document.getElementById("working").remove();
+      document.getElementById("stop").hidden = true;
+      document.getElementById("send").hidden = false;
       said.scrollTop = said.scrollHeight;
     });
   });
@@ -140,28 +163,25 @@
   <p class="said">{{.Said}}</p>
   {{if .State.Done}}
   <div class="answer{{if .Stopped}} failed{{end}}">
-    {{template "mark" (dict "Field" $.Agent.Field "Name" $.Agent.Name "Size" "sm")}}
-    <div class="body">
-      {{with .Steps}}
-      <details class="steps">
-        <summary>{{len .}} step{{if ne (len .) 1}}s{{end}} taken</summary>
-        {{template "steps" .}}
-      </details>
-      {{end}}
-      {{if .Replied}}<div class="reply">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
-      {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
-      {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
-      <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
-        {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
-        {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
-        <a href="/jobs/{{.ID}}">Record</a></p>
-      {{if $.Sharing}}{{range .Previews}}
-      <form class="preview" method="post" action="/instances/{{$.Instance.ID}}/apps">
-        <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
-        <button type="submit" class="quiet">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
-      </form>
-      {{end}}{{end}}
-    </div>
+    {{with .Steps}}
+    <details class="steps">
+      <summary>{{template "icon-chevron"}}<span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
+      {{template "steps" .}}
+    </details>
+    {{end}}
+    {{if .Replied}}<div class="reply">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
+    {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+    {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
+    <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
+      {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
+      {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
+      <a href="/jobs/{{.ID}}">Record</a></p>
+    {{if $.Sharing}}{{range .Previews}}
+    <form class="preview" method="post" action="/instances/{{$.Instance.ID}}/apps">
+      <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
+      <button type="submit" class="quiet">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
+    </form>
+    {{end}}{{end}}
   </div>
   {{end}}
 </article>

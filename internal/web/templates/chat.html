@@ -11,7 +11,7 @@
       <div class="box">
         <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
         <div class="tools">
-          <div class="folderpick" id="folder-pick">
+          <div class="folderpick" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
             <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
