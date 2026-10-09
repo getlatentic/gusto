@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"path"
 	"regexp"
 	"slices"
 	"sort"
@@ -36,7 +37,27 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"Rail":    s.railFor(r, "/chat"),
 		"Here":    "/chat",
 		"Refused": r.URL.Query().Get("refused"),
+		"Start":   s.startIn(r),
 	})
+}
+
+// startFolder is a folder a chat page opens with already chosen: the project the person pressed New chat under in the side list.
+type startFolder struct{ At, Name, Harness string }
+
+func (s *Server) startIn(r *http.Request) startFolder {
+	id, dir := splitAt(r.URL.Query().Get("at"))
+	held, found := s.folderAgent(r, id)
+	if !found {
+		return startFolder{}
+	}
+	if _, ok := s.workspaceDir(id, dir); !ok {
+		return startFolder{}
+	}
+	name := s.agentOf(held).Name
+	if dir != "" {
+		name = path.Base(dir)
+	}
+	return startFolder{At: path.Join(id, dir), Name: name, Harness: held.Harness}
 }
 
 // picksFor is each harness this deployment can run for this person, with the models it may use.
