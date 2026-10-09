@@ -9,7 +9,7 @@
   <header class="viewer-head">
     <div class="viewer-title">
       <h1>{{.File.Name}}</h1>
-      <p class="muted small">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
+      <p class="muted small">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
     </div>
     <div class="viewer-actions">
       {{if .Back}}<a class="quiet-button" href="{{.Back}}">{{template "icon-compose"}}<span>Back to the chat</span></a>{{end}}
@@ -28,7 +28,9 @@
   {{if eq .File.Kind "markdown"}}
   <article class="prose">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
   {{else if eq .File.Kind "text"}}
-  <pre class="code">{{.File.Text}}</pre>
+  <pre class="code"{{with .File.Language}} data-language="{{.}}"{{end}}><code>{{.File.Text}}</code></pre>
+  {{if .File.Lines}}<script src="{{asset "/static/highlight.min.js"}}"></script>
+  <script src="{{asset "/static/code.js"}}"></script>{{end}}
   {{else if eq .File.Kind "table"}}
   <div class="grid-scroll"><table class="grid">
     {{range $i, $row := .File.Rows}}<tr>{{range $row}}{{if eq $i 0}}<th>{{.}}</th>{{else}}<td>{{.}}</td>{{end}}{{end}}</tr>
