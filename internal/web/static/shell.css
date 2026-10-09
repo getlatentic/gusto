@@ -1,10 +1,5 @@
 /* The shell: a side list that is always there, and a page beside it. The side list holds where to go and the conversations to carry on
    with; the page is whatever was asked for. */
-/* The icon rail sits one step darker than the conversations beside it, which sit one step darker than the page. */
-:root { --yg-rail: var(--yg-neutral-200); }
-:root[data-theme="dark"] { --yg-rail: #0D0C0B; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --yg-rail: #0D0C0B; } }
-
 body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
 .shell { display: grid; height: 100dvh; }
 
@@ -21,7 +16,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .rail .tool { position: relative; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0;
   border-radius: var(--yg-radius-md); background: none; color: var(--yg-text-muted); cursor: pointer; text-decoration: none; }
 .rail .tool svg.i { width: 1.375rem; height: 1.375rem; opacity: 1; }
-.rail .tool:hover { background: rgb(23 23 23 / .06); color: var(--yg-text); }
+.rail .tool:hover { background: var(--yg-hover); color: var(--yg-text); }
 .rail .tool[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
 .rail .tool[aria-current]::before { content: ""; position: absolute; left: -.5625rem; top: 50%; width: .1875rem; height: 1.25rem; border-radius: 0 .25rem .25rem 0; background: var(--yg-accent); transform: translateY(-50%); }
 .rail .tool:focus-visible { outline: 2px solid var(--yg-focus); outline-offset: 1px; }
@@ -40,7 +35,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
   padding: 0 var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm); background: none;
   font: 500 .9375rem/1 var(--yg-font-text); color: var(--yg-text-muted); text-decoration: none; cursor: pointer; text-align: left; }
 .side .item svg.i { width: 1.125rem; height: 1.125rem; opacity: 1; }
-.side .item:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
+.side .item:hover { background: var(--yg-hover); color: var(--yg-text); }
 .side .item[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
 .side .item.new { color: var(--yg-text); font-weight: 600; background: var(--yg-surface); border: 1px solid var(--yg-border); box-shadow: var(--yg-shadow-1); }
 .side .item.new:hover { border-color: var(--yg-border-strong); background: var(--yg-surface); }
@@ -84,7 +79,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .composer .box { display: grid; gap: var(--yg-space-2); padding: var(--yg-space-4) var(--yg-space-3) var(--yg-space-3) var(--yg-space-5);
   background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: 1.25rem; box-shadow: var(--yg-shadow-1);
   transition: border-color var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
-.composer .box:focus-within { border-color: var(--yg-text-subtle); box-shadow: 0 0 0 3px rgb(23 23 23 / .06); }
+.composer .box:focus-within { border-color: var(--yg-text-subtle); box-shadow: 0 0 0 .1875rem var(--yg-hover); }
 .composer textarea { width: 100%; min-height: 1.75rem; max-height: 14rem; padding: 0; border: 0; background: none; resize: none;
   font: inherit; line-height: 1.55; }
 .composer textarea:focus-visible { outline: none; }
@@ -149,7 +144,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-places .place { display: flex; align-items: center; gap: var(--yg-space-2); width: 100%; padding: var(--yg-space-2); border: 0; border-radius: var(--yg-radius-sm);
   background: none; color: var(--yg-text-muted); font-size: .8125rem; text-align: left; cursor: pointer; }
 .d-places .place .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.d-places .place:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
+.d-places .place:hover { background: var(--yg-hover); color: var(--yg-text); }
 .d-places .place.current { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
 .d-list { display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none; }
 .d-list .row { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem 4.5rem; align-items: center; gap: var(--yg-space-3); padding: 0 var(--yg-space-4); min-height: 2.25rem; font-size: .875rem; }
@@ -167,7 +162,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-list .dim { font-size: .8125rem; color: var(--yg-text-subtle); white-space: nowrap; }
 .d-list .go { display: flex; justify-content: flex-end; color: var(--yg-text-subtle); }
 .d-list .making { grid-template-columns: minmax(0, 1fr); }
-.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 1px solid var(--yg-text-subtle); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; outline: none; box-shadow: 0 0 0 3px rgb(23 23 23 / .06); }
+.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 1px solid var(--yg-text-subtle); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; outline: none; box-shadow: 0 0 0 .1875rem var(--yg-hover); }
 .d-list .problem { grid-column: 1; margin: -4px 0 var(--yg-space-1) 1.75rem; font-size: .75rem; color: var(--yg-danger); }
 .d-empty { padding: var(--yg-space-8) var(--yg-space-4); text-align: center; font-size: .875rem; color: var(--yg-text-subtle); }
 .d-foot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-4); border-top: 1px solid var(--yg-border); }
@@ -211,7 +206,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
     transform: translateX(-100%); visibility: hidden;
     transition: transform var(--yg-dur-base) var(--yg-ease-standard), visibility var(--yg-dur-base); }
   body.side-open .side { transform: none; visibility: visible; box-shadow: var(--yg-shadow-3); }
-  body.side-open .scrim { display: block; position: fixed; inset: 0; z-index: 10; background: rgb(23 23 23 / .32); }
+  body.side-open .scrim { display: block; position: fixed; inset: 0; z-index: 10; background: var(--yg-scrim); }
   .page.chat { grid-template-rows: auto minmax(0, 1fr); }
   .mobile-bar { display: flex; align-items: center; gap: var(--yg-space-3); padding: var(--yg-space-2) var(--yg-space-4);
     border-bottom: 1px solid var(--yg-border); }
@@ -243,3 +238,23 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 /* A mark is a quiet tile: the colours of the fields were a lot of colour for a list. */
 .mark { background: var(--yg-bg-subtle); color: var(--yg-text-muted); box-shadow: inset 0 0 0 1px var(--yg-border); }
 .title-row .grow { flex: 1; }
+
+/* Appearance: a small panel from the foot of the rail, with the theme and the accent the person has chosen. */
+.look, .look * { box-sizing: border-box; }
+.look { grid-template-columns: minmax(0, 1fr); position: fixed; left: 4.25rem; bottom: var(--yg-space-3); z-index: 50; display: grid; gap: var(--yg-space-4); width: 16rem; padding: var(--yg-space-4);
+  background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-3); }
+.look[hidden] { display: none; }
+.look h3 { margin: 0 0 var(--yg-space-2); font: 600 .8125rem/1.3 var(--yg-font-text); color: var(--yg-text-muted); }
+.look .modes { display: flex; padding: .1875rem; gap: .1875rem; background: var(--yg-bg-subtle); border-radius: var(--yg-radius-sm); }
+.look .mode { flex: 1 1 0; min-width: 0; padding: 0; height: 2rem; border: 0; border-radius: var(--yg-radius-xs); background: none; font: 500 .8125rem/1 var(--yg-font-text); color: var(--yg-text-muted); cursor: pointer; }
+.look .mode[aria-pressed="true"] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.look .swatches { display: flex; justify-content: space-between; }
+.look .swatch { flex: none; width: 1.625rem; height: 1.625rem; padding: 0; border: 0; border-radius: var(--yg-radius-full); cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); }
+.look .swatch[aria-pressed="true"] { box-shadow: 0 0 0 .125rem var(--yg-surface), 0 0 0 .25rem var(--yg-text); }
+.look .swatch[data-accent="graphite"] { background: #2B2B29; }
+.look .swatch[data-accent="orange"] { background: #FF8A1F; }
+.look .swatch[data-accent="blue"] { background: #3B6FE0; }
+.look .swatch[data-accent="green"] { background: #23805A; }
+.look .swatch[data-accent="violet"] { background: #7352D4; }
+.look .swatch[data-accent="rose"] { background: #D23F67; }

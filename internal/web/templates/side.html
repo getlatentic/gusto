@@ -9,12 +9,17 @@
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
     <span class="grow"></span>
+    <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance">{{template "icon-palette"}}</button>
     <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
   <div class="sidepanel">
     <div class="sidepanel-head"><span class="name">Latentic Agent Cloud</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats"></div>{{end}}
+  </div>
+  <div class="look" id="look" hidden role="dialog" aria-label="Appearance">
+    <div><h3>Theme</h3><div class="modes"><button class="mode" type="button" data-mode="system">System</button><button class="mode" type="button" data-mode="light">Light</button><button class="mode" type="button" data-mode="dark">Dark</button></div></div>
+    <div><h3>Accent</h3><div class="swatches"><button class="swatch" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button><button class="swatch" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button><button class="swatch" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button><button class="swatch" type="button" data-accent="green" title="Green" aria-label="Green"></button><button class="swatch" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button><button class="swatch" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button></div></div>
   </div>
 </aside>{{end}}
 
