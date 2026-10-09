@@ -38,7 +38,6 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 		if thread, found := s.instances.Thread(record.Instance, record.Thread); found {
 			page["Thread"] = thread
 			page["ThreadPath"] = threadPath(thread)
-			page["Dir"] = thread.Dir
 			page["Talk"] = s.talkAround(thread, record.ID, ledger)
 		}
 	}

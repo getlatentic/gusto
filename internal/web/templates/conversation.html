@@ -154,7 +154,7 @@
       <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
         {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
         {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
-        <a href="/jobs/{{.ID}}">Details</a></p>
+        <a href="/jobs/{{.ID}}">Record</a></p>
       {{if $.Sharing}}{{range .Previews}}
       <form class="preview" method="post" action="/instances/{{$.Instance.ID}}/apps">
         <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
