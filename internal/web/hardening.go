@@ -39,7 +39,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
-		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r)}, r)
+		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
 	})
 }
 
@@ -50,7 +50,49 @@ type marked struct {
 	http.ResponseWriter
 	nonce string
 	admin bool
+	// page is whether a person's browser asked, and so would rather be shown a page than a line of text for a thing that is not there.
+	page bool
+	// swallow is set once a page was written in place of the line of text a handler went on to write.
+	swallow bool
 }
+
+// WriteHeader draws a page for a thing that is not there, in place of the line of plain text, when a person's browser asked. The window
+// of the desktop app has no address bar, and a bare line leaves nothing in it to go back with.
+func (m *marked) WriteHeader(code int) {
+	if code == http.StatusNotFound && m.page && strings.HasPrefix(m.Header().Get("Content-Type"), "text/plain") {
+		h := m.Header()
+		h.Set("Content-Type", "text/html; charset=utf-8")
+		m.ResponseWriter.WriteHeader(code)
+		_, _ = m.ResponseWriter.Write([]byte(strings.ReplaceAll(notFoundPage, "{{nonce}}", m.nonce)))
+		m.swallow = true
+		return
+	}
+	m.ResponseWriter.WriteHeader(code)
+}
+
+func (m *marked) Write(body []byte) (int, error) {
+	if m.swallow {
+		return len(body), nil
+	}
+	return m.ResponseWriter.Write(body)
+}
+
+const notFoundPage = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not found</title><link rel="stylesheet" href="/static/tokens.css">
+<style>
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--yg-bg); color: var(--yg-text); font: 15px/1.55 var(--yg-font-text); }
+main { width: min(26rem, 92vw); display: grid; gap: var(--yg-space-4); padding: var(--yg-space-8); text-align: center; }
+h1 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
+p { margin: 0; color: var(--yg-text-muted); }
+.row { display: flex; gap: var(--yg-space-3); justify-content: center; }
+a { padding: var(--yg-space-2) var(--yg-space-4); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); color: var(--yg-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
+a.main { background: var(--yg-accent); border-color: var(--yg-accent); color: var(--yg-on-accent); }
+</style></head><body><main>
+<h1>That page is not here</h1>
+<p>It may have been moved or removed, or the link was not to a page of this site.</p>
+<div class="row"><a href="#" id="back">Go back</a><a class="main" href="/chat">Chat</a></div>
+</main><script nonce="{{nonce}}">document.getElementById("back").addEventListener("click", function (event) { event.preventDefault(); history.back(); });</script></body></html>`
 
 // Unwrap lets a handler reach the connection's own controls, such as the write
 // deadline a stream sets.

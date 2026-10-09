@@ -27,6 +27,33 @@ fn connect(app: AppHandle, server: String) -> Result<(), String> {
     Ok(())
 }
 
+/// A menu to go back and forward in the window, which has no address bar to do it with: a link that leads somewhere unwanted is not a
+/// place the person is stuck in.
+fn history_menu(app: &mut tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem, Submenu};
+    let handle = app.handle().clone();
+    let menu = Menu::default(&handle)?;
+    let history = Submenu::with_items(
+        &handle,
+        "History",
+        true,
+        &[
+            &MenuItem::with_id(&handle, "back", "Back", true, Some("CmdOrCtrl+["))?,
+            &MenuItem::with_id(&handle, "forward", "Forward", true, Some("CmdOrCtrl+]"))?,
+            &MenuItem::with_id(&handle, "reload", "Reload", true, Some("CmdOrCtrl+R"))?,
+        ],
+    )?;
+    menu.append(&history)?;
+    app.set_menu(menu)?;
+    app.on_menu_event(|app, event| match event.id().as_ref() {
+        "back" => window::tell_page(app, "history.back()"),
+        "forward" => window::tell_page(app, "history.forward()"),
+        "reload" => window::tell_page(app, "location.reload()"),
+        _ => {}
+    });
+    Ok(())
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _arguments, _directory| window::show(app)))
@@ -42,6 +69,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![connect])
         .setup(|app| {
             let handle = app.handle().clone();
+            history_menu(app)?;
             tray::build(&handle)?;
             updates::watch(handle.clone());
             if let Some(server) = config::load(&handle).server {
