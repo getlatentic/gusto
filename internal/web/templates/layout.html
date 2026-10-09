@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="{{asset "/static/shell.css"}}">
 <link rel="stylesheet" href="{{asset "/static/record.css"}}">
 <link rel="stylesheet" href="{{asset "/static/chat.css"}}">
+<link rel="stylesheet" href="{{asset "/static/viewer.css"}}">
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script>{{end}}
@@ -145,3 +146,4 @@
 {{define "icon-folder"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5a1 1 0 0 1 1-1h2.9l1.2 1.5h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9.1a1 1 0 0 1-1-1z"/></svg>{{end}}
 {{define "icon-x"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/></svg>{{end}}
 {{define "icon-stop"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5" fill="currentColor" stroke="none"/></svg>{{end}}
+{{define "icon-download"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.5 7.5 8 11l3.5-3.5M3 13.5h10"/></svg>{{end}}

@@ -39,7 +39,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
-		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
+		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), req: r, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
 	})
 }
 
@@ -50,6 +50,8 @@ type marked struct {
 	http.ResponseWriter
 	nonce string
 	admin bool
+	// req is the request the response answers, which a page uses to draw what is the person's own, such as the side list.
+	req *http.Request
 	// page is whether a person's browser asked, and so would rather be shown a page than a line of text for a thing that is not there.
 	page bool
 	// swallow is set once a page was written in place of the line of text a handler went on to write.
@@ -109,7 +111,7 @@ func markOf(w http.ResponseWriter) marked {
 	for w != nil {
 		switch held := w.(type) {
 		case *marked:
-			return marked{nonce: held.nonce, admin: held.admin}
+			return marked{nonce: held.nonce, admin: held.admin, req: held.req}
 		case interface{ Unwrap() http.ResponseWriter }:
 			w = held.Unwrap()
 		default:
