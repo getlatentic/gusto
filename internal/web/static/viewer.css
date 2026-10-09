@@ -58,18 +58,28 @@
 .viewer .nothing p { margin: 0; }
 @media (max-width: 56rem) { .viewer-head { flex-direction: column; align-items: flex-start; } }
 
-/* The Files page: the heading, and the explorer that fills the rest of the window. */
-.files-page { display: grid; gap: var(--yg-space-4); }
-.files-head h1 { margin: 0; font: 650 1.25rem/1.3 var(--yg-font-text); letter-spacing: -.01em; }
-.files-head p { margin: var(--yg-space-1) 0 0; }
 
-/* The explorer on the Files page: the page is the paper, the window is a white sheet, the toolbar and the side list sit on it in two quiet steps. */
-.ex-page { background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
-.ex-page .d-bar { padding: var(--yg-space-3) var(--yg-space-4); gap: var(--yg-space-2); background: var(--yg-surface); }
-.ex-page .d-path { margin-left: var(--yg-space-2); height: 2.125rem; background: var(--yg-surface); border: 1px solid var(--yg-border); }
-.ex-page .d-path .here { font-weight: 600; }
-.ex-page .d-filter { height: 2.125rem; width: 11rem; background: var(--yg-bg); border-color: var(--yg-border); }
-.ex-page .d-places { background: var(--yg-bg); }
-.ex-page .d-places .place.current { background: var(--yg-surface); box-shadow: var(--yg-shadow-1), 0 0 0 1px var(--yg-border); }
-.ex-page .d-list .heads { background: var(--yg-surface); position: sticky; top: 0; }
-.ex-page .d-foot { background: var(--yg-bg); }
+/* The explorer on the Files page: no window, no side list. The heading is the path, the actions sit beside it, and the list runs the width of the page. */
+.ex-page { height: auto; min-height: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; display: block; }
+.f-head { display: flex; align-items: center; gap: var(--yg-space-4); min-height: 2.5rem; margin: 0 0 var(--yg-space-5); }
+.f-trail { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1; min-width: 0; margin: 0; font: 650 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.015em; }
+.f-trail .sep { color: var(--yg-border-strong); font-weight: 400; }
+.f-trail .crumb { padding: 0; border: 0; background: none; font: inherit; color: var(--yg-text-muted); cursor: pointer; }
+.f-trail .crumb:hover { color: var(--yg-text); }
+.f-trail .here { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-tools { display: flex; align-items: center; gap: var(--yg-space-2); flex: none; }
+.f-tools .d-filter { width: 12rem; height: 2.25rem; }
+.f-tools .d-quiet, .f-tools .d-choose { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; text-decoration: none; }
+.ex-page .d-list { background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); overflow: hidden; }
+.ex-page .d-list .row { grid-template-columns: minmax(0, 1fr) 10rem 6rem; padding: 0 var(--yg-space-5); min-height: 2.75rem; }
+.ex-page .d-list .heads { min-height: 2.25rem; background: var(--yg-bg-subtle); }
+.ex-page .d-list .rows { padding: 0; }
+.ex-page .d-list .rows .row { border-radius: 0; border-top: 1px solid var(--yg-border); }
+.ex-page .d-list .rows .row:first-child { border-top: 0; }
+.ex-page .d-list .folder { cursor: pointer; }
+.ex-page .d-list .folder .name, .ex-page .d-list .file .name { font-weight: 500; }
+.ex-page .d-list .file { color: var(--yg-text); }
+.ex-page .d-list .row .go { opacity: 0; }
+.ex-page .d-list .row:hover .go { opacity: 1; }
+.ex-page .d-list .rows { flex: none; overflow: visible; }
+.ex-page .d-empty { padding: var(--yg-space-12) var(--yg-space-4); }
