@@ -70,7 +70,10 @@
 
     root.picker = {
       get value() { return input.value; },
-      setOptions: function (next, value) { options = next; input.value = value || ""; render(); }
+      setOptions: function (next, value) { options = next; input.value = value || ""; render(); },
+      // select chooses one of the options as if it had been picked, and lock says whether the person may choose another.
+      select: function (value) { if (value !== input.value) { choose(value); } },
+      lock: function (locked) { button.disabled = locked; root.classList.toggle("locked", locked); if (locked) { close(); } }
     };
     render();
   }

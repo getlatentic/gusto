@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -234,6 +235,10 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 	}
 	command := exec.CommandContext(ctx, a.fill(a.Program, spec, env), argv...)
 	command.Dir = workspace
+	// A folder a job names is looked at again here, and one that leaves the workspace is not gone to.
+	if dir, err := job.CleanDir(spec.Dir); err == nil && dir != "" {
+		command.Dir = filepath.Join(workspace, filepath.FromSlash(dir))
+	}
 	if a.Stdin != "" {
 		command.Stdin = strings.NewReader(a.fill(a.Stdin, spec, env))
 	}
