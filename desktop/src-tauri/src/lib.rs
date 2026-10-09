@@ -4,7 +4,9 @@
 mod config;
 mod helper;
 mod links;
+mod navigation;
 mod notice;
+mod signin;
 mod tray;
 mod updates;
 mod window;
@@ -34,6 +36,7 @@ pub fn run() {
         .manage(helper::Helper::default())
         .manage(tray::Pages::default())
         .manage(updates::Available::default())
+        .manage(signin::Pending::default())
         .invoke_handler(tauri::generate_handler![connect])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -51,7 +54,10 @@ pub fn run() {
             let linked = handle.clone();
             app.deep_link().on_open_url(move |event| {
                 let server = config::load(&linked).server.unwrap_or_default();
-                if let Some(page) = event.urls().iter().find_map(|link| links::target(link.as_str(), &server)) {
+                let urls = event.urls();
+                if let Some(ticket) = urls.iter().find_map(|link| links::signed_in(link.as_str())) {
+                    signin::complete(&linked, &ticket);
+                } else if let Some(page) = urls.iter().find_map(|link| links::target(link.as_str(), &server)) {
                     window::go(&linked, &page);
                 }
             });
