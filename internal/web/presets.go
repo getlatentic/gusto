@@ -35,6 +35,8 @@ func (s *Server) roleOf(r *http.Request) *industry.Template {
 
 // roleChoice is one entry in the chat's role menu, and what choosing it sets.
 type roleChoice struct {
+	// Kind is "heading" or "separator" for what is not a choice, and "action" for what does something and is not kept.
+	Kind    string `json:"kind,omitempty"`
 	Value   string `json:"value"`
 	Label   string `json:"label"`
 	Detail  string `json:"detail,omitempty"`
@@ -46,20 +48,33 @@ type roleChoice struct {
 // roleChoices is what the role menu offers: no role, what the person saved, then each ready-made kind of work.
 func (s *Server) roleChoices(r *http.Request) string {
 	choices := []roleChoice{{Value: "", Label: "No role"}}
-	for _, saved := range s.savedBy(r) {
-		detail := s.engineTitle(saved.Harness)
-		if saved.Model != "" {
-			detail += " · " + s.modelOption(saved.Model).Label
+	if saved := s.savedBy(r); len(saved) > 0 {
+		choices = append(choices, roleChoice{Kind: "heading", Label: "Your presets"})
+		for _, each := range saved {
+			choices = append(choices, roleChoice{Value: "p:" + each.ID, Label: each.Name, Detail: s.presetSummary(each), Harness: each.Harness, Model: each.Model, Role: each.Role})
 		}
-		choices = append(choices, roleChoice{Value: "p:" + saved.ID, Label: saved.Name, Detail: "Your preset · " + detail, Harness: saved.Harness, Model: saved.Model, Role: saved.Role})
 	}
+	choices = append(choices, roleChoice{Kind: "heading", Label: "Ready-made roles"})
 	for _, held := range industry.All() {
 		choices = append(choices, roleChoice{Value: "r:" + held.Name, Label: held.Title, Detail: held.Industry, Role: held.Name})
 	}
 	if s.presets != nil {
-		choices = append(choices, roleChoice{Value: "save", Label: "Save this setup as a preset…", Detail: "Engine, model and role, to use again"})
+		choices = append(choices, roleChoice{Kind: "separator"}, roleChoice{Kind: "action", Value: "save", Label: "Save this setup as a preset…"})
 	}
 	return asJSON(choices)
+}
+
+// presetSummary is what a preset holds, in the order the chat's menus come: the role, the engine, the model.
+func (s *Server) presetSummary(saved preset.Preset) string {
+	role := "No role"
+	if held, found := industry.Get(saved.Role); found {
+		role = held.Title
+	}
+	summary := role + " · " + s.engineTitle(saved.Harness)
+	if saved.Model != "" {
+		summary += " · " + s.modelOption(saved.Model).Label
+	}
+	return summary
 }
 
 // chosenRole is the entry the chat opens on: the preset or the role the link named.

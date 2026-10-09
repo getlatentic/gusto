@@ -73,7 +73,7 @@
   var roleValue = document.getElementById("role-value");
   var saving = document.getElementById("save-preset");
   var choices = {};
-  JSON.parse(role.dataset.options).forEach(function (each) { choices[each.value] = each; });
+  JSON.parse(role.dataset.options).forEach(function (each) { if (each.kind !== "heading" && each.kind !== "separator") { choices[each.value] = each; } });
   var settled = role.picker.value;
   var apply = function (value) {
     var choice = choices[value] || {};
