@@ -6,7 +6,12 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,6 +32,8 @@ type keeper struct {
 	ended map[string]int64
 	// life is how long a sign-in lasts.
 	life time.Duration
+	// path is where the key and the ended sessions are kept, when they are kept, so that a sign-in outlives a restart.
+	path string
 }
 
 func newKeeper(password string) (*keeper, error) {
@@ -71,7 +78,13 @@ func (k *keeper) issue(w http.ResponseWriter, r *http.Request) {
 // it rather than that somebody did, and every request carries what they may do
 // without asking the provider again.
 func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, role Role) {
-	until := time.Now().Add(k.life).Unix()
+	k.issueLasting(w, r, who, role, k.life)
+}
+
+// issueLasting signs somebody in for as long as asked, which is more than the usual when the sign-in is one a person made on purpose
+// for a program they keep, such as the desktop app.
+func (k *keeper) issueLasting(w http.ResponseWriter, r *http.Request, who string, role Role, life time.Duration) {
+	until := time.Now().Add(life).Unix()
 	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + who
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie(r),
@@ -112,6 +125,7 @@ func (k *keeper) end(r *http.Request) {
 		}
 	}
 	k.ended[signature] = until
+	k.save()
 }
 
 func (k *keeper) hasEnded(signature string) bool {
@@ -190,4 +204,59 @@ func (k *keeper) who(r *http.Request) string {
 func (k *keeper) role(r *http.Request) Role {
 	_, role, _ := k.session(r)
 	return role
+}
+
+type keptSessions struct {
+	Key   []byte           `json:"key"`
+	Ended map[string]int64 `json:"ended"`
+}
+
+// keep makes sign-ins last across a restart: the key they are signed with and the sessions people ended are read from a file only
+// this server's user reads, or made there when there is none. Without it a restart, which every deploy is, signs everybody out.
+func (k *keeper) keep(path string) error {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.path = path
+	text, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return k.writeLocked()
+	}
+	if err != nil {
+		return err
+	}
+	var held keptSessions
+	if json.Unmarshal(text, &held) != nil || len(held.Key) < 32 {
+		return k.writeLocked()
+	}
+	k.key = held.Key
+	now := time.Now().Unix()
+	for signature, until := range held.Ended {
+		if until > now {
+			k.ended[signature] = until
+		}
+	}
+	return nil
+}
+
+func (k *keeper) save() {
+	if k.path != "" {
+		if err := k.writeLocked(); err != nil {
+			slog.Warn("the sessions people ended could not be kept", "error", err)
+		}
+	}
+}
+
+func (k *keeper) writeLocked() error {
+	text, err := json.Marshal(keptSessions{Key: k.key, Ended: k.ended})
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(k.path), 0o700); err != nil {
+		return err
+	}
+	scratch := k.path + ".new"
+	if err := os.WriteFile(scratch, text, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(scratch, k.path)
 }
