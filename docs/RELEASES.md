@@ -12,7 +12,10 @@ copies the section into the release's notes. Changes made after a release go und
 
 ## Next release
 
-Nothing yet.
+**New**
+
+- **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.
+- **A chat page.** `/chat` opens on a box with the agent and model chosen under it, and every conversation shows the same list of the person's agents beside it.
 
 ## v0.0.1-alpha.5
 
