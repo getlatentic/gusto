@@ -31,43 +31,6 @@ func changed(dir job.Dir) []string {
 // anything, and a page is not the place to read a gigabyte.
 const mostShown = 512 << 10
 
-// folderFile shows one file from a harness's folder as it is now. The path is
-// resolved inside the folder and refused if it leaves it, a link included, so
-// nothing else on the machine can be asked for.
-func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
-	if !found {
-		return
-	}
-	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	info, err := os.Stat(resolved)
-	if err != nil || info.IsDir() {
-		http.NotFound(w, r)
-		return
-	}
-	text, err := readSome(resolved)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	s.render(w, "file.html", map[string]any{
-		"Title":    productName + " — " + filepath.Base(asked),
-		"Nav":      "harnesses",
-		"Instance": held,
-		"Agent":    s.agentOf(held),
-		"Path":     strings.TrimPrefix(asked, "/"),
-		"Text":     string(text),
-		"Cut":      info.Size() > mostShown,
-		"Markdown": strings.EqualFold(filepath.Ext(asked), ".md"),
-		"Back":     r.URL.Query().Get("from"),
-	})
-}
-
 // resolveInFolder resolves a path inside a workspace, and refuses it when it leaves it, by a link or otherwise, or reaches
 // into git's own directory. The path is as the person asked, cleaned and rooted.
 func resolveInFolder(workspace, asked string) (string, bool) {
@@ -82,13 +45,13 @@ func resolveInFolder(workspace, asked string) (string, bool) {
 	return resolved, true
 }
 
-func readSome(path string) ([]byte, error) {
+func readSome(path string, most int) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	text := make([]byte, mostShown)
+	text := make([]byte, most)
 	read, err := file.Read(text)
 	if err != nil && read == 0 {
 		return nil, fs.ErrNotExist

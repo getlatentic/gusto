@@ -149,7 +149,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
-	mux.HandleFunc("GET /side/chats", s.guard(s.sideChats))
+	mux.HandleFunc("GET /files", s.guard(s.filesPage))
 	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
 	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
@@ -167,6 +167,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
+	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
 	mux.HandleFunc("POST /instances/{id}/model", s.guard(s.changeModel))
 	mux.HandleFunc("POST /instances/{id}/apps", s.guard(s.publishApp))
@@ -246,8 +247,13 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// An inline script runs only with the nonce this response's policy names.
 	if fields, ok := data.(map[string]any); ok {
+		marks := markOf(w)
 		fields["Nonce"] = nonceOf(w)
-		fields["Admin"] = markOf(w).admin
+		fields["Admin"] = marks.admin
+		// Every page of the app carries the side list drawn with it, so that moving between pages does not redraw it.
+		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {
+			fields["Rail"] = s.railFor(marks.req, "")
+		}
 	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
 		slog.Error("a page could not be drawn", "page", page, "error", err)

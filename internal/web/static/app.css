@@ -252,18 +252,6 @@ h1.brief { margin: 0; font-size: 1.25rem; line-height: 1.35; overflow-wrap: anyw
 .run .panel { margin: 0; }
 /* A reply is Markdown drawn as a page: prose at reading size, and code in the
    sunken surface the tokens keep for it. */
-.reply { overflow-wrap: anywhere; }
-.reply > :first-child { margin-top: 0; }
-.reply > :last-child { margin-bottom: 0; }
-.reply p, .reply ul, .reply ol, .reply pre, .reply table, .reply blockquote { margin: 0 0 var(--yg-space-3); }
-.reply h1, .reply h2, .reply h3, .reply h4 { font: 600 1rem/1.4 var(--yg-font-text); letter-spacing: 0;
-  text-transform: none; color: var(--yg-text); margin: var(--yg-space-4) 0 var(--yg-space-2); }
-.reply code { font: 13px/1.5 var(--yg-font-mono); background: var(--yg-surface-sunken);
-  padding: 1px 4px; border-radius: var(--yg-radius-xs); }
-.reply pre code { background: none; padding: 0; }
-.reply blockquote { padding-left: var(--yg-space-3); border-left: 2px solid var(--yg-border-strong); color: var(--yg-text-muted); }
-.reply table { width: auto; display: block; overflow-x: auto; overflow-wrap: break-word; }
-.reply .image { color: var(--yg-text-muted); font-size: .875rem; }
 dl.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--yg-space-2) var(--yg-space-4);
   margin: 0; font-size: .875rem; }
 dl.facts dt { color: var(--yg-text-muted); }

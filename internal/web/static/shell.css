@@ -110,17 +110,24 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .folderpick .clear:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
 /* The window for choosing a folder: as a Finder's open panel is, with the projects down the side, the path along the top, and the list. */
 .dialog-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: var(--yg-space-4); background: rgb(23 23 23 / .42); }
-.dialog { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; width: min(48rem, 100%); height: min(34rem, 100%); overflow: hidden;
+.dialog { display: grid; grid-template-rows: auto minmax(0, 1fr); width: min(48rem, 100%); height: min(34rem, 100%); overflow: hidden;
   background: var(--yg-surface); border-radius: var(--yg-radius-lg); box-shadow: var(--yg-shadow-3); }
-.dialog button { font-family: var(--yg-font-text); }
-.dialog .ic { display: inline-grid; place-items: center; flex: none; width: 1rem; height: 1rem; }
-.dialog .ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.dialog button, .ex button { font-family: var(--yg-font-text); }
+.ex { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+.ex-page { height: calc(100dvh - 12rem); min-height: 26rem; background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); overflow: hidden; }
+.ex a.row.file.openable { color: inherit; text-decoration: none; cursor: pointer; }
+.ex a.row.file.openable:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.ex .row.file.openable .name .ic { color: var(--yg-text-muted); }
+.ex a.d-choose { display: inline-flex; align-items: center; text-decoration: none; }
+.ex a.d-choose[aria-disabled="true"] { opacity: .4; pointer-events: none; }
+.ex .ic, .dialog .ic { display: inline-grid; place-items: center; flex: none; width: 1rem; height: 1rem; }
+.ex .ic svg, .dialog .ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .d-head { display: flex; align-items: center; justify-content: space-between; padding: var(--yg-space-3) var(--yg-space-4) var(--yg-space-3) var(--yg-space-5); }
 .d-head h2 { margin: 0; font: 600 1rem/1.3 var(--yg-font-display); text-transform: none; letter-spacing: -.01em; color: var(--yg-text); }
 .d-close, .d-tool { display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: var(--yg-radius-sm); background: none; color: var(--yg-text-muted); cursor: pointer; }
 .d-close:hover, .d-tool:hover:not(:disabled) { background: var(--yg-bg-subtle); color: var(--yg-text); }
 .d-tool:disabled { opacity: .35; cursor: default; }
-.d-loading { padding: var(--yg-space-8); text-align: center; color: var(--yg-text-subtle); }
+.d-loading { grid-row: 1 / -1; padding: var(--yg-space-8); text-align: center; color: var(--yg-text-subtle); }
 .d-bar { display: flex; align-items: center; gap: var(--yg-space-1); padding: 0 var(--yg-space-4) var(--yg-space-3) var(--yg-space-4); border-bottom: 1px solid var(--yg-border); }
 .d-path { display: flex; align-items: center; gap: var(--yg-space-1); flex: 1; min-width: 0; margin-left: var(--yg-space-2); padding: 0 var(--yg-space-3); height: 2rem;
   border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); font-size: .8125rem; white-space: nowrap; overflow: hidden; }
@@ -159,14 +166,14 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-foot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-4); border-top: 1px solid var(--yg-border); }
 .d-left, .d-right { display: flex; align-items: center; gap: var(--yg-space-2); }
 .d-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8125rem; color: var(--yg-text-muted); text-align: right; }
-.dialog .d-quiet, .dialog .d-cancel, .dialog .d-choose { height: 2.125rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-sm); font-size: .8125rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
-.dialog .d-quiet { border: 1px solid var(--yg-border-strong); background: var(--yg-surface); color: var(--yg-text); }
-.dialog .d-quiet:hover { background: var(--yg-bg-subtle); }
-.dialog .d-cancel { border: 1px solid var(--yg-border-strong); background: var(--yg-surface); color: var(--yg-text); }
-.dialog .d-cancel:hover { background: var(--yg-bg-subtle); }
-.dialog .d-choose { border: 0; background: var(--yg-accent); color: var(--yg-on-accent); }
-.dialog .d-choose:hover:not(:disabled) { background: var(--yg-accent-hover); }
-.dialog .d-choose:disabled { opacity: .4; cursor: default; }
+.ex .d-quiet, .ex .d-cancel, .ex .d-choose { height: 2.125rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-sm); font-size: .8125rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.ex .d-quiet { border: 1px solid var(--yg-border-strong); background: var(--yg-surface); color: var(--yg-text); }
+.ex .d-quiet:hover { background: var(--yg-bg-subtle); }
+.ex .d-cancel { border: 1px solid var(--yg-border-strong); background: var(--yg-surface); color: var(--yg-text); }
+.ex .d-cancel:hover { background: var(--yg-bg-subtle); }
+.ex .d-choose { border: 0; background: var(--yg-accent); color: var(--yg-on-accent); }
+.ex .d-choose:hover:not(:disabled) { background: var(--yg-accent-hover); }
+.ex .d-choose:disabled { opacity: .4; cursor: default; }
 @media (max-width: 40rem) { .d-body { grid-template-columns: minmax(0, 1fr); } .d-places { display: none; } .d-list .row { grid-template-columns: minmax(0, 1fr) 4.5rem; } .d-list .row > :nth-child(2) { display: none; } .d-filter { display: none; } .d-foot { grid-template-columns: 1fr; } .d-summary { text-align: left; } }
 .picker.locked > button { cursor: default; opacity: .75; }
 
@@ -228,3 +235,4 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 /* A mark is a quiet tile: the colours of the fields were a lot of colour for a list. */
 .mark { background: var(--yg-bg-subtle); color: var(--yg-text-muted); box-shadow: inset 0 0 0 1px var(--yg-border); }
+.title-row .grow { flex: 1; }
