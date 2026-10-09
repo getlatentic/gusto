@@ -25,6 +25,7 @@ type railGroup struct {
 type railChat struct {
 	Name  string
 	Where string
+	When  int64
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
@@ -92,7 +93,18 @@ func (s *Server) railChats(id string) []railChat {
 		if len(threads[i].Turns) == 0 {
 			continue
 		}
-		chats = append(chats, railChat{Name: threads[i].Name, Where: threadPath(threads[i].Thread)})
+		chats = append(chats, railChat{Name: threads[i].Name, Where: threadPath(threads[i].Thread), When: s.lastAsked(threads[i].Turns)})
 	}
 	return chats
+}
+
+// lastAsked is when the newest of a conversation's turns was asked.
+func (s *Server) lastAsked(turns []string) int64 {
+	if len(turns) == 0 {
+		return 0
+	}
+	if record, found := s.index.Get(turns[len(turns)-1]); found {
+		return record.Queued
+	}
+	return 0
 }

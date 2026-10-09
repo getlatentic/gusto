@@ -61,13 +61,45 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 // catalogPage is where a new agent is chosen: set up for a field of work,
 // or blank.
 func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
+	roles, fields := s.rolesToChoose()
 	s.render(w, "catalog.html", map[string]any{
-		"Title":     productName + " — new agent",
-		"Nav":       "new",
-		"Templates": industry.All(),
-		"Engines":   s.readyEngines(),
-		"Refused":   r.URL.Query().Get("refused"),
+		"Title":   productName + " — new agent",
+		"Nav":     "new",
+		"Roles":   roles,
+		"Fields":  fields,
+		"Engines": s.readyEngines(),
+		"Refused": r.URL.Query().Get("refused"),
 	})
+}
+
+// role is a ready-made kind of work as the new-agent page offers it: what it does, and whether it can be started here.
+type role struct {
+	industry.Template
+	Engines int
+	Blocked string
+}
+
+// rolesToChoose is every template with what is needed to start it, and the fields of work they come under, in order.
+func (s *Server) rolesToChoose() ([]role, []string) {
+	var roles []role
+	var fields []string
+	seen := map[string]bool{}
+	for _, held := range industry.All() {
+		runners := s.runnersOf(held)
+		each := role{Template: held, Engines: len(runners)}
+		switch {
+		case held.Restricted() && !s.inBuilding.Load():
+			each.Blocked = "This work only goes to models in your own network, and this deployment has none."
+		case len(runners) == 0:
+			each.Blocked = "No engine here can take this work yet."
+		}
+		roles = append(roles, each)
+		if !seen[held.Industry] {
+			seen[held.Industry] = true
+			fields = append(fields, held.Industry)
+		}
+	}
+	return roles, fields
 }
 
 // readyEngines is the agents this deployment can start now.

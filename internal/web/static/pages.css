@@ -123,3 +123,40 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .role .text span { font-size: .875rem; color: var(--yg-text-muted); }
 .role .kind { flex: none; font-size: .8125rem; color: var(--yg-text-subtle); }
 .role svg.go { flex: none; width: 1rem; height: 1rem; color: var(--yg-text-nontext); }
+
+/* Choosing a role: the list to pick from beside what the one picked does, and one way to start it. */
+.roles-pane { display: flex; flex-wrap: wrap; gap: var(--yg-space-6); align-items: flex-start; margin: 0 0 var(--yg-space-8); }
+.role-list { flex: 1 1 21rem; max-width: 26rem; display: grid; gap: var(--yg-space-3); }
+.role-list .search { display: flex; align-items: center; gap: var(--yg-space-2); height: 2.5rem; padding: 0 var(--yg-space-3); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); background: var(--yg-surface); color: var(--yg-text-subtle); }
+.role-list .search input { flex: 1; min-width: 0; border: 0; outline: none; background: none; padding: 0; font-size: .875rem; color: var(--yg-text); }
+.role-list .chips { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); }
+.chip { height: 1.875rem; padding: 0 var(--yg-space-3); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-full); background: var(--yg-surface); color: var(--yg-text-muted); font: 500 .8125rem/1 var(--yg-font-text); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--yg-text); border-color: var(--yg-text); color: var(--yg-text-inverse); }
+.picks { display: grid; gap: .25rem; }
+.pick-role { display: grid; gap: .25rem; width: 100%; padding: var(--yg-space-3) var(--yg-space-4); text-align: left; border: 0.0625rem solid transparent; border-radius: var(--yg-radius-md); background: none; color: inherit; font: inherit; cursor: pointer; }
+.pick-role:hover { background: var(--yg-bg-subtle); }
+.pick-role[aria-pressed="true"] { background: var(--yg-surface); border-color: var(--yg-border-strong); box-shadow: var(--yg-shadow-1); }
+.pick-role .top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--yg-space-3); }
+.pick-role .top strong { font-size: .9375rem; font-weight: 600; }
+.pick-role .kind { flex: none; font-size: .75rem; color: var(--yg-text-subtle); }
+.pick-role .what { font-size: .8125rem; line-height: 1.45; color: var(--yg-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.picks .none { margin: var(--yg-space-3); font-size: .875rem; color: var(--yg-text-subtle); }
+.role-details { flex: 2 1 28rem; min-width: 0; }
+.role-detail { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; }
+.role-detail[hidden] { display: none; }
+.role-detail .head { padding: var(--yg-space-7, 1.75rem) var(--yg-space-8) var(--yg-space-2); }
+.role-detail .head .kind { font-size: .8125rem; font-weight: 500; color: var(--yg-text-subtle); }
+.role-detail .head h2 { margin: .375rem 0 .5rem; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
+.role-detail .head p { margin: 0; max-width: 35rem; font-size: .9375rem; line-height: 1.55; color: var(--yg-text-muted); }
+.role-detail .blocked { margin: var(--yg-space-3) var(--yg-space-8) 0; padding: var(--yg-space-3) var(--yg-space-4); border-radius: var(--yg-radius-sm); background: var(--yg-warning-surface); color: var(--yg-text); font-size: .875rem; }
+.role-detail .block { padding: var(--yg-space-5) var(--yg-space-8) 0; }
+.role-detail .block h3 { margin: 0 0 .25rem; font-size: .8125rem; font-weight: 600; color: var(--yg-text-muted); }
+.role-detail .skill { display: grid; grid-template-columns: 9.25rem minmax(0, 1fr); gap: var(--yg-space-4); padding: var(--yg-space-3) 0; border-top: 0.0625rem solid var(--yg-border); }
+.role-detail .skill strong { font-size: .9375rem; font-weight: 500; }
+.role-detail .skill span { font-size: .875rem; line-height: 1.5; color: var(--yg-text-muted); }
+.role-detail .starters { list-style: none; display: grid; gap: var(--yg-space-2); margin: var(--yg-space-3) 0 0; padding: 0; }
+.role-detail .starters li { padding: var(--yg-space-2) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); font-size: .875rem; color: var(--yg-text-muted); }
+.role-detail .foot { display: flex; align-items: center; gap: var(--yg-space-4); margin-top: var(--yg-space-6); padding: var(--yg-space-4) var(--yg-space-8); border-top: 0.0625rem solid var(--yg-border); background: var(--yg-bg-subtle); }
+.role-detail .foot .note { flex: 1; margin: 0; font-size: .8125rem; color: var(--yg-text-subtle); }
+.role-detail .foot .cta { height: 2.5rem; padding: 0 var(--yg-space-5); }
+.pick-role[hidden], .picks .none[hidden] { display: none; }

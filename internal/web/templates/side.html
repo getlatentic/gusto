@@ -1,6 +1,6 @@
 {{define "side"}}<aside class="side" aria-label="Menu">
   <nav class="rail" aria-label="Places">
-    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud"><img src="/static/mark.png" alt=""></a>
+    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud">{{template "brand-glyph"}}</a>
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
     <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
@@ -25,6 +25,7 @@
 </aside>{{end}}
 
 {{define "side-chats"}}<div class="chats">
+  <div class="label">Projects</div>
   {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
   {{with .Older}}<details class="older"><summary>Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
 </div>{{end}}
@@ -34,7 +35,7 @@
     <details{{if .Open}} open{{end}}>
       <summary title="{{.Runs}}">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
       <ol>
-        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
+        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="t">{{.Name}}</span><span class="when">{{ago .When}}</span></a></li>{{end}}
       </ol>
     </details>
     <a class="add" href="/chat?at={{.ID}}" title="New chat in {{.Name}}" aria-label="New chat in {{.Name}}">{{template "icon-add"}}</a>
