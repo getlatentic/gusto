@@ -112,3 +112,14 @@ th { font-size: .8125rem; font-weight: 500; letter-spacing: 0; text-transform: n
 
 /* A hint goes under its field, where it can be read after the field has been seen. */
 label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
+
+/* Starting an agent: one row a role, in the same list as everything else. The mark says the field; the row says what it does. */
+.roles { max-width: 52rem; margin: 0 0 var(--yg-space-8); }
+.role { display: flex; align-items: center; gap: var(--yg-space-4); padding: var(--yg-space-4) var(--yg-space-5); color: inherit; text-decoration: none; border-top: 0.0625rem solid var(--yg-border); }
+.role:first-child { border-top: 0; }
+.role:hover { background: var(--yg-bg-subtle); }
+.role .text { flex: 1; min-width: 0; display: grid; gap: .125rem; }
+.role .text strong { font-size: .9375rem; font-weight: 600; }
+.role .text span { font-size: .875rem; color: var(--yg-text-muted); }
+.role .kind { flex: none; font-size: .8125rem; color: var(--yg-text-subtle); }
+.role svg.go { flex: none; width: 1rem; height: 1rem; color: var(--yg-text-nontext); }

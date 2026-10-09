@@ -2,14 +2,14 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<div class="page-head">
-  <h1>What do you need help with?</h1>
-  <p class="muted">Each comes ready for its work. You can change it later.</p>
+<div class="title-row">
+  <h1>New agent</h1>
+  <span class="count">Start from a role. You can change it later.</span>
 </div>
 
 {{template "choices" .Templates}}
 {{template "engine-choices" .Engines}}
 
-<p><a class="link-quiet" href="/setups">Build your own skill set →</a></p>
+<p class="note"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
 
 {{template "foot" .}}
