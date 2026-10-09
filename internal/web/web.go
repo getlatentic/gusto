@@ -117,6 +117,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
+		"replyIn":     s.replyIn,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
