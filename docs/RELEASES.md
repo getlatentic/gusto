@@ -21,6 +21,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 - **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.
 - **A folder for a chat.** A chat can work in a folder of the agent's computer in the cloud, chosen in an explorer, and every turn of it starts there (a job's optional `dir`, and a conversation's). In the desktop app a folder of the person's own computer can also be kept the same as an agent's folder by the helper ([DESKTOP.md](DESKTOP.md#working-in-a-folder)). Agents gain an optional `folder` key. Nothing changes for what has neither.
+- **Presets and roles in the chat.** A chat can be given a role (the skills of a ready-made kind of work) from a menu in its box, and a person can save the engine, the model and the role it is about to start with as a preset, and use it again from the chat or from the Roles page. Presets are one file for each person in the new `presets` directory (`HAAS_PRESETS`, format 1, [UPGRADE.md](UPGRADE.md)). Nothing changes for a server that does not use them.
 - **A chat page.** `/chat` opens on a box with the agent and model chosen under it, and every conversation shows the same list of the person's agents beside it.
 
 ## v0.0.1-alpha.5

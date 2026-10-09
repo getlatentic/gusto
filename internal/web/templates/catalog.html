@@ -3,12 +3,28 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 <div class="title-row">
-  <h1>New agent</h1>
-  <span class="count">Pick a role, see what it does, then start.</span>
-  <span class="grow"></span>
-  <a class="quiet-button" href="/new/blank">Blank agent</a>
+  <h1>Roles</h1>
+  <span class="count">Start a chat with a role, or with a preset you saved.</span>
 </div>
 
+<section class="presets" aria-label="Your presets">
+  <h2 class="plain">Your presets</h2>
+  {{if .Presets}}
+  <div class="list roles">
+    {{range .Presets}}
+    <div class="role preset">
+      <span class="text"><strong>{{.Name}}</strong><span>{{.Engine}}{{with .Model}} · {{.}}{{end}}{{with .Role}} · {{.}}{{end}}</span></span>
+      <a class="quiet-button" href="/chat?preset={{.ID}}">Use in a new chat</a>
+      <form method="post" action="/presets/{{.ID}}/delete"><button class="quiet" type="submit">Remove</button></form>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <p class="muted note">None yet. In a chat, choose an engine, a model and a role, then Save this setup as a preset in the Role menu.</p>
+  {{end}}
+</section>
+
+<h2 class="plain">Ready-made roles</h2>
 <div class="roles-pane" id="roles">
   <div class="role-list">
     <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search roles" aria-label="Search roles"></label>
@@ -44,22 +60,17 @@
         <h3>Try asking</h3>
         <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
       </div>
-      <form class="foot" method="post" action="/templates/{{$r.Name}}">
-        {{if gt (len $r.Fit) 1}}
-        <label class="runs-on"><span>Runs on</span>
-          <select name="engine" aria-label="Engine">{{range $r.Fit}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
-        </label>
-        {{end}}
-        <span class="note">You can change the engine and model later.</span>
+      <div class="foot">
+        <span class="note">It sets the skills a chat has. The engine and model are chosen in the chat.</span>
         <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
-        <button type="submit" class="cta"{{if $r.Blocked}} disabled{{end}}>Start with this role</button>
-      </form>
+        {{if $r.Blocked}}<span class="cta" aria-disabled="true">Use in a new chat</span>{{else}}<a class="cta" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
+      </div>
     </section>
     {{end}}
   </div>
 </div>
 
-{{if .Engines}}<details class="more engines-more"><summary>Start from an engine instead</summary>{{template "engine-choices" .Engines}}</details>{{end}}
+{{if .Engines}}<details class="more engines-more"><summary>Start an agent from an engine instead</summary>{{template "engine-choices" .Engines}}</details>{{end}}
 
 <p class="note"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
 

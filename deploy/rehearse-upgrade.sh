@@ -29,7 +29,7 @@ data="$work/data"
 echo "copying $source_dir to a scratch directory"
 cp -R "$source_dir" "$data"
 
-export HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" HAAS_INTEGRATIONS="$data/integrations" \
+export HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" HAAS_INTEGRATIONS="$data/integrations" HAAS_PRESETS="$data/presets" \
   HAAS_COMPARISONS="$data/comparisons" HAAS_CHANGES="$data/changes/changes.jsonl"
 [ -z "${HAAS_KEYRING:-}" ] && [ -d "$data/keys" ] && export HAAS_KEYRING="$data/keys"
 

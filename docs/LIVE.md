@@ -24,7 +24,7 @@ console, and those changes were already live. The registry decides them, and the
 
 A change to these needs a restart, and the change record notes it at the next start:
 
-- where things are kept: `HAAS_ADDR`, `HAAS_JOBS`, `HAAS_SESSIONS`, `HAAS_SETUPS`, `HAAS_INTEGRATIONS`, `HAAS_CHANGES`, `HAAS_RETENTION`
+- where things are kept: `HAAS_ADDR`, `HAAS_JOBS`, `HAAS_SESSIONS`, `HAAS_SETUPS`, `HAAS_INTEGRATIONS`, `HAAS_PRESETS`, `HAAS_CHANGES`, `HAAS_RETENTION`
 - who may sign in and who is an administrator: `HAAS_ALLOWED`, `HAAS_ADMINS`, the groups and the identity provider's settings
 - how jobs run: `HAAS_SANDBOX`, `HAAS_JOB_NETWORK`, `HAAS_CONTAINER`, `HAAS_JOB_CONCURRENCY`, `HAAS_ALLOWED_HOSTS`
 - the tool servers an operator offers (`HAAS_MCP`) and the gateway's mode and network rule

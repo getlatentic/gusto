@@ -90,13 +90,13 @@ func TestARoleStartsOnTheFirstEngineThatCanTakeIt(t *testing.T) {
 	}
 }
 
-func TestTheNewAgentPageShowsEachRoleWhatItDoes(t *testing.T) {
+func TestTheRolesPageShowsEachRoleWhatItDoes(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	page := site.ask(t, "GET", "/new", nil).Body.String()
-	for _, want := range []string{`data-role="health"`, `data-for="health"`, "What it can do", "Try asking", "Start with this role", `id="role-search"`} {
+	for _, want := range []string{`data-role="health"`, `data-for="health"`, "What it can do", "Try asking", "Use in a new chat", `id="role-search"`} {
 		if !strings.Contains(page, want) {
-			t.Errorf("the new-agent page does not carry %q", want)
+			t.Errorf("the roles page does not carry %q", want)
 		}
 	}
 }
