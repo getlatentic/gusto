@@ -125,33 +125,32 @@
 {{template "choices" .}}
 {{end}}
 {{define "choices"}}
-<section class="choices">
+<div class="list roles">
   {{range .}}
-  <a class="choice {{hue .Industry}}" href="/templates/{{.Name}}">
-    {{template "mark" (dict "Field" .Industry "Name" .Title "Size" "")}}
-    <span class="tag">{{.Industry}}</span>
-    <span class="name">{{.Title}}</span>
-    <span class="what">{{.Summary}}</span>
+  <a class="role" href="/templates/{{.Name}}">
+    <span class="text"><strong>{{.Title}}</strong><span>{{.Summary}}</span></span>
+    <span class="kind">{{.Industry}}</span>
+    {{template "icon-go"}}
   </a>
   {{end}}
-  <a class="choice blank hue-general" href="/new/blank">
-    <span class="mark"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
-    <span class="name">Your own agent</span>
-    <span class="what">Choose the engine, a skill set and a repository yourself.</span>
+  <a class="role blank" href="/new/blank">
+    <span class="text"><strong>Blank agent</strong><span>Choose the engine, a skill set and a repository yourself.</span></span>
+    {{template "icon-go"}}
   </a>
-</section>
+</div>
 {{end}}
-{{/* engine-choices is a card for each agent a person may start with, for one who knows which they want. */}}
+{{/* engine-choices is a row for each agent a person may start with, for one who knows which they want. */}}
 {{define "engine-choices"}}{{if .}}
-<section class="choices">
+<h2 class="plain">Or pick an engine</h2>
+<div class="list roles">
   {{range .}}
-  <a class="choice hue-general" href="/instances/new?harness={{.Name}}">
-    {{template "mark" (dict "Field" "" "Name" .Title "Size" "")}}
-    <span class="name">{{.Title}}</span>
-    <span class="what">{{.What}}</span>
+  <a class="role" href="/instances/new?harness={{.Name}}">
+    <span class="text"><strong>{{.Title}}</strong><span>{{.What}}</span></span>
+    {{template "icon-go"}}
   </a>
   {{end}}
-</section>{{end}}{{end}}
+</div>{{end}}{{end}}
+{{define "icon-go"}}<svg class="i go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
 {{define "steps"}}<ol class="did">{{range .}}<li><span class="what">{{.What}}</span>{{with .Detail}} <span class="detail">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
 {{define "icon-shield"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>{{end}}
