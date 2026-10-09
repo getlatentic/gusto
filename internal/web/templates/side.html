@@ -15,17 +15,20 @@
   <div class="panel">
     <div class="panel-head"><span class="name">Latentic Agent Cloud</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
-    {{if .Rail}}{{template "side-chats" .}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
+    {{if .Rail}}{{template "side-chats" .Rail}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
   </div>
 </aside>{{end}}
 
 {{define "side-chats"}}<div class="chats">
-  {{range .Rail}}
+  {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
+  {{with .Older}}<details class="older"><summary>Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
+</div>{{end}}
+
+{{define "side-groups"}}{{range .Groups}}
   <section>
     <h3 title="{{.Runs}}">{{.Name}}</h3>
     <ol>
       {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
     </ol>
   </section>
-  {{end}}
-</div>{{end}}
+{{end}}{{end}}

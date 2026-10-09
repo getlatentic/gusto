@@ -61,8 +61,9 @@ AppImage and a package). It is not built for Windows or Linux on Arm. None of it
 ### Working in a folder
 
 The agent works on a computer in the cloud, so the folder a chat works in is a folder of that computer. The folder button on the chat page
-opens an explorer of it: at the top the person's agents, each the top of a folder of its own, and inside one its folders and files. **Work
-here** chooses the folder shown, and **New folder** makes one (at the top it makes a new agent's folder). The chat then goes to that agent,
+opens a window laid out like a Finder's open panel: the projects down the side (a project is an agent's folder), the path along the top, and
+the place's folders and files in a list with their dates and sizes. A folder is opened with a double click, chosen with **Choose**, and made
+with **New Folder** (at the top it makes a new project). The side list of conversations is grouped by project in the same way. The chat then goes to that agent,
 and every turn of it starts in that folder. Nothing outside an agent's workspace can be named, by a path, a link or somebody else's agent.
 This is in the browser as well as the app.
 
