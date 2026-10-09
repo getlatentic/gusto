@@ -132,30 +132,6 @@ table.facts td { border: 0; padding-left: 0; }
 .after a { color: var(--yg-text-muted); text-decoration: none; }
 .after a:hover { color: var(--yg-accent-text); }
 
-/* A chat fills the window. The header stays, the conversation scrolls under
-   it, and what you type stays on the floor of the page where you left it —
-   rather than at the end of a document you have to scroll to reach. */
-body.chat { max-width: none; height: 100dvh; padding: 0;
-  display: grid; grid-template-rows: auto minmax(0, 1fr); }
-body.chat header { margin: 0; padding: var(--yg-space-4) var(--yg-space-6); }
-.desk { display: grid; grid-template-columns: 16rem minmax(0, 1fr); min-height: 0; }
-
-/* The conversations on this instance, down the side, because a list you can
-   see is one you remember you have. */
-.rail { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--yg-space-4);
-  min-height: 0; min-width: 0; padding: var(--yg-space-6) var(--yg-space-4);
-  border-right: 1px solid var(--yg-border); }
-.rail ol { list-style: none; margin: 0; padding: 0; overflow-y: auto;
-  display: grid; gap: 2px; align-content: start; }
-.rail ol a { display: block; padding: var(--yg-space-2) var(--yg-space-3);
-  border-radius: var(--yg-radius-sm); font-size: .875rem; color: var(--yg-text-muted);
-  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rail ol a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-.rail ol a[aria-current] { background: var(--yg-accent-surface); color: var(--yg-text); font-weight: 600; }
-/* What was said scrolls; what you type does not. Both sit in one column of a
-   readable width, so a reply and the box you answer it in line up. */
-.talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
-.said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
 .column { max-width: 46rem; margin: 0 auto; }
 .nothing-said { color: var(--yg-text-muted); text-align: center;
   padding: var(--yg-space-16) 0; }
@@ -366,38 +342,6 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
   header nav a span { display: none; }
 }
 
-/* A bar for the narrow case: which conversation you are in, and the way to the
-   rest of them. It is not there when the list already is. */
-.talk-top { display: flex; align-items: center; gap: var(--yg-space-3);
-  padding: var(--yg-space-3) var(--yg-space-4);
-  border-bottom: 1px solid var(--yg-border); }
-.talk-top .which { font-weight: 600; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap; }
-.rail-toggle { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2);
-  padding: var(--yg-space-2) var(--yg-space-3); font-size: .875rem; font-weight: 400;
-  background: none; color: var(--yg-text-muted); border: 1px solid var(--yg-border-strong); }
-.rail-toggle:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-.scrim { display: none; }
-
-/* Narrow enough and a column down the side leaves nothing to read in. The
-   list stays a list and slides over instead, because a conversation list laid
-   out as tabs stops reading as the thing you keep and start. */
-@media (max-width: 56rem) {
-  .desk { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(17rem, 82vw);
-    background: var(--yg-bg); box-shadow: var(--yg-shadow-3);
-    transform: translateX(-100%);
-    transition: transform var(--yg-dur-base) var(--yg-ease-standard); }
-  body.rail-open .rail { transform: none; }
-  body.rail-open .scrim { display: block; position: fixed; inset: 0; z-index: 10;
-    background: rgb(23 23 23 / .32); }
-  .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); }
-  .composer { padding: var(--yg-space-4); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rail { transition: none; }
-}
 
 /* Every conversation on this instance, with the one you are in marked. They
    wrap rather than scroll, because a thread you cannot see is one you will not
@@ -453,23 +397,6 @@ ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
    click from the top. In the middle, what you said on the right and what came
    back on the left beside the harness's mark, with what it did folded above
    the reply and what it took quietly under it. */
-.rail .whose { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0;
-  padding: var(--yg-space-2); border-radius: var(--yg-radius-sm); color: inherit; text-decoration: none; }
-.rail .whose:hover { background: var(--yg-bg-subtle); }
-.rail .whose .who { display: grid; min-width: 0; }
-.rail .whose .name { font: 600 1rem/1.2 var(--yg-font-display); }
-.rail .whose .model { font-size: .8125rem; line-height: 1.35; color: var(--yg-text-muted); }
-.rail { grid-template-rows: auto auto minmax(0, 1fr); }
-button.new-thread, a.new-thread { width: 100%; display: inline-flex; align-items: center; justify-content: center;
-  gap: var(--yg-space-2); font-size: .875rem; padding: var(--yg-space-2) var(--yg-space-4);
-  background: var(--yg-surface); color: var(--yg-text); font-weight: 500;
-  border: 1px solid var(--yg-border-strong); text-decoration: none; }
-button.new-thread:hover, a.new-thread:hover { background: var(--yg-accent-surface); border-color: var(--yg-accent); }
-.talk-top { gap: var(--yg-space-3); padding: var(--yg-space-3) var(--yg-space-6);
-  border-bottom: 1px solid var(--yg-border); min-height: 3.25rem; }
-.talk-top .rail-toggle { display: none; padding: var(--yg-space-2); }
-.talk-top .which { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.talk-top .with { font-size: .8125rem; color: var(--yg-text-muted); white-space: nowrap; }
 .turn { margin-bottom: var(--yg-space-6); }
 .said { margin: 0 0 var(--yg-space-4) auto; max-width: 36rem; overflow-wrap: anywhere; }
 .answer { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: var(--yg-space-3); align-items: start; }
@@ -510,25 +437,6 @@ button.starter { text-align: left; font-weight: 400; font-size: .875rem; line-he
   background: var(--yg-surface); border: 1px solid var(--yg-border); padding: var(--yg-space-3) var(--yg-space-4);
   border-radius: var(--yg-radius-md); justify-self: stretch; }
 button.starter:hover { background: var(--yg-surface); border-color: var(--yg-accent); }
-.composer { padding: var(--yg-space-3) var(--yg-space-6) var(--yg-space-4); }
-.composer .box { display: flex; flex-direction: column; gap: var(--yg-space-1);
-  padding: var(--yg-space-3) var(--yg-space-2) var(--yg-space-2) var(--yg-space-4);
-  background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-lg);
-  box-shadow: var(--yg-shadow-1); }
-.composer .box:focus-within { border-color: var(--yg-accent); }
-.composer textarea { flex: 1; min-width: 0; min-height: 2.5rem; max-height: 14rem; padding: var(--yg-space-2) 0;
-  border: 0; background: none; resize: none; }
-.composer textarea:focus-visible { outline: none; }
-button.send { flex: none; width: 2.25rem; height: 2.25rem; padding: 0; display: grid; place-items: center;
-  border-radius: var(--yg-radius-full); }
-button.send svg.i { opacity: 1; stroke-width: 2; }
-.composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
-@media (max-width: 56rem) {
-  .talk-top .rail-toggle { display: inline-flex; }
-  .talk-top .with { display: none; }
-  .composer .hint { display: none; }
-}
-
 /* Templates: a field's mark, its name, and one line on what it does. */
 .templates { display: grid; gap: var(--yg-space-4); margin-bottom: var(--yg-space-4);
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
@@ -845,15 +753,3 @@ label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0
 label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }
 h2.plain { margin: 0; font: 600 1.125rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
-
-/* What the next message goes to sits in the box it is written in: the agent and the model, quiet until looked at. */
-.composer .tools { display: flex; align-items: center; justify-content: space-between; gap: var(--yg-space-2); }
-.composer .picks { display: flex; align-items: center; gap: var(--yg-space-1); min-width: 0; margin-left: auto; }
-.composer .picks select { width: auto; max-width: 14rem; padding: var(--yg-space-1) var(--yg-space-2); border: 0;
-  background: none; font-size: .8125rem; color: var(--yg-text-muted); cursor: pointer; }
-.composer .picks select:hover { color: var(--yg-text); }
-.rail .groups { overflow-y: auto; min-height: 0; display: grid; align-content: start; gap: var(--yg-space-4); }
-.rail .groups h3 { margin: 0 0 var(--yg-space-1); padding: 0 var(--yg-space-3); font-size: .75rem; font-weight: 600;
-  letter-spacing: .02em; color: var(--yg-text-subtle); text-transform: none; }
-.rail .groups ol { overflow: visible; }
-.rail { grid-template-rows: auto minmax(0, 1fr); }
