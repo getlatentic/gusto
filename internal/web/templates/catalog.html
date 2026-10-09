@@ -4,12 +4,60 @@
 
 <div class="title-row">
   <h1>New agent</h1>
-  <span class="count">Start from a role. You can change it later.</span>
+  <span class="count">Pick a role, see what it does, then start.</span>
+  <span class="grow"></span>
+  <a class="quiet-button" href="/new/blank">Blank agent</a>
 </div>
 
-{{template "choices" .Templates}}
+<div class="roles-pane" id="roles">
+  <div class="role-list">
+    <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search roles" aria-label="Search roles"></label>
+    <div class="chips" role="group" aria-label="Field of work">
+      <button type="button" class="chip" data-field="" aria-pressed="true">All</button>
+      {{range .Fields}}<button type="button" class="chip" data-field="{{.}}" aria-pressed="false">{{.}}</button>{{end}}
+    </div>
+    <div class="picks">
+      {{range $i, $r := .Roles}}
+      <button type="button" class="pick-role" data-role="{{$r.Name}}" data-field="{{$r.Industry}}" aria-pressed="{{if eq $i 0}}true{{else}}false{{end}}">
+        <span class="top"><strong>{{$r.Title}}</strong><span class="kind">{{$r.Industry}}</span></span>
+        <span class="what">{{$r.Summary}}</span>
+      </button>
+      {{end}}
+      <p class="none" hidden>No role matches.</p>
+    </div>
+  </div>
+
+  <div class="role-details">
+    {{range $i, $r := .Roles}}
+    <section class="role-detail panel" data-for="{{$r.Name}}"{{if ne $i 0}} hidden{{end}} aria-label="{{$r.Title}}">
+      <div class="head">
+        <span class="kind">{{$r.Industry}}</span>
+        <h2>{{$r.Title}}</h2>
+        <p>{{$r.Summary}}</p>
+      </div>
+      {{if $r.Blocked}}<p class="blocked">{{$r.Blocked}}</p>{{end}}
+      <div class="block">
+        <h3>What it can do</h3>
+        {{range $r.Skills}}<div class="skill"><strong>{{.Title}}</strong><span>{{.Blurb}}</span></div>{{end}}
+      </div>
+      <div class="block">
+        <h3>Try asking</h3>
+        <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
+      </div>
+      <form class="foot" method="post" action="/templates/{{$r.Name}}">
+        <span class="note">{{if $r.Engines}}Works with {{$r.Engines}} engine{{if ne $r.Engines 1}}s{{end}}. You can change the engine and model later.{{end}}</span>
+        <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
+        <button type="submit" class="cta"{{if $r.Blocked}} disabled{{end}}>Start with this role</button>
+      </form>
+    </section>
+    {{end}}
+  </div>
+</div>
+
 {{template "engine-choices" .Engines}}
 
 <p class="note"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
+
+<script src="{{asset "/static/roles.js"}}"></script>
 
 {{template "foot" .}}
