@@ -8,11 +8,14 @@ package job
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // Sensitivity is how sensitive the code in a job is. A runner says whose
@@ -66,8 +69,11 @@ type Spec struct {
 	// workspace it mounts instead of cloning. Thread names the conversation on
 	// that instance, and Remembered is the harness's own name for that
 	// conversation, handed back so it resumes rather than restarts.
-	Session     string      `json:"session,omitempty"`
-	Thread      string      `json:"thread,omitempty"`
+	Session string `json:"session,omitempty"`
+	Thread  string `json:"thread,omitempty"`
+	// Dir is the folder of the workspace the harness works in, from the workspace's root: a turn that was asked to work in one folder
+	// of the agent's computer starts there. It is empty for the root.
+	Dir         string      `json:"dir,omitempty"`
 	Remembered  string      `json:"remembered,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
@@ -216,4 +222,25 @@ func (s Spec) Write(d Dir) error {
 		return err
 	}
 	return os.WriteFile(d.Spec(), append(text, '\n'), 0o644)
+}
+
+// CleanDir is a folder of a workspace as a job may name it: relative to the workspace, with no way out of it. It says why when it is not.
+func CleanDir(dir string) (string, error) {
+	if dir == "" {
+		return "", nil
+	}
+	if len(dir) > 240 || strings.ContainsAny(dir, "\\\x00\n\r") {
+		return "", errors.New("that is not a folder of the workspace")
+	}
+	if strings.HasPrefix(dir, "/") {
+		return "", errors.New("a folder of the workspace is named from its root, without a leading slash")
+	}
+	cleaned := path.Clean(dir)
+	if cleaned == "." {
+		return "", nil
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", errors.New("a folder of the workspace cannot be outside it")
+	}
+	return cleaned, nil
 }

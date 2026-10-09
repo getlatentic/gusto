@@ -146,6 +146,8 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
 	mux.HandleFunc("GET /side/chats", s.guard(s.sideChats))
+	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
+	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
 	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
