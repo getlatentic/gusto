@@ -53,13 +53,30 @@ func (a agent) handOver(dir job.Dir, command *exec.Cmd) error {
 	return nil
 }
 
-func (a agent) own(root string) error {
+func (a agent) own(root string) error { return chownTree(root, a.uid, a.gid) }
+
+func chownTree(root string, uid, gid int) error {
 	return filepath.WalkDir(root, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		return os.Lchown(path, a.uid, a.gid)
+		return os.Lchown(path, uid, gid)
 	})
+}
+
+// takeBack gives the workspace and home back to the runner's user when the harness is gone. A conversation's workspace is the
+// instance's own folder, mounted from the machine the box runs on, where the runner's user is the server's and the agent's is a
+// stranger: what the agent made would be files the server can list and cannot open, or remove. It is handed over again, whole, at the
+// start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed for it.
+func (a agent) takeBack(dir job.Dir) {
+	if !a.present {
+		return
+	}
+	for _, mine := range []string{dir.Workspace(), os.Getenv("HOME")} {
+		if mine != "" {
+			_ = chownTree(mine, os.Geteuid(), os.Getegid())
+		}
+	}
 }
 
 // endAll stops every process the agent left behind, so nothing it started is
