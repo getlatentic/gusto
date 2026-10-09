@@ -107,9 +107,12 @@ func (o *organisation) queries() []string {
 }
 
 // running starts a helper against the organisation and stops it when the test ends.
-func running(t *testing.T, o *organisation, vault Vault, dir string) (*Daemon, Local, context.CancelFunc) {
+func running(t *testing.T, o *organisation, vault Vault, dir string, setup ...func(*Daemon)) (*Daemon, Local, context.CancelFunc) {
 	t.Helper()
 	d := &Daemon{Server: o.URL, Vault: vault, Dir: dir, Retry: func(int) time.Duration { return 10 * time.Millisecond }, Signed: 20 * time.Millisecond}
+	for _, each := range setup {
+		each(d)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- d.Run(ctx) }()

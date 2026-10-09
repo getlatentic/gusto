@@ -2,6 +2,7 @@
 //! doing, and a notification when one finishes. The work is done by haas-helper, which the app starts and keeps going.
 
 mod config;
+mod folders;
 mod helper;
 mod links;
 mod navigation;
@@ -33,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(helper::Helper::default())
         .manage(tray::Pages::default())
         .manage(updates::Available::default())

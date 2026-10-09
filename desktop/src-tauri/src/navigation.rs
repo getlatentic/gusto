@@ -9,6 +9,8 @@ pub enum Move {
     Allow,
     /// The window stays, and the person signs in through their browser.
     SignIn,
+    /// The window stays, and the person chooses a folder of this computer to work in.
+    PickFolder,
     /// The window goes to this address instead: the sign-in page that offers the browser.
     Instead(Url),
     /// The window stays, and the person's browser opens it.
@@ -25,6 +27,7 @@ pub fn decide(server: &Url, to: &Url) -> Move {
     }
     match to.path() {
         "/auth/desktop/begin" => Move::SignIn,
+        "/app/folder" => Move::PickFolder,
         "/login" if !to.query_pairs().any(|(name, _)| name == "desktop") => {
             let mut offered = to.clone();
             offered.query_pairs_mut().append_pair("desktop", "1");
@@ -67,5 +70,6 @@ mod tests {
         }
         assert_eq!(go("https://agents.example.com/login?desktop=1"), Move::Allow);
         assert_eq!(go("https://agents.example.com/auth/desktop/begin"), Move::SignIn);
+        assert_eq!(go("https://agents.example.com/app/folder"), Move::PickFolder);
     }
 }
