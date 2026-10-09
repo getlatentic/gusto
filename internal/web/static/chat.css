@@ -53,9 +53,10 @@ details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-
 .turn-live ol.live { list-style: none; margin: 0; padding: 0 0 0 var(--yg-space-2); display: grid; gap: var(--yg-space-2); }
 .turn-live ol.live:empty { display: none; }
 .turn-live ol.live li { display: flex; align-items: baseline; gap: var(--yg-space-2); min-width: 0; font-size: .8125rem; color: var(--yg-text-subtle); }
-.turn-live ol.live li::before { content: ""; width: .375rem; height: .375rem; flex: none; border-radius: 50%; background: var(--yg-border-strong); transform: translateY(-0.0625rem); }
 .turn-live ol.live li.now { color: var(--yg-text); }
-.turn-live ol.live li.now::before { background: var(--yg-text); }
+.turn-live ol.live li .mark-step { display: grid; place-items: center; flex: none; width: .875rem; height: .875rem; align-self: center; }
+.turn-live ol.live li .mark-step svg { width: 100%; height: 100%; fill: none; stroke: var(--yg-success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.turn-live ol.live li.now .mark-step::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--yg-text); }
 .turn-live .what { font-weight: 600; flex: none; }
 .turn-live .detail { font-family: var(--yg-font-mono); font-size: 0.75rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .turn-live .latest-words { margin: 0 0 0 var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .8125rem; line-height: 1.5; color: var(--yg-text-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -76,3 +77,14 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 .save-preset[hidden] { display: none; }
 .save-preset input[name="name"] { flex: 1; min-width: 0; height: 2.25rem; padding: 0 var(--yg-space-3); }
 .save-preset .cta { height: 2.25rem; }
+
+/* Stop is a button with its name, in the box where Send would be. */
+.composer .stop-pill { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; padding: 0 var(--yg-space-4) 0 var(--yg-space-3); margin-left: var(--yg-space-1); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-full); background: var(--yg-surface); color: var(--yg-text); font: 600 .875rem/1 var(--yg-font-text); cursor: pointer; }
+.composer .stop-pill:hover { background: var(--yg-bg-subtle); }
+.composer .stop-pill svg.i { width: .875rem; height: .875rem; opacity: 1; }
+.composer .tools .meta-left { padding-left: var(--yg-space-1); }
+
+/* On a new chat the starters are short pills under the box. */
+#chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--yg-space-2); max-width: 45rem; margin: var(--yg-space-6) auto 0; }
+#chat-starters .starter { height: 2.25rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-full); font-size: .875rem; }
+.folderpick .chip { height: 2rem; padding: 0 var(--yg-space-3) 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); color: var(--yg-text-muted); font-size: .8125rem; font-weight: 500; }
