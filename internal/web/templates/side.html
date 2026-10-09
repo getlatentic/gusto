@@ -25,10 +25,13 @@
 </div>{{end}}
 
 {{define "side-groups"}}{{range .Groups}}
-  <section>
-    <h3 title="{{.Runs}}">{{.Name}}</h3>
-    <ol>
-      {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
-    </ol>
+  <section class="proj">
+    <details open>
+      <summary title="{{.Runs}}">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
+      <ol>
+        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
+      </ol>
+    </details>
+    <a class="add" href="/chat?at={{.ID}}" title="New chat in {{.Name}}" aria-label="New chat in {{.Name}}">{{template "icon-add"}}</a>
   </section>
 {{end}}{{end}}

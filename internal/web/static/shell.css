@@ -37,15 +37,32 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side .item:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
 .side .item[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
 .side .item.new { color: var(--yg-text); font-weight: 600; }
-.side .chats { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: var(--yg-space-4); align-content: start;
+.side .chats { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-2); align-content: start;
   margin: 0 calc(var(--yg-space-1) * -1); padding: 0 var(--yg-space-1); }
-.side h3 { margin: 0 0 var(--yg-space-1); padding: 0 var(--yg-space-3); font: 600 .6875rem/1.4 var(--yg-font-text);
-  letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); }
-.side ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
-.side ol a { display: block; padding: .4375rem var(--yg-space-3); border-radius: var(--yg-radius-sm); font-size: .875rem;
-  color: var(--yg-text-muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side ol a:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
-.side ol a[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+
+/* A project is a folder with its conversations under it: the folder's name as the heading, the chats under it a size smaller and lighter. */
+.side .proj { position: relative; min-width: 0; }
+.side .proj summary { display: flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-8) 0 var(--yg-space-3);
+  border-radius: var(--yg-radius-sm); list-style: none; cursor: pointer; font: 600 .8125rem/1 var(--yg-font-text); color: var(--yg-text); }
+.side .proj summary::-webkit-details-marker { display: none; }
+.side .proj summary svg.i { width: 16px; height: 16px; color: var(--yg-text-subtle); opacity: 1; }
+.side .proj summary .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .proj summary:hover { background: var(--yg-surface-sunken); }
+.side .proj ol { list-style: none; margin: 2px 0 var(--yg-space-2); padding: 0; display: grid; gap: 1px; }
+.side .proj ol a { display: block; height: 1.875rem; line-height: 1.875rem; padding: 0 var(--yg-space-3) 0 2.25rem; border-radius: var(--yg-radius-sm);
+  font-size: .8125rem; font-weight: 400; color: var(--yg-text-muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .proj ol a:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
+.side .proj ol a[aria-current] { background: var(--yg-surface); color: var(--yg-text); font-weight: 500; box-shadow: var(--yg-shadow-1); }
+.side .proj .add { position: absolute; top: .25rem; right: .25rem; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: var(--yg-radius-sm);
+  color: var(--yg-text-muted); opacity: 0; transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
+.side .proj .add svg.i { width: 14px; height: 14px; opacity: 1; }
+.side .proj:hover .add, .side .proj .add:focus-visible { opacity: 1; }
+.side .proj .add:hover { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.side details.older > summary { display: flex; align-items: center; justify-content: space-between; height: 2rem; padding: 0 var(--yg-space-3); border-radius: var(--yg-radius-sm);
+  list-style: none; cursor: pointer; font: 500 .8125rem/1 var(--yg-font-text); color: var(--yg-text-subtle); }
+.side details.older > summary::-webkit-details-marker { display: none; }
+.side details.older > summary:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
+.side details.older[open] > summary { margin-bottom: var(--yg-space-2); }
 
 .page { min-width: 0; min-height: 0; overflow-y: auto; }
 .page > .wrap { max-width: 72rem; margin: 0 auto; padding: var(--yg-space-8) var(--yg-space-8) var(--yg-space-20); }
@@ -55,18 +72,12 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 /* The chat: what was said scrolls, and what is written stays on the floor of the page. */
 .talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
-.talk-top { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 3.25rem;
-  padding: var(--yg-space-2) var(--yg-space-6); border-bottom: 1px solid var(--yg-border); }
-.talk-top .which { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.talk-top a.muted { font-size: .8125rem; color: var(--yg-text-muted); text-decoration: none; }
-.talk-top a.muted:hover { color: var(--yg-text); }
-.talk-top .guards { display: flex; gap: var(--yg-space-2); flex-wrap: wrap; }
 
 .composer { padding: var(--yg-space-2) var(--yg-space-6) var(--yg-space-5); }
 .composer .box { display: grid; gap: var(--yg-space-2); padding: var(--yg-space-4) var(--yg-space-3) var(--yg-space-3) var(--yg-space-5);
   background: var(--yg-surface); border: 1px solid var(--yg-border-strong); border-radius: 1.25rem; box-shadow: var(--yg-shadow-1);
   transition: border-color var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
-.composer .box:focus-within { border-color: var(--yg-accent); box-shadow: 0 0 0 3px rgb(255 138 31 / .16); }
+.composer .box:focus-within { border-color: var(--yg-text-subtle); box-shadow: 0 0 0 3px rgb(23 23 23 / .06); }
 .composer textarea { width: 100%; min-height: 1.75rem; max-height: 14rem; padding: 0; border: 0; background: none; resize: none;
   font: inherit; line-height: 1.55; }
 .composer textarea:focus-visible { outline: none; }
@@ -135,14 +146,14 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-list .name { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0; }
 .d-list .name .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .d-list .folder { cursor: default; color: var(--yg-text); }
-.d-list .folder .name .ic { color: var(--yg-accent-text); }
+.d-list .folder .name .ic { color: var(--yg-text-muted); }
 .d-list .folder:hover { background: var(--yg-bg-subtle); }
-.d-list .folder.selected { background: var(--yg-accent-surface); box-shadow: inset 0 0 0 1px var(--yg-accent); }
+.d-list .folder.selected { background: var(--yg-bg-subtle); box-shadow: inset 0 0 0 1px var(--yg-text-subtle); }
 .d-list .file { color: var(--yg-text-subtle); }
 .d-list .dim { font-size: .8125rem; color: var(--yg-text-subtle); white-space: nowrap; }
 .d-list .go { display: flex; justify-content: flex-end; color: var(--yg-text-subtle); }
 .d-list .making { grid-template-columns: minmax(0, 1fr); }
-.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 1px solid var(--yg-accent); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; outline: none; box-shadow: 0 0 0 3px rgb(255 138 31 / .16); }
+.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 1px solid var(--yg-text-subtle); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; outline: none; box-shadow: 0 0 0 3px rgb(23 23 23 / .06); }
 .d-list .problem { grid-column: 1; margin: -4px 0 var(--yg-space-1) 1.75rem; font-size: .75rem; color: var(--yg-danger); }
 .d-empty { padding: var(--yg-space-8) var(--yg-space-4); text-align: center; font-size: .875rem; color: var(--yg-text-subtle); }
 .d-foot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-4); border-top: 1px solid var(--yg-border); }
@@ -176,7 +187,9 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .picker .menu button:hover, .picker .menu button:focus-visible { background: var(--yg-bg-subtle); outline: none; }
 .picker .menu .name { font-size: .875rem; font-weight: 500; }
 .picker .menu .detail { font-size: .75rem; color: var(--yg-text-subtle); }
-.picker .menu button[aria-selected="true"] .name::after { content: "✓"; position: absolute; right: var(--yg-space-3); color: var(--yg-accent-text); }
+.picker .menu button[aria-selected="true"] .name::after { content: ""; position: absolute; right: var(--yg-space-3); top: var(--yg-space-3); width: 14px; height: 14px; background: var(--yg-text);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 @media (max-width: 56rem) {
   .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
@@ -205,22 +218,13 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 /* The panel of conversations put away: the icons stay. */
 .panel-closed .sidepanel { display: none; }
-.talk-top .sealed { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--yg-radius-full);
   color: var(--yg-success); cursor: default; }
-.talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--yg-success-surface); outline: none; }
-.talk-top .sealed svg.i { width: 16px; height: 16px; opacity: 1; }
 @media (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .rail .panel-toggle { display: none; } }
-.talk-top .in-folder { display: inline-flex; align-items: center; gap: var(--yg-space-1); font-size: .8125rem; color: var(--yg-text-muted); max-width: 14rem;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.side details.older { display: grid; gap: var(--yg-space-4); }
-.side details.older > summary { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--yg-space-3); cursor: pointer; list-style: none;
-  font: 600 .6875rem/1.4 var(--yg-font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); }
-.side details.older > summary::-webkit-details-marker { display: none; }
-.side details.older > summary:hover { color: var(--yg-text); }
-.side details.older[open] > summary { margin-bottom: var(--yg-space-3); }
-.side details.older .n { font-weight: 500; }
 .composer button, .composer .picker .label { white-space: nowrap; }
 .picker .menu { min-width: 16rem; max-width: 24rem; }
 .picker .menu .detail { white-space: nowrap; }
-.side h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A mark is a quiet tile: the colours of the fields were a lot of colour for a list. */
+.mark { background: var(--yg-bg-subtle); color: var(--yg-text-muted); box-shadow: inset 0 0 0 1px var(--yg-border); }
