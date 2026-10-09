@@ -35,7 +35,7 @@ func TestTheExplorerShowsTheFoldersOfThePersonsCloudComputer(t *testing.T) {
 		t.Fatalf("the top shows %+v (%d)", top, code)
 	}
 	inside, _ := foldersAt(t, site, instance)
-	if len(inside.Folders) != 1 || inside.Folders[0].Name != "src" || len(inside.Files) != 1 || inside.Files[0] != "notes.md" || inside.Harness != "fixture" {
+	if len(inside.Folders) != 1 || inside.Folders[0].Name != "src" || len(inside.Files) != 1 || inside.Files[0].Name != "notes.md" || inside.Files[0].Size != 1 || inside.Harness != "fixture" {
 		t.Errorf("an agent's folder shows %+v", inside)
 	}
 	deeper, _ := foldersAt(t, site, instance+"/src")

@@ -96,7 +96,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Starters": s.startersOf(held),
 		"Models":   asJSON(s.modelOptionsOf(s.offeredTo(r).For(held.Harness))),
 		"Several":  len(s.offeredTo(r).For(held.Harness)) > 1,
-		"Rail":     s.railFor(r),
+		"Rail":     s.railFor(r, threadPath(thread)),
 		"Here":     threadPath(thread),
 		// A chat fills the window rather than sitting in a document.
 		"Chat":     true,

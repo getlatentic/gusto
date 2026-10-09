@@ -20,8 +20,17 @@ import (
 type shownFolder struct {
 	Name string `json:"name"`
 	At   string `json:"at"`
-	// Harness and Model say what works in it, for a folder that is an agent's whole workspace.
+	// Harness says what works in it, for a folder that is an agent's whole workspace.
 	Harness string `json:"harness,omitempty"`
+	// Modified is when it was last changed, in seconds, or when the agent was last used.
+	Modified int64 `json:"modified,omitempty"`
+}
+
+// shownFile is one file in the explorer.
+type shownFile struct {
+	Name     string `json:"name"`
+	Size     int64  `json:"size"`
+	Modified int64  `json:"modified"`
 }
 
 type crumb struct {
@@ -34,7 +43,7 @@ type shownFolders struct {
 	At      string        `json:"at"`
 	Crumbs  []crumb       `json:"crumbs"`
 	Folders []shownFolder `json:"folders"`
-	Files   []string      `json:"files"`
+	Files   []shownFile   `json:"files"`
 	// Harness is what works in this place, when it is inside an agent's folder.
 	Harness string `json:"harness,omitempty"`
 }
@@ -98,16 +107,18 @@ func (s *Server) chatFolders(w http.ResponseWriter, r *http.Request) {
 
 // topFolders is the person's agents, each the top of a folder of their own.
 func (s *Server) topFolders(r *http.Request) shownFolders {
-	shown := shownFolders{Crumbs: []crumb{{Name: "Your cloud computer"}}, Folders: []shownFolder{}, Files: []string{}}
-	for _, each := range s.lastUsed(r) {
-		shown.Folders = append(shown.Folders, shownFolder{Name: each.Name, At: each.ID, Harness: each.Harness})
+	shown := shownFolders{Crumbs: []crumb{{Name: "Your cloud computer"}}, Folders: []shownFolder{}, Files: []shownFile{}}
+	used := s.lastUsed(r)
+	names := projectNames(used)
+	for _, each := range used {
+		shown.Folders = append(shown.Folders, shownFolder{Name: names[each.ID], At: each.ID, Harness: each.Harness, Modified: each.Active})
 	}
 	return shown
 }
 
 func (s *Server) insideFolders(held instance.Instance, dir, here string) shownFolders {
 	name := s.agentOf(held).Name
-	shown := shownFolders{At: path.Join(held.ID, dir), Harness: held.Harness, Folders: []shownFolder{}, Files: []string{},
+	shown := shownFolders{At: path.Join(held.ID, dir), Harness: held.Harness, Folders: []shownFolder{}, Files: []shownFile{},
 		Crumbs: []crumb{{Name: "Your cloud computer"}, {Name: name, At: held.ID}}}
 	walked := ""
 	for _, part := range strings.Split(dir, "/") {
@@ -122,15 +133,19 @@ func (s *Server) insideFolders(held instance.Instance, dir, here string) shownFo
 		if strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
 		switch {
 		case entry.IsDir():
-			shown.Folders = append(shown.Folders, shownFolder{Name: entry.Name(), At: path.Join(held.ID, dir, entry.Name())})
+			shown.Folders = append(shown.Folders, shownFolder{Name: entry.Name(), At: path.Join(held.ID, dir, entry.Name()), Modified: info.ModTime().Unix()})
 		case entry.Type().IsRegular() && len(shown.Files) < filesShown:
-			shown.Files = append(shown.Files, entry.Name())
+			shown.Files = append(shown.Files, shownFile{Name: entry.Name(), Size: info.Size(), Modified: info.ModTime().Unix()})
 		}
 	}
 	sort.Slice(shown.Folders, func(a, b int) bool { return shown.Folders[a].Name < shown.Folders[b].Name })
-	sort.Strings(shown.Files)
+	sort.Slice(shown.Files, func(a, b int) bool { return shown.Files[a].Name < shown.Files[b].Name })
 	return shown
 }
 
