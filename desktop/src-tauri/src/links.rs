@@ -3,6 +3,18 @@
 
 use url::Url;
 
+/// The ticket a sign-in in the person's browser came back with, from `latentic://signed-in?ticket=...`. A ticket is only the letters, digits,
+/// dashes and underscores the server makes them of, so that nothing else can be carried into the address it is sent on to.
+pub fn signed_in(link: &str) -> Option<String> {
+    let link = Url::parse(link).ok()?;
+    if link.scheme() != "latentic" || link.host_str() != Some("signed-in") {
+        return None;
+    }
+    let ticket = link.query_pairs().find(|(name, _)| name == "ticket").map(|(_, value)| value.into_owned())?;
+    let fits = !ticket.is_empty() && ticket.len() <= 64 && ticket.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    fits.then_some(ticket)
+}
+
 /// The address to show for a link, or nothing when the link is not one of ours. A link is `latentic://open?path=/instances/1/threads/2`.
 pub fn target(link: &str, server: &str) -> Option<String> {
     let link = Url::parse(link).ok()?;
@@ -24,7 +36,7 @@ pub fn target(link: &str, server: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::target;
+    use super::{signed_in, target};
 
     const SERVER: &str = "https://agents.example.com";
 
@@ -52,6 +64,21 @@ mod tests {
             "not a url",
         ] {
             assert_eq!(target(link, SERVER), None, "{link}");
+        }
+    }
+
+    #[test]
+    fn a_ticket_is_only_what_the_server_makes_them_of() {
+        assert_eq!(signed_in("latentic://signed-in?ticket=abc-DEF_123").as_deref(), Some("abc-DEF_123"));
+        for link in [
+            "latentic://signed-in",
+            "latentic://signed-in?ticket=",
+            "latentic://signed-in?ticket=a%26secret%3Dx",
+            "latentic://signed-in?ticket=a/b",
+            "latentic://other?ticket=abc",
+            "https://example.com/?ticket=abc",
+        ] {
+            assert_eq!(signed_in(link), None, "{link}");
         }
     }
 

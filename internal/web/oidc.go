@@ -131,7 +131,7 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 	}
 	s.keeper.issueFor(w, r, who.Email, role)
 	s.noteSignIn(r, who.Email, role, "the provider")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	s.afterSignIn(w, r)
 }
 
 func refuse(w http.ResponseWriter, r *http.Request, why string) {
