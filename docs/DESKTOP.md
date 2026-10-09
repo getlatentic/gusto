@@ -60,12 +60,16 @@ AppImage and a package). It is not built for Windows or Linux on Arm. None of it
 
 ### Working in a folder
 
-In the app the box on the chat page has a folder button. It opens the system's folder chooser, and the chat that follows works in
-that folder: the app gives the folder to the helper, the server starts an agent for it, and the helper keeps the folder the same as
-the agent's folder in the cloud, in both directions, by the rule in [Files](#files). The server holds only a key made of the folder's
-path and the folder's name, never the path. Another chat in the same folder goes to the same agent. The helper keeps the folders it
-was given until the agent is removed, and will not keep a whole home folder or disk. In a browser the button is not there, because a
-page cannot reach a folder of the computer it is on.
+The agent works on a computer in the cloud, so the folder a chat works in is a folder of that computer. The folder button on the chat page
+opens an explorer of it: at the top the person's agents, each the top of a folder of its own, and inside one its folders and files. **Work
+here** chooses the folder shown, and **New folder** makes one (at the top it makes a new agent's folder). The chat then goes to that agent,
+and every turn of it starts in that folder. Nothing outside an agent's workspace can be named, by a path, a link or somebody else's agent.
+This is in the browser as well as the app.
+
+In the app the explorer has one more choice, **Sync one from this computer**: it opens the system's folder chooser, and the helper keeps
+the folder chosen the same as an agent's folder in the cloud, in both directions, by the rule in [Files](#files). The server holds only a
+key made of the folder's path and the folder's name, never the path. Another chat in the same folder goes to the same agent. The helper
+will not keep a whole home folder or disk.
 
 ### Updates
 

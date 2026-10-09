@@ -187,6 +187,7 @@ func (s *Server) startTurn(asked string, held instance.Instance, thread instance
 		Model:       held.Model,
 		Session:     held.ID,
 		Thread:      thread.ID,
+		Dir:         thread.Dir,
 		Remembered:  thread.Remembered,
 		Repo:        held.Repo,
 		Setup:       setupOf(held),

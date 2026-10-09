@@ -86,16 +86,41 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .talk.fresh .hero .composer { width: 100%; padding: 0; }
 .talk.fresh .hero .refused { margin: 0; }
 
-/* The folder a chat works in: a quiet chip on the left of the box, with the way to let go of it. */
-.folder { display: flex; align-items: center; min-width: 0; }
-.folder[hidden] { display: none; }
-.folder .chip { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-3);
-  border-radius: var(--yg-radius-full); color: var(--yg-text-muted); font: 500 .8125rem/1 var(--yg-font-text); text-decoration: none; min-width: 0; }
-.folder .chip .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
-.folder .chip:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-.folder .clear { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: var(--yg-radius-full);
+/* The folder a chat works in: a quiet chip on the left of the box, and an explorer above it. */
+.folderpick { position: relative; display: flex; align-items: center; min-width: 0; }
+.folderpick .chip { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-3);
+  border: 0; border-radius: var(--yg-radius-full); background: none; color: var(--yg-text-muted); cursor: pointer;
+  font: 500 .8125rem/1 var(--yg-font-text); min-width: 0; }
+.folderpick .chip .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
+.folderpick .chip:hover, .folderpick .chip[aria-expanded="true"] { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.folderpick .clear { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: var(--yg-radius-full);
   background: none; color: var(--yg-text-subtle); cursor: pointer; }
-.folder .clear:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.folderpick .clear[hidden] { display: none; }
+.folderpick .clear:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.explorer { position: absolute; left: 0; bottom: calc(100% + var(--yg-space-2)); z-index: 30; width: min(24rem, 86vw);
+  display: grid; background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-3); }
+.explorer[hidden] { display: none; }
+.explorer .trail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-1); padding: var(--yg-space-3) var(--yg-space-4);
+  border-bottom: 1px solid var(--yg-border); font-size: .8125rem; color: var(--yg-text-subtle); }
+.explorer .crumb { padding: 0; border: 0; background: none; color: var(--yg-text-muted); cursor: pointer; font: inherit; }
+.explorer .crumb:hover { color: var(--yg-text); text-decoration: underline; }
+.explorer .here { color: var(--yg-text); font-weight: 600; }
+.explorer .entries { display: grid; align-content: start; gap: 1px; max-height: 15rem; min-height: 5rem; overflow-y: auto; padding: var(--yg-space-1); }
+.explorer .folder-row { display: flex; align-items: center; justify-content: space-between; gap: var(--yg-space-3); width: 100%;
+  padding: var(--yg-space-2) var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm); background: none; color: var(--yg-text);
+  font: 500 .875rem/1.3 var(--yg-font-text); text-align: left; cursor: pointer; }
+.explorer .folder-row:hover, .explorer .folder-row:focus-visible { background: var(--yg-bg-subtle); outline: none; }
+.explorer .folder-row .go { color: var(--yg-text-subtle); }
+.explorer .file-row { padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; color: var(--yg-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.explorer .empty { padding: var(--yg-space-4); font-size: .8125rem; color: var(--yg-text-subtle); text-align: center; }
+.explorer .foot { display: flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-3); border-top: 1px solid var(--yg-border); }
+.explorer .foot .quiet { height: 2rem; padding: 0 var(--yg-space-3); border-radius: var(--yg-radius-full); border: 0; background: none;
+  color: var(--yg-text-muted); font: 500 .8125rem/1 var(--yg-font-text); cursor: pointer; }
+.explorer .foot .quiet:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.explorer .foot .use { margin-left: auto; height: 2rem; padding: 0 var(--yg-space-4); border: 0; border-radius: var(--yg-radius-full);
+  background: var(--yg-accent); color: var(--yg-on-accent); font: 600 .8125rem/1 var(--yg-font-text); cursor: pointer; }
+.explorer .foot .use:disabled { opacity: .4; cursor: default; }
+.picker.locked > button { cursor: default; opacity: .75; }
 
 /* A picker: a quiet button that names the choice, and a menu above it. */
 .picker { position: relative; }
@@ -148,3 +173,5 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--yg-success-surface); outline: none; }
 .talk-top .sealed svg.i { width: 16px; height: 16px; opacity: 1; }
 @media (max-width: 56rem) { .panel-closed .panel { display: flex; } .rail .panel-toggle { display: none; } }
+.talk-top .in-folder { display: inline-flex; align-items: center; gap: var(--yg-space-1); font-size: .8125rem; color: var(--yg-text-muted); max-width: 14rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
