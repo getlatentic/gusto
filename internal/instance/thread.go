@@ -21,28 +21,35 @@ type Thread struct {
 	// Remembered is the harness's own name for this conversation, learned from
 	// the first turn and handed back to resume it. It belongs to the thread
 	// rather than the instance because a harness keeps one per conversation.
-	Remembered string   `json:"remembered,omitempty"`
-	Turns      []string `json:"turns"`
-	Started    int64    `json:"startedAt"`
+	Remembered string `json:"remembered,omitempty"`
+	// Dir is the folder of the workspace this conversation works in, from the workspace's root. It is empty for the root.
+	Dir     string   `json:"dir,omitempty"`
+	Turns   []string `json:"turns"`
+	Started int64    `json:"startedAt"`
 }
 
 // NewThread opens a conversation on an instance. Threads are numbered in the
 // order they are opened, which is short enough to read in a URL and stable when
 // a title changes.
-func (s *Store) NewThread(id, title string) (Thread, error) {
+func (s *Store) NewThread(id, title string) (Thread, error) { return s.NewThreadIn(id, title, "") }
+
+// NewThreadIn opens a conversation that works in a folder of the instance's workspace.
+func (s *Store) NewThreadIn(id, title, dir string) (Thread, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
 	if _, found := s.held[id]; !found {
 		return Thread{}, fmt.Errorf("no instance called %s", id)
 	}
-	return s.open(id, title)
+	return s.openIn(id, title, dir)
 }
 
 // open numbers a conversation, holds it and writes it. The caller holds the
 // guard, or is Open, before anybody else can reach the store. The thread is
 // held before it is written, so an instance whose directory refuses the write
 // still has somewhere to talk for as long as this process runs.
-func (s *Store) open(id, title string) (Thread, error) {
+func (s *Store) open(id, title string) (Thread, error) { return s.openIn(id, title, "") }
+
+func (s *Store) openIn(id, title, dir string) (Thread, error) {
 	if s.threads[id] == nil {
 		s.threads[id] = map[string]Thread{}
 	}
@@ -50,6 +57,7 @@ func (s *Store) open(id, title string) (Thread, error) {
 		ID:       strconv.Itoa(s.next(id)),
 		Instance: id,
 		Title:    title,
+		Dir:      dir,
 		Started:  time.Now().Unix(),
 	}
 	s.threads[id][thread.ID] = thread

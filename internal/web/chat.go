@@ -85,8 +85,7 @@ func (s *Server) startChat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/chat", http.StatusSeeOther)
 		return
 	}
-	where := folderOf(r)
-	held, thread, why := s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), strings.TrimSpace(r.FormValue("model")), where)
+	held, thread, why := s.threadForChat(r)
 	if why != "" {
 		s.turnAway(w, r, "/chat", why)
 		return
@@ -97,6 +96,16 @@ func (s *Server) startChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+}
+
+// threadForChat is where a chat goes: a folder of the person's cloud computer, a folder of their own computer kept the same as an
+// agent's, or the agent and model chosen.
+func (s *Server) threadForChat(r *http.Request) (instance.Instance, instance.Thread, string) {
+	model := strings.TrimSpace(r.FormValue("model"))
+	if at := strings.TrimSpace(r.FormValue("at")); at != "" {
+		return s.cloudFolderThread(r, at, model)
+	}
+	return s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), model, folderOf(r))
 }
 
 // chatThread is the agent and the empty conversation a new chat goes into, on the model chosen, or why there is none.

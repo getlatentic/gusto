@@ -11,11 +11,13 @@
       <div class="box">
         <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
         <div class="tools">
-          <div class="folder" id="folder-pick" hidden>
+          <div class="folderpick" id="folder-pick">
+            <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
-            <a class="chip" href="/app/folder" title="Work in a folder on this computer">{{template "icon-folder"}}<span class="label">Work in a folder</span></a>
+            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Folder</span></button>
             <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
+            <div class="explorer" role="dialog" aria-label="Choose a folder" hidden></div>
           </div>
           <span class="grow"></span>
           <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Agent">
@@ -39,6 +41,7 @@
 
 {{if .Picks}}
 <script src="{{asset "/static/picker.js"}}"></script>
+<script src="{{asset "/static/folderpick.js"}}"></script>
 <script nonce="{{.Nonce}}" data-models="{{.Models}}">
 (function () {
   var byHarness = JSON.parse(document.currentScript.dataset.models);
@@ -53,26 +56,12 @@
   harness.addEventListener("pick", narrow);
   narrow();
 
-  // Choosing a folder on this computer is done by the desktop app, which asks the system for it and tells the page what it chose.
-  var folder = document.getElementById("folder-pick");
-  if (window.latenticDesktop) {
-    folder.hidden = false;
-    var keep = folder.querySelectorAll("input");
-    var label = folder.querySelector(".label");
-    var clear = folder.querySelector(".clear");
-    var none = label.textContent;
-    window.latenticFolder = function (chosen) {
-      keep[0].value = chosen.key;
-      keep[1].value = chosen.name;
-      label.textContent = chosen.name;
-      clear.hidden = false;
-    };
-    clear.addEventListener("click", function () {
-      keep[0].value = keep[1].value = "";
-      label.textContent = none;
-      clear.hidden = true;
-    });
-  }
+  // The folder a chat works in is chosen in the explorer, which follows the agent it belongs to.
+  var chosen = document.getElementById("folder-pick");
+  chosen.addEventListener("chosen", function (event) {
+    if (event.detail.harness) { harness.picker.select(event.detail.harness); }
+    harness.picker.lock(Boolean(event.detail.harness));
+  });
 
   var box = document.querySelector(".composer textarea");
   var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };

@@ -73,6 +73,10 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
+	if _, err := job.CleanDir(sent.Spec.Dir); err != nil {
+		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
+		return
+	}
 	if err := repoaccess.AcceptableRef(sent.Spec.Ref); err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
