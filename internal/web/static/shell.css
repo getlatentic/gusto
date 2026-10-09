@@ -1,21 +1,42 @@
 /* The shell: a side list that is always there, and a page beside it. The side list holds where to go and the conversations to carry on
    with; the page is whatever was asked for. */
 body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
-.shell { display: grid; grid-template-columns: 17rem minmax(0, 1fr); height: 100dvh; }
+.shell { display: grid; height: 100dvh; }
 
-.side { display: flex; flex-direction: column; gap: var(--yg-space-4); min-height: 0; min-width: 0;
-  padding: var(--yg-space-4) var(--yg-space-3); background: var(--yg-bg-subtle); border-right: 1px solid var(--yg-border); }
-.side .brand { display: flex; align-items: center; gap: var(--yg-space-3); padding: var(--yg-space-1) var(--yg-space-2);
-  font: 600 .9375rem/1.2 var(--yg-font-display); letter-spacing: -.01em; color: var(--yg-text); text-decoration: none; }
-.side .brand img { width: 22px; height: auto; flex: none; }
-.side nav { display: grid; gap: 2px; }
+.shell { grid-template-columns: auto minmax(0, 1fr); }
+.side { display: flex; min-height: 0; min-width: 0; border-right: 1px solid var(--yg-border); }
+
+/* The first layer: where to go, as icons, with the way out at the foot. */
+.rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-1); width: 3.5rem; flex: none;
+  padding: var(--yg-space-3) 0; background: var(--yg-surface-sunken); border-right: 1px solid var(--yg-border); }
+.rail form { margin: 0; }
+.rail .grow { flex: 1; }
+.rail .mark { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: var(--yg-space-3); }
+.rail .mark img { width: 24px; height: auto; }
+.rail .tool { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0;
+  border-radius: var(--yg-radius-md); background: none; color: var(--yg-text-muted); cursor: pointer; text-decoration: none; }
+.rail .tool svg.i { width: 20px; height: 20px; opacity: .9; }
+.rail .tool:hover { background: rgb(23 23 23 / .06); color: var(--yg-text); }
+.rail .tool[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
+.rail .tool:focus-visible { outline: 2px solid var(--yg-focus); outline-offset: 1px; }
+.rail .tool::after { content: attr(data-tip); position: absolute; left: calc(100% + var(--yg-space-2)); top: 50%; transform: translateY(-50%);
+  z-index: 40; padding: var(--yg-space-1) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-text); color: var(--yg-text-inverse);
+  font: 500 .75rem/1.4 var(--yg-font-text); white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity var(--yg-dur-fast) var(--yg-ease-standard); }
+.rail .tool:hover::after, .rail .tool:focus-visible::after { opacity: 1; transition-delay: .35s; }
+
+/* The second layer: the conversations, with the way to start another. */
+.panel { display: flex; flex-direction: column; gap: var(--yg-space-3); width: 16rem; min-height: 0; min-width: 0;
+  padding: var(--yg-space-3); background: var(--yg-bg-subtle); }
+.panel-head { display: flex; align-items: center; min-height: 2.5rem; padding: 0 var(--yg-space-3); }
+.panel-head .name { font: 600 .9375rem/1.2 var(--yg-font-display); letter-spacing: -.01em; color: var(--yg-text); }
 .side .item { display: flex; align-items: center; gap: var(--yg-space-3); width: 100%; height: 2.25rem;
   padding: 0 var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm); background: none;
   font: 500 .875rem/1 var(--yg-font-text); color: var(--yg-text-muted); text-decoration: none; cursor: pointer; text-align: left; }
 .side .item svg.i { width: 18px; height: 18px; opacity: .85; }
-.side .item:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
+.side .item:hover { background: rgb(23 23 23 / .05); color: var(--yg-text); }
 .side .item[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
-.side .item.new { color: var(--yg-text); font-weight: 600; margin-bottom: var(--yg-space-1); }
+.side .item.new { color: var(--yg-text); font-weight: 600; }
 .side .chats { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: var(--yg-space-4); align-content: start;
   margin: 0 calc(var(--yg-space-1) * -1); padding: 0 var(--yg-space-1); }
 .side h3 { margin: 0 0 var(--yg-space-1); padding: 0 var(--yg-space-3); font: 600 .6875rem/1.4 var(--yg-font-text);
@@ -25,7 +46,6 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
   color: var(--yg-text-muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side ol a:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
 .side ol a[aria-current] { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
-.side .out { margin: 0; padding-top: var(--yg-space-3); border-top: 1px solid var(--yg-border); }
 
 .page { min-width: 0; min-height: 0; overflow-y: auto; }
 .page > .wrap { max-width: 72rem; margin: 0 auto; padding: var(--yg-space-8) var(--yg-space-8) var(--yg-space-20); }
@@ -87,7 +107,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 @media (max-width: 56rem) {
   .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: min(18rem, 84vw);
+  .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; background: var(--yg-bg-subtle);
     transform: translateX(-100%); visibility: hidden;
     transition: transform var(--yg-dur-base) var(--yg-ease-standard), visibility var(--yg-dur-base); }
   body.side-open .side { transform: none; visibility: visible; box-shadow: var(--yg-shadow-3); }
