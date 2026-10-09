@@ -1,0 +1,84 @@
+/* The pages of the app that are lists and figures: the headings, the buttons, the strip of figures, the cards and the tables. One set of
+   rules, so that Agents, Activity, Spending and the console are the same page in different words. Colour is for what needs an eye on it:
+   the one action of a page, and the state of a thing. */
+
+/* Type: Sora for the title of a page and for a number, Noto Sans for everything else; sizes 1.5, 1.0625, .9375 and .8125 rem, with a small
+   uppercase label for the name of a part. */
+h1, .display { font-family: var(--yg-font-display); }
+h1 { margin: 0 0 var(--yg-space-6); font-size: 1.5rem; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; color: var(--yg-text); }
+h2 { margin: var(--yg-space-10) 0 var(--yg-space-3); font: 600 .75rem/1.3 var(--yg-font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); }
+a { color: var(--yg-text); text-decoration-color: var(--yg-border-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: currentColor; }
+
+/* A page's name with what it counts beside it and its controls at the end of the same line. */
+.title-row { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 2.5rem; margin: 0 0 var(--yg-space-6); }
+.title-row h1 { margin: 0; }
+.title-row .count { font-size: .875rem; color: var(--yg-text-muted); }
+.title-row .grow { flex: 1; }
+.title-row > form, .title-row > .month { margin-left: auto; }
+.title-row .grow + form, .title-row .grow ~ form { margin-left: 0; }
+.title-row .cta, .title-row .quiet-button { flex: none; }
+
+/* The one action of a page. */
+.cta { display: inline-flex; align-items: center; justify-content: center; gap: var(--yg-space-2); height: 2.25rem; padding: 0 var(--yg-space-4); border: 0; border-radius: var(--yg-radius-sm);
+  background: var(--yg-accent); color: var(--yg-on-accent); font: 600 .875rem/1 var(--yg-font-text); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.cta:hover { background: var(--yg-accent-hover); }
+.cta[disabled] { opacity: .45; cursor: not-allowed; }
+.cta svg.i { opacity: 1; stroke-width: 2; }
+.link-quiet { color: var(--yg-text-muted); font-size: .875rem; text-decoration: none; }
+.link-quiet:hover { color: var(--yg-text); text-decoration: underline; }
+
+/* The figures across the top of a page: one strip, a number first and what it is under it. On a record each is also the filter for itself. */
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1px; margin: 0 0 var(--yg-space-6);
+  background: var(--yg-border); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); overflow: hidden; }
+.figure { display: grid; gap: var(--yg-space-1); align-content: start; padding: var(--yg-space-4) var(--yg-space-5); background: var(--yg-surface); color: inherit; text-decoration: none; }
+a.figure:hover { background: var(--yg-bg-subtle); }
+.figure[aria-current] { box-shadow: inset 0 -2px 0 var(--yg-text); }
+.figure .value { font: 600 1.5rem/1.1 var(--yg-font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--yg-text); }
+.figure .label { display: flex; align-items: center; gap: var(--yg-space-2); font-size: .8125rem; color: var(--yg-text-muted); }
+.figure.running .label::before, .figure.queued .label::before, .figure.passed .label::before, .figure.failed .label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+.figure.running .label::before, .figure.queued .label::before { background: var(--yg-warning); }
+.figure.passed .label::before { background: var(--yg-success); }
+.figure.failed .label::before { background: var(--yg-danger); }
+
+/* A card holds one chart or one breakdown; cards sit a gap apart whichever way they are stacked. */
+.panel { margin: 0 0 var(--yg-space-4); padding: var(--yg-space-5); background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); }
+.panel h2 { margin: 0 0 var(--yg-space-4); }
+.panel h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.panels { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); margin: 0 0 var(--yg-space-4); }
+.panels .panel { margin: 0; }
+.panel:last-child, .panels:last-child { margin-bottom: 0; }
+.bars { display: flex; align-items: stretch; gap: 3px; height: 10rem; }
+.day .fill { background: var(--yg-text-muted); }
+.day:hover .fill { background: var(--yg-text); }
+
+/* A list of things: a hairline under the head, rows with room, the whole row a link. */
+.list { overflow: hidden; background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); }
+.list table { font-size: .875rem; }
+.list th { padding: var(--yg-space-3) var(--yg-space-5); background: none; border-bottom: 1px solid var(--yg-border); }
+.list td { padding: var(--yg-space-3) var(--yg-space-5); border-bottom: 1px solid var(--yg-border); }
+.list tr:last-child td { border-bottom: 0; }
+.list tr:hover td { background: var(--yg-bg-subtle); }
+table.agents { table-layout: fixed; }
+table.agents th:nth-child(1) { width: 34%; }
+table.agents th:nth-child(3) { width: 9rem; }
+table.agents th:nth-child(4) { width: 8rem; text-align: right; }
+table.agents td:nth-child(4) { text-align: right; }
+table.agents td { vertical-align: middle; }
+table.agents tr { position: relative; }
+.pager { display: flex; align-items: center; justify-content: space-between; padding: var(--yg-space-3) var(--yg-space-5); font-size: .8125rem; color: var(--yg-text-muted); border-top: 1px solid var(--yg-border); }
+.pager a { padding: var(--yg-space-1) var(--yg-space-3); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); text-decoration: none; }
+.pager a:hover { background: var(--yg-bg-subtle); }
+.pager .gap { flex: 1; }
+
+/* The console is the same pages with its sections down the side. */
+body:not(.app) { padding: var(--yg-space-5) var(--yg-space-6) var(--yg-space-20); }
+body:not(.app) > header { margin: 0 0 var(--yg-space-8); padding-bottom: var(--yg-space-4); }
+body:not(.app) > header .brand { font-size: .9375rem; }
+body:not(.app) > header nav a { font-size: .8125rem; color: var(--yg-text-muted); text-decoration: none; }
+body:not(.app) > header nav a:hover { color: var(--yg-text); }
+.console { grid-template-columns: 12rem minmax(0, 1fr); gap: var(--yg-space-10); }
+.sections { gap: 2px; font-size: .875rem; }
+.sections a { display: block; padding: 0 var(--yg-space-3); line-height: 2.25rem; border-radius: var(--yg-radius-sm); color: var(--yg-text-muted); text-decoration: none; }
+.sections a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.sections a[aria-current] { background: var(--yg-surface); color: var(--yg-text); font-weight: 600; box-shadow: var(--yg-shadow-1); }
