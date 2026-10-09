@@ -1,6 +1,6 @@
 //! The window: the person's own server, in the app, or the page that asks for its address when there is none.
 
-use crate::{config, navigation, navigation::Move, signin};
+use crate::{config, folders, navigation, navigation::Move, signin};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
@@ -20,6 +20,10 @@ fn allowed(app: AppHandle) -> impl Fn(&url::Url) -> bool + Send + 'static {
             Move::Allow => true,
             Move::SignIn => {
                 tauri::async_runtime::spawn(async move { signin::begin(&handle) });
+                false
+            }
+            Move::PickFolder => {
+                tauri::async_runtime::spawn(async move { folders::pick(&handle) });
                 false
             }
             Move::Instead(page) => {
@@ -42,6 +46,7 @@ fn build(app: &AppHandle, target: WebviewUrl) -> tauri::Result<WebviewWindow> {
         .title("Latentic Agent Cloud")
         .inner_size(1200.0, 820.0)
         .min_inner_size(640.0, 480.0)
+        .initialization_script("window.latenticDesktop = true;")
         .on_navigation(allowed(app.clone()))
         .build()?;
     // Closing the window leaves the app running, with its icon, so that the person is still told when a turn ends. Quit is in the menu.
@@ -74,6 +79,13 @@ pub fn show(app: &AppHandle) {
     };
     if let Ok(window) = build(app, target) {
         let _ = window.set_focus();
+    }
+}
+
+/// Runs a line of script in the page the window is showing, which is how a page is told what the app did for it.
+pub fn tell_page(app: &AppHandle, script: &str) {
+    if let Some(window) = main_window(app) {
+        let _ = window.eval(script);
     }
 }
 

@@ -76,6 +76,22 @@ fn ask<T: for<'de> Deserialize<'de>>(app: &AppHandle, route: &str) -> Option<T> 
         .ok()
 }
 
+/// Asks the helper to keep a folder on this computer the same as the agent's folder in the cloud that is started for it. The helper
+/// says why when it will not, and that is what the person is told.
+pub fn keep_folder(app: &AppHandle, key: &str, path: &str) -> Result<(), String> {
+    let local = local(app).ok_or("the helper is not running")?;
+    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(5)).build();
+    agent
+        .post(&format!("http://{}/v1/folders", local.address))
+        .set("Authorization", &format!("Bearer {}", local.token))
+        .send_json(serde_json::json!({ "key": key, "path": path }))
+        .map(|_| ())
+        .map_err(|error| match error {
+            ureq::Error::Status(_, response) => response.into_string().unwrap_or_default().trim().to_string(),
+            other => other.to_string(),
+        })
+}
+
 pub fn status(app: &AppHandle) -> Option<Status> {
     ask(app, "/v1/status")
 }

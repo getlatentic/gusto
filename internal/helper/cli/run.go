@@ -50,6 +50,13 @@ func Run(args []string) int {
 	defer stop()
 	fmt.Println("following", server)
 	daemon := &helper.Daemon{Server: server, Vault: vault, Dir: dir, Hub: helper.NewHub()}
+	folders := &FolderSync{Server: server, Vault: vault, Dir: dir}
+	if err := folders.Open(); err != nil {
+		fmt.Fprintln(os.Stderr, "the folders kept before could not be read:", err)
+	} else {
+		daemon.Folders = folders
+		go folders.Run(ctx)
+	}
 	if !*withTray {
 		daemon.SetTray("off: it was started with -tray=false")
 		return finish(daemon.Run(ctx))

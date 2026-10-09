@@ -30,6 +30,8 @@ type Daemon struct {
 	Signed time.Duration
 
 	Hub *Hub
+	// Folders keeps folders on this computer the same as agents' folders in the cloud, when the helper was given a way to.
+	Folders Folders
 
 	mu        sync.Mutex
 	person    string
@@ -215,6 +217,8 @@ func (d *Daemon) handler() http.Handler {
 	mux.HandleFunc("GET /v1/status", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, d.Status()) })
 	mux.HandleFunc("GET /v1/turns", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, d.Hub.Turns()) })
 	mux.HandleFunc("GET /v1/events", d.events)
+	mux.HandleFunc("GET /v1/folders", d.listFolders)
+	mux.HandleFunc("POST /v1/folders", d.addFolder)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host != d.address && r.Host != "localhost:"+portOf(d.address) {
 			http.Error(w, "that is not this helper's address", http.StatusForbidden)
