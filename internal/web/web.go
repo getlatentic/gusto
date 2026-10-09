@@ -96,6 +96,8 @@ type Server struct {
 	integrations *integration.Store
 	// desktop is the folder of the desktop app's releases, which the server hands out so that an app updates from the server it is connected to.
 	desktop string
+	// tickets are sign-ins a browser has made for the desktop app and the app has not yet taken.
+	tickets tickets
 	cloner  integration.Clone
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
@@ -133,6 +135,9 @@ func (s *Server) Handler() http.Handler {
 		mux.HandleFunc("GET /auth/start", s.start)
 		mux.HandleFunc("GET /auth/callback", s.back)
 	}
+	mux.HandleFunc("GET /auth/desktop/start", s.desktopStart)
+	mux.HandleFunc("GET /auth/desktop/handoff", s.guard(s.desktopHandoff))
+	mux.HandleFunc("GET /auth/desktop/redeem", s.desktopRedeem)
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
 	mux.HandleFunc("GET /keys/{file}", s.key)

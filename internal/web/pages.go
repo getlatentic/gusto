@@ -145,6 +145,8 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 		"Wrong":    wrong,
 		"Refused":  r.URL.Query().Get("refused"),
 		"Identity": s.identity.Configured(),
+		"Provider": s.identity.Configured(),
+		"Desktop":  r.URL.Query().Has("desktop"),
 		// With a provider the shared password is the way in when the provider
 		// is not, so it stays reachable and stops being the second thing on
 		// the page. A wrong one keeps it open, or there is nowhere to try again.
@@ -168,7 +170,7 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 	s.keeper.issue(w, r)
 	s.noteSignIn(r, sharedSignIn, Admin, "the shared password")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	s.afterSignIn(w, r)
 }
 
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
