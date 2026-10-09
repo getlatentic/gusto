@@ -34,3 +34,21 @@ func TestARunnerThatIsNotRootHandsNothingOver(t *testing.T) {
 		t.Errorf("nothing should change: credential %+v, out/ %v then %v", command.SysProcAttr, before.Mode(), after.Mode())
 	}
 }
+
+// A runner that has nobody to hand the work to has nothing to take back.
+func TestARunnerWithNoAgentTakesBackNothing(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	file := dir.Workspace() + "/made-by-the-harness"
+	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.Stat(file)
+	agent{}.takeBack(dir)
+	after, _ := os.Stat(file)
+	if before.Mode() != after.Mode() {
+		t.Errorf("a file changed: %v then %v", before.Mode(), after.Mode())
+	}
+}
