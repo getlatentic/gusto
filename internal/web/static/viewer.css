@@ -56,14 +56,14 @@
 .viewer .nothing { display: grid; justify-items: center; gap: var(--yg-space-3); padding: var(--yg-space-16) var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); color: var(--yg-text-muted); text-align: center; }
 .viewer .nothing svg.i { width: 1.75rem; height: 1.75rem; }
 .viewer .nothing p { margin: 0; }
-@media (max-width: 56rem) { .viewer-head { flex-direction: column; align-items: flex-start; } }
+@container (max-width: 56rem) { .viewer-head { flex-direction: column; align-items: flex-start; } }
 
 
 /* The explorer on the Files page: no window, no side list. The heading is the path, the actions sit beside it, and the list runs the width of the page.
    Sizes: names .9375rem, what is said about them .8125rem. */
 .ex-page { display: block; height: auto; min-height: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
 .f-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3) var(--yg-space-4); min-height: 2.5rem; margin: 0 0 var(--yg-space-6); }
-.f-trail { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1 1 14rem; margin: 0; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
+.f-trail { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1 1 14rem; min-width: 0; margin: 0; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
 .f-trail .sep { color: var(--yg-border-strong); font-weight: 400; }
 .f-trail .crumb { padding: 0; border: 0; background: none; font: inherit; color: var(--yg-text-muted); cursor: pointer; }
 .f-trail .crumb:hover { color: var(--yg-text); }
