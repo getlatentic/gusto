@@ -48,6 +48,35 @@ first, which getlatentic/planning#588 files:
 The same API is what a native UI would need. A native UI is not planned, and is not
 a reason to build this API.
 
+## The app
+
+The app is a window onto the server's pages, with the helper beside it, an icon in the menu bar or tray, notifications, `latentic://`
+links, start at login, and updates. It opens on the chat page: a box to write in, with the agent and model the message goes to
+chosen under it. The source is in `desktop/`.
+
+A release carries the app for macOS on Apple silicon and Intel (a disk image), Windows on Intel (an installer) and Linux on Intel (an
+AppImage and a package). It is not built for Windows or Linux on Arm. None of it is signed with a platform certificate yet
+(getlatentic/planning#601), so macOS and Windows ask the person to allow it the first time.
+
+### Updates
+
+The app asks the server it is connected to for `/desktop/latest.json`, a little after it starts and every six hours, and offers the
+update in its menu. It checks the update against a key it holds the public half of, so a server hands files out and cannot vouch for
+them. A server with no folder hands out nothing, and its people are not offered updates.
+
+To hand out a release, give the server a folder and put the release in it:
+
+```bash
+deploy/desktop/publish.sh v0.0.1-alpha.6 /srv/haas/desktop https://haas.example.com
+HAAS_DESKTOP=/srv/haas/desktop haas serve
+```
+
+`publish.sh` needs the GitHub command line signed in, because the releases are private. It writes the `latest.json` for that one
+server, whose addresses point at the server itself. Run it again for the next release.
+
+The release workflow signs each update with the key in the repository secret `TAURI_SIGNING_PRIVATE_KEY`. The key's public half is in
+`desktop/src-tauri/tauri.conf.json`; losing the private key means no installed app can be updated again.
+
 ## Installing the helper
 
 Each release has the helper for macOS, Linux and Windows, on Intel and Arm, as
