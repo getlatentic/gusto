@@ -3,8 +3,8 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 <div class="title-row">
-  <h1>Roles</h1>
-  <span class="count">Start a chat with a role, or with a preset you saved.</span>
+  <h1>Presets</h1>
+  <span class="count">Start a chat from a preset: one you saved, or one that comes built in.</span>
 </div>
 
 <section class="presets" aria-label="Your presets">
@@ -15,7 +15,7 @@
     <div class="preset">
       <span class="text">
         <strong>{{.Name}}</strong>
-        <span class="meta" title="Role, engine and model">{{or .Role "No role"}} · {{.Engine}}{{with .Model}} · {{.}}{{end}}</span>
+        <span class="meta">{{.Line}}</span>
       </span>
       <a class="quiet-button" href="/chat?preset={{.ID}}">New chat</a>
       <form method="post" action="/presets/{{.ID}}/delete"><button class="icon-button" type="submit" aria-label="Remove {{.Name}}" title="Remove">{{template "icon-trash"}}</button></form>
@@ -23,16 +23,16 @@
     {{end}}
   </div>
   {{end}}
-  <p class="note">Save one from a chat: choose the role, engine and model, then Save this setup as a preset.</p>
+  <p class="note">Set a chat up how you like, then choose Save this setup as a preset in its menu.</p>
 </section>
 
-<h2 class="plain">Ready-made roles</h2>
+<h2 class="plain">Built-in presets</h2>
 <div class="roles-pane" id="roles">
   <div class="role-list">
-    <label class="role-select"><span>Role</span>
-      <select id="role-select" aria-label="Role">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
+    <label class="role-select"><span>Built-in preset</span>
+      <select id="role-select" aria-label="Built-in preset">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
     </label>
-    <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search roles" aria-label="Search roles"></label>
+    <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search built-in presets" aria-label="Search presets"></label>
     <div class="chips" role="group" aria-label="Field of work">
       <button type="button" class="chip" data-field="" aria-pressed="true">All</button>
       {{range .Fields}}<button type="button" class="chip" data-field="{{.}}" aria-pressed="false">{{.}}</button>{{end}}
@@ -66,7 +66,7 @@
         <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
       </div>
       <div class="foot">
-        <span class="note">It sets the skills a chat has. The engine and model are chosen in the chat.</span>
+        <span class="note">Sets the skills a chat has. Choose the engine and model in the chat.</span>
         <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
         {{if $r.Blocked}}<span class="cta" aria-disabled="true">Use in a new chat</span>{{else}}<a class="cta" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
       </div>

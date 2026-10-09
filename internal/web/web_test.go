@@ -334,13 +334,13 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 }
 
 // Chat is the front door and the roles are what a chat can be given, so every page has to name the way to them.
-func TestEveryPageOffersTheWayToTheRoles(t *testing.T) {
+func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	for _, page := range []string{"/", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Roles") {
-			t.Errorf("%s does not offer the way to the roles", page)
+		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Presets") {
+			t.Errorf("%s does not offer the way to the presets", page)
 		}
 	}
 }
