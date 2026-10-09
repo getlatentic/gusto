@@ -1,0 +1,25 @@
+{{define "side"}}<aside class="side" aria-label="Menu">
+  <a class="brand" href="/chat"><img src="/static/mark.png" alt=""> <span>Latentic Agent Cloud</span></a>
+  <nav>
+    <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    <a class="item" href="/"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}} <span>Agents</span></a>
+    <a class="item" href="/compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}} <span>Compare</span></a>
+    <a class="item" href="/jobs"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}} <span>Activity</span></a>
+    <a class="item" href="/spend"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}} <span>Spending</span></a>
+    <a class="item" href="/new"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}} <span>New agent</span></a>
+    {{if .Admin}}<a class="item" href="/admin">{{template "icon-shield"}} <span>Admin</span></a>{{end}}
+  </nav>
+  {{if .Rail}}{{template "side-chats" .}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
+  <form class="out" method="post" action="/logout"><button class="item" type="submit">{{template "icon-out"}} <span>Sign out</span></button></form>
+</aside>{{end}}
+
+{{define "side-chats"}}<div class="chats">
+  {{range .Rail}}
+  <section>
+    <h3 title="{{.Runs}}">{{.Name}}</h3>
+    <ol>
+      {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
+    </ol>
+  </section>
+  {{end}}
+</div>{{end}}
