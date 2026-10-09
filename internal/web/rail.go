@@ -37,3 +37,8 @@ func (s *Server) railChats(id string) []railChat {
 	}
 	return chats
 }
+
+// sideChats is the side list on a page that does not carry it: the same groups, fetched once the page is there.
+func (s *Server) sideChats(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "side-chats", map[string]any{"Rail": s.railFor(r), "Here": r.URL.Query().Get("here")})
+}

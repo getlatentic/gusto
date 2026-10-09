@@ -1,0 +1,31 @@
+{{define "side"}}<aside class="side" aria-label="Menu">
+  <nav class="rail" aria-label="Places">
+    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud"><img src="/static/mark.png" alt=""></a>
+    <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
+    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-compose"}}</a>
+    <a class="tool" href="/" data-tip="Agents" aria-label="Agents"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
+    <a class="tool" href="/compare" data-tip="Compare" aria-label="Compare"{{if eq .Nav "compare"}} aria-current="page"{{end}}>{{template "icon-compare"}}</a>
+    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}}</a>
+    <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
+    <a class="tool" href="/new" data-tip="New agent" aria-label="New agent"{{if eq .Nav "new"}} aria-current="page"{{end}}>{{template "icon-add"}}</a>
+    {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
+    <span class="grow"></span>
+    <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
+  </nav>
+  <div class="panel">
+    <div class="panel-head"><span class="name">Latentic Agent Cloud</span></div>
+    <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    {{if .Rail}}{{template "side-chats" .}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
+  </div>
+</aside>{{end}}
+
+{{define "side-chats"}}<div class="chats">
+  {{range .Rail}}
+  <section>
+    <h3 title="{{.Runs}}">{{.Name}}</h3>
+    <ol>
+      {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
+    </ol>
+  </section>
+  {{end}}
+</div>{{end}}

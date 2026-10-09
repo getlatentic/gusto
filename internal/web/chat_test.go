@@ -12,7 +12,7 @@ func TestTheChatPageOffersAnAgentAndAModel(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
 	page := site.ask(t, "GET", "/chat", nil).Body.String()
-	for _, want := range []string{`name="harness"`, `name="model"`, `value="first" selected`, `action="/chat"`} {
+	for _, want := range []string{`name="harness"`, `name="model"`, `name="harness" value="first"`, `action="/chat"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the chat page lacks %s", want)
 		}
@@ -33,7 +33,7 @@ func TestAChatGoesToTheChosenAgentAndCarriesOn(t *testing.T) {
 	if strings.Split(where, "/threads/")[0] != strings.Split(again, "/threads/")[0] || where[:strings.Index(where, "#")] == again[:strings.Index(again, "#")] {
 		t.Errorf("the second chat went to %q, not a new conversation on the same agent as %q", again, where)
 	}
-	if page := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `value="second" selected`) {
+	if page := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `name="harness" value="second"`) {
 		t.Error("the chat page does not offer the agent used last")
 	}
 }
