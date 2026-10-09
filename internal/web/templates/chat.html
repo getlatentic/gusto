@@ -15,7 +15,7 @@
             <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
-            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Folder</span></button>
+            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Choose a folder</span></button>
             <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
           <span class="grow"></span>
@@ -39,6 +39,11 @@
         </div>
       </div>
     </form>
+    <div class="starters" id="chat-starters">
+      <button type="button" class="starter" data-said="Fix the failing tests">Fix the failing tests</button>
+      <button type="button" class="starter" data-said="Summarise this folder">Summarise this folder</button>
+      <button type="button" class="starter" data-said="Add tests for what changed">Add tests for what changed</button>
+    </div>
     <form class="save-preset" id="save-preset" method="post" action="/presets" hidden>
       <input name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
       <input type="hidden" name="harness"><input type="hidden" name="model"><input type="hidden" name="role">
@@ -105,6 +110,13 @@
   });
 
   var box = document.querySelector(".composer textarea");
+  document.getElementById("chat-starters").addEventListener("click", function (event) {
+    var starter = event.target.closest(".starter");
+    if (!starter) { return; }
+    box.value = starter.dataset.said;
+    box.dispatchEvent(new Event("input"));
+    box.focus();
+  });
   var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };
   box.addEventListener("input", grow);
   box.addEventListener("keydown", function (event) {

@@ -43,14 +43,15 @@
       <div class="box">
         <textarea name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
         <div class="tools">
+          {{if not .Several}}<span class="muted small meta-left">{{.Agent.Brain}}</span>{{end}}
           <span class="grow"></span>
           {{if .Several}}<div class="picker" id="model-pick" data-picker data-label="Model" data-options="{{.Models}}">
             <input type="hidden" name="model" value="{{.Instance.Model}}" form="model-form">
             <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
-          </div>{{else}}<span class="muted small">{{.Agent.Brain}}</span>{{end}}
+          </div>{{end}}
           <button type="submit" class="send" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr">Send</span></button>
-          {{if .Waiting}}<button type="submit" class="send stop" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span class="sr">Stop</span></button>{{end}}
+          {{if .Waiting}}<button type="submit" class="stop-pill" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
     </form>
@@ -116,6 +117,10 @@
         var item = document.createElement("li");
         var last = i === live.steps.length - 1;
         item.className = last ? "now" : "done";
+        var mark = document.createElement("span");
+        mark.className = "mark-step";
+        if (!last) { mark.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'; }
+        item.appendChild(mark);
         var what = document.createElement("span");
         what.className = "what";
         what.textContent = step.what;
