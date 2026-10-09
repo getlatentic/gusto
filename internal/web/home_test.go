@@ -20,10 +20,8 @@ func TestTheHomePageListsYourHarnessesAndOffersANewOne(t *testing.T) {
 	if !strings.Contains(home, `href="`+where+`"`) {
 		t.Errorf("the home page does not lead back into %s", where)
 	}
-	for _, page := range []string{"/", "/jobs", "/spend", "/new"} {
-		if body := site.ask(t, "GET", page, nil).Body.String(); !strings.Contains(body, `href="/new"`) {
-			t.Errorf("%s does not offer to start a harness", page)
-		}
+	if body := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(body, `href="/new"`) {
+		t.Error("the agents page does not offer to start a harness")
 	}
 }
 

@@ -1,12 +1,59 @@
 {{template "head" .}}
 
-<nav class="crumb" aria-label="Where this is">
-  <a href="/">Agents</a><span>/</span><a href="{{if .Back}}{{.Back}}{{else}}/instances/{{.Instance.ID}}{{end}}">{{.Agent.Name}}</a><span>/</span><a href="/instances/{{.Instance.ID}}/files">Files</a><span>/</span><span>{{.Path}}</span>
-</nav>
-<section class="panel file">
-  <h2><code>{{.Path}}</code></h2>
-  {{if .Markdown}}<div class="reply">{{markdown .Text}}</div>{{else}}<pre>{{.Text}}</pre>{{end}}
-  {{if .Cut}}<p class="muted small">The file is longer than the page draws.</p>{{end}}
-</section>
+<div class="viewer">
+  <nav class="trail" aria-label="Where this is">
+    <a href="/files">Files</a>
+    {{range .Crumbs}}<span class="sep">/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}
+  </nav>
+
+  <header class="viewer-head">
+    <div class="viewer-title">
+      <h1>{{.File.Name}}</h1>
+      <p class="muted small">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
+    </div>
+    <div class="viewer-actions">
+      {{if .Back}}<a class="quiet-button" href="{{.Back}}">{{template "icon-compose"}}<span>Back to the chat</span></a>{{end}}
+      {{if eq .File.Kind "html"}}<a class="quiet-button" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+    </div>
+  </header>
+
+  {{if eq .File.Kind "markdown"}}
+  <article class="prose">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
+  {{else if eq .File.Kind "text"}}
+  <pre class="code">{{.File.Text}}</pre>
+  {{else if eq .File.Kind "table"}}
+  <div class="grid-scroll"><table class="grid">
+    {{range $i, $row := .File.Rows}}<tr>{{range $row}}{{if eq $i 0}}<th>{{.}}</th>{{else}}<td>{{.}}</td>{{end}}{{end}}</tr>
+    {{end}}
+  </table></div>
+  {{else if eq .File.Kind "image"}}
+  <div class="media"><img src="{{.File.Raw}}" alt="{{.File.Name}}"></div>
+  {{else if eq .File.Kind "pdf"}}
+  <iframe class="frame" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  {{else if eq .File.Kind "html"}}
+  <iframe class="frame" sandbox="allow-scripts" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  {{else if eq .File.Kind "audio"}}
+  <div class="media"><audio controls src="{{.File.Raw}}"></audio></div>
+  {{else if eq .File.Kind "video"}}
+  <div class="media"><video controls src="{{.File.Raw}}"></video></div>
+  {{else if eq .File.Kind "office"}}
+  <p class="note">This is the text of the file, not how it looks. Download it to open it in its own program.</p>
+  {{range .File.Parts}}
+  <section class="part">
+    {{with .Title}}<h2>{{.}}</h2>{{end}}
+    {{range .Lines}}{{if eq .Heading 0}}<p>{{.Text}}</p>{{else if eq .Heading 1}}<h3>{{.Text}}</h3>{{else}}<h4>{{.Text}}</h4>{{end}}{{end}}
+    {{with .Rows}}<div class="grid-scroll"><table class="grid">{{range .}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</table></div>{{end}}
+  </section>
+  {{end}}
+  {{else}}
+  <div class="nothing">
+    {{template "icon-file"}}
+    <p>This kind of file cannot be shown here.</p>
+    <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download it</span></a>
+  </div>
+  {{end}}
+  {{if .File.Cut}}<p class="muted small">The file is longer than the page draws. Download it to read the rest.</p>{{end}}
+</div>
 
 {{template "foot" .}}
