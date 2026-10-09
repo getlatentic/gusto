@@ -129,3 +129,11 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 @media (max-width: 56rem) { .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); } }
 .composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
 @media (max-width: 56rem) { .composer .hint { display: none; } }
+
+/* The panel of conversations put away: the icons stay. */
+.panel-closed .panel { display: none; }
+.talk-top .sealed { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--yg-radius-full);
+  color: var(--yg-success); cursor: default; }
+.talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--yg-success-surface); outline: none; }
+.talk-top .sealed svg.i { width: 16px; height: 16px; opacity: 1; }
+@media (max-width: 56rem) { .panel-closed .panel { display: flex; } .rail .panel-toggle { display: none; } }

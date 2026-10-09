@@ -12,6 +12,13 @@
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script>{{end}}
   <script nonce="{{.Nonce}}">
+    // The panel of conversations can be put away, leaving the icons, and it stays as the person left it.
+    try { if (localStorage.getItem("haas-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest("[data-panel-toggle]")) { return; }
+      var closed = document.documentElement.classList.toggle("panel-closed");
+      try { localStorage.setItem("haas-panel", closed ? "closed" : "open"); } catch (e) {}
+    });
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,
     // and a form that asks first.
@@ -132,3 +139,4 @@
 {{define "icon-chevron"}}<svg class="i chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg>{{end}}
 {{define "icon-check"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>{{end}}
 {{define "icon-compose"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 3H4.5A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5V6.5M11.8 2.7a1.1 1.1 0 0 1 1.5 1.5L8 9.5 6 10l.5-2z"/></svg>{{end}}
+{{define "icon-sidebar"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="10" rx="2"/><path d="M6.5 3v10"/></svg>{{end}}
