@@ -1,6 +1,8 @@
 package web
 
 import (
+	"github.com/getlatentic/haas/internal/instance"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -61,5 +63,42 @@ func TestTheModelIsChangedFromTheConversation(t *testing.T) {
 	away := site.ask(t, "POST", instance+"/model", url.Values{"model": {"platform/test-model"}, "back": {"//evil.example/"}})
 	if away.Header().Get("Location") != instance {
 		t.Errorf("a foreign address was followed: %q", away.Header().Get("Location"))
+	}
+}
+
+// A chat started for a folder on the person's computer goes to the agent kept for that folder, and a chat for no folder never does.
+func TestAChatForAFolderHasAnAgentOfItsOwn(t *testing.T) {
+	site := twoEngines(t)
+	site.signIn(t)
+	key := "0123456789abcdef"
+	first := site.ask(t, "POST", "/chat", url.Values{"harness": {"first"}, "said": {"in the folder"}, "folder": {key}, "folder_name": {"thesis"}}).Header().Get("Location")
+	plain := site.ask(t, "POST", "/chat", url.Values{"harness": {"first"}, "said": {"in no folder"}}).Header().Get("Location")
+	again := site.ask(t, "POST", "/chat", url.Values{"harness": {"first"}, "said": {"in the folder again"}, "folder": {key}, "folder_name": {"thesis"}}).Header().Get("Location")
+	agent := func(where string) string { return where[:strings.Index(where, "/threads/")] }
+	if agent(first) == agent(plain) {
+		t.Error("a chat for no folder went to the agent kept for a folder")
+	}
+	if agent(first) != agent(again) {
+		t.Errorf("a second chat for the folder went to %s, not %s", agent(again), agent(first))
+	}
+	var listed instance.Instance
+	for _, each := range site.server.instances.List() {
+		if each.Folder == key {
+			listed = each
+		}
+	}
+	if listed.ID == "" || listed.Title != "thesis" {
+		t.Errorf("the agent kept for the folder is not held with it: %+v", listed)
+	}
+}
+
+// A key the app did not make is no folder.
+func TestAFolderKeyIsOnlyWhatTheAppMakes(t *testing.T) {
+	for _, bad := range []string{"", "short", "0123456789ABCDEF", "0123456789abcdeg", "0123456789abcdef0"} {
+		request := httptest.NewRequest("POST", "/chat", strings.NewReader(url.Values{"folder": {bad}}.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if got := folderOf(request); got.Key != "" {
+			t.Errorf("%q was taken for a folder", bad)
+		}
 	}
 }

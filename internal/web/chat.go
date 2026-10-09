@@ -1,11 +1,12 @@
 package web
 
 import (
-	"encoding/json"
 	"net/http"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/getlatentic/haas/internal/catalog"
 	"github.com/getlatentic/haas/internal/instance"
@@ -84,7 +85,8 @@ func (s *Server) startChat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/chat", http.StatusSeeOther)
 		return
 	}
-	held, thread, why := s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), strings.TrimSpace(r.FormValue("model")))
+	where := folderOf(r)
+	held, thread, why := s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), strings.TrimSpace(r.FormValue("model")), where)
 	if why != "" {
 		s.turnAway(w, r, "/chat", why)
 		return
@@ -98,10 +100,10 @@ func (s *Server) startChat(w http.ResponseWriter, r *http.Request) {
 }
 
 // chatThread is the agent and the empty conversation a new chat goes into, on the model chosen, or why there is none.
-func (s *Server) chatThread(r *http.Request, harness, model string) (instance.Instance, instance.Thread, string) {
-	held, found := s.plainAgent(r, harness)
+func (s *Server) chatThread(r *http.Request, harness, model string, where folder) (instance.Instance, instance.Thread, string) {
+	held, found := s.agentFor(r, harness, where)
 	if !found {
-		started, _, why := s.beginInstance(r, instance.Instance{Harness: harness, Model: model, Who: s.keeper.who(r)})
+		started, _, why := s.beginInstance(r, instance.Instance{Harness: harness, Model: model, Who: s.keeper.who(r), Title: where.Name, Folder: where.Key})
 		if why != "" {
 			return started, instance.Thread{}, why
 		}
@@ -126,13 +128,39 @@ func (s *Server) chatThread(r *http.Request, harness, model string) (instance.In
 	return held, thread, ""
 }
 
-// plainAgent is the agent this person used last for a harness that was started for no repository, setup or
-// sensitivity, which is what a chat is.
-func (s *Server) plainAgent(r *http.Request, harness string) (instance.Instance, bool) {
+// folder is a folder on the person's computer that a chat works in: the key the desktop app made of its path, and its name.
+type folder struct{ Key, Name string }
+
+var folderKey = regexp.MustCompile(`^[a-f0-9]{16}$`)
+
+// folderOf is the folder a chat was started for, or none. A key that is not one the app makes is no folder.
+func folderOf(r *http.Request) folder {
+	key := strings.TrimSpace(r.FormValue("folder"))
+	if !folderKey.MatchString(key) {
+		return folder{}
+	}
+	name := strings.TrimSpace(strings.Map(func(c rune) rune {
+		if unicode.IsControl(c) {
+			return -1
+		}
+		return c
+	}, r.FormValue("folder_name")))
+	if name == "" {
+		name = "Folder"
+	}
+	if runes := []rune(name); len(runes) > 80 {
+		name = string(runes[:80])
+	}
+	return folder{Key: key, Name: name}
+}
+
+// agentFor is the agent this person used last for a harness that was started for the same folder, or for none, which is what a chat
+// with no folder is: no repository, setup or sensitivity either.
+func (s *Server) agentFor(r *http.Request, harness string, where folder) (instance.Instance, bool) {
 	var best instance.Instance
 	var seen int64
 	for _, each := range s.ownInstances(r, s.instances.List()) {
-		if each.Harness != harness || each.Repo != "" || each.Setup != "" || each.Sensitivity != "" {
+		if each.Harness != harness || each.Folder != where.Key || each.Repo != "" || each.Setup != "" || each.Sensitivity != "" {
 			continue
 		}
 		if active := s.lately(each).Active; best.ID == "" || active > seen {
@@ -151,54 +179,4 @@ func (s *Server) lastUsed(r *http.Request) []yours {
 	}
 	sort.SliceStable(used, func(a, b int) bool { return used[a].Active > used[b].Active })
 	return used
-}
-
-// option is one choice in a picker: what it is called, and a quieter word on what it costs or does.
-type option struct {
-	Value  string `json:"value"`
-	Label  string `json:"label"`
-	Detail string `json:"detail,omitempty"`
-}
-
-func (s *Server) modelOption(model string) option {
-	return option{Value: model, Label: modelName(model), Detail: s.costOf(model)}
-}
-
-// modelOptions are the models of a harness as a picker lists them.
-func (s *Server) modelOptionsOf(models []string) []option {
-	options := make([]option, 0, len(models))
-	for _, model := range models {
-		options = append(options, s.modelOption(model))
-	}
-	return options
-}
-
-// agentOptions is the harnesses as JSON for the page's picker.
-func (s *Server) agentOptions(picks []pick) string {
-	options := make([]option, 0, len(picks))
-	for _, each := range picks {
-		label := each.Title
-		if label == "" {
-			label = each.Name
-		}
-		options = append(options, option{Value: each.Name, Label: label})
-	}
-	return asJSON(options)
-}
-
-// modelOptions is each harness's models as JSON, so choosing a harness changes what the other picker lists.
-func (s *Server) modelOptions(picks []pick) string {
-	byHarness := map[string][]option{}
-	for _, each := range picks {
-		byHarness[each.Name] = s.modelOptionsOf(each.Models)
-	}
-	return asJSON(byHarness)
-}
-
-func asJSON(value any) string {
-	encoded, err := json.Marshal(value)
-	if err != nil {
-		return "null"
-	}
-	return string(encoded)
 }

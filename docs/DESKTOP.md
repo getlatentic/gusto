@@ -58,6 +58,15 @@ A release carries the app for macOS on Apple silicon and Intel (a disk image), W
 AppImage and a package). It is not built for Windows or Linux on Arm. None of it is signed with a platform certificate yet
 (getlatentic/planning#601), so macOS and Windows ask the person to allow it the first time.
 
+### Working in a folder
+
+In the app the box on the chat page has a folder button. It opens the system's folder chooser, and the chat that follows works in
+that folder: the app gives the folder to the helper, the server starts an agent for it, and the helper keeps the folder the same as
+the agent's folder in the cloud, in both directions, by the rule in [Files](#files). The server holds only a key made of the folder's
+path and the folder's name, never the path. Another chat in the same folder goes to the same agent. The helper keeps the folders it
+was given until the agent is removed, and will not keep a whole home folder or disk. In a browser the button is not there, because a
+page cannot reach a folder of the computer it is on.
+
 ### Updates
 
 The app asks the server it is connected to for `/desktop/latest.json`, a little after it starts and every six hours, and offers the
