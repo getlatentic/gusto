@@ -50,6 +50,8 @@ To publish an update:
 2. Put `latest.json` and the update archives in one folder. The format is the Tauri updater format.
 3. Start the server with `HAAS_DESKTOP=<folder>`. The server serves the folder under `/desktop/`.
 
+A release does steps 1 and 2 for every system, and `deploy/desktop/publish.sh` does step 2 for one server ([DESKTOP.md](../docs/DESKTOP.md#the-app)).
+
 ## Settings
 
 The server's address is in `config.json` in the app's settings folder (`~/Library/Application Support/com.latentic.agentcloud` on
