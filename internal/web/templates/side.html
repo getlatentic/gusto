@@ -12,8 +12,8 @@
     <span class="grow"></span>
     <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
-  <div class="panel">
-    <div class="panel-head"><span class="name">Latentic Agent Cloud</span></div>
+  <div class="sidepanel">
+    <div class="sidepanel-head"><span class="name">Latentic Agent Cloud</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{if .Rail}}{{template "side-chats" .Rail}}{{else}}<div class="chats" hx-get="/side/chats?here={{.Here}}" hx-trigger="load" hx-swap="outerHTML"></div>{{end}}
   </div>
