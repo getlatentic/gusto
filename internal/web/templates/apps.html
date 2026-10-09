@@ -1,14 +1,14 @@
 {{define "apps"}}<section class="panel" id="apps">
   <h2 class="section-title">Web apps</h2>
   {{range .Apps}}
-  <div class="row" style="justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
+  <div class="row" style="justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
     <div>
       {{if eq .State "live"}}<a href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>
       {{else if eq .State "starting"}}<span class="muted">Starting…</span>
       {{else if eq .State "failed"}}<span class="restricted">It did not start</span>
       {{else}}<span class="muted">Stopped</span>{{end}}
       <span class="muted"><code>{{.Command}}</code> on {{.Port}}</span>
-      {{if .Note}}<pre class="muted small" style="white-space:pre-wrap;margin:4px 0 0">{{.Note}}</pre>{{end}}
+      {{if .Note}}<pre class="muted small" style="white-space:pre-wrap;margin:0.25rem 0 0">{{.Note}}</pre>{{end}}
     </div>
     <form method="post" action="/instances/{{$.Instance.ID}}/apps/{{.ID}}/remove"><button type="submit" class="quiet">{{if or (eq .State "live") (eq .State "starting")}}Stop{{else}}Dismiss{{end}}</button></form>
   </div>

@@ -9,9 +9,9 @@
   function build() {
     bar = document.createElement("div");
     bar.setAttribute("role", "status");
-    bar.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:1000;" +
-      "max-width:calc(100vw - 32px);padding:10px 16px;border-radius:10px;background:#1f1a17;color:#fff;" +
-      "font:500 14px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center";
+    bar.style.cssText = "position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:1000;" +
+      "max-width:calc(100vw - 2rem);padding:0.625rem 1rem;border-radius:0.625rem;background:#1f1a17;color:#fff;" +
+      "font:500 0.875rem system-ui,sans-serif;box-shadow:0 0.25rem 1rem rgba(0,0,0,.25);display:flex;gap:0.75rem;align-items:center";
     text = document.createElement("span");
     link = document.createElement("a");
     link.textContent = "Keep it";
