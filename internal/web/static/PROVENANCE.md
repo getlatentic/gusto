@@ -10,6 +10,7 @@ somebody else can change after review.
 | tokens.css | Yarngo design tokens v1.0 | 5598 | 465f1ae6476797f18246aae6ad575339e9d9afc6add3548660b54dadc8aeef54 |
 | sora.woff2 | Sora, weights 400 to 700, latin subset, SIL Open Font License 1.1, from https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-xo6eeIw.woff2 (fetched 2026-09-27) | 25240 | 3902474d3ece89c8580d5ef3325cf58753e6e45a86f9957b4dacc4fce2e7fde1 |
 | mark.png | the Yarngo mark, resized to the 64px the page renders | 4993 | a5e85a9b0dceacca8e29f02d4aa21f29b5ae5cfc67a6c78d3c0f5edb180fd9cf |
+| highlight.min.js | highlight.js 11.12.0, the common-languages browser build, BSD 3-Clause, from the npm package @highlightjs/cdn-assets (fetched 2026-10-09) | 129254 | 8ab71eb09c51f501e5e25157d9cff100e46cc29bcbfc744d0b746d451fca7f53 |
 
 Fetched 2026-09-26. Check them:
 
