@@ -21,6 +21,8 @@ const (
 	desktopCookie = "haas-desktop"
 	// ticketLife is how long the browser has to hand a ticket to the app.
 	ticketLife = 2 * time.Minute
+	// desktopLife is how long the desktop app stays signed in.
+	desktopLife = 14 * 24 * time.Hour
 	// challengeLength is a SHA-256 hash in unpadded base64url.
 	challengeLength = 43
 )
@@ -95,6 +97,12 @@ func (s *Server) desktopStart(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/desktop/handoff", http.StatusSeeOther)
 		return
 	}
+	// The provider's own page is where the person is going, so they are taken there, and not to a page of ours that asks them to press a
+	// button for it.
+	if s.identity.Configured() && s.front == nil {
+		http.Redirect(w, r, "/auth/start", http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
@@ -121,6 +129,15 @@ func (s *Server) desktopHandoff(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "desktop-handoff.html", map[string]any{"Link": template.URL(link)})
 }
 
+// desktopSessionLife is how long the app stays signed in: a person opens it every day and does not want to go to their browser each
+// time. Behind a front door it is the front door's, which is how long a person is trusted after they are removed.
+func (s *Server) desktopSessionLife() time.Duration {
+	if s.front != nil {
+		return s.keeper.life
+	}
+	return desktopLife
+}
+
 // desktopRedeem signs the app's own window in, for a ticket and the secret whose hash the ticket was made for. It is answered only
 // to a request the app made itself: a page on another site that sent somebody here would sign them in as somebody else.
 func (s *Server) desktopRedeem(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +152,7 @@ func (s *Server) desktopRedeem(w http.ResponseWriter, r *http.Request) {
 		refuse(w, r, "that sign-in expired; try again")
 		return
 	}
-	s.keeper.issueFor(w, r, who, role)
+	s.keeper.issueLasting(w, r, who, role, s.desktopSessionLife())
 	s.noteSignIn(r, who, role, "the desktop app")
 	http.Redirect(w, r, "/chat", http.StatusSeeOther)
 }

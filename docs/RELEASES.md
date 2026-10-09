@@ -12,6 +12,11 @@ copies the section into the release's notes. Changes made after a release go und
 
 ## Next release
 
+**Changed**
+
+- **A sign-in outlives a restart.** The key sign-ins are made with, and the sessions people ended, are kept in `.keeper.json` in the sessions folder (`HAAS_KEEPER` names another file), readable by the server's user alone. A deploy no longer signs everybody out. Deleting the file signs everybody out, which is how to do that on purpose. The desktop app stays signed in for 14 days (the front door's hour, behind one).
+- **The app's browser goes straight to the provider.** Signing in from the desktop app no longer stops at a page that asks for one more press.
+
 **New**
 
 - **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.

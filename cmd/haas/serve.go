@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -182,6 +183,10 @@ func serve(args []string) int {
 	pages.UseIntegrations(integrations, integration.Clone{AllowPrivate: os.Getenv("HAAS_INTEGRATIONS_PRIVATE") == "1"})
 	pages.UseSetups(setups, servers)
 	pages.UseDesktop(os.Getenv("HAAS_DESKTOP"))
+	// What signs people in is kept beside the sessions, so that a deploy does not sign them out.
+	if err := pages.UseSessionFile(setting("HAAS_KEEPER", filepath.Join(setting("HAAS_SESSIONS", "sessions"), ".keeper.json"))); err != nil {
+		return fail(err)
+	}
 	pages.UseInBuilding(way.InBuilding())
 	lineups, err := compare.OpenBoard(setting("HAAS_COMPARISONS", "comparisons"))
 	if err != nil {
