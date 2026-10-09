@@ -28,7 +28,7 @@
     <pre id="stream" class="muted">waiting…</pre>
     {{else}}{{with .Transcript}}
     {{if .Empty}}<p class="muted">It said nothing.</p>{{else}}
-    <div class="reply">{{markdown .Text}}</div>
+    <div class="reply">{{if and $.Agent $.ThreadPath}}{{replyIn .Text $.Agent.ID $.Dir $.ThreadPath}}{{else}}{{markdown .Text}}{{end}}</div>
     {{template "cut" .}}{{end}}
     {{else}}
     <p class="muted">Nothing was recorded.</p>
