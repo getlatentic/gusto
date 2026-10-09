@@ -82,3 +82,22 @@ body:not(.app) > header nav a:hover { color: var(--yg-text); }
 .sections a { display: block; padding: 0 var(--yg-space-3); line-height: 2.25rem; border-radius: var(--yg-radius-sm); color: var(--yg-text-muted); text-decoration: none; }
 .sections a:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
 .sections a[aria-current] { background: var(--yg-surface); color: var(--yg-text); font-weight: 600; box-shadow: var(--yg-shadow-1); }
+
+/* The activity log: a status line for the record's integrity, then the events, one line each. */
+.integrity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3) var(--yg-space-4); margin: 0 0 var(--yg-space-6); padding: var(--yg-space-4) var(--yg-space-5);
+  background: var(--yg-surface); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); }
+.integrity .seal { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: var(--yg-radius-full); background: var(--yg-success-surface); color: var(--yg-success); }
+.integrity .seal svg.i { width: 1.125rem; height: 1.125rem; opacity: 1; }
+.integrity .grow { flex: 1 1 12rem; display: grid; gap: .125rem; min-width: 0; }
+.integrity .grow strong { font-size: .9375rem; font-weight: 600; }
+.integrity .grow .muted { font-size: .8125rem; }
+.integrity .how { flex: 1 0 100%; font-size: .875rem; }
+.integrity .how summary { width: fit-content; cursor: pointer; color: var(--yg-text-muted); }
+.integrity .how summary:hover { color: var(--yg-text); }
+.integrity .how p { margin: var(--yg-space-3) 0 0; color: var(--yg-text-muted); }
+.integrity .how pre { margin: var(--yg-space-2) 0 0; }
+.log th { text-transform: none; letter-spacing: 0; font-size: .8125rem; font-weight: 500; color: var(--yg-text-muted); }
+.log td.when, .log th.when { width: 1%; white-space: nowrap; color: var(--yg-text-muted); font-variant-numeric: tabular-nums; }
+.log td.actor, .log th.actor { width: 1%; white-space: nowrap; font-weight: 500; }
+.log td.from, .log th.from { width: 1%; white-space: nowrap; text-align: right; color: var(--yg-text-subtle); font-variant-numeric: tabular-nums; }
+.log .times { display: inline-block; margin-left: var(--yg-space-2); padding: 0 var(--yg-space-2); border-radius: var(--yg-radius-full); background: var(--yg-bg-subtle); font-size: .75rem; color: var(--yg-text-muted); }

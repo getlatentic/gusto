@@ -204,10 +204,13 @@ const shownChanges = 200
 
 // row is one event as the page says it.
 type row struct {
-	At   string
-	Who  string
-	Said string
-	From string
+	At    string
+	Full  string
+	Who   string
+	Said  string
+	From  string
+	Times int
+	Since string
 }
 
 func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
@@ -241,19 +244,47 @@ func (s *Server) recentChanges() []row {
 		if json.Unmarshal(scanner.Bytes(), &e) != nil {
 			continue
 		}
-		at := e.At
+		at, full := e.At, e.At
 		if when, err := time.Parse(time.RFC3339Nano, e.At); err == nil {
-			at = when.UTC().Format("2 Jan 2006 15:04:05 UTC")
+			at, full = shortWhen(when.UTC(), time.Now().UTC()), when.UTC().Format("2 Jan 2006 15:04:05 UTC")
 		}
-		rows = append(rows, row{At: at, Who: whoOf(e), Said: saidOf(e), From: e.From})
+		rows = append(rows, row{At: at, Full: full, Who: whoOf(e), Said: saidOf(e), From: e.From, Times: 1})
 	}
 	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
 		rows[i], rows[j] = rows[j], rows[i]
 	}
+	rows = foldRepeats(rows)
 	if len(rows) > shownChanges {
 		rows = rows[:shownChanges]
 	}
 	return rows
+}
+
+// shortWhen is a time as short as it can be and still be clear: the clock for today, the day and the clock for this year, else with the year.
+func shortWhen(when, now time.Time) string {
+	switch {
+	case when.Format("2006-01-02") == now.Format("2006-01-02"):
+		return "Today " + when.Format("15:04")
+	case when.Year() == now.Year():
+		return when.Format("2 Jan 15:04")
+	}
+	return when.Format("2 Jan 2006 15:04")
+}
+
+// foldRepeats joins runs of the same thing said by the same person from the same place into one row that says how many times, so that a
+// server that restarted twelve times is one line and not twelve. The row keeps the newest time and says when the run began.
+func foldRepeats(rows []row) []row {
+	var out []row
+	for _, each := range rows {
+		last := len(out) - 1
+		if last >= 0 && out[last].Who == each.Who && out[last].Said == each.Said && out[last].From == each.From {
+			out[last].Times++
+			out[last].Since = each.Full
+			continue
+		}
+		out = append(out, each)
+	}
+	return out
 }
 
 func whoOf(e changelog.Event) string {
