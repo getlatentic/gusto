@@ -187,3 +187,8 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .runs-day .event.is-failed .outcome, .runs-day .event.is-interrupted .outcome { background: var(--yg-danger-surface); color: var(--yg-danger); }
 .runs-day .event .how { justify-self: end; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 @container (max-width: 48rem) { .runs-day .event { grid-template-columns: .5rem minmax(0, 1fr) auto; } .runs-day .event .how { display: none; } }
+.role-detail .foot .runs-on { display: flex; align-items: center; gap: var(--yg-space-2); flex: none; font-size: .8125rem; color: var(--yg-text-muted); }
+.role-detail .foot .runs-on select { height: 2.25rem; padding: 0 var(--yg-space-3); }
+.engines-more { margin-top: var(--yg-space-4); }
+.engines-more > summary { font-size: .875rem; }
+.engines-more h2 { display: none; }

@@ -100,3 +100,12 @@ func TestTheNewAgentPageShowsEachRoleWhatItDoes(t *testing.T) {
 		}
 	}
 }
+
+func TestARoleStartsOnTheEngineChosenInItsFooter(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/templates/health", url.Values{"engine": {"fixture"}})
+	if where := started.Header().Get("Location"); started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting on a chosen engine answered %d to %q", started.Code, where)
+	}
+}
