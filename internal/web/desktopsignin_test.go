@@ -3,6 +3,9 @@ package web
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/haas/internal/jobs"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -149,5 +152,26 @@ func TestACrossSiteRedeemIsRefused(t *testing.T) {
 	answer := get(t, site, "/auth/desktop/redeem?ticket=x&secret=y", nil, map[string]string{"Sec-Fetch-Site": "cross-site"})
 	if answer.Code != http.StatusForbidden {
 		t.Errorf("a cross-site redeem answered %d", answer.Code)
+	}
+}
+
+// Where a provider is named, the browser the app opens goes to the provider and does not stop at a page that asks for one more press.
+func TestTheAppsBrowserGoesStraightToTheProvider(t *testing.T) {
+	index, err := jobs.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	instances, err := instance.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(index, instances, nil, password, &Identity{provider: &oidc.Provider{}}, offered(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := &site{handler: server.Handler(), index: index, server: server}
+	answer := get(t, site, "/auth/desktop/start?challenge="+challengeFor("secret"), nil, nil)
+	if answer.Header().Get("Location") != "/auth/start" {
+		t.Errorf("the browser went to %q", answer.Header().Get("Location"))
 	}
 }
