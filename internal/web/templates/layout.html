@@ -19,14 +19,20 @@
   <script nonce="{{.Nonce}}">
     // The theme and the accent are the person's, kept on this device and set before the page is drawn so that it does not flash.
     (function () {
-      var root = document.documentElement, theme = "system", accent = "graphite", dark = matchMedia("(prefers-color-scheme: dark)");
-      try { theme = localStorage.getItem("haas-theme") || theme; accent = localStorage.getItem("haas-accent") || accent; } catch (e) {}
-      function apply() { root.dataset.theme = theme === "dark" || (theme === "system" && dark.matches) ? "dark" : "light"; root.dataset.accent = accent; }
+      var root = document.documentElement, theme = "system", accent = "graphite", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");
+      var steps = [80, 90, 100, 110, 125, 150, 175, 200];
+      try { theme = localStorage.getItem("haas-theme") || theme; accent = localStorage.getItem("haas-accent") || accent; zoom = +localStorage.getItem("haas-zoom") || zoom; } catch (e) {}
+      function apply() { root.dataset.theme = theme === "dark" || (theme === "system" && dark.matches) ? "dark" : "light"; root.dataset.accent = accent; root.style.fontSize = zoom + "%"; }
       function keep(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
       dark.addEventListener("change", apply);
       apply();
       window.haasLook = {
-        theme: function () { return theme; }, accent: function () { return accent; },
+        theme: function () { return theme; }, accent: function () { return accent; }, zoom: function () { return zoom; },
+        stepZoom: function (by) {
+          var at = steps.indexOf(zoom); if (at < 0) { at = 2; }
+          zoom = by === 0 ? 100 : steps[Math.max(0, Math.min(steps.length - 1, at + by))];
+          keep("haas-zoom", String(zoom)); apply();
+        },
         setTheme: function (value) { theme = value; keep("haas-theme", value); apply(); },
         setAccent: function (value) { accent = value; keep("haas-accent", value); apply(); }
       };

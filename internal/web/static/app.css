@@ -1,7 +1,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-space-20);
   max-width: 72rem; background: var(--yg-bg); color: var(--yg-text);
-  font: 0.9375rem/1.55 var(--yg-font-text); }
+  font: 0.9375rem/1.55 var(--yg-font-text); 
+  container-type: inline-size;}
 
 /* Header: a mark, a name, where to go, and a way out. Nothing else. */
 header { display: flex; align-items: center; gap: var(--yg-space-5);
@@ -270,11 +271,11 @@ table.diff tr.added td { background: var(--yg-success-surface); }
 table.diff tr.removed td { background: var(--yg-danger-surface); }
 table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-muted); }
 
-@media (max-width: 64rem) {
+@container (max-width: 64rem) {
   .run { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 48rem) {
+@container (max-width: 48rem) {
   .instance { grid-template-columns: 2.25rem minmax(0, 1fr) auto; }
   .instance .where, .instance .held, .instance .status { display: none; }
   table.jobs th:nth-child(3), table.jobs td:nth-child(3),
@@ -289,7 +290,7 @@ table.diff tr.hunk td { background: var(--yg-bg-subtle); color: var(--yg-text-mu
 
 /* Below this the labels go and the icons carry the header on their own, which
    is the width at which they start pushing the page wider than the window. */
-@media (max-width: 34rem) {
+@container (max-width: 34rem) {
   header nav { gap: var(--yg-space-3); }
   header nav a span { display: none; }
 }
@@ -406,7 +407,7 @@ ul.asks li { padding: var(--yg-space-3) var(--yg-space-4); border: 0.0625rem sol
 .event .how { display: grid; justify-items: end; font-size: .8125rem; white-space: nowrap; }
 .event .outcome { font-weight: 500; }
 .event.is-failed .outcome, .event.is-interrupted .outcome { color: var(--yg-danger); }
-@media (max-width: 48rem) {
+@container (max-width: 48rem) {
   .event { grid-template-columns: 0.4375rem minmax(0, 1fr) auto; }
   .event .at { display: none; }
 }
@@ -550,7 +551,7 @@ table.agents tr { position: relative; }
   border: 0.0625rem solid var(--yg-border); border-radius: 0.5rem; }
 .pager a:hover { border-color: var(--yg-accent); }
 .pager .gap { flex: 1; }
-@media (max-width: 48rem) {
+@container (max-width: 48rem) {
   table.agents th:nth-child(2), table.agents td:nth-child(2),
   table.agents th:nth-child(3), table.agents td:nth-child(3) { display: none; }
   .hero { padding: var(--yg-space-6) var(--yg-space-5); }
@@ -601,7 +602,7 @@ table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-alig
 .answer .meta .guard { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--yg-leaf-700); text-decoration: none; }
 .answer .meta .guard svg.i { width: 0.8125rem; height: 0.8125rem; opacity: .9; }
 .answer .meta a.guard:hover { text-decoration: underline; }
-@media (max-width: 64rem) { .talk-top .guards { display: none; } }
+@container (max-width: 64rem) { .talk-top .guards { display: none; } }
 .figure.headline { background: linear-gradient(150deg, var(--yg-accent-surface), var(--yg-surface) 70%);
   border: 0.0625rem solid color-mix(in srgb, var(--yg-accent) 25%, transparent); }
 .figure.headline .value { color: var(--yg-accent-text); font-size: 1.875rem; }
@@ -635,7 +636,7 @@ table.lineup .badge { display: inline-block; margin-left: var(--yg-space-2); pad
   color: var(--yg-text-muted); text-decoration: none; }
 .sections a:hover { color: var(--yg-text); }
 .sections a[aria-current] { background: var(--yg-bg-subtle); color: var(--yg-text); font-weight: 600; }
-@media (max-width: 48rem) {
+@container (max-width: 48rem) {
   .console { grid-template-columns: minmax(0, 1fr); gap: var(--yg-space-4); }
   .sections { display: flex; flex-wrap: wrap; position: static; }
 }

@@ -33,6 +33,6 @@
 .record table.sites th { text-align: left; font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); padding: var(--yg-space-1) 0; border-bottom: 0.0625rem solid var(--yg-border); }
 .record table.sites td { padding: var(--yg-space-2) 0; border-bottom: 0.0625rem solid var(--yg-border); }
 .record table.sites .num { text-align: right; width: 5rem; }
-@media (max-width: 56rem) { .record-head { flex-direction: column; align-items: flex-start; } }
+@container (max-width: 56rem) { .record-head { flex-direction: column; align-items: flex-start; } }
 .strip .tile.wide { grid-column: span 2; }
 .strip .tile.wide .v { white-space: normal; }

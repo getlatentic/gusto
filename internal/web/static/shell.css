@@ -176,7 +176,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .ex .d-choose { border: 0; background: var(--yg-accent); color: var(--yg-on-accent); }
 .ex .d-choose:hover:not(:disabled) { background: var(--yg-accent-hover); }
 .ex .d-choose:disabled { opacity: .4; cursor: default; }
-@media (max-width: 40rem) { .d-body { grid-template-columns: minmax(0, 1fr); } .d-places { display: none; } .d-list .row { grid-template-columns: minmax(0, 1fr) 4.5rem; } .d-list .row > :nth-child(2) { display: none; } .d-filter { display: none; } .d-foot { grid-template-columns: 1fr; } .d-summary { text-align: left; } }
+@container (max-width: 40rem) { .d-body { grid-template-columns: minmax(0, 1fr); } .d-places { display: none; } .d-list .row { grid-template-columns: minmax(0, 1fr) 4.5rem; } .d-list .row > :nth-child(2) { display: none; } .d-filter { display: none; } .d-foot { grid-template-columns: 1fr; } .d-summary { text-align: left; } }
 .picker.locked > button { cursor: default; opacity: .75; }
 
 /* A picker: a quiet button that names the choice, and a menu above it. */
@@ -200,7 +200,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E") center / contain no-repeat; }
 
-@media (max-width: 56rem) {
+@container (max-width: 56rem) {
   .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; background: var(--yg-bg-subtle);
     transform: translateX(-100%); visibility: hidden;
@@ -221,14 +221,14 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
 
 .said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
-@media (max-width: 56rem) { .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); } }
+@container (max-width: 56rem) { .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); } }
 .composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
-@media (max-width: 56rem) { .composer .hint { display: none; } }
+@container (max-width: 56rem) { .composer .hint { display: none; } }
 
 /* The panel of conversations put away: the icons stay. */
 .panel-closed .sidepanel { display: none; }
   color: var(--yg-success); cursor: default; }
-@media (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .rail .panel-toggle { display: none; } }
+@container (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .rail .panel-toggle { display: none; } }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .composer button, .composer .picker .label { white-space: nowrap; }
@@ -258,3 +258,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .look .swatch[data-accent="green"] { background: #23805A; }
 .look .swatch[data-accent="violet"] { background: #7352D4; }
 .look .swatch[data-accent="rose"] { background: #D23F67; }
+.look .sizer { display: flex; align-items: center; gap: var(--yg-space-2); }
+.look .step { flex: none; width: 2.25rem; height: 2rem; padding: 0; border: .0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); background: var(--yg-surface); font: 600 .8125rem/1 var(--yg-font-text); color: var(--yg-text); cursor: pointer; }
+.look .step:hover { background: var(--yg-bg-subtle); }
+.look .size { flex: 1; text-align: center; font-size: .8125rem; font-variant-numeric: tabular-nums; color: var(--yg-text-muted); }
