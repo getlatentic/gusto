@@ -292,6 +292,16 @@
     root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: "" } }));
   };
 
+  // A chat opened from a project in the side list starts in that project's folder.
+  if (root.dataset.at) {
+    at.value = root.dataset.at;
+    label.textContent = root.dataset.label;
+    clear.hidden = false;
+    // Told once the page has finished loading, when whatever follows the agent has had its say.
+    var told = function () { root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: root.dataset.harness } })); };
+    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", told); } else { told(); }
+  }
+
   chip.addEventListener("click", open);
   clear.addEventListener("click", release);
 })();

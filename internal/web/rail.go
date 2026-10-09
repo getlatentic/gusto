@@ -14,6 +14,7 @@ const (
 
 // railGroup is one project in the side list: an agent's folder, with its latest conversations under it.
 type railGroup struct {
+	ID    string
 	Name  string
 	Runs  string
 	Chats []railChat
@@ -45,7 +46,7 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 		if len(chats) == 0 {
 			continue
 		}
-		groups = append(groups, railGroup{Name: names[each.ID], Runs: each.Runs(), Chats: chats})
+		groups = append(groups, railGroup{ID: each.ID, Name: names[each.ID], Runs: each.Runs(), Chats: chats})
 	}
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
