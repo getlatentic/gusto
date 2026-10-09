@@ -7,6 +7,9 @@
     file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M9 2.5v3h3"/></svg>',
     back: '<svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>',
     up: '<svg viewBox="0 0 16 16"><path d="M3.5 9.5 8 5l4.5 4.5"/></svg>',
+    image: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="m3 11.5 3-3 2.5 2.5 2-2 2.5 2.5"/><circle cx="10.5" cy="6" r=".5"/></svg>',
+    code: '<svg viewBox="0 0 16 16"><path d="m6 5-3 3 3 3M10 5l3 3-3 3"/></svg>',
+    table: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M2.5 9.8h11M6.5 3v10"/></svg>',
     plus: '<svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>',
     go: '<svg viewBox="0 0 16 16"><path d="m6.5 3.5 4.5 4.5-4.5 4.5"/></svg>'
   };
@@ -25,10 +28,19 @@
     node.addEventListener("click", onclick);
     return node;
   }
+  var kinds = {
+    image: /\.(png|jpe?g|gif|webp|svg|avif)$/i,
+    table: /\.(csv|tsv|xlsx?)$/i,
+    code: /\.(js|mjs|ts|tsx|jsx|go|py|rb|rs|java|c|h|cpp|css|html?|json|ya?ml|toml|sh|sql|php)$/i
+  };
+  function iconFor(name) {
+    for (var kind in kinds) { if (kinds[kind].test(name)) { return icon(kind); } }
+    return icon("file");
+  }
   function when(seconds) {
     if (!seconds) { return ""; }
     var then = new Date(seconds * 1000), now = new Date();
-    if (then.toDateString() === now.toDateString()) { return "Today " + then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+    if (then.toDateString() === now.toDateString()) { return then.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
     return then.toLocaleDateString([], { day: "numeric", month: "short", year: then.getFullYear() === now.getFullYear() ? undefined : "numeric" });
   }
   function bytes(n) {
@@ -118,7 +130,7 @@
 
     // The Files page has no window around it: the way down is the heading itself, and what can be done here sits to its right.
     function pageHead() {
-      var head = el("header", "f-head");
+      var head = el("div", "f-head");
       var trail = el("h1", "f-trail");
       state.here.crumbs.forEach(function (crumb, i) {
         var name = i === 0 ? "Files" : crumb.name;
@@ -186,7 +198,7 @@
         shown++;
         var row = el(browsing ? "a" : "div", "row file" + (browsing ? " openable" : ""));
         if (browsing) { row.href = viewer(file); }
-        var name = el("span", "name"); name.appendChild(icon("file")); name.appendChild(el("span", "t", file.name));
+        var name = el("span", "name"); name.appendChild(iconFor(file.name)); name.appendChild(el("span", "t", file.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(file.modified))); row.appendChild(el("span", "dim num", bytes(file.size)));
         rows.appendChild(row);
       });

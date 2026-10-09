@@ -1,7 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0 auto; padding: var(--yg-space-6) var(--yg-space-4) var(--yg-space-20);
   max-width: 72rem; background: var(--yg-bg); color: var(--yg-text);
-  font: 15px/1.55 var(--yg-font-text); }
+  font: 0.9375rem/1.55 var(--yg-font-text); }
 
 /* Header: a mark, a name, where to go, and a way out. Nothing else. */
 header { display: flex; align-items: center; gap: var(--yg-space-5);
@@ -9,7 +9,7 @@ header { display: flex; align-items: center; gap: var(--yg-space-5);
   border-bottom: 1px solid var(--yg-border); }
 header .brand { display: flex; align-items: center; gap: var(--yg-space-2);
   font: 600 1rem/1 var(--yg-font-display); letter-spacing: -.01em; text-decoration: none; }
-header .brand img { width: 22px; height: auto; }
+header .brand img { width: 1.375rem; height: auto; }
 header nav { display: flex; align-items: center; gap: var(--yg-space-4); margin-left: auto; font-size: .875rem; }
 header nav a { display: inline-flex; align-items: center; gap: var(--yg-space-2);
   color: var(--yg-text-muted); text-decoration: none; }
@@ -24,8 +24,8 @@ header nav a.new svg.i { opacity: 1; }
 
 /* Icons carry no meaning alone, so they never stand in for a word, and they
    take the non-text colour the tokens reserve for exactly this. */
-svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
-  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+svg.i { width: 1rem; height: 1rem; flex: none; stroke: currentColor; fill: none;
+  stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 
 h2 { font: 600 .8125rem/1.3 var(--yg-font-text); letter-spacing: .06em;
   text-transform: uppercase; color: var(--yg-text-subtle);
@@ -74,7 +74,7 @@ header nav button:hover { color: var(--yg-text); background: none; }
 .running, .queued { background: var(--yg-warning-surface); color: var(--yg-warning); }
 
 pre { overflow-x: auto; padding: var(--yg-space-4); background: var(--yg-surface-sunken);
-  border-radius: var(--yg-radius-sm); font: 12.5px/1.55 var(--yg-font-mono);
+  border-radius: var(--yg-radius-sm); font: 0.7812rem/1.55 var(--yg-font-mono);
   white-space: pre-wrap; word-break: break-word; max-height: 30rem; }
 .muted { color: var(--yg-text-muted); }
 
@@ -233,21 +233,21 @@ dl.facts dd a { color: var(--yg-text); font-weight: 500; }
 ol.ran { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--yg-space-2); font-size: .875rem; }
 ol.ran li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--yg-space-3); align-items: baseline; }
 ol.ran .tool { color: var(--yg-text-muted); font-size: .8125rem; }
-ol.ran code, .files code, .denied code, .verdict code { font: 12.5px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+ol.ran code, .files code, .denied code, .verdict code { font: 0.7812rem/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
 .verdict { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3); margin: 0 0 var(--yg-space-3); }
 ul.files, ul.denied { list-style: none; margin: var(--yg-space-3) 0 0; padding: 0; display: grid; gap: var(--yg-space-2); }
 ul.files li { display: grid; gap: 2px; }
-ul.files code { color: var(--yg-text-subtle); font-size: 11px; }
+ul.files code { color: var(--yg-text-subtle); font-size: 0.6875rem; }
 .command { display: flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-3);
   background: var(--yg-surface-sunken); border-radius: var(--yg-radius-sm); }
-.command code { flex: 1; min-width: 0; font: 12px/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.command code { flex: 1; min-width: 0; font: 0.75rem/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
 .command button { padding: var(--yg-space-1) var(--yg-space-3); font-size: .8125rem; }
 .small { font-size: .8125rem; }
 a.button.small { padding: var(--yg-space-2) var(--yg-space-4); font-size: .875rem; }
 a.button.plain { background: var(--yg-surface); color: var(--yg-text); border: 1px solid var(--yg-border); }
 a.button.plain:hover { border-color: var(--yg-accent); background: var(--yg-accent-surface); }
 .proof-line { display: flex; gap: var(--yg-space-2); align-items: flex-start; font-weight: 500; margin: 0 0 var(--yg-space-2); }
-.proof-line svg.i { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.proof-line svg.i { flex: none; width: 1.125rem; height: 1.125rem; margin-top: 2px; }
 .proof-line.good { color: var(--yg-leaf-700); }
 .proof-line.bad { color: var(--yg-danger); }
 .proof-downloads { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); }
@@ -257,12 +257,12 @@ a.button.plain:hover { border-color: var(--yg-accent); background: var(--yg-acce
 .diff-file + .diff-file { margin-top: var(--yg-space-5); }
 .diff-file h3 { display: flex; gap: var(--yg-space-2); align-items: baseline; margin: 0 0 var(--yg-space-2);
   font: 500 .875rem/1.4 var(--yg-font-text); }
-.diff-file h3 code { font: 13px/1.4 var(--yg-font-mono); }
+.diff-file h3 code { font: 0.8125rem/1.4 var(--yg-font-mono); }
 .plus { color: var(--yg-leaf-700); font-size: .8125rem; }
 .minus { color: var(--yg-danger); font-size: .8125rem; }
-.diff-meta { font: 12px/1.5 var(--yg-font-mono); color: var(--yg-text-muted); }
+.diff-meta { font: 0.75rem/1.5 var(--yg-font-mono); color: var(--yg-text-muted); }
 .diff-scroll { overflow-x: auto; border: 1px solid var(--yg-border); border-radius: var(--yg-radius-sm); }
-table.diff { font: 12.5px/1.55 var(--yg-font-mono); width: 100%; }
+table.diff { font: 0.7812rem/1.55 var(--yg-font-mono); width: 100%; }
 table.diff td { padding: 0 var(--yg-space-2); border: 0; vertical-align: top; }
 table.diff td.n { width: 1%; min-width: 2.5rem; text-align: right; color: var(--yg-text-subtle); user-select: none; }
 table.diff td.code { white-space: pre; }
@@ -362,7 +362,7 @@ ul.measured li.unfinished span:last-child { color: var(--yg-danger); }
 .restricted { color: var(--yg-danger); }
 .field { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--yg-radius-md);
   background: var(--yg-accent-surface); color: var(--yg-accent-text); }
-.field svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.6;
+.field svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.75;
   stroke-linecap: round; stroke-linejoin: round; }
 .template-head { display: flex; gap: var(--yg-space-4); align-items: flex-start; margin: 0 0 var(--yg-space-6); }
 .template-head .field { width: 3rem; height: 3rem; flex: none; }
@@ -436,7 +436,7 @@ details#task .threads-list { margin-bottom: var(--yg-space-4); }
 
 /* The files a turn left changed, each a link to it as it is now. */
 .changed { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); margin: var(--yg-space-3) 0 0; }
-.changed a { display: inline-flex; align-items: center; gap: var(--yg-space-1); font: 12.5px/1.4 var(--yg-font-mono);
+.changed a { display: inline-flex; align-items: center; gap: var(--yg-space-1); font: 0.7812rem/1.4 var(--yg-font-mono);
   padding: var(--yg-space-1) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-sm);
   background: var(--yg-surface); color: var(--yg-text); text-decoration: none; }
 .changed a:hover { border-color: var(--yg-accent); }
@@ -458,12 +458,12 @@ h1, .display { font-family: var(--yg-font-display); }
 .hue-defence     { --hue: #3f6212; --hue-strong: #65a30d; --hue-soft: #ecfccb; --hue-wash: #f7fee7; }
 .hue-engineering { --hue: #0369a1; --hue-strong: #0ea5e9; --hue-soft: #e0f2fe; --hue-wash: #f0f9ff; }
 .mark { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem;
-  border-radius: 12px; color: #fff;
+  border-radius: 0.75rem; color: #fff;
   background: linear-gradient(145deg, var(--hue-strong), var(--hue));
-  box-shadow: 0 6px 14px -8px var(--hue); }
+  box-shadow: 0 6px 0.875rem -8px var(--hue); }
 .mark svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round; }
-.mark.lg { width: 4rem; height: 4rem; border-radius: 18px; }
+.mark.lg { width: 4rem; height: 4rem; border-radius: 1.125rem; }
 .mark.sm { width: 2rem; height: 2rem; border-radius: 9px; }
 .mark .letter { font: 600 1rem/1 var(--yg-font-display); }
 
@@ -472,7 +472,7 @@ h1, .display { font-family: var(--yg-font-display); }
 
 /* A callout says one thing that matters, with a mark for what kind. */
 .callout { display: flex; gap: var(--yg-space-3); align-items: flex-start;
-  padding: var(--yg-space-4) var(--yg-space-5); border-radius: 14px;
+  padding: var(--yg-space-4) var(--yg-space-5); border-radius: 0.875rem;
   background: var(--yg-info-surface); color: var(--yg-text); }
 .callout .sign { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem;
   border-radius: 50%; background: var(--yg-surface); color: var(--yg-info); }
@@ -485,7 +485,7 @@ h1, .display { font-family: var(--yg-font-display); }
 /* A hero is a page about one thing: its mark, its name, one sentence, and
    what to do, on a wash of its hue. */
 .hero { position: relative; overflow: hidden; display: grid; gap: var(--yg-space-5);
-  padding: var(--yg-space-10) var(--yg-space-8); margin: 0 0 var(--yg-space-8); border-radius: 24px;
+  padding: var(--yg-space-10) var(--yg-space-8); margin: 0 0 var(--yg-space-8); border-radius: 1.5rem;
   background:
     radial-gradient(60% 90% at 100% 0%, color-mix(in srgb, var(--hue-strong) 22%, transparent) 0%, transparent 70%),
     linear-gradient(135deg, var(--hue-soft) 0%, var(--hue-wash) 55%, #fff 100%);
@@ -498,7 +498,7 @@ h1, .display { font-family: var(--yg-font-display); }
 
 /* What an agent can do: one tile a skill, a title and a line. */
 .abilities { display: grid; gap: var(--yg-space-4); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: 0 0 var(--yg-space-8); }
-.ability { padding: var(--yg-space-5); border-radius: 16px; background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
+.ability { padding: var(--yg-space-5); border-radius: 1rem; background: var(--yg-surface); box-shadow: var(--yg-shadow-1); }
 .ability strong::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: var(--yg-space-2);
   border-radius: 50%; background: var(--hue-strong); vertical-align: middle; }
 .ability .mark { margin-bottom: var(--yg-space-3); }
@@ -517,11 +517,11 @@ details.more[open] > summary { margin-bottom: var(--yg-space-4); }
 /* Choosing what to start: a card a field, and one for a blank agent. */
 .choices { display: grid; gap: var(--yg-space-5); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); margin: 0 0 var(--yg-space-8); }
 .choice { display: grid; align-content: start; gap: var(--yg-space-3); padding: var(--yg-space-6);
-  border-radius: 20px; color: inherit; text-decoration: none;
+  border-radius: 1.25rem; color: inherit; text-decoration: none;
   background: linear-gradient(160deg, var(--hue-soft) 0%, var(--hue-wash) 45%, #fff 100%);
   border: 1px solid color-mix(in srgb, var(--hue-strong) 16%, transparent);
   transition: transform var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
-.choice:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -18px var(--hue); border-color: color-mix(in srgb, var(--hue-strong) 40%, transparent); }
+.choice:hover { transform: translateY(-2px); box-shadow: 0 0.875rem 1.875rem -18px var(--hue); border-color: color-mix(in srgb, var(--hue-strong) 40%, transparent); }
 .choice .name { font: 600 1.1875rem/1.25 var(--yg-font-display); letter-spacing: -.015em; }
 .choice .what { font-size: .9375rem; color: var(--yg-text-muted); }
 .choice .tag { justify-self: start; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--hue); }
@@ -575,7 +575,7 @@ details.steps ol.did .detail { font-family: var(--yg-font-text); font-size: .812
 .run-title .place { margin: 0 0 var(--yg-space-1); font-size: .8125rem; font-weight: 600; color: var(--yg-text-subtle); letter-spacing: .04em; text-transform: uppercase; }
 .outcome-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3); margin: var(--yg-space-3) 0 0; font-size: .875rem; }
 .neighbours { display: flex; gap: var(--yg-space-2); flex: none; }
-.neighbours a { padding: var(--yg-space-2) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: 10px;
+.neighbours a { padding: var(--yg-space-2) var(--yg-space-3); border: 1px solid var(--yg-border); border-radius: 0.625rem;
   color: var(--yg-text); text-decoration: none; font-size: .875rem; background: var(--yg-surface); }
 .neighbours a:hover { border-color: var(--yg-accent); }
 .run-side details > summary { cursor: pointer; color: var(--yg-text-muted); }
@@ -583,7 +583,7 @@ details.steps ol.did .detail { font-family: var(--yg-font-text); font-size: .812
 .run-side .small-cta { width: 100%; }
 .files-link { display: inline-flex; align-items: center; gap: var(--yg-space-1); font-size: .875rem;
   color: var(--yg-text-muted); text-decoration: none; padding: var(--yg-space-1) var(--yg-space-3);
-  border: 1px solid var(--yg-border); border-radius: 10px; }
+  border: 1px solid var(--yg-border); border-radius: 0.625rem; }
 .files-link:hover { color: var(--yg-text); border-color: var(--yg-accent); }
 table.files-table th:nth-child(1) { width: auto; }
 table.files-table th:nth-child(2) { width: 7rem; }
@@ -594,12 +594,12 @@ table.files-table td:nth-child(3), table.files-table th:nth-child(3) { text-alig
 /* The guarantees, where the work is: chips on the conversation, and what
    each reply was kept from, in the line under it. */
 .guards { display: flex; gap: var(--yg-space-2); flex-wrap: wrap; }
-.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 0.625rem; border-radius: 62.4375rem;
   font-size: .75rem; font-weight: 500; color: var(--yg-leaf-700); background: var(--yg-success-surface); white-space: nowrap; }
-.chip svg.i { width: 13px; height: 13px; opacity: .9; }
-.answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.chip svg.i { width: 0.8125rem; height: 0.8125rem; opacity: .9; }
+.answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0.75rem; }
 .answer .meta .guard { display: inline-flex; align-items: center; gap: 4px; color: var(--yg-leaf-700); text-decoration: none; }
-.answer .meta .guard svg.i { width: 13px; height: 13px; opacity: .9; }
+.answer .meta .guard svg.i { width: 0.8125rem; height: 0.8125rem; opacity: .9; }
 .answer .meta a.guard:hover { text-decoration: underline; }
 @media (max-width: 64rem) { .talk-top .guards { display: none; } }
 .figure.headline { background: linear-gradient(150deg, var(--yg-accent-surface), var(--yg-surface) 70%);
@@ -612,7 +612,7 @@ table.measured th { padding: var(--yg-space-4) var(--yg-space-5) var(--yg-space-
 table.measured td { padding: var(--yg-space-4) var(--yg-space-5); vertical-align: top; border-bottom: 1px solid var(--yg-bg-subtle); }
 table.measured td.name { font-weight: 600; }
 table.measured .done { display: inline-flex; align-items: center; gap: 4px; color: var(--yg-leaf-700); font-weight: 500; }
-table.measured .done svg.i { width: 14px; height: 14px; }
+table.measured .done svg.i { width: 0.875rem; height: 0.875rem; }
 table.measured .missed { color: var(--yg-danger); font-weight: 500; }
 table.measured .sub { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
 

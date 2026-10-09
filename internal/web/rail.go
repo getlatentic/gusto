@@ -18,6 +18,7 @@ type railGroup struct {
 	Name  string
 	Runs  string
 	Chats []railChat
+	Open  bool
 }
 
 // railChat is one conversation in the side list.
@@ -48,9 +49,22 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 		}
 		groups = append(groups, railGroup{ID: each.ID, Name: names[each.ID], Runs: each.Runs(), Chats: chats})
 	}
+	for i := range groups {
+		groups[i].Open = i == 0 || holds(groups[i], here)
+	}
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
 	return list
+}
+
+// holds is whether the conversation at here is one of the group's.
+func holds(group railGroup, here string) bool {
+	for _, chat := range group.Chats {
+		if chat.Where == here {
+			return true
+		}
+	}
+	return false
 }
 
 // projectNames is what each project is called where there are several: a name that two projects share is followed by the day each was

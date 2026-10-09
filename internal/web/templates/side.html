@@ -2,10 +2,10 @@
   <nav class="rail" aria-label="Places">
     <a class="mark" href="/chat" aria-label="Latentic Agent Cloud"><img src="/static/mark.png" alt=""></a>
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
-    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-compose"}}</a>
+    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
     <a class="tool" href="/" data-tip="Agents" aria-label="Agents"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
-    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}}</a>
+    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
     <span class="grow"></span>
@@ -25,7 +25,7 @@
 
 {{define "side-groups"}}{{range .Groups}}
   <section class="proj">
-    <details open>
+    <details{{if .Open}} open{{end}}>
       <summary title="{{.Runs}}">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
       <ol>
         {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}

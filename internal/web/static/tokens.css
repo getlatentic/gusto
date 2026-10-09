@@ -144,3 +144,8 @@
 
    Dark theme keeps --yg-accent-dark #FF9C3D: #FF6E08 goes muddy on #121110.
    ───────────────────────────────────────────────────────────────────────── */
+
+/* The icon rail sits one step darker than the conversations beside it, which sit one step darker than the page. */
+:root { --yg-rail: var(--yg-neutral-200); }
+:root[data-theme="dark"] { --yg-rail: #0D0C0B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --yg-rail: #0D0C0B; } }
