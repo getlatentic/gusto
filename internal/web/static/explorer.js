@@ -3,15 +3,15 @@
 // opens on one click, a file opens in the viewer and the folder can be the one to chat in.
 (function () {
   var icons = {
-    folder: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h2.9l1.2 1.5h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9.1a1 1 0 0 1-1-1z"/></svg>',
-    file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M9 2.5v3h3"/></svg>',
-    back: '<svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>',
-    up: '<svg viewBox="0 0 16 16"><path d="M3.5 9.5 8 5l4.5 4.5"/></svg>',
-    image: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="m3 11.5 3-3 2.5 2.5 2-2 2.5 2.5"/><circle cx="10.5" cy="6" r=".5"/></svg>',
-    code: '<svg viewBox="0 0 16 16"><path d="m6 5-3 3 3 3M10 5l3 3-3 3"/></svg>',
-    table: '<svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M2.5 9.8h11M6.5 3v10"/></svg>',
-    plus: '<svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>',
-    go: '<svg viewBox="0 0 16 16"><path d="m6.5 3.5 4.5 4.5-4.5 4.5"/></svg>'
+    folder: '<svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+    file: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
+    up: '<svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>',
+    image: '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    code: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></svg>',
+    table: '<svg viewBox="0 0 24 24"><path d="M3 9h18"/><path d="M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
   };
   function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.innerHTML = icons[name]; return span; }
   function el(tag, className, text) {
