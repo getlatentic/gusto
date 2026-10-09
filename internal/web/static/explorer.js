@@ -1,12 +1,13 @@
-// The explorer of the person's cloud computer: the projects down the side, the path along the top, and the folders and files of the place in
-// a list with their dates and sizes, as a Finder is laid out. It is drawn into a window that chooses a folder, or into the Files page, where
-// a file opens and the folder can be the one to chat in.
+// The explorer of the person's cloud computer: the folders and files of a place in a list with their dates and sizes. Drawn into a window
+// that chooses a folder (projects down the side, path along the top), or into the Files page, where the page heading is the path, a folder
+// opens on one click, a file opens in the viewer and the folder can be the one to chat in.
 (function () {
   var icons = {
     folder: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h2.9l1.2 1.5h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9.1a1 1 0 0 1-1-1z"/></svg>',
     file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M9 2.5v3h3"/></svg>',
     back: '<svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>',
     up: '<svg viewBox="0 0 16 16"><path d="M3.5 9.5 8 5l4.5 4.5"/></svg>',
+    plus: '<svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>',
     go: '<svg viewBox="0 0 16 16"><path d="m6.5 3.5 4.5 4.5-4.5 4.5"/></svg>'
   };
   function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.innerHTML = icons[name]; return span; }
@@ -78,12 +79,17 @@
     function draw() {
       container.textContent = "";
       if (!state.here) { container.appendChild(el("div", "d-loading", state.problem || "Looking…")); return; }
-      container.appendChild(toolbar());
-      var body = el("div", "d-body");
-      body.appendChild(placesList());
-      body.appendChild(list());
-      container.appendChild(body);
-      container.appendChild(footer());
+      if (browsing) {
+        container.appendChild(pageHead());
+        container.appendChild(list());
+      } else {
+        container.appendChild(toolbar());
+        var body = el("div", "d-body");
+        body.appendChild(placesList());
+        body.appendChild(list());
+        container.appendChild(body);
+        container.appendChild(footer());
+      }
       var inputBox = container.querySelector(".making input");
       if (inputBox) { inputBox.focus(); }
     }
@@ -108,6 +114,31 @@
       filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
       bar.appendChild(filter);
       return bar;
+    }
+
+    // The Files page has no window around it: the way down is the heading itself, and what can be done here sits to its right.
+    function pageHead() {
+      var head = el("header", "f-head");
+      var trail = el("h1", "f-trail");
+      state.here.crumbs.forEach(function (crumb, i) {
+        var name = i === 0 ? "Files" : crumb.name;
+        if (i > 0) { trail.appendChild(el("span", "sep", "/")); }
+        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "here", name) : button("crumb", function () { load(crumb.at, true); }, [name]));
+      });
+      head.appendChild(trail);
+      var tools = el("div", "f-tools");
+      var filter = el("input", "d-filter");
+      filter.type = "search"; filter.placeholder = "Filter"; filter.value = state.filter; filter.setAttribute("aria-label", "Filter this folder");
+      filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
+      tools.appendChild(filter);
+      tools.appendChild(button("d-quiet", function () { state.making = true; state.problem = ""; draw(); }, [icon("plus"), state.here.at ? "New folder" : "New project"]));
+      if (state.here.at) {
+        var chat = el("a", "d-choose", "Chat here");
+        chat.href = "/chat?at=" + encodeURIComponent(state.here.at);
+        tools.appendChild(chat);
+      }
+      head.appendChild(tools);
+      return head;
     }
 
     function placesList() {
@@ -147,7 +178,7 @@
         var name = el("span", "name"); name.appendChild(icon("folder")); name.appendChild(el("span", "t", folder.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(folder.modified))); row.appendChild(el("span", "go"));
         row.lastChild.appendChild(icon("go"));
-        row.addEventListener("click", function () { state.selected = folder.at; mark(); });
+        row.addEventListener("click", function () { if (browsing) { load(folder.at, true); } else { state.selected = folder.at; mark(); } });
         row.addEventListener("dblclick", function () { load(folder.at, true); });
         rows.appendChild(row);
       });
