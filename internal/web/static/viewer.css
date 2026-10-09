@@ -13,7 +13,7 @@
 .reply h1, .reply h2, .reply h3, .reply h4 { font-size: 1rem; font-weight: 650; margin: var(--yg-space-5) 0 var(--yg-space-2); }
 .reply ul, .reply ol, .prose ul, .prose ol { padding-left: 1.4rem; }
 .reply li + li, .prose li + li { margin-top: var(--yg-space-1); }
-.reply code, .prose code { font: 13px/1.5 var(--yg-font-mono); background: var(--yg-bg-subtle); padding: 1px 5px; border-radius: var(--yg-radius-xs); }
+.reply code, .prose code { font: 0.8125rem/1.5 var(--yg-font-mono); background: var(--yg-bg-subtle); padding: 1px 5px; border-radius: var(--yg-radius-xs); }
 .reply pre, .prose pre { padding: var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-sm); }
 .reply pre code, .prose pre code { background: none; padding: 0; }
 .reply blockquote, .prose blockquote { padding: var(--yg-space-1) 0 var(--yg-space-1) var(--yg-space-4); border-left: 3px solid var(--yg-border-strong); color: var(--yg-text-muted); }
@@ -38,7 +38,7 @@
 .viewer-title h1 { margin: 0; font: 650 1.25rem/1.3 var(--yg-font-text); letter-spacing: -.01em; overflow-wrap: anywhere; }
 .viewer-title p { margin: var(--yg-space-1) 0 0; }
 .viewer-actions { display: flex; flex-wrap: wrap; gap: var(--yg-space-2); flex: none; }
-.viewer .code { margin: 0; padding: var(--yg-space-4) var(--yg-space-5); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); font: 13px/1.6 var(--yg-font-mono); overflow-x: auto; }
+.viewer .code { margin: 0; padding: var(--yg-space-4) var(--yg-space-5); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); font: 0.8125rem/1.6 var(--yg-font-mono); overflow-x: auto; }
 .viewer .prose { max-width: 46rem; }
 .viewer .media { display: grid; place-items: center; padding: var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); }
 .viewer .media img, .viewer .media video { max-width: 100%; max-height: 70vh; border-radius: var(--yg-radius-sm); }
@@ -54,32 +54,37 @@
 .viewer table.grid th, .viewer table.grid td { padding: var(--yg-space-2) var(--yg-space-4); border: 1px solid var(--yg-border); text-align: left; white-space: nowrap; max-width: 24rem; overflow: hidden; text-overflow: ellipsis; }
 .viewer table.grid th { background: var(--yg-bg-subtle); font-size: .75rem; letter-spacing: .04em; text-transform: none; color: var(--yg-text); }
 .viewer .nothing { display: grid; justify-items: center; gap: var(--yg-space-3); padding: var(--yg-space-16) var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); color: var(--yg-text-muted); text-align: center; }
-.viewer .nothing svg.i { width: 28px; height: 28px; }
+.viewer .nothing svg.i { width: 1.75rem; height: 1.75rem; }
 .viewer .nothing p { margin: 0; }
 @media (max-width: 56rem) { .viewer-head { flex-direction: column; align-items: flex-start; } }
 
 
-/* The explorer on the Files page: no window, no side list. The heading is the path, the actions sit beside it, and the list runs the width of the page. */
-.ex-page { height: auto; min-height: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; display: block; }
-.f-head { display: flex; align-items: center; gap: var(--yg-space-4); min-height: 2.5rem; margin: 0 0 var(--yg-space-5); }
-.f-trail { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1; min-width: 0; margin: 0; font: 650 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.015em; }
+/* The explorer on the Files page: no window, no side list. The heading is the path, the actions sit beside it, and the list runs the width of the page.
+   Sizes: names .9375rem, what is said about them .8125rem. */
+.ex-page { display: block; height: auto; min-height: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.f-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-3) var(--yg-space-4); min-height: 2.5rem; margin: 0 0 var(--yg-space-6); }
+.f-trail { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1 1 14rem; margin: 0; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
 .f-trail .sep { color: var(--yg-border-strong); font-weight: 400; }
 .f-trail .crumb { padding: 0; border: 0; background: none; font: inherit; color: var(--yg-text-muted); cursor: pointer; }
 .f-trail .crumb:hover { color: var(--yg-text); }
-.f-trail .here { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.f-tools { display: flex; align-items: center; gap: var(--yg-space-2); flex: none; }
-.f-tools .d-filter { width: 12rem; height: 2.25rem; }
-.f-tools .d-quiet, .f-tools .d-choose { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; text-decoration: none; }
-.ex-page .d-list { background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); overflow: hidden; }
-.ex-page .d-list .row { grid-template-columns: minmax(0, 1fr) 10rem 6rem; padding: 0 var(--yg-space-5); min-height: 2.75rem; }
-.ex-page .d-list .heads { min-height: 2.25rem; background: var(--yg-bg-subtle); }
-.ex-page .d-list .rows { padding: 0; }
+.f-trail .here { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-tools { display: flex; align-items: center; gap: var(--yg-space-2); flex: 1 1 22rem; min-width: 0; justify-content: flex-end; }
+.f-tools .d-filter { flex: 1 1 8rem; min-width: 6rem; width: auto; height: 2.25rem; font-size: .875rem; }
+.f-tools .d-quiet, .f-tools .d-choose { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; font-size: .875rem; text-decoration: none; }
+.f-tools .ic { width: 1.125rem; height: 1.125rem; }
+.ex-page .d-list { background: var(--yg-surface); border: 1px solid var(--yg-border); border-radius: var(--yg-radius-md); overflow: hidden; box-shadow: var(--yg-shadow-1); }
+.ex-page .d-list .row { grid-template-columns: minmax(0, 1fr) 16% 9%; gap: var(--yg-space-4); padding: 0 var(--yg-space-5); min-height: 3rem; font-size: .9375rem; }
+.ex-page .d-list .heads { min-height: 2.5rem; background: var(--yg-bg-subtle); border-bottom: 1px solid var(--yg-border); font-size: .8125rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--yg-text-muted); }
+.ex-page .d-list .rows { flex: none; overflow: visible; padding: 0; }
 .ex-page .d-list .rows .row { border-radius: 0; border-top: 1px solid var(--yg-border); }
 .ex-page .d-list .rows .row:first-child { border-top: 0; }
-.ex-page .d-list .folder { cursor: pointer; }
-.ex-page .d-list .folder .name, .ex-page .d-list .file .name { font-weight: 500; }
-.ex-page .d-list .file { color: var(--yg-text); }
-.ex-page .d-list .row .go { opacity: 0; }
-.ex-page .d-list .row:hover .go { opacity: 1; }
-.ex-page .d-list .rows { flex: none; overflow: visible; }
-.ex-page .d-empty { padding: var(--yg-space-12) var(--yg-space-4); }
+.ex-page .d-list .folder, .ex-page .d-list .file { cursor: pointer; color: var(--yg-text); }
+.ex-page .d-list .name { gap: var(--yg-space-3); font-weight: 500; }
+.ex-page .d-list .name .ic { width: 1.25rem; height: 1.25rem; }
+.ex-page .d-list .folder .name .ic { color: var(--yg-text-muted); }
+.ex-page .d-list .folder .name .ic svg { fill: color-mix(in srgb, var(--yg-text-subtle) 35%, transparent); }
+.ex-page .d-list .file .name .ic { color: var(--yg-text-subtle); }
+.ex-page .d-list .dim { font-size: .8125rem; color: var(--yg-text-muted); }
+.ex-page .d-list .go .ic { width: 1rem; height: 1rem; }
+.ex-page .d-list .row:hover { background: var(--yg-bg-subtle); }
+.ex-page .d-empty { padding: var(--yg-space-12) var(--yg-space-4); font-size: .9375rem; }
