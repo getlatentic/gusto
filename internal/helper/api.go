@@ -19,6 +19,8 @@ type Instance struct {
 	Title   string `json:"title,omitempty"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
+	// Folder is the key of the folder on a person's computer that the agent's folder is kept the same as, when there is one.
+	Folder  string `json:"folder,omitempty"`
 	Started int64  `json:"startedAt"`
 }
 

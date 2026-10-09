@@ -41,6 +41,9 @@ type Instance struct {
 	Repo    string `json:"repo,omitempty"`
 	// Setup names the configuration every turn on this instance is given.
 	Setup string `json:"setup,omitempty"`
+	// Folder names a folder on somebody's computer that this instance's workspace is kept the same as, by a key the desktop app
+	// makes of the folder's path. The server never holds the path.
+	Folder string `json:"folder,omitempty"`
 	// Sensitivity is every turn's, so work that may not leave the building
 	// never does, whichever thread it is said in.
 	Sensitivity string `json:"sensitivity,omitempty"`

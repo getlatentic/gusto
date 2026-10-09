@@ -86,6 +86,17 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .talk.fresh .hero .composer { width: 100%; padding: 0; }
 .talk.fresh .hero .refused { margin: 0; }
 
+/* The folder a chat works in: a quiet chip on the left of the box, with the way to let go of it. */
+.folder { display: flex; align-items: center; min-width: 0; }
+.folder[hidden] { display: none; }
+.folder .chip { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-3);
+  border-radius: var(--yg-radius-full); color: var(--yg-text-muted); font: 500 .8125rem/1 var(--yg-font-text); text-decoration: none; min-width: 0; }
+.folder .chip .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
+.folder .chip:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.folder .clear { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: var(--yg-radius-full);
+  background: none; color: var(--yg-text-subtle); cursor: pointer; }
+.folder .clear:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
+
 /* A picker: a quiet button that names the choice, and a menu above it. */
 .picker { position: relative; }
 .picker > button { display: inline-flex; align-items: center; gap: var(--yg-space-1); height: 2rem; padding: 0 var(--yg-space-2) 0 var(--yg-space-3);
