@@ -1,9 +1,10 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>Retention</h1>
-  <p class="muted">Finished work is removed on a schedule. A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
+  <span class="count">Finished work is removed on a schedule</span>
 </div>
+<details class="how page-why"><summary>How this works</summary><p>A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p></details>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
