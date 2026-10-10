@@ -189,9 +189,6 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 @container (max-width: 48rem) { .runs-day .event { grid-template-columns: .5rem minmax(0, 1fr) auto; } .runs-day .event .how { display: none; } }
 .role-detail .foot .runs-on { display: flex; align-items: center; gap: var(--yg-space-2); flex: none; font-size: .8125rem; color: var(--yg-text-muted); }
 .role-detail .foot .runs-on select { height: 2.25rem; padding: 0 var(--yg-space-3); }
-.engines-more { margin-top: var(--yg-space-4); }
-.engines-more > summary { font-size: .875rem; }
-.engines-more h2 { display: none; }
 
 .role-detail .foot .cta { display: inline-flex; align-items: center; text-decoration: none; }
 .role-detail .foot .cta[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
@@ -213,7 +210,7 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 
 /* Where the list and what the role does cannot sit side by side, a menu picks the role and what it does is right under it. */
 .role-select { display: none; }
-@container (max-width: 76rem) {
+@container (max-width: 56rem) {
   .roles-pane { flex-direction: column; align-items: stretch; gap: var(--yg-space-4); }
   .role-list { max-width: none; flex: none; }
   .role-list .search, .role-list .chips, .role-list .picks { display: none; }
@@ -223,7 +220,7 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 }
 h2.plain { margin: var(--yg-space-8) 0 var(--yg-space-3); font: 600 1rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
 .title-row + h2.plain, .presets > h2.plain:first-child { margin-top: 0; }
-@container (max-width: 76rem) { .role-select select { width: min(100%, 28rem); } }
+@container (max-width: 56rem) { .role-select select { width: min(100%, 28rem); } }
 
 /* People: who they are first, what they may do as a pill. */
 .who-cell { display: inline-flex; align-items: center; gap: var(--yg-space-3); }
