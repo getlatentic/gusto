@@ -230,9 +230,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 /* The panel of conversations put away: the icons stay. */
 .panel-closed .sidepanel { display: none; }
 .panel-closed .side { width: 4rem; }
-  color: var(--yg-success); cursor: default; }
 @container (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .panel-closed .side { width: calc(4rem + var(--panel-w, 16rem)); } .rail .panel-toggle { display: none; } }
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .composer button, .composer .picker .label { white-space: nowrap; }
 .picker .menu { min-width: 16rem; max-width: 24rem; }
