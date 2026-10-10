@@ -76,7 +76,13 @@ The target is WCAG 2.2 level AA. Where we choose a stricter number, the rule say
 
 ## Part 3. The visual system (gate 3)
 
-Values come from the tokens in `theme.css`. A value outside the scale is a warning. The scale is in rem so that it follows the person's text size. Pixel values are for 16px text.
+Values come from the tokens in `theme.css`. A value outside the scale is a warning. All sizes are written in rem in the CSS, so that they follow the person's text size, and `units_test.go` rejects px in the stylesheets. The pixel values in this document are what a rem is at the default 16px text, and are given so that the rules can be read and measured. The audit script reads computed pixels at 100% text.
+
+| rem | 0.25 | 0.5 | 0.75 | 1 | 1.25 | 1.5 | 1.75 | 2 | 2.5 | 3 | 4 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| px | 4 | 8 | 12 | 16 | 20 | 24 | 28 | 32 | 40 | 48 | 64 |
+
+Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5, 0.75, 1, 1.25 and 1.5. Type uses 0.75, 0.8125, 0.875, 1, 1.25, 1.5 and 1.75.
 
 ### Layout
 
