@@ -1,9 +1,9 @@
 /* A conversation. What was said is a quiet bubble on the right; what came back is plain text in the column, under what it did, folded, and
    above what it cost, small. The one colour on the page is the button that sends. */
 .talk-top { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 3.25rem; padding: var(--yg-space-2) var(--yg-space-6); border-bottom: 0.0625rem solid var(--yg-border); }
-.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .9375rem/1.3 var(--yg-font-text); letter-spacing: 0; text-transform: none; color: var(--yg-text); }
+.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 1rem/1.3 var(--yg-font-text); letter-spacing: 0; text-transform: none; color: var(--yg-text); }
 .talk-top .where { display: flex; align-items: center; gap: var(--yg-space-2); min-width: 0; font-size: .8125rem; color: var(--yg-text-muted); }
-.talk-top .where .project { display: inline-flex; align-items: center; gap: var(--yg-space-2); color: inherit; text-decoration: none; min-width: 0; }
+.talk-top .where .project { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-2); color: inherit; text-decoration: none; min-width: 0; }
 .talk-top .where .project span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
 .talk-top .where .project:hover { color: var(--yg-text); }
 .talk-top .where .sep { color: var(--yg-text-subtle); }
@@ -18,8 +18,8 @@
 
 .turn { margin-bottom: var(--yg-space-8); }
 .turn pre { margin: 0; }
-.said { margin: 0 0 var(--yg-space-4) auto; width: fit-content; max-width: 34rem; padding: .625rem var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: 1.125rem;
-  font-size: .9375rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.said { margin: 0 0 var(--yg-space-4) auto; width: fit-content; max-width: 34rem; padding: .625rem var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-lg);
+  font-size: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer { display: grid; gap: var(--yg-space-3); min-width: 0; }
 
 details.steps { font-size: .8125rem; }
@@ -34,7 +34,7 @@ details.steps .what { font-weight: 600; color: var(--yg-text); margin-right: var
 details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 0.75rem; overflow-wrap: anywhere; }
 
 .answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-4); margin: 0; font-size: .75rem; color: var(--yg-text-subtle); }
-.answer .meta a { display: inline-flex; align-items: center; gap: var(--yg-space-1); color: inherit; text-decoration: none; }
+.answer .meta a { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-1); color: inherit; text-decoration: none; }
 .answer .meta a:hover { color: var(--yg-text); text-decoration: underline; }
 .answer .meta svg.i { width: 0.8125rem; height: 0.8125rem; }
 .stopped { margin: 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .875rem; background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
