@@ -2,7 +2,7 @@
   "name": "defence",
   "title": "Defence programme office",
   "industry": "Defence",
-  "summary": "Traces requirements to tests and writes after-action reports, on your own models only.",
+  "summary": "Shows which requirements have passing tests and writes after-action reports. Runs only on models you host.",
   "harnesses": [
     "dsh",
     "claude",
@@ -15,30 +15,30 @@
   "skills": [
     {
       "name": "cui-handling",
-      "title": "Keep controlled information in",
-      "blurb": "Marks and keeps controlled information inside the workspace.",
+      "title": "Protect controlled information",
+      "blurb": "Marks every file it writes as controlled and sends nothing outside this project.",
       "description": "Use for every task in this workspace: all of its content is controlled unclassified information.",
       "body": "Treat everything in this workspace as Controlled Unclassified Information.\n\n- Never send any of it to a website, search engine, or tool outside this workspace.\n- Begin every file you write with the banner `CUI` on its own line and end it with `CUI`.\n- Do not summarise CUI into a less protected form, such as an email draft or a public document, unless asked, and mark such a draft CUI too.\n- If a task would need anything outside this workspace, stop and say what you would need."
     },
     {
       "name": "requirements-trace",
       "title": "Trace requirements to tests",
-      "blurb": "Shows which requirements are tested, failing or untested.",
+      "blurb": "Lists each requirement with its tests and whether it passed, failed or has no test.",
       "description": "Use when asked to trace requirements to tests, find gaps in test coverage, or build a traceability matrix.",
       "body": "Build a requirements traceability matrix from the requirements and test evidence in the workspace.\n\n- One row per requirement ID, in ID order: the requirement's short text, each test case that verifies it, the latest result of each, and a status of Verified, Failed or Not tested.\n- A requirement is Verified only if every test tracing to it passed on its latest run.\n- After the table, list failed and untested requirements with the reason, and any test that traces to no requirement.\n- Save it as `traceability-matrix.md` with the CUI banner."
     },
     {
       "name": "after-action-report",
       "title": "Write after-action reports",
-      "blurb": "Turns exercise notes into a structured report.",
+      "blurb": "Turns your exercise notes into a report: plan, events, causes and next steps.",
       "description": "Use when asked for an after-action report, a lessons-learned review or an exercise debrief.",
       "body": "Write the report from the notes in the workspace, in four parts:\n\n1. **What was planned**: the objectives and the plan as intended.\n2. **What happened**: a timeline of what actually occurred, with times.\n3. **Why it happened**: causes of each difference between plan and outcome, stated as findings, never blame of individuals.\n4. **Sustain and improve**: what to keep doing and what to change, each with an owner role and a date to review.\n\nSave it as `after-action-report.md` with the CUI banner."
     }
   ],
   "starters": [
-    "Build a traceability matrix from requirements.md and test-log.csv",
-    "List every requirement without a passing test",
-    "Write an after-action report from exercise-notes.md"
+    "Build a table showing which tests cover each requirement",
+    "List every requirement that has no passing test",
+    "Write an after-action report from my exercise notes"
   ],
   "files": {
     "README.md": "CUI\n\n# Sample programme folder\n\nAll names, dates and identifiers in this file are invented for demonstration. It is not a real record.\n\nCUI\n",
