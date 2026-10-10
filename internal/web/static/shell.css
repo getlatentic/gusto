@@ -135,7 +135,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-bar { display: flex; align-items: center; gap: var(--yg-space-1); padding: 0 var(--yg-space-4) var(--yg-space-3) var(--yg-space-4); border-bottom: 0.0625rem solid var(--yg-border); }
 .d-path { display: flex; align-items: center; gap: var(--yg-space-1); flex: 1; min-width: 0; margin-left: var(--yg-space-2); padding: 0 var(--yg-space-3); height: 2rem;
   border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); font-size: .8125rem; white-space: nowrap; overflow: hidden; }
-.d-path .crumb { padding: 0; border: 0; background: none; color: var(--yg-text-muted); font: inherit; cursor: pointer; }
+.d-path .crumb { min-height: 1.5rem; padding: 0; border: 0; background: none; color: var(--yg-text-muted); font: inherit; cursor: pointer; }
 .d-path .crumb:hover { color: var(--yg-text); text-decoration: underline; }
 .d-path .sep { color: var(--yg-text-subtle); }
 .d-path .here { color: var(--yg-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }

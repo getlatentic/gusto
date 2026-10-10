@@ -29,7 +29,7 @@
 .answer { display: grid; gap: var(--yg-space-3); min-width: 0; }
 
 details.steps { font-size: .8125rem; }
-details.steps > summary { display: inline-flex; align-items: center; gap: var(--yg-space-1); width: fit-content; padding: 0.125rem var(--yg-space-2) 0.125rem var(--yg-space-1); border-radius: var(--yg-radius-sm);
+details.steps > summary { display: inline-flex; align-items: center; gap: var(--yg-space-1); width: fit-content; min-height: 1.5rem; padding: 0.125rem var(--yg-space-2) 0.125rem var(--yg-space-1); border-radius: var(--yg-radius-sm);
   list-style: none; cursor: pointer; color: var(--yg-text-subtle); }
 details.steps > summary::-webkit-details-marker { display: none; }
 details.steps > summary svg.i { width: 0.875rem; height: 0.875rem; opacity: 1; transform: rotate(-90deg); transition: transform var(--yg-dur-fast) var(--yg-ease-standard); }
