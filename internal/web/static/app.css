@@ -56,7 +56,8 @@ label .line { display: flex; align-items: baseline; gap: var(--yg-space-2); }
 input, select, textarea { font: inherit; padding: var(--yg-space-3);
   border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
   background: var(--yg-surface); color: var(--yg-text); width: 100%; }
-input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible,
+summary:focus-visible, :where([tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 0.125rem solid var(--yg-focus); outline-offset: 0.125rem; }
 textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
 button { font: 600 inherit; cursor: pointer; padding: var(--yg-space-3) var(--yg-space-6);
