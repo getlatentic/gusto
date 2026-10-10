@@ -1,7 +1,7 @@
 {{template "head" .}}
 
 <section class="talk fresh">
-  <div class="hero">
+  <div class="fresh-body">
     <h2>What are we working on?</h2>
     {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
     {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
