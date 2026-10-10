@@ -4,7 +4,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .shell { display: grid; height: 100dvh; }
 
 .shell { grid-template-columns: auto minmax(0, 1fr); }
-.side { position: relative; display: flex; min-height: 0; min-width: 0; border-right: 0.0625rem solid var(--yg-border); }
+.side { position: relative; display: flex; width: calc(4rem + var(--panel-w, 16rem)); min-height: 0; min-width: 0; border-right: 0.0625rem solid var(--yg-border); }
 
 /* The first layer: where to go, as icons, with the way out at the foot. */
 .rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-2); width: 4rem; flex: none;
@@ -229,8 +229,9 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 /* The panel of conversations put away: the icons stay. */
 .panel-closed .sidepanel { display: none; }
+.panel-closed .side { width: 4rem; }
   color: var(--yg-success); cursor: default; }
-@container (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .rail .panel-toggle { display: none; } }
+@container (max-width: 56rem) { .panel-closed .sidepanel { display: flex; } .panel-closed .side { width: calc(4rem + var(--panel-w, 16rem)); } .rail .panel-toggle { display: none; } }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .composer button, .composer .picker .label { white-space: nowrap; }
