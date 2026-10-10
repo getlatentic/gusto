@@ -16,7 +16,7 @@
     {
       "name": "cui-handling",
       "title": "Protect controlled information",
-      "blurb": "Marks every file it writes as controlled and sends nothing outside this project.",
+      "blurb": "Marks every file it writes as controlled and keeps its work inside this project.",
       "description": "Use for every task in this workspace: all of its content is controlled unclassified information.",
       "body": "Treat everything in this workspace as Controlled Unclassified Information.\n\n- Never send any of it to a website, search engine, or tool outside this workspace.\n- Begin every file you write with the banner `CUI` on its own line and end it with `CUI`.\n- Do not summarise CUI into a less protected form, such as an email draft or a public document, unless asked, and mark such a draft CUI too.\n- If a task would need anything outside this workspace, stop and say what you would need."
     },
