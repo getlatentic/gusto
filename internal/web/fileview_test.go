@@ -164,3 +164,34 @@ func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
 		}
 	}
 }
+
+// A file can be asked for as a tab beside a chat: its name, what can be done with it and the file, without the page around it.
+func TestAFileIsGivenAsATabBesideAChatWithoutThePageAroundIt(t *testing.T) {
+	site, id, workspace := viewerSite(t)
+	os.WriteFile(filepath.Join(workspace, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
+	answer := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil)
+	body := answer.Body.String()
+	if answer.Code != http.StatusOK || !strings.Contains(body, "The plan") || !strings.Contains(body, "plan.md") || !strings.Contains(body, "Open as a page") {
+		t.Fatalf("the tab: %d %s", answer.Code, body)
+	}
+	for _, page := range []string{"<html", "<body", `class="rail"`} {
+		if strings.Contains(body, page) {
+			t.Errorf("the tab carries the page around it (%s)", page)
+		}
+	}
+	if gone := site.as(t, bob).ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil); gone.Code != http.StatusNotFound {
+		t.Errorf("somebody else's file as a tab answered %d", gone.Code)
+	}
+}
+
+// A conversation carries the panel the files open in, and the dividers that change the widths.
+func TestAConversationHasAPanelForFilesAndDividersToResize(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	page := site.ask(t, "GET", startedThread(t, site), nil).Body.String()
+	for _, want := range []string{`id="file-panel"`, `id="file-panel-resize"`, `id="panel-resize"`, "/static/filepanel.js", "/static/resize.js"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the conversation does not carry %s", want)
+		}
+	}
+}
