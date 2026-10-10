@@ -3,13 +3,13 @@
 <section class="talk fresh">
   <div class="fresh-body">
     <h1>What are we working on?</h1>
-    {{if .Refused}}<p class="refused" role="alert">{{.Refused}}</p>{{end}}
+    {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if .Picks}}
     <div class="composer">
     <form class="column" method="post" action="/chat">
       <div class="box">
-        <textarea name="said" rows="1" placeholder="Message" aria-label="Message" autofocus required></textarea>
+        <textarea name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
         <div class="tools">
           <div class="folderpick" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
             <input type="hidden" name="at">
