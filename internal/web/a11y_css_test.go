@@ -93,7 +93,46 @@ func luminance(hex string) float64 {
 	return total
 }
 
-var outlineRemoved = regexp.MustCompile(`outline:\s*(none|0)\s*(;|$)`)
+var (
+	motionRule     = regexp.MustCompile(`(?s)@media \(prefers-reduced-motion: reduce\) \{\s*\*, \*::before, \*::after \{([^}]*)\}`)
+	motionDuration = regexp.MustCompile(`(?:transition|animation)[a-z-]*:[^;}]*?(\d*\.?\d+)(ms|s)\b`)
+)
+
+// Motion is short, and none of it is left for a person who asks for less. The spinner turns for as long as a turn runs, and is exempt.
+func TestMotionIsShortAndOptional(t *testing.T) {
+	app, err := fs.ReadFile(assets, "static/app.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := motionRule.FindStringSubmatch(string(app))
+	if rule == nil || !strings.Contains(rule[1], "transition-duration: 0s") || !strings.Contains(rule[1], "animation-duration: 0s") {
+		t.Fatal("app.css does not stop every transition and animation under prefers-reduced-motion")
+	}
+	err = fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".css") || strings.HasSuffix(path, "tokens.css") {
+			return err
+		}
+		body, err := fs.ReadFile(assets, path)
+		if err != nil {
+			return err
+		}
+		for _, found := range motionDuration.FindAllStringSubmatch(cssComment.ReplaceAllString(string(body), ""), -1) {
+			value, _ := strconv.ParseFloat(found[1], 64)
+			if found[2] == "s" {
+				value *= 1000
+			}
+			if value > 320 && !strings.Contains(found[0], "spin") && !strings.Contains(found[0], "delay") {
+				t.Errorf("%s: %s lasts longer than 320ms", path, found[0])
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+var outlineRemoved =regexp.MustCompile(`outline:\s*(none|0)\s*(;|$)`)
 
 // A rule takes the outline away only where the box around the field draws the ring in its place.
 func TestNoRuleHidesTheFocusRingWithoutAnother(t *testing.T) {
