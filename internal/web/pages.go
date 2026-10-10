@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -215,7 +217,7 @@ func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why stri
 // file hands back one evidence file. The name is checked against the listing
 // rather than cleaned, so nothing outside out/ can be asked for.
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
-	_, dir, found := s.find(r)
+	record, dir, found := s.find(r)
 	if !found {
 		http.NotFound(w, r)
 		return
@@ -225,9 +227,41 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// A person's browser is given the file in a page, with the way back to the record, and a program or a download the bytes as they are.
+	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.evidencePage(w, r, record, dir, name) {
+		return
+	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, dir.OutFile(name))
+}
+
+// evidencePage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
+// back to the record. It says whether it did: a file that is not text is not drawn, and is given as it is.
+func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record jobs.Record, dir job.Dir, name string) bool {
+	path := dir.OutFile(name)
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return false
+	}
+	head, _ := readSome(path, 8<<10)
+	switch kindOf(name, head) {
+	case kindText, kindMarkdown, kindTable, kindHTML:
+	default:
+		return false
+	}
+	here := "/jobs/" + record.ID + "/files/" + url.PathEscape(name)
+	file := viewedFile{Name: name, Kind: kindText, Size: measure(info.Size()), Modified: info.ModTime().Unix(), Raw: here + "?raw=1", Download: here + "?raw=1&download=1"}
+	s.fill(&file, path, info.Size())
+	if r.URL.Query().Get("panel") != "" {
+		s.render(w, "file-panel", map[string]any{"File": file, "Rail": nil, "Page": here})
+		return true
+	}
+	s.render(w, "file.html", map[string]any{
+		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "Evidence": record.ID,
+		"Back": "/jobs/" + record.ID, "BackWord": "Back to the record",
+	})
+	return true
 }
 
 func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {

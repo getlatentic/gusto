@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var name = document.createElement("button");
     name.type = "button";
     name.className = "nm";
-    name.textContent = (url.searchParams.get("path") || "").split("/").pop() || "File";
+    name.textContent = decodeURIComponent((url.searchParams.get("path") || url.pathname).split("/").pop()) || "File";
     var x = document.createElement("button");
     x.type = "button";
     x.className = "x";
@@ -84,14 +84,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function view(href) {
     var url = new URL(href, location.href);
-    var key = url.pathname + "?" + url.searchParams.get("path");
+    var key = url.pathname + "?" + (url.searchParams.get("path") || "");
     panel.hidden = false;
     if (!open[key]) { add(url, key); }
     show(key);
   }
 
   document.addEventListener("click", function (event) {
-    var link = event.target.closest && event.target.closest('a[href*="/file?path="]');
+    var link = event.target.closest && event.target.closest('a[href*="/file?path="], a[href*="/files/"][href*="/jobs/"]');
     if (!link || link.hasAttribute("download") || link.hasAttribute("data-page") || event.defaultPrevented) { return; }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) { return; }
     if (!link.closest(".said-so-far, .fp-bodies") || !roomy()) { return; }
