@@ -42,7 +42,7 @@
 .viewer .prose { max-width: 46rem; }
 .viewer .media { display: grid; place-items: center; padding: var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-md); }
 .viewer .media img, .viewer .media video { max-width: 100%; max-height: 70vh; border-radius: var(--yg-radius-sm); }
-.viewer .frame { width: 100%; height: 72vh; border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); background: var(--yg-surface); }
+.viewer .frame { width: 100%; height: 72vh; border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); background: #fff; color-scheme: light; }
 .viewer .note { margin: 0; padding: var(--yg-space-3) var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-sm); font-size: .8125rem; color: var(--yg-text-muted); }
 .viewer .part { display: grid; gap: var(--yg-space-3); padding: var(--yg-space-5); background: var(--yg-surface); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); }
 .viewer .part h2 { margin: 0; font: 600 .75rem/1.4 var(--yg-font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--yg-text-subtle); }
