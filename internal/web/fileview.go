@@ -65,10 +65,13 @@ type viewedFile struct {
 	Modified        int64
 	Raw, Download   string
 	Text            string
-	Cut             bool
-	Rows            [][]string
-	Parts           []officePart
-	Crumbs          []crumb
+	// Language is what a code file is highlighted as, and Lines how many it has.
+	Language string
+	Lines    int
+	Cut      bool
+	Rows     [][]string
+	Parts    []officePart
+	Crumbs   []crumb
 }
 
 const tableRows = 300
@@ -123,6 +126,7 @@ func (s *Server) fill(file *viewedFile, resolved string, size int64) {
 	case kindText, kindMarkdown:
 		text, _ := readSome(resolved, mostShown)
 		file.Text, file.Cut = strings.ToValidUTF8(string(text), ""), size > mostShown
+		file.Language, file.Lines = languageOf(file.Name), linesIn(file.Text)
 	case kindTable:
 		text, _ := readSome(resolved, mostShown)
 		reader := csv.NewReader(strings.NewReader(string(text)))
@@ -247,4 +251,36 @@ func rawPolicy(kind fileKind) string {
 // filesPage is the explorer of the person's cloud computer as a page of its own. What it shows is read as the person moves about it.
 func (s *Server) filesPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "files.html", map[string]any{"Title": productName + " — files", "Nav": "files"})
+}
+
+// languages are the names highlight.js knows the common kinds of file by.
+var languages = map[string]string{
+	".go": "go", ".js": "javascript", ".mjs": "javascript", ".cjs": "javascript", ".jsx": "javascript", ".ts": "typescript", ".tsx": "typescript",
+	".py": "python", ".rb": "ruby", ".php": "php", ".java": "java", ".kt": "kotlin", ".swift": "swift", ".rs": "rust", ".c": "c", ".h": "c",
+	".cpp": "cpp", ".cc": "cpp", ".hpp": "cpp", ".cs": "csharp", ".sh": "bash", ".bash": "bash", ".zsh": "bash", ".sql": "sql",
+	".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "ini", ".ini": "ini", ".xml": "xml", ".svg": "xml", ".html": "xml", ".css": "css",
+	".scss": "scss", ".less": "less", ".lua": "lua", ".r": "r", ".pl": "perl", ".diff": "diff", ".patch": "diff", ".graphql": "graphql",
+}
+
+// languageOf is what a file is highlighted as, by its name, or nothing for what has no highlighting.
+func languageOf(name string) string {
+	if strings.EqualFold(name, "Dockerfile") {
+		return "dockerfile"
+	}
+	if strings.EqualFold(name, "Makefile") {
+		return "makefile"
+	}
+	return languages[strings.ToLower(filepath.Ext(name))]
+}
+
+// linesIn is how many lines a text has: one more than its line ends, unless it ends with one.
+func linesIn(text string) int {
+	if text == "" {
+		return 0
+	}
+	n := strings.Count(text, "\n")
+	if !strings.HasSuffix(text, "\n") {
+		n++
+	}
+	return n
 }
