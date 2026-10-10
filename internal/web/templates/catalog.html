@@ -2,14 +2,83 @@
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
-<div class="page-head">
-  <h1>What do you need help with?</h1>
-  <p class="muted">Each comes ready for its work. You can change it later.</p>
+<div class="title-row">
+  <h1>Presets</h1>
+  <span class="count">Start a chat from a preset: one you saved, or one that comes built in.</span>
 </div>
 
-{{template "choices" .Templates}}
-{{template "engine-choices" .Engines}}
+<section class="presets" aria-label="Your presets">
+  <h2 class="plain">Your presets</h2>
+  {{if .Presets}}
+  <div class="list preset-list">
+    {{range .Presets}}
+    <div class="preset">
+      <span class="text">
+        <strong>{{.Name}}</strong>
+        <span class="meta">{{.Line}}</span>
+      </span>
+      <a class="quiet-button" href="/chat?preset={{.ID}}">New chat</a>
+      <form method="post" action="/presets/{{.ID}}/delete"><button class="icon-button" type="submit" aria-label="Remove {{.Name}}" title="Remove">{{template "icon-trash"}}</button></form>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+  <p class="note">Set a chat up how you like, then choose Save this setup as a preset in its menu.</p>
+</section>
 
-<p><a class="link-quiet" href="/setups">Build your own skill set →</a></p>
+<h2 class="plain">Built-in presets</h2>
+<div class="roles-pane" id="roles">
+  <div class="role-list">
+    <label class="role-select"><span>Built-in preset</span>
+      <select id="role-select" aria-label="Built-in preset">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
+    </label>
+    <label class="search">{{template "icon-search"}}<input type="search" id="role-search" placeholder="Search built-in presets" aria-label="Search presets"></label>
+    <div class="chips" role="group" aria-label="Field of work">
+      <button type="button" class="chip" data-field="" aria-pressed="true">All</button>
+      {{range .Fields}}<button type="button" class="chip" data-field="{{.}}" aria-pressed="false">{{.}}</button>{{end}}
+    </div>
+    <div class="picks">
+      {{range $i, $r := .Roles}}
+      <button type="button" class="pick-role" data-role="{{$r.Name}}" data-field="{{$r.Industry}}" aria-pressed="{{if eq $i 0}}true{{else}}false{{end}}">
+        <span class="top"><strong>{{$r.Title}}</strong><span class="kind">{{$r.Industry}}</span></span>
+        <span class="what">{{$r.Summary}}</span>
+      </button>
+      {{end}}
+      <p class="none" hidden>No role matches.</p>
+    </div>
+  </div>
+
+  <div class="role-details">
+    {{range $i, $r := .Roles}}
+    <section class="role-detail panel" data-for="{{$r.Name}}"{{if ne $i 0}} hidden{{end}} aria-label="{{$r.Title}}">
+      <div class="head">
+        <span class="kind">{{$r.Industry}}</span>
+        <h2>{{$r.Title}}</h2>
+        <p>{{$r.Summary}}</p>
+      </div>
+      {{if $r.Blocked}}<p class="blocked">{{$r.Blocked}}</p>{{end}}
+      <div class="block">
+        <h3>What it can do</h3>
+        {{range $r.Skills}}<div class="skill"><strong>{{.Title}}</strong><span>{{.Blurb}}</span></div>{{end}}
+      </div>
+      <div class="block">
+        <h3>Try asking</h3>
+        <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
+      </div>
+      <div class="foot">
+        <span class="note">Sets the skills a chat has. Choose the engine and model in the chat.</span>
+        <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
+        {{if $r.Blocked}}<span class="cta" aria-disabled="true">Use in a new chat</span>{{else}}<a class="cta" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
+      </div>
+    </section>
+    {{end}}
+  </div>
+</div>
+
+{{if .Engines}}<details class="more engines-more"><summary>Start an agent from an engine instead</summary>{{template "engine-choices" .Engines}}</details>{{end}}
+
+<p class="note"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
+
+<script src="{{asset "/static/roles.js"}}"></script>
 
 {{template "foot" .}}

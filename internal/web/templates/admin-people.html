@@ -1,8 +1,10 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>People</h1>
-  <p class="muted">Who is in this organisation, their role, when they last signed in and what they have spent this month.{{with .Manage}} Invite, remove and change the role of people <a href="{{.}}">at the front door</a>.{{end}}</p>
+  <span class="count">Roles, last sign-in and spend this month</span>
+  <span class="grow"></span>
+  {{with .Manage}}<a class="cta" href="{{.}}">Invite people</a>{{end}}
 </div>
 
 {{if .Unreadable}}
@@ -11,33 +13,28 @@
 
 {{if .SpendUnreadable}}<p class="refused">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
-<section class="panel">
+<div class="list people">
   <table>
     <thead><tr><th>Person</th><th>Role</th><th>Last signed in</th><th class="num">Spent in {{.Month}}</th></tr></thead>
     <tbody>
       {{range .People}}
       <tr>
-        <td>{{.Email}}</td>
-        <td>{{.Role}}</td>
-        <td class="muted">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
+        <td><span class="who-cell"><span class="avatar" aria-hidden="true">{{initial .Email}}</span><span>{{.Email}}</span></span></td>
+        <td><span class="role-pill{{if eq .Role "admin"}} admin{{end}}">{{.Role}}</span></td>
+        <td class="muted last">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
         <td class="num">{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{usd .USD}} <span class="muted">at least</span>{{end}}{{else}}<span class="muted">nothing</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
-  <p class="muted">The front door wrote this list {{ago .Written}}.</p>
-</section>
+</div>
+<p class="muted note">The front door wrote this list {{ago .Written}}.</p>
 
 {{if .Invited}}
-<section class="panel">
-  <h2>Invited</h2>
-  <table>
-    <thead><tr><th>Address</th><th>Invited by</th><th>Link works until</th></tr></thead>
-    <tbody>
-      {{range .Invited}}<tr><td>{{.Email}}</td><td>{{.By}}</td><td class="muted">{{when .Expires}}</td></tr>{{end}}
-    </tbody>
-  </table>
-</section>
+<h2 class="plain">Waiting to join</h2>
+<div class="list waiting">
+  {{range .Invited}}<div class="wait"><span class="addr">{{.Email}}</span><span class="muted">Invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
+</div>
 {{end}}
 
 {{end}}

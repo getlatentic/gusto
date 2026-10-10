@@ -1,34 +1,41 @@
 {{define "side"}}<aside class="side" aria-label="Menu">
   <nav class="rail" aria-label="Places">
-    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud"><img src="/static/mark.png" alt=""></a>
+    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud">{{template "brand-glyph"}}</a>
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
-    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-compose"}}</a>
+    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
-    <a class="tool" href="/" data-tip="Agents" aria-label="Agents"{{if eq .Nav "harnesses"}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
-    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-jobs"}}</a>
+    <a class="tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
+    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
     <span class="grow"></span>
+    <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance">{{template "icon-palette"}}</button>
     <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
   <div class="sidepanel">
-    <div class="sidepanel-head"><span class="name">Latentic Agent Cloud</span></div>
+    <div class="sidepanel-head"><span class="name">{{or .Org "Latentic Agent Cloud"}}</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats"></div>{{end}}
+  </div>
+  <div class="look" id="look" hidden role="dialog" aria-label="Appearance">
+    <div><h3>Theme</h3><div class="modes"><button class="mode" type="button" data-mode="system">System</button><button class="mode" type="button" data-mode="light">Light</button><button class="mode" type="button" data-mode="dark">Dark</button></div></div>
+    <div><h3>Text size</h3><div class="sizer"><button class="step" type="button" data-zoom="-1" aria-label="Smaller">A&minus;</button><output class="size" id="look-size" aria-live="polite">100%</output><button class="step" type="button" data-zoom="1" aria-label="Larger">A+</button></div></div>
+    <div><h3>Accent</h3><div class="swatches"><button class="swatch" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button><button class="swatch" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button><button class="swatch" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button><button class="swatch" type="button" data-accent="green" title="Green" aria-label="Green"></button><button class="swatch" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button><button class="swatch" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button></div></div>
   </div>
 </aside>{{end}}
 
 {{define "side-chats"}}<div class="chats">
+  <div class="label">Projects</div>
   {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
   {{with .Older}}<details class="older"><summary>Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
 </div>{{end}}
 
 {{define "side-groups"}}{{range .Groups}}
   <section class="proj">
-    <details open>
+    <details{{if .Open}} open{{end}}>
       <summary title="{{.Runs}}">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
       <ol>
-        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{.Name}}</a></li>{{end}}
+        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="t">{{.Name}}</span><span class="when">{{ago .When}}</span></a></li>{{end}}
       </ol>
     </details>
     <a class="add" href="/chat?at={{.ID}}" title="New chat in {{.Name}}" aria-label="New chat in {{.Name}}">{{template "icon-add"}}</a>

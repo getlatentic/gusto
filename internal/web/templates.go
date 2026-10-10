@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"net/http"
 	"slices"
 	"time"
@@ -73,7 +74,10 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back := "/templates/" + held.Name
-	chosen := r.FormValue("harness")
+	chosen := cmp.Or(r.FormValue("harness"), r.FormValue("engine"))
+	if fit := s.runnersOf(held); chosen == "" && len(fit) > 0 {
+		chosen = fit[0].Name
+	}
 	if !slices.ContainsFunc(s.runnersOf(held), func(entry catalog.Entry) bool { return entry.Name == chosen }) {
 		s.turnAway(w, r, back, "choose a harness this deployment can run the template on")
 		return

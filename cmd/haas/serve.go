@@ -26,6 +26,7 @@ import (
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/openshell"
+	"github.com/getlatentic/haas/internal/preset"
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/quota"
 	"github.com/getlatentic/haas/internal/retention"
@@ -182,6 +183,11 @@ func serve(args []string) int {
 	setups.UseIntegrations(integrations)
 	pages.UseIntegrations(integrations, integration.Clone{AllowPrivate: os.Getenv("HAAS_INTEGRATIONS_PRIVATE") == "1"})
 	pages.UseSetups(setups, servers)
+	presets, err := preset.Open(setting("HAAS_PRESETS", "presets"))
+	if err != nil {
+		return fail(err)
+	}
+	pages.UsePresets(presets)
 	pages.UseDesktop(os.Getenv("HAAS_DESKTOP"))
 	// What signs people in is kept beside the sessions, so that a deploy does not sign them out.
 	if err := pages.UseSessionFile(setting("HAAS_KEEPER", filepath.Join(setting("HAAS_SESSIONS", "sessions"), ".keeper.json"))); err != nil {

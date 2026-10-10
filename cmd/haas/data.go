@@ -20,6 +20,7 @@ func dataDirs() map[datadir.Store]string {
 		datadir.Setups:       setting("HAAS_SETUPS", "setups"),
 		datadir.Comparisons:  setting("HAAS_COMPARISONS", "comparisons"),
 		datadir.Integrations: setting("HAAS_INTEGRATIONS", "integrations"),
+		datadir.Presets:      setting("HAAS_PRESETS", "presets"),
 		datadir.Changes:      filepath.Dir(setting("HAAS_CHANGES", filepath.Join("changes", "changes.jsonl"))),
 	}
 	if path := os.Getenv("HAAS_API_TOKENS"); path != "" {

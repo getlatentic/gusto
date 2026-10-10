@@ -17,6 +17,7 @@ import (
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/job"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/preset"
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 )
@@ -95,6 +96,11 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 		t.Fatal(err)
 	}
 	server.UseKeyring(keyring)
+	presets, err := preset.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.UsePresets(presets)
 	setups, err := setup.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -327,15 +333,14 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 }
 
-// The catalog is the front door, so every page has to name a way back to it.
-// Without one the app looks like it is only about jobs.
-func TestEveryPageOffersTheWayBackToTheCatalog(t *testing.T) {
+// Chat is the front door and the roles are what a chat can be given, so every page has to name the way to them.
+func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	for _, page := range []string{"/", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/"`) || !strings.Contains(body, "Agents") {
-			t.Errorf("%s does not offer the way to the catalog", page)
+		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Presets") {
+			t.Errorf("%s does not offer the way to the presets", page)
 		}
 	}
 }

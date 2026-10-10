@@ -9,18 +9,18 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; min-height: 100dvh; display: grid; place-items: center;
-  background: var(--yg-bg); color: var(--yg-text); font: 15px/1.55 var(--yg-font-text); }
+  background: var(--yg-bg); color: var(--yg-text); font: 0.9375rem/1.55 var(--yg-font-text); }
 main { width: min(22rem, 92vw); display: grid; gap: var(--yg-space-6);
   padding: var(--yg-space-8); background: var(--yg-surface);
   border-radius: var(--yg-radius-lg); box-shadow: var(--yg-shadow-2); }
 .brand { display: flex; align-items: center; gap: var(--yg-space-3);
   font: 600 1.125rem/1 var(--yg-font-display); letter-spacing: -.01em; }
-.brand img { width: 28px; height: auto; }
+.brand img { width: 1.75rem; height: auto; }
 form { display: grid; gap: var(--yg-space-3); }
 input { font: inherit; padding: var(--yg-space-3); width: 100%;
-  border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
+  border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
   background: var(--yg-surface); color: var(--yg-text); }
-input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--yg-focus); outline-offset: 2px; }
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 0.125rem solid var(--yg-focus); outline-offset: 0.125rem; }
 button, a.button { font: 600 inherit; cursor: pointer; text-align: center; text-decoration: none;
   padding: var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm);
   background: var(--yg-accent); color: var(--yg-on-accent); }
@@ -28,7 +28,7 @@ button:hover, a.button:hover { background: var(--yg-accent-hover); }
 /* Secondary only when something else on the page is primary. A page with one
    action does not have a quiet one. */
 form.password button { background: none; color: var(--yg-text-muted); font-weight: 400;
-  border: 1px solid var(--yg-border-strong); }
+  border: 0.0625rem solid var(--yg-border-strong); }
 form.password button:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
 p { margin: 0; font-size: .8125rem; color: var(--yg-danger); }
 /* The way in when the provider is not. It is not the offer on this page, so it
@@ -36,8 +36,8 @@ p { margin: 0; font-size: .8125rem; color: var(--yg-danger); }
 .other { text-align: center; color: var(--yg-text-muted); }
 .other a { color: inherit; text-decoration: none; }
 .other a:hover { color: var(--yg-text); }
-hr { border: 0; border-top: 1px solid var(--yg-border); margin: 0; }
-svg { width: 18px; height: 18px; vertical-align: -4px; margin-right: var(--yg-space-2); }
+hr { border: 0; border-top: 0.0625rem solid var(--yg-border); margin: 0; }
+svg { width: 1.125rem; height: 1.125rem; vertical-align: -0.25rem; margin-right: var(--yg-space-2); }
 </style>
 </head>
 <body>

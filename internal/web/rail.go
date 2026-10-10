@@ -18,12 +18,14 @@ type railGroup struct {
 	Name  string
 	Runs  string
 	Chats []railChat
+	Open  bool
 }
 
 // railChat is one conversation in the side list.
 type railChat struct {
 	Name  string
 	Where string
+	When  int64
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
@@ -48,9 +50,22 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 		}
 		groups = append(groups, railGroup{ID: each.ID, Name: names[each.ID], Runs: each.Runs(), Chats: chats})
 	}
+	for i := range groups {
+		groups[i].Open = i == 0 || holds(groups[i], here)
+	}
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
 	return list
+}
+
+// holds is whether the conversation at here is one of the group's.
+func holds(group railGroup, here string) bool {
+	for _, chat := range group.Chats {
+		if chat.Where == here {
+			return true
+		}
+	}
+	return false
 }
 
 // projectNames is what each project is called where there are several: a name that two projects share is followed by the day each was
@@ -78,7 +93,18 @@ func (s *Server) railChats(id string) []railChat {
 		if len(threads[i].Turns) == 0 {
 			continue
 		}
-		chats = append(chats, railChat{Name: threads[i].Name, Where: threadPath(threads[i].Thread)})
+		chats = append(chats, railChat{Name: threads[i].Name, Where: threadPath(threads[i].Thread), When: s.lastAsked(threads[i].Turns)})
 	}
 	return chats
+}
+
+// lastAsked is when the newest of a conversation's turns was asked.
+func (s *Server) lastAsked(turns []string) int64 {
+	if len(turns) == 0 {
+		return 0
+	}
+	if record, found := s.index.Get(turns[len(turns)-1]); found {
+		return record.Queued
+	}
+	return 0
 }

@@ -1,0 +1,73 @@
+/* The colours of the app, in layers and without a tint of their own. From the outside in: the rail, the conversations beside it, the page, and the
+   cards that sit on the page, each a step lighter than the one outside it (a step darker, in the dark theme, than the page for the chrome and
+   lighter than it for the cards). The accent is the person's choice and is used for the one action of a page and for where they are.
+   <html> carries data-theme (light or dark, resolved from the person's choice and the system) and data-accent. */
+
+:root {
+  --yg-neutral-50: #FAFAF9; --yg-neutral-100: #F4F4F2; --yg-neutral-200: #E4E4E0; --yg-neutral-300: #D0D0CB; --yg-neutral-400: #A3A39D;
+  --yg-neutral-500: #82827C; --yg-neutral-600: #55554F; --yg-neutral-700: #3D3D39; --yg-neutral-800: #2A2A27; --yg-neutral-900: #171717;
+
+  --yg-rail: #ECECE9;
+  --yg-bg-subtle: #F4F4F2;
+  --yg-bg: #FAFAF9;
+  --yg-surface: #FFFFFF;
+  --yg-surface-sunken: #F0F0EE;
+  --yg-border: #E4E4E0;
+  --yg-border-strong: #D0D0CB;
+  --yg-text: #171717;
+  --yg-text-muted: #55554F;
+  --yg-text-subtle: #66665F;
+  --yg-text-nontext: #82827C;
+  --yg-text-inverse: #FAFAF9;
+  --yg-hover: color-mix(in srgb, var(--yg-text) 6%, transparent);
+  --yg-scrim: rgb(23 23 23 / .32);
+  --yg-shadow-1: 0 0.0625rem 0.125rem rgb(0 0 0 / .06);
+  --yg-shadow-2: 0 0.25rem 1rem rgb(0 0 0 / .08);
+  --yg-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .12);
+}
+
+:root[data-theme="dark"] {
+  --yg-rail: #0A0A09;
+  --yg-bg-subtle: #111110;
+  --yg-bg: #161615;
+  --yg-surface: #1E1E1C;
+  --yg-surface-sunken: #0F0F0E;
+  --yg-border: #2A2A27;
+  --yg-border-strong: #3B3B37;
+  --yg-text: #F4F4F2;
+  --yg-text-muted: #A8A8A2;
+  --yg-text-subtle: #A8A8A2;
+  --yg-text-nontext: #6F6F69;
+  --yg-text-inverse: #161615;
+  --yg-scrim: rgb(0 0 0 / .6);
+  --yg-shadow-1: none;
+  --yg-shadow-2: none;
+  --yg-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .5);
+}
+
+/* The accents. Graphite is the default: the app is neutral until the person says otherwise. */
+:root, :root[data-accent="graphite"] {
+  --yg-accent: #2B2B29; --yg-accent-hover: #000; --yg-accent-press: #000; --yg-on-accent: #FFFFFF;
+  --yg-accent-text: #2B2B29; --yg-accent-surface: #EDEDEA; --yg-focus: #2B2B29;
+}
+:root[data-theme="dark"], :root[data-theme="dark"][data-accent="graphite"] {
+  --yg-accent: #ECECE9; --yg-accent-hover: #FFFFFF; --yg-accent-press: #FFFFFF; --yg-on-accent: #121211;
+  --yg-accent-text: #ECECE9; --yg-accent-surface: #262624; --yg-focus: #ECECE9;
+}
+:root[data-accent="orange"] { --yg-accent: #FF8A1F; --yg-accent-hover: #E6740F; --yg-accent-press: #BF5C08; --yg-on-accent: #171717; --yg-accent-text: #8F4406; --yg-accent-surface: #FFF3E6; --yg-focus: #E6740F; }
+:root[data-accent="blue"] { --yg-accent: #3B6FE0; --yg-accent-hover: #2F5CC4; --yg-accent-press: #264CA6; --yg-on-accent: #FFFFFF; --yg-accent-text: #264CA6; --yg-accent-surface: #EAF0FD; --yg-focus: #3B6FE0; }
+:root[data-accent="green"] { --yg-accent: #23805A; --yg-accent-hover: #1B6A49; --yg-accent-press: #14543A; --yg-on-accent: #FFFFFF; --yg-accent-text: #14543A; --yg-accent-surface: #E6F4EC; --yg-focus: #23805A; }
+:root[data-accent="violet"] { --yg-accent: #7352D4; --yg-accent-hover: #5F40BC; --yg-accent-press: #4D3299; --yg-on-accent: #FFFFFF; --yg-accent-text: #4D3299; --yg-accent-surface: #F0EBFC; --yg-focus: #7352D4; }
+:root[data-accent="rose"] { --yg-accent: #D23F67; --yg-accent-hover: #B5315A; --yg-accent-press: #96284A; --yg-on-accent: #FFFFFF; --yg-accent-text: #96284A; --yg-accent-surface: #FCEAEF; --yg-focus: #D23F67; }
+:root[data-theme="dark"][data-accent="orange"] { --yg-accent: #FF9C3D; --yg-accent-hover: #FFB264; --yg-accent-press: #FF8A1F; --yg-on-accent: #171717; --yg-accent-text: #FFB264; --yg-accent-surface: #2E1F10; --yg-focus: #FF9C3D; }
+:root[data-theme="dark"][data-accent="blue"] { --yg-accent: #6C93F0; --yg-accent-hover: #86A6F4; --yg-accent-press: #5A82E0; --yg-on-accent: #0B1020; --yg-accent-text: #9DB6F6; --yg-accent-surface: #182340; --yg-focus: #6C93F0; }
+:root[data-theme="dark"][data-accent="green"] { --yg-accent: #4FB487; --yg-accent-hover: #68C49A; --yg-accent-press: #3DA075; --yg-on-accent: #07140E; --yg-accent-text: #7FD0A9; --yg-accent-surface: #12281E; --yg-focus: #4FB487; }
+:root[data-theme="dark"][data-accent="violet"] { --yg-accent: #A28BF0; --yg-accent-hover: #B5A2F4; --yg-accent-press: #8F75E6; --yg-on-accent: #120C24; --yg-accent-text: #BDAEF5; --yg-accent-surface: #221A3E; --yg-focus: #A28BF0; }
+:root[data-theme="dark"][data-accent="rose"] { --yg-accent: #F07A98; --yg-accent-hover: #F495AD; --yg-accent-press: #E4617F; --yg-on-accent: #240910; --yg-accent-text: #F5A3B7; --yg-accent-surface: #3A1722; --yg-focus: #F07A98; }
+
+/* Space and radius in rem, so that they follow the person's text size. */
+:root {
+  --yg-space-1: .25rem; --yg-space-2: .5rem; --yg-space-3: .75rem; --yg-space-4: 1rem; --yg-space-5: 1.25rem; --yg-space-6: 1.5rem;
+  --yg-space-8: 2rem; --yg-space-10: 2.5rem; --yg-space-12: 3rem; --yg-space-16: 4rem; --yg-space-20: 5rem; --yg-space-24: 6rem;
+  --yg-radius-xs: .25rem; --yg-radius-sm: .5rem; --yg-radius-md: .75rem; --yg-radius-lg: 1rem; --yg-radius-xl: 1.5rem; --yg-radius-2xl: 2rem;
+}

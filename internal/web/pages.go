@@ -49,6 +49,8 @@ var helpers = template.FuncMap{
 	"brain":   modelName,
 	"hue":     fieldClass,
 	"initial": initial,
+	// split is a list text, such as "send jobs, read spending", as its items.
+	"split": func(text, by string) []string { return strings.Split(text, by) },
 	// modelOnly is a model without the credential that serves it, which is
 	// what somebody choosing between models reads.
 	"modelOnly": func(model string) string {

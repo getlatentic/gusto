@@ -300,3 +300,30 @@ func TestAForwardedAddressIsBelievedOnlyFromTheLocalProxy(t *testing.T) {
 		t.Errorf("direct: %q, and the header was believed", got)
 	}
 }
+
+// A run of the same thing from the same place is one row that says how many times, so twelve restarts are not twelve lines.
+func TestRepeatedEventsAreOneRowThatCountsThem(t *testing.T) {
+	rows := foldRepeats([]row{
+		{Who: "the server", Said: "the server started", Full: "newest", Times: 1},
+		{Who: "the server", Said: "the server started", Full: "older", Times: 1},
+		{Who: "the server", Said: "the server started", Full: "oldest", Times: 1},
+		{Who: "ada", Said: "signed out", Times: 1},
+		{Who: "the server", Said: "the server started", Times: 1},
+	})
+	if len(rows) != 3 || rows[0].Times != 3 || rows[0].Since != "oldest" || rows[1].Times != 1 || rows[2].Times != 1 {
+		t.Errorf("the rows were %+v", rows)
+	}
+}
+
+func TestATimeIsAsShortAsItCanBeAndStillClear(t *testing.T) {
+	now := time.Date(2026, 10, 9, 18, 0, 0, 0, time.UTC)
+	for when, want := range map[time.Time]string{
+		time.Date(2026, 10, 9, 14, 47, 1, 0, time.UTC):  "Today 14:47",
+		time.Date(2026, 9, 28, 9, 5, 0, 0, time.UTC):    "28 Sep 09:05",
+		time.Date(2025, 12, 31, 23, 59, 0, 0, time.UTC): "31 Dec 2025 23:59",
+	} {
+		if got := shortWhen(when, now); got != want {
+			t.Errorf("%v came out as %q, not %q", when, got, want)
+		}
+	}
+}

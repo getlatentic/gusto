@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/getlatentic/haas/internal/instance"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -100,5 +101,54 @@ func TestAFolderKeyIsOnlyWhatTheAppMakes(t *testing.T) {
 		if got := folderOf(request); got.Key != "" {
 			t.Errorf("%q was taken for a folder", bad)
 		}
+	}
+}
+
+// A preset is saved from the chat, shows on the roles page and in the chat's role menu, and is the person's own.
+func TestAPresetIsSavedFromTheChatAndOffered(t *testing.T) {
+	site := open(t)
+	mine, theirs := site.as(t, alice), site.as(t, bob)
+	saved := mine.ask(t, "POST", "/presets", url.Values{"name": {"Reviewer"}, "harness": {"fixture"}, "model": {"platform/test-model"}, "role": {"engineering"}})
+	where := saved.Header().Get("Location")
+	if saved.Code != http.StatusSeeOther || !strings.HasPrefix(where, "/chat?preset=") {
+		t.Fatalf("saving answered %d to %q", saved.Code, where)
+	}
+	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, "Reviewer") || !strings.Contains(page, `value="p:`) {
+		t.Errorf("the chat does not offer the preset and open on it:\n%s", page)
+	}
+	if roles := mine.ask(t, "GET", "/new", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
+		t.Error("the roles page does not list the preset")
+	}
+	if other := theirs.ask(t, "GET", "/new", nil).Body.String(); strings.Contains(other, "Reviewer") {
+		t.Error("somebody else sees the preset")
+	}
+	id := strings.TrimPrefix(where, "/chat?preset=")
+	if gone := theirs.ask(t, "POST", "/presets/"+id+"/delete", nil); gone.Code != http.StatusSeeOther {
+		t.Fatalf("deleting answered %d", gone.Code)
+	}
+	if page := mine.ask(t, "GET", "/new", nil).Body.String(); !strings.Contains(page, "Reviewer") {
+		t.Error("somebody else removed the preset")
+	}
+	mine.ask(t, "POST", "/presets/"+id+"/delete", nil)
+	if page := mine.ask(t, "GET", "/new", nil).Body.String(); strings.Contains(page, "Reviewer") {
+		t.Error("the preset was not removed")
+	}
+}
+
+func TestAChatWithARoleStartsAnAgentThatHasItsSkills(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/chat", url.Values{"said": {"fix it"}, "harness": {"fixture"}, "role": {"engineering"}})
+	where := started.Header().Get("Location")
+	if started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting a chat with a role answered %d to %q", started.Code, where)
+	}
+	instance := where[:strings.Index(where, "/threads/")]
+	if page := site.ask(t, "GET", instance, nil).Body.String(); !strings.Contains(page, "Software engineer") {
+		t.Errorf("the agent is not the role's:\n%s", page)
+	}
+	again := site.ask(t, "POST", "/chat", url.Values{"said": {"and again"}, "harness": {"fixture"}, "role": {"engineering"}})
+	if got := again.Header().Get("Location"); !strings.HasPrefix(got, instance+"/threads/") {
+		t.Errorf("a second chat with the role made another agent: %q, not under %q", got, instance)
 	}
 }

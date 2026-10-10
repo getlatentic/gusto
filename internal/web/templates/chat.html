@@ -15,11 +15,17 @@
             <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
-            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Folder</span></button>
+            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Choose a folder</span></button>
             <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
           <span class="grow"></span>
-          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Agent">
+          <div class="picker" id="role-pick" data-picker data-options="{{.Roles}}" data-label="Preset">
+            <input type="hidden" name="choice" value="{{.Role}}">
+            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <div class="menu" role="listbox"></div>
+          </div>
+          <input type="hidden" name="role" id="role-value">
+          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Engine">
             <input type="hidden" name="harness" value="{{.Harness}}">
             <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
@@ -32,6 +38,17 @@
           <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
       </div>
+    </form>
+    <div class="starters" id="chat-starters">
+      <button type="button" class="starter" data-said="Fix the failing tests">Fix the failing tests</button>
+      <button type="button" class="starter" data-said="Summarise this folder">Summarise this folder</button>
+      <button type="button" class="starter" data-said="Add tests for what changed">Add tests for what changed</button>
+    </div>
+    <form class="save-preset" id="save-preset" method="post" action="/presets" hidden>
+      <input name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
+      <input type="hidden" name="harness"><input type="hidden" name="model"><input type="hidden" name="role">
+      <button type="submit" class="cta">Save preset</button>
+      <button type="button" class="quiet-button" data-cancel>Cancel</button>
     </form>
     </div>
     {{end}}
@@ -56,14 +73,50 @@
   harness.addEventListener("pick", narrow);
   narrow();
 
+  // A role, or a preset, sets what the chat starts with: a preset also sets the engine and the model, and "save" keeps the current ones.
+  var role = document.getElementById("role-pick");
+  var roleValue = document.getElementById("role-value");
+  var saving = document.getElementById("save-preset");
+  var choices = {};
+  JSON.parse(role.dataset.options).forEach(function (each) { if (each.kind !== "heading" && each.kind !== "separator") { choices[each.value] = each; } });
+  var settled = role.picker.value;
+  var apply = function (value) {
+    var choice = choices[value] || {};
+    roleValue.value = choice.role || "";
+    if (choice.harness) {
+      harness.picker.select(choice.harness);
+      if (choice.model) { model.picker.select(choice.model); }
+    }
+  };
+  role.addEventListener("pick", function () {
+    var value = role.picker.value;
+    if (value !== "save") { settled = value; saving.hidden = true; apply(value); return; }
+    role.picker.select(settled);
+    saving.elements.harness.value = harness.picker.value;
+    saving.elements.model.value = model.picker.value;
+    saving.elements.role.value = roleValue.value;
+    saving.hidden = false;
+    saving.elements.name.focus();
+  });
+  saving.querySelector("[data-cancel]").addEventListener("click", function () { saving.hidden = true; });
+  apply(settled);
+
   // The folder a chat works in is chosen in the explorer, which follows the agent it belongs to.
   var chosen = document.getElementById("folder-pick");
   chosen.addEventListener("chosen", function (event) {
     if (event.detail.harness) { harness.picker.select(event.detail.harness); }
     harness.picker.lock(Boolean(event.detail.harness));
+    role.picker.lock(Boolean(event.detail.harness));
   });
 
   var box = document.querySelector(".composer textarea");
+  document.getElementById("chat-starters").addEventListener("click", function (event) {
+    var starter = event.target.closest(".starter");
+    if (!starter) { return; }
+    box.value = starter.dataset.said;
+    box.dispatchEvent(new Event("input"));
+    box.focus();
+  });
   var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };
   box.addEventListener("input", grow);
   box.addEventListener("keydown", function (event) {

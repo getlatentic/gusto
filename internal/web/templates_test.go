@@ -79,3 +79,33 @@ func TestTheFolderViewerShowsOnlyTheFolder(t *testing.T) {
 		}
 	}
 }
+
+// The new-agent page starts a role without asking which engine: the first one that can take it is used.
+func TestARoleStartsOnTheFirstEngineThatCanTakeIt(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/templates/health", url.Values{})
+	if where := started.Header().Get("Location"); started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting with no engine chosen answered %d to %q", started.Code, where)
+	}
+}
+
+func TestThePresetsPageShowsEachBuiltInPresetWhatItDoes(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	page := site.ask(t, "GET", "/new", nil).Body.String()
+	for _, want := range []string{`data-role="health"`, `data-for="health"`, "What it can do", "Try asking", "Use in a new chat", `id="role-search"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the presets page does not carry %q", want)
+		}
+	}
+}
+
+func TestARoleStartsOnTheEngineChosenInItsFooter(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	started := site.ask(t, "POST", "/templates/health", url.Values{"engine": {"fixture"}})
+	if where := started.Header().Get("Location"); started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
+		t.Fatalf("starting on a chosen engine answered %d to %q", started.Code, where)
+	}
+}
