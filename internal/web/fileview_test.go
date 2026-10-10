@@ -66,7 +66,7 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 		"paper.pdf": {`<iframe class="frame" src="/instances/` + id + `/raw?path=paper.pdf"`},
 		"game.html": {`sandbox="allow-scripts"`, "View source"},
 		"blob.bin":  {"cannot be shown here", "Download it"},
-		"main.go":   {`<pre class="code">package main`},
+		"main.go":   {`<pre class="code" data-language="go"><code>package main`, "1 line"},
 	} {
 		page := viewed(t, site, id, name)
 		for _, text := range want {
@@ -75,7 +75,7 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 			}
 		}
 	}
-	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `<pre class="code">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
+	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `<pre class="code" data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
 		t.Error("the source of a page is not shown as text")
 	}
 }
