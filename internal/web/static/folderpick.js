@@ -11,6 +11,8 @@
   var clear = root.querySelector(".clear");
   var none = label.textContent;
   var backdrop, explorer;
+  // The chip's label is cut to its width, so the whole name is also its title.
+  function named(text) { label.textContent = text; label.title = text === none ? "" : text; }
 
   function open() {
     backdrop = document.createElement("div");
@@ -72,7 +74,7 @@
       .then(function (shown) {
         at.value = shown.at;
         keyInput.value = nameInput.value = "";
-        label.textContent = shown.crumbs[shown.crumbs.length - 1].name;
+        named(shown.crumbs[shown.crumbs.length - 1].name);
         clear.hidden = false;
         close();
         root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: shown.harness } }));
@@ -81,7 +83,7 @@
 
   function release() {
     at.value = keyInput.value = nameInput.value = "";
-    label.textContent = none;
+    named(none);
     clear.hidden = true;
     root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: "" } }));
   }
@@ -91,7 +93,7 @@
     at.value = "";
     keyInput.value = picked.key;
     nameInput.value = picked.name;
-    label.textContent = picked.name + " (this computer)";
+    named(picked.name + " (this computer)");
     clear.hidden = false;
     root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: "" } }));
   };
@@ -99,7 +101,7 @@
   // A chat opened from a project in the side list starts in that project's folder.
   if (root.dataset.at) {
     at.value = root.dataset.at;
-    label.textContent = root.dataset.label;
+    named(root.dataset.label);
     clear.hidden = false;
     // Told once the page has finished loading, when whatever follows the agent has had its say.
     var told = function () { root.dispatchEvent(new CustomEvent("chosen", { detail: { harness: root.dataset.harness } })); };

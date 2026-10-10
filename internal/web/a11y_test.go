@@ -172,6 +172,33 @@ func TestARunningTurnIsAnnouncedPolitelyAndOnce(t *testing.T) {
 	}
 }
 
+// A name cut short by its column is whole in the page's text, and in a title for whoever points at it.
+func TestACutNameIsWholeInItsTitle(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	where := startedThread(t, site)
+	site.ask(t, "POST", where+"/say", url.Values{"said": {"a name long enough to be cut short by the side list"}})
+	doc, err := html.Parse(site.ask(t, "GET", where, nil).Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	each(doc, func(n *html.Node) {
+		cut := (n.Data == "h1" && attr(n, "class") == "which") || (n.Data == "summary" && inside(n, "aside")) || (n.Data == "a" && inside(n, "ol") && inside(n, "aside"))
+		if !cut {
+			return
+		}
+		checked++
+		name, title := strings.Join(strings.Fields(accessibleName(n)), " "), attr(n, "title")
+		if title == "" || !(strings.HasPrefix(title, name) || strings.HasPrefix(name, title)) {
+			t.Errorf("%q is cut with the title %q", name, title)
+		}
+	})
+	if checked < 3 {
+		t.Errorf("only %d cut names were found to check", checked)
+	}
+}
+
 func each(n *html.Node, visit func(*html.Node)) {
 	if n.Type == html.ElementNode {
 		visit(n)
