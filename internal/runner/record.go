@@ -33,6 +33,8 @@ type Record struct {
 	seen   bool
 	// message is the message the transcript's last text belonged to.
 	message string
+	// wrote is how many bytes of the transcript are written, so that what the agent ran can say where in what it said it ran it.
+	wrote int64
 	// priced is whether the harness ever named a cost. Tokens counted without
 	// one is the ordinary case — most harnesses report numbers and no money —
 	// and a cost of zero written there would read as a run that was free.
@@ -67,8 +69,7 @@ func (r *Record) Out(line string) error {
 		return err
 	}
 	if r.adapter.Stream == harness.Plain {
-		_, err := r.transcript.WriteString(line + "\n")
-		return err
+		return r.say(line + "\n")
 	}
 	var decoded map[string]any
 	if err := json.Unmarshal([]byte(line), &decoded); err != nil {
@@ -81,7 +82,7 @@ func (r *Record) Out(line string) error {
 	}
 	if text, ok := harness.Pick(decoded, r.adapter.Text); ok && r.adapter.Says(decoded) {
 		if said, ok := text.(string); ok {
-			if _, err := r.transcript.WriteString(r.paragraph(decoded) + said); err != nil {
+			if err := r.say(r.paragraph(decoded) + said); err != nil {
 				return err
 			}
 		}
@@ -90,6 +91,13 @@ func (r *Record) Out(line string) error {
 		return err
 	}
 	return r.usage(decoded, line)
+}
+
+// say writes to the transcript and counts what it wrote.
+func (r *Record) say(text string) error {
+	written, err := r.transcript.WriteString(text)
+	r.wrote += int64(written)
+	return err
 }
 
 // paragraph is the break owed before text from a message other than the last.
@@ -116,7 +124,7 @@ func (r *Record) did(decoded map[string]any) error {
 	if !isCall || !r.adapter.Ran(decoded) {
 		return nil
 	}
-	ran := map[string]any{"tool": name}
+	ran := map[string]any{"tool": name, "at": r.wrote}
 	for field, path := range map[string]string{
 		"input":  r.adapter.ToolInput,
 		"status": r.adapter.ToolStatus,

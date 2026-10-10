@@ -238,3 +238,35 @@ func TestClaudeCodeIsHeardOnlyWhereTheAgentSpeaks(t *testing.T) {
 		t.Errorf("transcript = %q, want %q: the agent's words only, a paragraph a message", said, want)
 	}
 }
+
+// A tool call says how much of the transcript was written when it ran, so that what the agent said can be shown around it.
+func TestAToolCallSaysWhereInTheTranscriptItRan(t *testing.T) {
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := harness.Load("", "opencode")
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := Open(dir, adapter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := record.Out(toolCall); err != nil {
+		t.Fatal(err)
+	}
+	if err := record.Close(); err != nil {
+		t.Fatal(err)
+	}
+	line, err := os.ReadFile(dir.OutFile("commands.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept struct {
+		At *int64 `json:"at"`
+	}
+	if json.Unmarshal(line, &kept) != nil || kept.At == nil || *kept.At != 0 {
+		t.Errorf("the call did not say it ran at the start of the transcript: %s", line)
+	}
+}

@@ -59,7 +59,6 @@ details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-
 .turn-live ol.live li.now .mark-step::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--yg-text); }
 .turn-live .what { font-weight: 600; flex: none; }
 .turn-live .detail { font-family: var(--yg-font-mono); font-size: 0.75rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.turn-live .latest-words { margin: 0 0 0 var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .8125rem; line-height: 1.5; color: var(--yg-text-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 .start { display: grid; justify-items: center; gap: var(--yg-space-6); text-align: center; padding: var(--yg-space-16) 0 var(--yg-space-8); }
 .start h2 { margin: 0; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
@@ -88,3 +87,9 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 #chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--yg-space-2); max-width: 45rem; margin: var(--yg-space-6) auto 0; }
 #chat-starters .starter { height: 2.25rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-full); font-size: .875rem; }
 .folderpick .chip { height: 2rem; padding: 0 var(--yg-space-3) 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); color: var(--yg-text-muted); font-size: .8125rem; font-weight: 500; }
+
+/* What the agent said, whole, where it said it among the steps it took. */
+.turn-live ol.live li.said-block { display: block; margin-left: var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .875rem; line-height: 1.55; color: var(--yg-text-muted); }
+.turn-live ol.live li.said-block p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.turn-live ol.live li.said-block p + p { margin-top: var(--yg-space-2); }
+.turn-live ol.live li.cut { display: block; font-size: .75rem; color: var(--yg-text-subtle); }

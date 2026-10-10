@@ -20,7 +20,6 @@
       <div class="turn-live" id="working">
         <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing">Working</span><span class="elapsed" id="elapsed"></span></p>
         <ol class="live" id="live" aria-live="polite"></ol>
-        <p class="latest-words" id="stream" hidden></p>
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
@@ -106,48 +105,62 @@
     elapsed.textContent = seconds < 60 ? seconds + "s" : Math.floor(seconds / 60) + "m " + (seconds % 60) + "s";
   }, 1000);
 
-  // What it has done so far: the last few steps, the latest as what it is doing now.
+  // Everything it has said and done so far, in the order it came: its words where it said them, and each step where it took it.
   var list = document.getElementById("live");
   var doing = document.getElementById("doing");
+  var tick = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   var look = function () {
     fetch("{{.Path}}/live", { credentials: "same-origin" }).then(function (answer) { return answer.ok ? answer.json() : null; }).then(function (live) {
       if (!live) { return; }
+      var nearEnd = said.scrollHeight - said.scrollTop - said.clientHeight < 96;
       list.textContent = "";
-      live.steps.forEach(function (step, i) {
-        var item = document.createElement("li");
-        var last = i === live.steps.length - 1;
-        item.className = last ? "now" : "done";
+      var lastStep = -1;
+      live.items.forEach(function (item, i) { if (item.kind === "step") { lastStep = i; } });
+      if (live.cut) {
+        var cut = document.createElement("li");
+        cut.className = "cut";
+        cut.textContent = "The start of a long turn is left out.";
+        list.appendChild(cut);
+      }
+      live.items.forEach(function (item, i) {
+        var row = document.createElement("li");
+        if (item.kind === "said") {
+          row.className = "said-block";
+          item.text.split(/\n{2,}/).forEach(function (paragraph) {
+            var p = document.createElement("p");
+            p.textContent = paragraph;
+            row.appendChild(p);
+          });
+          list.appendChild(row);
+          return;
+        }
+        var last = i === lastStep && i === live.items.length - 1;
+        row.className = last ? "now" : "done";
         var mark = document.createElement("span");
         mark.className = "mark-step";
-        if (!last) { mark.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'; }
-        item.appendChild(mark);
+        if (!last) { mark.innerHTML = tick; }
+        row.appendChild(mark);
         var what = document.createElement("span");
         what.className = "what";
-        what.textContent = step.what;
-        item.appendChild(what);
-        if (step.detail) {
+        what.textContent = item.what;
+        row.appendChild(what);
+        if (item.detail) {
           var detail = document.createElement("span");
           detail.className = "detail";
-          detail.textContent = step.detail;
-          item.appendChild(detail);
+          detail.textContent = item.detail;
+          row.appendChild(detail);
         }
-        list.appendChild(item);
+        list.appendChild(row);
       });
-      doing.textContent = live.steps.length ? live.steps[live.steps.length - 1].what + (live.count > 1 ? " · step " + live.count : "") : "Working";
-      said.scrollTop = said.scrollHeight;
+      var latest = lastStep >= 0 ? live.items[lastStep] : null;
+      doing.textContent = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      if (nearEnd) { said.scrollTop = said.scrollHeight; }
     });
   };
   look();
   var watcher = setInterval(look, 1500);
 
-  var box = document.getElementById("stream");
   var stream = new EventSource("/watch/{{.Latest}}");
-  var words = "";
-  stream.onmessage = function (event) {
-    words = (words + " " + event.data).replace(/\s+/g, " ").trim().slice(-320);
-    box.textContent = words;
-    box.hidden = false;
-  };
   stream.addEventListener("ended", function () {
     stream.close();
     clearInterval(clock);
