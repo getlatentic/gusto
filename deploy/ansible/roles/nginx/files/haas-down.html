@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Back in a moment</title>
+<title>Cannot reach the server</title>
 <style>
 :root { --bg: #FAFAF9; --card: #FFFFFF; --ink: #171717; --soft: #66665F; --line: #D0D0CB; --accent: #2B2B29; --on: #FFFFFF; }
 :root[data-theme="dark"] { --bg: #161615; --card: #1E1E1C; --ink: #F4F4F2; --soft: #A8A8A2; --line: #3B3B37; --accent: #ECECE9; --on: #121211; }
@@ -16,8 +16,8 @@ button.main { background: var(--accent); border-color: var(--accent); color: var
 @keyframes beat { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
 </style></head><body><main>
-<h1>Back in a moment</h1>
-<p id="why">Latentic Agent Cloud is restarting, which takes a few seconds. This page tries again by itself.</p>
+<h1>Cannot reach the server</h1>
+<p id="why">The server did not answer. It may be busy, or starting again. This page tries again by itself, and your work is kept.</p>
 <p><span class="dot"></span><span id="state">Trying again…</span></p>
 <div class="row"><button class="main" id="again" type="button">Try again now</button><button id="back" type="button" hidden>Go back</button></div>
 </main>
@@ -36,7 +36,7 @@ button.main { background: var(--accent); border-color: var(--accent); color: var
   }
   function wait() {
     var seconds = tries < 5 ? 2 : tries < 15 ? 5 : 15;
-    state.textContent = tries < 15 ? "Trying again in " + seconds + " seconds…" : "Still not answering. Trying again in " + seconds + " seconds…";
+    state.textContent = tries < 15 ? "Trying again in " + seconds + " seconds…" : "Still no answer. Trying again in " + seconds + " seconds…";
     setTimeout(check, seconds * 1000);
   }
   document.getElementById("again").addEventListener("click", function () { location.reload(); });
