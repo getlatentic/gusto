@@ -57,7 +57,7 @@
   --yg-accent: #ECECE9; --yg-accent-hover: #FFFFFF; --yg-accent-press: #FFFFFF; --yg-on-accent: #121211;
   --yg-accent-text: #ECECE9; --yg-accent-surface: #262624; --yg-focus: #ECECE9;
 }
-:root[data-accent="orange"] { --yg-accent: #FF8A1F; --yg-accent-hover: #E6740F; --yg-accent-press: #BF5C08; --yg-on-accent: #171717; --yg-accent-text: #8F4406; --yg-accent-surface: #FFF3E6; --yg-focus: #E6740F; }
+:root[data-accent="orange"] { --yg-accent: #FF8A1F; --yg-accent-hover: #E6740F; --yg-accent-press: #BF5C08; --yg-on-accent: #171717; --yg-accent-text: #8F4406; --yg-accent-surface: #FFF3E6; --yg-focus: #BF5C08; }
 :root[data-accent="blue"] { --yg-accent: #3B6FE0; --yg-accent-hover: #2F5CC4; --yg-accent-press: #264CA6; --yg-on-accent: #FFFFFF; --yg-accent-text: #264CA6; --yg-accent-surface: #EAF0FD; --yg-focus: #3B6FE0; }
 :root[data-accent="green"] { --yg-accent: #23805A; --yg-accent-hover: #1B6A49; --yg-accent-press: #14543A; --yg-on-accent: #FFFFFF; --yg-accent-text: #14543A; --yg-accent-surface: #E6F4EC; --yg-focus: #23805A; }
 :root[data-accent="violet"] { --yg-accent: #7352D4; --yg-accent-hover: #5F40BC; --yg-accent-press: #4D3299; --yg-on-accent: #FFFFFF; --yg-accent-text: #4D3299; --yg-accent-surface: #F0EBFC; --yg-focus: #7352D4; }

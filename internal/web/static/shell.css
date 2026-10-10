@@ -80,7 +80,8 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .composer .box { display: grid; gap: var(--yg-space-2); padding: var(--yg-space-4) var(--yg-space-3) var(--yg-space-3) var(--yg-space-5);
   background: var(--yg-surface); border: 0.0625rem solid var(--yg-border-strong); border-radius: 1.25rem; box-shadow: var(--yg-shadow-1);
   transition: border-color var(--yg-dur-fast) var(--yg-ease-standard), box-shadow var(--yg-dur-fast) var(--yg-ease-standard); }
-.composer .box:focus-within { border-color: var(--yg-text-subtle); box-shadow: 0 0 0 .1875rem var(--yg-hover); }
+/* The box draws the ring for its field, two pixels of the focus colour. The clear outline shows only under forced colours, which drop shadows. */
+.composer .box:has(textarea:focus-visible) { border-color: var(--yg-focus); box-shadow: 0 0 0 0.0625rem var(--yg-focus); outline: 0.125rem solid transparent; }
 .composer textarea { width: 100%; min-height: 1.75rem; max-height: 14rem; padding: 0; border: 0; background: none; resize: none;
   font: inherit; line-height: 1.55; }
 .composer textarea:focus-visible { outline: none; }
@@ -147,12 +148,13 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-places .place .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .d-places .place:hover { background: var(--yg-hover); color: var(--yg-text); }
 .d-places .place.current { background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-1); }
-.d-list { display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none; }
+.d-list { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .d-list .row { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem 4.5rem; align-items: center; gap: var(--yg-space-3); padding: 0 var(--yg-space-4); min-height: 2.25rem; font-size: .875rem; }
 .d-list .heads { min-height: 2rem; border-bottom: 0.0625rem solid var(--yg-border); font-size: .75rem; font-weight: 600;  text-transform: none; color: var(--yg-text-subtle); }
 .d-list .num { text-align: right; }
 .d-list .rows { flex: 1; min-height: 0; overflow-y: auto; padding: var(--yg-space-1) var(--yg-space-2); }
 .d-list .rows .row { border-radius: var(--yg-radius-sm); }
+.d-list .rows .row:focus-visible, .fp-pane:focus-visible, .said-so-far:focus-visible { outline-offset: -0.125rem; }
 .d-list .name { display: flex; align-items: center; gap: var(--yg-space-3); min-width: 0; }
 .d-list .name .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .d-list .folder { cursor: default; color: var(--yg-text); }
@@ -163,7 +165,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .d-list .dim { font-size: .8125rem; color: var(--yg-text-subtle); white-space: nowrap; }
 .d-list .go { display: flex; justify-content: flex-end; color: var(--yg-text-subtle); }
 .d-list .making { grid-template-columns: minmax(0, 1fr); }
-.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-text-subtle); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; outline: none; box-shadow: 0 0 0 .1875rem var(--yg-hover); }
+.d-new { width: 100%; height: 1.75rem; padding: 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-text-subtle); border-radius: var(--yg-radius-xs); font: inherit; font-size: .875rem; box-shadow: 0 0 0 .1875rem var(--yg-hover); }
 .d-list .problem { grid-column: 1; margin: -0.25rem 0 var(--yg-space-1) 1.75rem; font-size: .75rem; color: var(--yg-danger); }
 .d-empty { padding: var(--yg-space-8) var(--yg-space-4); text-align: center; font-size: .875rem; color: var(--yg-text-subtle); }
 .d-foot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--yg-space-4); padding: var(--yg-space-3) var(--yg-space-4); border-top: 0.0625rem solid var(--yg-border); }
@@ -194,7 +196,8 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .picker.open .menu { display: grid; gap: 0.0625rem; }
 .picker .menu button { display: grid; gap: 0.125rem; width: 100%; padding: var(--yg-space-2) var(--yg-space-3); border: 0; border-radius: var(--yg-radius-sm);
   background: none; text-align: left; color: var(--yg-text); font: inherit; cursor: pointer; position: relative; }
-.picker .menu button:hover, .picker .menu button:focus-visible { background: var(--yg-bg-subtle); outline: none; }
+.picker .menu button:hover, .picker .menu button:focus-visible { background: var(--yg-bg-subtle); }
+.picker .menu button:focus-visible { outline-offset: -0.125rem; }
 .picker .menu .name { font-size: .875rem; font-weight: 500; }
 .picker .menu .detail { font-size: .75rem; color: var(--yg-text-subtle); }
 .picker .menu button[aria-selected="true"] .name::after { content: ""; position: absolute; right: var(--yg-space-3); top: var(--yg-space-3); width: 0.875rem; height: 0.875rem; background: var(--yg-text);
@@ -275,13 +278,16 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .picker .menu button.action { min-height: 2.5rem; }
 .picker .menu { min-width: 18rem; max-width: 24rem; max-height: 26rem; overflow-y: auto; }
 .picker .menu { max-height: min(30rem, 70dvh); }
+/* The action stays on the floor of the menu, so an option moved to by the keys stops above it. */
+.picker .menu { scroll-padding-bottom: 2.75rem; }
 .picker .menu button.action { position: sticky; bottom: 0; background: var(--yg-surface); box-shadow: 0 -0.5rem 0.5rem -0.25rem var(--yg-surface); }
 
 /* Dividers that can be dragged. */
 .resize { position: absolute; top: 0; bottom: 0; right: -0.25rem; z-index: 6; width: 0.5rem; cursor: col-resize; touch-action: none; }
 .resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0.1875rem; width: 0.125rem; background: transparent; transition: background var(--yg-dur-fast) var(--yg-ease-standard); }
 .resize:hover::after, .resize:focus-visible::after, .resizing .resize::after { background: var(--yg-border-strong); }
-.resize:focus-visible { outline: none; }
+.resize:focus-visible { outline-offset: -0.125rem; }
+.resize:focus-visible::after { background: var(--yg-focus); }
 .resizing, .resizing * { cursor: col-resize !important; user-select: none; }
 .panel-closed .side > .resize { display: none; }
 @container (max-width: 56rem) { .side > .resize { display: none; } }
