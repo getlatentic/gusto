@@ -9,14 +9,25 @@
     panel.querySelectorAll("[data-mode]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === window.haasLook.theme())); });
     panel.querySelectorAll("[data-accent]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.accent === window.haasLook.accent())); });
   }
-  open.addEventListener("click", function () { panel.hidden = !panel.hidden; show(); });
+  function setOpen(shown) { panel.hidden = !shown; open.setAttribute("aria-expanded", String(shown)); }
+  // Opening puts the keyboard on the current theme; leaving the panel by the keys or Escape closes it, and Escape gives the keyboard back.
+  open.addEventListener("click", function () {
+    var shown = panel.hidden;
+    setOpen(shown);
+    show();
+    if (shown) { (panel.querySelector('[aria-pressed="true"]') || panel.querySelector("button")).focus(); }
+  });
+  panel.addEventListener("focusout", function (event) {
+    var to = event.relatedTarget;
+    if (to && !panel.contains(to) && to !== open) { setOpen(false); }
+  });
   panel.addEventListener("click", function (event) {
     var pick = event.target.closest("[data-mode], [data-accent], [data-zoom]");
     if (!pick) { return; }
     if (pick.dataset.zoom) { window.haasLook.stepZoom(+pick.dataset.zoom); } else if (pick.dataset.mode) { window.haasLook.setTheme(pick.dataset.mode); } else { window.haasLook.setAccent(pick.dataset.accent); }
     show();
   });
-  document.addEventListener("click", function (event) { if (!panel.hidden && !event.target.closest("#look, [data-look]")) { panel.hidden = true; } });
+  document.addEventListener("click", function (event) { if (!panel.hidden && !event.target.closest("#look, [data-look]")) { setOpen(false); } });
   // The desktop app's web view has no zoom keys of its own on macOS, so the page answers them: the size of the text is the size of everything.
   document.addEventListener("keydown", function (event) {
     if (!window.latenticDesktop || !(event.metaKey || event.ctrlKey) || event.altKey) { return; }
@@ -26,5 +37,10 @@
     window.haasLook.stepZoom(by);
     show();
   });
-  document.addEventListener("keydown", function (event) { if (event.key === "Escape") { panel.hidden = true; } });
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape" || panel.hidden) { return; }
+    var inside = panel.contains(document.activeElement);
+    setOpen(false);
+    if (inside) { open.focus(); }
+  });
 })();

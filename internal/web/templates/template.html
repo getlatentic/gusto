@@ -51,7 +51,7 @@
           <details><summary>Read</summary><div class="reply">{{markdown .Body}}</div></details></li>{{end}}</ul>
       </section>
     </div>
-    <aside class="run-side">
+    <aside class="run-side" aria-label="About this kind of work">
       <section class="panel">
         <h2>Sample files</h2>
         <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
