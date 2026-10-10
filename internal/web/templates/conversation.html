@@ -16,10 +16,11 @@
   <div class="said-so-far" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="column">
       <div id="turns">{{template "turns" .}}</div>
+      <p class="sr" role="status" id="turn-news"></p>
       {{if .Waiting}}
       <div class="turn-live" id="working">
-        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing">Working</span><span class="elapsed" id="elapsed"></span></p>
-        <ol class="live" id="live" aria-live="polite"></ol>
+        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="elapsed" id="elapsed"></span></p>
+        <ol class="live" id="live" aria-label="What it has done so far"></ol>
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
@@ -163,7 +164,9 @@
         list.appendChild(row);
       });
       var latest = lastStep >= 0 ? live.items[lastStep] : null;
-      doing.textContent = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      // The status is a live region, so it is written only when it says something new.
+      var now = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      if (doing.textContent !== now) { doing.textContent = now; }
       if (nearEnd) { said.scrollTop = said.scrollHeight; }
     });
   };
@@ -178,9 +181,13 @@
     // Swap in the turn that just finished rather than reloading the page, which would throw away the scroll position and everything
     // already read, and give the box its Send button back.
     htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
+      var stop = document.getElementById("stop");
+      var held = document.activeElement === stop;
       document.getElementById("working").remove();
-      document.getElementById("stop").hidden = true;
+      stop.hidden = true;
       document.getElementById("send").hidden = false;
+      document.getElementById("turn-news").textContent = "The reply is in.";
+      if (held) { document.querySelector(".composer textarea").focus(); }
       said.scrollTop = said.scrollHeight;
     });
   });
