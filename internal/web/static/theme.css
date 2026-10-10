@@ -24,6 +24,8 @@
   --yg-shadow-1: 0 0.0625rem 0.125rem rgb(0 0 0 / .06);
   --yg-shadow-2: 0 0.25rem 1rem rgb(0 0 0 / .08);
   --yg-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .12);
+  /* The status colours of the vendored tokens, darkened where their text falls under 4.5 to 1 on its own surface. */
+  --yg-warning: #8A5300;
 }
 
 :root[data-theme="dark"] {
@@ -43,6 +45,7 @@
   --yg-shadow-1: none;
   --yg-shadow-2: none;
   --yg-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .5);
+  --yg-warning: #E3A21F;
 }
 
 /* The accents. Graphite is the default: the app is neutral until the person says otherwise. */
