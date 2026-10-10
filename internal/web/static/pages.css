@@ -148,14 +148,21 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .pick-role:hover { background: var(--yg-bg-subtle); }
 .pick-role[aria-pressed="true"] { background: var(--yg-surface); border-color: var(--yg-border-strong); box-shadow: var(--yg-shadow-1); }
 .pick-role .top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--yg-space-3); }
-.pick-role .top strong { font-size: 1rem; font-weight: 600; }
+.pick-role .top strong { display: inline-flex; align-items: center; gap: .375rem; font-size: 1rem; font-weight: 600; }
+.pick-role .top strong svg.i { display: none; width: 1rem; height: 1rem; opacity: 1; stroke-width: 2.25; }
+.pick-role[aria-pressed="true"] .top strong svg.i { display: block; }
 .pick-role .kind { flex: none; font-size: .75rem; color: var(--yg-text-subtle); }
 .pick-role .what { font-size: .8125rem; line-height: 1.45; color: var(--yg-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .picks .none { margin: var(--yg-space-3); font-size: .875rem; color: var(--yg-text-subtle); }
 .role-details { flex: 2 1 28rem; min-width: 0; }
 .role-detail { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; }
 .role-detail[hidden] { display: none; }
-.role-detail .head { padding: var(--yg-space-7, 1.75rem) var(--yg-space-8) var(--yg-space-2); }
+.role-detail .head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--yg-space-4); padding: var(--yg-space-7, 1.75rem) var(--yg-space-8) var(--yg-space-2); }
+.role-detail .head .intro { flex: 1 1 17rem; min-width: 0; }
+.role-detail .head .acts { display: flex; align-items: center; gap: var(--yg-space-4); flex: none; }
+.role-detail .head .cta { display: inline-flex; align-items: center; height: 2.5rem; padding: 0 var(--yg-space-5); text-decoration: none; white-space: nowrap; }
+.role-detail .head .cta[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.role-detail::after { content: ""; display: block; height: var(--yg-space-5); }
 .role-detail .head .kind { font-size: .8125rem; font-weight: 500; color: var(--yg-text-subtle); }
 .role-detail .head h2 { margin: .375rem 0 .5rem; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
 .role-detail .head p { margin: 0; max-width: 35rem; font-size: 1rem; line-height: 1.55; color: var(--yg-text-muted); }
@@ -167,9 +174,6 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .role-detail .skill span { font-size: .875rem; line-height: 1.5; color: var(--yg-text-muted); }
 .role-detail .starters { list-style: none; display: grid; gap: var(--yg-space-2); margin: var(--yg-space-3) 0 0; padding: 0; }
 .role-detail .starters li { padding: var(--yg-space-2) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); font-size: .875rem; color: var(--yg-text-muted); }
-.role-detail .foot { display: flex; align-items: center; gap: var(--yg-space-4); margin-top: var(--yg-space-6); padding: var(--yg-space-4) var(--yg-space-8); border-top: 0.0625rem solid var(--yg-border); background: var(--yg-bg-subtle); }
-.role-detail .foot .note { flex: 1; margin: 0; font-size: .8125rem; color: var(--yg-text-subtle); }
-.role-detail .foot .cta { height: 2.5rem; padding: 0 var(--yg-space-5); }
 .pick-role[hidden], .picks .none[hidden] { display: none; }
 
 /* The runs of a day: one card, a quiet head for the day, a row a run with what it was first and where and with what under it. */
@@ -187,11 +191,7 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .runs-day .event.is-failed .outcome, .runs-day .event.is-interrupted .outcome { background: var(--yg-danger-surface); color: var(--yg-danger); }
 .runs-day .event .how { justify-self: end; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 @container (max-width: 48rem) { .runs-day .event { grid-template-columns: .5rem minmax(0, 1fr) auto; } .runs-day .event .how { display: none; } }
-.role-detail .foot .runs-on { display: flex; align-items: center; gap: var(--yg-space-2); flex: none; font-size: .8125rem; color: var(--yg-text-muted); }
-.role-detail .foot .runs-on select { height: 2.25rem; padding: 0 var(--yg-space-3); }
 
-.role-detail .foot .cta { display: inline-flex; align-items: center; text-decoration: none; }
-.role-detail .foot .cta[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 
 /* A preset is a row: its name, what it holds in the order the chat's menus come, and two things to do with it. */
 .presets { display: grid; gap: var(--yg-space-3); margin: 0 0 var(--yg-space-8); }
@@ -206,6 +206,7 @@ label > .muted { order: 2; font-size: .75rem; color: var(--yg-text-subtle); }
 .icon-button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--yg-radius-sm); background: none; color: var(--yg-text-subtle); cursor: pointer; }
 .icon-button:hover { background: var(--yg-danger-surface); color: var(--yg-danger); }
 .icon-button svg.i { width: 1.125rem; height: 1.125rem; opacity: 1; }
+.presets-none { margin: 0 0 var(--yg-space-6); }
 .presets .note { margin: 0 var(--yg-space-1); font-size: .8125rem; color: var(--yg-text-subtle); }
 
 /* Where the list and what the role does cannot sit side by side, a menu picks the role and what it does is right under it. */
