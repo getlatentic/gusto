@@ -188,6 +188,28 @@ func (s *Store) SetModel(id, model string) error {
 	return nil
 }
 
+// SetHarness points an instance that nothing has been said to at another harness. One that has been used is its conversations' and
+// stays as it is, since what a harness remembers of them is its own.
+func (s *Store) SetHarness(id, harness string) error {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	held, found := s.held[id]
+	if !found {
+		return fmt.Errorf("no instance called %s", id)
+	}
+	for _, thread := range s.threads[id] {
+		if len(thread.Turns) > 0 {
+			return fmt.Errorf("%s has been used, so it keeps its harness", id)
+		}
+	}
+	held.Harness = harness
+	if err := s.write(held); err != nil {
+		return err
+	}
+	s.held[id] = held
+	return nil
+}
+
 func (s *Store) write(held Instance) error {
 	return writeJSON(filepath.Join(s.Dir(held.ID), "instance.json"), held)
 }

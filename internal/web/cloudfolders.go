@@ -111,14 +111,14 @@ func (s *Server) topFolders(r *http.Request) shownFolders {
 	used := s.lastUsed(r)
 	names := projectNames(used)
 	for _, each := range used {
-		shown.Folders = append(shown.Folders, shownFolder{Name: names[each.ID], At: each.ID, Harness: each.Harness, Modified: each.Active})
+		shown.Folders = append(shown.Folders, shownFolder{Name: names[each.ID], At: each.ID, Harness: s.engineOf(each.ID, each.Harness), Modified: each.Active})
 	}
 	return shown
 }
 
 func (s *Server) insideFolders(held instance.Instance, dir, here string) shownFolders {
 	name := s.agentOf(held).Name
-	shown := shownFolders{At: path.Join(held.ID, dir), Harness: held.Harness, Folders: []shownFolder{}, Files: []shownFile{},
+	shown := shownFolders{At: path.Join(held.ID, dir), Harness: s.engineOf(held.ID, held.Harness), Folders: []shownFolder{}, Files: []shownFile{},
 		Crumbs: []crumb{{Name: "Your cloud computer"}, {Name: name, At: held.ID}}}
 	walked := ""
 	for _, part := range strings.Split(dir, "/") {
@@ -210,6 +210,18 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 		return held, instance.Thread{}, "that folder is not there"
 	}
 	dir, _ = job.CleanDir(dir)
+	if chosen := strings.TrimSpace(r.FormValue("harness")); chosen != "" && chosen != held.Harness && !s.used(held.ID) {
+		if why := s.runnable(chosen); why != "" {
+			return held, instance.Thread{}, why
+		}
+		if why := s.unusable(r, chosen, model); why != "" {
+			return held, instance.Thread{}, why
+		}
+		if err := s.instances.SetHarness(held.ID, chosen); err != nil {
+			return held, instance.Thread{}, err.Error()
+		}
+		held.Harness = chosen
+	}
 	if why := s.unusable(r, held.Harness, model); why != "" {
 		return held, instance.Thread{}, why
 	}
@@ -227,4 +239,23 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 		return held, thread, err.Error()
 	}
 	return held, thread, ""
+}
+
+// used is whether anything has been said in an agent, which is what settles its harness.
+func (s *Server) used(id string) bool {
+	for _, thread := range s.instances.Threads(id) {
+		if len(thread.Turns) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// engineOf is the harness a folder fixes for the chats in it: the agent's own once something has been said in it, and none before, so
+// that a project made a moment ago is still open to whatever harness the person goes on to choose.
+func (s *Server) engineOf(id, harness string) string {
+	if s.used(id) {
+		return harness
+	}
+	return ""
 }
