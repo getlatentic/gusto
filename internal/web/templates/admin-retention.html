@@ -4,7 +4,6 @@
   <h1>Retention</h1>
   <span class="count">Finished work is removed on a schedule</span>
 </div>
-<details class="how page-why"><summary>How this works</summary><p>A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p></details>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
@@ -29,6 +28,7 @@
   {{end}}
 </section>
 
+<div class="panels">
 <section class="panel">
   <h2>Next sweep</h2>
   {{if .Upcoming}}
@@ -42,7 +42,7 @@
   {{else}}
   <p class="muted">Nothing is due.</p>
   {{end}}
-  <form method="post" action="/admin/retention/sweep"><button type="submit">Sweep now</button></form>
+  <form method="post" action="/admin/retention/sweep"><button class="quiet-button" type="submit">Sweep now</button></form>
   {{with .Last}}<p class="muted">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
 </section>
 
@@ -63,13 +63,15 @@
   <form method="post" action="/admin/retention/jobs/hold" class="inline">
     <label>Job <input name="job" placeholder="the job's id, as in its address" required></label>
     <label>Why <input name="why" placeholder="for the record"></label>
-    <button type="submit">Keep the job</button>
+    <button class="quiet-button" type="submit">Keep the job</button>
   </form>
   <form method="post" action="/admin/retention/holds" class="inline">
     <label>Person <input name="who" placeholder="amy@acme.test" required></label>
     <label>Why <input name="why" placeholder="for the record"></label>
-    <button type="submit">Keep their work</button>
+    <button class="quiet-button" type="submit">Keep their work</button>
   </form>
 </section>
+</div>
+<p class="muted note">A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
 
 {{template "foot" .}}

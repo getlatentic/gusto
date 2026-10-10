@@ -21,7 +21,7 @@
       <tr>
         <td><span class="who-cell"><span class="avatar" aria-hidden="true">{{initial .Email}}</span><span>{{.Email}}</span></span></td>
         <td><span class="role-pill{{if eq .Role "admin"}} admin{{end}}">{{.Role}}</span></td>
-        <td class="muted">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
+        <td class="muted last">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
         <td class="num">{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{usd .USD}} <span class="muted">at least</span>{{end}}{{else}}<span class="muted">nothing</span>{{end}}</td>
       </tr>
       {{end}}
@@ -32,13 +32,8 @@
 
 {{if .Invited}}
 <h2 class="plain">Waiting to join</h2>
-<div class="list">
-  <table>
-    <thead><tr><th>Address</th><th>Invited by</th><th>Link works until</th></tr></thead>
-    <tbody>
-      {{range .Invited}}<tr><td>{{.Email}}</td><td>{{.By}}</td><td class="muted">{{when .Expires}}</td></tr>{{end}}
-    </tbody>
-  </table>
+<div class="list waiting">
+  {{range .Invited}}<div class="wait"><span class="addr">{{.Email}}</span><span class="muted">Invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
 </div>
 {{end}}
 
