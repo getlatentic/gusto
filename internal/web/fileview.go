@@ -107,6 +107,10 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		file.Kind = kindText
 	}
 	s.fill(&file, resolved, info.Size())
+	if r.URL.Query().Get("panel") != "" {
+		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
+		return
+	}
 	s.render(w, "file.html", map[string]any{
 		"Title": productName + " — " + name, "Nav": "files", "Instance": held, "Agent": s.agentOf(held),
 		"File": file, "Back": r.URL.Query().Get("from"), "Crumbs": s.fileCrumbs(held.ID, s.agentOf(held).Name, file.Path),

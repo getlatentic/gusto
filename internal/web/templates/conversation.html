@@ -57,6 +57,16 @@
   </div>
 </section>
 
+<aside class="file-panel" id="file-panel" aria-label="Files from this chat" hidden>
+  <div class="resize" id="file-panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the files" tabindex="0"></div>
+  <div class="fp-bar">
+    <div class="fp-tabs" role="tablist" aria-label="Open files"></div>
+    <button type="button" class="fp-close" id="fp-close" aria-label="Close the files" title="Close the files">{{template "icon-x"}}</button>
+  </div>
+  <div class="fp-bodies"></div>
+</aside>
+<script src="{{asset "/static/filepanel.js"}}"></script>
+
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
 <script nonce="{{.Nonce}}">
 (function () {

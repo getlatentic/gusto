@@ -37,6 +37,13 @@
         setAccent: function (value) { accent = value; keep("haas-accent", value); apply(); }
       };
     })();
+    // The widths the person dragged the side list and the files panel to.
+    try {
+      var drawn = document.documentElement.style;
+      var wide = localStorage.getItem("haas-panel-w"), files = localStorage.getItem("haas-files-w");
+      if (+wide) { drawn.setProperty("--panel-w", +wide + "rem"); }
+      if (+files) { drawn.setProperty("--files-w", +files + "rem"); }
+    } catch (e) {}
     // The panel of conversations can be put away, leaving the icons, and it stays as the person left it.
     try { if (localStorage.getItem("haas-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
     document.addEventListener("click", function (event) {
@@ -93,6 +100,7 @@
 {{else}}</div>
 </main>
 </div>
+<script src="{{asset "/static/resize.js"}}"></script>
 <script src="{{asset "/static/appearance.js"}}"></script>
 {{end}}</body></html>{{end}}
 
