@@ -18,6 +18,13 @@
     </div>
   </header>
 
+  {{template "file-body" .}}
+</div>
+
+{{template "foot" .}}
+
+{{/* file-body is what a file is, drawn by its kind, whether it is a page or a tab beside a chat. */}}
+{{define "file-body"}}
   {{if eq .File.Kind "markdown"}}
   <article class="prose">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
   {{else if eq .File.Kind "text"}}
@@ -54,6 +61,19 @@
   </div>
   {{end}}
   {{if .File.Cut}}<p class="muted small">The file is longer than the page draws. Download it to read the rest.</p>{{end}}
-</div>
+{{end}}
 
-{{template "foot" .}}
+{{/* file-panel is a file as a tab beside a chat: its name and what can be done with it, and the file. */}}
+{{define "file-panel"}}<div class="viewer panel-file">
+  <header class="viewer-head">
+    <div class="viewer-title">
+      <h1>{{.File.Name}}</h1>
+      <p class="muted small">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
+    </div>
+    <div class="viewer-actions">
+      <a class="quiet-button" data-page href="{{.Page}}">Open as a page</a>
+      <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+    </div>
+  </header>
+  {{template "file-body" .}}
+</div>{{end}}
