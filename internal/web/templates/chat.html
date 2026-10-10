@@ -105,8 +105,12 @@
   var chosen = document.getElementById("folder-pick");
   chosen.addEventListener("chosen", function (event) {
     if (event.detail.harness) { harness.picker.select(event.detail.harness); }
-    harness.picker.lock(Boolean(event.detail.harness));
-    role.picker.lock(Boolean(event.detail.harness));
+    var fixed = Boolean(event.detail.harness);
+    harness.picker.lock(fixed);
+    role.picker.lock(fixed);
+    var why = fixed ? "Set by this folder, which already has conversations. Choose another folder to use another engine." : "";
+    harness.querySelector("button").title = why;
+    role.querySelector("button").title = why;
   });
 
   var box = document.querySelector(".composer textarea");
