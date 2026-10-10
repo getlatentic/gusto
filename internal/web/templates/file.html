@@ -2,8 +2,9 @@
 
 <div class="viewer">
   <nav class="trail" aria-label="Where this is">
-    <a href="/files">Files</a>
-    {{range .Crumbs}}<span class="sep">/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}
+    {{if .Evidence}}<a href="/jobs">Activity</a><span class="sep">/</span><a href="/jobs/{{.Evidence}}">Record</a>
+    {{else}}<a href="/files">Files</a>
+    {{range .Crumbs}}<span class="sep">/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}{{end}}
   </nav>
 
   <header class="viewer-head">
@@ -12,7 +13,7 @@
       <p class="muted small">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
     </div>
     <div class="viewer-actions">
-      {{if .Back}}<a class="quiet-button" href="{{.Back}}">{{template "icon-compose"}}<span>Back to the chat</span></a>{{end}}
+      {{if .Back}}<a class="quiet-button" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
       {{if eq .File.Kind "html"}}<a class="quiet-button" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
       <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
     </div>
