@@ -1,8 +1,10 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>API tokens</h1>
-  <p class="muted">What programs use to call this server. A token may do only what you give it, is named in every record it makes, and stops working the moment you revoke it. The shared password no longer opens the API.</p>
+  <span class="count">What programs use to call this server</span>
+  <span class="grow"></span>
+  <button class="cta" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
 </div>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
@@ -16,7 +18,7 @@
 </section>
 {{end}}
 
-<section class="panel">
+<section class="panel" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
   <h2>Make a token</h2>
   <form method="post" action="/admin/tokens">
     <label>Name <input name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
@@ -28,24 +30,27 @@
 </section>
 
 {{if .Tokens}}
-<section class="panel">
+<div class="list tokens">
   <table>
-    <thead><tr><th>Name</th><th>May</th><th>Made</th><th>Last used</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Can</th><th>Made</th><th>Last used</th><th></th></tr></thead>
     <tbody>
       {{range .Tokens}}
       <tr>
-        <td>{{.Name}}</td>
-        <td>{{.May}}</td>
-        <td>{{.Made}} <span class="muted">by {{.By}}</span></td>
-        <td class="muted">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
-        <td>{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button type="submit">Revoke</button></form>{{else}}<span class="muted">revoked {{.Ended}}</span>{{end}}</td>
+        <td class="tname">{{.Name}}</td>
+        <td><span class="chips">{{range split .May ", "}}<span class="pill-chip">{{.}}</span>{{end}}</span></td>
+        <td class="made" title="{{.Made}}"><span>{{.MadeDay}}</span><span class="by">by {{.By}}</span></td>
+        <td class="muted nowrap"{{if .LastUsed}} title="{{.LastUsed}}"{{end}}>{{if .UsedAt}}{{ago .UsedAt}}{{else}}Never{{end}}</td>
+        <td class="end">{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button class="revoke" type="submit">Revoke</button></form>{{else}}<span class="muted" title="{{.Ended}}">Revoked</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
-</section>
+</div>
+<p class="muted note">A token is shown once, when it is made. Revoking stops it at once, and the shared password no longer opens the API.</p>
 {{else}}
 <p class="muted">No token has been made yet.</p>
 {{end}}
+
+<script src="{{asset "/static/reveal.js"}}"></script>
 
 {{template "foot" .}}

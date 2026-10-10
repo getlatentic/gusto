@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/haas/internal/datadir"
 	"github.com/getlatentic/haas/internal/instance"
 	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/haas/internal/preset"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/setup"
 )
@@ -20,7 +21,7 @@ func installed(t *testing.T) map[datadir.Store]string {
 	t.Helper()
 	root := t.TempDir()
 	for name, path := range map[string]string{
-		"HAAS_JOBS": "jobs", "HAAS_SESSIONS": "sessions", "HAAS_SETUPS": "setups", "HAAS_COMPARISONS": "comparisons", "HAAS_INTEGRATIONS": "integrations",
+		"HAAS_JOBS": "jobs", "HAAS_SESSIONS": "sessions", "HAAS_SETUPS": "setups", "HAAS_COMPARISONS": "comparisons", "HAAS_INTEGRATIONS": "integrations", "HAAS_PRESETS": "presets",
 		"HAAS_CHANGES": "changes/changes.jsonl", "HAAS_API_TOKENS": "tokens/tokens.json", "HAAS_RETENTION": "retention",
 	} {
 		t.Setenv(name, filepath.Join(root, path))
@@ -62,6 +63,9 @@ func TestEveryStoreOpensADirectoryThatCarriesTheStamp(t *testing.T) {
 	}
 	if _, err := retention.OpenHolds(dirs[datadir.Retention]).Read(); err != nil {
 		t.Errorf("retention: %v", err)
+	}
+	if store, err := preset.Open(dirs[datadir.Presets]); err != nil || len(store.List("ada")) != 0 {
+		t.Errorf("presets: %v", err)
 	}
 	if listed, _ := jobs.Scan(dirs[datadir.Jobs]); len(listed) != 0 {
 		t.Error("the stamp was read as a job")

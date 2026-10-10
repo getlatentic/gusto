@@ -12,7 +12,16 @@
     function render() {
       menu.textContent = "";
       options.forEach(function (option) {
+        if (option.kind === "heading" || option.kind === "separator") {
+          var plain = document.createElement("div");
+          plain.className = option.kind === "heading" ? "group" : "sep";
+          plain.setAttribute("role", "presentation");
+          plain.textContent = option.label || "";
+          menu.appendChild(plain);
+          return;
+        }
         var item = document.createElement("button");
+        if (option.kind === "action") { item.className = "action"; }
         item.type = "button";
         item.setAttribute("role", "option");
         item.dataset.value = option.value;
@@ -30,7 +39,7 @@
         }
         menu.appendChild(item);
       });
-      var current = options.find(function (option) { return option.value === input.value; });
+      var current = options.find(function (option) { return !option.kind && option.value === input.value; });
       label.textContent = current ? current.label : (root.dataset.label || "");
     }
 
@@ -38,7 +47,7 @@
     function open() {
       root.classList.add("open");
       button.setAttribute("aria-expanded", "true");
-      var chosen = menu.querySelector('[aria-selected="true"]') || menu.firstElementChild;
+      var chosen = menu.querySelector('[aria-selected="true"]') || menu.querySelector("button");
       if (chosen) { chosen.focus(); }
     }
     function choose(value) {
@@ -56,7 +65,7 @@
       if (item) { choose(item.dataset.value); }
     });
     root.addEventListener("keydown", function (event) {
-      var items = Array.prototype.slice.call(menu.children);
+      var items = Array.prototype.slice.call(menu.querySelectorAll("button"));
       var at = items.indexOf(document.activeElement);
       if (event.key === "Escape" && root.classList.contains("open")) { event.stopPropagation(); close(); button.focus(); }
       else if (event.key === "ArrowDown" || event.key === "ArrowUp") {

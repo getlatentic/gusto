@@ -15,6 +15,7 @@ Each store has a format number, written to `.haas-format` in its directory:
 | setups | `HAAS_SETUPS` | skill sets |
 | comparisons | `HAAS_COMPARISONS` | the comparisons started from the pages |
 | integrations | `HAAS_INTEGRATIONS` | the plugins an administrator imported, a folder for each version |
+| presets | `HAAS_PRESETS` | what each person saved to start a chat the same way again, a file each |
 | changes | the directory of `HAAS_CHANGES` | the change record |
 | tokens | the directory of `HAAS_API_TOKENS` | API tokens |
 | retention | `HAAS_RETENTION` | the policy, the holds and the last sweep |

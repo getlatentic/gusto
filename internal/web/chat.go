@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/haas/internal/industry"
 	"github.com/getlatentic/haas/internal/instance"
 )
 
@@ -38,6 +39,8 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"Here":    "/chat",
 		"Refused": r.URL.Query().Get("refused"),
 		"Start":   s.startIn(r),
+		"Roles":   s.roleChoices(r),
+		"Role":    s.chosenRole(r),
 	})
 }
 
@@ -126,14 +129,26 @@ func (s *Server) threadForChat(r *http.Request) (instance.Instance, instance.Thr
 	if at := strings.TrimSpace(r.FormValue("at")); at != "" {
 		return s.cloudFolderThread(r, at, model)
 	}
-	return s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), model, folderOf(r))
+	return s.chatThread(r, strings.TrimSpace(r.FormValue("harness")), model, folderOf(r), s.roleOf(r))
 }
 
 // chatThread is the agent and the empty conversation a new chat goes into, on the model chosen, or why there is none.
-func (s *Server) chatThread(r *http.Request, harness, model string, where folder) (instance.Instance, instance.Thread, string) {
-	held, found := s.agentFor(r, harness, where)
+func (s *Server) chatThread(r *http.Request, harness, model string, where folder, role *industry.Template) (instance.Instance, instance.Thread, string) {
+	setup := ""
+	wanted := instance.Instance{Harness: harness, Model: model, Who: s.keeper.who(r), Title: where.Name, Folder: where.Key}
+	if role != nil {
+		if role.Restricted() && !s.inBuilding.Load() {
+			return instance.Instance{}, instance.Thread{}, "this work has to stay in your network, and no model here is"
+		}
+		if err := s.install(*role); err != nil {
+			return instance.Instance{}, instance.Thread{}, err.Error()
+		}
+		setup = role.Name
+		wanted.Setup, wanted.Sensitivity, wanted.Title = role.Name, string(role.Sensitivity), role.Title
+	}
+	held, found := s.agentFor(r, harness, setup, where)
 	if !found {
-		started, _, why := s.beginInstance(r, instance.Instance{Harness: harness, Model: model, Who: s.keeper.who(r), Title: where.Name, Folder: where.Key})
+		started, _, why := s.beginInstance(r, wanted)
 		if why != "" {
 			return started, instance.Thread{}, why
 		}
@@ -186,11 +201,12 @@ func folderOf(r *http.Request) folder {
 
 // agentFor is the agent this person used last for a harness that was started for the same folder, or for none, which is what a chat
 // with no folder is: no repository, setup or sensitivity either.
-func (s *Server) agentFor(r *http.Request, harness string, where folder) (instance.Instance, bool) {
+func (s *Server) agentFor(r *http.Request, harness, setup string, where folder) (instance.Instance, bool) {
 	var best instance.Instance
 	var seen int64
 	for _, each := range s.ownInstances(r, s.instances.List()) {
-		if each.Harness != harness || each.Folder != where.Key || each.Repo != "" || each.Setup != "" || each.Sensitivity != "" {
+		fits := each.Setup == setup && (setup != "" || each.Sensitivity == "")
+		if each.Harness != harness || each.Folder != where.Key || each.Repo != "" || !fits {
 			continue
 		}
 		if active := s.lately(each).Active; best.ID == "" || active > seen {

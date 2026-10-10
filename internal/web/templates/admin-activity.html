@@ -1,32 +1,46 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>Activity</h1>
-  <p class="muted">Who signed in, who was refused, and who changed a setup, a setting or a person's access. The server can only add to this record, and each line names the one before it, so an edit shows.</p>
+  <span class="count">Sign-ins, refusals, and changes to settings and access</span>
 </div>
 
 {{if .Broken}}
 <p class="refused">This record does not hold together. {{.Broken}}</p>
 {{else}}
-<section class="panel">
-  <p>{{.Events}} event{{if ne .Events 1}}s{{end}}, and the chain holds{{if .Signed}}; {{.Signed}} signed{{end}}{{if .Unsigned}}; {{.Unsigned}} not signed{{end}}.</p>
-  {{if .Head}}<p class="muted">Its head is <code>{{.Head}}</code>. Keep it: <code>haas changes verify -head {{.Head}} changes.jsonl</code> says later whether lines were cut off the end.</p>{{end}}
-  <p><a href="/admin/activity.jsonl">Download the whole record</a> to check it with <code>haas changes verify</code>.</p>
+<section class="integrity">
+  <span class="seal">{{template "icon-seal"}}</span>
+  <div class="grow">
+    <strong>Record intact</strong>
+    <span class="muted">{{.Events}} event{{if ne .Events 1}}s{{end}}{{if .Signed}}, {{.Signed}} signed{{end}}{{if .Unsigned}}, {{.Unsigned}} not signed{{end}}</span>
+  </div>
+  <a class="quiet-button" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>
+  <details class="how">
+    <summary>How to check it</summary>
+    <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
+    {{if .Head}}<p>Keep this head to learn later whether lines were cut off the end:</p>
+    <pre>haas changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
+  </details>
 </section>
 {{end}}
 
 {{if .Rows}}
-<section class="panel">
+<div class="list log">
   <table>
-    <thead><tr><th>When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
+    <thead><tr><th class="when">When</th><th class="actor">Who</th><th>What happened</th><th class="from">From</th></tr></thead>
     <tbody>
       {{range .Rows}}
-      <tr><td>{{.At}}</td><td>{{.Who}}</td><td>{{.Said}}</td><td class="muted">{{.From}}</td></tr>
+      <tr>
+        <td class="when" title="{{.Full}}">{{.At}}</td>
+        <td class="actor">{{.Who}}</td>
+        <td>{{.Said}}{{if gt .Times 1}} <span class="times" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
+        <td class="from">{{.From}}</td>
+      </tr>
       {{end}}
     </tbody>
   </table>
-  <p class="muted">The newest {{.Shown}}, newest first.</p>
-</section>
+</div>
+<p class="muted note">The newest {{.Shown}}, newest first.</p>
 {{else}}
 <p class="muted">Nothing has been recorded yet.</p>
 {{end}}

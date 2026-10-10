@@ -1,13 +1,17 @@
-// The explorer of the person's cloud computer: the projects down the side, the path along the top, and the folders and files of the place in
-// a list with their dates and sizes, as a Finder is laid out. It is drawn into a window that chooses a folder, or into the Files page, where
-// a file opens and the folder can be the one to chat in.
+// The explorer of the person's cloud computer: the folders and files of a place in a list with their dates and sizes. Drawn into a window
+// that chooses a folder (projects down the side, path along the top), or into the Files page, where the page heading is the path, a folder
+// opens on one click, a file opens in the viewer and the folder can be the one to chat in.
 (function () {
   var icons = {
-    folder: '<svg viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h2.9l1.2 1.5h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9.1a1 1 0 0 1-1-1z"/></svg>',
-    file: '<svg viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M9 2.5v3h3"/></svg>',
-    back: '<svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>',
-    up: '<svg viewBox="0 0 16 16"><path d="M3.5 9.5 8 5l4.5 4.5"/></svg>',
-    go: '<svg viewBox="0 0 16 16"><path d="m6.5 3.5 4.5 4.5-4.5 4.5"/></svg>'
+    folder: '<svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+    file: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
+    up: '<svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>',
+    image: '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    code: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></svg>',
+    table: '<svg viewBox="0 0 24 24"><path d="M3 9h18"/><path d="M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
   };
   function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.innerHTML = icons[name]; return span; }
   function el(tag, className, text) {
@@ -24,10 +28,19 @@
     node.addEventListener("click", onclick);
     return node;
   }
+  var kinds = {
+    image: /\.(png|jpe?g|gif|webp|svg|avif)$/i,
+    table: /\.(csv|tsv|xlsx?)$/i,
+    code: /\.(js|mjs|ts|tsx|jsx|go|py|rb|rs|java|c|h|cpp|css|html?|json|ya?ml|toml|sh|sql|php)$/i
+  };
+  function iconFor(name) {
+    for (var kind in kinds) { if (kinds[kind].test(name)) { return icon(kind); } }
+    return icon("file");
+  }
   function when(seconds) {
     if (!seconds) { return ""; }
     var then = new Date(seconds * 1000), now = new Date();
-    if (then.toDateString() === now.toDateString()) { return "Today " + then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+    if (then.toDateString() === now.toDateString()) { return then.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
     return then.toLocaleDateString([], { day: "numeric", month: "short", year: then.getFullYear() === now.getFullYear() ? undefined : "numeric" });
   }
   function bytes(n) {
@@ -78,12 +91,17 @@
     function draw() {
       container.textContent = "";
       if (!state.here) { container.appendChild(el("div", "d-loading", state.problem || "Looking…")); return; }
-      container.appendChild(toolbar());
-      var body = el("div", "d-body");
-      body.appendChild(placesList());
-      body.appendChild(list());
-      container.appendChild(body);
-      container.appendChild(footer());
+      if (browsing) {
+        container.appendChild(pageHead());
+        container.appendChild(list());
+      } else {
+        container.appendChild(toolbar());
+        var body = el("div", "d-body");
+        body.appendChild(placesList());
+        body.appendChild(list());
+        container.appendChild(body);
+        container.appendChild(footer());
+      }
       var inputBox = container.querySelector(".making input");
       if (inputBox) { inputBox.focus(); }
     }
@@ -108,6 +126,31 @@
       filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
       bar.appendChild(filter);
       return bar;
+    }
+
+    // The Files page has no window around it: the way down is the heading itself, and what can be done here sits to its right.
+    function pageHead() {
+      var head = el("div", "f-head");
+      var trail = el("h1", "f-trail");
+      state.here.crumbs.forEach(function (crumb, i) {
+        var name = i === 0 ? "Files" : crumb.name;
+        if (i > 0) { trail.appendChild(el("span", "sep", "/")); }
+        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "here", name) : button("crumb", function () { load(crumb.at, true); }, [name]));
+      });
+      head.appendChild(trail);
+      var tools = el("div", "f-tools");
+      var filter = el("input", "d-filter");
+      filter.type = "search"; filter.placeholder = "Filter"; filter.value = state.filter; filter.setAttribute("aria-label", "Filter this folder");
+      filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
+      tools.appendChild(filter);
+      tools.appendChild(button("d-quiet", function () { state.making = true; state.problem = ""; draw(); }, [icon("plus"), state.here.at ? "New folder" : "New project"]));
+      if (state.here.at) {
+        var chat = el("a", "d-choose", "Chat here");
+        chat.href = "/chat?at=" + encodeURIComponent(state.here.at);
+        tools.appendChild(chat);
+      }
+      head.appendChild(tools);
+      return head;
     }
 
     function placesList() {
@@ -147,7 +190,7 @@
         var name = el("span", "name"); name.appendChild(icon("folder")); name.appendChild(el("span", "t", folder.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(folder.modified))); row.appendChild(el("span", "go"));
         row.lastChild.appendChild(icon("go"));
-        row.addEventListener("click", function () { state.selected = folder.at; mark(); });
+        row.addEventListener("click", function () { if (browsing) { load(folder.at, true); } else { state.selected = folder.at; mark(); } });
         row.addEventListener("dblclick", function () { load(folder.at, true); });
         rows.appendChild(row);
       });
@@ -155,7 +198,7 @@
         shown++;
         var row = el(browsing ? "a" : "div", "row file" + (browsing ? " openable" : ""));
         if (browsing) { row.href = viewer(file); }
-        var name = el("span", "name"); name.appendChild(icon("file")); name.appendChild(el("span", "t", file.name));
+        var name = el("span", "name"); name.appendChild(iconFor(file.name)); name.appendChild(el("span", "t", file.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(file.modified))); row.appendChild(el("span", "dim num", bytes(file.size)));
         rows.appendChild(row);
       });

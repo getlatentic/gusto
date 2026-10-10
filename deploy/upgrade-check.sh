@@ -29,7 +29,7 @@ new="$work/haas-new"
 # start runs the binary given as a server on the data in $data, and waits for it.
 start() {
   HAAS_PASSWORD=upgrade-check HAAS_ADDR="$address" HAAS_SANDBOX=here \
-    HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" HAAS_INTEGRATIONS="$data/integrations" \
+    HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" HAAS_INTEGRATIONS="$data/integrations" HAAS_PRESETS="$data/presets" \
     HAAS_COMPARISONS="$data/comparisons" HAAS_CHANGES="$data/changes/changes.jsonl" \
     HAAS_LOCAL_REPOS="$data/repo" \
     HAAS_SIGNING_KEY="$data/signing/upgrade.key" HAAS_KEYRING="$data/keyring" \

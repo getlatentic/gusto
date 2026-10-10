@@ -1,9 +1,10 @@
 {{template "head" .}}
 
-<div class="page-head">
+<div class="title-row">
   <h1>Integrations</h1>
-  <p class="muted">Skills and MCP servers an organisation adds once, in the open Agent Plugins format. An imported integration is off until you turn a version on, and a setup then gives it to its agents.</p>
+  <span class="count">Skills and tools added once for the whole organisation</span>
 </div>
+<details class="how page-why"><summary>How this works</summary><p>Integrations use the open Agent Plugins format. An imported integration is off until you turn a version on, and a setup then gives it to its agents.</p></details>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
@@ -12,8 +13,8 @@
   <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
     <input type="hidden" name="kind" value="git">
     <label>Git address <input name="address" placeholder="https://github.com/example/plugin.git" required></label>
-    <label>Branch, tag or commit <span class="muted">the version is pinned to the commit it is then</span> <input name="ref" placeholder="main"></label>
-    <label>Folder in the repository <span class="muted">when the plugin is not at the top</span> <input name="folder" placeholder="plugins/reports"></label>
+    <label>Branch, tag or commit <span class="muted">Pinned to the commit it resolves to</span> <input name="ref" placeholder="main"></label>
+    <label>Folder in the repository <span class="muted">Only if the plugin is not at the top</span> <input name="folder" placeholder="plugins/reports"></label>
     <button type="submit">Import from git</button>
   </form>
   <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
