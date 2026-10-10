@@ -145,6 +145,9 @@ a.button { display: inline-flex; align-items: center; gap: var(--yg-space-2); te
 a.button:hover { background: var(--yg-accent-hover); }
 a.button svg.i { opacity: 1; }
 .sr { position: absolute; width: 0.0625rem; height: 0.0625rem; overflow: hidden; clip-path: inset(50%); }
+.skip { position: absolute; left: var(--yg-space-3); top: var(--yg-space-3); z-index: 100; padding: var(--yg-space-2) var(--yg-space-4); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-2); transform: translateY(-200%); }
+.skip:focus { transform: none; }
 .empty { padding: var(--yg-space-12) var(--yg-space-6); text-align: center;
   background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
 .empty p { margin: 0 0 var(--yg-space-3); }

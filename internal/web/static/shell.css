@@ -97,7 +97,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 /* A new chat starts in the middle of the page, with the box under the question. A conversation has the box on the floor. */
 .talk.fresh { grid-template-rows: minmax(0, 1fr); }
 .talk.fresh .fresh-body { display: grid; align-content: center; justify-items: center; gap: var(--yg-space-6); padding: var(--yg-space-6); min-height: 0; overflow-y: auto; }
-.talk.fresh .fresh-body h2 { margin: 0; font: 600 1.75rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); text-align: center; }
+.talk.fresh .fresh-body h1 { margin: 0; font: 600 1.75rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); text-align: center; }
 .talk.fresh .fresh-body .composer { width: 100%; padding: 0; }
 .talk.fresh .fresh-body .refused { margin: 0; }
 
@@ -313,5 +313,5 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .fp-pane { padding: var(--yg-space-5) var(--yg-space-6); }
 .fp-pane[hidden] { display: none; }
 .fp-pane .viewer-head { margin-bottom: var(--yg-space-4); }
-.fp-pane .viewer-head h1 { font-size: 1.25rem; }
+.fp-pane .viewer-head h1, .fp-pane .viewer-head h2 { font-size: 1.25rem; }
 @container (max-width: 72rem) { .file-panel { display: none; } }

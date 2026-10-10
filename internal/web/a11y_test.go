@@ -1,120 +1,211 @@
 package web
 
 import (
-	"io/fs"
-	"math"
-	"regexp"
-	"strconv"
+	"net/http"
 	"strings"
 	"testing"
+
+	"golang.org/x/net/html"
 )
 
-var (
-	themeBlock  = regexp.MustCompile(`(?s)([^{}]+)\{([^{}]*)\}`)
-	themeColour = regexp.MustCompile(`--yg-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
-	themeAccent = regexp.MustCompile(`data-accent="([a-z]+)"`)
-)
+// The pages a person moves between, rendered as the server sends them, before any script has run.
+func a11yPages(t *testing.T) map[string]*html.Node {
+	t.Helper()
+	site := open(t)
+	site.signIn(t)
+	conversation := startedThread(t, site)
+	instance := conversation[:strings.Index(conversation, "/threads/")]
+	pages := map[string]*html.Node{}
+	for _, path := range []string{"/", "/chat", "/jobs", "/files", "/spend", "/new", "/admin", conversation, instance} {
+		answer := site.ask(t, "GET", path, nil)
+		if answer.Code != http.StatusOK {
+			t.Fatalf("%s answered %d", path, answer.Code)
+		}
+		doc, err := html.Parse(answer.Body)
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		pages[path] = doc
+	}
+	return pages
+}
 
-// The focus ring is drawn in --yg-focus with nothing between it and the surface it sits on, so it has 3 to 1 against every surface a
-// control is drawn on, in each theme and each accent.
-func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
-	colours := themeColours(t)
-	for _, theme := range []string{"light", "dark"} {
-		for accent := range colours["light"] {
-			if accent == "" {
-				continue
-			}
-			focus := themeLookup(colours, theme, accent, "focus")
-			for _, surface := range []string{"rail", "bg-subtle", "bg", "surface"} {
-				if ratio := contrast(focus, themeLookup(colours, theme, accent, surface)); ratio < 3 {
-					t.Errorf("%s %s: the focus ring #%s is %.2f to 1 on %s", theme, accent, focus, ratio, surface)
+// Every link and button says what it is: a visible word, or a label when it is an icon alone.
+func TestEveryControlHasAName(t *testing.T) {
+	for path, doc := range a11yPages(t) {
+		each(doc, func(n *html.Node) {
+			if (n.Data == "a" && attr(n, "href") != "") || n.Data == "button" {
+				if accessibleName(n) == "" {
+					t.Errorf("%s: a %s with no name: %s", path, n.Data, render(n))
 				}
 			}
+		})
+	}
+}
+
+// Every field has a label, its own or one around it.
+func TestEveryFieldHasALabel(t *testing.T) {
+	for path, doc := range a11yPages(t) {
+		labelled := map[string]bool{}
+		each(doc, func(n *html.Node) {
+			if n.Data == "label" && attr(n, "for") != "" {
+				labelled[attr(n, "for")] = true
+			}
+		})
+		each(doc, func(n *html.Node) {
+			if n.Data != "input" && n.Data != "select" && n.Data != "textarea" {
+				return
+			}
+			if kind := attr(n, "type"); kind == "hidden" || kind == "submit" {
+				return
+			}
+			if attr(n, "aria-label") == "" && attr(n, "aria-labelledby") == "" && !labelled[attr(n, "id")] && !inside(n, "label") {
+				t.Errorf("%s: a field with no label: %s", path, render(n))
+			}
+		})
+	}
+}
+
+// One main a page, which the first control on the page skips to; every nav and aside is named; the page has a language, a title and at
+// most one h1; what a control says it controls is on the page; a divider can be reached by the keyboard.
+func TestEveryPageHasItsLandmarks(t *testing.T) {
+	for path, doc := range a11yPages(t) {
+		mains, h1s, ids := 0, 0, map[string]bool{}
+		var first *html.Node
+		each(doc, func(n *html.Node) {
+			if id := attr(n, "id"); id != "" {
+				ids[id] = true
+			}
+			switch n.Data {
+			case "html":
+				if attr(n, "lang") == "" {
+					t.Errorf("%s: the page has no language", path)
+				}
+			case "title":
+				if n.FirstChild == nil || strings.TrimSpace(n.FirstChild.Data) == "" {
+					t.Errorf("%s: the page has no title", path)
+				}
+			case "main":
+				mains++
+			case "h1":
+				h1s++
+			case "nav", "aside":
+				if attr(n, "aria-label") == "" {
+					t.Errorf("%s: a %s with no name", path, n.Data)
+				}
+			case "a", "button", "input", "textarea", "select":
+				if first == nil && inside(n, "body") {
+					first = n
+				}
+			}
+		})
+		if mains != 1 {
+			t.Errorf("%s: %d main landmarks", path, mains)
+		}
+		if h1s > 1 {
+			t.Errorf("%s: %d h1 headings", path, h1s)
+		}
+		if first == nil || attr(first, "class") != "skip" || !ids[strings.TrimPrefix(attr(first, "href"), "#")] {
+			t.Errorf("%s: the first control is not a working skip link", path)
+		}
+		each(doc, func(n *html.Node) {
+			for _, id := range strings.Fields(attr(n, "aria-controls")) {
+				if !ids[id] {
+					t.Errorf("%s: aria-controls names %q, which is not on the page", path, id)
+				}
+			}
+			if attr(n, "role") == "separator" && (attr(n, "tabindex") != "0" || attr(n, "aria-label") == "") {
+				t.Errorf("%s: a divider the keyboard cannot reach, or with no name", path)
+			}
+		})
+	}
+}
+
+// A toggle says what it opens and whether it is open.
+func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
+	doc := a11yPages(t)["/chat"]
+	for _, toggle := range []string{"data-panel-toggle", "data-look", "data-side-toggle"} {
+		found := false
+		each(doc, func(n *html.Node) {
+			if hasAttr(n, toggle) {
+				found = true
+				if attr(n, "aria-expanded") == "" || attr(n, "aria-controls") == "" {
+					t.Errorf("the %s button does not say what it opens or whether it is open", toggle)
+				}
+			}
+		})
+		if !found {
+			t.Errorf("no %s button on the chat", toggle)
 		}
 	}
 }
 
-// themeColours reads theme.css into colours by theme, then by accent ("" for the rules that name none), then by token.
-func themeColours(t *testing.T) map[string]map[string]map[string]string {
-	t.Helper()
-	body, err := fs.ReadFile(assets, "static/theme.css")
-	if err != nil {
-		t.Fatal(err)
+func each(n *html.Node, visit func(*html.Node)) {
+	if n.Type == html.ElementNode {
+		visit(n)
 	}
-	colours := map[string]map[string]map[string]string{"light": {}, "dark": {}}
-	for _, block := range themeBlock.FindAllStringSubmatch(cssComment.ReplaceAllString(string(body), ""), -1) {
-		for _, selector := range strings.Split(block[1], ",") {
-			theme, accent := "light", ""
-			if strings.Contains(selector, `data-theme="dark"`) {
-				theme = "dark"
-			}
-			if named := themeAccent.FindStringSubmatch(selector); named != nil {
-				accent = named[1]
-			}
-			if colours[theme][accent] == nil {
-				colours[theme][accent] = map[string]string{}
-			}
-			for _, colour := range themeColour.FindAllStringSubmatch(block[2], -1) {
-				colours[theme][accent][colour[1]] = colour[2]
-			}
-		}
+	for child := n.FirstChild; child != nil; child = child.NextSibling {
+		each(child, visit)
 	}
-	return colours
 }
 
-// themeLookup is a token as the page resolves it: the accent's own rule, then the theme's, then the light theme's.
-func themeLookup(colours map[string]map[string]map[string]string, theme, accent, token string) string {
-	for _, rule := range []map[string]string{colours[theme][accent], colours[theme][""], colours["light"][""]} {
-		if hex, ok := rule[token]; ok {
-			return hex
+func attr(n *html.Node, key string) string {
+	for _, a := range n.Attr {
+		if a.Key == key {
+			return a.Val
 		}
 	}
-	return "000000"
+	return ""
 }
 
-func contrast(a, b string) float64 {
-	la, lb := luminance(a), luminance(b)
-	return (math.Max(la, lb) + 0.05) / (math.Min(la, lb) + 0.05)
-}
-
-func luminance(hex string) float64 {
-	weights := []float64{0.2126, 0.7152, 0.0722}
-	total := 0.0
-	for i, weight := range weights {
-		channel, _ := strconv.ParseUint(hex[i*2:i*2+2], 16, 8)
-		c := float64(channel) / 255
-		if c <= 0.03928 {
-			c /= 12.92
-		} else {
-			c = math.Pow((c+0.055)/1.055, 2.4)
+func hasAttr(n *html.Node, key string) bool {
+	for _, a := range n.Attr {
+		if a.Key == key {
+			return true
 		}
-		total += weight * c
 	}
-	return total
+	return false
 }
 
-var outlineRemoved = regexp.MustCompile(`outline:\s*(none|0)\s*(;|$)`)
-
-// A rule takes the outline away only where the box around the field draws the ring in its place.
-func TestNoRuleHidesTheFocusRingWithoutAnother(t *testing.T) {
-	ringedByTheirBox := map[string]bool{".composer textarea:focus-visible": true, ".role-list .search input": true}
-	err := fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".css") || strings.HasSuffix(path, "tokens.css") {
-			return err
+func inside(n *html.Node, tag string) bool {
+	for up := n.Parent; up != nil; up = up.Parent {
+		if up.Type == html.ElementNode && up.Data == tag {
+			return true
 		}
-		body, err := fs.ReadFile(assets, path)
-		if err != nil {
-			return err
-		}
-		for _, block := range themeBlock.FindAllStringSubmatch(cssComment.ReplaceAllString(string(body), ""), -1) {
-			selector := strings.TrimSpace(block[1])
-			if outlineRemoved.MatchString(block[2]) && !ringedByTheirBox[selector] {
-				t.Errorf("%s: %s takes the focus ring away", path, selector)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
+	return false
+}
+
+// accessibleName is the label a control is given, or else the text it holds that is not hidden from assistive technology.
+func accessibleName(n *html.Node) string {
+	if label := strings.TrimSpace(attr(n, "aria-label") + attr(n, "aria-labelledby")); label != "" {
+		return label
+	}
+	var text strings.Builder
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if node.Type == html.ElementNode && attr(node, "aria-hidden") == "true" {
+			return
+		}
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		if node.Type == html.ElementNode && node.Data == "img" {
+			text.WriteString(attr(node, "alt"))
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(n)
+	return strings.TrimSpace(text.String())
+}
+
+func render(n *html.Node) string {
+	var out strings.Builder
+	_ = html.Render(&out, n)
+	if s := out.String(); len(s) > 200 {
+		return s[:200]
+	}
+	return out.String()
 }

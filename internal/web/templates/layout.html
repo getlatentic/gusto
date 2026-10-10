@@ -46,10 +46,16 @@
     } catch (e) {}
     // The panel of conversations can be put away, leaving the icons, and it stays as the person left it.
     try { if (localStorage.getItem("haas-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
+    var panelShown = function () {
+      var shown = String(!document.documentElement.classList.contains("panel-closed"));
+      document.querySelectorAll("[data-panel-toggle]").forEach(function (toggle) { toggle.setAttribute("aria-expanded", shown); });
+    };
+    document.addEventListener("DOMContentLoaded", panelShown);
     document.addEventListener("click", function (event) {
       if (!event.target.closest("[data-panel-toggle]")) { return; }
       var closed = document.documentElement.classList.toggle("panel-closed");
       try { localStorage.setItem("haas-panel", closed ? "closed" : "open"); } catch (e) {}
+      panelShown();
     });
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,
@@ -57,13 +63,22 @@
     document.addEventListener("change", function (event) {
       if (event.target.matches("[data-autosubmit]") && event.target.form) { event.target.form.submit(); }
     });
-    // The side list slides over on a narrow window, and anything that takes you away closes it again.
+    // The side list slides over on a narrow window, and anything that takes you away closes it again, giving the keyboard back to the button.
+    var sideOpen = function (open) {
+      var toggle = document.querySelector("[data-side-toggle]");
+      var wasOpen = document.body.classList.contains("side-open");
+      document.body.classList.toggle("side-open", open);
+      if (!toggle) { return; }
+      toggle.setAttribute("aria-expanded", String(open));
+      if (open) { var first = document.querySelector(".side a, .side button"); if (first) { first.focus(); } }
+      else if (wasOpen && document.getElementById("side").contains(document.activeElement)) { toggle.focus(); }
+    };
     document.addEventListener("click", function (event) {
-      if (event.target.closest("[data-side-toggle]")) { document.body.classList.toggle("side-open"); }
-      else if (event.target.matches(".scrim") || event.target.closest(".side a")) { document.body.classList.remove("side-open"); }
+      if (event.target.closest("[data-side-toggle]")) { sideOpen(!document.body.classList.contains("side-open")); }
+      else if (event.target.matches(".scrim") || event.target.closest(".side a")) { sideOpen(false); }
     });
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") { document.body.classList.remove("side-open"); }
+      if (event.key === "Escape" && document.body.classList.contains("side-open")) { sideOpen(false); }
     });
     document.addEventListener("submit", function (event) {
       var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
@@ -72,11 +87,12 @@
   </script>
 </head>
 <body class="app">
+<a class="skip" href="#main">Skip to the page</a>
 {{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell">
 {{template "side" .}}
 <div class="scrim"></div>
-<main class="page{{if .Chat}} chat{{end}}">
-<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> Latentic Agent Cloud</a></div>
+<main class="page{{if .Chat}} chat{{end}}" id="main" tabindex="-1">
+<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> Latentic Agent Cloud</a></div>
 <div class="wrap">{{end}}
 {{end}}
 
@@ -90,7 +106,7 @@
   <a class="back" href="/">{{template "icon-back"}} Back to Latentic Agent Cloud</a>
   <form method="post" action="/logout"><button class="back" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
-<main class="page"><div class="wrap">
+<main class="page" id="main" tabindex="-1"><div class="wrap">
 {{end}}
 
 {{define "foot"}}{{if .Console}}</div>
