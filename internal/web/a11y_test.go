@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -136,6 +137,37 @@ func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 		})
 		if !found {
 			t.Errorf("no %s button on the chat", toggle)
+		}
+	}
+}
+
+// While a turn runs, what it is doing is announced politely as it changes, the log of its steps is not read out again each time it is
+// redrawn, and a region outside the running turn is there to say when the reply is in.
+func TestARunningTurnIsAnnouncedPolitelyAndOnce(t *testing.T) {
+	started := holding(t)
+	site := open(t)
+	site.signIn(t)
+	where := startedThread(t, site)
+	site.ask(t, "POST", where+"/say", url.Values{"said": {"a long piece of work"}})
+	<-started
+	page := site.ask(t, "GET", where, nil).Body.String()
+	site.ask(t, "POST", "/jobs/"+regexpFirst(t, page, `/jobs/([0-9a-z-]+)/stop`)+"/stop", nil)
+	doc, err := html.Parse(strings.NewReader(page))
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := map[string]string{}
+	each(doc, func(n *html.Node) {
+		if attr(n, "aria-live") == "assertive" || attr(n, "role") == "alert" {
+			t.Errorf("the running turn interrupts: %s", render(n))
+		}
+		if id := attr(n, "id"); id != "" {
+			roles[id] = attr(n, "role") + attr(n, "aria-live")
+		}
+	})
+	for id, want := range map[string]string{"doing": "status", "live": "", "turn-news": "status"} {
+		if got, ok := roles[id]; !ok || got != want {
+			t.Errorf("#%s is %q, want %q", id, got, want)
 		}
 	}
 }
