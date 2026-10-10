@@ -68,7 +68,6 @@ func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
 		"Roles":   roles,
 		"Fields":  fields,
 		"Presets": s.presetRows(r),
-		"Engines": s.readyEngines(),
 		"Refused": r.URL.Query().Get("refused"),
 	})
 }
