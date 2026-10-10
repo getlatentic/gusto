@@ -1,6 +1,7 @@
 package web
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -29,6 +30,27 @@ func TestAPageThatIsNotThereHasAWayOut(t *testing.T) {
 	}
 	plain := ask("application/json")
 	if plain.Code != 404 || !strings.Contains(plain.Body.String(), "404 page not found") {
+		t.Errorf("a program got %d %q", plain.Code, plain.Body.String())
+	}
+}
+
+// What went wrong on our side is told to a browser in a page that offers to try again, and still to a program in a line.
+func TestAnErrorOnOurSideHasAPageThatOffersToTryAgain(t *testing.T) {
+	boom := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "the page could not be drawn", http.StatusInternalServerError)
+	})
+	ask := func(accept string) *httptest.ResponseRecorder {
+		request := httptest.NewRequest("GET", "/", nil)
+		request.Header.Set("Accept", accept)
+		recorder := httptest.NewRecorder()
+		boom.ServeHTTP(&marked{ResponseWriter: recorder, nonce: "n", page: strings.Contains(accept, "text/html")}, request)
+		return recorder
+	}
+	page := ask("text/html")
+	if page.Code != 500 || !strings.Contains(page.Body.String(), `id="again"`) || !strings.Contains(page.Body.String(), "Something went wrong") || strings.Contains(page.Body.String(), "could not be drawn") {
+		t.Errorf("a browser got %d %q", page.Code, page.Body.String())
+	}
+	if plain := ask("application/json"); plain.Code != 500 || !strings.Contains(plain.Body.String(), "could not be drawn") {
 		t.Errorf("a program got %d %q", plain.Code, plain.Body.String())
 	}
 }
