@@ -60,8 +60,26 @@ document.addEventListener("DOMContentLoaded", function () {
     asked.searchParams.delete("from");
     fetch(asked, { credentials: "same-origin" })
       .then(function (answer) { return answer.ok ? answer.text() : Promise.reject(); })
-      .then(function (html) { pane.innerHTML = html; })
+      .then(function (html) { pane.innerHTML = html; dressed(pane); })
       .catch(function () { pane.textContent = "This file could not be opened."; });
+  }
+
+  // Scripts that come with a tab's html are not run by being put on the page, so the ones it names are loaded in turn: code is coloured
+  // and numbered by them.
+  function dressed(pane) {
+    var wanted = [].slice.call(pane.querySelectorAll("script[src]")).map(function (tag) { return tag.getAttribute("src"); });
+    wanted.reduce(function (before, src) {
+      return before.then(function () {
+        if (document.querySelector('script[data-loaded="' + src + '"]') && !/code\.js/.test(src)) { return; }
+        return new Promise(function (done) {
+          var tag = document.createElement("script");
+          tag.src = src;
+          tag.dataset.loaded = src;
+          tag.onload = tag.onerror = done;
+          document.body.appendChild(tag);
+        });
+      });
+    }, Promise.resolve());
   }
 
   function view(href) {
