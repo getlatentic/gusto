@@ -35,7 +35,7 @@ func TestTheExplorerShowsTheFoldersOfThePersonsCloudComputer(t *testing.T) {
 		t.Fatalf("the top shows %+v (%d)", top, code)
 	}
 	inside, _ := foldersAt(t, site, instance)
-	if len(inside.Folders) != 1 || inside.Folders[0].Name != "src" || len(inside.Files) != 1 || inside.Files[0].Name != "notes.md" || inside.Files[0].Size != 1 || inside.Harness != "fixture" {
+	if len(inside.Folders) != 1 || inside.Folders[0].Name != "src" || len(inside.Files) != 1 || inside.Files[0].Name != "notes.md" || inside.Files[0].Size != 1 || inside.Harness != "" {
 		t.Errorf("an agent's folder shows %+v", inside)
 	}
 	deeper, _ := foldersAt(t, site, instance+"/src")
@@ -121,5 +121,33 @@ func TestAnotherPersonsFoldersAreNotShownOrWorkedIn(t *testing.T) {
 	answer := other.ask(t, "POST", "/chat", url.Values{"at": {instance}, "said": {"x"}})
 	if !strings.HasPrefix(answer.Header().Get("Location"), "/chat") {
 		t.Errorf("a stranger's chat went to %q", answer.Header().Get("Location"))
+	}
+}
+
+// A project made a moment ago has said nothing yet, so the chat is still free to choose its harness, and the explorer does not fix one.
+func TestAProjectThatHasNotBeenUsedTakesTheHarnessChosenAfterIt(t *testing.T) {
+	two := append(offered(), offered()[0])
+	two[1].Name = "second"
+	site := openOffering(t, two)
+	site.signIn(t)
+	made := site.ask(t, "POST", "/chat/folders", url.Values{"name": {"thesis"}, "harness": {"fixture"}})
+	var project struct{ At string }
+	json.Unmarshal(made.Body.Bytes(), &project)
+	if project.At == "" {
+		t.Fatalf("no project was made: %d %s", made.Code, made.Body.String())
+	}
+	if top, _ := foldersAt(t, site, ""); len(top.Folders) != 1 || top.Folders[0].Harness != "" {
+		t.Errorf("an unused project fixes a harness: %+v", top.Folders)
+	}
+	started := site.ask(t, "POST", "/chat", url.Values{"said": {"hello"}, "at": {project.At}, "harness": {"second"}})
+	where := started.Header().Get("Location")
+	if started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
+		t.Fatalf("the chat answered %d to %q", started.Code, where)
+	}
+	if got, _ := site.server.instances.Get(project.At); got.Harness != "second" {
+		t.Errorf("the project kept %q and not the harness chosen", got.Harness)
+	}
+	if top, _ := foldersAt(t, site, ""); top.Folders[0].Harness != "second" {
+		t.Errorf("once something is said the project fixes its harness: %+v", top.Folders)
 	}
 }

@@ -60,7 +60,7 @@ func (s *Server) startIn(r *http.Request) startFolder {
 	if dir != "" {
 		name = path.Base(dir)
 	}
-	return startFolder{At: path.Join(id, dir), Name: name, Harness: held.Harness}
+	return startFolder{At: path.Join(id, dir), Name: name, Harness: s.engineOf(id, held.Harness)}
 }
 
 // picksFor is each harness this deployment can run for this person, with the models it may use.
