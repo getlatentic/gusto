@@ -11,6 +11,26 @@
     mode: "0755"
   when: serve_enabled | bool and enable_tls | bool
 
+# The page nginx answers with when the server is not answering. It is a file of this vhost's own, in a directory of its own.
+- name: The directory of the page for when the server is down
+  ansible.builtin.file:
+    path: "{{ haas_errors_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: serve_enabled | bool
+
+- name: The page for when the server is down
+  ansible.builtin.copy:
+    src: haas-down.html
+    dest: "{{ haas_errors_dir }}/down.html"
+    owner: root
+    group: root
+    mode: "0644"
+  when: serve_enabled | bool
+  notify: Reload nginx
+
 - name: Is there a certificate already?
   ansible.builtin.stat:
     path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"

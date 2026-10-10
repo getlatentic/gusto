@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Back in a moment</title>
+<style>
+:root { --bg: #FAFAF9; --card: #FFFFFF; --ink: #171717; --soft: #66665F; --line: #D0D0CB; --accent: #2B2B29; --on: #FFFFFF; }
+:root[data-theme="dark"] { --bg: #161615; --card: #1E1E1C; --ink: #F4F4F2; --soft: #A8A8A2; --line: #3B3B37; --accent: #ECECE9; --on: #121211; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--ink); font: 0.9375rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { width: min(26rem, 92vw); display: grid; gap: 1rem; padding: 2rem; text-align: center; }
+h1 { margin: 0; font-size: 1.375rem; line-height: 1.2; letter-spacing: -0.02em; }
+p { margin: 0; color: var(--soft); }
+.row { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 0.5rem; }
+button { padding: 0.5rem 1rem; border: 0.0625rem solid var(--line); border-radius: 0.5rem; background: var(--card); color: var(--ink); font: 600 0.875rem/1.4 inherit; cursor: pointer; }
+button.main { background: var(--accent); border-color: var(--accent); color: var(--on); }
+.dot { display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.5rem; border-radius: 50%; background: var(--soft); animation: beat 1.2s ease-in-out infinite; }
+@keyframes beat { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+</style></head><body><main>
+<h1>Back in a moment</h1>
+<p id="why">Latentic Agent Cloud is restarting, which takes a few seconds. This page tries again by itself.</p>
+<p><span class="dot"></span><span id="state">Trying again…</span></p>
+<div class="row"><button class="main" id="again" type="button">Try again now</button><button id="back" type="button" hidden>Go back</button></div>
+</main>
+<script>
+(function () {
+  var root = document.documentElement, theme = "system";
+  try { theme = localStorage.getItem("haas-theme") || theme; } catch (e) {}
+  root.dataset.theme = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  var state = document.getElementById("state"), tries = 0;
+  // The page is served at the address that was asked for, so reloading asks for that again once the server answers.
+  function check() {
+    tries++;
+    fetch("/healthz", { cache: "no-store" }).then(function (answer) {
+      if (answer.ok) { location.reload(); } else { wait(); }
+    }).catch(wait);
+  }
+  function wait() {
+    var seconds = tries < 5 ? 2 : tries < 15 ? 5 : 15;
+    state.textContent = tries < 15 ? "Trying again in " + seconds + " seconds…" : "Still not answering. Trying again in " + seconds + " seconds…";
+    setTimeout(check, seconds * 1000);
+  }
+  document.getElementById("again").addEventListener("click", function () { location.reload(); });
+  var back = document.getElementById("back");
+  if (history.length > 1) { back.hidden = false; back.addEventListener("click", function () { history.back(); }); }
+  setTimeout(check, 1500);
+})();
+</script></body></html>

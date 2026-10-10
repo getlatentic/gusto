@@ -36,6 +36,8 @@ runner_image: haas:dev
 # Adapters of your own live here. The server offers what it finds, so a harness
 # added to this directory appears in the pages without a new binary.
 harnesses_dir: "{{ app_root }}/var/harnesses"
+# Where nginx finds the page it answers with when the server is not answering.
+haas_errors_dir: /var/www/haas-errors
 # The harnesses the runner image carries, each as name=package: the adapter's
 # name and the npm package that provides its program. The image lists them in
 # its com.getlatentic.haas.harnesses label, and the server offers a harness only
