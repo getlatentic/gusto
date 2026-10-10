@@ -58,14 +58,15 @@ type marked struct {
 	swallow bool
 }
 
-// WriteHeader draws a page for a thing that is not there, in place of the line of plain text, when a person's browser asked. The window
-// of the desktop app has no address bar, and a bare line leaves nothing in it to go back with.
+// WriteHeader draws a page for what went wrong, in place of the line of plain text, when a person's browser asked. The window of the
+// desktop app has no address bar, and a bare line leaves nothing in it to go back or try again with.
 func (m *marked) WriteHeader(code int) {
-	if code == http.StatusNotFound && m.page && strings.HasPrefix(m.Header().Get("Content-Type"), "text/plain") {
+	if fault, known := faults[code]; known && m.page && strings.HasPrefix(m.Header().Get("Content-Type"), "text/plain") {
 		h := m.Header()
 		h.Set("Content-Type", "text/html; charset=utf-8")
+		h.Set("Cache-Control", "no-store")
 		m.ResponseWriter.WriteHeader(code)
-		_, _ = m.ResponseWriter.Write([]byte(strings.ReplaceAll(notFoundPage, "{{nonce}}", m.nonce)))
+		_, _ = m.ResponseWriter.Write([]byte(fault.page(m.nonce)))
 		m.swallow = true
 		return
 	}
@@ -79,22 +80,54 @@ func (m *marked) Write(body []byte) (int, error) {
 	return m.ResponseWriter.Write(body)
 }
 
-const notFoundPage = `<!doctype html>
+// fault is what a person is told when a page cannot be given, and the ways out of it.
+type fault struct {
+	Title, Text string
+	// Retry says whether trying the same thing again may work, which is true of what went wrong on this side and not of what is not there.
+	Retry bool
+}
+
+var faults = map[int]fault{
+	http.StatusNotFound:            {Title: "That page is not here", Text: "It may have been moved or removed, or the link was not to a page of this site."},
+	http.StatusInternalServerError: {Title: "Something went wrong", Text: "It was on our side, and it has been written down. Try again in a moment.", Retry: true},
+	http.StatusServiceUnavailable:  {Title: "This is busy", Text: "Too much is being asked of it just now. Try again in a moment.", Retry: true},
+}
+
+// page is the whole of a page that says what went wrong, in the app's own colours and in the theme the person chose, with the ways out.
+func (f fault) page(nonce string) string {
+	ways := `<a href="#" id="back">Go back</a><a class="main" href="/chat">Chat</a>`
+	if f.Retry {
+		ways = `<a class="main" href="#" id="again">Try again</a><a href="#" id="back">Go back</a><a href="/chat">Chat</a>`
+	}
+	return strings.NewReplacer("{{nonce}}", nonce, "{{title}}", f.Title, "{{text}}", f.Text, "{{ways}}", ways).Replace(faultPage)
+}
+
+const faultPage = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Not found</title><link rel="stylesheet" href="/static/tokens.css">
+<title>{{title}}</title><link rel="stylesheet" href="/static/tokens.css"><link rel="stylesheet" href="/static/theme.css">
+<script nonce="{{nonce}}">(function () {
+  var root = document.documentElement, theme = "system", accent = "graphite";
+  try { theme = localStorage.getItem("haas-theme") || theme; accent = localStorage.getItem("haas-accent") || accent; } catch (e) {}
+  root.dataset.theme = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  root.dataset.accent = accent;
+})();</script>
 <style>
-body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--yg-bg); color: var(--yg-text); font: 15px/1.55 var(--yg-font-text); }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--yg-bg); color: var(--yg-text); font: .9375rem/1.55 var(--yg-font-text); }
 main { width: min(26rem, 92vw); display: grid; gap: var(--yg-space-4); padding: var(--yg-space-8); text-align: center; }
 h1 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
 p { margin: 0; color: var(--yg-text-muted); }
-.row { display: flex; gap: var(--yg-space-3); justify-content: center; }
-a { padding: var(--yg-space-2) var(--yg-space-4); border: 1px solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); color: var(--yg-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
+.row { display: flex; flex-wrap: wrap; gap: var(--yg-space-3); justify-content: center; }
+a { padding: var(--yg-space-2) var(--yg-space-4); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); background: var(--yg-surface); color: var(--yg-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
 a.main { background: var(--yg-accent); border-color: var(--yg-accent); color: var(--yg-on-accent); }
 </style></head><body><main>
-<h1>That page is not here</h1>
-<p>It may have been moved or removed, or the link was not to a page of this site.</p>
-<div class="row"><a href="#" id="back">Go back</a><a class="main" href="/chat">Chat</a></div>
-</main><script nonce="{{nonce}}">document.getElementById("back").addEventListener("click", function (event) { event.preventDefault(); history.back(); });</script></body></html>`
+<h1>{{title}}</h1>
+<p>{{text}}</p>
+<div class="row">{{ways}}</div>
+</main><script nonce="{{nonce}}">
+document.getElementById("back").addEventListener("click", function (event) { event.preventDefault(); history.back(); });
+var again = document.getElementById("again");
+if (again) { again.addEventListener("click", function (event) { event.preventDefault(); location.reload(); }); }
+</script></body></html>`
 
 // Unwrap lets a handler reach the connection's own controls, such as the write
 // deadline a stream sets.

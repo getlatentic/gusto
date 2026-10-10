@@ -16,6 +16,15 @@ server {
     }
 {% endif %}
 
+    # When the server is not answering, as it is for a second while a deploy restarts it, nginx cannot ask it for a page, so it gives
+    # its own: one that tries again by itself. It keeps the status, so that whatever watches the site still sees the failure.
+    error_page 502 503 504 /__haas_down.html;
+    location = /__haas_down.html {
+        internal;
+        alias {{ haas_errors_dir }}/down.html;
+        add_header Cache-Control "no-store" always;
+    }
+
     # A job's output is a stream that stays open for as long as the job runs, so
     # nginx must not buffer it and must not time it out at the default 60s.
     location /watch/ {
