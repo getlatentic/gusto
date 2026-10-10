@@ -25,13 +25,13 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 		t.Fatalf("starting the template answered %d to %q", started.Code, where)
 	}
 	page := site.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(page, "Draft a SOAP note from visit-notes.txt") {
+	if !strings.Contains(page, "Draft a SOAP note from the visit notes") {
 		t.Error("the first thread does not offer the template's starters")
 	}
 	if setup := site.ask(t, "GET", "/setups/health", nil).Body.String(); !strings.Contains(setup, "phi-guard") {
 		t.Error("the template's skills are not a setup")
 	}
-	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from visit-notes.txt"}})
+	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from the visit notes"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
 	spec, err := job.Read(job.Dir(filepath.Join(site.index.Root(), id)))

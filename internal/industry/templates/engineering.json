@@ -2,7 +2,7 @@
   "name": "engineering",
   "title": "Software engineer",
   "industry": "Engineering",
-  "summary": "Fixes bugs with a test first, writes tests, and reviews changes.",
+  "summary": "Fixes bugs by writing a failing test first, adds tests, and reviews code changes.",
   "harnesses": [
     "claude",
     "codex",
@@ -23,14 +23,14 @@
     {
       "name": "write-tests",
       "title": "Write tests",
-      "blurb": "Covers the edges: empty, zero, too large, wrong type.",
+      "blurb": "Covers edge cases: empty input, zero, negative and too-large values.",
       "description": "Use when asked to add tests, raise coverage, or check a function's behaviour.",
       "body": "Write tests with the project's own test runner and style.\n\n- One test a behaviour, named for what it proves.\n- Cover the edges: empty input, zero, negative, the largest allowed value, and one past it.\n- A test must fail if the behaviour breaks: check it would, by reasoning or by trying.\n- Run the whole suite at the end and report what passed."
     },
     {
       "name": "review-change",
       "title": "Review changes",
-      "blurb": "Finds real problems, with the line and the fix.",
+      "blurb": "Lists problems most serious first, with the file, line and suggested fix.",
       "description": "Use when asked to review code, a diff, a change or a pull request.",
       "body": "Review for problems that matter, most serious first.\n\n- Correctness, then security, then data loss, then performance, then clarity. Skip style nits unless asked.\n- For each finding: the file and line, what goes wrong and when, and the fix.\n- Say what you checked and found fine, in one line.\n- If there is nothing worth changing, say so plainly."
     }
@@ -38,7 +38,7 @@
   "starters": [
     "Run the tests and fix what fails",
     "Add tests for discounts above 100% and negative quantities",
-    "Review invoice.js and tell me what could go wrong in production"
+    "Review the invoice total code and tell me what could go wrong in production"
   ],
   "check": [
     "node",
