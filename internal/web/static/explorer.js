@@ -13,11 +13,13 @@
     plus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
     go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
   };
-  function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.innerHTML = icons[name]; return span; }
-  function el(tag, className, text) {
+  function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.setAttribute("aria-hidden", "true"); span.innerHTML = icons[name]; return span; }
+  // A title is given where the text may be cut short by the column it is in.
+  function el(tag, className, text, title) {
     var node = document.createElement(tag);
     if (className) { node.className = className; }
     if (text !== undefined) { node.textContent = text; }
+    if (title) { node.title = title; }
     return node;
   }
   function button(className, onclick, children, title) {
@@ -56,7 +58,7 @@
   // options: mode ("choose" or "browse"), start (the place to open at), onChoose(shown), onMove(at), extras (buttons to add to the foot),
   // and the name of the agent being used, for a folder made at the top.
   window.Explorer = function (container, options) {
-    var state = { here: null, selected: "", back: [], top: [], filter: "", making: false, problem: "" };
+    var state = { here: null, selected: "", back: [], top: [], filter: "", making: false, problem: "", refocus: false, focusNew: false };
     var browsing = options.mode === "browse";
 
     function load(place, remember) {
@@ -88,7 +90,9 @@
       return "/instances/" + encodeURIComponent(parts[0]) + "/file?path=" + encodeURIComponent(dir) + "&from=" + encodeURIComponent("/files?at=" + encodeURIComponent(state.here.at));
     }
 
+    // Drawing again throws away the element the keyboard was on, so the list takes it back once it is drawn.
     function draw() {
+      state.refocus = state.refocus || container.contains(document.activeElement);
       container.textContent = "";
       if (!state.here) { container.appendChild(el("div", "d-loading", state.problem || "Looking…")); return; }
       if (browsing) {
@@ -102,8 +106,6 @@
         container.appendChild(body);
         container.appendChild(footer());
       }
-      var inputBox = container.querySelector(".making input");
-      if (inputBox) { inputBox.focus(); }
     }
 
     function toolbar() {
@@ -118,7 +120,7 @@
       state.here.crumbs.forEach(function (crumb, i) {
         if (i > 0) { path.appendChild(el("span", "sep", "›")); }
         var last = i === state.here.crumbs.length - 1;
-        path.appendChild(last ? el("span", "here", crumb.name) : button("crumb", function () { load(crumb.at, true); }, [crumb.name]));
+        path.appendChild(last ? el("span", "here", crumb.name, crumb.name) : button("crumb", function () { load(crumb.at, true); }, [crumb.name]));
       });
       bar.appendChild(path);
       var filter = el("input", "d-filter");
@@ -135,7 +137,7 @@
       state.here.crumbs.forEach(function (crumb, i) {
         var name = i === 0 ? "Files" : crumb.name;
         if (i > 0) { trail.appendChild(el("span", "sep", "/")); }
-        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "here", name) : button("crumb", function () { load(crumb.at, true); }, [name]));
+        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "here", name, name) : button("crumb", function () { load(crumb.at, true); }, [name]));
       });
       head.appendChild(trail);
       var tools = el("div", "f-tools");
@@ -143,7 +145,7 @@
       filter.type = "search"; filter.placeholder = "Filter"; filter.value = state.filter; filter.setAttribute("aria-label", "Filter this folder");
       filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
       tools.appendChild(filter);
-      tools.appendChild(button("d-quiet", function () { state.making = true; state.problem = ""; draw(); }, [icon("plus"), state.here.at ? "New folder" : "New project"]));
+      tools.appendChild(button("d-quiet", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [icon("plus"), state.here.at ? "New folder" : "New project"]));
       if (state.here.at) {
         var chat = el("a", "d-choose", "Chat here");
         chat.href = "/chat?at=" + encodeURIComponent(state.here.at);
@@ -157,10 +159,14 @@
       var side = el("nav", "d-places");
       side.setAttribute("aria-label", "Projects");
       side.appendChild(el("div", "d-label", "Projects"));
-      side.appendChild(button("place" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("folder"), el("span", "t", "Your cloud computer")]));
+      var top = button("place" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("folder"), el("span", "t", "Your cloud computer")]);
+      if (!state.here.at) { top.setAttribute("aria-current", "true"); }
+      side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {
         var current = state.here.at === project.at || state.here.at.indexOf(project.at + "/") === 0;
-        side.appendChild(button("place" + (current ? " current" : ""), function () { load(project.at, true); }, [icon("folder"), el("span", "t", project.name)], project.name));
+        var place = button("place" + (current ? " current" : ""), function () { load(project.at, true); }, [icon("folder"), el("span", "t", project.name)], project.name);
+        if (current) { place.setAttribute("aria-current", "true"); }
+        side.appendChild(place);
       });
       return side;
     }
@@ -172,6 +178,7 @@
       box.appendChild(head);
       var rows = el("div", "rows");
       rows.id = "d-rows";
+      if (!browsing) { rows.setAttribute("role", "listbox"); rows.setAttribute("aria-label", "Folders"); }
       box.appendChild(rows);
       setTimeout(drawList, 0);
       return box;
@@ -187,7 +194,11 @@
         shown++;
         var row = el("div", "row folder" + (state.selected === folder.at ? " selected" : ""));
         row.dataset.at = folder.at;
-        var name = el("span", "name"); name.appendChild(icon("folder")); name.appendChild(el("span", "t", folder.name));
+        row.tabIndex = -1;
+        row.setAttribute("role", browsing ? "link" : "option");
+        if (browsing) { row.tabIndex = 0; } else { row.setAttribute("aria-selected", String(state.selected === folder.at)); }
+        row.addEventListener("keydown", function (event) { if (browsing && event.key === "Enter") { load(folder.at, true); } });
+        var name = el("span", "name"); name.appendChild(icon("folder")); name.appendChild(el("span", "t", folder.name, folder.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(folder.modified))); row.appendChild(el("span", "go"));
         row.lastChild.appendChild(icon("go"));
         row.addEventListener("click", function () { if (browsing) { load(folder.at, true); } else { state.selected = folder.at; mark(); } });
@@ -197,17 +208,38 @@
       state.here.files.filter(function (f) { return f.name.toLowerCase().indexOf(needle) >= 0; }).forEach(function (file) {
         shown++;
         var row = el(browsing ? "a" : "div", "row file" + (browsing ? " openable" : ""));
-        if (browsing) { row.href = viewer(file); }
-        var name = el("span", "name"); name.appendChild(iconFor(file.name)); name.appendChild(el("span", "t", file.name));
+        if (browsing) { row.href = viewer(file); } else { row.setAttribute("role", "option"); row.setAttribute("aria-disabled", "true"); }
+        var name = el("span", "name"); name.appendChild(iconFor(file.name)); name.appendChild(el("span", "t", file.name, file.name));
         row.appendChild(name); row.appendChild(el("span", "dim", when(file.modified))); row.appendChild(el("span", "dim num", bytes(file.size)));
         rows.appendChild(row);
       });
       if (!shown && !state.making) {
         rows.appendChild(el("div", "d-empty", needle ? "Nothing here matches." : state.here.at ? "This folder is empty." : "No projects yet. Choose New Folder to start one."));
       }
+      roving();
+      var fresh = rows.querySelector(".making input");
+      if (fresh && state.focusNew) { state.focusNew = false; fresh.focus(); }
+      if (state.refocus) {
+        state.refocus = false;
+        var back = rows.querySelector('.folder[tabindex="0"], a.row') || container.querySelector("input, button:not(:disabled)");
+        if (back && !container.contains(document.activeElement)) { back.focus(); }
+      }
     }
-    function mark() {
-      container.querySelectorAll("#d-rows .row.folder").forEach(function (row) { row.classList.toggle("selected", row.dataset.at === state.selected); });
+    // In the window that chooses, the keyboard comes into the list on the folder chosen, or the first.
+    function roving() {
+      if (browsing) { return; }
+      var folders = container.querySelectorAll("#d-rows .row.folder");
+      var chosen = container.querySelector('#d-rows .row.folder[aria-selected="true"]') || folders[0];
+      folders.forEach(function (row) { row.tabIndex = row === chosen ? 0 : -1; });
+    }
+    function mark(focus) {
+      container.querySelectorAll("#d-rows .row.folder").forEach(function (row) {
+        var chosen = row.dataset.at === state.selected;
+        row.classList.toggle("selected", chosen);
+        row.setAttribute("aria-selected", String(chosen));
+        if (chosen && focus) { row.focus(); }
+      });
+      roving();
       var summary = container.querySelector(".d-summary");
       if (summary) { summary.textContent = summaryText(); }
       var go = container.querySelector(".d-choose");
@@ -220,6 +252,7 @@
       var input = el("input", "d-new");
       input.type = "text"; input.maxLength = 80; input.placeholder = state.here.at ? "New folder" : "New project";
       input.setAttribute("aria-label", "Name of the new folder");
+      if (state.problem) { input.setAttribute("aria-invalid", "true"); input.setAttribute("aria-describedby", "d-problem"); }
       input.addEventListener("keydown", function (event) {
         event.stopPropagation();
         if (event.key === "Enter") { make(input.value); }
@@ -227,7 +260,7 @@
       });
       name.appendChild(input);
       row.appendChild(name);
-      if (state.problem) { row.appendChild(el("span", "problem", state.problem)); }
+      if (state.problem) { var problem = el("span", "problem", state.problem); problem.id = "d-problem"; row.appendChild(problem); }
       return row;
     }
     function make(name) {
@@ -240,13 +273,13 @@
         .then(function (made) {
           get(state.here.at).then(function (shown) { state.here = shown; state.making = false; state.problem = ""; state.selected = made.at; draw(); places(); });
         })
-        .catch(function (why) { state.problem = String(why || "That folder could not be made."); draw(); });
+        .catch(function (why) { state.problem = String(why || "That folder could not be made."); state.focusNew = true; draw(); });
     }
 
     function footer() {
       var foot = el("div", "d-foot");
       var left = el("div", "d-left");
-      left.appendChild(button("d-quiet", function () { state.making = true; state.problem = ""; draw(); }, [state.here.at ? "New Folder" : "New Project"]));
+      left.appendChild(button("d-quiet", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [state.here.at ? "New Folder" : "New Project"]));
       (options.extras || []).forEach(function (extra) { left.appendChild(button("d-quiet", extra.run, [extra.label])); });
       foot.appendChild(left);
       foot.appendChild(el("div", "d-summary", summaryText()));
@@ -266,14 +299,15 @@
       return foot;
     }
 
+    // The keys of the list, given by the window it is in; a key on a field or a button is that control's own.
     this.keys = function (event) {
-      if (!state.here || event.target.matches("input")) { return; }
+      if (!state.here || event.target.closest("input, button, a")) { return; }
       var folders = state.here.folders.map(function (f) { return f.at; });
       var i = folders.indexOf(state.selected);
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         i = event.key === "ArrowDown" ? Math.min(i + 1, folders.length - 1) : Math.max(i - 1, 0);
-        state.selected = folders[i] || ""; mark();
+        state.selected = folders[i] || ""; mark(true);
       } else if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !browsing) { event.preventDefault(); options.onChoose(target()); }
       else if (event.key === "Enter" && state.selected) { event.preventDefault(); load(state.selected, true); }
       else if (event.key === "Backspace" && state.here.at) { event.preventDefault(); load(parent(), true); }
