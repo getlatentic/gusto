@@ -62,6 +62,8 @@ type ran struct {
 	Title  string          `json:"title"`
 	Status string          `json:"status"`
 	Input  json.RawMessage `json:"input"`
+	// At is how much of the transcript had been written when it ran, which puts it among the words around it. A run from before it was kept has none.
+	At *int64 `json:"at,omitempty"`
 }
 
 // Says is the line a person reads for it: the harness's own title when it
