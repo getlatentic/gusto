@@ -221,6 +221,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 }
 @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
 
+.talk .column { max-width: 60rem; }
 .said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
 @container (max-width: 56rem) { .said-so-far { padding: var(--yg-space-6) var(--yg-space-4); } }
 .composer .hint { margin: var(--yg-space-2) 0 0; font-size: .75rem; color: var(--yg-text-subtle); text-align: center; }
