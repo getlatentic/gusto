@@ -4,12 +4,12 @@
 
 <div class="title-row">
   <h1>Presets</h1>
-  <span class="count">Start a chat from a preset: one you saved, or one that comes built in.</span>
+  <span class="count">A preset is a starting point for a chat: what it is good at, ready to use. You choose the engine and model in the chat.</span>
 </div>
 
-<section class="presets" aria-label="Your presets">
+{{if not .Presets}}<p class="note presets-none">Your own presets will be listed here. To make one, set up a chat, then choose Save this setup as a preset in the preset menu above its message box.</p>{{end}}
+{{if .Presets}}<section class="presets" aria-label="Your presets">
   <h2 class="plain">Your presets</h2>
-  {{if .Presets}}
   <div class="list preset-list">
     {{range .Presets}}
     <div class="preset">
@@ -22,9 +22,7 @@
     </div>
     {{end}}
   </div>
-  {{end}}
-  <p class="note">Set a chat up how you like, then choose Save this setup as a preset in its menu.</p>
-</section>
+</section>{{end}}
 
 <h2 class="plain">Built-in presets</h2>
 <div class="roles-pane" id="roles">
@@ -40,7 +38,7 @@
     <div class="picks">
       {{range $i, $r := .Roles}}
       <button type="button" class="pick-role" data-role="{{$r.Name}}" data-field="{{$r.Industry}}" aria-pressed="{{if eq $i 0}}true{{else}}false{{end}}">
-        <span class="top"><strong>{{$r.Title}}</strong><span class="kind">{{$r.Industry}}</span></span>
+        <span class="top"><strong>{{$r.Title}}{{template "icon-check"}}</strong><span class="kind">{{$r.Industry}}</span></span>
         <span class="what">{{$r.Summary}}</span>
       </button>
       {{end}}
@@ -52,9 +50,15 @@
     {{range $i, $r := .Roles}}
     <section class="role-detail panel" data-for="{{$r.Name}}"{{if ne $i 0}} hidden{{end}} aria-label="{{$r.Title}}">
       <div class="head">
-        <span class="kind">{{$r.Industry}}</span>
-        <h2>{{$r.Title}}</h2>
-        <p>{{$r.Summary}}</p>
+        <div class="intro">
+          <span class="kind">{{$r.Industry}}</span>
+          <h2>{{$r.Title}}</h2>
+          <p>{{$r.Summary}}</p>
+        </div>
+        <div class="acts">
+          <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
+          {{if $r.Blocked}}<span class="cta" aria-disabled="true">Use in a new chat</span>{{else}}<a class="cta" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
+        </div>
       </div>
       {{if $r.Blocked}}<p class="blocked">{{$r.Blocked}}</p>{{end}}
       <div class="block">
@@ -64,11 +68,6 @@
       <div class="block">
         <h3>Try asking</h3>
         <ul class="starters">{{range $r.Starters}}<li>{{.}}</li>{{end}}</ul>
-      </div>
-      <div class="foot">
-        <span class="note">Sets the skills a chat has. Choose the engine and model in the chat.</span>
-        <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
-        {{if $r.Blocked}}<span class="cta" aria-disabled="true">Use in a new chat</span>{{else}}<a class="cta" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
       </div>
     </section>
     {{end}}
