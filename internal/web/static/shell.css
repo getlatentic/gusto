@@ -301,7 +301,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .fp-bar { display: flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-3); border-bottom: 0.0625rem solid var(--yg-border); }
 .fp-tabs { display: flex; flex: 1; gap: 0.25rem; min-width: 0; overflow-x: auto; }
 .fp-tab { display: inline-flex; align-items: center; flex: none; max-width: 14rem; height: 2rem; padding-left: var(--yg-space-3); border-radius: var(--yg-radius-sm); color: var(--yg-text-muted); }
-.fp-tab[aria-selected="true"] { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.fp-tab:has([aria-selected="true"]) { background: var(--yg-bg-subtle); color: var(--yg-text); }
 .fp-tab .nm, .fp-tab .x { border: 0; background: none; color: inherit; font: 500 .8125rem/1 var(--yg-font-text); cursor: pointer; }
 .fp-tab .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
 .fp-tab .x { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; margin: 0 var(--yg-space-1); padding: 0; border-radius: var(--yg-radius-xs); }

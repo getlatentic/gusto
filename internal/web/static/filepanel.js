@@ -7,38 +7,53 @@ document.addEventListener("DOMContentLoaded", function () {
   var tabs = panel.querySelector(".fp-tabs");
   var bodies = panel.querySelector(".fp-bodies");
   var open = {};
+  var made = 0;
+  var opener = null;
 
   window.haasResize(document.getElementById("file-panel-resize"), { name: "--files-w", key: "haas-files-w", min: 22, max: 60, def: 36, edge: "left", share: function () { return 0.7; } });
 
   var roomy = function () { return window.innerWidth / (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) >= 72; };
 
-  function show(key) {
+  function show(key, focus) {
     Object.keys(open).forEach(function (each) {
       var shown = each === key;
-      open[each].tab.setAttribute("aria-selected", String(shown));
+      open[each].name.setAttribute("aria-selected", String(shown));
+      open[each].name.tabIndex = shown ? 0 : -1;
       open[each].pane.hidden = !shown;
     });
+    if (focus && open[key]) { open[key].name.focus(); }
   }
 
+  // Closing the tab the keyboard is on moves it to the tab shown next, or back to the link that opened the panel when none is left.
   function close(key) {
     var gone = open[key];
     if (!gone) { return; }
+    var held = panel.contains(document.activeElement);
     gone.tab.remove();
     gone.pane.remove();
     delete open[key];
     var left = Object.keys(open);
-    if (!left.length) { panel.hidden = true; return; }
-    show(left[left.length - 1]);
+    if (!left.length) {
+      panel.hidden = true;
+      if (held && opener) { opener.focus(); }
+      return;
+    }
+    show(left[left.length - 1], held);
   }
 
   function add(url, key) {
+    var id = "fp-" + (++made);
     var tab = document.createElement("div");
     tab.className = "fp-tab";
-    tab.setAttribute("role", "tab");
+    tab.setAttribute("role", "presentation");
     var name = document.createElement("button");
     name.type = "button";
     name.className = "nm";
+    name.id = id + "-tab";
+    name.setAttribute("role", "tab");
+    name.setAttribute("aria-controls", id + "-pane");
     name.textContent = decodeURIComponent((url.searchParams.get("path") || url.pathname).split("/").pop()) || "File";
+    name.title = name.textContent;
     var x = document.createElement("button");
     x.type = "button";
     x.className = "x";
@@ -49,10 +64,13 @@ document.addEventListener("DOMContentLoaded", function () {
     tabs.appendChild(tab);
     var pane = document.createElement("div");
     pane.className = "fp-pane";
+    pane.id = id + "-pane";
+    pane.tabIndex = 0;
     pane.setAttribute("role", "tabpanel");
+    pane.setAttribute("aria-labelledby", name.id);
     pane.textContent = "Opening…";
     bodies.appendChild(pane);
-    open[key] = { tab: tab, pane: pane };
+    open[key] = { tab: tab, name: name, pane: pane };
     name.addEventListener("click", function () { show(key); });
     x.addEventListener("click", function () { close(key); });
     var asked = new URL(url.href);
@@ -82,7 +100,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }, Promise.resolve());
   }
 
-  function view(href) {
+  var moves = { ArrowRight: 1, ArrowLeft: -1, Home: -Infinity, End: Infinity };
+  tabs.addEventListener("keydown", function (event) {
+    var keys = Object.keys(open);
+    var at = keys.map(function (key) { return open[key].name; }).indexOf(document.activeElement);
+    if (at < 0) { return; }
+    if (event.key === "Delete") { event.preventDefault(); close(keys[at]); return; }
+    if (!(event.key in moves)) { return; }
+    event.preventDefault();
+    var next = Math.abs(moves[event.key]) === 1 ? (at + moves[event.key] + keys.length) % keys.length : Math.max(0, Math.min(keys.length - 1, moves[event.key]));
+    show(keys[next], true);
+  });
+
+  function view(href, link) {
+    opener = link;
     var url = new URL(href, location.href);
     var key = url.pathname + "?" + (url.searchParams.get("path") || "");
     panel.hidden = false;
@@ -96,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) { return; }
     if (!link.closest(".said-so-far, .fp-bodies") || !roomy()) { return; }
     event.preventDefault();
-    view(link.href);
+    view(link.href, link);
   });
   document.getElementById("fp-close").addEventListener("click", function () {
     Object.keys(open).forEach(close);
