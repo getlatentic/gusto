@@ -4,7 +4,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .shell { display: grid; height: 100dvh; }
 
 .shell { grid-template-columns: auto minmax(0, 1fr); }
-.side { display: flex; min-height: 0; min-width: 0; border-right: 0.0625rem solid var(--yg-border); }
+.side { position: relative; display: flex; min-height: 0; min-width: 0; border-right: 0.0625rem solid var(--yg-border); }
 
 /* The first layer: where to go, as icons, with the way out at the foot. */
 .rail { display: flex; flex-direction: column; align-items: center; gap: var(--yg-space-2); width: 4rem; flex: none;
@@ -28,7 +28,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .rail .tool:hover::after, .rail .tool:focus-visible::after { opacity: 1; transition-delay: .35s; }
 
 /* The second layer: the conversations, with the way to start another. */
-.sidepanel { display: flex; flex-direction: column; gap: var(--yg-space-3); flex: 0 0 16rem; min-height: 0; min-width: 0;
+.sidepanel { display: flex; flex-direction: column; gap: var(--yg-space-3); flex: 0 0 var(--panel-w, 16rem); min-height: 0; min-width: 0;
   padding: var(--yg-space-3); background: var(--yg-bg-subtle); }
 .sidepanel-head { display: flex; align-items: center; min-height: 2.5rem; padding: 0 var(--yg-space-3); }
 .sidepanel-head .name { font: 600 1rem/1.2 var(--yg-font-display); letter-spacing: -.01em; color: var(--yg-text); }
@@ -51,7 +51,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .side .proj summary svg.i { width: 1.125rem; height: 1.125rem; color: var(--yg-text-subtle); opacity: 1; }
 .side .proj summary .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side .proj summary:hover { background: var(--yg-surface-sunken); }
-.side .proj ol { list-style: none; margin: 0.125rem 0 var(--yg-space-2); padding: 0; display: grid; gap: 0.0625rem; }
+.side .proj ol { list-style: none; margin: 0.125rem 0 var(--yg-space-2); padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.0625rem; }
 .side .proj ol a { display: flex; align-items: center; gap: var(--yg-space-2); height: 2.125rem; padding: 0 var(--yg-space-3) 0 2.25rem; border-radius: var(--yg-radius-sm);
   font-size: .875rem; font-weight: 400; color: var(--yg-text-muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side .proj ol a:hover { background: var(--yg-surface-sunken); color: var(--yg-text); }
@@ -276,3 +276,36 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .picker .menu { min-width: 18rem; max-width: 24rem; max-height: 26rem; overflow-y: auto; }
 .picker .menu { max-height: min(30rem, 70dvh); }
 .picker .menu button.action { position: sticky; bottom: 0; background: var(--yg-surface); box-shadow: 0 -0.5rem 0.5rem -0.25rem var(--yg-surface); }
+
+/* Dividers that can be dragged. */
+.resize { position: absolute; top: 0; bottom: 0; right: -0.25rem; z-index: 6; width: 0.5rem; cursor: col-resize; touch-action: none; }
+.resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0.1875rem; width: 0.125rem; background: transparent; transition: background var(--yg-dur-fast) var(--yg-ease-standard); }
+.resize:hover::after, .resize:focus-visible::after, .resizing .resize::after { background: var(--yg-border-strong); }
+.resize:focus-visible { outline: none; }
+.resizing, .resizing * { cursor: col-resize !important; user-select: none; }
+.panel-closed .side > .resize { display: none; }
+@container (max-width: 56rem) { .side > .resize { display: none; } }
+
+/* The files named in a chat, as tabs beside it. */
+.page.chat > .wrap { display: flex; }
+.page.chat > .wrap > .talk { flex: 1 1 0; min-width: 0; }
+.file-panel { position: relative; flex: 0 0 var(--files-w, 36rem); display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--yg-surface); border-left: 0.0625rem solid var(--yg-border); }
+.file-panel[hidden] { display: none; }
+.file-panel .resize { right: auto; left: -0.25rem; }
+.fp-bar { display: flex; align-items: center; gap: var(--yg-space-2); padding: var(--yg-space-2) var(--yg-space-3); border-bottom: 0.0625rem solid var(--yg-border); }
+.fp-tabs { display: flex; flex: 1; gap: 0.25rem; min-width: 0; overflow-x: auto; }
+.fp-tab { display: inline-flex; align-items: center; flex: none; max-width: 14rem; height: 2rem; padding-left: var(--yg-space-3); border-radius: var(--yg-radius-sm); color: var(--yg-text-muted); }
+.fp-tab[aria-selected="true"] { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.fp-tab .nm, .fp-tab .x { border: 0; background: none; color: inherit; font: 500 .8125rem/1 var(--yg-font-text); cursor: pointer; }
+.fp-tab .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
+.fp-tab .x { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; margin: 0 var(--yg-space-1); padding: 0; border-radius: var(--yg-radius-xs); }
+.fp-tab .x:hover { background: var(--yg-hover); }
+.fp-tab .x svg { width: .75rem; height: .75rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.fp-close { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: var(--yg-radius-sm); background: none; color: var(--yg-text-muted); cursor: pointer; }
+.fp-close:hover { background: var(--yg-hover); color: var(--yg-text); }
+.fp-bodies { flex: 1; min-height: 0; overflow: auto; }
+.fp-pane { padding: var(--yg-space-5) var(--yg-space-6); }
+.fp-pane[hidden] { display: none; }
+.fp-pane .viewer-head { margin-bottom: var(--yg-space-4); }
+.fp-pane .viewer-head h1 { font-size: 1.125rem; }
+@container (max-width: 72rem) { .file-panel { display: none; } }
