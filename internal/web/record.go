@@ -24,8 +24,10 @@ type run struct {
 // record never shows an empty link.
 type origin struct {
 	Named string
-	Why   string
-	Link  string
+	// Project is the agent alone, where Named adds the conversation to it.
+	Project string
+	Why     string
+	Link    string
 }
 
 // origin names the instance a run belonged to and links to it. A job written
@@ -43,7 +45,7 @@ func (s *Server) origin(record jobs.Record) origin {
 		return origin{Named: "removed", Why: record.Instance + ", which this server no longer holds"}
 	}
 	named := s.agentOf(held).Name
-	shown := origin{Named: named, Why: held.ID, Link: "/instances/" + held.ID}
+	shown := origin{Named: named, Project: named, Why: held.ID, Link: "/instances/" + held.ID}
 	// A turn names its conversation, since a message in a thread is the thing
 	// somebody went to the record looking for.
 	if thread, found := s.instances.Thread(held.ID, record.Thread); found && record.Thread != "" {
