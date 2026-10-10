@@ -199,6 +199,31 @@ func TestACutNameIsWholeInItsTitle(t *testing.T) {
 	}
 }
 
+// A chat that could not start says why where it is read at once, linked to the box it is about, and the message is required.
+func TestARefusedChatSaysWhyAtTheBox(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	doc, err := html.Parse(site.ask(t, "GET", "/chat?refused="+url.QueryEscape("That folder is not yours."), nil).Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var box, why *html.Node
+	each(doc, func(n *html.Node) {
+		if n.Data == "textarea" && attr(n, "name") == "said" {
+			box = n
+		}
+		if attr(n, "class") == "refused" {
+			why = n
+		}
+	})
+	if box == nil || why == nil {
+		t.Fatal("the chat has no box or no reason")
+	}
+	if attr(why, "role") != "alert" || attr(why, "id") == "" || attr(box, "aria-describedby") != attr(why, "id") || !hasAttr(box, "required") {
+		t.Errorf("the reason is not announced and linked to a required box: %s %s", render(why), render(box))
+	}
+}
+
 func each(n *html.Node, visit func(*html.Node)) {
 	if n.Type == html.ElementNode {
 		visit(n)
