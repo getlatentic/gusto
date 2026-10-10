@@ -222,7 +222,6 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
   .talk-top .guards { display: none; }
   .composer { padding: var(--yg-space-2) var(--yg-space-3) var(--yg-space-3); }
 }
-@media (prefers-reduced-motion: reduce) { .side { transition: none; } }
 
 .talk .column { max-width: 60rem; }
 .said-so-far { overflow-y: auto; padding: var(--yg-space-8) var(--yg-space-6); }
@@ -314,4 +313,15 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .fp-pane[hidden] { display: none; }
 .fp-pane .viewer-head { margin-bottom: var(--yg-space-4); }
 .fp-pane .viewer-head h1, .fp-pane .viewer-head h2 { font-size: 1.25rem; }
+
 @container (max-width: 72rem) { .file-panel { display: none; } }
+
+/* Under forced colours the current place, choice and tab are drawn in the system's selected colours, since their surface and shadow are
+   dropped; the swatches keep their own colours, and the tick on a chosen option is drawn in the text colour. */
+
+@media (forced-colors: active) {
+  .rail .tool[aria-current], .side .item[aria-current], .side .proj ol a[aria-current], .d-places .place.current, .d-list .folder.selected,
+  .look .mode[aria-pressed="true"], .fp-tab:has([aria-selected="true"]) { forced-color-adjust: none; background: SelectedItem; color: SelectedItemText; }
+  .look .swatch { forced-color-adjust: none; }
+  .picker .menu button[aria-selected="true"] .name::after { forced-color-adjust: none; background: CanvasText; }
+}

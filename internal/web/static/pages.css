@@ -267,3 +267,8 @@ button.revoke:hover { text-decoration: underline; }
 .wait + .wait { border-top: 0.0625rem solid var(--yg-border); }
 .wait .muted { font-size: .8125rem; text-align: right; }
 .runs-day .event .how { display: block; text-align: right; white-space: nowrap; }
+
+@media (forced-colors: active) {
+  .figure[aria-current], .console-nav a[aria-current], .chip[aria-pressed="true"] { forced-color-adjust: none; background: SelectedItem; color: SelectedItemText; }
+  .figure .label::before { forced-color-adjust: none; }
+}
