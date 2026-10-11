@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -58,7 +60,7 @@ func credentialsWith(t *testing.T, harnesses string) map[string]struct {
 	return held
 }
 
-func TestTheDemoGivesDeepSeekToCodexTheAnthropicRouteToClaudeCodeAndGemmaToEveryOneTranslated(t *testing.T) {
+func TestDeepSeekCanBeLimitedTheAnthropicRouteIsClaudeCodesAndGemmaAnswersEveryOneTranslated(t *testing.T) {
 	held := credentialsWith(t, "codex")
 	if got := held["deepseek"].Harnesses; !slices.Equal(got, []string{"codex"}) {
 		t.Errorf("the deepseek credential answers %v, not codex alone", got)
@@ -66,8 +68,8 @@ func TestTheDemoGivesDeepSeekToCodexTheAnthropicRouteToClaudeCodeAndGemmaToEvery
 	if got := held["anthropic"].Harnesses; !slices.Equal(got, []string{"claude"}) {
 		t.Errorf("the anthropic credential answers %v, not claude alone", got)
 	}
-	if got := held["gemma"].Harnesses; !slices.Equal(got, []string{"opencode", "pi", "hermes", "claude", "codex"}) {
-		t.Errorf("the gemma credential answers %v", got)
+	if got := held["gemma"].Harnesses; got != nil {
+		t.Errorf("the gemma credential is limited to %v", got)
 	}
 	if got := held["gemma"].Wires; !slices.Equal(got, []string{"chat"}) {
 		t.Errorf("the gemma credential says its provider answers %v, so Claude Code's and Codex's calls are not translated", got)
@@ -77,5 +79,64 @@ func TestTheDemoGivesDeepSeekToCodexTheAnthropicRouteToClaudeCodeAndGemmaToEvery
 func TestWithNoHarnessesNamedTheDeepSeekCredentialAnswersEveryOne(t *testing.T) {
 	if got := credentialsWith(t, "")["deepseek"].Harnesses; got != nil {
 		t.Errorf("the deepseek credential is limited to %v when none were named", got)
+	}
+}
+
+// demoDeepSeekHarnesses is the demo's own setting, through the line of demo.conf the template writes, read the way haas-boot reads it.
+func demoDeepSeekHarnesses(t *testing.T) string {
+	t.Helper()
+	defaults, err := os.ReadFile("../../ansible/roles/demo/defaults/main.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	setting := regexp.MustCompile(`(?m)^demo_deepseek_harnesses: (.*)$`).FindSubmatch(defaults)
+	if setting == nil {
+		t.Fatal("the demo's defaults name no demo_deepseek_harnesses")
+	}
+	template, err := os.ReadFile("../../ansible/roles/demo/templates/demo.conf.j2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := regexp.MustCompile(`(?m)^DEEPSEEK_HARNESSES=.*$`).Find(template)
+	conf := filepath.Join(t.TempDir(), "demo.conf")
+	written := strings.ReplaceAll(string(line), "{{ demo_deepseek_harnesses }}", strings.TrimSpace(string(setting[1])))
+	if err := os.WriteFile(conf, []byte(written+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	read, err := exec.Command("bash", "-c", `set -eu; . "$1"; printf %s "$DEEPSEEK_HARNESSES"`, "bash", conf).CombinedOutput()
+	if err != nil {
+		t.Fatalf("demo.conf cannot be read as haas-boot reads it: %v\n%s", err, read)
+	}
+	return string(read)
+}
+
+func TestTheDemoOffersEveryModelToEveryEngine(t *testing.T) {
+	held := credentialsWith(t, demoDeepSeekHarnesses(t))
+	for _, name := range []string{"deepseek", "gemma"} {
+		if got := held[name].Harnesses; got != nil {
+			t.Errorf("the %s credential is limited to %v", name, got)
+		}
+	}
+}
+
+func TestANewDemoChatStartsOnAPairTheDemoOffers(t *testing.T) {
+	defaults, err := os.ReadFile("../../ansible/roles/demo/defaults/main.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pair := regexp.MustCompile(`(?m)^demo_chat_default: (\S+)=(\S+)$`).FindSubmatch(defaults)
+	models := regexp.MustCompile(`(?m)^demo_models: (\S+)$`).FindSubmatch(defaults)
+	if pair == nil || models == nil {
+		t.Fatal("the demo's defaults name no demo_chat_default as engine=model, or no demo_models")
+	}
+	if !slices.Contains(strings.Split(string(models[1]), ","), string(pair[2])) {
+		t.Errorf("a new chat starts on %s, which the demo does not offer: %s", pair[2], models[1])
+	}
+	env, err := os.ReadFile("../../ansible/roles/demo/templates/org.env.j2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(env), "HAAS_CHAT_DEFAULT={{ demo_chat_default }}") {
+		t.Error("an organisation's server is not given the demo's default for a new chat")
 	}
 }
