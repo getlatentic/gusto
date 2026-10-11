@@ -15,7 +15,7 @@ import (
 // with, and what it starts out working on.
 func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	wanted := r.URL.Query().Get("harness")
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
 				"Title":   productName + " — " + entry.Name,
@@ -102,7 +102,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
 func (s *Server) runnable(harness string) string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Name != harness {
 			continue
 		}
@@ -173,7 +173,7 @@ func threadPath(thread instance.Thread) string {
 // firstReady is the engine a blank agent gets when nobody chooses: the
 // first this deployment can run, in the catalog's order.
 func (s *Server) firstReady() string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Ready {
 			return entry.Name
 		}

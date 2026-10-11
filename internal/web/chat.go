@@ -27,20 +27,23 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 	picks := s.picksFor(r)
 	harness, model := defaultPick(picks, s.lastUsed(r), s.orgDefault())
 	s.render(w, "chat.html", map[string]any{
-		"Title":   productName + " — chat",
-		"Nav":     "chat",
-		"Chat":    true,
-		"Picks":   picks,
-		"Harness": harness,
-		"Model":   model,
-		"Agents":  s.agentOptions(picks),
-		"Models":  s.modelOptions(picks),
-		"Rail":    s.railFor(r, "/chat"),
-		"Here":    "/chat",
-		"Refused": r.URL.Query().Get("refused"),
-		"Start":   s.startIn(r),
-		"Roles":   s.roleChoices(r),
-		"Role":    s.chosenRole(r),
+		"Title":      productName + " — chat",
+		"Nav":        "chat",
+		"Chat":       true,
+		"Picks":      picks,
+		"Harness":    harness,
+		"Model":      model,
+		"Agents":     s.agentOptions(picks),
+		"Models":     s.modelOptions(picks),
+		"Rail":       s.railFor(r, "/chat"),
+		"Here":       "/chat",
+		"Refused":    r.URL.Query().Get("refused"),
+		"Start":      s.startIn(r),
+		"Roles":      s.roleChoices(r),
+		"Role":       s.chosenRole(r),
+		"NeedsModel": s.needsModel(r),
+		"Presets":    modelPresets,
+		"Missing":    s.missingEngines(),
 	})
 }
 

@@ -3,6 +3,11 @@
   "title": "OpenCode",
   "what": "Open source, and points at whichever model the deployment gives it.",
   "program": "opencode",
+  "package": "opencode-ai",
+  "env": {
+    "HAAS_MODEL_PROVIDER": "{modelProvider}",
+    "HAAS_MODEL_ID": "{modelId}"
+  },
   "argv": [
     "run",
     "--format",

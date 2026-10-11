@@ -45,7 +45,10 @@ type Server struct {
 	templates *template.Template
 	identity  *Identity
 	catalog   []catalog.Entry
-	models    Models
+	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
+	// install a harness while the server runs.
+	liveCatalog func() []catalog.Entry
+	models      Models
 	// live is what the registry makes of the models now, when there is one.
 	live func() Models
 	// appFirstByte is how long a young app has to begin to answer, which a test shortens.

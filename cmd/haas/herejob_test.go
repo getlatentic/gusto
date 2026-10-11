@@ -38,8 +38,8 @@ func TestAJobRunHereHasAHomeOfItsOwnAndTheInstancesStateAsItsData(t *testing.T) 
 }
 
 func TestAHarnessRunHereReadsItsOwnHomeAndNotThePersons(t *testing.T) {
-	env := homedEnv([]string{"PATH=/usr/bin", "HOME=/Users/ada", "XDG_CONFIG_HOME=/Users/ada/.config", "LANG=en_GB.UTF-8"}, "/jobs/1/home", "/state/a")
-	for _, want := range []string{"PATH=/usr/bin", "LANG=en_GB.UTF-8", "HOME=/jobs/1/home", "XDG_CONFIG_HOME=" + filepath.Join("/jobs/1/home", ".config"), "XDG_DATA_HOME=/state/a"} {
+	env := homedEnv([]string{"PATH=/usr/bin", "HOME=/Users/ada", "XDG_CONFIG_HOME=/Users/ada/.config", "LANG=en_GB.UTF-8"}, "/jobs/1/home", "/state/a", "/cache/haas")
+	for _, want := range []string{"PATH=/usr/bin", "LANG=en_GB.UTF-8", "HOME=/jobs/1/home", "XDG_CONFIG_HOME=" + filepath.Join("/jobs/1/home", ".config"), "XDG_DATA_HOME=/state/a", "XDG_CACHE_HOME=/cache/haas"} {
 		if !slices.Contains(env, want) {
 			t.Errorf("%s is not in %v", want, env)
 		}

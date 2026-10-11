@@ -71,3 +71,18 @@ func TestOpeningALinkDoesNotWaitForTheBrowser(t *testing.T) {
 		}
 	}
 }
+
+// A setup made before haas had a proxy of its own is given a port for one, kept, and the rest is as it was.
+func TestASetupFromBeforeTheProxyIsGivenAPortForIt(t *testing.T) {
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, "local.json"), []byte(`{"port": 7140, "secret": "s"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	setup, err := ensureLocal(home)
+	if err != nil || setup.Port != 7140 || setup.Secret != "s" || setup.ProxyPort == 0 || setup.ProxyPort == setup.Port {
+		t.Fatalf("%+v %v", setup, err)
+	}
+	if again, _ := ensureLocal(home); again.ProxyPort != setup.ProxyPort {
+		t.Errorf("the proxy's port was not kept: %d then %d", setup.ProxyPort, again.ProxyPort)
+	}
+}

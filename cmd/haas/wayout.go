@@ -66,7 +66,8 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(credentials) == 0 {
+	// haas on a person's own computer always has a proxy, since the person adds their models to it as they go.
+	if len(credentials) == 0 && os.Getenv("HAAS_LOCAL") != "1" {
 		return &WayOut{direct: direct, ledger: ledger}, nil
 	}
 	platform := registry.Platform{Credentials: credentials, Models: values("HAAS_MODELS"), Prices: policy.Prices}

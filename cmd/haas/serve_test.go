@@ -53,6 +53,25 @@ func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
 	}
 }
 
+// haas on a person's computer keeps its folders relative to its own, and a link's relative target is read from the link's
+// folder, so the link has to name the workspace whole.
+func TestATurnRunHereFindsTheWorkspaceWhenTheFoldersAreRelative(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.MkdirAll(filepath.Join("sessions", "a", "workspace"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dir := job.Dir(filepath.Join("jobs", "1"))
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	if err := pointAt(filepath.Join("sessions", "a", "workspace"), dir); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(dir.Workspace()); err != nil || !info.IsDir() {
+		t.Fatalf("the link goes nowhere: %v", err)
+	}
+}
+
 // A job with a checkout of its own is not a turn, and must not lose it.
 func TestAWorkspaceWithSomethingInItIsNotReplacedByALink(t *testing.T) {
 	dir := job.Dir(t.TempDir())

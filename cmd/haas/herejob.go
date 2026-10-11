@@ -39,7 +39,7 @@ func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
 			return 0, err
 		}
 		env.Home, env.Data = home, data
-		env.Base = homedEnv(env.Base, home, data)
+		env.Base = homedEnv(env.Base, home, data, sharedCache())
 		defer way.Done(dir)
 		return runner.InsideWith(ctx, dir, env)
 	}
@@ -84,16 +84,25 @@ func (w *WayOut) hereEnv(dir job.Dir, spec job.Spec) (harness.Env, error) {
 	return harness.Env{Base: base, ModelURL: url, ModelToken: token}, nil
 }
 
+// sharedCache is where a harness run here keeps what it downloads, such as the packages a harness installs into its own
+// configuration: one folder for every job, so a turn does not download them again.
+func sharedCache() string {
+	if cache, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(cache, "haas")
+	}
+	return filepath.Join(os.TempDir(), "haas-cache")
+}
+
 // homedEnv is env with the harness's home and data put where a program looks for them, so a harness reads the configuration
-// haas gave it and not the person's own.
-func homedEnv(env []string, home, data string) []string {
+// haas gave it and not the person's own, and its downloads in cache.
+func homedEnv(env []string, home, data, cache string) []string {
 	homes := []string{"HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"}
 	env = slices.DeleteFunc(slices.Clone(env), func(entry string) bool {
 		name, _, _ := strings.Cut(entry, "=")
 		return slices.ContainsFunc(homes, func(home string) bool { return strings.EqualFold(home, name) })
 	})
 	env = append(env, "HOME="+home, "XDG_CONFIG_HOME="+filepath.Join(home, ".config"), "XDG_DATA_HOME="+data,
-		"XDG_STATE_HOME="+filepath.Join(home, ".local", "state"), "XDG_CACHE_HOME="+filepath.Join(home, ".cache"))
+		"XDG_STATE_HOME="+filepath.Join(home, ".local", "state"), "XDG_CACHE_HOME="+cache)
 	if runtime.GOOS == "windows" {
 		env = append(env, "USERPROFILE="+home, "APPDATA="+filepath.Join(home, "AppData", "Roaming"),
 			"LOCALAPPDATA="+filepath.Join(home, "AppData", "Local"))

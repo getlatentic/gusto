@@ -78,8 +78,11 @@ type Adapter struct {
 	Title string `json:"title,omitempty"`
 	// What this harness is, in one line, for somebody choosing between them.
 	// A catalog that lists only names is not a choice.
-	What     string            `json:"what,omitempty"`
-	Program  string            `json:"program"`
+	What    string `json:"what,omitempty"`
+	Program string `json:"program"`
+	// Package is the npm package that provides the program, as the runner image installs it, and as a person installs it on
+	// their own computer.
+	Package  string            `json:"package,omitempty"`
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`
 	Endpoint string            `json:"endpoint,omitempty"`
@@ -253,9 +256,15 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 }
 
 func (a Adapter) fill(text string, spec job.Spec, env Env) string {
-	_, alone, _ := strings.Cut(spec.Model, "/")
-	if alone == "" {
-		alone = spec.Model
+	provider, alone, found := strings.Cut(spec.Model, "/")
+	if !found {
+		provider, alone = "", spec.Model
+	}
+	// A harness that runs only the models its configuration names is told of the job's own, under the name of the
+	// credential that serves it, and of none when the job names no model: a provider called haas, which its
+	// configuration turns off.
+	if provider == "" {
+		provider = "haas"
 	}
 	return strings.NewReplacer(
 		"{brief}", spec.Brief,
@@ -265,6 +274,7 @@ func (a Adapter) fill(text string, spec job.Spec, env Env) string {
 		// wants the model alone.
 		"{model}", spec.Model,
 		"{modelId}", alone,
+		"{modelProvider}", provider,
 		"{modelUrl}", env.ModelURL,
 		"{modelRoot}", strings.TrimSuffix(env.ModelURL, "/v1"),
 		"{modelToken}", env.ModelToken,
