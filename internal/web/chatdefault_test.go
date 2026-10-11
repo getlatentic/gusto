@@ -81,3 +81,16 @@ func TestTheNewChatBoxSaysWhatItRunsOnAndKeepsTheChoicesBehindIt(t *testing.T) {
 		t.Error("the engine and model menus are still beside Send")
 	}
 }
+
+func TestTheOperatorsDefaultIsUsedUntilTheOrganisationChoosesItsOwn(t *testing.T) {
+	here, _, _ := budgeted(t)
+	here.server.UseChatDefault("fixture", "platform/test-model")
+	if got := here.server.orgDefault(); got != (chatDefault{"fixture", "platform/test-model"}) {
+		t.Errorf("with no organisation default, a new chat runs on %v", got)
+	}
+	here.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"fixture|platform/test-model"}})
+	here.server.UseChatDefault("other", "m")
+	if got := here.server.orgDefault(); got.Harness != "fixture" {
+		t.Errorf("the organisation's own default did not win over the operator's: %v", got)
+	}
+}

@@ -69,7 +69,9 @@ type Server struct {
 	// orgSettings is what the organisation's admins choose for it, and computers is
 	// the record of the computers its people have.
 	orgSettings *orgsettings.File
-	computers   *computer.Registry
+	// operatorDefault is what a new chat runs on when neither the person nor the organisation has chosen.
+	operatorDefault chatDefault
+	computers       *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes *changelog.Log
