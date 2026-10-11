@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+	"time"
 )
 
 func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
@@ -39,5 +41,33 @@ func TestAServerForOnePersonListensOnTheLoopbackOnly(t *testing.T) {
 	t.Setenv("HAAS_ADDR", "0.0.0.0:7140")
 	if code := serve(nil); code != 2 {
 		t.Errorf("a server for one person on every address started: %d", code)
+	}
+}
+
+// A browser that keeps running is left to run, and one that cannot open the link says so, so the link is printed instead.
+func TestOpeningALinkDoesNotWaitForTheBrowser(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the opener is rundll32")
+	}
+	opener := "xdg-open"
+	if runtime.GOOS == "darwin" {
+		opener = "open"
+	}
+	browseWait = 200 * time.Millisecond
+	t.Cleanup(func() { browseWait = 3 * time.Second })
+	for script, fails := range map[string]bool{"sleep 30": false, "exit 3": true} {
+		bin := t.TempDir()
+		if err := os.WriteFile(filepath.Join(bin, opener), []byte("#!/bin/sh\n"+script+"\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		began := time.Now()
+		err := browse("http://127.0.0.1:1/local/enter")
+		if took := time.Since(began); took > 5*time.Second {
+			t.Errorf("%s: opening took %v", script, took)
+		}
+		if (err != nil) != fails {
+			t.Errorf("%s: %v", script, err)
+		}
 	}
 }
