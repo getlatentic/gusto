@@ -214,7 +214,7 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 		if why := s.runnable(chosen); why != "" {
 			return held, instance.Thread{}, why
 		}
-		if why := s.unusable(r, chosen, model); why != "" {
+		if why := s.unusable(r, model); why != "" {
 			return held, instance.Thread{}, why
 		}
 		if err := s.instances.SetHarness(held.ID, chosen); err != nil {
@@ -222,7 +222,7 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 		}
 		held.Harness = chosen
 	}
-	if why := s.unusable(r, held.Harness, model); why != "" {
+	if why := s.unusable(r, model); why != "" {
 		return held, instance.Thread{}, why
 	}
 	if model != "" && model != held.Model {

@@ -676,7 +676,7 @@ pass  git                       git is at /usr/bin/git
 | `HAAS_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
 | `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `HAAS_MODEL_NAME` | what the evidence calls that credential |
-| `HAAS_CREDENTIALS` | a directory of credentials, one `<name>.json` each: the provider's address, its key and how it is presented, the harnesses it serves, and the shapes of API it answers. A call a harness makes in a shape the provider does not answer is translated into Chat Completions. [docs/GATEWAY.md](docs/GATEWAY.md) |
+| `HAAS_CREDENTIALS` | a directory of credentials, one `<name>.json` each: the provider's address, its key and how it is presented, and the shapes of API it answers. A call a harness makes in a shape the provider does not answer is translated into Chat Completions. [docs/GATEWAY.md](docs/GATEWAY.md) |
 | `HAAS_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `HAAS_JOBS` by default |
 | `HAAS_ALLOWED_HOSTS` | the hosts besides the model a job may reach, comma-separated. Nothing set is nothing allowed |
 | `HAAS_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `HAAS_PROXY_ADDR` instead of sealing them |

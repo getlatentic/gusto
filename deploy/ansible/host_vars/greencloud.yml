@@ -38,11 +38,6 @@ credentials:
     address: "https://bedrock-mantle.us-east-1.api.aws"
     auth: bearer
     key_var: model_key
-    # Measured on 2026-09-26: its responses API accepts only `function` and
-    # `mcp` tools, and codex sends a `namespace` one. So it serves opencode
-    # and nothing else here, and codex is not offered it.
-    harnesses:
-      - opencode
   # Measured on 2026-09-26: serves deepseek-flash and deepseek-v4-pro, and
   # implements the responses API, which is the only wire codex still speaks.
   - name: deepseek
@@ -57,11 +52,9 @@ credentials:
     address: "https://api.deepseek.com/anthropic"
     auth: anthropic
     key_var: deepseek_key
-    harnesses:
-      - claude
 
-# The first a harness can use is the one it is started on, so the order is
-# the choice: DeepSeek Flash finished every conversation measured on
+# Every engine is offered every model, and the first is the one an agent is
+# started on when nobody chose, so the order is the choice: DeepSeek Flash finished every conversation measured on
 # 2026-09-27, and Qwen 3 VL, a vision model, answered opencode's first
 # message with "Please try again".
 models: "deepseek/deepseek-flash,anthropic/deepseek-flash,deepseek/deepseek-v4-pro,anthropic/deepseek-v4-pro,platform/qwen.qwen3-vl-235b-a22b-instruct"
