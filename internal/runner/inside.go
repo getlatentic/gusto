@@ -62,7 +62,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 	if env.Home != "" {
 		adapter = adapter.At(env.Home, env.Data)
 	}
-	if err := admit(spec, adapter); err != nil {
+	if err := admit(spec, adapter, env); err != nil {
 		return 0, Refuse(dir, err)
 	}
 	endpoint := adapter.EndpointOf()

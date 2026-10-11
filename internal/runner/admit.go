@@ -14,7 +14,7 @@ import (
 // admit decides whether this job can start here at all. Each check is one a
 // harness would otherwise fail minutes later, in its own words, and the job
 // would read as the harness failing rather than as never having started.
-func admit(spec job.Spec, adapter harness.Adapter) error {
+func admit(spec job.Spec, adapter harness.Adapter, env harness.Env) error {
 	if err := Carries(spec.Harness, adapter); err != nil {
 		return err
 	}
@@ -24,6 +24,11 @@ func admit(spec job.Spec, adapter harness.Adapter) error {
 	endpoint := adapter.EndpointOf()
 	if err := rules.Allows(spec, endpoint); err != nil {
 		return err
+	}
+	// The rules judge where the model is; what is asked is whether the address the harness is given answers, which is the
+	// proxy when the job runs in this process.
+	if adapter.Needs == harness.NeedsLocal && env.ModelURL != "" {
+		return Reachable(env.ModelURL)
 	}
 	if adapter.Needs == harness.NeedsLocal {
 		return Reachable(endpoint)
@@ -36,10 +41,10 @@ func admit(spec job.Spec, adapter harness.Adapter) error {
 // image's, so this is the image answering for itself at the moment it
 // matters, whatever the catalog was told when the server started.
 func Carries(name string, adapter harness.Adapter) error {
-	if _, err := exec.LookPath(adapter.Program); err != nil {
+	if _, err := exec.LookPath(adapter.Installed()); err != nil {
 		return fmt.Errorf("this runner does not carry %s, the program the %s harness runs: "+
 			"build the runner image with %s in its HARNESSES, or choose a harness the catalog offers",
-			adapter.Program, name, name)
+			adapter.Installed(), name, name)
 	}
 	return nil
 }

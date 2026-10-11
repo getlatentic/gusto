@@ -117,3 +117,19 @@ func TestOpenAIsOwnAnswersResponsesAndAnyOtherIsTranslatedForCodex(t *testing.T)
 		t.Errorf("an Anthropic-compatible provider answers %v", got)
 	}
 }
+
+// A model named through a provider that does not offer it, when another does, is told apart by its whole name.
+func TestAModelOfferedThroughAnotherProviderIsNamedWhole(t *testing.T) {
+	here, reg := ownComputer(t)
+	if err := reg.AddProvider(registry.Give{Name: "host", Address: "http://127.0.0.1:9", Reference: "stored", Key: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	reg.Enable("host", "")
+	reg.AddModel("host", "fake-small", nil)
+	reg.Enable("host", "fake-small")
+	got := here.as(t, boss).ask(t, "POST", "/chat", url.Values{"said": {"hi"}, "harness": {"fixture"}, "model": {"local/fake-small"}})
+	where, _ := url.Parse(got.Header().Get("Location"))
+	if refused := where.Query().Get("refused"); refused != "local/fake-small is not offered here: choose host/fake-small" {
+		t.Errorf("refused with %q", refused)
+	}
+}
