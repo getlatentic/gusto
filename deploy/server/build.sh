@@ -25,6 +25,7 @@ if [ "$os" = windows ]; then
   echo "$out/$archive.zip"
 else
   chmod 0755 "$work/$exe"
-  tar -C "$work" -czf "$out/$archive.tar.gz" "$exe"
+  # macOS's tar adds its own file attributes, which tar on Linux warns about.
+  COPYFILE_DISABLE=1 tar --no-xattrs -C "$work" -czf "$out/$archive.tar.gz" "$exe"
   echo "$out/$archive.tar.gz"
 fi

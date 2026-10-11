@@ -37,7 +37,7 @@ haas open              # open it in the browser, signed in
 haas local install     # make it a service that starts at login, start it, open it
 haas local run         # what the service runs: the server, in the foreground
 haas local stop        # stop it until the next login
-haas local uninstall   # remove the service; the data folder stays
+haas local uninstall   # remove the service, and say where the data folder stays
 ```
 
 ## Testing an install without a release

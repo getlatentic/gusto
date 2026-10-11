@@ -117,7 +117,11 @@ func localCommand(args []string) int {
 	case "stop":
 		return failIf(stopService())
 	case "uninstall":
-		return failIf(uninstallService())
+		if err := uninstallService(); err != nil {
+			return fail(err)
+		}
+		fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
+		return 0
 	}
 	fmt.Fprintln(os.Stderr, "usage: haas local install|run|stop|uninstall")
 	return 2
@@ -193,15 +197,30 @@ func answers(url string, wait time.Duration) bool {
 	}
 }
 
-// browse opens a link in the person's browser.
+// browseWait is how long a browser has to say it could not open a link. xdg-open runs as long as the browser it starts,
+// so one still running then has opened it.
+var browseWait = 3 * time.Second
+
+// browse opens a link in the person's browser, and leaves the browser running when haas ends.
 func browse(link string) error {
+	opener := exec.Command("xdg-open", link)
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("open", link).Run()
+		opener = exec.Command("open", link)
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", link).Run()
+		opener = exec.Command("rundll32", "url.dll,FileProtocolHandler", link)
 	}
-	return exec.Command("xdg-open", link).Run()
+	if err := opener.Start(); err != nil {
+		return err
+	}
+	ended := make(chan error, 1)
+	go func() { ended <- opener.Wait() }()
+	select {
+	case err := <-ended:
+		return err
+	case <-time.After(browseWait):
+		return nil
+	}
 }
 
 // localPerson is who the person on this computer is, for the record of what they asked.
