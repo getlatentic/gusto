@@ -103,7 +103,7 @@ runner_image() {
 
 credentials() {
   rm -rf "$run/creds"
-  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER DEEPSEEK_HARNESSES=${DEEPSEEK_HARNESSES:-} bash "${CREDENTIALS:-/usr/local/lib/haas/credentials.sh}" "$run/creds"
+  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/haas/credentials.sh}" "$run/creds"
   chmod 0700 "$run/creds"
   own "$run/creds"
 }

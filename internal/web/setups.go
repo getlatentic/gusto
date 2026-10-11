@@ -197,7 +197,7 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		"Setup":    held,
 		"Offered":  s.servers,
 		"Imported": s.importedIntegrations(),
-		"Catalog":  s.entries(),
+		"Catalog":  s.catalog,
 		"Refused":  r.URL.Query().Get("refused"),
 	}, true
 }
@@ -308,7 +308,7 @@ func (s *Server) unfit(wanted instance.Instance) string {
 	if held.Off {
 		return "the setup " + wanted.Setup + " is off: an administrator turns it on"
 	}
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Name == wanted.Harness {
 			if why := held.Fits(entry.Skills, entry.MCP); why != "" {
 				return wanted.Harness + " cannot take " + held.Name + ": " + why

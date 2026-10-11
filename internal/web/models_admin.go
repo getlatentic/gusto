@@ -128,7 +128,7 @@ func (s *Server) addProvider(r *http.Request) (map[string]string, error) {
 	}
 	give := registry.Give{
 		Name: r.FormValue("name"), Address: r.FormValue("address"), Auth: proxy.Auth(r.FormValue("auth")),
-		Reference: reference, Key: r.FormValue("key"), Harnesses: r.Form["harness"],
+		Reference: reference, Key: r.FormValue("key"),
 	}
 	if err := s.registry.AddProvider(give); err != nil {
 		return nil, err

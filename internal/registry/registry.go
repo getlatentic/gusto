@@ -1,5 +1,5 @@
 // Package registry is the models an organisation may use, and where each answers: one place that says what a
-// model is called, where it lives, what it costs and which harnesses are known to work with it.
+// model is called, where it lives, and what it costs.
 //
 // The operator's own models, from the deployment's settings, are always there and cannot be changed from here.
 // An organisation adds providers and models of its own, which are kept in one file in its data directory. The
@@ -24,12 +24,11 @@ import (
 
 // Provider is where models answer and how to be let in. Its key is never kept here: Key says where it is.
 type Provider struct {
-	Name      string     `json:"name"`
-	Address   string     `json:"address"`
-	Auth      proxy.Auth `json:"auth,omitempty"`
-	Key       string     `json:"key"`
-	Harnesses []string   `json:"harnesses,omitempty"`
-	Retired   bool       `json:"retired,omitempty"`
+	Name    string     `json:"name"`
+	Address string     `json:"address"`
+	Auth    proxy.Auth `json:"auth,omitempty"`
+	Key     string     `json:"key"`
+	Retired bool       `json:"retired,omitempty"`
 	// Pending says an administrator has added the provider and not yet turned it on. Nothing is sent to a provider that is
 	// pending. It is the flag that is kept, and not "enabled", so that a registry written before there was one has every provider on.
 	Pending bool `json:"pending,omitempty"`
@@ -77,8 +76,6 @@ type Platform struct {
 // editable, which is a deployment for one company whose admin is its operator, an admin changes the two that are
 // about trust from the console.
 type Rules struct {
-	// Harnesses are the names a provider may be said to serve.
-	Harnesses []string
 	// PrivateAddresses lets a provider be at an address on a private network, or this machine, and
 	// at http. A deployment for one company, which runs a model inside its own network, allows it.
 	PrivateAddresses bool

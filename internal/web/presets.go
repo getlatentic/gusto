@@ -93,7 +93,7 @@ func (s *Server) chosenRole(r *http.Request) string {
 
 // engineTitle is what an engine is called to a person.
 func (s *Server) engineTitle(name string) string {
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Name == name && entry.Title != "" {
 			return entry.Title
 		}

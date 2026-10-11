@@ -61,7 +61,7 @@ func openOffering(t *testing.T, entries []catalog.Entry) *site {
 
 func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry) *site {
 	t.Helper()
-	return buildOffering(t, root, keyring, entries, Everything([]string{"platform/test-model"}))
+	return buildOffering(t, root, keyring, entries, Models([]string{"platform/test-model"}))
 }
 
 // buildOffering is a server that offers the models given, which are what an agent may think with.

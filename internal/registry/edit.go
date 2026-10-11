@@ -31,7 +31,6 @@ type Give struct {
 	// Reference is "stored", or where the key is read from.
 	Reference string
 	Key       string
-	Harnesses []string
 }
 
 // AddProvider adds a provider, or replaces one that was retired.
@@ -93,14 +92,7 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	if err := Check(give.Reference, r.Rules().KeySources); err != nil {
 		return Provider{}, err
 	}
-	for _, harness := range give.Harnesses {
-		if !slices.Contains(r.Rules().Harnesses, harness) {
-			return Provider{}, fmt.Errorf("%s is not a harness this deployment has", harness)
-		}
-	}
-	harnesses := slices.Clone(give.Harnesses)
-	slices.Sort(harnesses)
-	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Harnesses: slices.Compact(harnesses), Pending: true}, nil
+	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Pending: true}, nil
 }
 
 func (r *Registry) platformHas(name string) bool {

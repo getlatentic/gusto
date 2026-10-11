@@ -11,7 +11,7 @@
 {{range .View.Providers}}{{if not .Retired}}
 <section class="panel">
   <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}{{if .Pending}} <span class="refused">off: waiting for you to turn it on</span>{{end}}</h2>
-  <p class="muted">{{.Address}} · {{.Auth}}{{if .Harnesses}} · only for {{range $i, $h := .Harnesses}}{{if $i}}, {{end}}{{$h}}{{end}}{{end}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
+  <p class="muted">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
   {{if .Problem}}<p class="refused">Not in use: {{.Problem}}</p>{{end}}
   <table>
     <thead><tr><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cached input</th>{{if not .Operator}}<th></th>{{end}}</tr></thead>
@@ -85,11 +85,6 @@
     </label>
     <label>Key <input type="password" name="key" autocomplete="off"></label>
     <label>Reference, when the key is not typed here <input name="reference" placeholder="/path, parameter name or secret id"></label>
-    {{if .View.Harnesses}}
-    <fieldset class="servers"><legend class="muted">Works with, when it does not work with every agent</legend>
-      {{range .View.Harnesses}}<label class="check"><input type="checkbox" name="harness" value="{{.}}"> {{.}}</label>{{end}}
-    </fieldset>
-    {{end}}
     <button type="submit">Add provider</button>
   </form>
 </section>

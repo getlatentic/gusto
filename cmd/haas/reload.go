@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/live"
 	"github.com/getlatentic/haas/internal/redact"
@@ -138,9 +137,9 @@ func (l *liveSettings) applyCredentials() error {
 	return nil
 }
 
-// refresh works out the models offered now: the list, through the credentials held, for each harness.
+// refresh works out the models offered now: every model listed, to every engine.
 func (l *liveSettings) refresh() {
-	offered := offeredModels(l.way.credentials(), *l.models.Load(), harness.Names())
+	offered := web.Models(*l.models.Load())
 	l.offered.Store(&offered)
 	l.pages.UseInBuilding(l.way.InBuilding())
 }

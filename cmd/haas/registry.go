@@ -5,7 +5,6 @@ import (
 	"os"
 	"sync/atomic"
 
-	"github.com/getlatentic/haas/internal/harness"
 	"github.com/getlatentic/haas/internal/registry"
 	"github.com/getlatentic/haas/internal/web"
 )
@@ -26,7 +25,7 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 		return nil, nil, nil
 	}
 	kinds := values("HAAS_REGISTRY_KEYS")
-	allowed := registry.Rules{Harnesses: harness.Names(), PrivateAddresses: setting("HAAS_REGISTRY_PRIVATE", "") == "allow", KeySources: kinds}
+	allowed := registry.Rules{PrivateAddresses: setting("HAAS_REGISTRY_PRIVATE", "") == "allow", KeySources: kinds}
 	reg, err := registry.Open(dir, way.platform, allowed, os.Getenv("HAAS_FRONT_DOOR") == "")
 	if err != nil {
 		return nil, nil, err
@@ -37,7 +36,7 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 	var offered atomic.Pointer[web.Models]
 	apply := func(e registry.Effective) {
 		way.Apply(e)
-		models := offeredModels(e.Credentials, e.Models, harness.Names())
+		models := web.Models(e.Models)
 		offered.Store(&models)
 		changed()
 	}
