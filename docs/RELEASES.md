@@ -14,11 +14,15 @@ copies the section into the release's notes. Changes made after a release go und
 
 **Changed**
 
+- **One install script for both programs.** `install.sh` and `install.ps1` install `haas` and `haas-helper` (`HAAS_PROGRAMS` names fewer) and are now in `deploy/install/`. On macOS and Linux they go to `~/.local/bin`, and `HAAS_INSTALL_DIR` names another folder (`HAAS_HELPER_DIR` is still read). On Windows they go to `%LOCALAPPDATA%\haas`, not `%LOCALAPPDATA%\haas-helper`: a person who installed the helper before has it in the old folder and on their PATH until they remove it. The scripts download with the GitHub command line when it is signed in, and otherwise from the release's public address.
+- **Every model is offered to every engine** where a credential names no harnesses, and a new chat starts on the person's last choice, else the organisation's default (`/admin`, New chats), else `HAAS_CHAT_DEFAULT` (`engine=model`), else the first that can run. Choosing the organisation's default is written to the change record as `chat.default`.
+
 - **A sign-in outlives a restart.** The key sign-ins are made with, and the sessions people ended, are kept in `.keeper.json` in the sessions folder (`HAAS_KEEPER` names another file), readable by the server's user alone. A deploy no longer signs everybody out. Deleting the file signs everybody out, which is how to do that on purpose. The desktop app stays signed in for 14 days (the front door's hour, behind one).
 - **The app's browser goes straight to the provider.** Signing in from the desktop app no longer stops at a page that asks for one more press.
 
 **New**
 
+- **`haas` is a download.** Each release has the `haas` program for macOS, Linux and Windows on Intel and Arm, as `haas_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), in the `SHA256SUMS` the release workflow signs. `deploy/server/build.sh` builds one.
 - **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.
 - **A folder for a chat.** A chat can work in a folder of the agent's computer in the cloud, chosen in an explorer, and every turn of it starts there (a job's optional `dir`, and a conversation's). In the desktop app a folder of the person's own computer can also be kept the same as an agent's folder by the helper ([DESKTOP.md](DESKTOP.md#working-in-a-folder)). Agents gain an optional `folder` key. Nothing changes for what has neither.
 - **Presets in the chat.** A chat can start from a preset, from a menu in its box: one that comes built in (the skills of a ready-made kind of work) or one a person saved from a chat with its engine and model. The Presets page lists both. Saved presets are one file for each person in the new `presets` directory (`HAAS_PRESETS`, format 1, [UPGRADE.md](UPGRADE.md)). Nothing changes for a server that does not use them.
