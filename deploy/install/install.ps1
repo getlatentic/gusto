@@ -3,23 +3,27 @@
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address. It puts the
 # programs in %LOCALAPPDATA%\haas and adds that folder to your PATH, which is the only thing it changes about your settings.
 #
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.0.1-alpha.5
 #   .\install.ps1 -Programs haas-helper
 #   .\install.ps1 -NoStart              # install, and do not start haas for this person
 #   $env:HAAS_RELEASE_URL = "http://10.0.2.2:8000"; .\install.ps1 -Tag v0.0.0-test   # a release's files from another address
 #
+# Piped to iex it takes no arguments, so HAAS_TAG, HAAS_PROGRAMS (names separated by spaces) and HAAS_NO_START say the same.
+#
 # Once haas is installed it is started for the person running this, at logon and now, and opened in their browser, signed in.
 param(
-  [string]$Tag = "latest",
+  [string]$Tag = $(if ($env:HAAS_TAG) { $env:HAAS_TAG } else { "latest" }),
   [string]$Repo = $(if ($env:HAAS_REPO) { $env:HAAS_REPO } else { "getlatentic/haas" }),
   [string]$Dir = $(Join-Path $env:LOCALAPPDATA "haas"),
-  [string[]]$Programs = @("haas", "haas-helper"),
+  [string[]]$Programs = $(if ($env:HAAS_PROGRAMS) { $env:HAAS_PROGRAMS -split '\s+' } else { @("haas", "haas-helper") }),
   [switch]$NoStart = ($env:HAAS_NO_START -eq "1")
 )
 $ErrorActionPreference = "Stop"
 
-function Fail($message) { Write-Error "install: $message"; exit 1 }
+# Fail throws rather than exits, since a script piped to iex runs in the person's own PowerShell, and exit would close it.
+function Fail($message) { throw "install: $message" }
 $arch = switch ($env:PROCESSOR_ARCHITECTURE) { "AMD64" { "amd64" } "ARM64" { "arm64" } default { Fail "$($env:PROCESSOR_ARCHITECTURE) is a processor no package is built for" } }
 
 # The GitHub command line reads a private release; a public one is read with no account. HAAS_RELEASE_URL is a folder with a
@@ -43,7 +47,7 @@ function Fetch($name, $into) {
 }
 
 if ($Tag -eq "latest") {
-  if ($from) { Fail "HAAS_RELEASE_URL needs the release's tag, as -Tag" }
+  if ($from) { Fail "HAAS_RELEASE_URL needs the release's tag, as -Tag or HAAS_TAG" }
   if ($viaGh) {
     $Tag = (gh release list -R $Repo --limit 1 --json tagName --jq ".[0].tagName")
   } else {
@@ -93,6 +97,7 @@ try {
   }
   if (($Programs -contains "haas") -and -not $NoStart) {
     & (Join-Path $Dir "haas.exe") local install
+    if ($LASTEXITCODE -ne 0) { Fail "haas is installed, and could not be started: run haas local install to see why" }
   }
 } finally {
   Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue

@@ -5,8 +5,16 @@ server as a shared one, started for one person, on the loopback, in a folder of 
 
 ## Install
 
+On macOS and Linux:
+
 ```bash
 curl -fsSL https://github.com/getlatentic/haas/releases/latest/download/install.sh | sh
+```
+
+On Windows, in PowerShell. Windows refuses to run a downloaded script by default, so the script is read and run in one step:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"
 ```
 
 The script installs `haas` and `haas-helper` (deploy/install/install.sh, [DESKTOP.md](DESKTOP.md#installing-the-helper)) and then

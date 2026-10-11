@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 )
 
@@ -19,8 +20,16 @@ func installService(home string) error {
 	if program, err = filepath.EvalSymlinks(program); err != nil {
 		return err
 	}
-	command := fmt.Sprintf(`"%s" local run`, program)
-	if out, err := exec.Command("schtasks", "/Create", "/F", "/SC", "ONLOGON", "/TN", taskName, "/TR", command).CombinedOutput(); err != nil {
+	me, err := user.Current()
+	if err != nil {
+		return err
+	}
+	definition := filepath.Join(home, "logon-task.xml")
+	if err := os.WriteFile(definition, logonTask(me.Username, program), 0o600); err != nil {
+		return err
+	}
+	defer os.Remove(definition)
+	if out, err := exec.Command("schtasks", "/Create", "/F", "/TN", taskName, "/XML", definition).CombinedOutput(); err != nil {
 		return fmt.Errorf("schtasks /Create: %w: %s", err, out)
 	}
 	exec.Command("schtasks", "/End", "/TN", taskName).Run()
