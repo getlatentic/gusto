@@ -53,8 +53,13 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 }
 
 // keepKeysInKeychain has a person's own haas keep the keys they type in their computer's keychain. A computer whose keychain
-// cannot be used now keeps them in files only this person can read, as a shared server does, and says so.
+// cannot be used now, or a person who set HAAS_KEYCHAIN=off, keeps them in files only this person can read, as a shared
+// server does, and says so.
 func keepKeysInKeychain(reg *registry.Registry, dir string) {
+	if os.Getenv("HAAS_KEYCHAIN") == "off" {
+		fmt.Printf("keys are kept in %s, readable by you alone, since HAAS_KEYCHAIN is off\n", filepath.Join(dir, "keys"))
+		return
+	}
 	store, err := keychain.Open()
 	if err != nil {
 		fmt.Printf("keys are kept in %s, readable by you alone, since %v\n", filepath.Join(dir, "keys"), err)

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/web"
+	"strings"
 )
 
 // localHome is where haas keeps a person's work on their own computer: HAAS_LOCAL_HOME, or the system's place for an app's data.
@@ -44,44 +45,57 @@ func localHome() (string, error) {
 // service that starts at login and opens it; `haas local run` is what that service runs; `haas local stop` and
 // `haas local uninstall` take it away.
 func localCommand(args []string) int {
-	if len(args) != 1 {
-		fmt.Fprintln(os.Stderr, "usage: haas local install|run|stop|uninstall")
+	if len(args) == 0 || localCommands[args[0]] == nil {
+		fmt.Fprintln(os.Stderr, localUsage)
 		return 2
 	}
 	home, err := localHome()
 	if err != nil {
 		return fail(err)
 	}
-	switch args[0] {
-	case "run":
-		return runLocal(home)
-	case "install":
-		setup, err := ensureLocal(home)
-		if err != nil {
-			return fail(err)
-		}
-		setup.Path = os.Getenv("PATH")
-		if err := setup.save(home); err != nil {
-			return fail(err)
-		}
-		if err := installService(home); err != nil {
-			return fail(err)
-		}
-		return openLocal(home, 20*time.Second)
-	case "stop":
-		return failIf(stopService())
-	case "uninstall":
-		if err := uninstallService(); err != nil {
-			return fail(err)
-		}
-		if err := os.Remove(filepath.Join(home, "haas.pid")); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return fail(err)
-		}
-		fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
-		return 0
+	return localCommands[args[0]](home, args[1:])
+}
+
+const localUsage = "usage: haas local install|run|stop|uninstall, or haas local use NAME [model...]"
+
+var localCommands = map[string]func(home string, args []string) int{
+	"run":       func(home string, _ []string) int { return runLocal(home) },
+	"install":   func(home string, _ []string) int { return installLocal(home) },
+	"stop":      func(string, []string) int { return failIf(stopService()) },
+	"uninstall": func(home string, _ []string) int { return uninstallLocal(home) },
+	"use":       useKey,
+}
+
+// installLocal makes haas a service of this person's and opens it. It runs in the person's own shell, so it keeps the PATH
+// that shell has, and says which model keys the shell has, without reading them.
+func installLocal(home string) int {
+	setup, err := ensureLocal(home)
+	if err != nil {
+		return fail(err)
 	}
-	fmt.Fprintln(os.Stderr, "usage: haas local install|run|stop|uninstall")
-	return 2
+	setup.Path = os.Getenv("PATH")
+	setup.FoundKeys = foundKeys()
+	if err := setup.save(home); err != nil {
+		return fail(err)
+	}
+	if err := installService(home); err != nil {
+		return fail(err)
+	}
+	for _, name := range setup.FoundKeys {
+		fmt.Printf("Your shell has %s. To use it in haas: haas local use %s\n", name, name)
+	}
+	return openLocal(home, 20*time.Second)
+}
+
+func uninstallLocal(home string) int {
+	if err := uninstallService(); err != nil {
+		return fail(err)
+	}
+	if err := os.Remove(filepath.Join(home, "haas.pid")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fail(err)
+	}
+	fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
+	return 0
 }
 
 // runLocal is the server for one person: in their own folder, on the loopback, signed in by its own links, and with jobs in this
@@ -110,6 +124,7 @@ func runLocal(home string) int {
 	if setup.Path != "" {
 		os.Setenv("PATH", setup.Path)
 	}
+	os.Setenv("HAAS_FOUND_KEYS", strings.Join(setup.FoundKeys, ","))
 	if os.Getenv("HAAS_SANDBOX") == "" {
 		os.Setenv("HAAS_SANDBOX", "here")
 	}

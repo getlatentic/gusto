@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
 		t.Fatalf("%+v, %v", first, err)
 	}
 	again, err := ensureLocal(home)
-	if err != nil || again != first {
+	if err != nil || !reflect.DeepEqual(again, first) {
 		t.Errorf("the setup changed when it was read again: %+v, %v", again, err)
 	}
 	for path, want := range map[string]os.FileMode{home: 0o700, filepath.Join(home, "local.json"): 0o600} {

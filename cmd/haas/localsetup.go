@@ -22,6 +22,9 @@ type localSetup struct {
 	// Path is the person's PATH as their shell had it when haas was installed. A service manager starts haas with a bare one,
 	// and the harnesses a person installs are where their own shell finds them.
 	Path string `json:"path,omitempty"`
+	// FoundKeys is the model keys the person's shell had when haas was installed, by name alone: haas offers them and does
+	// not take them.
+	FoundKeys []string `json:"foundKeys,omitempty"`
 }
 
 // The ports haas on a person's computer listens on when they are free the first time.

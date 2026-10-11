@@ -82,7 +82,10 @@ type Adapter struct {
 	Program string `json:"program"`
 	// Package is the npm package that provides the program, as the runner image installs it, and as a person installs it on
 	// their own computer.
-	Package  string            `json:"package,omitempty"`
+	Package string `json:"package,omitempty"`
+	// Installs is the program the package puts on the PATH, when the adapter starts it through another: hermes is started by
+	// sh. It is what a catalog looks for. Empty is the program itself.
+	Installs string            `json:"installs,omitempty"`
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`
 	Endpoint string            `json:"endpoint,omitempty"`
@@ -195,6 +198,14 @@ func (a Adapter) Shape() wire.Shape {
 
 func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
 	return a.CommandIn(ctx, spec, workspace, Here())
+}
+
+// Installed is the program a computer or an image needs for this harness to run.
+func (a Adapter) Installed() string {
+	if a.Installs != "" {
+		return a.Installs
+	}
+	return a.Program
 }
 
 // Env is what a harness is started with besides its own arguments: the
