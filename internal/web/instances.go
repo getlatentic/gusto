@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -190,6 +191,10 @@ func (s *Server) unusable(r *http.Request, model string) string {
 	}
 	if model == "" || offered.Offers(model) {
 		return ""
+	}
+	// A model offered under the same name through another provider is told apart by its whole name.
+	if slices.ContainsFunc(offered, func(each string) bool { return modelName(each) == modelName(model) }) {
+		return model + " is not offered here: choose " + strings.Join(offered, " or ")
 	}
 	return modelName(model) + " is not offered here" + choose(offered)
 }
