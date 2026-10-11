@@ -89,7 +89,7 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 | Topic | Rule | Check |
 |---|---|---|
 | Columns | A page has one or two main columns. A dashboard may have more. Columns change with the width the page has, not with the device. | Look, and narrow the window. |
-| Alignment | Blocks share a few left edges. A label and its value share a baseline. Numbers in a column align right. Only a hero line, an empty state or a dialog is centred. | Look. |
+| Alignment | Blocks share a few left edges. A label and its value share a baseline. Numbers in a column align right. Only a hero line, an empty state or a dialog is centred. | Auto for centred rows. Look for the rest. |
 | Space scale | 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px. | Auto: padding and gap are on the scale. |
 | Grouping | Related items sit 8 to 16 apart. Groups sit 24 to 32 apart. Sections sit 40 or more apart. Set `gap` on the parent. | Look: related things are closer than unrelated things. |
 | Use the room | A component takes the width its container offers. Only prose and forms are capped. Tables, logs and dashboards fill the page. | Walk: widen the window. Nothing small stays beside empty space. |
@@ -131,6 +131,7 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 
 | Topic | Rule | Check |
 |---|---|---|
+| Hierarchy | A place that holds others is shown above them and set apart, not as one more item in the list it contains. | Look: the top of a tree is not a sibling of its children. |
 | Clean | Remove decoration. Never remove a visible label, heading, group or instruction without replacing it. | Look: cover an element. If nothing is lost, delete it. |
 | Reuse | One button, one table, one dialog, one menu. A new variant needs a written reason. | Look: size, radius and type match the shared ones. |
 | Controls | One primary, one quiet and one destructive style. Hover, focus and disabled are all defined. | Walk. |
@@ -147,4 +148,4 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 
 ## Measuring
 
-`scripts/design-audit.js` runs in a page and returns one object: the radius values, font sizes, weights, background colours, border and shadow use, nesting, text under 12px, all-caps text, wrapped labels, small targets, and text under contrast. A value outside this document is listed under `over`. It does not replace a walk with a keyboard or a screen reader.
+`scripts/design-audit.js` runs in a page and returns one object: the radius values, font sizes, weights, background colours, border and shadow use, nesting, text under 12px, all-caps text, wrapped labels, small targets, siblings in a centred row that sit off the centre, and text under contrast. A value outside this document is listed under `over`. It does not replace a walk with a keyboard or a screen reader.

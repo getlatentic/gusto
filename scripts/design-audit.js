@@ -5,7 +5,7 @@
   var RADII = [4, 8, 12, 16, 20, 24];
   var SIZES = [12, 13, 14, 16, 20, 24, 28];
   var WEIGHTS = ["400", "500", "600"];
-  var upper = [];
+  var upper = [], offCentre = [];
   var all = [].slice.call(document.body.querySelectorAll("*")).filter(function (el) {
     var r = el.getBoundingClientRect();
     var s = getComputedStyle(el);
@@ -79,6 +79,13 @@
         if (ratio < (big ? 3 : LIMIT.contrast)) { faint.push(label + " " + ratio.toFixed(2)); }
       }
     }
+    if (s.display.indexOf("flex") === 0 && s.flexDirection.indexOf("row") === 0 && s.alignItems === "center" && el.children.length > 1) {
+      var mid = r.top + parseFloat(s.paddingTop) + (r.height - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom)) / 2;
+      [].forEach.call(el.children, function (child) {
+        var cr = child.getBoundingClientRect(), cs = getComputedStyle(child);
+        if (cr.height > 0 && cs.position !== "absolute" && cs.alignSelf === "auto" && Math.abs(cr.top + cr.height / 2 - mid) > 3 && cr.height < r.height + 1 && cr.height < r.height - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom) + 1) { offCentre.push(label + " > " + child.tagName.toLowerCase() + "." + String(child.className).split(" ")[0]); }
+      });
+    }
     var bgc = parse(s.backgroundColor);
     if (bgc && bgc.a > 0.9 && r.width * r.height > 20000) { var key = "rgb(" + bgc.r + "," + bgc.g + "," + bgc.b + ")"; surfaces[key] = (surfaces[key] || 0) + 1; }
     if (hasEdge(s) && hasShadow(s) && !/^(input|textarea|select|button)$/.test(el.tagName.toLowerCase()) && !/(^| )(box|menu|dialog|dialog-card|popover)( |$)/.test(el.className || "") && !selected(el) && r.width > 40 && r.height > 24) { both.push(label); }
@@ -107,6 +114,7 @@
     nestedOutlines: deep.slice(0, 8),
     tinyText: tiny.slice(0, 8),
     allCaps: upper.slice(0, 8),
+    offCentre: offCentre.slice(0, 8),
     wrappedLabels: wrapped.slice(0, 8),
     smallTargets: small.slice(0, 8),
     lowContrast: faint.slice(0, 8)
@@ -116,6 +124,6 @@
   if (badSizes.length) { report.over.push("font size off the scale: " + badSizes.join(",")); }
   if (badWeights.length) { report.over.push("font weight off the scale: " + badWeights.join(",")); }
   if (count(surfaces) > LIMIT.surfaces) { report.over.push("surfaces " + count(surfaces) + " > " + LIMIT.surfaces); }
-  ["borderAndShadow", "nestedOutlines", "tinyText", "allCaps", "wrappedLabels", "smallTargets", "lowContrast"].forEach(function (k) { if (report[k].length) { report.over.push(k + " " + report[k].length); } });
+  ["borderAndShadow", "nestedOutlines", "tinyText", "allCaps", "offCentre", "wrappedLabels", "smallTargets", "lowContrast"].forEach(function (k) { if (report[k].length) { report.over.push(k + " " + report[k].length); } });
   return report;
 })();

@@ -11,7 +11,8 @@
     code: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></svg>',
     table: '<svg viewBox="0 0 24 24"><path d="M3 9h18"/><path d="M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>',
     plus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
-    go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
+    go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>'
   };
   function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.setAttribute("aria-hidden", "true"); span.innerHTML = icons[name]; return span; }
   // A title is given where the text may be cut short by the column it is in.
@@ -158,13 +159,12 @@
     function placesList() {
       var side = el("nav", "d-places");
       side.setAttribute("aria-label", "Projects");
-      side.appendChild(el("div", "d-label", "Projects"));
-      var top = button("place" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("folder"), el("span", "t", "Your cloud computer")]);
+      var top = button("place root" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("cloud"), el("span", "t", "Your cloud computer")]);
       if (!state.here.at) { top.setAttribute("aria-current", "true"); }
       side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {
         var current = state.here.at === project.at || state.here.at.indexOf(project.at + "/") === 0;
-        var place = button("place" + (current ? " current" : ""), function () { load(project.at, true); }, [icon("folder"), el("span", "t", project.name)], project.name);
+        var place = button("place child" + (current ? " current" : ""), function () { load(project.at, true); }, [icon("folder"), el("span", "t", project.name)], project.name);
         if (current) { place.setAttribute("aria-current", "true"); }
         side.appendChild(place);
       });
