@@ -45,6 +45,16 @@ func Policy(cfg Config, modelURL string, writable []string) ([]byte, error) {
 	return json.MarshalIndent(policy, "", "  ")
 }
 
+// systemReads are the system paths a sandbox may read. Of /etc it reads only what a program needs to run, find users, resolve
+// names, trust certificates and load libraries, so /etc/shadow and the rest of /etc are not readable. Every path here is in
+// the runner image: a path the policy names that a sandbox does not have stops it starting.
+var systemReads = []string{
+	"/usr", "/lib", "/bin", "/opt", "/proc", "/dev/urandom",
+	"/etc/passwd", "/etc/group", "/etc/hosts", "/etc/hostname", "/etc/resolv.conf", "/etc/nsswitch.conf", "/etc/host.conf",
+	"/etc/gai.conf", "/etc/ssl", "/etc/ca-certificates", "/etc/alternatives", "/etc/ld.so.cache", "/etc/ld.so.conf",
+	"/etc/ld.so.conf.d", "/etc/localtime", "/etc/os-release",
+}
+
 // filesystem is what a sandbox may read and write. A policy that names no
 // system path leaves the sandbox unable to start its own supervisor, and one
 // with no network rule gets none of the baseline paths the gateway would add,
@@ -53,7 +63,7 @@ func Policy(cfg Config, modelURL string, writable []string) ([]byte, error) {
 func filesystem(writable []string) map[string]any {
 	return map[string]any{
 		"include_workdir": false,
-		"read_only":       []string{"/usr", "/lib", "/bin", "/etc", "/opt", "/proc", "/dev/urandom", "/var/log"},
+		"read_only":       systemReads,
 		"read_write":      append([]string{"/sandbox", "/tmp", "/dev/null", "/dev/ptmx", "/dev/pts"}, writable...),
 	}
 }
