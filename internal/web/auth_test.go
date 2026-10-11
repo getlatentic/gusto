@@ -15,7 +15,7 @@ func TestSomebodySignedInByAddressIsStillKnownOnTheNextRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, who := range []string{"tosinamuda@gmail.com", "the shared sign-in", "a.b.c@sub.example.co.uk"} {
+	for _, who := range []string{"tosinamuda@gmail.com", "the shared sign-in", "a.b.c@sub.example.co.uk", `ORG-WIN11\org`, `Zoë "Z", Lovelace;~`} {
 		t.Run(who, func(t *testing.T) {
 			issued := httptest.NewRecorder()
 			keeper.issueFor(issued, httptest.NewRequest("GET", "/auth/callback", nil), who, Runner)
@@ -34,6 +34,20 @@ func TestSomebodySignedInByAddressIsStillKnownOnTheNextRequest(t *testing.T) {
 				t.Errorf("the server gave them the role %q", got)
 			}
 		})
+	}
+}
+
+// A cookie made before names were written in base64 still says who it is for.
+func TestACookieThatHoldsTheNameAsItIsIsStillRead(t *testing.T) {
+	keeper, err := newKeeper("shared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := "9999999999|runner|ada@acme.example"
+	next := httptest.NewRequest("GET", "/", nil)
+	next.AddCookie(&http.Cookie{Name: cookieName, Value: value + "." + keeper.sign(value)})
+	if got := keeper.who(next); got != "ada@acme.example" {
+		t.Errorf("the server called them %q", got)
 	}
 }
 
