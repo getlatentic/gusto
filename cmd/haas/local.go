@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/getlatentic/haas/internal/web"
@@ -135,6 +136,12 @@ func runLocal(home string) int {
 		return fail(err)
 	}
 	if err := os.Chdir(home); err != nil {
+		return fail(err)
+	}
+	if err := keepLog(home); err != nil {
+		return fail(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, "haas.pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
 		return fail(err)
 	}
 	os.Setenv("HAAS_PASSWORD", setup.Secret)

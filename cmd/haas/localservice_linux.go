@@ -71,3 +71,6 @@ func uninstallService() error {
 	exec.Command("systemctl", "--user", "daemon-reload").Run()
 	return nil
 }
+
+// keepLog leaves the log where the service manager puts it.
+func keepLog(string) error { return nil }
