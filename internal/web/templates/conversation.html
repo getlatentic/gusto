@@ -2,24 +2,25 @@
 
 <section class="talk">
   <header class="talk-top">
-    <h1 class="which">{{.Named}}</h1>
+    <h1 class="which" title="{{.Named}}">{{.Named}}</h1>
     <div class="where">
       <a class="project" href="/instances/{{.Instance.ID}}" title="About this project">{{template "icon-folder"}}<span>{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="sep">/</span><span class="dir" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
-    <span class="sealed" tabindex="0" title="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
+    <span class="sealed" tabindex="0" role="img" aria-label="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
     {{range .Apps}}<a class="quiet-button" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="muted small">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
     <a class="quiet-button" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
   </header>
 
-  <div class="said-so-far" id="said">
+  <div class="said-so-far" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="column">
       <div id="turns">{{template "turns" .}}</div>
+      <p class="sr" role="status" id="turn-news"></p>
       {{if .Waiting}}
       <div class="turn-live" id="working">
-        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing">Working</span><span class="elapsed" id="elapsed"></span></p>
-        <ol class="live" id="live" aria-live="polite"></ol>
+        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="elapsed" id="elapsed"></span></p>
+        <ol class="live" id="live" aria-label="What it has done so far"></ol>
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
@@ -46,7 +47,7 @@
           <span class="grow"></span>
           {{if .Several}}<div class="picker" id="model-pick" data-picker data-label="Model" data-options="{{.Models}}">
             <input type="hidden" name="model" value="{{.Instance.Model}}" form="model-form">
-            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Model</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>{{end}}
           <button type="submit" class="send" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr">Send</span></button>
@@ -158,12 +159,15 @@
           var detail = document.createElement("span");
           detail.className = "detail";
           detail.textContent = item.detail;
+          detail.title = item.detail;
           row.appendChild(detail);
         }
         list.appendChild(row);
       });
       var latest = lastStep >= 0 ? live.items[lastStep] : null;
-      doing.textContent = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      // The status is a live region, so it is written only when it says something new.
+      var now = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      if (doing.textContent !== now) { doing.textContent = now; }
       if (nearEnd) { said.scrollTop = said.scrollHeight; }
     });
   };
@@ -178,9 +182,13 @@
     // Swap in the turn that just finished rather than reloading the page, which would throw away the scroll position and everything
     // already read, and give the box its Send button back.
     htmx.ajax("GET", "{{.Path}}/turns", "#turns").then(function () {
+      var stop = document.getElementById("stop");
+      var held = document.activeElement === stop;
       document.getElementById("working").remove();
-      document.getElementById("stop").hidden = true;
+      stop.hidden = true;
       document.getElementById("send").hidden = false;
+      document.getElementById("turn-news").textContent = "The reply is in.";
+      if (held) { document.querySelector(".composer textarea").focus(); }
       said.scrollTop = said.scrollHeight;
     });
   });

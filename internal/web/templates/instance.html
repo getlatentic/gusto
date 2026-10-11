@@ -20,8 +20,8 @@
     <ol class="threads-list">
       {{range .Threads}}
       <li><a href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
-        <span class="name">{{.Thread.Name}}</span>
-        <span class="last">{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
+        <span class="name" title="{{.Thread.Name}}">{{.Thread.Name}}</span>
+        <span class="last"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
         <span class="when">{{with .Latest.Queued}}{{ago .}}{{end}}</span>
       </a></li>
       {{end}}
@@ -35,7 +35,7 @@
       <summary><h2>Checked tasks</h2> <span class="muted">for developers: a task that passes only when a command succeeds</span></summary>
       {{if .Tasks}}
       <ol class="threads-list">
-        {{range .Tasks}}<li><a href="/jobs/{{.ID}}"><span class="name">{{.Brief}}</span><span class="last"><span class="state {{.State}}">{{.State}}</span></span><span class="when">{{ago .Queued}}</span></a></li>{{end}}
+        {{range .Tasks}}<li><a href="/jobs/{{.ID}}"><span class="name" title="{{.Brief}}">{{.Brief}}</span><span class="last"><span class="state {{.State}}">{{.State}}</span></span><span class="when">{{ago .Queued}}</span></a></li>{{end}}
       </ol>
       {{end}}
       <form class="stack" method="post" action="/instances/{{.Instance.ID}}/tasks">
@@ -66,7 +66,7 @@
   </section>
 </div>
 
-<aside class="run-side">
+<aside class="run-side" aria-label="About this agent">
   <section class="panel">
     <dl class="facts">
       <dt>Model</dt>
