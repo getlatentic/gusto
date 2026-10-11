@@ -50,6 +50,11 @@ func serve(args []string) int {
 		fmt.Fprintln(os.Stderr, "haas: set HAAS_PASSWORD; the server will not start without a sign-in")
 		return 2
 	}
+	local := os.Getenv("HAAS_LOCAL") == "1"
+	if local && !onLoopback(setting("HAAS_ADDR", "127.0.0.1:8040")) {
+		fmt.Fprintln(os.Stderr, "haas: a server for one person on their own computer listens on the loopback only, and HAAS_ADDR names another address")
+		return 2
+	}
 	if err := ready(); err != nil {
 		return fail(err)
 	}
@@ -145,6 +150,9 @@ func serve(args []string) int {
 	}
 	if computers != nil {
 		pages.UseComputers(computers)
+	}
+	if local {
+		pages.UseLocalSignIn(password, localPerson())
 	}
 	if path := os.Getenv("HAAS_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)
