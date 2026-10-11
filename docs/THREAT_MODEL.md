@@ -90,7 +90,7 @@ as the server is. What differs from a container:
 | The network | A policy per job, deny by default: the proxy and the operator's allowed hosts. The sandbox's log of what it allowed and denied is in the record and signed |
 | What comes back | The workspace, links kept as links and never followed |
 | What the sandbox is given | The proxy's address and a per-job token, and skills. Nothing of the server's environment |
-| Where the token shows | In the arguments of the `openshell` command on the host, for as long as the job runs. It is worth nothing once the job ends |
+| Where the token shows | Nowhere on the host's process list. It goes into the sandbox on the standard input of `openshell sandbox exec`, and for an agent spoken to over ssh in a file only the sandbox's user can read, which the command removes as it starts. Inside the sandbox it is in the harness's environment. It is worth nothing once the job ends |
 
 The gate runs in the sandbox. `haas verify` re-runs it where verify is run.
 

@@ -8,9 +8,11 @@ package openshell
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -406,26 +408,40 @@ func (s *Sandbox) create(ctx context.Context, args []string) error {
 	}
 }
 
-// Wrap runs a command in the sandbox. The command's own environment goes in
-// front of it as assignments to env, which is why the harness was started with
-// an environment of its own. --env would say the same, and warns each time a
-// value looks like a credential, and the token here is the one that stands in
-// for one.
-func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
-	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--"}
-	if len(command.Env) > 0 {
-		args = append(args, "env")
-		for _, entry := range command.Env {
-			if strings.Contains(entry, "=") {
-				args = append(args, inSandbox(entry))
-			}
+// launcher starts a command with the environment it reads from the first lines of its standard input, up to an empty line, and
+// gives the command the rest. The environment holds the job's token, and an argument of a process on the host is readable by
+// every user of the host.
+const launcher = `while IFS= read -r entry && [ -n "$entry" ]; do export "$entry"; done; exec "$@"`
+
+// carried is the command's environment as the lines launcher reads, followed by what the command itself is given.
+func carried(env []string, rest io.Reader) (io.Reader, error) {
+	var lines strings.Builder
+	for _, entry := range env {
+		name, _, found := strings.Cut(entry, "=")
+		if !found {
+			continue
 		}
+		if strings.ContainsAny(entry, "\n\r") {
+			return nil, fmt.Errorf("the environment variable %s holds a line break, which cannot be carried into the sandbox", name)
+		}
+		lines.WriteString(inSandbox(entry) + "\n")
 	}
+	lines.WriteString("\n")
+	if rest == nil {
+		return strings.NewReader(lines.String()), nil
+	}
+	return io.MultiReader(strings.NewReader(lines.String()), rest), nil
+}
+
+// Wrap runs a command in the sandbox. Its environment, which holds the job's token, goes in on standard input ahead of the
+// command's own (see launcher), so it is never an argument on the host. --env would put it in the arguments.
+func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
+	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", launcher, "sh"}
 	for _, argument := range command.Args {
 		args = append(args, inSandbox(argument))
 	}
 	wrapped := s.run(ctx, args...)
-	wrapped.Stdin = command.Stdin
+	wrapped.Stdin, wrapped.Err = carried(command.Env, command.Stdin)
 	return wrapped
 }
 
@@ -436,15 +452,15 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	if err := s.reachable(ctx); err != nil {
 		return nil, err
 	}
-	words := []string{"cd " + quoted(s.Workdir()) + " &&", "exec"}
+	words := []string{"cd " + quoted(s.Workdir()) + " &&"}
 	if len(command.Env) > 0 {
-		words = append(words, "env")
-		for _, entry := range command.Env {
-			if strings.Contains(entry, "=") {
-				words = append(words, quoted(inSandbox(entry)))
-			}
+		file, err := s.leaveEnv(ctx, command.Env)
+		if err != nil {
+			return nil, err
 		}
+		words = append(words, ". "+quoted(file)+" && rm -f "+quoted(file)+" &&")
 	}
+	words = append(words, "exec")
 	for _, argument := range command.Args {
 		words = append(words, quoted(inSandbox(argument)))
 	}
@@ -452,6 +468,28 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	attached.Env = cleanEnv()
 	attached.Stdin = command.Stdin
 	return attached, nil
+}
+
+// leaveEnv writes the environment into a file in the sandbox that only its user may read, as lines a shell loads, and says where.
+// It goes in on standard input, so the token in it is never an argument on the host. The command that loads it removes it.
+func (s *Sandbox) leaveEnv(ctx context.Context, env []string) (string, error) {
+	name := make([]byte, 8)
+	if _, err := rand.Read(name); err != nil {
+		return "", err
+	}
+	file := "/tmp/haas-env-" + hex.EncodeToString(name)
+	var lines strings.Builder
+	for _, entry := range env {
+		if strings.Contains(entry, "=") {
+			lines.WriteString("export " + quoted(inSandbox(entry)) + "\n")
+		}
+	}
+	write := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "sh", "-c", `umask 077 && cat > "$1"`, "sh", file)
+	write.Stdin = strings.NewReader(lines.String())
+	if _, err := output(write); err != nil {
+		return "", err
+	}
+	return file, nil
 }
 
 // reachable has the gateway say how to ssh to the sandbox, once.

@@ -68,7 +68,7 @@ root=${OPENSHELL_FAKE_ROOT:?}
 while [ $# -gt 0 ]; do case "$1" in -F|-o) shift 2;; -T) shift;; *) break;; esac; done
 name=${1#openshell-}; name=${name%.default}
 remote=${2//\/sandbox/$root/$name/sandbox}
-echo "ssh $name" >> "$root/calls.log"
+echo "ssh $name $2" >> "$root/calls.log"
 exec env -i PATH="$PATH" bash -c "$remote"
 `
 
