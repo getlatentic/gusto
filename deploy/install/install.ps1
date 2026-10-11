@@ -3,7 +3,8 @@
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address. It puts the
 # programs in %LOCALAPPDATA%\haas and adds that folder to your PATH, which is the only thing it changes about your settings.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"
+#   irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex      # in PowerShell
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"   # in cmd
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.0.1-alpha.5
 #   .\install.ps1 -Programs haas-helper
