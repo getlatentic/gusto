@@ -19,6 +19,10 @@
             <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
           <span class="grow"></span>
+          <div class="picker summary"><button type="button" id="run-on" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, engine and model" title="Choose the preset, engine and model"><span class="label"></span>{{template "icon-chevron"}}</button></div>
+          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+        </div>
+        <div class="choices" id="chat-choices" hidden>
           <div class="picker" id="role-pick" data-picker data-options="{{.Roles}}" data-label="Preset">
             <input type="hidden" name="choice" value="{{.Role}}">
             <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Preset</span>{{template "icon-chevron"}}</button>
@@ -35,7 +39,6 @@
             <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Model</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>
-          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
       </div>
     </form>
@@ -101,6 +104,27 @@
   saving.querySelector("[data-cancel]").addEventListener("click", function () { saving.hidden = true; });
   apply(settled);
 
+  // The box says in one line what a chat will run on, and the choices open from it, so a person can type and send without choosing.
+  var runOn = document.getElementById("run-on");
+  var panel = document.getElementById("chat-choices");
+  var labelOf = function (picker) { return picker.querySelector("button .label").textContent.trim(); };
+  var summarise = function () {
+    var parts = [labelOf(harness), labelOf(model)];
+    if (roleValue.value || (role.picker.value && role.picker.value !== "")) {
+      var named = labelOf(role);
+      if (named && named !== "No preset" && named !== "Preset") { parts.unshift(named); }
+    }
+    var text = parts.filter(Boolean).join(" · ");
+    runOn.querySelector(".label").textContent = text;
+    runOn.setAttribute("aria-label", "Runs on " + text + ". Change");
+  };
+  runOn.addEventListener("click", function () {
+    panel.hidden = !panel.hidden;
+    runOn.setAttribute("aria-expanded", String(!panel.hidden));
+  });
+  [role, harness, model].forEach(function (each) { each.addEventListener("pick", function () { setTimeout(summarise, 0); }); });
+  summarise();
+
   // The folder a chat works in is chosen in the explorer, which follows the agent it belongs to.
   var chosen = document.getElementById("folder-pick");
   chosen.addEventListener("chosen", function (event) {
@@ -111,6 +135,7 @@
     var why = fixed ? "Set by this folder, which already has conversations. Choose another folder to use another engine." : "";
     harness.querySelector("button").title = why;
     role.querySelector("button").title = why;
+    setTimeout(summarise, 0);
   });
 
   var box = document.querySelector(".composer textarea");
