@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -77,5 +79,43 @@ func TestTheDemoGivesDeepSeekToCodexTheAnthropicRouteToClaudeCodeAndGemmaToEvery
 func TestWithNoHarnessesNamedTheDeepSeekCredentialAnswersEveryOne(t *testing.T) {
 	if got := credentialsWith(t, "")["deepseek"].Harnesses; got != nil {
 		t.Errorf("the deepseek credential is limited to %v when none were named", got)
+	}
+}
+
+// demoDeepSeekHarnesses is the demo's own setting, through the line of demo.conf the template writes, read the way haas-boot reads it.
+func demoDeepSeekHarnesses(t *testing.T) string {
+	t.Helper()
+	defaults, err := os.ReadFile("../../ansible/roles/demo/defaults/main.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	setting := regexp.MustCompile(`(?m)^demo_deepseek_harnesses: (.*)$`).FindSubmatch(defaults)
+	if setting == nil {
+		t.Fatal("the demo's defaults name no demo_deepseek_harnesses")
+	}
+	template, err := os.ReadFile("../../ansible/roles/demo/templates/demo.conf.j2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := regexp.MustCompile(`(?m)^DEEPSEEK_HARNESSES=.*$`).Find(template)
+	conf := filepath.Join(t.TempDir(), "demo.conf")
+	written := strings.ReplaceAll(string(line), "{{ demo_deepseek_harnesses }}", strings.TrimSpace(string(setting[1])))
+	if err := os.WriteFile(conf, []byte(written+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	read, err := exec.Command("bash", "-c", `set -eu; . "$1"; printf %s "$DEEPSEEK_HARNESSES"`, "bash", conf).CombinedOutput()
+	if err != nil {
+		t.Fatalf("demo.conf cannot be read as haas-boot reads it: %v\n%s", err, read)
+	}
+	return string(read)
+}
+
+func TestTheDemoOffersDeepSeekFlashToCodexAndDSHAndKeepsDSHOffGemma(t *testing.T) {
+	held := credentialsWith(t, demoDeepSeekHarnesses(t))
+	if got := held["deepseek"].Harnesses; !slices.Equal(got, []string{"codex", "dsh"}) {
+		t.Errorf("the deepseek credential answers %v, not codex and dsh", got)
+	}
+	if slices.Contains(held["gemma"].Harnesses, "dsh") {
+		t.Error("dsh is offered Gemma 4, on which it has finished no job")
 	}
 }

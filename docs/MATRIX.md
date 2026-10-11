@@ -138,7 +138,7 @@ What stopped each that did not finish:
   Pro through DeepSeek's own API, so what is wrong is how it meets the Bedrock endpoint, not the model.
 - `hermes` ends the job without a fix on `gemma-4-e2b`.
 
-The demo offers `google.gemma-4-26b-a4b` and `google.gemma-4-31b` to `opencode`, `pi` and `hermes`. A model's price per million
+The demo offers `google.gemma-4-26b-a4b` and `google.gemma-4-31b` to `opencode`, `pi` and `hermes`, and to `claude` and `codex` through the translation below. It offers DeepSeek Flash to `claude`, `codex` and `dsh`, each of which finished on it; `dsh` gets no Gemma 4 model. A model's price per million
 tokens, from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01, is in
 `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`, so the organisation's spending page shows what a demo cost:
 
