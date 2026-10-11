@@ -111,10 +111,13 @@ The other two options, and why neither is shipped:
   so it trades root-equivalence for a thinner wall and more moving parts, and
   nobody has run haas that way.
 - **`HAAS_SANDBOX=here`**, which runs each job in the server's own process. It
-  needs no runtime at all, and it gives up everything above: a job runs with the
-  server's environment (the shared password, the model key, the signing key), it
-  can read every other job's directory, and it reaches the model directly, so
-  the proxy never sees it: no `out/proxy.jsonl`, no caps, no allowlist. And
+  needs no runtime at all. A job still reaches its model through the proxy, on
+  `127.0.0.1:8041`, with a token of its own, so its calls are capped and
+  recorded in `out/proxy.jsonl` as a box's are, and the harness and the gate get
+  only what a program needs of the server's environment (where programs are, the
+  person's home, language and terminal) and no password, key or token of the
+  server's. It gives up the walls: a job can read and write whatever the server's
+  user can, every other job's directory included, and reach any network. And
   today the pages cannot use it in a container: the server asks the runtime
   what the runner image carries when it starts, finds none, and offers no
   harness. A run on 2026-09-27 printed `not offered: the runner image could not
