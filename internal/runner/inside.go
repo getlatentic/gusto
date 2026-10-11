@@ -28,6 +28,12 @@ func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(
 // InsideContext is Inside that stops early when its context ends, as it does when the budget's seconds run out: the harness
 // is killed, what it did is kept, and the manifest says why it stopped.
 func InsideContext(parent context.Context, dir job.Dir) (int, error) {
+	return InsideWith(parent, dir, harness.Here())
+}
+
+// InsideWith is InsideContext for a harness started with the environment given, and not this process's: a job run in the server's
+// own process is given the proxy and its token and nothing of the server's secrets. The gate runs with the same environment.
+func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, error) {
 	stopRelay, err := relayOut()
 	if err != nil {
 		return 0, err
@@ -78,7 +84,9 @@ func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	defer cancel()
 	servers, err := Servers(dir)
 	if err == nil {
-		servers, err = withGateway(servers, spec)
+		var more []job.Server
+		more, err = gatewayServers(spec, env.ModelURL, env.ModelToken)
+		servers = append(servers, more...)
 	}
 	if err != nil {
 		return 0, Refuse(dir, err)
@@ -91,7 +99,7 @@ func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	if err := placeSkills(dir, spec, adapter); err != nil {
 		return 0, err
 	}
-	command := adapter.Command(ctx, spec, dir.Workspace())
+	command := adapter.CommandIn(ctx, spec, dir.Workspace(), env)
 	ownGroup(command)
 	// The box does not give its root the right to signal another user's processes, and the harness runs as the agent. So the
 	// runner cannot kill it: the agent's own processes are ended as the agent, the way they are at the end of a run.
@@ -132,7 +140,7 @@ func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	// happened without claiming anything passed.
 	var verdict *evidence.Verdict
 	if len(spec.Gate) > 0 {
-		given, err := Gate(spec, dir)
+		given, err := gateWith(spec, dir, env.Base)
 		agent.endAll()
 		if err != nil {
 			return 0, err
