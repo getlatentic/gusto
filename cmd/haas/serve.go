@@ -277,7 +277,7 @@ func serve(args []string) int {
 func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.StoppableWork, error) {
 	switch os.Getenv("HAAS_SANDBOX") {
 	case "here":
-		return here(instances), nil
+		return here(way, instances), nil
 	case "openshell":
 		if err := openshell.HostCannotMakeVMs(); err != nil {
 			return nil, err
@@ -364,7 +364,7 @@ func number(name string, fallback int) int {
 // has. A turn in a container gets the instance's workspace mounted over its
 // own; without one, the job's workspace is made a link to it instead, so a
 // conversation works the same way in both places.
-func here(instances *instance.Store) jobs.StoppableWork {
+func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -375,7 +375,12 @@ func here(instances *instance.Store) jobs.StoppableWork {
 				return 0, err
 			}
 		}
-		return runner.InsideContext(ctx, dir)
+		env, err := way.hereEnv(dir, spec)
+		if err != nil {
+			return 0, err
+		}
+		defer way.Done(dir)
+		return runner.InsideWith(ctx, dir, env)
 	}
 }
 
