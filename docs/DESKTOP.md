@@ -104,7 +104,7 @@ gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.sh -O - | sh -
 ```
 
 ```powershell
-gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.ps1 -O install.ps1; ./install.ps1 -Tag v0.0.1-alpha.5
+gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.ps1 -O install.ps1; powershell -ExecutionPolicy ByPass -File install.ps1 -Tag v0.0.1-alpha.5
 ```
 
 The script downloads the packages for this system, checks them against the checksums, checks the
