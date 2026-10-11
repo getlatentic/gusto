@@ -25,7 +25,7 @@ type pick struct {
 // person used last, because somebody coming back wants to carry on.
 func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 	picks := s.picksFor(r)
-	harness, model := defaultPick(picks, s.lastUsed(r))
+	harness, model := defaultPick(picks, s.lastUsed(r), s.orgDefault())
 	s.render(w, "chat.html", map[string]any{
 		"Title":   productName + " — chat",
 		"Nav":     "chat",
@@ -75,8 +75,9 @@ func (s *Server) picksFor(r *http.Request) []pick {
 	return picks
 }
 
-// defaultPick is the harness and model last used that can still be used, or the first harness and its first model.
-func defaultPick(picks []pick, recent []yours) (harness, model string) {
+// defaultPick is the harness and model last used that can still be used, else the organisation's default when it can run, else the
+// first harness and its first model.
+func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model string) {
 	for _, each := range recent {
 		for _, candidate := range picks {
 			if candidate.Name != each.Harness {
@@ -86,6 +87,14 @@ func defaultPick(picks []pick, recent []yours) (harness, model string) {
 				return each.Harness, each.Model
 			}
 			return each.Harness, first(candidate.Models)
+		}
+	}
+	for _, candidate := range picks {
+		if candidate.Name == org.Harness {
+			if slices.Contains(candidate.Models, org.Model) {
+				return org.Harness, org.Model
+			}
+			return org.Harness, first(candidate.Models)
 		}
 	}
 	if len(picks) == 0 {

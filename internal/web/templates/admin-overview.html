@@ -45,6 +45,22 @@
     <p class="muted">When the month's spending passes it, this page says so. It stops no job. A team's cap does that.</p>
   </section>
   {{end}}
+
+  {{with .Defaults}}
+  <section class="panel">
+    <h2>New chats</h2>
+    <p>What a new chat runs on until a person chooses their own. A person's last choice comes first.</p>
+    <form method="post" action="/admin/chat-default" class="inline">
+      <label>Engine and model
+        <select name="default">
+          <option value="">The first that can run</option>
+          {{range .}}<option value="{{.Value}}"{{if .Chosen}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </label>
+      <button type="submit">Save</button>
+    </form>
+  </section>
+  {{end}}
 </div>
 
 <div class="panels">

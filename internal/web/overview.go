@@ -32,6 +32,9 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	}
 	budget := s.budgetOf(report.Total.USD)
 	page["Budget"] = budget
+	if s.hasOrgSettings() {
+		page["Defaults"] = s.defaultChoices(r)
+	}
 	running := s.addJobs(page, now)
 	s.addLimits(page, ledger.Policy(), report, budget, running, now)
 	s.addComputers(page)
