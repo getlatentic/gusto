@@ -19,14 +19,20 @@ func (d chatDefault) words() string {
 	return strings.TrimSuffix(d.Harness+" "+d.Model, " ")
 }
 
-// orgDefault is the organisation's default for a new chat, or none when it has no settings or they cannot be read.
+// UseChatDefault is what a new chat runs on when neither the person nor the organisation's admins have chosen: a pair the operator
+// knows finishes a job, so that a first chat on a deployment that offers every model to every engine still gets a reply.
+func (s *Server) UseChatDefault(harness, model string) {
+	s.operatorDefault = chatDefault{Harness: harness, Model: model}
+}
+
+// orgDefault is the organisation's default for a new chat, else the operator's.
 func (s *Server) orgDefault() chatDefault {
 	if s.orgSettings == nil {
-		return chatDefault{}
+		return s.operatorDefault
 	}
 	settings, err := s.orgSettings.Read()
-	if err != nil {
-		return chatDefault{}
+	if err != nil || settings.DefaultHarness == "" {
+		return s.operatorDefault
 	}
 	return chatDefault{Harness: settings.DefaultHarness, Model: settings.DefaultModel}
 }

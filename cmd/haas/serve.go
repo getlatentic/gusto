@@ -149,6 +149,9 @@ func serve(args []string) int {
 	if path := os.Getenv("HAAS_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)
 	}
+	if harness, model, found := strings.Cut(os.Getenv("HAAS_CHAT_DEFAULT"), "="); found {
+		pages.UseChatDefault(strings.TrimSpace(harness), strings.TrimSpace(model))
+	}
 	reg, offeredNow, err := openRegistry(way, func() { pages.UseInBuilding(way.InBuilding()) })
 	if err != nil {
 		return fail(err)
