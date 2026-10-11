@@ -205,6 +205,9 @@ type Env struct {
 	Base       []string
 	ModelURL   string
 	ModelToken string
+	// Home and Data are the harness's home and the folder it keeps its state in when it runs outside a container, where
+	// they stand for /root and /root/.local/share. Empty is a harness in the container its adapter was written for.
+	Home, Data string
 }
 
 // Here is this process's own: what a container's runner and a run on a laptop

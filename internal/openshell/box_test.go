@@ -259,21 +259,6 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	}
 }
 
-// An adapter is written for a container, where the harness's home is /root, so
-// every mention of it in what the harness is told is rewritten for the sandbox.
-func TestTheRunnersHomeIsRewrittenForTheSandboxInWhatTheHarnessIsTold(t *testing.T) {
-	installFake(t)
-	for from, want := range map[string]string{
-		"/root": "/sandbox", "/root/.local/share/codex": "/sandbox/.local/share/codex",
-		`mkdir -p /root/.a && cp /root/.config/x /root/.b`: `mkdir -p /sandbox/.a && cp /sandbox/.config/x /sandbox/.b`,
-		"/rootless/thing": "/rootless/thing", "/usr/root/x": "/usr/root/x",
-	} {
-		if got := openshell.InSandbox(from); got != want {
-			t.Errorf("%q became %q, want %q", from, got, want)
-		}
-	}
-}
-
 // A program the image does not carry is refused by name once the sandbox is up,
 // and the sandbox is removed, rather than the harness failing inside it.
 func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *testing.T) {

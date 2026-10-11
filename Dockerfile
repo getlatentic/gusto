@@ -49,16 +49,17 @@ ARG MCP_SERVERS=""
 RUN if [ -n "$MCP_SERVERS" ]; then npm install -g --no-fund --no-audit $MCP_SERVERS; fi
 LABEL com.getlatentic.haas.mcp="$MCP_SERVERS"
 COPY --from=build /haas /usr/local/bin/haas
-# A harness's own configuration belongs to the image, not to the adapter: the
-# adapter has to stay portable between a laptop and a container. Each harness
-# has a directory of its own under image/harness/, named after it and copied to
-# /root/.config/<name>/, so two harnesses never share a file. What a harness
+# A harness's own configuration is not the adapter's: the adapter has to stay
+# portable between a person's computer and a container. Each harness has a
+# directory of its own under internal/harness/config/, named after it and copied
+# to /root/.config/<name>/, so two harnesses never share a file; on a person's
+# computer haas puts the same files in the harness's home. What a harness
 # keeps between turns, its sessions and settings, is under /root/.local/share,
 # the instance's own state; each adapter points its harness there.
-COPY image/harness/ /root/.config/
+COPY internal/harness/config/ /root/.config/
 # The same files where a sandbox on a gateway can read them: its user has a home
 # of its own and cannot read /root, and copies these into it before a harness starts.
-COPY image/harness/ /opt/haas/harness/
+COPY internal/harness/config/ /opt/haas/harness/
 # The harness runs as node (uid 1000, which the base image has) and the runner
 # as root, so only the runner can write the record in /job/out. The runner
 # gives the harness its workspace and /root before starting it.
