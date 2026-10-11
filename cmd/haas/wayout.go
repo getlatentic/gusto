@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -82,7 +83,7 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		platform: platform,
 		tokens:   tokens,
 		ledger:   ledger,
-		sealed:   os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell",
+		sealed:   os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell" && os.Getenv("HAAS_SANDBOX") != "here",
 		socket:   setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
 		address:  setting("HAAS_PROXY_ADDR", proxyAddress()),
 	}
@@ -311,8 +312,42 @@ func (w *WayOut) InBuilding() bool {
 // a gateway reaches the machine's loopback through the gateway's own proxy, so
 // it need not be on the network at all.
 func proxyAddress() string {
-	if os.Getenv("HAAS_SANDBOX") == "openshell" {
+	if sandbox := os.Getenv("HAAS_SANDBOX"); sandbox == "openshell" || sandbox == "here" {
 		return "127.0.0.1:8041"
 	}
 	return "0.0.0.0:8041"
+}
+
+// hereEnv is what a harness run in the server's own process is started with: the proxy, on this machine's loopback, and the token
+// that stands in for the job's credential, so its calls are capped and recorded as a box's are, and of the server's environment only
+// what a program needs to run. Without a proxy the harness reaches the model it was configured with directly.
+func (w *WayOut) hereEnv(dir job.Dir, spec job.Spec) (harness.Env, error) {
+	url, token := w.direct, ""
+	if w.proxy != nil {
+		minted, err := w.tokenFor(dir, spec)
+		if err != nil {
+			return harness.Env{}, err
+		}
+		url, token = "http://127.0.0.1:"+w.proxyPort()+"/model/v1", minted
+	}
+	base := append(plainEnv(), "HAAS_MODEL_URL="+url)
+	if token != "" {
+		base = append(base, "HAAS_MODEL_TOKEN="+token)
+	}
+	return harness.Env{Base: base, ModelURL: url, ModelToken: token}, nil
+}
+
+// plainEnv is the server's environment without anything that is the server's own: where programs are, who and where the person is,
+// their language and terminal, and where their own configuration lives. A password, a key or a token of the server is in none of it.
+func plainEnv() []string {
+	var kept []string
+	for _, entry := range os.Environ() {
+		name, _, _ := strings.Cut(entry, "=")
+		switch {
+		case slices.Contains([]string{"PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "TERM", "TMPDIR", "TZ"}, name),
+			strings.HasPrefix(name, "LC_"), strings.HasPrefix(name, "XDG_"):
+			kept = append(kept, entry)
+		}
+	}
+	return kept
 }

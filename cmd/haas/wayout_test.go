@@ -51,3 +51,49 @@ func TestAHarnessThatNeedsNoModelIsNotRefusedForWantOfACredential(t *testing.T) 
 		t.Error("a harness that needs a model, or is not found, was said to need none")
 	}
 }
+
+// A job run in the server's own process goes through the proxy as a box does: it is given a token for its credential and the proxy
+// on loopback, and none of the server's environment that is its own.
+func TestAJobRunHereIsGivenTheProxyAndATokenAndNoneOfTheServersSecrets(t *testing.T) {
+	credentials := t.TempDir()
+	os.WriteFile(filepath.Join(credentials, "deepseek.json"),
+		[]byte(`{"address": "https://api.deepseek.com", "key": "sk-the-real-key"}`), 0o600)
+	t.Setenv("HAAS_CREDENTIALS", credentials)
+	t.Setenv("HAAS_SANDBOX", "here")
+	t.Setenv("HAAS_PROXY_ADDR", "")
+	t.Setenv("HAAS_PASSWORD", "the-servers-own-secret")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "an-aws-secret")
+	way, err := openWayOut(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if way.sealed || way.address != "127.0.0.1:8041" {
+		t.Errorf("the proxy is not on loopback for a job run here: sealed %v, %s", way.sealed, way.address)
+	}
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	env, err := way.hereEnv(dir, job.Spec{Brief: "b", Harness: "opencode", Model: "deepseek/deepseek-flash"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.ModelToken == "" || env.ModelURL != "http://127.0.0.1:8041/model/v1" {
+		t.Errorf("the job was not given the proxy and a token: %+v", env)
+	}
+	joined := strings.Join(env.Base, "\n")
+	for _, secret := range []string{"the-servers-own-secret", "an-aws-secret", "sk-the-real-key", "HAAS_CREDENTIALS"} {
+		if strings.Contains(joined, secret) {
+			t.Errorf("%s is in the job's environment", secret)
+		}
+	}
+	for _, want := range []string{"PATH=", "HOME=", "HAAS_MODEL_TOKEN=" + env.ModelToken} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("the job's environment lacks %s", want)
+		}
+	}
+	way.Done(dir)
+	if _, err := way.hereEnv(dir, job.Spec{Brief: "b", Harness: "opencode", Model: "nowhere/model"}); err == nil {
+		t.Error("a job naming a credential the server does not hold was given a token")
+	}
+}
