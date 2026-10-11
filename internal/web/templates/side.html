@@ -1,7 +1,7 @@
-{{define "side"}}<aside class="side" aria-label="Menu">
+{{define "side"}}<aside class="side" id="side" aria-label="Menu">
   <nav class="rail" aria-label="Places">
     <a class="mark" href="/chat" aria-label="Latentic Agent Cloud">{{template "brand-glyph"}}</a>
-    <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Show or hide the conversations">{{template "icon-sidebar"}}</button>
+    <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Conversations" aria-expanded="true" aria-controls="sidepanel">{{template "icon-sidebar"}}</button>
     <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
     <a class="tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
@@ -9,10 +9,10 @@
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
     <span class="grow"></span>
-    <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance">{{template "icon-palette"}}</button>
+    <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance" aria-expanded="false" aria-controls="look">{{template "icon-palette"}}</button>
     <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
-  <div class="sidepanel">
+  <div class="sidepanel" id="sidepanel">
     <div class="sidepanel-head"><span class="name">{{or .Org "Latentic Agent Cloud"}}</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats"></div>{{end}}
@@ -25,16 +25,16 @@
   <div class="resize" id="panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the conversations" tabindex="0"></div>
 </aside>{{end}}
 
-{{define "side-chats"}}<div class="chats">
+{{define "side-chats"}}<nav class="chats" aria-label="Conversations">
   <div class="label">Projects</div>
   {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
   {{with .Older}}<details class="older"><summary>Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
-</div>{{end}}
+</nav>{{end}}
 
 {{define "side-groups"}}{{range .Groups}}
   <section class="proj">
     <details{{if .Open}} open{{end}}>
-      <summary title="{{.Runs}}">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
+      <summary title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
       <ol>
         {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="t">{{.Name}}</span><span class="when">{{ago .When}}</span></a></li>{{end}}
       </ol>

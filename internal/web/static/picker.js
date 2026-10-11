@@ -8,6 +8,10 @@
     var label = root.querySelector(".label");
     var menu = root.querySelector(".menu");
     var options = JSON.parse(root.dataset.options || "[]");
+    var locked = false;
+    menu.id = root.id + "-menu";
+    menu.setAttribute("aria-label", root.dataset.label || "");
+    button.setAttribute("aria-controls", menu.id);
 
     function render() {
       menu.textContent = "";
@@ -23,6 +27,7 @@
         var item = document.createElement("button");
         if (option.kind === "action") { item.className = "action"; }
         item.type = "button";
+        item.tabIndex = -1;
         item.setAttribute("role", "option");
         item.dataset.value = option.value;
         var chosen = option.value === input.value;
@@ -41,10 +46,14 @@
       });
       var current = options.find(function (option) { return !option.kind && option.value === input.value; });
       label.textContent = current ? current.label : (root.dataset.label || "");
+      // The name says what is being chosen as well as what is chosen, and the whole choice is there when the label is cut.
+      button.setAttribute("aria-label", current ? root.dataset.label + ": " + current.label : root.dataset.label || "");
+      label.title = current ? current.label : "";
     }
 
     function close() { root.classList.remove("open"); button.setAttribute("aria-expanded", "false"); }
     function open() {
+      if (locked) { return; }
       root.classList.add("open");
       button.setAttribute("aria-expanded", "true");
       var chosen = menu.querySelector('[aria-selected="true"]') || menu.querySelector("button");
@@ -59,22 +68,24 @@
       if (changed) { root.dispatchEvent(new CustomEvent("pick", { bubbles: true })); }
     }
 
-    button.addEventListener("click", function () { root.classList.contains("open") ? close() : open(); });
+    button.addEventListener("click", function () { if (root.classList.contains("open")) { close(); } else { open(); } });
     menu.addEventListener("click", function (event) {
       var item = event.target.closest("[role=option]");
       if (item) { choose(item.dataset.value); }
     });
+    var moves = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity };
     root.addEventListener("keydown", function (event) {
       var items = Array.prototype.slice.call(menu.querySelectorAll("button"));
       var at = items.indexOf(document.activeElement);
       if (event.key === "Escape" && root.classList.contains("open")) { event.stopPropagation(); close(); button.focus(); }
-      else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      else if (event.key in moves) {
         event.preventDefault();
         if (!root.classList.contains("open")) { open(); return; }
-        var next = event.key === "ArrowDown" ? Math.min(at + 1, items.length - 1) : Math.max(at - 1, 0);
-        items[next].focus();
+        items[Math.max(0, Math.min(items.length - 1, at + moves[event.key]))].focus();
       }
     });
+    // Tabbing out of the menu closes it. A click gives no element to go to, and the click handler below sees to that.
+    root.addEventListener("focusout", function (event) { if (event.relatedTarget && !root.contains(event.relatedTarget)) { close(); } });
     document.addEventListener("click", function (event) { if (!root.contains(event.target)) { close(); } });
 
     root.picker = {
@@ -82,7 +93,8 @@
       setOptions: function (next, value) { options = next; input.value = value || ""; render(); },
       // select chooses one of the options as if it had been picked, and lock says whether the person may choose another.
       select: function (value) { if (value !== input.value) { choose(value); } },
-      lock: function (locked) { button.disabled = locked; root.classList.toggle("locked", locked); if (locked) { close(); } }
+      // A locked picker stays reachable, so that its button's title can say why it is locked.
+      lock: function (lock) { locked = lock; button.setAttribute("aria-disabled", String(lock)); root.classList.toggle("locked", lock); if (lock) { close(); } }
     };
     render();
   }

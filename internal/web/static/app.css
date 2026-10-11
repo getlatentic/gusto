@@ -56,7 +56,8 @@ label .line { display: flex; align-items: baseline; gap: var(--yg-space-2); }
 input, select, textarea { font: inherit; padding: var(--yg-space-3);
   border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm);
   background: var(--yg-surface); color: var(--yg-text); width: 100%; }
-input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible,
+summary:focus-visible, :where([tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 0.125rem solid var(--yg-focus); outline-offset: 0.125rem; }
 textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
 button { font: 600 inherit; cursor: pointer; padding: var(--yg-space-3) var(--yg-space-6);
@@ -144,6 +145,16 @@ a.button { display: inline-flex; align-items: center; gap: var(--yg-space-2); te
 a.button:hover { background: var(--yg-accent-hover); }
 a.button svg.i { opacity: 1; }
 .sr { position: absolute; width: 0.0625rem; height: 0.0625rem; overflow: hidden; clip-path: inset(50%); }
+.skip { position: absolute; left: var(--yg-space-3); top: var(--yg-space-3); z-index: 100; padding: var(--yg-space-2) var(--yg-space-4); border-radius: var(--yg-radius-sm);
+  background: var(--yg-surface); color: var(--yg-text); box-shadow: var(--yg-shadow-2); transform: translateY(-200%); }
+.skip:focus { transform: none; }
+
+/* Nothing moves for a person who has asked for less motion. The spinner keeps a still ring, in chat.css. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important;
+    animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
 .empty { padding: var(--yg-space-12) var(--yg-space-6); text-align: center;
   background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
 .empty p { margin: 0 0 var(--yg-space-3); }
@@ -516,7 +527,6 @@ details.more[open] > summary { margin-bottom: var(--yg-space-4); }
 .choice .tag { justify-self: start; font-size: .8125rem; font-weight: 500; color: var(--yg-text-subtle); }
 .choice.blank { background: var(--yg-surface); border: 0.0938rem dashed var(--yg-border-strong); }
 .choice.blank:hover { border-color: var(--yg-accent); }
-@media (prefers-reduced-motion: reduce) { .choice { transition: none; } .choice:hover { transform: none; } }
 
 /* Your agents, a page at a time. */
 table.agents { table-layout: fixed; }
@@ -631,3 +641,11 @@ label.engine input { width: auto; grid-row: 1 / 3; align-self: center; margin: 0
 label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--yg-text-muted); font-size: .875rem; }
 h2.plain { margin: 0; font: 600 1.25rem/1.3 var(--yg-font-display); letter-spacing: -.01em; text-transform: none; color: var(--yg-text); }
+
+/* Under forced colours, shadows and backgrounds are dropped: where they marked the current choice, the system's selected colours do,
+   and a status dot keeps its own colour. */
+
+@media (forced-colors: active) {
+  .segments a[aria-current], .threads a[aria-current] { forced-color-adjust: none; background: SelectedItem; color: SelectedItemText; }
+  .dot { forced-color-adjust: none; }
+}

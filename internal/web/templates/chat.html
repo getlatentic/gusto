@@ -2,14 +2,14 @@
 
 <section class="talk fresh">
   <div class="fresh-body">
-    <h2>What are we working on?</h2>
-    {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+    <h1>What are we working on?</h1>
+    {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if .Picks}}
     <div class="composer">
     <form class="column" method="post" action="/chat">
       <div class="box">
-        <textarea name="said" rows="1" placeholder="Message" autofocus required></textarea>
+        <textarea name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
         <div class="tools">
           <div class="folderpick" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
             <input type="hidden" name="at">
@@ -21,18 +21,18 @@
           <span class="grow"></span>
           <div class="picker" id="role-pick" data-picker data-options="{{.Roles}}" data-label="Preset">
             <input type="hidden" name="choice" value="{{.Role}}">
-            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Preset</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>
           <input type="hidden" name="role" id="role-value">
           <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Engine">
             <input type="hidden" name="harness" value="{{.Harness}}">
-            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Engine</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>
           <div class="picker" id="model-pick" data-picker data-label="Model">
             <input type="hidden" name="model" value="{{.Model}}">
-            <button type="button" aria-haspopup="listbox"><span class="label"></span>{{template "icon-chevron"}}</button>
+            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Model</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>
           <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
