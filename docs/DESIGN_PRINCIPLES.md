@@ -1,6 +1,19 @@
 # Design principles
 
-These rules settle design arguments. Every rule has a check. A check is one of three kinds:
+## The first rule: simple on top, powerful underneath
+
+A person sees one simple thing. The server does the hard work behind it.
+
+- **One action to start.** Open the app, say what you want, send. The agent, model, sandbox, folder and keys have defaults, so nothing is chosen before a person can begin.
+- **Choices appear when they matter.** Engine, model and preset are behind a menu with a good default. Settings for an organisation live in the admin pages, not in a person's way.
+- **The person's words.** Never "harness", "proxy", "sandbox driver" or "cell". Say "your computer", "what it changed", "what it cost".
+- **The same everywhere.** The computer can be the person's laptop or in the cloud, and the front end can be the app, the terminal or the browser. A person does the same thing in each.
+- **Power stays reachable.** An admin, or a person who looks for it, can reach every control: engines, models, policy, records, spend.
+- **Failures speak the person's language too.** When the machinery fails, the screen says what happened and what to do, not how the machinery works.
+
+The test for a feature: a person using it for the first time needs no new word, and an admin can still reach all of its control. If the power has to show on the surface to work, the default is wrong.
+
+The rules below make this checkable. Every rule has a check. A check is one of three kinds:
 
 - **Auto**: `scripts/design-audit.js` or a browser test measures it.
 - **Walk**: a reviewer does it in the running app (keyboard, zoom, stop an agent, switch theme).
