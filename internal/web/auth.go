@@ -85,7 +85,7 @@ func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, ro
 // for a program they keep, such as the desktop app.
 func (k *keeper) issueLasting(w http.ResponseWriter, r *http.Request, who string, role Role, life time.Duration) {
 	until := time.Now().Add(life).Unix()
-	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + who
+	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + cookieWho(who)
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie(r),
 		Value:    value + "." + k.sign(value),
@@ -166,7 +166,21 @@ func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
 	if err != nil || time.Now().Unix() >= until {
 		return "", "", false
 	}
-	return parts[2], Role(parts[1]), true
+	return whoInCookie(parts[2]), Role(parts[1]), true
+}
+
+// cookieWho is a name as a cookie can carry it. A cookie's value cannot hold a space, a quote, a comma, a backslash or a
+// letter outside ASCII, and a name can: Windows names a person COMPUTER\person.
+func cookieWho(who string) string { return "~" + base64.RawURLEncoding.EncodeToString([]byte(who)) }
+
+// whoInCookie is the name cookieWho wrote, or the name itself in a cookie made before names were written that way.
+func whoInCookie(held string) string {
+	if encoded, found := strings.CutPrefix(held, "~"); found {
+		if who, err := base64.RawURLEncoding.DecodeString(encoded); err == nil {
+			return string(who)
+		}
+	}
+	return held
 }
 
 // knows reports whether this request carries a signature this server made and
