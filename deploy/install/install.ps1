@@ -7,6 +7,7 @@
 #   .\install.ps1 -Tag v0.0.1-alpha.5
 #   .\install.ps1 -Programs haas-helper
 #   .\install.ps1 -NoStart              # install, and do not start haas for this person
+#   $env:HAAS_RELEASE_URL = "http://10.0.2.2:8000"; .\install.ps1 -Tag v0.0.0-test   # a release's files from another address
 #
 # Once haas is installed it is started for the person running this, at logon and now, and opened in their browser, signed in.
 param(
@@ -21,15 +22,19 @@ $ErrorActionPreference = "Stop"
 function Fail($message) { Write-Error "install: $message"; exit 1 }
 $arch = switch ($env:PROCESSOR_ARCHITECTURE) { "AMD64" { "amd64" } "ARM64" { "arm64" } default { Fail "$($env:PROCESSOR_ARCHITECTURE) is a processor no package is built for" } }
 
-# The GitHub command line reads a private release; a public one is read with no account.
+# The GitHub command line reads a private release; a public one is read with no account. HAAS_RELEASE_URL is a folder with a
+# release's files in it, such as a test build served to a machine that cannot reach GitHub.
+$from = $env:HAAS_RELEASE_URL
 $viaGh = $false
-if (Get-Command gh -ErrorAction SilentlyContinue) {
+if (-not $from -and (Get-Command gh -ErrorAction SilentlyContinue)) {
   gh auth status 2>$null | Out-Null
   $viaGh = ($LASTEXITCODE -eq 0)
 }
 
 function Fetch($name, $into) {
-  if ($viaGh) {
+  if ($from) {
+    Invoke-WebRequest -UseBasicParsing -Uri ($from.TrimEnd("/") + "/$name") -OutFile (Join-Path $into $name)
+  } elseif ($viaGh) {
     gh release download $Tag -R $Repo -D $into -p $name
     if ($LASTEXITCODE -ne 0) { throw "gh could not download $name" }
   } else {
@@ -38,6 +43,7 @@ function Fetch($name, $into) {
 }
 
 if ($Tag -eq "latest") {
+  if ($from) { Fail "HAAS_RELEASE_URL needs the release's tag, as -Tag" }
   if ($viaGh) {
     $Tag = (gh release list -R $Repo --limit 1 --json tagName --jq ".[0].tagName")
   } else {
@@ -49,9 +55,10 @@ if ($Tag -eq "latest") {
 $work = Join-Path ([System.IO.Path]::GetTempPath()) ("haas-install-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $work | Out-Null
 try {
-  try { Fetch "SHA256SUMS" $work; Fetch "SHA256SUMS.sigstore.json" $work } catch { Fail "the release $Tag cannot be read from here" }
+  try { Fetch "SHA256SUMS" $work } catch { Fail "the release $Tag cannot be read from here" }
 
   if (Get-Command cosign -ErrorAction SilentlyContinue) {
+    try { Fetch "SHA256SUMS.sigstore.json" $work } catch { Fail "the release $Tag has no signature for its checksums" }
     cosign verify-blob (Join-Path $work "SHA256SUMS") --bundle (Join-Path $work "SHA256SUMS.sigstore.json") `
       --certificate-identity "https://github.com/$Repo/.github/workflows/release.yml@refs/tags/$Tag" `
       --certificate-oidc-issuer https://token.actions.githubusercontent.com 2>$null | Out-Null

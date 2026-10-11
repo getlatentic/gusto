@@ -40,6 +40,24 @@ haas local stop        # stop it until the next login
 haas local uninstall   # remove the service; the data folder stays
 ```
 
+## Testing an install without a release
+
+`deploy/install/test-release.sh` builds haas from a checkout into a folder laid out as a release, with its checksums and the
+install scripts. Serve the folder and point `HAAS_RELEASE_URL` at it to run the real install on a clean machine:
+
+```bash
+deploy/install/test-release.sh v0.0.0-test dist/test-release linux/arm64
+python3 -m http.server -d dist/test-release 8000
+```
+
+On the test machine:
+
+```bash
+curl -fsSL http://<this machine>:8000/install.sh | HAAS_RELEASE_URL=http://<this machine>:8000 HAAS_PROGRAMS=haas sh -s v0.0.0-test
+```
+
+The build is not signed, so a machine with cosign installed refuses it.
+
 ## Not yet
 
 - Jobs run in the server's own process (`HAAS_SANDBOX=here`): through the proxy, with none of the server's secrets, and with no
