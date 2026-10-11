@@ -45,6 +45,7 @@ On AWS an `m8i.xlarge` launched with nested virtualization does, and
 | `HAAS_OPENSHELL_IMAGE` | what a sandbox is made from: an image reference the gateway can pull, or the path of a root file system archive on the gateway's machine. It carries the harness programs. Unset is the gateway's own image, which carries none |
 | `HAAS_OPENSHELL_HOST` | the name a sandbox gives the gateway's machine, `host.openshell.internal` by default |
 | `HAAS_OPENSHELL_CPU`, `HAAS_OPENSHELL_MEMORY` | limits for one sandbox, `1` and `3Gi` by default |
+| `HAAS_OPENSHELL_PROCESSES` | the most processes a harness's user may have in a sandbox, `512` by default. The VM driver enforces no limit of its own, so the command that starts a harness sets it with `ulimit`, and a sandbox where it cannot be set runs nothing |
 | `HAAS_ALLOWED_HOSTS` | the hosts a job may reach besides its model, as for containers; each becomes a network rule |
 
 The proxy listens on `127.0.0.1:8041` in this mode, and `HAAS_PROXY_ADDR` changes
@@ -82,7 +83,8 @@ A policy is written for each job. Everything not named is denied.
 | --- | --- |
 | the proxy, `host.openshell.internal` on its port | always. It holds the model credential, and the sandbox has only a token that stands in for it |
 | each allowed host and port | `HAAS_ALLOWED_HOSTS`: a host is ports 80 and 443, `host:port` is one, and `*.domain` is every name under it |
-| `/usr`, `/lib`, `/bin`, `/etc`, `/proc` read-only | the system a sandbox needs to start |
+| `/usr`, `/lib`, `/bin`, `/opt`, `/proc` read-only | the system a sandbox needs to start |
+| of `/etc`, only what a program needs, read-only | users and groups, name resolution, certificates and the library cache (`systemReads` in `internal/openshell/policy.go`). `/etc/shadow`, the rest of `/etc` and `/var/log` are not readable. A path named here must exist in the image, or the sandbox does not start |
 | `/sandbox`, `/tmp` and the harness's own folder read-write | the workspace is `/sandbox/workspace` |
 | `/dev/ptmx` and `/dev/pts` read-write | a harness's shell tool opens a pseudo-terminal for each command. codex failed every one without them |
 
@@ -142,7 +144,6 @@ batches and the last moment of a run arrives late.
   name before anything starts.
 - **`haas verify`.** It re-runs the gate where it is run, which for a job that ran
   in a sandbox is the verifier's machine and not a sandbox.
-- **A process limit.** The VM driver says it cannot enforce one.
 
 ## Measured
 
