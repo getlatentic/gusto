@@ -29,7 +29,7 @@ command line, signed in.
 | The data: jobs, conversations, presets, records | macOS `~/Library/Application Support/haas`, Linux `$XDG_DATA_HOME/haas` or `~/.local/share/haas`, Windows `%LOCALAPPDATA%\haas\data`. `HAAS_LOCAL_HOME` names another folder |
 | `local.json`: the port and the secret | in that folder, readable by this person alone. The secret is the server's password and the key its sign-in links are made with |
 | The service | macOS a launch agent, `~/Library/LaunchAgents/com.latentic.haas.plist`. Linux a systemd user unit, `~/.config/systemd/user/haas.service`. Windows a task, `Latentic haas`, run at logon |
-| The log | `haas.log` in the data folder on macOS; the journal on Linux |
+| The log | `haas.log` in the data folder on macOS and Windows; the journal on Linux |
 
 It listens on `127.0.0.1`, on port 7140 when that is free the first time, and refuses to start on any other address.
 

@@ -9,3 +9,4 @@ var errNoService = errors.New("haas cannot make itself a service on this system:
 func installService(home string) error { return errNoService }
 func stopService() error               { return errNoService }
 func uninstallService() error          { return errNoService }
+func keepLog(string) error             { return nil }

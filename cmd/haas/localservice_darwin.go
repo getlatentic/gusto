@@ -92,3 +92,6 @@ func xmlText(text string) string {
 	xml.EscapeText(&escaped, []byte(text))
 	return escaped.String()
 }
+
+// keepLog leaves the log where the service manager puts it.
+func keepLog(string) error { return nil }

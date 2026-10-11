@@ -1,11 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // taskName names haas to the Task Scheduler.
@@ -43,7 +48,7 @@ func stopService() error {
 	if out, err := exec.Command("schtasks", "/End", "/TN", taskName).CombinedOutput(); err != nil {
 		return fmt.Errorf("schtasks /End: %w: %s", err, out)
 	}
-	return nil
+	return endRunning()
 }
 
 func uninstallService() error {
@@ -51,5 +56,40 @@ func uninstallService() error {
 	if out, err := exec.Command("schtasks", "/Delete", "/F", "/TN", taskName).CombinedOutput(); err != nil {
 		return fmt.Errorf("schtasks /Delete: %w: %s", err, out)
 	}
+	return endRunning()
+}
+
+// endRunning ends the haas the task started. Ending the task ends the console it runs in and not haas, so haas says which
+// process it is in haas.pid.
+func endRunning() error {
+	home, err := localHome()
+	if err != nil {
+		return err
+	}
+	text, err := os.ReadFile(filepath.Join(home, "haas.pid"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(text)))
+	if err != nil || pid == os.Getpid() {
+		return nil
+	}
+	if out, err := exec.Command("taskkill", "/F", "/PID", strconv.Itoa(pid), "/FI", "IMAGENAME eq haas.exe").CombinedOutput(); err != nil {
+		return fmt.Errorf("taskkill: %w: %s", err, out)
+	}
+	return os.Remove(filepath.Join(home, "haas.pid"))
+}
+
+// keepLog writes haas's log to haas.log in its folder, since the console the task gives it is one nobody sees.
+func keepLog(home string) error {
+	file, err := os.OpenFile(filepath.Join(home, "haas.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	os.Stdout, os.Stderr = file, file
+	log.SetOutput(file)
 	return nil
 }
