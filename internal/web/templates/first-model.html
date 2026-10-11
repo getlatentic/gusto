@@ -1,0 +1,28 @@
+{{define "first-model"}}
+<form class="card column first-model" method="post" action="/setup/model">
+  <p>Add the model you use. Its key stays on this computer with haas, and no agent is given it.</p>
+  <label>Provider
+    <select id="preset">
+      {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
+      <option value="" data-auth="">Another</option>
+    </select>
+  </label>
+  <label>Address <input name="address" id="address" required placeholder="https://api.example.com"></label>
+  <label>Answers like
+    <select name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>
+  </label>
+  <label>Key <input type="password" name="key" id="key" autocomplete="off"></label>
+  <label>Models
+    <span class="line"><input name="models" id="models" required placeholder="one or more, separated by commas" list="found-models"><button type="button" id="list-models" class="quiet-button">List my models</button></span>
+    <span class="muted" id="list-said" role="status"></span>
+  </label>
+  <datalist id="found-models"></datalist>
+  <button type="submit">Add</button>
+  {{with .Missing}}
+  <div class="muted">
+    <p>Engines not on this computer yet:</p>
+    <ul>{{range .}}<li>{{.Title}}: {{.Why}}</li>{{end}}</ul>
+  </div>
+  {{end}}
+</form>
+{{end}}

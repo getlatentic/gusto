@@ -39,13 +39,13 @@ func (s *Server) runnersOf(held industry.Template) []catalog.Entry {
 	}
 	var fit []catalog.Entry
 	for _, name := range held.Harnesses {
-		for _, entry := range s.catalog {
+		for _, entry := range s.engines() {
 			if entry.Name == name && takes(entry) {
 				fit = append(fit, entry)
 			}
 		}
 	}
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if takes(entry) && !slices.Contains(held.Harnesses, entry.Name) {
 			fit = append(fit, entry)
 		}

@@ -143,6 +143,10 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	if os.Getenv("HAAS_SANDBOX") == "here" {
+		// A person installs a harness on their own computer while the server runs, and looking at the PATH costs nothing.
+		pages.UseLiveCatalog(func() []catalog.Entry { return surveyed(harness.Names()) })
+	}
 	if sharing != nil {
 		pages.UseApps(sharing.store, sharing)
 	}
@@ -379,7 +383,12 @@ func pointAt(workspace string, dir job.Dir) error {
 	if err := os.Remove(dir.Workspace()); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	return os.Symlink(workspace, dir.Workspace())
+	// A link's relative target is read from the link's own folder, not from where the server runs.
+	target, err := filepath.Abs(workspace)
+	if err != nil {
+		return err
+	}
+	return os.Symlink(target, dir.Workspace())
 }
 
 // staying is what a turn needs that outlives its container: the conversation's
@@ -396,10 +405,14 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 	}
 }
 
-// surveyed is what this deployment's image carries. In a container that is asked
-// of the runtime, and in a sandbox on a gateway it is asked of a sandbox.
+// surveyed is the harnesses this deployment can run. In a container that is asked
+// of the runtime, in a sandbox on a gateway it is asked of a sandbox, and a job
+// run in this process finds its program on this computer's PATH.
 func surveyed(names []string) []catalog.Entry {
-	if os.Getenv("HAAS_SANDBOX") == "openshell" {
+	switch os.Getenv("HAAS_SANDBOX") {
+	case "here":
+		return catalog.SurveyOf(catalog.Machine(), names)
+	case "openshell":
 		if cfg, err := openshell.FromEnv(); err == nil {
 			return catalog.SurveyOf(openshell.Remembered(openshell.Image(cfg), cfg.Image), names)
 		}

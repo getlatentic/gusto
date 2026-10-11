@@ -25,7 +25,7 @@ type engineJSON struct {
 func (s *Server) enginesJSON(w http.ResponseWriter, r *http.Request) {
 	offered := s.offeredTo(r)
 	out := []engineJSON{}
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		models := offered
 		if models == nil {
 			models = []string{}

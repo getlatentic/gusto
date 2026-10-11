@@ -1,6 +1,11 @@
 package harness
 
-import "testing"
+import (
+	"slices"
+	"testing"
+
+	"github.com/getlatentic/haas/internal/job"
+)
 
 // An adapter is written for a container, where the harness's home is /root, so every mention of it is moved to the home it
 // has elsewhere, and nothing that only looks like it.
@@ -30,5 +35,17 @@ func TestAnAdapterAtAnotherHomeNamesItAndTheOriginalIsUnchanged(t *testing.T) {
 	}
 	if adapter.Argv[0] != "--config=/root/.x" || adapter.Env["X_HOME"] != "/root/.local/share/x" {
 		t.Errorf("the original changed: %+v", adapter)
+	}
+}
+
+// A harness that runs only the models its configuration names is told the credential and the model a job names, and a
+// provider called haas, which its configuration turns off, when the job names none.
+func TestAHarnessIsToldTheJobsCredentialAndModelApart(t *testing.T) {
+	adapter := Adapter{Program: "x", Env: map[string]string{"P": "{modelProvider}", "M": "{modelId}"}}
+	for model, want := range map[string][2]string{"local/fake-small": {"local", "fake-small"}, "": {"haas", ""}, "bare": {"haas", "bare"}} {
+		command := adapter.CommandIn(t.Context(), job.Spec{Model: model}, t.TempDir(), Env{})
+		if !slices.Contains(command.Env, "P="+want[0]) || !slices.Contains(command.Env, "M="+want[1]) {
+			t.Errorf("%q: %v", model, command.Env)
+		}
 	}
 }
