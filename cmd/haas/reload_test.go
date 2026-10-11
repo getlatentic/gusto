@@ -141,7 +141,7 @@ func TestAJobThatIsRunningKeepsCallingItsModelWhenTheCredentialAndTheLimitsChang
 	if got := r.index.Limits(); got.Person != 3 || got.Team != 5 {
 		t.Errorf("limits after the change: %+v", got)
 	}
-	if offered := r.pages.models().For("opencode"); strings.Join(offered, ",") != "platform/first,platform/second" {
+	if offered := r.pages.models(); strings.Join(offered, ",") != "platform/first,platform/second" {
 		t.Errorf("the models offered after the change: %v", offered)
 	}
 

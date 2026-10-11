@@ -39,13 +39,13 @@ func (s *Server) runnersOf(held industry.Template) []catalog.Entry {
 	}
 	var fit []catalog.Entry
 	for _, name := range held.Harnesses {
-		for _, entry := range s.entries() {
+		for _, entry := range s.catalog {
 			if entry.Name == name && takes(entry) {
 				fit = append(fit, entry)
 			}
 		}
 	}
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if takes(entry) && !slices.Contains(held.Harnesses, entry.Name) {
 			fit = append(fit, entry)
 		}
@@ -90,13 +90,13 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "this work has to stay in your network, and no model here is")
 		return
 	}
-	if s.limitedAway(r, chosen) {
-		s.turnAway(w, r, back, "you may not use any model that works with "+chosen)
+	if s.limitedAway(r) {
+		s.turnAway(w, r, back, limitedWords)
 		return
 	}
 	wanted := instance.Instance{
 		Title:   held.Title,
-		Harness: chosen, Model: s.offeredTo(r).First(chosen), Setup: held.Name,
+		Harness: chosen, Model: first(s.offeredTo(r)), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}
 	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)

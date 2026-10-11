@@ -11,8 +11,7 @@ import (
 	"github.com/getlatentic/haas/internal/signing"
 )
 
-// Two engines, and models that only the first of them can use: what a host has when one
-// credential answers one engine.
+// Two engines that can both run anything.
 func claudeAndFixture() []catalog.Entry {
 	ready := func(name string) catalog.Entry {
 		return catalog.Entry{Name: name, Program: "sh", Needs: harness.NeedsNothing, Ready: true, Skills: true, MCP: true}
@@ -27,55 +26,42 @@ func modelSite(t *testing.T, models Models) *site {
 	return site
 }
 
-func TestAnAgentIsNotStartedOnAModelItsEngineCannotUse(t *testing.T) {
-	site := modelSite(t, Models{"": {"platform/qwen", "anthropic/deepseek"}, "fixture": {"platform/qwen"}, "claude": {}})
-
-	for name, form := range map[string]url.Values{
-		"an engine no model serves":            {"harness": {"claude"}},
-		"an engine with a model it cannot use": {"harness": {"fixture"}, "model": {"anthropic/deepseek"}},
-		"a model that is not offered at all":   {"harness": {"fixture"}, "model": {"platform/nothing"}},
-	} {
-		got := site.ask(t, "POST", "/instances", form)
-		if where := got.Header().Get("Location"); !strings.Contains(where, "refused=") || strings.Contains(where, "/threads/") {
-			t.Errorf("%s was started: %d to %q", name, got.Code, where)
+// Every engine is offered every model: which pairs work well is the person's to find out. A model that is not offered
+// is refused, however the request was made.
+func TestEveryEngineStartsOnEveryModelOfferedAndOnNoOther(t *testing.T) {
+	site := modelSite(t, Models{"platform/qwen", "anthropic/deepseek"})
+	for _, engine := range []string{"claude", "fixture"} {
+		for _, model := range []string{"platform/qwen", "anthropic/deepseek"} {
+			got := site.ask(t, "POST", "/instances", url.Values{"harness": {engine}, "model": {model}})
+			if !strings.Contains(got.Header().Get("Location"), "/threads/") {
+				t.Errorf("%s on %s was refused: %q", engine, model, got.Header().Get("Location"))
+			}
 		}
 	}
-	if len(site.server.instances.List()) != 0 {
-		t.Error("an agent was made for a pair that cannot work")
+	if page := site.ask(t, "GET", "/new/blank", nil).Body.String(); !strings.Contains(page, `value="claude"`) || !strings.Contains(page, `value="fixture"`) {
+		t.Errorf("the form offers every engine:\n%s", page)
 	}
-	if got := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
-		t.Errorf("a pair that works is started: %q", got.Header().Get("Location"))
+	before := len(site.server.instances.List())
+	if got := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/nothing"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
+		t.Errorf("a model that is not offered was started: %q", got.Header().Get("Location"))
 	}
-	if got := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
-		t.Errorf("no model named is the first it can use: %q", got.Header().Get("Location"))
+	if len(site.server.instances.List()) != before {
+		t.Error("an agent was made on a model nobody offers")
 	}
-}
-
-func TestAnEngineNoModelServesIsNotOfferedAndAgentsStartOnTheOneThatWorks(t *testing.T) {
-	site := modelSite(t, Models{"": {"platform/qwen"}, "fixture": {"platform/qwen"}, "claude": {}})
-
-	page := site.ask(t, "GET", "/new/blank", nil).Body.String()
-	if strings.Contains(page, `value="claude"`) {
-		t.Errorf("an engine nothing serves is offered on the form:\n%s", page)
+	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"claude"}})
+	id := strings.TrimPrefix(started.Header().Get("Location"), "/instances/")
+	id = id[:strings.Index(id, "/")]
+	if held, _ := site.server.instances.Get(id); held.Model != "platform/qwen" {
+		t.Errorf("no model named is the first offered: %+v", held)
 	}
-	if got := site.ask(t, "GET", "/instances/new?harness=claude", nil); !strings.Contains(got.Header().Get("Location"), "refused=") {
-		t.Errorf("its set-up page opened: %d", got.Code)
-	}
-	started := site.ask(t, "POST", "/instances", url.Values{})
-	instance := strings.TrimPrefix(started.Header().Get("Location"), "/instances/")
-	instance = instance[:strings.Index(instance, "/")]
-	if held, _ := site.server.instances.Get(instance); held.Harness != "fixture" || held.Model != "platform/qwen" {
-		t.Errorf("a blank agent is started on what works: %+v", held)
-	}
-	// And a deployment that names no model at all leaves an engine to its own default.
-	open := modelSite(t, Everything(nil))
+	open := modelSite(t, Models(nil))
 	if got := open.ask(t, "POST", "/instances", url.Values{"harness": {"claude"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
 		t.Errorf("with no models named an engine uses its own: %q", got.Header().Get("Location"))
 	}
 }
 
-func TestAPersonChangesTheModelOfTheirAgentAmongThoseItsEngineCanUse(t *testing.T) {
-	site := modelSite(t, Models{"": {"a/one", "a/two", "b/other"}, "fixture": {"a/one", "a/two"}})
+func TestAPersonChangesTheModelOfTheirAgentAmongThoseOffered(t *testing.T) {
+	site := modelSite(t, Models{"a/one", "a/two"})
 	mine, theirs := site.as(t, alice), site.as(t, bob)
 	where, thread := started(t, mine)
 	id := strings.TrimPrefix(where, "/instances/")
@@ -83,8 +69,8 @@ func TestAPersonChangesTheModelOfTheirAgentAmongThoseItsEngineCanUse(t *testing.
 	if model() != "a/one" {
 		t.Fatalf("started on %q", model())
 	}
-	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `action="/instances/`+id+`/model"`) || !strings.Contains(page, `value="a/two"`) || strings.Contains(page, `value="b/other"`) {
-		t.Errorf("the page offers the engine's models and no others:\n%s", page)
+	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `action="/instances/`+id+`/model"`) || !strings.Contains(page, `value="a/two"`) {
+		t.Errorf("the page offers the models offered:\n%s", page)
 	}
 
 	if got := mine.ask(t, "POST", where+"/model", url.Values{"model": {"a/two"}}); got.Code != http.StatusSeeOther || strings.Contains(got.Header().Get("Location"), "refused") || model() != "a/two" {
@@ -97,9 +83,8 @@ func TestAPersonChangesTheModelOfTheirAgentAmongThoseItsEngineCanUse(t *testing.
 	}
 
 	for name, form := range map[string]url.Values{
-		"a model the engine cannot use": {"model": {"b/other"}},
-		"a model nobody offers":         {"model": {"nope/nope"}},
-		"no model":                      {"model": {""}},
+		"a model nobody offers": {"model": {"nope/nope"}},
+		"no model":              {"model": {""}},
 	} {
 		if got := mine.ask(t, "POST", where+"/model", form); !strings.Contains(got.Header().Get("Location"), "refused=") || model() != "a/two" {
 			t.Errorf("%s: %q, and it is on %q", name, got.Header().Get("Location"), model())
@@ -111,7 +96,7 @@ func TestAPersonChangesTheModelOfTheirAgentAmongThoseItsEngineCanUse(t *testing.
 }
 
 func TestAnAgentWithOneModelToUseIsShownItAndNoChooser(t *testing.T) {
-	site := modelSite(t, Models{"": {"a/one"}})
+	site := modelSite(t, Models{"a/one"})
 	where := startedInstance(t, site)
 	if page := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(page, "/model\"") {
 		t.Errorf("a chooser with nothing to choose:\n%s", page)

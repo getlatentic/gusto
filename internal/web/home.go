@@ -105,7 +105,7 @@ func (s *Server) rolesToChoose() ([]role, []string) {
 // readyEngines is the agents this deployment can start now.
 func (s *Server) readyEngines() []catalog.Entry {
 	var ready []catalog.Entry
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Ready {
 			ready = append(ready, entry)
 		}

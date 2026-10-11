@@ -36,20 +36,21 @@ Many providers answer Chat Completions alone, such as the Gemma models on Amazon
 Responses to such a provider is translated into Chat Completions, and the answer, streamed or whole, is translated
 back. So Claude Code and Codex can use any model a deployment connects. The code is `internal/wire`.
 
-A credential turns translation on by naming the shapes its provider answers:
+A credential with a bearer token is taken to answer Chat Completions and Responses, and one with Anthropic's header
+to answer Messages. A call in a shape it does not answer is translated into Chat Completions when it answers that, so
+Claude Code can use any OpenAI-compatible key with no more said. A credential names its shapes when they are fewer:
 
 ```json
 {"address": "https://bedrock-mantle.us-east-1.api.aws/openai", "auth": "bearer", "key": "...",
- "wires": ["chat"], "maxOutput": 8192, "harnesses": ["opencode", "pi", "hermes", "claude", "codex"]}
+ "wires": ["chat"], "maxOutput": 8192}
 ```
 
 | Field | What it says |
 | --- | --- |
-| `wires` | The shapes the provider answers: `chat`, `messages`, `responses`. A call in another shape is translated when `chat` is one of them. With no `wires`, a call goes as it came, as it always has. |
+| `wires` | The shapes the provider answers: `chat`, `messages`, `responses`. A call in another shape is translated when `chat` is one of them. With no `wires`, the shapes are the ones its `auth` implies. |
 | `maxOutput` | The most the provider lets a model write in one answer. A translated call that asks for more is held to it, because a harness asks for what its own provider allows. |
-| `harnesses` | The harnesses the credential serves. With none, it serves every harness that its shapes reach. |
 
-The pages offer a harness a model when the model's credential reaches the harness's shape, as it is or translated.
+The pages offer every harness every model. Which pairs work well is for the person to find out.
 
 What one shape has and Chat Completions cannot carry is left out, not imitated:
 

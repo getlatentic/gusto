@@ -104,15 +104,20 @@ func TestCodexsCallIsTranslatedTheSameWay(t *testing.T) {
 	}
 }
 
-// A credential that names no wires is a provider that answers what its authentication says, and a call goes to it as
-// it came, as it always has: translation is something a deployment turns on for a provider it has measured.
-func TestACredentialThatNamesNoWiresIsSentEveryCallAsItCame(t *testing.T) {
+// A key that names no wires and takes a bearer token is an OpenAI-compatible provider, which a person adds without
+// saying more: Claude Code's calls are translated for it, so that every engine can use its models, and Codex's go as
+// they came, since such a provider may answer the Responses API itself.
+func TestAnOpenAICompatibleKeyThatNamesNoWiresHasClaudeCodesCallsTranslated(t *testing.T) {
 	proxy, token, record, provider := translating(t, nil)
-	answer := askAs(proxy, "/model/v1/messages", `{"model":"fixture-model","messages":[]}`, map[string]string{"x-api-key": token})
-	if provider.path != "/openai/v1/messages" || answer.Code != http.StatusNotFound {
-		t.Errorf("%s: %d", provider.path, answer.Code)
+	askAs(proxy, "/model/v1/messages", `{"model":"fixture-model","max_tokens":10,"messages":[{"role":"user","content":"hi"}]}`, map[string]string{"x-api-key": token})
+	if provider.path != "/openai/v1/chat/completions" {
+		t.Errorf("Claude Code's call went to %s", provider.path)
 	}
-	if seen := calls(t, record)[0]; seen.Translated != "" {
+	askAs(proxy, "/model/v1/responses", `{"model":"fixture-model","input":"hi"}`, map[string]string{"Authorization": "Bearer " + token})
+	if provider.path != "/openai/v1/responses" {
+		t.Errorf("Codex's call went to %s", provider.path)
+	}
+	if seen := calls(t, record); seen[0].Translated != "messages" || seen[1].Translated != "" {
 		t.Errorf("the record is %+v", seen)
 	}
 }
