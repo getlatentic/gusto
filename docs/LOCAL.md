@@ -11,9 +11,16 @@ On macOS and Linux:
 curl -fsSL https://github.com/getlatentic/haas/releases/latest/download/install.sh | sh
 ```
 
-On Windows, in PowerShell. Windows refuses to run a downloaded script by default, so the script is read and run in one step:
+On Windows, in PowerShell. Windows refuses to run a downloaded script file by default, so the script is read and run in one
+step, which it allows:
 
 ```powershell
+irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex
+```
+
+In the Command Prompt, the same through PowerShell:
+
+```bat
 powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"
 ```
 
