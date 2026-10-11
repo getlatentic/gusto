@@ -93,11 +93,11 @@ The release workflow signs each update with the key in the repository secret `TA
 
 ## Installing the helper
 
-Each release has the helper for macOS, Linux and Windows, on Intel and Arm, as
-`haas-helper_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), with a `SHA256SUMS`
-that the release workflow signs with its own identity (cosign, keyless). The releases are
-private, so the install scripts use the GitHub command line, signed in to an account that can
-read them:
+Each release has the helper and `haas` for macOS, Linux and Windows, on Intel and Arm, as
+`haas-helper_<release>_<system>_<processor>.tar.gz` and `haas_<release>_<system>_<processor>.tar.gz`
+(a `.zip` on Windows), with a `SHA256SUMS` that the release workflow signs with its own identity
+(cosign, keyless). While the releases are private, the install scripts use the GitHub command
+line, signed in to an account that can read them; once they are public they download with no account:
 
 ```bash
 gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.sh -O - | sh -s -- v0.0.1-alpha.5
@@ -107,11 +107,13 @@ gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.sh -O - | sh -
 gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.ps1 -O install.ps1; ./install.ps1 -Tag v0.0.1-alpha.5
 ```
 
-The script downloads the package for this system, checks it against the checksums, checks the
+The script downloads the packages for this system, checks them against the checksums, checks the
 checksums' signature when `cosign` is installed (`HAAS_REQUIRE_COSIGN=1` refuses to go on
-without it), and puts `haas-helper` in `~/.local/bin` (`HAAS_HELPER_DIR` changes that) or, on
-Windows, in `%LOCALAPPDATA%\haas-helper`, which it adds to the user's PATH: the only setting it
-changes. `haas-helper version` says which release is installed. The packages are built by
+without it), and puts `haas` and `haas-helper` in `~/.local/bin` (`HAAS_INSTALL_DIR` changes that,
+and `HAAS_PROGRAMS=haas-helper` installs the helper alone) or, on Windows, in `%LOCALAPPDATA%\haas`,
+which it adds to the user's PATH: the only setting it changes. `haas version` and
+`haas-helper version` say which release is installed. The scripts are `deploy/install/install.sh`
+and `install.ps1`. The packages are built by
 `deploy/helper/build.sh`. Linux and Windows programs are built with no C compiler. macOS programs
 are built on macOS, because the menu bar icon is drawn through the system's libraries. No package
 holds a path of the build machine.

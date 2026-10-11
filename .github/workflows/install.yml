@@ -1,7 +1,7 @@
-# Installs the helper from a release on each system it is built for, the way a person does, and checks that what was installed is
-# the release, runs, and passes the signature check. It runs by hand against any release tag. The releases are private, so the
-# workflow's own token is what reads them.
-name: helper-install
+# Installs haas and the helper from a release on each system they are built for, the way a person does, and checks that what was
+# installed is the release, runs, and passes the signature check. It runs by hand against any release tag. The releases are
+# private, so the workflow's own token is what reads them.
+name: install
 
 on:
   workflow_dispatch:
@@ -33,6 +33,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           gh release download "$TAG" -p install.sh -O - | sh -s -- "$TAG"
+          "$HOME/.local/bin/haas" version
           "$HOME/.local/bin/haas-helper" version
 
       - name: Install it, as a person does
@@ -41,13 +42,18 @@ jobs:
         run: |
           gh release download $env:TAG -p install.ps1 -O install.ps1
           ./install.ps1 -Tag $env:TAG
-          & "$env:LOCALAPPDATA\haas-helper\haas-helper.exe" version
+          & "$env:LOCALAPPDATA\haas\haas.exe" version
+          & "$env:LOCALAPPDATA\haas\haas-helper.exe" version
 
       - name: It is this release, and it runs
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = Windows ]; then bin="$LOCALAPPDATA/haas-helper/haas-helper.exe"; else bin="$HOME/.local/bin/haas-helper"; fi
-          test "$("$bin" version)" = "haas-helper $TAG" || { echo "the installed program says $("$bin" version), not $TAG"; exit 1; }
+          if [ "$RUNNER_OS" = Windows ]; then at="$LOCALAPPDATA/haas"; exe=.exe; else at="$HOME/.local/bin"; exe=; fi
+          for program in haas haas-helper; do
+            said="$("$at/$program$exe" version)"
+            test "$said" = "$program $TAG" || { echo "the installed $program says $said, not $TAG"; exit 1; }
+          done
+          bin="$at/haas-helper$exe"
           set +e
           "$bin" whoami 2> err.txt
           code=$?
@@ -59,11 +65,11 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           dir="$(mktemp -d)"
-          gh release download "$TAG" -D "$dir" -p 'haas-helper_*' -p SHA256SUMS
+          gh release download "$TAG" -D "$dir" -p 'haas_*' -p 'haas-helper_*' -p SHA256SUMS
           cd "$dir"
           # Every package is damaged by one byte, and each is checked against the list the release signs: none may pass.
-          for file in haas-helper_*; do printf 'x' >> "$file"; done
-          for file in haas-helper_*; do
+          for file in haas_* haas-helper_*; do printf 'x' >> "$file"; done
+          for file in haas_* haas-helper_*; do
             grep " $file\$" SHA256SUMS > one.sum
             if (sha256sum -c one.sum || shasum -a 256 -c one.sum) > /dev/null 2>&1; then echo "a damaged $file passed its checksum"; exit 1; fi
           done
