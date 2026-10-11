@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +17,22 @@ import (
 	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/quota"
 )
+
+// hostProcesses is the process limit this machine already has. The fake gateway runs a sandbox's commands here, where the
+// test's user already has many processes, so a sandbox is given this limit: the command that sets it still runs, and
+// changes nothing.
+func hostProcesses(t *testing.T) int {
+	t.Helper()
+	out, err := exec.Command("sh", "-c", "ulimit -u").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return 0
+	}
+	return n
+}
 
 // A gateway that keeps each sandbox as a directory, enough for a job to run in one.
 const gateway = `#!/bin/bash
@@ -88,7 +106,7 @@ func organisationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	limit := filepath.Join(t.TempDir(), "quota.json")
 	quota.Write(limit, quotaOf)
 	registry.UseQuota(quota.Open(limit))
-	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi"}
+	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi", Processes: hostProcesses(t)}
 	instances, err := instance.Open(filepath.Join(t.TempDir(), "sessions"))
 	if err != nil {
 		t.Fatal(err)

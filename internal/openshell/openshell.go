@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,7 +42,16 @@ type Config struct {
 	Allowed []string
 	// CPU and Memory limit a sandbox, in OpenShell's forms ("2", "4Gi").
 	CPU, Memory string
+	// Processes is the most processes a harness's user may have running in a sandbox at once. The VM driver
+	// enforces no limit of its own, so the command that starts a harness sets it.
+	Processes int
 }
+
+// defaultProcesses leaves room for a harness, its tools and a test runner's workers, and stops a fork that never ends.
+const defaultProcesses = 512
+
+// unsetProcesses is the limit for a sandbox whose configuration names none.
+var unsetProcesses = defaultProcesses
 
 // FromEnv reads the settings of a deployment that runs jobs in sandboxes.
 func FromEnv() (Config, error) {
@@ -53,6 +63,11 @@ func FromEnv() (Config, error) {
 		CPU:     or(os.Getenv("HAAS_OPENSHELL_CPU"), "1"),
 		Memory:  or(os.Getenv("HAAS_OPENSHELL_MEMORY"), "3Gi"),
 	}
+	processes, err := strconv.Atoi(or(os.Getenv("HAAS_OPENSHELL_PROCESSES"), strconv.Itoa(defaultProcesses)))
+	if err != nil || processes < 1 {
+		return cfg, fmt.Errorf("HAAS_OPENSHELL_PROCESSES is %q, and has to be a number of processes above zero", os.Getenv("HAAS_OPENSHELL_PROCESSES"))
+	}
+	cfg.Processes = processes
 	for _, entry := range strings.Split(os.Getenv("HAAS_ALLOWED_HOSTS"), ",") {
 		if entry = strings.TrimSpace(entry); entry != "" {
 			cfg.Allowed = append(cfg.Allowed, entry)
@@ -411,7 +426,19 @@ func (s *Sandbox) create(ctx context.Context, args []string) error {
 // launcher starts a command with the environment it reads from the first lines of its standard input, up to an empty line, and
 // gives the command the rest. The environment holds the job's token, and an argument of a process on the host is readable by
 // every user of the host.
-const launcher = `while IFS= read -r entry && [ -n "$entry" ]; do export "$entry"; done; exec "$@"`
+func (s *Sandbox) launcher() string {
+	return s.limit() + `while IFS= read -r entry && [ -n "$entry" ]; do export "$entry"; done; exec "$@"`
+}
+
+// limit is shell that bounds the processes the harness's user may have, before anything of the harness starts. bash names the
+// limit -u and dash, Debian's sh, names it -p. A sandbox where neither works runs nothing.
+func (s *Sandbox) limit() string {
+	n := s.cfg.Processes
+	if n < 1 {
+		n = unsetProcesses
+	}
+	return fmt.Sprintf(`{ ulimit -u %d 2>/dev/null || ulimit -p %d; } || { echo "haas: the sandbox's process limit could not be set" >&2; exit 126; }; `, n, n)
+}
 
 // carried is the command's environment as the lines launcher reads, followed by what the command itself is given.
 func carried(env []string, rest io.Reader) (io.Reader, error) {
@@ -436,7 +463,7 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 // Wrap runs a command in the sandbox. Its environment, which holds the job's token, goes in on standard input ahead of the
 // command's own (see launcher), so it is never an argument on the host. --env would put it in the arguments.
 func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
-	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", launcher, "sh"}
+	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", s.launcher(), "sh"}
 	for _, argument := range command.Args {
 		args = append(args, inSandbox(argument))
 	}
@@ -452,15 +479,16 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	if err := s.reachable(ctx); err != nil {
 		return nil, err
 	}
-	words := []string{"cd " + quoted(s.Workdir()) + " &&"}
+	// The file is read and removed first, so it is not left when anything after it fails.
+	var words []string
 	if len(command.Env) > 0 {
 		file, err := s.leaveEnv(ctx, command.Env)
 		if err != nil {
 			return nil, err
 		}
-		words = append(words, ". "+quoted(file)+" && rm -f "+quoted(file)+" &&")
+		words = append(words, ". "+quoted(file)+"; rm -f "+quoted(file)+";")
 	}
-	words = append(words, "exec")
+	words = append(words, "cd "+quoted(s.Workdir())+" || exit 1;", s.limit(), "exec")
 	for _, argument := range command.Args {
 		words = append(words, quoted(inSandbox(argument)))
 	}
