@@ -149,11 +149,11 @@ func TestWhatTheRegistryRefusesIsSaidOnThePageAndNothingIsChanged(t *testing.T) 
 	here, reg, _ := registered(t, registry.Rules{})
 	admin := here.as(t, boss)
 	for name, form := range map[string]url.Values{
-		"a private address":       {"name": {"x"}, "address": {"https://10.0.0.5"}, "source": {"stored"}, "key": {"k"}},
-		"a file on this machine":  {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"file"}, "reference": {"/etc/passwd"}},
-		"the operator's name":     {"name": {"platform"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
-		"no key":                  {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"stored"}},
-		"plain http":              {"name": {"x"}, "address": {"http://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
+		"a private address":      {"name": {"x"}, "address": {"https://10.0.0.5"}, "source": {"stored"}, "key": {"k"}},
+		"a file on this machine": {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"file"}, "reference": {"/etc/passwd"}},
+		"the operator's name":    {"name": {"platform"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
+		"no key":                 {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"stored"}},
+		"plain http":             {"name": {"x"}, "address": {"http://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
 	} {
 		got := admin.ask(t, "POST", "/admin/models/providers", form)
 		if got.Code != http.StatusSeeOther || !strings.HasPrefix(got.Header().Get("Location"), "/admin/models?refused=") {
