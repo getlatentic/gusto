@@ -143,6 +143,9 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	if local {
+		pages.UseFoundKeys(values("HAAS_FOUND_KEYS"))
+	}
 	if os.Getenv("HAAS_SANDBOX") == "here" {
 		// A person installs a harness on their own computer while the server runs, and looking at the PATH costs nothing.
 		pages.UseLiveCatalog(func() []catalog.Entry { return surveyed(harness.Names()) })

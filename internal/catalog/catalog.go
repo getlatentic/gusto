@@ -74,7 +74,7 @@ func Of(image Image, names []string) []Entry {
 	for _, name := range names {
 		if adapter, err := harness.Load("", name); err == nil {
 			adapters[name] = adapter
-			programs = append(programs, adapter.Program)
+			programs = append(programs, adapter.Installed())
 		}
 	}
 	carried := image.Carried(programs)
@@ -102,7 +102,7 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		MCP:      adapter.TakesMCP(),
 		Declared: carried.Declares(name),
 	}
-	entry.Ready, entry.Why = carried.Runs(name, adapter.Program)
+	entry.Ready, entry.Why = carried.Runs(name, adapter.Installed())
 	if carried.Machine && !entry.Ready {
 		entry.Why = notInstalled(adapter)
 	}
@@ -115,12 +115,12 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 	return entry
 }
 
-// notInstalled says how a person installs a harness that is not on their computer.
+// notInstalled is how a person installs a harness that is not on their computer.
 func notInstalled(adapter harness.Adapter) string {
 	if adapter.Package == "" {
-		return adapter.Program + " is not installed on this computer"
+		return adapter.Installed() + " is not installed on this computer"
 	}
-	return adapter.Program + " is not installed on this computer: npm install -g " + adapter.Package
+	return "npm install -g " + adapter.Package
 }
 
 // Ready is the names a job may name, which is what a form should offer.

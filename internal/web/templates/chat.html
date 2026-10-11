@@ -2,7 +2,7 @@
 
 <section class="talk fresh">
   <div class="fresh-body">
-    <h1>What are we working on?</h1>
+    <h1>{{if .NeedsModel}}Add the model you use{{else}}What are we working on?{{end}}</h1>
     {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if and .Picks (not .NeedsModel)}}

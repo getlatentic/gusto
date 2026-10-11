@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-
 )
 
 // Sources reads "stored" keys from a directory and the other kinds from where they say. Only the kinds an

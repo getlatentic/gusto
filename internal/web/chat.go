@@ -44,6 +44,7 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"NeedsModel": s.needsModel(r),
 		"Presets":    modelPresets,
 		"Missing":    s.missingEngines(),
+		"FoundKeys":  s.foundKeys,
 	})
 }
 

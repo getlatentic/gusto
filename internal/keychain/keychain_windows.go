@@ -44,7 +44,9 @@ const (
 	errorNotFound           = syscall.Errno(1168)
 )
 
-func target(provider string) (*uint16, error) { return syscall.UTF16PtrFromString(service + ":" + provider) }
+func target(provider string) (*uint16, error) {
+	return syscall.UTF16PtrFromString(service + ":" + provider)
+}
 
 func (credentialManager) Keep(provider, key string) error {
 	name, err := target(provider)

@@ -37,6 +37,9 @@ var modelPresets = []modelPreset{
 	{"Ollama on this computer", "http://127.0.0.1:11434", proxy.Bearer},
 }
 
+// UseFoundKeys names the model keys the person's shell had when haas was installed, which the chat page offers.
+func (s *Server) UseFoundKeys(names []string) { s.foundKeys = names }
+
 // needsModel says whether this person's own haas has no model yet, so the chat page asks for one in place of a box nothing
 // can answer.
 func (s *Server) needsModel(r *http.Request) bool {

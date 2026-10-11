@@ -90,7 +90,7 @@ func TestOnAPersonsComputerAHarnessIsReadyWhenItsProgramIsOnThePath(t *testing.T
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin)
-	entries := Of(Machine(), []string{"opencode", "claude"})
+	entries := Of(Machine(), []string{"opencode", "claude", "hermes"})
 	byName := map[string]Entry{}
 	for _, entry := range entries {
 		byName[entry.Name] = entry
@@ -98,7 +98,14 @@ func TestOnAPersonsComputerAHarnessIsReadyWhenItsProgramIsOnThePath(t *testing.T
 	if !byName["opencode"].Ready {
 		t.Errorf("opencode is on the PATH and not ready: %+v", byName["opencode"])
 	}
-	if claude := byName["claude"]; claude.Ready || claude.Why != "claude is not installed on this computer: npm install -g @anthropic-ai/claude-code" {
+	if claude := byName["claude"]; claude.Ready || claude.Why != "npm install -g @anthropic-ai/claude-code" {
 		t.Errorf("claude: %+v", claude)
+	}
+	// hermes is started through sh, which is on every PATH, and is ready only when hermes itself is.
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+"/bin"+string(os.PathListSeparator)+"/usr/bin")
+	for _, entry := range Of(Machine(), []string{"hermes"}) {
+		if entry.Ready || entry.Why != "npm install -g hermes-agent@0.21.5" {
+			t.Errorf("hermes with only sh on the PATH: %+v", entry)
+		}
 	}
 }
