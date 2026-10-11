@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"slices"
 	"sort"
 
 	"github.com/getlatentic/haas/internal/proxy"
@@ -15,8 +14,6 @@ type View struct {
 	Providers []ProviderView
 	// Kinds are the kinds of reference a key may be given as, "stored" first.
 	Kinds []string
-	// Harnesses are the names a provider may be said to serve.
-	Harnesses []string
 	// Private says whether a provider may be at a private address.
 	Private bool
 	// Limits are the people who may use only some of the models, and Available the models there are to choose from.
@@ -30,10 +27,9 @@ type View struct {
 
 // ProviderView is one provider.
 type ProviderView struct {
-	Name      string
-	Address   string
-	Auth      string
-	Harnesses []string
+	Name    string
+	Address string
+	Auth    string
 	// Operator says the deployment's own configuration made it, which is not changed here.
 	Operator bool
 	Retired  bool
@@ -61,7 +57,7 @@ func (r *Registry) View() View {
 	document := r.Document()
 	rules := r.Rules()
 	view := View{
-		Version: document.Version, Kinds: append([]string{"stored"}, rules.KeySources...), Harnesses: slices.Clone(rules.Harnesses),
+		Version: document.Version, Kinds: append([]string{"stored"}, rules.KeySources...),
 		Private: rules.PrivateAddresses, Unnamed: r.platform.Credentials[""].Address != "", Editable: r.editable,
 		Limits: r.Limits(), Available: effective.Models,
 	}
@@ -73,7 +69,7 @@ func (r *Registry) View() View {
 	}
 	for _, provider := range document.Providers {
 		row := ProviderView{
-			Name: provider.Name, Address: provider.Address, Auth: authWords(provider.Auth), Harnesses: provider.Harnesses,
+			Name: provider.Name, Address: provider.Address, Auth: authWords(provider.Auth),
 			Retired: provider.Retired, Pending: provider.Pending, Key: provider.Key, Problem: effective.Problems[provider.Name],
 		}
 		for _, model := range document.Models {
@@ -88,7 +84,7 @@ func (r *Registry) View() View {
 
 func (r *Registry) operators(name string, effective Effective) ProviderView {
 	held := r.platform.Credentials[name]
-	row := ProviderView{Name: name, Address: held.Address, Auth: authWords(held.Auth), Harnesses: held.Harnesses, Operator: true, Key: "the operator's"}
+	row := ProviderView{Name: name, Address: held.Address, Auth: authWords(held.Auth), Operator: true, Key: "the operator's"}
 	for _, full := range r.platform.Models {
 		if credential, model := proxy.Named(full); credential == name {
 			entry := ModelView{Name: model, Full: full}

@@ -27,7 +27,6 @@ import (
 	"github.com/getlatentic/haas/internal/jobs"
 	"github.com/getlatentic/haas/internal/openshell"
 	"github.com/getlatentic/haas/internal/preset"
-	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/quota"
 	"github.com/getlatentic/haas/internal/retention"
 	"github.com/getlatentic/haas/internal/runner"
@@ -35,7 +34,6 @@ import (
 	"github.com/getlatentic/haas/internal/setup"
 	"github.com/getlatentic/haas/internal/signing"
 	"github.com/getlatentic/haas/internal/web"
-	"github.com/getlatentic/haas/internal/wire"
 )
 
 func serve(args []string) int {
@@ -136,7 +134,7 @@ func serve(args []string) int {
 	if identity.Configured() {
 		fmt.Println("signing in with", os.Getenv("HAAS_OIDC_ISSUER"))
 	}
-	pages, err := web.New(index, instances, queue, password, identity, offered, offeredModels(way.credentials(), values("HAAS_MODELS"), harness.Names()))
+	pages, err := web.New(index, instances, queue, password, identity, offered, web.Models(values("HAAS_MODELS")))
 	if err != nil {
 		return fail(err)
 	}
@@ -377,41 +375,6 @@ func here(instances *instance.Store) jobs.StoppableWork {
 		}
 		return runner.InsideContext(ctx, dir)
 	}
-}
-
-// offeredModels is what the pages may offer, by harness. A credential can say
-// which harnesses it serves, because a provider can refuse what one harness
-// sends while answering another; a credential that says nothing serves them
-// all, which is what a deployment has until it finds out otherwise.
-func credentialOf(model string) string {
-	named, _ := proxy.Named(model)
-	return named
-}
-
-func offeredModels(credentials proxy.Credentials, models, harnesses []string) web.Models {
-	if len(credentials) == 0 {
-		return web.Everything(models)
-	}
-	offered := web.Models{"": models}
-	for _, name := range harnesses {
-		// An entry of its own, empty when no model suits it, so that a harness nothing
-		// serves is not offered every model as one with no entry is.
-		offered[name] = []string{}
-		speaks := wire.Chat
-		if adapter, err := harness.Load("", name); err == nil {
-			speaks = adapter.Shape()
-		}
-		for _, model := range models {
-			credential, held := credentials.Get(credentialOf(model))
-			// A harness is offered a model only through a credential that
-			// answers in the shape it calls, or translates it: Claude Code sent
-			// to an OpenAI-shaped endpoint is told its model does not exist.
-			if !held || (credential.Serves(name) && credential.Reaches(speaks)) {
-				offered[name] = append(offered[name], model)
-			}
-		}
-	}
-	return offered
 }
 
 // pointAt makes a job's workspace a link to the instance's.

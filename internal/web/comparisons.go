@@ -47,32 +47,24 @@ func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "compare.html", page)
 }
 
-// sharedModels is each model, by the name a person reads, that at least two
-// of the template's engines can be pointed at, whichever credential reaches it.
+// sharedModels is each model, by the name a person reads, that the template's engines can be compared on: every model
+// offered, when at least two engines can take the template.
 func (s *Server) sharedModels(held industry.Template, models Models) []string {
-	reach := map[string]int{}
-	var order []string
-	for _, entry := range s.runnersOf(held) {
-		seen := map[string]bool{}
-		for _, model := range models.For(entry.Name) {
-			named := modelOf(model)
-			if seen[named] {
-				continue
-			}
-			seen[named] = true
-			if reach[named] == 0 {
-				order = append(order, named)
-			}
-			reach[named]++
+	if len(s.runnersOf(held)) < 2 {
+		return nil
+	}
+	var named []string
+	for _, model := range models {
+		if !slices.Contains(named, modelOf(model)) {
+			named = append(named, modelOf(model))
 		}
 	}
-	return slices.DeleteFunc(order, func(named string) bool { return reach[named] < 2 })
+	return named
 }
 
-// modelFor is the model a harness is pointed at for a plain model name: the
-// first it is offered that goes by that name.
-func (s *Server) modelFor(models Models, harness, named string) (string, bool) {
-	for _, model := range models.For(harness) {
+// modelFor is the model an engine is pointed at for a plain model name: the first offered that goes by that name.
+func modelFor(models Models, named string) (string, bool) {
+	for _, model := range models {
 		if modelOf(model) == named {
 			return model, true
 		}
@@ -142,9 +134,9 @@ func (s *Server) sideSpec(models Models, held industry.Template, harness, named,
 	if !slices.ContainsFunc(s.runnersOf(held), func(entry catalog.Entry) bool { return entry.Name == harness }) {
 		return job.Spec{}, fmt.Errorf("%s is not offered here", harness)
 	}
-	model, found := s.modelFor(models, harness, named)
+	model, found := modelFor(models, named)
 	if !found {
-		return job.Spec{}, fmt.Errorf("%s cannot use %s here", s.engineName(harness), named)
+		return job.Spec{}, fmt.Errorf("%s is not offered here", named)
 	}
 	spec := job.Spec{Brief: brief, Repo: repo, Ref: commit, Gate: held.Check, Harness: harness, Model: model,
 		Sensitivity: held.Sensitivity, Setup: &job.Setup{Name: held.Name}}

@@ -15,13 +15,13 @@ import (
 // with, and what it starts out working on.
 func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	wanted := r.URL.Query().Get("harness")
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
 				"Title":   productName + " — " + entry.Name,
 				"Nav":     "harnesses",
 				"Harness": entry,
-				"Models":  s.offeredTo(r).For(entry.Name),
+				"Models":  s.offeredTo(r),
 				"Setups":  s.fitting(entry),
 				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
@@ -80,14 +80,14 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if why := s.unfit(wanted); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
-	if why := s.unusable(r, wanted.Harness, wanted.Model); why != "" {
+	if why := s.unusable(r, wanted.Model); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
 	// Starting from the catalog names no model, so it gets the first this
 	// deployment offers *that harness* — not the first it offers at all, which
 	// may be one this harness cannot use.
 	if wanted.Model == "" {
-		wanted.Model = s.offeredTo(r).First(wanted.Harness)
+		wanted.Model = first(s.offeredTo(r))
 	}
 	name := wanted.Harness
 	if wanted.Repo != "" {
@@ -102,7 +102,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
 func (s *Server) runnable(harness string) string {
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Name != harness {
 			continue
 		}
@@ -133,7 +133,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Agent":     s.agentOf(held),
 		"Threads":   said,
 		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.offeredTo(r).For(held.Harness),
+		"Models":    s.offeredTo(r),
 		"Sharing":   s.apps != nil,
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
@@ -173,7 +173,7 @@ func threadPath(thread instance.Thread) string {
 // firstReady is the engine a blank agent gets when nobody chooses: the
 // first this deployment can run, in the catalog's order.
 func (s *Server) firstReady() string {
-	for _, entry := range s.entries() {
+	for _, entry := range s.catalog {
 		if entry.Ready {
 			return entry.Name
 		}
@@ -181,23 +181,17 @@ func (s *Server) firstReady() string {
 	return ""
 }
 
-// unusable says why a harness cannot be started on a model, or is empty when it can. An
-// agent is never started on a pair that cannot work, however the request was made.
-func (s *Server) unusable(r *http.Request, harness, model string) string {
+// unusable says why an agent cannot be started on a model, or is empty when it can: the model has to be one this
+// person is offered, however the request was made.
+func (s *Server) unusable(r *http.Request, model string) string {
 	offered := s.offeredTo(r)
-	if s.limitedAway(r, harness) {
-		return "you may not use any model that works with " + harness
+	if s.limitedAway(r) {
+		return limitedWords
 	}
-	if !offered.Serves(harness) {
-		return "no model this deployment offers works with " + harness
-	}
-	if model == "" {
+	if model == "" || offered.Offers(model) {
 		return ""
 	}
-	if !offered.Offers(harness, model) {
-		return harness + " cannot use " + modelName(model) + choose(offered.For(harness))
-	}
-	return ""
+	return modelName(model) + " is not offered here" + choose(offered)
 }
 
 // choose is what to say a person may use instead, when there is something.
@@ -224,7 +218,7 @@ func (s *Server) changeModel(w http.ResponseWriter, r *http.Request) {
 		back = from
 	}
 	model := strings.TrimSpace(r.FormValue("model"))
-	if why := s.unusable(r, held.Harness, model); why != "" || model == "" {
+	if why := s.unusable(r, model); why != "" || model == "" {
 		if why == "" {
 			why = "choose a model"
 		}

@@ -65,12 +65,13 @@ func (s *Server) startIn(r *http.Request) startFolder {
 
 // picksFor is each harness this deployment can run for this person, with the models it may use.
 func (s *Server) picksFor(r *http.Request) []pick {
+	if s.limitedAway(r) {
+		return nil
+	}
 	offered := s.offeredTo(r)
 	var picks []pick
 	for _, entry := range s.readyEngines() {
-		if offered.Serves(entry.Name) && !s.limitedAway(r, entry.Name) {
-			picks = append(picks, pick{Entry: entry, Models: offered.For(entry.Name)})
-		}
+		picks = append(picks, pick{Entry: entry, Models: offered})
 	}
 	return picks
 }
@@ -163,7 +164,7 @@ func (s *Server) chatThread(r *http.Request, harness, model string, where folder
 		}
 		return started, s.instances.Latest(started.ID), ""
 	}
-	if why := s.unusable(r, held.Harness, model); why != "" {
+	if why := s.unusable(r, model); why != "" {
 		return held, instance.Thread{}, why
 	}
 	if model != "" && model != held.Model {

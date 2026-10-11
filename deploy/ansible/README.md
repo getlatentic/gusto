@@ -247,8 +247,8 @@ the two differ. The smoke test runs one job on a harness no image carries and
 checks it is refused before it starts, with the reason in its transcript.
 
 The box carries opencode, claude, codex, pi, dsh and hermes. Each takes the proxy's
-per-job token instead of anybody's account, and the catalog offers each only the
-credentials that serve it: `harnesses` on a credential in `host_vars` narrows it.
+per-job token instead of anybody's account, and each is offered every model: the
+person finds out which pairs work for them.
 
 ## Why a dedicated user rather than www-data
 

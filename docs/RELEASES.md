@@ -15,6 +15,7 @@ copies the section into the release's notes. Changes made after a release go und
 **Changed**
 
 - **A sign-in outlives a restart.** The key sign-ins are made with, and the sessions people ended, are kept in `.keeper.json` in the sessions folder (`HAAS_KEEPER` names another file), readable by the server's user alone. A deploy no longer signs everybody out. Deleting the file signs everybody out, which is how to do that on purpose. The desktop app stays signed in for 14 days (the front door's hour, behind one).
+- **Every engine is offered every model.** Which pairs work well is for the person to find out. A credential's `harnesses` list, and the "works with" boxes on the Models page, are gone; a credential file or a registry that still has `harnesses` is read, and the list is ignored. A call to a key with a bearer token in Anthropic's Messages shape is translated into Chat Completions with no `wires` set, so Claude Code can use any OpenAI-compatible key.
 - **The app's browser goes straight to the provider.** Signing in from the desktop app no longer stops at a page that asks for one more press.
 
 **New**

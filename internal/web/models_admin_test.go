@@ -31,7 +31,6 @@ func registeredAs(t *testing.T, rules registry.Rules, editable bool) (*tokened, 
 		Models:      []string{"platform/qwen"},
 		Prices:      map[string]spend.Price{"platform/qwen": {InputPerMillion: 1, OutputPerMillion: 2}},
 	}
-	rules.Harnesses = []string{"fixture", "claude"}
 	reg, err := registry.Open(t.TempDir(), platform, rules, editable)
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +42,7 @@ func registeredAs(t *testing.T, rules registry.Rules, editable bool) (*tokened, 
 		return nil, errors.New("no such host")
 	})
 	var offered atomic.Pointer[Models]
-	set := func(e registry.Effective) { m := Models{"": e.Models}; offered.Store(&m) }
+	set := func(e registry.Effective) { m := Models(e.Models); offered.Store(&m) }
 	set(reg.Effective())
 	reg.OnChange(set)
 	here.server.UseRegistry(reg, func() Models { return *offered.Load() })
@@ -65,7 +64,7 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
 		t.Fatalf("%d %v", added.Code, added.Header())
 	}
-	if got := (*offered.Load())[""]; len(got) != 1 {
+	if got := *offered.Load(); len(got) != 1 {
 		t.Errorf("what was only added is offered before it was turned on: %v", got)
 	}
 	if body := admin.ask(t, "GET", "/admin/models", nil).Body.String(); !strings.Contains(body, "waiting for you to turn it on") || !strings.Contains(body, "Turn on acme") {
@@ -73,10 +72,10 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	}
 	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big-1"}})
-	if got := (*offered.Load())[""]; len(got) != 2 || got[1] != "acme/big-1" {
+	if got := *offered.Load(); len(got) != 2 || got[1] != "acme/big-1" {
 		t.Errorf("the forms offer what the registry comes to: %v", got)
 	}
-	if !here.server.offered().Offers("fixture", "acme/big-1") || here.server.offered().Offers("fixture", "acme/other") {
+	if !here.server.offered().Offers("acme/big-1") || here.server.offered().Offers("acme/other") {
 		t.Error("a page asks what is offered when it is drawn, and a model nobody added is not")
 	}
 	page := admin.ask(t, "GET", "/admin/models", nil)
@@ -134,7 +133,7 @@ func TestAnAdminChangesPricesRetiresAndReplacesAKeyThroughThePage(t *testing.T) 
 		t.Error("the key was not replaced")
 	}
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/retire", url.Values{"model": {"org/big-1"}})
-	if got := (*offered.Load())[""]; len(got) != 1 {
+	if got := *offered.Load(); len(got) != 1 {
 		t.Errorf("a retired model is no longer offered: %v", got)
 	}
 	admin.ask(t, "POST", "/admin/models/providers/acme/retire", nil)
@@ -155,7 +154,6 @@ func TestWhatTheRegistryRefusesIsSaidOnThePageAndNothingIsChanged(t *testing.T) 
 		"the operator's name":     {"name": {"platform"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
 		"no key":                  {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"stored"}},
 		"plain http":              {"name": {"x"}, "address": {"http://api.theirs.example"}, "source": {"stored"}, "key": {"k"}},
-		"a harness there is none": {"name": {"x"}, "address": {"https://api.theirs.example"}, "source": {"stored"}, "key": {"k"}, "harness": {"emacs"}},
 	} {
 		got := admin.ask(t, "POST", "/admin/models/providers", form)
 		if got.Code != http.StatusSeeOther || !strings.HasPrefix(got.Header().Get("Location"), "/admin/models?refused=") {
@@ -324,7 +322,7 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	here.server.UseLedger(ledger)
 	reg.OnChange(func(e registry.Effective) {
 		ledger.SetPrices(e.Prices)
-		m := Models{"": e.Models}
+		m := Models(e.Models)
 		offered.Store(&m)
 	})
 	admin := here.as(t, boss)
@@ -357,7 +355,7 @@ func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatI
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	before := reg.Document().Version
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/retire", url.Values{"model": {"big"}})
-	if got := (*offered.Load())[""]; len(got) != 1 {
+	if got := *offered.Load(); len(got) != 1 {
 		t.Fatalf("retired and still offered: %v", got)
 	}
 	body := admin.ask(t, "GET", "/admin/models", nil).Body.String()
@@ -368,7 +366,7 @@ func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatI
 	if strings.Contains(got.Header().Get("Location"), "refused") {
 		t.Fatalf("%v", got.Header())
 	}
-	if offered := (*offered.Load())[""]; len(offered) != 2 || offered[1] != "acme/big" {
+	if offered := *offered.Load(); len(offered) != 2 || offered[1] != "acme/big" {
 		t.Errorf("after going back: %v", offered)
 	}
 	var restored []changelog.Event

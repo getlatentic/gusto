@@ -33,9 +33,6 @@ func dns(table map[string]string) Resolver {
 func opened(t *testing.T, rules Rules) (*Registry, string) {
 	t.Helper()
 	dir := t.TempDir()
-	if rules.Harnesses == nil {
-		rules.Harnesses = []string{"opencode", "claude"}
-	}
 	r, err := Open(dir, operators, rules, false)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +75,7 @@ func TestAnOrganisationAddsAProviderAndAModelAndTheProxyHoldsThemWithTheOperator
 	if credential.Key != "sk-their-secret-key" || !credential.Public || credential.Address != "https://api.theirs.example/v1" {
 		t.Errorf("%+v", credential)
 	}
-	if !got.Credentials["platform"].Serves("opencode") || got.Credentials["platform"].Public {
+	if got.Credentials["platform"].Address == "" || got.Credentials["platform"].Public {
 		t.Errorf("the operator's provider is there as it was, and is not held to an organisation's limits: %+v", got.Credentials["platform"])
 	}
 	if !slicesEqual(got.Models, []string{"platform/qwen", "acme/big-1"}) {
@@ -133,7 +130,6 @@ func TestAProviderIsRefusedForWhatItIsCalledWhereItIsAndHowItsKeyIsGot(t *testin
 		"an address on a private range":  {Rules{}, func(g *Give) { g.Address = "https://[fd00::1]" }},
 		"an address with nothing":        {Rules{}, func(g *Give) { g.Address = "" }},
 		"an unknown auth":                {Rules{}, func(g *Give) { g.Auth = "basic" }},
-		"a harness there is not":         {Rules{}, func(g *Give) { g.Harnesses = []string{"emacs"} }},
 		"no key kept":                    {Rules{}, func(g *Give) { g.Key = "" }},
 		"a key with a newline":           {Rules{}, func(g *Give) { g.Key = "a\nb" }},
 		"a key that is typed and named":  {Rules{KeySources: []string{"file"}}, func(g *Give) { g.Reference = "file:/etc/key" }},
@@ -298,7 +294,7 @@ func TestARegistryIsReadBackAsItWasKeptAndOneThatCannotBeReadIsAnErrorAndNotNoth
 	r.Enable("acme", "")
 	r.AddModel("acme", "m", &spend.Price{InputPerMillion: 1})
 	r.Enable("acme", "m")
-	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
+	again, err := Open(dir, operators, Rules{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +389,7 @@ func TestReadingKeysFromElsewhereIsDoneOnlyWhereTheOperatorAllowedItAndWithNoShe
 		t.Error("a key that is read from elsewhere was copied here")
 	}
 	// A deployment that has stopped allowing a kind stops reading it, whatever was kept.
-	stricter, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
+	stricter, err := Open(dir, operators, Rules{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +446,7 @@ func TestARefusedSecondProviderOfTheSameNameDoesNotTakeTheFirstOnesKey(t *testin
 
 func TestAnAdminWhereTheRegistryIsEditableChoosesWhatIsAllowedAndItTakesEffectAtOnce(t *testing.T) {
 	dir := t.TempDir()
-	r, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, true)
+	r, err := Open(dir, operators, Rules{}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +458,7 @@ func TestAnAdminWhereTheRegistryIsEditableChoosesWhatIsAllowedAndItTakesEffectAt
 	if err := r.SetPolicy(Policy{PrivateAddresses: true, KeySources: []string{"ssm", "file", "ssm"}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := r.Rules(); !got.PrivateAddresses || len(got.KeySources) != 2 || got.KeySources[0] != "file" || got.Harnesses[0] != "opencode" {
+	if got := r.Rules(); !got.PrivateAddresses || len(got.KeySources) != 2 || got.KeySources[0] != "file" {
 		t.Errorf("%+v", got)
 	}
 	if err := r.AddProvider(inside); err != nil {
@@ -474,7 +470,7 @@ func TestAnAdminWhereTheRegistryIsEditableChoosesWhatIsAllowedAndItTakesEffectAt
 	if view := r.View(); !view.Editable || !view.Private || len(view.Kinds) != 3 {
 		t.Errorf("%+v", view)
 	}
-	again, _ := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, true)
+	again, _ := Open(dir, operators, Rules{}, true)
 	if !again.Rules().PrivateAddresses || again.Document().Version != 2 {
 		t.Errorf("the choice is kept: %+v %d", again.Rules(), again.Document().Version)
 	}
@@ -597,7 +593,7 @@ func TestARegistryKeptBeforeThereWasAnOffSwitchHasEverythingOn(t *testing.T) {
 	keyfile := filepath.Join(t.TempDir(), "key")
 	os.WriteFile(keyfile, []byte("sk-x\n"), 0o600)
 	os.WriteFile(filepath.Join(dir, "registry.json"), []byte(`{"version":3,"providers":[{"name":"acme","address":"https://api.theirs.example/v1","key":"file:`+keyfile+`"}],"models":[{"provider":"acme","name":"m"}]}`), 0o600)
-	r, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}, KeySources: []string{"file"}}, false)
+	r, err := Open(dir, operators, Rules{KeySources: []string{"file"}}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -632,7 +628,7 @@ func TestTheRegistryKeepsWhatItWasAndPutsItBackAsAChangeOfItsOwn(t *testing.T) {
 	if _, err := r.Restore(before + 100); err == nil {
 		t.Error("a version the registry never had was restored")
 	}
-	again, err := Open(dir, operators, Rules{Harnesses: []string{"opencode"}}, false)
+	again, err := Open(dir, operators, Rules{}, false)
 	if err != nil || len(again.Steps()) != len(r.Steps()) {
 		t.Errorf("what was kept is not there after a restart: %v", err)
 	}
