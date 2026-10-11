@@ -121,6 +121,9 @@ func localCommand(args []string) int {
 		if err := uninstallService(); err != nil {
 			return fail(err)
 		}
+		if err := os.Remove(filepath.Join(home, "haas.pid")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fail(err)
+		}
 		fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
 		return 0
 	}
