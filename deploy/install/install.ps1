@@ -6,11 +6,15 @@
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.0.1-alpha.5
 #   .\install.ps1 -Programs haas-helper
+#   .\install.ps1 -NoStart              # install, and do not start haas for this person
+#
+# Once haas is installed it is started for the person running this, at logon and now, and opened in their browser, signed in.
 param(
   [string]$Tag = "latest",
   [string]$Repo = $(if ($env:HAAS_REPO) { $env:HAAS_REPO } else { "getlatentic/haas" }),
   [string]$Dir = $(Join-Path $env:LOCALAPPDATA "haas"),
-  [string[]]$Programs = @("haas", "haas-helper")
+  [string[]]$Programs = @("haas", "haas-helper"),
+  [switch]$NoStart = ($env:HAAS_NO_START -eq "1")
 )
 $ErrorActionPreference = "Stop"
 
@@ -79,6 +83,9 @@ try {
   if (($path -split ';') -notcontains $Dir) {
     [Environment]::SetEnvironmentVariable("Path", ($path.TrimEnd(';') + ";" + $Dir), "User")
     Write-Host "$Dir is now on your PATH. Open a new terminal to use it."
+  }
+  if (($Programs -contains "haas") -and -not $NoStart) {
+    & (Join-Path $Dir "haas.exe") local install
   }
 } finally {
   Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue

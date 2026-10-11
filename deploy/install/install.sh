@@ -9,6 +9,10 @@
 #   HAAS_INSTALL_DIR=/usr/local/bin deploy/install/install.sh  # where to put them; ~/.local/bin by default
 #   HAAS_PROGRAMS=haas-helper deploy/install/install.sh         # which to install; both by default
 #   HAAS_REQUIRE_COSIGN=1 deploy/install/install.sh             # refuse to go on without checking the signature
+#   HAAS_NO_START=1 deploy/install/install.sh                   # install, and do not start haas for this person
+#
+# Once haas is installed it is started for the person running this, as a service that starts at login, and opened in their
+# browser, signed in: nothing more is needed to begin.
 set -eu
 
 repo=${HAAS_REPO:-getlatentic/haas}
@@ -94,4 +98,7 @@ done
 case ":$PATH:" in
   *":$dir:"*) ;;
   *) echo "$dir is not on your PATH: add it, or run the programs from there" ;;
+esac
+case " $programs " in
+  *" haas "*) [ "${HAAS_NO_START:-}" = 1 ] || "$dir/haas" local install ;;
 esac

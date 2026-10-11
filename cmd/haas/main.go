@@ -45,6 +45,8 @@ func run(args []string) int {
 		"show":      show,
 		"harnesses": list,
 		"serve":     serve,
+		"local":     localCommand,
+		"open":      openCommand,
 		"cloud":     cloudCommand,
 		"cell":      cellCommand,
 		"owner":     ownerCommand,
@@ -84,6 +86,8 @@ func usage() {
   haas compare <dir> <harness> <harness>  run one job on each harness, side by side [-here]
   haas matrix <plan>    run jobs on harness and model pairs, a table of which finish [-here, -again, -json]
   haas serve            the pages: submit a job, watch it, read the record
+  haas open             open haas on this computer in the browser, signed in
+  haas local            haas for one person on this computer: install, run, stop, uninstall
   haas cloud            the front door of a hosted haas: sign-up, sign-in and organisations
   haas cloud computers  every computer on this host, its organisation and its person
   haas owner            the owner's page for a hosted haas, on this machine's loopback only
