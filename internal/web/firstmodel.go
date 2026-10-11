@@ -76,7 +76,7 @@ func (s *Server) addProviderWith(address string, auth proxy.Auth, key string, mo
 	if err != nil {
 		return nil, err
 	}
-	if err := s.registry.AddProvider(registry.Give{Name: name, Address: address, Auth: auth, Reference: "stored", Key: key}); err != nil {
+	if err := s.registry.AddProvider(registry.Give{Name: name, Address: address, Auth: auth, Reference: "stored", Key: key, Wires: wiresOf(address, auth)}); err != nil {
 		return nil, err
 	}
 	if err := s.registry.Enable(name, ""); err != nil {
@@ -91,6 +91,19 @@ func (s *Server) addProviderWith(address string, auth proxy.Auth, key string, mo
 		}
 	}
 	return map[string]string{"provider": name, "address": strings.TrimSpace(address), "key": "stored", "models": strings.Join(models, ", ")}, nil
+}
+
+// wiresOf is the shapes of API a provider a person adds answers in. An OpenAI-compatible provider answers Chat Completions,
+// and only OpenAI's own answers the Responses API too, so Claude Code's and Codex's calls are translated for the rest. An
+// Anthropic-compatible one answers Messages.
+func wiresOf(address string, auth proxy.Auth) []string {
+	if auth == proxy.Anthropic {
+		return nil
+	}
+	if parsed, err := url.Parse(strings.TrimSpace(address)); err == nil && parsed.Hostname() == "api.openai.com" {
+		return []string{"chat", "responses"}
+	}
+	return []string{"chat"}
 }
 
 // providerNameFor names a provider after where it answers: api.deepseek.com is deepseek, a second one there deepseek-2, and
