@@ -132,7 +132,7 @@ func TestMotionIsShortAndOptional(t *testing.T) {
 	}
 }
 
-var outlineRemoved =regexp.MustCompile(`outline:\s*(none|0)\s*(;|$)`)
+var outlineRemoved = regexp.MustCompile(`outline:\s*(none|0)\s*(;|$)`)
 
 // A rule takes the outline away only where the box around the field draws the ring in its place.
 func TestNoRuleHidesTheFocusRingWithoutAnother(t *testing.T) {
