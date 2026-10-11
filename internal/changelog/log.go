@@ -51,6 +51,7 @@ const (
 	MemberRole       = "member.role"
 	MemberRemoved    = "member.removed"
 	BudgetSet        = "budget.set"
+	ChatDefaultSet   = "chat.default"
 	ProviderAdded    = "provider.added"
 	ProviderRetired  = "provider.retired"
 	KeyReplaced      = "provider.key"

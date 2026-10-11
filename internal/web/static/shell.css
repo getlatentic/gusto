@@ -76,6 +76,9 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 /* The chat: what was said scrolls, and what is written stays on the floor of the page. */
 .talk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 
+.composer .choices { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-1); padding-top: var(--yg-space-2); border-top: 0.0625rem solid var(--yg-border); }
+.picker.summary > button .label { max-width: 22rem; }
+.composer .choices .menu { top: calc(100% + 0.25rem); bottom: auto; right: auto; left: 0; max-height: min(26rem, 40dvh); }
 .composer { padding: var(--yg-space-2) var(--yg-space-6) var(--yg-space-5); }
 .composer .box { display: grid; gap: var(--yg-space-2); padding: var(--yg-space-4) var(--yg-space-3) var(--yg-space-3) var(--yg-space-5);
   background: var(--yg-surface); border: 0.0625rem solid var(--yg-border-strong); border-radius: 1.25rem; box-shadow: var(--yg-shadow-1);

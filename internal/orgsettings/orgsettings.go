@@ -19,6 +19,9 @@ type Settings struct {
 	// MonthlyBudgetUSD is what the organisation means to spend in a calendar month, UTC.
 	// Zero is no budget.
 	MonthlyBudgetUSD float64 `json:"monthlyBudgetUsd,omitempty"`
+	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
+	DefaultHarness string `json:"defaultHarness,omitempty"`
+	DefaultModel   string `json:"defaultModel,omitempty"`
 }
 
 // File is the organisation's settings kept in a file.
