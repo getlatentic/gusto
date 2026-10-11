@@ -2,7 +2,7 @@
   "name": "education",
   "title": "Teaching assistant",
   "industry": "Education",
-  "summary": "Plans lessons, gives feedback on student work, and adapts reading level.",
+  "summary": "Plans lessons, gives feedback on student writing, and rewrites texts for another year group.",
   "harnesses": [
     "dsh",
     "claude",
@@ -19,14 +19,14 @@
     {
       "name": "lesson-plan",
       "title": "Plan lessons",
-      "blurb": "Lesson plans tied to your standard, with timings and an exit ticket.",
+      "blurb": "A lesson plan in your curriculum's wording, with minute-by-minute timings and a three-question exit ticket.",
       "description": "Use when asked to plan a lesson, a unit or an activity.",
       "body": "Plan against the standard or objective given; find it in the folder when one is named.\n\nInclude:\n- **Objectives**: two or three, each starting \"Students will be able to\", each tied to the standard's wording.\n- **Timing**: a minute-by-minute plan that adds up to the lesson's length.\n- **Activities**: what the teacher does and what students do, with the question that opens each part.\n- **Differentiation**: support for students who need it and a stretch task.\n- **Check for understanding**: an exit ticket of three questions, with answers.\n- **Materials**.\n\nSave it as `lesson-<topic>.md`."
     },
     {
       "name": "rubric-feedback",
       "title": "Give rubric feedback",
-      "blurb": "Feedback against your rubric, with evidence. You decide the grade.",
+      "blurb": "Feedback on each rubric criterion, quoting the student's work. You decide the grade.",
       "description": "Use when asked to mark, grade or give feedback on student work against a rubric.",
       "body": "Assess only against the rubric's criteria.\n\n- For each criterion: the level you would suggest, one sentence of evidence quoted from the work, and one next step the student can act on.\n- Never invent a criterion, and never guess at one the work does not show; say \"not enough evidence\".\n- Write feedback to the student in the second person, kind and specific.\n- Give suggested levels, not a final grade. Mark the file `Draft for the teacher's review`.\n- Do not store the student's name in memory."
     },
@@ -39,9 +39,9 @@
     }
   ],
   "starters": [
-    "Plan a 45-minute Year 8 lesson on standard.md",
-    "Give feedback on essays/student-essay-1.md using rubric.md",
-    "Adapt standard.md's reading passage for Year 5"
+    "Plan a 45-minute Year 8 lesson from my curriculum document",
+    "Give feedback on the student essay using my rubric",
+    "Rewrite the reading passage in my curriculum document for Year 5"
   ],
   "files": {
     "README.md": "# Sample class folder\n\nAll names, dates and identifiers in this file are invented for demonstration. It is not a real record.\n",

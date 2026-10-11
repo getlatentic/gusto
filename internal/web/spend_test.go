@@ -85,7 +85,7 @@ func TestTheSpendPageNamesAgentsAndMessages(t *testing.T) {
 	site.signIn(t)
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
-	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from visit-notes.txt"}})
+	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from the visit notes"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
 	dir := job.Dir(filepath.Join(site.index.Root(), id))
@@ -93,7 +93,7 @@ func TestTheSpendPageNamesAgentsAndMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := site.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-	for _, want := range []string{"By agent", "Clinical documentation", ">Draft a SOAP note from visit-notes.txt</a>", `href="/jobs/` + id + `"`} {
+	for _, want := range []string{"By agent", "Clinical documentation", ">Draft a SOAP note from the visit notes</a>", `href="/jobs/` + id + `"`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("want %q on the page:\n%s", want, page)
 		}
