@@ -353,6 +353,12 @@ banner that says by how much. Spending that has no price is not in the sum, so t
 "at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
 written to the change record. A budget that cannot be read is said and is not checked, and the
 file is not written over.
+
+The same file keeps what a new chat runs on, which an admin chooses under New chats on the Overview.
+A person's last choice comes first. With no admin choice, a new chat starts on `HAAS_CHAT_DEFAULT`
+(`engine=model`), which the operator sets to a pair that finishes a job; without either it starts on
+the first engine and model that can run. Every model is offered to every engine, and the person chooses.
+
 ## Demos
 
 With `HAAS_CLOUD_DEMO_MINUTES` set, `/demo` on the front door lets a visitor start a demo with a name, a
