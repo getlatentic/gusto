@@ -28,7 +28,10 @@ type Provider struct {
 	Address string     `json:"address"`
 	Auth    proxy.Auth `json:"auth,omitempty"`
 	Key     string     `json:"key"`
-	Retired bool       `json:"retired,omitempty"`
+	// Wires is the shapes of API the provider answers in, as a credential's are: a call in another shape is translated into
+	// Chat Completions when it answers that. Naming none is a provider that answers what its authentication says.
+	Wires   []string `json:"wires,omitempty"`
+	Retired bool     `json:"retired,omitempty"`
 	// Pending says an administrator has added the provider and not yet turned it on. Nothing is sent to a provider that is
 	// pending. It is the flag that is kept, and not "enabled", so that a registry written before there was one has every provider on.
 	Pending bool `json:"pending,omitempty"`
@@ -89,7 +92,7 @@ type Rules struct {
 // Registry is an organisation's registry, kept in a file, with the operator's added.
 type Registry struct {
 	path     string
-	keys     string
+	keys     Keys
 	platform Platform
 	rules    Rules
 	editable bool
@@ -106,7 +109,7 @@ type Registry struct {
 // be read is an error and not an empty registry: a page that showed nothing would be wrong and look right.
 func Open(dir string, platform Platform, rules Rules, editable bool) (*Registry, error) {
 	r := &Registry{
-		path: filepath.Join(dir, "registry.json"), keys: filepath.Join(dir, "keys"),
+		path: filepath.Join(dir, "registry.json"), keys: FileKeys(filepath.Join(dir, "keys")),
 		platform: platform, rules: rules, editable: editable, resolve: systemResolver,
 	}
 	if err := r.readHistory(); err != nil {

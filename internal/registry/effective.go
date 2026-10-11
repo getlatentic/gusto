@@ -47,7 +47,7 @@ func (r *Registry) Effective() Effective {
 			continue
 		}
 		out.Credentials[provider.Name] = proxy.Credential{
-			Name: provider.Name, Address: provider.Address, Key: key, Auth: provider.Auth, Public: !rules.PrivateAddresses,
+			Name: provider.Name, Address: provider.Address, Key: key, Auth: provider.Auth, Wires: provider.Wires, Public: !rules.PrivateAddresses,
 		}
 	}
 	for _, model := range document.Models {
