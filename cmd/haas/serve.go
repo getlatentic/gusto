@@ -145,10 +145,19 @@ func serve(args []string) int {
 	}
 	if local {
 		pages.UseFoundKeys(values("HAAS_FOUND_KEYS"))
+		pages.UseNeeds(func() []string {
+			adoptRecordedPath()
+			return localNeeds()
+		})
 	}
 	if os.Getenv("HAAS_SANDBOX") == "here" {
 		// A person installs a harness on their own computer while the server runs, and looking at the PATH costs nothing.
-		pages.UseLiveCatalog(func() []catalog.Entry { return surveyed(harness.Names()) })
+		pages.UseLiveCatalog(func() []catalog.Entry {
+			if local {
+				adoptRecordedPath()
+			}
+			return surveyed(harness.Names())
+		})
 	}
 	if sharing != nil {
 		pages.UseApps(sharing.store, sharing)
@@ -391,7 +400,7 @@ func pointAt(workspace string, dir job.Dir) error {
 	if err != nil {
 		return err
 	}
-	return os.Symlink(target, dir.Workspace())
+	return linkDir(target, dir.Workspace())
 }
 
 // staying is what a turn needs that outlives its container: the conversation's

@@ -27,6 +27,20 @@ type localSetup struct {
 	FoundKeys []string `json:"foundKeys,omitempty"`
 }
 
+// adoptRecordedPath has the running server look for programs on the PATH the person last ran haas from, which the setup in
+// the folder the server runs in records. It is read each time engines are looked for, since a person installs one into a
+// folder the PATH they installed haas with did not name.
+func adoptRecordedPath() {
+	text, err := os.ReadFile("local.json")
+	if err != nil {
+		return
+	}
+	var setup localSetup
+	if json.Unmarshal(text, &setup) == nil && setup.Path != "" && setup.Path != os.Getenv("PATH") {
+		os.Setenv("PATH", setup.Path)
+	}
+}
+
 // The ports haas on a person's computer listens on when they are free the first time.
 const (
 	localPort      = 7140

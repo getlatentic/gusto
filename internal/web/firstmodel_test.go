@@ -133,3 +133,18 @@ func TestAModelOfferedThroughAnotherProviderIsNamedWhole(t *testing.T) {
 		t.Errorf("refused with %q", refused)
 	}
 }
+
+// A computer that lacks what haas needs is told how to get it, and no agent is started until it has it.
+func TestWhatTheComputerLacksIsSaidAndNoAgentStartsWithoutIt(t *testing.T) {
+	here, _ := ownComputer(t)
+	lacking := []string{"haas needs Git, which keeps each conversation's files: install it"}
+	here.server.UseNeeds(func() []string { return lacking })
+	admin := here.as(t, boss)
+	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "haas needs Git") {
+		t.Error("the chat page does not say what the computer lacks")
+	}
+	got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
+	if where, _ := url.Parse(got.Header().Get("Location")); where.Query().Get("refused") != lacking[0] {
+		t.Errorf("an agent was started on a computer that lacks git: %s", got.Header().Get("Location"))
+	}
+}

@@ -40,6 +40,17 @@ var modelPresets = []modelPreset{
 // UseFoundKeys names the model keys the person's shell had when haas was installed, which the chat page offers.
 func (s *Server) UseFoundKeys(names []string) { s.foundKeys = names }
 
+// UseNeeds says how to ask what this computer lacks that haas needs, each said with how to get it.
+func (s *Server) UseNeeds(needs func() []string) { s.needs = needs }
+
+// lacking is what this computer lacks that haas needs, now.
+func (s *Server) lacking() []string {
+	if s.needs == nil {
+		return nil
+	}
+	return s.needs()
+}
+
 // needsModel says whether this person's own haas has no model yet, so the chat page asks for one in place of a box nothing
 // can answer.
 func (s *Server) needsModel(r *http.Request) bool {

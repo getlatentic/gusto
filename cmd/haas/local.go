@@ -81,6 +81,9 @@ func installLocal(home string) int {
 	if err := installService(home); err != nil {
 		return fail(err)
 	}
+	for _, need := range localNeeds() {
+		fmt.Println(need)
+	}
 	for _, name := range setup.FoundKeys {
 		fmt.Printf("Your shell has %s. To use it in haas: haas local use %s\n", name, name)
 	}
@@ -149,6 +152,14 @@ func openLocal(home string, wait time.Duration) int {
 	setup, err := ensureLocal(home)
 	if err != nil {
 		return fail(err)
+	}
+	// haas open is run in a terminal of the person's, so haas looks for engines where that terminal does, which is where
+	// they just installed one.
+	if path := os.Getenv("PATH"); path != "" && path != setup.Path {
+		setup.Path = path
+		if err := setup.save(home); err != nil {
+			return fail(err)
+		}
 	}
 	root := fmt.Sprintf("http://127.0.0.1:%d", setup.Port)
 	if !answers(root+"/healthz", wait) {
