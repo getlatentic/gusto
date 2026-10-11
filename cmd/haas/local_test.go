@@ -87,3 +87,17 @@ func TestASetupFromBeforeTheProxyIsGivenAPortForIt(t *testing.T) {
 		t.Errorf("the proxy's port was not kept: %d then %d", setup.ProxyPort, again.ProxyPort)
 	}
 }
+
+// A person installs an engine into a folder their PATH did not name when haas was installed, and runs haas open in that
+// terminal: the server looks there from then on.
+func TestTheServerLooksWhereThePersonLastRanHaasFrom(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("PATH", "/usr/bin")
+	if err := (localSetup{Port: 1, Secret: "s", Path: "/opt/engines/bin:/usr/bin"}).save("."); err != nil {
+		t.Fatal(err)
+	}
+	adoptRecordedPath()
+	if got := os.Getenv("PATH"); got != "/opt/engines/bin:/usr/bin" {
+		t.Errorf("the server looks on %s", got)
+	}
+}

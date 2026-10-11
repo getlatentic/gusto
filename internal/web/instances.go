@@ -185,6 +185,9 @@ func (s *Server) firstReady() string {
 // unusable says why an agent cannot be started on a model, or is empty when it can: the model has to be one this
 // person is offered, however the request was made.
 func (s *Server) unusable(r *http.Request, model string) string {
+	if lacking := s.lacking(); len(lacking) > 0 {
+		return lacking[0]
+	}
 	offered := s.offeredTo(r)
 	if s.limitedAway(r) {
 		return limitedWords
