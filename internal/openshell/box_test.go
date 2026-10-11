@@ -111,6 +111,10 @@ func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	if strings.Contains(string(said), "the-servers-own-secret") {
 		t.Fatal("the server's secret reached the sandbox")
 	}
+	// The token reached the harness on its standard input, and is in no argument of a command on the host.
+	if calls, _ := os.ReadFile(filepath.Join(root, "calls.log")); strings.Contains(string(calls), "a-job-token") {
+		t.Errorf("the job's token is an argument on the host:\n%s", calls)
+	}
 
 	// The change came back, and the gate ran in the sandbox and passed.
 	if patch, _ := os.ReadFile(dir.OutFile("diff.patch")); !strings.Contains(string(patch), "+yes") {
@@ -320,7 +324,7 @@ func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
     *'"method":"initialize"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1,"agentCapabilities":{},"authMethods":[]}}\n' "$id";;
     *'"method":"session/new"'*) printf '%s' "$line" > asked-new.json; printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id";;
     *'"method":"session/prompt"'*) printf yes > answer.txt
-      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Made it yes."}}}}\n'
+      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Made it yes. token=%s"}}}}\n' "$HAAS_MODEL_TOKEN"
       printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id";;
   esac
 done`
@@ -336,10 +340,16 @@ done`
 	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
-	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "Made it yes.") {
-		t.Errorf("the agent's words did not reach the record:\n%s", said)
+	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "Made it yes. token=a-job-token") {
+		t.Errorf("the agent's words, with the token it was given, did not reach the record:\n%s", said)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
+	if strings.Contains(string(calls), "a-job-token") {
+		t.Errorf("the job's token is an argument on the host:\n%s", calls)
+	}
+	if left, _ := filepath.Glob("/tmp/haas-env-*"); len(left) != 0 {
+		t.Errorf("the file that carried the environment was left: %v", left)
+	}
 	if !strings.Contains(string(calls), "ssh-config") || !strings.Contains(string(calls), "ssh haas-") {
 		t.Errorf("a conversation should be held over ssh, since exec cannot carry one: %s", calls)
 	}
