@@ -69,6 +69,8 @@ type Server struct {
 	// orgSettings is what the organisation's admins choose for it, and computers is
 	// the record of the computers its people have.
 	orgSettings *orgsettings.File
+	// local is how the one person a server on their own computer runs for signs in, or nil.
+	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organisation has chosen.
 	operatorDefault chatDefault
 	computers       *computer.Registry
@@ -140,6 +142,9 @@ func (s *Server) Handler() http.Handler {
 	} else {
 		mux.HandleFunc("GET /login", s.loginPage)
 		mux.HandleFunc("POST /login", s.signIn)
+		if s.local != nil {
+			mux.HandleFunc("GET /local/enter", s.enterLocal)
+		}
 		mux.HandleFunc("GET /auth/start", s.start)
 		mux.HandleFunc("GET /auth/callback", s.back)
 	}

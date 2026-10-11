@@ -22,6 +22,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 **New**
 
+- **haas on a person's own computer.** The install script starts haas as a service of the person's (`haas local install`) and opens it in their browser, signed in by a link that works once (`haas open`): no password, on `127.0.0.1` only, in a folder of their own ([LOCAL.md](LOCAL.md)). `HAAS_NO_START=1` installs without starting.
 - **`haas` is a download.** Each release has the `haas` program for macOS, Linux and Windows on Intel and Arm, as `haas_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), in the `SHA256SUMS` the release workflow signs. `deploy/server/build.sh` builds one.
 - **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.
 - **A folder for a chat.** A chat can work in a folder of the agent's computer in the cloud, chosen in an explorer, and every turn of it starts there (a job's optional `dir`, and a conversation's). In the desktop app a folder of the person's own computer can also be kept the same as an agent's folder by the helper ([DESKTOP.md](DESKTOP.md#working-in-a-folder)). Agents gain an optional `folder` key. Nothing changes for what has neither.

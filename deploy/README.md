@@ -1,6 +1,6 @@
 # Installing haas
 
-One product, three ways to install it. Each installs the same server, and the
+One product, four ways to install it. Each installs the same server, and the
 server is the whole product: `haas serve` answers the pages, the API and the
 model proxy from one process. The pages' templates and assets are compiled into
 the binary (`internal/web/static/PROVENANCE.md` says so), so there is no second
@@ -8,6 +8,7 @@ origin and no front end to build.
 
 | install | where | follow |
 | --- | --- | --- |
+| Install script | one person's own computer, as a service of theirs | [../docs/LOCAL.md](../docs/LOCAL.md) |
 | Ansible | the one box this project runs on, beside other people's sites | [ansible/README.md](ansible/README.md) |
 | Compose | one Linux machine of your own | [compose/README.md](compose/README.md) |
 | Helm | a Kubernetes cluster of your own | [helm/haas/README.md](helm/haas/README.md) |

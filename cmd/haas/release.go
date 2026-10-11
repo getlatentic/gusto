@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"runtime/debug"
 )
 
@@ -36,6 +37,6 @@ func versionCommand(args []string) int {
 		usage()
 		return 2
 	}
-	println("haas " + releaseName())
+	fmt.Println("haas " + releaseName())
 	return 0
 }

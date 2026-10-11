@@ -9,6 +9,11 @@
 #   HAAS_INSTALL_DIR=/usr/local/bin deploy/install/install.sh  # where to put them; ~/.local/bin by default
 #   HAAS_PROGRAMS=haas-helper deploy/install/install.sh         # which to install; both by default
 #   HAAS_REQUIRE_COSIGN=1 deploy/install/install.sh             # refuse to go on without checking the signature
+#   HAAS_NO_START=1 deploy/install/install.sh                   # install, and do not start haas for this person
+#   HAAS_RELEASE_URL=http://10.0.2.2:8000 deploy/install/install.sh v0.0.0-test   # a release's files from another address
+#
+# Once haas is installed it is started for the person running this, as a service that starts at login, and opened in their
+# browser, signed in: nothing more is needed to begin.
 set -eu
 
 repo=${HAAS_REPO:-getlatentic/haas}
@@ -29,8 +34,10 @@ case "$(uname -m)" in
   *) fail "$(uname -m) is a processor no package is built for" ;;
 esac
 
-# The GitHub command line reads a private release; a public one is read with curl and no account.
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then via=gh; else via=curl; fi
+# The GitHub command line reads a private release; a public one is read with curl and no account. HAAS_RELEASE_URL is a folder
+# with a release's files in it, such as a test build served to a machine that cannot reach GitHub.
+if [ -n "${HAAS_RELEASE_URL:-}" ]; then via=url
+elif command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then via=gh; else via=curl; fi
 
 newest() {
   if [ "$via" = gh ]; then
@@ -43,12 +50,15 @@ newest() {
 fetch() {
   if [ "$via" = gh ]; then
     gh release download "$tag" -R "$repo" -D "$work" -p "$1"
+  elif [ "$via" = url ]; then
+    curl -fsSL -o "$work/$1" "${HAAS_RELEASE_URL%/}/$1"
   else
     curl -fsSL -o "$work/$1" "https://github.com/$repo/releases/download/$tag/$1"
   fi
 }
 
 if [ "$tag" = latest ]; then
+  [ "$via" != url ] || fail "HAAS_RELEASE_URL needs the release's tag, as the first argument"
   tag=$(newest) || true
   [ -n "$tag" ] || fail "$repo has no release this machine can see: a private one needs the GitHub command line, signed in (https://cli.github.com)"
 fi
@@ -56,9 +66,9 @@ fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fetch SHA256SUMS || fail "the release $tag cannot be read from here"
-fetch SHA256SUMS.sigstore.json || fail "the release $tag has no signature for its checksums"
 
 if command -v cosign >/dev/null 2>&1; then
+  fetch SHA256SUMS.sigstore.json || fail "the release $tag has no signature for its checksums"
   cosign verify-blob "$work/SHA256SUMS" --bundle "$work/SHA256SUMS.sigstore.json" \
     --certificate-identity "https://github.com/$repo/.github/workflows/release.yml@refs/tags/$tag" \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null 2>&1 \
@@ -94,4 +104,7 @@ done
 case ":$PATH:" in
   *":$dir:"*) ;;
   *) echo "$dir is not on your PATH: add it, or run the programs from there" ;;
+esac
+case " $programs " in
+  *" haas "*) [ "${HAAS_NO_START:-}" = 1 ] || "$dir/haas" local install ;;
 esac
