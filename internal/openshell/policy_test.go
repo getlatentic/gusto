@@ -2,6 +2,7 @@ package openshell
 
 import (
 	"encoding/json"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -101,7 +102,7 @@ func TestEveryPolicyNamesTheSystemPathsASandboxNeedsToStart(t *testing.T) {
 		for _, path := range policy["filesystem_policy"].(map[string]any)["read_only"].([]any) {
 			readable[path.(string)] = true
 		}
-		for _, need := range []string{"/usr", "/lib", "/bin", "/etc", "/proc"} {
+		for _, need := range []string{"/usr", "/lib", "/bin", "/proc", "/etc/passwd", "/etc/group", "/etc/resolv.conf", "/etc/ld.so.cache"} {
 			if !readable[need] {
 				t.Errorf("%s policy does not let a sandbox read %s", name, need)
 			}
@@ -119,4 +120,47 @@ func mustPolicy(t *testing.T) []byte {
 		t.Fatal(err)
 	}
 	return text
+}
+
+func TestASandboxReadsOnlyWhatAProgramNeedsOfEtcAndNoLogs(t *testing.T) {
+	policy := decoded(t, Config{}, "http://host.openshell.internal:8041/model/v1")
+	readable := map[string]bool{}
+	for _, path := range policy["filesystem_policy"].(map[string]any)["read_only"].([]any) {
+		readable[path.(string)] = true
+	}
+	for _, never := range []string{"/etc", "/etc/shadow", "/etc/gshadow", "/var/log", "/var", "/root"} {
+		if readable[never] {
+			t.Errorf("%s is readable", never)
+		}
+	}
+	for _, want := range []string{"/etc/passwd", "/etc/resolv.conf", "/etc/ssl", "/etc/ld.so.cache", "/usr", "/proc"} {
+		if !readable[want] {
+			t.Errorf("%s is not readable, and a harness needs it", want)
+		}
+	}
+}
+
+func TestEveryCommandInASandboxStartsUnderAProcessLimit(t *testing.T) {
+	s := &Sandbox{cfg: Config{Binary: "openshell", Processes: 77}, name: "haas-x"}
+	wrapped := s.Wrap(t.Context(), exec.Command("harness", "--go"))
+	script := strings.Join(wrapped.Args, " ")
+	if !strings.Contains(script, "ulimit -u 77") || !strings.Contains(script, "ulimit -p 77") {
+		t.Errorf("the command sets no process limit: %s", script)
+	}
+	if strings.Index(script, "ulimit") > strings.Index(script, "exec \"$@\"") {
+		t.Error("the limit is set after the harness starts")
+	}
+}
+
+func TestAProcessLimitThatIsNotANumberAboveZeroIsRefused(t *testing.T) {
+	for _, bad := range []string{"0", "-3", "many"} {
+		t.Setenv("HAAS_OPENSHELL_PROCESSES", bad)
+		if _, err := FromEnv(); err == nil {
+			t.Errorf("%q was taken as a process limit", bad)
+		}
+	}
+	t.Setenv("HAAS_OPENSHELL_PROCESSES", "")
+	if cfg, err := FromEnv(); err != nil || cfg.Processes != 512 {
+		t.Errorf("with none set the limit is %d, %v", cfg.Processes, err)
+	}
 }
