@@ -89,6 +89,7 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	own := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.ownsItsModels, next)) }
 	mux.HandleFunc("POST /setup/model", own(s.addFirstModel))
 	mux.HandleFunc("POST /setup/models", own(s.listModels))
+	mux.HandleFunc("POST /setup/no-sandbox", s.console(offering(func() bool { return s.wall != nil }, s.confirmNoWall)))
 }
 
 // turn turns a provider on or off, or one of its models, which is what makes something an administrator added available to people,

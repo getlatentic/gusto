@@ -51,7 +51,9 @@ type Server struct {
 	// foundKeys is the names of the model keys a person's shell had when haas was installed on their computer.
 	foundKeys []string
 	// needs says what a person's computer lacks that haas needs.
-	needs  func() []string
+	needs func() []string
+	// wall is which wall agents run behind on a person's own computer.
+	wall   *Wall
 	models Models
 	// live is what the registry makes of the models now, when there is one.
 	live func() Models

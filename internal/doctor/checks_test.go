@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -245,5 +246,28 @@ func TestHardwareVirtualizationIsDemandedOfAMachineThatRunsSandboxesAndHasNone(t
 	t.Setenv("HAAS_OPENSHELL_REMOTE", "1")
 	if verdict := sandboxHardware(); verdict.Status != Pass {
 		t.Errorf("a machine whose gateway is elsewhere was refused: %+v", verdict)
+	}
+}
+
+// The doctor says which wall haas would put between an agent and the files, in words, and a computer with none is told so without
+// being called unhealthy.
+func TestTheDoctorSaysWhichWallAnAgentRunsBehind(t *testing.T) {
+	t.Setenv("HAAS_SANDBOX", "")
+	only := func(programs ...string) func(string) (string, error) {
+		return func(program string) (string, error) {
+			if slices.Contains(programs, program) {
+				return "/bin/" + program, nil
+			}
+			return "", errors.New("not found")
+		}
+	}
+	withDocker := Machine{LookPath: only("docker"), Commands: func(string, ...string) Outcome { return Outcome{Started: true} }}
+	if got := sandboxChoice(withDocker); got.Status != Pass || !strings.Contains(got.Said, "in a container (docker)") {
+		t.Errorf("%+v", got)
+	}
+	bare := Machine{LookPath: only(), Commands: func(string, ...string) Outcome { return Outcome{} }}
+	got := sandboxChoice(bare)
+	if got.Status != Pass || !strings.Contains(got.Said, "Nothing stands between an agent and your files") || !strings.Contains(got.Remedy, "container: neither Docker nor Podman is installed") {
+		t.Errorf("%+v", got)
 	}
 }

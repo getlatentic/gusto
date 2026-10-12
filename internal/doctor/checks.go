@@ -12,6 +12,7 @@ const (
 // the cause the runtime's error only hints at.
 func Checks(machine Machine) []Check {
 	return []Check{
+		{Name: "sandbox", Try: func() Verdict { return sandboxChoice(machine) }},
 		{Name: "podman runtime directory", Try: func() Verdict { return podmanRuntimeDirectory(machine) }},
 		{Name: containerCommand, Try: func() Verdict { return runtimeAnswers(machine) }},
 		{Name: image, Needs: []string{containerCommand}, Try: func() Verdict { return imagePresent(machine) }},

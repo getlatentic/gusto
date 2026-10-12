@@ -164,9 +164,7 @@ func runLocal(home string) int {
 		os.Setenv("PATH", setup.Path)
 	}
 	os.Setenv("HAAS_FOUND_KEYS", strings.Join(setup.FoundKeys, ","))
-	if os.Getenv("HAAS_SANDBOX") == "" {
-		os.Setenv("HAAS_SANDBOX", "here")
-	}
+	chooseWall()
 	return serve(nil)
 }
 
