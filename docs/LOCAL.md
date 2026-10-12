@@ -58,6 +58,7 @@ behind it:
 | --- | --- | --- |
 | A virtual machine | Linux with `/dev/kvm`, or a Mac with hardware virtualization; the `openshell` command, a gateway that answers to `openshell sandbox list`, and `HAAS_OPENSHELL_IMAGE` | each job sees only the folder it was given |
 | A container | Docker or Podman that answers, the runner image on this computer (`HAAS_IMAGE`, `haas:dev` by default; haas does not pull it), and a runtime that can be given a unix socket | the same folder, and the computer's kernel is shared |
+| A process sandbox | a Mac: its own `sandbox-exec` (Seatbelt), tried with a real process | the engine and the checks it runs can write only the conversation's folder, the job's own home and state, and temporary files; cannot read the rest of the person's home (`~/.ssh`, `~/.aws`, a browser's profile, haas's own secret) but for the folders the engine is installed in; and reach nothing on the network but haas's proxy. The computer's kernel is shared |
 | Nothing | | the agent runs as the person, and can read and change what they can |
 
 The chat page says which, under the box a message is typed in, and **Why not stronger?** says what each stronger wall lacked. `haas
@@ -68,9 +69,15 @@ agent is pointed only at the folder of its conversation, and with nothing nothin
 `HAAS_SANDBOX` decides instead when it is set: `openshell`, `here` (nothing), or anything else for a container.
 
 **Docker on a Mac or Windows is not a wall yet.** It runs in a virtual machine that cannot share the unix socket a job reaches haas's
-proxy through (`operation not supported`), so haas tests that and goes on to the next wall, which on those systems is nothing, and
-says why. A path over the network would do it, and exposes the proxy beyond this computer unless it is built with care.
-Windows is left out of the container wall until that is done.
+proxy through (`operation not supported`), so haas tests that and goes on to the next wall, and says why. A path over the network
+would do it, and exposes the proxy beyond this computer unless it is built with care. Windows is left out of the container wall until
+that is done. A Mac therefore runs jobs behind its own sandbox, and Windows and Linux without a VM or a container run them with
+nothing until they have their own (a Linux process sandbox, with bubblewrap or Landlock, is not built).
+
+**What the process sandbox costs.** An agent behind it cannot download (`npm install`, `git clone`, `curl`) and a check that connects to
+a server of its own on the loopback is refused, since only haas's proxy is reachable. `HAAS_JOB_NETWORK=open` leaves the network open
+and keeps the rest. `sandbox-exec` is marked deprecated by Apple, and Claude Code, Codex and Chrome use it; it has no prompt and
+nothing to install. The profile is written beside the job (`sandbox.sb` in its folder).
 
 ## Engines
 
@@ -134,5 +141,5 @@ The build is not signed, so a machine with cosign installed refuses it.
 ## Not yet
 
 - A virtual machine is chosen only on a computer that already has OpenShell, a gateway and an image; shipping them with haas, so a
-  laptop gets one with no setup, is getlatentic/planning#655. A Mac has no wall until then.
+  laptop gets one with no setup, is getlatentic/planning#655.
 - Hermes is started through `sh`, which Windows does not have.

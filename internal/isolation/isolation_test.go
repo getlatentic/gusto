@@ -45,6 +45,10 @@ func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 		"OpenShell with no gateway, and Docker": {computer("linux", vm, []string{"/dev/kvm", "openshell", "docker"},
 			map[string]string{"docker info": "x", "docker image inspect haas:dev": "sha256:1"}), Container},
 		"a bare computer": {computer("windows", nil, nil, nil), Nothing},
+		"a Mac with Docker that cannot mount a socket falls to its own sandbox": {computer("darwin", nil, nil,
+			map[string]string{"/usr/bin/sandbox-exec -p (version 1)(allow default) /usr/bin/true": ""}), Process},
+		"a Mac whose sandbox does not run": {computer("darwin", nil, nil, nil), Nothing},
+		"Linux has no process sandbox yet": {computer("linux", nil, nil, map[string]string{"/usr/bin/sandbox-exec -p (version 1)(allow default) /usr/bin/true": ""}), Nothing},
 		"Windows with Docker and the image": {computer("windows", nil, []string{"docker"},
 			map[string]string{"docker info": "x", "docker image inspect haas:dev": "sha256:1"}), Nothing},
 	}
@@ -63,7 +67,7 @@ func TestADockerThatCannotMountASocketIsNotAWall(t *testing.T) {
 		return errors.New("docker: Error response from daemon: error while creating mount source path: operation not supported\nRun 'docker run --help' for more information")
 	}
 	got := Choose(host)
-	if got.Kind != Nothing || len(got.Passed) != 2 || !strings.Contains(got.Passed[1].Cause, "operation not supported") || strings.Contains(got.Passed[1].Cause, "--help") || !strings.Contains(got.Passed[1].Detail, "cannot share one") || strings.Contains(got.Passed[1].Detail, "operation not supported") {
+	if got.Kind != Nothing || len(got.Passed) != 3 || !strings.Contains(got.Passed[1].Cause, "operation not supported") || strings.Contains(got.Passed[1].Cause, "--help") || !strings.Contains(got.Passed[1].Detail, "cannot share one") || strings.Contains(got.Passed[1].Detail, "operation not supported") {
 		t.Errorf("%+v", got)
 	}
 	host.MountsSocket = func(string, string) error { return nil }
@@ -74,7 +78,7 @@ func TestADockerThatCannotMountASocketIsNotAWall(t *testing.T) {
 
 func TestWhatIsMissingIsSaidForEachStrongerWall(t *testing.T) {
 	got := Choose(computer("linux", nil, []string{"docker"}, map[string]string{"docker info": "x"}))
-	if len(got.Passed) != 2 || got.Passed[0].Kind != VM || got.Passed[1].Kind != Container {
+	if len(got.Passed) != 3 || got.Passed[0].Kind != VM || got.Passed[1].Kind != Container || got.Passed[2].Kind != Process {
 		t.Fatalf("%+v", got.Passed)
 	}
 	if !strings.Contains(got.Passed[0].Detail, "/dev/kvm") || !strings.Contains(got.Passed[1].Detail, "runner image haas:dev is not on this computer") {

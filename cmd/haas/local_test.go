@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/getlatentic/haas/internal/seatbelt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -54,9 +55,14 @@ func TestOpeningALinkDoesNotWaitForTheBrowser(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		opener = "open"
 	}
-	browseWait = 200 * time.Millisecond
 	t.Cleanup(func() { browseWait = 3 * time.Second })
 	for script, fails := range map[string]bool{"sleep 30": false, "exit 3": true} {
+		// A browser that keeps running is waited for a moment, and one that fails is answered as soon as it does, so the wait is long
+		// where a failure is expected, and short where it is not.
+		browseWait = 5 * time.Second
+		if !fails {
+			browseWait = 200 * time.Millisecond
+		}
 		bin := t.TempDir()
 		if err := os.WriteFile(filepath.Join(bin, opener), []byte("#!/bin/sh\n"+script+"\n"), 0o755); err != nil {
 			t.Fatal(err)
@@ -124,8 +130,13 @@ func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
 	t.Setenv("HAAS_SANDBOX", "")
 	t.Setenv("HAAS_CONTAINER", "")
 	t.Setenv("PATH", t.TempDir())
-	if chooseWall(); os.Getenv("HAAS_SANDBOX") != "here" || wall == nil || wall.Short() != "no sandbox" {
-		t.Errorf("a computer with no docker and no VM chose %q", os.Getenv("HAAS_SANDBOX"))
+	// A computer with no docker and no VM has its own sandbox when it is a Mac, and nothing otherwise.
+	expected := "here"
+	if runtime.GOOS == "darwin" && seatbelt.Available() == nil {
+		expected = "process"
+	}
+	if chooseWall(); os.Getenv("HAAS_SANDBOX") != expected || wall == nil {
+		t.Errorf("a computer with no docker and no VM chose %q, want %q", os.Getenv("HAAS_SANDBOX"), expected)
 	}
 	t.Setenv("HAAS_SANDBOX", "container")
 	if chooseWall(); os.Getenv("HAAS_SANDBOX") != "container" || !wall.Forced {

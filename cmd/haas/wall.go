@@ -12,6 +12,12 @@ import (
 // that is not on a person's own computer, whose operator chooses and sees it with haas doctor.
 var wall *isolation.Choice
 
+// runsHere says jobs run in this process, behind no wall or behind this computer's own sandbox, and not in a container or a VM.
+func runsHere() bool {
+	sandbox := os.Getenv("HAAS_SANDBOX")
+	return sandbox == "here" || sandbox == "process"
+}
+
 // confirmedFile is where a person's word that they know there is no sandbox is kept, in haas's own folder.
 const confirmedFile = "no-sandbox-confirmed"
 
@@ -20,7 +26,7 @@ const confirmedFile = "no-sandbox-confirmed"
 func chooseWall() isolation.Choice {
 	choice := isolation.Choose(isolation.This())
 	if !choice.Forced {
-		os.Setenv("HAAS_SANDBOX", map[isolation.Kind]string{isolation.VM: "openshell", isolation.Container: "container", isolation.Nothing: "here"}[choice.Kind])
+		os.Setenv("HAAS_SANDBOX", map[isolation.Kind]string{isolation.VM: "openshell", isolation.Container: "container", isolation.Process: "process", isolation.Nothing: "here"}[choice.Kind])
 		// The runtime that answered is the one jobs are started with, which is podman on a computer that has no docker.
 		if choice.Kind == isolation.Container && os.Getenv("HAAS_CONTAINER") == "" {
 			os.Setenv("HAAS_CONTAINER", choice.Detail)

@@ -14,11 +14,11 @@ import (
 // reporting success is a claim; this is the check, and a re-run of it has to
 // leave the evidence it is checking untouched.
 func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
-	return askIn(spec, dir, nil)
+	return askIn(spec, dir, nil, nil)
 }
 
-// askIn is Ask with the environment the gate runs with, or this process's when env is nil.
-func askIn(spec job.Spec, dir job.Dir, env []string) (evidence.Verdict, []byte, error) {
+// askIn is Ask with the environment the gate runs with, or this process's when env is nil, and behind a wall when wrap is given.
+func askIn(spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, []byte, error) {
 	if len(spec.Gate) == 0 {
 		return evidence.Verdict{}, nil, errors.New("the job names no gate")
 	}
@@ -27,6 +27,9 @@ func askIn(spec job.Spec, dir job.Dir, env []string) (evidence.Verdict, []byte, 
 	command.Env = env
 	// The gate runs the repository's own code, as untrusted as the harness.
 	agentHere().runAs(command)
+	if wrap != nil {
+		wrap(command)
+	}
 	return askWith(spec, command)
 }
 
@@ -42,12 +45,12 @@ func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error)
 
 // Gate asks, then keeps the answer and the whole output.
 func Gate(spec job.Spec, dir job.Dir) (evidence.Verdict, error) {
-	return gateWith(spec, dir, nil)
+	return gateWith(spec, dir, nil, nil)
 }
 
-// gateWith is Gate with the environment the gate runs with, or this process's when env is nil.
-func gateWith(spec job.Spec, dir job.Dir, env []string) (evidence.Verdict, error) {
-	verdict, output, err := askIn(spec, dir, env)
+// gateWith is Gate with the environment the gate runs with, or this process's when env is nil, and behind a wall when wrap is given.
+func gateWith(spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, error) {
+	verdict, output, err := askIn(spec, dir, env, wrap)
 	if err != nil {
 		return evidence.Verdict{}, err
 	}

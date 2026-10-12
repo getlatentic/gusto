@@ -34,6 +34,21 @@ func virtualMachine(h Host) Backend {
 	return Backend{Kind: VM, Ready: true, Detail: "OpenShell"}
 }
 
+// processSandbox is the computer's own sandbox around a process, which on a Mac is Seatbelt: nothing to install, and it works with
+// any engine. It is tried, and not assumed from the command being there.
+func processSandbox(h Host) Backend {
+	no := func(why string) Backend { return Backend{Kind: Process, Detail: why} }
+	if h.GOOS != "darwin" {
+		return no("a process sandbox is for macOS only so far")
+	}
+	if out, ok := h.Run("/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)", "/usr/bin/true"); !ok {
+		refused := no("sandbox-exec does not run on this Mac")
+		refused.Cause = oneLine(out)
+		return refused
+	}
+	return Backend{Kind: Process, Ready: true, Detail: "Seatbelt"}
+}
+
 // oneLine is the first line of what a program said, which is where a runtime puts why it refused: a usage hint follows it.
 func oneLine(said string) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(said), "\n")
