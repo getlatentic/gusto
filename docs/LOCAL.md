@@ -58,7 +58,7 @@ behind it:
 | --- | --- | --- |
 | A virtual machine | Linux with `/dev/kvm`, or a Mac with hardware virtualization; the `openshell` command, a gateway that answers to `openshell sandbox list`, and `HAAS_OPENSHELL_IMAGE` | each job sees only the folder it was given |
 | A container | Docker or Podman that answers, the runner image on this computer (`HAAS_IMAGE`, `haas:dev` by default; haas does not pull it), and a runtime that can be given a unix socket | the same folder, and the computer's kernel is shared |
-| A process sandbox | a Mac: its own `sandbox-exec` (Seatbelt), tried with a real process | the engine and the checks it runs can write only the conversation's folder, the job's own home and state, and temporary files; cannot read the rest of the person's home (`~/.ssh`, `~/.aws`, a browser's profile, haas's own secret) but for the folders the engine is installed in; and reach nothing on the network but haas's proxy. The computer's kernel is shared |
+| A process sandbox | a Mac: its own `sandbox-exec` (Seatbelt), or Linux 6.7 or later: Landlock, which haas applies itself and needs nothing installed for; each is tried with a real process | the engine and the checks it runs can write only the conversation's folder, the job's own home and state, and temporary files; cannot read the rest of the person's home (`~/.ssh`, `~/.aws`, a browser's profile, haas's own secret) but for the folders the engine is installed in; and reach nothing on the network but haas's proxy. The computer's kernel is shared |
 | Nothing | | the agent runs as the person, and can read and change what they can |
 
 The chat page says which, under the box a message is typed in, and **Why not stronger?** says what each stronger wall lacked. `haas
@@ -82,7 +82,14 @@ away.
 proxy through (`operation not supported`), so haas tests that and goes on to the next wall, and says why. A path over the network
 would do it, and exposes the proxy beyond this computer unless it is built with care. Windows is left out of the container wall until
 that is done. A Mac therefore runs jobs behind its own sandbox, and Windows and Linux without a VM or a container run them with
-nothing until they have their own (a Linux process sandbox, with bubblewrap or Landlock, is not built).
+nothing until they have their own (a Linux without a Landlock of version 4, which came with Linux 6.7, has none).
+
+**The Linux process sandbox.** haas starts the engine as `haas sandbox-run`, which restricts itself with Landlock and then becomes the engine, so
+the restriction holds for everything the engine starts. The job may read the system's folders (`/usr`, `/etc`, `/lib` and the like), the
+folders of its PATH, its own folder and its engine's; it may write its workspace, its home, its state, its cache and `/tmp`; and it may
+connect to one TCP port, haas's proxy. Its person's home is closed. If the sandbox cannot start, the job does not run. What it does not
+limit: UDP, which is how a name is looked up, unix sockets, and reading the environment of the person's other processes through
+`/proc` as the same user. A kernel before 6.7 has no network rules, so haas does not offer this wall there unless `HAAS_JOB_NETWORK=open`.
 
 **What the process sandbox costs.** An agent behind it cannot download (`npm install`, `git clone`, `curl`) and a check that connects to
 a server of its own on the loopback is refused, since only haas's proxy is reachable. `HAAS_JOB_NETWORK=open` leaves the network open

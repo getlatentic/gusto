@@ -26,6 +26,11 @@ func computer(goos string, env map[string]string, has []string, answers map[stri
 	}
 }
 
+func withSelf(h Host) Host {
+	h.Self = "/h/haas"
+	return h
+}
+
 func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 	vm := map[string]string{"HAAS_OPENSHELL_IMAGE": "rootfs.tar"}
 	tests := map[string]struct {
@@ -49,8 +54,11 @@ func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 		"a bare computer": {computer("windows", nil, nil, nil), Nothing},
 		"a Mac with Docker that cannot mount a socket falls to its own sandbox": {computer("darwin", nil, nil,
 			map[string]string{"/usr/bin/sandbox-exec -p (version 1)(allow default) /usr/bin/true": ""}), Process},
-		"a Mac whose sandbox does not run": {computer("darwin", nil, nil, nil), Nothing},
-		"Linux has no process sandbox yet": {computer("linux", nil, nil, map[string]string{"/usr/bin/sandbox-exec -p (version 1)(allow default) /usr/bin/true": ""}), Nothing},
+		"a Mac whose sandbox does not run":                     {computer("darwin", nil, nil, nil), Nothing},
+		"Linux whose kernel holds a job to a port":             {withSelf(computer("linux", nil, nil, map[string]string{"/h/haas sandbox-run --check --network": "7"})), Process},
+		"Linux whose kernel cannot limit the network":          {withSelf(computer("linux", nil, nil, map[string]string{"/h/haas sandbox-run --check": "1"})), Nothing},
+		"Linux with the network left open and an old Landlock": {withSelf(computer("linux", map[string]string{"HAAS_JOB_NETWORK": "open"}, nil, map[string]string{"/h/haas sandbox-run --check": "1"})), Process},
+		"Linux with no Landlock":                               {withSelf(computer("linux", nil, nil, nil)), Nothing},
 		"Windows with Docker and the image": {computer("windows", nil, []string{"docker"},
 			map[string]string{"docker info": "x", "docker image inspect haas:dev": "sha256:1"}), Nothing},
 	}
