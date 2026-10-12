@@ -42,7 +42,7 @@
     <table><tbody>
       {{range .Earlier}}
       <tr><td><code>{{.Skill}}</code>{{if not .Present}} <span class="muted">removed</span>{{end}}</td><td class="muted">{{.Fingerprint}}</td>
-      <td><form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Skill}}/restore"><input type="hidden" name="at" value="{{.At}}"><button type="submit">Put it back</button></form></td></tr>
+      <td><form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Skill}}/restore"><input type="hidden" name="at" value="{{.At}}"><button type="submit" class="quiet-button">Put it back</button></form></td></tr>
       {{end}}
     </tbody></table>
   </section>
