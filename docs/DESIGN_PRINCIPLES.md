@@ -147,7 +147,7 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 | Hierarchy | A place that holds others is shown above them and set apart, not as one more item in the list it contains. | Look: the top of a tree is not a sibling of its children. |
 | Clean | Remove decoration. Never remove a visible label, heading, group or instruction without replacing it. | Look: cover an element. If nothing is lost, delete it. |
 | Reuse | One button, one table, one dialog, one menu. A new variant needs a written reason. | Look: size, radius and type match the shared ones. |
-| Controls | One primary, one quiet and one destructive style. Hover, focus and disabled are all defined. | Walk. |
+| Controls | One primary, one quiet and one destructive style. Hover, focus and disabled are all defined. The primary is the accent fill and a region (a card, a form, a dialog) has one: the action it is for. Everything else a person presses is quiet, including the actions on a row and every change that can be undone, such as turning something off. What cannot be undone is destructive: the quiet line in the danger colour, never filled, and not shown as the primary. Hover does not turn a quiet button red. | Auto: more than one accent fill in a region, and a destructive word on one. Walk. |
 | Icons | One style. 16 or 18px beside text. 20 or 22px in the rail. Stroke 1.75. An icon that carries meaning has a visible label, or a name and a tooltip when space is short. | Look. |
 | Density | Each region has one density. Chat is roomy. A table or a log is compact. | Look. |
 
@@ -161,4 +161,4 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 
 ## Measuring
 
-`scripts/design-audit.js` runs in a page and returns one object: the radius values, font sizes, weights, background colours, border and shadow use, nesting, text under 12px, all-caps text, wrapped labels, small targets, siblings in a centred row that sit off the centre, and text under contrast. A value outside this document is listed under `over`. It does not replace a walk with a keyboard or a screen reader.
+`scripts/design-audit.js` runs in a page and returns one object: the radius values, font sizes, weights, background colours, border and shadow use, nesting, text under 12px, all-caps text, wrapped labels, small targets, siblings in a centred row that sit off the centre, text under contrast, a region with more than one primary button, and a destructive word on a primary. A value outside this document is listed under `over`. It does not replace a walk with a keyboard or a screen reader.

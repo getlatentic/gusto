@@ -13,31 +13,32 @@
   <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}{{if .Pending}} <span class="refused">off: waiting for you to turn it on</span>{{end}}</h2>
   <p class="muted">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
   {{if .Problem}}<p class="refused">Not in use: {{.Problem}}</p>{{end}}
-  <table>
-    <thead><tr><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cached input</th>{{if not .Operator}}<th></th>{{end}}</tr></thead>
+  {{$provider := .}}
+  <table class="models">
+    <thead><tr><th>Model</th><th class="num">Input <span class="muted">$ / million</span></th><th class="num">Output <span class="muted">$ / million</span></th><th class="num">Cached input <span class="muted">$ / million</span></th>{{if not .Operator}}<th class="end">Actions</th>{{end}}</tr></thead>
     <tbody>
-      {{$provider := .}}
       {{range .Models}}{{if not .Retired}}
+      {{$row := printf "price-%s-%s" $provider.Name .Name}}
       <tr>
         <td><code>{{.Full}}</code>{{if .Pending}} <span class="muted">off</span>{{end}}</td>
-        {{if .Price}}
-        <td class="num">${{.Price.InputPerMillion}}</td><td class="num">${{.Price.OutputPerMillion}}</td>
-        <td class="num">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="muted">as input</span>{{end}}</td>
+        {{if $provider.Operator}}
+          {{if .Price}}
+          <td class="num">${{.Price.InputPerMillion}}</td><td class="num">${{.Price.OutputPerMillion}}</td>
+          <td class="num">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="muted">as input</span>{{end}}</td>
+          {{else}}
+          <td class="num muted" colspan="3">no price, so its cost is not counted against a cap</td>
+          {{end}}
         {{else}}
-        <td class="num muted" colspan="3">no price, so its cost is not counted against a cap</td>
-        {{end}}
-        {{if not $provider.Operator}}
-        <td>
-          <form method="post" action="/admin/models/providers/{{$provider.Name}}/price" class="inline">
-            <input type="hidden" name="model" value="{{.Name}}">
-            <label>Input <input name="input" inputmode="decimal" size="6" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></label>
-            <label>Output <input name="output" inputmode="decimal" size="6" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></label>
-            <label>Cached <input name="cached" inputmode="decimal" size="6" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></label>
-            <button type="submit">Set price</button>
-          </form>
-          {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit">Turn on</button></form>
-          {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="quiet">Turn off</button></form>{{end}}
-          <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit">Retire</button></form>
+        <td class="num"><input form="{{$row}}" name="input" inputmode="decimal" aria-label="Input price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></td>
+        <td class="num"><input form="{{$row}}" name="output" inputmode="decimal" aria-label="Output price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></td>
+        <td class="num"><input form="{{$row}}" name="cached" inputmode="decimal" aria-label="Cached input price for {{.Full}}, dollars for a million tokens" placeholder="as input" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></td>
+        <td class="end">
+          <div class="row-actions">
+            <form id="{{$row}}" method="post" action="/admin/models/providers/{{$provider.Name}}/price"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="quiet-button">Set price</button></form>
+            {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="quiet-button">Turn on</button></form>
+            {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="quiet-button">Turn off</button></form>{{end}}
+            <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="danger-button">Retire</button></form>
+          </div>
         </td>
         {{end}}
       </tr>
@@ -54,16 +55,20 @@
     <label>Cached input <input name="cached" inputmode="decimal" size="6" placeholder="optional"></label>
     <button type="submit">Add model</button>
   </form>
-  {{if eq .Key "stored"}}
-  <form method="post" action="/admin/models/providers/{{.Name}}/key" class="inline">
-    <label>New key <input type="password" name="key" autocomplete="off" required></label>
-    <button type="submit">Replace key</button>
-    <span class="muted">A key is never shown again.</span>
-  </form>
-  {{end}}
-  {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit">Turn on {{.Name}}</button></form>
-  {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="quiet">Turn off {{.Name}}</button></form>{{end}}
-  <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit">Retire {{.Name}}</button></form>
+  <div class="provider-actions">
+    {{if eq .Key "stored"}}
+    <form method="post" action="/admin/models/providers/{{.Name}}/key" class="inline">
+      <label>New key <input type="password" name="key" autocomplete="off" required></label>
+      <button type="submit" class="quiet-button">Replace key</button>
+      <span class="muted">A key is never shown again.</span>
+    </form>
+    {{end}}
+    <div class="row-actions">
+      {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit" class="quiet-button">Turn on {{.Name}}</button></form>
+      {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="quiet-button">Turn off {{.Name}}</button></form>{{end}}
+      <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit" class="danger-button">Retire {{.Name}}</button></form>
+    </div>
+  </div>
   {{end}}
 </section>
 {{end}}{{end}}
@@ -101,7 +106,7 @@
         <td>Version {{.Version}}</td>
         <td class="muted">{{when .At}}</td>
         <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
-        <td><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit">Go back to it</button></form></td>
+        <td><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="quiet-button">Go back to it</button></form></td>
       </tr>
       {{end}}
     </tbody>
@@ -120,7 +125,7 @@
       <tr>
         <td>{{.Email}}</td>
         <td>{{range $i, $m := .Models}}{{if $i}}, {{end}}<code>{{$m}}</code>{{end}}</td>
-        <td><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit">Let use everything</button></form></td>
+        <td><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit" class="quiet-button">Let use everything</button></form></td>
       </tr>
       {{end}}
     </tbody>

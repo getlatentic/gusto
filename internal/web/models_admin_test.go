@@ -80,7 +80,7 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	}
 	page := admin.ask(t, "GET", "/admin/models", nil)
 	body := page.Body.String()
-	for _, want := range []string{"acme/big-1", "platform/qwen", "set by the operator", "$0.5", "$1.5", "Registry version 4"} {
+	for _, want := range []string{"acme/big-1", "platform/qwen", "set by the operator", `value="0.5"`, `value="1.5"`, "Registry version 4"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page does not say %q", want)
 		}

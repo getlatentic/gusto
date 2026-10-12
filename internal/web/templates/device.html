@@ -26,7 +26,7 @@
   {{range .Tokens}}
     <tr>
       <td>{{.Name}}</td><td>{{.Made}}</td><td>{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
-      <td>{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit">End</button></form>{{else}}ended {{.Ended}}{{end}}</td>
+      <td>{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit" class="danger-button">End</button></form>{{else}}ended {{.Ended}}{{end}}</td>
     </tr>
   {{end}}
   </tbody>
