@@ -101,3 +101,19 @@ func TestTheServerLooksWhereThePersonLastRanHaasFrom(t *testing.T) {
 		t.Errorf("the server looks on %s", got)
 	}
 }
+
+// An app started from the Dock has a bare PATH, so haas asks the person's login shell for theirs.
+func TestThePersonsOwnShellIsAskedForItsPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows gives a program the person's PATH")
+	}
+	bin := t.TempDir()
+	shell := filepath.Join(bin, "fake-shell")
+	if err := os.WriteFile(shell, []byte("#!/bin/sh\necho a greeting the shell prints\nPATH=/opt/the/persons/bin:/usr/bin\neval \"$2\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("SHELL", shell)
+	if got := loginShellPath(); got != "/opt/the/persons/bin:/usr/bin" {
+		t.Errorf("the shell's PATH was read as %q", got)
+	}
+}

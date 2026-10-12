@@ -85,6 +85,9 @@ func newLocal(home string) (localSetup, error) {
 	return setup, setup.save(home)
 }
 
+// root is where haas on this computer answers.
+func (s localSetup) root() string { return fmt.Sprintf("http://127.0.0.1:%d", s.Port) }
+
 func (s localSetup) save(home string) error {
 	text, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {

@@ -1,10 +1,12 @@
-//! Latentic Agent Cloud for a person's own computer: a window on their organisation's server, an icon that says what their agents are
-//! doing, and a notification when one finishes. The work is done by haas-helper, which the app starts and keeps going.
+//! Latentic Agent Cloud for a person's own computer: a window on haas, on this computer or on their organisation's server, an icon that
+//! says what their agents are doing, and a notification when one finishes. On this computer the app uses haas as the install script
+//! left it, or starts the one it carries; for an organisation the work is done by haas-helper, which the app starts and keeps going.
 
 mod config;
 mod folders;
 mod helper;
 mod links;
+mod local;
 mod navigation;
 mod notice;
 mod signin;
@@ -22,8 +24,18 @@ fn connect(app: AppHandle, server: String) -> Result<(), String> {
     let server = config::normalize(&server)?;
     config::reachable(&server)?;
     config::save(&app, &config::Config { server: Some(server.clone()) })?;
+    local::stop(&app);
     helper::start(&app, &server);
     window::go(&app, &window::chat_address(&server));
+    Ok(())
+}
+
+/// Uses haas on this computer: forgets the organisation's server, ends the helper that followed it, and starts or finds haas here.
+#[tauri::command]
+fn use_this_computer(app: AppHandle) -> Result<(), String> {
+    config::save(&app, &config::Config { server: None })?;
+    helper::stop(&app);
+    window::start_here(&app);
     Ok(())
 }
 
@@ -63,27 +75,29 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(helper::Helper::default())
+        .manage(local::Local::default())
         .manage(tray::Pages::default())
         .manage(updates::Available::default())
         .manage(signin::Pending::default())
-        .invoke_handler(tauri::generate_handler![connect])
+        .invoke_handler(tauri::generate_handler![connect, use_this_computer])
         .setup(|app| {
             let handle = app.handle().clone();
             history_menu(app)?;
             tray::build(&handle)?;
             updates::watch(handle.clone());
-            if let Some(server) = config::load(&handle).server {
-                helper::start(&handle, &server);
+            match config::load(&handle).server {
+                Some(server) => helper::start(&handle, &server),
+                None => window::start_here(&handle),
             }
             window::show(&handle);
             // For finding out why notifications do not appear on a computer: the system asks permission the first time, and a click on this one shows the window.
             if std::env::args().any(|argument| argument == "--test-notification") {
-                let server = config::load(&handle).server.unwrap_or_default();
+                let server = local::server(&handle).unwrap_or_default();
                 notice::send(&handle, "Your agent finished", "This is a test of the notification", &server);
             }
             let linked = handle.clone();
             app.deep_link().on_open_url(move |event| {
-                let server = config::load(&linked).server.unwrap_or_default();
+                let server = local::server(&linked).unwrap_or_default();
                 let urls = event.urls();
                 if let Some(ticket) = urls.iter().find_map(|link| links::signed_in(link.as_str())) {
                     signin::complete(&linked, &ticket);
@@ -101,7 +115,10 @@ pub fn run() {
     app.run(|app, event| match event {
         // The last window closing does not end the app: its icon stays, so that the person is told when a turn ends.
         RunEvent::ExitRequested { api, code, .. } if code.is_none() => api.prevent_exit(),
-        RunEvent::Exit => helper::stop(app),
+        RunEvent::Exit => {
+            helper::stop(app);
+            local::stop(app);
+        }
         #[cfg(target_os = "macos")]
         RunEvent::Reopen { .. } => window::show(app),
         _ => {}

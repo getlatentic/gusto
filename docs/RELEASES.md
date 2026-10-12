@@ -24,6 +24,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 **New**
 
+- **The desktop app runs haas on this computer.** With no organisation set, it uses haas as the install script left it, or starts the `haas` it now carries and stops it when it quits; its menu switches between this computer and an organisation. `haas local link` prints a sign-in link and opens nothing. On macOS, haas on a person's computer keeps its data in `~/Library/Application Support/haas/data`.
 - **Engines and models on a person's own computer.** `haas local` finds each engine on the person's PATH and says how to install a missing one; the chat page asks for a model (a provider, a key, the models) until there is one, and keeps the key in the computer's keychain; `haas local use NAME` adds a key the person's shell has ([LOCAL.md](LOCAL.md#models-and-keys)). A provider in the registry can name the shapes of API it answers (`wires`), as a credential can.
 - **haas on a person's own computer.** The install script starts haas as a service of the person's (`haas local install`) and opens it in their browser, signed in by a link that works once (`haas open`): no password, on `127.0.0.1` only, in a folder of their own ([LOCAL.md](LOCAL.md)). `HAAS_NO_START=1` installs without starting.
 - **`haas` is a download.** Each release has the `haas` program for macOS, Linux and Windows on Intel and Arm, as `haas_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), in the `SHA256SUMS` the release workflow signs. `deploy/server/build.sh` builds one.

@@ -16,35 +16,62 @@
   input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   button { margin-top: 1rem; padding: .6rem 1rem; font: inherit; color: var(--on-accent); background: var(--accent); border: 0; border-radius: 6px; cursor: pointer; }
   button:disabled { opacity: .5; cursor: default; }
-  #problem { color: var(--bad); min-height: 1.5em; margin: .75rem 0 0; font-size: .9rem; }
+  #problem, #cannot { color: var(--bad); min-height: 1.5em; margin: .75rem 0 0; font-size: .9rem; }
+  #here { margin: 0 0 2rem; }
+  button.quiet { color: var(--text); background: transparent; border: 1px solid var(--line); }
 </style>
 </head>
 <body>
 <main>
   <h1>Latentic Agent Cloud</h1>
-  <p>Connect this computer to your organisation's server.</p>
-  <form id="form">
-    <label for="server">Server address</label>
-    <input id="server" name="server" placeholder="agents.example.com" autocomplete="url" autofocus required>
-    <button id="go" type="submit">Connect</button>
-    <div id="problem" role="alert"></div>
-  </form>
+  <section id="starting" hidden>
+    <p id="starting-said">Starting haas on this computer…</p>
+    <div id="cannot" role="alert"></div>
+    <button id="choose" type="button" hidden>Choose another way</button>
+  </section>
+  <section id="choice">
+    <p>Your agents can run on this computer, or on your organisation's server.</p>
+    <button id="here" type="button">Use it on this computer</button>
+    <form id="form">
+      <label for="server">Or connect to your organisation's server</label>
+      <input id="server" name="server" placeholder="agents.example.com" autocomplete="url" required>
+      <button id="go" type="submit" class="quiet">Connect</button>
+      <div id="problem" role="alert"></div>
+    </form>
+  </section>
 </main>
 <script>
+  const invoke = (name, args) => window.__TAURI__.core.invoke(name, args);
+  const starting = document.getElementById('starting'), choice = document.getElementById('choice');
   const form = document.getElementById('form'), problem = document.getElementById('problem'), go = document.getElementById('go');
+  function showStarting() { starting.hidden = false; choice.hidden = true; }
+  function showChoice() { starting.hidden = true; choice.hidden = false; }
+  // The app says here why haas could not start on this computer.
+  window.cannotStart = (why) => {
+    showStarting();
+    document.getElementById('starting-said').textContent = 'haas could not start on this computer.';
+    document.getElementById('cannot').textContent = why;
+    document.getElementById('choose').hidden = false;
+  };
+  document.getElementById('choose').addEventListener('click', showChoice);
+  document.getElementById('here').addEventListener('click', async () => {
+    showStarting();
+    try { await invoke('use_this_computer'); } catch (error) { window.cannotStart(String(error)); }
+  });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     problem.textContent = '';
     go.disabled = true;
     go.textContent = 'Connecting…';
     try {
-      await window.__TAURI__.core.invoke('connect', { server: document.getElementById('server').value });
+      await invoke('connect', { server: document.getElementById('server').value });
     } catch (error) {
       problem.textContent = String(error);
       go.disabled = false;
       go.textContent = 'Connect';
     }
   });
+  if (location.hash === '#starting') { showStarting(); } else { showChoice(); }
 </script>
 </body>
 </html>
