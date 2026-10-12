@@ -1,6 +1,6 @@
 //! The icon, its menu, and the notification when a turn ends. What is in them comes from the helper, which follows the person's turns.
 
-use crate::{config, helper, notice, updates, window};
+use crate::{config, helper, local, notice, updates, window};
 use std::{
     collections::HashMap,
     sync::Mutex,
@@ -24,6 +24,7 @@ pub struct Pages(Mutex<HashMap<String, String>>);
 #[derive(Clone, PartialEq, Debug)]
 struct View {
     standing: String,
+    here: bool,
     turns: Vec<(String, String)>,
     sign_in: bool,
     login: bool,
@@ -96,7 +97,8 @@ fn menu(app: &AppHandle, view: &View) -> tauri::Result<Menu<tauri::Wry>> {
     }
     builder
         .item(&CheckMenuItemBuilder::with_id("login", "Start at login").checked(view.login).build(app)?)
-        .item(&MenuItemBuilder::with_id("server", "Change server…").build(app)?)
+        .item(&CheckMenuItemBuilder::with_id("here", "On this computer").checked(view.here).build(app)?)
+        .item(&MenuItemBuilder::with_id("server", if view.here { "Connect to an organisation…" } else { "Change organisation…" }).build(app)?)
         .separator()
         .item(&MenuItemBuilder::with_id("quit", "Quit").build(app)?)
         .build()
@@ -108,7 +110,8 @@ fn login(app: &AppHandle) -> bool {
 }
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
-    let empty = menu(app, &View { standing: "Starting…".into(), turns: vec![], sign_in: false, login: login(app), update: updates::found(app) })?;
+    let here = local::on_this_computer(app);
+    let empty = menu(app, &View { standing: "Starting…".into(), here, turns: vec![], sign_in: false, login: login(app), update: updates::found(app) })?;
     TrayIconBuilder::with_id(ID)
         .icon(tauri::include_image!("icons/tray.png"))
         .icon_as_template(true)
@@ -119,6 +122,13 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             match id.as_str() {
                 "open" => window::show(app),
                 "server" => window::ask_for_server(app),
+                "here" => {
+                    if !local::on_this_computer(app) {
+                        let _ = config::save(app, &config::Config { server: None });
+                        helper::stop(app);
+                        window::start_here(app);
+                    }
+                }
                 "update" => updates::install(app),
                 "login" => {
                     let launch = app.autolaunch();
@@ -151,13 +161,15 @@ fn watch(app: AppHandle) {
         let mut first = true;
         loop {
             std::thread::sleep(Duration::from_secs(3));
-            let server = config::load(&app).server.unwrap_or_default();
-            let status = helper::status(&app);
-            let turns = helper::turns(&app).unwrap_or_default();
+            let here = local::on_this_computer(&app);
+            let server = local::server(&app).unwrap_or_default();
+            let status = if here { None } else { helper::status(&app) };
+            let turns = if here { vec![] } else { helper::turns(&app).unwrap_or_default() };
             let view = View {
-                standing: standing(&status),
+                standing: if here { "On this computer".into() } else { standing(&status) },
+                here,
                 turns: listed(&turns, &server),
-                sign_in: status.as_ref().map(|s| !s.signed_in).unwrap_or(false) && !server.is_empty(),
+                sign_in: !here && status.as_ref().map(|s| !s.signed_in).unwrap_or(false) && !server.is_empty(),
                 login: login(&app),
                 update: updates::found(&app),
             };

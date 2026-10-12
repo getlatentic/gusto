@@ -13,12 +13,14 @@ pub enum Move {
     PickFolder,
     /// The window goes to this address instead: the sign-in page that offers the browser.
     Instead(Url),
+    /// The window stays, and the app signs it in to haas on this computer again, with a new link.
+    SignInHere,
     /// The window stays, and the person's browser opens it.
     Browser,
 }
 
-/// What to do about the window going to `to`, when it is showing `server`.
-pub fn decide(server: &Url, to: &Url) -> Move {
+/// What to do about the window going to `to`, when it is showing `server`, which is haas on this computer when `here`.
+pub fn decide(server: &Url, to: &Url, here: bool) -> Move {
     if !matches!(to.scheme(), "http" | "https") || to.host_str() == Some("tauri.localhost") {
         return Move::Allow;
     }
@@ -26,6 +28,7 @@ pub fn decide(server: &Url, to: &Url) -> Move {
         return Move::Browser;
     }
     match to.path() {
+        "/login" if here => Move::SignInHere,
         "/auth/desktop/begin" => Move::SignIn,
         "/app/folder" => Move::PickFolder,
         "/login" if !to.query_pairs().any(|(name, _)| name == "desktop") => {
@@ -43,7 +46,15 @@ mod tests {
     use url::Url;
 
     fn go(to: &str) -> Move {
-        decide(&Url::parse("https://agents.example.com").unwrap(), &Url::parse(to).unwrap())
+        decide(&Url::parse("https://agents.example.com").unwrap(), &Url::parse(to).unwrap(), false)
+    }
+
+    #[test]
+    fn haas_on_this_computer_is_signed_in_to_again_by_the_app() {
+        let here = |to: &str| decide(&Url::parse("http://127.0.0.1:7140").unwrap(), &Url::parse(to).unwrap(), true);
+        assert_eq!(here("http://127.0.0.1:7140/login"), Move::SignInHere);
+        assert_eq!(here("http://127.0.0.1:7140/chat"), Move::Allow);
+        assert_eq!(here("http://127.0.0.1:7141/model"), Move::Browser);
     }
 
     #[test]

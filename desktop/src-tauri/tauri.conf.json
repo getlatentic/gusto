@@ -24,7 +24,8 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/haas-helper"
+      "binaries/haas-helper",
+      "binaries/haas"
     ],
     "category": "DeveloperTool",
     "shortDescription": "Latentic Agent Cloud",

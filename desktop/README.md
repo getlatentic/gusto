@@ -1,18 +1,26 @@
 # Latentic Agent Cloud for a computer
 
-A window on your organisation's server, an icon that says what your agents are doing, and a notification when one finishes.
-It is a [Tauri](https://tauri.app) app: a small Rust shell around the system's own web view, so the pages in the window are the server's
-own pages and not a second interface. The work is done by `haas-helper` (sign-in, the synced folder, the editor bridge, following
-your turns), which the app carries, starts with its own icon turned off, and keeps going.
+A window on haas, on this computer or on your organisation's server, an icon that says what your agents are doing, and a
+notification when one finishes. It is a [Tauri](https://tauri.app) app: a small Rust shell around the system's own web view, so the
+pages in the window are the server's own pages and not a second interface.
+
+- **On this computer**, which is where the app starts when no organisation is set, it uses haas as the install script left it running,
+  or starts the `haas` it carries (`haas local run`) and stops it when the app quits. It signs its window in with a link from
+  `haas local link`, so the app never holds haas's secret ([LOCAL.md](../docs/LOCAL.md)).
+- **For an organisation**, the work is done by `haas-helper` (sign-in, the synced folder, the editor bridge, following your turns),
+  which the app carries, starts with its own icon turned off, and keeps going.
+
+The icon's menu says which it is on, and switches: **On this computer**, or **Connect to an organisation…**.
 
 | Part | What it does |
 | --- | --- |
-| `dist/index.html` | the page that asks for the server's address, shown until there is one |
+| `dist/index.html` | the page that says haas is starting on this computer, or offers this computer or an organisation's server |
+| `src-tauri/src/local.rs` | finds haas on this computer or starts the one the app carries, and the link that signs the window in |
 | `src-tauri/src/config.rs` | keeps the address, and checks that a server answers there |
 | `src-tauri/src/helper.rs` | starts the helper, starts it again when it ends, and asks it what it knows |
 | `src-tauri/src/tray.rs` | the icon, its menu of turns, and the notification when a turn ends |
 | `src-tauri/src/window.rs` | the window: closing it leaves the app and its icon running |
-| `prepare.sh` | builds the helper the app carries, named for its platform |
+| `prepare.sh` | builds the programs the app carries, `haas-helper` and `haas`, named for their platform |
 
 ## Links, notifications and login
 
@@ -30,7 +38,7 @@ You need Go, Rust (stable) and the Tauri command line, `cargo install tauri-cli 
 libraries too (`libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`).
 
 ```sh
-./prepare.sh                       # the helper for this machine
+./prepare.sh                       # haas-helper and haas for this machine
 cd src-tauri
 cargo test
 cargo tauri build --bundles app    # macOS: target/release/bundle/macos/Latentic Agent Cloud.app
