@@ -56,6 +56,8 @@ type Host struct {
 	LookPath func(program string) (string, error)
 	// Run is a program's output and whether it exited 0, within a few seconds.
 	Run func(program string, args ...string) (string, bool)
+	// Self is the haas program that is running, which applies the sandbox of a Linux computer to a job.
+	Self string
 	// MountsSocket says whether a container of the image can be given a unix socket of this computer, which is how a job reaches
 	// the proxy and nothing else. A runtime that runs in a virtual machine, as Docker does on a Mac or Windows, cannot. Nil is
 	// not tested.
@@ -64,7 +66,9 @@ type Host struct {
 
 // This is the computer haas runs on.
 func This() Host {
+	self, _ := os.Executable()
 	return Host{
+		Self:     self,
 		GOOS:     runtime.GOOS,
 		Getenv:   os.Getenv,
 		Exists:   func(path string) bool { _, err := os.Stat(path); return err == nil },

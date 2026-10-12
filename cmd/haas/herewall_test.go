@@ -11,14 +11,15 @@ import (
 	"testing"
 
 	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/haas/internal/landlock"
 	"github.com/getlatentic/haas/internal/seatbelt"
 )
 
 // An agent that tries to read the person's secrets, write outside its folder and reach the network is held, and one that works in its
 // own folder is not. The folders are in the real home, since a wall around a temporary folder is a different thing.
 func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
-	if runtime.GOOS != "darwin" || seatbelt.Available() != nil {
-		t.Skip("needs macOS's sandbox-exec")
+	if !processWallHere() {
+		t.Skip("needs macOS's sandbox-exec, or Linux's Landlock at version 4")
 	}
 	person, err := os.UserHomeDir()
 	if err != nil {
@@ -54,7 +55,7 @@ func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
 	defer other.Close()
 	port := func(l net.Listener) string { return strconv.Itoa(l.Addr().(*net.TCPAddr).Port) }
 
-	wrap, err := behindSeatbelt(dir, job.Spec{Harness: "opencode"}, home, data, port(proxy))
+	wrap, err := behindProcessWall(dir, job.Spec{Harness: "opencode"}, home, data, port(proxy))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,6 +89,18 @@ nc -z -w 2 1.1.1.1 443 && echo "internet: REACHED" || echo "internet: refused"`
 	}
 }
 
+// processWallHere says this computer has a process sandbox that holds a job to a folder and a port.
+func processWallHere() bool {
+	switch runtime.GOOS {
+	case "darwin":
+		return seatbelt.Available() == nil
+	case "linux":
+		abi, err := landlock.ABI()
+		return err == nil && abi >= 4
+	}
+	return false
+}
+
 func mustRead(t *testing.T, path string) []byte {
 	t.Helper()
 	text, err := os.ReadFile(path)
@@ -95,4 +108,12 @@ func mustRead(t *testing.T, path string) []byte {
 		t.Fatal(err)
 	}
 	return text
+}
+
+// TestMain lets the test binary stand in for haas where a job's wrapper runs it as `haas sandbox-run`.
+func TestMain(m *testing.M) {
+	if len(os.Args) > 1 && os.Args[1] == "sandbox-run" {
+		os.Exit(sandboxRun(os.Args[2:]))
+	}
+	os.Exit(m.Run())
 }
