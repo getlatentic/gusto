@@ -316,7 +316,9 @@ func TestAMacWithNoDiskToolsGetsTheReleasesAndTheLicenceBesideThem(t *testing.T)
 	c.assets[ToolsAsset] = out.Bytes()
 	c.assets[ToolsAsset+".sha256"] = []byte(hex.EncodeToString(sum[:]) + "  " + strconv.Itoa(out.Len()) + "  " + ToolsAsset + "\n")
 	here := env.Exists
-	env.Exists = func(path string) bool { return !strings.HasSuffix(path, "mke2fs") && !strings.HasSuffix(path, "debugfs") && !strings.HasSuffix(path, "e2fsck") && here(path) }
+	env.Exists = func(path string) bool {
+		return !strings.HasSuffix(path, "mke2fs") && !strings.HasSuffix(path, "debugfs") && !strings.HasSuffix(path, "e2fsck") && here(path)
+	}
 	plan, err := Prepare(context.Background(), env, c.root, c.user, "")
 	if err != nil || !plan.FetchTools || !strings.Contains(plan.Words(), "disk tools") {
 		t.Fatalf("the tools are not to be fetched: %v %v", err, plan.FetchTools)
