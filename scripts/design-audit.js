@@ -101,6 +101,23 @@
     if ((hasEdge(s) || hasShadow(s)) && parseFloat(s.borderTopLeftRadius) > 0 && depth + 1 > LIMIT.nesting && r.width > 40) { deep.push(label + " depth " + (depth + 1)); }
   });
 
+  // A region has one primary: the accent fill is the one thing a card or form is for. A destructive word is never drawn as one.
+  var probe = document.createElement("i");
+  probe.style.background = "var(--yg-accent)";
+  document.body.appendChild(probe);
+  var accent = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  var primaries = {}, filledDestructive = [];
+  all.forEach(function (el) {
+    if (!/^(button|a)$/.test(el.tagName.toLowerCase()) && el.getAttribute("role") !== "button") { return; }
+    if (getComputedStyle(el).backgroundColor !== accent || el.closest("[data-picker], .composer")) { return; }
+    var region = el.closest("section, dialog, .panel, .card, form.setup, main") || document.body;
+    var name = region.tagName.toLowerCase() + (region.className && typeof region.className === "string" ? "." + region.className.trim().split(/\s+/)[0] : "") + (region.querySelector("h1, h2, h3") ? " " + region.querySelector("h1, h2, h3").textContent.trim().slice(0, 20) : "");
+    primaries[name] = (primaries[name] || 0) + 1;
+    if (/^(retire|delete|remove|revoke|release|drop|forget|turn off|stop)\b/i.test(el.textContent.trim())) { filledDestructive.push(el.textContent.trim().slice(0, 24)); }
+  });
+  var crowded = Object.keys(primaries).filter(function (k) { return primaries[k] > 1; }).map(function (k) { return k + " x" + primaries[k]; });
+
   var count = function (o) { return Object.keys(o).length; };
   var offScale = function (o, scale) { return Object.keys(o).filter(function (k) { return scale.map(String).indexOf(k) < 0; }); };
   var badRadii = offScale(radii, RADII), badSizes = offScale(sizes, SIZES), badWeights = offScale(weights, WEIGHTS);
@@ -117,13 +134,15 @@
     offCentre: offCentre.slice(0, 8),
     wrappedLabels: wrapped.slice(0, 8),
     smallTargets: small.slice(0, 8),
-    lowContrast: faint.slice(0, 8)
+    lowContrast: faint.slice(0, 8),
+    crowdedPrimaries: crowded.slice(0, 8),
+    filledDestructive: filledDestructive.slice(0, 8)
   };
   report.over = [];
   if (badRadii.length) { report.over.push("radius off the scale: " + badRadii.join(",")); }
   if (badSizes.length) { report.over.push("font size off the scale: " + badSizes.join(",")); }
   if (badWeights.length) { report.over.push("font weight off the scale: " + badWeights.join(",")); }
   if (count(surfaces) > LIMIT.surfaces) { report.over.push("surfaces " + count(surfaces) + " > " + LIMIT.surfaces); }
-  ["borderAndShadow", "nestedOutlines", "tinyText", "allCaps", "offCentre", "wrappedLabels", "smallTargets", "lowContrast"].forEach(function (k) { if (report[k].length) { report.over.push(k + " " + report[k].length); } });
+  ["borderAndShadow", "nestedOutlines", "tinyText", "allCaps", "offCentre", "wrappedLabels", "smallTargets", "lowContrast", "crowdedPrimaries", "filledDestructive"].forEach(function (k) { if (report[k].length) { report.over.push(k + " " + report[k].length); } });
   return report;
 })();

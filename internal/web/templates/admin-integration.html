@@ -6,8 +6,8 @@
 <div class="title-row">
   <h1>{{.Held.Name}} <span class="muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
   <div>
-    {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit">Turn off</button></form>{{end}}
-    {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="quiet">Put the earlier version back</button></form>{{end}}
+    {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="quiet-button">Turn off</button></form>{{end}}
+    {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="quiet-button">Put the earlier version back</button></form>{{end}}
   </div>
 </div>
 
@@ -31,7 +31,7 @@
         <td><a href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <strong>on</strong>{{end}}</td>
         <td class="muted">{{.Source.Kind}}{{with .Source.Address}} {{.}}{{end}}{{with .Source.Commit}} @ {{.}}{{end}}</td>
         <td class="muted">{{when .Imported}} by {{.By}}</td>
-        <td>{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit">Turn on</button></form>{{end}}</td>
+        <td>{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit" class="quiet-button">Turn on</button></form>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -53,7 +53,7 @@
   <ul>{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
   {{if eq $.Held.Programs .ID}}
   <p><strong>Allowed.</strong></p>
-  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="quiet">Stop allowing them</button></form>
+  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="quiet-button">Stop allowing them</button></form>
   {{else}}
   <form class="stack" method="post" action="/admin/integrations/{{$.Held.Name}}/programs/allow">
     <input type="hidden" name="version" value="{{.ID}}">

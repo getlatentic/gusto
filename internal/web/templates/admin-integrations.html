@@ -9,7 +9,7 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 <section class="panel">
-  <h2>Import</h2>
+  <h2>Import from git</h2>
   <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
     <input type="hidden" name="kind" value="git">
     <label>Git address <input name="address" placeholder="https://github.com/example/plugin.git" required></label>
@@ -17,6 +17,10 @@
     <label>Folder in the repository <span class="muted">Only if the plugin is not at the top</span> <input name="folder" placeholder="plugins/reports"></label>
     <button type="submit">Import from git</button>
   </form>
+</section>
+
+<section class="panel">
+  <h2>Import an upload</h2>
   <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
     <input type="hidden" name="kind" value="upload">
     <label>A .zip or .tar.gz of the plugin <input type="file" name="archive" accept=".zip,.gz,.tgz" required></label>
