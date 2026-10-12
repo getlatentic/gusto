@@ -103,3 +103,8 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 .first-model p, .first-model ul { margin: 0; }
 .first-model ul { padding-left: var(--yg-space-5); }
 .first-model code { font-size: inherit; }
+/* Which wall agents run behind, under the box a message is typed in. */
+.wall { margin: var(--yg-space-3) auto 0; max-width: 46rem; text-align: center; font-size: .8125rem; }
+.wall-more { margin-top: var(--yg-space-2); }
+.wall-more summary { cursor: pointer; }
+.wall-more p { margin: var(--yg-space-2) 0 0; }

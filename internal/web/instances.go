@@ -188,6 +188,9 @@ func (s *Server) unusable(r *http.Request, model string) string {
 	if lacking := s.lacking(); len(lacking) > 0 {
 		return lacking[0]
 	}
+	if s.unconfirmed() {
+		return "confirm on the chat page that agents run with no sandbox, once, first"
+	}
 	offered := s.offeredTo(r)
 	if s.limitedAway(r) {
 		return limitedWords

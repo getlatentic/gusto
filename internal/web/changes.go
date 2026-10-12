@@ -331,6 +331,8 @@ func saidOf(e changelog.Event) string {
 	case changelog.Swept:
 		return fmt.Sprintf("retention removed %s workspaces and %s records, freeing %s bytes%s",
 			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
+	case changelog.SandboxConfirmed:
+		return "confirmed that agents run with no sandbox between them and their files"
 	case changelog.ChatDefaultSet:
 		return fmt.Sprintf("changed what a new chat runs on from %s to %s", or(w["was"], "the first that can run"), or(w["now"], "the first that can run"))
 	case changelog.BudgetSet:
