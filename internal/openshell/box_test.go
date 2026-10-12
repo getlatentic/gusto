@@ -281,6 +281,31 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 
 // A harness that keeps its state in a folder wants the folder to exist before it
 // starts, as it does in a container, and in the sandbox's home.
+// A new conversation's workspace holds nothing but its git directory. A gateway refuses an upload that selects no file, so the
+// workspace is made in the sandbox and not uploaded.
+func TestAWorkspaceWithNothingInItIsMadeInTheSandboxAndNotUploaded(t *testing.T) {
+	root := installFake(t)
+	dir, _ := aJob(t)
+	for _, name := range []string{"answer.txt"} {
+		if err := os.Remove(filepath.Join(dir.Workspace(), name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	box := sandboxFor(t, dir)
+	if err := box.Start(context.Background(), dir.Workspace()); err != nil {
+		t.Fatal(err)
+	}
+	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
+	for _, call := range strings.Split(string(calls), "\n") {
+		if strings.HasPrefix(call, "sandbox upload") && strings.Contains(call, dir.Workspace()) {
+			t.Errorf("an empty workspace was uploaded: %s", call)
+		}
+	}
+	if !strings.Contains(string(calls), "-- mkdir -p "+openshell.Workdir) {
+		t.Errorf("the workspace was not made in the sandbox:\n%s", calls)
+	}
+}
+
 func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
 	installFake(t)
 	dir, _ := aJob(t)

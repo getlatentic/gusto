@@ -374,8 +374,30 @@ func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
 	if filepath.Base(absolute) != filepath.Base(Workdir) {
 		return fmt.Errorf("the workspace is %s, and a sandbox names it %s", absolute, filepath.Base(Workdir))
 	}
+	// A new conversation's workspace holds nothing but its git directory, which an upload leaves behind, and an upload that selects
+	// nothing is refused: the folder is made in the sandbox instead.
+	if empty, err := holdsNothing(absolute); err != nil {
+		return err
+	} else if empty {
+		_, err = output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "mkdir", "-p", Workdir))
+		return err
+	}
 	_, err = output(s.run(ctx, "sandbox", "upload", s.name, absolute, filepath.Dir(Workdir)))
 	return err
+}
+
+// holdsNothing says a folder has no file or folder in it but .git.
+func holdsNothing(folder string) (bool, error) {
+	entries, err := os.ReadDir(folder)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.Name() != ".git" {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // slotsBusy is in what a gateway says when it is already staging as many root
