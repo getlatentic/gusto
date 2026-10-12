@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 // with, and what it starts out working on.
 func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 	wanted := r.URL.Query().Get("harness")
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Name == wanted && entry.Ready {
 			s.render(w, "setup.html", map[string]any{
 				"Title":   productName + " — " + entry.Name,
@@ -102,7 +103,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
 func (s *Server) runnable(harness string) string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Name != harness {
 			continue
 		}
@@ -173,7 +174,7 @@ func threadPath(thread instance.Thread) string {
 // firstReady is the engine a blank agent gets when nobody chooses: the
 // first this deployment can run, in the catalog's order.
 func (s *Server) firstReady() string {
-	for _, entry := range s.catalog {
+	for _, entry := range s.engines() {
 		if entry.Ready {
 			return entry.Name
 		}
@@ -184,12 +185,19 @@ func (s *Server) firstReady() string {
 // unusable says why an agent cannot be started on a model, or is empty when it can: the model has to be one this
 // person is offered, however the request was made.
 func (s *Server) unusable(r *http.Request, model string) string {
+	if lacking := s.lacking(); len(lacking) > 0 {
+		return lacking[0]
+	}
 	offered := s.offeredTo(r)
 	if s.limitedAway(r) {
 		return limitedWords
 	}
 	if model == "" || offered.Offers(model) {
 		return ""
+	}
+	// A model offered under the same name through another provider is told apart by its whole name.
+	if slices.ContainsFunc(offered, func(each string) bool { return modelName(each) == modelName(model) }) {
+		return model + " is not offered here: choose " + strings.Join(offered, " or ")
 	}
 	return modelName(model) + " is not offered here" + choose(offered)
 }

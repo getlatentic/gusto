@@ -3,7 +3,8 @@
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address. It puts the
 # programs in %LOCALAPPDATA%\haas and adds that folder to your PATH, which is the only thing it changes about your settings.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"
+#   irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex      # in PowerShell
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"   # in cmd
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.0.1-alpha.5
 #   .\install.ps1 -Programs haas-helper
@@ -85,8 +86,13 @@ try {
     $got = (Get-FileHash (Join-Path $work $archive) -Algorithm SHA256).Hash.ToLower()
     if ($got -ne $wanted) { Fail "$archive does not match its checksum: do not use it" }
     Expand-Archive -Path (Join-Path $work $archive) -DestinationPath $work -Force
-    Copy-Item (Join-Path $work "$program.exe") (Join-Path $Dir "$program.exe.new") -Force
-    Move-Item (Join-Path $Dir "$program.exe.new") (Join-Path $Dir "$program.exe") -Force
+    $target = Join-Path $Dir "$program.exe"
+    Copy-Item (Join-Path $work "$program.exe") "$target.new" -Force
+    # Windows does not let a program that is running be replaced, and does let it be renamed, so the one running is moved aside
+    # and removed once nothing runs it.
+    Get-ChildItem $Dir -Filter "$program.exe.old-*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    if (Test-Path $target) { Move-Item $target "$target.old-$([guid]::NewGuid().ToString('N'))" -Force }
+    Move-Item "$target.new" $target -Force
     Write-Host ("Installed " + (& (Join-Path $Dir "$program.exe") version) + " in $Dir")
   }
 

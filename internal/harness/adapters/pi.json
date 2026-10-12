@@ -3,6 +3,7 @@
   "title": "Pi",
   "what": "Reads, edits and runs, and takes whichever model the deployment points it at.",
   "program": "pi",
+  "package": "@earendil-works/pi-coding-agent",
   "argv": [
     "-e",
     "/root/.config/pi/haas-provider.ts",

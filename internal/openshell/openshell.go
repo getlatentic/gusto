@@ -119,7 +119,7 @@ type Sandbox struct {
 func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
 	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token}
 	if adapter.Keeps != "" {
-		s.keeps = append(s.keeps, inHome(adapter.Keeps))
+		s.keeps = append(s.keeps, harness.Rehome(adapter.Keeps, Home))
 	}
 	policy, err := Policy(cfg, modelURL, s.keeps)
 	if err != nil {
@@ -187,25 +187,6 @@ const jobsDir = Home + "/jobs"
 // Home is the home of the user a sandbox runs the harness as.
 const Home = "/sandbox"
 
-// inHome is where a path an adapter names for the runner's own home, /root, is
-// in a sandbox, where the harness's user has a home of its own.
-func inHome(path string) string {
-	if rest, found := strings.CutPrefix(path, "/root/"); found {
-		return Home + "/" + rest
-	}
-	return path
-}
-
-// inSandbox rewrites every mention of the runner's home in a command line, an
-// adapter being written once for a container where the harness's home is /root.
-func inSandbox(text string) string {
-	return runnersHome.ReplaceAllString(text, "${1}"+Home+"${2}")
-}
-
-// runnersHome finds /root as a path of its own: at the start of a word, and not
-// inside another path such as /usr/root or /rootless.
-var runnersHome = regexp.MustCompile(`(^|[^\w./-])/root($|/)`)
-
 // Equip puts the job's skills in the folder the harness finds them in, each in a
 // folder of its own name. The skills were written by this server, and the
 // sandbox is only handed them.
@@ -222,7 +203,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// container: codex refuses a home that does not exist.
 	if adapter.Keeps != "" {
 		keep := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-			"sh", "-c", `mkdir -p "$1"`, "sh", inHome(adapter.Keeps))
+			"sh", "-c", `mkdir -p "$1"`, "sh", harness.Rehome(adapter.Keeps, Home))
 		if _, err := output(keep); err != nil {
 			return err
 		}
@@ -230,7 +211,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// What an earlier job in a computer put where the harness looks for skills is not
 	// this job's.
 	if s.persistent && adapter.Skills != "" {
-		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", inHome(adapter.Skills))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, Home))); err != nil {
 			return err
 		}
 	}
@@ -238,7 +219,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		return nil
 	}
 	if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", equipGuidance, "sh", inHome(adapter.Skills), networkGuidance)); err != nil {
+		"sh", "-c", equipGuidance, "sh", harness.Rehome(adapter.Skills, Home), networkGuidance)); err != nil {
 		return err
 	}
 	if spec.Setup == nil {
@@ -252,7 +233,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		if err != nil {
 			return err
 		}
-		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, inHome(adapter.Skills))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, harness.Rehome(adapter.Skills, Home))); err != nil {
 			return err
 		}
 	}
@@ -451,7 +432,7 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 		if strings.ContainsAny(entry, "\n\r") {
 			return nil, fmt.Errorf("the environment variable %s holds a line break, which cannot be carried into the sandbox", name)
 		}
-		lines.WriteString(inSandbox(entry) + "\n")
+		lines.WriteString(harness.Rehome(entry, Home) + "\n")
 	}
 	lines.WriteString("\n")
 	if rest == nil {
@@ -465,7 +446,7 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", s.launcher(), "sh"}
 	for _, argument := range command.Args {
-		args = append(args, inSandbox(argument))
+		args = append(args, harness.Rehome(argument, Home))
 	}
 	wrapped := s.run(ctx, args...)
 	wrapped.Stdin, wrapped.Err = carried(command.Env, command.Stdin)
@@ -490,7 +471,7 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	}
 	words = append(words, "cd "+quoted(s.Workdir())+" || exit 1;", s.limit(), "exec")
 	for _, argument := range command.Args {
-		words = append(words, quoted(inSandbox(argument)))
+		words = append(words, quoted(harness.Rehome(argument, Home)))
 	}
 	attached := exec.CommandContext(ctx, "ssh", "-F", s.sshConfig, "-T", "-o", "BatchMode=yes", s.sshHost, strings.Join(words, " "))
 	attached.Env = cleanEnv()
@@ -509,7 +490,7 @@ func (s *Sandbox) leaveEnv(ctx context.Context, env []string) (string, error) {
 	var lines strings.Builder
 	for _, entry := range env {
 		if strings.Contains(entry, "=") {
-			lines.WriteString("export " + quoted(inSandbox(entry)) + "\n")
+			lines.WriteString("export " + quoted(harness.Rehome(entry, Home)) + "\n")
 		}
 	}
 	write := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "sh", "-c", `umask 077 && cat > "$1"`, "sh", file)

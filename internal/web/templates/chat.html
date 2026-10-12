@@ -2,10 +2,11 @@
 
 <section class="talk fresh">
   <div class="fresh-body">
-    <h1>What are we working on?</h1>
+    <h1>{{if .NeedsModel}}Add the model you use{{else}}What are we working on?{{end}}</h1>
     {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
-    {{if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
-    {{if .Picks}}
+    {{range .Lacking}}<p class="refused" role="status">{{.}}</p>{{end}}
+    {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
+    {{if and .Picks (not .NeedsModel)}}
     <div class="composer">
     <form class="column" method="post" action="/chat">
       <div class="box">
@@ -59,6 +60,7 @@
 </section>
 
 {{if .Picks}}
+{{if .NeedsModel}}<script src="{{asset "/static/firstmodel.js"}}"></script>{{end}}
 <script src="{{asset "/static/picker.js"}}"></script>
 <script src="{{asset "/static/explorer.js"}}"></script>
 <script src="{{asset "/static/folderpick.js"}}"></script>

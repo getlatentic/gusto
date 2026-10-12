@@ -3,6 +3,7 @@
   "title": "Claude Code",
   "what": "Anthropic's coding agent, on whichever Anthropic-shaped endpoint the deployment points it at.",
   "program": "claude",
+  "package": "@anthropic-ai/claude-code",
   "argv": [
     "-p",
     "--output-format",

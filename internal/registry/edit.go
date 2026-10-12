@@ -31,6 +31,8 @@ type Give struct {
 	// Reference is "stored", or where the key is read from.
 	Reference string
 	Key       string
+	// Wires is the shapes of API the provider answers in; see Provider.
+	Wires []string
 }
 
 // AddProvider adds a provider, or replaces one that was retired.
@@ -92,7 +94,12 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	if err := Check(give.Reference, r.Rules().KeySources); err != nil {
 		return Provider{}, err
 	}
-	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Pending: true}, nil
+	for _, wire := range give.Wires {
+		if wire != "chat" && wire != "messages" && wire != "responses" {
+			return Provider{}, fmt.Errorf("%s is not a shape of API: chat, messages or responses", wire)
+		}
+	}
+	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Wires: give.Wires, Pending: true}, nil
 }
 
 func (r *Registry) platformHas(name string) bool {

@@ -38,6 +38,10 @@ func installService(home string) error {
 		return fmt.Errorf("schtasks /Create: %w: %s", err, out)
 	}
 	exec.Command("schtasks", "/End", "/TN", taskName).Run()
+	// A haas started before, by an earlier install, holds the port the one started now listens on.
+	if err := endRunning(); err != nil {
+		return err
+	}
 	if out, err := exec.Command("schtasks", "/Run", "/TN", taskName).CombinedOutput(); err != nil {
 		return fmt.Errorf("schtasks /Run: %w: %s", err, out)
 	}

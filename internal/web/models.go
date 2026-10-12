@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/getlatentic/haas/internal/catalog"
 	"net/http"
 	"slices"
 	"strconv"
@@ -15,6 +16,17 @@ type Models []string
 
 // Offers says whether this model is one an agent may be pointed at.
 func (m Models) Offers(model string) bool { return slices.Contains(m, model) }
+
+// engines is the catalog as it stands now.
+func (s *Server) engines() []catalog.Entry {
+	if s.liveCatalog != nil {
+		return s.liveCatalog()
+	}
+	return s.catalog
+}
+
+// UseLiveCatalog has the catalog read again each time a page asks for it.
+func (s *Server) UseLiveCatalog(read func() []catalog.Entry) { s.liveCatalog = read }
 
 // offered is what this deployment offers to think with now. It changes when an organisation's admin changes the
 // registry, so what a page says is read when the page is drawn.

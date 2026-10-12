@@ -14,6 +14,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 **Changed**
 
+- **opencode runs any model.** Its configuration names the job's own model, from `HAAS_MODEL_PROVIDER` and `HAAS_MODEL_ID`, in place of a fixed list, so a model an organisation adds works with it. Each engine's own configuration moved from `image/harness/` to `internal/harness/config/`; an image built from this repository copies it from there.
 - **One install script for both programs.** `install.sh` and `install.ps1` install `haas` and `haas-helper` (`HAAS_PROGRAMS` names fewer) and are now in `deploy/install/`. On macOS and Linux they go to `~/.local/bin`, and `HAAS_INSTALL_DIR` names another folder (`HAAS_HELPER_DIR` is still read). On Windows they go to `%LOCALAPPDATA%\haas`, not `%LOCALAPPDATA%\haas-helper`: a person who installed the helper before has it in the old folder and on their PATH until they remove it. The scripts download with the GitHub command line when it is signed in, and otherwise from the release's public address.
 - **Every model is offered to every engine** where a credential names no harnesses, and a new chat starts on the person's last choice, else the organisation's default (`/admin`, New chats), else `HAAS_CHAT_DEFAULT` (`engine=model`), else the first that can run. Choosing the organisation's default is written to the change record as `chat.default`.
 
@@ -23,6 +24,7 @@ copies the section into the release's notes. Changes made after a release go und
 
 **New**
 
+- **Engines and models on a person's own computer.** `haas local` finds each engine on the person's PATH and says how to install a missing one; the chat page asks for a model (a provider, a key, the models) until there is one, and keeps the key in the computer's keychain; `haas local use NAME` adds a key the person's shell has ([LOCAL.md](LOCAL.md#models-and-keys)). A provider in the registry can name the shapes of API it answers (`wires`), as a credential can.
 - **haas on a person's own computer.** The install script starts haas as a service of the person's (`haas local install`) and opens it in their browser, signed in by a link that works once (`haas open`): no password, on `127.0.0.1` only, in a folder of their own ([LOCAL.md](LOCAL.md)). `HAAS_NO_START=1` installs without starting.
 - **`haas` is a download.** Each release has the `haas` program for macOS, Linux and Windows on Intel and Arm, as `haas_<release>_<system>_<processor>.tar.gz` (a `.zip` on Windows), in the `SHA256SUMS` the release workflow signs. `deploy/server/build.sh` builds one.
 - **The desktop app.** A release has the app for macOS (Apple silicon and Intel), Windows and Linux, and a server can hand it out so that people's apps update themselves: set `HAAS_DESKTOP` to a folder and fill it with `deploy/desktop/publish.sh` ([DESKTOP.md](DESKTOP.md#the-app)). Nothing changes for a server that sets nothing.

@@ -35,7 +35,7 @@ Each harness ran from a clean environment (`env -i`, a fresh `HOME`, no git
 configuration) under `strace -f -e trace=%network,execve`, so a connection that
 ignored the proxy would still show. None did: every run's only direct
 connections were to loopback. The arguments were the adapters' own, from
-`internal/harness/adapters/`, with opencode given `image/harness/opencode/opencode.json`.
+`internal/harness/adapters/`, with opencode given `internal/harness/config/opencode/opencode.json`.
 
 | harness | package | version |
 | --- | --- | --- |
@@ -179,7 +179,7 @@ also carry a harness's telemetry.
 
 Nothing in this repository fetches model weights or installs a model server.
 The only models it names are two local ones in
-`image/harness/opencode/opencode.json:4-17`, `llama3.2:3b` and `gpt-oss:20b`
+`internal/harness/config/opencode/opencode.json:4-17`, `llama3.2:3b` and `gpt-oss:20b`
 behind Ollama on the host, and two hosted ones on greencloud
 (`host_vars/greencloud.yml:36-47`), neither of which is reachable from an air
 gap. Where Ollama or any other server fetches weights from is outside the code;
@@ -203,7 +203,7 @@ Everything below has to be inside the building before the first build.
 | host packages | `git`, `curl`, `acl`, `podman`, `uidmap`, `slirp4netns`, `python3-pymysql`; `certbot` if its path is kept; `nginx`, `mysql` and `redis` where the box does not have them | read, the roles; the playbook assumes the last three |
 | harness packages | per harness, the package and its platform package at one pinned version: `opencode-ai` with `opencode-linux-x64` and `opencode-linux-x64-baseline`; `@anthropic-ai/claude-code` with `@anthropic-ai/claude-code-linux-x64`; `@openai/codex` with `@openai/codex@<version>-linux-x64`. arm64 and musl hosts need their own | measured on x64 |
 | opencode's plugin package | `@opencode-ai/plugin`, only if pre-seeding it stops the run-time fetch | open question 2 |
-| harness configuration | `image/harness/`, already in the repository | read |
+| harness configuration | `internal/harness/config/`, already in the repository | read |
 | Ansible collections | `ansible.mysql`, `community.crypto`, as tarballs | read, `requirements.yml` |
 | the pages' assets | `htmx.min.js`, `tokens.css`, `mark.png`: already vendored | read, `internal/web/static/PROVENANCE.md` |
 | a model server | one that speaks the OpenAI-compatible API opencode and codex are pointed at; the responses API for codex (`adapters/codex.json`, `wire_api=responses`) | read |
@@ -302,7 +302,7 @@ it.
 | --- | --- | --- |
 | C1 | build: vendor the Go modules and build with `-mod=vendor` | `vendor/` committed; `Dockerfile:14-15` copies it instead of downloading; the toolchain role builds with `GOFLAGS=-mod=vendor` and `GOTOOLCHAIN=local` |
 | C2 | image: build from internal mirrors named by build arguments | `ARG`s for the two base images, an npm registry and a Debian mirror in the `Dockerfile`; nothing changes when they are unset |
-| C3 | image: stop the harnesses calling home | `OPENCODE_DISABLE_MODELS_FETCH=1` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` in the image's `ENV`; `features.plugins=false` and `analytics.enabled=false` in the codex adapter's `-c` arguments, which is the form measured, or in `image/harness/codex/config.toml`; a test that holds the measured hosts |
+| C3 | image: stop the harnesses calling home | `OPENCODE_DISABLE_MODELS_FETCH=1` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` in the image's `ENV`; `features.plugins=false` and `analytics.enabled=false` in the codex adapter's `-c` arguments, which is the form measured, or in `internal/harness/config/codex/config.toml`; a test that holds the measured hosts |
 | C4 | rules: judge a restricted job by the credential's address, not the adapter's vendor endpoint | `internal/runner/admit.go:21` and `internal/web/api.go:89` check `adapter.EndpointOf()`, which for codex is `https://api.openai.com` (`adapters/codex.json:25`) whatever the credential points at, so a restricted job on codex is refused even when its model is in the building |
 | C5 | ship: push to and link a GitHub Enterprise host, not only github.com | the token header in `internal/ship/git.go:64`, the links in `internal/ship/links.go:27-48` and the remote parsing in `internal/ship/plan.go:164` follow the configured host |
 | C6 | deploy: install from internal mirrors | the known-hosts entry follows `repo_url` (`common/tasks/main.yml:53-57`); the Go tarball's address is a variable (`toolchain/tasks/main.yml:7`); the vhost takes certificate paths, so certbot is one way to fill them (`nginx/tasks/main.yml:44-52`) |

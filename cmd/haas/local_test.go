@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
 		t.Fatalf("%+v, %v", first, err)
 	}
 	again, err := ensureLocal(home)
-	if err != nil || again != first {
+	if err != nil || !reflect.DeepEqual(again, first) {
 		t.Errorf("the setup changed when it was read again: %+v, %v", again, err)
 	}
 	for path, want := range map[string]os.FileMode{home: 0o700, filepath.Join(home, "local.json"): 0o600} {
@@ -69,5 +70,34 @@ func TestOpeningALinkDoesNotWaitForTheBrowser(t *testing.T) {
 		if (err != nil) != fails {
 			t.Errorf("%s: %v", script, err)
 		}
+	}
+}
+
+// A setup made before haas had a proxy of its own is given a port for one, kept, and the rest is as it was.
+func TestASetupFromBeforeTheProxyIsGivenAPortForIt(t *testing.T) {
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, "local.json"), []byte(`{"port": 7140, "secret": "s"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	setup, err := ensureLocal(home)
+	if err != nil || setup.Port != 7140 || setup.Secret != "s" || setup.ProxyPort == 0 || setup.ProxyPort == setup.Port {
+		t.Fatalf("%+v %v", setup, err)
+	}
+	if again, _ := ensureLocal(home); again.ProxyPort != setup.ProxyPort {
+		t.Errorf("the proxy's port was not kept: %d then %d", setup.ProxyPort, again.ProxyPort)
+	}
+}
+
+// A person installs an engine into a folder their PATH did not name when haas was installed, and runs haas open in that
+// terminal: the server looks there from then on.
+func TestTheServerLooksWhereThePersonLastRanHaasFrom(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("PATH", "/usr/bin")
+	if err := (localSetup{Port: 1, Secret: "s", Path: "/opt/engines/bin:/usr/bin"}).save("."); err != nil {
+		t.Fatal(err)
+	}
+	adoptRecordedPath()
+	if got := os.Getenv("PATH"); got != "/opt/engines/bin:/usr/bin" {
+		t.Errorf("the server looks on %s", got)
 	}
 }

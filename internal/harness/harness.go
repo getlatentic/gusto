@@ -78,8 +78,14 @@ type Adapter struct {
 	Title string `json:"title,omitempty"`
 	// What this harness is, in one line, for somebody choosing between them.
 	// A catalog that lists only names is not a choice.
-	What     string            `json:"what,omitempty"`
-	Program  string            `json:"program"`
+	What    string `json:"what,omitempty"`
+	Program string `json:"program"`
+	// Package is the npm package that provides the program, as the runner image installs it, and as a person installs it on
+	// their own computer.
+	Package string `json:"package,omitempty"`
+	// Installs is the program the package puts on the PATH, when the adapter starts it through another: hermes is started by
+	// sh. It is what a catalog looks for. Empty is the program itself.
+	Installs string            `json:"installs,omitempty"`
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`
 	Endpoint string            `json:"endpoint,omitempty"`
@@ -194,6 +200,14 @@ func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *
 	return a.CommandIn(ctx, spec, workspace, Here())
 }
 
+// Installed is the program a computer or an image needs for this harness to run.
+func (a Adapter) Installed() string {
+	if a.Installs != "" {
+		return a.Installs
+	}
+	return a.Program
+}
+
 // Env is what a harness is started with besides its own arguments: the
 // environment it inherits, and where its model is and what stands in for a
 // credential. A box that is not this process names them itself, so nothing of
@@ -205,6 +219,9 @@ type Env struct {
 	Base       []string
 	ModelURL   string
 	ModelToken string
+	// Home and Data are the harness's home and the folder it keeps its state in when it runs outside a container, where
+	// they stand for /root and /root/.local/share. Empty is a harness in the container its adapter was written for.
+	Home, Data string
 }
 
 // Here is this process's own: what a container's runner and a run on a laptop
@@ -250,9 +267,15 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 }
 
 func (a Adapter) fill(text string, spec job.Spec, env Env) string {
-	_, alone, _ := strings.Cut(spec.Model, "/")
-	if alone == "" {
-		alone = spec.Model
+	provider, alone, found := strings.Cut(spec.Model, "/")
+	if !found {
+		provider, alone = "", spec.Model
+	}
+	// A harness that runs only the models its configuration names is told of the job's own, under the name of the
+	// credential that serves it, and of none when the job names no model: a provider called haas, which its
+	// configuration turns off.
+	if provider == "" {
+		provider = "haas"
 	}
 	return strings.NewReplacer(
 		"{brief}", spec.Brief,
@@ -262,6 +285,7 @@ func (a Adapter) fill(text string, spec job.Spec, env Env) string {
 		// wants the model alone.
 		"{model}", spec.Model,
 		"{modelId}", alone,
+		"{modelProvider}", provider,
 		"{modelUrl}", env.ModelURL,
 		"{modelRoot}", strings.TrimSuffix(env.ModelURL, "/v1"),
 		"{modelToken}", env.ModelToken,

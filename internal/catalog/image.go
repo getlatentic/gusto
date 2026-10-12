@@ -31,6 +31,9 @@ type Carried struct {
 	Unasked bool
 	// Unanswered is why the image could not be asked at all.
 	Unanswered error
+	// Machine says the programs were looked for on this computer's PATH, where a person installs them themselves, and not in an
+	// image.
+	Machine bool
 }
 
 // Declares reports whether the image names the harness.
@@ -57,6 +60,22 @@ func (c Carried) Runs(name, program string) (bool, string) {
 		return false, "the runner image says it carries " + name + ", but " + program + " is not on its PATH: rebuild the image"
 	}
 	return false, "the runner image does not carry " + program + ": add " + name + " to its HARNESSES and rebuild it"
+}
+
+// machine is this computer, as a person's own: a job runs here and finds its program on the PATH.
+type machine struct{}
+
+// Machine is this computer's PATH, asked in place of an image.
+func Machine() Image { return machine{} }
+
+func (machine) Carried(programs []string) Carried {
+	found := map[string]bool{}
+	for _, program := range programs {
+		if _, err := exec.LookPath(program); err == nil {
+			found[program] = true
+		}
+	}
+	return Carried{OnPath: found, Machine: true}
 }
 
 // Ask runs the container command and hands back what it printed.

@@ -74,7 +74,7 @@ func Of(image Image, names []string) []Entry {
 	for _, name := range names {
 		if adapter, err := harness.Load("", name); err == nil {
 			adapters[name] = adapter
-			programs = append(programs, adapter.Program)
+			programs = append(programs, adapter.Installed())
 		}
 	}
 	carried := image.Carried(programs)
@@ -102,7 +102,10 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		MCP:      adapter.TakesMCP(),
 		Declared: carried.Declares(name),
 	}
-	entry.Ready, entry.Why = carried.Runs(name, adapter.Program)
+	entry.Ready, entry.Why = carried.Runs(name, adapter.Installed())
+	if carried.Machine && !entry.Ready {
+		entry.Why = notInstalled(adapter)
+	}
 	if entry.Ready && adapter.Needs == harness.NeedsAccount {
 		// The program is there, but it answers to somebody's own
 		// subscription, which a shared server does not have.
@@ -110,6 +113,14 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		entry.Why = "it signs in as a person, so it runs where that person is"
 	}
 	return entry
+}
+
+// notInstalled is how a person installs a harness that is not on their computer.
+func notInstalled(adapter harness.Adapter) string {
+	if adapter.Package == "" {
+		return adapter.Installed() + " is not installed on this computer"
+	}
+	return "npm install -g " + adapter.Package
 }
 
 // Ready is the names a job may name, which is what a form should offer.
