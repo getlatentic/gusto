@@ -1,6 +1,7 @@
 package harness
 
 import (
+	"bytes"
 	"embed"
 	"io/fs"
 	"os"
@@ -31,6 +32,6 @@ func PlaceConfig(home string) error {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(to, text, 0o600)
+		return os.WriteFile(to, bytes.ReplaceAll(text, []byte("/root"), []byte(home)), 0o600)
 	})
 }
