@@ -138,7 +138,7 @@ table.facts td { border: 0; padding-left: 0; }
 .title-row > form, .title-row > .month { margin-left: auto; }
 button.quiet { background: none; color: var(--yg-text-muted); font-weight: 400;
   border: 0.0625rem solid var(--yg-border-strong); padding: var(--yg-space-2) var(--yg-space-4); }
-button.quiet:hover { background: var(--yg-danger-surface); color: var(--yg-danger); border-color: var(--yg-danger); }
+button.quiet:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
 a.button { display: inline-flex; align-items: center; gap: var(--yg-space-2); text-decoration: none;
   padding: var(--yg-space-3) var(--yg-space-6); border-radius: var(--yg-radius-sm);
   background: var(--yg-accent); color: var(--yg-on-accent); font-weight: 600; }

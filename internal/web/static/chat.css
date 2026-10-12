@@ -17,10 +17,6 @@
   padding: var(--yg-space-2) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-text); color: var(--yg-text-inverse);
   font: 500 .75rem/1.4 var(--yg-font-text); white-space: normal; text-align: left; opacity: 0; pointer-events: none; }
 .talk-top .sealed:hover::after, .talk-top .sealed:focus-visible::after { opacity: 1; }
-.quiet-button { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-3); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm);
-  background: var(--yg-surface); color: var(--yg-text); font: 500 .75rem/1 var(--yg-font-text); text-decoration: none; white-space: nowrap; }
-.quiet-button:hover { background: var(--yg-bg-subtle); }
-.quiet-button svg.i { width: 0.9375rem; height: 0.9375rem; opacity: .8; }
 
 .turn { margin-bottom: var(--yg-space-8); }
 .turn pre { margin: 0; }
