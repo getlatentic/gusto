@@ -1,29 +1,44 @@
 {{define "first-model"}}
-<form class="card column first-model" method="post" action="/setup/model">
-  <p>Every engine can use it. Its key stays on this computer with haas, and no agent is given it.</p>
-  {{range .FoundKeys}}<p class="muted">Your shell has {{.}}. To use it, run <code>haas local use {{.}}</code> in a terminal.</p>{{end}}
-  <label>Provider
-    <select id="preset">
-      {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
-      <option value="" data-auth="">Another</option>
-    </select>
-  </label>
-  <label>Address <input name="address" id="address" required placeholder="https://api.example.com"></label>
-  <label>Answers like
-    <select name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>
-  </label>
-  <label>Key <input type="password" name="key" id="key" autocomplete="off"></label>
-  <label>Models
-    <span class="line"><input name="models" id="models" required placeholder="one or more, separated by commas" list="found-models"><button type="button" id="list-models" class="quiet-button">List my models</button></span>
-    <span class="muted" id="list-said" role="status"></span>
-  </label>
-  <datalist id="found-models"></datalist>
+<form class="setup first-model" method="post" action="/setup/model">
+  <div class="setup-group">
+    <p class="setup-lede">Every engine can use it. Its key stays on this computer with haas, and no agent is given it.</p>
+    {{range .FoundKeys}}<p class="setup-aside">Your shell has {{.}}. To use it, run <code>haas local use {{.}}</code> in a terminal.</p>{{end}}
+  </div>
+  <div class="setup-group">
+    <div class="setup-field">
+      <label for="preset">Provider</label>
+      <span class="setup-menu"><select id="preset">
+        {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
+        <option value="" data-auth="">Another provider</option>
+      </select>{{template "icon-chevron"}}</span>
+    </div>
+    <div class="setup-group setup-custom" id="custom">
+      <div class="setup-field">
+        <label for="address">Address</label>
+        <input name="address" id="address" required placeholder="https://api.example.com">
+      </div>
+      <div class="setup-field">
+        <label for="auth">Answers like</label>
+        <span class="setup-menu"><select name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>{{template "icon-chevron"}}</span>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label for="key">Key</label>
+      <input type="password" name="key" id="key" autocomplete="off">
+    </div>
+    <div class="setup-field">
+      <label for="models">Models</label>
+      <div class="setup-control"><input name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="quiet-button">List my models</button></div>
+      <span class="setup-hint" id="list-said" role="status"></span>
+    </div>
+    <datalist id="found-models"></datalist>
+  </div>
   <button type="submit">Add</button>
   {{with .Missing}}
-  <div class="muted">
-    <p>Not on this computer yet, and how to add them:</p>
-    <ul>{{range .}}<li>{{.Title}}: <code>{{.Why}}</code></li>{{end}}</ul>
-    <p>Then run <code>haas open</code> in the same terminal, so haas looks for engines where that terminal does.</p>
+  <div class="setup-engines">
+    <span class="setup-name">Not on this computer yet</span>
+    <dl>{{range .}}<dt>{{.Title}}</dt><dd><code>{{.Why}}</code></dd>{{end}}</dl>
+    <p class="setup-aside">Then run <code>haas open</code> in the same terminal, so haas looks where that terminal does.</p>
   </div>
   {{end}}
 </form>

@@ -30,6 +30,9 @@ func chooseWall() isolation.Choice {
 	fmt.Println(choice.Words())
 	for _, passed := range choice.Passed {
 		fmt.Printf("  no %s: %s\n", passed.Kind, passed.Detail)
+		if passed.Cause != "" {
+			fmt.Printf("      %s\n", passed.Cause)
+		}
 	}
 	return choice
 }
