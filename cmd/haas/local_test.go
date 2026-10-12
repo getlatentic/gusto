@@ -117,3 +117,18 @@ func TestThePersonsOwnShellIsAskedForItsPath(t *testing.T) {
 		t.Errorf("the shell's PATH was read as %q", got)
 	}
 }
+
+// A computer's own choice of wall is set as HAAS_SANDBOX, so the rest of haas runs jobs behind it, and a person's own setting
+// is left alone.
+func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
+	t.Setenv("HAAS_SANDBOX", "")
+	t.Setenv("HAAS_CONTAINER", "")
+	t.Setenv("PATH", t.TempDir())
+	if chooseWall(); os.Getenv("HAAS_SANDBOX") != "here" || wall == nil || wall.Short() != "no sandbox" {
+		t.Errorf("a computer with no docker and no VM chose %q", os.Getenv("HAAS_SANDBOX"))
+	}
+	t.Setenv("HAAS_SANDBOX", "container")
+	if chooseWall(); os.Getenv("HAAS_SANDBOX") != "container" || !wall.Forced {
+		t.Error("a person's own setting was second-guessed")
+	}
+}
