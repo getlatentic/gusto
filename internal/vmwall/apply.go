@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -27,6 +28,7 @@ func (p Plan) Apply(ctx context.Context) error {
 		do  func(context.Context) error
 	}{
 		{"Downloading OpenShell", p.install},
+		{"Getting the disk tools", p.fetchTools},
 		{"Signing the virtual machine driver", p.sign},
 		{"Making the gateway's certificates", p.certificates},
 		{"Configuring the gateway", p.configure},
@@ -104,6 +106,26 @@ func (p Plan) imagePath() string {
 		return abs
 	}
 	return filepath.Join(p.Rootfs(), RootfsAsset(p.Platform.GOARCH))
+}
+
+// fetchTools downloads the disk tools into the folder the gateway looks in first, and their licence and source offer beside them.
+func (p Plan) fetchTools(ctx context.Context) error {
+	if !p.FetchTools {
+		return nil
+	}
+	archive, err := fetch(ctx, func(ctx context.Context, _ string, dst io.Writer) error {
+		return p.GetAsset(ctx, p.Release, ToolsAsset, dst)
+	}, ToolsAsset, p.Tools.SHA256, p.Root)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(archive)
+	return unpackInto(archive, func(name string) string {
+		if slices.Contains(diskTools, name) {
+			return filepath.Join(p.Bin(), name)
+		}
+		return filepath.Join(p.Root, "licenses", name)
+	})
 }
 
 // fetchImage downloads haas's root file system and keeps it only if it is the one the release's checksum file names.

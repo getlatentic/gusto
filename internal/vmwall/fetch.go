@@ -120,3 +120,39 @@ func writeProgram(dst string, from io.Reader) error {
 	}
 	return os.Rename(staged.Name(), dst)
 }
+
+// unpackInto writes each file of a .tar.gz archive to the path where names it, or skips the ones where returns empty. A link or a
+// path with a folder in it is refused: the archive holds files and nothing else.
+func unpackInto(archive string, where func(name string) string) error {
+	file, err := os.Open(archive)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	unzipped, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	reader := tar.NewReader(unzipped)
+	for {
+		header, err := reader.Next()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if header.Typeflag == tar.TypeDir {
+			continue
+		}
+		name := filepath.Base(header.Name)
+		if header.Typeflag != tar.TypeReg || name != header.Name {
+			return fmt.Errorf("%s holds %q, which is not a plain file", filepath.Base(archive), header.Name)
+		}
+		if dst := where(name); dst != "" {
+			if err := writeProgram(dst, reader); err != nil {
+				return err
+			}
+		}
+	}
+}
