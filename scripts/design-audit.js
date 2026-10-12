@@ -3,7 +3,7 @@
 (function () {
   var LIMIT = { surfaces: 5, smallest: 12, heaviest: 600, target: 24, contrast: 4.5, nesting: 2 };
   var RADII = [4, 8, 12, 16, 20, 24];
-  var SIZES = [12, 13, 14, 16, 20, 24, 28];
+  var SIZES = [12, 13, 14, 16, 18, 22, 24];
   var WEIGHTS = ["400", "500", "600"];
   var upper = [], offCentre = [];
   var all = [].slice.call(document.body.querySelectorAll("*")).filter(function (el) {

@@ -91,11 +91,11 @@ The target is WCAG 2.2 level AA. Where we choose a stricter number, the rule say
 
 Values come from the tokens in `theme.css`. A value outside the scale is a warning. All sizes are written in rem in the CSS, so that they follow the person's text size, and `units_test.go` rejects px in the stylesheets. The pixel values in this document are what a rem is at the default 16px text, and are given so that the rules can be read and measured. The audit script reads computed pixels at 100% text.
 
-| rem | 0.25 | 0.5 | 0.75 | 1 | 1.25 | 1.5 | 1.75 | 2 | 2.5 | 3 | 4 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| px | 4 | 8 | 12 | 16 | 20 | 24 | 28 | 32 | 40 | 48 | 64 |
+| rem | 0.25 | 0.5 | 0.75 | 1 | 1.125 | 1.25 | 1.375 | 1.5 | 1.75 | 2 | 2.5 | 3 | 4 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| px | 4 | 8 | 12 | 16 | 18 | 20 | 22 | 24 | 28 | 32 | 40 | 48 | 64 |
 
-Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5, 0.75, 1, 1.25 and 1.5. Type uses 0.75, 0.8125, 0.875, 1, 1.25, 1.5 and 1.75.
+Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5, 0.75, 1, 1.25 and 1.5. Type uses 0.75, 0.8125, 0.875, 1, 1.125, 1.375 and 1.5.
 
 ### Layout
 
@@ -132,7 +132,7 @@ Space uses 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3 and 4. Radius uses 0.25, 0.5
 | Topic | Rule | Check |
 |---|---|---|
 | Families | Sora for headings, Noto Sans for text, Noto Sans Mono for code. | Auto. |
-| Sizes | 12, 13, 14, 16, 20, 24, 28px. A page title is 24. A hero line is 28. Messages and prose are 16. Secondary text is 14. A label may be 12 or 13. Nothing is under 12 at 100% text. | Auto: warn on other sizes. |
+| Sizes | 12, 13, 14, 16, 18, 22, 24px. A page title is 22. A hero line is 24. Messages and prose are 14. Secondary text is 13. A label is 12 or 13. A section heading is 16 or 18. Nothing is under 12 at 100% text. | Auto: warn on other sizes. |
 | Weights | 400 for text, 500 for labels and controls, 600 for headings and the primary action. Nothing is above 600. | Auto: warn on other weights. |
 | Emphasis | One signal per piece of text: heavier, or larger, or coloured. A heading may combine two. In a list row, only the title is 600. | Look. |
 | Line height | Text 1.5. Headings 1.2 to 1.3. Labels 1.3 to 1.4. | Auto. |

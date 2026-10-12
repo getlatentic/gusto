@@ -10,13 +10,20 @@
   var found = document.getElementById("found-models");
   var models = form.querySelector("#models");
 
+  var custom = form.querySelector("#custom");
+
+  // A provider the app knows fills in where it answers and how, and those two fields are then out of the way; another provider
+  // asks for them.
   function choose() {
     var option = preset.options[preset.selectedIndex];
-    if (option.value) {
+    var known = !!option.value;
+    custom.hidden = known;
+    if (known) {
       address.value = option.value;
       auth.value = option.getAttribute("data-auth") === "anthropic" ? "anthropic" : "";
     } else {
       address.value = "";
+      auth.value = "";
       address.focus();
     }
   }

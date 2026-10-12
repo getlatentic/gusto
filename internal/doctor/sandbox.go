@@ -29,7 +29,11 @@ func sandboxChoice(machine Machine) Verdict {
 	}
 	var missing []string
 	for _, backend := range choice.Passed {
-		missing = append(missing, string(backend.Kind)+": "+backend.Detail)
+		said := string(backend.Kind) + ": " + backend.Detail
+		if backend.Cause != "" {
+			said += " (" + backend.Cause + ")"
+		}
+		missing = append(missing, said)
 	}
 	if len(missing) > 0 {
 		verdict.Remedy = "no stronger wall: " + strings.Join(missing, "; ")
