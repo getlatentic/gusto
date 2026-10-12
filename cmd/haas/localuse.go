@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +16,6 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/web"
 )
 
 // keyProvider is where a model key a person's shell may hold answers.
@@ -88,12 +85,8 @@ func useKey(home string, args []string) int {
 
 // signedInClient is a client signed in to this person's haas, by a link of their own.
 func signedInClient(setup localSetup) (*http.Client, string, error) {
-	root := fmt.Sprintf("http://127.0.0.1:%d", setup.Port)
-	if !answers(root+"/healthz", 5*time.Second) {
-		return nil, "", fmt.Errorf("haas does not answer at %s: start it with haas local install", root)
-	}
-	nonce := make([]byte, 16)
-	if _, err := rand.Read(nonce); err != nil {
+	link, err := signInLink(setup, 5*time.Second)
+	if err != nil {
 		return nil, "", err
 	}
 	jar, err := cookiejar.New(nil)
@@ -101,7 +94,7 @@ func signedInClient(setup localSetup) (*http.Client, string, error) {
 		return nil, "", err
 	}
 	client := &http.Client{Jar: jar, Timeout: 30 * time.Second}
-	answer, err := client.Get(root + web.LocalLink(setup.Secret, hex.EncodeToString(nonce), time.Now()))
+	answer, err := client.Get(link)
 	if err != nil {
 		return nil, "", err
 	}
@@ -109,7 +102,7 @@ func signedInClient(setup localSetup) (*http.Client, string, error) {
 	if answer.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("haas did not sign this shell in: %s", answer.Status)
 	}
-	return client, root, nil
+	return client, setup.root(), nil
 }
 
 // pickModel asks the provider which models the key can use, through haas, and has the person pick one.

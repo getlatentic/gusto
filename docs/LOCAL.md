@@ -29,11 +29,17 @@ runs `haas local install`, which makes haas a service of this person's that star
 browser signed in. `HAAS_NO_START=1` installs without starting. While the releases are private, the script needs the GitHub
 command line, signed in.
 
+## The desktop app
+
+The desktop app uses haas on this computer when no organisation is set: the one the install script left running, or the `haas` it
+carries, started for as long as the app runs. Measured on an M1 Max, with no haas running: 3.5 seconds from opening the app to the
+chat page, signed in. Its icon's menu switches between this computer and an organisation ([desktop/README.md](../desktop/README.md)).
+
 ## What it keeps
 
 | What | Where |
 | --- | --- |
-| The data: jobs, conversations, presets, records | macOS `~/Library/Application Support/haas`, Linux `$XDG_DATA_HOME/haas` or `~/.local/share/haas`, Windows `%LOCALAPPDATA%\haas\data`. `HAAS_LOCAL_HOME` names another folder |
+| The data: jobs, conversations, presets, records | macOS `~/Library/Application Support/haas/data`, Linux `$XDG_DATA_HOME/haas` or `~/.local/share/haas`, Windows `%LOCALAPPDATA%\haas\data`. `HAAS_LOCAL_HOME` names another folder |
 | `local.json`: the ports, the secret, the PATH | in that folder, readable by this person alone. The secret is the server's password and the key its sign-in links are made with. The PATH is the one the person's shell had at install, so the service finds the engines they install |
 | Model keys | the computer's keychain: the macOS Keychain, the Windows Credential Manager, or the Secret Service on Linux. Where none can be used, or with `HAAS_KEYCHAIN=off`, `registry/keys` in the data folder, readable by this person alone |
 | The models | `registry/` in the data folder |
