@@ -36,6 +36,8 @@ func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 			map[string]string{"openshell sandbox list": "", "docker info": "x", "docker image inspect haas:dev": "sha256:1"}), VM},
 		"a Mac with hardware virtualization, OpenShell and a gateway": {computer("darwin", vm, []string{"openshell"},
 			map[string]string{"sysctl -n kern.hv_support": "1", "openshell sandbox list": ""}), VM},
+		"haas's own OpenShell, whose gateway has a name": {computer("darwin", map[string]string{"HAAS_OPENSHELL": "/h/bin/openshell", "HAAS_OPENSHELL_GATEWAY": "haas", "HAAS_OPENSHELL_IMAGE": "rootfs.tar"},
+			[]string{"/h/bin/openshell"}, map[string]string{"sysctl -n kern.hv_support": "1", "/h/bin/openshell --gateway haas sandbox list": ""}), VM},
 		"Docker and the image, and no OpenShell": {computer("darwin", nil, []string{"docker"},
 			map[string]string{"docker info": "x", "docker image inspect haas:dev": "sha256:1"}), Container},
 		"Podman and the image": {computer("linux", nil, []string{"podman"},
