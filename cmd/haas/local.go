@@ -31,7 +31,8 @@ func localHome() (string, error) {
 	}
 	switch runtime.GOOS {
 	case "darwin":
-		return filepath.Join(userHome, "Library", "Application Support", "haas"), nil
+		// The folder of its own in haas's, as on Windows: haas-helper keeps its settings in haas's folder itself.
+		return filepath.Join(userHome, "Library", "Application Support", "haas", "data"), nil
 	case "windows":
 		return filepath.Join(os.Getenv("LOCALAPPDATA"), "haas", "data"), nil
 	}
