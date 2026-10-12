@@ -37,7 +37,7 @@ func TestAJobsValuesReachTheCommandLine(t *testing.T) {
 	}
 	spec := job.Spec{Brief: "fix the adder", Model: "ollama/gpt-oss:20b"}
 	command := adapter.Command(context.Background(), spec, t.TempDir())
-	if !slices.Contains(command.Args, "--model=ollama/gpt-oss:20b") {
+	if !slices.Contains(command.Args, "--model=haas-ollama/gpt-oss:20b") {
 		t.Errorf("the model should reach the command line: %v", command.Args)
 	}
 	if !slices.Contains(command.Args, "fix the adder") {
