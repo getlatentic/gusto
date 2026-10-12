@@ -57,7 +57,7 @@ func localCommand(args []string) int {
 	return localCommands[args[0]](home, args[1:])
 }
 
-const localUsage = "usage: haas local install|run|stop|uninstall|link, or haas local use NAME [model...]"
+const localUsage = "usage: haas local install|run|stop|uninstall|link, or haas local use NAME [model...], or haas local wall install"
 
 // signInLink waits up to wait for haas to answer, and is a new link that signs in to it, once and within five minutes.
 func signInLink(setup localSetup, wait time.Duration) (string, error) {
@@ -92,6 +92,7 @@ var localCommands = map[string]func(home string, args []string) int{
 	"uninstall": func(home string, _ []string) int { return uninstallLocal(home) },
 	"use":       useKey,
 	"link":      printLink,
+	"wall":      localWall,
 }
 
 // installLocal makes haas a service of this person's and opens it. It runs in the person's own shell, so it keeps the PATH
@@ -164,6 +165,7 @@ func runLocal(home string) int {
 		os.Setenv("PATH", setup.Path)
 	}
 	os.Setenv("HAAS_FOUND_KEYS", strings.Join(setup.FoundKeys, ","))
+	useInstalledWall(home)
 	chooseWall()
 	return serve(nil)
 }
