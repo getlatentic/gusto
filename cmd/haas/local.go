@@ -56,7 +56,33 @@ func localCommand(args []string) int {
 	return localCommands[args[0]](home, args[1:])
 }
 
-const localUsage = "usage: haas local install|run|stop|uninstall, or haas local use NAME [model...]"
+const localUsage = "usage: haas local install|run|stop|uninstall|link, or haas local use NAME [model...]"
+
+// signInLink waits up to wait for haas to answer, and is a new link that signs in to it, once and within five minutes.
+func signInLink(setup localSetup, wait time.Duration) (string, error) {
+	if !answers(setup.root()+"/healthz", wait) {
+		return "", fmt.Errorf("haas does not answer at %s: start it with haas local install", setup.root())
+	}
+	nonce := make([]byte, 16)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", err
+	}
+	return setup.root() + web.LocalLink(setup.Secret, hex.EncodeToString(nonce), time.Now()), nil
+}
+
+// printLink prints a new sign-in link and opens nothing, for a program that shows haas itself, such as the desktop app.
+func printLink(home string, _ []string) int {
+	setup, err := ensureLocal(home)
+	if err != nil {
+		return fail(err)
+	}
+	link, err := signInLink(setup, 2*time.Second)
+	if err != nil {
+		return fail(err)
+	}
+	fmt.Println(link)
+	return 0
+}
 
 var localCommands = map[string]func(home string, args []string) int{
 	"run":       func(home string, _ []string) int { return runLocal(home) },
@@ -64,6 +90,7 @@ var localCommands = map[string]func(home string, args []string) int{
 	"stop":      func(string, []string) int { return failIf(stopService()) },
 	"uninstall": func(home string, _ []string) int { return uninstallLocal(home) },
 	"use":       useKey,
+	"link":      printLink,
 }
 
 // installLocal makes haas a service of this person's and opens it. It runs in the person's own shell, so it keeps the PATH
@@ -124,6 +151,14 @@ func runLocal(home string) int {
 	// The person adds the models they use, as the admin of their own registry, and a model on this computer is theirs to use.
 	os.Setenv("HAAS_REGISTRY", filepath.Join(home, "registry"))
 	os.Setenv("HAAS_REGISTRY_PRIVATE", "allow")
+	// Started by the desktop app before anything recorded the person's PATH, haas asks their shell for it.
+	if setup.Path == "" {
+		if setup.Path = loginShellPath(); setup.Path != "" {
+			if err := setup.save(home); err != nil {
+				return fail(err)
+			}
+		}
+	}
 	if setup.Path != "" {
 		os.Setenv("PATH", setup.Path)
 	}
@@ -161,16 +196,11 @@ func openLocal(home string, wait time.Duration) int {
 			return fail(err)
 		}
 	}
-	root := fmt.Sprintf("http://127.0.0.1:%d", setup.Port)
-	if !answers(root+"/healthz", wait) {
-		return fail(fmt.Errorf("haas does not answer at %s: start it with haas local install", root))
-	}
-	nonce := make([]byte, 16)
-	if _, err := rand.Read(nonce); err != nil {
+	link, err := signInLink(setup, wait)
+	if err != nil {
 		return fail(err)
 	}
-	link := root + web.LocalLink(setup.Secret, hex.EncodeToString(nonce), time.Now())
-	fmt.Println("haas is at " + root)
+	fmt.Println("haas is at " + setup.root())
 	if err := browse(link); err != nil {
 		fmt.Println("Open this link to sign in, within five minutes: " + link)
 	}
