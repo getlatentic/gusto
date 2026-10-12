@@ -129,7 +129,7 @@ func askerOf(dir job.Dir) string {
 // launch is the command that runs a server that is a program, in a box of its own. A job that runs in this server's own process has
 // no container to put a program in, and so no program runs.
 func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (*exec.Cmd, func(), error) {
-	if os.Getenv("HAAS_SANDBOX") == "here" {
+	if runsHere() {
 		return nil, nil, errors.New("a program runs in a container, and this server runs jobs in its own process")
 	}
 	return sandbox.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,

@@ -103,6 +103,9 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 		return 0, err
 	}
 	command := adapter.CommandIn(ctx, spec, dir.Workspace(), env)
+	if env.Wrap != nil {
+		env.Wrap(command)
+	}
 	ownGroup(command)
 	// The box does not give its root the right to signal another user's processes, and the harness runs as the agent. So the
 	// runner cannot kill it: the agent's own processes are ended as the agent, the way they are at the end of a run.
@@ -143,7 +146,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 	// happened without claiming anything passed.
 	var verdict *evidence.Verdict
 	if len(spec.Gate) > 0 {
-		given, err := gateWith(spec, dir, env.Base)
+		given, err := gateWith(spec, dir, env.Base, env.Wrap)
 		agent.endAll()
 		if err != nil {
 			return 0, err

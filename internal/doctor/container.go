@@ -13,7 +13,7 @@ import (
 // answers, not only a binary on PATH.
 func runtimeAnswers(machine Machine) Verdict {
 	if inProcess() {
-		return skip("HAAS_SANDBOX=here runs jobs in this process, not in a container")
+		return skip("HAAS_SANDBOX=here and process run jobs in this process, not in a container")
 	}
 	runtime := sandbox.Runtime()
 	outcome := machine.Commands(runtime, "info")
@@ -91,4 +91,7 @@ func start(flags []string, command string) []string {
 	return append(args, "--entrypoint", "sh", sandbox.Image(), "-c", command)
 }
 
-func inProcess() bool { return os.Getenv("HAAS_SANDBOX") == "here" }
+func inProcess() bool {
+	sandbox := os.Getenv("HAAS_SANDBOX")
+	return sandbox == "here" || sandbox == "process"
+}

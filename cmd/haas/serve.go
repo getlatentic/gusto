@@ -153,7 +153,7 @@ func serve(args []string) int {
 			return localNeeds()
 		})
 	}
-	if os.Getenv("HAAS_SANDBOX") == "here" {
+	if runsHere() {
 		// A person installs a harness on their own computer while the server runs, and looking at the PATH costs nothing.
 		pages.UseLiveCatalog(func() []catalog.Entry {
 			if local {
@@ -301,7 +301,7 @@ func serve(args []string) int {
 // job in this process is for a laptop with no image built.
 func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.StoppableWork, error) {
 	switch os.Getenv("HAAS_SANDBOX") {
-	case "here":
+	case "here", "process":
 		return here(way, instances), nil
 	case "openshell":
 		if err := openshell.HostCannotMakeVMs(); err != nil {
@@ -425,7 +425,7 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 // run in this process finds its program on this computer's PATH.
 func surveyed(names []string) []catalog.Entry {
 	switch os.Getenv("HAAS_SANDBOX") {
-	case "here":
+	case "here", "process":
 		return catalog.SurveyOf(catalog.Machine(), names)
 	case "openshell":
 		if cfg, err := openshell.FromEnv(); err == nil {
