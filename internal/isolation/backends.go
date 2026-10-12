@@ -28,7 +28,11 @@ func virtualMachine(h Host) Backend {
 	if h.Getenv("HAAS_OPENSHELL_IMAGE") == "" {
 		return no("HAAS_OPENSHELL_IMAGE names no image that carries the engines")
 	}
-	if _, ok := h.Run(binary, "sandbox", "list"); !ok {
+	list := []string{"sandbox", "list"}
+	if gateway := h.Getenv("HAAS_OPENSHELL_GATEWAY"); gateway != "" {
+		list = append([]string{"--gateway", gateway}, list...)
+	}
+	if _, ok := h.Run(binary, list...); !ok {
 		return no("no OpenShell gateway answers")
 	}
 	return Backend{Kind: VM, Ready: true, Detail: "OpenShell"}

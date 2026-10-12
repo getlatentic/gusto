@@ -68,6 +68,16 @@ agent is pointed only at the folder of its conversation, and with nothing nothin
 
 `HAAS_SANDBOX` decides instead when it is set: `openshell`, `here` (nothing), or anything else for a container.
 
+**Getting the virtual machine wall.** `haas local wall install` sets it up for a Mac with Apple Silicon, or a Linux computer with
+`/dev/kvm`, with one yes from the person. It checks the computer first (hardware, the disk tools `mke2fs`, `debugfs` and `e2fsck`,
+and, for a release, its root file system), so nothing is downloaded for a computer that cannot use it. It then downloads OpenShell
+(`openshell`, `openshell-gateway`, `openshell-driver-vm`, about 72 MB on a Mac), checks each file against a checksum haas carries,
+keeps them in the `openshell` folder of haas's data folder, takes the Linux image the agents run in from the release of haas it is (about 1.1 GB; `--image FILE` names one instead), signs the driver on a Mac, makes the gateway's certificates and
+configuration, keeps the gateway running (a launch agent on a Mac, a systemd user service on Linux) under the name `haas` so a
+gateway of the person's own is left alone, and records what it made. haas uses it the next time it starts. It needs no password and
+no Homebrew. `--yes` agrees without asking; `--image FILE` names a root file system archive; `haas local wall uninstall` takes it all
+away.
+
 **Docker on a Mac or Windows is not a wall yet.** It runs in a virtual machine that cannot share the unix socket a job reaches haas's
 proxy through (`operation not supported`), so haas tests that and goes on to the next wall, and says why. A path over the network
 would do it, and exposes the proxy beyond this computer unless it is built with care. Windows is left out of the container wall until
