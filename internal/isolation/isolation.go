@@ -31,6 +31,8 @@ type Backend struct {
 	Ready bool
 	// Detail is what makes it, when ready: "Docker". When not, what is missing and how to get it.
 	Detail string
+	// Cause is what the computer or the runtime itself said when it could not, for the log and for haas doctor, and not for a page.
+	Cause string
 }
 
 // Choice is the wall a computer has: the strongest that is ready, and why each stronger one was passed over.
