@@ -143,6 +143,9 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	if wall != nil {
+		pages.UseWall(theWall())
+	}
 	if local {
 		pages.UseFoundKeys(values("HAAS_FOUND_KEYS"))
 		pages.UseNeeds(func() []string {

@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"errors"
+	"github.com/getlatentic/haas/internal/isolation"
 	"github.com/getlatentic/haas/internal/proxy"
 	"github.com/getlatentic/haas/internal/registry"
 )
@@ -147,4 +149,60 @@ func TestWhatTheComputerLacksIsSaidAndNoAgentStartsWithoutIt(t *testing.T) {
 	if where, _ := url.Parse(got.Header().Get("Location")); where.Query().Get("refused") != lacking[0] {
 		t.Errorf("an agent was started on a computer that lacks git: %s", got.Header().Get("Location"))
 	}
+}
+
+// A computer with no wall is said to have none on the chat page, and no agent starts until the person has confirmed, once.
+func TestAnAgentWaitsForAPersonWithNoSandboxToConfirmOnce(t *testing.T) {
+	here, _ := ownComputer(t)
+	if err := ownModel(t, here); err != nil {
+		t.Fatal(err)
+	}
+	var confirmed atomic.Bool
+	here.server.UseWall(Wall{Choice: isolation.Choice{Kind: isolation.Nothing, Passed: []isolation.Backend{{Kind: isolation.Container, Detail: "neither Docker nor Podman is installed"}}},
+		Accepted: confirmed.Load, Accept: func() error { confirmed.Store(true); return nil }})
+	admin := here.as(t, boss)
+	page := admin.ask(t, "GET", "/chat", nil).Body.String()
+	if !strings.Contains(page, `action="/setup/no-sandbox"`) || !strings.Contains(page, "Nothing stands between an agent and your files") || strings.Contains(page, `name="said"`) {
+		t.Errorf("the chat page does not hold the first agent for a confirmation:\n%s", page)
+	}
+	if got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "refused=confirm") {
+		t.Errorf("an agent started before the person confirmed: %s", got.Header().Get("Location"))
+	}
+	if got := admin.ask(t, "POST", "/setup/no-sandbox", nil); got.Code != http.StatusSeeOther || !confirmed.Load() {
+		t.Fatalf("the confirmation was not kept: %d", got.Code)
+	}
+	page = admin.ask(t, "GET", "/chat", nil).Body.String()
+	if strings.Contains(page, `action="/setup/no-sandbox"`) || !strings.Contains(page, "Agents run in no sandbox.") || !strings.Contains(page, "neither Docker nor Podman is installed") {
+		t.Errorf("after confirming, the page does not say which wall and why no stronger:\n%s", page)
+	}
+	if got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
+		t.Errorf("an agent did not start after the confirmation: %s", got.Header().Get("Location"))
+	}
+}
+
+// A computer with a wall is told no confirmation, and one cannot be given.
+func TestAWallNeedsNoConfirmationAndNoneCanBeGiven(t *testing.T) {
+	here, _ := ownComputer(t)
+	if err := ownModel(t, here); err != nil {
+		t.Fatal(err)
+	}
+	here.server.UseWall(Wall{Choice: isolation.Choice{Kind: isolation.Container, Detail: "docker"}, Accepted: func() bool { return false }, Accept: func() error { return nil }})
+	admin := here.as(t, boss)
+	page := admin.ask(t, "GET", "/chat", nil).Body.String()
+	if strings.Contains(page, "no-sandbox") || !strings.Contains(page, "Agents run in a container.") {
+		t.Errorf("the page does not say the wall:\n%s", page)
+	}
+	if got := admin.ask(t, "POST", "/setup/no-sandbox", nil); got.Code != http.StatusNotFound {
+		t.Errorf("a confirmation was taken for a computer that has a wall: %d", got.Code)
+	}
+}
+
+// ownModel gives a person's own haas the one model its chat page needs to show a box.
+func ownModel(t *testing.T, here *tokened) error {
+	t.Helper()
+	form := url.Values{"address": {"https://api.theirs.example"}, "key": {"k"}, "models": {"small"}}
+	if got := here.as(t, boss).ask(t, "POST", "/setup/model", form); strings.Contains(got.Header().Get("Location"), "refused") {
+		return errors.New(got.Header().Get("Location"))
+	}
+	return nil
 }

@@ -6,7 +6,7 @@
     {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{range .Lacking}}<p class="refused" role="status">{{.}}</p>{{end}}
     {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
-    {{if and .Picks (not .NeedsModel)}}
+    {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
     <div class="composer">
     <form class="column" method="post" action="/chat">
       <div class="box">
@@ -54,6 +54,10 @@
       <button type="submit" class="cta">Save preset</button>
       <button type="button" class="quiet-button" data-cancel>Cancel</button>
     </form>
+    {{with .Wall}}<div class="muted wall" title="{{.Words}}">
+      <span>Agents run in {{.Short}}.</span>
+      {{if .Missing}}<details class="wall-more"><summary>Why not stronger?</summary>{{range .Missing}}<p>{{.}}.</p>{{end}}</details>{{end}}
+    </div>{{end}}
     </div>
     {{end}}
   </div>
