@@ -83,7 +83,7 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		platform: platform,
 		tokens:   tokens,
 		ledger:   ledger,
-		sealed:   os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell" && os.Getenv("HAAS_SANDBOX") != "here",
+		sealed:   os.Getenv("HAAS_JOB_NETWORK") != "open" && os.Getenv("HAAS_SANDBOX") != "openshell" && !runsHere(),
 		socket:   setting("HAAS_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
 		address:  setting("HAAS_PROXY_ADDR", proxyAddress()),
 	}
@@ -312,7 +312,7 @@ func (w *WayOut) InBuilding() bool {
 // a gateway reaches the machine's loopback through the gateway's own proxy, so
 // it need not be on the network at all.
 func proxyAddress() string {
-	if sandbox := os.Getenv("HAAS_SANDBOX"); sandbox == "openshell" || sandbox == "here" {
+	if sandbox := os.Getenv("HAAS_SANDBOX"); sandbox == "openshell" || runsHere() {
 		return "127.0.0.1:8041"
 	}
 	return "0.0.0.0:8041"

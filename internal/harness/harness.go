@@ -222,6 +222,9 @@ type Env struct {
 	// Home and Data are the harness's home and the folder it keeps its state in when it runs outside a container, where
 	// they stand for /root and /root/.local/share. Empty is a harness in the container its adapter was written for.
 	Home, Data string
+	// Wrap, when set, puts a command this environment starts behind a wall of this computer's own, such as macOS's sandbox: it changes
+	// the command to run the same one inside it.
+	Wrap func(*exec.Cmd)
 }
 
 // Here is this process's own: what a container's runner and a run on a laptop

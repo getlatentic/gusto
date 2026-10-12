@@ -40,6 +40,11 @@ func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
 		}
 		env.Home, env.Data = home, data
 		env.Base = homedEnv(env.Base, home, data, sharedCache())
+		if os.Getenv("HAAS_SANDBOX") == "process" {
+			if env.Wrap, err = behindSeatbelt(dir, spec, home, data, way.proxyPort()); err != nil {
+				return 0, err
+			}
+		}
 		defer way.Done(dir)
 		return runner.InsideWith(ctx, dir, env)
 	}
