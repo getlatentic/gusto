@@ -20,6 +20,9 @@ const (
 	VM Kind = "vm"
 	// Container is a container for each job, which shares the computer's kernel.
 	Container Kind = "container"
+	// Process is the computer's own sandbox around the agent's processes: on a Mac, Seatbelt. It writes only its own folder, reads none of
+	// the person's home but its own and the engine's, and reaches nothing on the network but haas, and shares the computer's kernel.
+	Process Kind = "process"
 	// Nothing is no wall: the agent runs as the person, and can read and change what they can.
 	Nothing Kind = "none"
 )
@@ -90,11 +93,13 @@ func Choose(h Host) Choice {
 		return Choice{Kind: VM, Detail: "OpenShell", Forced: true}
 	case "here":
 		return Choice{Kind: Nothing, Forced: true}
+	case "process":
+		return Choice{Kind: Process, Detail: "Seatbelt", Forced: true}
 	default:
 		return Choice{Kind: Container, Detail: runtimeName(h), Forced: true}
 	}
 	var passed []Backend
-	for _, probe := range []func(Host) Backend{virtualMachine, container} {
+	for _, probe := range []func(Host) Backend{virtualMachine, container, processSandbox} {
 		backend := probe(h)
 		if backend.Ready {
 			return Choice{Kind: backend.Kind, Detail: backend.Detail, Passed: passed}
@@ -111,6 +116,8 @@ func (c Choice) Words() string {
 		return "Each job runs in a virtual machine (" + c.Detail + "): it sees only the folder it was given."
 	case Container:
 		return "Each job runs in a container (" + c.Detail + "): it sees only the folder it was given, and shares this computer's kernel."
+	case Process:
+		return "Each job runs behind this computer's own sandbox (" + c.Detail + "): it can write only its own folder, cannot read the rest of your home, and reaches nothing on the network but haas. It shares this computer's kernel."
 	}
 	return "Nothing stands between an agent and your files: it runs as you, and can read and change what you can."
 }
@@ -122,6 +129,8 @@ func (c Choice) Short() string {
 		return "a virtual machine"
 	case Container:
 		return "a container"
+	case Process:
+		return "a process sandbox"
 	}
 	return "no sandbox"
 }
