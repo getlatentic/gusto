@@ -38,19 +38,41 @@ func virtualMachine(h Host) Backend {
 	return Backend{Kind: VM, Ready: true, Detail: "OpenShell"}
 }
 
-// processSandbox is the computer's own sandbox around a process, which on a Mac is Seatbelt: nothing to install, and it works with
-// any engine. It is tried, and not assumed from the command being there.
+// processSandbox is the computer's own sandbox around a process: Seatbelt on a Mac, which is nothing to install, and Landlock on
+// Linux, which haas applies itself. It is tried with a real process, and not assumed from the command or the kernel being there.
 func processSandbox(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: Process, Detail: why} }
-	if h.GOOS != "darwin" {
-		return no("a process sandbox is for macOS only so far")
+	switch h.GOOS {
+	case "darwin":
+		if out, ok := h.Run("/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)", "/usr/bin/true"); !ok {
+			refused := no("sandbox-exec does not run on this Mac")
+			refused.Cause = oneLine(out)
+			return refused
+		}
+		return Backend{Kind: Process, Ready: true, Detail: "Seatbelt"}
+	case "linux":
+		return landlock(h, no)
 	}
-	if out, ok := h.Run("/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)", "/usr/bin/true"); !ok {
-		refused := no("sandbox-exec does not run on this Mac")
+	return no("a process sandbox is for macOS and Linux only so far")
+}
+
+// landlock is Linux's sandbox, tried by haas starting itself behind it. Limiting the network to haas's proxy needs a kernel of 6.7 or
+// later, and a kernel without that is not given the wall unless the person has left the network open.
+func landlock(h Host, no func(string) Backend) Backend {
+	if h.Self == "" {
+		return no("haas does not know where its own program is")
+	}
+	args := []string{"sandbox-run", "--check"}
+	if h.Getenv("HAAS_JOB_NETWORK") != "open" {
+		args = append(args, "--network")
+	}
+	out, ok := h.Run(h.Self, args...)
+	if !ok {
+		refused := no("this kernel's Landlock cannot hold a job to its folder and haas's proxy: it needs Linux 6.7 or later")
 		refused.Cause = oneLine(out)
 		return refused
 	}
-	return Backend{Kind: Process, Ready: true, Detail: "Seatbelt"}
+	return Backend{Kind: Process, Ready: true, Detail: "Landlock"}
 }
 
 // oneLine is the first line of what a program said, which is where a runtime puts why it refused: a usage hint follows it.
