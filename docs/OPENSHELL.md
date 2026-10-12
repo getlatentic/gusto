@@ -274,3 +274,61 @@ Not measured: harnesses at these counts (the work was one busy loop and not an a
 agents wait for a model most of the time), a `.metal` instance, and memory under a real
 workload.
 
+## Shipping it with haas on a Mac (spike, 12 October 2026)
+
+**Question.** Can haas bring OpenShell's gateway and VM driver with it, so that a Mac gets virtual machine sandboxes with no setup?
+
+**Decision.** Yes for everything but one tool. haas can fetch, check, sign and start OpenShell itself, in user space, with no password, no Homebrew and no permission prompt. What it cannot do alone is supply e2fsprogs, and it needs a root file system for the agents. Both are work for haas to do, not for the person; the person's part is one consent to a download.
+
+Measured on an M1 Max, macOS 27.2, OpenShell v0.1.3, in a scratch folder with nothing installed outside it. This Mac already had e2fsprogs from Homebrew, so it is not a clean Mac, and a Mac cannot be tested clean in a virtual machine: Hypervisor.framework does not run in a macOS guest on an M1.
+
+| What | Size or time |
+| --- | --- |
+| Three release files, `openshell`, `openshell-gateway`, `openshell-driver-vm` (Apple Silicon only: there is no Intel Mac build) | 72 MB to download, 6 seconds; 137 MB on disk; each checked against the release's checksum file |
+| Sign the driver with the hypervisor entitlement (ad-hoc, `codesign -s -`) | 0.3 seconds; no certificate, no keychain |
+| Make the certificates (`openshell-gateway generate-certs`) | 0.05 seconds |
+| Write the gateway's configuration, start it, register the CLI | the gateway is listening about 1 second after it starts |
+| Idle | gateway 42 MB, driver 22 MB of memory |
+| Root file system: the runner image with opencode, exported | 853 MB as a tar, 310 MB as `.tar.gz`, which the gateway accepts |
+| First sandbox, cold (staging the 310 MB archive, building its disk) | 27.7 seconds |
+| A sandbox once the image is staged | 9.6 seconds |
+| A chat answered through a sandbox, from haas started with no `HAAS_SANDBOX` (it chose the VM itself) | 13 seconds; each turn gets a fresh VM |
+| Disk the gateway keeps after a few runs | 2.2 GB, mostly the cached image and sandbox disks |
+
+**The steps, from nothing.** These are the formula's own, and nothing in them needs the person:
+
+1. Download the three files and verify them. They arrive without Apple's quarantine mark when a program downloads them, and they are only ad-hoc signed and not notarized, so a browser download would be stopped by Gatekeeper and haas's own download is not.
+2. Sign a copy of the driver with `com.apple.security.hypervisor` and `codesign --force -s -`.
+3. `openshell-gateway generate-certs --output-dir <state>/tls --server-san host.openshell.internal`.
+4. Write the gateway configuration (the keys that v0.1.3 needs, each found by the gateway refusing without it):
+
+```toml
+[openshell]
+version = 2
+
+[openshell.gateway]
+compute_driver = "vm"
+guest_tls_ca = "<state>/tls/ca.crt"
+
+[openshell.drivers.vm]
+allow_driver_config = true
+```
+
+5. Start `openshell-gateway` with `OPENSHELL_GATEWAY_CONFIG`, `OPENSHELL_TLS_CERT`, `OPENSHELL_TLS_KEY`, `OPENSHELL_TLS_CLIENT_CA` and `OPENSHELL_LOCAL_TLS_DIR` (where the JWT signing keys are; without it a sandbox will not launch), and `XDG_STATE_HOME` short, since the driver's socket path must be under 104 bytes. The gateway finds `openshell-driver-vm` in the `libexec` folder beside its own `bin`.
+6. Put the client certificates where the CLI looks (`<config>/openshell/gateways/openshell/mtls/{ca.crt,tls.crt,tls.key}`, from the same `generate-certs`) and run `openshell gateway add https://localhost:17670 --local --name openshell`.
+7. Set `HAAS_OPENSHELL_IMAGE` to the root file system archive. haas then chooses the VM wall by itself: `internal/isolation` found the hardware, the command, the image setting and a gateway that answers `openshell sandbox list`, which tested that probe on a real gateway for the first time.
+
+**What the person still has to do, or what haas has to do for them**
+
+| Step | Why | Plan |
+| --- | --- | --- |
+| Agree to a download of about 72 MB plus the root file system, 300 MB to 1 GB | haas does not pull a gigabyte unasked | One consent, once |
+| e2fsprogs: the driver runs `mke2fs`, `debugfs` and `e2fsck` on the host to build each sandbox's disk, and the gateway fails its preflight without them | They are not on a Mac. Homebrew's build links Homebrew's `libext2fs`, `libcom_err` and gettext, so the three binaries cannot be copied alone | haas builds them once, static, in CI and ships them beside the gateway, as GPLv2 binaries with their source offered. Until then: `brew install e2fsprogs`. Not yet built or tested |
+| A root file system for an arm64 Linux guest | The release workflow builds the runner image for `linux/amd64` only, and an arm64 Mac needs `linux/arm64` | Build the arm64 image in the release, with all six engines, and publish it as a `.tar.gz` with its checksum. About 300 MB with one engine; the six-engine size is not measured |
+| Start the gateway at login | It is a service | A launch agent, as for haas itself. Not built |
+
+**Found while running it, and fixed.** A new conversation's workspace holds nothing but its git directory. `openshell sandbox upload` refuses an upload that selects no file, so every first turn of a local chat failed. A workspace with nothing in it is now made in the sandbox with `mkdir` and not uploaded (`holdsNothing`), with a test.
+
+**Not checked.** A Mac with no Homebrew and no e2fsprogs at all (needs the static build, and a clean Mac). Linux with KVM, where there is no signing step and the same files are `openshell-gateway-aarch64-unknown-linux-gnu` and its driver. Six engines in the root file system. A gateway kept for days: restarts, and the 2.2 GB of cache. What a sandbox's policy refused, which the record keeps in `sandbox-events.log`.
+
+**Licence.** OpenShell is Apache-2.0. e2fsprogs' `mke2fs`, `debugfs` and `e2fsck` are GPLv2 (the libraries LGPLv2): shipped as separate programs with a source offer, which is the ordinary way.
