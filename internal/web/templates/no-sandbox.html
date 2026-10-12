@@ -1,8 +1,15 @@
 {{define "no-sandbox"}}
-<form class="card column first-model" method="post" action="/setup/no-sandbox">
-  <p>{{.Words}}</p>
-  <p class="muted">An agent works in the folder of its conversation, and that is the only folder it is pointed at. Nothing stops it going further than that, and nothing here would undo it.</p>
-  {{if .Missing}}<div class="muted"><p>Why there is no wall:</p><ul>{{range .Missing}}<li>{{.}}.</li>{{end}}</ul></div>{{end}}
+<form class="setup" method="post" action="/setup/no-sandbox">
+  <div class="setup-group">
+    <p class="setup-lede">{{.Words}}</p>
+    <p class="setup-aside">An agent works in the folder of its conversation, and that is the only folder it is pointed at. Nothing stops it going further than that, and nothing here would undo it.</p>
+  </div>
+  {{if .Missing}}
+  <div class="setup-engines">
+    <span class="setup-name">Why there is no sandbox</span>
+    <ul class="setup-reasons">{{range .Missing}}<li>{{.}}.</li>{{end}}</ul>
+  </div>
+  {{end}}
   <button type="submit">I understand, start agents with no sandbox</button>
 </form>
 {{end}}

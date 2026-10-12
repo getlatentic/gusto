@@ -1,8 +1,8 @@
 /* A conversation. What was said is a quiet bubble on the right; what came back is plain text in the column, under what it did, folded, and
    above what it cost, small. The one colour on the page is the button that sends. */
 .talk-top { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 3.25rem; padding: var(--yg-space-2) var(--yg-space-6); border-bottom: 0.0625rem solid var(--yg-border); }
-.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 1rem/1.3 var(--yg-font-text); letter-spacing: 0; text-transform: none; color: var(--yg-text); }
-.talk-top .where { display: flex; align-items: center; gap: var(--yg-space-2); min-width: 0; font-size: .8125rem; color: var(--yg-text-muted); }
+.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .875rem/1.3 var(--yg-font-text); letter-spacing: 0; text-transform: none; color: var(--yg-text); }
+.talk-top .where { display: flex; align-items: center; gap: var(--yg-space-2); min-width: 0; font-size: .75rem; color: var(--yg-text-muted); }
 .talk-top .where .project { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-2); color: inherit; text-decoration: none; min-width: 0; }
 .talk-top .where .project span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
 .talk-top .where .project:hover { color: var(--yg-text); }
@@ -18,17 +18,17 @@
   font: 500 .75rem/1.4 var(--yg-font-text); white-space: normal; text-align: left; opacity: 0; pointer-events: none; }
 .talk-top .sealed:hover::after, .talk-top .sealed:focus-visible::after { opacity: 1; }
 .quiet-button { display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2rem; padding: 0 var(--yg-space-3); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm);
-  background: var(--yg-surface); color: var(--yg-text); font: 500 .8125rem/1 var(--yg-font-text); text-decoration: none; white-space: nowrap; }
+  background: var(--yg-surface); color: var(--yg-text); font: 500 .75rem/1 var(--yg-font-text); text-decoration: none; white-space: nowrap; }
 .quiet-button:hover { background: var(--yg-bg-subtle); }
 .quiet-button svg.i { width: 0.9375rem; height: 0.9375rem; opacity: .8; }
 
 .turn { margin-bottom: var(--yg-space-8); }
 .turn pre { margin: 0; }
 .said { margin: 0 0 var(--yg-space-4) auto; width: fit-content; max-width: 34rem; padding: .625rem var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-lg);
-  font-size: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  font-size: .875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer { display: grid; gap: var(--yg-space-3); min-width: 0; }
 
-details.steps { font-size: .8125rem; }
+details.steps { font-size: .75rem; }
 details.steps > summary { display: inline-flex; align-items: center; gap: var(--yg-space-1); width: fit-content; min-height: 1.5rem; padding: 0.125rem var(--yg-space-2) 0.125rem var(--yg-space-1); border-radius: var(--yg-radius-sm);
   list-style: none; cursor: pointer; color: var(--yg-text-subtle); }
 details.steps > summary::-webkit-details-marker { display: none; }
@@ -43,7 +43,7 @@ details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-
 .answer .meta a { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-1); color: inherit; text-decoration: none; }
 .answer .meta a:hover { color: var(--yg-text); text-decoration: underline; }
 .answer .meta svg.i { width: 0.8125rem; height: 0.8125rem; }
-.stopped { margin: 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .875rem; background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
+.stopped { margin: 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .8125rem; background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
 .stopped code { font: 0.75rem/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
 .answer .changed { margin: 0; }
 .answer .changed a { border-color: var(--yg-border); }
@@ -51,14 +51,14 @@ details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-
 
 /* What a turn is doing while it runs: the latest step by name, the steps before it ticked off, and nothing it has not done yet. */
 .turn-live { display: grid; gap: var(--yg-space-3); }
-.turn-live .status { display: flex; align-items: center; gap: var(--yg-space-3); margin: 0; font-size: .875rem; font-weight: 500; color: var(--yg-text); }
+.turn-live .status { display: flex; align-items: center; gap: var(--yg-space-3); margin: 0; font-size: .8125rem; font-weight: 500; color: var(--yg-text); }
 .turn-live .elapsed { margin-left: auto; font-weight: 400; font-variant-numeric: tabular-nums; color: var(--yg-text-subtle); }
 .spin { width: .875rem; height: .875rem; flex: none; border: 0.125rem solid var(--yg-border-strong); border-top-color: var(--yg-text); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--yg-border-strong); } }
 .turn-live ol.live { list-style: none; margin: 0; padding: 0 0 0 var(--yg-space-2); display: grid; gap: var(--yg-space-2); }
 .turn-live ol.live:empty { display: none; }
-.turn-live ol.live li { display: flex; align-items: baseline; gap: var(--yg-space-2); min-width: 0; font-size: .8125rem; color: var(--yg-text-subtle); }
+.turn-live ol.live li { display: flex; align-items: baseline; gap: var(--yg-space-2); min-width: 0; font-size: .75rem; color: var(--yg-text-subtle); }
 .turn-live ol.live li.now { color: var(--yg-text); }
 .turn-live ol.live li .mark-step { display: grid; place-items: center; flex: none; width: .875rem; height: .875rem; align-self: center; }
 .turn-live ol.live li .mark-step svg { width: 100%; height: 100%; fill: none; stroke: var(--yg-success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -67,10 +67,10 @@ details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-
 .turn-live .detail { font-family: var(--yg-font-mono); font-size: 0.75rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .start { display: grid; justify-items: center; gap: var(--yg-space-6); text-align: center; padding: var(--yg-space-16) 0 var(--yg-space-8); }
-.start h2 { margin: 0; font: 600 1.5rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
+.start h2 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
 .starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--yg-space-3); width: 100%; }
 button.starter { padding: var(--yg-space-3) var(--yg-space-4); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); background: var(--yg-surface); color: var(--yg-text);
-  font: 400 .875rem/1.4 var(--yg-font-text); text-align: left; cursor: pointer; }
+  font: 400 .8125rem/1.4 var(--yg-font-text); text-align: left; cursor: pointer; }
 button.starter:hover { border-color: var(--yg-text-subtle); }
 
 .composer button.send.stop { background: var(--yg-text); color: var(--yg-text-inverse); }
@@ -84,27 +84,23 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 .save-preset .cta { height: 2.25rem; }
 
 /* Stop is a button with its name, in the box where Send would be. */
-.composer .stop-pill { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; padding: 0 var(--yg-space-4) 0 var(--yg-space-3); margin-left: var(--yg-space-1); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-full); background: var(--yg-surface); color: var(--yg-text); font: 600 .875rem/1 var(--yg-font-text); cursor: pointer; }
+.composer .stop-pill { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; padding: 0 var(--yg-space-4) 0 var(--yg-space-3); margin-left: var(--yg-space-1); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-full); background: var(--yg-surface); color: var(--yg-text); font: 600 .8125rem/1 var(--yg-font-text); cursor: pointer; }
 .composer .stop-pill:hover { background: var(--yg-bg-subtle); }
 .composer .stop-pill svg.i { width: .875rem; height: .875rem; opacity: 1; }
 .composer .tools .meta-left { padding-left: var(--yg-space-1); }
 
 /* On a new chat the starters are short pills under the box. */
 #chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--yg-space-2); max-width: 45rem; margin: var(--yg-space-6) auto 0; }
-#chat-starters .starter { height: 2.25rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-full); font-size: .875rem; }
-.folderpick .chip { height: 2rem; padding: 0 var(--yg-space-3) 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); color: var(--yg-text-muted); font-size: .8125rem; font-weight: 500; }
+#chat-starters .starter { height: 2.25rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-full); font-size: .8125rem; }
+.folderpick .chip { height: 2rem; padding: 0 var(--yg-space-3) 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); color: var(--yg-text-muted); font-size: .75rem; font-weight: 500; }
 
 /* What the agent said, whole, where it said it among the steps it took. */
-.turn-live ol.live li.said-block { display: block; margin-left: var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .875rem; line-height: 1.55; color: var(--yg-text-muted); }
+.turn-live ol.live li.said-block { display: block; margin-left: var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .8125rem; line-height: 1.55; color: var(--yg-text-muted); }
 .turn-live ol.live li.said-block p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .turn-live ol.live li.said-block p + p { margin-top: var(--yg-space-2); }
 .turn-live ol.live li.cut { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
-/* The form a person adds their first model with: its grid spaces it, and a command is the size of the line it is in. */
-.first-model p, .first-model ul { margin: 0; }
-.first-model ul { padding-left: var(--yg-space-5); }
-.first-model code { font-size: inherit; }
 /* Which wall agents run behind, under the box a message is typed in. */
-.wall { margin: var(--yg-space-3) auto 0; max-width: 46rem; text-align: center; font-size: .8125rem; }
+.wall { margin: var(--yg-space-3) auto 0; max-width: 46rem; text-align: center; font-size: .75rem; }
 .wall-more { margin-top: var(--yg-space-2); }
 .wall-more summary { cursor: pointer; }
 .wall-more p { margin: var(--yg-space-2) 0 0; }

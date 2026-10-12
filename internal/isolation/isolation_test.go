@@ -63,7 +63,7 @@ func TestADockerThatCannotMountASocketIsNotAWall(t *testing.T) {
 		return errors.New("docker: Error response from daemon: error while creating mount source path: operation not supported\nRun 'docker run --help' for more information")
 	}
 	got := Choose(host)
-	if got.Kind != Nothing || len(got.Passed) != 2 || !strings.Contains(got.Passed[1].Detail, "operation not supported") || !strings.Contains(got.Passed[1].Detail, "cannot share one") || strings.Contains(got.Passed[1].Detail, "--help") {
+	if got.Kind != Nothing || len(got.Passed) != 2 || !strings.Contains(got.Passed[1].Cause, "operation not supported") || strings.Contains(got.Passed[1].Cause, "--help") || !strings.Contains(got.Passed[1].Detail, "cannot share one") || strings.Contains(got.Passed[1].Detail, "operation not supported") {
 		t.Errorf("%+v", got)
 	}
 	host.MountsSocket = func(string, string) error { return nil }

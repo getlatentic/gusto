@@ -63,8 +63,9 @@ func container(h Host) Backend {
 	}
 	if h.MountsSocket != nil {
 		if err := h.MountsSocket(name, image); err != nil {
-			return no(name + " cannot be given the socket a job reaches the proxy through (" + oneLine(err.Error()) + "): " +
-				"Docker on a Mac or Windows runs in a virtual machine that cannot share one")
+			refused := no(name + " cannot be given the socket a job reaches the proxy through: Docker on a Mac or Windows runs in a virtual machine that cannot share one")
+			refused.Cause = oneLine(err.Error())
+			return refused
 		}
 	}
 	return Backend{Kind: Container, Ready: true, Detail: name}
