@@ -573,7 +573,7 @@ from a server whose image changed under it, is refused by the runner inside the
 box before the harness starts. The job ends `failed`, and its transcript says
 which program is missing and how to carry it.
 
-Each harness's own configuration is a directory under `image/harness/`, named
+Each harness's own configuration is a directory under `internal/harness/config/`, named
 after it and copied to `/root/.config/<name>/`. opencode reads that directory
 already, and the image points claude and codex at theirs with
 `CLAUDE_CONFIG_DIR` and `CODEX_HOME`.

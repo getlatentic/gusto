@@ -99,3 +99,7 @@ button.starter:hover { border-color: var(--yg-text-subtle); }
 .turn-live ol.live li.said-block p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .turn-live ol.live li.said-block p + p { margin-top: var(--yg-space-2); }
 .turn-live ol.live li.cut { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
+/* The form a person adds their first model with: its grid spaces it, and a command is the size of the line it is in. */
+.first-model p, .first-model ul { margin: 0; }
+.first-model ul { padding-left: var(--yg-space-5); }
+.first-model code { font-size: inherit; }

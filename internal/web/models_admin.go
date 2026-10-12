@@ -31,6 +31,9 @@ func (s *Server) UseLiveModels(models func() Models) {
 
 func (s *Server) hasRegistry() bool { return s.registry != nil }
 
+// ownsItsModels is haas on a person's own computer, where the person adds the models they use.
+func (s *Server) ownsItsModels() bool { return s.local != nil && s.registry != nil }
+
 // formLimit is the most a form to the registry may be.
 const formLimit = 16 << 10
 
@@ -83,6 +86,9 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/models/providers/{name}/models/disable", guard(s.registryAction(changelog.ModelDisabled, s.turn(false, true))))
 	mux.HandleFunc("POST /admin/models/restore", guard(s.registryAction(changelog.RegistryRestored, s.restoreRegistry)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, s.retireModel)))
+	own := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.ownsItsModels, next)) }
+	mux.HandleFunc("POST /setup/model", own(s.addFirstModel))
+	mux.HandleFunc("POST /setup/models", own(s.listModels))
 }
 
 // turn turns a provider on or off, or one of its models, which is what makes something an administrator added available to people,

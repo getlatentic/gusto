@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -18,17 +17,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/haas/internal/web"
+	"strings"
 )
-
-// localSetup is what haas keeps for the one person it runs for on their own computer: the port it listens on, on the loopback,
-// and the secret that is both its password and the key its sign-in links are made with. Only this person can read it.
-type localSetup struct {
-	Port   int    `json:"port"`
-	Secret string `json:"secret"`
-}
-
-// localPort is the port haas on a person's computer listens on when it is free the first time.
-const localPort = 7140
 
 // localHome is where haas keeps a person's work on their own computer: HAAS_LOCAL_HOME, or the system's place for an app's data.
 func localHome() (string, error) {
@@ -51,84 +41,64 @@ func localHome() (string, error) {
 	return filepath.Join(userHome, ".local", "share", "haas"), nil
 }
 
-// ensureLocal reads the setup at home, or makes it the first time: a secret, and the usual port or a free one.
-func ensureLocal(home string) (localSetup, error) {
-	path := filepath.Join(home, "local.json")
-	if text, err := os.ReadFile(path); err == nil {
-		var setup localSetup
-		if err := json.Unmarshal(text, &setup); err != nil || setup.Port == 0 || setup.Secret == "" {
-			return localSetup{}, fmt.Errorf("%s is not a setup haas can read: remove it to make a new one", path)
-		}
-		return setup, nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return localSetup{}, err
-	}
-	if err := os.MkdirAll(home, 0o700); err != nil {
-		return localSetup{}, err
-	}
-	secret := make([]byte, 32)
-	if _, err := rand.Read(secret); err != nil {
-		return localSetup{}, err
-	}
-	setup := localSetup{Port: freePort(), Secret: hex.EncodeToString(secret)}
-	text, err := json.MarshalIndent(setup, "", "  ")
-	if err != nil {
-		return localSetup{}, err
-	}
-	return setup, os.WriteFile(path, text, 0o600)
-}
-
-// freePort is the usual port when nothing listens on it, else one the system gives.
-func freePort() int {
-	for _, address := range []string{fmt.Sprintf("127.0.0.1:%d", localPort), "127.0.0.1:0"} {
-		listener, err := net.Listen("tcp", address)
-		if err != nil {
-			continue
-		}
-		port := listener.Addr().(*net.TCPAddr).Port
-		listener.Close()
-		return port
-	}
-	return localPort
-}
-
 // localCommand is haas for one person on their own computer. The install script runs `haas local install`, which makes haas a
 // service that starts at login and opens it; `haas local run` is what that service runs; `haas local stop` and
 // `haas local uninstall` take it away.
 func localCommand(args []string) int {
-	if len(args) != 1 {
-		fmt.Fprintln(os.Stderr, "usage: haas local install|run|stop|uninstall")
+	if len(args) == 0 || localCommands[args[0]] == nil {
+		fmt.Fprintln(os.Stderr, localUsage)
 		return 2
 	}
 	home, err := localHome()
 	if err != nil {
 		return fail(err)
 	}
-	switch args[0] {
-	case "run":
-		return runLocal(home)
-	case "install":
-		if _, err := ensureLocal(home); err != nil {
-			return fail(err)
-		}
-		if err := installService(home); err != nil {
-			return fail(err)
-		}
-		return openLocal(home, 20*time.Second)
-	case "stop":
-		return failIf(stopService())
-	case "uninstall":
-		if err := uninstallService(); err != nil {
-			return fail(err)
-		}
-		if err := os.Remove(filepath.Join(home, "haas.pid")); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return fail(err)
-		}
-		fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
-		return 0
+	return localCommands[args[0]](home, args[1:])
+}
+
+const localUsage = "usage: haas local install|run|stop|uninstall, or haas local use NAME [model...]"
+
+var localCommands = map[string]func(home string, args []string) int{
+	"run":       func(home string, _ []string) int { return runLocal(home) },
+	"install":   func(home string, _ []string) int { return installLocal(home) },
+	"stop":      func(string, []string) int { return failIf(stopService()) },
+	"uninstall": func(home string, _ []string) int { return uninstallLocal(home) },
+	"use":       useKey,
+}
+
+// installLocal makes haas a service of this person's and opens it. It runs in the person's own shell, so it keeps the PATH
+// that shell has, and says which model keys the shell has, without reading them.
+func installLocal(home string) int {
+	setup, err := ensureLocal(home)
+	if err != nil {
+		return fail(err)
 	}
-	fmt.Fprintln(os.Stderr, "usage: haas local install|run|stop|uninstall")
-	return 2
+	setup.Path = os.Getenv("PATH")
+	setup.FoundKeys = foundKeys()
+	if err := setup.save(home); err != nil {
+		return fail(err)
+	}
+	if err := installService(home); err != nil {
+		return fail(err)
+	}
+	for _, need := range localNeeds() {
+		fmt.Println(need)
+	}
+	for _, name := range setup.FoundKeys {
+		fmt.Printf("Your shell has %s. To use it in haas: haas local use %s\n", name, name)
+	}
+	return openLocal(home, 20*time.Second)
+}
+
+func uninstallLocal(home string) int {
+	if err := uninstallService(); err != nil {
+		return fail(err)
+	}
+	if err := os.Remove(filepath.Join(home, "haas.pid")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fail(err)
+	}
+	fmt.Println("haas no longer starts. Its data stays in " + home + ": remove that folder to delete it.")
+	return 0
 }
 
 // runLocal is the server for one person: in their own folder, on the loopback, signed in by its own links, and with jobs in this
@@ -149,7 +119,15 @@ func runLocal(home string) int {
 	}
 	os.Setenv("HAAS_PASSWORD", setup.Secret)
 	os.Setenv("HAAS_ADDR", fmt.Sprintf("127.0.0.1:%d", setup.Port))
+	os.Setenv("HAAS_PROXY_ADDR", fmt.Sprintf("127.0.0.1:%d", setup.ProxyPort))
 	os.Setenv("HAAS_LOCAL", "1")
+	// The person adds the models they use, as the admin of their own registry, and a model on this computer is theirs to use.
+	os.Setenv("HAAS_REGISTRY", filepath.Join(home, "registry"))
+	os.Setenv("HAAS_REGISTRY_PRIVATE", "allow")
+	if setup.Path != "" {
+		os.Setenv("PATH", setup.Path)
+	}
+	os.Setenv("HAAS_FOUND_KEYS", strings.Join(setup.FoundKeys, ","))
 	if os.Getenv("HAAS_SANDBOX") == "" {
 		os.Setenv("HAAS_SANDBOX", "here")
 	}
@@ -174,6 +152,14 @@ func openLocal(home string, wait time.Duration) int {
 	setup, err := ensureLocal(home)
 	if err != nil {
 		return fail(err)
+	}
+	// haas open is run in a terminal of the person's, so haas looks for engines where that terminal does, which is where
+	// they just installed one.
+	if path := os.Getenv("PATH"); path != "" && path != setup.Path {
+		setup.Path = path
+		if err := setup.save(home); err != nil {
+			return fail(err)
+		}
 	}
 	root := fmt.Sprintf("http://127.0.0.1:%d", setup.Port)
 	if !answers(root+"/healthz", wait) {

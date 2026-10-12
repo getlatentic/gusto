@@ -3,6 +3,7 @@
   "title": "Codex",
   "what": "OpenAI's coding agent, run once per task rather than held open.",
   "program": "codex",
+  "package": "@openai/codex@0.154.0",
   "argv": [
     "exec",
     "--json",

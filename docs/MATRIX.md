@@ -129,7 +129,7 @@ own, `gemma`, whose address ends in `/openai`. [`matrix/gemma4.json`](matrix/gem
 
 What stopped each that did not finish:
 
-- `opencode` runs only models its configuration declares. Before `image/harness/opencode/opencode.json` named the Gemma 4
+- `opencode` runs only models its configuration declares. Before `internal/harness/config/opencode/opencode.json` named the Gemma 4
   models it made no model call; with them declared it finishes on the 26B and 31B models. `gemma-4-e2b` ends the job with the
   tests still failing.
 - `dsh` asked `gpt-oss-120b` and `gemma-4-e2b` for 256,000 output tokens, which they do not allow, and on the other two Gemma 4

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/haas/internal/harness"
+	"os"
+	"path/filepath"
 )
 
 // A harness answering to one person's own sign-in has no account on a shared
@@ -77,6 +79,33 @@ func TestOnlyWhatIsReadyIsOfferedToAForm(t *testing.T) {
 		}
 		if named != entry.Ready {
 			t.Errorf("%s is ready=%v and a form offers it=%v", entry.Name, entry.Ready, named)
+		}
+	}
+}
+
+// On a person's own computer a harness is ready when its program is on the PATH, and one that is not says how to install it.
+func TestOnAPersonsComputerAHarnessIsReadyWhenItsProgramIsOnThePath(t *testing.T) {
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "opencode"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+	entries := Of(Machine(), []string{"opencode", "claude", "hermes"})
+	byName := map[string]Entry{}
+	for _, entry := range entries {
+		byName[entry.Name] = entry
+	}
+	if !byName["opencode"].Ready {
+		t.Errorf("opencode is on the PATH and not ready: %+v", byName["opencode"])
+	}
+	if claude := byName["claude"]; claude.Ready || claude.Why != "npm install -g @anthropic-ai/claude-code" {
+		t.Errorf("claude: %+v", claude)
+	}
+	// hermes is started through sh, which is on every PATH, and is ready only when hermes itself is.
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+"/bin"+string(os.PathListSeparator)+"/usr/bin")
+	for _, entry := range Of(Machine(), []string{"hermes"}) {
+		if entry.Ready || entry.Why != "npm install -g hermes-agent@0.21.5" {
+			t.Errorf("hermes with only sh on the PATH: %+v", entry)
 		}
 	}
 }

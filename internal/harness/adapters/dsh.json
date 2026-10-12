@@ -3,6 +3,7 @@
   "title": "DeepSeek Agent",
   "what": "DeepSeek's own agent, where every part of it is a plugin.",
   "program": "dsh",
+  "package": "@deepseek-ai/dsh@0.1.5-rc.3",
   "argv": [
     "--profile",
     "acp",

@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"errors"
+	"github.com/getlatentic/haas/internal/keychain"
 	"os"
 	"sync/atomic"
 
@@ -33,6 +37,9 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 	if reg == nil {
 		return nil, nil, errors.New("the registry could not be opened")
 	}
+	if os.Getenv("HAAS_LOCAL") == "1" {
+		keepKeysInKeychain(reg, dir)
+	}
 	var offered atomic.Pointer[web.Models]
 	apply := func(e registry.Effective) {
 		way.Apply(e)
@@ -43,4 +50,21 @@ func openRegistry(way *WayOut, changed func()) (*registry.Registry, func() web.M
 	apply(reg.Effective())
 	reg.OnChange(apply)
 	return reg, func() web.Models { return *offered.Load() }, nil
+}
+
+// keepKeysInKeychain has a person's own haas keep the keys they type in their computer's keychain. A computer whose keychain
+// cannot be used now, or a person who set HAAS_KEYCHAIN=off, keeps them in files only this person can read, as a shared
+// server does, and says so.
+func keepKeysInKeychain(reg *registry.Registry, dir string) {
+	if os.Getenv("HAAS_KEYCHAIN") == "off" {
+		fmt.Printf("keys are kept in %s, readable by you alone, since HAAS_KEYCHAIN is off\n", filepath.Join(dir, "keys"))
+		return
+	}
+	store, err := keychain.Open()
+	if err != nil {
+		fmt.Printf("keys are kept in %s, readable by you alone, since %v\n", filepath.Join(dir, "keys"), err)
+		return
+	}
+	reg.UseKeys(store)
+	fmt.Println("keys are kept in this computer's keychain")
 }

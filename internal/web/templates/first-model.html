@@ -1,0 +1,30 @@
+{{define "first-model"}}
+<form class="card column first-model" method="post" action="/setup/model">
+  <p>Every engine can use it. Its key stays on this computer with haas, and no agent is given it.</p>
+  {{range .FoundKeys}}<p class="muted">Your shell has {{.}}. To use it, run <code>haas local use {{.}}</code> in a terminal.</p>{{end}}
+  <label>Provider
+    <select id="preset">
+      {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
+      <option value="" data-auth="">Another</option>
+    </select>
+  </label>
+  <label>Address <input name="address" id="address" required placeholder="https://api.example.com"></label>
+  <label>Answers like
+    <select name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>
+  </label>
+  <label>Key <input type="password" name="key" id="key" autocomplete="off"></label>
+  <label>Models
+    <span class="line"><input name="models" id="models" required placeholder="one or more, separated by commas" list="found-models"><button type="button" id="list-models" class="quiet-button">List my models</button></span>
+    <span class="muted" id="list-said" role="status"></span>
+  </label>
+  <datalist id="found-models"></datalist>
+  <button type="submit">Add</button>
+  {{with .Missing}}
+  <div class="muted">
+    <p>Not on this computer yet, and how to add them:</p>
+    <ul>{{range .}}<li>{{.Title}}: <code>{{.Why}}</code></li>{{end}}</ul>
+    <p>Then run <code>haas open</code> in the same terminal, so haas looks for engines where that terminal does.</p>
+  </div>
+  {{end}}
+</form>
+{{end}}

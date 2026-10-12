@@ -3,6 +3,8 @@
   "title": "Hermes",
   "what": "Nous Research's agent, which remembers what it learns across sessions.",
   "program": "sh",
+  "package": "hermes-agent@0.21.5",
+  "installs": "hermes",
   "argv": [
     "-c",
     "mkdir -p \"$HERMES_HOME\" && cp /root/.config/hermes/config.yaml \"$HERMES_HOME/config.yaml\" && exec hermes acp --accept-hooks"

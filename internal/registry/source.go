@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -11,8 +10,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-
-	"github.com/getlatentic/haas/internal/atomicfile"
 )
 
 // Sources reads "stored" keys from a directory and the other kinds from where they say. Only the kinds an
@@ -88,41 +85,24 @@ func clean(key []byte) (string, error) {
 	return text, nil
 }
 
-// stored is what a provider's typed key is kept in.
-type stored struct {
-	Key string `json:"key"`
-}
-
-func (r *Registry) keyFile(provider string) string { return filepath.Join(r.keys, provider+".json") }
-
 func (r *Registry) keep(provider, key string) error {
 	text, err := clean([]byte(key))
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(r.keys, 0o700); err != nil {
-		return err
-	}
-	return atomicfile.Write(r.keyFile(provider), stored{Key: text}, 0o600)
+	return r.keys.Keep(provider, text)
 }
 
-func (r *Registry) forget(provider string) { os.Remove(r.keyFile(provider)) }
+func (r *Registry) forget(provider string) { r.keys.Forget(provider) }
 
 // read is a provider's key, wherever it is.
 func (r *Registry) read(p Provider) (string, error) {
 	if p.Key == "stored" {
-		text, err := os.ReadFile(r.keyFile(p.Name))
+		key, err := r.keys.Read(p.Name)
 		if errors.Is(err, fs.ErrNotExist) {
 			return "", errors.New("no key has been given for it")
 		}
-		if err != nil {
-			return "", err
-		}
-		var held stored
-		if err := json.Unmarshal(text, &held); err != nil || held.Key == "" {
-			return "", errors.New("the key that was kept cannot be read")
-		}
-		return held.Key, nil
+		return key, err
 	}
 	return Sources{Allowed: r.Rules().KeySources, Run: r.run}.Read(p.Key)
 }
