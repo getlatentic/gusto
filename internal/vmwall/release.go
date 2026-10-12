@@ -65,3 +65,7 @@ func ProgramsFor(p Platform) ([]Program, error) {
 	}
 	return files, nil
 }
+
+// ToolsAsset is the file of a haas release that holds the disk tools (mke2fs, debugfs and e2fsck) built to stand alone, for a Mac,
+// which has none of its own. A file with the same name and .sha256 added holds its checksum and size.
+const ToolsAsset = "haas-e2fsprogs-darwin-arm64.tar.gz"

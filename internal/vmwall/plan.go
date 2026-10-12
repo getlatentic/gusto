@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -40,6 +41,10 @@ type Plan struct {
 	Programs []Program
 	// Image is the checksum and size of haas's root file system, which the release names, when the person names none.
 	Image Rootfs
+	// Tools is the checksum and size of the disk tools haas ships, when the computer has none of its own and the release has them.
+	Tools Rootfs
+	// FetchTools says the install downloads the disk tools.
+	FetchTools bool
 	// ImageFile is the person's own root file system, when they name one. Without one, the install takes the image of haas's own release.
 	ImageFile string
 	// ConfigHome is where the openshell command keeps its gateways: XDG_CONFIG_HOME, or the .config folder of the person's home.
@@ -63,7 +68,7 @@ func Prepare(ctx context.Context, env Env, haasHome, user, imageFile string) (Pl
 	if err := plan.hardware(); err != nil {
 		return Plan{}, err
 	}
-	if err := plan.diskTools(); err != nil {
+	if plan.Tools, plan.FetchTools, err = plan.diskTools(ctx); err != nil {
 		return Plan{}, err
 	}
 	switch {
@@ -92,17 +97,22 @@ func Prepare(ctx context.Context, env Env, haasHome, user, imageFile string) (Pl
 // releasedImage reads what the release says of its root file system: a line of its checksum file, which holds the checksum and the
 // size in bytes. The size is there so the person can be told it before they agree to the download.
 func (p Plan) releasedImage(ctx context.Context) (Rootfs, error) {
+	return p.releasedAsset(ctx, RootfsAsset(p.Platform.GOARCH))
+}
+
+// releasedAsset is the checksum and size a release gives for one of its files.
+func (p Plan) releasedAsset(ctx context.Context, name string) (Rootfs, error) {
 	var listed bytes.Buffer
-	if err := p.GetAsset(ctx, p.Release, RootfsAsset(p.Platform.GOARCH)+".sha256", &listed); err != nil {
-		return Rootfs{}, fmt.Errorf("haas %s has no root file system for %s: %w", p.Release, p.Platform.GOARCH, err)
+	if err := p.GetAsset(ctx, p.Release, name+".sha256", &listed); err != nil {
+		return Rootfs{}, fmt.Errorf("haas %s has no %s: %w", p.Release, name, err)
 	}
 	fields := strings.Fields(listed.String())
 	if len(fields) < 2 {
-		return Rootfs{}, fmt.Errorf("the checksum file of haas %s's root file system is not a checksum and a size", p.Release)
+		return Rootfs{}, fmt.Errorf("the checksum file of %s in haas %s is not a checksum and a size", name, p.Release)
 	}
 	size, err := strconv.ParseInt(fields[1], 10, 64)
 	if err != nil || size <= 0 {
-		return Rootfs{}, fmt.Errorf("the checksum file of haas %s's root file system has no size", p.Release)
+		return Rootfs{}, fmt.Errorf("the checksum file of %s in haas %s has no size", name, p.Release)
 	}
 	return Rootfs{SHA256: fields[0], Size: size}, nil
 }
@@ -121,28 +131,30 @@ func (p Plan) hardware() error {
 	return nil
 }
 
-// diskTools checks the programs that build a sandbox's disk are where the gateway will look.
-func (p Plan) diskTools() error {
+// diskTools checks the programs that build a sandbox's disk are where the gateway will look. A Mac has none of its own, so the
+// release's are downloaded; a computer that can get them from its system is told how.
+func (p Plan) diskTools(ctx context.Context) (tools Rootfs, fetch bool, err error) {
 	folders := append([]string{p.Bin()}, toolFolders...)
 	folders = append(folders, filepath.SplitList(p.Getenv("PATH"))...)
+	var missing []string
 	for _, tool := range diskTools {
-		found := false
-		for _, folder := range folders {
-			if p.Exists(filepath.Join(folder, tool)) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("%s is not on this computer, and the virtual machine wall needs it to build each job's disk: %s", tool, p.howToGetTools())
+		if !slices.ContainsFunc(folders, func(folder string) bool { return p.Exists(filepath.Join(folder, tool)) }) {
+			missing = append(missing, tool)
 		}
 	}
-	return nil
+	switch {
+	case len(missing) == 0:
+		return Rootfs{}, false, nil
+	case p.Platform.GOOS == "darwin" && p.Release != "":
+		tools, err = p.releasedAsset(ctx, ToolsAsset)
+		return tools, err == nil, err
+	}
+	return Rootfs{}, false, fmt.Errorf("%s is not on this computer, and the virtual machine wall needs it to build each job's disk: %s", missing[0], p.howToGetTools())
 }
 
 func (p Plan) howToGetTools() string {
 	if p.Platform.GOOS == "darwin" {
-		return "brew install e2fsprogs"
+		return "brew install e2fsprogs, or use a release of haas, which carries them"
 	}
 	return "install your system's e2fsprogs package"
 }
@@ -156,6 +168,9 @@ func (p Plan) Words() string {
 	}
 	fmt.Fprintf(&b, ".\nIt checks every file against a checksum haas carries, keeps them in %s, and keeps a gateway running for you", p.Root)
 	b.WriteString(map[string]string{"darwin": " as a launch agent", "linux": " as a systemd user service"}[p.Platform.GOOS])
+	if p.FetchTools {
+		fmt.Fprintf(&b, ", and the disk tools a Mac lacks (%d MB)", p.Tools.Size>>20)
+	}
 	b.WriteString(".\nEach job then runs in a virtual machine and sees only its own folder. It needs no password and changes nothing outside your own folders.")
 	return b.String()
 }

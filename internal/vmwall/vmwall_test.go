@@ -230,6 +230,7 @@ func TestAComputerThatCannotRunTheWallIsToldBeforeAnythingIsDownloaded(t *testin
 	}
 	c, env := newComputer(t, "arm64")
 	env.Exists = func(string) bool { return false }
+	env.Release = ""
 	if _, err := Prepare(context.Background(), env, c.root, c.user, ""); err == nil || !strings.Contains(err.Error(), "brew install e2fsprogs") {
 		t.Errorf("a Mac without the disk tools is not told how to get them: %v", err)
 	}
@@ -297,5 +298,38 @@ func TestTheGatewayIsConfiguredForVirtualMachinesAndRunsWithShortStateAndItsOwnT
 	}
 	if !strings.HasPrefix(l.GatewayPath(), l.Bin()+":") {
 		t.Errorf("the gateway does not look in haas's own folder first: %s", l.GatewayPath())
+	}
+}
+
+func TestAMacWithNoDiskToolsGetsTheReleasesAndTheLicenceBesideThem(t *testing.T) {
+	c, env := newComputer(t, "arm64")
+	var out bytes.Buffer
+	zipped := gzip.NewWriter(&out)
+	writer := tar.NewWriter(zipped)
+	for _, name := range []string{"mke2fs", "debugfs", "e2fsck", "COPYING", "SOURCE.txt"} {
+		writer.WriteHeader(&tar.Header{Name: name, Mode: 0o644, Size: int64(len(name)), Typeflag: tar.TypeReg})
+		writer.Write([]byte(name))
+	}
+	writer.Close()
+	zipped.Close()
+	sum := sha256.Sum256(out.Bytes())
+	c.assets[ToolsAsset] = out.Bytes()
+	c.assets[ToolsAsset+".sha256"] = []byte(hex.EncodeToString(sum[:]) + "  " + strconv.Itoa(out.Len()) + "  " + ToolsAsset + "\n")
+	here := env.Exists
+	env.Exists = func(path string) bool { return !strings.HasSuffix(path, "mke2fs") && !strings.HasSuffix(path, "debugfs") && !strings.HasSuffix(path, "e2fsck") && here(path) }
+	plan, err := Prepare(context.Background(), env, c.root, c.user, "")
+	if err != nil || !plan.FetchTools || !strings.Contains(plan.Words(), "disk tools") {
+		t.Fatalf("the tools are not to be fetched: %v %v", err, plan.FetchTools)
+	}
+	if err := plan.Apply(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range []string{"mke2fs", "debugfs", "e2fsck"} {
+		if info, err := os.Stat(filepath.Join(plan.Bin(), tool)); err != nil || info.Mode().Perm()&0o100 == 0 {
+			t.Errorf("%s is not an executable program in the gateway's folder: %v", tool, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(plan.Root, "licenses", "COPYING")); err != nil {
+		t.Errorf("the licence is not kept beside the tools: %v", err)
 	}
 }
