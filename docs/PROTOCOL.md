@@ -110,9 +110,9 @@ Two calls are streams of server-sent events (`text/event-stream`), which a clien
 
 `POST /api/jobs/{id}/stop` stops a turn that is running, and answers whether it was.
 
-## What it does not do yet
+## Next for the protocol
 
 - A stream cannot resume at an exact event: `/api/events` catches up by time, not by an event's id, and `follow` replays a turn from its start.
 - The server finds changes by looking at the job every 300 milliseconds, so a stream is not pushed the moment something happens.
-- A turn whose model call failed can end `passed` with an empty `reply`, because the engine itself exited cleanly (getlatentic/planning#676).
+- A turn whose model call failed will say so: today it can end `passed` with an empty `reply`, because the engine itself exited cleanly (getlatentic/planning#676).
 - The pages are HTML, and the desktop app is a window onto them. They are not a client of this protocol.

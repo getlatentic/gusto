@@ -114,7 +114,7 @@ been the best.
 Model calls are the turns of the agent's loop, counted at the proxy from the
 provider's own answers. A run that did not go through the proxy shows none.
 
-## Not yet
+## Next
 
 - **More than a verdict side by side.** The table shows the verdict, the
   harness's exit, the budget, tokens and cost. Comparing the patches is reading
