@@ -1,7 +1,9 @@
 # The desktop side
 
-How a person reaches their organisation's agents from their own computer. This is
-the design for getlatentic/planning#530. Nothing here is built yet.
+How a person reaches their organisation's agents from their own computer. The helper,
+a token for a person (the device flow) and the JSON API for a person's own work are
+built, and so is the app, which is a window onto the server's pages. The sections
+below give the design they follow (getlatentic/planning#530).
 
 ## The shape
 
@@ -22,9 +24,9 @@ terminal, a folder and a notification all reach the cloud the same way. A shell
 (a tray, maybe a window) is a thin layer over the helper's local API. Which shell,
 or none, is the spike in getlatentic/planning#587.
 
-## What the server does not have yet
+## What the server had to add
 
-The server is built around the web pages. Of its routes, three are an API
+This is what the server was given for the helper. It was built around the web pages. Of its routes, three are an API
 (`POST /api/jobs`, `GET /api/changes`, `GET /api/spend`), and their tokens are the
 organisation's, made by an admin, with the scopes `submit`, `spend`, `audit` and
 `metrics`. A person's instances, threads, turns and workspace files can be read

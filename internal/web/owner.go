@@ -45,12 +45,13 @@ func (s *Server) askerName(r *http.Request) string {
 
 // mayUse says whether the person asking may see what owner made. Work with no
 // owner, and work the shared sign-in made, has no person to belong to, so only
-// an admin sees it.
+// an admin sees it. On a server with no identity provider the shared sign-in is
+// the owner, and a computer that owner approved sees what the owner made.
 func (s *Server) mayUse(r *http.Request, owner string) bool {
 	if s.admin(r) {
 		return true
 	}
-	return owner != "" && owner != sharedSignIn && strings.EqualFold(owner, s.askerName(r))
+	return owner != "" && (owner != sharedSignIn || s.soleOwner()) && strings.EqualFold(owner, s.askerName(r))
 }
 
 // owned is the instance the path names when the person asking may use it.
