@@ -10,7 +10,7 @@ budget. It keeps your keys out of the agent and a signed record of every job, so
 | You have | Run it like this |
 | --- | --- |
 | **A local machine** (laptop or desktop; macOS, Linux, Windows) | Install it with one command. It starts at login and opens in your browser. |
-| **A homelab** (a box at home, a mini PC, a Raspberry Pi) | `sudo server.sh --no-tls` on the box; use it from any computer on your network. |
+| **A homelab** (a spare PC or mini server at home) | `sudo server.sh --no-tls` on the box; use it from any computer on your network. |
 | **A VPS** (a cloud machine you rent) | `sudo server.sh --domain agents.example.com`: HTTPS, one password, ready in minutes. |
 | **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per job. See [docs/PILOT.md](docs/PILOT.md). |
 
