@@ -28,15 +28,17 @@ cgo=0
 flags="-s -w -X github.com/getlatentic/haas/internal/helper/cli.Version=$tag"
 [ "$os" = windows ] && flags="$flags -H=windowsgui"
 
+cp "$root/LICENSE" "$root/NOTICE" "$work/"
+
 (cd "$root" && CGO_ENABLED=$cgo GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$flags" -o "$work/$exe" ./cmd/haas-helper)
 
 mkdir -p "$out"
 archive="${name}_${tag}_${os}_${arch}"
 if [ "$os" = windows ]; then
-  (cd "$work" && zip -q -9 "$archive.zip" "$exe") && mv "$work/$archive.zip" "$out/"
+  (cd "$work" && zip -q -9 "$archive.zip" "$exe" LICENSE NOTICE) && mv "$work/$archive.zip" "$out/"
   echo "$out/$archive.zip"
 else
   chmod 0755 "$work/$exe"
-  tar -C "$work" -czf "$out/$archive.tar.gz" "$exe"
+  tar -C "$work" -czf "$out/$archive.tar.gz" "$exe" LICENSE NOTICE
   echo "$out/$archive.tar.gz"
 fi

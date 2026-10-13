@@ -16,16 +16,18 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 root=$(git rev-parse --show-toplevel)
 
+cp "$root/LICENSE" "$root/NOTICE" "$work/"
+
 (cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.release=$tag" -o "$work/$exe" ./cmd/haas)
 
 mkdir -p "$out"
 archive="haas_${tag}_${os}_${arch}"
 if [ "$os" = windows ]; then
-  (cd "$work" && zip -q -9 "$archive.zip" "$exe") && mv "$work/$archive.zip" "$out/"
+  (cd "$work" && zip -q -9 "$archive.zip" "$exe" LICENSE NOTICE) && mv "$work/$archive.zip" "$out/"
   echo "$out/$archive.zip"
 else
   chmod 0755 "$work/$exe"
   # macOS's tar adds its own file attributes, which tar on Linux warns about.
-  COPYFILE_DISABLE=1 tar --no-xattrs -C "$work" -czf "$out/$archive.tar.gz" "$exe"
+  COPYFILE_DISABLE=1 tar --no-xattrs -C "$work" -czf "$out/$archive.tar.gz" "$exe" LICENSE NOTICE
   echo "$out/$archive.tar.gz"
 fi
