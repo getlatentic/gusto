@@ -90,3 +90,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+
+  # HTTPS in front of the server, for a machine people sign in to from elsewhere. It is off until asked for:
+  # `docker compose --profile tls up -d`, with HAAS_DOMAIN set to the name that points at this machine, which gets a certificate
+  # of its own. deploy/install/server.sh sets this up. With HAAS_PUBLISH on the loopback the server is reached only through this.
+  tls:
+    profiles: ["tls"]
+    image: docker.io/library/caddy:2
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      HAAS_DOMAIN: ${HAAS_DOMAIN:-localhost}
+      HAAS_CADDY_TLS: ${HAAS_CADDY_TLS:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  caddy-data:

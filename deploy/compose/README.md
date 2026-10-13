@@ -7,6 +7,8 @@ says what the server is given to start those containers with. Read
 **the server holds the host's container runtime socket, which is root on this
 machine.**
 
+`deploy/install/server.sh` does what this page describes in one command, and adds HTTPS: it runs the `tls` profile of `compose.yaml`, which puts Caddy in front of the server with a certificate for your domain. Read on for what it does and what the machine needs.
+
 ## What the machine needs
 
 - Linux on x86-64 is the target. On a GitHub-hosted Ubuntu runner (AMD EPYC, 2 vCPU,
