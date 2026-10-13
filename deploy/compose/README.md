@@ -127,7 +127,7 @@ Without one, a job keeps the Docker bridge and reaches anything this machine
 does. `HAAS_ALLOWED_HOSTS` names the other hosts a sealed job may reach.
 
 Every other setting is in the Environment table of the
-[root README](../../README.md#environment), and goes in `.env`.
+[root README](../../docs/REFERENCE.md#environment), and goes in `.env`.
 
 A harness this image does not carry is added to `HAAS_RUNNER_HARNESSES`, as
 `name=package`, and built with `docker compose up -d --build`.
