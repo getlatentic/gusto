@@ -99,3 +99,19 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		})
 	}
 }
+
+// A turn in a conversation has no gate, and haas show says so instead of failing on the manifest.
+func TestShowAJobWithNoGate(t *testing.T) {
+	dir := claimed(t)
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Gate = nil
+	if err := evidence.Write(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+	if got := shown(t, dir, ""); got == "" {
+		t.Fatal("haas show printed no signer line for a job with no gate")
+	}
+}

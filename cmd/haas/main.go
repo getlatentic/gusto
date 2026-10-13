@@ -270,8 +270,12 @@ func show(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	fmt.Printf("\ngate     exit %d, passed %t\nharness  exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
-		manifest.Gate.Code, manifest.Gate.Passed, manifest.HarnessExit, manifest.StoppedAtBudget,
+	gate := "none: a turn in a conversation has no gate"
+	if manifest.Gate != nil {
+		gate = fmt.Sprintf("exit %d, passed %t", manifest.Gate.Code, manifest.Gate.Passed)
+	}
+	fmt.Printf("\ngate     %s\nharness  exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
+		gate, manifest.HarnessExit, manifest.StoppedAtBudget,
 		manifest.ModelEndpoint, evidence.SignedBy(dir, keyring), len(manifest.Files))
 	if manifest.Tokens != nil {
 		fmt.Printf("tokens   %d\n", *manifest.Tokens)
