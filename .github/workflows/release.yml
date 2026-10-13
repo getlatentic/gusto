@@ -151,6 +151,13 @@ jobs:
           for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
             deploy/server/build.sh "$GITHUB_REF_NAME" "${target%/*}" "${target#*/}" dist
           done
+      # What deploy/install/server.sh needs to start haas on a machine of someone's own, without a checkout.
+      - name: Pack the Compose files
+        run: |
+          mkdir -p dist work/compose
+          cp deploy/compose/compose.yaml deploy/compose/Caddyfile deploy/compose/env.example deploy/compose/README.md work/compose/
+          tar -C work -czf "dist/haas-compose_${GITHUB_REF_NAME}.tar.gz" compose
+          cp deploy/install/server.sh dist/server.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: server
@@ -297,7 +304,7 @@ jobs:
         run: |
           cp deploy/install/install.sh deploy/install/install.ps1 dist/
           cd dist
-          sha256sum haas_* haas-helper_* haas-rootfs-* haas-e2fsprogs-* latentic-agent-cloud_* desktop-manifest.json install.sh install.ps1 > SHA256SUMS
+          sha256sum haas_* haas-helper_* haas-rootfs-* haas-e2fsprogs-* latentic-agent-cloud_* desktop-manifest.json install.sh install.ps1 server.sh haas-compose_* > SHA256SUMS
           cosign sign-blob --yes SHA256SUMS --bundle SHA256SUMS.sigstore.json
           ls -la
       - name: Release
