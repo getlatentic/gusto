@@ -155,8 +155,8 @@ curl -fsSL http://<this machine>:8000/install.sh | HAAS_RELEASE_URL=http://<this
 
 The build is not signed, so a machine with cosign installed refuses it.
 
-## Not yet
+## Next
 
-- A virtual machine is chosen only on a computer that already has OpenShell, a gateway and an image; shipping them with haas, so a
-  laptop gets one with no setup, is getlatentic/planning#655.
-- Hermes is started through `sh`, which Windows does not have.
+- Hermes on Windows: it is started through `sh`, which Windows does not have (getlatentic/planning#663).
+
+The rest is in the [roadmap](ROADMAP.md).
