@@ -50,3 +50,19 @@ func TestAPeerThatIsNotAnAddressIsKeptAsGiven(t *testing.T) {
 		t.Errorf("want @, got %s", got)
 	}
 }
+
+// Behind a proxy that is not on the loopback, as one is in a container, the address it forwards is believed only when the server
+// was told it is reached only through one.
+func TestTheForwardedAddressIsBelievedFromAnyPeerOnlyWhenBehindAProxy(t *testing.T) {
+	asked := httptest.NewRequest("GET", "/", nil)
+	asked.RemoteAddr = "172.18.0.1:5555"
+	asked.Header.Set("X-Forwarded-For", "198.51.100.9, 203.0.113.7")
+	if got := Remote(asked); got != "172.18.0.1" {
+		t.Errorf("a forwarded address was believed from a peer that is not the loopback: %s", got)
+	}
+	TrustForwarded(true)
+	t.Cleanup(func() { TrustForwarded(false) })
+	if got := Remote(asked); got != "203.0.113.7" {
+		t.Errorf("behind a proxy the last forwarded address, the one the proxy added, was not believed: %s", got)
+	}
+}
