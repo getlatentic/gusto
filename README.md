@@ -33,6 +33,7 @@ haas is a pre-release: it works, and it changes often.
 
 | | |
 | --- | --- |
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | five minutes, step by step |
 | [docs/LOCAL.md](docs/LOCAL.md) | on your own computer: models, agents, the sandbox |
 | [deploy/README.md](deploy/README.md) | a server: Compose, Helm, Ansible |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | the calls any client makes to a server |
