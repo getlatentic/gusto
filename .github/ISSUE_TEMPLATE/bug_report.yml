@@ -1,0 +1,29 @@
+name: Bug report
+description: Something haas did that it should not have, or did not do.
+labels: [bug]
+body:
+  - type: textarea
+    id: ran
+    attributes:
+      label: What you ran
+      description: The command, or the steps in the pages. Include the install you used (script, Compose, Helm, source) and the release.
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: The output or the error, as text. Remove any key or password.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Operating system and processor, the engine and model if a job was involved, and which wall (`haas local` says it on startup).

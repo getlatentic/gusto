@@ -1,4 +1,4 @@
-Latentic Agent Cloud (haas)
+Gusto (haas)
 Copyright 2026 Latentic
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
@@ -9,6 +9,8 @@ Third-party software
 Go modules compiled into haas and haas-helper (checked 13 October 2026 by reading each module's licence file):
   18 Apache-2.0, 4 BSD-3-Clause, 1 BSD-2-Clause, 3 MIT. None is GPL, LGPL, AGPL or MPL.
   `go list -deps ./cmd/haas ./cmd/haas-helper` lists them.
+
+The design tokens (tokens.css) and the mark (mark.png) in internal/web/static are Latentic's own.
 
 Files served from the binary (internal/web/static, see PROVENANCE.md there):
   htmx            BSD-style (htmx.org)

@@ -1,6 +1,6 @@
-# Latentic Agent Cloud (haas)
+# Gusto (haas)
 
-Run AI agents under one set of security, cost and policy controls, and keep evidence of what each one did that anybody can re-check. This repository is `haas`, the program and server behind Latentic Agent Cloud.
+Run AI agents under one set of security, cost and policy controls, and keep evidence of what each one did that anybody can re-check. Gusto is made by Latentic. This repository is `haas`, its program and server.
 
 **Status: pre-release.** Its install is tested on clean Linux, macOS and Windows machines, and it changes often. Read [docs/RELEASES.md](docs/RELEASES.md) before you upgrade.
 
@@ -23,6 +23,27 @@ curl -fsSL https://github.com/getlatentic/haas/releases/download/v0.1.0-rc.2/ins
 On Windows, `install.ps1` is attached to the same release. [docs/LOCAL.md](docs/LOCAL.md) covers adding a model and an engine, and the optional virtual machine wall (`haas local wall install`).
 
 For a team, on a machine or a cluster of your own: [deploy/README.md](deploy/README.md) has a Compose file, a Helm chart and an Ansible playbook. The Helm chart runs jobs in a privileged Docker-in-Docker daemon, which is root-equivalent on the node, and says so.
+
+## What you can do with it
+
+**On your own computer.** Install it, add a model key (`haas local use DEEPSEEK_API_KEY`, or a form on the first page), and run any of the six agents from
+the browser or the desktop app. Each job runs behind the strongest wall the computer has. On Apple Silicon or Linux with KVM,
+`haas local wall install` adds a virtual machine for each job.
+
+**On a server of your own.** One command sets up haas on a Linux machine, with HTTPS:
+
+```bash
+sudo server.sh --domain agents.example.com      # attached to each release; --no-tls for a trusted network
+```
+
+You then sign in from the browser, or connect the desktop app and `haas-helper login -server https://agents.example.com`.
+
+**For a team.** Run a pilot on your own infrastructure with Compose or Helm, single sign-on and roles, spend caps per job and per team, and a
+signed record of every job that `haas verify` checks without trusting the server. [docs/PILOT.md](docs/PILOT.md) lists what you provide and the
+checks to run before anyone signs in.
+
+**Against its API.** Every client, including the pages, speaks one protocol, on a computer or across a network. [docs/PROTOCOL.md](docs/PROTOCOL.md)
+lists the calls, and `GET /api/protocol` on a running server lists them again.
 
 From source:
 
