@@ -233,7 +233,7 @@ on both.
   a path from the root (`docs/drafts`). A `!` line is not understood and is said so. An
   ignored file is never deleted on either side.
 
-**What it does not do yet.** Empty folders are not kept. A file the agent writes crosses when
+**Next.** Empty folders are not kept. A file the agent writes crosses when
 its turn ends or changes state, and not while the turn is running.
 Names are compared exactly, so two names that differ only in case are two files, which a
 case-insensitive disk (the default on macOS and Windows) cannot hold. An executable file is

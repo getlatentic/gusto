@@ -60,18 +60,18 @@ The install check runs the first three, the isolation probe, and the sign-in thr
 for the counting. A stub shows that the proxy holds the key, reaches the model
 and counts the call. It says nothing about the client's model.
 
-## What is not proven
+## Check these with your own setup
 
-- Your identity provider. The install check signs in through Dex, not through a
-  company's own provider, so try yours before the handover ([SSO.md](SSO.md)).
-- Escape from a container. Jobs run in Docker containers with no network but the
-  proxy's socket, which share the host's kernel. [SECURITY.md](SECURITY.md#how-a-job-is-isolated)
-  says what was probed and what was not. Where that is not enough, run OpenShell
-  microVMs on a host with KVM.
-- A model of the client's. The install check uses a stub. Run one real job on
-  the client's model before the handover and read its record.
-- Podman, rootless Docker, and any host other than Linux on x86-64 and arm64 in
-  a VM.
+The install check runs against stand-ins. These three are the client's own, so run each once before the handover:
+
+- **Your identity provider.** The install check signs in through Dex, not through a company's own provider. Try yours
+  ([SSO.md](SSO.md)).
+- **Your model.** The install check uses a stub. Run one real job on the client's model and read its record.
+- **Your isolation needs.** Jobs run in Docker containers with no network but the proxy's socket, which share the host's kernel.
+  [SECURITY.md](SECURITY.md#how-a-job-is-isolated) says what was probed. Where a client wants a stronger wall, run each job in an
+  OpenShell microVM on a host with KVM ([OPENSHELL.md](OPENSHELL.md)).
+
+Podman, rootless Docker and hosts other than Linux on x86-64 and arm64 are on the [roadmap](ROADMAP.md).
 
 ## After the handover
 

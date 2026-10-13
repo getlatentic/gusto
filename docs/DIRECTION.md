@@ -32,7 +32,7 @@ serve them, and the vendors bundle hosting with their own agents.
 
 ## What "governed" has to mean
 
-This list is the product. A buyer works down it, and most of it is not built.
+This list is the product. A buyer works down it, and the state column says how far each row is.
 
 | | | state |
 | --- | --- | --- |

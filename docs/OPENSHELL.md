@@ -138,7 +138,7 @@ NET:OPEN  DENIED  /usr/bin/bash -> example.com:443 [reason:transparent_tcp_polic
 The log is read again until it stops growing, because a sandbox ships it in
 batches and the last moment of a run arrives late.
 
-## What it does not do yet
+## Next
 
 - **Tool servers.** A job with a skill set runs; a set with MCP servers is refused by
   name before anything starts.
