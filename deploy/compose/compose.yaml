@@ -50,6 +50,9 @@ services:
       # What the install decides, so .env cannot move it out from under the
       # mounts below.
       HAAS_ADDR: 0.0.0.0:8040
+      # 1 when only a proxy of yours reaches the server, which is so when HAAS_PUBLISH is the loopback: in a container the proxy
+      # connects from the bridge, and the address it forwards is then believed. deploy/install/server.sh sets it.
+      HAAS_BEHIND_PROXY: ${HAAS_BEHIND_PROXY:-}
       HAAS_CONTAINER: docker
       HAAS_IMAGE: ${HAAS_RUNNER_IMAGE:-haas-runner:local}
       HAAS_JOBS: ${HAAS_DATA:-/var/lib/haas}/jobs
