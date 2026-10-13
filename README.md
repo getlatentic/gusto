@@ -1,6 +1,6 @@
-# Latentic Agent Cloud (haas)
+# Gusto (haas)
 
-Run AI agents under one set of security, cost and policy controls, and keep evidence of what each one did that anybody can re-check. This repository is `haas`, the program and server behind Latentic Agent Cloud.
+Run AI agents under one set of security, cost and policy controls, and keep evidence of what each one did that anybody can re-check. Gusto is made by Latentic. This repository is `haas`, its program and server.
 
 **Status: pre-release.** Its install is tested on clean Linux, macOS and Windows machines, and it changes often. Read [docs/RELEASES.md](docs/RELEASES.md) before you upgrade.
 
