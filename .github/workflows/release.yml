@@ -37,7 +37,7 @@ jobs:
 
   images:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -46,11 +46,13 @@ jobs:
       id-token: write
     strategy:
       matrix:
+        # Each processor builds on its own kind of machine: the runner carries six harnesses, and building it for arm64 under
+        # emulation takes far longer than the job may. The arm64 image has its own tag, <release>-arm64.
         include:
-          - image: server
-            file: deploy/server/Dockerfile
-          - image: runner
-            file: Dockerfile
+          - {image: server, file: deploy/server/Dockerfile, arch: amd64, runner: ubuntu-latest, suffix: ""}
+          - {image: runner, file: Dockerfile, arch: amd64, runner: ubuntu-latest, suffix: ""}
+          - {image: server, file: deploy/server/Dockerfile, arch: arm64, runner: ubuntu-24.04-arm, suffix: "-arm64"}
+          - {image: runner, file: Dockerfile, arch: arm64, runner: ubuntu-24.04-arm, suffix: "-arm64"}
     env:
       REPOSITORY: ghcr.io/${{ github.repository_owner }}/haas-${{ matrix.image }}
     steps:
@@ -80,9 +82,9 @@ jobs:
         with:
           context: .
           file: ${{ matrix.file }}
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.arch }}
           push: true
-          tags: ${{ env.REPOSITORY }}:${{ github.ref_name }}
+          tags: ${{ env.REPOSITORY }}:${{ github.ref_name }}${{ matrix.suffix }}
           provenance: mode=max
           sbom: true
           build-args: |
@@ -100,13 +102,13 @@ jobs:
       - name: Name the digest
         run: |
           mkdir -p digests
-          echo "$REPOSITORY@${{ steps.build.outputs.digest }}" > "digests/${{ matrix.image }}"
+          echo "$REPOSITORY@${{ steps.build.outputs.digest }}" > "digests/${{ matrix.image }}${{ matrix.suffix }}"
           echo "\`$REPOSITORY@${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: digest-${{ matrix.image }}
-          path: digests/${{ matrix.image }}
+          name: digest-${{ matrix.image }}${{ matrix.suffix }}
+          path: digests/${{ matrix.image }}${{ matrix.suffix }}
 
   helper:
     needs: test
@@ -307,6 +309,8 @@ jobs:
         run: |
           server="$(cat digests/server)"
           runner="$(cat digests/runner)"
+          server_arm="$(cat digests/server-arm64)"
+          runner_arm="$(cat digests/runner-arm64)"
           identity="https://github.com/${{ github.repository }}/.github/workflows/release.yml@refs/tags/$TAG"
           cat > notes.md <<EOF
           Images, by digest:
@@ -314,6 +318,13 @@ jobs:
           \`\`\`
           HAAS_SERVER_IMAGE=$server
           HAAS_RUNNER_IMAGE=$runner
+          \`\`\`
+
+          On an Arm computer (Apple Silicon Docker, Graviton), use the images with the -arm64 tag:
+
+          \`\`\`
+          HAAS_SERVER_IMAGE=$server_arm
+          HAAS_RUNNER_IMAGE=$runner_arm
           \`\`\`
 
           Check a signature before pulling:
