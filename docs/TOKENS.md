@@ -16,6 +16,10 @@ file when the first token is made.
 | Chart | `auth.apiTokens: true` |
 | Playbook | `api_tokens: true` |
 
+A person's computer signs in by the device flow (`haas-helper login`): it needs the tokens on, and a signed-in person to approve its code. Where
+an identity provider is named, the shared password is nobody in particular and cannot approve one. Where none is, the shared password is the one
+owner of the server, as for a developer's own, and a computer it approves acts as that owner.
+
 With tokens on, the API refuses the shared password. Without them it takes the
 shared password, as before. The pages keep their own sign-in either way.
 

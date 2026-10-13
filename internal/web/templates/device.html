@@ -9,6 +9,8 @@
 
 {{if .Approved}}<p>Approved <strong>{{.Approved}}</strong>. Go back to the computer: it signs in on its own.</p>{{end}}
 
+{{if .Owner}}<p class="muted">This server has no sign-in provider, so the shared password is its one owner. A computer you approve acts as that owner.</p>{{end}}
+
 {{if .Shared}}
 <p class="muted">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
 {{else}}

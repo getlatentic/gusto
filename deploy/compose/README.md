@@ -30,6 +30,8 @@ Run the commands as root or as a user in the `docker` group.
 
 ## Install
 
+To connect the desktop app's helper (`haas-helper login`) to this server, also turn on `HAAS_API_TOKENS` ([../../docs/TOKENS.md](../../docs/TOKENS.md)). With no identity provider, the shared password is the one owner and approves the helper's code.
+
 With this repository on the machine, at the commit you mean to run:
 
 ```bash
