@@ -8,6 +8,7 @@ origin and no front end to build.
 
 | install | where | follow |
 | --- | --- | --- |
+| `server.sh` | a Linux machine of your own (a VPS, a virtual machine), with HTTPS | [install/server.sh](install/server.sh): `sudo server.sh --domain agents.example.com`, or `--no-tls` on a trusted network. It installs Docker on Debian and Ubuntu, makes a password, starts haas and says how to sign in |
 | Install script | one person's own computer, as a service of theirs | [../docs/LOCAL.md](../docs/LOCAL.md) |
 | Ansible | the one box this project runs on, beside other people's sites | [ansible/README.md](ansible/README.md) |
 | Compose | one Linux machine of your own | [compose/README.md](compose/README.md) |
