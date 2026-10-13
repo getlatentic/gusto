@@ -1,48 +1,40 @@
-# Gusto
+# haas
 
-**Run AI coding agents safely, and prove what they did.**
+**Run AI coding agents in a sandbox, on your computer, your server, or your company's cloud.**
 
-Gusto runs the agents you already use (Claude Code, Codex, OpenCode, pi, Hermes, DeepSeek Agent) inside a sandbox, on the model you pick,
-within a budget. Every job leaves a signed record that anybody can check without trusting your server.
+haas runs the agents you already use (Claude Code, Codex, OpenCode, pi, Hermes, DeepSeek Agent) on the model you pick, in a sandbox, within a
+budget. It keeps your keys out of the agent and a signed record of every job, so you can see what each one did and what it cost.
 
-It runs on your own computer, on a server of your own, or for a team.
+## Where you can run it
 
-- **Safe by default.** Each job gets the strongest wall your computer has: a virtual machine, a container, or the system's own sandbox.
-- **Your keys stay out of the agent.** A proxy holds them, counts the tokens, and stops a job that passes its cap.
-- **Provable.** `haas verify` re-checks a job's record and re-runs its test. It needs nothing from the machine that made it.
+| You have | Run it like this |
+| --- | --- |
+| **A local machine** (laptop or desktop; macOS, Linux, Windows) | Install it with one command. It starts at login and opens in your browser. |
+| **A homelab** (a box at home, a mini PC, a Raspberry Pi) | `sudo server.sh --no-tls` on the box; use it from any computer on your network. |
+| **A VPS** (a cloud machine you rent) | `sudo server.sh --domain agents.example.com`: HTTPS, one password, ready in minutes. |
+| **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per job. See [docs/PILOT.md](docs/PILOT.md). |
 
-## Try it
+## Try it on your computer
 
 ```bash
 curl -fsSL https://github.com/getlatentic/haas/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2
 ```
 
-That installs haas, starts it, and opens it in your browser, signed in. Add a model key on the first page, pick an agent, and ask it something.
-macOS, Linux and Windows. Gusto is a pre-release: it works and it changes often.
+It installs haas, starts it, and opens it in your browser, signed in. Add a model key on the first page, pick an agent, and ask it something.
+haas is a pre-release: it works, and it changes often.
 
-## Run it for a team
+## What you get
 
-```bash
-sudo server.sh --domain agents.example.com      # on a Linux machine of your own, with HTTPS
-```
-
-Single sign-on, roles, spend caps and a pilot checklist are in [docs/PILOT.md](docs/PILOT.md). Compose, Helm and Ansible are in
-[deploy/README.md](deploy/README.md).
-
-## How it works
-
-```
- you / your tools ──▶ haas server ──▶ a sandbox ──▶ the agent ──▶ model proxy ──▶ your model
- (browser, app, API)   sign-in, caps    one per job   edits files    holds the key
-                                │
-                                └──▶ signed record of the job  ──▶  haas verify
-```
+- **A sandbox for each job.** The strongest your machine has: a virtual machine, a container, or the system's own sandbox.
+- **Your keys stay out of the agent.** A proxy holds them, counts the tokens, and stops a job that passes its cap.
+- **A record you can check.** Each job leaves a signed list of what it changed. `haas verify` re-checks it without trusting the machine that made it.
 
 ## Read more
 
 | | |
 | --- | --- |
 | [docs/LOCAL.md](docs/LOCAL.md) | on your own computer: models, agents, the sandbox |
+| [deploy/README.md](deploy/README.md) | a server: Compose, Helm, Ansible |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | the calls any client makes to a server |
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | what it trusts, and what it does not |
 | [docs/REFERENCE.md](docs/REFERENCE.md) | everything else, in long form |

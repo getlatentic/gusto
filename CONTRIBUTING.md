@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for looking. haas is the program behind Gusto, under the Apache License 2.0 ([LICENSE](LICENSE)). A
+Thank you for looking. haas is the program behind haas, under the Apache License 2.0 ([LICENSE](LICENSE)). A
 contribution is licensed the same way.
 
 ## Start with an issue
