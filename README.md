@@ -24,6 +24,27 @@ On Windows, `install.ps1` is attached to the same release. [docs/LOCAL.md](docs/
 
 For a team, on a machine or a cluster of your own: [deploy/README.md](deploy/README.md) has a Compose file, a Helm chart and an Ansible playbook. The Helm chart runs jobs in a privileged Docker-in-Docker daemon, which is root-equivalent on the node, and says so.
 
+## What you can do with it
+
+**On your own computer.** Install it, add a model key (`haas local use DEEPSEEK_API_KEY`, or a form on the first page), and run any of the six agents from
+the browser or the desktop app. Each job runs behind the strongest wall the computer has. On Apple Silicon or Linux with KVM,
+`haas local wall install` adds a virtual machine for each job.
+
+**On a server of your own.** One command sets up haas on a Linux machine, with HTTPS:
+
+```bash
+sudo server.sh --domain agents.example.com      # attached to each release; --no-tls for a trusted network
+```
+
+You then sign in from the browser, or connect the desktop app and `haas-helper login -server https://agents.example.com`.
+
+**For a team.** Run a pilot on your own infrastructure with Compose or Helm, single sign-on and roles, spend caps per job and per team, and a
+signed record of every job that `haas verify` checks without trusting the server. [docs/PILOT.md](docs/PILOT.md) lists what you provide and the
+checks to run before anyone signs in.
+
+**Against its API.** Every client, including the pages, speaks one protocol, on a computer or across a network. [docs/PROTOCOL.md](docs/PROTOCOL.md)
+lists the calls, and `GET /api/protocol` on a running server lists them again.
+
 From source:
 
 ```bash
