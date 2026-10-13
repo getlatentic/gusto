@@ -166,7 +166,7 @@ without that rule.
 | --- | --- |
 | `DEPLOY_SSH_KEY` | the private half of a key made for this and nothing else |
 | `DEPLOY_KNOWN_HOSTS` | the box's host key, as the one line the playbook prints under "The DEPLOY_KNOWN_HOSTS secret" |
-| `DEPLOY_HOST` | the address that line begins with, `91.109.118.72` |
+| `DEPLOY_HOST` | the address that line begins with, `203.0.113.10` |
 
 The repository variable `AUTODEPLOY` (**Settings → Secrets and variables →
 Actions → Variables**) turns the deploy job on when it is `on`. Until then a
@@ -188,7 +188,7 @@ merge runs the tests and deploys nothing.
    on the box has to name nothing that shuts `haas-deploy` out.
 5. Prove the key from the laptop. This deploys main's head, exactly as a merge
    will:
-   `ssh -i haas-deploy haas-deploy@91.109.118.72 "$(git rev-parse origin/main)"`.
+   `ssh -i haas-deploy haas-deploy@203.0.113.10 "$(git rev-parse origin/main)"`.
    Anything but a full commit id sent with that key is refused.
 6. Add the three secrets, delete both halves of the key from the laptop, and
    set `AUTODEPLOY` to `on`.
@@ -199,7 +199,7 @@ A deploy the box runs itself leaves the vault and its password where the first
 hand run put them. When the vault changes, run the playbook by hand again; that
 is what copies it. A hand run does not take the box's lock, so run it when no
 deploy is in progress, or ask the box for the deploy instead:
-`ssh root@91.109.118.72 /usr/local/sbin/haas-deploy "$(git rev-parse origin/main)"`.
+`ssh root@203.0.113.10 /usr/local/sbin/haas-deploy "$(git rev-parse origin/main)"`.
 
 `/opt/haas-deploy/deployed` names the last commit the box deployed itself, and
 `journalctl -u 'haas-deploy@*'` has every deploy's output.
@@ -214,30 +214,6 @@ deploy is in progress, or ask the box for the deploy instead:
   `authorized_keys` file and the sudo rule. It runs early in the play, so a
   deploy that fails further down still removes them. Then delete the secrets.
 - **On the box, right now:** `rm /var/lib/haas-deploy/.ssh/authorized_keys`.
-
-## Retiring something
-
-`retire.yml` is separate from `site.yml` on purpose: a deploy never deletes
-anything, and this is run deliberately.
-
-```bash
-ansible-playbook retire.yml
-```
-
-It dumps the closer database to `/root/retired/` before anything stops, stops and
-disables the three closer services, clears the failed state a unit records when
-the TERM that stopped it is not in its `SuccessExitStatus`, and removes the
-graspy checkout — after asserting that no service and no vhost still names
-graspy. The closer checkout, vhost and database stay until
-`-e remove_closer_files=true`, because stopping is reversible and deleting is
-not.
-
-Measured on 2026-09-26: closer held 212 MB of memory and 2.1 GB of disk, graspy
-976 MB of disk, and in 48 hours the three closer services logged 34 requests
-between them, every one a 404 from a scanner. Stopping them freed 165 MB, and
-removing graspy freed 1 GB. With the services stopped and the vhost still
-proxying to their port, `closer-api.tosinamuda.com` answers 502 rather than 404
-until the record or the vhost goes.
 
 ## Which harnesses the image carries
 
@@ -289,7 +265,7 @@ provider.
 
 ## Before the first run with serve_enabled
 
-1. Add an A record for `haas.getlatentic.com` → `91.109.118.72`, DNS-only, so
+1. Add an A record for `haas.getlatentic.com` → `203.0.113.10`, DNS-only, so
    certbot's HTTP-01 challenge reaches the box.
 2. Check `ss -tlnH` for `:8040` once more; the inventory can drift.
 3. Rootless podman under a system unit needs `/run/user/<uid>`, which the
