@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -88,6 +89,7 @@ func TestAPersonsTokenDoesNothingTheOrganisationsTokensDo(t *testing.T) {
 
 func TestACodeIsGivenToOnePersonOnceAndTheSharedSignInIsNobody(t *testing.T) {
 	here := withTokens(t)
+	here.server.identity = &Identity{provider: &oidc.Provider{}}
 	started := jsonOf(t, here.post("/api/device", `{}`, ""))
 	device, user := started["device_code"].(string), started["user_code"].(string)
 
@@ -168,4 +170,35 @@ func regexpFirst(t *testing.T, text, pattern string) string {
 		t.Fatalf("%s is not in:\n%s", pattern, text)
 	}
 	return found[1]
+}
+
+// With no identity provider the shared password is the one owner of the server, which is a developer's own: it approves a computer,
+// and that computer sees the work the owner made in the pages as well as its own.
+func TestWithNoIdentityProviderTheSharedPasswordIsTheOneOwnerAndItsComputerSeesTheirWork(t *testing.T) {
+	here := withTokens(t)
+	here.signIn(t)
+	started := jsonOf(t, here.post("/api/device", `{"label":"Laptop"}`, ""))
+	device, user := started["device_code"].(string), started["user_code"].(string)
+	if page := here.ask(t, "GET", "/device", nil).Body.String(); !strings.Contains(page, "one owner") {
+		t.Errorf("the page does not say who the owner is:\n%s", page)
+	}
+	if approved := here.ask(t, "POST", "/device", url.Values{"code": {user}}); !strings.Contains(approved.Body.String(), "Approved") {
+		t.Fatalf("the owner could not approve a computer:\n%s", approved.Body)
+	}
+	got := here.post("/api/device/token", `{"device_code":"`+device+`"}`, "")
+	if got.Code != http.StatusOK {
+		t.Fatalf("the token was not handed over: %d %s", got.Code, got.Body)
+	}
+	token := jsonOf(t, got)["access_token"].(string)
+
+	if made := here.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); made.Code != http.StatusSeeOther {
+		t.Fatalf("the owner's page did not start an instance: %d", made.Code)
+	}
+	listed := here.call("GET", "/api/instances", token)
+	if listed.Code != http.StatusOK || !strings.Contains(listed.Body.String(), "fixture") {
+		t.Errorf("the owner's computer does not see the instance the owner started in the pages: %d %s", listed.Code, listed.Body)
+	}
+	if page := here.ask(t, "GET", "/device", nil).Body.String(); !strings.Contains(strings.ToLower(page), "laptop") {
+		t.Errorf("the owner does not see their computer listed:\n%s", page)
+	}
 }

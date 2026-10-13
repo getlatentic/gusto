@@ -228,7 +228,7 @@ func (s *Server) showDevices(w http.ResponseWriter, r *http.Request, page map[st
 	}
 	person := s.keeper.who(r)
 	var rows []tokenRow
-	if person != sharedSignIn {
+	if person != sharedSignIn || s.soleOwner() {
 		for _, held := range s.tokens.ListFor(person) {
 			rows = append(rows, tokenRow{ID: held.ID, Name: held.Name, Made: shownTime(held.Made), Ended: endedOf(held),
 				LastUsed: shownTime(held.LastUsed), Live: held.Live()})
@@ -237,18 +237,24 @@ func (s *Server) showDevices(w http.ResponseWriter, r *http.Request, page map[st
 	page["Title"] = productName + " — Your computers"
 	page["Nav"] = "devices"
 	page["Tokens"] = rows
-	page["Shared"] = person == sharedSignIn
+	page["Shared"] = person == sharedSignIn && !s.soleOwner()
+	page["Owner"] = person == sharedSignIn && s.soleOwner()
 	s.render(w, "device.html", page)
 }
 
-// approveDevice ties the code the person typed to them. The shared sign-in is nobody in particular, so it is refused.
+// soleOwner says the shared password is the one owner of this server: no identity provider is named, so nobody else can sign in, and
+// a person with their own server has only the password to approve a computer with.
+func (s *Server) soleOwner() bool { return !s.identity.Configured() }
+
+// approveDevice ties the code the person typed to them. Where an identity provider is named, the shared sign-in is a break-glass
+// admin and nobody in particular, so it is refused. Without one it is the owner, and the computer acts as that owner.
 func (s *Server) approveDevice(w http.ResponseWriter, r *http.Request) {
 	if s.tokens == nil {
 		http.NotFound(w, r)
 		return
 	}
 	person := s.keeper.who(r)
-	if person == sharedSignIn {
+	if person == sharedSignIn && !s.soleOwner() {
 		s.showDevices(w, r, map[string]any{"Refused": "The shared sign-in is not one person. Sign in with your own account to approve a computer."})
 		return
 	}
