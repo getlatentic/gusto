@@ -37,6 +37,7 @@ haas is a pre-release: it works, and it changes often.
 | [deploy/README.md](deploy/README.md) | a server: Compose, Helm, Ansible |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | the calls any client makes to a server |
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | what it trusts, and what it does not |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | what is next |
 | [docs/REFERENCE.md](docs/REFERENCE.md) | everything else, in long form |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | build it, test it, send a change |
 
