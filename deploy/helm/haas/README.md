@@ -149,7 +149,7 @@ proxy's socket, and the key stays in the server. Without one, a job keeps the
 runtime's own network and reaches anything the pod does. Several credentials
 go in a Secret of `<name>.json` files, named in `credentials.existingSecret`.
 
-Every other setting in the [root README's Environment table](../../../README.md#environment)
+Every other setting in the [root README's Environment table](../../../docs/REFERENCE.md#environment)
 goes under `env`, as `HAAS_NAME: value`. The chart refuses the ones it owns,
 because they name the paths and the runtime the pod mounts.
 
