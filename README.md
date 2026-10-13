@@ -1,31 +1,34 @@
-# haas
+# Latentic Agent Cloud (haas)
 
-Harness as a service. A job is a directory, running it is a program, and the
-result is files.
+Run AI agents under one set of security, cost and policy controls, and keep evidence of what each one did that anybody can re-check. This repository is `haas`, the program and server behind Latentic Agent Cloud.
 
-- **Any harness.** A harness is a program, and an adapter is a JSON file that
-  says how to run it. Adding one is a file, not a release.
-- **The gate decides.** A harness reporting success is a claim. The job passes
-  when the repository's own command exits zero, and not before.
-- **Evidence anyone can check.** Every run leaves a manifest of SHA-256 hashes,
-  signed with a key you hold when you give the runner one. `haas verify`
-  re-hashes the files, names the signer from your keyring and re-runs the gate,
-  and needs nothing from the platform that produced them.
-- **The runner goes in the box.** A harness with its own tool loop runs its
-  edits and shell in its own process, so the container holds the runner.
-- **One rule enforced today.** Restricted code only talks to a model in the same
-  building. The runner refuses the job otherwise.
+**Status: pre-release.** Its install is tested on clean Linux, macOS and Windows machines, and it changes often. Read [docs/RELEASES.md](docs/RELEASES.md) before you upgrade.
 
-What it is for, and what it is not yet, is in [docs/DIRECTION.md](docs/DIRECTION.md).
+- **The agents you already use.** OpenCode, Claude Code, Codex, pi, Hermes and DeepSeek Agent run through one proxy. A harness is a program, and an adapter is a JSON file that says how to run it. Adding one is a file, not a release.
+- **A wall around each job.** The strongest the computer has: a virtual machine ([OpenShell](docs/OPENSHELL.md)), a container, or the computer's own sandbox (Seatbelt on macOS, Landlock on Linux). [docs/LOCAL.md](docs/LOCAL.md) says which, and why not a stronger one.
+- **Keys stay outside the agent.** The proxy holds the credential, meters tokens, and stops a job that passes its cap.
+- **The gate decides.** A harness reporting success is a claim. The job passes when the repository's own command exits zero.
+- **Evidence anyone can check.** Every run leaves a manifest of SHA-256 hashes, signed with a key you hold. `haas verify` re-hashes the files, names the signer from your keyring and re-runs the gate. It needs nothing from the platform that made them.
+
+What it is for, and what it is not yet: [docs/DIRECTION.md](docs/DIRECTION.md). What it trusts, and the review that checked it: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Install
+
+On your own computer (macOS, Linux or Windows), as a service that starts at login and opens in your browser, signed in:
+
+```bash
+curl -fsSL https://github.com/getlatentic/haas/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2
+```
+
+On Windows, `install.ps1` is attached to the same release. [docs/LOCAL.md](docs/LOCAL.md) covers adding a model and an engine, and the optional virtual machine wall (`haas local wall install`).
+
+For a team, on a machine or a cluster of your own: [deploy/README.md](deploy/README.md) has a Compose file, a Helm chart and an Ansible playbook. The Helm chart runs jobs in a privileged Docker-in-Docker daemon, which is root-equivalent on the node, and says so.
+
+From source:
 
 ```bash
 go build -o haas ./cmd/haas
 ```
-
-To run the whole product, the pages included, on a machine or a cluster of your
-own, [deploy/README.md](deploy/README.md) has a compose file and a Helm chart.
 
 ## Run
 
@@ -695,3 +698,7 @@ cases the product rests on: a run whose manifest agrees with its own evidence, a
 changed file reported, a file added after the run reported, a harness that only
 claims to have finished failing the job, and a one-second budget stopping a
 thirty-second harness.
+
+## Licence
+
+Apache License 2.0 ([LICENSE](LICENSE)). Third-party licences are in [NOTICE](NOTICE).
