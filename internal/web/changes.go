@@ -4,12 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/getlatentic/haas/internal/accesslog"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -166,21 +165,9 @@ func (f *refusals) allow(from string, now time.Time) (bool, int) {
 	return true, carried
 }
 
-// clientOf is where a request came from. The address a reverse proxy on this
-// machine forwards is believed, and one from anywhere else is not, because
-// anybody can write that header.
-func clientOf(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
-	}
-	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
-		if forwarded, _, _ := strings.Cut(r.Header.Get("X-Forwarded-For"), ","); strings.TrimSpace(forwarded) != "" {
-			return strings.TrimSpace(forwarded)
-		}
-	}
-	return host
-}
+// clientOf is where a request came from, as the access log says it (accesslog.Remote): a forwarded address is believed from a proxy
+// on this machine, and from any peer when haas was told it is only reached through one.
+func clientOf(r *http.Request) string { return accesslog.Remote(r) }
 
 // changesFile is the whole log, as the file holds it, for an admin to export
 // and for a verifier to check.

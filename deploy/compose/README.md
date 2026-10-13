@@ -9,6 +9,48 @@ machine.**
 
 `deploy/install/server.sh` does what this page describes in one command, and adds HTTPS: it runs the `tls` profile of `compose.yaml`, which puts Caddy in front of the server with a certificate for your domain. Read on for what it does and what the machine needs.
 
+## Behind your own web server
+
+If this machine already runs nginx or Apache, keep it and put haas behind it. Run `deploy/install/server.sh --behind-proxy`, which keeps haas on
+`127.0.0.1:8040` and tells it a proxy is in front (`HAAS_BEHIND_PROXY=1`, so the address your web server forwards is the one the sign-in lock and
+the record use). Two things matter to haas whatever the server: a **turn streams** as it goes, so the proxy must not buffer the reply or cut it
+off, and haas must be told the **scheme** so its cookie is marked secure.
+
+nginx:
+
+```nginx
+server {
+    server_name agents.example.com;
+    location / {
+        proxy_pass http://127.0.0.1:8040;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;          # a turn streams
+        proxy_read_timeout 1h;        # and a stream may be quiet for a while
+    }
+}
+```
+
+then `certbot --nginx -d agents.example.com` for the certificate.
+
+Apache (`a2enmod proxy proxy_http headers`):
+
+```apache
+<VirtualHost *:443>
+    ServerName agents.example.com
+    # certificate lines as certbot --apache writes them
+    ProxyPreserveHost On
+    ProxyPass        / http://127.0.0.1:8040/ flushpackets=on timeout=3600
+    ProxyPassReverse / http://127.0.0.1:8040/
+    RequestHeader set X-Forwarded-Proto "https"
+</VirtualHost>
+```
+
+Apache adds `X-Forwarded-For` itself. Anything else that terminates TLS in front (Cloudflare, a load balancer, Tailscale Serve) works the same way:
+send it to `http://127.0.0.1:8040`, do not buffer, and pass the scheme and the client's address.
+
 ## What the machine needs
 
 - Linux on x86-64 is the target. On a GitHub-hosted Ubuntu runner (AMD EPYC, 2 vCPU,
