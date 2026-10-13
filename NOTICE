@@ -1,0 +1,22 @@
+Latentic Agent Cloud (haas)
+Copyright 2026 Latentic
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party software
+--------------------
+
+Go modules compiled into haas and haas-helper (checked 13 October 2026 by reading each module's licence file):
+  18 Apache-2.0, 4 BSD-3-Clause, 1 BSD-2-Clause, 3 MIT. None is GPL, LGPL, AGPL or MPL.
+  `go list -deps ./cmd/haas ./cmd/haas-helper` lists them.
+
+Files served from the binary (internal/web/static, see PROVENANCE.md there):
+  htmx            BSD-style (htmx.org)
+  highlight.js    BSD 3-Clause
+  Sora (font)     SIL Open Font License 1.1
+  Lucide (icons)  ISC
+
+Programs a person may install beside haas, which haas runs and does not link:
+  OpenShell       Apache-2.0 (github.com/NVIDIA/OpenShell)
+  e2fsprogs       mke2fs, debugfs and e2fsck are GPL version 2. The release carries them as separate programs with their
+                  licence and the source address, built by deploy/e2fsprogs/build.sh.
