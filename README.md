@@ -1,9 +1,6 @@
 # haas
 
-**Run AI coding agents in a sandbox, on your computer, your server, or your company's cloud.**
-
-haas runs the agents you already use (Claude Code, Codex, OpenCode, pi, Hermes, DeepSeek Agent) on the model you pick, in a sandbox, within a
-budget. It keeps your keys out of the agent and a signed record of every job, so you can see what each one did and what it cost.
+haas runs the coding agents you already use (Claude Code, Codex, OpenCode, pi, Hermes, DeepSeek Agent) in a sandbox, on the model you pick, within a budget. It keeps your keys out of the agent and signs a record of every job, so you can see what each one did and what it cost. Run it on your computer, your server, or your company's cloud.
 
 ## Where you can run it
 
