@@ -1,6 +1,6 @@
 # gusto
 
-gusto is a tool that lets you run the AI agents you already use, such as Claude Code, Codex and Hermes, on your computer, your server, or your company's cloud.
+gusto is a tool that lets you run the AI agents you already use, such as Claude Code, Codex, pi, Hermes, OpenCode and more, on your computer, your server, or your company's cloud.
 
 Each job runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per job and per team, your keys stay out of the agent's reach, and every job leaves a signed record of what it changed and what it cost.
 
