@@ -1,9 +1,6 @@
 # The parts
 
-A job is a directory. Every part reads that directory and writes back to it, and
-the directory is the only thing they share. That is what makes a runner
-replaceable: hand the same directory to a managed fleet, to a container in the
-customer's own account, or to a laptop, and the work is the same.
+A job is a directory. Every part reads it and writes back to it. It is the only thing the parts share, so a runner is replaceable: hand the same directory to a managed fleet, a container in the customer's account, or a laptop.
 
 | part | its one job | state |
 | --- | --- | --- |
@@ -18,14 +15,11 @@ customer's own account, or to a laptop, and the work is the same.
 | proxy | the only way out: adds the key, counts the tokens, refuses the rest | built; the seal is not yet measured on the box |
 | pane | a live terminal for a job, rather than a stream of lines | backlog |
 
-The UI is part of the product, not a layer over it. It ships inside the same
-binary, server-rendered, because a customer in Sprint 5 installs one artifact and
-a second origin with its own build step is not one artifact.
+The UI ships inside the same binary, server-rendered, so a customer installs one artifact.
 
 ## Ways in
 
-The pages are the first way in, and not the only one. Each of these is a caller
-of the same job, so none of them is a separate product.
+Each way in is a caller of the same job.
 
 | way in | who uses it | when |
 | --- | --- | --- |

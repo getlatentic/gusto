@@ -1,15 +1,10 @@
 # Which pairs finish a job
 
-A matrix runs a fixed set of jobs on every harness and model pair a plan names,
-and keeps every run. It answers the question a platform lead has before
-offering a combination to a customer: can this harness, thinking with this
-model, finish the job at all, and what does it cost to find out. It is
-`gusto matrix`, in `internal/matrix`.
+`gusto matrix` (`internal/matrix`) runs a fixed set of jobs on every harness and model pair a plan names, and keeps every run. It answers whether a harness with a given model can finish the job at all, and what finding out costs.
 
 ```bash
 gusto new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
 gusto matrix plan.json -here     # run every cell into plan-matrix/, print the table
-gusto matrix plan.json -here     # again: nothing that finished runs twice
 gusto matrix plan-matrix         # print the table from the evidence alone
 gusto matrix plan-matrix -json   # the same table, as the catalog reads it
 ```
@@ -28,163 +23,57 @@ gusto matrix plan-matrix -json   # the same table, as the catalog reads it
 }
 ```
 
-- **jobs** are job directories as `gusto new` leaves them, relative to the plan.
-- **pairs** are a harness and the model it is given. A pair with no model runs
-  whatever model the job names, or the harness's own default.
-- **simplest** is the job a pair has to finish before it is worth offering. It
-  is the first job when the plan leaves it out.
-- **environment** names the place. The same harness on the same model has cost
-  twenty times as much on a laptop, which carries its whole skill set into
-  every request, as in a container that starts empty, so a row that does not
-  say where it ran cannot be read (getlatentic/planning#270).
-
-[`matrix/issue-8.json`](matrix/issue-8.json) is the two local rows from getlatentic/planning#234, and
-[`matrix/box.json`](matrix/box.json) the thirteen pairs the box's three credentials
-make possible. A test reads the first, so it stays a plan the matrix accepts.
-
-## What a matrix is
-
-```
-plan-matrix/
-  matrix.json                     where it ran, and how long each cell took
-  table.md                        the table, for a README
-  table.json                      the table, for the catalog
-  one-line-fix/                   a comparison, as `gusto compare` writes one
-    comparison.json
-    opencode@ollama-gpt-oss-20b/  an ordinary job directory
-    opencode@ollama-llama3.2-3b/  an ordinary job directory
-```
-
-A matrix is many comparisons. Each job is a directory in the shape
-[COMPARE.md](COMPARE.md) describes: `comparison.json` above one job directory
-a pair, made from the job's `job.json` with the harness and model set, and
-pinned once to one commit the way `gusto replay` pins one. So
-`gusto compare plan-matrix/one-line-fix` prints any column of the matrix, and
-every run verifies, ships and replays like any other job. `held` lists the
-fields that are the same in every run, so a model is held only when every
-pair asked for the same one.
-
-## The table
-
-| column | where it comes from |
+| Field | Meaning |
 | --- | --- |
-| finished | the gate's verdict in the run's manifest. A run that left none "did not run" |
-| wall clock | measured around the run: the clone, the container starting, the harness and the gate |
-| billed tokens, cost | the proxy's record of what the provider answered, `out/proxy.jsonl`, when the run went through the proxy; the harness's own report otherwise. The column says which |
+| `jobs` | job directories as `gusto new` leaves them, relative to the plan |
+| `pairs` | a harness and its model. With no model, the pair uses the job's model or the harness's default |
+| `simplest` | the job a pair must finish before it is worth offering. The first job when left out |
+| `environment` | where it ran. The same pair cost twenty times as much on a laptop, which carries its whole skill set into every request, as in a container that starts empty (getlatentic/planning#270) |
+
+Example plans are in [`matrix/`](matrix/): `issue-8.json` (two local rows), `box.json` (thirteen pairs on the box's three credentials), `gemma4.json`, `flash.json` and `gemma-translated.json`.
+
+## Layout and table
+
+`plan-matrix/` holds `matrix.json` (where it ran and how long each cell took), `table.md` for a README, `table.json` for the catalog, and one directory for each job. A job directory is a comparison as `gusto compare` writes it: `comparison.json` above one ordinary job directory for each pair, such as `opencode@ollama-gpt-oss-20b/`. Each comparison is pinned once to one commit ([COMPARE.md](COMPARE.md)). `gusto compare plan-matrix/one-line-fix` prints any column. Every run verifies, ships and replays like any other job.
+
+| Column | Comes from |
+| --- | --- |
+| finished | the gate's verdict in the manifest. A run with none is "did not run" |
+| wall clock | measured around the run: clone, container start, harness and gate |
+| billed tokens, cost | `out/proxy.jsonl` when the run went through the proxy, otherwise the harness's own report. The column says which |
 | evidence | "checks", or the first file that changed since the run |
 
-A number the run did not leave reads "unmeasured", never zero, because a zero
-reads as free. A call the proxy could not price makes the cost a floor, and the
-table says "at least".
+A number the run did not leave reads "unmeasured", never zero. A call the proxy could not price makes the cost "at least".
 
-## Each cell costs money
+## Reruns, environment and exit code
 
-- A cell whose run left a verdict is never run again. `-again all`, or
-  `-again opencode@ollama/gpt-oss:20b,codex@deepseek/deepseek-flash`, runs
-  those again, and the run it replaces is kept beside it as `.attempt-1`.
-- A cell that left no verdict, because its program was missing or the machine
-  stopped, runs again the next time the plan does.
-- A pair added to the plan later runs alone, at the commit the job was pinned
-  to the first time.
-- The cells run one after another. The wall clock is one of the answers, and
-  two runs sharing a machine or a local model would each be measured slowing
-  the other down.
+- A cell with a verdict is not run again. `-again all` or `-again opencode@ollama/gpt-oss:20b,codex@deepseek/deepseek-flash` reruns cells, and the replaced run is kept as `.attempt-1`.
+- A cell with no verdict, because its program was missing or the machine stopped, runs again next time. A pair added later runs alone, at the commit the job was first pinned to.
+- Cells run one after another, so runs do not slow each other.
+- `-here` runs every cell in this process. Without it each cell runs in a container, through the proxy when a credential is held (`GUSTO_CREDENTIALS` or `GUSTO_MODEL_UPSTREAM`), otherwise at `GUSTO_MODEL_URL`.
+- A matrix refuses to extend from another environment. Use `-into` for a new matrix.
+- Exit 0 when every cell left a verdict and its evidence checks, whichever pairs finished. Otherwise exit 2.
 
-## One environment a matrix
+`GUSTO_MATRIX` names a matrix's `table.json` for `gusto serve` to read at start. A pair that ran the simplest job, left a verdict and never finished it is marked, and the catalog's `CannotFinish(model)` names the job, environment and run. An unmeasured pair is not marked. A table that cannot be read is logged and skipped.
 
-`-here` runs every cell in this process, which reads this machine's own
-harness configuration. Without it every cell runs in a container, the way a
-server runs a job: through the proxy when a credential is held
-(`GUSTO_CREDENTIALS`, or `GUSTO_MODEL_UPSTREAM`), so the cost is the proxy's
-count, and straight at `GUSTO_MODEL_URL` when none is. A matrix that ran in one
-environment refuses to be extended from another; measure the second into its
-own matrix with `-into`.
+## Results
 
-## The catalog
+All runs used the one-line-fix job in an OpenShell sandbox on one `m8i.xlarge`. Low-priced Bedrock models, through Mantle (plan: [`matrix/gemma4.json`](matrix/gemma4.json)). Gemma 4 has its own credential, `gemma`, whose address ends in `/openai`:
 
-`GUSTO_MATRIX` names a matrix's `table.json` for `gusto serve` to read when it
-starts. A pair that ran the simplest job, left a verdict, and finished it in no
-environment is marked: the catalog entry's `CannotFinish(model)` says which job,
-where, and which run, so the claim can be checked. A pair nobody measured is not
-marked, because not knowing is not failing. Without `GUSTO_MATRIX` the catalog
-is what it was, and a table it cannot read is logged and passed over.
-
-## The exit code
-
-`gusto matrix` exits 0 when every cell left a verdict and its evidence checks,
-whichever pairs finished, and 2 otherwise.
-
-## Low-priced Bedrock models on the box
-
-Each pair ran the one-line-fix job in an OpenShell sandbox on one `m8i.xlarge`, through the Bedrock endpoint (Mantle). Mantle
-serves Gemma 4 under `/openai/v1` and the other models, `gpt-oss` among them, under `/v1`, so Gemma 4 has a credential of its
-own, `gemma`, whose address ends in `/openai`. [`matrix/gemma4.json`](matrix/gemma4.json) is the plan for the pairs the demo offers.
-
-| model | `opencode` | `pi` | `hermes` | `dsh` | `codex` |
+| Model | `opencode` | `pi` | `hermes` | `dsh` | `codex` |
 | --- | --- | --- | --- | --- | --- |
 | `google.gemma-4-26b-a4b` | yes, 52 s | yes, 27 s | yes, 41 s | no | no |
 | `google.gemma-4-31b` | yes, 2 m 46 s | yes, 29 s | yes, 41 s | no | no |
 | `google.gemma-4-e2b` | no | yes, 33 s | no | no | no |
 | `openai.gpt-oss-120b` | not tried again | yes, 42 s | yes, 43 s | no | no |
 
-What stopped each that did not finish:
+- `opencode` runs only models its configuration declares (`internal/harness/config/opencode/opencode.json`). It finishes on the 26B and 31B models. On `gemma-4-e2b` the tests still fail.
+- `dsh` asked `gpt-oss-120b` and `gemma-4-e2b` for 256,000 output tokens, which they do not allow. The other two models answered it with no content.
+- `codex` makes one model call and then has its requests denied, on every model here. It finished on DeepSeek Flash and Pro through DeepSeek's own API.
+- `hermes` ends without a fix on `gemma-4-e2b`.
 
-- `opencode` runs only models its configuration declares. Before `internal/harness/config/opencode/opencode.json` named the Gemma 4
-  models it made no model call; with them declared it finishes on the 26B and 31B models. `gemma-4-e2b` ends the job with the
-  tests still failing.
-- `dsh` asked `gpt-oss-120b` and `gemma-4-e2b` for 256,000 output tokens, which they do not allow, and on the other two Gemma 4
-  models was answered with a response with no content.
-- `codex` makes one model call and then has its requests denied, on every model here. It finished the job on DeepSeek Flash and
-  Pro through DeepSeek's own API, so what is wrong is how it meets the Bedrock endpoint, not the model.
-- `hermes` ends the job without a fix on `gemma-4-e2b`.
+Prices from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01 are in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`GUSTO_CHAT_DEFAULT`). Per million tokens, input and output: `google.gemma-4-26b-a4b` $0.13 and $0.40, `google.gemma-4-31b` $0.14 and $0.40, `google.gemma-4-e2b` $0.04 and $0.08.
 
-The demo offers every model to every engine, and the person chooses; these tables say which pairs finished. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`GUSTO_CHAT_DEFAULT`), a pair that finished through the translation below. A model's price per million
-tokens, from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01, is in
-`deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`, so the organisation's spending page shows what a demo cost:
+DeepSeek Flash on every harness, on 2026-10-02 (plan: [`matrix/flash.json`](matrix/flash.json)). `claude` uses `https://api.deepseek.com/anthropic`, the others `https://api.deepseek.com`. All finished. Cost read "unmeasured" for `codex`, `claude` and `dsh`, and the host's spend policy had no DeepSeek prices. Wall clock and model calls: `opencode` 2 m 46 s and 8, `codex` 35 s and 6, `claude` 30 s and 5, `pi` 28 s and 6, `dsh` 39 s and 7, `hermes` 40 s and 8.
 
-| model | input | output |
-| --- | --- | --- |
-| `google.gemma-4-26b-a4b` | $0.13 | $0.40 |
-| `google.gemma-4-31b` | $0.14 | $0.40 |
-| `google.gemma-4-e2b` | $0.04 | $0.08 |
-
-For comparison, DeepSeek Flash is $0.15 and $0.60, and the Qwen model the demo offered before is $0.53 and $2.66.
-
-## DeepSeek Flash on every harness
-
-[`matrix/flash.json`](matrix/flash.json) runs the one-line-fix job on all six harnesses with `deepseek-flash`, in an OpenShell
-sandbox on one `m8i.xlarge`, on 2026-10-02. `claude` reaches it through DeepSeek's Anthropic-shaped endpoint
-(`https://api.deepseek.com/anthropic`), the others through `https://api.deepseek.com`. Every harness finished and the gate passed.
-
-| harness | finished | wall clock | model calls |
-| --- | --- | --- | --- |
-| `opencode` | yes | 2 m 46 s | 8 |
-| `codex` | yes | 35 s | 6 |
-| `claude` | yes | 30 s | 5 |
-| `pi` | yes | 28 s | 6 |
-| `dsh` | yes | 39 s | 7 |
-| `hermes` | yes | 40 s | 8 |
-
-So `codex` and `dsh` finish on a model served by DeepSeek and not on the Bedrock models above. The cost column read "unmeasured"
-for `codex`, `claude` and `dsh`, because those harnesses did not report tokens the proxy could price. The measured host's spend
-policy had no DeepSeek prices either.
-
-## Claude Code and Codex on Gemma, translated
-
-The Gemma models on Bedrock answer Chat Completions alone. Claude Code calls in Anthropic's Messages API and Codex in the
-Responses API, so the proxy translates their calls (docs/GATEWAY.md). [`matrix/gemma-translated.json`](matrix/gemma-translated.json)
-ran the one-line-fix job in an OpenShell sandbox on one `m8i.xlarge` on 2026-10-05, with the `gemma` credential naming
-`"wires": ["chat"]` and `"maxOutput": 8192`. OpenCode, which calls in Chat Completions, is the pair that is not translated.
-
-| harness | model | finished | wall clock | model calls |
-| --- | --- | --- | --- | --- |
-| `claude` | `google.gemma-4-26b-a4b` | yes | 33 s | 8 |
-| `claude` | `google.gemma-4-31b` | yes | 40 s | 8 |
-| `codex` | `google.gemma-4-26b-a4b` | yes | 1 m 13 s | 41 |
-| `codex` | `google.gemma-4-31b` | yes | 35 s | 11 |
-| `opencode` | `google.gemma-4-26b-a4b` | yes | 38 s | 10 |
-
-Codex on these models had failed when its calls went to Bedrock's own Responses endpoint, which refuses a tool type
-Codex sends (the table above). Claude Code first ran 213 calls without finishing: Bedrock numbers the tool calls of every
-answer from `call_0`, and Claude Code took a second call by an identifier it had answered as answered already. The
-translation now gives each call an identifier of its own.
+Claude Code and Codex on Gemma, translated (2026-10-05, plan: [`matrix/gemma-translated.json`](matrix/gemma-translated.json)). The Gemma models answer Chat Completions alone, so the proxy translates the Messages and Responses calls ([GATEWAY.md](GATEWAY.md)). The `gemma` credential sets `"wires": ["chat"]` and `"maxOutput": 8192`. All five finished. Wall clock and model calls: `claude` on 26b 33 s and 8, `claude` on 31b 40 s and 8, `codex` on 26b 1 m 13 s and 41, `codex` on 31b 35 s and 11, and `opencode`, which is not translated, on 26b 38 s and 10.

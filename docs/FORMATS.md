@@ -1,148 +1,63 @@
 # The formats
 
-Two files are the contract between the parts of a run, and between gusto and
-anybody who writes their own runner or reader: `job.json`, which says what to
-do, and `out/manifest.json`, which records what happened. Each is published as a
-JSON Schema, draft 2020-12.
+Two files are the contract between the parts of a run, and between gusto and anyone who writes a runner or reader: `job.json` says what to do, and `out/manifest.json` records what happened. Each has a JSON Schema, draft 2020-12. The tests validate against these files, embedded into the build. The job that `gusto new` writes, and the job and manifest a fixture run leaves, must match their schema.
 
-| file | schema | `$id` |
+| File | Schema | `$id` |
 | --- | --- | --- |
 | `job.json` | [`schema/job/v1.json`](../schema/job/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/job/v1.json` |
 | `out/manifest.json` | [`schema/manifest/v1.json`](../schema/manifest/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/manifest/v1.json` |
 | `audit.json` | [`schema/audit/v2.json`](../schema/audit/v2.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/audit/v2.json` |
 | `out/manifest.sig` | [`schema/signature/v1.json`](../schema/signature/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/signature/v1.json` |
 
-The tests validate against these same files, embedded into the build. A job that
-`gusto new` writes and the job and manifest a fixture run leaves must each match
-their schema, so a writer that drifts from the published format fails a test.
+## Versions
 
-## The version field
+Each file carries `"version": 1`. A file without one is read as version 1.
 
-Each file carries `"version": 1`. Every writer puts it in. A file without one
-predates the field and is read as version 1, so every job directory made before
-it still runs and still verifies.
+| Change | Version |
+| --- | --- |
+| A new optional field | Same version. The schema file is updated in place |
+| Renaming a field, changing its type, unit or default, or making an optional field required | New version, published as `v2.json` beside the old file |
 
-## What changes the version
-
-- **An additive change keeps it.** A new optional field joins the schema at the
-  same version, and the schema file is updated in place.
-- **A change to what a field means raises it.** Renaming a field, changing its
-  type or its unit, changing a default, or making an optional field required
-  each publish a new file, `v2.json`, beside the old one.
-
-## What a reader does
-
-- **A field it does not know**, it ignores. That is what lets an old runner read
-  a job written after an additive change.
-- **A version newer than it knows**, it refuses by name, with the file and both
-  versions in the message. It does not read the file as the version it knows,
-  because a field whose meaning changed would be obeyed wrongly and without a
-  word.
-
-The schemas themselves are stricter than a reader: they close every object with
-`"additionalProperties": false`. The schema is the writer's contract, and a
-field a writer adds without describing it should fail the tests. To validate a
-file from a newer writer of the same version, use the schema at `main`, which
-carries every field that version has gained.
+A reader ignores a field it does not know. It refuses a version newer than it knows, naming the file and both versions, because a field whose meaning changed would be obeyed wrongly. The schemas close every object with `"additionalProperties": false`, so a field a writer adds without describing it fails the tests. To validate a file from a newer writer of the same version, use the schema at `main`.
 
 ## The signature
 
-`out/manifest.sig` is a detached Ed25519 signature over the exact bytes of
-`out/manifest.json`. It is detached because a signature inside the file it signs
-would have to be taken out again before checking, and the bytes left would then
-need one canonical JSON form that every writer and reader agrees on. Signing the
-bytes on disk needs no such form, and any Ed25519 tool can check it: `openssl
-pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfile <the
-decoded signature>` does. The code that writes and checks it is
-`internal/signing` and `internal/evidence`.
+`out/manifest.sig` is a detached Ed25519 signature over the exact bytes of `out/manifest.json`. Any Ed25519 tool can check it (code: `internal/signing`, `internal/evidence`). With openssl:
 
-| field | holds |
+```sh
+openssl pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfile <the decoded signature>
+```
+
+| Field | Holds |
 | --- | --- |
 | `scheme` | `ed25519` |
-| `key` | the key id: `sha256:` and the first 16 bytes of the SHA-256 of the raw public key, in hex |
-| `publicKey` | the raw 32-byte public key, base64 |
-| `signature` | the 64-byte signature, base64 |
+| `key` | The key id: `sha256:` and the first 16 bytes of the SHA-256 of the raw public key, in hex |
+| `publicKey` | The raw 32-byte public key, base64 |
+| `signature` | The 64-byte signature, base64 |
 
-The public key it carries lets `evidence.Check` tell that a manifest changed
-after it was signed, with no keyring, so `verify`, `export`, `replay` and `check`
-all refuse one. It says nothing about who signed: any key vouches for itself.
-Who signed is the verifier's keyring's answer, a directory of `<name>.pub` files
-named by `GUSTO_KEYRING`, looked up by `key` and checked against the keyring's own
-copy of the key. The manifest's `signer` field stays what it was, the runner's
-own word for itself, and nothing shows it as the signer: `gusto show`, the job
-page, the pull request `gusto ship` opens and `audit.json` each name the signer
-through `evidence.SignedBy`, which gives the keyring's name or says in words why
-it cannot (`unsigned`, `signed, not checked: no keyring`, `signed, not checked: key
-<id> is not in the keyring`, `signed, and the signature does not hold`).
-
-A record without `manifest.sig` is unsigned. `gusto verify` says so in those
-words and passes it, unless `-signed` is given, because every record made before
-signing is unsigned and the version rule below promises it still verifies. A
-signature from a key the keyring does not hold is refused by the key's id.
-
-### Why signing keeps the manifest at version 1
-
-Signing adds a file and changes no field of the manifest. An unsigned manifest
-is byte for byte what it was, and a signed one has the same fields meaning the
-same things. `files` leaves `manifest.sig` out for the reason it leaves
-`manifest.json` out: the signature is made over the manifest after it is
-written, so the manifest cannot hold its hash. That is an additive change, so
-the version stays.
-
-What an older reader does with a signed record is the test of that. It hashes
-`out/` without knowing the new file, and reports `manifest.sig is not in the
-manifest`. That is a refusal by name, never a silent misreading, which is the
-failure this document asks a reader to prefer. Remove the signature and the
-older reader verifies the record as what the signature's absence makes it:
-unsigned.
+- The carried public key lets `evidence.Check` tell that a manifest changed after signing, with no keyring. `verify`, `export`, `replay` and `check` all refuse a changed one.
+- The signature does not say who signed, because any key vouches for itself. The verifier's keyring does: a directory of `<name>.pub` files named by `GUSTO_KEYRING`, looked up by `key` and checked against the keyring's copy.
+- The manifest's `signer` field is the runner's own word. `gusto show`, the job page, the `gusto ship` pull request and `audit.json` name the signer through `evidence.SignedBy`, which gives the keyring's name or one of: `unsigned`, `signed, not checked: no keyring`, `signed, not checked: key <id> is not in the keyring`, `signed, and the signature does not hold`.
+- A record without `manifest.sig` is unsigned. `gusto verify` says so and passes it, unless `-signed` is given. A signature from a key the keyring does not hold is refused by the key's id.
+- The signature adds a file and changes no manifest field, so the manifest stays at version 1. `files` leaves out `manifest.sig` because the signature is made after the manifest is written. An older reader hashes `out/` and reports `manifest.sig is not in the manifest`. Remove the signature and it verifies the record as unsigned.
 
 ## The configured harness digest
 
-`out/manifest.json`'s `harnessDigest` names the configured harness that ran by
-what it held (see [TERMS.md](TERMS.md#configured-harness)). It is `sha256:` and
-64 lowercase hex digits, and it is computed from the harness's files alone, so
-anybody holding the directory, from a clone or a tarball, gets the same string.
-The code is `internal/harness/digest.go`; these are the steps it follows.
+`harnessDigest` in `out/manifest.json` names the configured harness that ran (see [TERMS.md](TERMS.md#configured-harness)). It is `sha256:` and 64 lowercase hex digits, computed from the harness's files alone. A clone and a tarball give the same string. The code is `internal/harness/digest.go`.
 
-1. **Take the files.** Every regular file under the harness's directory, by its
-   path relative to that directory, with `/` between the parts. A bare adapter,
-   `name.json`, is one file at the path `adapter.json`. When the job carries a
-   setup, every file under its `setup/` joins them at `setup/` and its path
-   there, so a harness and its setup digest as one directory holding both. A
-   harness directory with a `setup/` of its own is refused.
-   `setup/servers.json` is taken with the value of every `env` and `headers`
-   entry replaced by an empty string, its name kept, and the list written
-   back as compact JSON with its keys sorted, the way Go's `encoding/json`
-   writes it. A token is not part of what a harness is: rotating one leaves
-   the digest as it was, and two teams running one setup on their own
-   credentials get one digest.
-2. **Leave out version control.** Any file or directory named `.git`, `.hg` or
-   `.svn`, and everything under it.
-3. **Refuse what is not a file.** A symbolic link, a device, a socket or a pipe
-   fails the digest with its path named, as does a path with a line break in it.
-   A link reaches outside the harness, so it would digest differently on two
-   machines holding the same directory. A directory with no files in it adds
-   nothing, as in git.
-4. **Sort** the paths byte for byte, as `LC_ALL=C sort` does.
-5. **Write one line a file**: its mode, a space, the SHA-256 of its content in
-   lowercase hex, a space, its path, and a newline. The mode is `100755` when
-   any execute bit is set, and `100644` otherwise.
-6. **Hash the lines.** The digest is `sha256:` and the SHA-256 of all the lines
-   together, in lowercase hex.
+1. Take every regular file under the harness's directory, by its path relative to that directory, with `/` between the parts.
+   - A bare adapter, `name.json`, is one file at the path `adapter.json`.
+   - When the job carries a setup, every file under its `setup/` joins them at `setup/` and its path there. A harness directory with its own `setup/` is refused.
+   - In `setup/servers.json`, replace the value of every `env` and `headers` entry with an empty string, keep the name, and write the list as compact JSON with sorted keys, as Go's `encoding/json` writes it. Rotating a token leaves the digest as it was.
+2. Leave out any file or directory named `.git`, `.hg` or `.svn`, and everything under it.
+3. Refuse what is not a file. A symbolic link, device, socket, pipe, or a path with a line break fails the digest with its path named. A directory with no files adds nothing.
+4. Sort the paths byte for byte, as `LC_ALL=C sort` does.
+5. Write one line a file: its mode, a space, the SHA-256 of its content in lowercase hex, a space, its path, and a newline. The mode is `100755` when any execute bit is set, and `100644` otherwise.
+6. The digest is `sha256:` and the lowercase hex SHA-256 of all the lines together.
 
-What is left out is what a checkout, an unpacked tarball and a copy into a job
-each set afresh, and none of it changes what the harness does:
+The digest leaves out timestamps, owner and group, and read and write bits, because a clone, a tarball and a copy into a job each set them afresh.
 
-| left out | why |
-| --- | --- |
-| timestamps | a clone sets them to when it ran |
-| owner and group | a tarball unpacked by another user, or a container, changes them |
-| read and write bits | a umask decides them; only whether a file runs changes behaviour |
-| `.git`, `.hg`, `.svn` | the history is not the harness, and a tarball has none of it |
-
-Without Go, in a POSIX shell with GNU `find`, `sort` and `sha256sum`, run in
-the harness's directory, with the job's `setup/` copied into it when there is
-one:
+In a POSIX shell with GNU `find`, `sort` and `sha256sum`, run in the harness's directory with the job's `setup/` copied into it:
 
 ```sh
 find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P\n' |
@@ -152,145 +67,51 @@ find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P
   done | sha256sum | cut -c1-64
 ```
 
-It prints the hex without the prefix, and it does not refuse links, so check
-for them with `find . -type l` first. The test in
-`internal/harness/digest_test.go` holds a fixture's digest, written down, and
-those shell steps give the same one. `setup_test.go` holds that a harness and
-its setup digest as one directory holding both.
+This prints the hex without the prefix and does not refuse links, so run `find . -type l` first. `internal/harness/digest_test.go` holds a fixture's digest, and these shell steps give the same one. `setup_test.go` holds that a harness and its setup digest as one directory.
 
-### Where the digest is taken
-
-The runner reads the configured harness once, before the harness starts, and
-takes both the adapter it runs and the digest from that one reading, from the
-job's own `harnesses/` when the job carries it, and from the job's `setup/`. A harness built into gusto is
-not carried, and its digest is of the adapter built into the runner that ran
-it, which is what ran.
-
-Nothing a harness writes during its run can change the digest in the manifest,
-because the digest was taken already. A harness that writes to its own
-directory in the job changes the copy the job carries, and `evidence.Check`
-digests that copy again and reports `harnesses/<name> changed`, so `gusto
-verify` fails the record. A job that carries no harness, and an export, which
-leaves `harnesses/` out, have nothing there to check.
-
-### Comparing runs
-
-Two runs with the same `harnessDigest` ran the same configured harness. Two
-runs with the same `harness` name need not have. `evidence.Comparable` says
-which it is, in words: the same configuration, the same name configured
-differently, different harnesses, or a run that has no digest to compare.
-
-### Why the digest keeps the manifest at version 1
-
-`harnessDigest` is a new optional field, and no other field changed what it
-means: that is an additive change, so the version stays. A manifest written
-before it has none, and a reader says `no digest recorded` in its place rather
-than working one out from the adapter it has now, which may not be the one
-that ran. Such a run is never comparable by configuration, only by name, and
-the words say so.
+- The runner reads the configured harness once, before the harness starts. It takes the adapter and the digest from that one reading, from the job's `harnesses/` and `setup/`. A harness built into gusto is not carried. Its digest is of the adapter built into the runner.
+- A harness that writes to its own directory in the job changes the copy the job carries. `evidence.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A job that carries no harness, and an export, have nothing to check.
+- Two runs with the same `harnessDigest` ran the same configured harness. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different harnesses, or a run with no digest.
+- `harnessDigest` is a new optional field, so the manifest stays at version 1. A manifest written before it reports `no digest recorded`, and is comparable by name only.
 
 ## The audit export
 
-`gusto export` writes a third format, `audit.json`, at the root of an export
-directory. It follows the same version rules as the other two, and its schema is
-[`schema/audit/v2.json`](../schema/audit/v2.json). The code that writes and
-checks it is `internal/audit`.
+`gusto export` writes `audit.json` at the root of an export directory. It follows the same version rules. Its schema is [`schema/audit/v2.json`](../schema/audit/v2.json), and the code is `internal/audit`.
 
-### Why the signer raised it to version 2
+Version 2 changed `evidence.signer`. Version 1 copied the manifest's `signer`, the runner's unchecked claim. Version 2 is who the exporter's keyring says signed `out/manifest.json`, or one of the words above. A reader of this build still reads a version 1 export, deriving the summary with the signer from the manifest. An older reader refuses a version 2 export by name. [`schema/audit/v1.json`](../schema/audit/v1.json) stays beside v2. `gusto export -verify` names the signer again with its own `GUSTO_KEYRING`. When the answer differs from the export's, it reports both, naming `evidence.signer`.
 
-In version 1, `evidence.signer` copied the manifest's `signer` field: the
-runner's claim, checked by nothing. In version 2 it is who the exporter's
-keyring says signed `out/manifest.json`, or the words above for a record no
-keyring vouched for. The field kept its name and type and changed what it means,
-which is the change this document says raises the version, so version 2 is
-published beside [`schema/audit/v1.json`](../schema/audit/v1.json) rather than
-over it.
+An export is a job directory without its workspace: `job.json` and `out/` as the run left them, plus `state.json`, the request lines when there are any, and `audit.json`. `internal/audit` calls `evidence.Check`, so any check that gains a rule, such as a manifest signature, holds for exports too.
 
-A reader of this build still reads a version 1 export, as version 1: it derives
-the summary again with the signer taken from the manifest, which is what version
-1 wrote there, and so an old export verifies as what it said and vouches for no
-signer. An older reader refuses a version 2 export by name.
-
-The signer is the one value in `audit.json` that rests on something outside the
-export: the keyring. `gusto export -verify` names it again with its own
-`GUSTO_KEYRING`, and when that answer differs from the one the export wrote, it
-reports both, naming `evidence.signer`, rather than choosing which to believe.
-
-### What an export is
-
-An export is a job directory without its workspace: `job.json` and `out/` exactly
-as the run left them, plus `state.json` and the request lines when there are
-some, plus `audit.json`. Keeping that shape is what lets the manifest check run
-on an export unchanged. `internal/audit` calls `evidence.Check` for it rather than
-hashing files itself, so whatever that check comes to hold, such as a signature
-on the manifest, an export is held to as well.
-
-### Where each answer comes from
-
-| question | field | from |
+| Question | Field | From |
 | --- | --- | --- |
-| who asked | `asked` | `state.json`: how the job arrived and when; the person is `not recorded` |
+| who asked | `asked` | `state.json`: how the job arrived and when. The person is `not recorded` |
 | what ran | `ran` | `job.json` as written, and the harness, its exit and the budget from the manifest |
-| what it decided | `outcome` | the manifest's gate, and `state.json`'s state and times |
-| what changed | `changed` | `out/diff.patch`, with the hash the manifest holds for it |
+| what it decided | `outcome` | The manifest's gate, and `state.json`'s state and times |
+| what changed | `changed` | `out/diff.patch`, with the hash the manifest holds |
 | which model | `model` | `job.json`'s model, the manifest's endpoint, the credential names in `out/proxy.jsonl` |
-| how much | `spend` | the harness's reported tokens and cost from the manifest; the calls, bytes, tokens and cost of the model calls `out/proxy.jsonl` records as sent; and the calls a spending cap refused, which are counted apart |
-| where else | `outbound` | the hosts other than the model in `out/proxy.jsonl`, reached and denied |
+| how much | `spend` | The harness's reported tokens and cost from the manifest. The calls, bytes, tokens and cost of model calls `out/proxy.jsonl` records as sent. The calls a spending cap refused, counted apart |
+| where else | `outbound` | The hosts other than the model in `out/proxy.jsonl`, reached and denied |
 | who approved | `approval` | `not recorded` |
-| who looked | `requests` | the request log's lines whose path names the job |
-| who signed | `evidence.signer` | `out/manifest.sig`, checked against the exporter's `GUSTO_KEYRING`; never the manifest's `signer` field |
+| who looked | `requests` | The request log lines whose path names the job |
+| who signed | `evidence.signer` | `out/manifest.sig`, checked against the exporter's `GUSTO_KEYRING`, never the manifest's `signer` field |
 
-The request that created a job is never among its request lines. It is `POST
-/instances/{id}/tasks`, a thread's `POST .../say` or `POST /api/jobs`, and the
-job's ID is chosen after that path is written, so the path is the only tie and
-it does not hold one. What the lines show is who read the job afterwards.
+The request that created a job is not among its request lines, because the job's ID is chosen after that path is written.
 
-### The words in place of a value
+A value the export does not have is one of four words, never a missing field and never a guess. `spend.tokens` is `not recorded` where the manifest has `null`.
 
-A value the export does not have is one of four strings in its place, never a
-missing field and never a guess:
-
-| word | means |
+| Word | Means |
 | --- | --- |
-| `not recorded` | the platform does not write this down, or this job never had it |
-| `redacted` | the export's policy dropped the file it comes from, or replaced the value in it |
-| `none` | recorded as not happening: no gate for a turn in a conversation, no session for a one-shot job |
-| `not measured` | the proxy saw the calls but not what they cost: an answer carried no usage, or the model has no price |
+| `not recorded` | The platform does not write this down, or this job never had it |
+| `redacted` | The export's policy dropped the file it comes from, or replaced the value |
+| `none` | Recorded as not happening: no gate for a turn in a conversation, no session for a one-shot job |
+| `not measured` | The proxy saw the calls but not their cost: no usage in an answer, or no price for the model |
 
-`spend.tokens` is `not recorded` where the manifest has `null`, for the same
-reason the manifest has `null`: nothing reported is nothing claimed.
+### Redaction and verification
 
-### Redaction, and why it does not break verification
+A policy drops files and replaces values, so a redacted file no longer matches its hash in the manifest. `redactions` lists every file the policy touched, with the rules and the hash the manifest holds for the original. Verification checks three things:
 
-A policy drops files and replaces values, so a redacted file no longer matches
-its hash in the manifest. The decision is to expect exactly that and nothing
-more. Every file the policy touched is listed in `redactions` with the rules that
-touched it and the hash the manifest holds for the original. Verification then
-checks three things:
+1. `evidence.Check` on the export. A dropped file may be reported missing and a rewritten one changed. Every other complaint fails the export, naming its file. A redaction whose original hash is not the manifest's fails too.
+2. Every file against `carried`, the hash the export recorded for it. This covers `state.json`, the request lines and each redacted copy.
+3. `audit.json` against a summary derived again from the files, one section at a time.
 
-1. `evidence.Check` on the export. A dropped file may be reported missing and a
-   rewritten one changed; every other complaint fails the export, naming its
-   file. A redaction whose original hash is not the one the manifest holds fails
-   too, so a redacted file cannot be tied to somebody else's run.
-2. Every file against `carried`, the hash the export recorded for it. This holds
-   what the manifest cannot: `state.json`, the request lines, and each redacted
-   copy.
-3. `audit.json` against a summary derived again from the files, one section at a
-   time, so a summary that says more than its files fails by section.
-
-What a redacted file loses is the run's word for it. Its `carried` entry has
-`covered: false`, and the only way to tie it to the run is to hold the original
-and match the hash in `redactions`. Everything the policy left alone keeps
-`covered: true` and verifies against the run's own manifest.
-
-`job.json` and `out/manifest.json` cannot be dropped, because the check starts
-from them. The manifest is never rewritten either: it holds names and hashes and
-nothing to hide. `job.json`'s values can be redacted, and redacting `brief` also
-redacts the copy of it in `state.json`, because a field rule applies to every
-JSON file the export carries.
-
-### Retention
-
-Retention here is what one export keeps: the `drop` list, as slash paths inside
-the export or `path.Match` patterns. How long a server keeps job directories is a
-different question and nothing decides it yet.
+A redacted file has `covered: false` in `carried`. Tie it to the run by holding the original and matching the hash in `redactions`. Everything else has `covered: true` and verifies against the run's manifest. `job.json` and `out/manifest.json` cannot be dropped. The manifest is never rewritten. `job.json` values can be redacted, and redacting `brief` also redacts its copy in `state.json`, because a field rule applies to every JSON file the export carries. Retention for an export is its `drop` list: slash paths inside the export, or `path.Match` patterns. How long a server keeps job directories is not decided.
