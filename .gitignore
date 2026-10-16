@@ -12,3 +12,6 @@ CLAUDE.md
 /desktop/src-tauri/binaries/
 /desktop/src-tauri/gen/
 /cmd/haas/haas
+
+# Working notes that stay on this machine
+/.internal/
