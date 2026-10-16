@@ -1,6 +1,8 @@
 # gusto
 
-gusto runs the coding agents you already use (Claude Code, Codex, OpenCode, pi, Hermes, DeepSeek Agent) in a sandbox, on the model you pick, within a budget. It keeps your keys out of the agent and signs a record of every job, so you can see what each one did and what it cost. Run it on your computer, your server, or your company's cloud.
+gusto is a tool that lets you run the AI agents you already use, such as Claude Code, Codex and Hermes, on your computer, your server, or your company's cloud.
+
+Each job runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per job and per team, your keys stay out of the agent's reach, and every job leaves a signed record of what it changed and what it cost.
 
 ## Where you can run it
 
