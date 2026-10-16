@@ -43,7 +43,7 @@ second.
 ## The end-to-end runs
 
 `up.sh` and `probe.sh` show what a sandbox is. Two more scripts run haas on the
-instance with `HAAS_SANDBOX=openshell`:
+instance with `GUSTO_SANDBOX=openshell`:
 
 ```bash
 ./e2e.sh           # one job: a harness in a sandbox asks the model through haas's proxy, and tries a host nobody allowed
@@ -74,8 +74,8 @@ instance's own role. That role may read `/haas/poc/*` and nothing else.
 ```bash
 ./up.sh
 ./put-key.sh                                   # once: hidden prompt, key goes to AWS on standard input
-HAAS_MODEL_UPSTREAM=https://bedrock-mantle.us-east-1.api.aws HAAS_MODEL_NAME=bedrock \
-  HAAS_MODEL_ID=qwen.qwen3-vl-235b-a22b-instruct ./e2e-real.sh
+GUSTO_MODEL_UPSTREAM=https://bedrock-mantle.us-east-1.api.aws GUSTO_MODEL_NAME=bedrock \
+  GUSTO_MODEL_ID=qwen.qwen3-vl-235b-a22b-instruct ./e2e-real.sh
 ./down.sh
 ```
 
@@ -92,7 +92,7 @@ Parameter Store, so store DeepSeek's too:
 
 ```bash
 python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth.json")))["deepseek"]["apiKey"])' \
-  | HAAS_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh
+  | GUSTO_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh
 ./e2e-matrix.sh                       # about 15 minutes after the image is built
 AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
 ```
@@ -154,14 +154,14 @@ Let's Encrypt is free, and the store bucket costs cents.
 | Name | An A record for `<name>` and one for `*.<name>`, set by `haas-dns` when the host starts, 60 s TTL. |
 | Certificate | Let's Encrypt, for `<name>` and `*.<name>`, by a DNS challenge through Cloudflare. It is kept in the store bucket and reused until it has under 30 days left. |
 | Web server | nginx on the host passes to the front door on `127.0.0.1:8050`, and answers no name that is not this one. |
-| Mail | Cloudflare Email Sending, `HAAS_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
+| Mail | Cloudflare Email Sending, `GUSTO_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
 | Image | Built on the first run, ten minutes, and kept in the store bucket. |
 
 Once, from your machine:
 
 ```bash
 ./put-key.sh            # the model key
-HAAS_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh   # and the second
+GUSTO_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
 cp demo.env.example demo.env   # and fill it in
 ```

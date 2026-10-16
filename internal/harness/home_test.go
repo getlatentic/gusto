@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // An adapter is written for a container, where the harness's home is /root, so every mention of it is moved to the home it
@@ -39,10 +39,10 @@ func TestAnAdapterAtAnotherHomeNamesItAndTheOriginalIsUnchanged(t *testing.T) {
 }
 
 // A harness that runs only the models its configuration names is told the credential and the model a job names, and a
-// provider called haas, which its configuration turns off, when the job names none.
+// provider called gusto, which its configuration turns off, when the job names none.
 func TestAHarnessIsToldTheJobsCredentialAndModelApart(t *testing.T) {
 	adapter := Adapter{Program: "x", Env: map[string]string{"P": "{modelProvider}", "M": "{modelId}"}}
-	for model, want := range map[string][2]string{"local/fake-small": {"local", "fake-small"}, "": {"haas", ""}, "bare": {"haas", "bare"}} {
+	for model, want := range map[string][2]string{"local/fake-small": {"local", "fake-small"}, "": {"gusto", ""}, "bare": {"gusto", "bare"}} {
 		command := adapter.CommandIn(t.Context(), job.Spec{Model: model}, t.TempDir(), Env{})
 		if !slices.Contains(command.Env, "P="+want[0]) || !slices.Contains(command.Env, "M="+want[1]) {
 			t.Errorf("%q: %v", model, command.Env)

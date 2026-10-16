@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/matrix"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/matrix"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // door stands in for the server's way out. It writes into the run's

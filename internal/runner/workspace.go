@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 // Fill puts the repository in workspace/, or makes an empty one when no
@@ -90,7 +90,7 @@ func objectsOf(dir job.Dir) string {
 		path = dir.Path()
 	}
 	sum := sha256.Sum256([]byte(path))
-	return filepath.Join(os.TempDir(), "haas-trees-"+hex.EncodeToString(sum[:8]))
+	return filepath.Join(os.TempDir(), "gusto-trees-"+hex.EncodeToString(sum[:8]))
 }
 
 // ownRepository is the environment that makes git use the runner's repository

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // limitRow is one limit the organisation is under, what has been used of it, and

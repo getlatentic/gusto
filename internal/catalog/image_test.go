@@ -47,7 +47,7 @@ func scriptAt(run []string) int {
 }
 
 func surveyed(r *runtime) map[string]Entry {
-	entries := Of(container{ask: r.ask, image: "haas:dev"}, []string{"claude", "codex", "opencode"})
+	entries := Of(container{ask: r.ask, image: "gusto:dev"}, []string{"claude", "codex", "opencode"})
 	byName := map[string]Entry{}
 	for _, entry := range entries {
 		byName[entry.Name] = entry

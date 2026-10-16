@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // limited is an index under a quota kept in a file beside it.

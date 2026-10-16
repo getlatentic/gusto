@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // relayOut is the only way out of a sealed box. The container has no network,
@@ -15,7 +15,7 @@ import (
 // proxy's socket, mounted in from the host. In a box that is not sealed there
 // is no socket, and nothing is relayed.
 func relayOut() (func(), error) {
-	socket := os.Getenv("HAAS_PROXY_SOCKET")
+	socket := os.Getenv("GUSTO_PROXY_SOCKET")
 	if socket == "" {
 		return func() {}, nil
 	}

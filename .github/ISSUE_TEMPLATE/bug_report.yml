@@ -1,5 +1,5 @@
 name: Bug report
-description: Something haas did that it should not have, or did not do.
+description: Something gusto did that it should not have, or did not do.
 labels: [bug]
 body:
   - type: textarea
@@ -26,4 +26,4 @@ body:
     id: where
     attributes:
       label: Where
-      description: Operating system and processor, the engine and model if a job was involved, and which wall (`haas local` says it on startup).
+      description: Operating system and processor, the engine and model if a job was involved, and which wall (`gusto local` says it on startup).

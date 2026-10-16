@@ -6,7 +6,7 @@ package runner
 // through the same path a job takes: the plugin is imported, a setup carries it into a job, and the runner places it where the
 // harness's adapter says it reads skills.
 //
-//	HAAS_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner
+//	GUSTO_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner
 //
 // It makes short calls to the models each program is signed in to, so it only runs when asked for. A harness that is not signed in
 // here is skipped, and says so.
@@ -19,10 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/setup"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/setup"
 )
 
 const skillText = "---\nname: codeword\ndescription: Use when asked for the codeword, the secret word, or the passphrase of the project. Tells where the word is kept.\n---\n\nThe codeword is kept in references/word.md next to this file. Read that file and answer with the word in it.\n"
@@ -99,8 +99,8 @@ func placed(t *testing.T, name, folder string) {
 
 func measuring(t *testing.T) {
 	t.Helper()
-	if os.Getenv("HAAS_MEASURE") == "" {
-		t.Skip("set HAAS_MEASURE=1 to make short calls to the models these programs are signed in to")
+	if os.Getenv("GUSTO_MEASURE") == "" {
+		t.Skip("set GUSTO_MEASURE=1 to make short calls to the models these programs are signed in to")
 	}
 }
 

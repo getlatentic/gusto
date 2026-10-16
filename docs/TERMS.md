@@ -44,7 +44,7 @@ the job's setup.
 ```
 job/
   harnesses/opencode/
-    adapter.json          how to run it: the adapter, and the only file haas reads
+    adapter.json          how to run it: the adapter, and the only file gusto reads
     prompt.md             standing instructions
     model.json            the model policy
   setup/
@@ -54,7 +54,7 @@ job/
 
 The directory holds `adapter.json`, which is required, and whatever the adapter
 points its harness at. The other names are a convention rather than a schema:
-haas does not interpret them. The adapter reaches them through `{harnessDir}`,
+gusto does not interpret them. The adapter reaches them through `{harnessDir}`,
 which is filled with the directory's path, so `"argv":
 ["--append-system-prompt-file", "{harnessDir}/prompt.md"]` hands claude its
 prompt. Every file in the directory is part of the configured harness, named
@@ -68,7 +68,7 @@ its own, because the digest lists the job's setup under that name.
 
 A bare adapter, `opencode.json`, is the smallest configured harness: an adapter
 alone. It is read exactly as a directory holding only `adapter.json` would be,
-so every job and every `HAAS_HARNESSES` directory written before this still
+so every job and every `GUSTO_HARNESSES` directory written before this still
 runs, and a harness moves from one form to the other without changing what it
 is. A place that offers both `opencode.json` and `opencode/` is refused rather
 than guessed at.
@@ -78,16 +78,16 @@ than guessed at.
 A configured harness is named by its **digest**, a SHA-256 over its files and
 its setup's,
 because a name is what two teams can both say while meaning different things.
-Anybody holding the directory computes the same string, with or without haas;
+Anybody holding the directory computes the same string, with or without gusto;
 [FORMATS.md](FORMATS.md#the-configured-harness-digest) gives the steps. Every run
 records the digest of the configured harness that ran, and two runs are the
 same harness's only when their digests match.
 
 ### Where it lives
 
-A job carries the configured harness it runs in `harnesses/`: `haas new` copies
-it from `HAAS_HARNESSES`, the whole directory as it copies a bare adapter, and
-the runner takes the digest from the job's copy. A harness built into haas is
+A job carries the configured harness it runs in `harnesses/`: `gusto new` copies
+it from `GUSTO_HARNESSES`, the whole directory as it copies a bare adapter, and
+the runner takes the digest from the job's copy. A harness built into gusto is
 the one exception: every runner already holds it, so the job carries nothing
 and the digest is of the adapter built into the runner that ran it.
 
@@ -120,7 +120,7 @@ to the next one.
 ## Why the distinction decides the format
 
 `job.json` names a harness, and the name finds a configured harness: in the
-job, in `HAAS_HARNESSES`, or built in. The manifest then names what the name
+job, in `GUSTO_HARNESSES`, or built in. The manifest then names what the name
 found, by digest. A marketplace, a rented harness, or bring-your-own all trade
 in the configured one, so one day that field will name a digest to fetch, the
 way you run an image rather than a binary name.

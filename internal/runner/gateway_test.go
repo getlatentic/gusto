@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 func gatewaySpec() job.Spec {
@@ -14,8 +14,8 @@ func gatewaySpec() job.Spec {
 }
 
 func TestAJobWithServersBehindTheGatewayIsGivenOneServerAndNotTheirDefinitions(t *testing.T) {
-	t.Setenv("HAAS_MODEL_URL", "http://127.0.0.1:8041/model/v1")
-	t.Setenv("HAAS_MODEL_TOKEN", "job-token")
+	t.Setenv("GUSTO_MODEL_URL", "http://127.0.0.1:8041/model/v1")
+	t.Setenv("GUSTO_MODEL_TOKEN", "job-token")
 	direct := []job.Server{{Name: "memory", Command: "mcp-server-memory"}}
 	got, err := withGateway(direct, gatewaySpec())
 	if err != nil {
@@ -33,7 +33,7 @@ func TestAJobWithServersBehindTheGatewayIsGivenOneServerAndNotTheirDefinitions(t
 }
 
 func TestAJobWithNothingBehindTheGatewayIsGivenNoGateway(t *testing.T) {
-	t.Setenv("HAAS_MODEL_TOKEN", "job-token")
+	t.Setenv("GUSTO_MODEL_TOKEN", "job-token")
 	for _, spec := range []job.Spec{{}, {Setup: &job.Setup{Name: "x", Servers: []string{"memory"}}}} {
 		got, err := withGateway([]job.Server{{Name: "memory"}}, spec)
 		if err != nil || len(got) != 1 {
@@ -43,7 +43,7 @@ func TestAJobWithNothingBehindTheGatewayIsGivenNoGateway(t *testing.T) {
 }
 
 func TestAJobWithServersBehindTheGatewayAndNoProxyIsRefusedByName(t *testing.T) {
-	t.Setenv("HAAS_MODEL_TOKEN", "")
+	t.Setenv("GUSTO_MODEL_TOKEN", "")
 	if _, err := withGateway(nil, gatewaySpec()); err == nil || !strings.Contains(err.Error(), "no proxy") || !strings.Contains(err.Error(), "team") {
 		t.Errorf("err = %v", err)
 	}

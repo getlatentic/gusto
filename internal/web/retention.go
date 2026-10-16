@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/retention"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/retention"
 )
 
 // lastSweepFile is where the newest sweep's report is kept, so the page can

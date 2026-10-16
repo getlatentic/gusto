@@ -7,12 +7,12 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
-// evidenceRef is where haas ship leaves the evidence for a manifest.
+// evidenceRef is where gusto ship leaves the evidence for a manifest.
 func evidenceRef(digest string) string {
-	return "refs/haas/evidence/" + digest
+	return "refs/gusto/evidence/" + digest
 }
 
 // fetched names the three commits a check reads: the evidence, the pull

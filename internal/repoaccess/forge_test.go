@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 const appID = "424242"

@@ -8,13 +8,13 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 func TestAConfiguredHarnessOpensWithItsAdapterAndDigest(t *testing.T) {
 	mine := t.TempDir()
 	configuredFixture(t, mine)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	configured, err := Open("", "fixture")
 	if err != nil {
 		t.Fatal(err)
@@ -29,7 +29,7 @@ func TestAConfiguredHarnessOpensWithItsAdapterAndDigest(t *testing.T) {
 func TestAnAdapterIsToldWhereItsHarnessIs(t *testing.T) {
 	mine := t.TempDir()
 	folder := configuredFixture(t, mine)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	adapter, err := Load("", "fixture")
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestAnAdapterIsToldWhereItsHarnessIs(t *testing.T) {
 func TestKeepCarriesTheWholeConfiguredHarness(t *testing.T) {
 	mine := t.TempDir()
 	configuredFixture(t, mine)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := Keep(dir, "fixture"); err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestKeepCarriesTheWholeConfiguredHarness(t *testing.T) {
 func TestKeepReplacesWhatTheJobHeld(t *testing.T) {
 	mine := t.TempDir()
 	put(t, mine, "fixture.json", fixtureAdapter, 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := Keep(dir, "fixture"); err != nil {
 		t.Fatal(err)
@@ -88,12 +88,12 @@ func TestKeepReplacesWhatTheJobHeld(t *testing.T) {
 	}
 }
 
-// A built-in name overridden in HAAS_HARNESSES is what a runner here would run,
+// A built-in name overridden in GUSTO_HARNESSES is what a runner here would run,
 // so it is what the job carries.
 func TestKeepCarriesAnOverrideOfABuiltInHarness(t *testing.T) {
 	mine := t.TempDir()
 	put(t, mine, "opencode.json", `{"name":"opencode","program":"true","needs":"nothing"}`, 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := Keep(dir, "opencode"); err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestAHarnessOfferedAsBothAFileAndADirectoryIsRefused(t *testing.T) {
 	mine := t.TempDir()
 	configuredFixture(t, mine)
 	put(t, mine, "fixture.json", fixtureAdapter, 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	if _, err := Open("", "fixture"); !errors.Is(err, errBoth) {
 		t.Fatalf("want the ambiguity refused, got %v", err)
 	}
@@ -116,7 +116,7 @@ func TestAHarnessOfferedAsBothAFileAndADirectoryIsRefused(t *testing.T) {
 func TestADirectoryWithoutAnAdapterIsRefused(t *testing.T) {
 	mine := t.TempDir()
 	put(t, mine, "empty/prompt.md", "Answer yes.\n", 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	if _, err := Open("", "empty"); err == nil {
 		t.Fatal("a harness with no adapter has nothing to run")
 	}
@@ -148,7 +148,7 @@ func TestNamesOffersAConfiguredHarnessDirectory(t *testing.T) {
 	mine := t.TempDir()
 	configuredFixture(t, mine)
 	put(t, mine, "notes/README.md", "not a harness\n", 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	names := Names()
 	if !slices.Contains(names, "fixture") || slices.Contains(names, "notes") {
 		t.Fatalf("names %v", names)

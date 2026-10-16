@@ -2,12 +2,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 	"net/http"
 	"slices"
 	"strconv"
 
-	"github.com/getlatentic/haas/internal/proxy"
+	"github.com/getlatentic/gusto/internal/proxy"
 )
 
 // Models is what a deployment offers to think with. Every engine is offered every model: which pairs work well is for

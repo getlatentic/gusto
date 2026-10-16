@@ -28,8 +28,8 @@ func onACell(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) 
 	}
 	command := exec.Command("bash", script)
 	command.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HAAS_CONF="+conf, "HAAS_BEAT_FILE="+beat, "HAAS_LEASE_FILE="+filepath.Join(dir, "no-lease.json"),
-		"HAAS_NOW=100000", fmt.Sprintf("HAAS_UPTIME=%d", uptime))
+		"GUSTO_CONF="+conf, "GUSTO_BEAT_FILE="+beat, "GUSTO_LEASE_FILE="+filepath.Join(dir, "no-lease.json"),
+		"GUSTO_NOW=100000", fmt.Sprintf("GUSTO_UPTIME=%d", uptime))
 	out, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%v: %s", err, out)
@@ -79,7 +79,7 @@ func TestACellHasNoLeaseSoAStrayOneDoesNotEndIt(t *testing.T) {
 	os.Chtimes(beat, timeAt(99999), timeAt(99999))
 	command := exec.Command("bash", script)
 	command.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HAAS_CONF="+conf, "HAAS_BEAT_FILE="+beat, "HAAS_LEASE_FILE="+lease, "HAAS_NOW=100000", "HAAS_UPTIME=3000")
+		"GUSTO_CONF="+conf, "GUSTO_BEAT_FILE="+beat, "GUSTO_LEASE_FILE="+lease, "GUSTO_NOW=100000", "GUSTO_UPTIME=3000")
 	if out, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("%v: %s", err, out)
 	}

@@ -10,7 +10,7 @@ import (
 
 // Label is where the runner image lists the harnesses it carries, as the
 // Dockerfile's HARNESSES wrote them: name=package, space-separated.
-const Label = "com.getlatentic.haas.harnesses"
+const Label = "com.getlatentic.gusto.harnesses"
 
 // Image is the runner image, as the catalog asks it.
 type Image interface {

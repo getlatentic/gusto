@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/openshell"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // inComputer is a sandbox that lasts, for a job.
@@ -37,7 +37,7 @@ func withHarness(t *testing.T, script string) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","argv":["-c",`+quote(script)+`],"needs":"nothing","stream":"plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 }
 
 func quote(text string) string {
@@ -148,7 +148,7 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","skills":"/root/.config/fixture/skills",
 	  "argv":["-c","printf yes > answer.txt; echo skills: $(ls ../../../.config/fixture/skills 2>/dev/null | tr '\n' ' ')"],"needs":"nothing","stream":"plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	os.MkdirAll(filepath.Join(first.SetupDir(), "skills", "review"), 0o755)
 	write(t, filepath.Join(first.SetupDir(), "skills", "review", "SKILL.md"), "review\n")
 	spec.Setup = &job.Setup{Name: "engineering", Skills: []string{"review"}}
@@ -156,15 +156,15 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	if _, err := runner.Outside(first, inComputer(t, first, name, "20260929-1200-first")); err != nil {
 		t.Fatal(err)
 	}
-	if said, _ := os.ReadFile(first.OutFile("transcript.log")); !strings.Contains(string(said), "skills: haas-sandbox review") {
+	if said, _ := os.ReadFile(first.OutFile("transcript.log")); !strings.Contains(string(said), "skills: gusto-sandbox review") {
 		t.Fatalf("the first job has its skill:\n%s", said)
 	}
 	second, _ := aJob(t)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if _, err := runner.Outside(second, inComputer(t, second, name, "20260929-1201-second")); err != nil {
 		t.Fatal(err)
 	}
-	if said, _ := os.ReadFile(second.OutFile("transcript.log")); strings.Contains(string(said), "review") || !strings.Contains(string(said), "haas-sandbox") {
+	if said, _ := os.ReadFile(second.OutFile("transcript.log")); strings.Contains(string(said), "review") || !strings.Contains(string(said), "gusto-sandbox") {
 		t.Errorf("the second job was left the first's skill:\n%s", said)
 	}
 	_ = root

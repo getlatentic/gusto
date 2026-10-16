@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apps"
+	"github.com/getlatentic/gusto/internal/apps"
 )
 
 // gatewayFake stands in for the gateway: it answers for an app, and remembers what it was sent.
@@ -295,7 +295,7 @@ func TestAnAppIsRemovedOnlyThroughTheAgentItBelongsTo(t *testing.T) {
 	}
 }
 
-// behindAFrontDoorSharing is a server that is acme-com's in a hosted haas, and shares apps.
+// behindAFrontDoorSharing is a server that is acme-com's in a hosted gusto, and shares apps.
 func behindAFrontDoorSharing(t *testing.T) (*site, *runnerFake, *gatewayFake) {
 	t.Helper()
 	site, runner, gateway := sharingSite(t)
@@ -327,7 +327,7 @@ func (s *site) signedInTo(t *testing.T, id string) *http.Cookie {
 		t.Fatalf("entering: %d %v", answer.Code, answer.Header())
 	}
 	for _, cookie := range answer.Result().Cookies() {
-		if strings.HasSuffix(cookie.Name, "haas") {
+		if strings.HasSuffix(cookie.Name, "gusto") {
 			return cookie
 		}
 	}
@@ -372,7 +372,7 @@ func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *te
 		t.Errorf("a stranger is sent to be signed in where people are: %d %q", stranger.Code, stranger.Header().Get("Location"))
 	}
 	cookie := site.signedInTo(t, id)
-	if cookie.Name != "__Host-haas" || !cookie.Secure || cookie.Path != "/" || cookie.Domain != "" {
+	if cookie.Name != "__Host-gusto" || !cookie.Secure || cookie.Path != "/" || cookie.Domain != "" {
 		t.Errorf("the session over TLS is one a sibling host name cannot set: %+v", cookie)
 	}
 	if got := site.appRequest(t, id, "GET", "/", cookie); got.Code != http.StatusOK {
@@ -432,7 +432,7 @@ func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganisation(t *te
 			t.Errorf("%s: the app was asked for %q", path, gateway.last().URL.Path)
 		}
 	}
-	if got := site.appRequest(t, id, "POST", "/logout", cookie); strings.Contains(strings.Join(got.Header().Values("Set-Cookie"), ";"), "haas=;") {
+	if got := site.appRequest(t, id, "POST", "/logout", cookie); strings.Contains(strings.Join(got.Header().Values("Set-Cookie"), ";"), "gusto=;") {
 		t.Errorf("the app's /logout signed the person out of their session: %v", got.Header())
 	}
 }
@@ -446,8 +446,8 @@ func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganisationsOrForTh
 		gateway.seen = append(gateway.seen, r.Clone(context.Background()))
 		gateway.mu.Unlock()
 		w.Header().Add("Set-Cookie", "theme=dark; Path=/; Domain=.cloud.test")
-		w.Header().Add("Set-Cookie", "__Host-haas=evil; Path=/; Secure")
-		w.Header().Add("Set-Cookie", "haas=evil; Path=/")
+		w.Header().Add("Set-Cookie", "__Host-gusto=evil; Path=/; Secure")
+		w.Header().Add("Set-Cookie", "gusto=evil; Path=/")
 		w.Header().Add("Set-Cookie", "__Secure-x=1; Path=/; Secure")
 		w.Write([]byte("ok"))
 	})
@@ -467,7 +467,7 @@ func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganisationsOrForTh
 	if _, err := asked.Cookie("theme"); err != nil {
 		t.Error("the app's own cookie was not sent back to it")
 	}
-	if asked.Header.Get("Cookie") == "" || strings.Contains(asked.Header.Get("Cookie"), "haas") {
+	if asked.Header.Get("Cookie") == "" || strings.Contains(asked.Header.Get("Cookie"), "gusto") {
 		t.Errorf("the app was sent the person's session: %q", asked.Header.Get("Cookie"))
 	}
 }

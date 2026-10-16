@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Allows refuses a job whose code may not leave against a model endpoint that

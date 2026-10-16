@@ -96,7 +96,7 @@ func TestTheWatcherIsSilentForWhatTheSyncLeavesOut(t *testing.T) {
 	}
 	time.Sleep(300 * time.Millisecond)
 	os.WriteFile(filepath.Join(root, "node_modules", "x.js"), []byte("1"), 0o600)
-	os.WriteFile(filepath.Join(root, ".haas-pull-123"), []byte("1"), 0o600)
+	os.WriteFile(filepath.Join(root, ".gusto-pull-123"), []byte("1"), 0o600)
 	os.WriteFile(filepath.Join(root, ".DS_Store"), []byte("1"), 0o600)
 	if woken(wake, time.Second) {
 		t.Fatal("a file the sync leaves out woke the watcher")

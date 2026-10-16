@@ -28,7 +28,7 @@ func run(t *testing.T, lease string, uptime int) (poweredOff bool, output string
 	}
 	command := exec.Command("bash", script)
 	command.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HAAS_CONF="+conf, "HAAS_LEASE_FILE="+leaseFile, "HAAS_NOW=1000", fmt.Sprintf("HAAS_UPTIME=%d", uptime))
+		"GUSTO_CONF="+conf, "GUSTO_LEASE_FILE="+leaseFile, "GUSTO_NOW=1000", fmt.Sprintf("GUSTO_UPTIME=%d", uptime))
 	out, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%v: %s", err, out)

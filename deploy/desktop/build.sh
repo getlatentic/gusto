@@ -20,7 +20,7 @@ esac
 
 root=$(git rev-parse --show-toplevel)
 case "$out" in /*) ;; *) out="$root/$out" ;; esac
-HAAS_VERSION=$tag "$root/desktop/prepare.sh" "$triple" >/dev/null
+GUSTO_VERSION=$tag "$root/desktop/prepare.sh" "$triple" >/dev/null
 cd "$root/desktop/src-tauri"
 cargo tauri build --target "$triple" --bundles "$bundles" \
   --config "{\"version\":\"$version\",\"bundle\":{\"createUpdaterArtifacts\":true}}"

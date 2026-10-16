@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// onlyBuiltIn is a site whose harnesses are the ones every haas has, so what the
+// onlyBuiltIn is a site whose harnesses are the ones every gusto has, so what the
 // tests call an unknown harness does not depend on the machine running them.
 func onlyBuiltIn(t *testing.T) *site {
 	t.Helper()
-	t.Setenv("HAAS_HARNESSES", "")
+	t.Setenv("GUSTO_HARNESSES", "")
 	return open(t)
 }
 

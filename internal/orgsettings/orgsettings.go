@@ -11,7 +11,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Settings are the choices there are.

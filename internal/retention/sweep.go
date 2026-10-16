@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // Jobs is what a sweep reads jobs from and removes them through. The server

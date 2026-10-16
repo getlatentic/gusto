@@ -16,7 +16,7 @@ import (
 )
 
 // ErrNotSignedIn is the answer when no token is kept for a server.
-var ErrNotSignedIn = errors.New("not signed in: run `haas login`")
+var ErrNotSignedIn = errors.New("not signed in: run `gusto login`")
 
 // Vault keeps the token a person's computer was given, one for each server.
 type Vault interface {
@@ -40,7 +40,7 @@ func Server(address string) string {
 }
 
 // service is the name the keychain files the tokens under.
-const service = "haas"
+const service = "gusto"
 
 // keychain is the operating system's own: the Keychain on macOS, the Credential Manager on Windows, the Secret Service on
 // Linux.
@@ -64,7 +64,7 @@ func (keychain) Delete(server string) error {
 }
 
 // fileVault keeps a token in a file only its owner reads. It is for a machine with no keychain, such as a server with no
-// desktop session, and for a person who asks for it with HAAS_VAULT=file.
+// desktop session, and for a person who asks for it with GUSTO_VAULT=file.
 type fileVault struct{ dir string }
 
 func (f fileVault) path(server string) string {
@@ -136,14 +136,14 @@ func (f fallback) Delete(server string) error {
 }
 
 // OpenVault is where this computer keeps tokens: the keychain, with a file beside the helper's settings when there is no
-// keychain. HAAS_VAULT=file asks for the file alone. Warnings go to warn.
+// keychain. GUSTO_VAULT=file asks for the file alone. Warnings go to warn.
 func OpenVault(warn io.Writer) (Vault, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
-	files := fileVault{dir: filepath.Join(dir, "haas")}
-	if os.Getenv("HAAS_VAULT") == "file" {
+	files := fileVault{dir: filepath.Join(dir, "gusto")}
+	if os.Getenv("GUSTO_VAULT") == "file" {
 		return files, nil
 	}
 	return fallback{keys: keychain{}, files: files, warn: warn}, nil

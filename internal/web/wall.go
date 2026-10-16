@@ -3,8 +3,8 @@ package web
 import (
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/isolation"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/isolation"
 )
 
 // Wall is the wall between the agents and the person's files on their own computer, and whether they have said they know there is

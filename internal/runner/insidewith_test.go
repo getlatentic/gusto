@@ -7,22 +7,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // A job run in the server's own process is given an environment of its own: the harness and the gate see what they were given
 // and nothing of the process they run in, where the server keeps its secrets.
 func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing.T) {
-	t.Setenv("HAAS_PASSWORD", "the-servers-own-secret")
+	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
 	mine := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(mine, "plain"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	write(t, filepath.Join(mine, "plain", "adapter.json"), `{"name": "plain", "program": "sh", "needs": "nothing",
-		"argv": ["-c", "printf 'token=%s password=%s' \"$HAAS_MODEL_TOKEN\" \"${HAAS_PASSWORD:-absent}\" > seen.txt; printf yes > answer.txt"]}`)
-	t.Setenv("HAAS_HARNESSES", mine)
+		"argv": ["-c", "printf 'token=%s password=%s' \"$GUSTO_MODEL_TOKEN\" \"${GUSTO_PASSWORD:-absent}\" > seen.txt; printf yes > answer.txt"]}`)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -30,14 +30,14 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 	spec := job.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes && test -z "${HAAS_PASSWORD:-}" && test "$HAAS_MODEL_TOKEN" = given-token`},
+		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes && test -z "${GUSTO_PASSWORD:-}" && test "$GUSTO_MODEL_TOKEN" = given-token`},
 		Harness: "plain",
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	env := harness.Env{
-		Base:       []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), "HAAS_MODEL_URL=http://127.0.0.1:1/model/v1", "HAAS_MODEL_TOKEN=given-token"},
+		Base:       []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), "GUSTO_MODEL_URL=http://127.0.0.1:1/model/v1", "GUSTO_MODEL_TOKEN=given-token"},
 		ModelURL:   "http://127.0.0.1:1/model/v1",
 		ModelToken: "given-token",
 	}

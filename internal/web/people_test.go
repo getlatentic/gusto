@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/roster"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/roster"
 )
 
 // withPeople is a server behind a front door whose list of people is the one given,

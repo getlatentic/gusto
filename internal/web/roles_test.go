@@ -11,7 +11,7 @@ import (
 )
 
 func TestARoleComesFromTheGroupsTheProviderNames(t *testing.T) {
-	company := Access{RunnerGroups: []string{"engineering", "platform"}, AdminGroups: []string{"haas-admins"}}
+	company := Access{RunnerGroups: []string{"engineering", "platform"}, AdminGroups: []string{"gusto-admins"}}
 	for _, c := range []struct {
 		name   string
 		groups []string
@@ -20,8 +20,8 @@ func TestARoleComesFromTheGroupsTheProviderNames(t *testing.T) {
 	}{
 		{"a runner group", []string{"sales", "engineering"}, Runner, true},
 		{"the other runner group", []string{"platform"}, Runner, true},
-		{"an admin group", []string{"haas-admins"}, Admin, true},
-		{"both, where the admin group outranks", []string{"engineering", "haas-admins"}, Admin, true},
+		{"an admin group", []string{"gusto-admins"}, Admin, true},
+		{"both, where the admin group outranks", []string{"engineering", "gusto-admins"}, Admin, true},
 		{"a group nothing maps", []string{"sales"}, "", false},
 		{"no groups at all", nil, "", false},
 		{"a group that only looks like one", []string{"Engineering", "engineering-interns"}, "", false},
@@ -76,23 +76,23 @@ func TestGroupsAreReadWhetherTheProviderSendsAListOrOneString(t *testing.T) {
 // A provider that lets everybody with an account through, with nothing here to
 // tell them apart, would let anybody spend the credential.
 func TestAProviderWithNothingToTellPeopleApartIsRefusedAtStartup(t *testing.T) {
-	_, err := NewIdentity(context.Background(), "https://issuer.invalid", "id", "secret", "https://haas.example/auth/callback", Access{})
+	_, err := NewIdentity(context.Background(), "https://issuer.invalid", "id", "secret", "https://gusto.example/auth/callback", Access{})
 	if !errors.Is(err, errUngated) {
 		t.Fatalf("got %v, want the refusal to start ungated", err)
 	}
 	for name, gated := range map[string]Access{
 		"an allowed list": {Allowed: []string{"@company.example"}},
 		"a runner group":  {RunnerGroups: []string{"engineering"}},
-		"an admin group":  {AdminGroups: []string{"haas-admins"}},
+		"an admin group":  {AdminGroups: []string{"gusto-admins"}},
 	} {
-		_, err := NewIdentity(context.Background(), "https://issuer.invalid", "id", "secret", "https://haas.example/auth/callback", gated)
+		_, err := NewIdentity(context.Background(), "https://issuer.invalid", "id", "secret", "https://gusto.example/auth/callback", gated)
 		if errors.Is(err, errUngated) {
 			t.Errorf("%s was refused as ungated", name)
 		}
 	}
 }
 
-// HAAS_ADMINS is how an operator keeps a way in whatever the groups say.
+// GUSTO_ADMINS is how an operator keeps a way in whatever the groups say.
 func TestAnAddressNamedAnAdminIsAdmittedWhateverTheirGroups(t *testing.T) {
 	site := open(t)
 	site.server.identity = &Identity{access: Access{RunnerGroups: []string{"engineering"}}}

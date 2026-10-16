@@ -4,8 +4,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // Effective is what the registry comes to: what the proxy holds, what is offered and what a model is priced at.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // A conversation works in one folder, turn after turn, and nothing commits
@@ -102,7 +102,7 @@ func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(os.TempDir()); len(entries) > 0 {
 		for _, entry := range entries {
-			if strings.HasPrefix(entry.Name(), "haas-trees-") {
+			if strings.HasPrefix(entry.Name(), "gusto-trees-") {
 				if _, err := os.Stat(filepath.Join(os.TempDir(), entry.Name(), "HEAD")); err == nil {
 					t.Errorf("%s was left behind", entry.Name())
 				}

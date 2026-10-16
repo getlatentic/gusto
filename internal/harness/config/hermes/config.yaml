@@ -4,9 +4,9 @@
 # address is here and not in CUSTOM_BASE_URL.
 model:
   provider: custom
-  default: ${HAAS_MODEL_ID}
-  base_url: ${HAAS_MODEL_URL}
-  key_env: HAAS_MODEL_TOKEN
+  default: ${GUSTO_MODEL_ID}
+  base_url: ${GUSTO_MODEL_URL}
+  key_env: GUSTO_MODEL_TOKEN
 # The folder every harness here shares for skills; a setup's skills are put
 # there before each turn.
 skills:

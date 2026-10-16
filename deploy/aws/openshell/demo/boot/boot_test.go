@@ -34,7 +34,7 @@ f=${@: -1}
 	"certbot": `#!/bin/bash
 echo "certbot $*" >> "$FAKE_LOG"
 while [ $# -gt 0 ]; do [ "$1" = --cert-name ] && name=$2; shift; done
-mkdir -p "$HAAS_LE/live/$name"; echo "VALID issued" > "$HAAS_LE/live/$name/fullchain.pem"`,
+mkdir -p "$GUSTO_LE/live/$name"; echo "VALID issued" > "$GUSTO_LE/live/$name/fullchain.pem"`,
 	"haas-dns": `#!/bin/bash
 echo "haas-dns $*" >> "$FAKE_LOG"`,
 	"curl": `#!/bin/bash
@@ -70,8 +70,8 @@ func newHost(t *testing.T) *host {
 		"LEAD_HOOK_URL_PARAMETER=/haas/poc/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/haas/poc/lead-hook-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HAAS_CONF="+h.conf, "HAAS_RUN="+filepath.Join(dir, "run"), "HAAS_LE="+filepath.Join(dir, "le"), "HAAS_LIB="+filepath.Join(dir, "lib"),
-		"HAAS_OWNER=", "HAAS_LEASE_FILE="+filepath.Join(dir, "lease", "lease.json"), "CREDENTIALS="+filepath.Join(bin, "credentials.sh"), "FAKE_STORE="+h.store, "FAKE_LOG="+h.log)
+		"GUSTO_CONF="+h.conf, "GUSTO_RUN="+filepath.Join(dir, "run"), "GUSTO_LE="+filepath.Join(dir, "le"), "GUSTO_LIB="+filepath.Join(dir, "lib"),
+		"GUSTO_OWNER=", "GUSTO_LEASE_FILE="+filepath.Join(dir, "lease", "lease.json"), "CREDENTIALS="+filepath.Join(bin, "credentials.sh"), "FAKE_STORE="+h.store, "FAKE_LOG="+h.log)
 	return h
 }
 
@@ -148,7 +148,7 @@ func TestTheTokensAreKeptWhereOnlyTheOwnerCanReadThem(t *testing.T) {
 	for file, want := range map[string]string{
 		"cf-dns-token":   "value-of-/haas/poc/cloudflare-dns-token",
 		"certbot-cf.ini": "dns_cloudflare_api_token = value-of-/haas/poc/cloudflare-dns-token\n",
-		"mail.env":       "HAAS_CLOUD_MAIL_TOKEN=value-of-/haas/poc/cloudflare-mail-token\n",
+		"mail.env":       "GUSTO_CLOUD_MAIL_TOKEN=value-of-/haas/poc/cloudflare-mail-token\n",
 	} {
 		path := filepath.Join(h.dir, "run", "secrets", file)
 		info, err := os.Stat(path)

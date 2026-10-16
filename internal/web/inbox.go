@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/inbox"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/inbox"
 )
 
 // UseInbox says where the front door leaves what its admins did to the

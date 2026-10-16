@@ -1,4 +1,4 @@
-/haas
+/gusto
 /dist/
 /.runs/
 .env
@@ -11,7 +11,7 @@ CLAUDE.md
 /desktop/src-tauri/target/
 /desktop/src-tauri/binaries/
 /desktop/src-tauri/gen/
-/cmd/haas/haas
+/cmd/gusto/gusto
 
 # Working notes that stay on this machine
 /.internal/

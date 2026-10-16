@@ -11,7 +11,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Turn is one message in a conversation.
@@ -33,7 +33,7 @@ type Ended struct {
 }
 
 // Converse runs one turn. Every line the harness says during it goes to keep,
-// with the answers to haas's own requests among them, so the record holds the
+// with the answers to gusto's own requests among them, so the record holds the
 // session id and the usage exactly as the harness reported them.
 func Converse(in io.Writer, out io.Reader, turn Turn, keep func(line string) error) (Ended, error) {
 	c := newConn(in, out, keep)

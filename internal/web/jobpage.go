@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // job is one run and everything it left: what it said, what it ran, what it
@@ -172,7 +172,7 @@ type hashedFile struct {
 
 // hashed pairs what is on disk with what the manifest says. No hash means the
 // manifest does not name the file: manifest.json, which cannot hash itself, and
-// anything that appeared after the run, which `haas verify` reports.
+// anything that appeared after the run, which `gusto verify` reports.
 func hashed(names []string, manifest *evidence.Manifest) []hashedFile {
 	claimed := map[string]string{}
 	for _, entry := range entriesOf(manifest) {

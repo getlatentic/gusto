@@ -146,7 +146,7 @@ func (p *Program) start(ctx context.Context) error {
 func (p *Program) handshake(ctx context.Context) error {
 	ctx, stop := context.WithTimeout(ctx, startTime)
 	defer stop()
-	init := map[string]any{"protocolVersion": protocols[0], "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "haas-gateway", "version": "1"}}
+	init := map[string]any{"protocolVersion": protocols[0], "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "gusto-gateway", "version": "1"}}
 	if _, err := p.exchange(ctx, "initialize", init); err != nil {
 		return err
 	}

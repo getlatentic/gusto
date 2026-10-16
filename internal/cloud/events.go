@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlatentic/haas/internal/inbox"
+	"github.com/getlatentic/gusto/internal/inbox"
 )
 
 // record tells the organisation's server what an admin just did to its people, so

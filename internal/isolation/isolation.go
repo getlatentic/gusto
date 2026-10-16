@@ -21,7 +21,7 @@ const (
 	// Container is a container for each job, which shares the computer's kernel.
 	Container Kind = "container"
 	// Process is the computer's own sandbox around the agent's processes: on a Mac, Seatbelt. It writes only its own folder, reads none of
-	// the person's home but its own and the engine's, and reaches nothing on the network but haas, and shares the computer's kernel.
+	// the person's home but its own and the engine's, and reaches nothing on the network but gusto, and shares the computer's kernel.
 	Process Kind = "process"
 	// Nothing is no wall: the agent runs as the person, and can read and change what they can.
 	Nothing Kind = "none"
@@ -34,7 +34,7 @@ type Backend struct {
 	Ready bool
 	// Detail is what makes it, when ready: "Docker". When not, what is missing and how to get it.
 	Detail string
-	// Cause is what the computer or the runtime itself said when it could not, for the log and for haas doctor, and not for a page.
+	// Cause is what the computer or the runtime itself said when it could not, for the log and for gusto doctor, and not for a page.
 	Cause string
 }
 
@@ -42,7 +42,7 @@ type Backend struct {
 type Choice struct {
 	Kind   Kind
 	Detail string
-	// Forced says the person set HAAS_SANDBOX, and nothing was probed.
+	// Forced says the person set GUSTO_SANDBOX, and nothing was probed.
 	Forced bool
 	// Passed is the stronger kinds this computer could not make, with what each lacks.
 	Passed []Backend
@@ -56,7 +56,7 @@ type Host struct {
 	LookPath func(program string) (string, error)
 	// Run is a program's output and whether it exited 0, within a few seconds.
 	Run func(program string, args ...string) (string, bool)
-	// Self is the haas program that is running, which applies the sandbox of a Linux computer to a job.
+	// Self is the gusto program that is running, which applies the sandbox of a Linux computer to a job.
 	Self string
 	// MountsSocket says whether a container of the image can be given a unix socket of this computer, which is how a job reaches
 	// the proxy and nothing else. A runtime that runs in a virtual machine, as Docker does on a Mac or Windows, cannot. Nil is
@@ -64,7 +64,7 @@ type Host struct {
 	MountsSocket func(runtime, image string) error
 }
 
-// This is the computer haas runs on.
+// This is the computer gusto runs on.
 func This() Host {
 	self, _ := os.Executable()
 	return Host{
@@ -88,10 +88,10 @@ func This() Host {
 	}
 }
 
-// Choose is the strongest wall the host can make. HAAS_SANDBOX names one when a person or an operator has decided: openshell is a
+// Choose is the strongest wall the host can make. GUSTO_SANDBOX names one when a person or an operator has decided: openshell is a
 // VM, here is none, and anything else, including container, is a container.
 func Choose(h Host) Choice {
-	switch h.Getenv("HAAS_SANDBOX") {
+	switch h.Getenv("GUSTO_SANDBOX") {
 	case "":
 	case "openshell":
 		return Choice{Kind: VM, Detail: "OpenShell", Forced: true}
@@ -121,7 +121,7 @@ func (c Choice) Words() string {
 	case Container:
 		return "Each job runs in a container (" + c.Detail + "): it sees only the folder it was given, and shares this computer's kernel."
 	case Process:
-		return "Each job runs behind this computer's own sandbox (" + c.Detail + "): it can write only its own folder, cannot read the rest of your home, and reaches nothing on the network but haas. It shares this computer's kernel."
+		return "Each job runs behind this computer's own sandbox (" + c.Detail + "): it can write only its own folder, cannot read the rest of your home, and reaches nothing on the network but gusto. It shares this computer's kernel."
 	}
 	return "Nothing stands between an agent and your files: it runs as you, and can read and change what you can."
 }
@@ -139,9 +139,9 @@ func (c Choice) Short() string {
 	return "no sandbox"
 }
 
-// runtimeName is the container command the host uses: HAAS_CONTAINER, or docker, or podman.
+// runtimeName is the container command the host uses: GUSTO_CONTAINER, or docker, or podman.
 func runtimeName(h Host) string {
-	if name := h.Getenv("HAAS_CONTAINER"); name != "" {
+	if name := h.Getenv("GUSTO_CONTAINER"); name != "" {
 		return name
 	}
 	for _, name := range []string{"docker", "podman"} {

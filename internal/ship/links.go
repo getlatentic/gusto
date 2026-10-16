@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // links is where the pull request sends a reviewer: files at the evidence
@@ -35,7 +35,7 @@ func (l links) tree() string {
 // names the manifest's hash, so what it fetches is held to the hash the pull
 // request names and not to whatever the ref holds by then.
 func (l links) command(digest string) string {
-	return shell([]string{"haas", "check", printable(l.remote), digest})
+	return shell([]string{"gusto", "check", printable(l.remote), digest})
 }
 
 // printable is the remote as a pull request may show it. A GitHub remote is
@@ -81,7 +81,7 @@ func (l links) section(digest, at string) string {
 // evidenceMessage says what the evidence commit is to anybody who finds it
 // with git alone.
 func evidenceMessage(dir job.Dir, digest string) string {
-	return fmt.Sprintf("haas evidence for job %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
+	return fmt.Sprintf("gusto evidence for job %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
 		filepath.Base(filepath.Clean(dir.Path())), digest)
 }
 

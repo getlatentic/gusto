@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // yours is an instance as the home page lists it: what it is, what was last
@@ -39,7 +39,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	from := min((page-1)*agentsPerPage, len(listed))
 	to := min(from+agentsPerPage, len(listed))
 	data := map[string]any{
-		"Title":     "haas",
+		"Title":     "gusto",
 		"Nav":       "harnesses",
 		"Instances": listed[from:to],
 		"Total":     len(listed),

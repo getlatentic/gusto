@@ -16,11 +16,11 @@ func TestASealedContainerHasNoNetworkButTheProxysSocket(t *testing.T) {
 	for _, want := range []string{
 		"--network=none",
 		"/jobs/.proxy.sock:" + InsideSocket,
-		"HAAS_PROXY_SOCKET=" + InsideSocket,
-		"HAAS_MODEL_URL=http://127.0.0.1:8041/model/v1",
-		"HAAS_MODEL_TOKEN=a-token",
-		"HTTPS_PROXY=http://haas:a-token@127.0.0.1:8041",
-		"http_proxy=http://haas:a-token@127.0.0.1:8041",
+		"GUSTO_PROXY_SOCKET=" + InsideSocket,
+		"GUSTO_MODEL_URL=http://127.0.0.1:8041/model/v1",
+		"GUSTO_MODEL_TOKEN=a-token",
+		"HTTPS_PROXY=http://gusto:a-token@127.0.0.1:8041",
+		"http_proxy=http://gusto:a-token@127.0.0.1:8041",
 		"NO_PROXY=127.0.0.1,localhost",
 	} {
 		if !slices.Contains(args, want) {
@@ -38,7 +38,7 @@ func TestASealedContainerHasNoNetworkButTheProxysSocket(t *testing.T) {
 }
 
 func TestAContainerWithoutAProxyKeepsTheRuntimesNetwork(t *testing.T) {
-	args, err := argv("/jobs/a", []string{"-e", "HAAS_MODEL_URL=http://host.docker.internal:11434/v1"}, nil)
+	args, err := argv("/jobs/a", []string{"-e", "GUSTO_MODEL_URL=http://host.docker.internal:11434/v1"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

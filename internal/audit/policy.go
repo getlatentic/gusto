@@ -9,7 +9,7 @@ import (
 )
 
 // Policy is what an export keeps and what it hides. It is configuration: a
-// JSON file handed to `haas export -policy`, recorded whole in the export it
+// JSON file handed to `gusto export -policy`, recorded whole in the export it
 // shaped, so a reader knows the rules as well as what they removed.
 type Policy struct {
 	// Drop names files of the export, as slash paths inside it, that are not

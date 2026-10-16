@@ -34,9 +34,9 @@ json.dump(spec, open(sys.argv[1], "w"), indent=2)
 PY
 
 cd "$M"
-HAAS_SANDBOX=openshell HAAS_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" HAAS_OPENSHELL_GATEWAY=spike \
-  HAAS_OPENSHELL_MEMORY=3Gi HAAS_OPENSHELL_CPU=2 HAAS_CREDENTIALS="$M/creds" \
-  HAAS_SIGNING_KEY="$M/keys/e2e.key" HAAS_KEYRING="$M/keys" HAAS_SIGNER=e2e \
+GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
+  GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 GUSTO_CREDENTIALS="$M/creds" \
+  GUSTO_SIGNING_KEY="$M/keys/e2e.key" GUSTO_KEYRING="$M/keys" GUSTO_SIGNER=e2e \
   "$E/haas" matrix ${AGAIN:+-again "$AGAIN"} "$M/plan.json" > "$M/table.txt" 2> "$M/run.log"
 echo "exit $?" >> "$M/run.log"
 touch "$M/done"

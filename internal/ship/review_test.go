@@ -9,12 +9,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/ship"
+	"github.com/getlatentic/gusto/internal/ship"
 )
 
 // These tests read a pull request the way a reviewer does: they take the
 // command out of the body that reached the forge and run it as printed, with
-// the haas this repository builds, against the remote the job shipped to.
+// the gusto this repository builds, against the remote the job shipped to.
 
 func TestThePrintedCommandVerifiesTheEvidence(t *testing.T) {
 	dir, _ := finished(t, "yes")
@@ -99,8 +99,8 @@ func printedCommand(t *testing.T, fake *forge) string {
 	t.Helper()
 	body := bodyOf(t, fake)
 	found := regexp.MustCompile("To check it[^\n]*\n\n~~~\n([^\n]+)\n~~~").FindStringSubmatch(body)
-	if found == nil || !strings.HasPrefix(found[1], "haas check ") {
-		t.Fatalf("the body should print one haas check command:\n%s", body)
+	if found == nil || !strings.HasPrefix(found[1], "gusto check ") {
+		t.Fatalf("the body should print one gusto check command:\n%s", body)
 	}
 	return found[1]
 }
@@ -116,7 +116,7 @@ func bodyOf(t *testing.T, fake *forge) string {
 }
 
 // reviewed runs the command through a shell, as typed, with this repository's
-// haas first on the path, and returns everything it printed and its exit code.
+// gusto first on the path, and returns everything it printed and its exit code.
 func reviewed(t *testing.T, command string) (string, int) {
 	t.Helper()
 	shell := exec.Command("sh", "-c", command)
@@ -167,23 +167,23 @@ var (
 	buildFail error
 )
 
-// binaries is a directory holding haas, built once from this repository for
+// binaries is a directory holding gusto, built once from this repository for
 // every test that runs the printed command.
 func binaries(t *testing.T) string {
 	t.Helper()
 	built.Do(func() {
-		binDir, buildFail = os.MkdirTemp("", "haas-bin-")
+		binDir, buildFail = os.MkdirTemp("", "gusto-bin-")
 		if buildFail != nil {
 			return
 		}
-		output, err := exec.Command("go", "build", "-o", filepath.Join(binDir, "haas"), "github.com/getlatentic/haas/cmd/haas").CombinedOutput()
+		output, err := exec.Command("go", "build", "-o", filepath.Join(binDir, "gusto"), "github.com/getlatentic/gusto/cmd/gusto").CombinedOutput()
 		if err != nil {
 			buildFail = err
 			t.Logf("%s", output)
 		}
 	})
 	if buildFail != nil {
-		t.Fatalf("building haas: %v", buildFail)
+		t.Fatalf("building gusto: %v", buildFail)
 	}
 	return binDir
 }

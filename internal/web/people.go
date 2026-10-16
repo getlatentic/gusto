@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/roster"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // UseRoster says where the list of the organisation's people is. The front door owns

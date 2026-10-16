@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/orgsettings"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/orgsettings"
 )
 
 // UseOrgSettings says where the choices an admin makes for the organisation are kept,

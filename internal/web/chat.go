@@ -9,9 +9,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/instance"
 )
 
 // pick is one harness in the chat's chooser with the models it may be pointed at.

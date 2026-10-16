@@ -4,7 +4,7 @@
 // Adding a harness is a JSON file: the program, its arguments, the environment
 // it needs, and where the numbers sit in whatever it prints. No code and no
 // release. The built-in adapters are defaults, and a directory named by
-// HAAS_HARNESSES overrides any of them, so a customer can correct one or add a
+// GUSTO_HARNESSES overrides any of them, so a customer can correct one or add a
 // harness of their own without a new binary.
 //
 // A configured harness is the adapter and what shapes the harness it runs: a
@@ -24,8 +24,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/wire"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/wire"
 )
 
 //go:embed adapters/*.json
@@ -275,10 +275,10 @@ func (a Adapter) fill(text string, spec job.Spec, env Env) string {
 		provider, alone = "", spec.Model
 	}
 	// A harness that runs only the models its configuration names is told of the job's own, under the name of the
-	// credential that serves it, and of none when the job names no model: a provider called haas, which its
+	// credential that serves it, and of none when the job names no model: a provider called gusto, which its
 	// configuration turns off.
 	if provider == "" {
-		provider = "haas"
+		provider = "gusto"
 	}
 	return strings.NewReplacer(
 		"{brief}", spec.Brief,
@@ -300,7 +300,7 @@ func (a Adapter) fill(text string, spec job.Spec, env Env) string {
 // ModelURL is where a local model answers. A container reaches the host's
 // through host.docker.internal, so the runner is told rather than guessing.
 func ModelURL() string {
-	if url := os.Getenv("HAAS_MODEL_URL"); url != "" {
+	if url := os.Getenv("GUSTO_MODEL_URL"); url != "" {
 		return url
 	}
 	return "http://localhost:11434/v1"
@@ -315,7 +315,7 @@ func ModelRoot() string { return strings.TrimSuffix(ModelURL(), "/v1") }
 // ModelToken is what the box was given in place of a credential. A harness that
 // reads its key from a variable of its own is handed this, so the real key
 // stays in the proxy and this is worth nothing once the job ends.
-func ModelToken() string { return os.Getenv("HAAS_MODEL_TOKEN") }
+func ModelToken() string { return os.Getenv("GUSTO_MODEL_TOKEN") }
 
 // EndpointOf is the address a job will talk to, for the rules to check.
 //

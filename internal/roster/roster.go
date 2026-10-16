@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Member is a person in the organisation. Role is "admin" or "runner".

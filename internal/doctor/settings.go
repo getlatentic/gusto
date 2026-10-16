@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/openshell"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // modelAnswers dials the model the way a job would, before the harness starts.
-// Only a model named in HAAS_MODEL_URL is checked: without it a job that needs a
+// Only a model named in GUSTO_MODEL_URL is checked: without it a job that needs a
 // local model finds out at its own start, and a job that needs none never asks.
 func modelAnswers() Verdict {
-	endpoint := os.Getenv("HAAS_MODEL_URL")
+	endpoint := os.Getenv("GUSTO_MODEL_URL")
 	if endpoint == "" {
-		return skip("HAAS_MODEL_URL is not set")
+		return skip("GUSTO_MODEL_URL is not set")
 	}
 	if err := runner.Reachable(endpoint); err != nil {
 		return fail(err.Error(),
@@ -30,13 +30,13 @@ func modelAnswers() Verdict {
 // otherwise found by the first job that names it, or by the pages offering a
 // harness the server cannot run.
 func adaptersParse() Verdict {
-	dir := os.Getenv("HAAS_HARNESSES")
+	dir := os.Getenv("GUSTO_HARNESSES")
 	if dir == "" {
-		return skip("HAAS_HARNESSES is not set, so only the built-in adapters are used")
+		return skip("GUSTO_HARNESSES is not set, so only the built-in adapters are used")
 	}
 	names, err := adapterNames(dir)
 	if err != nil {
-		return fail(err.Error(), "set HAAS_HARNESSES to a directory of adapter .json files")
+		return fail(err.Error(), "set GUSTO_HARNESSES to a directory of adapter .json files")
 	}
 	if broken := unparsed(names); len(broken) > 0 {
 		return fail("these adapters do not parse: "+strings.Join(broken, "; "),
@@ -77,24 +77,24 @@ func unparsed(names []string) []string {
 	return broken
 }
 
-// signIn says whether haas serve has a password, and never what it is: this
+// signIn says whether gusto serve has a password, and never what it is: this
 // output goes to terminals, logs and pull requests.
 func signIn() Verdict {
-	if os.Getenv("HAAS_PASSWORD") == "" {
-		return fail("HAAS_PASSWORD is not set, and haas serve will not start without it",
-			"set HAAS_PASSWORD in the environment haas serve starts with")
+	if os.Getenv("GUSTO_PASSWORD") == "" {
+		return fail("GUSTO_PASSWORD is not set, and gusto serve will not start without it",
+			"set GUSTO_PASSWORD in the environment gusto serve starts with")
 	}
-	return pass("HAAS_PASSWORD is set")
+	return pass("GUSTO_PASSWORD is set")
 }
 
 // sandboxHardware is whether this machine can be where an OpenShell gateway makes microVMs. A deployment that runs jobs
 // in containers needs none, so the check is skipped for it.
 func sandboxHardware() Verdict {
-	if os.Getenv("HAAS_SANDBOX") != "openshell" {
-		return skip("HAAS_SANDBOX is not openshell")
+	if os.Getenv("GUSTO_SANDBOX") != "openshell" {
+		return skip("GUSTO_SANDBOX is not openshell")
 	}
 	if err := openshell.HostCannotMakeVMs(); err != nil {
-		return fail(err.Error(), "run on a host with KVM, or set HAAS_OPENSHELL_REMOTE=1 when the gateway is on another machine")
+		return fail(err.Error(), "run on a host with KVM, or set GUSTO_OPENSHELL_REMOTE=1 when the gateway is on another machine")
 	}
 	return pass("this machine can host the gateway's microVMs, or the gateway is elsewhere")
 }

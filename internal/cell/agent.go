@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 // Agent is what runs on a cell host. It starts and stops the organisations' servers the front door

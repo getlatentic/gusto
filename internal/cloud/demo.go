@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // DemoSettings make the front door offer a demo: an organisation that a visitor starts without signing up, that

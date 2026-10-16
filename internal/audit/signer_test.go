@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/audit"
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/audit"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // signedRun runs the fixture job signed by a key kept in ring as name. The

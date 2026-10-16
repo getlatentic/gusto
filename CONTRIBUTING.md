@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for looking. haas is the program behind haas, under the Apache License 2.0 ([LICENSE](LICENSE)). A
+Thank you for looking. gusto is the program behind gusto, under the Apache License 2.0 ([LICENSE](LICENSE)). A
 contribution is licensed the same way.
 
 ## Start with an issue
@@ -9,7 +9,7 @@ Open an issue in this repository before a large change, so we can say whether it
 with what you ran, what happened and what you expected is the most useful thing you can send. For a vulnerability, do not open an
 issue: [SECURITY.md](SECURITY.md) says where to send it.
 
-[docs/DIRECTION.md](docs/DIRECTION.md) says what haas is for and is not yet. [docs/PROTOCOL.md](docs/PROTOCOL.md) is the calls a client makes
+[docs/DIRECTION.md](docs/DIRECTION.md) says what gusto is for and is not yet. [docs/PROTOCOL.md](docs/PROTOCOL.md) is the calls a client makes
 to a server, and the place to start if you are building against it.
 
 ## The standard for the code

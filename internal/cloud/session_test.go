@@ -79,7 +79,7 @@ func TestACookieThatWasChangedOrSignedWithAnotherKeyIsNobody(t *testing.T) {
 func TestOverHTTPSTheCookieIsLockedToTheHostAndSecure(t *testing.T) {
 	s, _ := OpenSessions(t.TempDir(), true)
 	cookie := cookieFor(t, s, "ada@acme.com")
-	if cookie.Name != "__Host-haas_cloud" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Path != "/" || cookie.Domain != "" {
+	if cookie.Name != "__Host-gusto_cloud" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Path != "/" || cookie.Domain != "" {
 		t.Errorf("%+v", cookie)
 	}
 }

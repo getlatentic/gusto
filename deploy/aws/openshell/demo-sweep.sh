@@ -2,11 +2,11 @@
 # Terminates any instance tagged project=haas-poc that has been up longer than MAX_HOURS
 # (six by default). It is the backstop for a host whose own timer did not remove it, and it
 # runs from somewhere that is not the host. It prints what it terminated, and says so when
-# there was nothing. HAAS_NOW (an ISO time) moves the clock, which is how a test runs it.
+# there was nothing. GUSTO_NOW (an ISO time) moves the clock, which is how a test runs it.
 set -euo pipefail
 export AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
 max_hours="${MAX_HOURS:-6}"
-now="${HAAS_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+now="${GUSTO_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 
 listed="$(aws ec2 describe-instances \
   --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running \

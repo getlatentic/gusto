@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/apitoken"
 )
 
 // sentOverHTTP is who asked for a job that arrived at POST /api/jobs with the
@@ -101,7 +101,7 @@ func refusalOf(err error) string {
 func (s *Server) turnBack(w http.ResponseWriter, r *http.Request, why, said string) {
 	s.wrong.failed(clientOf(r), time.Now())
 	s.noteRefused(r, "", s.presented(), why)
-	w.Header().Set("WWW-Authenticate", `Bearer realm="haas"`)
+	w.Header().Set("WWW-Authenticate", `Bearer realm="gusto"`)
 	reply(w, http.StatusUnauthorized, Answer{Refused: said})
 }
 

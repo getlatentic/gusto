@@ -16,8 +16,8 @@ inside() { openshell sandbox exec --name "$sandbox" --no-tty -- "$@" < /dev/null
 # environment and the agent's process is gone between turns, so the address is read from the policy.
 policy=$(openshell sandbox get "$sandbox" 2>/dev/null)
 rules=$(awk '/^  network_policies:/ {on=1; next} on && /^  [a-z]/ {on=0} on && /^    [a-z_0-9]+:$/ {gsub(/[ :]/, ""); print}' <<<"$policy")
-way_host=$(awk '/^    haas_model_proxy:/ {on=1} on && /host:/ {print $NF; exit}' <<<"$policy")
-way_port=$(awk '/^    haas_model_proxy:/ {on=1} on && /port:/ {print $NF; exit}' <<<"$policy")
+way_host=$(awk '/^    gusto_model_proxy:/ {on=1} on && /host:/ {print $NF; exit}' <<<"$policy")
+way_port=$(awk '/^    gusto_model_proxy:/ {on=1} on && /port:/ {print $NF; exit}' <<<"$policy")
 way=${MODEL_ADDRESS:-$way_host:$way_port}
 [[ "$way" == *:* && "$way" != ":" ]] || { echo "the sandbox's policy names no model proxy to test against" >&2; exit 2; }
 way_host=${way%:*}; way_port=${way#*:}
@@ -51,7 +51,7 @@ case "$answer" in
   198.18.* | 198.19.*) ;;
   *) echo "FAIL: a name that does not exist resolved to '${answer:-nothing}' inside the sandbox, which is not the sandbox's own answer, so its lookups may leave it" >&2; failed=1 ;;
 esac
-if others=$(grep -vx haas_model_proxy <<<"$rules"); [ -n "$others" ]; then
+if others=$(grep -vx gusto_model_proxy <<<"$rules"); [ -n "$others" ]; then
   echo "FAIL: the sandbox's policy allows more than the model proxy: $(tr '\n' ' ' <<<"$others")" >&2
   failed=1
 fi

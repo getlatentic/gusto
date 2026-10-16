@@ -26,20 +26,20 @@ type Tool struct {
 	Cwd          string
 }
 
-// ToolImage is the image programs run in: HAAS_TOOLS_IMAGE, or the job image, which carries the interpreters a plugin is likely to
+// ToolImage is the image programs run in: GUSTO_TOOLS_IMAGE, or the job image, which carries the interpreters a plugin is likely to
 // need. A program that needs more than it has is told so by the container.
 func ToolImage() string {
-	if image := os.Getenv("HAAS_TOOLS_IMAGE"); image != "" {
+	if image := os.Getenv("GUSTO_TOOLS_IMAGE"); image != "" {
 		return image
 	}
 	return Image()
 }
 
-// ToolNetwork is what a program reaches: none by default, and with HAAS_TOOLS_NETWORK=open the runtime's own network, which an
+// ToolNetwork is what a program reaches: none by default, and with GUSTO_TOOLS_NETWORK=open the runtime's own network, which an
 // administrator allows for a program that must call a service. A program that reaches the network can send what it is given to
 // anywhere on it.
 func ToolNetwork() string {
-	if os.Getenv("HAAS_TOOLS_NETWORK") == "open" {
+	if os.Getenv("GUSTO_TOOLS_NETWORK") == "open" {
 		return "bridge"
 	}
 	return "none"
@@ -49,7 +49,7 @@ var notName = regexp.MustCompile(`[^A-Za-z0-9_.-]+`)
 
 // ToolName is the name a program's container has, so that it can be found and removed by it.
 func ToolName(job, name string) string {
-	return "haas-tool-" + strings.Trim(notName.ReplaceAllString(job+"-"+name, "-"), "-.")
+	return "gusto-tool-" + strings.Trim(notName.ReplaceAllString(job+"-"+name, "-"), "-.")
 }
 
 // inside is where the plugin and its folder to write are in the box.
@@ -79,7 +79,7 @@ func ToolArgs(tool Tool) ([]string, error) {
 		"--network=" + ToolNetwork(),
 		"--read-only", "--tmpfs=/tmp:rw,nosuid,size=64m",
 		"--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
-		"--cpus=" + share("HAAS_TOOL_CPUS", "0.5"), "--memory=" + share("HAAS_TOOL_MEMORY", "512m"), "--pids-limit=128",
+		"--cpus=" + share("GUSTO_TOOL_CPUS", "0.5"), "--memory=" + share("GUSTO_TOOL_MEMORY", "512m"), "--pids-limit=128",
 		"-v", plugin + ":" + insidePlugin + ":ro",
 		"-v", data + ":" + insideData,
 		"-e", "PLUGIN_ROOT=" + insidePlugin, "-e", "PLUGIN_DATA=" + insideData, "-e", "HOME=" + insideData,

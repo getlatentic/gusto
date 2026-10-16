@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 func TestTheAdaptersThatShipParse(t *testing.T) {
-	t.Setenv("HAAS_HARNESSES", "")
+	t.Setenv("GUSTO_HARNESSES", "")
 	names := Names()
 	if len(names) == 0 {
 		t.Fatal("no adapter ships with this build")
@@ -37,7 +37,7 @@ func TestAJobsValuesReachTheCommandLine(t *testing.T) {
 	}
 	spec := job.Spec{Brief: "fix the adder", Model: "ollama/gpt-oss:20b"}
 	command := adapter.Command(context.Background(), spec, t.TempDir())
-	if !slices.Contains(command.Args, "--model=haas-ollama/gpt-oss:20b") {
+	if !slices.Contains(command.Args, "--model=gusto-ollama/gpt-oss:20b") {
 		t.Errorf("the model should reach the command line: %v", command.Args)
 	}
 	if !slices.Contains(command.Args, "fix the adder") {
@@ -89,7 +89,7 @@ func TestAnAdapterOfYourOwnWinsOverABuiltInOne(t *testing.T) {
 	if err := writeFile(mine+"/opencode.json", `{"name":"opencode","program":"mine","argv":["go"],"needs":"nothing"}`); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +104,7 @@ func writeFile(path, text string) error {
 }
 
 func TestAnAdapterCarriedByTheJobIsFoundWithNothingElseSet(t *testing.T) {
-	t.Setenv("HAAS_HARNESSES", "")
+	t.Setenv("GUSTO_HARNESSES", "")
 	dir := job.Dir(t.TempDir())
 	if err := os.MkdirAll(Carried(dir), 0o755); err != nil {
 		t.Fatal(err)
@@ -127,7 +127,7 @@ func TestANewJobKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
 	if err := writeFile(mine+"/mine.json", `{"name":"mine","program":"sh","argv":["-c","true"],"needs":"nothing"}`); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := Keep(dir, "mine"); err != nil {
 		t.Fatal(err)
@@ -187,7 +187,7 @@ func TestAPathIntoAListThatIsNotThereIsNotFound(t *testing.T) {
 }
 
 func TestWhatEachHarnessTalksTo(t *testing.T) {
-	t.Setenv("HAAS_MODEL_URL", "http://localhost:11434/v1")
+	t.Setenv("GUSTO_MODEL_URL", "http://localhost:11434/v1")
 	for name, want := range map[string]string{
 		"opencode": "http://localhost:11434/v1",
 		"claude":   "https://api.anthropic.com",
@@ -212,7 +212,7 @@ func TestTheNamesOfferedIncludeYourOwn(t *testing.T) {
 	if err := writeFile(mine+"/fixture.json", `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing"}`); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	names := Names()
 	if !slices.Contains(names, "fixture") || !slices.Contains(names, "claude") {
 		t.Fatalf("want both a harness of my own and the built-in ones, got %v", names)
@@ -385,7 +385,7 @@ func TestAnAdapterThatNarrowsNothingCountsEveryLine(t *testing.T) {
 // address without a version on it. Handed the /v1 form it asked the provider
 // for /v1/v1/messages and was answered 404.
 func TestAClientThatAddsItsOwnVersionIsGivenTheRootWithoutOne(t *testing.T) {
-	t.Setenv("HAAS_MODEL_URL", "http://127.0.0.1:8041/model/v1")
+	t.Setenv("GUSTO_MODEL_URL", "http://127.0.0.1:8041/model/v1")
 	if got := ModelRoot(); got != "http://127.0.0.1:8041/model" {
 		t.Errorf("the root reads as %q", got)
 	}

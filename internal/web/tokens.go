@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apitoken"
-	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/gusto/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // UseTokens makes the API take these tokens and not the shared password. Without

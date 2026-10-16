@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // waitingJob leaves a job that is asked for by who, in the state given.

@@ -89,7 +89,7 @@ func git(at string, args ...string) (string, error) {
 // working tree and no file contents, and is gone when Resolve returns, so jobs
 // that must start from one commit can each clone their own workspace at it.
 func Resolve(repo, ref string) (Pin, error) {
-	scratch, err := os.MkdirTemp("", "haas-pin-")
+	scratch, err := os.MkdirTemp("", "gusto-pin-")
 	if err != nil {
 		return Pin{}, err
 	}

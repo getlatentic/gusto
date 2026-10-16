@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // Cloud is what the bridge asks of the person's organisation: the calls of the server's API for their own work.
@@ -94,7 +94,7 @@ func (a *Agent) handle(ctx context.Context, w *wire, got request) {
 				"promptCapabilities": map[string]bool{"image": false, "audio": false, "embeddedContext": false},
 				"mcpCapabilities":    map[string]bool{"http": false, "sse": false},
 			},
-			"agentInfo":   map[string]string{"name": "haas-helper", "title": "Latentic Agent Cloud", "version": a.Version},
+			"agentInfo":   map[string]string{"name": "gusto-helper", "title": "Latentic Agent Cloud", "version": a.Version},
 			"authMethods": []any{},
 		})
 	case "session/new":
@@ -114,7 +114,7 @@ func (a *Agent) handle(ctx context.Context, w *wire, got request) {
 // failure turns an error from the cloud into what the editor should be told.
 func failure(err error) (int, string) {
 	if errors.Is(err, helper.ErrSignedOut) || errors.Is(err, helper.ErrNotSignedIn) {
-		return codeAuth, "this computer is not signed in to your organisation: run `haas-helper login`"
+		return codeAuth, "this computer is not signed in to your organisation: run `gusto-helper login`"
 	}
 	var refused *helper.Refused
 	if errors.As(err, &refused) {
@@ -173,7 +173,7 @@ func (a *Agent) agentToUse(ctx context.Context) (helper.Instance, error) {
 		}
 	}
 	if a.Instance != "" && picked == nil {
-		return helper.Instance{}, fmt.Errorf("you have no agent called %s: haas-helper agents lists yours", a.Instance)
+		return helper.Instance{}, fmt.Errorf("you have no agent called %s: gusto-helper agents lists yours", a.Instance)
 	}
 	if picked == nil {
 		engine, err := a.engine(ctx)

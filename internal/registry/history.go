@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // mostRevisions is how many earlier states of the registry are kept to go back to.

@@ -3,8 +3,8 @@ package evidence
 import (
 	"fmt"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // The words a record's signer is given where no keyring checked a name. They
@@ -13,7 +13,7 @@ import (
 const (
 	// Unsigned is a record with no manifest.sig beside its manifest.
 	Unsigned = "unsigned"
-	// NoKeyring is a signed record read where HAAS_KEYRING names no keys, so
+	// NoKeyring is a signed record read where GUSTO_KEYRING names no keys, so
 	// nothing here can say whose key made the signature.
 	NoKeyring = "signed, not checked: no keyring"
 	// Refused is a signature from a key the keyring holds that does not hold

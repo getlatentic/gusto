@@ -12,7 +12,7 @@ import (
 )
 
 // KeyringEnv names the directory of public keys a verifier trusts.
-const KeyringEnv = "HAAS_KEYRING"
+const KeyringEnv = "GUSTO_KEYRING"
 
 // Named is a public key and the name its keyring file gives it.
 type Named struct {
@@ -25,7 +25,7 @@ type Named struct {
 // that key signed verifiable.
 type Keyring map[string]Named
 
-// ConfiguredKeyring is the keyring HAAS_KEYRING names, or an empty one when
+// ConfiguredKeyring is the keyring GUSTO_KEYRING names, or an empty one when
 // the variable is unset, in which every signature is from a key not in it.
 func ConfiguredKeyring() (Keyring, error) {
 	dir := os.Getenv(KeyringEnv)

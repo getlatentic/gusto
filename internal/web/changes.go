@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/getlatentic/haas/internal/accesslog"
+	"github.com/getlatentic/gusto/internal/accesslog"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // UseChanges gives the server the log it records what changes in. Without one,
@@ -166,7 +166,7 @@ func (f *refusals) allow(from string, now time.Time) (bool, int) {
 }
 
 // clientOf is where a request came from, as the access log says it (accesslog.Remote): a forwarded address is believed from a proxy
-// on this machine, and from any peer when haas was told it is only reached through one.
+// on this machine, and from any peer when gusto was told it is only reached through one.
 func clientOf(r *http.Request) string { return accesslog.Remote(r) }
 
 // changesFile is the whole log, as the file holds it, for an admin to export

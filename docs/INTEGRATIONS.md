@@ -75,8 +75,8 @@ shows what a version holds and what it left out, and turns a version on, turns t
 off, or puts the earlier version back. Choosing a version other than the one that is on shows
 what would change: skills added, removed or changed, servers added, removed or changed, and the
 descriptive fields. Each import and each change is in the change record with what was on and what
-is on now. `HAAS_INTEGRATIONS` is the directory (a stamped data directory, in
-[UPGRADE.md](UPGRADE.md)), and `HAAS_INTEGRATIONS_PRIVATE=1` lets a git address be on a private
+is on now. `GUSTO_INTEGRATIONS` is the directory (a stamped data directory, in
+[UPGRADE.md](UPGRADE.md)), and `GUSTO_INTEGRATIONS_PRIVATE=1` lets a git address be on a private
 network. The server needs `git`, which its image has.
 
 **A setup** names the integrations it is given. A job gets, for each one that is on:
@@ -109,7 +109,7 @@ is a label a person chooses for a job, and nothing proves they belong to it.
 
 A skill set an administrator makes in the console is **off** until an administrator turns it on, as an integration, a model provider and
 a model are: it is not offered to people, and no agent starts with it. A skill set kept before there was an off switch is on, and so
-are the ones haas ships. A skill that is changed or removed is kept as it was, up to ten times, and the page puts one back as a change
+are the ones gusto ships. A skill that is changed or removed is kept as it was, up to ten times, and the page puts one back as a change
 of its own. The change record says, for a skill, what it was and what it became as a short fingerprint of each, never the text.
 
 A skill set is a plugin with no servers. **Download as an Agent Plugin** on a skill set's page gives a zip that another deployment, or
@@ -131,14 +131,14 @@ job takes (import, setup, carry, place), and a question that only the skill can 
 | Hermes | `~/.agents/skills` | not measured: not connected to a provider here |
 | DeepSeek harness (`dsh`) | `~/.agents/skills` | not measured: no key here |
 
-`HAAS_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the harnesses that are signed in. It
+`GUSTO_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the harnesses that are signed in. It
 makes short calls to their models. A small model may not use a skill it has, which is the model's choice and not the placement's.
 
 ## Run end to end in OpenShell sandboxes
 
 `deploy/aws/openshell/e2e-integrations.sh` runs the whole way on an OpenShell gateway (2026-10-08, one `m8i.xlarge`, 25 minutes): a
 plugin with a skill, a reference file beside it and an MCP server is imported through the console, is off, is turned on, and is given
-to a skill set. Claude Code and Codex are each asked for a customer's account id from the pages' form, in a sandbox, through haas's
+to a skill set. Claude Code and Codex are each asked for a customer's account id from the pages' form, in a sandbox, through gusto's
 proxy. The customer system is a server that answers only the key the gateway holds. Both harnesses searched for the tool, read how to
 call it, called it, read the skill's reference file and answered in its format with an id only the customer system holds. Each job's
 `out/gateway.jsonl` has the list, the search, the schema and the call, with who asked. The customer system's key is in nothing the

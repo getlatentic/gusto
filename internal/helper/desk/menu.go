@@ -3,7 +3,7 @@ package desk
 import (
 	"fmt"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // Slots is how many turns the menu lists.
@@ -31,7 +31,7 @@ func Menu(server string, status helper.Status, turns []helper.Turn) []Entry {
 func standing(status helper.Status) string {
 	switch {
 	case !status.SignedIn:
-		return "Not signed in: run haas-helper login"
+		return "Not signed in: run gusto-helper login"
 	case !status.Connected:
 		return "Reconnecting…"
 	}

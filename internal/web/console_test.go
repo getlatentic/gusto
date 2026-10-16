@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/retention"
-	"github.com/getlatentic/haas/internal/roster"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/internal/roster"
 )
 
 const boss = "boss@example.com"

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // opened is a log signed by a key whose public half is in the keyring.
@@ -272,7 +272,7 @@ func TestManyWritersProduceOneUnbrokenChain(t *testing.T) {
 func TestWhatALogLearnedSurvivesBeingOpenedAgain(t *testing.T) {
 	log, path, keyring := opened(t)
 	log.Append(changelog.Event{Who: "Alice@Example.com", Role: "runner", Kind: changelog.SignedIn})
-	log.Append(changelog.Event{Kind: changelog.ServerStarted, What: map[string]string{"HAAS_ADMINS": "alice@example.com"}})
+	log.Append(changelog.Event{Kind: changelog.ServerStarted, What: map[string]string{"GUSTO_ADMINS": "alice@example.com"}})
 	if role, found := log.LastRole("alice@example.com"); !found || role != "runner" {
 		t.Fatalf("live: %q %v", role, found)
 	}
@@ -289,7 +289,7 @@ func TestWhatALogLearnedSurvivesBeingOpenedAgain(t *testing.T) {
 	if _, found := again.LastRole("nobody@example.com"); found {
 		t.Error("somebody who never signed in has a role")
 	}
-	if got := again.LastSettings()["HAAS_ADMINS"]; got != "alice@example.com" {
+	if got := again.LastSettings()["GUSTO_ADMINS"]; got != "alice@example.com" {
 		t.Errorf("the settings it last started with: %q", got)
 	}
 }

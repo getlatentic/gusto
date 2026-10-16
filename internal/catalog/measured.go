@@ -7,13 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // MatrixSetting names the table a matrix wrote, table.json, for the catalog to
 // read when the server starts. Without it the catalog says nothing about
 // models, which is what it said before a matrix existed.
-const MatrixSetting = "HAAS_MATRIX"
+const MatrixSetting = "GUSTO_MATRIX"
 
 // matrixVersion is the newest table version this catalog reads.
 const matrixVersion = 1

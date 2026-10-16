@@ -18,16 +18,16 @@
     cmd: "{{ candidate_bin }} data check"
   become_user: "{{ app_user }}"
   environment:
-    HAAS_JOBS: "{{ app_root }}/var/jobs"
-    HAAS_SESSIONS: "{{ app_root }}/var/sessions"
-    HAAS_SETUPS: "{{ app_root }}/var/setups"
-    HAAS_INTEGRATIONS: "{{ app_root }}/var/integrations"
-    HAAS_PRESETS: "{{ app_root }}/var/presets"
-    HAAS_COMPARISONS: "{{ app_root }}/var/comparisons"
-    HAAS_CHANGES: "{{ app_root }}/var/changes/changes.jsonl"
-    HAAS_RETENTION: "{{ app_root }}/var/retention"
-    HAAS_API_TOKENS: "{{ (app_root ~ '/var/tokens/tokens.json') if (api_tokens | bool) else '' }}"
-    HAAS_MIGRATE_IRREVERSIBLE: "{{ '1' if (migrate_irreversible | default(false) | bool) else '' }}"
+    GUSTO_JOBS: "{{ app_root }}/var/jobs"
+    GUSTO_SESSIONS: "{{ app_root }}/var/sessions"
+    GUSTO_SETUPS: "{{ app_root }}/var/setups"
+    GUSTO_INTEGRATIONS: "{{ app_root }}/var/integrations"
+    GUSTO_PRESETS: "{{ app_root }}/var/presets"
+    GUSTO_COMPARISONS: "{{ app_root }}/var/comparisons"
+    GUSTO_CHANGES: "{{ app_root }}/var/changes/changes.jsonl"
+    GUSTO_RETENTION: "{{ app_root }}/var/retention"
+    GUSTO_API_TOKENS: "{{ (app_root ~ '/var/tokens/tokens.json') if (api_tokens | bool) else '' }}"
+    GUSTO_MIGRATE_IRREVERSIBLE: "{{ '1' if (migrate_irreversible | default(false) | bool) else '' }}"
   changed_when: false
   when: serve_enabled | bool
 

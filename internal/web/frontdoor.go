@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlatentic/haas/internal/entry"
+	"github.com/getlatentic/gusto/internal/entry"
 )
 
-// FrontDoor makes this server one organisation's in a hosted haas. Nobody signs
+// FrontDoor makes this server one organisation's in a hosted gusto. Nobody signs
 // in here: the front door signs a person in, and hands their browser a token
 // that this server checks against a key only the two of them hold. An address
 // here that wants a sign-in sends the person to the front door.
@@ -56,7 +56,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 		s.noteRefused(r, "", "the front door", "the sign-in link was wrong, old or used")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>haas</title><p>That sign-in link has expired or was used already. <a href="` +
+		w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>gusto</title><p>That sign-in link has expired or was used already. <a href="` +
 			html.EscapeString(s.front.URL) + `/org">Open your organisation again.</a></p>`))
 		return
 	}

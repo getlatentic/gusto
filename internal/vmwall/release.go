@@ -5,7 +5,7 @@ package vmwall
 
 import "fmt"
 
-// Version is the OpenShell release haas installs. Every file is pinned by checksum, so a release moves only by a change here.
+// Version is the OpenShell release gusto installs. Every file is pinned by checksum, so a release moves only by a change here.
 const Version = "v0.1.3"
 
 const releaseURL = "https://github.com/NVIDIA/OpenShell/releases/download/" + Version + "/"
@@ -53,9 +53,9 @@ var programs = map[Platform][]Program{
 	},
 }
 
-// RootfsAsset is the file of a haas release that holds the root file system a job's virtual machine starts from: the runner image,
+// RootfsAsset is the file of a gusto release that holds the root file system a job's virtual machine starts from: the runner image,
 // flattened, for the processor the machine has. A file with the same name and .sha256 added holds its checksum.
-func RootfsAsset(goarch string) string { return "haas-rootfs-" + goarch + ".tar.gz" }
+func RootfsAsset(goarch string) string { return "gusto-rootfs-" + goarch + ".tar.gz" }
 
 // ProgramsFor is the files OpenShell needs on a platform.
 func ProgramsFor(p Platform) ([]Program, error) {
@@ -66,6 +66,6 @@ func ProgramsFor(p Platform) ([]Program, error) {
 	return files, nil
 }
 
-// ToolsAsset is the file of a haas release that holds the disk tools (mke2fs, debugfs and e2fsck) built to stand alone, for a Mac,
+// ToolsAsset is the file of a gusto release that holds the disk tools (mke2fs, debugfs and e2fsck) built to stand alone, for a Mac,
 // which has none of its own. A file with the same name and .sha256 added holds its checksum and size.
-const ToolsAsset = "haas-e2fsprogs-darwin-arm64.tar.gz"
+const ToolsAsset = "gusto-e2fsprogs-darwin-arm64.tar.gz"

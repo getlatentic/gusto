@@ -34,7 +34,7 @@ func (f fakeRuntime) commands(program string, args ...string) Outcome {
 }
 
 // refusingTinyMemory is docker's own answer to a cap under its floor, measured
-// at HAAS_JOB_MEMORY=4m.
+// at GUSTO_JOB_MEMORY=4m.
 func refusingTinyMemory(program string, args ...string) Outcome {
 	if slices.Contains(args, "--memory=4m") {
 		return Outcome{Started: true, Code: 125,
@@ -55,10 +55,10 @@ func machineWith(commands Commands) Machine {
 // healthy sets the environment of a runner that has everything it needs.
 func healthy(t *testing.T) {
 	t.Helper()
-	t.Setenv("HAAS_JOBS", t.TempDir())
-	t.Setenv("HAAS_PASSWORD", "correct horse battery staple")
-	for _, name := range []string{"HAAS_CONTAINER", "HAAS_IMAGE", "HAAS_JOB_MEMORY", "HAAS_JOB_CPUS",
-		"HAAS_MODEL_URL", "HAAS_HARNESSES", "HAAS_SANDBOX", "XDG_RUNTIME_DIR"} {
+	t.Setenv("GUSTO_JOBS", t.TempDir())
+	t.Setenv("GUSTO_PASSWORD", "correct horse battery staple")
+	for _, name := range []string{"GUSTO_CONTAINER", "GUSTO_IMAGE", "GUSTO_JOB_MEMORY", "GUSTO_JOB_CPUS",
+		"GUSTO_MODEL_URL", "GUSTO_HARNESSES", "GUSTO_SANDBOX", "XDG_RUNTIME_DIR"} {
 		t.Setenv(name, "")
 	}
 }

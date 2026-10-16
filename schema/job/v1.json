@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/job/v1.json",
-  "title": "haas job.json, version 1",
-  "description": "The spec at the root of a job directory. It carries a brief, not a prompt. A reader fills in ref, sensitivity and budget when they are left out, and ignores a field it does not know. `haas new` writes every field except model, which it leaves out when empty.",
+  "$id": "https://raw.githubusercontent.com/getlatentic/gusto/main/schema/job/v1.json",
+  "title": "gusto job.json, version 1",
+  "description": "The spec at the root of a job directory. It carries a brief, not a prompt. A reader fills in ref, sensitivity and budget when they are left out, and ignores a field it does not know. `gusto new` writes every field except model, which it leaves out when empty.",
   "type": "object",
   "required": ["brief", "harness"],
   "additionalProperties": false,
@@ -30,7 +30,7 @@
       "items": { "type": "string" }
     },
     "harness": {
-      "description": "The name of the adapter that runs the work, looked for in harnesses/ inside the job directory, then in the directory HAAS_HARNESSES names, then among the built-in ones.",
+      "description": "The name of the adapter that runs the work, looked for in harnesses/ inside the job directory, then in the directory GUSTO_HARNESSES names, then among the built-in ones.",
       "type": "string"
     },
     "model": {

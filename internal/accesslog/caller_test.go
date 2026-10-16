@@ -12,7 +12,7 @@ const password = "correct-horse-battery-staple"
 func TestTheCallerIsNamedByKind(t *testing.T) {
 	cases := map[string]func(*http.Request){
 		"bearer": func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+password) },
-		"cookie": func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "haas", Value: "1790000000.signature"}) },
+		"cookie": func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "gusto", Value: "1790000000.signature"}) },
 		"none":   func(r *http.Request) {},
 	}
 	for kind, identify := range cases {
@@ -27,7 +27,7 @@ func TestTheCallerIsNamedByKind(t *testing.T) {
 func TestBearerWinsOverACookie(t *testing.T) {
 	r := httptest.NewRequest("POST", "/api/jobs", nil)
 	r.Header.Set("Authorization", "Bearer "+password)
-	r.AddCookie(&http.Cookie{Name: "haas", Value: "1790000000.signature"})
+	r.AddCookie(&http.Cookie{Name: "gusto", Value: "1790000000.signature"})
 	if got := caller(r); got != "bearer" {
 		t.Errorf("want bearer, got %s", got)
 	}
@@ -38,7 +38,7 @@ func TestBearerWinsOverACookie(t *testing.T) {
 func TestNoCredentialReachesTheLog(t *testing.T) {
 	r := httptest.NewRequest("POST", "/api/jobs?password="+password, strings.NewReader(password))
 	r.Header.Set("Authorization", "Bearer "+password)
-	r.AddCookie(&http.Cookie{Name: "haas", Value: "cookie-" + password})
+	r.AddCookie(&http.Cookie{Name: "gusto", Value: "cookie-" + password})
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusUnauthorized) })
 
 	wrapped, destination := kept(handler)

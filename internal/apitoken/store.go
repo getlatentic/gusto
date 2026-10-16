@@ -46,7 +46,7 @@ var Scopes = []string{Submit, Spend, Audit, Metrics}
 
 // Prefix starts every secret, so one found in a repository or a log is known for
 // what it is.
-const Prefix = "haas_"
+const Prefix = "gusto_"
 
 var (
 	// ErrUnknown is a token nobody made, or that is not a token at all.

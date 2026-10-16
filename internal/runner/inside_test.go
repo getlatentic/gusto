@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // A harness is a program, so a program that makes the change is enough to run
@@ -51,8 +51,8 @@ func ran(t *testing.T) (job.Dir, job.Spec) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
-	t.Setenv("HAAS_HARNESSES", harnesses)
-	t.Setenv("HAAS_SIGNER", "a-test")
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
@@ -142,7 +142,7 @@ func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
   "needs": "nothing",
   "stream": "plain"
 }`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
   "needs": "nothing",
   "stream": "plain"
 }`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
   "needs": "nothing",
   "stream": "plain"
 }`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -278,7 +278,7 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","echo up > up.txt; sleep 30"],"needs":"nothing","stream":"plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	dir.Make()
 	spec := job.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}

@@ -10,7 +10,7 @@ export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
 G="openshell --gateway spike"
 for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
 pkill -f "[o]penshell.*forward" 2>/dev/null || true
-export HAAS_HARNESSES=""
+export GUSTO_HARNESSES=""
 bash "$S/credentials.sh" "$S/creds"
 
 echo "== A: two harnesses in one sandbox, on one project"

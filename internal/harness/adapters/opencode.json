@@ -5,14 +5,14 @@
   "program": "opencode",
   "package": "opencode-ai",
   "env": {
-    "HAAS_MODEL_PROVIDER": "{modelProvider}",
-    "HAAS_MODEL_ID": "{modelId}"
+    "GUSTO_MODEL_PROVIDER": "{modelProvider}",
+    "GUSTO_MODEL_ID": "{modelId}"
   },
   "argv": [
     "run",
     "--format",
     "json",
-    "--model=haas-{modelProvider}/{modelId}",
+    "--model=gusto-{modelProvider}/{modelId}",
     "{brief}"
   ],
   "resume": [
@@ -20,7 +20,7 @@
     "--format",
     "json",
     "--session={session}",
-    "--model=haas-{modelProvider}/{modelId}",
+    "--model=gusto-{modelProvider}/{modelId}",
     "{brief}"
   ],
   "needs": "local",

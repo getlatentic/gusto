@@ -154,7 +154,7 @@ func TestAnIrreversibleUpgradeIsRefusedUntilAllowed(t *testing.T) {
 	if !errors.As(err, &blocked) || len(ran) != 0 || stampOf2(dir) != 0 {
 		t.Fatalf("an irreversible step ran without leave: %v, ran %v", err, ran)
 	}
-	for _, want := range []string{"cannot be undone", "HAAS_MIGRATE_IRREVERSIBLE=1", "Nothing has been changed"} {
+	for _, want := range []string{"cannot be undone", "GUSTO_MIGRATE_IRREVERSIBLE=1", "Nothing has been changed"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("the refusal lacks %q: %v", want, err)
 		}

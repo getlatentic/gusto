@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/getlatentic/haas/internal/roster"
+	"github.com/getlatentic/gusto/internal/roster"
 )
 
 // RosterFile is the list of people the organisation's server reads, and InboxDir is

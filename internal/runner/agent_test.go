@@ -5,11 +5,11 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A runner that is not root has nobody to hand the work to, so the harness
-// runs as the runner and out/ keeps the mode it had: a laptop, or haas inside
+// runs as the runner and out/ keeps the mode it had: a laptop, or gusto inside
 // run by hand.
 func TestARunnerThatIsNotRootHandsNothingOver(t *testing.T) {
 	if os.Geteuid() == 0 {

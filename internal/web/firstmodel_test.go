@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"errors"
-	"github.com/getlatentic/haas/internal/isolation"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/registry"
+	"github.com/getlatentic/gusto/internal/isolation"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/registry"
 )
 
-// ownComputer is haas on a person's own computer: signed in by its own links, with a registry of the person's and no model yet.
+// ownComputer is gusto on a person's own computer: signed in by its own links, with a registry of the person's and no model yet.
 func ownComputer(t *testing.T) (*tokened, *registry.Registry) {
 	t.Helper()
 	here := everything(t)
@@ -79,7 +79,7 @@ func TestAPersonAddsTheirFirstModelInOneStepAndEveryEngineIsOfferedIt(t *testing
 	}
 }
 
-func TestAModelIsAddedOnlyOnAPersonsOwnHaasAndOnlyWithAModelNamed(t *testing.T) {
+func TestAModelIsAddedOnlyOnAPersonsOwnGustoAndOnlyWithAModelNamed(t *testing.T) {
 	shared, _, _ := registered(t, registry.Rules{})
 	if got := shared.as(t, boss).ask(t, "POST", "/setup/model", url.Values{"address": {"https://api.theirs.example"}, "models": {"x"}}); got.Code != http.StatusNotFound {
 		t.Errorf("a shared server took a model in one step: %d", got.Code)
@@ -136,13 +136,13 @@ func TestAModelOfferedThroughAnotherProviderIsNamedWhole(t *testing.T) {
 	}
 }
 
-// A computer that lacks what haas needs is told how to get it, and no agent is started until it has it.
+// A computer that lacks what gusto needs is told how to get it, and no agent is started until it has it.
 func TestWhatTheComputerLacksIsSaidAndNoAgentStartsWithoutIt(t *testing.T) {
 	here, _ := ownComputer(t)
-	lacking := []string{"haas needs Git, which keeps each conversation's files: install it"}
+	lacking := []string{"gusto needs Git, which keeps each conversation's files: install it"}
 	here.server.UseNeeds(func() []string { return lacking })
 	admin := here.as(t, boss)
-	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "haas needs Git") {
+	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "gusto needs Git") {
 		t.Error("the chat page does not say what the computer lacks")
 	}
 	got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
@@ -197,7 +197,7 @@ func TestAWallNeedsNoConfirmationAndNoneCanBeGiven(t *testing.T) {
 	}
 }
 
-// ownModel gives a person's own haas the one model its chat page needs to show a box.
+// ownModel gives a person's own gusto the one model its chat page needs to show a box.
 func ownModel(t *testing.T, here *tokened) error {
 	t.Helper()
 	form := url.Values{"address": {"https://api.theirs.example"}, "key": {"k"}, "models": {"small"}}

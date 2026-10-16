@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apps"
+	"github.com/getlatentic/gusto/internal/apps"
 )
 
 // A new cell's gateway has been seen to take a request for the first app on it and never answer, while a request made

@@ -14,7 +14,7 @@ func userUnit(l Layout) string {
 	if config == "" {
 		config = filepath.Join(l.User, ".config")
 	}
-	return filepath.Join(config, "systemd", "user", "haas-openshell.service")
+	return filepath.Join(config, "systemd", "user", "gusto-openshell.service")
 }
 
 // startGateway makes the gateway a systemd unit of this person's: started at login, started again if it fails, and started now.
@@ -26,7 +26,7 @@ func startGateway(l Layout) error {
 		fmt.Fprintf(&env, "Environment=%q\n", pair)
 	}
 	text := fmt.Sprintf(`[Unit]
-Description=OpenShell gateway for haas, the virtual machines agents run in
+Description=OpenShell gateway for gusto, the virtual machines agents run in
 
 [Service]
 ExecStart=%q
@@ -44,7 +44,7 @@ WantedBy=default.target
 	if err := os.WriteFile(unit, []byte(text), 0o644); err != nil {
 		return err
 	}
-	for _, args := range [][]string{{"--user", "daemon-reload"}, {"--user", "enable", "haas-openshell.service"}, {"--user", "restart", "haas-openshell.service"}} {
+	for _, args := range [][]string{{"--user", "daemon-reload"}, {"--user", "enable", "gusto-openshell.service"}, {"--user", "restart", "gusto-openshell.service"}} {
 		if out, err := exec.Command("systemctl", args...).CombinedOutput(); err != nil {
 			return fmt.Errorf("systemctl %v: %w: %s", args[1:], err, out)
 		}
@@ -54,7 +54,7 @@ WantedBy=default.target
 
 // stopGateway ends the gateway and takes the unit away.
 func stopGateway(l Layout) error {
-	exec.Command("systemctl", "--user", "disable", "--now", "haas-openshell.service").Run()
+	exec.Command("systemctl", "--user", "disable", "--now", "gusto-openshell.service").Run()
 	if err := os.Remove(userUnit(l)); err != nil && !os.IsNotExist(err) {
 		return err
 	}

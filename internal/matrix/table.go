@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // TableVersion is the version of the table's JSON this code writes and the
@@ -72,7 +72,7 @@ func Tabulate(where string) (Table, error) {
 	return table, nil
 }
 
-// rowOf reads one cell through compare, the way `haas compare` reads a side, so
+// rowOf reads one cell through compare, the way `gusto compare` reads a side, so
 // a matrix and a comparison cannot disagree about a run.
 func rowOf(where, environment string, cell Cell) (Row, error) {
 	row := Row{Job: cell.Job, Harness: cell.Harness, Model: cell.Model, Environment: environment, Run: cell.Dir}

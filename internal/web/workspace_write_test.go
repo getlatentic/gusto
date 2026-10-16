@@ -58,7 +58,7 @@ func TestAFileIsWrittenWholeWithItsHashAndFoldersAreMadeForIt(t *testing.T) {
 	if text, err := os.ReadFile(filepath.Join(root, "src/deep/new.txt")); err != nil || string(text) != "hello" {
 		t.Errorf("%q %v", text, err)
 	}
-	left, _ := filepath.Glob(filepath.Join(root, "src/deep/.haas-write-*"))
+	left, _ := filepath.Glob(filepath.Join(root, "src/deep/.gusto-write-*"))
 	if len(left) != 0 {
 		t.Errorf("a temporary file was left: %v", left)
 	}
@@ -151,7 +151,7 @@ func TestSomebodyElsesFolderCannotBeWrittenOrAskedAboutAndAHugeFileIsRefused(t *
 	if _, err := os.Stat(filepath.Join(root, "big.bin")); err == nil {
 		t.Error("a file over the limit was kept")
 	}
-	if left, _ := filepath.Glob(filepath.Join(root, ".haas-write-*")); len(left) != 0 {
+	if left, _ := filepath.Glob(filepath.Join(root, ".gusto-write-*")); len(left) != 0 {
 		t.Errorf("a refused write left %v", left)
 	}
 }

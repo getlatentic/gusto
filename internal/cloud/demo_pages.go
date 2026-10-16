@@ -232,7 +232,7 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 	return true
 }
 
-// landing is what a visitor sees first where a demo is offered: what haas is, the video if there is one, and where
+// landing is what a visitor sees first where a demo is offered: what gusto is, the video if there is one, and where
 // to start a demo or book a call.
 func (s *Server) landing(w http.ResponseWriter) {
 	demo := s.Store.set.Demo
@@ -243,7 +243,7 @@ func (s *Server) landing(w http.ResponseWriter) {
 	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 	address := demo.VideoURL
 	if address == "" {
-		// The video that comes with haas is the one shown unless an operator names another.
+		// The video that comes with gusto is the one shown unless an operator names another.
 		address, page.Poster = "/static/demo.mp4", "/static/demo-poster.jpg"
 	}
 	if video, file, frame := videoOf(address); video != "" {

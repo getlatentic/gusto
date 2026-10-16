@@ -1,10 +1,10 @@
 // Package review checks a pull request's evidence from the repository alone.
 //
-// haas ship commits a run's job.json and out/ on a ref beside the pull request,
+// gusto ship commits a run's job.json and out/ on a ref beside the pull request,
 // with the pull request's commit as its parent. Check fetches that ref with
 // git, holds the manifest to the hash the pull request names, re-hashes every
 // file against the manifest, rebuilds the workspace from the hashed patch, and
-// runs the gate. Nothing here talks to GitHub's API or to a haas server, so the
+// runs the gate. Nothing here talks to GitHub's API or to a gusto server, so the
 // check needs nothing from the platform that produced the evidence.
 package review
 
@@ -14,9 +14,9 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // Report is what a check found. Wrong names every file or commit that does not
@@ -39,7 +39,7 @@ func (r Report) Holds() bool {
 	return len(r.Wrong) == 0 && r.Gate.Passed == r.Claimed.Passed && r.Gate.Code == r.Claimed.Code
 }
 
-// Lines is the report as `haas verify` words it.
+// Lines is the report as `gusto verify` words it.
 func (r Report) Lines() []string {
 	if len(r.Wrong) > 0 {
 		return r.Wrong

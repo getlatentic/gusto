@@ -1,4 +1,4 @@
-/* A form that sets haas up on a person's own computer: add the model, confirm there is no sandbox. One card, set apart from the page by
+/* A form that sets gusto up on a person's own computer: add the model, confirm there is no sandbox. One card, set apart from the page by
    its background; a group of fields, and a group of actions, with space between the groups and less between what belongs together. */
 .setup { display: grid; gap: var(--yg-space-6); width: 100%; max-width: 34rem; padding: var(--yg-space-6);
   background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/ship"
+	"github.com/getlatentic/gusto/internal/ship"
 )
 
 func TestGitHubsRefusalIsSaidInFull(t *testing.T) {
@@ -16,7 +16,7 @@ func TestGitHubsRefusalIsSaidInFull(t *testing.T) {
 			t.Errorf("the token should be sent as a bearer, got %q", r.Header.Get("Authorization"))
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_, _ = w.Write([]byte(`{"message": "Validation Failed", "errors": [{"message": "A pull request already exists for o:haas/x."}]}`))
+		_, _ = w.Write([]byte(`{"message": "Validation Failed", "errors": [{"message": "A pull request already exists for o:gusto/x."}]}`))
 	}))
 	defer server.Close()
 	_, err := ship.GitHub{API: server.URL, Token: "secret"}.Open(context.Background(), ship.Pull{Owner: "o", Name: "r"})
@@ -26,12 +26,12 @@ func TestGitHubsRefusalIsSaidInFull(t *testing.T) {
 }
 
 func TestATokenIsNeededToOpenAnything(t *testing.T) {
-	t.Setenv("HAAS_GITHUB_TOKEN", "")
+	t.Setenv("GUSTO_GITHUB_TOKEN", "")
 	if _, err := ship.GitHubFromEnv(); err == nil {
 		t.Fatal("no token should be an error before anything is pushed")
 	}
-	t.Setenv("HAAS_GITHUB_TOKEN", "t")
-	t.Setenv("HAAS_GITHUB_API", "http://example.test/")
+	t.Setenv("GUSTO_GITHUB_TOKEN", "t")
+	t.Setenv("GUSTO_GITHUB_API", "http://example.test/")
 	forge, err := ship.GitHubFromEnv()
 	if err != nil || forge.API != "http://example.test" {
 		t.Fatalf("api %q, err %v", forge.API, err)

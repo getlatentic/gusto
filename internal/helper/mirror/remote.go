@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // Remote is the agent's folder in the cloud, as the sync needs it.

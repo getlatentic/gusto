@@ -22,9 +22,9 @@ type Env struct {
 	Exists func(path string) bool
 	// Get downloads a file.
 	Get Download
-	// GetAsset downloads a file attached to a release of haas.
+	// GetAsset downloads a file attached to a release of gusto.
 	GetAsset func(ctx context.Context, release, name string, dst io.Writer) error
-	// Release is the release of haas this is, or empty for a build that is not one.
+	// Release is the release of gusto this is, or empty for a build that is not one.
 	Release string
 	// Run runs a program with exactly the environment given and returns what it printed.
 	Run func(ctx context.Context, env []string, program string, args ...string) (string, error)
@@ -39,13 +39,13 @@ type Plan struct {
 	Env
 	Layout
 	Programs []Program
-	// Image is the checksum and size of haas's root file system, which the release names, when the person names none.
+	// Image is the checksum and size of gusto's root file system, which the release names, when the person names none.
 	Image Rootfs
-	// Tools is the checksum and size of the disk tools haas ships, when the computer has none of its own and the release has them.
+	// Tools is the checksum and size of the disk tools gusto ships, when the computer has none of its own and the release has them.
 	Tools Rootfs
 	// FetchTools says the install downloads the disk tools.
 	FetchTools bool
-	// ImageFile is the person's own root file system, when they name one. Without one, the install takes the image of haas's own release.
+	// ImageFile is the person's own root file system, when they name one. Without one, the install takes the image of gusto's own release.
 	ImageFile string
 	// ConfigHome is where the openshell command keeps its gateways: XDG_CONFIG_HOME, or the .config folder of the person's home.
 	ConfigHome string
@@ -58,13 +58,13 @@ type Rootfs struct {
 }
 
 // Prepare checks that this computer can run virtual machines and that the install has everything it needs, before anything is
-// downloaded. imageFile is a root file system the person already has, or empty for the one haas publishes.
-func Prepare(ctx context.Context, env Env, haasHome, user, imageFile string) (Plan, error) {
+// downloaded. imageFile is a root file system the person already has, or empty for the one gusto publishes.
+func Prepare(ctx context.Context, env Env, gustoHome, user, imageFile string) (Plan, error) {
 	files, err := ProgramsFor(env.Platform)
 	if err != nil {
 		return Plan{}, err
 	}
-	plan := Plan{Env: env, Layout: Layout{Root: filepath.Join(haasHome, "openshell"), User: user}, Programs: files, ImageFile: imageFile}
+	plan := Plan{Env: env, Layout: Layout{Root: filepath.Join(gustoHome, "openshell"), User: user}, Programs: files, ImageFile: imageFile}
 	if err := plan.hardware(); err != nil {
 		return Plan{}, err
 	}
@@ -75,7 +75,7 @@ func Prepare(ctx context.Context, env Env, haasHome, user, imageFile string) (Pl
 	case imageFile != "" && !env.Exists(imageFile):
 		return Plan{}, fmt.Errorf("%s is not there", imageFile)
 	case imageFile == "" && env.Release == "":
-		return Plan{}, errors.New("this haas was not built from a release, so it has no root file system to install: name one with --image FILE")
+		return Plan{}, errors.New("this gusto was not built from a release, so it has no root file system to install: name one with --image FILE")
 	}
 	if imageFile == "" {
 		if plan.Image, err = plan.releasedImage(ctx); err != nil {
@@ -104,15 +104,15 @@ func (p Plan) releasedImage(ctx context.Context) (Rootfs, error) {
 func (p Plan) releasedAsset(ctx context.Context, name string) (Rootfs, error) {
 	var listed bytes.Buffer
 	if err := p.GetAsset(ctx, p.Release, name+".sha256", &listed); err != nil {
-		return Rootfs{}, fmt.Errorf("haas %s has no %s: %w", p.Release, name, err)
+		return Rootfs{}, fmt.Errorf("gusto %s has no %s: %w", p.Release, name, err)
 	}
 	fields := strings.Fields(listed.String())
 	if len(fields) < 2 {
-		return Rootfs{}, fmt.Errorf("the checksum file of %s in haas %s is not a checksum and a size", name, p.Release)
+		return Rootfs{}, fmt.Errorf("the checksum file of %s in gusto %s is not a checksum and a size", name, p.Release)
 	}
 	size, err := strconv.ParseInt(fields[1], 10, 64)
 	if err != nil || size <= 0 {
-		return Rootfs{}, fmt.Errorf("the checksum file of %s in haas %s has no size", name, p.Release)
+		return Rootfs{}, fmt.Errorf("the checksum file of %s in gusto %s has no size", name, p.Release)
 	}
 	return Rootfs{SHA256: fields[0], Size: size}, nil
 }
@@ -154,7 +154,7 @@ func (p Plan) diskTools(ctx context.Context) (tools Rootfs, fetch bool, err erro
 
 func (p Plan) howToGetTools() string {
 	if p.Platform.GOOS == "darwin" {
-		return "brew install e2fsprogs, or use a release of haas, which carries them"
+		return "brew install e2fsprogs, or use a release of gusto, which carries them"
 	}
 	return "install your system's e2fsprogs package"
 }
@@ -162,11 +162,11 @@ func (p Plan) howToGetTools() string {
 // Words says what the install does, for the person to agree to.
 func (p Plan) Words() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "haas will download OpenShell %s (%d MB) from github.com/NVIDIA/OpenShell", Version, programBytes(p.Programs)>>20)
+	fmt.Fprintf(&b, "gusto will download OpenShell %s (%d MB) from github.com/NVIDIA/OpenShell", Version, programBytes(p.Programs)>>20)
 	if p.ImageFile == "" {
-		fmt.Fprintf(&b, " and, from haas's release %s, the Linux image the agents run in (%d MB)", p.Release, p.Image.Size>>20)
+		fmt.Fprintf(&b, " and, from gusto's release %s, the Linux image the agents run in (%d MB)", p.Release, p.Image.Size>>20)
 	}
-	fmt.Fprintf(&b, ".\nIt checks every file against a checksum haas carries, keeps them in %s, and keeps a gateway running for you", p.Root)
+	fmt.Fprintf(&b, ".\nIt checks every file against a checksum gusto carries, keeps them in %s, and keeps a gateway running for you", p.Root)
 	b.WriteString(map[string]string{"darwin": " as a launch agent", "linux": " as a systemd user service"}[p.Platform.GOOS])
 	if p.FetchTools {
 		fmt.Fprintf(&b, ", and the disk tools a Mac lacks (%d MB)", p.Tools.Size>>20)

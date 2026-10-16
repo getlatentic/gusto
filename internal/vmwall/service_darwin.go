@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const serviceLabel = "com.latentic.haas.openshell"
+const serviceLabel = "com.latentic.gusto.openshell"
 
 func agentPlist(l Layout) string {
 	return filepath.Join(l.User, "Library", "LaunchAgents", serviceLabel+".plist")

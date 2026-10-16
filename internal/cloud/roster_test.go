@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/inbox"
-	"github.com/getlatentic/haas/internal/roster"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/inbox"
+	"github.com/getlatentic/gusto/internal/roster"
 )
 
 // acme is an organisation with a verified admin, ada, and a front door that starts its

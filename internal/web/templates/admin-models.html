@@ -10,7 +10,7 @@
 
 {{range .View.Providers}}{{if not .Retired}}
 <section class="panel">
-  <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this haas</span>{{end}}{{if .Pending}} <span class="refused">off: waiting for you to turn it on</span>{{end}}</h2>
+  <h2>{{.Name}}{{if .Operator}} <span class="muted">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="refused">off: waiting for you to turn it on</span>{{end}}</h2>
   <p class="muted">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
   {{if .Problem}}<p class="refused">Not in use: {{.Problem}}</p>{{end}}
   {{$provider := .}}

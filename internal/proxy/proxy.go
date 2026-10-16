@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/haas/internal/redact"
-	"github.com/getlatentic/haas/internal/spend"
-	"github.com/getlatentic/haas/internal/wire"
+	"github.com/getlatentic/gusto/internal/redact"
+	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/internal/wire"
 )
 
 // Where says which file in a job directory the proxy writes its record to.

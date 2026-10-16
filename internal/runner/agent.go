@@ -7,18 +7,18 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // AgentUIDEnv names the user a harness runs as inside the box. The runner
 // stays root there, so the record in out/ is written by the runner alone: the
 // harness, and whatever code it runs, can read its workspace and its own home
 // and cannot touch the record, the proxy's log included.
-const AgentUIDEnv = "HAAS_AGENT_UID"
+const AgentUIDEnv = "GUSTO_AGENT_UID"
 
 // agent is that user. A runner that is not root, or an image that names no
 // agent, has nobody to hand the work to and runs the harness as itself: a
-// laptop, `haas inside` by hand, HAAS_SANDBOX=here.
+// laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
 type agent struct {
 	uid, gid int
 	present  bool
