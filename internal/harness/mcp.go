@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // MCP is how a harness takes MCP servers. Each reads them in a format of its

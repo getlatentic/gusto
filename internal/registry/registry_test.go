@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 var operators = Platform{
@@ -134,7 +134,7 @@ func TestAProviderIsRefusedForWhatItIsCalledWhereItIsAndHowItsKeyIsGot(t *testin
 		"a key with a newline":           {Rules{}, func(g *Give) { g.Key = "a\nb" }},
 		"a key that is typed and named":  {Rules{KeySources: []string{"file"}}, func(g *Give) { g.Reference = "file:/etc/key" }},
 		"a file where none is allowed":   {Rules{}, func(g *Give) { g.Reference, g.Key = "file:/etc/passwd", "" }},
-		"a parameter where none is":      {Rules{}, func(g *Give) { g.Reference, g.Key = "ssm:/haas/poc/model-key", "" }},
+		"a parameter where none is":      {Rules{}, func(g *Give) { g.Reference, g.Key = "ssm:/gusto/poc/model-key", "" }},
 		"a secret where none is":         {Rules{}, func(g *Give) { g.Reference, g.Key = "secretsmanager:x", "" }},
 		"a reference of no kind":         {Rules{KeySources: []string{"file"}}, func(g *Give) { g.Reference, g.Key = "env:HOME", "" }},
 		"a relative file":                {Rules{KeySources: []string{"file"}}, func(g *Give) { g.Reference, g.Key = "file:key", "" }},

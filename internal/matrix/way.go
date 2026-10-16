@@ -1,10 +1,10 @@
 package matrix
 
 import (
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/replay"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // Way is how the matrix starts a run, and what it writes down about where.
@@ -16,7 +16,7 @@ type Way struct {
 	Open func(root string) (replay.Run, func(), error)
 }
 
-// Here runs every cell in this process, the way `haas inside` does. A harness
+// Here runs every cell in this process, the way `gusto inside` does. A harness
 // run here reads this machine's own configuration, which is what makes a
 // laptop's row differ from a container's.
 func Here() Way {

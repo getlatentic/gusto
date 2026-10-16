@@ -10,7 +10,7 @@ WorkingDirectory={{ demo_state }}
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
 Environment=HOME=/home/{{ demo_user }}
 EnvironmentFile=/etc/haas/cloud.env
-Environment=HAAS_OWNER_ADDR=127.0.0.1:8090
+Environment=GUSTO_OWNER_ADDR=127.0.0.1:8090
 ExecStart=/usr/local/bin/haas owner
 Restart=always
 

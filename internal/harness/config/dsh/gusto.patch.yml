@@ -1,0 +1,6 @@
+# dsh has no flag for the model, so the job's choice arrives in the
+# environment and this layer hands it to the ACP server that starts sessions.
+- id: acp
+  config:
+    provider: deepseek-official
+    model: !!js process.env.GUSTO_MODEL_ID

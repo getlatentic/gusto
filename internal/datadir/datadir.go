@@ -20,7 +20,7 @@ import (
 
 // StampFile is the file that carries a directory's format. Its name begins with
 // a dot so that a release that predates it, listing the directory, passes over it.
-const StampFile = ".haas-format"
+const StampFile = ".gusto-format"
 
 // Store is one kind of data directory.
 type Store string
@@ -115,7 +115,7 @@ type NewerError struct {
 
 func (e NewerError) Error() string {
 	return fmt.Sprintf("%s holds %s data in format %d, written by %s, and this release (%s) reads format %d and no newer. "+
-		"Run this release's upgrade again, or roll the data back with the newer release: haas data rollback -to <release>. "+
+		"Run this release's upgrade again, or roll the data back with the newer release: gusto data rollback -to <release>. "+
 		"Nothing has been changed", e.Dir, e.Store, e.Found, or(e.WrittenBy, "a newer release"), or(e.ThisRelease, "unnamed"), e.Known)
 }
 
@@ -139,7 +139,7 @@ func (e IrreversibleError) Error() string {
 		names = append(names, fmt.Sprintf("%s format %d to %d (%s)", step.Store, step.From, step.From+1, step.What))
 	}
 	return fmt.Sprintf("upgrading %s cannot be undone: %s. Once it runs, an older release cannot read this data, and going back means restoring a copy made before. "+
-		"Back the directory up, then set HAAS_MIGRATE_IRREVERSIBLE=1 to go ahead. Nothing has been changed", e.Dir, strings.Join(names, "; "))
+		"Back the directory up, then set GUSTO_MIGRATE_IRREVERSIBLE=1 to go ahead. Nothing has been changed", e.Dir, strings.Join(names, "; "))
 }
 
 // Options are what an upgrade is allowed to do.

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 func TestTheProxyCountsCallsAndSaysWhichFailedOnTheModelsSide(t *testing.T) {

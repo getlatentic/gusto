@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/integration"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/integration"
 )
 
 // integrationsPath is where the console keeps the integrations an organisation has imported.
@@ -80,7 +80,7 @@ func (s *Server) importIntegration(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, integrationsPath, "the upload could not be read: "+err.Error())
 		return
 	}
-	scratch, err := os.MkdirTemp("", "haas-integration-")
+	scratch, err := os.MkdirTemp("", "gusto-integration-")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

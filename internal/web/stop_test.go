@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // holding is work that runs until it is told to stop, and then writes what a run that was stopped leaves.

@@ -1,31 +1,31 @@
 # The public cloud
 
-`haas cloud` is the front door of a hosted haas. A person signs up, creates an
-organisation, and the organisation gets a haas server of its own. This page
+`gusto cloud` is the front door of a hosted gusto. A person signs up, creates an
+organisation, and the organisation gets a gusto server of its own. This page
 says how the parts divide, and what each stage of the build adds.
 
 ## How organisations are kept apart
 
-Each organisation runs its own `haas serve` process. It has its own data
+Each organisation runs its own `gusto serve` process. It has its own data
 directory, signing key, credentials, spend ledger, change log and job queue.
 The front door holds accounts and routes requests. It runs no jobs.
 
 ```
-browser ──► front door (haas cloud) ──► the organisation's haas serve
+browser ──► front door (gusto cloud) ──► the organisation's gusto serve
              accounts, sign-in,          its own data directory and keys
              routing by host name        its jobs, in sandboxes on a gateway
 ```
 
 | Question | Answer |
 | --- | --- |
-| Why not one server for every organisation? | `haas serve` holds one sign-in, one proxy, one ledger, one queue and one change log. Each would need an organisation on every read, and a read that misses one is a leak between organisations. A process and a directory are a boundary that no code path can forget to check. |
-| What does it cost? | A process per active organisation, about the size of an idle `haas serve`. An organisation with no work can have its process stopped. |
+| Why not one server for every organisation? | `gusto serve` holds one sign-in, one proxy, one ledger, one queue and one change log. Each would need an organisation on every read, and a read that misses one is a leak between organisations. A process and a directory are a boundary that no code path can forget to check. |
+| What does it cost? | A process per active organisation, about the size of an idle `gusto serve`. An organisation with no work can have its process stopped. |
 | Where do jobs run? | In OpenShell sandboxes on a pool of gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel. |
 | Why a shared gateway and not one per organisation? | A host with KVM is the cost. A gateway per organisation is the same isolation at about a hundred times the price, and the sandbox boundary is already per job. |
 
 ## The demo
 
-One EC2 host runs the front door, each organisation's `haas serve` and one OpenShell
+One EC2 host runs the front door, each organisation's `gusto serve` and one OpenShell
 gateway.
 
 1. An admin signs up on the public cloud and confirms their address. The
@@ -82,7 +82,7 @@ the platform is made by CI.
 | Capacity: more or fewer cells | the orchestrator, through the AWS API | as load changes | the control-plane host |
 | Dedicated or customer-owned infrastructure | a provisioner worker running the same Terraform modules, with state for each organisation | when an organisation asks for it | the control plane, in an isolated worker |
 
-A cell is one host with KVM. It runs an OpenShell gateway and the `haas serve`
+A cell is one host with KVM. It runs an OpenShell gateway and the `gusto serve`
 processes of the organisations assigned to it, because a sandbox reaches its
 server's proxy through the gateway machine's loopback. The account store says
 which cell an organisation is on.
@@ -103,7 +103,7 @@ A controller in the front door reconciles it: each step is safe to run again,
 progress is written to the organisation's record, and a step that failed is retried
 and shown to the operator. A crash between two steps leaves an organisation that the
 next pass finishes. The controller has two ways to act on a cell, a local one that
-starts processes on this machine and one that asks a `haas cell` agent on another
+starts processes on this machine and one that asks a `gusto cell` agent on another
 host, and the AWS calls sit behind an interface of their own.
 
 The orchestrator's IAM role can scale the cells' group, read the secrets under its
@@ -117,7 +117,7 @@ run once by a person with admin access. Every change after it runs in CI, and so
 
 ## Accounts
 
-The front door keeps its records as files under `HAAS_CLOUD_ROOT`, written by
+The front door keeps its records as files under `GUSTO_CLOUD_ROOT`, written by
 renaming a finished file into place. A slug or an email address is claimed by
 creating its file exclusively, so two sign-ups cannot take the same one.
 
@@ -126,7 +126,7 @@ root/
   secret                      signs the front door's cookies, 0600
   people/<hash of email>.json a person: email, organisation, role, when verified
   orgs/<slug>/org.json        an organisation: name, admin, when made
-  orgs/<slug>/data/           the organisation's haas data directory, 0700
+  orgs/<slug>/data/           the organisation's gusto data directory, 0700
   orgs/<slug>/data/quota.json what the organisation may run now
   orgs/<slug>/data/members.json who is in the organisation, for its server to show
   orgs/<slug>/data/inbox/     what its admins did to its people, for its server to record
@@ -194,20 +194,20 @@ an account, so the form cannot be used to find out who is a customer.
 
 | Setting | Meaning |
 | --- | --- |
-| `HAAS_CLOUD_ROOT` | where accounts are kept, `cloud` by default |
-| `HAAS_CLOUD_ADDR` | where the front door listens, `127.0.0.1:8050` by default |
-| `HAAS_CLOUD_URL` | the address links in mail begin with |
-| `HAAS_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
-| `HAAS_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
-| `HAAS_CLOUD_LEASE_FILE` | The file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
-| `HAAS_CLOUD_LEASE_STEP_MINUTES` | How much each extension adds. Thirty by default |
-| `HAAS_CLOUD_MAIL_TOKEN` | The Cloudflare API token that may send mail, for the `cloudflare://` setting. It is kept apart from the setting so that it can be kept where a secret is. |
-| `HAAS_CLOUD_MEMBERS`, `HAAS_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
-| `HAAS_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
-| `HAAS_CLOUD_PORT_FROM` | the first port an organisation's server is given, two each, 9100 by default |
-| `HAAS_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
-| `HAAS_CLOUD_SERVERS` | `off` runs the front door with accounts and no organisation servers |
-| `HAAS_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
+| `GUSTO_CLOUD_ROOT` | where accounts are kept, `cloud` by default |
+| `GUSTO_CLOUD_ADDR` | where the front door listens, `127.0.0.1:8050` by default |
+| `GUSTO_CLOUD_URL` | the address links in mail begin with |
+| `GUSTO_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
+| `GUSTO_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
+| `GUSTO_CLOUD_LEASE_FILE` | The file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
+| `GUSTO_CLOUD_LEASE_STEP_MINUTES` | How much each extension adds. Thirty by default |
+| `GUSTO_CLOUD_MAIL_TOKEN` | The Cloudflare API token that may send mail, for the `cloudflare://` setting. It is kept apart from the setting so that it can be kept where a secret is. |
+| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
+| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
+| `GUSTO_CLOUD_PORT_FROM` | the first port an organisation's server is given, two each, 9100 by default |
+| `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
+| `GUSTO_CLOUD_SERVERS` | `off` runs the front door with accounts and no organisation servers |
+| `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
 ## How a person gets to their organisation
 
@@ -298,17 +298,17 @@ the lines that were there when it began are not its.
   harness calls the conversation is learned from the record, so the next turn resumes it.
 - A person can share a web app their agent built, from the agent's page. It runs in their computer, is
   opened through the organisation's own address by its members only, and is described in
-  `docs/OPENSHELL.md`. `HAAS_APPS` is where an organisation's server keeps its record of them.
+  `docs/OPENSHELL.md`. `GUSTO_APPS` is where an organisation's server keeps its record of them.
 - A person's harnesses take turns, one job at a time in a computer, since they share its files.
 - A person past the organisation's number of computers is refused in their job's
   record, with how to raise it, and nothing is made.
 - A computer nobody has used for half an hour, and no job of theirs is running, is stopped, which
-  keeps its files. It is started again for the next job. `HAAS_COMPUTER_IDLE_MINUTES`
+  keeps its files. It is started again for the next job. `GUSTO_COMPUTER_IDLE_MINUTES`
   changes the half hour.
 - Removing a person marks their computer, and the organisation's server removes it. The
   front door only marks it because it does not reach the gateway, and because two processes
   changing one record would lose a change.
-- `haas cloud computers` lists every computer on the host with its organisation and person.
+- `gusto cloud computers` lists every computer on the host with its organisation and person.
   An organisation's page shows its admin which people have one and how it is.
 
 ## The admin console
@@ -316,7 +316,7 @@ the lines that were there when it began are not its.
 An organisation's server has a console for its admins at `/admin`. It has its own layout
 and navigation. It is the only place the admin controls are: the pages a person who runs
 work uses carry none, and an admin sees one link to the console, "Admin". The console has
-one link back, "Back to haas". A person who runs work gets 403 on every page of the console
+one link back, "Back to gusto". A person who runs work gets 403 on every page of the console
 and on every form it posts. A person who is not signed in is sent to sign in. Each server is
 one organisation's, so the console shows that organisation and nobody else's.
 
@@ -348,36 +348,36 @@ limit.
 
 An admin can set one alert, a monthly budget in dollars, on the Overview. It is kept in
 `settings.json` in the organisation's data directory, which only its server writes, and
-`HAAS_ORG_SETTINGS` names it. When the month's spending passes the budget the Overview shows a
+`GUSTO_ORG_SETTINGS` names it. When the month's spending passes the budget the Overview shows a
 banner that says by how much. Spending that has no price is not in the sum, so the banner then says
 "at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
 written to the change record. A budget that cannot be read is said and is not checked, and the
 file is not written over.
 
 The same file keeps what a new chat runs on, which an admin chooses under New chats on the Overview.
-A person's last choice comes first. With no admin choice, a new chat starts on `HAAS_CHAT_DEFAULT`
+A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT`
 (`engine=model`), which the operator sets to a pair that finishes a job; without either it starts on
 the first engine and model that can run. Every model is offered to every engine, and the person chooses.
 
 ## Demos
 
-With `HAAS_CLOUD_DEMO_MINUTES` set, `/demo` on the front door lets a visitor start a demo with a name, a
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` on the front door lets a visitor start a demo with a name, a
 work email and a company. They get an organisation of their own, signed in, on a small quota (one
 computer, one person), and are sent to a page that waits for its server. Their time starts when the
 server first answers, and is shown on every page of the organisation by the banner, with one
-extension and a link to book a call (`HAAS_CLOUD_BOOK_URL`). When the time is up the front door
+extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When the time is up the front door
 asks the organisation's server to remove its computers, waits up to ninety seconds for it to,
 stops the server, and deletes the organisation, its people and its data. The address then answers
 "Your demo has ended" with the link to book a call. A demo that was never ready within
-`HAAS_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
+`GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
 ever deleted this way.
 
-The form has a bot check when `HAAS_CLOUD_TURNSTILE_SITE` and `HAAS_CLOUD_TURNSTILE_SECRET` are set: Cloudflare's Turnstile,
+The form has a bot check when `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` are set: Cloudflare's Turnstile,
 which is free and asks the visitor nothing in most cases. The page then may load Cloudflare's script and frame, and no other.
 The limits below are checked first, so a flood costs Cloudflare no questions. A visitor Cloudflare does not accept, or
 whom it cannot be asked about, is turned away and told to try again: the check fails closed.
 
-At most `HAAS_CLOUD_DEMO_MAX` demos run at once and `HAAS_CLOUD_DEMO_PER_DAY` (40) start in a day, which bounds
+At most `GUSTO_CLOUD_DEMO_MAX` demos run at once and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day, which bounds
 what a day of demos can cost. Creating the file `demos.off` in the front door's directory pauses new
 demos at once, and removing it lets them start again; demos that are running go on. A visitor who
 is turned away is told to book a call.
@@ -389,7 +389,7 @@ when the demo is gone. An address can start another demo once its first has ende
 ## Previewing what an agent built
 
 When a turn leaves a page in the agent's folder (an `index.html`), its message has a **Preview** button for that
-folder. It starts a small static file server, which is part of haas and needs only node, in the agent's computer on the
+folder. It starts a small static file server, which is part of gusto and needs only node, in the agent's computer on the
 first free port from 8080, and shares it the way any web app an agent built is shared: the organisation's members open
 it at an address of its own, and nobody else can. The conversation then has an **Open the app** link. An agent that
 builds a server of its own is shared from the agent's page, by the line that starts it and its port. Previews need
@@ -430,7 +430,7 @@ kept in the registry, is a version of it, and is written to the change record. I
 who sign in; work started with an API token belongs to nobody, so it is not limited.
 
 A key is typed into the page once, is kept in a file only the server can read, and is never shown
-again. Retiring a provider forgets it. Where the operator allows it (`HAAS_REGISTRY_KEYS`), a key
+again. Retiring a provider forgets it. Where the operator allows it (`GUSTO_REGISTRY_KEYS`), a key
 is named instead as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. Those let an admin name
 anything the machine can read, so a deployment that hosts other people's organisations leaves them
 out.
@@ -439,7 +439,7 @@ An organisation chose the address of its providers, and the key is sent there fr
 other organisations' servers are on too. So a provider must be at an https address that resolves to a
 public address, which is checked when it is added and again each time the proxy connects, and a
 call to it is refused if it would reach this machine, a private network or a cloud's metadata
-service. `HAAS_REGISTRY_PRIVATE=allow` lifts this for a deployment that runs a model inside its
+service. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a deployment that runs a model inside its
 own network. On a server that is not behind a front door the admin is the operator, and sets this
 and the kinds of key reference on the Models page, where each change is written to the change
 record; behind a front door they are fixed by the environment and the page says so. A provider whose key cannot be read is left out, with the reason, and so are its
@@ -454,7 +454,7 @@ Retention page, by its id, and no longer from the job's own page.
 ## What is built
 
 The controller provisions an organisation's directories, its signing key and its entry
-key, gives it two ports, and starts its `haas serve` on this machine with only the
+key, gives it two ports, and starts its `gusto serve` on this machine with only the
 operator's settings and its own. It is started again when it stops, after longer waits
 each time it fails, and every server is stopped, asked first, when the front door ends.
 The other cells, and the AWS calls, are not built: a cell is an interface, and the
@@ -468,17 +468,17 @@ code (getlatentic/planning#397), and payment.
 
 ## The owner's page
 
-`haas owner` serves the page the owner of a hosted haas manages it from: who asked for a demo (with a spreadsheet
+`gusto owner` serves the page the owner of a hosted gusto manages it from: who asked for a demo (with a spreadsheet
 download), the demos running and their time left, a switch that pauses new demos, the limits on how many demos start, and
 the hosts that are up.
 
 The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once.
 The owner sets them on the page and they hold from the next demo, with no restart; they are kept in `demo-limits.json` in
-the front door's directory. `HAAS_CLOUD_DEMO_PER_DAY`, `HAAS_CLOUD_DEMO_PER_PERSON`, `HAAS_CLOUD_DEMO_PER_COMPANY` and
-`HAAS_CLOUD_DEMO_MAX` are what a front door starts with, and the page can go back to them.
+the front door's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and
+`GUSTO_CLOUD_DEMO_MAX` are what a front door starts with, and the page can go back to them.
 
-It is its own program with its own service, `haas-owner`, and it listens on `127.0.0.1:8090` of the front door's host
-only. It refuses any other address (`HAAS_OWNER_ADDR`), any request that names another host or comes through a proxy,
+It is its own program with its own service, `gusto-owner`, and it listens on `127.0.0.1:8090` of the front door's host
+only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy,
 and any form sent from another site. The front door's web server does not serve it, so the internet cannot reach it.
 
 `deploy/aws/openshell/owner.sh` opens a tunnel to it with AWS Systems Manager, so it is at `http://localhost:8090`
@@ -523,14 +523,14 @@ runner image, 139 the gateway turning the runner image into the disk a sandbox s
 organisation starting.
 
 `deploy/aws/openshell/bake-cell-image.sh` makes the machine image of a cell with all of that done, and puts its id in the parameter
-`/haas/poc/cell-ami`, which the live cell launch template reads each time a host is started. It makes a cell as the front door would, does
+`/gusto/poc/cell-ami`, which the live cell launch template reads each time a host is started. It makes a cell as the front door would, does
 not start it, has the gateway prepare the runner image's disk, takes out what is the host's own, and takes an image. It takes about 25
 minutes, mostly AWS making a snapshot of a 40 GB disk, and costs about 0.10 dollars and 0.60 dollars a month for the snapshot. Its key
 (`bake-key.sh`) is the runner image's key and a hash of what installs the gateway; the release's bundle carries it as `bake.key`, so a
 change to either is a new image to make before cells start from it.
 
 A host made from the image skips the package installs and the openshell role when its release's `bake.key` is the one in
-`/etc/haas/baked`. It configures itself from the release it is told to be, as any host does. A host whose image is older than its
+`/etc/gusto/baked`. It configures itself from the release it is told to be, as any host does. A host whose image is older than its
 release, which is what a cell is between a change and the image being made again, installs everything and is slower, and right.
 
 Three things were learned making it, and are why it is as it is:

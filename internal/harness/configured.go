@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Configured is a harness as a job runs it: the adapter, and the digest of the
@@ -22,7 +22,7 @@ type Configured struct {
 }
 
 // Open reads the configured harness a job names, looking in the job's own
-// directory first, then HAAS_HARNESSES, then the adapters built into this
+// directory first, then GUSTO_HARNESSES, then the adapters built into this
 // binary. In each place a harness is a directory, name/, or a bare adapter,
 // name.json.
 //
@@ -59,7 +59,7 @@ func Load(dir job.Dir, name string) (Adapter, error) {
 }
 
 // Carrying reads the configured harness the job itself carries. Found is false
-// when it carries none, which is so for a harness built into every haas.
+// when it carries none, which is so for a harness built into every gusto.
 func Carrying(dir job.Dir, name string) (Configured, bool, error) {
 	tree, home, found, err := lookIn(Carried(dir), name)
 	if err != nil || !found {
@@ -79,7 +79,7 @@ func roots(dir job.Dir) []string {
 	if dir != "" {
 		roots = append(roots, Carried(dir))
 	}
-	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
+	if mine := os.Getenv("GUSTO_HARNESSES"); mine != "" {
 		roots = append(roots, mine)
 	}
 	return roots
@@ -147,10 +147,10 @@ func isFile(path string) bool {
 
 // Keep writes a configured harness into the job, so that whoever runs the job
 // next has all of it: a bare adapter as name.json, a directory as name/. The
-// one in HAAS_HARNESSES is kept, because it is the one a runner here would
+// one in GUSTO_HARNESSES is kept, because it is the one a runner here would
 // use; a built-in one is already everywhere, so it is not copied.
 func Keep(dir job.Dir, name string) error {
-	mine := os.Getenv("HAAS_HARNESSES")
+	mine := os.Getenv("GUSTO_HARNESSES")
 	if mine != "" {
 		tree, _, found, err := lookIn(mine, name)
 		if err != nil || found {
@@ -186,7 +186,7 @@ func carry(dir job.Dir, name string, tree Tree, err error) error {
 }
 
 // Names lists every harness this binary can run: the adapters it ships with,
-// and any of your own in HAAS_HARNESSES, bare or a directory. The pages offer
+// and any of your own in GUSTO_HARNESSES, bare or a directory. The pages offer
 // what the server can actually run, rather than what it was compiled with.
 func Names() []string {
 	found := map[string]bool{}
@@ -194,7 +194,7 @@ func Names() []string {
 	for _, entry := range entries {
 		found[strings.TrimSuffix(entry.Name(), ".json")] = true
 	}
-	if mine := os.Getenv("HAAS_HARNESSES"); mine != "" {
+	if mine := os.Getenv("GUSTO_HARNESSES"); mine != "" {
 		yours, _ := os.ReadDir(mine)
 		for _, entry := range yours {
 			if name, ok := offered(mine, entry); ok {
@@ -210,7 +210,7 @@ func Names() []string {
 	return names
 }
 
-// offered reads one entry of HAAS_HARNESSES as a harness, if it is one.
+// offered reads one entry of GUSTO_HARNESSES as a harness, if it is one.
 func offered(root string, entry fs.DirEntry) (string, bool) {
 	if entry.IsDir() {
 		return entry.Name(), isFile(filepath.Join(root, entry.Name(), AdapterFile))

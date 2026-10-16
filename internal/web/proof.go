@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // proof is what the page says about a record after checking it the way
-// `haas verify` does: whether its files still match, and who signed it.
+// `gusto verify` does: whether its files still match, and who signed it.
 type proof struct {
 	Files  int
 	Wrong  []string
@@ -44,11 +44,11 @@ func (s *Server) proofOf(id string, dir job.Dir, manifest *evidence.Manifest) *p
 	}
 	unpack := "tar -xzf " + shellWord(id+".tar.gz") + " && "
 	if !attested.Signed {
-		shown.Command = unpack + "haas verify " + shellWord(id)
+		shown.Command = unpack + "gusto verify " + shellWord(id)
 		return shown
 	}
 	shown.Signed, shown.Signer, shown.Key = true, attested.Signer, "/keys/"+attested.Signer+".pub"
-	shown.Command = unpack + "HAAS_KEYRING=. haas verify " + shellWord(id) + " -signed"
+	shown.Command = unpack + "GUSTO_KEYRING=. gusto verify " + shellWord(id) + " -signed"
 	return shown
 }
 

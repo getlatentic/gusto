@@ -45,7 +45,7 @@
 # leaves the running version exactly where it was.
 - name: Build the candidate binary
   ansible.builtin.command:
-    cmd: "{{ app_root }}/go/bin/go build -trimpath -o {{ candidate_bin }} ./cmd/haas"
+    cmd: "{{ app_root }}/go/bin/go build -trimpath -o {{ candidate_bin }} ./cmd/gusto"
     chdir: "{{ app_root }}/src"
   become_user: "{{ app_user }}"
   environment:

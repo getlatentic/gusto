@@ -10,10 +10,10 @@ import (
 // Defaults are what is never kept in step, whatever a folder's own file says: git's own directory (the agent's copy and the
 // person's are two clones, and are not one folder), what a build or a package manager makes and what an operating system
 // leaves about, and the sync's own scratch.
-var Defaults = []string{".git/", "node_modules/", ".DS_Store", "Thumbs.db", "__pycache__/", "*.pyc", ".venv/", ".haas-write-*", ".haas-pull-*", ".haasignore"}
+var Defaults = []string{".git/", "node_modules/", ".DS_Store", "Thumbs.db", "__pycache__/", "*.pyc", ".venv/", ".gusto-write-*", ".gusto-pull-*", ".gustoignore"}
 
 // IgnoreFile is the name of the file in a folder's root that adds to Defaults, one pattern to a line.
-const IgnoreFile = ".haasignore"
+const IgnoreFile = ".gustoignore"
 
 // Ignore says which paths are left out. A pattern is, as in a gitignore:
 //

@@ -22,9 +22,9 @@
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="muted">kept</span>{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  <p class="muted">Days are counted from when the job ended. The policy is <code>policy.json</code> in <code>HAAS_RETENTION</code>.</p>
+  <p class="muted">Days are counted from when the job ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{else}}
-  <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>HAAS_RETENTION</code>.</p>
+  <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
 </section>
 

@@ -23,9 +23,9 @@ import (
 )
 
 // KeyEnv names the private key a runner signs with: a file on the machine that
-// runs haas, never in a job directory or a container, or a KMS key written
+// runs gusto, never in a job directory or a container, or a KMS key written
 // awskms://<key>.
-const KeyEnv = "HAAS_SIGNING_KEY"
+const KeyEnv = "GUSTO_SIGNING_KEY"
 
 // Key is a private key a runner holds in a file and signs with.
 type Key struct {
@@ -52,7 +52,7 @@ func IDOf(public ed25519.PublicKey) string {
 	return "sha256:" + hex.EncodeToString(sum[:16])
 }
 
-// Configured is the signer HAAS_SIGNING_KEY names. Found is false when the
+// Configured is the signer GUSTO_SIGNING_KEY names. Found is false when the
 // variable is unset, which leaves a run unsigned rather than failing it; a
 // variable naming a file that is not a key is an error, because a runner that
 // meant to sign must not quietly stop.

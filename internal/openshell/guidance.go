@@ -5,7 +5,7 @@ package openshell
 // the agent's folder, and colleagues open it through the organisation's pages, so what the agent
 // does not know about this network is what its first attempt gets wrong.
 const networkGuidance = `---
-name: haas-sandbox
+name: gusto-sandbox
 description: How this sandbox's network works and how a web app you build is shared. Read it before you build a web app, a server, or anything that listens on a port or calls the network.
 ---
 
@@ -28,4 +28,4 @@ description: How this sandbox's network works and how a web app you build is sha
 `
 
 // equipGuidance is the shell that puts the guidance where the harness finds skills.
-const equipGuidance = `mkdir -p "$1/haas-sandbox" && printf '%s' "$2" > "$1/haas-sandbox/SKILL.md"`
+const equipGuidance = `mkdir -p "$1/gusto-sandbox" && printf '%s' "$2" > "$1/gusto-sandbox/SKILL.md"`

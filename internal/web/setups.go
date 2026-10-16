@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/setup"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/setup"
 )
 
 // UseSetups hands the pages the store of setups and the MCP servers this

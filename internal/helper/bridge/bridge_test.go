@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // editor is a scripted client of the bridge: it says lines and reads what comes back.
@@ -192,7 +192,7 @@ func TestTheHandshakeSaysWhatTheBridgeCanDoAndWhatItCannot(t *testing.T) {
 	if methods, ok := result["authMethods"].([]any); !ok || len(methods) != 0 {
 		t.Errorf("auth methods %v", result["authMethods"])
 	}
-	if info := result["agentInfo"].(map[string]any); info["name"] != "haas-helper" || info["version"] != "9.9" {
+	if info := result["agentInfo"].(map[string]any); info["name"] != "gusto-helper" || info["version"] != "9.9" {
 		t.Errorf("agent info %v", info)
 	}
 }
@@ -224,10 +224,10 @@ func TestASessionIsAThreadOnThePersonsNewestAgentOrOneStartedOrOneNamed(t *testi
 
 func TestAPersonWhoIsNotSignedInIsToldToSignIn(t *testing.T) {
 	c := withAgents()
-	c.instErr = fmt.Errorf("%w: run `haas-helper login` again", helper.ErrSignedOut)
+	c.instErr = fmt.Errorf("%w: run `gusto-helper login` again", helper.ErrSignedOut)
 	got, _ := connect(t, &Agent{Cloud: c}).call("session/new", map[string]any{"cwd": "/w"})
 	failure := got["error"].(map[string]any)
-	if failure["code"] != float64(-32000) || !strings.Contains(failure["message"].(string), "haas-helper login") {
+	if failure["code"] != float64(-32000) || !strings.Contains(failure["message"].(string), "gusto-helper login") {
 		t.Errorf("%v", failure)
 	}
 }

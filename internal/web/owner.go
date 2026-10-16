@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // sharedSignIn is who the shared password signs somebody in as. It is the
@@ -23,7 +23,7 @@ func (s *Server) UseAdmins(emails []string) {
 }
 
 // roleFor is the role a person the provider vouched for signs in with, or that
-// they are refused. An address named in HAAS_ADMINS is an admin whatever their
+// they are refused. An address named in GUSTO_ADMINS is an admin whatever their
 // groups say, so the operator cannot lock themselves out by mapping groups.
 func (s *Server) roleFor(who Person) (Role, bool) {
 	if s.admins[strings.ToLower(strings.TrimSpace(who.Email))] {

@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
-// KMSPrefix in HAAS_SIGNING_KEY names a key AWS KMS holds instead of a file:
+// KMSPrefix in GUSTO_SIGNING_KEY names a key AWS KMS holds instead of a file:
 // awskms://<key id, key ARN or alias>. The private half never leaves the
 // service, so a machine that is broken into holds nothing to steal and loses
 // the ability to sign the moment its access to the key is taken away.
@@ -116,7 +116,7 @@ func (k *kmsKey) Sign(message []byte) ([]byte, error) {
 	return answer.Signature, nil
 }
 
-// signerFor is the signer HAAS_SIGNING_KEY names: a KMS key when it starts with
+// signerFor is the signer GUSTO_SIGNING_KEY names: a KMS key when it starts with
 // the KMS prefix, and a file otherwise.
 func signerFor(ctx context.Context, name string) (Signer, error) {
 	if id, isKMS := strings.CutPrefix(name, KMSPrefix); isKMS {

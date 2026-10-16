@@ -178,9 +178,9 @@ func overTLS(r *http.Request) bool {
 }
 
 const (
-	stateCookie    = "haas-state"
-	verifierCookie = "haas-verifier"
-	nonceCookie    = "haas-nonce"
+	stateCookie    = "gusto-state"
+	verifierCookie = "gusto-verifier"
+	nonceCookie    = "gusto-nonce"
 )
 
 // randomValue is 24 random bytes as text, or nothing when none can be had.

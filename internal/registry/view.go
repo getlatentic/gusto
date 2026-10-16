@@ -3,8 +3,8 @@ package registry
 import (
 	"sort"
 
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // View is the registry as a page says it: every provider, the operator's and the organisation's, with the models

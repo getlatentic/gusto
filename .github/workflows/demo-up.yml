@@ -26,22 +26,22 @@ env:
 
 jobs:
   up:
-    runs-on: [self-hosted, haas]
+    runs-on: [self-hosted, gusto]
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.HAAS_AWS_ROLE }}
+          role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
           aws-region: us-east-1
       - name: Launch
         id: launch
         env:
-          BUCKET: ${{ vars.HAAS_BUCKET }}
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
           LEASE: ${{ inputs.lease_minutes }}
           RELEASE: ${{ inputs.release }}
           CELLS: ${{ inputs.cells }}
-          EFS: ${{ vars.HAAS_EFS }}
+          EFS: ${{ vars.GUSTO_EFS }}
         run: |
           case "$LEASE" in ''|*[!0-9]*) echo "the lease is a number of minutes"; exit 1;; esac
           [ "$LEASE" -ge 5 ] && [ "$LEASE" -le 240 ] || { echo "the lease is from 5 to 240 minutes"; exit 1; }
@@ -52,7 +52,7 @@ jobs:
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [ -z "$up" ] || { echo "a host is already up: $up"; exit 1; }
           case "$CELLS" in [0-4]) ;; *) echo "the cells are from 0 to 4"; exit 1;; esac
-          [ "$CELLS" = 0 ] || [ -n "$EFS" ] || { echo "cells share a file system, and the repository variable HAAS_EFS is not set"; exit 1; }
+          [ "$CELLS" = 0 ] || [ -n "$EFS" ] || { echo "cells share a file system, and the repository variable GUSTO_EFS is not set"; exit 1; }
           run="run-$GITHUB_RUN_ID"
           # $Latest is EC2's word for the newest version of the template, not a variable.
           # shellcheck disable=SC2016
@@ -72,7 +72,7 @@ jobs:
           echo "launched $ids from release $RELEASE at $(date -u +%H:%M:%S) UTC"
       - name: Wait until it answers
         env:
-          NAME: ${{ vars.HAAS_DEMO_NAME }}
+          NAME: ${{ vars.GUSTO_DEMO_NAME }}
           LEASE: ${{ inputs.lease_minutes }}
           CELLS: ${{ inputs.cells }}
         run: |

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // Engine keeps one local folder the same as one agent's folder in the cloud.
@@ -107,7 +107,7 @@ func (e *Engine) look(ctx context.Context) (*picture, error) {
 		return nil, err
 	}
 	if cut {
-		return nil, errors.New("the folder in the cloud has more files than can be listed: leave the large ones out with a .haasignore, or the files that are not listed would look deleted")
+		return nil, errors.New("the folder in the cloud has more files than can be listed: leave the large ones out with a .gustoignore, or the files that are not listed would look deleted")
 	}
 	var needHash []string
 	for _, file := range files {
@@ -184,7 +184,7 @@ func (e *Engine) guard(p *picture, plan []Action) error {
 		return nil
 	}
 	if e.State.Fresh() && len(p.scanned) > mostFirstRun {
-		return fmt.Errorf("%w: %d files is a lot for a first run, and may be the wrong folder: name a smaller one, leave things out with a .haasignore, or run again with -force", ErrGuard, len(p.scanned))
+		return fmt.Errorf("%w: %d files is a lot for a first run, and may be the wrong folder: name a smaller one, leave things out with a .gustoignore, or run again with -force", ErrGuard, len(p.scanned))
 	}
 	deletions := 0
 	for _, act := range plan {

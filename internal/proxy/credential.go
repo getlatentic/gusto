@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/wire"
+	"github.com/getlatentic/gusto/internal/wire"
 )
 
 // Auth is how a credential is presented to its provider. Most take a bearer

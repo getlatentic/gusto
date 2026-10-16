@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/orgsettings"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/orgsettings"
 )
 
 // chatDefault is the engine and model the organisation's admins chose for a new chat, which a person gets until they choose their own.

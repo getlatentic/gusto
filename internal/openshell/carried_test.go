@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 type counting struct {

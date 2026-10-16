@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 func ownerOf(info fs.FileInfo) uint32 { return info.Sys().(*syscall.Stat_t).Uid }

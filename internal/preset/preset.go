@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Limits on what is kept for one person.

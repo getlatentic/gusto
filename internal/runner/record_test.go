@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // The line Claude Code ends a run with. Its cache write dwarfs the rest, so a

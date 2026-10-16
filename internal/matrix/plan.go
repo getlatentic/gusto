@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Plan is what a person asks the matrix to measure: a fixed set of jobs, and
@@ -19,7 +19,7 @@ type Plan struct {
 	// carries its whole skill set into every request as in a container that
 	// starts empty, so a row that does not say where it ran cannot be read.
 	Environment string `json:"environment,omitempty"`
-	// Jobs are job directories as `haas new` leaves them, relative to the
+	// Jobs are job directories as `gusto new` leaves them, relative to the
 	// plan's own file.
 	Jobs []string `json:"jobs"`
 	// Simplest is the job a pair has to finish to be offered at all. It is the

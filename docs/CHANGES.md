@@ -27,10 +27,10 @@ setup, and which settings changed. An admin reads it under Activity in the admin
 Every line has who, what and when, and where the request came from. It never
 holds a password: a wrong password is recorded as wrong, not as typed.
 
-The settings are `HAAS_ALLOWED`, `HAAS_ADMINS`, `HAAS_RUNNER_GROUPS`,
-`HAAS_ADMIN_GROUPS`, `HAAS_OIDC_GROUPS_CLAIM`, `HAAS_OIDC_ISSUER`,
-`HAAS_ALLOWED_HOSTS`, `HAAS_MODELS`, `HAAS_JOB_NETWORK`, `HAAS_API_TOKENS`,
-`HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM`, `HAAS_RETENTION`, and the hashes of the
+The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`,
+`GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`,
+`GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_JOB_NETWORK`, `GUSTO_API_TOKENS`,
+`GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the
 retention policy and of the spend policy file. They change outside the pages, so `who` is `the server` and
 `when` is when it next started.
 
@@ -43,9 +43,9 @@ that is written.
 
 ## Where it is
 
-`HAAS_CHANGES` names the file. Compose and the chart keep it at
-`$HAAS_DATA/changes/changes.jsonl` on the volume, and the playbook at
-`/opt/haas/var/changes/changes.jsonl`. The playbook makes it append-only where
+`GUSTO_CHANGES` names the file. Compose and the chart keep it at
+`$GUSTO_DATA/changes/changes.jsonl` on the volume, and the playbook at
+`/opt/gusto/var/changes/changes.jsonl`. The playbook makes it append-only where
 the filesystem allows, so that not even the user the server runs as can rewrite
 or shorten it, and says when the filesystem would not.
 
@@ -69,7 +69,7 @@ went on to write would look as sound as what came before.
 ## Check it
 
 ```bash
-haas changes verify changes.jsonl
+gusto changes verify changes.jsonl
 ```
 
 ```
@@ -84,17 +84,17 @@ An edited line stops it and exits 1:
 the change log does not hold together at line 3: its content does not match its hash
 ```
 
-`HAAS_KEYRING` names the keys that stand behind the signatures, as it does for
+`GUSTO_KEYRING` names the keys that stand behind the signatures, as it does for
 job records. A line signed by a key the keyring does not hold is counted, not
 refused.
 
 ## What no chain can show
 
 Lines cut off the end of the file leave a chain that still holds. Keep the head
-that `haas changes verify` and the page print, and give it back later:
+that `gusto changes verify` and the page print, and give it back later:
 
 ```bash
-haas changes verify -head a24bf3dac7d4cdba764f6682feac035d2a0e5f117fcaa859acdafa7d3eaea617 changes.jsonl
+gusto changes verify -head a24bf3dac7d4cdba764f6682feac035d2a0e5f117fcaa859acdafa7d3eaea617 changes.jsonl
 ```
 
 ```
@@ -105,7 +105,7 @@ It exits 1. Keep the head somewhere the server's own machine cannot change: an
 export a reviewer holds is enough.
 
 Without a signing key the lines are chained and not signed. Somebody who can
-write the file can then rewrite all of it. Set `HAAS_SIGNING_KEY`, and prefer a
+write the file can then rewrite all of it. Set `GUSTO_SIGNING_KEY`, and prefer a
 key in KMS ([KEYS.md](KEYS.md)), so the key is not on the machine that could be
 broken into.
 

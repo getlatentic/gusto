@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/cli"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/cli"
 )
 
 type oneToken struct{ token string }

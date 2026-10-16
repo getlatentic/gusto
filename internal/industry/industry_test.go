@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Every template ships whole: named so a setup can take its name, with skills

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds the haas program for one system and packs it: a .tar.gz for macOS and Linux, a .zip for Windows, named for the release,
+# Builds the gusto program for one system and packs it: a .tar.gz for macOS and Linux, a .zip for Windows, named for the release,
 # the system and the processor. The release workflow runs it for six targets, and a person can run it to build their own. It needs
 # no C compiler, so every target builds on any machine.
 #
@@ -10,18 +10,18 @@ os=${2:?linux, darwin or windows}
 arch=${3:?amd64 or arm64}
 out=${4:-dist}
 
-exe=haas
-[ "$os" = windows ] && exe=haas.exe
+exe=gusto
+[ "$os" = windows ] && exe=gusto.exe
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 root=$(git rev-parse --show-toplevel)
 
 cp "$root/LICENSE" "$root/NOTICE" "$work/"
 
-(cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.release=$tag" -o "$work/$exe" ./cmd/haas)
+(cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.release=$tag" -o "$work/$exe" ./cmd/gusto)
 
 mkdir -p "$out"
-archive="haas_${tag}_${os}_${arch}"
+archive="gusto_${tag}_${os}_${arch}"
 if [ "$os" = windows ]; then
   (cd "$work" && zip -q -9 "$archive.zip" "$exe" LICENSE NOTICE) && mv "$work/$archive.zip" "$out/"
   echo "$out/$archive.zip"

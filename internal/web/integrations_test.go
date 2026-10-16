@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/setup"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/setup"
 )
 
 const (

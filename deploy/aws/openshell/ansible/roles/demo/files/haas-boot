@@ -13,14 +13,14 @@
 # Let's Encrypt allows five certificates a week for one set of names and a host that
 # asked for a new one at every start would run out of them.
 #
-# The paths can be moved with HAAS_RUN, HAAS_LE, HAAS_LIB, HAAS_LEASE_FILE and HAAS_CONF, and the owner of the
-# files with HAAS_OWNER (empty leaves them alone), which is how a test runs it.
+# The paths can be moved with GUSTO_RUN, GUSTO_LE, GUSTO_LIB, GUSTO_LEASE_FILE and GUSTO_CONF, and the owner of the
+# files with GUSTO_OWNER (empty leaves them alone), which is how a test runs it.
 set -euo pipefail
-CONF=${HAAS_CONF:-/etc/haas/demo.conf}
-run=${HAAS_RUN:-/run/haas}
-le=${HAAS_LE:-/etc/letsencrypt}
-lib=${HAAS_LIB:-/var/lib/haas}
-owner=${HAAS_OWNER-ubuntu}
+CONF=${GUSTO_CONF:-/etc/haas/demo.conf}
+run=${GUSTO_RUN:-/run/haas}
+le=${GUSTO_LE:-/etc/letsencrypt}
+lib=${GUSTO_LIB:-/var/lib/haas}
+owner=${GUSTO_OWNER-ubuntu}
 # shellcheck disable=SC1090
 . "$CONF"
 role=${ROLE:-all}
@@ -43,7 +43,7 @@ tokens() {
     mail_token=$(param "$MAIL_TOKEN_PARAMETER")
     printf '%s' "$dns_token" > "$run/secrets/cf-dns-token"
     printf 'dns_cloudflare_api_token = %s\n' "$dns_token" > "$run/secrets/certbot-cf.ini"
-    printf 'HAAS_CLOUD_MAIL_TOKEN=%s\n' "$mail_token" > "$run/secrets/mail.env"
+    printf 'GUSTO_CLOUD_MAIL_TOKEN=%s\n' "$mail_token" > "$run/secrets/mail.env"
   )
 }
 
@@ -53,7 +53,7 @@ turnstile() {
   local secret
   rm -f "$run/secrets/turnstile.env"
   if secret=$(param "$TURNSTILE_PARAMETER" 2>/dev/null) && [ -n "$secret" ]; then
-    (umask 077; printf 'HAAS_CLOUD_TURNSTILE_SECRET=%s\n' "$secret" > "$run/secrets/turnstile.env")
+    (umask 077; printf 'GUSTO_CLOUD_TURNSTILE_SECRET=%s\n' "$secret" > "$run/secrets/turnstile.env")
   else
     echo "haas-boot: no bot check, since $TURNSTILE_PARAMETER is not stored"
   fi
@@ -65,7 +65,7 @@ lead_hook() {
   local address secret
   rm -f "$run/secrets/leadhook.env"
   if address=$(param "$LEAD_HOOK_URL_PARAMETER" 2>/dev/null) && secret=$(param "$LEAD_HOOK_SECRET_PARAMETER" 2>/dev/null) && [ -n "$address" ] && [ -n "$secret" ]; then
-    (umask 077; printf 'HAAS_CLOUD_LEAD_HOOK_URL=%s\nHAAS_CLOUD_LEAD_HOOK_SECRET=%s\n' "$address" "$secret" > "$run/secrets/leadhook.env")
+    (umask 077; printf 'GUSTO_CLOUD_LEAD_HOOK_URL=%s\nGUSTO_CLOUD_LEAD_HOOK_SECRET=%s\n' "$address" "$secret" > "$run/secrets/leadhook.env")
   else
     echo "haas-boot: no lead hook, since $LEAD_HOOK_URL_PARAMETER and $LEAD_HOOK_SECRET_PARAMETER are not both stored"
   fi
@@ -111,7 +111,7 @@ credentials() {
 # The lease starts with the first boot and is not written again by a later one, so
 # starting this script again does not give a host more time.
 lease() {
-  local file=${HAAS_LEASE_FILE:-$lib/lease.json} started
+  local file=${GUSTO_LEASE_FILE:-$lib/lease.json} started
   if [ ! -e "$file" ]; then
     started=$(date +%s)
     mkdir -p "$(dirname "$file")"
@@ -132,7 +132,7 @@ cell_secret() {
 cell_identity() {
   local id
   id=$(metadata instance-id)
-  printf 'HAAS_CELL_NAME=cell-%s\nHAAS_CELL_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
+  printf 'GUSTO_CELL_NAME=cell-%s\nGUSTO_CELL_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
 }
 
 point_the_name_here() {

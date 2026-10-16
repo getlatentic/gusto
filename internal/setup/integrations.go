@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/gateway"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/gateway"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Integrations is the integrations an organisation has imported, which a setup may name. Only the versions an administrator has

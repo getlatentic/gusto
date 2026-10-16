@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // UseQuota puts the index under a quota: a job past the number the quota allows

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // A harness is a program, so a program that makes the change runs the whole
@@ -72,8 +72,8 @@ func (s *site) ranJob(t *testing.T, does string) (string, job.Dir) {
 	t.Helper()
 	harnesses := t.TempDir()
 	put(t, filepath.Join(harnesses, "fixture.json"), fmt.Sprintf(fixtureJSON, does), 0o644)
-	t.Setenv("HAAS_HARNESSES", harnesses)
-	t.Setenv("HAAS_SIGNER", "a-test")
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	id := "20260101-0900-make-the-answer-yes"
 	dir := job.Dir(filepath.Join(s.index.Root(), id))
@@ -148,7 +148,7 @@ func unpack(t *testing.T, archive io.Reader, into string) map[string]int64 {
 	return modes
 }
 
-// verify is the two things `haas verify` does: re-hash the evidence against the
+// verify is the two things `gusto verify` does: re-hash the evidence against the
 // manifest, and re-run the gate in the workspace and compare the answer.
 func verify(t *testing.T, dir job.Dir) (string, bool) {
 	t.Helper()

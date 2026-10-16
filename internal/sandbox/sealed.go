@@ -4,14 +4,14 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // InsideSocket is where a sealed container finds the proxy's socket, and
 // InsideProxy is the address the runner relays to it from. Both are inside the
 // box, so they are the same for every job.
 const (
-	InsideSocket = "/run/haas/proxy.sock"
+	InsideSocket = "/run/gusto/proxy.sock"
 	InsideProxy  = "127.0.0.1:8041"
 )
 
@@ -51,13 +51,13 @@ func sealedArgv(absolute, socket, token string, mounts []Mount) ([]string, error
 	// A proxy URL carries the token as its password, which a client sends as
 	// Proxy-Authorization. The model is on loopback and must not be asked for
 	// through the proxy URL, which would send it as a host to allow.
-	through := "http://haas:" + token + "@" + InsideProxy
+	through := "http://gusto:" + token + "@" + InsideProxy
 	network := []string{
 		"--network=none",
 		"-v", socket + ":" + InsideSocket,
-		"-e", "HAAS_PROXY_SOCKET=" + InsideSocket,
-		"-e", "HAAS_MODEL_URL=http://" + InsideProxy + "/model/v1",
-		"-e", "HAAS_MODEL_TOKEN=" + token,
+		"-e", "GUSTO_PROXY_SOCKET=" + InsideSocket,
+		"-e", "GUSTO_MODEL_URL=http://" + InsideProxy + "/model/v1",
+		"-e", "GUSTO_MODEL_TOKEN=" + token,
 		"-e", "HTTPS_PROXY=" + through, "-e", "https_proxy=" + through,
 		"-e", "HTTP_PROXY=" + through, "-e", "http_proxy=" + through,
 		"-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost",

@@ -29,7 +29,7 @@ of the same job, so none of them is a separate product.
 
 | way in | who uses it | when |
 | --- | --- | --- |
-| `haas` on the command line | the person who wrote the repository | built |
+| `gusto` on the command line | the person who wrote the repository | built |
 | the pages | anybody on the team | Sprint 1 |
 | the HTTP API | a script, a CI job, another platform | Sprint 1 |
 | Slack | somebody who will not open a dashboard | after Sprint 2 |

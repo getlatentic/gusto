@@ -1,4 +1,4 @@
-# Installs haas the way a customer does: from the digests a release names, with
+# Installs gusto the way a customer does: from the digests a release names, with
 # no build, after checking each image's signature. Each install then runs a job
 # and verifies its signed record. It runs by hand against any
 # release tag, and when this file or the compose install changes on an issue
@@ -35,8 +35,8 @@ jobs:
         id: digests
         run: |
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
-          server="$(sed -n 's/^HAAS_SERVER_IMAGE=//p' <<<"$notes")"
-          runner="$(sed -n 's/^HAAS_RUNNER_IMAGE=//p' <<<"$notes")"
+          server="$(sed -n 's/^GUSTO_SERVER_IMAGE=//p' <<<"$notes")"
+          runner="$(sed -n 's/^GUSTO_RUNNER_IMAGE=//p' <<<"$notes")"
           case "$server$runner" in *@sha256:*@sha256:*) ;; *) echo "the release $TAG names no digests"; exit 1 ;; esac
           echo "server=$server" >> "$GITHUB_OUTPUT"
           echo "runner=$runner" >> "$GITHUB_OUTPUT"
@@ -69,31 +69,31 @@ jobs:
           RUNNER: ${{ steps.digests.outputs.runner }}
         run: |
           {
-            echo "HAAS_PASSWORD=install-check"
-            echo "HAAS_DATA=$RUNNER_TEMP/haas"
-            echo "HAAS_SERVER_IMAGE=$SERVER"
-            echo "HAAS_RUNNER_IMAGE=$RUNNER"
-            echo "HAAS_CREDENTIALS=$RUNNER_TEMP/haas/credentials"
-            echo "HAAS_MODELS=stub/stub-model"
-            echo "HAAS_SPEND_POLICY=$RUNNER_TEMP/haas/spend.json"
-            echo "HAAS_OIDC_ISSUER=http://dex:5556/dex"
-            echo "HAAS_OIDC_CLIENT_ID=haas"
-            echo "HAAS_OIDC_CLIENT_SECRET=haas-secret"
-            echo "HAAS_OIDC_REDIRECT=http://127.0.0.1:8040/auth/callback"
-            echo "HAAS_OIDC_SCOPES=groups"
-            echo "HAAS_ADMIN_GROUPS=authors"
+            echo "GUSTO_PASSWORD=install-check"
+            echo "GUSTO_DATA=$RUNNER_TEMP/gusto"
+            echo "GUSTO_SERVER_IMAGE=$SERVER"
+            echo "GUSTO_RUNNER_IMAGE=$RUNNER"
+            echo "GUSTO_CREDENTIALS=$RUNNER_TEMP/gusto/credentials"
+            echo "GUSTO_MODELS=stub/stub-model"
+            echo "GUSTO_SPEND_POLICY=$RUNNER_TEMP/gusto/spend.json"
+            echo "GUSTO_OIDC_ISSUER=http://dex:5556/dex"
+            echo "GUSTO_OIDC_CLIENT_ID=gusto"
+            echo "GUSTO_OIDC_CLIENT_SECRET=gusto-secret"
+            echo "GUSTO_OIDC_REDIRECT=http://127.0.0.1:8040/auth/callback"
+            echo "GUSTO_OIDC_SCOPES=groups"
+            echo "GUSTO_ADMIN_GROUPS=authors"
           } > .env
-          mkdir -p "$RUNNER_TEMP/haas/credentials"
-          echo '{"name":"stub","address":"http://stub:9000","key":"not-a-key"}' > "$RUNNER_TEMP/haas/credentials/stub.json"
-          echo '{"prices":{"stub-model":{"inputPerMillion":1000,"outputPerMillion":10000}}}' > "$RUNNER_TEMP/haas/spend.json"
+          mkdir -p "$RUNNER_TEMP/gusto/credentials"
+          echo '{"name":"stub","address":"http://stub:9000","key":"not-a-key"}' > "$RUNNER_TEMP/gusto/credentials/stub.json"
+          echo '{"prices":{"stub-model":{"inputPerMillion":1000,"outputPerMillion":10000}}}' > "$RUNNER_TEMP/gusto/spend.json"
           start=$(date +%s.%N)
           docker compose pull
           pulled=$(date +%s.%N)
           docker compose create --no-build
-          docker run -d --name dex --network haas_default -p 127.0.0.1:5556:5556 \
+          docker run -d --name dex --network gusto_default -p 127.0.0.1:5556:5556 \
             -v "$GITHUB_WORKSPACE/deploy/ssocheck/dex.yaml:/etc/dex/config.docker.yaml:ro" ghcr.io/dexidp/dex:v2.42.0@sha256:1b4a6eee8550240b0faedad04d984ca939513650e1d9bd423502c67355e3822f
           docker compose up -d --no-build
-          docker run -d --name stub --network haas_default -v "$GITHUB_WORKSPACE/deploy/stubmodel/stub.py:/stub.py:ro" python:3.13-alpine python -u /stub.py
+          docker run -d --name stub --network gusto_default -v "$GITHUB_WORKSPACE/deploy/stubmodel/stub.py:/stub.py:ro" python:3.13-alpine python -u /stub.py
           for _ in $(seq 1 60); do
             curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break
             sleep 2
@@ -147,7 +147,7 @@ jobs:
       - name: Sign in as somebody no group maps to, and be refused
         working-directory: deploy/compose
         run: |
-          { echo "HAAS_ADMIN_GROUPS=nobody"; echo "HAAS_RUNNER_GROUPS=nobody"; } >> .env
+          { echo "GUSTO_ADMIN_GROUPS=nobody"; echo "GUSTO_RUNNER_GROUPS=nobody"; } >> .env
           docker compose up -d --no-build
           for _ in $(seq 1 60); do
             curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break
@@ -184,14 +184,14 @@ jobs:
         id: digests
         run: |
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
-          echo "server=$(sed -n 's/^HAAS_SERVER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
-          echo "runner=$(sed -n 's/^HAAS_RUNNER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
+          echo "server=$(sed -n 's/^GUSTO_SERVER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
+          echo "runner=$(sed -n 's/^GUSTO_RUNNER_IMAGE=//p' <<<"$notes")" >> "$GITHUB_OUTPUT"
 
       - name: A cluster to install into
         run: |
           kind create cluster --wait 120s
-          kubectl create namespace haas
-          kubectl label namespace haas pod-security.kubernetes.io/enforce=privileged --overwrite
+          kubectl create namespace gusto
+          kubectl label namespace gusto pod-security.kubernetes.io/enforce=privileged --overwrite
 
       # The images are private. The kubelet pulls the server and the daemon in
       # the pod pulls the runner, and both read this one Secret.
@@ -199,17 +199,17 @@ jobs:
         env:
           REGISTRY_TOKEN: ${{ github.token }}
         run: |
-          kubectl -n haas create secret docker-registry ghcr \
+          kubectl -n gusto create secret docker-registry ghcr \
             --docker-server=ghcr.io --docker-username="$GITHUB_ACTOR" --docker-password="$REGISTRY_TOKEN"
 
       # A model that answers the same way every time, in the cluster, so the proxy's
       # count can be compared with known numbers.
       - name: A stub model for the proxy to count
         run: |
-          kubectl -n haas create configmap stub --from-file=stub.py=deploy/stubmodel/stub.py
-          kubectl -n haas create secret generic credentials \
+          kubectl -n gusto create configmap stub --from-file=stub.py=deploy/stubmodel/stub.py
+          kubectl -n gusto create secret generic credentials \
             --from-literal=stub.json='{"name":"stub","address":"http://stub:9000","key":"not-a-key"}'
-          kubectl -n haas apply -f - <<'YAML'
+          kubectl -n gusto apply -f - <<'YAML'
           apiVersion: apps/v1
           kind: Deployment
           metadata: { name: stub }
@@ -233,12 +233,12 @@ jobs:
             selector: { app: stub }
             ports: [{ port: 9000 }]
           YAML
-          kubectl -n haas rollout status deploy/stub --timeout=120s
+          kubectl -n gusto rollout status deploy/stub --timeout=120s
 
       - name: An identity provider for the chart to sign in through
         run: |
-          kubectl -n haas create configmap dex --from-file=config.docker.yaml=deploy/ssocheck/dex.yaml
-          kubectl -n haas apply -f - <<'YAML'
+          kubectl -n gusto create configmap dex --from-file=config.docker.yaml=deploy/ssocheck/dex.yaml
+          kubectl -n gusto apply -f - <<'YAML'
           apiVersion: apps/v1
           kind: Deployment
           metadata: { name: dex }
@@ -261,19 +261,19 @@ jobs:
             selector: { app: dex }
             ports: [{ port: 5556 }]
           YAML
-          kubectl -n haas rollout status deploy/dex --timeout=120s
+          kubectl -n gusto rollout status deploy/dex --timeout=120s
 
       - name: Install the chart from the digests
         env:
           SERVER: ${{ steps.digests.outputs.server }}
           RUNNER: ${{ steps.digests.outputs.runner }}
         run: |
-          helm install haas deploy/helm/haas --namespace haas \
+          helm install gusto deploy/helm/gusto --namespace gusto \
             --set image.server.repository="${SERVER%@*}" --set image.server.digest="${SERVER#*@}" \
             --set image.runner.repository="${RUNNER%@*}" --set image.runner.digest="${RUNNER#*@}" \
             --set 'imagePullSecrets[0].name=ghcr' --set runnerPullSecret=ghcr \
             --set auth.password=install-check \
-            --set auth.oidc.issuer=http://dex:5556/dex --set auth.oidc.clientId=haas --set auth.oidc.clientSecret=haas-secret \
+            --set auth.oidc.issuer=http://dex:5556/dex --set auth.oidc.clientId=gusto --set auth.oidc.clientSecret=gusto-secret \
             --set auth.oidc.redirect=http://127.0.0.1:8040/auth/callback --set auth.oidc.scopes=groups --set auth.oidc.adminGroups=authors \
             --set credentials.existingSecret=credentials --set model.models=stub/stub-model \
             --set spend.prices.stub-model.inputPerMillion=1000 --set spend.prices.stub-model.outputPerMillion=10000 \
@@ -283,13 +283,13 @@ jobs:
         env:
           SERVER: ${{ steps.digests.outputs.server }}
         run: |
-          running="$(kubectl -n haas get deploy haas -o jsonpath='{.spec.template.spec.containers[?(@.name=="server")].image}')"
+          running="$(kubectl -n gusto get deploy gusto -o jsonpath='{.spec.template.spec.containers[?(@.name=="server")].image}')"
           test "$running" = "$SERVER" || { echo "the server runs $running, and the release named $SERVER"; exit 1; }
           echo "the server runs $running"
 
       - name: Sign in and reach the pages
         run: |
-          kubectl -n haas port-forward svc/haas 8040:80 > /dev/null 2>&1 &
+          kubectl -n gusto port-forward svc/gusto 8040:80 > /dev/null 2>&1 &
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8040/healthz > /dev/null 2>&1 && break; sleep 1; done
           code="$(curl -s -o /dev/null -w '%{http_code}' -c jar --data-urlencode password=install-check http://127.0.0.1:8040/login)"
           test "$code" = 303 || { echo "signing in answered $code"; exit 1; }
@@ -298,32 +298,32 @@ jobs:
           echo "signed in, and the home page answered $code"
 
       - name: Run a job that asks a model, and check what the proxy counted
-        run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke-model.sh
+        run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke-model.sh
 
       - name: Run a job and verify its record
-        run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke.sh
+        run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke.sh
 
       - name: Probe a job's box from inside it
-        run: kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke-isolation.sh
+        run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke-isolation.sh
 
       - name: Stop a job that is running, and see what it left
         run: |
-          id="$(kubectl -n haas exec -i deploy/haas -c server -- sh -s -- start < deploy/smoke-stop.sh | tail -n 1)"
+          id="$(kubectl -n gusto exec -i deploy/gusto -c server -- sh -s -- start < deploy/smoke-stop.sh | tail -n 1)"
           echo "a job is running: $id"
           curl -s -c jar -o /dev/null --data-urlencode password=install-check http://127.0.0.1:8040/login
           code="$(curl -s -b jar -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8040/jobs/$id/stop")"
           test "$code" = 303 || { echo "stopping answered $code"; exit 1; }
-          kubectl -n haas exec -i deploy/haas -c server -- sh -s -- check "$id" < deploy/smoke-stop.sh
+          kubectl -n gusto exec -i deploy/gusto -c server -- sh -s -- check "$id" < deploy/smoke-stop.sh
 
       - name: Sign in through the identity provider, as an admin
         run: |
-          kubectl -n haas port-forward svc/dex 5556:5556 > /dev/null 2>&1 &
+          kubectl -n gusto port-forward svc/dex 5556:5556 > /dev/null 2>&1 &
           sleep 3
           deploy/ssocheck/sign-in.sh http://127.0.0.1:8040 admin
 
       - name: What the pod says, when something failed
         if: failure()
         run: |
-          kubectl -n haas get pods -o wide
-          kubectl -n haas describe pods | tail -60
-          kubectl -n haas logs deploy/haas --all-containers --tail=60 || true
+          kubectl -n gusto get pods -o wide
+          kubectl -n gusto describe pods | tail -60
+          kubectl -n gusto logs deploy/gusto --all-containers --tail=60 || true

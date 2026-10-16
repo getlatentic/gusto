@@ -4,7 +4,7 @@ package gateway
 
 // This measures what the gateway saves a real model, with the real claude program:
 //
-//	HAAS_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway
+//	GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway
 //
 // It makes three short calls to the model claude is signed in to, so it only runs when asked for.
 
@@ -75,8 +75,8 @@ func tokensOf(t *testing.T, config string) (input, output int, said string) {
 }
 
 func TestMeasureWhatTheGatewaySavesARealModel(t *testing.T) {
-	if os.Getenv("HAAS_MEASURE") == "" {
-		t.Skip("set HAAS_MEASURE=1 to make three short calls to claude's model")
+	if os.Getenv("GUSTO_MEASURE") == "" {
+		t.Skip("set GUSTO_MEASURE=1 to make three short calls to claude's model")
 	}
 	fake, address := newUpstream(t, realisticTools(60)...)
 	_ = fake
@@ -155,8 +155,8 @@ func codexInput(t *testing.T, address string) int {
 }
 
 func TestMeasureWhatTheGatewaySavesCodex(t *testing.T) {
-	if os.Getenv("HAAS_MEASURE") == "" {
-		t.Skip("set HAAS_MEASURE=1 to make short calls to codex's model")
+	if os.Getenv("GUSTO_MEASURE") == "" {
+		t.Skip("set GUSTO_MEASURE=1 to make short calls to codex's model")
 	}
 	if _, err := exec.LookPath("codex"); err != nil {
 		t.Skip("no codex")
@@ -230,8 +230,8 @@ func opencodeInput(t *testing.T, address string) int {
 }
 
 func TestMeasureWhatTheGatewaySavesOpencode(t *testing.T) {
-	if os.Getenv("HAAS_MEASURE") == "" {
-		t.Skip("set HAAS_MEASURE=1 to make short calls to opencode's free model")
+	if os.Getenv("GUSTO_MEASURE") == "" {
+		t.Skip("set GUSTO_MEASURE=1 to make short calls to opencode's free model")
 	}
 	if _, err := exec.LookPath("opencode"); err != nil {
 		t.Skip("no opencode")

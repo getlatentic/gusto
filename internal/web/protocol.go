@@ -3,10 +3,10 @@ package web
 import (
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/apitoken"
 )
 
-// ProtocolVersion is the version of the protocol a client speaks to a haas server, whether the server is on the same computer, on
+// ProtocolVersion is the version of the protocol a client speaks to a gusto server, whether the server is on the same computer, on
 // another, or an organisation's. It is the same server program and the same calls in each place: what differs is only how a client
 // signs in (docs/PROTOCOL.md). A change that breaks a client raises it. A client asks GET /api/protocol and finds out.
 const ProtocolVersion = 1

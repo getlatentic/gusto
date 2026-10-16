@@ -49,7 +49,7 @@ func fetch(ctx context.Context, get Download, url, want, dir string) (string, er
 		err = closed
 	}
 	if err == nil && hex.EncodeToString(sum.Sum(nil)) != want {
-		err = fmt.Errorf("%s is not the file haas expected: its checksum differs", url)
+		err = fmt.Errorf("%s is not the file gusto expected: its checksum differs", url)
 	}
 	if err != nil {
 		os.Remove(path)

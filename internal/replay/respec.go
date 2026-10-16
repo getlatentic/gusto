@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Rewrite copies from's job.json into to with the named fields set, and nothing
@@ -67,7 +67,7 @@ func anchor(fields map[string]json.RawMessage, old job.Dir) error {
 
 // Carry gives the new job the adapters the old one carried, so it runs a
 // harness the same way. When none of them is the named harness's, the old job
-// ran a built-in adapter or one from HAAS_HARNESSES, and harness.Keep carries
+// ran a built-in adapter or one from GUSTO_HARNESSES, and harness.Keep carries
 // the one this machine has now, so a container that has never heard of it
 // still runs it.
 func Carry(old, fresh job.Dir, name string) error {

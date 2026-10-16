@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/haas/internal/redact"
+	"github.com/getlatentic/gusto/internal/redact"
 )
 
 // Mode is how a job is shown its tools.
@@ -143,7 +143,7 @@ func (s *Session) handle(r *http.Request, in request) (response, bool) {
 		reply.Result = map[string]any{
 			"protocolVersion": agreed(asked.ProtocolVersion),
 			"capabilities":    map[string]any{"tools": map[string]any{"listChanged": false}},
-			"serverInfo":      map[string]string{"name": "haas-gateway", "version": "1"},
+			"serverInfo":      map[string]string{"name": "gusto-gateway", "version": "1"},
 			"instructions":    s.instructions(),
 		}
 	case "ping":

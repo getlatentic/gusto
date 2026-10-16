@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Keys is where the keys typed into the registry are kept, by provider. A shared server keeps them in files only its user can
-// read; haas on a person's own computer keeps them in the computer's keychain.
+// read; gusto on a person's own computer keeps them in the computer's keychain.
 type Keys interface {
 	Keep(provider, key string) error
 	// Read is the key kept for a provider, or an error wrapping fs.ErrNotExist when none is.

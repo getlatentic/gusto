@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/ship"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/ship"
 )
 
 var here = ship.Options{GitHub: "o/r"}
@@ -140,7 +140,7 @@ func TestShippingTheSameRunTwiceMakesTheSameBranch(t *testing.T) {
 	if second.Branch != first.Branch || git(t, bare, "rev-parse", second.Branch) != tip {
 		t.Fatalf("the same run should ship as the same commit on the same branch: %s, %s", first.Branch, second.Branch)
 	}
-	if !strings.HasPrefix(first.Branch, "haas/20260926-0900-make-the-answer-yes-") {
+	if !strings.HasPrefix(first.Branch, "gusto/20260926-0900-make-the-answer-yes-") {
 		t.Fatalf("the branch should be named for the job: %s", first.Branch)
 	}
 }

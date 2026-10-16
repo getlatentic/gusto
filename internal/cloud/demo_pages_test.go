@@ -39,7 +39,7 @@ func TestAHostThatOffersNoDemoHasNoDemoPage(t *testing.T) {
 
 func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testing.T) {
 	f := demoFront(t, "FAKE_DELAY=1500ms")
-	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try Latentic Agent Cloud for 30 minutes") || !strings.Contains(page, "https://cal.example/haas") {
+	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try Latentic Agent Cloud for 30 minutes") || !strings.Contains(page, "https://cal.example/gusto") {
 		t.Fatalf("%d\n%s", status, page)
 	}
 	b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
@@ -84,12 +84,12 @@ func TestADemosPagesCarryItsCountdownAndWhereToBookAndAnOrdinaryHostsDoNot(t *te
 	f.server.Wait()
 	b.get("/demo/wait")
 	slug := demoSlugOf(t, f)
-	_, body, header := b.at(slug+".cloud.test", "GET", "/.haas/lease", nil)
-	if !strings.Contains(header.Get("Content-Type"), "json") || !strings.Contains(body, `"demo":true`) || !strings.Contains(body, `"book":"https://cal.example/haas"`) ||
+	_, body, header := b.at(slug+".cloud.test", "GET", "/.gusto/lease", nil)
+	if !strings.Contains(header.Get("Content-Type"), "json") || !strings.Contains(body, `"demo":true`) || !strings.Contains(body, `"book":"https://cal.example/gusto"`) ||
 		!strings.Contains(body, `"extend":"http://cloud.test/demo/wait"`) || !strings.Contains(body, `"seconds":1799`) && !strings.Contains(body, `"seconds":1800`) {
 		t.Errorf("%s", body)
 	}
-	if status, _, _ := b.at("cloud.test", "GET", "/.haas/lease", nil); status != http.StatusNotFound {
+	if status, _, _ := b.at("cloud.test", "GET", "/.gusto/lease", nil); status != http.StatusNotFound {
 		t.Errorf("the front door has no lease of its own here: %d", status)
 	}
 }
@@ -144,7 +144,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddr
 		t.Errorf("the server was not stopped and forgotten: %q %q", address, state)
 	}
 	status, body, _ := b.at(slug+".cloud.test", "GET", "/", nil)
-	if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/haas"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
+	if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/gusto"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
 		t.Errorf("%d\n%s", status, body)
 	}
 	if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".brand") {
@@ -184,7 +184,7 @@ func TestDemosAreLimitedInNumberAndAVisitorOverTheLimitIsToldToBookACall(t *test
 	f := newFront(t, set, func(c *Config) { c.Controller = controlled(t, c.Store) })
 	startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
 	status, page, _ := f.browser().post("/demo", url.Values{"name": {"Bob"}, "email": {"bob@globex.com"}, "company": {"Globex"}})
-	if status != http.StatusServiceUnavailable || !strings.Contains(page, "Every demo is in use") || !strings.Contains(page, "cal.example/haas") {
+	if status != http.StatusServiceUnavailable || !strings.Contains(page, "Every demo is in use") || !strings.Contains(page, "cal.example/gusto") {
 		t.Errorf("%d\n%s", status, page)
 	}
 	f.server.Wait()
@@ -198,13 +198,13 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	status, page, header := landingAt(t, demoSet)
-	for _, want := range []string{"One place for every AI agent your team needs.", "Latentic Agent Cloud", `href="/demo"`, "Explore a live workspace", `href="https://cal.example/haas"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple harnesses.", `rel="stylesheet" href="/static/landing.css`} {
+	for _, want := range []string{"One place for every AI agent your team needs.", "Latentic Agent Cloud", `href="/demo"`, "Explore a live workspace", `href="https://cal.example/gusto"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple harnesses.", `rel="stylesheet" href="/static/landing.css`} {
 		if !strings.Contains(strings.ToLower(page), strings.ToLower(want)) {
 			t.Errorf("the landing page does not say %q", want)
 		}
 	}
 	if status != http.StatusOK || !strings.Contains(page, `<video controls preload="metadata" src="/static/demo.mp4" poster="/static/demo-poster.jpg">`) || strings.Contains(page, "<iframe") {
-		t.Errorf("%d: the video that comes with haas is shown\n%s", status, page)
+		t.Errorf("%d: the video that comes with gusto is shown\n%s", status, page)
 	}
 	if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
 		t.Errorf("a video of its own opens nothing up: %s", csp)
@@ -227,7 +227,7 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 		tag, csp  string
 		notInPage string
 	}{
-		"a file":          {"https://media.example/haas.mp4", "<video", "media-src 'self' https:", "<iframe"},
+		"a file":          {"https://media.example/gusto.mp4", "<video", "media-src 'self' https:", "<iframe"},
 		"a page to embed": {"https://www.loom.com/embed/abc123", "<iframe", "frame-src https://www.loom.com", "<video"},
 	} {
 		set := demoSet
@@ -237,7 +237,7 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 			t.Errorf("%s:\n%s\n%s", name, header.Get("Content-Security-Policy"), page)
 		}
 	}
-	for _, bad := range []string{"http://media.example/haas.mp4", "javascript:alert(1)", "//media.example/x.mp4", "https://user:pw@media.example/x.mp4", "not a url"} {
+	for _, bad := range []string{"http://media.example/gusto.mp4", "javascript:alert(1)", "//media.example/x.mp4", "https://user:pw@media.example/x.mp4", "not a url"} {
 		set := demoSet
 		set.Demo.VideoURL = bad
 		_, page, header := landingAt(t, set)
@@ -256,7 +256,7 @@ func TestASignedInVisitorIsSentToTheirOrganisationAndNotShownTheLandingPage(t *t
 	f.server.Wait()
 }
 
-func TestTheVideoThatComesWithHaasIsServedAsAVideoThatCanBeSeekedIn(t *testing.T) {
+func TestTheVideoThatComesWithGustoIsServedAsAVideoThatCanBeSeekedIn(t *testing.T) {
 	f := newFront(t, demoSet, nil)
 	status, body, header := f.browser().do("GET", "/static/demo.mp4", nil, map[string]string{"Range": "bytes=0-99"})
 	if status != http.StatusPartialContent || len(body) != 100 || !strings.HasPrefix(header.Get("Content-Type"), "video/mp4") || !strings.Contains(header.Get("Content-Range"), "bytes 0-99/") {
@@ -292,7 +292,7 @@ func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *test
 		t.Errorf("%+v", lead)
 	}
 	status, page, _ := b.get2("/demo/ended/" + slug)
-	if status != http.StatusOK || !strings.Contains(page, "Your demo has ended") || !strings.Contains(page, `href="https://cal.example/haas"`) {
+	if status != http.StatusOK || !strings.Contains(page, "Your demo has ended") || !strings.Contains(page, `href="https://cal.example/gusto"`) {
 		t.Errorf("%d\n%s", status, page)
 	}
 	if status, _, _ := f.browser().get2("/demo/ended/nobody"); status != http.StatusNotFound {

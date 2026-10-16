@@ -1,0 +1,216 @@
+{{- $reserved := list "GUSTO_ADDR" "GUSTO_JOBS" "GUSTO_SESSIONS" "GUSTO_SETUPS" "GUSTO_INTEGRATIONS" "GUSTO_CHANGES" "GUSTO_LOCAL_REPOS" "GUSTO_RETENTION" "GUSTO_API_TOKENS" "GUSTO_COMPARISONS" "GUSTO_IMAGE" "GUSTO_CONTAINER" "GUSTO_PROXY_SOCKET" -}}
+{{- range $name, $_ := .Values.env }}
+{{- if has $name $reserved }}
+{{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
+{{- end }}
+{{- end -}}
+{{- $runner := include "gusto.image" (list "runner" .Values.image.runner) -}}
+{{- $socket := "/run/gusto/runtime/docker.sock" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gusto.fullname" . }}
+  labels:
+    {{- include "gusto.labels" . | nindent 4 }}
+spec:
+  # One server: the queue, the proxy and the spend ledger live in its process,
+  # and a second would run the same jobs directory twice. Recreate stops the
+  # old pod before the new one claims the volume.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "gusto.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gusto.selector" . | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      # Nothing here speaks to the Kubernetes API, and a job must not find a
+      # token to try.
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # The server's own shutdown waits up to 30 seconds for its jobs to write
+      # their evidence; this is that and room to stop.
+      terminationGracePeriodSeconds: 60
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # The job runtime: a Docker daemon beside the server, which starts one
+        # container per job. It is privileged, which is root on the node that
+        # runs it. deploy/README.md says why this is the option shipped, what
+        # it costs, and what replaces it. It listens on a unix socket in the
+        # pod alone: the image's default would also open TCP 2375, without
+        # authentication, to anything that reaches the pod.
+        - name: runtime
+          image: {{ include "gusto.image" (list "runtime" .Values.image.runtime) }}
+          # Always, in an init container, is a sidecar: it starts before the
+          # server, runs beside it, and stops after it.
+          restartPolicy: Always
+          args: ["dockerd", "--host=unix://{{ $socket }}"]
+          securityContext:
+            privileged: true
+          startupProbe:
+            exec:
+              command: ["docker", "-H", "unix://{{ $socket }}", "info"]
+            periodSeconds: 2
+            failureThreshold: 60
+          {{- with .Values.resources.runtime }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - { name: runtime-socket, mountPath: /run/gusto/runtime }
+            - { name: runtime-storage, mountPath: /var/lib/docker }
+            # The same paths as the server's: it names a job's directory and
+            # the proxy's socket by the path it sees, and this daemon resolves
+            # them on its own filesystem.
+            - { name: data, mountPath: /var/lib/gusto }
+            - { name: proxy-socket, mountPath: /run/gusto/proxy }
+        # The server asks the runtime what the runner carries once, when it
+        # starts, so the runner is pulled before it does. The daemon's storage
+        # goes with the pod, so every new pod pulls it again.
+        - name: runner
+          image: {{ include "gusto.image" (list "cli" .Values.image.cli) }}
+          command: ["docker", "pull", {{ $runner | quote }}]
+          env:
+            - { name: DOCKER_HOST, value: "unix://{{ $socket }}" }
+            {{- if .Values.runnerPullSecret }}
+            - { name: DOCKER_CONFIG, value: /etc/gusto/pull }
+            {{- end }}
+          volumeMounts:
+            - { name: runtime-socket, mountPath: /run/gusto/runtime }
+            {{- if .Values.runnerPullSecret }}
+            - { name: runner-pull, mountPath: /etc/gusto/pull, readOnly: true }
+            {{- end }}
+      containers:
+        - name: server
+          image: {{ include "gusto.image" (list "server" .Values.image.server) }}
+          args: ["serve"]
+          ports:
+            - { name: http, containerPort: 8040 }
+          env:
+            - { name: GUSTO_ADDR, value: "0.0.0.0:8040" }
+            - { name: GUSTO_CONTAINER, value: docker }
+            - { name: DOCKER_HOST, value: "unix://{{ $socket }}" }
+            - { name: GUSTO_IMAGE, value: {{ $runner | quote }} }
+            - { name: GUSTO_JOBS, value: /var/lib/gusto/jobs }
+            - { name: GUSTO_SESSIONS, value: /var/lib/gusto/sessions }
+            - { name: GUSTO_SETUPS, value: /var/lib/gusto/setups }
+            - { name: GUSTO_INTEGRATIONS, value: /var/lib/gusto/integrations }
+            - { name: GUSTO_CHANGES, value: /var/lib/gusto/changes/changes.jsonl }
+            - { name: GUSTO_RETENTION, value: /var/lib/gusto/retention }
+            - { name: GUSTO_LOCAL_REPOS, value: /var/lib/gusto/smoke }
+            - { name: GUSTO_COMPARISONS, value: /var/lib/gusto/comparisons }
+            # Not on the volume: a unix socket belongs on a filesystem both
+            # containers share in memory, whatever the storage class is.
+            - { name: GUSTO_PROXY_SOCKET, value: /run/gusto/proxy/proxy.sock }
+            - { name: GUSTO_JOB_CONCURRENCY, value: {{ .Values.jobs.concurrency | quote }} }
+            - { name: GUSTO_LIMIT_PERSON, value: {{ .Values.jobs.limitPerson | quote }} }
+            - { name: GUSTO_LIMIT_TEAM, value: {{ .Values.jobs.limitTeam | quote }} }
+            - { name: GUSTO_JOB_MEMORY, value: {{ .Values.jobs.memory | quote }} }
+            - { name: GUSTO_JOB_CPUS, value: {{ .Values.jobs.cpus | quote }} }
+            - { name: GUSTO_MODELS, value: {{ .Values.model.models | quote }} }
+            - { name: GUSTO_ALLOWED_HOSTS, value: {{ .Values.model.allowedHosts | quote }} }
+            - name: GUSTO_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: {{ include "gusto.secretName" . }}, key: GUSTO_PASSWORD }
+            {{- with .Values.auth.oidc }}
+            {{- if .issuer }}
+            - { name: GUSTO_OIDC_ISSUER, value: {{ .issuer | quote }} }
+            - { name: GUSTO_OIDC_CLIENT_ID, value: {{ required "set auth.oidc.clientId" .clientId | quote }} }
+            - { name: GUSTO_OIDC_REDIRECT, value: {{ required "set auth.oidc.redirect" .redirect | quote }} }
+            - { name: GUSTO_OIDC_SCOPES, value: {{ .scopes | quote }} }
+            - { name: GUSTO_OIDC_GROUPS_CLAIM, value: {{ .groupsClaim | quote }} }
+            - { name: GUSTO_RUNNER_GROUPS, value: {{ .runnerGroups | quote }} }
+            - { name: GUSTO_ADMIN_GROUPS, value: {{ .adminGroups | quote }} }
+            - { name: GUSTO_ALLOWED, value: {{ .allowed | quote }} }
+            - { name: GUSTO_ADMINS, value: {{ .admins | quote }} }
+            - name: GUSTO_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: {{ include "gusto.oidcSecretName" $ }}, key: GUSTO_OIDC_CLIENT_SECRET }
+            {{- end }}
+            {{- end }}
+            {{- if .Values.auth.apiTokens }}
+            - { name: GUSTO_API_TOKENS, value: /var/lib/gusto/tokens/tokens.json }
+            {{- end }}
+            {{- if .Values.credentials.existingSecret }}
+            - { name: GUSTO_CREDENTIALS, value: /etc/gusto/credentials }
+            {{- else if .Values.model.upstream }}
+            - { name: GUSTO_MODEL_UPSTREAM, value: {{ .Values.model.upstream | quote }} }
+            - { name: GUSTO_MODEL_NAME, value: {{ .Values.model.name | quote }} }
+            {{- if or .Values.model.key .Values.model.existingSecret }}
+            - name: GUSTO_MODEL_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "gusto.modelSecretName" . }}, key: GUSTO_MODEL_KEY }
+            {{- end }}
+            {{- end }}
+            {{- if .Values.spend }}
+            - { name: GUSTO_SPEND_POLICY, value: /etc/gusto/spend/spend.json }
+            {{- end }}
+            {{- range $name, $value := .Values.env }}
+            - { name: {{ $name }}, value: {{ $value | toString | quote }} }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 6
+          # Root, with no way to gain more: a job's container writes its
+          # evidence as root, and the server signs it in the same directory.
+          securityContext:
+            allowPrivilegeEscalation: false
+          {{- with .Values.resources.server }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/gusto }
+            - { name: runtime-socket, mountPath: /run/gusto/runtime }
+            - { name: proxy-socket, mountPath: /run/gusto/proxy }
+            {{- if .Values.retention }}
+            - { name: retention-policy, mountPath: /var/lib/gusto/retention/policy.json, subPath: policy.json, readOnly: true }
+            {{- end }}
+            {{- if .Values.credentials.existingSecret }}
+            - { name: credentials, mountPath: /etc/gusto/credentials, readOnly: true }
+            {{- end }}
+            {{- if .Values.spend }}
+            - { name: spend-policy, mountPath: /etc/gusto/spend, readOnly: true }
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "gusto.claimName" . }}
+        - { name: runtime-socket, emptyDir: {} }
+        - { name: proxy-socket, emptyDir: {} }
+        - { name: runtime-storage, emptyDir: {} }
+        {{- if .Values.retention }}
+        - name: retention-policy
+          configMap:
+            name: {{ include "gusto.fullname" . }}-retention
+        {{- end }}
+        {{- if .Values.credentials.existingSecret }}
+        - name: credentials
+          secret:
+            secretName: {{ .Values.credentials.existingSecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- if .Values.spend }}
+        - name: spend-policy
+          configMap:
+            name: {{ include "gusto.fullname" . }}-spend
+        {{- end }}
+        {{- if .Values.runnerPullSecret }}
+        - name: runner-pull
+          secret:
+            secretName: {{ .Values.runnerPullSecret }}
+            items:
+              - { key: .dockerconfigjson, path: config.json }
+        {{- end }}

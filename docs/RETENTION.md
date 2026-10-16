@@ -5,11 +5,11 @@ does not fill the disk. A job keeps two things for different lengths of time:
 
 | What | Holds | Removed |
 | --- | --- | --- |
-| the workspace | the checkout and everything the agent changed. It is most of the disk, and `haas ship` and `haas replay` need it | first |
-| the record | `out/`: the manifest, its signature, the patch, the transcript. It is small, and it is what `haas verify` checks | later |
+| the workspace | the checkout and everything the agent changed. It is most of the disk, and `gusto ship` and `gusto replay` need it | first |
+| the record | `out/`: the manifest, its signature, the patch, the transcript. It is small, and it is what `gusto verify` checks | later |
 
 Removing a workspace leaves the record whole. The manifest lists the files in
-`out/` and never the workspace, so `haas verify` still says the record holds and
+`out/` and never the workspace, so `gusto verify` still says the record holds and
 who signed it. A job with no workspace cannot be shipped or replayed.
 
 ## Set the policy
@@ -32,16 +32,16 @@ The server will not start on a policy it refuses.
 | --- | --- |
 | Playbook | `retention_policy` in the host's variables |
 | Chart | `retention` in the values |
-| Compose | `policy.json` in `$HAAS_DATA/retention/` on the volume |
+| Compose | `policy.json` in `$GUSTO_DATA/retention/` on the volume |
 
-`HAAS_RETENTION` names the directory. It holds `policy.json`, `holds.json` and
+`GUSTO_RETENTION` names the directory. It holds `policy.json`, `holds.json` and
 `last.json`, the newest sweep's report. With no policy the server removes
 nothing, and `/admin/retention` still shows the disk and the holds.
 
 ## What a sweep touches
 
 The server sweeps every 60 minutes, and an admin can sweep at once from
-`/admin/retention`. `HAAS_RETENTION_MINUTES` changes the interval.
+`/admin/retention`. `GUSTO_RETENTION_MINUTES` changes the interval.
 
 A sweep touches only jobs that ended and that no agent owns. A task or a message
 on an agent belongs to that agent's conversation, and goes when the agent is
@@ -62,7 +62,7 @@ oldest finished job kept, the policy in force, what the next sweep would
 remove, and the last sweep.
 
 ```bash
-haas retention -dir /opt/haas/var/retention -jobs /opt/haas/jobs
+gusto retention -dir /opt/gusto/var/retention -jobs /opt/gusto/jobs
 ```
 
 lists what a sweep would remove now and removes nothing. It reads the jobs from

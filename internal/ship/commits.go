@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Commits are the two a pull request rests on. Change is the patch on the
@@ -23,7 +23,7 @@ type Commits struct {
 // refs/heads and refs/tags, so it is not a branch anyone reviews, merges or
 // builds, and the change under review stays the patch and nothing else.
 func EvidenceRef(digest string) string {
-	return "refs/haas/evidence/" + digest
+	return "refs/gusto/evidence/" + digest
 }
 
 // scratch is a repository of its own that borrows the workspace's objects. The
@@ -36,7 +36,7 @@ type scratch struct {
 
 // inScratch makes a scratch repository, hands it over, and removes it.
 func inScratch(ctx context.Context, dir job.Dir, when int64, do func(scratch) error) error {
-	path, err := os.MkdirTemp("", "haas-ship-")
+	path, err := os.MkdirTemp("", "gusto-ship-")
 	if err != nil {
 		return err
 	}

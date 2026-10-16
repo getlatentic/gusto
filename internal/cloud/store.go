@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/computer"
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/quota"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -97,7 +97,7 @@ func (s *Store) personFile(email string) string {
 }
 
 // OrgDir is where an organisation's own files are, and DataDir the directory its
-// haas server is given. Only the organisation's server and this process reach
+// gusto server is given. Only the organisation's server and this process reach
 // them, and they are not readable by anyone else on the machine.
 func (s *Store) OrgDir(slug string) string  { return filepath.Join(s.root, "orgs", slug) }
 func (s *Store) DataDir(slug string) string { return filepath.Join(s.OrgDir(slug), "data") }

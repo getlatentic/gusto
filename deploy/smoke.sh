@@ -9,13 +9,13 @@
 # sees:
 #
 #   docker compose exec -T server sh < ../smoke.sh                  # compose
-#   kubectl -n haas exec -i deploy/haas -c server -- sh < deploy/smoke.sh
+#   kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke.sh
 #
 # The harness is a fixture, a program that makes the change and calls no model,
 # so a pass proves the install and says nothing about any model.
 set -eu
 
-data=$(dirname "$HAAS_JOBS")
+data=$(dirname "$GUSTO_JOBS")
 smoke="$data/smoke"
 rm -rf "$smoke/job"
 mkdir -p "$smoke/repo" "$smoke/harnesses"
@@ -36,7 +36,7 @@ echo "add 2 3 gave $(add 2 3), not 5"
 exit 1
 EOF
   git init -q . && git add -A
-  git -c user.email=haas@localhost -c user.name=haas commit -qm "an adder that subtracts"
+  git -c user.email=gusto@localhost -c user.name=gusto commit -qm "an adder that subtracts"
 fi
 
 # Where only this check looks, so the pages never offer the fixture. The job
@@ -51,20 +51,20 @@ cat > "$smoke/harnesses/fixture.json" <<'EOF'
 }
 EOF
 
-HAAS_HARNESSES="$smoke/harnesses" haas new "$smoke/job" -repo "$smoke/repo" \
+GUSTO_HARNESSES="$smoke/harnesses" gusto new "$smoke/job" -repo "$smoke/repo" \
   -brief "make add add" -harness fixture -- sh test.sh >/dev/null
 # A server that takes API tokens does not take the shared password, so the check
-# needs a token that may submit: make one at /tokens and set HAAS_TOKEN.
-if [ -n "${HAAS_API_TOKENS:-}" ] && [ -z "${HAAS_TOKEN:-}" ]; then
-  echo "this server takes API tokens: set HAAS_TOKEN to one that may send jobs" >&2
+# needs a token that may submit: make one at /tokens and set GUSTO_TOKEN.
+if [ -n "${GUSTO_API_TOKENS:-}" ] && [ -z "${GUSTO_TOKEN:-}" ]; then
+  echo "this server takes API tokens: set GUSTO_TOKEN to one that may send jobs" >&2
   exit 2
 fi
-id=$(HAAS_SERVER=http://127.0.0.1:8040 haas submit "$smoke/job" | head -n 1)
+id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/job" | head -n 1)
 echo "submitted $id"
 
 # The manifest is the last thing a run writes, so its presence is the end.
 tries=0
-until [ -f "$HAAS_JOBS/$id/out/manifest.json" ]; do
+until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
     echo "no manifest after 120 seconds; the job page says why: /jobs/$id" >&2
@@ -72,12 +72,12 @@ until [ -f "$HAAS_JOBS/$id/out/manifest.json" ]; do
   fi
   sleep 1
 done
-haas show "$HAAS_JOBS/$id"
+gusto show "$GUSTO_JOBS/$id"
 echo
-haas verify "$HAAS_JOBS/$id"
+gusto verify "$GUSTO_JOBS/$id"
 
 # The fixture tried to write into the record; the runner keeps out/ to itself.
-if grep -q forged-by-the-harness "$HAAS_JOBS/$id/out/transcript.log"; then
+if grep -q forged-by-the-harness "$GUSTO_JOBS/$id/out/transcript.log"; then
   echo "the harness wrote into its own record" >&2
   exit 1
 fi

@@ -193,7 +193,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	matchOwner(filepath.Dir(full), root)
-	scratch, err := os.CreateTemp(filepath.Dir(full), ".haas-write-*")
+	scratch, err := os.CreateTemp(filepath.Dir(full), ".gusto-write-*")
 	if err != nil {
 		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be written"})
 		return

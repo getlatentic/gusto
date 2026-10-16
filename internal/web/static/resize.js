@@ -4,7 +4,7 @@
   var root = document.documentElement;
   var rem = function () { return parseFloat(getComputedStyle(root).fontSize) || 16; };
 
-  window.haasResize = function (handle, o) {
+  window.gustoResize = function (handle, o) {
     if (!handle) { return; }
     var read = function () {
       var held = parseFloat(root.style.getPropertyValue(o.name));
@@ -52,5 +52,5 @@
     window.addEventListener("resize", function () { apply(read(), false); });
   };
 
-  window.haasResize(document.getElementById("panel-resize"), { name: "--panel-w", key: "haas-panel-w", min: 14, max: 28, def: 16, edge: "right", share: function () { return 0.4; } });
+  window.gustoResize(document.getElementById("panel-resize"), { name: "--panel-w", key: "gusto-panel-w", min: 14, max: 28, def: 16, edge: "right", share: function () { return 0.4; } });
 })();

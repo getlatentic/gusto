@@ -23,31 +23,31 @@
     (function () {
       var root = document.documentElement, theme = "system", accent = "graphite", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");
       var steps = [80, 90, 100, 110, 125, 150, 175, 200];
-      try { theme = localStorage.getItem("haas-theme") || theme; accent = localStorage.getItem("haas-accent") || accent; zoom = +localStorage.getItem("haas-zoom") || zoom; } catch (e) {}
+      try { theme = localStorage.getItem("gusto-theme") || theme; accent = localStorage.getItem("gusto-accent") || accent; zoom = +localStorage.getItem("gusto-zoom") || zoom; } catch (e) {}
       function apply() { root.dataset.theme = theme === "dark" || (theme === "system" && dark.matches) ? "dark" : "light"; root.dataset.accent = accent; root.style.fontSize = zoom + "%"; }
       function keep(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
       dark.addEventListener("change", apply);
       apply();
-      window.haasLook = {
+      window.gustoLook = {
         theme: function () { return theme; }, accent: function () { return accent; }, zoom: function () { return zoom; },
         stepZoom: function (by) {
           var at = steps.indexOf(zoom); if (at < 0) { at = 2; }
           zoom = by === 0 ? 100 : steps[Math.max(0, Math.min(steps.length - 1, at + by))];
-          keep("haas-zoom", String(zoom)); apply();
+          keep("gusto-zoom", String(zoom)); apply();
         },
-        setTheme: function (value) { theme = value; keep("haas-theme", value); apply(); },
-        setAccent: function (value) { accent = value; keep("haas-accent", value); apply(); }
+        setTheme: function (value) { theme = value; keep("gusto-theme", value); apply(); },
+        setAccent: function (value) { accent = value; keep("gusto-accent", value); apply(); }
       };
     })();
     // The widths the person dragged the side list and the files panel to.
     try {
       var drawn = document.documentElement.style;
-      var wide = localStorage.getItem("haas-panel-w"), files = localStorage.getItem("haas-files-w");
+      var wide = localStorage.getItem("gusto-panel-w"), files = localStorage.getItem("gusto-files-w");
       if (+wide) { drawn.setProperty("--panel-w", +wide + "rem"); }
       if (+files) { drawn.setProperty("--files-w", +files + "rem"); }
     } catch (e) {}
     // The panel of conversations can be put away, leaving the icons, and it stays as the person left it.
-    try { if (localStorage.getItem("haas-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
+    try { if (localStorage.getItem("gusto-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
     var panelShown = function () {
       var shown = String(!document.documentElement.classList.contains("panel-closed"));
       document.querySelectorAll("[data-panel-toggle]").forEach(function (toggle) { toggle.setAttribute("aria-expanded", shown); });
@@ -56,7 +56,7 @@
     document.addEventListener("click", function (event) {
       if (!event.target.closest("[data-panel-toggle]")) { return; }
       var closed = document.documentElement.classList.toggle("panel-closed");
-      try { localStorage.setItem("haas-panel", closed ? "closed" : "open"); } catch (e) {}
+      try { localStorage.setItem("gusto-panel", closed ? "closed" : "open"); } catch (e) {}
       panelShown();
     });
     // What a handler on an element would do, kept here so the page's policy can

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // HoldsFile is where a retention directory keeps its holds.

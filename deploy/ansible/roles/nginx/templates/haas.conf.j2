@@ -21,7 +21,7 @@ server {
     error_page 502 503 504 /__haas_down.html;
     location = /__haas_down.html {
         internal;
-        alias {{ haas_errors_dir }}/down.html;
+        alias {{ gusto_errors_dir }}/down.html;
         add_header Cache-Control "no-store" always;
     }
 

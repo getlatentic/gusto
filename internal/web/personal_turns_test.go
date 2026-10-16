@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/registry"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/registry"
 )
 
 func (s *site) postAs(secret, path, body string) *httptest.ResponseRecorder {

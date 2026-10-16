@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Item is one thing that happened: who did it, from where, what kind of change it

@@ -1,6 +1,6 @@
-# The haas protocol
+# The gusto protocol
 
-How a client talks to a haas server. It is one protocol: the same calls, in the same shapes, whether the server is on your own
+How a client talks to a gusto server. It is one protocol: the same calls, in the same shapes, whether the server is on your own
 computer, on another computer you own, or an organisation's. The browser, the desktop app, the helper and your own scripts are all clients
 of it. What differs from place to place is only how a client signs in.
 
@@ -16,7 +16,7 @@ curl http://127.0.0.1:7140/api/protocol     # {"protocol":1,"calls":[...]}
 
 | Where | Address | How a client signs in |
 | --- | --- | --- |
-| Your own computer (`haas local`) | `http://127.0.0.1:<port>`, the loopback only | a link that works once for five minutes (`haas local link`) opens a session; a computer of yours signs in by the device flow |
+| Your own computer (`gusto local`) | `http://127.0.0.1:<port>`, the loopback only | a link that works once for five minutes (`gusto local link`) opens a session; a computer of yours signs in by the device flow |
 | Another computer you own | its address, behind TLS | the shared password opens a session, and with no identity provider it is the one owner and approves a computer by the device flow |
 | An organisation's | its address, behind TLS | single sign-on opens a session, and a person approves a computer by the device flow; an organisation's program carries a token with a scope |
 
@@ -26,11 +26,11 @@ The desktop app and the helper refuse a plain `http` address unless it is this c
 
 A **session** is a cookie, for the pages. A **token** is a bearer, for programs: `Authorization: Bearer <token>`.
 
-A computer gets a token for a person by the device flow, which is why it needs `HAAS_API_TOKENS` on the server:
+A computer gets a token for a person by the device flow, which is why it needs `GUSTO_API_TOKENS` on the server:
 
 1. `POST /api/device` with `{"label": "my laptop"}` answers a `user_code`, a `device_code`, the address to visit, and how long and how often (`expires_in`, `interval`).
 2. The person opens `/device`, signs in as they usually do, and types the code.
-3. The computer polls `POST /api/device/token` with `{"device_code": ...}`. It is answered `{"error": "authorization_pending"}` until the person approves, then once `{"access_token": "haas_...", "person": "...", "token_type": "bearer"}`.
+3. The computer polls `POST /api/device/token` with `{"device_code": ...}`. It is answered `{"error": "authorization_pending"}` until the person approves, then once `{"access_token": "gusto_...", "person": "...", "token_type": "bearer"}`.
 
 The token acts as that person, on that person's own work, and a person can end it from `/device`. `DELETE /api/me` ends it from the computer.
 
@@ -70,30 +70,30 @@ Somebody else's work is answered as missing, as the pages answer it.
 ## A turn
 
 A person's work is four steps: be signed in, have an instance, say something in one of its threads, and follow what happens. Saying
-something starts a **turn**, which is a job. Every request below is from a run of a haas on this computer with a stand-in model.
+something starts a **turn**, which is a job. Every request below is from a run of a gusto on this computer with a stand-in model.
 
 ```bash
 # sign in (the person approves the code at /device, then the second call answers the token)
-curl -X POST $HAAS/api/device -d '{"label":"my laptop"}'
+curl -X POST $GUSTO/api/device -d '{"label":"my laptop"}'
 # {"device_code":"...","expires_in":600,"interval":3,"user_code":"XKDR-ZBNM","verification_uri":"http://127.0.0.1:7140/device"}
-curl -X POST $HAAS/api/device/token -d '{"device_code":"..."}'
-# {"access_token":"haas_...","person":"dev","token_type":"bearer"}      before approval: {"error":"authorization_pending"}
+curl -X POST $GUSTO/api/device/token -d '{"device_code":"..."}'
+# {"access_token":"gusto_...","person":"dev","token_type":"bearer"}      before approval: {"error":"authorization_pending"}
 
-curl -H "Authorization: Bearer $TOKEN" $HAAS/api/me
+curl -H "Authorization: Bearer $TOKEN" $GUSTO/api/me
 # {"person":"dev","role":"runner"}
 
 # an instance of an engine, which comes with its first thread
-curl -H "Authorization: Bearer $TOKEN" -X POST $HAAS/api/instances -d '{"harness":"pi","model":"local/fake-small"}'
+curl -H "Authorization: Bearer $TOKEN" -X POST $GUSTO/api/instances -d '{"harness":"pi","model":"local/fake-small"}'
 # {"instance":{"id":"20261013-0924-pi","harness":"pi","model":"local/fake-small","who":"dev","startedAt":1791883217},"thread":{"id":"1",...}}
 
 # say something: the turn is queued and its id is given back
 curl -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: say-1" -X POST \
-  $HAAS/api/instances/20261013-0924-pi/threads/1/say -d '{"said":"What is 17 times 23? Answer with just the number."}'
+  $GUSTO/api/instances/20261013-0924-pi/threads/1/say -d '{"said":"What is 17 times 23? Answer with just the number."}'
 # {"already":false,"job":"20261013-0924-what-is-17-times-23-2","state":"queued"}
 # the same Idempotency-Key again answers {"already":true,...} and starts nothing
 
 # follow it
-curl -N -H "Authorization: Bearer $TOKEN" $HAAS/api/jobs/20261013-0924-what-is-17-times-23-2/follow
+curl -N -H "Authorization: Bearer $TOKEN" $GUSTO/api/jobs/20261013-0924-what-is-17-times-23-2/follow
 # event: ended
 # data: {"job":{"id":"...","state":"passed",...},"steps":[],"reply":"391","changed":[]}
 ```

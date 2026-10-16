@@ -3,7 +3,7 @@ package retention
 import (
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // Usage is what the jobs take on disk, and how far back they go.

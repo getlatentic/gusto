@@ -4,14 +4,14 @@ A matrix runs a fixed set of jobs on every harness and model pair a plan names,
 and keeps every run. It answers the question a platform lead has before
 offering a combination to a customer: can this harness, thinking with this
 model, finish the job at all, and what does it cost to find out. It is
-`haas matrix`, in `internal/matrix`.
+`gusto matrix`, in `internal/matrix`.
 
 ```bash
-haas new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
-haas matrix plan.json -here     # run every cell into plan-matrix/, print the table
-haas matrix plan.json -here     # again: nothing that finished runs twice
-haas matrix plan-matrix         # print the table from the evidence alone
-haas matrix plan-matrix -json   # the same table, as the catalog reads it
+gusto new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
+gusto matrix plan.json -here     # run every cell into plan-matrix/, print the table
+gusto matrix plan.json -here     # again: nothing that finished runs twice
+gusto matrix plan-matrix         # print the table from the evidence alone
+gusto matrix plan-matrix -json   # the same table, as the catalog reads it
 ```
 
 ## The plan
@@ -28,7 +28,7 @@ haas matrix plan-matrix -json   # the same table, as the catalog reads it
 }
 ```
 
-- **jobs** are job directories as `haas new` leaves them, relative to the plan.
+- **jobs** are job directories as `gusto new` leaves them, relative to the plan.
 - **pairs** are a harness and the model it is given. A pair with no model runs
   whatever model the job names, or the harness's own default.
 - **simplest** is the job a pair has to finish before it is worth offering. It
@@ -49,7 +49,7 @@ plan-matrix/
   matrix.json                     where it ran, and how long each cell took
   table.md                        the table, for a README
   table.json                      the table, for the catalog
-  one-line-fix/                   a comparison, as `haas compare` writes one
+  one-line-fix/                   a comparison, as `gusto compare` writes one
     comparison.json
     opencode@ollama-gpt-oss-20b/  an ordinary job directory
     opencode@ollama-llama3.2-3b/  an ordinary job directory
@@ -58,8 +58,8 @@ plan-matrix/
 A matrix is many comparisons. Each job is a directory in the shape
 [COMPARE.md](COMPARE.md) describes: `comparison.json` above one job directory
 a pair, made from the job's `job.json` with the harness and model set, and
-pinned once to one commit the way `haas replay` pins one. So
-`haas compare plan-matrix/one-line-fix` prints any column of the matrix, and
+pinned once to one commit the way `gusto replay` pins one. So
+`gusto compare plan-matrix/one-line-fix` prints any column of the matrix, and
 every run verifies, ships and replays like any other job. `held` lists the
 fields that are the same in every run, so a model is held only when every
 pair asked for the same one.
@@ -95,23 +95,23 @@ table says "at least".
 `-here` runs every cell in this process, which reads this machine's own
 harness configuration. Without it every cell runs in a container, the way a
 server runs a job: through the proxy when a credential is held
-(`HAAS_CREDENTIALS`, or `HAAS_MODEL_UPSTREAM`), so the cost is the proxy's
-count, and straight at `HAAS_MODEL_URL` when none is. A matrix that ran in one
+(`GUSTO_CREDENTIALS`, or `GUSTO_MODEL_UPSTREAM`), so the cost is the proxy's
+count, and straight at `GUSTO_MODEL_URL` when none is. A matrix that ran in one
 environment refuses to be extended from another; measure the second into its
 own matrix with `-into`.
 
 ## The catalog
 
-`HAAS_MATRIX` names a matrix's `table.json` for `haas serve` to read when it
+`GUSTO_MATRIX` names a matrix's `table.json` for `gusto serve` to read when it
 starts. A pair that ran the simplest job, left a verdict, and finished it in no
 environment is marked: the catalog entry's `CannotFinish(model)` says which job,
 where, and which run, so the claim can be checked. A pair nobody measured is not
-marked, because not knowing is not failing. Without `HAAS_MATRIX` the catalog
+marked, because not knowing is not failing. Without `GUSTO_MATRIX` the catalog
 is what it was, and a table it cannot read is logged and passed over.
 
 ## The exit code
 
-`haas matrix` exits 0 when every cell left a verdict and its evidence checks,
+`gusto matrix` exits 0 when every cell left a verdict and its evidence checks,
 whichever pairs finished, and 2 otherwise.
 
 ## Low-priced Bedrock models on the box
@@ -138,7 +138,7 @@ What stopped each that did not finish:
   Pro through DeepSeek's own API, so what is wrong is how it meets the Bedrock endpoint, not the model.
 - `hermes` ends the job without a fix on `gemma-4-e2b`.
 
-The demo offers every model to every engine, and the person chooses; these tables say which pairs finished. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`HAAS_CHAT_DEFAULT`), a pair that finished through the translation below. A model's price per million
+The demo offers every model to every engine, and the person chooses; these tables say which pairs finished. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`GUSTO_CHAT_DEFAULT`), a pair that finished through the translation below. A model's price per million
 tokens, from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01, is in
 `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`, so the organisation's spending page shows what a demo cost:
 

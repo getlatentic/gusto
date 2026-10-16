@@ -26,7 +26,7 @@ func TestWhatIsLeftOutAndWhatIsNot(t *testing.T) {
 		"a spaced pattern is trimmed":         {"spaced.txt", false, true},
 		"ordinary work":                       {"src/main.go", false, false},
 		"a partial name is not a match":       {"builds/out", false, false},
-		"the sync's own scratch":              {"src/.haas-write-123", false, true},
+		"the sync's own scratch":              {"src/.gusto-write-123", false, true},
 		"a name that only starts like git":    {".github/workflows/x.yml", false, false},
 	} {
 		if got := ignore.Skips(test.path, test.isDir); got != test.skip {

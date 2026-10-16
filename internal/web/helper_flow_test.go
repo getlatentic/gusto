@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // The helper on a person's computer signs in to the real server, is told who it is, and signs out, which ends its token.
@@ -39,7 +39,7 @@ func TestTheHelperSignsInAsAPersonAndSignsOutAgainstTheRealServer(t *testing.T) 
 	if err := client.End(context.Background()); err != nil {
 		t.Fatalf("signing out: %v", err)
 	}
-	if _, err := client.Me(context.Background()); err == nil || !strings.Contains(err.Error(), "haas login") {
+	if _, err := client.Me(context.Background()); err == nil || !strings.Contains(err.Error(), "gusto login") {
 		t.Errorf("a token that signed out still worked: %v", err)
 	}
 	if ended := ofKind(written(t, here.log), changelog.TokenRevoked); len(ended) != 1 || ended[0].Who != alice {

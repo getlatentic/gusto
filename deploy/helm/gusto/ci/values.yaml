@@ -1,0 +1,20 @@
+# What `helm lint` and `helm template` render against. The digests are shaped
+# like real ones and name nothing: the server and the runner have no public
+# image.
+image:
+  server:
+    repository: registry.example.com/gusto-server
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  runner:
+    repository: registry.example.com/gusto-runner
+    digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+auth:
+  password: not-a-real-password
+model:
+  upstream: https://models.example.com
+  key: not-a-real-key
+runnerPullSecret: registry
+ingress:
+  enabled: true
+  className: nginx
+  host: gusto.example.com

@@ -1,6 +1,6 @@
 # Threat model
 
-What haas protects, from whom, and what each part trusts. The review that checked
+What gusto protects, from whom, and what each part trusts. The review that checked
 this against the code, and what it found, is in [SECURITY.md](SECURITY.md).
 
 ## What is protected
@@ -80,7 +80,7 @@ Trusts nothing the agent produced except as bytes to be hashed and shown.
 
 ### The OpenShell backend
 
-With `HAAS_SANDBOX=openshell` the harness runs in a microVM on a gateway, and the
+With `GUSTO_SANDBOX=openshell` the harness runs in a microVM on a gateway, and the
 runner stays on the host. The gateway, which controls every sandbox, is trusted
 as the server is. What differs from a container:
 
@@ -92,7 +92,7 @@ as the server is. What differs from a container:
 | What the sandbox is given | The proxy's address and a per-job token, and skills. Nothing of the server's environment |
 | Where the token shows | Nowhere on the host's process list. It goes into the sandbox on the standard input of `openshell sandbox exec`, and for an agent spoken to over ssh in a file only the sandbox's user can read, which the command removes as it starts. Inside the sandbox it is in the harness's environment. It is worth nothing once the job ends |
 
-The gate runs in the sandbox. `haas verify` re-runs it where verify is run.
+The gate runs in the sandbox. `gusto verify` re-runs it where verify is run.
 
 ## What the design does not defend against
 

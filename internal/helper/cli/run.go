@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/desk"
-	"github.com/getlatentic/haas/internal/helper/service"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/desk"
+	"github.com/getlatentic/gusto/internal/helper/service"
 )
 
 // settingsDir is where the helper keeps what it writes: beside the token file, in the person's own settings folder.
@@ -21,7 +21,7 @@ func settingsDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "haas"), nil
+	return filepath.Join(dir, "gusto"), nil
 }
 
 // Run is the helper itself, in the foreground. A service starts this.
@@ -119,7 +119,7 @@ func statusWords(status helper.Status) string {
 	var words string
 	switch {
 	case !status.SignedIn:
-		words = fmt.Sprintf("running, following %s, but not signed in: run `haas-helper login`\n", status.Server)
+		words = fmt.Sprintf("running, following %s, but not signed in: run `gusto-helper login`\n", status.Server)
 	case !status.Connected:
 		words = fmt.Sprintf("running, signed in as %s, and trying to reach %s\n", status.Person, status.Server)
 	default:
@@ -134,7 +134,7 @@ func statusWords(status helper.Status) string {
 // Service installs or removes the helper's start at login.
 func Service(args []string) int {
 	if len(args) == 0 || (args[0] != "install" && args[0] != "uninstall" && args[0] != "status") {
-		fmt.Fprintln(os.Stderr, "usage: haas-helper service install|uninstall|status [-server <address>]")
+		fmt.Fprintln(os.Stderr, "usage: gusto-helper service install|uninstall|status [-server <address>]")
 		return 2
 	}
 	flags := flag.NewFlagSet("service", flag.ContinueOnError)
@@ -173,7 +173,7 @@ func Service(args []string) int {
 		if installed, _ := manager.Installed(spec); installed {
 			fmt.Println("The helper starts at login.")
 		} else {
-			fmt.Println("The helper does not start at login. `haas-helper service install` makes it.")
+			fmt.Println("The helper does not start at login. `gusto-helper service install` makes it.")
 			return 1
 		}
 	}

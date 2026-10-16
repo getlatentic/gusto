@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // The job page reads a finished job's evidence for the reviewer: the patch as a

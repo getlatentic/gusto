@@ -89,7 +89,7 @@ func TestEveryPageOfAHostWithALeaseCarriesTheScriptAndAnswersHowLongIsLeft(t *te
 	}
 	// Asked on the front door's own name and on an organisation's, which is what its pages ask.
 	for _, host := range []string{"cloud.test", "acme.cloud.test", "anything.cloud.test:8443"} {
-		status, body, header := b.do("GET", "/.haas/lease", nil, map[string]string{"Host": host})
+		status, body, header := b.do("GET", "/.gusto/lease", nil, map[string]string{"Host": host})
 		if status != 200 || !strings.HasPrefix(body, `{"seconds":`) || header.Get("Cache-Control") != "no-store" {
 			t.Errorf("%s: %d %q", host, status, body)
 		}
@@ -102,7 +102,7 @@ func TestAHostWithNoLeaseSaysSoAndCarriesNoScript(t *testing.T) {
 	if _, page := b.get("/"); strings.Contains(page, "lease.js") {
 		t.Error("a host with no lease carries the script")
 	}
-	for _, path := range []string{"/.haas/lease", "/lease"} {
+	for _, path := range []string{"/.gusto/lease", "/lease"} {
 		if status, _ := b.get(path); status != http.StatusNotFound && status != http.StatusSeeOther {
 			t.Errorf("%s: %d", path, status)
 		}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/apitoken"
 )
 
 func opened(t *testing.T) (*apitoken.Store, string) {

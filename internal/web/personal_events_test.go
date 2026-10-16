@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // listening is a person's connection to the event stream, read a frame at a time.

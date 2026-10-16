@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 var noon = time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)

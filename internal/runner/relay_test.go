@@ -47,7 +47,7 @@ func TestTheRelayCarriesLoopbackToTheSocket(t *testing.T) {
 }
 
 func TestABoxThatIsNotSealedRelaysNothing(t *testing.T) {
-	t.Setenv("HAAS_PROXY_SOCKET", "")
+	t.Setenv("GUSTO_PROXY_SOCKET", "")
 	stop, err := relayOut()
 	if err != nil {
 		t.Fatal(err)

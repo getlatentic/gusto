@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Shippable returns the manifest of a job that may ship, or says why it may
@@ -34,7 +34,7 @@ func Shippable(dir job.Dir) (evidence.Manifest, error) {
 	return manifest, carriesChange(dir)
 }
 
-// untouched re-hashes the evidence the way `haas verify` does. Shipping a patch
+// untouched re-hashes the evidence the way `gusto verify` does. Shipping a patch
 // that changed after its gate passed would put unchecked code in front of a
 // reviewer under a passing verdict, which is the worst thing this can do.
 func untouched(dir job.Dir) error {

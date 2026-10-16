@@ -133,7 +133,7 @@ func (u *Upstream) start(ctx context.Context) error {
 	if u.ready {
 		return nil
 	}
-	init := map[string]any{"protocolVersion": protocols[0], "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "haas-gateway", "version": "1"}}
+	init := map[string]any{"protocolVersion": protocols[0], "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "gusto-gateway", "version": "1"}}
 	answer, session, err := u.post(ctx, "", 1, "initialize", init)
 	if err != nil {
 		return fmt.Errorf("%s did not start a session: %w", u.server.Name, err)

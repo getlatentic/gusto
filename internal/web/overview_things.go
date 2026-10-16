@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/getlatentic/haas/internal/computer"
+	"github.com/getlatentic/gusto/internal/computer"
 )
 
 // UseComputers hands the console the record of the computers people in this organisation

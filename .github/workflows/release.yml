@@ -54,7 +54,7 @@ jobs:
           - {image: server, file: deploy/server/Dockerfile, arch: arm64, runner: ubuntu-24.04-arm, suffix: "-arm64"}
           - {image: runner, file: Dockerfile, arch: arm64, runner: ubuntu-24.04-arm, suffix: "-arm64"}
     env:
-      REPOSITORY: ghcr.io/${{ github.repository_owner }}/haas-${{ matrix.image }}
+      REPOSITORY: ghcr.io/${{ github.repository_owner }}/gusto-${{ matrix.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -138,7 +138,7 @@ jobs:
           name: helper-${{ strategy.job-index }}
           path: dist/*
 
-  # The haas program for each system, which needs no C compiler, so one machine builds all six.
+  # The gusto program for each system, which needs no C compiler, so one machine builds all six.
   server:
     needs: test
     runs-on: ubuntu-latest
@@ -148,17 +148,17 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Build and pack haas for each system
+      - name: Build and pack gusto for each system
         run: |
           for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
             deploy/server/build.sh "$GITHUB_REF_NAME" "${target%/*}" "${target#*/}" dist
           done
-      # What deploy/install/server.sh needs to start haas on a machine of someone's own, without a checkout.
+      # What deploy/install/server.sh needs to start gusto on a machine of someone's own, without a checkout.
       - name: Pack the Compose files
         run: |
           mkdir -p dist work/compose
           cp deploy/compose/compose.yaml deploy/compose/Caddyfile deploy/compose/env.example deploy/compose/README.md work/compose/
-          tar -C work -czf "dist/haas-compose_${GITHUB_REF_NAME}.tar.gz" compose
+          tar -C work -czf "dist/gusto-compose_${GITHUB_REF_NAME}.tar.gz" compose
           cp deploy/install/server.sh dist/server.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -176,8 +176,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {target: aarch64-apple-darwin, runner: '["self-hosted", "haas"]'}
-          - {target: x86_64-apple-darwin, runner: '["self-hosted", "haas"]'}
+          - {target: aarch64-apple-darwin, runner: '["self-hosted", "gusto"]'}
+          - {target: x86_64-apple-darwin, runner: '["self-hosted", "gusto"]'}
           - {target: x86_64-pc-windows-msvc, runner: '"windows-latest"'}
           - {target: x86_64-unknown-linux-gnu, runner: '"ubuntu-latest"'}
     defaults:
@@ -212,7 +212,7 @@ jobs:
           name: desktop-${{ matrix.target }}
           path: dist/*
 
-  # The runner image flattened to a root file system for the virtual machine a job runs in on a person's computer (haas local wall
+  # The runner image flattened to a root file system for the virtual machine a job runs in on a person's computer (gusto local wall
   # install). The gateway takes a .tar.gz, and the processor has to be the computer's: an Apple Silicon Mac runs arm64.
   rootfs:
     needs: test
@@ -237,7 +237,7 @@ jobs:
             --output type=tar,dest=rootfs.tar .
       - name: Pack it with its checksum and size
         run: |
-          name="haas-rootfs-${{ matrix.arch }}.tar.gz"
+          name="gusto-rootfs-${{ matrix.arch }}.tar.gz"
           mkdir -p dist
           gzip -9 < rootfs.tar > "dist/$name"
           printf '%s  %s  %s\n' "$(sha256sum "dist/$name" | cut -d' ' -f1)" "$(stat -c %s "dist/$name")" "$name" > "dist/$name.sha256"
@@ -251,7 +251,7 @@ jobs:
   # that deploys, where it costs no hosted minutes.
   e2fsprogs:
     needs: test
-    runs-on: ["self-hosted", "haas"]
+    runs-on: ["self-hosted", "gusto"]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -302,11 +302,11 @@ jobs:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Join the desktop builds into the release's manifest
         run: deploy/desktop/manifest.sh "$GITHUB_REF_NAME" dist
-      - name: Sign the checksums of haas, the helper and the app
+      - name: Sign the checksums of gusto, the helper and the app
         run: |
           cp deploy/install/install.sh deploy/install/install.ps1 dist/
           cd dist
-          sha256sum haas_* haas-helper_* haas-rootfs-* haas-e2fsprogs-* latentic-agent-cloud_* desktop-manifest.json install.sh install.ps1 server.sh haas-compose_* > SHA256SUMS
+          sha256sum gusto_* gusto-helper_* gusto-rootfs-* gusto-e2fsprogs-* latentic-agent-cloud_* desktop-manifest.json install.sh install.ps1 server.sh gusto-compose_* > SHA256SUMS
           cosign sign-blob --yes SHA256SUMS --bundle SHA256SUMS.sigstore.json
           ls -la
       - name: Release
@@ -323,15 +323,15 @@ jobs:
           Images, by digest:
 
           \`\`\`
-          HAAS_SERVER_IMAGE=$server
-          HAAS_RUNNER_IMAGE=$runner
+          GUSTO_SERVER_IMAGE=$server
+          GUSTO_RUNNER_IMAGE=$runner
           \`\`\`
 
           On an Arm computer (Apple Silicon Docker, Graviton), use the images with the -arm64 tag:
 
           \`\`\`
-          HAAS_SERVER_IMAGE=$server_arm
-          HAAS_RUNNER_IMAGE=$runner_arm
+          GUSTO_SERVER_IMAGE=$server_arm
+          GUSTO_RUNNER_IMAGE=$runner_arm
           \`\`\`
 
           Check a signature before pulling:
@@ -342,7 +342,7 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
           \`\`\`
 
-          \`haas\` and the helper for a person's computer, for macOS, Linux and Windows, on Intel and Arm, with SHA256SUMS signed by
+          \`gusto\` and the helper for a person's computer, for macOS, Linux and Windows, on Intel and Arm, with SHA256SUMS signed by
           this workflow. While the releases are private, install with the GitHub command line signed in:
 
           \`\`\`bash

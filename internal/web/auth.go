@@ -46,12 +46,12 @@ func newKeeper(password string) (*keeper, error) {
 	return &keeper{password: password, key: key, ended: map[string]int64{}, life: 12 * time.Hour}, nil
 }
 
-const cookieName = "haas"
+const cookieName = "gusto"
 
 // secureCookieName is what the session cookie is called over TLS. A browser accepts a name with
 // this prefix only from the host itself, with Secure and no Domain, so a page on a sibling host
 // name, a shared app's for one, cannot set or overwrite it for this one.
-const secureCookieName = "__Host-haas"
+const secureCookieName = "__Host-gusto"
 
 // sessionCookie is the name of the session cookie for a request.
 func sessionCookie(r *http.Request) string {

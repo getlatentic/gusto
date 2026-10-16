@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // gateway is the proxy served on a real listener, as a container reaches it,
@@ -48,7 +48,7 @@ func (g gateway) client(t *testing.T, token string, trusted *httptest.Server) *h
 	if err != nil {
 		t.Fatal(err)
 	}
-	through.User = url.UserPassword("haas", token)
+	through.User = url.UserPassword("gusto", token)
 	transport := &http.Transport{Proxy: http.ProxyURL(through)}
 	if trusted != nil {
 		transport.TLSClientConfig = trusted.Client().Transport.(*http.Transport).TLSClientConfig
@@ -162,7 +162,7 @@ func TestTheProxyAnswersOnASocket(t *testing.T) {
 	}
 	defer stop()
 	transport := &http.Transport{
-		Proxy: http.ProxyURL(&url.URL{Scheme: "http", Host: "box", User: url.UserPassword("haas", token)}),
+		Proxy: http.ProxyURL(&url.URL{Scheme: "http", Host: "box", User: url.UserPassword("gusto", token)}),
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 			return (&net.Dialer{}).DialContext(ctx, "unix", socket)
 		},

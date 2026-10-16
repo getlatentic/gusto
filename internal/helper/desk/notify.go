@@ -30,7 +30,7 @@ func notifyCommand(system string, note Note) *exec.Cmd {
 		return command
 	case "windows":
 		command := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", toast)
-		command.Env = append(os.Environ(), "HAAS_NOTE_TITLE="+note.Title, "HAAS_NOTE_BODY="+note.Body)
+		command.Env = append(os.Environ(), "GUSTO_NOTE_TITLE="+note.Title, "GUSTO_NOTE_BODY="+note.Body)
 		return command
 	default:
 		return exec.Command("notify-send", "--app-name=Latentic Agent Cloud", "--", note.Title, note.Body)
@@ -42,8 +42,8 @@ $null = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notificat
 $null = [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
 $xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
 $text = $xml.GetElementsByTagName('text')
-$null = $text.Item(0).AppendChild($xml.CreateTextNode($env:HAAS_NOTE_TITLE))
-$null = $text.Item(1).AppendChild($xml.CreateTextNode($env:HAAS_NOTE_BODY))
+$null = $text.Item(0).AppendChild($xml.CreateTextNode($env:GUSTO_NOTE_TITLE))
+$null = $text.Item(1).AppendChild($xml.CreateTextNode($env:GUSTO_NOTE_BODY))
 $id = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($id).Show([Windows.UI.Notifications.ToastNotification]::new($xml))
 `

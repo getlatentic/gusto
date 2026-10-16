@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // generated makes a key pair in a keyring directory and returns the key.

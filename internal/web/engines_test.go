@@ -3,7 +3,7 @@ package web
 import (
 	"testing"
 
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 // Each engine is a row and each model a column, and a pair nobody ran is

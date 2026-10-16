@@ -3,19 +3,19 @@ package replay
 import (
 	"flag"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
-// Here runs a replay in this process, the way `haas inside` does.
+// Here runs a replay in this process, the way `gusto inside` does.
 func Here(dir job.Dir) error {
 	_, err := runner.Inside(dir)
 	return err
 }
 
-// Contained runs a replay in a container, the way `haas run` does: the clone
+// Contained runs a replay in a container, the way `gusto run` does: the clone
 // happens on this side of the box, so a repository credential never enters it.
 // The exit code is the gate's, and the verdict is read from the evidence.
 func Contained(dir job.Dir) error {
@@ -40,7 +40,7 @@ func Where(here bool) Run {
 
 // Interspersed parses flags wherever they sit among the directories and returns
 // the directories. Go's flag package stops at the first one, and would read
-// `haas replay a b -here` as three jobs, the last called -here.
+// `gusto replay a b -here` as three jobs, the last called -here.
 func Interspersed(flags *flag.FlagSet, args []string) ([]string, error) {
 	var named []string
 	for {

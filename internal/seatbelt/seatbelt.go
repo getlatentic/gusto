@@ -1,5 +1,5 @@
 // Package seatbelt puts a process behind macOS's own sandbox, sandbox-exec: the process can write only the folders it is given,
-// cannot read the person's home but for what its engine is made of, and can reach nothing on the network but haas's proxy. It is a wall
+// cannot read the person's home but for what its engine is made of, and can reach nothing on the network but gusto's proxy. It is a wall
 // of the kernel's and not a virtual machine: the computer's kernel is shared, and what is allowed is what a profile says.
 package seatbelt
 
@@ -23,8 +23,8 @@ type Policy struct {
 	Writable []string
 	// Readable are the folders under Home the job may still read: its own, and the ones its engine is installed in.
 	Readable []string
-	// ProxyPort is the one port on this computer the job may connect to, which is haas's proxy. Zero opens the network, as
-	// HAAS_JOB_NETWORK=open does.
+	// ProxyPort is the one port on this computer the job may connect to, which is gusto's proxy. Zero opens the network, as
+	// GUSTO_JOB_NETWORK=open does.
 	ProxyPort int
 }
 

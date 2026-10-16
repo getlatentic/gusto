@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // SignatureFile is the detached signature over manifest.json, beside it in
@@ -49,7 +49,7 @@ func Seal(dir job.Dir, signer signing.Signer) error {
 	return os.WriteFile(dir.OutFile(SignatureFile), text, 0o644)
 }
 
-// SealAsConfigured signs with the key HAAS_SIGNING_KEY names, and leaves the
+// SealAsConfigured signs with the key GUSTO_SIGNING_KEY names, and leaves the
 // record unsigned when it names none. A directory with no manifest has nothing
 // to sign: a run that died before writing one is reported by its own error.
 func SealAsConfigured(dir job.Dir) error {

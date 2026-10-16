@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 func turn(job, state string) helper.Turn {
@@ -15,7 +15,7 @@ func turn(job, state string) helper.Turn {
 
 func TestMenuListsRunningTurnsBeforeEnded(t *testing.T) {
 	status := helper.Status{SignedIn: true, Person: "ada", Connected: true}
-	lines := Menu("https://haas.example.com/", status, []helper.Turn{turn("a", "passed"), turn("b", "running"), turn("c", "queued")})
+	lines := Menu("https://gusto.example.com/", status, []helper.Turn{turn("a", "passed"), turn("b", "running"), turn("c", "queued")})
 	var labels []string
 	for _, line := range lines {
 		labels = append(labels, line.Label)
@@ -24,14 +24,14 @@ func TestMenuListsRunningTurnsBeforeEnded(t *testing.T) {
 	if strings.Join(labels, "|") != strings.Join(want, "|") {
 		t.Fatalf("menu = %q, want %q", labels, want)
 	}
-	if lines[0].Page != "" || lines[1].Page != "https://haas.example.com/instances/i1/threads/t1" {
+	if lines[0].Page != "" || lines[1].Page != "https://gusto.example.com/instances/i1/threads/t1" {
 		t.Fatalf("pages = %q, %q", lines[0].Page, lines[1].Page)
 	}
 }
 
 func TestMenuStandingSaysWhatIsWrong(t *testing.T) {
 	for status, want := range map[helper.Status]string{
-		{}:                                "Not signed in: run haas-helper login",
+		{}:                                "Not signed in: run gusto-helper login",
 		{SignedIn: true, Person: "ada"}:   "Reconnecting…",
 		{SignedIn: true, Connected: true}: "Signed in as ",
 	} {
@@ -134,7 +134,7 @@ func TestNotifyKeepsTheTextOutOfTheScript(t *testing.T) {
 			t.Fatalf("text in the script: %q", arg)
 		}
 	}
-	if !strings.Contains(strings.Join(windows.Env, "\x00"), "HAAS_NOTE_BODY=it's <b>$(id)</b>\n") {
+	if !strings.Contains(strings.Join(windows.Env, "\x00"), "GUSTO_NOTE_BODY=it's <b>$(id)</b>\n") {
 		t.Fatal("the text is not in the environment")
 	}
 	if linux := notifyCommand("linux", hostile); linux.Args[len(linux.Args)-3] != "--" {

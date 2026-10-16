@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/matrix"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/matrix"
 )
 
 func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
@@ -39,7 +39,7 @@ func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
 	}
 }
 
-// A job's column is a comparison `haas compare` can read: one commit, and runs
+// A job's column is a comparison `gusto compare` can read: one commit, and runs
 // that differ in the harness and model alone.
 func TestAJobIsAComparisonPinnedToOneCommit(t *testing.T) {
 	hermetic(t)

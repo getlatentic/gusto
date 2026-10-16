@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 var (

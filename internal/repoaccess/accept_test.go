@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 func TestOnlyAnAddressGitReachesOverAnEncryptedTransportIsAccepted(t *testing.T) {
@@ -23,7 +23,7 @@ func TestOnlyAnAddressGitReachesOverAnEncryptedTransportIsAccepted(t *testing.T)
 		"/srv/repos/../secrets":                    false,
 		"/srv/repos-other/x":                       false,
 		"/etc":                                     false,
-		"/var/lib/haas/sessions/agent-1/workspace": false,
+		"/var/lib/gusto/sessions/agent-1/workspace": false,
 		"relative/path":                            false,
 		"../elsewhere":                             false,
 		"file:///etc":                              false,

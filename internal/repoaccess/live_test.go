@@ -12,21 +12,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 // This runs against a real GitHub App, which the ordinary tests stand in for.
 // Install the App on a repository, give its id and key in the settings, then:
 //
-//	HAAS_TEST_GITHUB_REPO=acme/api HAAS_TEST_GITHUB_OTHER=acme/not-installed \
-//	  HAAS_GITHUB_APP_ID=... HAAS_GITHUB_APP_KEY=app.pem \
+//	GUSTO_TEST_GITHUB_REPO=acme/api GUSTO_TEST_GITHUB_OTHER=acme/not-installed \
+//	  GUSTO_GITHUB_APP_ID=... GUSTO_GITHUB_APP_KEY=app.pem \
 //	  go test -tags githublive -run Live ./internal/repoaccess
 //
-// HAAS_TEST_GITHUB_OTHER is optional: a repository the App is not installed on.
+// GUSTO_TEST_GITHUB_OTHER is optional: a repository the App is not installed on.
 func TestLiveAClonePutsTheRepositoryDownAndTheTokenIsGoneAfter(t *testing.T) {
-	repo := os.Getenv("HAAS_TEST_GITHUB_REPO")
+	repo := os.Getenv("GUSTO_TEST_GITHUB_REPO")
 	if repo == "" {
-		t.Skip("HAAS_TEST_GITHUB_REPO names no repository")
+		t.Skip("GUSTO_TEST_GITHUB_REPO names no repository")
 	}
 	forge, err := repoaccess.FromEnv()
 	if err != nil || forge.App == nil {
@@ -46,7 +46,7 @@ func TestLiveAClonePutsTheRepositoryDownAndTheTokenIsGoneAfter(t *testing.T) {
 	}
 
 	// A repository the App is not installed on is refused by name.
-	if other := os.Getenv("HAAS_TEST_GITHUB_OTHER"); other != "" {
+	if other := os.Getenv("GUSTO_TEST_GITHUB_OTHER"); other != "" {
 		var refused repoaccess.NotInstalledError
 		err := forge.Check(ctx, forge.Web+"/"+other+".git")
 		if !errors.As(err, &refused) || refused.Repo != other {

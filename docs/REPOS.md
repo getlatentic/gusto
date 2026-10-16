@@ -11,21 +11,21 @@ in a file that only the server reads.
 
 1. On GitHub, open Settings, Developer settings, GitHub Apps, New GitHub App.
 2. Give it these repository permissions and no others:
-   - Contents: read and write. Write is for `haas ship`; a clone needs only read.
-   - Pull requests: read and write. `haas ship` opens one.
+   - Contents: read and write. Write is for `gusto ship`; a clone needs only read.
+   - Pull requests: read and write. `gusto ship` opens one.
    - Metadata: read.
 3. Turn the webhook off.
 4. Make the App private to your organisation, and install it on the
    repositories jobs may use. Choose selected repositories, not all.
 5. Note the App id, and generate a private key. GitHub gives a `.pem` file.
 
-## Give it to haas
+## Give it to gusto
 
 | Setting | Holds |
 | --- | --- |
-| `HAAS_GITHUB_APP_ID` | the App id |
-| `HAAS_GITHUB_APP_KEY` | the path of the private key file |
-| `HAAS_GITHUB_URL`, `HAAS_GITHUB_API` | a GitHub Enterprise Server, such as `https://ghe.example` and `https://ghe.example/api/v3`. github.com when unset |
+| `GUSTO_GITHUB_APP_ID` | the App id |
+| `GUSTO_GITHUB_APP_KEY` | the path of the private key file |
+| `GUSTO_GITHUB_URL`, `GUSTO_GITHUB_API` | a GitHub Enterprise Server, such as `https://ghe.example` and `https://ghe.example/api/v3`. github.com when unset |
 
 Set both of the first two or neither. The server refuses to start with one.
 
@@ -53,9 +53,9 @@ reaches it on the machine. A deployment with no App behaves as it always did.
 
 ## Opening a pull request
 
-`haas ship` mints a second token for the push target, with `contents: write` and
+`gusto ship` mints a second token for the push target, with `contents: write` and
 `pull_requests: write`, for that repository alone, and revokes it when shipping
-is done. Without an App it uses `HAAS_GITHUB_TOKEN`, as before.
+is done. Without an App it uses `GUSTO_GITHUB_TOKEN`, as before.
 
 ## What was tested
 
@@ -64,7 +64,7 @@ answers only a token the fake minted and has not revoked. They show that the
 token names one repository, that a clone uses it, that it is revoked after, and
 that neither the job directory nor the checkout's `.git/config` holds it.
 
-The live test runs against github.com with the App `getlatentic-haas` installed
+The live test runs against github.com with the App `getlatentic-gusto` installed
 on one repository. It clones the repository, checks that a repository the App is
 not installed on is refused by name, and checks that a revoked token is refused.
 It passed five runs in a row. In those runs a revoked token was refused over the
@@ -73,8 +73,8 @@ measurement saw git take 5.6 s, so a revoked token can still clone for a few
 seconds. Its own expiry is one hour. Run it on your own App:
 
 ```bash
-HAAS_TEST_GITHUB_REPO=acme/api HAAS_TEST_GITHUB_OTHER=acme/not-installed \
-  HAAS_GITHUB_APP_ID=... HAAS_GITHUB_APP_KEY=app.pem \
+GUSTO_TEST_GITHUB_REPO=acme/api GUSTO_TEST_GITHUB_OTHER=acme/not-installed \
+  GUSTO_GITHUB_APP_ID=... GUSTO_GITHUB_APP_KEY=app.pem \
   go test -tags githublive -run Live ./internal/repoaccess
 ```
 

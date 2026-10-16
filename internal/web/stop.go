@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // stopTurn stops a job for whoever is asking, when they may. It writes down who before it tells the run to stop, so that the

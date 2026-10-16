@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
@@ -43,14 +43,14 @@ func (g Git) Push(ctx context.Context, plan Plan) error {
 	})
 }
 
-// authored names haas as the author and dates the commits at the end of the
+// authored names gusto as the author and dates the commits at the end of the
 // run, so shipping the same run twice makes the same commits and the second
 // push has nothing to add.
 func authored(when int64) []string {
 	date := fmt.Sprintf("@%d +0000", when)
 	return append(os.Environ(),
-		"GIT_AUTHOR_NAME=haas", "GIT_AUTHOR_EMAIL=haas@localhost", "GIT_AUTHOR_DATE="+date,
-		"GIT_COMMITTER_NAME=haas", "GIT_COMMITTER_EMAIL=haas@localhost", "GIT_COMMITTER_DATE="+date,
+		"GIT_AUTHOR_NAME=gusto", "GIT_AUTHOR_EMAIL=gusto@localhost", "GIT_AUTHOR_DATE="+date,
+		"GIT_COMMITTER_NAME=gusto", "GIT_COMMITTER_EMAIL=gusto@localhost", "GIT_COMMITTER_DATE="+date,
 	)
 }
 

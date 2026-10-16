@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 // measuredView is what a matrix saw each engine do with each model on the

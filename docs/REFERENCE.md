@@ -8,38 +8,38 @@ A job needs a repository, a brief, and the command that says pass or fail. The
 gate is everything after `--`, so quoting survives.
 
 ```bash
-haas new /tmp/fix -repo /path/to/repo -brief "make the answer yes" -harness opencode -- go test ./...
-haas inside /tmp/fix     # do the work here
-haas run /tmp/fix        # do the work in a container
-haas submit /tmp/fix     # send it to a server, which runs it
+gusto new /tmp/fix -repo /path/to/repo -brief "make the answer yes" -harness opencode -- go test ./...
+gusto inside /tmp/fix     # do the work here
+gusto run /tmp/fix        # do the work in a container
+gusto submit /tmp/fix     # send it to a server, which runs it
 ```
 
-`haas serve` puts the pages in front of all of this. A run happens on an
+`gusto serve` puts the pages in front of all of this. A run happens on an
 instance, a harness started from the catalog with a folder of its own: say
 something to it in a thread, or give it a task with a gate, the team its spend
 counts against, a cap and how sensitive the code is. A one-off against a
 repository is an instance started with that repository. `/jobs` is the record of
 every run, whatever started it: its verdict, its cost, the instance it ran on, a
-live view while it runs, and its evidence and a bundle to take away. `haas submit`
+live view while it runs, and its evidence and a bundle to take away. `gusto submit`
 posts a job directory to that server over `POST /api/jobs`, carrying an adapter
 the job holds so a server that has never heard of your harness can still run it.
 
-Every request `haas serve` answers leaves one JSON line on stderr, where journald
+Every request `gusto serve` answers leaves one JSON line on stderr, where journald
 keeps it: method, path, status, bytes, duration, the client's address, and
 whether the caller came with a `cookie`, a `bearer` password, or `none`. It names
 the kind of credential and never its value, and it leaves out the query string
 `/healthz` and `/readyz`, and a `/metrics` scrape that worked ([docs/RUNBOOK.md](RUNBOOK.md)).
 
-What haas trusts, and the review that checked it: [docs/THREAT_MODEL.md](THREAT_MODEL.md), [docs/SECURITY.md](SECURITY.md).
+What gusto trusts, and the review that checked it: [docs/THREAT_MODEL.md](THREAT_MODEL.md), [docs/SECURITY.md](SECURITY.md).
 
 `inside` and `run` exit with the gate's answer: 0 when it passes.
 
-`haas ship /tmp/fix` hands a passed job back as a pull request. It re-hashes the
+`gusto ship /tmp/fix` hands a passed job back as a pull request. It re-hashes the
 evidence first and refuses, with exit 1, a job whose gate failed or whose files
 changed since the run. It puts `out/diff.patch` on a branch named for the job
 and its manifest hash, at the commit the job ran against. It commits `job.json`
 and `out/`, byte for byte, on top of that commit under
-`refs/haas/evidence/<manifest sha256>`, a ref that is not a branch, so the
+`refs/gusto/evidence/<manifest sha256>`, a ref that is not a branch, so the
 evidence never enters the change under review. It pushes both to the job's
 repository and opens a pull request naming the harness, the model and the
 gate, linking the manifest and the transcript, and printing the one command
@@ -50,7 +50,7 @@ the job.
 A reviewer runs the command the pull request prints, which has this form:
 
 ```bash
-haas check <repository> <manifest sha256>
+gusto check <repository> <manifest sha256>
 ```
 
 `check` fetches the evidence ref with the reviewer's own git credentials, holds
@@ -61,7 +61,7 @@ agree, and it runs nothing when the files do not match. `-into <dir>` keeps the
 job directory it unpacked.
 
 ```
-$ haas show /tmp/fix
+$ gusto show /tmp/fix
 brief    make the answer yes
 harness  fixture
 gate     sh -c test "$(cat answer.txt)" = yes
@@ -73,7 +73,7 @@ model    http://localhost:11434/v1
 signer   acme-2026
 files    7
 
-$ haas verify /tmp/fix
+$ gusto verify /tmp/fix
 signed by acme-2026 (key sha256:7da853821a143b6aeab0bbdff028a1ea)
 7 files match, and the gate still exits 0
 ```
@@ -88,19 +88,19 @@ rewriting all of it, hashes included. A signature does, as long as the key is
 somewhere they are not.
 
 ```bash
-haas keygen acme-2026 -dir ~/.haas     # acme-2026.key (0600) and acme-2026.pub
-export HAAS_SIGNING_KEY=~/.haas/acme-2026.key   # on the machine that runs jobs
-export HAAS_KEYRING=~/keyring                   # on the machine that verifies
-cp ~/.haas/acme-2026.pub ~/keyring/
+gusto keygen acme-2026 -dir ~/.gusto     # acme-2026.key (0600) and acme-2026.pub
+export GUSTO_SIGNING_KEY=~/.gusto/acme-2026.key   # on the machine that runs jobs
+export GUSTO_KEYRING=~/keyring                   # on the machine that verifies
+cp ~/.gusto/acme-2026.pub ~/keyring/
 ```
 
 To replace a key, back one up, or keep it in AWS KMS, see
-[docs/KEYS.md](KEYS.md). `haas keys` lists which key signed each record and
+[docs/KEYS.md](KEYS.md). `gusto keys` lists which key signed each record and
 which records no key in the keyring can vouch for.
 
 The runner signs the exact bytes of `out/manifest.json` with Ed25519 and writes
-the signature beside it, as `out/manifest.sig`. `haas inside` signs in its own
-process. `haas run` keeps the key on the host and signs after the container is
+the signature beside it, as `out/manifest.sig`. `gusto inside` signs in its own
+process. `gusto run` keeps the key on the host and signs after the container is
 gone, so the key never goes in with the agent. With no key the run still works,
 and the record is unsigned.
 
@@ -114,7 +114,7 @@ a name they say so in the same words rather than repeat the manifest's claim:
 | the record | `show`, the job page, the pull request and `audit.json` say |
 | --- | --- |
 | signed by a key in the keyring | `<name>` |
-| signed, with no `HAAS_KEYRING` | `signed, not checked: no keyring` |
+| signed, with no `GUSTO_KEYRING` | `signed, not checked: no keyring` |
 | signed by a key not in the keyring | `signed, not checked: key <id> is not in the keyring` |
 | signed, then changed | `signed, and the signature does not hold` |
 | unsigned | `unsigned` |
@@ -134,12 +134,12 @@ half is destroyed.
 
 ## Replay
 
-`haas replay` runs finished jobs again, unchanged, and compares the new verdict
+`gusto replay` runs finished jobs again, unchanged, and compares the new verdict
 with the old one. It is how a harness upgrade that makes things worse is caught
 before a team notices.
 
 ```
-$ haas replay /jobs -here
+$ gusto replay /jobs -here
 job        harness  before      after       harness exit  change  replay
 /jobs/one  yes      passed (0)  passed (0)  0 -> 0        same    /jobs/one-replay-1
 /jobs/two  yes      failed (1)  failed (1)  0 -> 0        same    /jobs/two-replay-1
@@ -151,7 +151,7 @@ It takes job directories, or a directory of jobs, and makes a fresh directory
 beside each, `<job>-replay-<n>`, or under `-into`. The new job is the old
 `job.json` and adapter with one change: `ref` becomes the commit the old run
 started from, so a repository that moved on since does not change the question.
-It runs in a container like `haas run`, or in this process with `-here`, and
+It runs in a container like `gusto run`, or in this process with `-here`, and
 leaves evidence of its own. The old directory is only read, and a job whose
 evidence no longer checks is not replayed, because its verdict is not the one to
 compare against.
@@ -173,12 +173,12 @@ replayed, and 0 otherwise.
 
 ## Compare
 
-`haas compare` runs one job on two or more harnesses, and keeps the runs as one
+`gusto compare` runs one job on two or more harnesses, and keeps the runs as one
 comparison: a directory holding a job directory a harness and a
 `comparison.json` naming them.
 
 ```
-$ haas compare /tmp/fix yes maybe -here
+$ gusto compare /tmp/fix yes maybe -here
 comparison  /tmp/fix-compare-1
 commit      38b04cbd95cc3b008ce9f5cdee6d5357e0460f8d
 held        brief, budget, gate, ref, repo, sensitivity, version
@@ -191,7 +191,7 @@ maybe    failed (1)  0             false      -       -     checks
 The runs differ only by harness. The commit is pinned once, the way `replay`
 pins one, before either run clones, and the brief, gate, budget and model are
 copied. Each run has its own workspace and evidence, and in a container neither
-can see the other. `haas compare /tmp/fix-compare-1` prints the comparison again
+can see the other. `gusto compare /tmp/fix-compare-1` prints the comparison again
 from the evidence. What is held constant and why is in
 [docs/COMPARE.md](COMPARE.md).
 
@@ -225,7 +225,7 @@ changes and what a reader does with one it does not know.
 
 ## An audit export
 
-`haas export <dir>` writes one job's audit record into a new directory,
+`gusto export <dir>` writes one job's audit record into a new directory,
 `<dir>.audit` unless `-to` names another. It answers who asked, what ran, what
 changed, which model, how much it spent and who approved it, in `audit.json`, and
 it carries the files each answer comes from.
@@ -240,10 +240,10 @@ job.audit/
 ```
 
 The export is a job directory without a workspace, so the manifest check that
-verifies a job verifies it too. `haas export -verify job.audit` runs that check,
+verifies a job verifies it too. `gusto export -verify job.audit` runs that check,
 then checks every file against the hash the export recorded, then derives the
 summary again and compares it with `audit.json`. It exits 1 and names the file
-when anything disagrees. `haas verify` also re-runs the gate, which needs the
+when anything disagrees. `gusto verify` also re-runs the gate, which needs the
 workspace an export leaves behind.
 
 Where the platform keeps nothing, the summary says `not recorded` rather than
@@ -293,16 +293,16 @@ and every figure above comes from a manifest in a job directory.
 
 ### Measuring it yourself
 
-`haas matrix` runs a fixed set of jobs on every harness and model pair a plan
+`gusto matrix` runs a fixed set of jobs on every harness and model pair a plan
 names, keeps each run as an ordinary job directory, and writes the table in the
 shape above, with the place it ran as a column. A cell that finished is never
 run again unless asked, because each one costs money.
 
 ```bash
-haas new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
+gusto new one-line-fix -repo /path/to/repo -brief "fix the operator" -- sh test.sh
 cp docs/matrix/issue-8.json plan.json          # opencode on two local models
-haas matrix plan.json -here                    # plan-matrix/table.md and table.json
-HAAS_MATRIX=plan-matrix/table.json haas serve  # mark a pair that cannot finish it
+gusto matrix plan.json -here                    # plan-matrix/table.md and table.json
+GUSTO_MATRIX=plan-matrix/table.json gusto serve  # mark a pair that cannot finish it
 ```
 
 [docs/MATRIX.md](MATRIX.md) has the plan, the layout and the columns.
@@ -317,7 +317,7 @@ Go binary in the tens of megabytes.
 
 Docker Desktop on a Mac costs about 2 GiB because it runs a Linux virtual
 machine. On Linux there is no virtual machine, and `podman` needs no daemon at
-all — set `HAAS_CONTAINER=podman`.
+all — set `GUSTO_CONTAINER=podman`.
 
 ## Adapters
 
@@ -328,7 +328,7 @@ servers a job gives it. Every run names the one it ran by digest. See [docs/TERM
 
 
 ```bash
-haas harnesses
+gusto harnesses
 ```
 
 | harness | program | needs | stream |
@@ -341,7 +341,7 @@ haas harnesses
 that: a harness can be a program that makes the change, and then no model is
 involved, no endpoint is checked, and a restricted job has nothing to refuse.
 
-An adapter is a JSON file. A directory named by `HAAS_HARNESSES` overrides a
+An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a
 built-in adapter of the same name, so a customer corrects one or adds a harness
 of their own without a new binary. It holds bare adapters, `name.json`, or
 configured harnesses, `name/adapter.json` with the files that shape it beside it,
@@ -377,7 +377,7 @@ in the container is the one thing this refuses to do, so the container is given
 an address instead:
 
 ```
-container   HAAS_MODEL_URL=http://127.0.0.1:8041/model/v1, the job's token as its key
+container   GUSTO_MODEL_URL=http://127.0.0.1:8041/model/v1, the job's token as its key
 runner      relays 127.0.0.1:8041 in the box to the proxy's socket, mounted in
 proxy       validates the token, adds the real credential, writes down what went
 ```
@@ -396,17 +396,17 @@ caught.
 
 A container with a proxy runs with `--network=none`. It has no route anywhere,
 so the only way out is the proxy's unix socket, mounted in at
-`/run/haas/proxy.sock`, which the runner inside relays to from loopback. The
+`/run/gusto/proxy.sock`, which the runner inside relays to from loopback. The
 repository is cloned before the container starts, so the box needs no route to
 it either.
 
-Every host but the model is refused unless `HAAS_ALLOWED_HOSTS` names it. The
+Every host but the model is refused unless `GUSTO_ALLOWED_HOSTS` names it. The
 container is given `HTTPS_PROXY` and `HTTP_PROXY` pointing at the relay, with the
 job's token as the password, so a package manager or a fetch goes through the
 proxy the ordinary way:
 
 ```bash
-HAAS_ALLOWED_HOSTS=registry.npmjs.org,proxy.golang.org,*.githubusercontent.com
+GUSTO_ALLOWED_HOSTS=registry.npmjs.org,proxy.golang.org,*.githubusercontent.com
 ```
 
 An entry is a host, which allows its ports 80 and 443, or `host:port` for one
@@ -422,8 +422,8 @@ Two things are **not yet measured**. Whether `--network=none` with a mounted
 socket holds on the box's podman, rootless or not, and on Docker, has to be
 checked there; the tests hold the command line and not the runtime. And Docker
 Desktop on a Mac may not hand a container a host socket at all. Set
-`HAAS_JOB_NETWORK=open` for the old route, where the container keeps the
-runtime's network and reaches the proxy on `HAAS_PROXY_ADDR`. That route is not
+`GUSTO_JOB_NETWORK=open` for the old route, where the container keeps the
+runtime's network and reaches the proxy on `GUSTO_PROXY_ADDR`. That route is not
 sealed: the allowlist governs what goes through the proxy, and nothing stops a
 container that ignores it.
 
@@ -437,7 +437,7 @@ event of a streamed one. A streamed request is sent on with
 That path is written against the documented shape and has **not yet been
 measured against a real upstream**; the tests hold fixtures, labelled as such.
 
-Money needs prices, and prices are the operator's. `HAAS_SPEND_POLICY` names a
+Money needs prices, and prices are the operator's. `GUSTO_SPEND_POLICY` names a
 file of them, with the monthly cap on each team:
 
 ```json
@@ -476,7 +476,7 @@ answer with no usage is recorded as unmeasured and does not stop it.
 The refusal does not kill the harness. It takes away the model, and the time
 budget ends a harness that does not stop by itself. The manifest then records
 `stoppedByCap`, naming the cap, the team, the limit and what was spent, and the
-job page and `haas show` say which cap stopped it:
+job page and `gusto show` say which cap stopped it:
 
 ```
 stopped  by the team cap: team platform has spent $200.0312 of its $200.0000 cap for 2026-09
@@ -490,14 +490,14 @@ the same directory keeps what it spent before.
 
 ## What the agents cost
 
-`haas spend` says what a month cost, by team, by project and by job, and the
-`spend` page in `haas serve` says the same. `GET /api/spend?month=2026-09` hands a
+`gusto spend` says what a month cost, by team, by project and by job, and the
+`spend` page in `gusto serve` says the same. `GET /api/spend?month=2026-09` hands a
 script the same report as JSON, behind the credential `POST /api/jobs` takes: an API token that may read spending, or the shared password when the server has no tokens. [docs/TOKENS.md](TOKENS.md)
 
 ```bash
-haas spend                   # this month, from HAAS_JOBS
-haas spend -month 2026-08    # another month
-haas spend -json             # for a script
+gusto spend                   # this month, from GUSTO_JOBS
+gusto spend -month 2026-08    # another month
+gusto spend -json             # for a script
 ```
 
 The report reads the ledger the caps are checked against, so a report and a cap
@@ -514,33 +514,33 @@ The report has **not been reconciled with a provider's invoice**. That needs a
 month of real calls on a real account, which nobody has run yet, so the claim
 that the totals match what the provider bills is still open.
 
-Without `HAAS_MODEL_UPSTREAM` there is no proxy: the container is given the
+Without `GUSTO_MODEL_UPSTREAM` there is no proxy: the container is given the
 model's address directly, which is the local case where there is no credential
 to keep out of anywhere.
 
 ## The container
 
 ```bash
-docker build -t haas:dev .
-HAAS_MODEL_URL=http://localhost:11434/v1 haas run /tmp/fix
+docker build -t gusto:dev .
+GUSTO_MODEL_URL=http://localhost:11434/v1 gusto run /tmp/fix
 ```
 
 `run` mounts the job directory, gives the container 512 processes and whatever
-`HAAS_JOB_CPUS` and `HAAS_JOB_MEMORY` allow, and destroys it afterwards. On a
+`GUSTO_JOB_CPUS` and `GUSTO_JOB_MEMORY` allow, and destroys it afterwards. On a
 machine that hosts anything else, set them: a limit larger than the machine is not
-a limit. `HAAS_IMAGE` names a different image.
+a limit. `GUSTO_IMAGE` names a different image.
 
 One image carries several harnesses. `HARNESSES` lists them as `name=package`,
 the adapter's name beside the npm package that provides its program, and the
 default is `opencode=opencode-ai`:
 
 ```bash
-docker build -t haas:dev \
+docker build -t gusto:dev \
   --build-arg HARNESSES="opencode=opencode-ai claude=@anthropic-ai/claude-code codex=@openai/codex" .
-docker image inspect --format '{{ index .Config.Labels "com.getlatentic.haas.harnesses" }}' haas:dev
+docker image inspect --format '{{ index .Config.Labels "com.getlatentic.gusto.harnesses" }}' gusto:dev
 ```
 
-The image says what it carries in that label, and `haas serve` reads it when it
+The image says what it carries in that label, and `gusto serve` reads it when it
 starts. It still asks the image's PATH for each program, because the label is a
 claim and the PATH is what a job meets, and it offers only the harnesses it
 finds. A job that names one the image lacks anyway, from the command line or
@@ -555,7 +555,7 @@ already, and the image points claude and codex at theirs with
 
 The runner clones the repository before the container starts, so a repository
 credential stays outside the box with the agent. An adapter of your own is copied
-into the job by `haas new`, so a container that has never heard of your harness
+into the job by `gusto new`, so a container that has never heard of your harness
 still runs it.
 
 Two things were measured rather than assumed, and both fail silently otherwise:
@@ -570,13 +570,13 @@ Two things were measured rather than assumed, and both fail silently otherwise:
   plain Linux Docker.
 
 A model on the host has to listen on more than loopback for a container to reach
-it. With Ollama that is `OLLAMA_HOST=0.0.0.0` and a restart; until then `haas`
+it. With Ollama that is `OLLAMA_HOST=0.0.0.0` and a restart; until then `gusto`
 stops before starting the harness and says no model answers at that address.
 
 ## Before a job
 
 ```bash
-haas doctor
+gusto doctor
 ```
 
 `doctor` checks what a job needs from this machine, one named line a check, and
@@ -589,12 +589,12 @@ starts a container under the job's own `--memory` and `--cpus`, and mounts the
 jobs directory to see a file it left there. Each of those fails a job with exit
 125 or an empty directory otherwise, and a cap the runtime refuses is only
 refused at a start. It checks rootless podman reaches its runtime directory,
-which a systemd `ProtectHome` hides, and that `git` is on PATH, `HAAS_JOBS` is
-writable, `HAAS_MODEL_URL` answers and `HAAS_HARNESSES` parses when they are
-set. It says whether `HAAS_PASSWORD` is set, never what it is.
+which a systemd `ProtectHome` hides, and that `git` is on PATH, `GUSTO_JOBS` is
+writable, `GUSTO_MODEL_URL` answers and `GUSTO_HARNESSES` parses when they are
+set. It says whether `GUSTO_PASSWORD` is set, never what it is.
 
 ```
-$ haas doctor
+$ gusto doctor
 skip  podman runtime directory  the container command is docker, not podman
 fail  container command         docker does not answer: failed to connect to the docker API at unix:///var/run/docker.sock; ...
                                 fix: start the docker daemon, or for rootless podman read the runtime directory line above
@@ -607,56 +607,56 @@ pass  git                       git is at /usr/bin/git
 
 | name | what it does |
 | --- | --- |
-| `HAAS_HARNESSES` | a directory of adapter files that override the built-in ones |
-| `HAAS_MODEL_URL` | where a local model answers |
-| `HAAS_IMAGE` | the runner image `haas run` starts |
-| `HAAS_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
-| `HAAS_JOB_MEMORY` | what one job may take, `3g` by default |
-| `HAAS_JOB_CPUS` | how much CPU one job may take, `1` by default |
-| `HAAS_SIGNER` | who the manifest names. The runner's own word; every surface names the signer from the keyring |
-| `HAAS_SIGNING_KEY` | the private key the runner signs manifests with, from `haas keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](KEYS.md) covers rotation, backup and KMS |
-| `HAAS_CHANGES` | the file the record of what changes on the platform is appended to: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `haas changes verify` checks it. [docs/CHANGES.md](CHANGES.md) |
-| `HAAS_MIGRATE_IRREVERSIBLE` | `1` lets one start run a data migration that cannot be undone. Without it the server refuses, naming the step. [docs/UPGRADE.md](UPGRADE.md) |
-| `HAAS_DEPLOY_RESULT` | a file a deploy writes when it ends, `{"release","ok","at"}`. `/metrics` reports it as `haas_last_deploy_ok`. The playbook's autodeploy sets and writes it. [docs/RUNBOOK.md](RUNBOOK.md) |
-| `HAAS_LOCAL_REPOS` | directories on the server a job's repository may be cloned from. Unset, a repository is an https or ssh address and nothing on the server's own disk can be named. Compose and the chart allow `deploy/smoke.sh`'s. [docs/SECURITY.md](SECURITY.md) |
-| `HAAS_SANDBOX` | how a job runs: unset is a container, `here` is this process, `openshell` is a sandbox on an OpenShell gateway, configured by `HAAS_OPENSHELL`, `HAAS_OPENSHELL_GATEWAY`, `HAAS_OPENSHELL_IMAGE`, `HAAS_OPENSHELL_HOST`, `HAAS_OPENSHELL_CPU` and `HAAS_OPENSHELL_MEMORY`. [docs/OPENSHELL.md](OPENSHELL.md) |
-| `HAAS_OPENSHELL_REMOTE` | `1` when the OpenShell gateway runs on another machine, so this one needs no `/dev/kvm`. Without it, `haas serve` and `haas doctor` refuse `HAAS_SANDBOX=openshell` on a Linux machine with no `/dev/kvm`. [docs/OPENSHELL.md](OPENSHELL.md) |
-| `HAAS_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. Finished work is removed on the policy's schedule: a job's workspace first, its signed record later. `HAAS_RETENTION_MINUTES` sets the interval, 60 by default. `haas retention` lists what a sweep would remove. [docs/RETENTION.md](RETENTION.md) |
-| `HAAS_CLOUD_LEAD_HOOK_URL`, `HAAS_CLOUD_LEAD_HOOK_SECRET` | where a lead is sent as JSON when a demo starts and when it ends: an https address, and a secret that goes in each request body. Both or neither. A lead that cannot be sent is kept under the front door's `leadhook/` and sent later, in order. [deploy/google-sheet](../deploy/google-sheet/README.md) is the receiving side for a Google Sheet. |
-| `HAAS_CLOUD_DEMO_NOTIFY` | an address that is mailed, by the mail the front door already sends, when a visitor starts a demo: the name, work email, company and time. A line break in what the visitor typed is made a space. Nothing is sent when it is not set |
-| `HAAS_CLOUD_TURNSTILE_SITE`, `HAAS_CLOUD_TURNSTILE_SECRET` | the bot check on the demo form, Cloudflare Turnstile: the site key is public and goes in the form, the secret checks the visitor's answer with Cloudflare and is read from the environment, never a file in the repository. Both or neither: one without the other stops the front door starting. A visitor who cannot be checked is turned away. [docs/CLOUD.md](CLOUD.md) |
-| `HAAS_CLOUD_DEMO_MINUTES` | makes the front door offer a demo at `/demo`: a visitor gives a name, a work email and a company and gets an organisation, signed in, with a timer of this many minutes that starts when its server is ready and ends by deleting it. `HAAS_CLOUD_DEMO_EXTEND_MINUTES` (10) is its one extension, `HAAS_CLOUD_DEMO_MAX` (5) the most at once, `HAAS_CLOUD_DEMO_PER_DAY` (40) the most in a day, `HAAS_CLOUD_DEMO_PER_PERSON` (2) and `HAAS_CLOUD_DEMO_PER_COMPANY` (6) the most one address and one company may start in twenty-four hours (these four limits are what a front door starts with, and the owner changes them on the owner page while it runs; the file `demos.off` in the front door's directory pauses them), `HAAS_CLOUD_DEMO_PATIENCE_MINUTES` (15) how long one may wait to be ready, and `HAAS_CLOUD_BOOK_URL` where a call is booked, which the end page links to. [docs/CLOUD.md](CLOUD.md) |
-| `HAAS_REGISTRY` | the directory an organisation's model registry is kept in: the providers and models its admins add at `/admin/models`, added to the operator's own (`HAAS_CREDENTIALS`, `HAAS_MODELS`, `HAAS_SPEND_POLICY`). Set by an organisation's front door. It needs a credential of the operator's, since keys are held by the proxy. `HAAS_REGISTRY_KEYS` (`file`, `ssm`, `secretsmanager`) lets a key be named as a reference to one of these, and `HAAS_REGISTRY_PRIVATE=allow` lets a provider be at a private address or plain http. They are the starting point for a server that is not behind a front door, where an admin changes both on the Models page; behind a front door they are fixed, and a hosted deployment sets neither. [docs/CLOUD.md](CLOUD.md) |
-| `HAAS_ORG_SETTINGS` | the file an organisation's admins' choices are kept in: the monthly budget, set on the Overview of the admin console. Set by an organisation's front door. Without it the console keeps no budget. [docs/CLOUD.md](CLOUD.md) |
-| `HAAS_MEMBERS`, `HAAS_INBOX` | set by an organisation's front door. `HAAS_MEMBERS` is the file the front door writes its people to, which the console shows at `/admin/people`. `HAAS_INBOX` is the directory where the front door leaves what its admins did to those people, which the server writes to its change record. [docs/CLOUD.md](CLOUD.md) |
-| `HAAS_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
-| `HAAS_GITHUB_TOKEN` | the token `haas ship` pushes to github.com and opens pull requests with; `HAAS_GITHUB_API` overrides the API address |
-| `HAAS_GITHUB_APP_ID`, `HAAS_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](REPOS.md) |
-| `HAAS_GITHUB_URL` | a GitHub Enterprise Server's address, with `HAAS_GITHUB_API`; github.com when unset |
-| `HAAS_SERVER` | where `haas submit` sends a job, with its scheme |
-| `HAAS_TOKEN` | the API token `haas submit` sends, made by an admin at `/admin/tokens`; `HAAS_PASSWORD` is sent when it is unset |
-| `HAAS_API_TOKENS` | the file API tokens are kept in. With it the API takes scoped, revocable tokens and refuses the shared password. [docs/TOKENS.md](TOKENS.md) |
-| `HAAS_ADDR` | where `haas serve` listens, `127.0.0.1:8040` by default |
-| `HAAS_JOBS` | the directory `haas serve` keeps jobs in |
-| `HAAS_PASSWORD` | the shared sign-in. `haas serve` refuses to start without it |
-| `HAAS_OIDC_ISSUER`, `HAAS_OIDC_CLIENT_ID`, `HAAS_OIDC_CLIENT_SECRET`, `HAAS_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on; it needs the other three, and `HAAS_RUNNER_GROUPS`, `HAAS_ADMIN_GROUPS` or `HAAS_ALLOWED`, or the server refuses to start. [docs/SSO.md](SSO.md) |
-| `HAAS_OIDC_SCOPES`, `HAAS_OIDC_GROUPS_CLAIM` | the scopes to ask for besides `openid` and `email`, and the claim the provider's groups arrive in (`groups` unless said otherwise) |
-| `HAAS_RUNNER_GROUPS`, `HAAS_ADMIN_GROUPS` | the provider's groups whose members are runners, and admins. A person in neither is refused |
-| `HAAS_ALLOWED` | addresses, or a domain written `@example.com`, that may sign in. With no groups named it is the whole gate |
-| `HAAS_ADMINS` | addresses that are admins whatever their groups say |
-| `HAAS_JOB_CONCURRENCY` | how many jobs run at once |
-| `HAAS_LIMIT_PERSON`, `HAAS_LIMIT_TEAM` | the most one person, or one team, runs at once. A job over its limit waits, and its page says why. 0 or unset is no limit. [docs/LIMITS.md](LIMITS.md) |
-| `HAAS_MODELS` | the models the pages offer, comma separated. Only a deployment knows which its credential reaches. When credentials are configured, an engine is offered only the models a credential that answers it serves, and an engine none serves is not offered at all. A person can change their agent's model on its page, among those its engine is offered |
-| `HAAS_SANDBOX` | `here` runs a job in the server's own process instead of a container |
-| `HAAS_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
-| `HAAS_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
-| `HAAS_MODEL_NAME` | what the evidence calls that credential |
-| `HAAS_CREDENTIALS` | a directory of credentials, one `<name>.json` each: the provider's address, its key and how it is presented, and the shapes of API it answers. A call a harness makes in a shape the provider does not answer is translated into Chat Completions. [docs/GATEWAY.md](GATEWAY.md) |
-| `HAAS_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `HAAS_JOBS` by default |
-| `HAAS_ALLOWED_HOSTS` | the hosts besides the model a job may reach, comma-separated. Nothing set is nothing allowed |
-| `HAAS_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `HAAS_PROXY_ADDR` instead of sealing them |
-| `HAAS_PROXY_ADDR` | where the proxy listens when `HAAS_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
-| `HAAS_SPEND_POLICY` | a file of model prices and team caps the proxy counts with. Without it every model is unpriced and no team is capped |
+| `GUSTO_HARNESSES` | a directory of adapter files that override the built-in ones |
+| `GUSTO_MODEL_URL` | where a local model answers |
+| `GUSTO_IMAGE` | the runner image `gusto run` starts |
+| `GUSTO_CONTAINER` | the container command, `docker` by default, `podman` for no daemon |
+| `GUSTO_JOB_MEMORY` | what one job may take, `3g` by default |
+| `GUSTO_JOB_CPUS` | how much CPU one job may take, `1` by default |
+| `GUSTO_SIGNER` | who the manifest names. The runner's own word; every surface names the signer from the keyring |
+| `GUSTO_SIGNING_KEY` | the private key the runner signs manifests with, from `gusto keygen`, or `awskms://<key>` for a key AWS KMS holds. Kept on the host, never in a job directory or a container. [docs/KEYS.md](KEYS.md) covers rotation, backup and KMS |
+| `GUSTO_CHANGES` | the file the record of what changes on the platform is appended to: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [docs/CHANGES.md](CHANGES.md) |
+| `GUSTO_MIGRATE_IRREVERSIBLE` | `1` lets one start run a data migration that cannot be undone. Without it the server refuses, naming the step. [docs/UPGRADE.md](UPGRADE.md) |
+| `GUSTO_DEPLOY_RESULT` | a file a deploy writes when it ends, `{"release","ok","at"}`. `/metrics` reports it as `gusto_last_deploy_ok`. The playbook's autodeploy sets and writes it. [docs/RUNBOOK.md](RUNBOOK.md) |
+| `GUSTO_LOCAL_REPOS` | directories on the server a job's repository may be cloned from. Unset, a repository is an https or ssh address and nothing on the server's own disk can be named. Compose and the chart allow `deploy/smoke.sh`'s. [docs/SECURITY.md](SECURITY.md) |
+| `GUSTO_SANDBOX` | how a job runs: unset is a container, `here` is this process, `openshell` is a sandbox on an OpenShell gateway, configured by `GUSTO_OPENSHELL`, `GUSTO_OPENSHELL_GATEWAY`, `GUSTO_OPENSHELL_IMAGE`, `GUSTO_OPENSHELL_HOST`, `GUSTO_OPENSHELL_CPU` and `GUSTO_OPENSHELL_MEMORY`. [docs/OPENSHELL.md](OPENSHELL.md) |
+| `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway runs on another machine, so this one needs no `/dev/kvm`. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on a Linux machine with no `/dev/kvm`. [docs/OPENSHELL.md](OPENSHELL.md) |
+| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. Finished work is removed on the policy's schedule: a job's workspace first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [docs/RETENTION.md](RETENTION.md) |
+| `GUSTO_CLOUD_LEAD_HOOK_URL`, `GUSTO_CLOUD_LEAD_HOOK_SECRET` | where a lead is sent as JSON when a demo starts and when it ends: an https address, and a secret that goes in each request body. Both or neither. A lead that cannot be sent is kept under the front door's `leadhook/` and sent later, in order. [deploy/google-sheet](../deploy/google-sheet/README.md) is the receiving side for a Google Sheet. |
+| `GUSTO_CLOUD_DEMO_NOTIFY` | an address that is mailed, by the mail the front door already sends, when a visitor starts a demo: the name, work email, company and time. A line break in what the visitor typed is made a space. Nothing is sent when it is not set |
+| `GUSTO_CLOUD_TURNSTILE_SITE`, `GUSTO_CLOUD_TURNSTILE_SECRET` | the bot check on the demo form, Cloudflare Turnstile: the site key is public and goes in the form, the secret checks the visitor's answer with Cloudflare and is read from the environment, never a file in the repository. Both or neither: one without the other stops the front door starting. A visitor who cannot be checked is turned away. [docs/CLOUD.md](CLOUD.md) |
+| `GUSTO_CLOUD_DEMO_MINUTES` | makes the front door offer a demo at `/demo`: a visitor gives a name, a work email and a company and gets an organisation, signed in, with a timer of this many minutes that starts when its server is ready and ends by deleting it. `GUSTO_CLOUD_DEMO_EXTEND_MINUTES` (10) is its one extension, `GUSTO_CLOUD_DEMO_MAX` (5) the most at once, `GUSTO_CLOUD_DEMO_PER_DAY` (40) the most in a day, `GUSTO_CLOUD_DEMO_PER_PERSON` (2) and `GUSTO_CLOUD_DEMO_PER_COMPANY` (6) the most one address and one company may start in twenty-four hours (these four limits are what a front door starts with, and the owner changes them on the owner page while it runs; the file `demos.off` in the front door's directory pauses them), `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` (15) how long one may wait to be ready, and `GUSTO_CLOUD_BOOK_URL` where a call is booked, which the end page links to. [docs/CLOUD.md](CLOUD.md) |
+| `GUSTO_REGISTRY` | the directory an organisation's model registry is kept in: the providers and models its admins add at `/admin/models`, added to the operator's own (`GUSTO_CREDENTIALS`, `GUSTO_MODELS`, `GUSTO_SPEND_POLICY`). Set by an organisation's front door. It needs a credential of the operator's, since keys are held by the proxy. `GUSTO_REGISTRY_KEYS` (`file`, `ssm`, `secretsmanager`) lets a key be named as a reference to one of these, and `GUSTO_REGISTRY_PRIVATE=allow` lets a provider be at a private address or plain http. They are the starting point for a server that is not behind a front door, where an admin changes both on the Models page; behind a front door they are fixed, and a hosted deployment sets neither. [docs/CLOUD.md](CLOUD.md) |
+| `GUSTO_ORG_SETTINGS` | the file an organisation's admins' choices are kept in: the monthly budget, set on the Overview of the admin console. Set by an organisation's front door. Without it the console keeps no budget. [docs/CLOUD.md](CLOUD.md) |
+| `GUSTO_MEMBERS`, `GUSTO_INBOX` | set by an organisation's front door. `GUSTO_MEMBERS` is the file the front door writes its people to, which the console shows at `/admin/people`. `GUSTO_INBOX` is the directory where the front door leaves what its admins did to those people, which the server writes to its change record. [docs/CLOUD.md](CLOUD.md) |
+| `GUSTO_KEYRING` | a directory of `<name>.pub` public keys `verify`, `show`, `serve`, `ship` and `export` trust, retired ones included |
+| `GUSTO_GITHUB_TOKEN` | the token `gusto ship` pushes to github.com and opens pull requests with; `GUSTO_GITHUB_API` overrides the API address |
+| `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories jobs name. Each job gets a token for one repository, revoked when its work is done, and the box never holds it. Set both or neither. [docs/REPOS.md](REPOS.md) |
+| `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`; github.com when unset |
+| `GUSTO_SERVER` | where `gusto submit` sends a job, with its scheme |
+| `GUSTO_TOKEN` | the API token `gusto submit` sends, made by an admin at `/admin/tokens`; `GUSTO_PASSWORD` is sent when it is unset |
+| `GUSTO_API_TOKENS` | the file API tokens are kept in. With it the API takes scoped, revocable tokens and refuses the shared password. [docs/TOKENS.md](TOKENS.md) |
+| `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
+| `GUSTO_JOBS` | the directory `gusto serve` keeps jobs in |
+| `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
+| `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on; it needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [docs/SSO.md](SSO.md) |
+| `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | the scopes to ask for besides `openid` and `email`, and the claim the provider's groups arrive in (`groups` unless said otherwise) |
+| `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` | the provider's groups whose members are runners, and admins. A person in neither is refused |
+| `GUSTO_ALLOWED` | addresses, or a domain written `@example.com`, that may sign in. With no groups named it is the whole gate |
+| `GUSTO_ADMINS` | addresses that are admins whatever their groups say |
+| `GUSTO_JOB_CONCURRENCY` | how many jobs run at once |
+| `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person, or one team, runs at once. A job over its limit waits, and its page says why. 0 or unset is no limit. [docs/LIMITS.md](LIMITS.md) |
+| `GUSTO_MODELS` | the models the pages offer, comma separated. Only a deployment knows which its credential reaches. When credentials are configured, an engine is offered only the models a credential that answers it serves, and an engine none serves is not offered at all. A person can change their agent's model on its page, among those its engine is offered |
+| `GUSTO_SANDBOX` | `here` runs a job in the server's own process instead of a container |
+| `GUSTO_MODEL_UPSTREAM` | the model's root address, with no version on it. Setting it turns the proxy on |
+| `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
+| `GUSTO_MODEL_NAME` | what the evidence calls that credential |
+| `GUSTO_CREDENTIALS` | a directory of credentials, one `<name>.json` each: the provider's address, its key and how it is presented, and the shapes of API it answers. A call a harness makes in a shape the provider does not answer is translated into Chat Completions. [docs/GATEWAY.md](GATEWAY.md) |
+| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_JOBS` by default |
+| `GUSTO_ALLOWED_HOSTS` | the hosts besides the model a job may reach, comma-separated. Nothing set is nothing allowed |
+| `GUSTO_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` instead of sealing them |
+| `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
+| `GUSTO_SPEND_POLICY` | a file of model prices and team caps the proxy counts with. Without it every model is unpriced and no team is capped |
 
 ## Tests
 

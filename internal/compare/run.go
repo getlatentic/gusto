@@ -3,8 +3,8 @@ package compare
 import (
 	"sync"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 // Side is one run as it stands: its verdict and whether its evidence still

@@ -17,11 +17,11 @@ import (
 // The settings a deployment gives. The App is optional: without one, a
 // repository is reached the way git reaches it on this machine.
 const (
-	AppIDEnv  = "HAAS_GITHUB_APP_ID"
-	AppKeyEnv = "HAAS_GITHUB_APP_KEY"
+	AppIDEnv  = "GUSTO_GITHUB_APP_ID"
+	AppKeyEnv = "GUSTO_GITHUB_APP_KEY"
 	// WebEnv and APIEnv name a GitHub Enterprise Server. They default to github.com.
-	WebEnv = "HAAS_GITHUB_URL"
-	APIEnv = "HAAS_GITHUB_API"
+	WebEnv = "GUSTO_GITHUB_URL"
+	APIEnv = "GUSTO_GITHUB_API"
 )
 
 // Forge is the GitHub a deployment reaches, and the App it reaches it with.

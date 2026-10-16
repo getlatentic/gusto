@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 func jobWithCalls(t *testing.T, root, id string, spec job.Spec, calls ...Call) job.Dir {

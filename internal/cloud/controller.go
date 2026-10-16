@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Controller makes each organisation's server exist and keeps it running. An
@@ -198,34 +198,34 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 	}
 	data := c.Store.DataDir(slug)
 	own := map[string]string{
-		"HAAS_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
-		"HAAS_PROXY_ADDR":   "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
-		"HAAS_JOBS":         filepath.Join(data, "jobs"),
-		"HAAS_SESSIONS":     filepath.Join(data, "sessions"),
-		"HAAS_SETUPS":       filepath.Join(data, "setups"),
-		"HAAS_COMPARISONS":  filepath.Join(data, "comparisons"),
-		"HAAS_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
-		"HAAS_RETENTION":    filepath.Join(data, "retention"),
+		"GUSTO_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
+		"GUSTO_PROXY_ADDR":   "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
+		"GUSTO_JOBS":         filepath.Join(data, "jobs"),
+		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
+		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
+		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
+		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
+		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
 		signing.KeyEnv:      filepath.Join(data, "keys", slug+".key"),
 		signing.KeyringEnv:  filepath.Join(data, "keys"),
-		"HAAS_SIGNER":       slug,
-		"HAAS_QUOTA":        c.Store.QuotaFile(slug),
-		"HAAS_MEMBERS":      c.Store.RosterFile(slug),
-		"HAAS_ORG_SETTINGS": filepath.Join(data, "settings.json"),
-		"HAAS_REGISTRY":     filepath.Join(data, "registry"),
-		"HAAS_INBOX":        c.Store.InboxDir(slug),
-		"HAAS_ENTRY_KEY":    c.entryKeyFile(slug),
-		"HAAS_ORG":          slug,
-		"HAAS_FRONT_DOOR":   c.FrontDoor,
-		"HAAS_COMPUTERS":    filepath.Join(data, "computers"),
-		"HAAS_APPS":         filepath.Join(data, "apps"),
-		"HAAS_CELL":         cell.Name(),
+		"GUSTO_SIGNER":       slug,
+		"GUSTO_QUOTA":        c.Store.QuotaFile(slug),
+		"GUSTO_MEMBERS":      c.Store.RosterFile(slug),
+		"GUSTO_ORG_SETTINGS": filepath.Join(data, "settings.json"),
+		"GUSTO_REGISTRY":     filepath.Join(data, "registry"),
+		"GUSTO_INBOX":        c.Store.InboxDir(slug),
+		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
+		"GUSTO_ORG":          slug,
+		"GUSTO_FRONT_DOOR":   c.FrontDoor,
+		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
+		"GUSTO_APPS":         filepath.Join(data, "apps"),
+		"GUSTO_CELL":         cell.Name(),
 		// A person's harnesses share their computer's files and their own state, so they
 		// take turns.
-		"HAAS_LIMIT_PERSON":    "1",
-		"HAAS_JOB_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
+		"GUSTO_LIMIT_PERSON":    "1",
+		"GUSTO_JOB_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
 		// Nobody knows this: a server behind the front door has no password to type.
-		"HAAS_PASSWORD": hex.EncodeToString(password),
+		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":          filepath.Join(c.orgDir(slug), "home"),
 	}
 	env := append([]string{}, c.Env...)

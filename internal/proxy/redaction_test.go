@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/redact"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/redact"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 const (

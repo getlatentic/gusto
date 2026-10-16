@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A setup is made once and started with again: every turn on an instance

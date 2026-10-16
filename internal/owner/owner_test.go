@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cell"
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cell"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 type hosts []cell.Instance
@@ -44,7 +44,7 @@ func ask(a *App, method, path, host string, header map[string]string, form url.V
 
 func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 	a, _ := app(t)
-	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "haas owner") {
+	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "gusto owner") {
 		t.Fatalf("%d", got.Code)
 	}
 	for name, c := range map[string]struct {

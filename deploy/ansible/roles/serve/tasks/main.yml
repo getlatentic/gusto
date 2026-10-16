@@ -233,7 +233,7 @@
     marker: "<!-- {mark} haas (managed by haas/deploy/ansible) -->"
     create: false
     block: |
-      ## haas (repo getlatentic/haas)
+      ## haas (repo getlatentic/gusto)
 
       | thing | value |
       |---|---|

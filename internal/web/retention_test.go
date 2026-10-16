@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/retention"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/retention"
 )
 
 // keeping is a site that removes finished work: a workspace after 7 days and a

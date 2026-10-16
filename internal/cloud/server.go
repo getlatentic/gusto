@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/web"
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 //go:embed templates/*.html static/cloud.css static/landing.css static/demo.mp4 static/demo-poster.jpg static/og.png
@@ -92,7 +92,7 @@ func (s *Server) Handler() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Asked on every host name, so a page of an organisation can warn of the end of the host.
-		if r.Method == http.MethodGet && r.URL.Path == "/.haas/lease" {
+		if r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
 			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(w, slug) {
 				return
 			}

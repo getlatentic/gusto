@@ -36,7 +36,7 @@ func newFront(t *testing.T, set Settings, tune func(*Config)) *front {
 	}
 	outbox := filepath.Join(root, "outbox")
 	base, _ := url.Parse("http://cloud.test")
-	config := Config{Store: store, Mail: Outbox{Dir: outbox, From: "haas <no-reply@cloud.test>"}, Sessions: sessions, URL: base, Domain: "cloud.test"}
+	config := Config{Store: store, Mail: Outbox{Dir: outbox, From: "gusto <no-reply@cloud.test>"}, Sessions: sessions, URL: base, Domain: "cloud.test"}
 	if tune != nil {
 		tune(&config)
 	}

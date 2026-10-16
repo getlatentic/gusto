@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Scan reads the jobs on disk without starting anything or changing anything,

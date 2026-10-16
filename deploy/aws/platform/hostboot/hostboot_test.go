@@ -55,8 +55,8 @@ func newBoot(t *testing.T) *boot {
 	}
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
-		"HAAS_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "HAAS_TMP="+filepath.Join(dir, "tmp"), "HAAS_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
-		"HAAS_BAKED="+filepath.Join(dir, "not-baked"), "HAAS_SWAPFILE="+filepath.Join(dir, "swapfile"), "HAAS_FSTAB="+filepath.Join(dir, "fstab"), "HAAS_MEMINFO="+b.meminfo(8000),
+		"GUSTO_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "GUSTO_TMP="+filepath.Join(dir, "tmp"), "GUSTO_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
+		"GUSTO_BAKED="+filepath.Join(dir, "not-baked"), "GUSTO_SWAPFILE="+filepath.Join(dir, "swapfile"), "GUSTO_FSTAB="+filepath.Join(dir, "fstab"), "GUSTO_MEMINFO="+b.meminfo(8000),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
 	return b
@@ -226,7 +226,7 @@ func TestAHostThatStaysUpHasNoDeadmanNoFailureTimerAndKeepsWhatItWasStartedWith(
 	b.release(false)
 	os.WriteFile(filepath.Join(b.store, "releases", "latest"), []byte("abc123"), 0o644)
 	liveEnv := filepath.Join(b.dir, "etc", "live.env")
-	lines, err := b.run("ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "RELEASE=latest", "HAAS_LIVE_ENV="+liveEnv)
+	lines, err := b.run("ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "RELEASE=latest", "GUSTO_LIVE_ENV="+liveEnv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestAHostThatStaysUpHasNoDeadmanNoFailureTimerAndKeepsWhatItWasStartedWith(
 func TestAHostThatStaysUpIsNotPoweredOffWhenItsConfigurationFails(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
-	lines, err := b.run("LIVE=on", "FAKE_ANSIBLE_FAILS=1", "HAAS_LIVE_ENV="+filepath.Join(b.dir, "live.env"))
+	lines, err := b.run("LIVE=on", "FAKE_ANSIBLE_FAILS=1", "GUSTO_LIVE_ENV="+filepath.Join(b.dir, "live.env"))
 	if err == nil {
 		t.Fatal("a failed configuration succeeded")
 	}
@@ -261,7 +261,7 @@ func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *te
 	b := newBoot(t)
 	b.release(false)
 	liveEnv := filepath.Join(b.dir, "live.env")
-	lines, err := b.run("HAAS_LIVE_ENV=" + liveEnv)
+	lines, err := b.run("GUSTO_LIVE_ENV=" + liveEnv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *te
 func TestASmallHostGetsASwapFileOnceAndALargeOneGetsNone(t *testing.T) {
 	small := newBoot(t)
 	small.release(false)
-	small.env = append(small.env, "HAAS_MEMINFO="+small.meminfo(1024))
+	small.env = append(small.env, "GUSTO_MEMINFO="+small.meminfo(1024))
 	lines, err := small.run()
 	if err != nil {
 		t.Fatal(err)
@@ -324,7 +324,7 @@ func TestAHostMadeFromTheImageOfACellDoesNotFetchPackagesAndAnOrdinaryHostDoes(t
 	baked.release(false)
 	marker := filepath.Join(baked.dir, "baked")
 	os.WriteFile(marker, []byte("key\n"), 0o644)
-	lines, err = baked.run("HAAS_BAKED=" + marker)
+	lines, err = baked.run("GUSTO_BAKED=" + marker)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +340,7 @@ func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsACell(t 
 	b := newBoot(t)
 	b.release(false)
 	done := filepath.Join(b.dir, "bake-done")
-	lines, err := b.run("BAKE=on", "ROLE=cell", "HAAS_BAKE_DONE="+done)
+	lines, err := b.run("BAKE=on", "ROLE=cell", "GUSTO_BAKE_DONE="+done)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +361,7 @@ func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
 	done := filepath.Join(b.dir, "bake-done")
-	lines, err := b.run("HAAS_BAKE_DONE=" + done)
+	lines, err := b.run("GUSTO_BAKE_DONE=" + done)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +399,7 @@ func TestAHostMadeFromTheImageOfACellGoesStraightToConfiguringItselfOnlyWhenTheR
 		if c.marker != "" {
 			os.WriteFile(marker, []byte(c.marker), 0o644)
 		}
-		lines, err := b.run("HAAS_BAKED="+marker, "ROLE=cell")
+		lines, err := b.run("GUSTO_BAKED="+marker, "ROLE=cell")
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
@@ -422,7 +422,7 @@ func TestAHostMadeFromTheImageOfACellWarmsItsDiskAndAnOrdinaryHostDoesNot(t *tes
 	baked.release(false)
 	marker := filepath.Join(baked.dir, "baked")
 	os.WriteFile(marker, []byte("key\n"), 0o644)
-	if _, err := baked.run("HAAS_BAKED="+marker, "HAAS_WARM_DIR="+baked.dir, "HAAS_WARM_IMAGES="+baked.dir); err != nil {
+	if _, err := baked.run("GUSTO_BAKED="+marker, "GUSTO_WARM_DIR="+baked.dir, "GUSTO_WARM_IMAGES="+baked.dir); err != nil {
 		t.Fatal(err)
 	}
 	if log, _ := os.ReadFile(filepath.Join(baked.dir, "boot.log")); !strings.Contains(string(log), "warming the disk of the image") {

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Board keeps the comparisons started from the pages. Their runs are jobs in
@@ -151,7 +151,7 @@ func (b *Board) Sample(name string, files map[string]string) (string, string, er
 		return "", "", err
 	}
 	if changed, _ := git(repo, "status", "--porcelain"); changed != "" {
-		if _, err := git(repo, "-c", "user.name=haas", "-c", "user.email=haas@localhost",
+		if _, err := git(repo, "-c", "user.name=gusto", "-c", "user.email=gusto@localhost",
 			"commit", "--quiet", "-m", "the template's sample files"); err != nil {
 			return "", "", err
 		}

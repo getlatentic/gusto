@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // hostKey makes a key on the host and names it as the one to sign with.
@@ -35,7 +35,7 @@ func hostKey(t *testing.T) (string, signing.Keyring) {
 // may lead to it: not its path, not the variable that names it.
 func TestTheSigningKeyNeverEntersTheContainer(t *testing.T) {
 	path, keyring := hostKey(t)
-	t.Setenv("HAAS_SIGNER", "")
+	t.Setenv("GUSTO_SIGNER", "")
 	args, err := argv("/abs/job", nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestTheSigningKeyNeverEntersTheContainer(t *testing.T) {
 		t.Fatalf("the key leaks into the container: %s", line)
 	}
 	for id := range keyring {
-		if !strings.Contains(line, "HAAS_SIGNER="+id) {
+		if !strings.Contains(line, "GUSTO_SIGNER="+id) {
 			t.Fatalf("with no name, the box should name the host's key %s: %s", id, line)
 		}
 	}
@@ -62,7 +62,7 @@ func TestAHostKeyThatCannotBeReadStopsTheRunBeforeTheBox(t *testing.T) {
 // runtime that does nothing stands in for the box that already wrote one.
 func TestTheHostSignsTheManifestTheBoxLeft(t *testing.T) {
 	_, keyring := hostKey(t)
-	t.Setenv("HAAS_CONTAINER", "true")
+	t.Setenv("GUSTO_CONTAINER", "true")
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)

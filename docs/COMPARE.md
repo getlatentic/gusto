@@ -2,12 +2,12 @@
 
 A comparison runs one job on several harnesses and keeps the runs together as
 one comparison, so a team can find out which agent is better on its own code
-rather than trusting a benchmark. It is `haas compare`, in `internal/compare`.
+rather than trusting a benchmark. It is `gusto compare`, in `internal/compare`.
 
 ```bash
-haas new /tmp/fix -repo /path/to/repo -brief "make the answer yes" -- go test ./...
-haas compare /tmp/fix claude opencode     # make /tmp/fix-compare-1, run both, print them
-haas compare /tmp/fix-compare-1           # print it again, from the evidence
+gusto new /tmp/fix -repo /path/to/repo -brief "make the answer yes" -- go test ./...
+gusto compare /tmp/fix claude opencode     # make /tmp/fix-compare-1, run both, print them
+gusto compare /tmp/fix-compare-1           # print it again, from the evidence
 ```
 
 ## What a comparison is
@@ -40,7 +40,7 @@ the fields it copied in `held`, read off the files rather than promised.
 | the commit | pinned once, before any run clones, and written into every run's `ref` |
 | the model | copied, when the submission names one |
 
-The commit is pinned the way `haas replay` pins one: the submission's `ref` is
+The commit is pinned the way `gusto replay` pins one: the submission's `ref` is
 resolved against a clone's record of the remote (`refs/remotes/origin/*`, then
 `refs/tags/*`, and a commit id is its own answer). It happens once, in a clone
 that is thrown away, because each run resolving the ref for itself would let a
@@ -73,7 +73,7 @@ out of the other's, so use it for harnesses you trust, such as a fixture.
 
 ## The exit code
 
-`haas compare` exits 0 when every run ran, left a verdict and its evidence still
+`gusto compare` exits 0 when every run ran, left a verdict and its evidence still
 checks, whichever harness did better, and 2 otherwise. Which harness did better
 is what the comparison prints, not a failure of the comparison.
 
@@ -85,8 +85,8 @@ Today that is the Software engineer template, checked by `node --test`.
 - Each run is an ordinary job in the queue, so it shows in Activity and
   Spending and keeps its own signed record.
 - Every run clones the template's sample from one commit, held in
-  `HAAS_COMPARISONS/samples/<template>`, with the same model, skills and check.
-- `HAAS_COMPARISONS/<id>.json` names the runs by job id.
+  `GUSTO_COMPARISONS/samples/<template>`, with the same model, skills and check.
+- `GUSTO_COMPARISONS/<id>.json` names the runs by job id.
 - `/compare/<id>` shows each run's verdict, time, cost, model calls and
   change size, links each run's signed record, and says in one sentence which
   did better once every run has finished.

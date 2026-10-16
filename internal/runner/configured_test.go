@@ -6,10 +6,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // configuredRun runs a job carrying a configured harness whose adapter is
@@ -23,7 +23,7 @@ func configuredRun(t *testing.T, adapter string) (job.Dir, string) {
 	}
 	write(t, filepath.Join(mine, "configured", "adapter.json"), adapter)
 	write(t, filepath.Join(mine, "configured", "prompt.md"), "Answer yes.\n")
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)

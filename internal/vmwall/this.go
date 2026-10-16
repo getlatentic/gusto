@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// This is the computer haas runs on.
+// This is the computer gusto runs on.
 func This(release string, say io.Writer) Env {
 	return Env{
 		Platform: Platform{runtime.GOOS, runtime.GOARCH},
@@ -37,14 +37,14 @@ func run(ctx context.Context, env []string, program string, args ...string) (str
 	return out.String(), nil
 }
 
-// haasRepository is where haas's releases are kept.
-const haasRepository = "getlatentic/haas"
+// gustoRepository is where gusto's releases are kept.
+const gustoRepository = "getlatentic/gusto"
 
-// releaseAsset downloads a file attached to a release of haas. While the repository is private an address is answered with not
-// found, and the GitHub command line, which the person has signed in to, is what can read it, as it is for installing haas.
+// releaseAsset downloads a file attached to a release of gusto. While the repository is private an address is answered with not
+// found, and the GitHub command line, which the person has signed in to, is what can read it, as it is for installing gusto.
 func releaseAsset(ctx context.Context, release, name string, dst io.Writer) error {
 	var buffered bytes.Buffer
-	err := OverHTTP(ctx, "https://github.com/"+haasRepository+"/releases/download/"+release+"/"+name, &buffered)
+	err := OverHTTP(ctx, "https://github.com/"+gustoRepository+"/releases/download/"+release+"/"+name, &buffered)
 	if err == nil {
 		_, err = io.Copy(dst, &buffered)
 		return err
@@ -53,7 +53,7 @@ func releaseAsset(ctx context.Context, release, name string, dst io.Writer) erro
 	if lookErr != nil || !strings.Contains(err.Error(), "404") {
 		return err
 	}
-	command := exec.CommandContext(ctx, gh, "release", "download", release, "-R", haasRepository, "-p", name, "-O", "-")
+	command := exec.CommandContext(ctx, gh, "release", "download", release, "-R", gustoRepository, "-p", name, "-O", "-")
 	command.Stdout = dst
 	var complaint bytes.Buffer
 	command.Stderr = &complaint

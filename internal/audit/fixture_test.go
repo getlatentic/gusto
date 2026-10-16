@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // The lines a proxy writes, one of each kind: two model calls that left the
@@ -60,8 +60,8 @@ func ranWith(t *testing.T, proxy ...string) job.Dir {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter(t, proxy))
-	t.Setenv("HAAS_HARNESSES", harnesses)
-	t.Setenv("HAAS_SIGNER", "a-test")
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	dir := job.Dir(filepath.Join(t.TempDir(), "20260926-0900-answer"))
 	if err := dir.Make(); err != nil {
