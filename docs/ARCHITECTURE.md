@@ -29,34 +29,54 @@ An organisation is a company or team. It has people, settings, a spend limit and
 
 ## The components
 
+Around the server:
+
 ```mermaid
 flowchart TB
-  subgraph ways["Ways in"]
-    B[Browser pages]
+  subgraph clients["Clients"]
+    B[Browser: the pages]
     D[Desktop app]
     C[CLI: gusto, gusto-helper]
-    S[Scripts: HTTP API]
+    S[Scripts and CI]
   end
-  subgraph server["gusto server"]
-    A[Sign-in: password, SSO, tokens]
-    P[Pages and API]
-    Q[Queue: runs tasks]
-    X[Model proxy: holds the keys]
-    L[Spend caps]
-    R[Record: signed hashes]
-    H[Pull requests]
+  SV[gusto server: pages, API, queue, proxy, record]
+  subgraph box["Sandbox: one per task"]
+    VM[VM: OpenShell]
+    CT[Container: Docker, Podman]
+    OS[OS sandbox: Seatbelt, Landlock]
   end
-  subgraph box["Sandbox: one per task, deleted after"]
-    G[Agent]
-    K[Your check: pass or fail]
-    I[Isolation: VM, container or OS sandbox]
-  end
+  ID[(Identity provider)]
+  PL[(Plugins)]
   M[(Model providers)]
   GH[(GitHub)]
-  ways --> server
-  Q --> box
-  X --> M
-  H --> GH
+  clients --> SV
+  SV --> box
+  SV --> ID
+  SV --> PL
+  SV --> M
+  SV --> GH
+```
+
+Inside the server, in five layers:
+
+```mermaid
+flowchart TB
+  subgraph in["Ways in"]
+    P1[Pages] --- P2[API and events] --- P3[Tokens: scripts, CI] --- P4[Sign-in: password, SSO]
+  end
+  subgraph org["Organisation"]
+    O1[Roles] --- O2[Limits] --- O3[Catalog: agents, models] --- O4[Tools: MCP gateway]
+  end
+  subgraph work["Work"]
+    W1[Workspaces] --- W2[Tasks and queue] --- W3[Runner: agent, then check] --- W4[Shared apps]
+  end
+  subgraph ctl["Control"]
+    C1[Model proxy] --- C2[Spend caps] --- C3[Redaction] --- C4[Retention]
+  end
+  subgraph proof["Proof"]
+    R1[Record] --- R2[Signing] --- R3[Change log] --- R4[Audit export]
+  end
+  in --> org --> work --> ctl --> proof
 ```
 
 The agent reaches a model only through the proxy, which adds the key and counts the tokens.
