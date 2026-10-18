@@ -1,194 +1,27 @@
 # The public cloud
 
-`gusto cloud` is the front door of a hosted gusto. A person signs up, creates an
-organisation, and the organisation gets a gusto server of its own. This page
-says how the parts divide, and what each stage of the build adds.
+`gusto cloud` is the front door of a hosted gusto. A person signs up, creates an organisation, and the organisation gets its own `gusto serve`.
 
 ## How organisations are kept apart
 
-Each organisation runs its own `gusto serve` process. It has its own data
-directory, signing key, credentials, spend ledger, change log and job queue.
-The front door holds accounts and routes requests. It runs no jobs.
+Each organisation runs its own `gusto serve` process with its own data directory, signing key, credentials, spend ledger, change log and job queue. The front door holds accounts and routes requests by host name (browser, front door, the organisation's server). It runs no jobs.
 
-```
-browser ──► front door (gusto cloud) ──► the organisation's gusto serve
-             accounts, sign-in,          its own data directory and keys
-             routing by host name        its jobs, in sandboxes on a gateway
-```
-
-| Question | Answer |
-| --- | --- |
-| Why not one server for every organisation? | `gusto serve` holds one sign-in, one proxy, one ledger, one queue and one change log. Each would need an organisation on every read, and a read that misses one is a leak between organisations. A process and a directory are a boundary that no code path can forget to check. |
-| What does it cost? | A process per active organisation, about the size of an idle `gusto serve`. An organisation with no work can have its process stopped. |
-| Where do jobs run? | In OpenShell sandboxes on a pool of gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel. |
-| Why a shared gateway and not one per organisation? | A host with KVM is the cost. A gateway per organisation is the same isolation at about a hundred times the price, and the sandbox boundary is already per job. |
-
-## The demo
-
-One EC2 host runs the front door, each organisation's `gusto serve` and one OpenShell
-gateway.
-
-1. An admin signs up on the public cloud and confirms their address. The
-   organisation is on the trial that a verified address gets: an admin and three
-   users, each with a computer.
-2. The admin invites three people. An invited person signs in to the organisation.
-3. Each person has one computer: a microVM on the host that keeps their files, that
-   their agents run in, and that is theirs alone.
-4. The admin sees every computer in their organisation, whose it is, and what state
-   it is in. The operator sees every computer on the host, and whose organisation
-   it belongs to.
-
-`deploy/aws/openshell/demo-up.sh` makes a host that serves this at a public name with a
-certificate and mail, and its README says how. `deploy/aws/openshell/e2e-cloud.sh` runs these steps on a host as people would, through the
-pages, with a real model, and checks what the host holds afterwards. On an `m8i.2xlarge`, on
-2026-09-29: an admin and three invited people each had a computer, and each computer was
-a sandbox on the gateway. All three people's first turns ran at once, and a second turn in
-the same conversation found what the first left. A second organisation on the same host had
-its own computer and could not be reached from the first, and a person could not open
-another person's agent in their own organisation. An organisation's server was listening 20 s
-after sign-up once the image was on the gateway, and 129 s after the first ever sign-up.
-
-### Computers
-
-A computer belongs to one person and one organisation, and the organisation's server is
-the only thing that makes or reaches it. Its record is kept in the organisation's own
-directory, as the source of truth for what the organisation has:
-
-| Field | Meaning |
-| --- | --- |
-| `user` | the person, by address |
-| `org` | the organisation |
-| `sandbox` | the name the gateway knows it by: `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person, so what is an organisation's on the gateway is found by its digest |
-| `host` | the cell it runs on |
-| `state` | `creating`, `running`, `stopped`, `failed` or `deleted` |
-| `created`, `lastActive` | when |
-
-A person has one computer in an organisation. It is made when they first sign in, so a
-person who was invited and never came costs nothing, and it is stopped when idle, which
-keeps their files. Removing the person deletes it. The gateway's list and the
-organisation's records are compared, and a sandbox with no record, or a record with no
-sandbox, is reported.
+Jobs run in OpenShell sandboxes on gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel.
 
 ## Where it runs
 
-Nothing here is made or changed from a person's machine. What is made when
-somebody signs up is made by the running service, and what is made when we change
-the platform is made by CI.
+CI and the running service make everything. Nothing is made or changed from a person's machine.
 
-| Layer | Made by | When | Runs in |
-| --- | --- | --- | --- |
-| The base stack: network, control-plane host, cell image and template, storage, keys, DNS, roles | Terraform and Ansible | when we change the platform, from a reviewed pull request | GitHub Actions, as an IAM role through OIDC, with state in an encrypted S3 bucket |
-| An organisation: its record, directory, server, route and secrets path | the orchestrator | at sign-up, in seconds | the control-plane host |
-| Capacity: more or fewer cells | the orchestrator, through the AWS API | as load changes | the control-plane host |
-| Dedicated or customer-owned infrastructure | a provisioner worker running the same Terraform modules, with state for each organisation | when an organisation asks for it | the control plane, in an isolated worker |
+| Layer | Made by | When |
+| --- | --- | --- |
+| Base stack: network, control-plane host, cell image and template, storage, keys, DNS, roles | Terraform and Ansible in GitHub Actions, as an IAM role through OIDC, with state in an encrypted S3 bucket | when the platform changes, from a reviewed pull request |
+| An organisation: record, directory, server, route, secrets path | the orchestrator, on the control-plane host | at sign-up |
+| Capacity: more or fewer cells | the orchestrator, through the AWS API | as load changes |
+| Dedicated or customer-owned infrastructure | a provisioner worker running the same Terraform modules, with state for each organisation | when an organisation asks |
 
-A cell is one host with KVM. It runs an OpenShell gateway and the `gusto serve`
-processes of the organisations assigned to it, because a sandbox reaches its
-server's proxy through the gateway machine's loopback. The account store says
-which cell an organisation is on.
+A cell is one host with KVM. It runs an OpenShell gateway and the `gusto serve` processes of its organisations. The account store says which cell an organisation is on. A new organisation on the shared pool needs no new AWS resources. On an `m8i.2xlarge`, 12 sandboxes ran together, and CPU-bound work ran at full speed up to four ([OPENSHELL.md](OPENSHELL.md)). Cell capacity is a setting.
 
-On an `m8i.2xlarge`, 12 sandboxes ran together, and CPU-bound work in them ran at full
-speed up to four and slowed in proportion beyond that ([OPENSHELL.md](OPENSHELL.md)). A
-cell's capacity is therefore a setting and not a guess: sandboxes that mostly wait for a
-model can be many more than four.
-
-A new organisation on the shared pool needs no new AWS resources: it is a
-directory and a process on a cell, and a route. Only growing the pool, or an
-organisation with its own, adds infrastructure.
-
-### The orchestrator
-
-An organisation moves through `provisioning`, `ready`, `suspended` and `deleting`.
-A controller in the front door reconciles it: each step is safe to run again,
-progress is written to the organisation's record, and a step that failed is retried
-and shown to the operator. A crash between two steps leaves an organisation that the
-next pass finishes. The controller has two ways to act on a cell, a local one that
-starts processes on this machine and one that asks a `gusto cell` agent on another
-host, and the AWS calls sit behind an interface of their own.
-
-The orchestrator's IAM role can scale the cells' group, read the secrets under its
-own path and snapshot their disks. It cannot change the base stack. That role, and
-the one CI uses, are separate so that a compromised control plane cannot rewrite
-the platform.
-
-The first apply of the base stack makes the state bucket and the OIDC role, and is
-run once by a person with admin access. Every change after it runs in CI, and so do
-`down` and `reset`.
-
-## Accounts
-
-The front door keeps its records as files under `GUSTO_CLOUD_ROOT`, written by
-renaming a finished file into place. A slug or an email address is claimed by
-creating its file exclusively, so two sign-ups cannot take the same one.
-
-```
-root/
-  secret                      signs the front door's cookies, 0600
-  people/<hash of email>.json a person: email, organisation, role, when verified
-  orgs/<slug>/org.json        an organisation: name, admin, when made
-  orgs/<slug>/data/           the organisation's gusto data directory, 0700
-  orgs/<slug>/data/quota.json what the organisation may run now
-  orgs/<slug>/data/members.json who is in the organisation, for its server to show
-  orgs/<slug>/data/inbox/     what its admins did to its people, for its server to record
-  orgs/<slug>/data/settings.json  what its admins chose, kept by its server: the monthly budget
-  tokens/<hash>.json          a single-use link for verifying or signing in
-  outbox/                     mail, when mail goes to files
-```
-
-A person belongs to one organisation. Only the hash of an email address is in a
-file name, and only the hash of a link's secret is stored.
-
-## Sign-up
-
-1. A person gives a work email. The address is checked, and refused when it is a
-   disposable one, or at a free mail provider unless the operator allows it.
-2. The organisation is named from the company's domain, found with the public
-   suffix list: `ada@acme-research.com` makes "Acme Research", and `mail.acme.co.uk`
-   makes "Acme". Its address is the whole registrable domain, hyphenated:
-   `acme-research-com` for `acme-research.com` and `acme-research-co` for
-   `acme-research.co`. A domain is one company's alone, so two companies whose names
-   are alike each have an address, and neither is put behind the other for arriving
-   first. A free mail address names no company, so the person is asked for a name,
-   and the address is made from it.
-3. The person, the organisation and the organisation's directory are made, the
-   person is signed in, and a verification link is mailed.
-4. Until the link is followed, the organisation may run a small trial. Following
-   it lifts the limit.
-
-### A company's domain
-
-A company can have more than one organisation: subsidiaries, divisions and teams
-that keep apart, with people at the same domain. The first organisation at a domain
-has the address the domain gives. Each after it is named by whoever makes it, and its
-address is made from that name. A second sign-up at a domain with no name is asked for
-one, and is told the company already has an organisation, in case they meant to ask
-its admin for an invitation. Every organisation's page shows its domain, since two
-organisations can have the same name.
-
-A domain is written in its ASCII form, so a lookalike spelled with letters from another
-alphabet is a different domain and is not given a name to show.
-
-What is limited is organisations whose admin has not confirmed their address, three
-for one domain by default. A company with all of its organisations confirmed can have
-as many as it has people to make them.
-
-A confirmed link proves one mailbox and not the domain, so it decides nothing about who
-owns a domain and nobody joins an organisation by having an address at it. That waits
-for a DNS record that shows the domain is the admin's (getlatentic/planning#396),
-which is also what will give an organisation a mark that its domain is proven. Until
-then people join by invitation.
-
-### Abuse limits
-
-| Limit | Default |
-| --- | --- |
-| Sign-up attempts from one address, refused ones too | 10 an hour |
-| Mail to one address | 3 an hour |
-| Sign-ups in all | 200 an hour |
-| Organisations for one company domain whose admin has not confirmed their address | 3 |
-
-A sign-in link is always answered the same way, whether or not the address has
-an account, so the form cannot be used to find out who is a customer.
+A controller in the front door moves an organisation through `provisioning`, `ready`, `suspended` and `deleting`. Each step is safe to repeat, and a failed step is retried and shown to the operator. Only the local cell, this machine, is built. The other cells and the AWS calls are not. The orchestrator's IAM role can scale the cells' group, read the secrets under its own path and snapshot their disks. It cannot change the base stack. A person with admin access runs the first apply of the base stack. CI runs every later change, `down` and `reset`.
 
 ## Settings
 
@@ -199,346 +32,111 @@ an account, so the form cannot be used to find out who is a customer.
 | `GUSTO_CLOUD_URL` | the address links in mail begin with |
 | `GUSTO_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `GUSTO_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
-| `GUSTO_CLOUD_LEASE_FILE` | The file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
-| `GUSTO_CLOUD_LEASE_STEP_MINUTES` | How much each extension adds. Thirty by default |
-| `GUSTO_CLOUD_MAIL_TOKEN` | The Cloudflare API token that may send mail, for the `cloudflare://` setting. It is kept apart from the setting so that it can be kept where a secret is. |
-| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | how many people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
-| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server is started with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
-| `GUSTO_CLOUD_PORT_FROM` | the first port an organisation's server is given, two each, 9100 by default |
+| `GUSTO_CLOUD_MAIL_TOKEN` | the Cloudflare API token that may send mail, for `cloudflare://`. Keep it where a secret is kept |
+| `GUSTO_CLOUD_LEASE_FILE` | the file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
+| `GUSTO_CLOUD_LEASE_STEP_MINUTES` | how much each extension adds, 30 by default |
+| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
+| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server starts with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
+| `GUSTO_CLOUD_PORT_FROM` | the first port an organisation's server gets, two each, 9100 by default |
 | `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
 | `GUSTO_CLOUD_SERVERS` | `off` runs the front door with accounts and no organisation servers |
 | `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
-## How a person gets to their organisation
+## Accounts and sign-up
 
-1. They sign in at the front door, `<domain>`, by a link mailed to them.
-2. The organisation's page has an Open button when the organisation's server answers.
-3. Open makes a token, good for a minute and one use, that names the person, their role
-   and the organisation, signed with a key that only the front door and that
-   organisation's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
-4. The front door sends `<slug>.<domain>` to that organisation's server, on the
-   machine's loopback, and the server checks the token and signs the person in. There is
-   no password page on an organisation's server, and `/login` there sends people back
-   to the front door.
-5. The server trusts what the front door said for an hour. Past that the person goes
-   back through the front door, which asks whether they still belong, so a person who
-   is removed is out within the hour, and sooner when their computer goes.
+The front door keeps records as files under `GUSTO_CLOUD_ROOT`: `secret` (signs cookies, 0600), `people/<hash of email>.json`, `orgs/<slug>/org.json`, `tokens/<hash>.json` (single-use links) and `outbox/` (mail, when mail goes to files). Each organisation's directory `orgs/<slug>/data/` (0700) is its `gusto` data directory. The front door also writes `quota.json`, `members.json` and `inbox/` there, and the organisation's server writes `settings.json`.
 
-The front door tells the server who the client is, writes over anything the client
-claimed about itself, and keeps its own cookies from the organisations' servers. Each
-organisation's cookie is for its own host name, so one organisation's page cannot read
-another's.
+1. A person gives a work email. The address is refused when it is disposable, or at a free mail provider unless the operator allows it.
+2. The organisation is named from the company's domain, found with the public suffix list: `ada@acme-research.com` makes "Acme Research", with the address `acme-research-com`. A free mail address names no company, so the person is asked for a name.
+3. The person, the organisation and its directory are made, the person is signed in, and a verification link is mailed.
+4. Until the link is followed, the organisation may run a small trial. Following it lifts the limit.
+
+A company can have more than one organisation. The first at a domain gets the domain's address, and each later one is named by whoever makes it. A confirmed link proves one mailbox, not the domain, so nobody joins an organisation by having an address at it. People join by invitation. Domain proof by DNS record is planned (getlatentic/planning#396).
+
+| Abuse limit | Default |
+| --- | --- |
+| Sign-up attempts from one address, refused ones too | 10 an hour |
+| Mail to one address | 3 an hour |
+| Sign-ups in all | 200 an hour |
+| Organisations for one company domain whose admin has not confirmed their address | 3 |
+| Invitations for one organisation | 20 an hour |
+
+## Sign-in to an organisation
+
+1. The person signs in at the front door by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
+2. Open makes a token, good for a minute and one use, signed with a key that only the front door and that organisation's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
+3. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to the front door.
+4. The server trusts the token for an hour. Then the person goes back through the front door, which asks whether they still belong.
 
 ## People
 
-An admin whose address is confirmed invites people from the organisation's page. An
-invitation counts against the number of people the organisation may have, an admin and
-three by default, so an organisation cannot be over-invited, and the room is checked
-again when the invitation is answered. The link goes to a page that says what the person
-is joining and asks them to press a button, so a mail program that opens every link
-does not answer it. The person joins as a runner, with their address confirmed since they
-read the mail, and lands on the organisation's page.
+An admin with a confirmed address invites people from the organisation's page. An invitation counts against `GUSTO_CLOUD_MEMBERS`. The link opens a page that asks the person to press a button, so a mail program that opens every link does not answer it. The person joins as a runner.
 
-An address that already has an account cannot be invited, and the refusal is the same
-whoever it belongs to. An admin can cancel an invitation, which takes its link away, and
-can remove a person, but not themselves or the last admin. A removed person is signed out
-of the front door at once, and the organisation's own server stops trusting them within
-the hour it last did. Twenty invitations an hour are allowed for one organisation.
+An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person is signed out of the front door at once. Their organisation server stops trusting them, and a changed role takes effect, within the hour.
 
-An admin can make a person an admin or a runner from the organisation's page. The
-organisation keeps its last admin: an admin who is the only one is not offered to become a
-runner, and the front door refuses it if it is asked. A person keeps the role their token
-named for up to an hour, as with removal, and has the new one the next time they are
-signed in through the front door.
-
-### What the organisation's server is told
-
-The front door owns the people, so the organisation's server holds no copy that could
-disagree. Two files in the organisation's data directory carry what the server needs.
-
-- `members.json` is the list of people, their roles, when each was last signed in and the
-  invitations that nobody has answered. The front door writes it by renaming a finished file
-  into place, as it does the quota, when the organisation's server is started and after each
-  invitation, cancellation, acceptance, removal, change of role and sign-in. The server reads it
-  when the People page is drawn. A server that cannot read it says so on that page and shows no
-  one, and does not fail to start. If the front door could not write the list after a change, it
-  says so in its log, and the next change or a restart writes it again.
-- `inbox/` is where the front door leaves an event for each invitation, change of role and
-  removal: who did it, from where, and what. The change record has one writer, the
-  organisation's server, since two processes appending to a chained file would fork it. The
-  server takes the events into its record in the order they were left, every few seconds and
-  whenever the Activity page is drawn, and removes each file. An event that is already in the
-  record is not written twice, and a file that is not one of these three kinds is set aside as
-  `.rejected` and not recorded, so the inbox cannot be used to write a sign-in into the record.
-  Refused changes, and a change of role to the role a person has, are not recorded, since
-  nothing changed.
-
-The front door notes when a person was last signed in to their organisation's server when
-they press Open. Opening a shared app is not counted.
+The front door tells the organisation's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
 
 ## Computers
 
-A person's jobs run in their own computer, made the first time they run one and kept
-after it. Their record is in the organisation's directory (`internal/computer`), and the
-organisation's server is what makes it, since it reaches the gateway. Each job works in
-a directory of its own in the computer, at `/sandbox/jobs/<job>/workspace`, which is removed when
-the job ends, so what a person keeps is what they put in the rest of it and what their
-harnesses keep of their own. Each job's record has only its own part of the guard's log:
-the lines that were there when it began are not its.
+A person has one computer in an organisation, made the first time they run a job. Its record is in the organisation's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the cell), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person.
 
-- A job asked for by a script or a token has no person, so it runs in a sandbox of its
-  own that goes when the job does.
-- A turn in a conversation on an instance works in one directory of the computer,
-  `/sandbox/jobs/instance-<id>/workspace`, that is kept between turns, because a harness ties
-  a conversation to the directory it began in. Any other job works in a directory of its own
-  that goes when the job does.
-- A turn in a conversation on an instance works on the instance's files. They are copied
-  into the job's directory before the turn and back after it, and only when the turn got as far
-  as writing its record, so a turn that failed on the way leaves the instance as it was. What the
-  harness calls the conversation is learned from the record, so the next turn resumes it.
-- A person can share a web app their agent built, from the agent's page. It runs in their computer, is
-  opened through the organisation's own address by its members only, and is described in
-  `docs/OPENSHELL.md`. `GUSTO_APPS` is where an organisation's server keeps its record of them.
-- A person's harnesses take turns, one job at a time in a computer, since they share its files.
-- A person past the organisation's number of computers is refused in their job's
-  record, with how to raise it, and nothing is made.
-- A computer nobody has used for half an hour, and no job of theirs is running, is stopped, which
-  keeps its files. It is started again for the next job. `GUSTO_COMPUTER_IDLE_MINUTES`
-  changes the half hour.
-- Removing a person marks their computer, and the organisation's server removes it. The
-  front door only marks it because it does not reach the gateway, and because two processes
-  changing one record would lose a change.
-- `gusto cloud computers` lists every computer on the host with its organisation and person.
-  An organisation's page shows its admin which people have one and how it is.
+- A job works in `/sandbox/jobs/<job>/workspace`, removed when the job ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
+- A job from a script or token has no person and runs in a sandbox of its own that goes with the job.
+- A person past the organisation's number of computers is refused in the job's record, and nothing is made.
+- A computer idle for half an hour with no job running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next job starts it. Removing a person marks their computer, and the organisation's server removes it.
+- A person shares a web app their agent built from the agent's page. Members open it at the organisation's address ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record.
+- A turn that leaves an `index.html` in the agent's folder gets a Preview button. It starts a static file server, which needs only node, on the first free port from 8080.
+- `gusto cloud computers` lists every computer on the host with its organisation and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console
 
-An organisation's server has a console for its admins at `/admin`. It has its own layout
-and navigation. It is the only place the admin controls are: the pages a person who runs
-work uses carry none, and an admin sees one link to the console, "Admin". The console has
-one link back, "Back to gusto". A person who runs work gets 403 on every page of the console
-and on every form it posts. A person who is not signed in is sent to sign in. Each server is
-one organisation's, so the console shows that organisation and nobody else's.
+An organisation's server has a console for its admins at `/admin`. A person who runs work gets 403 on every console page and form. A section the server has nothing for is not listed and answers 404. The old addresses `/changes`, `/changes.jsonl`, `/tokens` and `/retention` redirect into the console.
 
-| Section | Address | What it holds | Listed when |
-| --- | --- | --- | --- |
-| Overview | `/admin` | this month's spending, the limits and how much of each is used, the jobs running, waiting and failed this week, the computers and the shared apps, and the budget | always |
-| Spending | `/admin/spending` | the spend report for the whole organisation | always |
-| Activity | `/admin/activity` | the change record, and its download at `/admin/activity.jsonl` | the server keeps a change record |
-| Tokens | `/admin/tokens` | API tokens | the server takes tokens |
-| Retention | `/admin/retention` | the disk, the policy, sweeps and holds, of a job or of a person | the server removes finished work |
-| Skill sets | `/admin/skill-sets` | making skill sets, and adding and removing their skills | the server keeps skill sets |
-| People | `/admin/people` | each person's role, when they last signed in and what they have spent this month, and the invitations not yet answered. Inviting, removing and changing a role are at the front door, which the page links to | the server has a list of people from its front door |
+| Section | Address | Holds |
+| --- | --- | --- |
+| Overview | `/admin` | this month's spending (UTC), limits and use, jobs running, waiting and failed in the last seven days, computers, shared apps, the budget |
+| Spending | `/admin/spending` | the spend report for the whole organisation |
+| Activity | `/admin/activity` | the change record, downloadable at `/admin/activity.jsonl` |
+| Tokens | `/admin/tokens` | API tokens |
+| Retention | `/admin/retention` | the disk, the policy, sweeps and holds ([RETENTION.md](RETENTION.md)) |
+| Skill sets | `/admin/skill-sets` | skill sets and their skills |
+| People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at the front door |
+| Models | `/admin/models` | providers, models and limits per person |
 
-A section that the server has nothing for is not listed and answers 404.
+On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organisation's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no job (a team's cap does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
 
-### The Overview
-
-The Overview reads what the pages it summarises read. Spending is the ledger the caps are
-checked against, by person, team, model and repository, for the current month in UTC. The
-jobs are the queue's own counts, the same as `/metrics` reports, and failed is over the last
-seven days, as the Activity page counts it. Computers are the organisation's record of them,
-and apps are the record of what people shared.
-
-The Limits table has a row for each limit that exists and no row for one that does not: the
-budget, each team the spend policy caps, and, where the front door writes a quota, the jobs the
-organisation may start, how many may run at once and how many computers it may have. A row is
-marked when its limit is used up. A quota that cannot be read is said, and is not shown as no
-limit.
-
-An admin can set one alert, a monthly budget in dollars, on the Overview. It is kept in
-`settings.json` in the organisation's data directory, which only its server writes, and
-`GUSTO_ORG_SETTINGS` names it. When the month's spending passes the budget the Overview shows a
-banner that says by how much. Spending that has no price is not in the sum, so the banner then says
-"at least". The budget stops no job: a team's cap does that. It is not mailed. Setting it is
-written to the change record. A budget that cannot be read is said and is not checked, and the
-file is not written over.
-
-The same file keeps what a new chat runs on, which an admin chooses under New chats on the Overview.
-A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT`
-(`engine=model`), which the operator sets to a pair that finishes a job; without either it starts on
-the first engine and model that can run. Every model is offered to every engine, and the person chooses.
-
-## Demos
-
-With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` on the front door lets a visitor start a demo with a name, a
-work email and a company. They get an organisation of their own, signed in, on a small quota (one
-computer, one person), and are sent to a page that waits for its server. Their time starts when the
-server first answers, and is shown on every page of the organisation by the banner, with one
-extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When the time is up the front door
-asks the organisation's server to remove its computers, waits up to ninety seconds for it to,
-stops the server, and deletes the organisation, its people and its data. The address then answers
-"Your demo has ended" with the link to book a call. A demo that was never ready within
-`GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is
-ever deleted this way.
-
-The form has a bot check when `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` are set: Cloudflare's Turnstile,
-which is free and asks the visitor nothing in most cases. The page then may load Cloudflare's script and frame, and no other.
-The limits below are checked first, so a flood costs Cloudflare no questions. A visitor Cloudflare does not accept, or
-whom it cannot be asked about, is turned away and told to try again: the check fails closed.
-
-At most `GUSTO_CLOUD_DEMO_MAX` demos run at once and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day, which bounds
-what a day of demos can cost. Creating the file `demos.off` in the front door's directory pauses new
-demos at once, and removing it lets them start again; demos that are running go on. A visitor who
-is turned away is told to book a call.
-
-Each visitor is kept as a lead in `demos/<address>.json` in the front door's directory, with
-when they asked, when it was ready, whether they extended it and when it ended. The lead stays
-when the demo is gone. An address can start another demo once its first has ended.
-
-## Previewing what an agent built
-
-When a turn leaves a page in the agent's folder (an `index.html`), its message has a **Preview** button for that
-folder. It starts a small static file server, which is part of gusto and needs only node, in the agent's computer on the
-first free port from 8080, and shares it the way any web app an agent built is shared: the organisation's members open
-it at an address of its own, and nobody else can. The conversation then has an **Open the app** link. An agent that
-builds a server of its own is shared from the agent's page, by the line that starts it and its port. Previews need
-sharing, which a deployment has when its agents run in computers.
+An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`engine=model`), then on the first engine and model that can run.
 
 ## Models
 
-An organisation's admins choose the models its people may use at `/admin/models`. The page lists
-the operator's own providers, which cannot be changed from it, and the organisation's, which can.
-A provider is an address, how it takes its key, and perhaps the harnesses it works with. A model
-belongs to a provider, is named as the provider names it, and may have a price: dollars for a
-million tokens of input, output and cached input. A model with no price has an unknown cost, which
-is not the same as nothing, and a team's cap cannot count it. Each change is a version of the
-registry, is written to the change record without the key, and takes effect for the next model
-call: a job already running keeps the credential it began with, and every call the proxy makes is
-written to `out/proxy.jsonl` with the version it was sent under. `audit.json` lists the versions
-in `model.registry`.
+Admins choose the models their people may use at `/admin/models`. A provider is an address, how it takes its key, and perhaps the harnesses it works with. A model belongs to a provider and may have a price in dollars for a million tokens of input, output and cached input. A team's cap cannot count a model with no price.
 
-A provider or a model an admin adds is **off** until an admin turns it on, a second step on the same
-page: adding or finding something does not offer it to people. Turning it off again keeps it, and
-retiring it does not. A provider whose key cannot be read is left out with the reason, as before. A
-registry kept before there was an off switch has everything on, so an upgrade changes nothing.
-Turning on and off is a version of the registry and is in the change record, with what it was and
-what it became.
+- Each change is a version of the registry. It is written to the change record without the key and applies to the next model call. A running job keeps the credential it began with. `out/proxy.jsonl` records the version of each call.
+- A provider or model an admin adds is off until an admin turns it on. The registry keeps its last twenty earlier states, and "Go back to it" restores one as a new change.
+- A key is typed once, kept in a file only the server can read, and never shown again. Retiring a provider forgets its key.
+- `GUSTO_REGISTRY_KEYS` allows naming a key as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. A deployment that hosts other people's organisations leaves these out, because they let an admin name anything the machine can read.
+- A provider must be at an https address that resolves to a public address. The check runs when it is added and on each proxy connection. A call that would reach this machine, a private network or a cloud metadata service is refused. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a model inside your network. Behind a front door the environment fixes both settings.
+- An admin can limit a person to some models. API tokens belong to nobody, so they are not limited.
 
-The registry keeps its last twenty earlier states, and the page lists them with what was done after
-each. **Go back to it** puts one back as a change of its own, so that what it replaced is kept and
-can be gone back to, and the change record says what it undid. The history holds no key. A key kept
-here is forgotten when its provider is retired, so a provider that comes back that way has no key
-until one is given.
+## Demos
 
-An admin can limit a person to some of the models, on the same page. Everybody may use every model
-unless they are limited. A person who is limited is offered only the models they are limited to when
-they start an agent, change its model or compare agents, and a request for another is refused. A
-person limited to models that are since retired is offered none, and cannot start an agent on a
-harness that then has no model, rather than being given the harness's own default. The limit is
-kept in the registry, is a version of it, and is written to the change record. It applies to people
-who sign in; work started with an API token belongs to nobody, so it is not limited.
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organisation on a small quota (one computer, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, the front door asks the server to remove its computers, waits up to ninety seconds, stops the server and deletes the organisation, its people and its data. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is deleted this way.
 
-A key is typed into the page once, is kept in a file only the server can read, and is never shown
-again. Retiring a provider forgets it. Where the operator allows it (`GUSTO_REGISTRY_KEYS`), a key
-is named instead as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. Those let an admin name
-anything the machine can read, so a deployment that hosts other people's organisations leaves them
-out.
-
-An organisation chose the address of its providers, and the key is sent there from a machine that
-other organisations' servers are on too. So a provider must be at an https address that resolves to a
-public address, which is checked when it is added and again each time the proxy connects, and a
-call to it is refused if it would reach this machine, a private network or a cloud's metadata
-service. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a deployment that runs a model inside its
-own network. On a server that is not behind a front door the admin is the operator, and sets this
-and the kinds of key reference on the Models page, where each change is written to the change
-record; behind a front door they are fixed by the environment and the page says so. A provider whose key cannot be read is left out, with the reason, and so are its
-models. An organisation cannot add a provider beside an operator's credential that has no name.
-
-The addresses the admin pages had before, `/changes`, `/changes.jsonl`, `/tokens` and
-`/retention`, redirect to their place in the console, and the forms that were posted to `/tokens`,
-`/retention/...` and `/setups/...` are sent again to the console with their method kept. A
-person who runs work who follows one of them gets the same 403. A single job is held from the
-Retention page, by its id, and no longer from the job's own page.
-
-## What is built
-
-The controller provisions an organisation's directories, its signing key and its entry
-key, gives it two ports, and starts its `gusto serve` on this machine with only the
-operator's settings and its own. It is started again when it stops, after longer waits
-each time it fails, and every server is stopped, asked first, when the front door ends.
-The other cells, and the AWS calls, are not built: a cell is an interface, and the
-first is this machine.
-
-## What comes next
-
-Inviting people (getlatentic/planning#396), the computers' lifecycle
-(getlatentic/planning#430), the operator's view, the stack on AWS from
-code (getlatentic/planning#397), and payment.
+- Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
+- At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
+- Create `demos.off` in the front door's directory to pause new demos. Remove it to resume. Running demos continue.
+- Each visitor is kept as a lead in `demos/<address>.json`, which stays after the demo ends.
+- A demo is capped as a whole organisation at 0.50 dollars (`organisation` in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`). The proxy then refuses the next call, and refuses a model with no price. Calls in flight can pass the cap by a few cents.
 
 ## The owner's page
 
-`gusto owner` serves the page the owner of a hosted gusto manages it from: who asked for a demo (with a spreadsheet
-download), the demos running and their time left, a switch that pauses new demos, the limits on how many demos start, and
-the hosts that are up.
+`gusto owner` serves the page the owner manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo and are kept in `demo-limits.json` in the front door's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
 
-The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once.
-The owner sets them on the page and they hold from the next demo, with no restart; they are kept in `demo-limits.json` in
-the front door's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and
-`GUSTO_CLOUD_DEMO_MAX` are what a front door starts with, and the page can go back to them.
+It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of the front door's host only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/owner.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
 
-It is its own program with its own service, `gusto-owner`, and it listens on `127.0.0.1:8090` of the front door's host
-only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy,
-and any form sent from another site. The front door's web server does not serve it, so the internet cannot reach it.
+## Checks and costs
 
-`deploy/aws/openshell/owner.sh` opens a tunnel to it with AWS Systems Manager, so it is at `http://localhost:8090`
-for as long as the command runs. Who may open it is who may start a session on the front door in AWS. It needs the
-Session Manager plugin: `brew install --cask session-manager-plugin`.
-
-## Checking that an agent cannot reach the operator's network
-
-A demo computer is a sandbox with a policy that denies everything but the model proxy on its machine. `deploy/aws/openshell/check-isolation.sh`
-tests that from inside a running sandbox: it tries to open a connection to the machine's AWS metadata address (whose role reads
-the stored secrets), the machine's own ports, the front door, the shared file system, the VPC resolver and the internet, and to the
-model proxy. It passes only when the proxy is open and nothing else is, and fails when the proxy is closed too, since a probe that
-opens nothing cannot tell blocked from broken. It also checks that the sandbox's policy names no other rule, and that a name made
-up inside the sandbox is answered inside it, with an address in `198.18.0.0/15`, so a lookup does not leave the sandbox.
-
-A sandbox exists only while an agent has been started in a demo, so start a demo, start an agent in it, and run the check. It runs
-`e2e/isolation-on-host.sh` on the demo machine through Systems Manager, and exits 0 on a pass. Run it after a change to the
-sandbox's policy, the OpenShell version or the machine's network. What it does not test is UDP other than names, or IPv6.
-
-## What a demo may spend
-
-A demo is capped as a whole organisation: `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json` sets `organisation`
-to 0.50 dollars, and every agent's calls count against it together, whichever job or team they belong to. Once the
-organisation has spent it, the proxy refuses the next call, and the job says it was stopped by the organisation cap. A model with
-no price is refused too, since a cap that cannot count a call is not holding anything; a test fails if a model the demo offers has
-no price. Calls already in flight can take the total a few cents past the cap. At the Gemma 4 prices a whole calculator costs
-under a cent, so the cap is far above what a demo needs and far below what a run-away costs.
-
-## When spending runs away
-
-`deploy/aws/platform/budgets.tf` makes two AWS budgets that mail `ALERT_EMAIL` when `bootstrap.sh` is run with it set: one a month
-(`monthly_budget_usd`, 60 dollars) that mails at 80% and when the forecast passes 100%, and one a day (`daily_budget_usd`, 10
-dollars) that mails when the day passes it. Both count usage before credits, since credits hide a bill until they run out. A demo
-machine left on costs about 5.30 dollars a day, and a measurement run costs 2 to 10, so the daily budget tells of either the same
-day. September's usage was 39.85 dollars, 37.10 of it Bedrock models while engines were measured and 2.65 of it servers.
-
-## How long a cold start takes
-
-When no demo machine is running, a visitor waits for one to start. Measured on 2026-10-02 from a visitor asking to the demo being ready,
-with no image: 270 seconds. Of them, about 40 were the machine starting and installing packages, 40 the playbook, 13 downloading the
-runner image, 139 the gateway turning the runner image into the disk a sandbox starts from (once on each host), and the rest the
-organisation starting.
-
-`deploy/aws/openshell/bake-cell-image.sh` makes the machine image of a cell with all of that done, and puts its id in the parameter
-`/gusto/poc/cell-ami`, which the live cell launch template reads each time a host is started. It makes a cell as the front door would, does
-not start it, has the gateway prepare the runner image's disk, takes out what is the host's own, and takes an image. It takes about 25
-minutes, mostly AWS making a snapshot of a 40 GB disk, and costs about 0.10 dollars and 0.60 dollars a month for the snapshot. Its key
-(`bake-key.sh`) is the runner image's key and a hash of what installs the gateway; the release's bundle carries it as `bake.key`, so a
-change to either is a new image to make before cells start from it.
-
-A host made from the image skips the package installs and the openshell role when its release's `bake.key` is the one in
-`/etc/gusto/baked`. It configures itself from the release it is told to be, as any host does. A host whose image is older than its
-release, which is what a cell is between a change and the image being made again, installs everything and is slower, and right.
-
-Three things were learned making it, and are why it is as it is:
-
-- A disk made from a snapshot is read from it a block at a time, as each block is first used. The runner image is read whole to be named
-  and the sandbox disk to be copied, and a first sandbox took over two minutes. The host reads those files in sixteen streams from the start
-  of its boot (`warm_the_disk` in `user-data.sh`), and its root disk has 500 MB a second.
-- The shared file system must not be in the image's `/etc/fstab`. A host that has it there before it has its network orders it before
-  the network, systemd breaks the cycle by deleting the network jobs, and the host waited a minute and a half for them.
-- The image is made when its key changes, not when a release does, so a release does not wait for it. The bundle workflow cannot build
-  it, since it needs a host of its own: run the script when the key changes.
+- Rehearsal. `deploy/aws/openshell/demo-up.sh` makes a host with a public name, a certificate and mail. `deploy/aws/openshell/e2e-cloud.sh` runs sign-up, invitations and agents through the pages with a real model and checks what the host holds.
+- Isolation. Start a demo and an agent in it, then run `deploy/aws/openshell/check-isolation.sh`. It probes from inside the sandbox and passes only when the model proxy is open and nothing else is: the AWS metadata address, the machine's ports, the front door, the shared file system, the VPC resolver and the internet. It exits 0 on a pass. Run it after a change to the sandbox policy, the OpenShell version or the machine's network. It does not test UDP other than names, or IPv6.
+- Budgets. `deploy/aws/platform/budgets.tf` makes two AWS budgets that mail `ALERT_EMAIL` when `bootstrap.sh` runs with it set: `monthly_budget_usd` (60 dollars) mails at 80% and when the forecast passes 100%, and `daily_budget_usd` (10 dollars) mails when the day passes it. A demo machine left on costs about 5.30 dollars a day.
+- Cold start. With no demo machine running, a visitor waited 270 seconds on 2026-10-02 with no image. Run `deploy/aws/openshell/bake-cell-image.sh` to make a cell image. It takes about 25 minutes and writes the image id to `/gusto/poc/cell-ami`. Run it again when the key from `bake-key.sh` changes. A host with an older image installs everything and is slower.

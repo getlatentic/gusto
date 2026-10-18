@@ -1,118 +1,79 @@
 # The gusto protocol
 
-How a client talks to a gusto server. It is one protocol: the same calls, in the same shapes, whether the server is on your own
-computer, on another computer you own, or an organisation's. The browser, the desktop app, the helper and your own scripts are all clients
-of it. What differs from place to place is only how a client signs in.
-
-The protocol is in the code, in one table: [`internal/web/protocol.go`](../internal/web/protocol.go). The routes are made from that
-table, `GET /api/protocol` reads it back from a running server, and a test fails if this document and the table disagree. The version is
-`ProtocolVersion` (now 1), and a change that breaks a client raises it.
-
-```bash
-curl http://127.0.0.1:7140/api/protocol     # {"protocol":1,"calls":[...]}
-```
+Every client uses the same calls in the same shapes: the desktop app, the helper and your scripts. Only sign-in differs by place. The calls are one table in [`internal/web/protocol.go`](../internal/web/protocol.go). `GET /api/protocol` reads it back (`{"protocol":1,"calls":[...]}`), and a test fails when this document and the table disagree. `ProtocolVersion` is 1. A change that breaks a client raises it.
 
 ## Where the server is
 
 | Where | Address | How a client signs in |
 | --- | --- | --- |
-| Your own computer (`gusto local`) | `http://127.0.0.1:<port>`, the loopback only | a link that works once for five minutes (`gusto local link`) opens a session; a computer of yours signs in by the device flow |
-| Another computer you own | its address, behind TLS | the shared password opens a session, and with no identity provider it is the one owner and approves a computer by the device flow |
-| An organisation's | its address, behind TLS | single sign-on opens a session, and a person approves a computer by the device flow; an organisation's program carries a token with a scope |
+| Your computer (`gusto local`) | `http://127.0.0.1:<port>`, loopback only | A link that works once for five minutes (`gusto local link`) opens a session. Another computer of yours uses the device flow |
+| Another computer you own | its address, behind TLS | The shared password opens a session. With no identity provider you are the one owner and approve a computer by the device flow |
+| An organisation's | its address, behind TLS | Single sign-on opens a session. A person approves a computer by the device flow. A program carries a token with a scope |
 
-The desktop app and the helper refuse a plain `http` address unless it is this computer's own. Everything below is the same in all three.
-
+The desktop app and the helper refuse a plain `http` address unless it is this computer's own.
 ## Signing in
 
-A **session** is a cookie, for the pages. A **token** is a bearer, for programs: `Authorization: Bearer <token>`.
+A session is a cookie, for the pages. A token is a bearer, for programs: `Authorization: Bearer <token>`.
 
-A computer gets a token for a person by the device flow, which is why it needs `GUSTO_API_TOKENS` on the server:
+A computer gets a person's token by the device flow. The server needs `GUSTO_API_TOKENS`.
+1. `POST /api/device` with `{"label": "my laptop"}` returns `user_code`, `device_code`, the address to visit, `expires_in` and `interval`.
+2. The person opens `/device`, signs in and types the code.
+3. The computer polls `POST /api/device/token` with `{"device_code": ...}`. The answer is `{"error": "authorization_pending"}` until the person approves, then once `{"access_token": "gusto_...", "person": "...", "token_type": "bearer"}`.
 
-1. `POST /api/device` with `{"label": "my laptop"}` answers a `user_code`, a `device_code`, the address to visit, and how long and how often (`expires_in`, `interval`).
-2. The person opens `/device`, signs in as they usually do, and types the code.
-3. The computer polls `POST /api/device/token` with `{"device_code": ...}`. It is answered `{"error": "authorization_pending"}` until the person approves, then once `{"access_token": "gusto_...", "person": "...", "token_type": "bearer"}`.
-
-The token acts as that person, on that person's own work, and a person can end it from `/device`. `DELETE /api/me` ends it from the computer.
+The token acts as that person, on their own work. The person ends it from `/device`, or the computer ends it with `DELETE /api/me`.
 
 ## The calls
 
-Who may call is **nobody** (signing in), **a person** (a token from the device flow), or an organisation's **token** with the scope named.
-Somebody else's work is answered as missing, as the pages answer it.
+"A person" is a device-flow token. "Token: x" is an organisation token with scope x. Somebody else's work is answered as missing.
 
 | Call | Who | What it does |
 | --- | --- | --- |
-| `POST /api/device` | nobody | a computer asks to sign in, and is given a code for its person to approve |
-| `POST /api/device/token` | nobody | the computer asks whether its person approved, and is given a token the once they have |
-| `GET /api/me` | a person | who this token acts as |
-| `DELETE /api/me` | a person | sign this computer out: its token ends |
-| `GET /api/instances` | a person | the person's instances |
-| `POST /api/instances` | a person | start an instance of an engine, in a folder of its own |
-| `GET /api/engines` | a person | the engines this server can start |
-| `GET /api/instances/{id}` | a person | one instance |
-| `GET /api/instances/{id}/threads` | a person | an instance's threads |
-| `POST /api/instances/{id}/threads` | a person | open a thread |
-| `GET /api/instances/{id}/threads/{thread}` | a person | a thread: what was said and what came back |
-| `POST /api/instances/{id}/threads/{thread}/say` | a person | say something in a thread, which starts a turn; an Idempotency-Key makes a retry the same turn |
-| `GET /api/jobs/{id}` | a person | one turn: its steps, its reply and its state |
-| `GET /api/jobs/{id}/follow` | a person | follow one turn: each step, the reply as it grows, and the end (a stream) |
-| `POST /api/jobs/{id}/stop` | a person | stop a turn that is running |
-| `GET /api/events` | a person | every change to the person's turns, with catch-up from ?since (a stream) |
-| `GET /api/instances/{id}/files` | a person | the files in an instance's folder |
-| `GET /api/instances/{id}/file` | a person | one file's bytes |
-| `PUT /api/instances/{id}/file` | a person | write one file |
-| `DELETE /api/instances/{id}/file` | a person | remove one file |
-| `POST /api/instances/{id}/hashes` | a person | the hashes of the files named, so a client sends only what differs |
-| `POST /api/jobs` | token: submit | send a job directory to be run, as an organisation's program does |
-| `GET /api/spend` | token: spend | the spend report |
-| `GET /api/changes` | token: audit | the record of what changed on the platform |
-| `GET /api/protocol` | nobody | the version of this protocol and this table, as JSON |
+| `POST /api/device` | nobody | Ask to sign in. Returns a code for the person to approve |
+| `POST /api/device/token` | nobody | Ask whether the person approved. Returns a token once they have |
+| `GET /api/me` | a person | Who this token acts as |
+| `DELETE /api/me` | a person | Sign this computer out: its token ends |
+| `GET /api/instances` | a person | The person's instances |
+| `POST /api/instances` | a person | Start an instance of an engine, in a folder of its own |
+| `GET /api/engines` | a person | The engines this server can start |
+| `GET /api/instances/{id}` | a person | One instance |
+| `GET /api/instances/{id}/threads` | a person | An instance's threads |
+| `POST /api/instances/{id}/threads` | a person | Open a thread |
+| `GET /api/instances/{id}/threads/{thread}` | a person | A thread: what was said and what came back |
+| `POST /api/instances/{id}/threads/{thread}/say` | a person | Say something, which starts a turn. An Idempotency-Key makes a retry the same turn |
+| `GET /api/jobs/{id}` | a person | One turn: its steps, reply and state |
+| `GET /api/jobs/{id}/follow` | a person | Follow one turn (a stream) |
+| `POST /api/jobs/{id}/stop` | a person | Stop a turn that is running |
+| `GET /api/events` | a person | Every change to the person's turns, with catch-up from ?since (a stream) |
+| `GET /api/instances/{id}/files` | a person | The files in an instance's folder |
+| `GET /api/instances/{id}/file` | a person | One file's bytes |
+| `PUT /api/instances/{id}/file` | a person | Write one file |
+| `DELETE /api/instances/{id}/file` | a person | Remove one file |
+| `POST /api/instances/{id}/hashes` | a person | The hashes of the files named, so a client sends only what differs |
+| `POST /api/jobs` | token: submit | Send a job directory to be run |
+| `GET /api/spend` | token: spend | The spend report |
+| `GET /api/changes` | token: audit | The record of what changed on the platform |
+| `GET /api/protocol` | nobody | The protocol version and this table, as JSON |
 
 ## A turn
 
-A person's work is four steps: be signed in, have an instance, say something in one of its threads, and follow what happens. Saying
-something starts a **turn**, which is a job. Every request below is from a run of a gusto on this computer with a stand-in model.
+Saying something in a thread starts a turn, which is a job. These requests ran against a local gusto with a stand-in model, on an instance started with `POST /api/instances`.
 
 ```bash
-# sign in (the person approves the code at /device, then the second call answers the token)
-curl -X POST $GUSTO/api/device -d '{"label":"my laptop"}'
-# {"device_code":"...","expires_in":600,"interval":3,"user_code":"XKDR-ZBNM","verification_uri":"http://127.0.0.1:7140/device"}
-curl -X POST $GUSTO/api/device/token -d '{"device_code":"..."}'
-# {"access_token":"gusto_...","person":"dev","token_type":"bearer"}      before approval: {"error":"authorization_pending"}
-
-curl -H "Authorization: Bearer $TOKEN" $GUSTO/api/me
-# {"person":"dev","role":"runner"}
-
-# an instance of an engine, which comes with its first thread
-curl -H "Authorization: Bearer $TOKEN" -X POST $GUSTO/api/instances -d '{"harness":"pi","model":"local/fake-small"}'
-# {"instance":{"id":"20261013-0924-pi","harness":"pi","model":"local/fake-small","who":"dev","startedAt":1791883217},"thread":{"id":"1",...}}
-
-# say something: the turn is queued and its id is given back
 curl -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: say-1" -X POST \
   $GUSTO/api/instances/20261013-0924-pi/threads/1/say -d '{"said":"What is 17 times 23? Answer with just the number."}'
 # {"already":false,"job":"20261013-0924-what-is-17-times-23-2","state":"queued"}
-# the same Idempotency-Key again answers {"already":true,...} and starts nothing
+# Repeating the Idempotency-Key answers {"already":true,...} and starts nothing.
 
-# follow it
 curl -N -H "Authorization: Bearer $TOKEN" $GUSTO/api/jobs/20261013-0924-what-is-17-times-23-2/follow
-# event: ended
-# data: {"job":{"id":"...","state":"passed",...},"steps":[],"reply":"391","changed":[]}
+# event: ended, data: {"job":{"id":"...","state":"passed",...},"steps":[],"reply":"391","changed":[]}
 ```
 
 ## The streams
 
-Two calls are streams of server-sent events (`text/event-stream`), which a client reads for as long as it likes.
+Two calls are server-sent events (`text/event-stream`).
+- `/api/jobs/{id}/follow` sends `step` for each thing the agent does, `reply` with the text so far, and `ended` with the whole turn. A finished turn is told at once.
+- `/api/events` follows all the person's turns. A connection first hears the state of every turn that has not ended and of every turn that ended after `?since=<unix seconds>`, then `ready`, then each change. A comment line is the keep-alive.
 
-- **`/api/jobs/{id}/follow`** follows one turn. It sends `step` for each thing the agent does, `reply` with the text so far whenever it changes, and `ended`
-  with the whole turn when it is over. A turn that is already over is told at once, so following one is always safe.
-- **`/api/events`** follows all of the person's turns, so a tray or an editor learns when any of them starts, waits or ends. A connection first hears the
-  state of every turn that has not ended, and of every turn that ended after `?since=<unix seconds>`, and then `ready`; after that it hears each change, with a
-  comment line as a keep-alive. A client that was away passes the time it last heard from the server, and so catches up.
-
-`POST /api/jobs/{id}/stop` stops a turn that is running, and answers whether it was.
-
-## Next for the protocol
-
-- A stream cannot resume at an exact event: `/api/events` catches up by time, not by an event's id, and `follow` replays a turn from its start.
-- The server finds changes by looking at the job every 300 milliseconds, so a stream is not pushed the moment something happens.
-- A turn whose model call failed will say so: today it can end `passed` with an empty `reply`, because the engine itself exited cleanly (getlatentic/planning#676).
-- The pages are HTML, and the desktop app is a window onto them. They are not a client of this protocol.
+## Known gaps
+- A stream cannot resume at an event id. `/api/events` catches up by time, and `follow` replays a turn from its start.
+- A turn whose model call failed can end `passed` with an empty `reply` (getlatentic/planning#676).
