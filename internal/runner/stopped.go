@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// StopFile is where a person who stopped a job says so, in the job's directory beside its spec. The server writes it before it
+// StopFile is where a person who stopped a task says so, in the task's directory beside its spec. The server writes it before it
 // tells the run to stop, and the run reads it when it ends, so the record can say who. A run that was stopped by a signal alone,
 // as a container is when its server shuts down, finds no file and says so.
 func StopFile(dir job.Dir) string { return filepath.Join(dir.Path(), "stop.json") }
@@ -19,7 +19,7 @@ type stopNote struct {
 	At int64  `json:"at"`
 }
 
-// NoteStop writes who stopped the job and when.
+// NoteStop writes who stopped the task and when.
 func NoteStop(dir job.Dir, by string, at int64) error {
 	text, err := json.Marshal(stopNote{By: by, At: at})
 	if err != nil {

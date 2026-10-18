@@ -11,7 +11,7 @@ const (
 	// Redacted is something the export's policy removed. The redactions list
 	// says which rule removed it and from which file.
 	Redacted = "redacted"
-	// None is something that was recorded as not happening, such as a gate for
+	// None is something that was recorded as not happening, such as a check for
 	// a turn in a conversation, which claims nothing passed.
 	None = "none"
 	// NotMeasured is a sum the proxy could not make, because an answer it

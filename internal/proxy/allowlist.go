@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Allowlist is the hosts a job may reach besides its model. It is the
+// Allowlist is the hosts a task may reach besides its model. It is the
 // operator's configuration, and an empty one reaches nothing: a host is refused
 // unless it is named.
 type Allowlist struct {

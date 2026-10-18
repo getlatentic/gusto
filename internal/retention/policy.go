@@ -1,9 +1,9 @@
 // Package retention removes finished work on a schedule an operator sets.
 //
-// A finished job keeps two things for different lengths of time: its workspace,
-// which is the bulk of the disk and what shipping and replay need, and its
+// A finished task keeps two things for different lengths of time: its workspace,
+// which is the bulk of the disk and what shipping and rerun need, and its
 // record, which is the signed evidence and is small. The workspace goes first.
-// A job on hold, or asked for by a person on hold, is kept whole.
+// A task on hold, or asked for by a person on hold, is kept whole.
 package retention
 
 import (
@@ -20,10 +20,10 @@ import (
 // PolicyFile is where a retention directory keeps its policy.
 const PolicyFile = "policy.json"
 
-// States a job can finish in, and so the states a policy is set for.
+// States a task can finish in, and so the states a policy is set for.
 var States = []string{string(jobs.Passed), string(jobs.Failed), string(jobs.Interrupted)}
 
-// Policy is how many days after a job ends it loses its workspace and then its
+// Policy is how many days after a task ends it loses its workspace and then its
 // record, by the state it ended in. A state with no entry, or zero, is kept.
 type Policy struct {
 	WorkspaceDays map[string]int `json:"workspaceDays,omitempty"`
@@ -45,13 +45,13 @@ func (p Policy) Any() bool {
 	return false
 }
 
-// Check refuses a policy that names a state a job cannot end in, a negative
+// Check refuses a policy that names a state a task cannot end in, a negative
 // number, or a record that would go before its workspace.
 func (p Policy) Check() error {
 	for name, set := range map[string]map[string]int{"workspaceDays": p.WorkspaceDays, "recordDays": p.RecordDays} {
 		for state, days := range set {
 			if !contains(States, state) {
-				return fmt.Errorf("%s names %q, which is not a state a job ends in: %s", name, state, strings.Join(States, ", "))
+				return fmt.Errorf("%s names %q, which is not a state a task ends in: %s", name, state, strings.Join(States, ", "))
 			}
 			if days < 0 {
 				return fmt.Errorf("%s for %s is %d: days cannot be negative", name, state, days)
@@ -60,7 +60,7 @@ func (p Policy) Check() error {
 	}
 	for state, records := range p.RecordDays {
 		if workspace := p.WorkspaceDays[state]; records > 0 && workspace > records {
-			return fmt.Errorf("a %s job's workspace is kept %d days and its record %d: the record cannot go first", state, workspace, records)
+			return fmt.Errorf("a %s task's workspace is kept %d days and its record %d: the record cannot go first", state, workspace, records)
 		}
 	}
 	return nil

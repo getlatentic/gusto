@@ -38,8 +38,7 @@ import (
 
 func serve(args []string) int {
 	if len(args) != 0 {
-		usage()
-		return 2
+		return usageError("serve", "takes no arguments")
 	}
 	password := os.Getenv("GUSTO_PASSWORD")
 	if password == "" {
@@ -61,7 +60,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	// An organisation's front door writes what it may run, and this server reads it
+	// An organisation's gusto cloud writes what it may run, and this server reads it
 	// as it goes. One that cannot read it does not start.
 	if path := os.Getenv("GUSTO_QUOTA"); path != "" {
 		limits := quota.Open(path)
@@ -155,7 +154,7 @@ func serve(args []string) int {
 		})
 	}
 	if runsHere() {
-		// A person installs a harness on their own computer while the server runs, and looking at the PATH costs nothing.
+		// A person installs an agent on their own computer while the server runs, and looking at the PATH costs nothing.
 		pages.UseLiveCatalog(func() []catalog.Entry {
 			if local {
 				adoptRecordedPath()
@@ -204,7 +203,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	// Integrations are plugins an administrator imported. A setup names them, and a job gets the version that is on.
+	// Integrations are plugins an administrator imported. A setup names them, and a task gets the version that is on.
 	integrations, err := integration.Open(setting("GUSTO_INTEGRATIONS", "integrations"))
 	if err != nil {
 		return fail(err)
@@ -228,14 +227,14 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseBoard(lineups)
-	// The job page names a signer only as this keyring checked it, the way
-	// verify, show, ship and export do.
+	// The task page names a signer only as this keyring checked it, the way
+	// verify, show, pr open and export do.
 	keyring, err := signing.ConfiguredKeyring()
 	if err != nil {
 		return fail(err)
 	}
 	pages.UseKeyring(keyring)
-	// What changes on the platform is recorded beside the jobs, in a file only
+	// What changes on the platform is recorded beside the tasks, in a file only
 	// this server appends to.
 	changes, err := openChanges(keyring)
 	if err != nil {
@@ -280,7 +279,7 @@ func serve(args []string) int {
 		Addr:              address,
 		Handler:           accesslog.Keep(accesslog.Stderr())(pages.Handler()),
 		ReadHeaderTimeout: 10 * time.Second,
-		// A job's stream stays open for as long as the job runs, so there is no
+		// A task's stream stays open for as long as the task runs, so there is no
 		// write timeout to set here; nginx holds the same view.
 	}
 	stopping := make(chan os.Signal, 1)
@@ -291,15 +290,15 @@ func serve(args []string) int {
 		defer cancel()
 		_ = server.Shutdown(context)
 	}()
-	fmt.Printf("gusto is listening on %s, with %d job(s) at a time\n", address, number("GUSTO_JOB_CONCURRENCY", 1))
+	fmt.Printf("gusto is listening on %s, with %d task(s) at a time\n", address, number("GUSTO_JOB_CONCURRENCY", 1))
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fail(err)
 	}
 	return 0
 }
 
-// chosenWork decides where a job runs. A container is the product; running a
-// job in this process is for a laptop with no image built.
+// chosenWork decides where a task runs. A container is the product; running a
+// task in this process is for a laptop with no image built.
 func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.StoppableWork, error) {
 	switch os.Getenv("GUSTO_SANDBOX") {
 	case "here", "process":
@@ -326,7 +325,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		}
 		defer way.Done(dir)
 		exit, err := way.RunContext(ctx, dir, spec, staying(instances, spec)...)
-		// A turn learns what the harness calls the conversation, and the next
+		// A turn learns what the agent calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
 		if manifest, read := evidence.Read(dir); read == nil {
 			learnConversation(instances, spec, manifest.Session)
@@ -335,7 +334,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 	}, nil
 }
 
-// inSandbox runs each job's harness in an OpenShell sandbox. The checkout
+// inSandbox runs each task's agent in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
 func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.StoppableWork {
 	return func(ctx context.Context, dir job.Dir) (int, error) {
@@ -386,11 +385,11 @@ func number(name string, fallback int) int {
 	return value
 }
 
-// pointAt makes a job's workspace a link to the instance's.
+// pointAt makes a task's workspace a link to the instance's.
 //
-// The job directory is made before it is queued, which leaves a real, empty
+// The task directory is made before it is queued, which leaves a real, empty
 // directory where the workspace goes; a link cannot be put over one. Remove
-// refuses a directory with anything in it, so a job that has its own checkout
+// refuses a directory with anything in it, so a task that has its own checkout
 // is never quietly replaced.
 func pointAt(workspace string, dir job.Dir) error {
 	if err := dir.Make(); err != nil {
@@ -408,8 +407,8 @@ func pointAt(workspace string, dir job.Dir) error {
 }
 
 // staying is what a turn needs that outlives its container: the conversation's
-// working directory, and the memory the harness keeps of the conversation.
-// A harness stores that memory in its own data directory rather than beside the
+// working directory, and the memory the agent keeps of the conversation.
+// An agent stores that memory in its own data directory rather than beside the
 // files it edits, which is why there are two.
 func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 	if spec.Session == "" {
@@ -421,8 +420,8 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 	}
 }
 
-// surveyed is the harnesses this deployment can run. In a container that is asked
-// of the runtime, in a sandbox on a gateway it is asked of a sandbox, and a job
+// surveyed is the agents this deployment can run. In a container that is asked
+// of the runtime, in a sandbox on a gateway it is asked of a sandbox, and a task
 // run in this process finds its program on this computer's PATH.
 func surveyed(names []string) []catalog.Entry {
 	switch os.Getenv("GUSTO_SANDBOX") {
@@ -436,7 +435,7 @@ func surveyed(names []string) []catalog.Entry {
 	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
 }
 
-// ranInSandbox runs a job in the computer of the person who asked for it, and one asked
+// ranInSandbox runs a task in the computer of the person who asked for it, and one asked
 // for by a script or a token, which is nobody's, in a sandbox of its own.
 func ranInSandbox(ctx context.Context, way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
 	if person := personWhoAsked(index, dir); registry != nil && person != "" {

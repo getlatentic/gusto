@@ -23,7 +23,7 @@ import (
 )
 
 // KeyEnv names the private key a runner signs with: a file on the machine that
-// runs gusto, never in a job directory or a container, or a KMS key written
+// runs gusto, never in a task directory or a container, or a KMS key written
 // awskms://<key>.
 const KeyEnv = "GUSTO_SIGNING_KEY"
 

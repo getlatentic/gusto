@@ -274,7 +274,7 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 	if deleted, _ := os.ReadFile(filepath.Join(root, "deleted.log")); !strings.Contains(string(deleted), openshell.Name("job-one")) {
 		t.Errorf("the sandbox was left behind: %q", deleted)
 	}
-	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "refused this job before the harness started") {
+	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "refused this task before the agent started") {
 		t.Errorf("the refusal is not where a person looks: %s", said)
 	}
 }

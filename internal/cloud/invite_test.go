@@ -214,8 +214,8 @@ func TestTheOrganisationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testi
 	made, _, _ := registry.Ensure("bob@acme.com", "local")
 	registry.Change(made.ID, func(c *computer.Computer) { c.State = computer.Running })
 	_, page := ada.get("/org")
-	if !strings.Contains(page, "runner, computer running") || !strings.Contains(page, "1 of 4") {
-		t.Errorf("Bob's computer and the count of them:\n%s", page)
+	if !strings.Contains(page, "runner, workspace running") || !strings.Contains(page, "1 of 4") {
+		t.Errorf("Bob's workspace and the count of them:\n%s", page)
 	}
 	if strings.Contains(page, "admin, computer") {
 		t.Errorf("Ada has none:\n%s", page)

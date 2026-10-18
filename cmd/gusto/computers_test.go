@@ -180,12 +180,12 @@ func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *te
 	}
 }
 
-func TestAPersonPastTheOrganisationsComputersIsRefusedInTheRecordOfTheirJob(t *testing.T) {
+func TestAPersonPastTheOrganisationsComputersIsRefusedInTheRecordOfTheirTask(t *testing.T) {
 	work, index, registry, _, root := organisationServer(t, quota.Quota{Computers: 1, Jobs: 100, Note: "Ask the admin for more."})
 	jobBy(t, work, index, "ada@acme.com", "the first")
 	carol := jobBy(t, work, index, "carol@acme.com", "the second")
 	text := transcriptOf(carol)
-	if !strings.Contains(text, "refused this job before the harness started") || !strings.Contains(text, "may have 1 computer and has 1") || !strings.Contains(text, "Ask the admin for more.") {
+	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 workspace and has 1") || !strings.Contains(text, "Ask the admin for more.") {
 		t.Errorf("%q", text)
 	}
 	if _, err := registry.Of("carol@acme.com"); err == nil {

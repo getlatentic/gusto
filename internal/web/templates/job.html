@@ -99,11 +99,11 @@
     <p class="verdict"><span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>
       <code>{{$.Gate.Command}}</code> <span class="muted">exited {{.Code}}</span></p>
     {{else}}
-    <p class="muted">The run stopped before its gate answered.</p>
+    <p class="muted">The run stopped before its check answered.</p>
     {{end}}
     {{with .Log}}
-    {{if $.Gate.Explains}}<h3>What the gate said</h3><pre class="log">{{.Text}}</pre>{{template "cut" .}}
-    {{else}}<details><summary>What the gate printed ({{.Whole}})</summary><pre class="log">{{.Text}}</pre>{{template "cut" .}}</details>{{end}}
+    {{if $.Gate.Explains}}<h3>What the check said</h3><pre class="log">{{.Text}}</pre>{{template "cut" .}}
+    {{else}}<details><summary>What the check printed ({{.Whole}})</summary><pre class="log">{{.Text}}</pre>{{template "cut" .}}</details>{{end}}
     {{end}}
   </section>
   {{end}}

@@ -46,7 +46,7 @@ second.
 instance with `GUSTO_SANDBOX=openshell`:
 
 ```bash
-./e2e.sh           # one job: a harness in a sandbox asks the model through haas's proxy, and tries a host nobody allowed
+./e2e.sh           # one task: an agent in a sandbox asks the model through haas's proxy, and tries a host nobody allowed
 ./e2e-compare.sh   # one comparison from the pages' form, in sandboxes made from a Node root file system
 ./e2e-integrations.sh   # an integration imported in the console and used by Claude Code and Codex from sandboxes, through the gateway
 ```
@@ -64,7 +64,7 @@ idler Fake | Tests fail | 9 s
 Each record was signed, and its `sandbox-events.log` and `sandbox-policy.json`
 were among the files the manifest hashes.
 
-## A real harness on a real model
+## A real agent on a real model
 
 `e2e-real.sh` runs opencode, then a comparison of opencode and pi, from the
 runner image. Without a model it uses one that only answers "pong". With a
@@ -83,10 +83,10 @@ The standard tier of Parameter Store and the AWS-managed key cost nothing.
 The parameter outlives `./down.sh`. Delete it with
 `aws ssm delete-parameter --name /haas/poc/model-key`.
 
-## The box's matrix
+## The box's benchmark
 
 `e2e-matrix.sh` runs `docs/matrix/box.json` on this backend: thirteen pairs across
-six harnesses, each started in a sandbox made from an image that carries them all.
+six agents, each started in a sandbox made from an image that carries them all.
 `image.sh` builds that image on the instance. The instance reads both keys from
 Parameter Store, so store DeepSeek's too:
 
@@ -97,13 +97,13 @@ python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth
 AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
 ```
 
-## Two harnesses in one sandbox, a shared app, and many sandboxes
+## Two agents in one sandbox, a shared app, and many sandboxes
 
 ```bash
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
 ./demo-up.sh           # a host that serves the public cloud at https://$DEMO_NAME (see below)
 ./demo-down.sh         # its DNS records, then the host
-./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organisation
+./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a workspace each, a second organisation
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
 
@@ -123,15 +123,15 @@ ansible/                                         the role: pinned, checksummed b
 probe/inside.sh                                  runs inside a sandbox
 probe/on-host.sh                                 runs on the instance and starts the sandboxes
 probe/expected.txt                               what the first run printed
-e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with jobs in sandboxes
-e2e-matrix.sh, image.sh                          the box's matrix, and the image it runs from
+e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with tasks in sandboxes
+e2e-matrix.sh, image.sh                          the box's benchmark, and the image it runs from
 put-key.sh, put-cloudflare.sh                    store a model's key, and the two Cloudflare tokens, in Parameter Store
 demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
 demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS, the tests of the boot script and the lease reaper, the role
 demo-sweep.sh                                    terminates a demo host that has been up longer than any may be
-e2e-cloud.sh, e2e/cloud/                         the front door driven through its pages, on a real model
-e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two harnesses in one sandbox, a shared app, many sandboxes
-harnesses.sh, e2e/credentials.sh                 the harness list and the proxy's credentials, shared by the runs
+e2e-cloud.sh, e2e/cloud/                         gusto cloud driven through its pages, on a real model
+e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two agents in one sandbox, a shared app, many sandboxes
+harnesses.sh, e2e/credentials.sh                 the agent list and the proxy's credentials, shared by the runs
 ```
 
 The binaries are OpenShell 0.1.2. Their checksums are pinned in
@@ -153,7 +153,7 @@ Let's Encrypt is free, and the store bucket costs cents.
 | --- | --- |
 | Name | An A record for `<name>` and one for `*.<name>`, set by `haas-dns` when the host starts, 60 s TTL. |
 | Certificate | Let's Encrypt, for `<name>` and `*.<name>`, by a DNS challenge through Cloudflare. It is kept in the store bucket and reused until it has under 30 days left. |
-| Web server | nginx on the host passes to the front door on `127.0.0.1:8050`, and answers no name that is not this one. |
+| Web server | nginx on the host passes to gusto cloud on `127.0.0.1:8050`, and answers no name that is not this one. |
 | Mail | Cloudflare Email Sending, `GUSTO_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
 | Image | Built on the first run, ten minutes, and kept in the store bucket. |
 

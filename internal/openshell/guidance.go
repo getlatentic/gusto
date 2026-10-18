@@ -27,5 +27,5 @@ description: How this sandbox's network works and how a web app you build is sha
   Python's standard libraries, and write the page's CSS and scripts into files of your own.
 `
 
-// equipGuidance is the shell that puts the guidance where the harness finds skills.
+// equipGuidance is the shell that puts the guidance where the agent finds skills.
 const equipGuidance = `mkdir -p "$1/gusto-sandbox" && printf '%s' "$2" > "$1/gusto-sandbox/SKILL.md"`

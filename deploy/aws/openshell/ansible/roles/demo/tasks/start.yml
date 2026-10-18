@@ -14,7 +14,7 @@
     daemon_reload: true
   when: not demo_live | bool
 
-- name: The web server and the front door are running
+- name: The web server and gusto cloud are running
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: started
@@ -31,7 +31,7 @@
   when: demo_role != 'cell'
 
 # A host an image is made from is not started as a cell, which would register it and give it organisations.
-- name: The cell is running
+- name: The host is running
   ansible.builtin.systemd:
     name: haas-cell
     state: started

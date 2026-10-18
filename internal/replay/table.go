@@ -8,11 +8,11 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 )
 
-// Print writes the sweep's one summary: a line a job, then the totals, then
-// why each job that could not be replayed could not.
+// Print writes the sweep's one summary: a line a task, then the totals, then
+// why each task that could not be rerun could not.
 func Print(w io.Writer, rows []Row) {
 	table := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(table, "job\tharness\tbefore\tafter\tharness exit\tchange\treplay")
+	fmt.Fprintln(table, "task\tagent\tbefore\tafter\tagent exit\tchange\trerun")
 	for _, row := range rows {
 		fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			row.Old, harnesses(row), verdict(row.Before), verdict(row.After),
@@ -20,7 +20,7 @@ func Print(w io.Writer, rows []Row) {
 	}
 	table.Flush()
 	counts := tally(rows)
-	fmt.Fprintf(w, "\n%d replayed: %d worse, %d better, %d same, %d could not run\n",
+	fmt.Fprintf(w, "\n%d rerun: %d worse, %d better, %d same, %d could not run\n",
 		len(rows), counts[Worse], counts[Better], counts[Same], counts[Unknown])
 	for _, row := range rows {
 		if row.Err != nil {

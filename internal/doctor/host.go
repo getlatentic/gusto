@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-// JobsDirectory is where gusto serve keeps jobs, and so where a job's directory
+// JobsDirectory is where gusto serve keeps tasks, and so where a task's directory
 // is mounted from.
 func JobsDirectory() string {
 	if dir := os.Getenv("GUSTO_JOBS"); dir != "" {
@@ -30,7 +30,7 @@ func jobsWritable(machine Machine) Verdict {
 	info, err := os.Stat(dir)
 	switch {
 	case err != nil:
-		return fail(dir+" does not exist", "create it, or set GUSTO_JOBS to the directory jobs should live in")
+		return fail(dir+" does not exist", "create it, or set GUSTO_JOBS to the directory tasks should live in")
 	case !info.IsDir():
 		return fail(dir+" is not a directory", "set GUSTO_JOBS to a directory")
 	}

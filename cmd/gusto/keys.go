@@ -10,22 +10,32 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// checkKeys says which key stands behind every signed record in the jobs
+type keysFlags struct{ tasks string }
+
+func declareKeys(set *flag.FlagSet) *keysFlags {
+	f := &keysFlags{}
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` of tasks to read (default $GUSTO_JOBS, else jobs)")
+	return f
+}
+
+// checkKeys says which key stands behind every signed record in the tasks
 // directory, and which records no key in the keyring can vouch for. It is what
 // to run before a public key is removed from a keyring, and after one is
 // restored. The exit code is 1 when any record cannot be attributed.
 func checkKeys(args []string) int {
-	flags := flag.NewFlagSet("keys", flag.ContinueOnError)
-	jobs := flags.String("jobs", setting("GUSTO_JOBS", "jobs"), "the directory of jobs to read")
-	if err := flags.Parse(args); err != nil || flags.NArg() > 0 {
-		usage()
-		return 2
+	set := newSet("keys")
+	f := declareKeys(set)
+	if code, ok := parseFlags("keys", set, args); !ok {
+		return code
+	}
+	if set.NArg() > 0 {
+		return usageError("keys", "takes no arguments")
 	}
 	keyring, err := signing.ConfiguredKeyring()
 	if err != nil {
 		return fail(err)
 	}
-	found, err := evidence.SignersUnder(*jobs, keyring)
+	found, err := evidence.SignersUnder(orSetting(f.tasks, "GUSTO_JOBS", "jobs"), keyring)
 	if err != nil {
 		return fail(err)
 	}

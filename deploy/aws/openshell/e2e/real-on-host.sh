@@ -36,7 +36,7 @@ for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&
 echo "== engines the image offers"; grep -E "opencode|not offered" "$E/rserve.log" | head -4 | cut -c1-200
 
 "$E/haas" new "$E/rjob" -repo "$E/rsample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
-  -harness opencode -model "$GUSTO_MODEL_NAME/$GUSTO_MODEL_ID" -- node --test >/dev/null
+  -agent opencode -model "$GUSTO_MODEL_NAME/$GUSTO_MODEL_ID" -- node --test >/dev/null
 id=$(GUSTO_SERVER=http://127.0.0.1:8040 GUSTO_PASSWORD=e2e "$E/haas" submit "$E/rjob" | head -n 1)
 echo "submitted $id"
 for _ in $(seq 1 360); do [ -f "$E/rdata/jobs/$id/out/manifest.json" ] && break; grep -q '"state":"failed"' "$E/rdata/jobs/$id/state.json" 2>/dev/null && break; sleep 1; done
@@ -45,7 +45,7 @@ J=$E/rdata/jobs/$id
 echo "== state";        tr -d '\n ' < "$J/state.json" | cut -c1-260; echo
 echo "== transcript";   head -c 1500 "$J/out/transcript.log"; echo
 echo "== stderr";       head -c 800 "$J/out/stderr.log"; echo
-echo "== gate";         tr -d '\n ' < "$J/out/gates.json" 2>/dev/null; echo
+echo "== check";         tr -d '\n ' < "$J/out/gates.json" 2>/dev/null; echo
 echo "== diff";         head -30 "$J/out/diff.patch" 2>/dev/null
 echo "== proxy record"; cut -c1-220 "$J/out/proxy.jsonl" 2>/dev/null | head -8
 echo "== guard: network"; grep -E "NET:OPEN|HTTP:|FINDING|DENIED|REFUSE" "$J/out/sandbox-events.log" 2>/dev/null | cut -c1-250 | head -30
@@ -72,7 +72,7 @@ for row in re.findall(r"<tr>(.*?)</tr>",t,re.S)[1:]:
 '
 for J in "$E"/rdata/jobs/*/; do
   [ -f "$J/out/manifest.json" ] || continue
-  echo "-- $(basename "$J"): harness $(grep -o '"harness":"[a-z]*"' "$J/state.json") $(grep -o '"state":"[a-z]*"' "$J/state.json"); $(GUSTO_KEYRING="$E/keys" "$E/haas" verify "$J" 2>&1 | head -1); model calls: $(grep -c . "$J/out/proxy.jsonl" 2>/dev/null); denied: $(grep -c "DENIED" "$J/out/sandbox-events.log")"
+  echo "-- $(basename "$J"): agent $(grep -o '"harness":"[a-z]*"' "$J/state.json") $(grep -o '"state":"[a-z]*"' "$J/state.json"); $(GUSTO_KEYRING="$E/keys" "$E/haas" verify "$J" 2>&1 | head -1); model calls: $(grep -c . "$J/out/proxy.jsonl" 2>/dev/null); denied: $(grep -c "DENIED" "$J/out/sandbox-events.log")"
 done
 echo "== serve log errors"; grep -E "ERROR" "$E/rserve.log" | cut -c1-300 | tail -5
 echo "== sandboxes left"; openshell sandbox list 2>&1 | head -3

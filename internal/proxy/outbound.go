@@ -14,7 +14,7 @@ import (
 // outbound answers a container using the proxy as an ordinary forward proxy,
 // through HTTPS_PROXY and HTTP_PROXY: a CONNECT for HTTPS, or a request with a
 // whole URL for plain HTTP. Nothing leaves unless the allowlist names the host,
-// and every request, sent or refused, is a line in the job's proxy record.
+// and every request, sent or refused, is a line in the task's proxy record.
 func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
 	ticket, known := p.tokens.Job(proxyToken(r))
 	if !known {
@@ -28,7 +28,7 @@ func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
 	if !p.allowed.Permits(address) {
 		call.Status, call.Denied = http.StatusForbidden, "not on the allowlist"
 		p.note(ticket.Job, call)
-		http.Error(w, "gusto refused "+address+": it is not on this job's allowlist", http.StatusForbidden)
+		http.Error(w, "gusto refused "+address+": it is not on this task's allowlist", http.StatusForbidden)
 		return
 	}
 	if r.Method == http.MethodConnect {
@@ -75,7 +75,7 @@ func destination(r *http.Request) string {
 	return net.JoinHostPort(host, "80")
 }
 
-// proxyToken is the job's token as a forward-proxy client presents it: the
+// proxyToken is the task's token as a forward-proxy client presents it: the
 // password in a proxy URL such as http://gusto:<token>@127.0.0.1:8041, which a
 // client sends as Proxy-Authorization.
 func proxyToken(r *http.Request) string {
@@ -92,7 +92,7 @@ func proxyToken(r *http.Request) string {
 	return strings.TrimSpace(bearer)
 }
 
-// outboundTransport carries a job's plain HTTP requests, connecting through dial
+// outboundTransport carries a task's plain HTTP requests, connecting through dial
 // so the same rules hold as for a tunnel, and following no redirect: the
 // container asks for each address itself.
 func (p *Proxy) outboundTransport() *http.Transport {

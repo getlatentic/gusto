@@ -42,7 +42,7 @@ func ended(state string) bool {
 	return state == "passed" || state == "failed" || state == "interrupted"
 }
 
-// PageOf is the address of the page that shows a turn: its conversation, or the job when it belongs to none.
+// PageOf is the address of the page that shows a turn: its conversation, or the task when it belongs to none.
 func PageOf(server string, turn helper.Turn) string {
 	server = strings.TrimRight(server, "/")
 	if turn.Instance != "" && turn.Thread != "" {

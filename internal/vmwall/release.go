@@ -1,4 +1,4 @@
-// Package vmwall puts OpenShell on a person's computer so that each job runs in a virtual machine: it downloads the programs and
+// Package vmwall puts OpenShell on a person's computer so that each task runs in a virtual machine: it downloads the programs and
 // checks them, signs the driver where the system requires it, makes the certificates and the gateway's configuration, and keeps
 // the gateway running. It asks nothing of the person but one agreement to the download, and needs no password.
 package vmwall
@@ -53,7 +53,7 @@ var programs = map[Platform][]Program{
 	},
 }
 
-// RootfsAsset is the file of a gusto release that holds the root file system a job's virtual machine starts from: the runner image,
+// RootfsAsset is the file of a gusto release that holds the root file system a task's virtual machine starts from: the runner image,
 // flattened, for the processor the machine has. A file with the same name and .sha256 added holds its checksum.
 func RootfsAsset(goarch string) string { return "gusto-rootfs-" + goarch + ".tar.gz" }
 

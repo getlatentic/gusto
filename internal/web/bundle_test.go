@@ -300,7 +300,7 @@ func TestAFailedJobShowsWhatTheGateSaid(t *testing.T) {
 	if !strings.Contains(page, refusal) {
 		t.Error("a failed job must show the gate's output inline, because that is the useful part")
 	}
-	if !strings.Contains(page, "What the gate said") {
+	if !strings.Contains(page, "What the check said") {
 		t.Error("the gate's output needs a heading a reader can find")
 	}
 }
@@ -309,7 +309,7 @@ func TestAPassingJobDoesNotRepeatTheGateOutput(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, _ := site.ranJob(t, wroteTheAnswer)
-	if page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String(); strings.Contains(page, "What the gate said") {
+	if page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String(); strings.Contains(page, "What the check said") {
 		t.Error("a gate that passed has nothing to explain")
 	}
 }

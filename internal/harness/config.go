@@ -13,8 +13,8 @@ import (
 //go:embed config
 var config embed.FS
 
-// PlaceConfig writes each harness's own configuration to home's .config, where an adapter written for a container's /root
-// finds it, for a harness that runs outside the image.
+// PlaceConfig writes each agent's own configuration to home's .config, where an adapter written for a container's /root
+// finds it, for an agent that runs outside the image.
 func PlaceConfig(home string) error {
 	files, err := fs.Sub(config, "config")
 	if err != nil {

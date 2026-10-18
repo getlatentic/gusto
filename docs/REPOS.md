@@ -1,16 +1,16 @@
 # Private repositories
 
-A job for a private repository gets a token for that one repository. The token comes from a GitHub App, is revoked when the work is done, and never enters the box the agent runs in. The only long-lived secret is the App's private key. It sits in the vault and in a file only the server reads.
+A task for a private repository gets a token for that one repository. The token comes from a GitHub App, is revoked when the work is done, and never enters the box the agent runs in. The only long-lived secret is the App's private key. It sits in the vault and in a file only the server reads.
 
 ## Make the App
 
 1. On GitHub, open Settings, Developer settings, GitHub Apps, New GitHub App.
 2. Give it these repository permissions and no others:
-   - Contents: read and write. A clone needs only read. `gusto ship` needs write.
-   - Pull requests: read and write. `gusto ship` opens one.
+   - Contents: read and write. A clone needs only read. `gusto pr open` needs write.
+   - Pull requests: read and write. `gusto pr open` opens one.
    - Metadata: read.
 3. Turn the webhook off.
-4. Make the App private to your organisation. Install it on the repositories jobs may use. Choose selected repositories, not all.
+4. Make the App private to your organisation. Install it on the repositories tasks may use. Choose selected repositories, not all.
 5. Note the App id, and generate a private key. GitHub gives a `.pem` file.
 
 ## Give it to gusto
@@ -23,10 +23,10 @@ A job for a private repository gets a token for that one repository. The token c
 
 Set both of the first two or neither. The server refuses to start with one. With the playbook, put the key in the vault as `github_app_private_key` and set `github_app_id` in `group_vars`. The playbook writes the key at mode 0600 where only the server reads it.
 
-## What happens to a job
+## What happens to a task
 
-1. A job names a repository in any form git takes: `https://github.com/acme/api`, `git@github.com:acme/api.git` or `ssh://git@github.com/acme/api.git`.
-2. The server asks GitHub whether the App is installed on `acme/api`. When it is not, the job is refused before anything is cloned. The record says `the GitHub App is not installed on acme/api` and names what to ask an owner for.
+1. A task names a repository in any form git takes: `https://github.com/acme/api`, `git@github.com:acme/api.git` or `ssh://git@github.com/acme/api.git`.
+2. The server asks GitHub whether the App is installed on `acme/api`. When it is not, the task is refused before anything is cloned. The record says `the GitHub App is not installed on acme/api` and names what to ask an owner for.
 3. The server mints a token for `acme/api` alone, with `contents: read`.
 4. git clones over HTTPS, including an address written for ssh. The token goes to git in its environment, for the forge's address only, never in an argument or a file.
 5. The token is revoked when git finishes. The repository keeps the plain address and no credential in its configuration.
@@ -36,11 +36,11 @@ A repository that is not on the forge, and a local path, is reached as git reach
 
 ## Opening a pull request
 
-`gusto ship` mints a second token for the push target, with `contents: write` and `pull_requests: write`, for that repository alone. It revokes the token when shipping is done. Without an App it uses `GUSTO_GITHUB_TOKEN`.
+`gusto pr open` mints a second token for the push target, with `contents: write` and `pull_requests: write`, for that repository alone. It revokes the token when shipping is done. Without an App it uses `GUSTO_GITHUB_TOKEN`.
 
 ## What was tested
 
-- Unit tests run against a fake GitHub API and a real `git http-backend` that answers only a token the fake minted and has not revoked. They show that the token names one repository, a clone uses it, it is revoked after, and neither the job directory nor the checkout's `.git/config` holds it.
+- Unit tests run against a fake GitHub API and a real `git http-backend` that answers only a token the fake minted and has not revoked. They show that the token names one repository, a clone uses it, it is revoked after, and neither the task directory nor the checkout's `.git/config` holds it.
 - The live test runs against github.com with the App `getlatentic-gusto` installed on one repository. It clones the repository, checks that a repository without the App is refused by name, and checks that a revoked token is refused. It passed five runs in a row.
 - A revoked token was refused over the API after 100 to 200 ms and over git after 400 to 700 ms. One earlier measurement saw git take 5.6 s, so a revoked token can clone for a few seconds. Its own expiry is one hour.
 

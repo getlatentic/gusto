@@ -62,7 +62,7 @@ func (s *Server) EndDueDemos() {
 	}
 }
 
-// endDemo removes a demo's computers, then its server, then the organisation. A demo that cannot be ended is tried
+// endDemo removes a demo's workspaces, then its server, then the organisation. A demo that cannot be ended is tried
 // again at the next sweep, which it is not until this has finished.
 func (s *Server) endDemo(slug, reason string) {
 	defer func() {
@@ -86,11 +86,11 @@ func (s *Server) endDemo(slug, reason string) {
 func (s *Server) removeComputers(slug string) {
 	registry, err := s.Store.Computers(slug)
 	if err != nil {
-		slog.Warn("a demo's computers could not be read", "org", slug, "error", err)
+		slog.Warn("a demo's workspaces could not be read", "org", slug, "error", err)
 		return
 	}
 	if err := registry.RetireAll(); err != nil {
-		slog.Warn("a demo's computers could not be marked", "org", slug, "error", err)
+		slog.Warn("a demo's workspaces could not be marked", "org", slug, "error", err)
 		return
 	}
 	wait := s.computersWait()
@@ -99,7 +99,7 @@ func (s *Server) removeComputers(slug string) {
 			return
 		}
 	}
-	slog.Warn("a demo's computers were not removed in time, so its server is stopped with them still there", "org", slug)
+	slog.Warn("a demo's workspaces were not removed in time, so its server is stopped with them still there", "org", slug)
 }
 
 func (s *Server) computersWait() time.Duration {

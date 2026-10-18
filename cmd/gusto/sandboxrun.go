@@ -9,9 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/landlock"
 )
 
-const sandboxRunUsage = "usage: gusto sandbox-run FILE -- command [args...], or gusto sandbox-run --check [--network]"
-
-// sandboxRun is how gusto holds a job to Landlock on Linux: it restricts itself to the policy in FILE, and becomes the command, which
+// sandboxRun is how gusto holds a task to Landlock on Linux: it restricts itself to the policy in FILE, and becomes the command, which
 // keeps the restriction. With --check it applies a policy of its own to a process that does nothing, which is how gusto learns the
 // sandbox works here, and says the kernel's version of it.
 func sandboxRun(args []string) int {
@@ -19,8 +17,7 @@ func sandboxRun(args []string) int {
 		return checkLandlock(len(args) >= 2 && args[1] == "--network")
 	}
 	if len(args) < 3 || args[1] != "--" {
-		fmt.Fprintln(os.Stderr, sandboxRunUsage)
-		return 2
+		return usageError("sandbox-run", "needs a policy file, --, and a command")
 	}
 	policy, err := landlock.Load(args[0])
 	if err != nil {
@@ -31,7 +28,7 @@ func sandboxRun(args []string) int {
 		return fail(err)
 	}
 	if err := landlock.Apply(policy); err != nil {
-		return fail(fmt.Errorf("the sandbox did not start, and the job is not run unprotected: %w", err))
+		return fail(fmt.Errorf("the sandbox did not start, and the task is not run unprotected: %w", err))
 	}
 	return fail(syscall.Exec(program, args[2:], os.Environ()))
 }

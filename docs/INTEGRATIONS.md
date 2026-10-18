@@ -43,37 +43,37 @@ The Integrations page (`/admin/integrations`) is for administrators. It imports 
 
 `GUSTO_INTEGRATIONS` is the directory, a stamped data directory ([UPGRADE.md](UPGRADE.md)). `GUSTO_INTEGRATIONS_PRIVATE=1` lets a git address be on a private network. The server needs `git`, which its image has.
 
-A setup names the integrations it is given. For each one that is on, a job gets:
+A setup names the integrations it is given. For each one that is on, a task gets:
 
-- every skill, as a whole folder with its scripts and references, where the harness reads skills
-- every streamable HTTP server, behind the gateway ([GATEWAY.md](GATEWAY.md)). The harness is given one server, `gateway`, and finds tools with `tool_search`. A server is called `<integration>-<server>` and a tool `<integration>-<server>/<tool>`
+- every skill, as a whole folder with its scripts and references, where the agent reads skills
+- every streamable HTTP server, behind the gateway ([GATEWAY.md](GATEWAY.md)). The agent is given one server, `gateway`, and finds tools with `tool_search`. A server is called `<integration>-<server>` and a tool `<integration>-<server>/<tool>`
 
-A server on the older SSE transport is held back, and the setup's page says so. A program server (stdio) runs only when an administrator allows the programs of that version, with a ticked box on the integration's page. A new version needs the permission again. The program runs in the gateway's box, never the job's.
+A server on the older SSE transport is held back, and the setup's page says so. A program server (stdio) runs only when an administrator allows the programs of that version, with a ticked box on the integration's page. A new version needs the permission again. The program runs in the gateway's box, never the task's.
 
-A setup that names an integration that is off starts no job. Two skills of one name, or two servers whose names become one, stop the job. A harness that cannot take skills or servers is told before the job starts. `job.json` records each integration's fingerprint, plugin version and pinned commit. It holds no server address or header.
+A setup that names an integration that is off starts no task. Two skills of one name, or two servers whose names become one, stop the task. An agent that cannot take skills or servers is told before the task starts. `job.json` records each integration's fingerprint, plugin version and pinned commit. It holds no server address or header.
 
 ## Who it is on for, and skill sets
 
-An administrator may limit an integration to people by sign-in address: `ada@acme.example`, or `*@acme.example` for a company. None named is everybody. A job for somebody else, or for a sign-in that names nobody, is refused when its setup names the integration.
+An administrator may limit an integration to people by sign-in address: `ada@acme.example`, or `*@acme.example` for a company. None named is everybody. A task for somebody else, or for a sign-in that names nobody, is refused when its setup names the integration.
 
 A skill set made in the console is off until an administrator turns it on, like an integration, a model provider and a model. A skill set kept before there was an off switch is on, and so are the ones gusto ships. A changed or removed skill is kept up to ten times, and the page restores one. The change record shows a short fingerprint of the old and new skill, never the text.
 
 A skill set is a plugin with no servers. "Download as an Agent Plugin" on its page gives a zip that another deployment imports as an integration.
 
-## Skills on each harness
+## Skills on each agent
 
 A skill is placed as its whole folder, so `references/`, `scripts/` and `assets/` go with its `SKILL.md`. Measured on 2026-10-08 with a skill whose answer is in `references/word.md`:
 
-| Harness | Reads skills from | Result |
+| Agent | Reads skills from | Result |
 | --- | --- | --- |
 | Codex 0.154 | `$CODEX_HOME/skills` | found the skill, read its reference, answered |
 | OpenCode 1.18 | `$XDG_CONFIG_HOME/opencode/skills` | found the skill, read its reference, answered |
 | Claude Code 2.1.270 | `$CLAUDE_CONFIG_DIR/skills` | in a project's `.claude/skills`, read the reference in 3 of 3 calls. Its own folder was not measured |
 | Pi | `~/.pi/agent/skills` | not measured |
-| Hermes, DeepSeek harness (`dsh`) | `~/.agents/skills` | not measured |
+| Hermes, DeepSeek agent (`dsh`) | `~/.agents/skills` | not measured |
 
-`GUSTO_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the harnesses that are signed in.
+`GUSTO_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner` repeats it for the agents that are signed in.
 
 ## In OpenShell sandboxes
 
-`deploy/aws/openshell/e2e-integrations.sh` ran the whole path on 2026-10-08. A plugin with a skill, a reference file and an MCP server was imported, turned on and given to a skill set. Claude Code and Codex each found the tool, called it, read the reference and answered with an id only the customer system holds. The customer system's key appears in nothing the job wrote, and the signed records verify. A harness that reads servers from a file in its own folder (Pi) is refused in a sandbox, by name.
+`deploy/aws/openshell/e2e-integrations.sh` ran the whole path on 2026-10-08. A plugin with a skill, a reference file and an MCP server was imported, turned on and given to a skill set. Claude Code and Codex each found the tool, called it, read the reference and answered with an id only the customer system holds. The customer system's key appears in nothing the task wrote, and the signed records verify. An agent that reads servers from a file in its own folder (Pi) is refused in a sandbox, by name.

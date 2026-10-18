@@ -86,7 +86,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | Concept | Implemented as | Lives in |
 | --- | --- | --- |
 | Organisation | One `gusto serve` process with its own data directory, signing key, spend ledger and change log | The organisation's server |
-| Person and role | An account and a sign-in: password, SSO or token | The server, or the front door in the hosted cloud |
+| Person and role | An account and a sign-in: password, SSO or token | The server, or gusto cloud in the hosted cloud |
 | Workspace | One sandbox per person that keeps their files | The host that runs the organisation's server |
 | Task | A directory holding the brief, the repository, the check and the spend limit | The organisation's data directory |
 | Agent | An adapter: a small JSON file that names the program | Inside the sandbox |

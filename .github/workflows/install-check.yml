@@ -119,23 +119,23 @@ jobs:
           test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
           echo "signed in, and the home page answered $code"
 
-      - name: Run a job that asks a model, and check what the proxy counted
+      - name: Run a task that asks a model, and check what the proxy counted
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke-model.sh
 
-      - name: Run a job and verify its record
+      - name: Run a task and verify its record
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke.sh
 
-      - name: Probe a job's box from inside it
+      - name: Probe a task's box from inside it
         working-directory: deploy/compose
         run: docker compose exec -T server sh < ../smoke-isolation.sh
 
-      - name: Stop a job that is running, and see what it left
+      - name: Stop a task that is running, and see what it left
         working-directory: deploy/compose
         run: |
           id="$(docker compose exec -T server sh -s -- start < ../smoke-stop.sh | tail -n 1)"
-          echo "a job is running: $id"
+          echo "a task is running: $id"
           curl -s -c jar -o /dev/null --data-urlencode password=install-check http://127.0.0.1:8040/login
           code="$(curl -s -b jar -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8040/jobs/$id/stop")"
           test "$code" = 303 || { echo "stopping answered $code"; exit 1; }
@@ -297,19 +297,19 @@ jobs:
           test "$code" = 200 || { echo "the home page answered $code"; exit 1; }
           echo "signed in, and the home page answered $code"
 
-      - name: Run a job that asks a model, and check what the proxy counted
+      - name: Run a task that asks a model, and check what the proxy counted
         run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke-model.sh
 
-      - name: Run a job and verify its record
+      - name: Run a task and verify its record
         run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke.sh
 
-      - name: Probe a job's box from inside it
+      - name: Probe a task's box from inside it
         run: kubectl -n gusto exec -i deploy/gusto -c server -- sh < deploy/smoke-isolation.sh
 
-      - name: Stop a job that is running, and see what it left
+      - name: Stop a task that is running, and see what it left
         run: |
           id="$(kubectl -n gusto exec -i deploy/gusto -c server -- sh -s -- start < deploy/smoke-stop.sh | tail -n 1)"
-          echo "a job is running: $id"
+          echo "a task is running: $id"
           curl -s -c jar -o /dev/null --data-urlencode password=install-check http://127.0.0.1:8040/login
           code="$(curl -s -b jar -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8040/jobs/$id/stop")"
           test "$code" = 303 || { echo "stopping answered $code"; exit 1; }

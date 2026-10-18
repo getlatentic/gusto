@@ -42,7 +42,7 @@ func readQuestion(r *http.Request) (question, error) {
 
 // countable asks a streamed answer to carry its usage. An OpenAI-compatible
 // stream reports usage only when stream_options.include_usage is set, and a
-// harness that does not set it would otherwise spend without a count. The
+// agent that does not set it would otherwise spend without a count. The
 // provider then sends one more event with the usage and no choices, which the
 // documented stream format allows for.
 //

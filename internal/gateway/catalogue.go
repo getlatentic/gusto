@@ -14,13 +14,13 @@ import (
 type entry struct {
 	Server string
 	Tool   Tool
-	// Name is how the job calls it: the server's name and the tool's, as server/tool.
+	// Name is how the task calls it: the server's name and the tool's, as server/tool.
 	Name string
-	// Flat is the name a harness that lists every tool takes: letters, digits, hyphens and underscores, at most 64.
+	// Flat is the name an agent that lists every tool takes: letters, digits, hyphens and underscores, at most 64.
 	Flat string
 }
 
-// Catalogue is the tools of a job's servers that its caller may use. It is read from the servers the first time it is asked for.
+// Catalogue is the tools of a task's servers that its caller may use. It is read from the servers the first time it is asked for.
 type Catalogue struct {
 	servers map[string]Conn
 	order   []string

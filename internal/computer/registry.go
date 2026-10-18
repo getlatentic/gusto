@@ -15,8 +15,8 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// Registry is one organisation's computers, one file each. It belongs to that
-// organisation: it makes computers for nobody else, so a record of another's
+// Registry is one organisation's workspaces, one file each. It belongs to that
+// organisation: it makes workspaces for nobody else, so a record of another's
 // cannot get in by a mistake in what calls it.
 type Registry struct {
 	dir   string
@@ -29,7 +29,7 @@ type Registry struct {
 // Open is the organisation's record under dir, which is made when it is not there.
 func Open(dir, org string) (*Registry, error) {
 	if org == "" {
-		return nil, errors.New("a record of computers belongs to an organisation")
+		return nil, errors.New("a record of workspaces belongs to an organisation")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func Open(dir, org string) (*Registry, error) {
 	return &Registry{dir: dir, org: org, now: time.Now}, nil
 }
 
-// UseQuota puts the number of computers under the organisation's quota.
+// UseQuota puts the number of workspaces under the organisation's quota.
 func (r *Registry) UseQuota(q *quota.File) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -46,20 +46,20 @@ func (r *Registry) UseQuota(q *quota.File) {
 
 func (r *Registry) file(id string) string { return filepath.Join(r.dir, id+".json") }
 
-// Ensure is the person's computer, made when they have none. A person has one in
+// Ensure is the person's workspace, made when they have none. A person has one in
 // an organisation, so asking again finds it. Making a new one counts against the
-// organisation's quota, and a computer that was deleted is made anew.
+// organisation's quota, and a workspace that was deleted is made anew.
 func (r *Registry) Ensure(user, host string) (computer Computer, made bool, err error) {
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
-		return Computer{}, false, errors.New("a computer is a person's, and no person was named")
+		return Computer{}, false, errors.New("a workspace is a person's, and no person was named")
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	id := ID(r.org, user)
 	found, err := r.read(id)
 	if err == nil && found.User != user {
-		return Computer{}, false, fmt.Errorf("the record %s is of %s, and %s hashes to it too: no computer is shared", id, found.User, user)
+		return Computer{}, false, fmt.Errorf("the record %s is of %s, and %s hashes to it too: no workspace is shared", id, found.User, user)
 	}
 	if err == nil && found.Live() {
 		return found, false, nil
@@ -82,7 +82,7 @@ func (r *Registry) underLimit() error {
 	}
 	q, err := r.limit.Current()
 	if err != nil {
-		return fmt.Errorf("no computer is made, because %w", err)
+		return fmt.Errorf("no workspace is made, because %w", err)
 	}
 	all, err := r.all()
 	if err != nil {
@@ -108,7 +108,7 @@ func (r *Registry) Of(user string) (Computer, error) {
 	return found, err
 }
 
-// Change makes a change to a computer's record and keeps it.
+// Change makes a change to a workspace's record and keeps it.
 func (r *Registry) Change(id string, change func(*Computer)) (Computer, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -120,7 +120,7 @@ func (r *Registry) Change(id string, change func(*Computer)) (Computer, error) {
 	return computer, r.write(computer)
 }
 
-// All is every computer that is not deleted, the oldest first.
+// All is every workspace that is not deleted, the oldest first.
 func (r *Registry) All() ([]Computer, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -164,10 +164,10 @@ func (r *Registry) read(id string) (Computer, error) {
 	}
 	var computer Computer
 	if err := json.Unmarshal(text, &computer); err != nil {
-		return Computer{}, fmt.Errorf("the record of a computer in %s is not valid: %w", r.file(id), err)
+		return Computer{}, fmt.Errorf("the record of a workspace in %s is not valid: %w", r.file(id), err)
 	}
 	if computer.Org != r.org {
-		return Computer{}, fmt.Errorf("%s is a computer of the organisation %q, and this record is of %q", r.file(id), computer.Org, r.org)
+		return Computer{}, fmt.Errorf("%s is a workspace of the organisation %q, and this record is of %q", r.file(id), computer.Org, r.org)
 	}
 	return computer, nil
 }
@@ -202,7 +202,7 @@ func (r *Registry) write(computer Computer) error {
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
 
-// Retire asks for a person's computer to be removed, and does nothing when they have none.
+// Retire asks for a person's workspace to be removed, and does nothing when they have none.
 func (r *Registry) Retire(user string) error {
 	id := ID(r.org, strings.ToLower(strings.TrimSpace(user)))
 	r.mu.Lock()
@@ -220,7 +220,7 @@ func (r *Registry) Retire(user string) error {
 	return file.Close()
 }
 
-// RetireAll asks for every computer of the organisation to be removed, which is what ending the organisation does.
+// RetireAll asks for every workspace of the organisation to be removed, which is what ending the organisation does.
 func (r *Registry) RetireAll() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -241,7 +241,7 @@ func (r *Registry) RetireAll() error {
 	return nil
 }
 
-// Retiring is the computers that were asked to be removed and have not been.
+// Retiring is the workspaces that were asked to be removed and have not been.
 func (r *Registry) Retiring() ([]Computer, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -258,7 +258,7 @@ func (r *Registry) Retiring() ([]Computer, error) {
 	return retiring, nil
 }
 
-// Retired records that a computer was removed, and clears the mark.
+// Retired records that a workspace was removed, and clears the mark.
 func (r *Registry) Retired(id string) error {
 	if _, err := r.Change(id, func(c *Computer) { c.State, c.Note = Deleted, "removed" }); err != nil {
 		return err

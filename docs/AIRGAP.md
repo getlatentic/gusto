@@ -1,6 +1,6 @@
 # Air-gapped install
 
-An air-gapped install has no route to the internet from the build machine, the deploy target, the server or a job's container. It can reach services inside the building. This page lists every place gusto reaches outside and what replaces it.
+An air-gapped install has no route to the internet from the build machine, the deploy target, the server or a task's container. It can reach services inside the building. This page lists every place gusto reaches outside and what replaces it.
 
 In the tables, "config" means you change a setting or run a mirror. "Code" means this repository has to change first.
 
@@ -8,7 +8,7 @@ In the tables, "config" means you change a setting or run a mirror. "Code" means
 
 - An OCI registry, or images loaded by hand (`podman load`).
 - A Debian mirror, an npm mirror and the vendored Go modules.
-- A git host for this repository and for the jobs' repositories.
+- A git host for this repository and for the tasks' repositories.
 - An OpenAI-compatible model server with weights you choose. Codex needs the responses API. gusto never ships a model or weights.
 - An OIDC provider of your own, or none and the shared password.
 - A certificate from your own CA. gusto does not support an ACME server inside.
@@ -21,7 +21,7 @@ Pin and mirror before the first build:
 | Go | 1.26.0 or later. The playbook uses `go1.26.1.linux-amd64.tar.gz` |
 | Go modules | `github.com/coreos/go-oidc/v3 v3.21.0`, `github.com/go-jose/go-jose/v4 v4.1.4`, `golang.org/x/oauth2 v0.37.0` |
 | Debian packages | image: `git`, `ca-certificates`. Host: `git`, `curl`, `acl`, `podman`, `uidmap`, `slirp4netns`, `python3-pymysql`, plus `certbot` if you keep it. The playbook assumes `nginx`, `mysql` and `redis` are present |
-| Harness packages | each package and its platform package at one pinned version. Measured on x64: `opencode-ai` 1.18.32 with `opencode-linux-x64` and `opencode-linux-x64-baseline`; `@openai/codex` 0.157.1 with `@openai/codex@0.157.1-linux-x64`; `@anthropic-ai/claude-code` 2.1.283 with `@anthropic-ai/claude-code-linux-x64`. arm64 and musl need their own. Seven tarballs, 958 MiB |
+| Agent packages | each package and its platform package at one pinned version. Measured on x64: `opencode-ai` 1.18.32 with `opencode-linux-x64` and `opencode-linux-x64-baseline`; `@openai/codex` 0.157.1 with `@openai/codex@0.157.1-linux-x64`; `@anthropic-ai/claude-code` 2.1.283 with `@anthropic-ai/claude-code-linux-x64`. arm64 and musl need their own. Seven tarballs, 958 MiB |
 | Ansible collections | `ansible.mysql`, `community.crypto`, as tarballs |
 
 `HARNESSES` defaults to `opencode=opencode-ai` with no version, and `deploy/ansible/group_vars/all.yml` lists all three with none. A mirror serves only what it holds, so pin versions.
@@ -54,17 +54,17 @@ Pin and mirror before the first build:
 | --- | --- | --- |
 | The identity provider's discovery document at startup, and its token endpoint at each sign-in (Google on greencloud) | an OIDC provider in the building, named by `GUSTO_OIDC_ISSUER`, or the shared password alone | config |
 | Model upstreams the proxy adds a credential for (on greencloud, `bedrock-mantle.us-east-1.api.aws` and `api.deepseek.com`) | a model server in the building, as a credential's `address` | config |
-| `git clone` of a job's repository, on the host | an internal git host. `repo` is any URL git takes | config |
-| `gusto ship`: `api.github.com` | `GUSTO_GITHUB_API` pointed at GitHub Enterprise Server | config |
-| `gusto ship`: `git push` sends the token only to `https://github.com/`, and the pull request links are built as `https://github.com/...` | links and token header that follow the configured host | code |
-| `gusto check`: `git fetch` of the evidence ref | nothing to change: it fetches from the remote the pull request names | none |
+| `git clone` of a task's repository, on the host | an internal git host. `repo` is any URL git takes | config |
+| `gusto pr open`: `api.github.com` | `GUSTO_GITHUB_API` pointed at GitHub Enterprise Server | config |
+| `gusto pr open`: `git push` sends the token only to `https://github.com/`, and the pull request links are built as `https://github.com/...` | links and token header that follow the configured host | code |
+| `gusto pr verify`: `git fetch` of the record ref | nothing to change: it fetches from the remote the pull request names | none |
 | TLS to any of the above signed by your CA | your CA in the host's trust store | config |
 
-The pages reach nothing. `htmx.min.js`, `tokens.css` and `mark.png` are served from the binary. `gusto ship` to GitLab or Gitea is not covered: it speaks GitHub's API only.
+The pages reach nothing. `htmx.min.js`, `tokens.css` and `mark.png` are served from the binary. `gusto pr open` to GitLab or Gitea is not covered: it speaks GitHub's API only.
 
-## Run a job
+## Run a task
 
-Harness calls were measured on 2026-09-27: each program ran offline on Linux x86-64 behind a stand-in proxy and model, not in gusto's image through gusto's proxy. Every call fails open, and in a sealed container leaves a `denied` line in `out/proxy.jsonl`.
+Agent calls were measured on 2026-09-27: each program ran offline on Linux x86-64 behind a stand-in proxy and model, not in gusto's image through gusto's proxy. Every call fails open, and in a sealed container leaves a `denied` line in `out/proxy.jsonl`.
 
 | Reaches out | Replace with | Change |
 | --- | --- | --- |
@@ -73,25 +73,25 @@ Harness calls were measured on 2026-09-27: each program ran offline on Linux x86
 | codex: `github.com`, `api.github.com`, `chatgpt.com` | `-c features.plugins=false` | code: set it in the adapter |
 | codex: `ab.chatgpt.com` | `-c analytics.enabled=false` | code: set it in the adapter |
 | claude: `api.anthropic.com`, five connections a run | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` | code: set it in the image |
-| The job's own dependencies, for example `go test` downloading modules | your mirrors, named in `GUSTO_ALLOWED_HOSTS` | config |
-| A container with no credential configured keeps the runtime's default network and is not sealed | a credential whose address is the local model, so every job runs sealed | config; code to make it the default |
+| The task's own dependencies, for example `go test` downloading modules | your mirrors, named in `GUSTO_ALLOWED_HOSTS` | config |
+| A container with no credential configured keeps the runtime's default network and is not sealed | a credential whose address is the local model, so every task runs sealed | config; code to make it the default |
 
 ## What gusto supports
 
-- Jobs on opencode and codex, sealed.
-- `gusto check` against any git host the reviewer can reach.
-- `gusto ship` against GitHub Enterprise Server once the ship change above is done.
+- Tasks on opencode and codex, sealed.
+- `gusto pr verify` against any git host the reviewer can reach.
+- `gusto pr open` against GitHub Enterprise Server once the change above is done.
 
-A restricted job on codex is refused even when its model is in the building. The rule checks the adapter's vendor endpoint (`https://api.openai.com`, `adapters/codex.json:25`), not the credential's address (`internal/runner/admit.go:21`, `internal/web/api.go:89`). This blocks the air-gapped customer who uses codex.
+A restricted task on codex is refused even when its model is in the building. The rule checks the adapter's vendor endpoint (`https://api.openai.com`, `adapters/codex.json:25`), not the credential's address (`internal/runner/admit.go:21`, `internal/web/api.go:89`). This blocks the air-gapped customer who uses codex.
 
 claude is not supported. It needs an account or an Anthropic-compatible server, and a change to its adapter.
 
 ## Not tested
 
-- Whether jobs pass on a local model. On the one task measured, neither `gpt-oss:20b` nor `llama3.2:3b` finished ([README.md](../README.md)). An air-gapped job runs. It may not pass.
+- Whether tasks pass on a local model. On the one task measured, neither `gpt-oss:20b` nor `llama3.2:3b` finished ([README.md](../README.md)). An air-gapped task runs. It may not pass.
 - Whether opencode hangs on a cold machine with no network. The first two runs timed out at 90 seconds, and the next eleven finished.
 - Whether pre-installing `@opencode-ai/plugin` into `/root/.config/opencode/node_modules` stops the npm call.
-- Whether harnesses call out later in a run, on a tool call, on compaction or on exit. The stand-in answered one text turn.
+- Whether agents call out later in a run, on a tool call, on compaction or on exit. The stand-in answered one text turn.
 - Whether the seal holds on the box's podman.
 - Whether npm calls anything beyond the registry during the image build.
 - Whether the proxy allowlist (`internal/proxy/allowlist.go`, `host:port`) works for an internal mirror on plain HTTP on a non-standard port.

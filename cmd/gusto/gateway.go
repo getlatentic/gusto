@@ -19,12 +19,12 @@ import (
 	"github.com/getlatentic/gusto/internal/setup"
 )
 
-// gateways makes a job's gateway the first time it is asked for, from what the job was given when it started, and ends it with the
-// job. What a job may reach is read from its own directory, which only its owner and the proxy can read, and not from anything the
-// harness sends.
+// gateways makes a task's gateway the first time it is asked for, from what the task was given when it started, and ends it with the
+// task. What a task may reach is read from its own directory, which only its owner and the proxy can read, and not from anything the
+// agent sends.
 type gateways struct {
 	jobs string
-	// policy is the tool policy as it is now, which a change to its file replaces and a job that is running asks for at each call.
+	// policy is the tool policy as it is now, which a change to its file replaces and a task that is running asks for at each call.
 	policy atomic.Pointer[tools.Policy]
 	mode   tools.Mode
 	// redactor is what masks the answers of tools, which a change to GUSTO_REDACTION replaces.
@@ -65,7 +65,7 @@ func (g *gateways) currentPolicy() tools.Policy { return *g.policy.Load() }
 
 func (g *gateways) currentRedactor() *redact.Redactor { return g.redactor.Load() }
 
-// For is the gateway of a job, or false when the job has no servers behind it.
+// For is the gateway of a task, or false when the task has no servers behind it.
 func (g *gateways) For(id string) (http.Handler, bool) {
 	if id == "" || strings.ContainsAny(id, `/\`) {
 		return nil, false
@@ -113,7 +113,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 	}), true
 }
 
-// askerOf is who asked for the job, from its state file.
+// askerOf is who asked for the task, from its state file.
 func askerOf(dir job.Dir) string {
 	text, err := os.ReadFile(filepath.Join(dir.Path(), "state.json"))
 	if err != nil {
@@ -126,17 +126,17 @@ func askerOf(dir job.Dir) string {
 	return state.Asked
 }
 
-// launch is the command that runs a server that is a program, in a box of its own. A job that runs in this server's own process has
+// launch is the command that runs a server that is a program, in a box of its own. A task that runs in this server's own process has
 // no container to put a program in, and so no program runs.
 func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (*exec.Cmd, func(), error) {
 	if runsHere() {
-		return nil, nil, errors.New("a program runs in a container, and this server runs jobs in its own process")
+		return nil, nil, errors.New("a program runs in a container, and this server runs tasks in its own process")
 	}
 	return sandbox.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
 		Command: server.Command, Args: server.Args, Env: server.Env, Cwd: server.Cwd})
 }
 
-// Forget ends a job's gateway, and its sessions with the servers.
+// Forget ends a task's gateway, and its sessions with the servers.
 func (g *gateways) Forget(id string) {
 	g.mu.Lock()
 	made, there := g.sessions[id]

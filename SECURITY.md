@@ -7,7 +7,7 @@ issue or pull request for it. Say what you ran, what you saw, and what you think
 
 **What is supported.** The newest release, and the main branch. gusto is a pre-release, and a fix goes into the next one.
 
-**What is in scope.** The server and its pages, the API, the model proxy, the runner, and the walls around a job (virtual machine,
+**What is in scope.** The server and its pages, the API, the model proxy, the runner, and the sandbox around a task (virtual machine,
 container, Seatbelt, Landlock). What gusto trusts and what it does not is in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), and what has
 been reviewed, found and fixed is in [docs/SECURITY.md](docs/SECURITY.md). A finding that contradicts either is the most useful kind.
 

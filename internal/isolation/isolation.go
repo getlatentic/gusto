@@ -1,5 +1,5 @@
-// Package isolation chooses the strongest wall this computer can put between an agent and the person's files, and says which in
-// words. A virtual machine, then a container, then nothing: a wall of a kind the computer has is never skipped for a weaker one,
+// Package isolation chooses the strongest sandbox this computer can put between an agent and the person's files, and says which in
+// words. A virtual machine, then a container, then nothing: a sandbox of a kind the computer has is never skipped for a weaker one,
 // and the person is told which they have.
 package isolation
 
@@ -16,18 +16,18 @@ import (
 type Kind string
 
 const (
-	// VM is a virtual machine for each job, where the agent sees none of the computer's files but the folder it was given.
+	// VM is a virtual machine for each task, where the agent sees none of the computer's files but the folder it was given.
 	VM Kind = "vm"
-	// Container is a container for each job, which shares the computer's kernel.
+	// Container is a container for each task, which shares the computer's kernel.
 	Container Kind = "container"
 	// Process is the computer's own sandbox around the agent's processes: on a Mac, Seatbelt. It writes only its own folder, reads none of
 	// the person's home but its own and the engine's, and reaches nothing on the network but gusto, and shares the computer's kernel.
 	Process Kind = "process"
-	// Nothing is no wall: the agent runs as the person, and can read and change what they can.
+	// Nothing is no sandbox: the agent runs as the person, and can read and change what they can.
 	Nothing Kind = "none"
 )
 
-// Backend is one kind of wall, and whether this computer can make it now.
+// Backend is one kind of sandbox, and whether this computer can make it now.
 type Backend struct {
 	Kind Kind
 	// Ready says this computer can make it now.
@@ -38,7 +38,7 @@ type Backend struct {
 	Cause string
 }
 
-// Choice is the wall a computer has: the strongest that is ready, and why each stronger one was passed over.
+// Choice is the sandbox a computer has: the strongest that is ready, and why each stronger one was passed over.
 type Choice struct {
 	Kind   Kind
 	Detail string
@@ -56,9 +56,9 @@ type Host struct {
 	LookPath func(program string) (string, error)
 	// Run is a program's output and whether it exited 0, within a few seconds.
 	Run func(program string, args ...string) (string, bool)
-	// Self is the gusto program that is running, which applies the sandbox of a Linux computer to a job.
+	// Self is the gusto program that is running, which applies the sandbox of a Linux computer to a task.
 	Self string
-	// MountsSocket says whether a container of the image can be given a unix socket of this computer, which is how a job reaches
+	// MountsSocket says whether a container of the image can be given a unix socket of this computer, which is how a task reaches
 	// the proxy and nothing else. A runtime that runs in a virtual machine, as Docker does on a Mac or Windows, cannot. Nil is
 	// not tested.
 	MountsSocket func(runtime, image string) error
@@ -88,7 +88,7 @@ func This() Host {
 	}
 }
 
-// Choose is the strongest wall the host can make. GUSTO_SANDBOX names one when a person or an operator has decided: openshell is a
+// Choose is the strongest sandbox the host can make. GUSTO_SANDBOX names one when a person or an operator has decided: openshell is a
 // VM, here is none, and anything else, including container, is a container.
 func Choose(h Host) Choice {
 	switch h.Getenv("GUSTO_SANDBOX") {
@@ -117,11 +117,11 @@ func Choose(h Host) Choice {
 func (c Choice) Words() string {
 	switch c.Kind {
 	case VM:
-		return "Each job runs in a virtual machine (" + c.Detail + "): it sees only the folder it was given."
+		return "Each task runs in a virtual machine (" + c.Detail + "): it sees only the folder it was given."
 	case Container:
-		return "Each job runs in a container (" + c.Detail + "): it sees only the folder it was given, and shares this computer's kernel."
+		return "Each task runs in a container (" + c.Detail + "): it sees only the folder it was given, and shares this computer's kernel."
 	case Process:
-		return "Each job runs behind this computer's own sandbox (" + c.Detail + "): it can write only its own folder, cannot read the rest of your home, and reaches nothing on the network but gusto. It shares this computer's kernel."
+		return "Each task runs behind this computer's own sandbox (" + c.Detail + "): it can write only its own folder, cannot read the rest of your home, and reaches nothing on the network but gusto. It shares this computer's kernel."
 	}
 	return "Nothing stands between an agent and your files: it runs as you, and can read and change what you can."
 }

@@ -1,9 +1,9 @@
-// Package acp holds one turn of a conversation with a harness that speaks the
-// Agent Client Protocol: JSON-RPC over the harness's standard input and output.
+// Package acp holds one turn of a conversation with an agent that speaks the
+// Agent Client Protocol: JSON-RPC over the agent's standard input and output.
 //
-// A harness that only answers one task and exits cannot continue a
+// An agent that only answers one task and exits cannot continue a
 // conversation. Over ACP the client names the session to load, so the same
-// harness can keep a thread going across turns.
+// agent can keep a thread going across turns.
 package acp
 
 import (
@@ -18,7 +18,7 @@ import (
 type Turn struct {
 	Cwd   string
 	Brief string
-	// Session is the harness's name for the conversation to continue. Empty
+	// Session is the agent's name for the conversation to continue. Empty
 	// starts a new one.
 	Session string
 	// Servers are the MCP servers the session may call.
@@ -26,15 +26,15 @@ type Turn struct {
 }
 
 // Ended is how the turn finished: the session it belongs to, which the next
-// turn names, and the harness's reason for stopping.
+// turn names, and the agent's reason for stopping.
 type Ended struct {
 	Session string
 	Stop    string
 }
 
-// Converse runs one turn. Every line the harness says during it goes to keep,
+// Converse runs one turn. Every line the agent says during it goes to keep,
 // with the answers to gusto's own requests among them, so the record holds the
-// session id and the usage exactly as the harness reported them.
+// session id and the usage exactly as the agent reported them.
 func Converse(in io.Writer, out io.Reader, turn Turn, keep func(line string) error) (Ended, error) {
 	c := newConn(in, out, keep)
 	can, err := initialize(c)

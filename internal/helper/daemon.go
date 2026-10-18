@@ -18,7 +18,7 @@ import (
 )
 
 // Daemon is the helper running on a person's computer. It keeps one connection to their organisation's server, hears what
-// happens to their jobs, and answers whatever on this computer asks, over a port only this computer reaches.
+// happens to their tasks, and answers whatever on this computer asks, over a port only this computer reaches.
 type Daemon struct {
 	Server string
 	Vault  Vault

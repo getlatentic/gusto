@@ -1,6 +1,6 @@
-// Package owner is the page the owner of a hosted gusto manages it from: who asked for a demo, which demos are running,
+// Package owner is the page the operator of a hosted gusto manages it from: who asked for a demo, which demos are running,
 // whether new ones are being accepted, and which hosts are up. It is its own program, listening only on this machine's
-// loopback, so that nothing the front door serves reaches it; the owner reaches it through a tunnel they are allowed to
+// loopback, so that nothing the gusto cloud serves reaches it; the operator reaches it through a tunnel they are allowed to
 // open.
 package owner
 
@@ -31,7 +31,7 @@ type Hosts interface {
 	Running() ([]cell.Instance, error)
 }
 
-// App is the owner's pages over the front door's own records.
+// App is the operator's pages over the gusto cloud's own records.
 type App struct {
 	Store *cloud.Store
 	// Hosts is nil where hosts are not started on demand.
@@ -101,7 +101,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	page := map[string]any{"Title": "gusto owner", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
+	page := map[string]any{"Title": "gusto operator", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
 	page["Running"] = a.running()
 	if a.Hosts != nil {
 		if hosts, err := a.Hosts.Running(); err != nil {
@@ -112,7 +112,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := a.pages.ExecuteTemplate(w, "owner.html", page); err != nil {
-		slog.Error("the owner page was not drawn", "error", err)
+		slog.Error("the operator page was not drawn", "error", err)
 	}
 }
 
@@ -159,7 +159,7 @@ func (a *App) limits(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if r.PostForm.Get("reset") != "" {
 		err = a.Store.ResetDemoLimits()
-		notice = "The limits are the ones the front door started with."
+		notice = "The limits are the ones gusto cloud started with."
 	} else {
 		err = a.Store.SetDemoLimits(cloud.DemoLimits{
 			PerDay: number(r, "perDay"), PerPerson: number(r, "perPerson"), PerCompany: number(r, "perCompany"), MaxOrgs: number(r, "maxOrgs"),

@@ -1,11 +1,11 @@
-// Package setup is a configured harness: skills to give it and MCP servers it
+// Package setup is a configured agent: skills to give it and MCP servers it
 // may call, named and kept so it can be started again without being
 // described again.
 //
 // The two are declared by different people. A skill is instructions, text a
 // person writes and anyone may. An MCP server is a program the box runs, or an
 // address it calls, so it is the deployment's to offer: its operator decides
-// what can run inside a job and what it can reach, and a setup picks from that.
+// what can run inside a task and what it can reach, and a setup picks from that.
 package setup
 
 import (
@@ -28,12 +28,12 @@ type Setup struct {
 	Name    string   `json:"name"`
 	Servers []string `json:"servers,omitempty"`
 	// Integrations are the integrations whose skills and servers the setup is given, by name, in the version an administrator has
-	// turned on when a job starts.
+	// turned on when a task starts.
 	Integrations []string `json:"integrations,omitempty"`
 	// Starters are things to say that show what the setup is for, offered in
 	// an empty thread.
 	Starters []string `json:"starters,omitempty"`
-	// Off says an administrator made the setup and has not turned it on: it is not offered, and no job starts with it. It is the flag
+	// Off says an administrator made the setup and has not turned it on: it is not offered, and no task starts with it. It is the flag
 	// that is kept, and not "on", so that a setup kept before there was one is on.
 	Off  bool   `json:"off,omitempty"`
 	Who  string `json:"who,omitempty"`
@@ -138,15 +138,15 @@ func (s *Store) List() []Setup {
 }
 
 // Write puts a skill into a setup, replacing one of the same name. The
-// SKILL.md is written in the Agent Skills format every harness here reads: a
-// name and a description a harness chooses by, then the instructions.
+// SKILL.md is written in the Agent Skills format every agent here reads: a
+// name and a description an agent chooses by, then the instructions.
 func (s *Store) Write(setup string, skill Skill) error {
 	if !job.Named(skill.Name) {
 		return fmt.Errorf("%q cannot name a skill: use lower case, digits and hyphens", skill.Name)
 	}
 	description := strings.Join(strings.Fields(skill.Description), " ")
 	if description == "" {
-		return errors.New("a skill needs a description: it is how a harness decides to use it")
+		return errors.New("a skill needs a description: it is how an agent decides to use it")
 	}
 	if _, found := s.Get(setup); !found {
 		return fmt.Errorf("no setup called %s", setup)
@@ -202,7 +202,7 @@ func (s *Store) skills(setup string) []Skill {
 	return held
 }
 
-// Carry copies what a job needs of a setup into the job's own directory: the
+// Carry copies what a task needs of a setup into the task's own directory: the
 // skills, and the definitions of the servers it names. It returns the names
 // for job.json, which is evidence and so holds no definition.
 func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, error) {
@@ -210,7 +210,7 @@ func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, er
 }
 
 // CarryFor is Carry for the person who asked. An integration that is on for some people only is not carried for anybody else, and the
-// job does not start, since a job that quietly lacked what its setup names would run as a bare harness under the setup's name.
+// task does not start, since a task that quietly lacked what its setup names would run as a bare agent under the setup's name.
 func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string) (*job.Setup, error) {
 	held, found := s.Get(name)
 	if !found {
@@ -249,7 +249,7 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 	return carried, writeSecret(filepath.Join(dir.SetupDir(), GatewayFile), behind)
 }
 
-// GatewayFile is where the definitions of the servers behind the gateway wait in a job's setup directory. The proxy reads it and
+// GatewayFile is where the definitions of the servers behind the gateway wait in a task's setup directory. The proxy reads it and
 // the sandbox cannot: it is the owner's alone.
 const GatewayFile = "gateway.json"
 
@@ -265,7 +265,7 @@ func writeSecret[T any](path string, definitions []T) error {
 	return os.WriteFile(path, text, 0o600)
 }
 
-// Fits says why a harness cannot take a setup, or nothing when it can.
+// Fits says why an agent cannot take a setup, or nothing when it can.
 func (held Setup) Fits(skills, mcp bool) string {
 	given := 0
 	served := len(held.Servers)

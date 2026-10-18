@@ -212,7 +212,7 @@ jobs:
           name: desktop-${{ matrix.target }}
           path: dist/*
 
-  # The runner image flattened to a root file system for the virtual machine a job runs in on a person's computer (gusto local wall
+  # The runner image flattened to a root file system for the virtual machine a task runs in on a person's computer (gusto local sandbox
   # install). The gateway takes a .tar.gz, and the processor has to be the computer's: an Apple Silicon Mac runs arm64.
   rootfs:
     needs: test
@@ -247,7 +247,7 @@ jobs:
           name: rootfs-${{ matrix.arch }}
           path: dist/*
 
-  # mke2fs, debugfs and e2fsck built to stand alone on a Mac, which the virtual machine wall needs and a Mac lacks. Built on the machine
+  # mke2fs, debugfs and e2fsck built to stand alone on a Mac, which the virtual machine sandbox needs and a Mac lacks. Built on the machine
   # that deploys, where it costs no hosted minutes.
   e2fsprogs:
     needs: test

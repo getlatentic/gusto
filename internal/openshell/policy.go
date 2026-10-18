@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-// Policy is the OpenShell policy for a job, as JSON, which a YAML reader takes.
+// Policy is the OpenShell policy for a task, as JSON, which a YAML reader takes.
 //
 // Everything is denied that is not named. The sandbox may read the system
-// paths and write its workspace, /tmp and the harness's own directories. It may
+// paths and write its workspace, /tmp and the agent's own directories. It may
 // reach the gusto proxy, which holds the model credential, and the hosts the
 // operator allowed, and nothing else. A name the operator wrote as a wildcard
 // needs three labels in OpenShell, and an entry that cannot be translated is
@@ -59,7 +59,7 @@ var systemReads = []string{
 // system path leaves the sandbox unable to start its own supervisor, and one
 // with no network rule gets none of the baseline paths the gateway would add,
 // /dev/null among them, so these are always there. A pseudo-terminal is what a
-// harness's shell tool opens to run a command: codex fails every one without it.
+// agent's shell tool opens to run a command: codex fails every one without it.
 func filesystem(writable []string) map[string]any {
 	return map[string]any{
 		"include_workdir": false,
@@ -93,7 +93,7 @@ func rule(endpoints []endpoint) map[string]any {
 	for _, each := range endpoints {
 		listed = append(listed, map[string]any{"host": each.Host, "ports": each.Ports, "protocol": "tcp"})
 	}
-	// Any program in the sandbox may use the rule: the harness is a different
+	// Any program in the sandbox may use the rule: the agent is a different
 	// program in each image, and the rule is about where it may go.
 	return map[string]any{"endpoints": listed, "binaries": []map[string]string{{"path": "/**"}}}
 }

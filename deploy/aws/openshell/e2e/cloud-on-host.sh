@@ -34,8 +34,8 @@ GUSTO_CLOUD_ROOT=$C/cloud GUSTO_CLOUD_ADDR=127.0.0.1:8050 GUSTO_CLOUD_URL=http:/
   GUSTO_CLOUD_ORG_ENV=$C/org.env GUSTO_CLOUD_PORT_FROM=9100 \
   setsid nohup "$C/haas" cloud > "$C/front-door.log" 2>&1 < /dev/null &
 for _ in $(seq 1 20); do curl -fs http://127.0.0.1:8050/healthz >/dev/null && break; sleep 1; done
-curl -fs http://127.0.0.1:8050/healthz >/dev/null || { echo "the front door did not start"; cat "$C/front-door.log"; exit 1; }
+curl -fs http://127.0.0.1:8050/healthz >/dev/null || { echo "gusto cloud did not start"; cat "$C/front-door.log"; exit 1; }
 
 "$C/drive" -root "$C/cloud" -haas "$C/haas" -gateway spike -model "$MODEL" -within 12m
 echo "exit $?"
-echo; echo "the front door is left running on port 8050; its log is $C/front-door.log"
+echo; echo "gusto cloud is left running on port 8050; its log is $C/front-door.log"

@@ -16,17 +16,17 @@ import (
 	"github.com/getlatentic/gusto/internal/owner"
 )
 
-// ownerCommand serves the page the owner of a hosted gusto manages it from. It listens on the loopback of the machine
-// the front door runs on, at GUSTO_OWNER_ADDR (127.0.0.1:8090), and refuses any other address, so that nothing the
-// front door's own listener or its web server serves can reach it. The owner opens a tunnel to it.
-func ownerCommand([]string) int {
+// operatorCommand serves the page the operator of a gusto cloud manages it from. It listens on the loopback of the machine
+// gusto cloud runs on, at GUSTO_OWNER_ADDR (127.0.0.1:8090), and refuses any other address, so that nothing gusto cloud's own
+// listener or its web server serves can reach it. The operator opens a tunnel to it.
+func operatorCommand() int {
 	address := setting("GUSTO_OWNER_ADDR", "127.0.0.1:8090")
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return fail(fmt.Errorf("GUSTO_OWNER_ADDR is host:port: %w", err))
 	}
 	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
-		return fail(errors.New("GUSTO_OWNER_ADDR is a loopback address, such as 127.0.0.1:8090, since the owner's page is not served to the network"))
+		return fail(errors.New("GUSTO_OWNER_ADDR is a loopback address, such as 127.0.0.1:8090, since the operator's page is not served to the network"))
 	}
 	store, err := cloud.Attach(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{Demo: demoSettings()})
 	if err != nil {
@@ -49,7 +49,7 @@ func ownerCommand([]string) int {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	fmt.Printf("the owner's page is on %s, which is this machine only\n", address)
+	fmt.Printf("the operator's page is on %s, which is this machine only\n", address)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fail(err)
 	}

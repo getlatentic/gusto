@@ -1,6 +1,6 @@
 # Upgrading and rolling back
 
-A release never costs you conversations, jobs or records. Each data directory carries a format, a newer release migrates it, and an older release that meets data it cannot read refuses by name and changes nothing.
+A release never costs you conversations, tasks or records. Each data directory carries a format, a newer release migrates it, and an older release that meets data it cannot read refuses by name and changes nothing.
 
 ## The formats
 
@@ -8,7 +8,7 @@ Each store has a format number in `.gusto-format` in its directory. A directory 
 
 | Store | Directory | Holds |
 | --- | --- | --- |
-| jobs | `GUSTO_JOBS` | each job's directory, with its signed record |
+| tasks | `GUSTO_JOBS` | each task's directory, with its signed record |
 | sessions | `GUSTO_SESSIONS` | agents, their threads and transcripts |
 | setups | `GUSTO_SETUPS` | skill sets |
 | comparisons | `GUSTO_COMPARISONS` | comparisons started from the pages |
@@ -46,7 +46,7 @@ Keep the newer release installed, because only it can undo what it did:
 gusto data rollback -to v0.1.0-rc.1
 ```
 
-It checks every store first. If one has a migration that cannot be undone, it names the store and changes nothing. Otherwise it takes each store back to the format that release wrote. Install that release and start it. Jobs and messages made under the newer release stay, in the older format.
+It checks every store first. If one has a migration that cannot be undone, it names the store and changes nothing. Otherwise it takes each store back to the format that release wrote. Install that release and start it. Tasks and messages made under the newer release stay, in the older format.
 
 The releases v0.1.0-rc.1 and v0.0.1-alpha.1 to v0.0.1-alpha.5 wrote every store at format 1, so rolling back to any of them (`gusto data rollback -to <release>`) undoes nothing. A release that changes a format adds itself to `internal/datadir/releases.go`.
 
@@ -56,7 +56,7 @@ The releases v0.1.0-rc.1 and v0.0.1-alpha.1 to v0.0.1-alpha.5 wrote every store 
 deploy/rehearse-upgrade.sh ./gusto /var/lib/gusto v0.0.1-alpha.2
 ```
 
-It never changes the original. On a copy of your data directory it shows what the new binary would migrate, starts a server, loads each job's page, and runs `gusto verify` on every record. With a release named, it then rolls the copy back to that release's formats. It exits 1 and names the job when a page does not load or a record does not verify.
+It never changes the original. On a copy of your data directory it shows what the new binary would migrate, starts a server, loads each task's page, and runs `gusto verify` on every record. With a release named, it then rolls the copy back to that release's formats. It exits 1 and names the task when a page does not load or a record does not verify.
 
 ## Changing a format
 

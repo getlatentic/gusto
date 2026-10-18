@@ -10,7 +10,7 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// evidenceRef is where gusto ship leaves the evidence for a manifest.
+// evidenceRef is where gusto pr open leaves the record for a manifest.
 func evidenceRef(digest string) string {
 	return "refs/gusto/evidence/" + digest
 }
@@ -35,17 +35,17 @@ func fetch(ctx context.Context, remote, digest string, dir job.Dir) (fetched, er
 		return fetched{}, err
 	}
 	if _, err := git(ctx, "-C", workspace, "fetch", "--quiet", "--depth", "3", remote, ref+":"+ref); err != nil {
-		return fetched{}, fmt.Errorf("%s holds no evidence for that manifest: %w", remote, err)
+		return fetched{}, fmt.Errorf("%s holds no record for that manifest: %w", remote, err)
 	}
-	evidence, err := named(ctx, workspace, ref+"^{commit}", "the evidence ref names no commit")
+	evidence, err := named(ctx, workspace, ref+"^{commit}", "the record ref names no commit")
 	if err != nil {
 		return fetched{}, err
 	}
-	change, err := named(ctx, workspace, evidence+"^1", "the evidence commit has no parent, so it vouches for no change")
+	change, err := named(ctx, workspace, evidence+"^1", "the record commit has no parent, so it vouches for no change")
 	if err != nil {
 		return fetched{}, err
 	}
-	at, err := named(ctx, workspace, change+"^1", "the pull request's commit has no parent, so it names no commit the job ran against")
+	at, err := named(ctx, workspace, change+"^1", "the pull request's commit has no parent, so it names no commit the task ran against")
 	if err != nil {
 		return fetched{}, err
 	}

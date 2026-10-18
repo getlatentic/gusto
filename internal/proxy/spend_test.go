@@ -158,7 +158,7 @@ func TestASpentCapRefusesTheNextCallBeforeItLeaves(t *testing.T) {
 		t.Fatalf("the first call was refused: %d", answer.Code)
 	}
 	answer := ask(t, proxy, "/model/"+token+"/v1/chat/completions", `{"model":"fixture-model"}`)
-	if answer.Code != http.StatusPaymentRequired || !strings.Contains(answer.Body.String(), "this job has spent $3.0000 of its $2.0000 cap") {
+	if answer.Code != http.StatusPaymentRequired || !strings.Contains(answer.Body.String(), "this task has spent $3.0000 of its $2.0000 cap") {
 		t.Fatalf("code %d: %s", answer.Code, answer.Body.String())
 	}
 	if answering.calls != 1 {

@@ -13,7 +13,7 @@ import (
 // answers, not only a binary on PATH.
 func runtimeAnswers(machine Machine) Verdict {
 	if inProcess() {
-		return skip("GUSTO_SANDBOX=here and process run jobs in this process, not in a container")
+		return skip("GUSTO_SANDBOX=here and process run tasks in this process, not in a container")
 	}
 	runtime := sandbox.Runtime()
 	outcome := machine.Commands(runtime, "info")
@@ -66,7 +66,7 @@ func mountShows(machine Machine) Verdict {
 	}
 	marker, err := os.CreateTemp(absolute, ".doctor-*")
 	if err != nil {
-		return fail("could not leave a file in "+absolute+": "+err.Error(), "make the jobs directory writable by this user")
+		return fail("could not leave a file in "+absolute+": "+err.Error(), "make the tasks directory writable by this user")
 	}
 	marker.Close()
 	defer os.Remove(marker.Name())

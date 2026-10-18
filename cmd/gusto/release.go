@@ -32,11 +32,7 @@ func releaseName() string {
 }
 
 // versionCommand is `gusto version`.
-func versionCommand(args []string) int {
-	if len(args) != 0 {
-		usage()
-		return 2
-	}
+func versionCommand() int {
 	fmt.Println("gusto " + releaseName())
 	return 0
 }

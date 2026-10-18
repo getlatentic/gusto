@@ -11,7 +11,7 @@ const (
 	// FromProxy is the proxy's record of what the provider answered: the
 	// count, rather than a claim.
 	FromProxy = "proxy"
-	// FromHarness is the harness's own report, read off its output into the
+	// FromHarness is the agent's own report, read off its output into the
 	// manifest. It is what a run that reached the model directly has.
 	FromHarness = "harness"
 )

@@ -1,9 +1,9 @@
-// Package doctor checks what a runner needs from its machine before a job.
+// Package doctor checks what a runner needs from its machine before a task.
 //
-// A runner that cannot start a container finds out at the first job, and on a
+// A runner that cannot start a container finds out at the first task, and on a
 // deployed box that means a whole deploy cycle. Rootless podman that could not
-// reach its runtime directory failed every job with exit 125 before it began,
-// and nothing said so until a job was sent. Each check here is one of those
+// reach its runtime directory failed every task with exit 125 before it began,
+// and nothing said so until a task was sent. Each check here is one of those
 // failures, named, with what to do about it.
 //
 // A check is a name and a function. Running them is separate from the checks,

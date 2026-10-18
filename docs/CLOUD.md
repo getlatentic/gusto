@@ -1,12 +1,12 @@
 # The public cloud
 
-`gusto cloud` is the front door of a hosted gusto. A person signs up, creates an organisation, and the organisation gets its own `gusto serve`.
+`gusto cloud` is the hosted server for accounts and routing. A person signs up, creates an organisation, and the organisation gets its own `gusto serve`.
 
 ## How organisations are kept apart
 
-Each organisation runs its own `gusto serve` process with its own data directory, signing key, credentials, spend ledger, change log and job queue. The front door holds accounts and routes requests by host name (browser, front door, the organisation's server). It runs no jobs.
+Each organisation runs its own `gusto serve` process with its own data directory, signing key, credentials, spend ledger, change log and task queue. gusto cloud holds accounts and routes requests by host name (browser, gusto cloud, the organisation's server). It runs no tasks.
 
-Jobs run in OpenShell sandboxes on gateway hosts. A sandbox belongs to one job, is deleted when the job ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel.
+Tasks run in OpenShell sandboxes on gateway hosts. A sandbox belongs to one task, is deleted when the task ends, and is never reused for another organisation. Each sandbox is a microVM with its own kernel.
 
 ## Where it runs
 
@@ -14,37 +14,37 @@ CI and the running service make everything. Nothing is made or changed from a pe
 
 | Layer | Made by | When |
 | --- | --- | --- |
-| Base stack: network, control-plane host, cell image and template, storage, keys, DNS, roles | Terraform and Ansible in GitHub Actions, as an IAM role through OIDC, with state in an encrypted S3 bucket | when the platform changes, from a reviewed pull request |
+| Base stack: network, control-plane host, host image and template, storage, keys, DNS, roles | Terraform and Ansible in GitHub Actions, as an IAM role through OIDC, with state in an encrypted S3 bucket | when the platform changes, from a reviewed pull request |
 | An organisation: record, directory, server, route, secrets path | the orchestrator, on the control-plane host | at sign-up |
-| Capacity: more or fewer cells | the orchestrator, through the AWS API | as load changes |
+| Capacity: more or fewer hosts | the orchestrator, through the AWS API | as load changes |
 | Dedicated or customer-owned infrastructure | a provisioner worker running the same Terraform modules, with state for each organisation | when an organisation asks |
 
-A cell is one host with KVM. It runs an OpenShell gateway and the `gusto serve` processes of its organisations. The account store says which cell an organisation is on. A new organisation on the shared pool needs no new AWS resources. On an `m8i.2xlarge`, 12 sandboxes ran together, and CPU-bound work ran at full speed up to four ([OPENSHELL.md](OPENSHELL.md)). Cell capacity is a setting.
+A host is one machine with KVM. It runs an OpenShell gateway and the `gusto serve` processes of its organisations. The account store says which host an organisation is on. A new organisation on the shared pool needs no new AWS resources. On an `m8i.2xlarge`, 12 sandboxes ran together, and CPU-bound work ran at full speed up to four ([OPENSHELL.md](OPENSHELL.md)). Host capacity is a setting.
 
-A controller in the front door moves an organisation through `provisioning`, `ready`, `suspended` and `deleting`. Each step is safe to repeat, and a failed step is retried and shown to the operator. Only the local cell, this machine, is built. The other cells and the AWS calls are not. The orchestrator's IAM role can scale the cells' group, read the secrets under its own path and snapshot their disks. It cannot change the base stack. A person with admin access runs the first apply of the base stack. CI runs every later change, `down` and `reset`.
+A controller in gusto cloud moves an organisation through `provisioning`, `ready`, `suspended` and `deleting`. Each step is safe to repeat, and a failed step is retried and shown to the operator. Only the local host, this machine, is built. The other hosts and the AWS calls are not. The orchestrator's IAM role can scale the hosts' group, read the secrets under its own path and snapshot their disks. It cannot change the base stack. A person with admin access runs the first apply of the base stack. CI runs every later change, `down` and `reset`.
 
 ## Settings
 
 | Setting | Meaning |
 | --- | --- |
 | `GUSTO_CLOUD_ROOT` | where accounts are kept, `cloud` by default |
-| `GUSTO_CLOUD_ADDR` | where the front door listens, `127.0.0.1:8050` by default |
+| `GUSTO_CLOUD_ADDR` | where gusto cloud listens, `127.0.0.1:8050` by default |
 | `GUSTO_CLOUD_URL` | the address links in mail begin with |
 | `GUSTO_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
 | `GUSTO_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
 | `GUSTO_CLOUD_MAIL_TOKEN` | the Cloudflare API token that may send mail, for `cloudflare://`. Keep it where a secret is kept |
 | `GUSTO_CLOUD_LEASE_FILE` | the file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
 | `GUSTO_CLOUD_LEASE_STEP_MINUTES` | how much each extension adds, 30 by default |
-| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and computers a verified organisation may have, 4 and 4 by default: an admin and three users |
-| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server starts with: the operator's credentials directory, models and sandbox. Nothing else of the front door's environment goes to them |
+| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and workspaces a verified organisation may have, 4 and 4 by default: an admin and three users |
+| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organisation's server starts with: the operator's credentials directory, models and sandbox. Nothing else of gusto cloud's environment goes to them |
 | `GUSTO_CLOUD_PORT_FROM` | the first port an organisation's server gets, two each, 9100 by default |
 | `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
-| `GUSTO_CLOUD_SERVERS` | `off` runs the front door with accounts and no organisation servers |
+| `GUSTO_CLOUD_SERVERS` | `off` runs gusto cloud with accounts and no organisation servers |
 | `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
 ## Accounts and sign-up
 
-The front door keeps records as files under `GUSTO_CLOUD_ROOT`: `secret` (signs cookies, 0600), `people/<hash of email>.json`, `orgs/<slug>/org.json`, `tokens/<hash>.json` (single-use links) and `outbox/` (mail, when mail goes to files). Each organisation's directory `orgs/<slug>/data/` (0700) is its `gusto` data directory. The front door also writes `quota.json`, `members.json` and `inbox/` there, and the organisation's server writes `settings.json`.
+gusto cloud keeps records as files under `GUSTO_CLOUD_ROOT`: `secret` (signs cookies, 0600), `people/<hash of email>.json`, `orgs/<slug>/org.json`, `tokens/<hash>.json` (single-use links) and `outbox/` (mail, when mail goes to files). Each organisation's directory `orgs/<slug>/data/` (0700) is its `gusto` data directory. gusto cloud also writes `quota.json`, `members.json` and `inbox/` there, and the organisation's server writes `settings.json`.
 
 1. A person gives a work email. The address is refused when it is disposable, or at a free mail provider unless the operator allows it.
 2. The organisation is named from the company's domain, found with the public suffix list: `ada@acme-research.com` makes "Acme Research", with the address `acme-research-com`. A free mail address names no company, so the person is asked for a name.
@@ -63,30 +63,30 @@ A company can have more than one organisation. The first at a domain gets the do
 
 ## Sign-in to an organisation
 
-1. The person signs in at the front door by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
-2. Open makes a token, good for a minute and one use, signed with a key that only the front door and that organisation's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
-3. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to the front door.
-4. The server trusts the token for an hour. Then the person goes back through the front door, which asks whether they still belong.
+1. The person signs in at gusto cloud by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
+2. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organisation's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
+3. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
+4. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
 
 ## People
 
 An admin with a confirmed address invites people from the organisation's page. An invitation counts against `GUSTO_CLOUD_MEMBERS`. The link opens a page that asks the person to press a button, so a mail program that opens every link does not answer it. The person joins as a runner.
 
-An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person is signed out of the front door at once. Their organisation server stops trusting them, and a changed role takes effect, within the hour.
+An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person is signed out of gusto cloud at once. Their organisation server stops trusting them, and a changed role takes effect, within the hour.
 
-The front door tells the organisation's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
+gusto cloud tells the organisation's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
 
-## Computers
+## Workspaces
 
-A person has one computer in an organisation, made the first time they run a job. Its record is in the organisation's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the cell), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person.
+A person has one workspace in an organisation, made the first time they run a task. Its record is in the organisation's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organisation, and eight of the organisation and the person.
 
-- A job works in `/sandbox/jobs/<job>/workspace`, removed when the job ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
-- A job from a script or token has no person and runs in a sandbox of its own that goes with the job.
-- A person past the organisation's number of computers is refused in the job's record, and nothing is made.
-- A computer idle for half an hour with no job running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next job starts it. Removing a person marks their computer, and the organisation's server removes it.
+- A task works in `/sandbox/jobs/<job>/workspace`, removed when the task ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
+- A task from a script or token has no person and runs in a sandbox of its own that goes with the task.
+- A person past the organisation's number of workspaces is refused in the task's record, and nothing is made.
+- A workspace idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person marks their workspace, and the organisation's server removes it.
 - A person shares a web app their agent built from the agent's page. Members open it at the organisation's address ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record.
 - A turn that leaves an `index.html` in the agent's folder gets a Preview button. It starts a static file server, which needs only node, on the first free port from 8080.
-- `gusto cloud computers` lists every computer on the host with its organisation and person. It also reports a sandbox with no record, or a record with no sandbox.
+- `gusto cloud workspaces` lists every workspace on the host with its organisation and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console
 
@@ -94,49 +94,49 @@ An organisation's server has a console for its admins at `/admin`. A person who 
 
 | Section | Address | Holds |
 | --- | --- | --- |
-| Overview | `/admin` | this month's spending (UTC), limits and use, jobs running, waiting and failed in the last seven days, computers, shared apps, the budget |
+| Overview | `/admin` | this month's spending (UTC), limits and use, tasks running, waiting and failed in the last seven days, workspaces, shared apps, the budget |
 | Spending | `/admin/spending` | the spend report for the whole organisation |
 | Activity | `/admin/activity` | the change record, downloadable at `/admin/activity.jsonl` |
 | Tokens | `/admin/tokens` | API tokens |
 | Retention | `/admin/retention` | the disk, the policy, sweeps and holds ([RETENTION.md](RETENTION.md)) |
 | Skill sets | `/admin/skill-sets` | skill sets and their skills |
-| People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at the front door |
+| People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at gusto cloud |
 | Models | `/admin/models` | providers, models and limits per person |
 
-On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organisation's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no job (a team's cap does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
+On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organisation's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no task (a team's cap does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
 
 An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`engine=model`), then on the first engine and model that can run.
 
 ## Models
 
-Admins choose the models their people may use at `/admin/models`. A provider is an address, how it takes its key, and perhaps the harnesses it works with. A model belongs to a provider and may have a price in dollars for a million tokens of input, output and cached input. A team's cap cannot count a model with no price.
+Admins choose the models their people may use at `/admin/models`. A provider is an address, how it takes its key, and perhaps the agents it works with. A model belongs to a provider and may have a price in dollars for a million tokens of input, output and cached input. A team's cap cannot count a model with no price.
 
-- Each change is a version of the registry. It is written to the change record without the key and applies to the next model call. A running job keeps the credential it began with. `out/proxy.jsonl` records the version of each call.
+- Each change is a version of the registry. It is written to the change record without the key and applies to the next model call. A running task keeps the credential it began with. `out/proxy.jsonl` records the version of each call.
 - A provider or model an admin adds is off until an admin turns it on. The registry keeps its last twenty earlier states, and "Go back to it" restores one as a new change.
 - A key is typed once, kept in a file only the server can read, and never shown again. Retiring a provider forgets its key.
 - `GUSTO_REGISTRY_KEYS` allows naming a key as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. A deployment that hosts other people's organisations leaves these out, because they let an admin name anything the machine can read.
-- A provider must be at an https address that resolves to a public address. The check runs when it is added and on each proxy connection. A call that would reach this machine, a private network or a cloud metadata service is refused. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a model inside your network. Behind a front door the environment fixes both settings.
+- A provider must be at an https address that resolves to a public address. The check runs when it is added and on each proxy connection. A call that would reach this machine, a private network or a cloud metadata service is refused. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a model inside your network. Behind gusto cloud the environment fixes both settings.
 - An admin can limit a person to some models. API tokens belong to nobody, so they are not limited.
 
 ## Demos
 
-With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organisation on a small quota (one computer, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, the front door asks the server to remove its computers, waits up to ninety seconds, stops the server and deletes the organisation, its people and its data. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is deleted this way.
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organisation on a small quota (one workspace, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its workspaces, waits up to ninety seconds, stops the server and deletes the organisation, its people and its data. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organisation made as a demo is deleted this way.
 
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
 - At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
-- Create `demos.off` in the front door's directory to pause new demos. Remove it to resume. Running demos continue.
+- Create `demos.off` in gusto cloud's directory to pause new demos. Remove it to resume. Running demos continue.
 - Each visitor is kept as a lead in `demos/<address>.json`, which stays after the demo ends.
 - A demo is capped as a whole organisation at 0.50 dollars (`organisation` in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`). The proxy then refuses the next call, and refuses a model with no price. Calls in flight can pass the cap by a few cents.
 
-## The owner's page
+## The operator's page
 
-`gusto owner` serves the page the owner manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo and are kept in `demo-limits.json` in the front door's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
+`gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo and are kept in `demo-limits.json` in gusto cloud's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
 
-It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of the front door's host only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/owner.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
+It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of gusto cloud's host only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/owner.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
 
 ## Checks and costs
 
 - Rehearsal. `deploy/aws/openshell/demo-up.sh` makes a host with a public name, a certificate and mail. `deploy/aws/openshell/e2e-cloud.sh` runs sign-up, invitations and agents through the pages with a real model and checks what the host holds.
-- Isolation. Start a demo and an agent in it, then run `deploy/aws/openshell/check-isolation.sh`. It probes from inside the sandbox and passes only when the model proxy is open and nothing else is: the AWS metadata address, the machine's ports, the front door, the shared file system, the VPC resolver and the internet. It exits 0 on a pass. Run it after a change to the sandbox policy, the OpenShell version or the machine's network. It does not test UDP other than names, or IPv6.
+- Isolation. Start a demo and an agent in it, then run `deploy/aws/openshell/check-isolation.sh`. It probes from inside the sandbox and passes only when the model proxy is open and nothing else is: the AWS metadata address, the machine's ports, gusto cloud, the shared file system, the VPC resolver and the internet. It exits 0 on a pass. Run it after a change to the sandbox policy, the OpenShell version or the machine's network. It does not test UDP other than names, or IPv6.
 - Budgets. `deploy/aws/platform/budgets.tf` makes two AWS budgets that mail `ALERT_EMAIL` when `bootstrap.sh` runs with it set: `monthly_budget_usd` (60 dollars) mails at 80% and when the forecast passes 100%, and `daily_budget_usd` (10 dollars) mails when the day passes it. A demo machine left on costs about 5.30 dollars a day.
-- Cold start. With no demo machine running, a visitor waited 270 seconds on 2026-10-02 with no image. Run `deploy/aws/openshell/bake-cell-image.sh` to make a cell image. It takes about 25 minutes and writes the image id to `/gusto/poc/cell-ami`. Run it again when the key from `bake-key.sh` changes. A host with an older image installs everything and is slower.
+- Cold start. With no demo machine running, a visitor waited 270 seconds on 2026-10-02 with no image. Run `deploy/aws/openshell/bake-cell-image.sh` to make a host image. It takes about 25 minutes and writes the image id to `/gusto/poc/cell-ami`. Run it again when the key from `bake-key.sh` changes. A host with an older image installs everything and is slower.

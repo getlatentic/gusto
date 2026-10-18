@@ -1,5 +1,5 @@
 // Package roster is who is in an organisation, kept in a file that its front door
-// writes and its server reads. The front door owns the people, since it signs them
+// writes and its server reads. Gusto cloud owns the people, since it signs them
 // in and invites them; the server only shows them, so it holds no second copy that
 // could disagree.
 package roster
@@ -29,7 +29,7 @@ type Invited struct {
 	Expires time.Time `json:"expires"`
 }
 
-// Roster is the whole list, and when the front door wrote it.
+// Roster is the whole list, and when gusto cloud wrote it.
 type Roster struct {
 	Written time.Time `json:"written"`
 	Members []Member  `json:"members"`

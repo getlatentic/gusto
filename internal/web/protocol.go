@@ -44,8 +44,8 @@ func (s *Server) protocol() []call {
 		{"DELETE", "/api/me", whoPerson, "sign this computer out: its token ends", false, s.endMe},
 
 		{"GET", "/api/instances", whoPerson, "the person's instances", false, s.instancesJSON},
-		{"POST", "/api/instances", whoPerson, "start an instance of an engine, in a folder of its own", false, s.startInstanceJSON},
-		{"GET", "/api/engines", whoPerson, "the engines this server can start", false, s.enginesJSON},
+		{"POST", "/api/instances", whoPerson, "start an instance of an agent, in a folder of its own", false, s.startInstanceJSON},
+		{"GET", "/api/engines", whoPerson, "the agents this server can start", false, s.enginesJSON},
 		{"GET", "/api/instances/{id}", whoPerson, "one instance", false, s.instanceJSON},
 		{"GET", "/api/instances/{id}/threads", whoPerson, "an instance's threads", false, s.threadsJSON},
 		{"POST", "/api/instances/{id}/threads", whoPerson, "open a thread", false, s.newThreadJSON},
@@ -63,7 +63,7 @@ func (s *Server) protocol() []call {
 		{"DELETE", "/api/instances/{id}/file", whoPerson, "remove one file", false, s.removeFile},
 		{"POST", "/api/instances/{id}/hashes", whoPerson, "the hashes of the files named, so a client sends only what differs", false, s.hashesJSON},
 
-		{"POST", "/api/jobs", apitoken.Submit, "send a job directory to be run, as an organisation's program does", false, s.sent(apitoken.Submit, s.accept)},
+		{"POST", "/api/jobs", apitoken.Submit, "send a task directory to be run, as an organisation's program does", false, s.sent(apitoken.Submit, s.accept)},
 		{"GET", "/api/spend", apitoken.Spend, "the spend report", false, s.sent(apitoken.Spend, s.spendJSON)},
 		{"GET", "/api/changes", apitoken.Audit, "the record of what changed on the platform", false, s.sent(apitoken.Audit, s.changesScript)},
 	}

@@ -1,10 +1,10 @@
 {{template "head" .}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/new">New agent</a><span>/</span><a href="/new/blank">Your own agent</a><span>/</span><span>How each engine did</span></nav>
+<nav class="crumb" aria-label="Where this is"><a href="/new">New agent</a><span>/</span><a href="/new/blank">Your own agent</a><span>/</span><span>How each agent did</span></nav>
 
 <div class="page-head">
-  <h1>How each engine did</h1>
-  <p class="muted">Each engine was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
+  <h1>How each agent did</h1>
+  <p class="muted">Each agent was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
 </div>
 
 {{with .Measured}}
@@ -14,7 +14,7 @@
 </section>
 <div class="list">
   <table class="measured">
-    <thead><tr><th>Engine</th>{{range .Models}}<th>{{.}}</th>{{end}}</tr></thead>
+    <thead><tr><th>Agent</th>{{range .Models}}<th>{{.}}</th>{{end}}</tr></thead>
     <tbody>
     {{range .Rows}}
     <tr><td class="name">{{.Title}}</td>

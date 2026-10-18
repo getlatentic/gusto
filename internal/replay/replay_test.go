@@ -134,7 +134,7 @@ func TestASweepOverADirectoryOfJobsGivesOneSummary(t *testing.T) {
 	if len(rows) != 2 || replay.ExitCode(rows) != 0 {
 		t.Fatalf("two jobs that held should exit 0, got %d rows and exit %d:\n%s", len(rows), replay.ExitCode(rows), &out)
 	}
-	for _, want := range []string{"a-passes", "b-fails", "passed (0)", "failed (1)", "2 replayed: 0 worse, 0 better, 2 same, 0 could not run"} {
+	for _, want := range []string{"a-passes", "b-fails", "passed (0)", "failed (1)", "2 rerun: 0 worse, 0 better, 2 same, 0 could not run"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("the summary should say %q:\n%s", want, &out)
 		}

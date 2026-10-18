@@ -13,7 +13,7 @@ import (
 )
 
 // Integrations is the integrations an organisation has imported, which a setup may name. Only the versions an administrator has
-// turned on are given to a job.
+// turned on are given to a task.
 type Integrations interface {
 	Get(name string) (*integration.Integration, error)
 	Active() ([]integration.Active, error)
@@ -29,12 +29,12 @@ func (s *Store) UseIntegrations(from Integrations) {
 // Use is what one integration a setup names gives it, as the setup is now.
 type Use struct {
 	Name string
-	// Skills and Servers are what a job would be given.
+	// Skills and Servers are what a task would be given.
 	Skills  int
 	Servers int
 	// Held back are the servers that cannot be used yet, and why.
 	Held []string
-	// On says the integration is turned on. A setup that names one that is off cannot start a job.
+	// On says the integration is turned on. A setup that names one that is off cannot start a task.
 	On bool
 }
 

@@ -1,10 +1,10 @@
 # Signing keys
 
-gusto signs each job's `manifest.json` on the machine that runs the job, after the box stops. The private key never enters a job directory or a container. A verifier needs only the public key.
+gusto signs each task's `manifest.json` on the machine that runs the task, after the box stops. The private key never enters a task directory or a container. A verifier needs only the public key.
 
 | Setting | Holds | Where |
 | --- | --- | --- |
-| `GUSTO_SIGNING_KEY` | the private key: a file, or `awskms://<key>` | the machine that runs jobs |
+| `GUSTO_SIGNING_KEY` | the private key: a file, or `awskms://<key>` | the machine that runs tasks |
 | `GUSTO_KEYRING` | a directory of `<name>.pub` files | every machine that verifies |
 
 The file name of a public key is the signer's name. `gusto verify` prints it.
@@ -17,7 +17,7 @@ gusto keygen acme-2026-09 -dir /etc/gusto/keys
 
 ```
 key sha256:8bb9e1a2bf73b9dbdc479f688ee0c705
-acme-2026-09.key  the private key, for GUSTO_SIGNING_KEY; keep it off the job directory
+acme-2026-09.key  the private key, for GUSTO_SIGNING_KEY; keep it off the task directory
 acme-2026-09.pub  the public key, for GUSTO_KEYRING
 ```
 
@@ -38,7 +38,7 @@ Destroy the old private key when nothing needs it to sign. Never delete its publ
 Run this before you remove a public file, and after you restore one:
 
 ```bash
-gusto keys -jobs /var/lib/gusto/jobs
+gusto keys -tasks /var/lib/gusto/jobs
 ```
 
 ```
@@ -46,7 +46,7 @@ gusto keys -jobs /var/lib/gusto/jobs
     1 signed by acme-2026-10
 ```
 
-A record whose key is not in the keyring is not tampered with, but nobody can say whose it is. The check lists it as `signed by sha256:<id>, which is not in the keyring` and exits 1. Add the key's `.pub` file to `GUSTO_KEYRING`. A record whose signature does not hold for its manifest is listed by job name and also exits 1.
+A record whose key is not in the keyring is not tampered with, but nobody can say whose it is. The check lists it as `signed by sha256:<id>, which is not in the keyring` and exits 1. Add the key's `.pub` file to `GUSTO_KEYRING`. A record whose signature does not hold for its manifest is listed by task name and also exits 1.
 
 ## Back up and restore
 
@@ -69,7 +69,7 @@ A KMS key never leaves the service, and a machine stops signing when its access 
 3. Write the public file: `gusto keygen acme-prod -dir /etc/gusto/keys -awskms alias/gusto-signing`.
 4. Set `GUSTO_SIGNING_KEY=awskms://alias/gusto-signing`.
 
-gusto reads AWS credentials the usual way: an instance role, single sign-on or the environment. It checks the key when a job starts, so a wrong key or missing permission stops the job before the agent works.
+gusto reads AWS credentials the usual way: an instance role, single sign-on or the environment. It checks the key when a task starts, so a wrong key or missing permission stops the task before the agent works.
 
 KMS signs at most 4096 bytes, so gusto has KMS sign the 64-byte SHA-512 digest of the manifest with plain Ed25519 (`ED25519_SHA_512`, message type `RAW`). The signature file says `"scheme": "ed25519-sha512"`. Any plain Ed25519 tool checks it, with the digest (as `sha512sum` prints it) as the message.
 

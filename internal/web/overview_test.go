@@ -151,9 +151,9 @@ func TestTheOverviewShowsTheOrganisationsQuotaAndHowMuchOfItIsUsed(t *testing.T)
 
 	page := overview(t, here)
 	for what, want := range map[string][]string{
-		"Jobs started this month": {">2<", ">10<"},
-		"Jobs at once":            {">1<", ">2<"},
-		"Computers":               {">2<", ">3<"},
+		"Tasks started this month": {">2<", ">10<"},
+		"Tasks at once":            {">1<", ">2<"},
+		"Workspaces":               {">2<", ">3<"},
 	} {
 		row := limitOf(t, page, what)
 		for _, piece := range want {
@@ -186,12 +186,12 @@ func TestALimitThatIsUsedUpIsMarkedSo(t *testing.T) {
 	addJob(t, here, "wait-a", jobs.Queued, time.Minute)
 
 	page := overview(t, here)
-	for _, what := range []string{"Jobs started in all", "Jobs at once", "Computers"} {
+	for _, what := range []string{"Tasks started in all", "Tasks at once", "Workspaces"} {
 		if row := limitOf(t, page, what); !strings.Contains(row, `class="state failed"`) {
 			t.Errorf("%s is at its limit and is not marked: %s", what, row)
 		}
 	}
-	if row := limitOf(t, page, "Jobs at once"); !strings.Contains(row, ">1<") {
+	if row := limitOf(t, page, "Tasks at once"); !strings.Contains(row, ">1<") {
 		t.Errorf("a job waiting is not running: %s", row)
 	}
 }
@@ -220,7 +220,7 @@ func TestTheOverviewListsComputersAndAppsAndOnlyWhereTheServerKeepsThem(t *testi
 	here := open(t)
 	here.signIn(t)
 	page := overview(t, here)
-	if strings.Contains(page, "<h2>Computers</h2>") || strings.Contains(page, "<h2>Apps</h2>") {
+	if strings.Contains(page, "<h2>Workspaces</h2>") || strings.Contains(page, "<h2>Apps</h2>") {
 		t.Errorf("a server with neither lists them:\n%s", page)
 	}
 
@@ -248,7 +248,7 @@ func TestTheOverviewListsComputersAndAppsAndOnlyWhereTheServerKeepsThem(t *testi
 	here.server.UseApps(shared, nil)
 
 	page = overview(t, here)
-	computers := regexp.MustCompile(`(?s)<h2>Computers</h2>.*?</section>`).FindString(page)
+	computers := regexp.MustCompile(`(?s)<h2>Workspaces</h2>.*?</section>`).FindString(page)
 	for _, want := range []string{"ada@acme.com", `state running">running`, "3h ago", "bob@acme.com", `state failed">failed`, "the gateway said no", "never"} {
 		if !strings.Contains(computers, want) {
 			t.Errorf("the computers lack %q: %s", want, computers)

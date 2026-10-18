@@ -27,7 +27,7 @@ func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
 	// A job with no manifest has nothing to check, and the refusal has to happen
 	// here: once the first byte of an archive is out the status is spent.
 	if _, err := evidence.Read(dir); err != nil {
-		http.Error(w, "this job has left no manifest, so there is nothing to verify", http.StatusNotFound)
+		http.Error(w, "this task has left no manifest, so there is nothing to verify", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/gzip")

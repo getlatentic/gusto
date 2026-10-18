@@ -1,6 +1,6 @@
 # gusto with Compose
 
-The whole product on one Linux machine: the pages, the API and the proxy in one server, and a container for every job. Read [How a job gets its box](../README.md#how-a-job-gets-its-box) first: **the server holds the host's container runtime socket, which is root on this machine.** Put nothing else of value on the machine.
+The whole product on one Linux machine: the pages, the API and the proxy in one server, and a container for every task. Read [How a task gets its box](../README.md#how-a-task-gets-its-box) first: **the server holds the host's container runtime socket, which is root on this machine.** Put nothing else of value on the machine.
 
 `deploy/install/server.sh` does what this page describes in one command and adds HTTPS: the `tls` profile of `compose.yaml` puts Caddy in front of the server with a certificate for your domain.
 
@@ -18,28 +18,28 @@ From this repository, at the commit you mean to run:
 cd gusto/deploy/compose
 sed "s|^GUSTO_PASSWORD=.*|GUSTO_PASSWORD=$(openssl rand -hex 24)|" env.example > .env
 grep ^GUSTO_PASSWORD .env      # you sign in with this
-docker compose up -d --build   # the first build downloads the harnesses and takes a while
+docker compose up -d --build   # the first build downloads the agents and takes a while
 docker compose ps -a
 ```
 
-The server will not start without a password. In `.env`, `GUSTO_DATA` is where jobs and conversations live on the host (Compose creates it) and `GUSTO_PUBLISH` is the address and port of the pages. To connect the desktop helper (`gusto-helper login`), also set `GUSTO_API_TOKENS` ([TOKENS.md](../../docs/TOKENS.md)).
+The server will not start without a password. In `.env`, `GUSTO_DATA` is where tasks and conversations live on the host (Compose creates it) and `GUSTO_PUBLISH` is the address and port of the pages. To connect the desktop helper (`gusto-helper login`), also set `GUSTO_API_TOKENS` ([TOKENS.md](../../docs/TOKENS.md)).
 
-`runner` has to read `Exited (0)` and `server` has to read `healthy`. The runner runs once to prove its image starts, and the server starts a fresh container from it for every job. `docker compose logs server` lists each harness it does not offer, on lines that begin `not offered`. The default `.env` offers `opencode`. Those lines say `HARNESSES` where `.env` says `GUSTO_RUNNER_HARNESSES`.
+`runner` has to read `Exited (0)` and `server` has to read `healthy`. The runner runs once to prove its image starts, and the server starts a fresh container from it for every task. `docker compose logs server` lists each agent it does not offer, on lines that begin `not offered`. The default `.env` offers `opencode`. Those lines say `HARNESSES` where `.env` says `GUSTO_RUNNER_HARNESSES`.
 
-## Prove it runs a job
+## Prove it runs a task
 
 ```bash
 docker compose exec -T server sh < ../smoke.sh
 ```
 
-It runs one job through the API on a fixture harness that calls no model, and checks the evidence. It ends with:
+It runs one task through the API on a fixture agent that calls no model, and checks the record. It ends with:
 
 ```
 unsigned: no key stands behind this record
-8 files match, and the gate still exits 0
+8 files match, and the check still exits 0
 ```
 
-Anything else is a failure, and the job page it names says why. A pass says nothing about a model.
+Anything else is a failure, and the task page it names says why. A pass says nothing about a model.
 
 ## Sign in
 
@@ -71,7 +71,7 @@ GUSTO_MODEL_KEY=...
 GUSTO_MODELS=some-model
 ```
 
-With an upstream set, the proxy is on: every job runs with no network but the proxy's socket, and the key stays in the server. Without one, a job keeps the Docker bridge and reaches anything this machine does. `GUSTO_ALLOWED_HOSTS` names other hosts a sealed job may reach. Every other setting is in the [Environment table](../../docs/REFERENCE.md#environment) and goes in `.env`. Add a harness the image lacks to `GUSTO_RUNNER_HARNESSES` as `name=package`, then run `docker compose up -d --build`.
+With an upstream set, the proxy is on: every task runs with no network but the proxy's socket, and the key stays in the server. Without one, a task keeps the Docker bridge and reaches anything this machine does. `GUSTO_ALLOWED_HOSTS` names other hosts a sealed task may reach. Every other setting is in the [Environment table](../../docs/REFERENCE.md#environment) and goes in `.env`. Add an agent the image lacks to `GUSTO_RUNNER_HARNESSES` as `name=package`, then run `docker compose up -d --build`.
 
 ## Sign the record
 
@@ -88,12 +88,12 @@ GUSTO_KEYRING=/var/lib/gusto/keys
 
 | What | Where |
 | --- | --- |
-| Jobs and their evidence | `$GUSTO_DATA/jobs` (`/var/lib/gusto/jobs` unless moved); the proxy's socket is `.proxy.sock` there. The smoke check keeps its repository in `$GUSTO_DATA/smoke` and its jobs here until you delete them |
+| Tasks and their record | `$GUSTO_DATA/jobs` (`/var/lib/gusto/jobs` unless moved); the proxy's socket is `.proxy.sock` there. The smoke check keeps its repository in `$GUSTO_DATA/smoke` and its tasks here until you delete them |
 | Workspaces, setups, comparisons | `$GUSTO_DATA/sessions`, `setups`, `comparisons` |
 | The change record | `$GUSTO_DATA/changes/changes.jsonl` ([CHANGES.md](../../docs/CHANGES.md)) |
 | The server's log | `docker compose logs server`: one JSON line a request |
 
-`GUSTO_DATA` is mounted at the same path inside the server as on the host, and has to be, because the runtime looks for the job's directory on the host. Back up by copying `GUSTO_DATA`.
+`GUSTO_DATA` is mounted at the same path inside the server as on the host, and has to be, because the runtime looks for the task's directory on the host. Back up by copying `GUSTO_DATA`.
 
 ## Upgrade, stop, remove
 

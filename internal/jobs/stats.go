@@ -2,21 +2,21 @@ package jobs
 
 import "time"
 
-// Stats is what the queue can be watched by: how many jobs are in each state,
+// Stats is what the queue can be watched by: how many tasks are in each state,
 // how long the oldest has waited, and whether anything held back is still
 // waiting for nothing.
 type Stats struct {
-	// ByState is every job the index holds.
+	// ByState is every task the index holds.
 	ByState map[State]int
-	// OldestWaitSeconds is how long the job that has been queued longest has waited.
+	// OldestWaitSeconds is how long the task that has been queued longest has waited.
 	OldestWaitSeconds int64
-	// StuckSeconds is how long the longest-waiting job has waited that nothing
+	// StuckSeconds is how long the longest-waiting task has waited that nothing
 	// holds back: no limit, no busy agent, and a worker free. It is near zero
 	// while the workers are alive, and grows when they are not.
 	StuckSeconds int64
-	// Finished counts jobs that ended since this server started, by state.
+	// Finished counts tasks that ended since this server started, by state.
 	Finished map[State]int64
-	// LastStarted and LastFinished are when a job last started and last ended,
+	// LastStarted and LastFinished are when a task last started and last ended,
 	// in unix seconds, or zero when none has since the server started.
 	LastStarted, LastFinished int64
 	Slots                     int

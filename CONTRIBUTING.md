@@ -15,7 +15,7 @@ to a server, and the place to start if you are building against it.
 ## The standard for the code
 
 - A number in a README or a comment comes from a run somebody did. No estimates dressed as measurements.
-- An adapter's field paths are read off a real run of that harness. A test holds the line that was observed.
+- An adapter's field paths are read off a real run of that agent. A test holds the line that was observed.
 - One cohesive concern a file. Split at about 400 lines rather than later.
 - A comment says why, and describes the present. It does not narrate a change.
 - A change comes with the test that fails without it.

@@ -201,7 +201,7 @@ const retentionPath = "/admin/retention"
 func (s *Server) holdJob(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.FormValue("job"))
 	if _, found := s.index.Get(id); !found {
-		s.turnAway(w, r, retentionPath, "no job has the id "+id)
+		s.turnAway(w, r, retentionPath, "no task has the id "+id)
 		return
 	}
 	why := strings.TrimSpace(r.FormValue("why"))

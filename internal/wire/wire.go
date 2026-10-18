@@ -1,7 +1,7 @@
-// Package wire translates between the shapes of API that coding agents call a model in, so that a harness can use a
+// Package wire translates between the shapes of API that coding agents call a model in, so that an agent can use a
 // model whose provider answers in another shape.
 //
-// Claude Code calls Anthropic's Messages API, Codex the Responses API, and most other harnesses Chat Completions,
+// Claude Code calls Anthropic's Messages API, Codex the Responses API, and most other agents Chat Completions,
 // while many providers answer Chat Completions alone. A call made in Messages or Responses is translated into Chat
 // Completions on the way out, and the answer, streamed or whole, is translated back. What one shape has and the
 // other cannot carry, such as Anthropic's thinking blocks or a hosted search tool, is left out rather than imitated.

@@ -8,7 +8,7 @@ import (
 )
 
 // lift reads a conversation written before an instance had threads and writes
-// it out in the shape that has them: the computer it always was, and the one
+// it out in the shape that has them: the workspace it always was, and the one
 // thread it always had.
 //
 // The old file is left where it is. Once the new one is beside it nothing reads

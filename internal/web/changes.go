@@ -316,7 +316,7 @@ func saidOf(e changelog.Event) string {
 	case changelog.HoldReleased:
 		return "let " + heldThing(w) + " be removed on schedule again"
 	case changelog.Swept:
-		return fmt.Sprintf("retention removed %s workspaces and %s records, freeing %s bytes%s",
+		return fmt.Sprintf("retention removed %s working folders and %s records, freeing %s bytes%s",
 			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
 	case changelog.SandboxConfirmed:
 		return "confirmed that agents run with no sandbox between them and their files"
@@ -384,7 +384,7 @@ func or(value, fallback string) string {
 
 func heldThing(w map[string]string) string {
 	if w["job"] != "" {
-		return "the job " + w["job"]
+		return "the task " + w["job"]
 	}
 	return "everything asked for by " + w["person"]
 }

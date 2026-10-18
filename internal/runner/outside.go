@@ -15,7 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// Box is a place a harness runs that this process only drives, such as a
+// Box is a place an agent runs that this process only drives, such as a
 // sandbox on a gateway. The runner stays outside and writes the record itself,
 // so what runs in the box has nothing of the record to write, and a sandbox
 // cannot be made to run as root for the sake of one.
@@ -31,12 +31,12 @@ type Box interface {
 	Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error)
 	// Fetch replaces into with the workspace as the box now holds it.
 	Fetch(into string) error
-	// Equip puts the job's skills where the harness finds them in the box.
+	// Equip puts the task's skills where the agent finds them in the box.
 	Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error
 	// HostModelURL is where the proxy is from this process, which is not where the
 	// box sees it: the box names this machine by a name of its own.
 	HostModelURL() string
-	// Env is what a harness in the box is started with: where its model is, and
+	// Env is what an agent in the box is started with: where its model is, and
 	// nothing of this process's environment.
 	Env() harness.Env
 	// Workdir is where the workspace is inside the box.
@@ -55,8 +55,8 @@ const (
 	GuardPolicy = "sandbox-policy.json"
 )
 
-// Outside does the whole run for a harness that runs in a box, and returns the
-// exit code the gate earned, as Inside does for one in this process. The
+// Outside does the whole run for an agent that runs in a box, and returns the
+// exit code the check earned, as Inside does for one in this process. The
 // workspace must already hold the repository.
 func Outside(dir job.Dir, box Box) (int, error) {
 	return OutsideContext(context.Background(), dir, box)
@@ -226,8 +226,8 @@ func admitOutside(spec job.Spec, adapter harness.Adapter, endpoint string) error
 func carriedIn(ctx context.Context, box Box, name string, adapter harness.Adapter) error {
 	check := box.Wrap(ctx, exec.CommandContext(ctx, "sh", "-c", `command -v "$1" >/dev/null`, "sh", adapter.Program))
 	if err := check.Run(); err != nil {
-		return fmt.Errorf("this sandbox's image does not carry %s, the program the %s harness runs: "+
-			"build the image with %s in its HARNESSES, or choose a harness the catalog offers",
+		return fmt.Errorf("this sandbox's image does not carry %s, the program the %s agent runs: "+
+			"build the image with %s in its HARNESSES, or choose an agent the catalog offers",
 			adapter.Program, name, name)
 	}
 	return nil

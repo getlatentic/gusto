@@ -199,7 +199,7 @@ func TestAJobForARepositoryTheAppDoesNotReachIsRefusedInTheRecord(t *testing.T) 
 		t.Fatalf("got %v, want a refusal naming the repository", err)
 	}
 	transcript, readErr := os.ReadFile(dir.OutFile("transcript.log"))
-	if readErr != nil || !strings.Contains(string(transcript), "acme/other") || !strings.Contains(string(transcript), "refused this job before the harness started") {
+	if readErr != nil || !strings.Contains(string(transcript), "acme/other") || !strings.Contains(string(transcript), "refused this task before the agent started") {
 		t.Errorf("the record says %q (%v)", transcript, readErr)
 	}
 	if _, err := os.Stat(filepath.Join(dir.Path(), "workspace", ".git")); err == nil {

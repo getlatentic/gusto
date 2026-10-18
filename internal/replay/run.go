@@ -9,15 +9,15 @@ import (
 	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
-// Here runs a replay in this process, the way `gusto inside` does.
+// Here runs a rerun in this process, the way `gusto inside` does.
 func Here(dir job.Dir) error {
 	_, err := runner.Inside(dir)
 	return err
 }
 
-// Contained runs a replay in a container, the way `gusto run` does: the clone
+// Contained runs a rerun in a container, the way `gusto run` does: the clone
 // happens on this side of the box, so a repository credential never enters it.
-// The exit code is the gate's, and the verdict is read from the evidence.
+// The exit code is the check's, and the verdict is read from the evidence.
 func Contained(dir job.Dir) error {
 	spec, err := job.Read(dir)
 	if err != nil {
@@ -40,7 +40,7 @@ func Where(here bool) Run {
 
 // Interspersed parses flags wherever they sit among the directories and returns
 // the directories. Go's flag package stops at the first one, and would read
-// `gusto replay a b -here` as three jobs, the last called -here.
+// `gusto rerun a b -here` as three tasks, the last called -here.
 func Interspersed(flags *flag.FlagSet, args []string) ([]string, error) {
 	var named []string
 	for {

@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// Options is what shapes one export besides the job itself.
+// Options is what shapes one export besides the task itself.
 type Options struct {
 	Policy Policy
 	// RequestLog is the server's request log, one JSON line a request, as
@@ -27,9 +27,9 @@ type Options struct {
 	Keyring signing.Keyring
 }
 
-// Export writes the audit export of the job in from into a new directory to.
+// Export writes the audit export of the task in from into a new directory to.
 //
-// A job whose evidence does not verify is refused, naming what is wrong: an
+// A task whose record does not verify is refused, naming what is wrong: an
 // export vouches for what it carries, and it cannot vouch for a run whose own
 // record already disagrees with its files.
 func Export(from job.Dir, to string, options Options) (Record, error) {
@@ -69,7 +69,7 @@ func write(from, to job.Dir, manifest evidence.Manifest, options Options) (Recor
 func verified(from job.Dir) (evidence.Manifest, error) {
 	wrong, err := evidence.Check(from)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("%s has no evidence to export: %w", from.Path(), err)
+		return evidence.Manifest{}, fmt.Errorf("%s has no record to export: %w", from.Path(), err)
 	}
 	if len(wrong) > 0 {
 		return evidence.Manifest{}, fmt.Errorf("%s does not verify, so it is not exported: %s", from.Path(), strings.Join(wrong, "; "))
@@ -86,8 +86,8 @@ func fresh(to string) error {
 	return os.MkdirAll(filepath.Join(to, "out"), 0o755)
 }
 
-// carryAll copies the job's files through the policy, then the request lines
-// that name the job, and returns what the policy changed.
+// carryAll copies the task's files through the policy, then the request lines
+// that name the task, and returns what the policy changed.
 func carryAll(from, to job.Dir, id string, manifest evidence.Manifest, options Options) ([]Redaction, error) {
 	names, err := sourceFiles(from)
 	if err != nil {
@@ -113,7 +113,7 @@ func carryAll(from, to job.Dir, id string, manifest evidence.Manifest, options O
 	return carrier.redactions, carrier.carry(RequestsFile, requests)
 }
 
-// sourceFiles are the files of a job an export carries: job.json, the
+// sourceFiles are the files of a task an export carries: job.json, the
 // server's state.json when there is one, and everything in out/. The
 // workspace stays behind: what changed in it is out/diff.patch.
 func sourceFiles(from job.Dir) ([]string, error) {
