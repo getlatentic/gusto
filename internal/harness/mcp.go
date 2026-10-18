@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// MCP is how a harness takes MCP servers. Each reads them in a format of its
+// MCP is how an agent takes MCP servers. Each reads them in a format of its
 // own, measured on 2026-09-27 against a probe server:
 //
 //	claude    --mcp-config with a JSON string, and --allowedTools for each
@@ -21,28 +21,28 @@ import (
 //	          since exec never asks and refuses what needs asking
 //	opencode  an "mcp" key in OPENCODE_CONFIG_CONTENT, merged with its file
 //	pi        pi-mcp-adapter, loaded as an extension, reading the servers
-//	          from ~/.config/mcp/mcp.json, the file every harness can share
+//	          from ~/.config/mcp/mcp.json, the file every agent can share
 //	acp       mcpServers on the session, which the runner opens
 //
-// A harness with no MCP has none of this, and a setup naming a server is
+// An agent with no MCP has none of this, and a setup naming a server is
 // refused for it before it starts.
 type MCP struct {
 	Format string `json:"format"`
-	// Argv is added to the harness's arguments, and Env to its environment,
-	// when a job names servers. {mcp} is the servers in Format, {mcpTools}
-	// the names a harness allows its tools by.
+	// Argv is added to the agent's arguments, and Env to its environment,
+	// when a task names servers. {mcp} is the servers in Format, {mcpTools}
+	// the names an agent allows its tools by.
 	Argv []string          `json:"argv,omitempty"`
 	Env  map[string]string `json:"env,omitempty"`
-	// File is where the servers are written, in Format, for a harness that
+	// File is where the servers are written, in Format, for an agent that
 	// reads them from a file rather than its arguments.
 	File string `json:"file,omitempty"`
 }
 
-// TakesMCP says whether this harness can be given MCP servers.
+// TakesMCP says whether this agent can be given MCP servers.
 func (a Adapter) TakesMCP() bool { return a.MCP != nil }
 
-// Give hands a built command the servers a job names, in this harness's own
-// format. An ACP harness is given them on the session instead, by the runner.
+// Give hands a built command the servers a task names, in this agent's own
+// format. An ACP agent is given them on the session instead, by the runner.
 func (a Adapter) Give(command *exec.Cmd, servers []job.Server) error {
 	if len(servers) == 0 {
 		return nil

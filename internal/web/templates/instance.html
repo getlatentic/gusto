@@ -42,7 +42,7 @@
         <label>What to do
           <textarea name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
         </label>
-        <label><span class="line">Gate <span class="muted">the command that says it worked</span></span>
+        <label><span class="line">Check <span class="muted">the command that says it worked</span></span>
           <input name="gate" placeholder="sh test.sh" required>
         </label>
         <div class="row">
@@ -74,7 +74,7 @@
         <select name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
         <button type="submit" class="quiet">Use</button>
       </form>{{else}}{{.Agent.Brain}}{{end}}</dd>
-      <dt>Engine</dt><dd>{{.Agent.Engine}}</dd>
+      <dt>Agent</dt><dd>{{.Agent.Engine}}</dd>
       {{with .Instance.Setup}}<dt>Skills</dt><dd><a href="/setups/{{.}}">{{.}}</a></dd>{{end}}
       {{with .Instance.Repo}}<dt>Repository</dt><dd>{{.}}</dd>{{end}}
       <dt>Started</dt><dd>{{when .Instance.Started}}</dd>

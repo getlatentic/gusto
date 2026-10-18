@@ -16,7 +16,7 @@ func systemResolver(ctx context.Context, host string) ([]netip.Addr, error) {
 	return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 }
 
-// dial connects a job to a host its allowlist names, and to no address the
+// dial connects a task to a host its allowlist names, and to no address the
 // allowlist could not have meant. A name is resolved once, here, and the
 // connection is made to an address from that answer, so what was checked is
 // what is connected to.
@@ -75,7 +75,7 @@ func parsedLiteral(host string) (netip.Addr, bool) {
 	return addr, err == nil
 }
 
-// unreachable says why a job may not connect to address, or nothing.
+// unreachable says why a task may not connect to address, or nothing.
 func unreachable(a netip.Addr, named bool) string {
 	switch {
 	case a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast():

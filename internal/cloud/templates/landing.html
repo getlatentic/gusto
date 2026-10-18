@@ -13,7 +13,7 @@
 <header class="top">
   <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> Latentic Agent Cloud</a>
   <nav>
-    <a href="#harnesses">Harnesses</a>
+    <a href="#harnesses">Agents</a>
     <a href="#how">How it works</a>
     <a href="#control">Controls</a>
     <a href="#proof">Proof</a>
@@ -24,7 +24,7 @@
 <main>
 <section class="hero">
   <h1>One place for every AI agent your team needs.</h1>
-  <p class="lede">Run Claude Code, Codex, Pi, OpenCode and other agent harnesses with the same controls for credentials, models, spend and oversight.</p>
+  <p class="lede">Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight.</p>
   <div class="actions">
     <a class="cta" href="/demo">Explore a live workspace</a>
     {{if .Book}}<a class="ghost" href="{{.Book}}">Book a demo</a>{{end}}
@@ -49,15 +49,15 @@
     <li><span class="glyph" aria-hidden="true">H</span>Hermes</li>
     <li class="own"><span class="glyph" aria-hidden="true">+</span>Your own</li>
   </ul>
-  <p class="lead">Switch harnesses without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+  <p class="lead">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
 </section>
 
 <section id="how" class="steps">
   <h2>How it works</h2>
   <ol>
-    <li><h3>Pick a harness</h3><p>Choose the agent for the work.</p></li>
+    <li><h3>Pick an agent</h3><p>Choose the one for the work.</p></li>
     <li><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p></li>
-    <li><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the harness.</p></li>
+    <li><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p></li>
     <li><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p></li>
   </ol>
 </section>
@@ -65,17 +65,17 @@
 <section id="control" class="points">
   <h2>One workspace. One set of controls. One record.</h2>
   <ul>
-    <li><h3>Protected credentials</h3><p>Model keys stay outside the harness. The agent reaches a model through a proxy and never holds the key.</p></li>
+    <li><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></li>
     <li><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></li>
     <li><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></li>
   </ul>
 </section>
 
 <section id="proof" class="proof">
-  <h2>Tested across multiple harnesses.</h2>
+  <h2>Tested across multiple agents.</h2>
   <p class="lead">Same task. Same model. Same environment.</p>
   <table>
-    <thead><tr><th>Harness</th><th>Finished</th><th>Time</th></tr></thead>
+    <thead><tr><th>Agent</th><th>Finished</th><th>Time</th></tr></thead>
     <tbody>
       <tr><td>Pi</td><td>Yes</td><td><progress max="166" value="28" aria-hidden="true"></progress>28 s</td></tr>
       <tr><td>Claude Code</td><td>Yes</td><td><progress max="166" value="30" aria-hidden="true"></progress>30 s</td></tr>
@@ -84,7 +84,7 @@
       <tr><td>OpenCode</td><td>Yes</td><td><progress max="166" value="166" aria-hidden="true"></progress>2 m 46 s</td></tr>
     </tbody>
   </table>
-  <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each harness runs here, not which is best for your work.</p>
+  <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each agent runs here, not which is best for your work.</p>
 </section>
 
 <section class="audience">
@@ -95,7 +95,7 @@
 <section class="faq">
   <h2>Questions</h2>
   <details><summary>What gets uploaded?</summary><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></details>
-  <details><summary>Which harnesses and models work?</summary><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organisation connects.</p></details>
+  <details><summary>Which agents and models work?</summary><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organisation connects.</p></details>
   <details><summary>What happens when the demo ends?</summary><p>The organisation, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></details>
   <details><summary>Who can see my workspace and runs?</summary><p>A demo organisation is yours alone, on an address of its own. Within an organisation, administrators see people, spend and the record of runs.</p></details>
 </section>

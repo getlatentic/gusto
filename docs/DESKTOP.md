@@ -1,6 +1,6 @@
 # The desktop side
 
-The agents stay in the organisation's cloud computer, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
+The agents stay in the person's workspace in the organisation's cloud, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
 
 ## The app
 
@@ -81,7 +81,7 @@ Empty folders are not kept. A file the agent writes crosses when its turn ends o
 | `initialize` | Answers protocol version 1, with no `loadSession`, no images or audio, and no authentication to do |
 | `session/new` | Opens a thread on one of your cloud agents: the one named by `-instance`, else your newest, else a new one of the kind `-agent` names |
 | `session/prompt` | Says it in the thread and follows the turn. Each step is a `tool_call`, and the reply arrives as `agent_message_chunk`s |
-| `session/cancel` | Stops the turn in the cloud ([STATES.md](STATES.md#stopping-a-job)), and the prompt ends `cancelled` |
+| `session/cancel` | Stops the turn in the cloud ([STATES.md](STATES.md#stopping-a-task)), and the prompt ends `cancelled` |
 
 A failed turn is reported in words and ends `end_turn`. Closing the editor ends the helper, not the turn. Signed out, `session/new` returns the authentication error: run `gusto-helper login`, with no editor restart. The agent works in its cloud folder, not the editor's open folder, and says so first; `cwd` is ignored (getlatentic/planning#502). `session/load`, the editor's file and terminal methods, and MCP servers an editor passes are not used.
 

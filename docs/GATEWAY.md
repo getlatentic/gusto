@@ -2,7 +2,7 @@
 
 Every call an agent makes to a model leaves its sandbox through the proxy. The sandbox network policy allows the proxy and no other host. The proxy holds the keys, counts the spend, stops a call over its cap and keeps the record.
 
-The harness calls the address it was given, with the job's token where its key would go. The proxy finds the job and its credential by the token, so a container cannot choose a credential. The ledger checks the job's, the team's and the organisation's caps. The proxy sends the call as it came, or translated, counts the answer from the provider's own usage and writes one line to `out/proxy.jsonl`.
+The agent calls the address it was given, with the task's token where its key would go. The proxy finds the task and its credential by the token, so a container cannot choose a credential. The ledger checks the task's, the team's and the organisation's caps. The proxy sends the call as it came, or translated, counts the answer from the provider's own usage and writes one line to `out/proxy.jsonl`.
 
 ## Translation
 
@@ -26,22 +26,22 @@ A bearer-token credential answers Chat Completions and Responses. An Anthropic-h
 
 Translation leaves out what Chat Completions cannot carry: Anthropic's thinking blocks, cache hints, context management and effort; Codex's reasoning, encrypted history, tool namespace and tools OpenAI runs itself, such as web search; and a picture in a tool's result, which says an image was left out.
 
-A Codex free-text tool, such as a patch, becomes a function with one text argument. A mid-conversation instruction becomes a user message. A tool call the harness did not answer is answered with "(no result)". A translated call's record has `"translated": "messages"` or `"responses"`.
+A Codex free-text tool, such as a patch, becomes a function with one text argument. A mid-conversation instruction becomes a user message. A tool call the agent did not answer is answered with "(no result)". A translated call's record has `"translated": "messages"` or `"responses"`.
 
 Tests use requests recorded from Claude Code 2.1.270 and Codex 0.154.0. `go test -tags realharnesses -run RealHarnesses ./internal/proxy` runs the real `claude` and `codex` through the proxy.
 
 ## Tools
 
-A job's harness is given one MCP server, the gateway. The gateway calls the real servers (`internal/gateway`). Their addresses and credentials never enter the sandbox.
+A task's agent is given one MCP server, the gateway. The gateway calls the real servers (`internal/gateway`). Their addresses and credentials never enter the sandbox.
 
 | What | How |
 | --- | --- |
-| Finding a tool | The harness sees `tool_search`, `tool_schema` and `tool_call`. In `all` mode it sees every tool it may use |
+| Finding a tool | The agent sees `tool_search`, `tool_schema` and `tool_call`. In `all` mode it sees every tool it may use |
 | Policy | A rule names a server, tool, person or team as patterns, and allows or refuses. The first match decides. A call no rule matches is allowed. A refused tool is not found, and asking for it by name is refused with the rule's reason |
 | The record | `out/gateway.jsonl` has a line per listing, search, schema and call: who, server, tool, outcome (`ok`, `error`, `refused`, `failed`), duration and bytes. It holds no content. Token figures are estimated at four characters each |
 | Reaching a server | Streamable HTTP, JSON or event stream. Redirects are not followed. A private-network address is refused where the connection is made |
 
-A setup's integrations put their servers behind the gateway. Their definitions go to the job's `setup/gateway.json`, and `job.json` names them under `setup.gateway`. A job on a deployment with no proxy is refused by name.
+A setup's integrations put their servers behind the gateway. Their definitions go to the task's `setup/gateway.json`, and `job.json` names them under `setup.gateway`. A task on a deployment with no proxy is refused by name.
 
 Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `discover` (default) or `all`. `GUSTO_GATEWAY_PRIVATE=1` lets servers be on a private network.
 
@@ -49,17 +49,17 @@ Measured on 2026-10-08 with 60 tools of about 200 tokens each: Claude Code and C
 
 ### Programs
 
-A plugin's MCP server may be a program (`"type": "stdio"`). It starts on first use, ends with the job, and runs only when an administrator allows the programs of that version, in a box that is not the job's:
+A plugin's MCP server may be a program (`"type": "stdio"`). It starts on first use, ends with the task, and runs only when an administrator allows the programs of that version, in a box that is not the task's:
 
 | The box | Has |
 | --- | --- |
 | The plugin | its folder, read-only at `/plugin` (`${PLUGIN_ROOT}`) |
-| A place to write | `/data` (`${PLUGIN_DATA}`), kept for this job only; the rest is read-only, with 64 MiB in `/tmp` |
+| A place to write | `/data` (`${PLUGIN_DATA}`), kept for this task only; the rest is read-only, with 64 MiB in `/tmp` |
 | The network | none. `GUSTO_TOOLS_NETWORK=open` gives it the runtime's network, so a program can send what it is given to any host on it |
 | Privilege | no capability, no new privilege, user 65534, at most 0.5 CPU, 512 MiB and 128 processes (`GUSTO_TOOL_CPUS`, `GUSTO_TOOL_MEMORY`) |
-| The job | nothing: not its folder, files, token, the proxy or the docker socket |
+| The task | nothing: not its folder, files, token, the proxy or the docker socket |
 
-The image is `GUSTO_TOOLS_IMAGE`, or the job image. A plugin that needs a program the image lacks, a network it is not given, or a secret cannot run yet. A job with `GUSTO_SANDBOX=here` runs no program.
+The image is `GUSTO_TOOLS_IMAGE`, or the task image. A plugin that needs a program the image lacks, a network it is not given, or a secret cannot run yet. A task with `GUSTO_SANDBOX=here` runs no program.
 
 ## Masking personal data and secrets
 
@@ -71,7 +71,7 @@ The image is `GUSTO_TOOLS_IMAGE`, or the job image. A plugin that needs a progra
 | `card` | 13 to 19 digits, with single spaces or hyphens allowed, that pass the Luhn check |
 | `key` | private key blocks, AWS access key ids, GitHub tokens, Anthropic and OpenAI style keys (`sk-`), Slack, Google, Stripe, JSON web tokens, and `Bearer` followed by a long token |
 
-A match becomes `[redacted:<kind>]`. The proxy masks every string of a model request before translation, and every string of a model answer, event by event for a stream. It masks what a tool answers before the harness sees it. What is sent to a tool is not masked.
+A match becomes `[redacted:<kind>]`. The proxy masks every string of a model request before translation, and every string of a model answer, event by event for a stream. It masks what a tool answers before the agent sees it. What is sent to a tool is not masked.
 
 `out/proxy.jsonl` has `redacted` and `redactedAnswer` counts for each kind, and `out/gateway.jsonl` has `redacted`. What was masked is not kept.
 

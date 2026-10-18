@@ -24,7 +24,7 @@ import (
 
 // WayOut is how a container reaches a model. When a credential is configured it
 // is the proxy, which holds the key, writes down what actually went, and lets a
-// job reach nothing else unless the allowlist names it. When one is not, it is
+// task reach nothing else unless the allowlist names it. When one is not, it is
 // the model's own address, which is the local case where there is no credential
 // to keep out of anywhere.
 type WayOut struct {
@@ -41,15 +41,15 @@ type WayOut struct {
 	sealed  bool
 	socket  string
 	address string
-	// gateways is the tool servers a job reaches through the proxy.
+	// gateways is the tool servers a task reaches through the proxy.
 	gateways *gateways
 }
 
 // openWayOut reads what is configured. GUSTO_MODEL_UPSTREAM is the model's root,
 // with no version on it, because the container supplies the rest of the path.
 // GUSTO_SPEND_POLICY names the prices and team caps, and the ledger starts from
-// what every job under jobsRoot has already spent. GUSTO_ALLOWED_HOSTS is every
-// other host a job may reach.
+// what every task under jobsRoot has already spent. GUSTO_ALLOWED_HOSTS is every
+// other host a task may reach.
 func openWayOut(jobsRoot string) (*WayOut, error) {
 	direct := setting("GUSTO_MODEL_URL", "http://localhost:11434/v1")
 	policy, err := spend.LoadPolicy(os.Getenv("GUSTO_SPEND_POLICY"))
@@ -57,7 +57,7 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		return nil, err
 	}
 	// The ledger exists without a proxy too, so the spend page reports what
-	// jobs spent through one before, rather than nothing.
+	// tasks spent through one before, rather than nothing.
 	ledger, err := spend.Rebuild(jobsRoot, policy)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (w *WayOut) SetCredentials(credentials proxy.Credentials) {
 }
 
 // Apply makes what an organisation's registry comes to what the proxy holds and the ledger prices at, from the
-// next call on. A job already running keeps the credential it began with, which the proxy finds again by name.
+// next call on. A task already running keeps the credential it began with, which the proxy finds again by name.
 func (w *WayOut) Apply(effective registry.Effective) {
 	w.held.Store(&effective.Credentials)
 	w.proxy.SetCredentials(effective.Credentials, effective.Version)
@@ -133,7 +133,7 @@ func (w *WayOut) Apply(effective registry.Effective) {
 
 // Listen starts the proxy where the containers will look for it: a socket for
 // sealed ones, and a port for a runtime that cannot be handed a socket. What
-// keeps the port safe is the per-job token and the host's firewall, not the
+// keeps the port safe is the per-task token and the host's firewall, not the
 // interface it binds.
 // ProxyCounts is what the proxy has counted, or nil when there is no proxy.
 func (w *WayOut) ProxyCounts() func() proxy.Counts {
@@ -155,10 +155,10 @@ func (w *WayOut) Listen() (func(), error) {
 	return w.proxy.ListenTCP(w.address)
 }
 
-// Run starts a job's container on its way out. With a proxy the container is
+// Run starts a task's container on its way out. With a proxy the container is
 // sealed and the proxy is all it reaches; without one it asks the model
-// directly. The token is where a harness would have put a credential, so its
-// configuration stays the same from one job to the next, and what this job
+// directly. The token is where an agent would have put a credential, so its
+// configuration stays the same from one task to the next, and what this task
 // spends is attributed to it and counted against its caps.
 func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
 	return w.RunContext(context.Background(), dir, spec, mounts...)
@@ -183,7 +183,7 @@ func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, mou
 	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, mounts...)
 }
 
-// tokenFor is the token a job's box is given, or none when it needs neither a model nor the gateway. A job that needs no model but
+// tokenFor is the token a task's box is given, or none when it needs neither a model nor the gateway. A task that needs no model but
 // has servers behind the gateway is given a token that stands in for no credential: it is how the proxy knows whose servers to call.
 func (w *WayOut) tokenFor(dir job.Dir, spec job.Spec) (string, error) {
 	switch {
@@ -195,14 +195,14 @@ func (w *WayOut) tokenFor(dir job.Dir, spec job.Spec) (string, error) {
 	return "", nil
 }
 
-// needsModel is whether a job's harness asks a model at all. One that needs none, such as the program the smoke check
+// needsModel is whether a task's agent asks a model at all. One that needs none, such as the program the smoke check
 // runs, is not refused for want of a credential, and is given no token.
 func needsModel(dir job.Dir, spec job.Spec) bool {
 	configured, err := harness.Open(dir, spec.Harness)
 	return err != nil || configured.Adapter.Needs != harness.NeedsNothing
 }
 
-// admit checks that the job may reach its model, and gives it the token that
+// admit checks that the task may reach its model, and gives it the token that
 // stands in for the credential. It is refused before anything starts, by name,
 // rather than as a model call that fails somewhere inside a run somebody has
 // to go and read.
@@ -217,7 +217,7 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 	// Every call a sealed box makes to a model leaves through this credential,
 	// so its address is where the code goes. The runner inside checks the
 	// address it was handed, which is the proxy on its own loopback, and would
-	// read a restricted job as staying in the building when it does not.
+	// read a restricted task as staying in the building when it does not.
 	if err := rules.Allows(spec, credential.Address); err != nil {
 		return "", runner.Refuse(dir, err)
 	}
@@ -225,7 +225,7 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 	return w.tokens.Mint(id, named)
 }
 
-// RunInSandbox runs a job's harness in an OpenShell sandbox. The proxy is
+// RunInSandbox runs a task's agent in an OpenShell sandbox. The proxy is
 // reached on the name the sandbox gives this machine, so it listens on a port
 // and not a socket, and the runner stays here and writes the record.
 func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
@@ -262,7 +262,7 @@ func (w *WayOut) proxyPort() string {
 	return "8041"
 }
 
-// Done ends a job's way out, so a container that outlives its server cannot
+// Done ends a task's way out, so a container that outlives its server cannot
 // keep spending.
 func (w *WayOut) Done(dir job.Dir) {
 	if w.proxy != nil {
@@ -276,7 +276,7 @@ func (w *WayOut) Done(dir job.Dir) {
 // names a directory of <name>.json, the way the keyring and the adapters are
 // read. A deployment configured before that directory existed named one
 // upstream in the environment, and it is read as the one unnamed credential
-// that serves every job.
+// that serves every task.
 func heldCredentials() (proxy.Credentials, error) {
 	if dir := os.Getenv("GUSTO_CREDENTIALS"); dir != "" {
 		return proxy.OpenCredentials(dir)

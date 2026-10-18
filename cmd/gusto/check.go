@@ -10,21 +10,30 @@ import (
 	"github.com/getlatentic/gusto/internal/review"
 )
 
-// checkPull verifies a pull request's evidence from the repository alone: the
-// command `gusto ship` prints in every pull request it opens. It exits the way
-// verify does: 0 when everything agrees, 1 naming what does not, and 2 when
-// the check could not be made.
-func checkPull(args []string) int {
-	flags := flag.NewFlagSet("check", flag.ContinueOnError)
-	into := flags.String("into", "", "unpack the job here and keep it, rather than in a directory removed afterwards")
+type verifyPullRequestFlags struct{ into string }
+
+func declareVerifyPullRequest(set *flag.FlagSet) *verifyPullRequestFlags {
+	f := &verifyPullRequestFlags{}
+	set.StringVar(&f.into, "into", "", "unpack the task in this `directory` and keep it, rather than in one removed afterwards")
+	return f
+}
+
+// verifyPullRequest verifies a pull request's record from the repository alone: the
+// command `gusto pr open` prints in every pull request it opens. It exits the way
+// verify does: 0 when everything agrees, and 1 naming what does not.
+func verifyPullRequest(args []string) int {
+	set := newSet("pr verify")
+	f := declareVerifyPullRequest(set)
 	if len(args) < 2 || strings.HasPrefix(args[0], "-") || strings.HasPrefix(args[1], "-") {
-		fmt.Fprintln(os.Stderr, "gusto check needs the repository and the manifest's sha256, then its flags")
-		return 2
+		return usageError("pr verify", "needs the repository and the manifest's sha256, then its flags")
 	}
-	if err := flags.Parse(args[2:]); err != nil || flags.NArg() > 0 {
-		return 2
+	if code, ok := parseFlags("pr verify", set, args[2:]); !ok {
+		return code
 	}
-	dir, done, err := unpackInto(*into)
+	if set.NArg() > 0 {
+		return usageError("pr verify", "needs only the repository and the manifest's sha256")
+	}
+	dir, done, err := unpackInto(f.into)
 	if err != nil {
 		return fail(err)
 	}

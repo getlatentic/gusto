@@ -16,7 +16,7 @@ import (
 	"github.com/getlatentic/gusto/internal/wire"
 )
 
-// Where says which file in a job directory the proxy writes its record to.
+// Where says which file in a task directory the proxy writes its record to.
 type Where func(job string) (string, bool)
 
 // Proxy adds the credential on the way out, writes down what went and what it
@@ -39,7 +39,7 @@ type Proxy struct {
 
 // New takes the ledger every call is counted in and every cap is checked
 // against, so what the proxy refuses and what a report says was spent are read
-// from one place, and the hosts a job may reach besides its model.
+// from one place, and the hosts a task may reach besides its model.
 func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
 	p := &Proxy{
 		tokens:  tokens,
@@ -47,7 +47,7 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 		ledger:  ledger,
 		allowed: allowed,
 		// A model answers slowly and streams. There is no timeout to set here
-		// that is not a guess at somebody's slowest prompt; the job's own budget
+		// that is not a guess at somebody's slowest prompt; the task's own budget
 		// is what stops a run that will not end.
 		// The model is where a credential goes, so an answer that sends the
 		// call somewhere else is not followed: it would carry the credential's
@@ -85,7 +85,7 @@ func (p *Proxy) Handler() http.Handler {
 		token, rest := split(r.URL.Path)
 		// An OpenAI-compatible client puts its key in the Authorization header
 		// and its base URL in static configuration. A token in the path would
-		// mean rewriting that configuration per job, so the header is accepted
+		// mean rewriting that configuration per task, so the header is accepted
 		// too: the container presents the token exactly where it would have
 		// presented a credential, and the proxy trades it for the real one.
 		if _, known := p.tokens.Job(token); !known {
@@ -99,7 +99,7 @@ func (p *Proxy) Handler() http.Handler {
 		ticket, known := p.tokens.Job(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
-			// ended, so this cannot be used to learn which jobs are running.
+			// ended, so this cannot be used to learn which tasks are running.
 			http.Error(w, "no", http.StatusForbidden)
 			return
 		}
@@ -125,9 +125,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	job := ticket.Job
 	credential, held := p.credentials().Get(ticket.Credential)
 	if !held {
-		// The job was given this credential when it started, so losing it here
-		// means the deployment changed underneath a running job.
-		http.Error(w, "this job's credential is no longer held here", http.StatusBadGateway)
+		// The task was given this credential when it started, so losing it here
+		// means the deployment changed underneath a running task.
+		http.Error(w, "this task's credential is no longer held here", http.StatusBadGateway)
 		return
 	}
 	asked, err := readQuestion(r)
@@ -140,7 +140,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
 		return
 	}
-	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the harness called in.
+	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the agent called in.
 	redactor := p.redactor.Load()
 	masked, maskedRequest := maskRequest(redactor, asked.body)
 	asked.body = masked

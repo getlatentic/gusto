@@ -2,7 +2,7 @@
 
 gusto is a tool that lets you run the AI agents you already use, such as Claude Code, Codex, pi, Hermes, OpenCode and more, on your computer, your server, or your company's cloud.
 
-Each job runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per job and per team, your keys stay out of the agent's reach, and every job leaves a signed record of what it changed and what it cost.
+Each task runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per task and per team, your keys stay out of the agent's reach, and every task leaves a signed record of what it changed and what it cost.
 
 ## Where you can run it
 
@@ -11,7 +11,7 @@ Each job runs in the strongest sandbox your machine has: a virtual machine, a co
 | **A local machine** (laptop or desktop; macOS, Linux, Windows) | Install it with one command. It starts at login and opens in your browser. |
 | **A homelab** (a spare PC or mini server at home) | `sudo server.sh --no-tls` on the box; use it from any computer on your network. |
 | **A VPS** (a cloud machine you rent) | `sudo server.sh --domain agents.example.com`: HTTPS, one password, ready in minutes. |
-| **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per job. See [docs/PILOT.md](docs/PILOT.md). |
+| **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per task. See [docs/PILOT.md](docs/PILOT.md). |
 
 ## Try it on your computer
 
@@ -24,9 +24,9 @@ gusto is a pre-release: it works, and it changes often.
 
 ## What you get
 
-- **A sandbox for each job.** The strongest your machine has: a virtual machine, a container, or the system's own sandbox.
-- **Your keys stay out of the agent.** A proxy holds them, counts the tokens, and stops a job that passes its cap.
-- **A record you can check.** Each job leaves a signed list of what it changed. `gusto verify` re-checks it without trusting the machine that made it.
+- **A sandbox for each task.** The strongest your machine has: a virtual machine, a container, or the system's own sandbox.
+- **Your keys stay out of the agent.** A proxy holds them, counts the tokens, and stops a task that passes its cap.
+- **A record you can check.** Each task leaves a signed list of what it changed. `gusto verify` re-checks it without trusting the machine that made it.
 
 ## Read more
 

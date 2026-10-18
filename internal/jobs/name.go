@@ -10,8 +10,8 @@ import (
 	"unicode"
 )
 
-// Name is a job's directory name: the time it was asked for, then a few words
-// of the brief. A person reading `ls` should be able to tell which job is which,
+// Name is a task's directory name: the time it was asked for, then a few words
+// of the brief. A person reading `ls` should be able to tell which task is which,
 // and the leading timestamp sorts them in the order they were asked.
 func Name(brief string, at time.Time) string {
 	stamp := at.UTC().Format("20060102-1504")
@@ -40,9 +40,9 @@ func slug(text string) string {
 	return strings.Trim(string(out), "-")
 }
 
-// Reserve takes a name nothing is using and makes the job's directory, which
-// only one caller can do for any one name. Two jobs asked for in the same
-// minute in the same words are two jobs, the second with a number.
+// Reserve takes a name nothing is using and makes the task's directory, which
+// only one caller can do for any one name. Two tasks asked for in the same
+// minute in the same words are two tasks, the second with a number.
 func (i *Index) Reserve(brief string, at time.Time) (string, error) {
 	base := Name(brief, at)
 	i.guard.Lock()

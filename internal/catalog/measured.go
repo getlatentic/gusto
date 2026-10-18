@@ -10,16 +10,16 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// MatrixSetting names the table a matrix wrote, table.json, for the catalog to
+// MatrixSetting names the table a benchmark wrote, table.json, for the catalog to
 // read when the server starts. Without it the catalog says nothing about
-// models, which is what it said before a matrix existed.
+// models, which is what it said before a benchmark existed.
 const MatrixSetting = "GUSTO_MATRIX"
 
 // matrixVersion is the newest table version this catalog reads.
 const matrixVersion = 1
 
-// Measured is one run of a harness and model on the simplest job a matrix
-// measured: the job a pair has to finish before it is worth offering.
+// Measured is one run of an agent and model on the simplest task a benchmark
+// measured: the task a pair has to finish before it is worth offering.
 type Measured struct {
 	Model       string
 	Environment string
@@ -33,8 +33,8 @@ type Measured struct {
 	Run string
 }
 
-// CannotFinish says why the harness should not be offered with this model: it
-// was measured on the simplest job and finished it nowhere. A model nobody
+// CannotFinish says why the agent should not be offered with this model: it
+// was measured on the simplest task and finished it nowhere. A model nobody
 // measured is not marked, because not knowing is not the same as failing.
 func (e Entry) CannotFinish(model string) (string, bool) {
 	var failed []Measured
@@ -51,12 +51,12 @@ func (e Entry) CannotFinish(model string) (string, bool) {
 		return "", false
 	}
 	first := failed[0]
-	return fmt.Sprintf("%s with %s did not finish %s, the simplest job measured, %s; the run is %s",
+	return fmt.Sprintf("%s with %s did not finish %s, the simplest task measured, %s; the run is %s",
 		e.Name, modelName(model), first.Job, first.Environment, first.Run), true
 }
 
-// Unfinished is every model this harness was measured failing the simplest job
-// with, in the order the matrix ran them.
+// Unfinished is every model this agent was measured failing the simplest task
+// with, in the order the benchmark ran them.
 func (e Entry) Unfinished() []string {
 	var models []string
 	seen := map[string]bool{}
@@ -69,7 +69,7 @@ func (e Entry) Unfinished() []string {
 	return models
 }
 
-// WithMatrix adds what the table at path measured on its simplest job to each
+// WithMatrix adds what the table at path measured on its simplest task to each
 // entry. An empty path leaves the entries as they are.
 func WithMatrix(entries []Entry, path string) ([]Entry, error) {
 	if path == "" {
@@ -92,12 +92,12 @@ func measuredFromSetting(entries []Entry) []Entry {
 	path := os.Getenv(MatrixSetting)
 	marked, err := WithMatrix(entries, path)
 	if err != nil {
-		slog.Warn("the matrix was not read, so no model is marked", "file", path, "error", err)
+		slog.Warn("the benchmark was not read, so no model is marked", "file", path, "error", err)
 	}
 	return marked
 }
 
-// table is the part of the matrix's table.json the catalog reads.
+// table is the part of the benchmark's table.json the catalog reads.
 type table struct {
 	Version  int    `json:"version"`
 	Matrix   string `json:"matrix"`
@@ -114,8 +114,8 @@ type table struct {
 	} `json:"rows"`
 }
 
-// simplestRuns is every run on the simplest job that left a verdict, by
-// harness. A run with no verdict measured nothing, and marks nothing.
+// simplestRuns is every run on the simplest task that left a verdict, by
+// agent. A run with no verdict measured nothing, and marks nothing.
 func simplestRuns(path string) (map[string][]Measured, error) {
 	text, err := os.ReadFile(path)
 	if err != nil {
@@ -123,7 +123,7 @@ func simplestRuns(path string) (map[string][]Measured, error) {
 	}
 	var read table
 	if err := json.Unmarshal(text, &read); err != nil {
-		return nil, fmt.Errorf("%s is not a matrix's table: %w", path, err)
+		return nil, fmt.Errorf("%s is not a benchmark's table: %w", path, err)
 	}
 	if err := job.Readable(filepath.Base(path), read.Version, matrixVersion); err != nil {
 		return nil, err

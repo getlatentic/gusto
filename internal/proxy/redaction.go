@@ -11,7 +11,7 @@ import (
 )
 
 // UseRedaction sets what is masked in what passes through the proxy: a request before it leaves for the provider, and the answer
-// before it reaches the harness. Nil masks nothing. It can be set again while the proxy runs, and a call in flight finishes with
+// before it reaches the agent. Nil masks nothing. It can be set again while the proxy runs, and a call in flight finishes with
 // what it began with.
 func (p *Proxy) UseRedaction(redactor *redact.Redactor) { p.redactor.Store(redactor) }
 

@@ -48,10 +48,10 @@ start() {
 # reads checks the job is served and verifies, as the binary given.
 reads() {
   curl -fsS -c "$data/jar" -o /dev/null -d password=upgrade-check "http://$address/login" -w '' || true
-  page=$(curl -fsS -b "$data/jar" "http://$address/jobs/$id") || { echo "$1: the job page did not load" >&2; exit 1; }
-  echo "$page" | grep -q "make add add" || { echo "$1: the job page does not show the job" >&2; exit 1; }
+  page=$(curl -fsS -b "$data/jar" "http://$address/jobs/$id") || { echo "$1: the task page did not load" >&2; exit 1; }
+  echo "$page" | grep -q "make add add" || { echo "$1: the task page does not show the task" >&2; exit 1; }
   GUSTO_KEYRING="$data/keyring" "$2" verify "$data/jobs/$id" > /dev/null || { echo "$1: verify does not hold" >&2; exit 1; }
-  echo "  $1: the job page loads and its record verifies"
+  echo "  $1: the task page loads and its record verifies"
 }
 
 for ref in "$@"; do
@@ -65,7 +65,7 @@ for ref in "$@"; do
   "$old" keygen upgrade -dir "$data/signing" >/dev/null
   cp "$data/signing/upgrade.pub" "$data/keyring/"
 
-  # A repository whose test fails until the job fixes it, and a harness that
+  # A repository whose test fails until the task fixes it, and an agent that
   # makes the change.
   (cd "$data/repo" && printf 'add() {\n  echo $(($1 - $2))\n}\n' > adder.sh \
     && printf '#!/bin/sh\n. ./adder.sh\n[ "$(add 2 3)" = 5 ] && exit 0\nexit 1\n' > test.sh \
@@ -75,12 +75,12 @@ for ref in "$@"; do
 JSON
   GUSTO_HARNESSES="$data/harnesses" "$old" new "$data/job" -repo "$data/repo" -brief "make add add" -harness fixture -- sh test.sh >/dev/null
 
-  echo "  $ref makes a job"
+  echo "  $ref makes a task"
   start "$old"
   id=$(GUSTO_SERVER="http://$address" GUSTO_PASSWORD=upgrade-check "$old" submit "$data/job" | head -n 1)
   tries=0
   until [ -f "$data/jobs/$id/out/manifest.json.sig" ] || [ -f "$data/jobs/$id/out/manifest.sig" ]; do
-    tries=$((tries + 1)); [ "$tries" -le 90 ] || { echo "$ref: the job did not finish" >&2; tail -n 20 "$data/serve.log" >&2; exit 1; }
+    tries=$((tries + 1)); [ "$tries" -le 90 ] || { echo "$ref: the task did not finish" >&2; tail -n 20 "$data/serve.log" >&2; exit 1; }
     sleep 1
   done
   sleep 1
@@ -91,11 +91,11 @@ JSON
   GUSTO_KEYRING="$data/keyring" "$root/deploy/rehearse-upgrade.sh" "$new" "$data" "$ref" > "$work/rehearsal.log" 2>&1 \
     || { cat "$work/rehearsal.log" >&2; echo "$ref: the rehearsal on a copy failed" >&2; exit 1; }
   tail -n 1 "$work/rehearsal.log" | sed 's/^/  /'
-  # A rehearsal that cannot fail proves nothing: a job whose record was edited has to be reported.
+  # A rehearsal that cannot fail proves nothing: a task whose record was edited has to be reported.
   rm -rf "$work/tampered" && cp -R "$data" "$work/tampered"
   echo "edited after it was signed" >> "$work/tampered/jobs/$id/out/transcript.log"
   if GUSTO_KEYRING="$data/keyring" "$root/deploy/rehearse-upgrade.sh" "$new" "$work/tampered" > "$work/tampered.log" 2>&1; then
-    echo "$ref: the rehearsal passed a job whose record had been edited" >&2; exit 1
+    echo "$ref: the rehearsal passed a task whose record had been edited" >&2; exit 1
   fi
   echo "  and it reports a record that was edited"
 

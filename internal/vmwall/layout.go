@@ -11,7 +11,7 @@ const GatewayName = "gusto"
 // gatewayAddress is where the gateway listens, on the loopback.
 const gatewayAddress = "https://localhost:17670"
 
-// Layout is where everything gusto installs for the virtual machine wall is kept.
+// Layout is where everything gusto installs for the virtual machine sandbox is kept.
 type Layout struct {
 	// Root is the folder of OpenShell inside gusto's own, and User the person's home.
 	Root, User string

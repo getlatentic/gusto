@@ -18,7 +18,7 @@
 - name: Directories, programs and the start-up script
   ansible.builtin.import_tasks: common.yml
 
-- name: The web server and the front door
+- name: The web server and gusto cloud
   ansible.builtin.import_tasks: front_door.yml
   when: demo_role != 'cell'
 

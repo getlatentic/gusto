@@ -1,5 +1,5 @@
 // Package entry is how a hosted organisation's server knows who a person is
-// without a sign-in page of its own. The front door signs a person in, and then
+// without a sign-in page of its own. Gusto cloud signs a person in, and then
 // hands their browser a token, good for a minute and for one use, that the
 // organisation's server checks against a key only the two of them share.
 package entry
@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// Claims are what the front door says: who this is, what they may do in the
+// Claims are what gusto cloud says: who this is, what they may do in the
 // organisation, which organisation it is, and until when the word is good.
 type Claims struct {
 	Email   string `json:"e"`

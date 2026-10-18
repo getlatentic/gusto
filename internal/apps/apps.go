@@ -1,5 +1,5 @@
 // Package apps is the web apps that agents built and people shared, one file each. An app
-// belongs to an agent's computer, and its record says where it is and whether it answers.
+// belongs to an agent's workspace, and its record says where it is and whether it answers.
 package apps
 
 import (
@@ -25,17 +25,17 @@ const (
 	Starting State = "starting"
 	// Live is an app that answered, and is shared.
 	Live State = "live"
-	// Stopped is an app somebody stopped, or that stopped answering because its computer stopped.
+	// Stopped is an app somebody stopped, or that stopped answering because its workspace stopped.
 	Stopped State = "stopped"
 	// Failed is an app that did not answer, and the note says what its command wrote.
 	Failed State = "failed"
 )
 
-// App is a web app shared from an agent's computer.
+// App is a web app shared from an agent's workspace.
 type App struct {
 	ID       string `json:"id"`
 	Instance string `json:"instance"`
-	// Owner is the person whose agent and computer it is.
+	// Owner is the person whose agent and workspace it is.
 	Owner   string `json:"owner"`
 	Command string `json:"command"`
 	Port    int    `json:"port"`

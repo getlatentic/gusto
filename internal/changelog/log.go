@@ -2,7 +2,7 @@
 // in, who was refused, who changed a role or a setup, and when the settings that
 // decide who may do what changed.
 //
-// It is not a job's record. A job's record says what an agent did. This says
+// It is not a task's record. A task's record says what an agent did. This says
 // what the people who run the platform did to it, so a security reviewer can
 // answer who changed it and when.
 //

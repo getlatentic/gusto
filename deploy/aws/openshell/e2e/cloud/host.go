@@ -57,7 +57,7 @@ func (h host) finished(slug, email string, n int, within time.Duration) ([]jobOf
 }
 
 func (h host) computers() (string, error) {
-	command := exec.Command(h.haas, "cloud", "computers")
+	command := exec.Command(h.haas, "cloud", "workspaces")
 	command.Env = append(os.Environ(), "GUSTO_CLOUD_ROOT="+h.root)
 	out, err := command.CombinedOutput()
 	return string(out), err

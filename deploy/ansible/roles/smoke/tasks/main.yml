@@ -25,9 +25,9 @@
 # absent names a program no image carries, which is what a job on a harness the
 # image was not built with looks like from inside the box.
 # smoke_fixture chooses the file behind the fixture harness. broken.json changes
-# nothing, so the gate fails, and that is how a person proves a failing smoke job
+# nothing, so the check fails, and that is how a person proves a failing smoke task
 # keeps the previous version running.
-- name: The smoke test's harnesses, where only the smoke test looks
+- name: The smoke test's agents, where only the smoke test looks
   ansible.builtin.copy:
     src: "{{ item.src }}"
     dest: "{{ app_root }}/var/smoke/harnesses/{{ item.dest }}"
@@ -40,7 +40,7 @@
   loop_control:
     label: "{{ item.dest }} from {{ item.src }}"
 
-- name: No smoke harness where the server looks
+- name: No smoke agent where the server looks
   ansible.builtin.file:
     path: "{{ harnesses_dir }}/{{ item }}"
     state: absent
@@ -48,7 +48,7 @@
     - fixture.json
     - absent.json
 
-- name: A repository whose test fails until the job fixes it
+- name: A repository whose test fails until the task fixes it
   ansible.builtin.copy:
     dest: "{{ app_root }}/var/smoke/repo/{{ item.name }}"
     content: "{{ item.body }}"
@@ -72,7 +72,7 @@
 
 # A fresh job each deploy: the point is whether this build runs one, not whether
 # an old directory is still there.
-- name: Last deploy's jobs removed
+- name: Last deploy's tasks removed
   ansible.builtin.file:
     path: "{{ app_root }}/var/smoke/{{ item }}"
     state: absent
@@ -80,13 +80,13 @@
     - job
     - refused
 
-- name: A job, described the way a person would
+- name: A task, described the way a person would
   ansible.builtin.command:
     cmd: >-
       {{ candidate_bin }} new {{ app_root }}/var/smoke/job
       -repo {{ app_root }}/var/smoke/repo
       -brief "make add add"
-      -harness fixture
+      -agent fixture
       -- sh test.sh
   become_user: "{{ app_user }}"
   environment:
@@ -94,7 +94,7 @@
     GUSTO_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
   changed_when: true
 
-- name: The job runs in a container and passes its gate
+- name: The task runs in a container and passes its check
   ansible.builtin.command:
     cmd: "{{ candidate_bin }} run {{ app_root }}/var/smoke/job"
   become_user: "{{ app_user }}"
@@ -107,7 +107,7 @@
     GUSTO_SIGNER: "greencloud"
   changed_when: true
 
-- name: Its evidence agrees with itself
+- name: Its record agrees with itself
   ansible.builtin.command:
     cmd: "{{ candidate_bin }} verify {{ app_root }}/var/smoke/job"
   become_user: "{{ app_user }}"
@@ -120,7 +120,7 @@
 # harness a user of its own and keeps out/ to itself, so the attempt is refused;
 # an image that lets it through fails the deploy here, because the manifest
 # would hash the forged line and verify would pass.
-- name: The harness could not write the record
+- name: The agent could not write the record
   ansible.builtin.command:
     cmd: grep -q forged-by-the-harness {{ app_root }}/var/smoke/job/out/transcript.log
   become_user: "{{ app_user }}"
@@ -135,13 +135,13 @@
 # A job on a harness the image lacks has to stop before the harness starts and
 # say why where the job page shows it, rather than start, fail to find its
 # program, and read as the harness failing.
-- name: A job on a harness the image does not carry
+- name: A task on an agent the image does not carry
   ansible.builtin.command:
     cmd: >-
       {{ candidate_bin }} new {{ app_root }}/var/smoke/refused
       -repo {{ app_root }}/var/smoke/repo
       -brief "make add add"
-      -harness absent
+      -agent absent
       -- sh test.sh
   become_user: "{{ app_user }}"
   environment:
@@ -163,7 +163,7 @@
   changed_when: true
   failed_when: refusal.rc == 0
 
-- name: And says why where the job page shows it
+- name: And says why where the task page shows it
   ansible.builtin.command:
     cmd: >-
       grep -F "does not carry haas-smoke-harness-nobody-installed"

@@ -38,7 +38,7 @@ func serviceName(app apps.App) string { return "a" + app.ID }
 func (a *sharedApps) Start(ctx context.Context, app apps.App) (apps.App, error) {
 	held, err := a.registry.Of(app.Owner)
 	if err != nil {
-		return apps.App{}, errors.New("the person this agent belongs to has no computer to run it in")
+		return apps.App{}, errors.New("the person this agent belongs to has no workspace to run it in")
 	}
 	if err := openshell.Wake(ctx, a.cfg, held.Sandbox); err != nil {
 		return apps.App{}, err

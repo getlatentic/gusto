@@ -40,7 +40,7 @@ type Engine struct {
 	Models []string `json:"models"`
 }
 
-// Said is what the server answers a send: the job that is the turn, and whether it was one made already by the same key.
+// Said is what the server answers a send: the task that is the turn, and whether it was one made already by the same key.
 type Said struct {
 	Job     string `json:"job"`
 	State   string `json:"state"`

@@ -42,7 +42,7 @@
       <label>Dollars a month <input name="usd" type="number" min="0" step="0.01" placeholder="no budget"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
       <button type="submit">Save</button>
     </form>
-    <p class="muted">When the month's spending passes it, this page says so. It stops no job. A team's cap does that.</p>
+    <p class="muted">When the month's spending passes it, this page says so. It stops no task. A team's cap does that.</p>
   </section>
   {{end}}
 
@@ -51,7 +51,7 @@
     <h2>New chats</h2>
     <p>What a new chat runs on until a person chooses their own. A person's last choice comes first.</p>
     <form method="post" action="/admin/chat-default" class="inline">
-      <label>Engine and model
+      <label>Agent and model
         <select name="default">
           <option value="">The first that can run</option>
           {{range .}}<option value="{{.Value}}"{{if .Chosen}} selected{{end}}>{{.Label}}</option>{{end}}
@@ -72,7 +72,7 @@
 
 {{if .KeepsComputers}}
 <section class="panel">
-  <h2>Computers</h2>
+  <h2>Workspaces</h2>
   {{if .Computers}}
   <table>
     <thead><tr><th>Person</th><th>State</th><th>Last used</th></tr></thead>
@@ -80,10 +80,10 @@
       {{range .Computers}}<tr><td>{{.Person}}</td><td><span class="state {{.State}}">{{.State}}</span>{{with .Note}} <span class="muted">{{.}}</span>{{end}}</td><td class="muted">{{if .LastActive}}{{ago .LastActive}}{{else}}never{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  {{else}}<p class="muted">Nobody has a computer yet. A person's is made when they first run a job.</p>{{end}}
+  {{else}}<p class="muted">Nobody has a workspace yet. A person's is made when they first run a task.</p>{{end}}
 </section>
 {{end}}
-{{if .ComputersUnreadable}}<p class="refused">The computers could not be read. {{.ComputersUnreadable}}</p>{{end}}
+{{if .ComputersUnreadable}}<p class="refused">The workspaces could not be read. {{.ComputersUnreadable}}</p>{{end}}
 
 {{if .SharesApps}}
 <section class="panel">

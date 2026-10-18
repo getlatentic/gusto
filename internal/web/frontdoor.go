@@ -53,7 +53,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	claims, err := entry.Verify(s.front.Key, s.front.Org, r.URL.Query().Get("t"), now)
 	if err != nil || !s.front.seen.Use(claims, now) {
-		s.noteRefused(r, "", "the front door", "the sign-in link was wrong, old or used")
+		s.noteRefused(r, "", "gusto cloud", "the sign-in link was wrong, old or used")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>gusto</title><p>That sign-in link has expired or was used already. <a href="` +
@@ -65,7 +65,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 		role = Admin
 	}
 	s.keeper.issueFor(w, r, claims.Email, role)
-	s.noteSignIn(r, claims.Email, role, "the front door")
+	s.noteSignIn(r, claims.Email, role, "gusto cloud")
 	s.afterSignIn(w, r)
 }
 

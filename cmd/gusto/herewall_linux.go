@@ -9,14 +9,14 @@ import (
 	"github.com/getlatentic/gusto/internal/landlock"
 )
 
-// wrapProcess holds a job to the policy with Linux's Landlock, applied by gusto itself just before it starts the engine. A Linux
-// computer keeps its programs outside the home too, so every folder of the PATH is readable. The policy is written beside the job.
+// wrapProcess holds a task to the policy with Linux's Landlock, applied by gusto itself just before it starts the engine. A Linux
+// computer keeps its programs outside the home too, so every folder of the PATH is readable. The policy is written beside the task.
 func wrapProcess(dir job.Dir, p wallPolicy) (func(*exec.Cmd), error) {
 	self, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	// Landlock allows a folder that exists, and the cache is made by the first job that wants it.
+	// Landlock allows a folder that exists, and the cache is made by the first task that wants it.
 	for _, folder := range p.Writable {
 		if err := os.MkdirAll(folder, 0o700); err != nil {
 			return nil, err

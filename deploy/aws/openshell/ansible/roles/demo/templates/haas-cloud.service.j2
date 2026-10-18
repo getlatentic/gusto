@@ -1,5 +1,5 @@
 [Unit]
-Description=haas public cloud: the front door and each organisation's server
+Description=haas public cloud: gusto cloud and each organisation's server
 After=haas-boot.service{{ ' openshell-gateway.service' if demo_role != 'orchestrator' else '' }}
 Requires=haas-boot.service
 RequiresMountsFor={{ demo_state }}

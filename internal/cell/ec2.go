@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// EC2 starts and stops hosts for cells with the AWS command, which uses the role of the host it runs on. The hosts
+// EC2 starts and stops machines for hosts with the AWS command, which uses the role of the host it runs on. The hosts
 // are made from a launch template, tagged so that only these are ever listed or stopped, and given the start-up
-// script that makes them cells of this front door.
+// script that makes them hosts of this front door.
 type EC2 struct {
 	// Template is the launch template's name.
 	Template string

@@ -13,7 +13,7 @@ import (
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
-// job's workspace, which is evidence, is never touched.
+// task's workspace, which is record, is never touched.
 type Git struct {
 	// Token, when set, is sent to Host and to no other.
 	Token string
@@ -21,10 +21,10 @@ type Git struct {
 	Host string
 }
 
-// Push makes the change and evidence commits again and pushes both in one push,
-// the branch and the evidence ref together, so a branch never reaches the
-// remote without the evidence behind it. The pull request's body links the
-// evidence commit by name, so commits that come out different from the plan
+// Push makes the change and record commits again and pushes both in one push,
+// the branch and the record ref together, so a branch never reaches the
+// remote without the record behind it. The pull request's body links the
+// record commit by name, so commits that come out different from the plan
 // stop the push.
 func (g Git) Push(ctx context.Context, plan Plan) error {
 	dir := job.Dir(plan.Job)
@@ -69,7 +69,7 @@ func (g Git) env() []string {
 func ranAgainst(dir job.Dir) (string, error) {
 	at, err := run(context.Background(), nil, "-C", dir.Workspace(), "rev-parse", "--verify", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("the workspace does not say which commit the job ran against: %w", err)
+		return "", fmt.Errorf("the workspace does not say which commit the task ran against: %w", err)
 	}
 	return at, nil
 }

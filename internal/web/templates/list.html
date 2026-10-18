@@ -14,7 +14,7 @@
   {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
   <label class="inline"><span class="sr">Agent</span>
     <select name="harness" data-autosubmit>
-      <option value="">every engine</option>
+      <option value="">every agent</option>
       {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
     </select>
   </label>
@@ -46,13 +46,13 @@
   {{with .Older}}<a href="{{.}}">Older</a>{{end}}
 </nav>
 {{else}}
-<p class="empty muted">{{if or .State .Harness}}Nothing matches these filters.{{else}}Nothing has happened here yet. Everything a harness does shows up here: <a href="/new">start one</a>.{{end}}</p>
+<p class="empty muted">{{if or .State .Harness}}Nothing matches these filters.{{else}}Nothing has happened here yet. Everything an agent does shows up here: <a href="/new">start one</a>.{{end}}</p>
 {{end}}
 
 {{end}}
 {{template "foot" .}}
 
-{{/* cost is what the proxy counted, which is the provider's own figure; a job
-     that never went through the proxy shows the harness's claim, marked as
+{{/* cost is what the proxy counted, which is the provider's own figure; a task
+     that never went through the proxy shows the agent's claim, marked as
      one. */}}
-{{define "cost"}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}{{.Spent.Money}}{{else}}<span title="{{.Spent.Calls}} calls, and no price for this model">{{tokens (add .Spent.InputTokens .Spent.OutputTokens)}} tokens</span>{{end}}{{else if .Cost}}<span title="the harness's own figure">{{money .Cost}}</span>{{end}}{{end}}
+{{define "cost"}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}{{.Spent.Money}}{{else}}<span title="{{.Spent.Calls}} calls, and no price for this model">{{tokens (add .Spent.InputTokens .Spent.OutputTokens)}} tokens</span>{{end}}{{else if .Cost}}<span title="the agent's own figure">{{money .Cost}}</span>{{end}}{{end}}

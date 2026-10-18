@@ -47,7 +47,7 @@ type Model struct {
 	Pending bool `json:"pending,omitempty"`
 }
 
-// Full is the name a job asks for: the provider, then the model.
+// Full is the name a task asks for: the provider, then the model.
 func (m Model) Full() string { return m.Provider + "/" + m.Name }
 
 // Policy is what an admin has chosen to allow, for a deployment where the admin is the operator.

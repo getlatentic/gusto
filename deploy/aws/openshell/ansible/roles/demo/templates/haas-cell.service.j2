@@ -1,5 +1,5 @@
 [Unit]
-Description=haas cell: starts and stops organisations' servers for the front door
+Description=haas host: starts and stops organisations' servers for gusto cloud
 After=haas-boot.service openshell-gateway.service
 Requires=haas-boot.service
 RequiresMountsFor={{ demo_state }}
@@ -13,9 +13,9 @@ EnvironmentFile=/etc/haas/cell.env
 EnvironmentFile=/run/haas/cell.env
 # The first question asked of the image waits for the gateway to import it. It is asked here, so the cell registers,
 # and is given organisations, once the servers it starts will not wait for that.
-ExecStartPre=/usr/local/bin/haas survey
+ExecStartPre=/usr/local/bin/haas scan
 TimeoutStartSec=900
-ExecStart=/usr/local/bin/haas cell
+ExecStart=/usr/local/bin/haas host
 Restart=on-failure
 LimitNOFILE=65536
 

@@ -48,7 +48,7 @@ func TestTheRetentionCommandListsWhatWouldGoAndRemovesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, code := captured(t, func() int { return retentionCommand([]string{"-jobs", root, "-dir", dir}) })
+	out, code := captured(t, func() int { return retentionCommand([]string{"-tasks", root, "-dir", dir}) })
 	if code != 0 || !strings.Contains(out, "old") || !strings.Contains(out, "workspace") ||
 		!strings.Contains(out, "1 to remove, freeing 300 bytes") || !strings.Contains(out, "Nothing was removed") {
 		t.Fatalf("code %d, output:\n%s", code, out)
@@ -56,7 +56,7 @@ func TestTheRetentionCommandListsWhatWouldGoAndRemovesNothing(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "old", "workspace", "f")); err != nil {
 		t.Fatal("the command removed a workspace")
 	}
-	if _, code := captured(t, func() int { return retentionCommand([]string{"-jobs", root}) }); code != 2 {
+	if _, code := captured(t, func() int { return retentionCommand([]string{"-tasks", root}) }); code != 2 {
 		t.Errorf("no retention directory gave %d", code)
 	}
 }

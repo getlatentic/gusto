@@ -16,19 +16,19 @@ type Pin struct {
 	// By is the reference in the old workspace that still holds the commit as
 	// it was when the run cloned.
 	By string
-	// Committed counts the commits the harness made on top of it. Those are the
-	// harness's work, not the repository the job asked for.
+	// Committed counts the commits the agent made on top of it. Those are the
+	// agent's work, not the repository the task asked for.
 	Committed int
 }
 
 // Pinned reads the commit a finished run started from out of its workspace.
 //
-// The workspace's HEAD is not that commit. A harness that commits moves HEAD
-// onto its own work, and a replay pinned there would start with the answer
+// The workspace's HEAD is not that commit. An agent that commits moves HEAD
+// onto its own work, and a rerun pinned there would start with the answer
 // already in the tree, or fail to find a commit the repository never had. The
-// references a clone writes for the remote do not move when a harness commits:
+// references a clone writes for the remote do not move when an agent commits:
 // refs/remotes/origin/* and refs/tags/* keep what the repository held at clone
-// time, and the runner checked the job's ref out from exactly those. So the ref
+// time, and the runner checked the task's ref out from exactly those. So the ref
 // is resolved against them, and a ref that is a commit id is its own answer.
 func Pinned(workspace, ref string) (Pin, error) {
 	for _, name := range candidates(ref) {
@@ -42,7 +42,7 @@ func Pinned(workspace, ref string) (Pin, error) {
 		}
 		return Pin{Commit: commit, By: name, Committed: committed}, nil
 	}
-	return Pin{}, fmt.Errorf("the workspace in %s no longer says which commit %q named when the job cloned it", workspace, ref)
+	return Pin{}, fmt.Errorf("the workspace in %s no longer says which commit %q named when the task cloned it", workspace, ref)
 }
 
 // candidates are the names a clone leaves for the ref, in the order the runner's
@@ -86,7 +86,7 @@ func git(at string, args ...string) (string, error) {
 
 // Resolve pins a ref before any run has cloned it, the same way Pinned reads it
 // off a finished run: from a clone's record of the remote. The clone takes no
-// working tree and no file contents, and is gone when Resolve returns, so jobs
+// working tree and no file contents, and is gone when Resolve returns, so tasks
 // that must start from one commit can each clone their own workspace at it.
 func Resolve(repo, ref string) (Pin, error) {
 	scratch, err := os.MkdirTemp("", "gusto-pin-")

@@ -142,12 +142,12 @@ func TestAJobMissingAPartIsRefusedAndSaysWhich(t *testing.T) {
 		spec job.Spec
 		says string
 	}{
-		{"no repository", job.Spec{Brief: "do it", Gate: []string{"true"}, Harness: "opencode"}, "this job needs a repository"},
-		{"no brief", job.Spec{Repo: "/repo", Gate: []string{"true"}, Harness: "opencode"}, "this job needs a brief"},
-		{"no gate", job.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this job needs a gate"},
-		{"a gate of blanks", job.Spec{Repo: "/repo", Brief: "do it", Gate: []string{" "}, Harness: "opencode"}, "this job needs a gate"},
-		{"no repository and no gate", job.Spec{Brief: "do it", Harness: "opencode"}, "this job needs a repository and a gate"},
-		{"nothing at all", job.Spec{Harness: "opencode"}, "this job needs a repository, a brief and a gate"},
+		{"no repository", job.Spec{Brief: "do it", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a repository"},
+		{"no brief", job.Spec{Repo: "/repo", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a brief"},
+		{"no gate", job.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this task needs a check"},
+		{"a gate of blanks", job.Spec{Repo: "/repo", Brief: "do it", Gate: []string{" "}, Harness: "opencode"}, "this task needs a check"},
+		{"no repository and no gate", job.Spec{Brief: "do it", Harness: "opencode"}, "this task needs a repository and a check"},
+		{"nothing at all", job.Spec{Harness: "opencode"}, "this task needs a repository, a brief and a check"},
 	} {
 		t.Run(refusal.name, func(t *testing.T) {
 			code, answer := site.send(t, password, Submission{Spec: refusal.spec})
@@ -247,7 +247,7 @@ func TestAJobPastTheOrganisationsQuotaIsAnswered429WithTheReason(t *testing.T) {
 	if code != http.StatusTooManyRequests {
 		t.Fatalf("the second job is over it: %d %+v", code, answer)
 	}
-	if !strings.Contains(answer.Refused, "1 job in all") || !strings.Contains(answer.Refused, "Confirm the admin's email address") {
+	if !strings.Contains(answer.Refused, "1 task in all") || !strings.Contains(answer.Refused, "Confirm the admin's email address") {
 		t.Errorf("the refusal should say what was allowed and how to lift it: %q", answer.Refused)
 	}
 	if len(site.index.List()) != 1 {

@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-// Registration is a cell saying it is there: where its agent is, and the address on the private
+// Registration is a host saying it is there: where its agent is, and the address on the private
 // network its organisations' servers bind to. It is written again every few seconds, and a
-// cell that has not been heard from lately is not one that can be placed on.
+// host that has not been heard from lately is not one that can be placed on.
 type Registration struct {
 	Name    string `json:"name"`
 	Agent   string `json:"agent"`
@@ -24,15 +24,15 @@ type Registration struct {
 
 var nameShape = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,30}$`)
 
-// ValidName is what a cell may be called, which is also what names its file.
+// ValidName is what a host may be called, which is also what names its file.
 func ValidName(name string) bool { return nameShape.MatchString(name) && name != "orchestrator" }
 
 func file(dir, name string) string { return filepath.Join(dir, name+".json") }
 
-// Register writes a cell's registration, whole or not at all.
+// Register writes a host's registration, whole or not at all.
 func Register(dir string, r Registration) error {
 	if !ValidName(r.Name) {
-		return fmt.Errorf("%q is not a name a cell may have", r.Name)
+		return fmt.Errorf("%q is not a name a host may have", r.Name)
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -60,7 +60,7 @@ func Register(dir string, r Registration) error {
 	return os.Rename(temp.Name(), file(dir, r.Name))
 }
 
-// Registered is the cell with that name, and how long ago it was last heard from.
+// Registered is the host with that name, and how long ago it was last heard from.
 func Registered(dir, name string, now time.Time) (Registration, time.Duration, error) {
 	if !ValidName(name) {
 		return Registration{}, 0, fs.ErrNotExist
@@ -76,7 +76,7 @@ func Registered(dir, name string, now time.Time) (Registration, time.Duration, e
 	return r, max(now.Sub(time.Unix(r.Beat, 0)), 0), nil
 }
 
-// Fresh is every cell heard from within maxAge, in name order.
+// Fresh is every host heard from within maxAge, in name order.
 func Fresh(dir string, now time.Time, maxAge time.Duration) ([]Registration, error) {
 	entries, err := os.ReadDir(dir)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -100,7 +100,7 @@ func Fresh(dir string, now time.Time, maxAge time.Duration) ([]Registration, err
 
 const orchestratorBeat = "orchestrator.beat"
 
-// Beat says the front door is there. A cell whose front door has not said so for a long
+// Beat says the gusto cloud is there. A host whose gusto cloud has not said so for a long
 // while has nobody to work for, which the host's own timer acts on.
 func Beat(dir string, now time.Time) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {

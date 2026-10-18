@@ -102,7 +102,7 @@ func TestTheTableIsMarkdownForTheReadmeAndJSONForTheCatalog(t *testing.T) {
 		t.Fatal("what is printed and what is kept in the matrix differ")
 	}
 	for _, want := range []string{
-		"| harness and model | job | finished | wall clock | billed tokens | cost | evidence |",
+		"| agent and model | task | finished | wall clock | billed tokens | cost | record |",
 		"| `says`, `yes` | one-line-fix (simplest) | yes |",
 		"| `says`, `no` | one-line-fix (simplest) | no |",
 	} {

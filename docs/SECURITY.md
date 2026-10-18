@@ -8,7 +8,7 @@ The pages, the API, the model proxy and the runner were reviewed against the [th
 - Each fixed finding was reproduced or tested first where possible, and has a test that fails without the fix.
 - `govulncheck` ran over the Go code and standard library, and `npm audit` over the pinned npm packages in the runner image.
 
-Not reviewed: the identity provider, nginx and TLS on the host, the ansible vault, the deploy key's reach, third-party harness internals, and what a model does with a hostile prompt. A second review and an outside test are getlatentic/planning#372.
+Not reviewed: the identity provider, nginx and TLS on the host, the ansible vault, the deploy key's reach, third-party agent internals, and what a model does with a hostile prompt. A second review and an outside test are getlatentic/planning#372.
 
 ## Findings
 
@@ -18,7 +18,7 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 | 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned. Any runner could read another person's workspace through the file viewer | Fixed. A path must be under a directory in `GUSTO_LOCAL_REPOS`, empty by default |
 | 3 | High | The runner is root in the box and staged the workspace with the agent's git configuration. A filter or fsmonitor ran as root. Reproduced | Fixed. The runner stages in a repository of its own, with no workspace configuration and no trust in the workspace's ownership |
 | 4 | High | Go 1.26.1 on the box carried 19 vulnerabilities this server calls | Fixed. Go 1.26.8, tarball checksum pinned, in the playbook and `go.mod`. `govulncheck` reports none |
-| 5 | Medium | Pages and the verifier's hash followed a link in a job's `out/`. A runner with no separate agent user lets the harness plant one | Fixed. Record files are read only when they are files; verify names a link. Depth only, since the agent user blocks it |
+| 5 | Medium | Pages and the verifier's hash followed a link in a task's `out/`. A runner with no separate agent user lets the agent plant one | Fixed. Record files are read only when they are files; verify names a link. Depth only, since the agent user blocks it |
 | 6 | Medium | No limit on wrong shared passwords or bearer credentials | Fixed. Ten from one address in ten minutes turns it away |
 | 7 | Medium | Pages could be framed and had no script policy | Fixed. CSP with per-response nonces, `X-Frame-Options`, `nosniff`, referrer policy, HSTS over TLS, no caching when signed in |
 | 8 | Medium | A container had the default capabilities and could gain privilege through a setuid program | Fixed. All capabilities dropped but five, and no-new-privileges. Run in the real image |
@@ -28,24 +28,24 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 | 12 | Low | Google sign-in had state but no PKCE and no nonce | Fixed. Both, tested against a provider that checks them |
 | 13 | Low | The model's redirect would be followed with the credential's headers | Fixed. A redirect is not followed |
 | 14 | Info | A spending cap is checked before a call and counted after, so calls in flight can pass it | Accepted. The excess is bounded by the calls in flight. getlatentic/planning#369 |
-| 15 | Info | `gusto ship` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which the playbook's box has. `gusto doctor` should check: getlatentic/planning#370 |
-| 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six harness packages in the runner image, are unpinned | Open. The image is built by digest, so a build is reproducible. getlatentic/planning#361 |
-| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the harness can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
+| 15 | Info | `gusto pr open` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which the playbook's box has. `gusto doctor` should check: getlatentic/planning#370 |
+| 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six agent packages in the runner image, are unpinned | Open. The image is built by digest, so a build is reproducible. getlatentic/planning#361 |
+| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the agent can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
 
 ## Checked and sound
 
-- Every handler that takes an id answers somebody else's object as missing: jobs, agents, threads, comparisons, files, bundles, the stream, the file viewer.
+- Every handler that takes an id answers somebody else's object as missing: tasks, agents, threads, comparisons, files, bundles, the stream, the file viewer.
 - The folder viewer stays inside the workspace. A bundle stores links as links.
-- Model Markdown has raw HTML off and `javascript:` and `data:` links stripped. Evidence files are plain text with `nosniff`.
+- Model Markdown has raw HTML off and `javascript:` and `data:` links stripped. Record files are plain text with `nosniff`.
 - The session cookie is signed, HttpOnly, SameSite=Lax and Secure over TLS. Its role cannot change without the key.
 - An API token is 32 random bytes, stored as a hash, compared in constant time.
 - Logs name a credential's kind, never its value, and never a query string.
 - The real credential never enters the box. The GitHub token is minted for one repository, passed to git by environment, and revoked afterwards.
-- The gate runs without a shell, as the agent user.
+- The check runs without a shell, as the agent user.
 
-## How a job is isolated
+## How a task is isolated
 
-A job runs in a container or in an OpenShell sandbox, which is a microVM. `deploy/smoke-isolation.sh` runs a job whose harness probes its own box. `deploy/aws/openshell/box-probe.sh` runs the same probe in a sandbox. Both ran on 2026-10-07 against release v0.0.1-alpha.2. The container probe runs on every release, in the Compose install and the chart ([PILOT.md](PILOT.md)).
+A task runs in a container or in an OpenShell sandbox, which is a microVM. `deploy/smoke-isolation.sh` runs a task whose agent probes its own box. `deploy/aws/openshell/box-probe.sh` runs the same probe in a sandbox. Both ran on 2026-10-07 against release v0.0.1-alpha.2. The container probe runs on every release, in the Compose install and the chart ([PILOT.md](PILOT.md)).
 
 | Probe result | Container | OpenShell sandbox |
 | --- | --- | --- |
@@ -59,9 +59,9 @@ A job runs in a container or in an OpenShell sandbox, which is a microVM. `deplo
 | Limits | `--cpus`, `--memory`, `--pids-limit=512` | `GUSTO_OPENSHELL_CPU`, `GUSTO_OPENSHELL_MEMORY` |
 | Host needs | Docker or Podman | KVM (nested virtualization on a cloud machine). The server refuses `GUSTO_SANDBOX=openshell` on Linux without `/dev/kvm` |
 
-- A container shares the host kernel, so a kernel flaw reaches every job and the machine. On Compose the server holds the host's runtime socket, which is root on that machine ([deploy/README.md](../deploy/README.md#how-a-job-gets-its-box)). On Kubernetes jobs run in a Docker daemon in a privileged pod. Neither install separates the agent's code from the operator's machine by kernel.
+- A container shares the host kernel, so a kernel flaw reaches every task and the machine. On Compose the server holds the host's runtime socket, which is root on that machine ([deploy/README.md](../deploy/README.md#how-a-task-gets-its-box)). On Kubernetes tasks run in a Docker daemon in a privileged pod. Neither install separates the agent's code from the operator's machine by kernel.
 - A sandbox runs on the same machine as the gateway and the server. UDP other than names, and IPv6, are not probed (`docs/CLOUD.md`).
-- The probe tries no exploit. It does not test that one job cannot read another's files or exhaust memory. A pass means nothing is open that should not be, not that the box cannot be escaped.
+- The probe tries no exploit. It does not test that one task cannot read another's files or exhaust memory. A pass means nothing is open that should not be, not that the box cannot be escaped.
 - Use containers when the agents run the team's own code. Use OpenShell on a KVM host when the code is untrusted or the reviewer needs a kernel between agent and machine.
 
 ## Reporting
@@ -70,4 +70,4 @@ Report a vulnerability to the operator of the deployment. Keep the tests when yo
 
 ## Follow-ups
 
-Backlog issues in getlatentic/planning: #359 tests, vet and `govulncheck` on every pull request. #360 scheduled dependency and image scans. #361 pin the harness packages. #367 trust a named proxy's forwarded address when limiting sign-ins. #369 hold a spending cap under concurrent calls. #370 `gusto doctor` checks bind-mount permissions and git version. #371 read-only root filesystem and tighter system-call profile. #372 review identity provider, TLS, vault and deploy path, and an outside test.
+Backlog issues in getlatentic/planning: #359 tests, vet and `govulncheck` on every pull request. #360 scheduled dependency and image scans. #361 pin the agent packages. #367 trust a named proxy's forwarded address when limiting sign-ins. #369 hold a spending cap under concurrent calls. #370 `gusto doctor` checks bind-mount permissions and git version. #371 read-only root filesystem and tighter system-call profile. #372 review identity provider, TLS, vault and deploy path, and an outside test.

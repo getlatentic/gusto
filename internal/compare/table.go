@@ -8,11 +8,11 @@ import (
 )
 
 // Print writes the comparison side by side: where it is, what the runs share,
-// then a line a harness.
+// then a line an agent.
 func Print(w io.Writer, where string, record Record, sides []Side) {
 	fmt.Fprintf(w, "comparison  %s\ncommit      %s\nheld        %s\n\n", where, record.Commit, strings.Join(record.Held, ", "))
 	table := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(table, "harness\tverdict\tharness exit\tat budget\ttokens\tcost\tevidence")
+	fmt.Fprintln(table, "agent\tverdict\tagent exit\tat budget\ttokens\tcost\trecord")
 	for _, side := range sides {
 		fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", side.Harness, verdict(side), exit(side),
 			budget(side), tokens(side), cost(side), checks(side))
@@ -50,7 +50,7 @@ func budget(side Side) string {
 	return fmt.Sprint(side.Manifest.StoppedAtBudget)
 }
 
-// tokens and cost print a dash where the harness reported nothing, the way the
+// tokens and cost print a dash where the agent reported nothing, the way the
 // manifest keeps a null: a zero would read as free.
 func tokens(side Side) string {
 	if side.Manifest.Tokens == nil {

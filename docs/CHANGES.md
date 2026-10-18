@@ -1,6 +1,6 @@
 # The record of what changes on the platform
 
-This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A job's record says what an agent did. An admin reads this one under Activity in the admin console, at `/admin/activity`.
+This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A task's record says what an agent did. An admin reads this one under Activity in the admin console, at `/admin/activity`.
 
 ## What is written
 
@@ -11,11 +11,11 @@ This record says what the people who run the platform did to it: who signed in, 
 | `role.changed` | Somebody signs in with a role that is not the one they last had |
 | `setup.saved`, `skill.written`, `skill.dropped` | A skill set is created or its tools change, or a skill is added to it or removed |
 | `token.created`, `token.revoked` | An admin makes or revokes an API token, with what it may do. The secret is never written |
-| `member.invited`, `member.role`, `member.removed` | In an organisation behind a front door, an admin invites a person, changes their role or removes them. The front door reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
+| `member.invited`, `member.role`, `member.removed` | In an organisation behind gusto cloud, an admin invites a person, changes their role or removes them. gusto cloud reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
 | `budget.set` | An admin sets, changes or clears the monthly budget, with the figure before and after |
 | `sandbox.confirmed` | A person on their own computer confirms, once, that agents run with no sandbox |
 | `chat.default` | An admin sets or clears what a new chat runs on, with the engine and model before and after |
-| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a job or a person's work from being removed, or lets it go. A sweep removed workspaces or records, with the counts and the records named |
+| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed workspaces or records, with the counts and the records named |
 | `server.started`, `settings.changed` | The server starts, with the settings that decide who may do what. One of those settings differs from the last start |
 
 Every line has who, what, when and where the request came from. It never holds a password.
@@ -41,7 +41,7 @@ The file is JSON lines. Each line has a number, the hash of the line before it, 
 - A removed, added or moved line breaks the numbering and the chain.
 - A line rewritten with a fresh hash breaks the next line's link, and its signature does not verify.
 
-The server will not start on a log that does not hold together. `GUSTO_KEYRING` names the keys behind the signatures, as for job records. A line signed by a key the keyring does not hold is counted, not refused.
+The server will not start on a log that does not hold together. `GUSTO_KEYRING` names the keys behind the signatures, as for task records. A line signed by a key the keyring does not hold is counted, not refused.
 
 ## Check it
 

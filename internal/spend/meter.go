@@ -6,7 +6,7 @@ import (
 )
 
 // Meter reads the provider's usage out of an answer as it is relayed, without
-// holding it up. It is written to alongside the container, so the harness sees
+// holding it up. It is written to alongside the container, so the agent sees
 // every byte at the moment it would have without a proxy.
 //
 // It reads chat completions, the responses API and Anthropic's messages, plain

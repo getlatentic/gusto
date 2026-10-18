@@ -65,24 +65,6 @@ func ready() error {
 	return nil
 }
 
-// dataCommand is `gusto data status | check | rollback`.
-func dataCommand(args []string) int {
-	if len(args) == 0 {
-		usage()
-		return 2
-	}
-	switch args[0] {
-	case "status":
-		return dataStatus()
-	case "check":
-		return dataCheck()
-	case "rollback":
-		return dataRollback(args[1:])
-	}
-	usage()
-	return 2
-}
-
 func dataStatus() int {
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(table, "store\tdirectory\tformat\twritten by\tthis release reads")
@@ -150,17 +132,27 @@ func reversibility(step datadir.Step) string {
 	return "can be undone"
 }
 
+type rollbackFlags struct{ to string }
+
+func declareRollback(set *flag.FlagSet) *rollbackFlags {
+	f := &rollbackFlags{}
+	set.StringVar(&f.to, "to", "", "the `release` to go back to")
+	return f
+}
+
 // dataRollback takes the data back to what a named release wrote, so that
 // release can run on it. It checks every store first and changes none if any
 // cannot go back.
 func dataRollback(args []string) int {
-	flags := flag.NewFlagSet("data rollback", flag.ContinueOnError)
-	to := flags.String("to", "", "the release to go back to")
-	if err := flags.Parse(args); err != nil || *to == "" || flags.NArg() > 0 {
-		fmt.Fprintln(os.Stderr, "gusto data rollback: name the release to go back to with -to")
-		return 2
+	set := newSet("data rollback")
+	f := declareRollback(set)
+	if code, ok := parseFlags("data rollback", set, args); !ok {
+		return code
 	}
-	formats, err := datadir.FormatsOf(*to)
+	if f.to == "" || set.NArg() > 0 {
+		return usageError("data rollback", "name the release to go back to with -to")
+	}
+	formats, err := datadir.FormatsOf(f.to)
 	if err != nil {
 		return fail(err)
 	}
@@ -184,7 +176,7 @@ func dataRollback(args []string) int {
 		if err := datadir.Rollback(store, dir, formats[store], releaseName()); err != nil {
 			return fail(err)
 		}
-		fmt.Printf("%s is at format %d, as %s wrote it\n", dir, formats[store], *to)
+		fmt.Printf("%s is at format %d, as %s wrote it\n", dir, formats[store], f.to)
 	}
 	return 0
 }

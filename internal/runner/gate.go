@@ -10,9 +10,9 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Ask runs the command that says pass or fail and writes nothing. A harness
+// Ask runs the command that says pass or fail and writes nothing. An agent
 // reporting success is a claim; this is the check, and a re-run of it has to
-// leave the evidence it is checking untouched.
+// leave the record it is checking untouched.
 func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
 	return askIn(spec, dir, nil, nil)
 }
@@ -20,7 +20,7 @@ func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
 // askIn is Ask with the environment the gate runs with, or this process's when env is nil, and behind a wall when wrap is given.
 func askIn(spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, []byte, error) {
 	if len(spec.Gate) == 0 {
-		return evidence.Verdict{}, nil, errors.New("the job names no gate")
+		return evidence.Verdict{}, nil, errors.New("the task names no check")
 	}
 	command := exec.Command(spec.Gate[0], spec.Gate[1:]...)
 	command.Dir = dir.Workspace()

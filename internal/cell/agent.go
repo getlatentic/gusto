@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Agent is what runs on a cell host. It starts and stops the organisations' servers the front door
+// Agent is what runs on a host machine. It starts and stops the organisations' servers the gusto cloud
 // asks for, on this machine, and says what room there is. It does what a signed request says and
 // nothing else, so the secret is what stands between the network and a command run here.
 type Agent struct {
@@ -24,7 +24,7 @@ type Agent struct {
 	now     func() time.Time
 }
 
-// Status is what a cell says of itself.
+// Status is what a host says of itself.
 type Status struct {
 	Name    string   `json:"name"`
 	Private string   `json:"private"`

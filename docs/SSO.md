@@ -24,7 +24,7 @@ The server reads the provider's discovery document at startup. A wrong issuer st
 | `GUSTO_OIDC_GROUPS_CLAIM` | where the provider puts a person's groups |
 | `GUSTO_RUNNER_GROUPS` | groups whose members are runners: they start agents and see their own work |
 | `GUSTO_ADMIN_GROUPS` | groups whose members are admins: they also see everybody's work and change what agents are given. An admin group outranks a runner group |
-| `GUSTO_ALLOWED` | addresses, or a domain written `@example.com`, that may sign in. Optional when groups are set. With no groups it is the whole gate, and everybody it admits is a runner |
+| `GUSTO_ALLOWED` | addresses, or a domain written `@example.com`, that may sign in. Optional when groups are set. With no groups it is the whole check, and everybody it admits is a runner |
 | `GUSTO_ADMINS` | addresses that are admins whatever their groups say |
 
 The server refuses to start with a provider and neither a group nor an allowed list. Otherwise anybody with an account at the provider could spend the server's model credential.

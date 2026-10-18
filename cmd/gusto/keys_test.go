@@ -46,13 +46,13 @@ func TestKeysCheckFailsWhileARecordsKeyIsNotInTheKeyring(t *testing.T) {
 	sealedJob(t, root, "a", key)
 	t.Setenv(signing.KeyringEnv, ring)
 
-	if code := checkKeys([]string{"-jobs", root}); code != 0 {
+	if code := checkKeys([]string{"-tasks", root}); code != 0 {
 		t.Fatalf("with every key held the check exited %d", code)
 	}
 	if err := os.Remove(filepath.Join(ring, "acme.pub")); err != nil {
 		t.Fatal(err)
 	}
-	if code := checkKeys([]string{"-jobs", root}); code != 1 {
+	if code := checkKeys([]string{"-tasks", root}); code != 1 {
 		t.Fatalf("with the key gone the check exited %d, want 1", code)
 	}
 }

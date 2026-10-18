@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// Jobs is what a sweep reads jobs from and removes them through. The server
+// Jobs is what a sweep reads tasks from and removes them through. The server
 // gives its index, so what it holds in memory follows what is on disk; a
 // dry run over Scan never removes anything.
 type Jobs interface {
@@ -31,7 +31,7 @@ type Action struct {
 	Brief string `json:"brief"`
 	Kind  string `json:"kind"`
 	State string `json:"state"`
-	// Days is how long ago the job ended.
+	// Days is how long ago the task ended.
 	Days  int   `json:"days"`
 	Bytes int64 `json:"bytes"`
 	// Failed is why a removal did not happen.
@@ -43,7 +43,7 @@ type Report struct {
 	At      int64    `json:"at"`
 	Dry     bool     `json:"dry"`
 	Actions []Action `json:"actions"`
-	// Held is the jobs the policy would have removed but a hold kept.
+	// Held is the tasks the policy would have removed but a hold kept.
 	Held  []string `json:"held,omitempty"`
 	Freed int64    `json:"freed"`
 }
@@ -59,9 +59,9 @@ func (r Report) Removed(kind string) int {
 	return n
 }
 
-// Sweep removes what the policy says is due. It touches only jobs that ended
-// and that no agent owns: a job on an agent belongs to that agent's
-// conversation, and goes when the agent does. A job with a hold is skipped, and
+// Sweep removes what the policy says is due. It touches only tasks that ended
+// and that no agent owns: a task on an agent belongs to that agent's
+// conversation, and goes when the agent does. A task with a hold is skipped, and
 // so is one asked for by somebody with a hold.
 func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry bool) Report {
 	report := Report{At: now.Unix(), Dry: dry}
@@ -144,7 +144,7 @@ func size(path string) int64 {
 	return total
 }
 
-// Scanned is a read-only view of the jobs on disk, for a dry run from the
+// Scanned is a read-only view of the tasks on disk, for a dry run from the
 // command line while a server runs.
 type Scanned struct{ Root string }
 

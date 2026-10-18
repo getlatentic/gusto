@@ -20,7 +20,7 @@ type localSetup struct {
 	// Secret is both the server's password and the key its sign-in links are made with.
 	Secret string `json:"secret"`
 	// Path is the person's PATH as their shell had it when gusto was installed. A service manager starts gusto with a bare one,
-	// and the harnesses a person installs are where their own shell finds them.
+	// and the agents a person installs are where their own shell finds them.
 	Path string `json:"path,omitempty"`
 	// FoundKeys is the model keys the person's shell had when gusto was installed, by name alone: gusto offers them and does
 	// not take them.

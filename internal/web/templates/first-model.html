@@ -1,7 +1,7 @@
 {{define "first-model"}}
 <form class="setup first-model" method="post" action="/setup/model">
   <div class="setup-group">
-    <p class="setup-lede">Every engine can use it. Its key stays on this computer with gusto, and no agent is given it.</p>
+    <p class="setup-lede">Every agent can use it. Its key stays on this computer with gusto, and no agent is given it.</p>
     {{range .FoundKeys}}<p class="setup-aside">Your shell has {{.}}. To use it, run <code>gusto local use {{.}}</code> in a terminal.</p>{{end}}
   </div>
   <div class="setup-group">

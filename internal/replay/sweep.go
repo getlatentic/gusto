@@ -11,22 +11,22 @@ import (
 )
 
 // Run does the work of one prepared replay. Its error is for a run that could
-// not happen; the verdict is read from the evidence it leaves.
+// not happen; the verdict is read from the record it leaves.
 type Run func(job.Dir) error
 
-// Row is one job in a sweep: what it was, and what it is now.
+// Row is one task in a sweep: what it was, and what it is now.
 type Row struct {
 	Old    job.Dir
 	Replay job.Dir
 	Before evidence.Manifest
 	After  evidence.Manifest
-	// Err is set when the replay could not be made, could not run, or left no
+	// Err is set when the rerun could not be made, could not run, or left no
 	// verdict. Then After is empty and Change says nothing about the harness.
 	Err error
 }
 
-// Sweep replays every job, one after the other, and returns a row each. One job
-// that cannot be replayed is a row with an error rather than the end of the
+// Sweep reruns every task, one after the other, and returns a row each. One task
+// that cannot be rerun is a row with an error rather than the end of the
 // sweep, so a single broken directory does not hide what happened to the rest.
 func Sweep(olds []job.Dir, parent string, run Run) []Row {
 	rows := make([]Row, 0, len(olds))
@@ -58,18 +58,18 @@ func once(old job.Dir, parent string, run Run) Row {
 func verdictOf(dir job.Dir) (evidence.Manifest, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("the replay in %s left no manifest: %w", dir, err)
+		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
 	}
 	if manifest.Gate == nil {
-		return evidence.Manifest{}, fmt.Errorf("the replay in %s left no verdict", dir)
+		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
 	}
 	return manifest, nil
 }
 
 // Expand turns what a person named into jobs. A directory holding job.json is a
-// job. Any other directory is a set of jobs, and every child holding job.json is
-// one, in name order, except the replays among them: a sweep repeats originals,
-// and a second sweep over the same directory should not replay the first one's
+// task. Any other directory is a set of tasks, and every child holding job.json is
+// one, in name order, except the reruns among them: a sweep repeats originals,
+// and a second sweep over the same directory should not rerun the first one's
 // replays.
 func Expand(paths []string) ([]job.Dir, error) {
 	var jobs []job.Dir
@@ -99,7 +99,7 @@ func expandOne(path string) ([]job.Dir, error) {
 		}
 	}
 	if len(jobs) == 0 {
-		return nil, fmt.Errorf("%s is not a job and holds none", path)
+		return nil, fmt.Errorf("%s is not a task and holds none", path)
 	}
 	sort.Slice(jobs, func(i, j int) bool { return jobs[i] < jobs[j] })
 	return jobs, nil

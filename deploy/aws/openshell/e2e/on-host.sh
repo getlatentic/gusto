@@ -27,7 +27,7 @@ GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_MODEL
   setsid nohup "$E/haas" serve > "$E/serve.log" 2>&1 </dev/null &
 for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 
-GUSTO_HARNESSES="$E/harnesses" "$E/haas" new "$E/job" -repo "$E/repo" -brief "make the answer yes" -harness fixture -- sh test.sh >/dev/null
+GUSTO_HARNESSES="$E/harnesses" "$E/haas" new "$E/job" -repo "$E/repo" -brief "make the answer yes" -agent fixture -- sh test.sh >/dev/null
 id=$(GUSTO_SERVER=http://127.0.0.1:8040 GUSTO_PASSWORD=e2e "$E/haas" submit "$E/job" | head -n 1)
 echo "submitted $id"
 for _ in $(seq 1 120); do [ -f "$E/data/jobs/$id/out/manifest.json" ] && break; sleep 1; done
@@ -35,7 +35,7 @@ sleep 1
 J=$E/data/jobs/$id
 echo "== state";        cat "$J/state.json" | tr -d '\n '; echo
 echo "== transcript";   cat "$J/out/transcript.log"
-echo "== gate";         cat "$J/out/gates.json" | tr -d '\n '; echo
+echo "== check";         cat "$J/out/gates.json" | tr -d '\n '; echo
 echo "== diff";         cat "$J/out/diff.patch"
 echo "== proxy record"; cat "$J/out/proxy.jsonl" | cut -c1-260
 echo "== sandbox events"; cat "$J/out/sandbox-events.log" | cut -c1-260

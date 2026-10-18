@@ -49,20 +49,21 @@ The token acts as that person, on their own work. The person ends it from `/devi
 | `PUT /api/instances/{id}/file` | a person | Write one file |
 | `DELETE /api/instances/{id}/file` | a person | Remove one file |
 | `POST /api/instances/{id}/hashes` | a person | The hashes of the files named, so a client sends only what differs |
-| `POST /api/jobs` | token: submit | Send a job directory to be run |
+| `POST /api/jobs` | token: submit | Send a task directory to be run |
 | `GET /api/spend` | token: spend | The spend report |
 | `GET /api/changes` | token: audit | The record of what changed on the platform |
 | `GET /api/protocol` | nobody | The protocol version and this table, as JSON |
 
 ## A turn
 
-Saying something in a thread starts a turn, which is a job. These requests ran against a local gusto with a stand-in model, on an instance started with `POST /api/instances`.
+Saying something in a thread starts a turn, which is a task. These requests ran against a local gusto with a stand-in model, on an instance started with `POST /api/instances`.
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: say-1" -X POST \
   $GUSTO/api/instances/20261013-0924-pi/threads/1/say -d '{"said":"What is 17 times 23? Answer with just the number."}'
 # {"already":false,"job":"20261013-0924-what-is-17-times-23-2","state":"queued"}
 # Repeating the Idempotency-Key answers {"already":true,...} and starts nothing.
+# The `job` field and the `/api/jobs` paths name the task.
 
 curl -N -H "Authorization: Bearer $TOKEN" $GUSTO/api/jobs/20261013-0924-what-is-17-times-23-2/follow
 # event: ended, data: {"job":{"id":"...","state":"passed",...},"steps":[],"reply":"391","changed":[]}

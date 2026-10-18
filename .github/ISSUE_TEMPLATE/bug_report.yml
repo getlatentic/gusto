@@ -26,4 +26,4 @@ body:
     id: where
     attributes:
       label: Where
-      description: Operating system and processor, the engine and model if a job was involved, and which wall (`gusto local` says it on startup).
+      description: Operating system and processor, the engine and model if a task was involved, and which sandbox (`gusto local` says it on startup).

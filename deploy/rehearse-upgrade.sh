@@ -4,7 +4,7 @@
 #   deploy/rehearse-upgrade.sh <the new gusto binary> <your GUSTO_DATA directory> [<a release to roll back to>]
 #
 # The directory is copied and never changed. On the copy, the script has the new binary check what it would migrate, starts
-# it as a server, reads the job pages, and runs `gusto verify` on every job. With a release named, it then rolls the copy back
+# it as a server, reads the task pages, and runs `gusto verify` on every task. With a release named, it then rolls the copy back
 # to that release's formats. It runs jobs in the server's own process and runs none, so it needs the binary and curl, and no
 # container runtime. A binary is built from a checkout with `go build -o gusto ./cmd/gusto`.
 #
@@ -62,7 +62,7 @@ for dir in "$data"/jobs/*/; do
   if "$binary" verify "$dir" > "$work/verify.out" 2>&1; then held=$((held + 1)); else echo "  $id does not verify: $(tail -n 1 "$work/verify.out")" >&2; broken=$((broken + 1)); fi
 done
 stop
-echo "== $jobs jobs: $loaded pages loaded, $held records verified, $broken problems"
+echo "== $jobs tasks: $loaded pages loaded, $held records verified, $broken problems"
 "$binary" data status
 
 if [ -n "$release" ]; then

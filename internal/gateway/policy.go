@@ -8,7 +8,7 @@ import (
 	"path"
 )
 
-// Caller is who a job's calls are made for.
+// Caller is who a task's calls are made for.
 type Caller struct {
 	Job    string
 	Person string
@@ -28,7 +28,7 @@ type Rule struct {
 }
 
 // Policy is the rules in the order they were written. The first rule that matches a call decides it, and a call no rule matches is
-// allowed, because a server is in a job only when an administrator turned its integration on; the rules take tools away from
+// allowed, because a server is in a task only when an administrator turned its integration on; the rules take tools away from
 // people, or give the tools of a server to only some.
 type Policy struct {
 	Rules []Rule `json:"rules"`

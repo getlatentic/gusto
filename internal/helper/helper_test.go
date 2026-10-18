@@ -20,7 +20,7 @@ func TestAServerIsKeyedTheSameWhateverWayItIsWritten(t *testing.T) {
 	for written, want := range map[string]string{
 		"https://Gusto.Example.com/":    "https://gusto.example.com",
 		" https://gusto.example.com ":   "https://gusto.example.com",
-		"http://127.0.0.1:8040":        "http://127.0.0.1:8040",
+		"http://127.0.0.1:8040":         "http://127.0.0.1:8040",
 		"https://gusto.example.com/org": "https://gusto.example.com/org",
 	} {
 		if got := Server(written); got != want {

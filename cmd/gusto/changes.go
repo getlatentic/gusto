@@ -67,24 +67,32 @@ func governing() map[string]string {
 	return settings
 }
 
-// changesCommand is `gusto changes verify`: it checks an exported record and says
+type changesVerifyFlags struct{ head string }
+
+func declareChangesVerify(set *flag.FlagSet) *changesVerifyFlags {
+	f := &changesVerifyFlags{}
+	set.StringVar(&f.head, "head", "", "a head `hash` kept earlier, which the record must still contain")
+	return f
+}
+
+// changesVerify is `gusto changes verify`: it checks an exported record and says
 // who signed it, and that lines were not cut off the end.
-func changesCommand(args []string) int {
-	if len(args) == 0 || args[0] != "verify" {
-		usage()
-		return 2
-	}
-	flags := flag.NewFlagSet("changes verify", flag.ContinueOnError)
-	head := flags.String("head", "", "a head hash kept earlier, which the record must still contain")
+func changesVerify(args []string) int {
+	set := newSet("changes verify")
+	f := declareChangesVerify(set)
 	// The file may come before the flags or after them.
-	if err := flags.Parse(args[1:]); err != nil || flags.NArg() == 0 {
-		usage()
-		return 2
+	if code, ok := parseFlags("changes verify", set, args); !ok {
+		return code
 	}
-	where := flags.Arg(0)
-	if err := flags.Parse(flags.Args()[1:]); err != nil || flags.NArg() > 0 {
-		usage()
-		return 2
+	if set.NArg() == 0 {
+		return usageError("changes verify", "needs the exported record")
+	}
+	where := set.Arg(0)
+	if code, ok := parseFlags("changes verify", set, set.Args()[1:]); !ok {
+		return code
+	}
+	if set.NArg() > 0 {
+		return usageError("changes verify", "needs only the exported record")
 	}
 	keyring, err := signing.ConfiguredKeyring()
 	if err != nil {
@@ -115,18 +123,18 @@ func changesCommand(args []string) int {
 	if report.Unsigned > 0 {
 		fmt.Printf("%5d not signed\n", report.Unsigned)
 	}
-	if *head != "" {
+	if f.head != "" {
 		again, err := os.Open(where)
 		if err != nil {
 			return fail(err)
 		}
 		defer again.Close()
-		seq, found, err := changelog.Contains(again, strings.TrimSpace(*head))
+		seq, found, err := changelog.Contains(again, strings.TrimSpace(f.head))
 		if err != nil {
 			return fail(err)
 		}
 		if !found {
-			fmt.Printf("the head %s is not in this record: lines were cut off the end, or it is another record\n", *head)
+			fmt.Printf("the head %s is not in this record: lines were cut off the end, or it is another record\n", f.head)
 			return 1
 		}
 		fmt.Printf("the head you kept is line %d, and it is still here\n", seq)

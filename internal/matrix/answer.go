@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-// Asked is what `gusto matrix` was asked on the command line.
+// Asked is what `gusto benchmark` was asked on the command line.
 type Asked struct {
-	// Into is where the matrix goes. Empty is beside the plan, named after it.
+	// Into is where the benchmark goes. Empty is beside the plan, named after it.
 	Into string
 	// Again names the pairs to run again although they finished: "all", or
-	// harness@model separated by commas.
+	// agent@model separated by commas.
 	Again string
 	// JSON prints the table as the catalog reads it, rather than as markdown.
 	JSON bool
@@ -20,8 +20,8 @@ type Asked struct {
 	Progress io.Writer
 }
 
-// Answer is the whole of `gusto matrix`. A matrix's directory alone prints its
-// table again from the evidence; a plan runs whatever is due into its matrix,
+// Answer is the whole of `gusto benchmark`. A benchmark's directory alone prints its
+// table again from the record; a plan runs whatever is due into its benchmark,
 // writes the table there, and prints it. Either way the exit code is
 // ExitCode's.
 func Answer(w io.Writer, named string, asked Asked) (int, error) {
@@ -67,7 +67,7 @@ func measured(path string, asked Asked) (string, error) {
 	return where, err
 }
 
-// Beside is where a plan's matrix goes when nothing says: next to the plan,
+// Beside is where a plan's benchmark goes when nothing says: next to the plan,
 // named after it, so running the same plan again finds the same matrix.
 func Beside(plan string) string {
 	base := strings.TrimSuffix(filepath.Base(plan), filepath.Ext(plan))

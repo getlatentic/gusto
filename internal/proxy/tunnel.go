@@ -21,8 +21,8 @@ const dialLimit = 15 * time.Second
 //
 // The line is written when the tunnel opens, before the container hears it
 // may go ahead, rather than when it closes. A connection can outlive the
-// harness that opened it, and a line written after the manifest hashed the
-// record would read as evidence changed after the run.
+// agent that opened it, and a line written after the manifest hashed the
+// record would read as a record that changed after the run.
 func (p *Proxy) tunnel(w http.ResponseWriter, job, address string, call spend.Call) {
 	sent := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), dialLimit)

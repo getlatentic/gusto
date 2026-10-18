@@ -91,7 +91,7 @@ func (s *Server) rolesToChoose() ([]role, []string) {
 		case held.Restricted() && !s.inBuilding.Load():
 			each.Blocked = "This work only goes to models in your own network, and this deployment has none."
 		case len(runners) == 0:
-			each.Blocked = "No engine here can take this work yet."
+			each.Blocked = "No agent here can take this work yet."
 		}
 		roles = append(roles, each)
 		if !seen[held.Industry] {

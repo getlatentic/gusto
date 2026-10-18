@@ -41,16 +41,16 @@ npm install -g opencode-ai            # or @anthropic-ai/claude-code, @openai/co
 ## 4. Ask it something
 
 Choose the agent and the model under the message box, and ask: `What is 17 times 23? Answer with just the number.` The answer arrives with how long
-it took and what it cost. The page says under the box which wall the job ran behind.
+it took and what it cost. The page says under the box which sandbox the task ran in.
 
 ## 5. Check the record
 
-Every job leaves a record. Open the job from the page, or from a terminal:
+Every task leaves a record. Open the task from the page, or from a terminal:
 
 ```bash
-gusto verify "<data folder>/jobs/<job id>"
-# 7 files match, and the job had no gate to run again
-gusto show "<data folder>/jobs/<job id>"
+gusto verify "<data folder>/jobs/<task id>"
+# 7 files match, and the task had no check to run again
+gusto show "<data folder>/jobs/<task id>"
 ```
 
 The data folder is `~/Library/Application Support/gusto/data` on macOS, `~/.local/share/gusto` on Linux and `%LOCALAPPDATA%\gusto\data` on
@@ -58,6 +58,6 @@ Windows. A record made without a signing key says `unsigned`; [KEYS.md](KEYS.md)
 
 ## Next
 
-- A stronger wall for each job, on Apple Silicon or Linux with KVM: `gusto local wall install` ([LOCAL.md](LOCAL.md)).
+- A stronger sandbox for each task, on Apple Silicon or Linux with KVM: `gusto local sandbox install` ([LOCAL.md](LOCAL.md)).
 - A server of your own, with HTTPS: [deploy/README.md](../deploy/README.md).
 - Stop it: `gusto local stop`. Remove it: `gusto local uninstall`.

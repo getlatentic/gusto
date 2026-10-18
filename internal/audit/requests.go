@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-// requestsNaming keeps the lines of a request log whose path names the job,
+// requestsNaming keeps the lines of a request log whose path names the task,
 // byte for byte as the log wrote them.
 //
-// The path is the only thing that ties a request to a job. The request that
-// created the job is not among them: a job is created by POST /jobs or POST
+// The path is the only thing that ties a request to a task. The request that
+// created the task is not among them: a task is created by POST /jobs or POST
 // /api/jobs, and its ID is chosen by the server after the path was written.
-// What remains are the reads: the job's page, its files, its bundle and its
+// What remains are the reads: the task's page, its files, its bundle and its
 // stream, which is who looked at the record.
 func requestsNaming(log, id string) ([]byte, error) {
 	text, err := os.ReadFile(log)

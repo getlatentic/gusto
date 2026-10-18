@@ -10,7 +10,7 @@ import (
 
 // RecordFile is the comparison's own file. It sits in the comparison's
 // directory, above the runs, so no run can read it and learn what the other
-// harness is or did.
+// agent is or did.
 const RecordFile = "comparison.json"
 
 // RecordVersion is the version of comparison.json this code writes and the
@@ -20,7 +20,7 @@ const RecordVersion = 1
 // Record names the runs of one comparison and what they share.
 type Record struct {
 	Version int `json:"version"`
-	// Submission is the job the runs were made from, as an absolute path.
+	// Submission is the task the runs were made from, as an absolute path.
 	Submission string `json:"submission"`
 	// Commit is where every run's workspace starts, and PinnedBy the reference
 	// it was resolved from.

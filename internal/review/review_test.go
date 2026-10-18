@@ -59,7 +59,7 @@ func TestARemoteWithNoEvidenceSaysSo(t *testing.T) {
 		t.Fatalf("%v: %s", err, output)
 	}
 	_, err := Check(context.Background(), bare, strings.Repeat("a", 64), filepath.Join(t.TempDir(), "job"))
-	if err == nil || !strings.Contains(err.Error(), "holds no evidence for that manifest") {
+	if err == nil || !strings.Contains(err.Error(), "holds no record for that manifest") {
 		t.Fatalf("want a missing ref named, got %v", err)
 	}
 }
