@@ -128,3 +128,28 @@ type Store interface {
 	Indexed(ctx context.Context) (map[string]int, error)
 	Close() error
 }
+
+// Who says who made the calls of a task. It is what the proxy cannot know for itself,
+// and what the server, which holds the task's record and its conversation, can.
+type Who struct {
+	Session string
+	Person  string
+	Team    string
+	Project string
+	Engine  string
+	Agent   string
+}
+
+// WhoFunc finds who made a task's calls, and is false for a task it does not know.
+type WhoFunc func(task string) (Who, bool)
+
+// ProviderFunc names who answers a model, by the name the organisation's model registry gives it.
+type ProviderFunc func(model, credential string) string
+
+// Status is how far the index has caught up with the files. A page shows it while Building is true,
+// so that an index still being filled is not read as an empty month.
+type Status struct {
+	Building bool `json:"building"`
+	Done     int  `json:"done"`
+	Total    int  `json:"total"`
+}
