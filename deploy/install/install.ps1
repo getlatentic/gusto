@@ -6,7 +6,7 @@
 #   irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex      # in PowerShell
 #   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex"   # in cmd
 #   .\install.ps1                      # the newest release
-#   .\install.ps1 -Tag v0.0.1-alpha.5
+#   .\install.ps1 -Tag v0.1.0-rc.2
 #   .\install.ps1 -Programs gusto-helper
 #   .\install.ps1 -NoStart              # install, and do not start gusto for this person
 #   $env:GUSTO_RELEASE_URL = "http://10.0.2.2:8000"; .\install.ps1 -Tag v0.0.0-test   # a release's files from another address

@@ -6,7 +6,7 @@
 # rolls it back and starts the old release on it again. Each step reads the job
 # back: the page renders and `gusto verify` holds.
 #
-#   deploy/upgrade-check.sh v0.1.0-rc.1
+#   deploy/upgrade-check.sh v0.1.0-rc.2
 #
 # Run it from a checkout with the release tags. It runs jobs in the server's own
 # process (GUSTO_SANDBOX=here) with a fixture harness that calls no model, so it
