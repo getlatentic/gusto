@@ -39,7 +39,7 @@ func TestAHostThatOffersNoDemoHasNoDemoPage(t *testing.T) {
 
 func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testing.T) {
 	f := demoFront(t, "FAKE_DELAY=1500ms")
-	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try Latentic Agent Cloud for 30 minutes") || !strings.Contains(page, "https://cal.example/gusto") {
+	if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try gusto for 30 minutes") || !strings.Contains(page, "https://cal.example/gusto") {
 		t.Fatalf("%d\n%s", status, page)
 	}
 	b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
@@ -198,7 +198,7 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	status, page, header := landingAt(t, demoSet)
-	for _, want := range []string{"One place for every AI agent your team needs.", "Latentic Agent Cloud", `href="/demo"`, "Explore a live workspace", `href="https://cal.example/gusto"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple agents.", `rel="stylesheet" href="/static/landing.css`} {
+	for _, want := range []string{"One place for every AI agent your team needs.", "gusto", `href="/demo"`, "Explore a live workspace", `href="https://cal.example/gusto"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple agents.", `rel="stylesheet" href="/static/landing.css`} {
 		if !strings.Contains(strings.ToLower(page), strings.ToLower(want)) {
 			t.Errorf("the landing page does not say %q", want)
 		}

@@ -22,7 +22,7 @@ func TestTheLandingPageTellsASearchEngineWhatItIsAndWhereItLives(t *testing.T) {
 		`<meta property="og:image" content="http://cloud.test/static/og.png">`,
 		`<meta property="og:image:width" content="1200">`,
 		`<meta name="twitter:card" content="summary_large_image">`,
-		`<meta property="og:title" content="Latentic Agent Cloud — one place for every AI agent your team needs">`,
+		`<meta property="og:title" content="gusto — one place for every AI agent your team needs">`,
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the landing page lacks %s", want)
@@ -54,7 +54,7 @@ func TestTheLandingPagesStructuredDataIsValidAndNamesOnlyWhatThePageSays(t *test
 	for _, node := range data.Graph {
 		types[node["@type"].(string)] = node
 	}
-	if data.Context != "https://schema.org" || types["Organization"]["name"] != "Latentic" || types["SoftwareApplication"]["name"] != "Latentic Agent Cloud" {
+	if data.Context != "https://schema.org" || types["Organization"]["name"] != "Latentic" || types["SoftwareApplication"]["name"] != "gusto" {
 		t.Errorf("%+v", data)
 	}
 	for _, claimed := range []string{"offers", "aggregateRating", "price", "reviewCount"} {
@@ -70,7 +70,7 @@ func TestTheLandingPagesStructuredDataIsValidAndNamesOnlyWhatThePageSays(t *test
 func TestOnlyTheLandingPageAndTheDemoFormMayBeListed(t *testing.T) {
 	f := demoFront(t)
 	_, form, _ := f.browser().get2("/demo")
-	if !strings.Contains(form, `content="index,follow`) || !strings.Contains(form, `<link rel="canonical" href="http://cloud.test/demo">`) || !strings.Contains(form, "Start a demo of Latentic Agent Cloud") {
+	if !strings.Contains(form, `content="index,follow`) || !strings.Contains(form, `<link rel="canonical" href="http://cloud.test/demo">`) || !strings.Contains(form, "Start a demo of gusto") {
 		t.Errorf("the demo form is not listed with its own address and title:\n%s", form)
 	}
 	for _, path := range []string{"/signin", "/signup"} {

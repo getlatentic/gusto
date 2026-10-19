@@ -1,4 +1,4 @@
-//! Latentic Agent Cloud for a person's own computer: a window on gusto, on this computer or on their organisation's server, an icon that
+//! gusto for a person's own computer: a window on gusto, on this computer or on their organisation's server, an icon that
 //! says what their agents are doing, and a notification when one finishes. On this computer the app uses gusto as the install script
 //! left it, or starts the one it carries; for an organisation the work is done by gusto-helper, which the app starts and keeps going.
 

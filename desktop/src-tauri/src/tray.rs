@@ -88,7 +88,7 @@ fn menu(app: &AppHandle, view: &View) -> tauri::Result<Menu<tauri::Wry>> {
         pages.insert(id.clone(), page.clone());
         builder = builder.item(&MenuItemBuilder::with_id(id, label).build(app)?);
     }
-    builder = builder.separator().item(&MenuItemBuilder::with_id("open", "Open Latentic Agent Cloud").build(app)?);
+    builder = builder.separator().item(&MenuItemBuilder::with_id("open", "Open gusto").build(app)?);
     if view.sign_in {
         builder = builder.item(&MenuItemBuilder::with_id("signin", "Sign in…").build(app)?);
     }
@@ -115,7 +115,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
     TrayIconBuilder::with_id(ID)
         .icon(tauri::include_image!("icons/tray.png"))
         .icon_as_template(true)
-        .tooltip("Latentic Agent Cloud")
+        .tooltip("gusto")
         .menu(&empty)
         .on_menu_event(|app, event| {
             let id = event.id().as_ref().to_string();

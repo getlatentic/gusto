@@ -27,7 +27,7 @@ cargo tauri build --target "$triple" --bundles "$bundles" \
 
 bundle="target/$triple/release/bundle"
 mkdir -p "$out"
-name="latentic-agent-cloud_${tag}_${platform}"
+name="gusto-desktop_${tag}_${platform}"
 
 keep() { # keep <file> <suffix>
   cp "$1" "$out/$name$2"

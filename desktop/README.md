@@ -1,4 +1,4 @@
-# Latentic Agent Cloud for a computer
+# gusto for a computer
 
 A window on gusto, on this computer or on your organisation's server, an icon that says what your agents are doing, and a
 notification when one finishes. It is a [Tauri](https://tauri.app) app: a small Rust shell around the system's own web view, so the
@@ -28,7 +28,7 @@ The icon's menu says which it is on, and switches: **On this computer**, or **Co
   a page of that server: a path that names another host, another scheme or no path is ignored, so a link in a message cannot take the
   window anywhere. (`src-tauri/src/links.rs`, with its tests.)
 - **A notification** says a turn that was going has ended, and a click on it shows the turn in the window. macOS asks the first time
-  whether the app may send notifications, and it must be allowed in System Settings for them to appear. `Latentic Agent Cloud
+  whether the app may send notifications, and it must be allowed in System Settings for them to appear. `gusto
   --test-notification` sends one, to find out why they do not.
 - **Start at login** is in the icon's menu, off until it is turned on.
 
@@ -41,7 +41,7 @@ libraries too (`libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `librsvg
 ./prepare.sh                       # gusto-helper and gusto for this machine
 cd src-tauri
 cargo test
-cargo tauri build --bundles app    # macOS: target/release/bundle/macos/Latentic Agent Cloud.app
+cargo tauri build --bundles app    # macOS: target/release/bundle/macos/gusto.app
 ```
 
 The app is not signed yet (getlatentic/planning#601), so macOS asks you to allow it the first time.
