@@ -5,7 +5,7 @@
 #
 #   curl -fsSL https://github.com/getlatentic/gusto/releases/latest/download/install.sh | sh
 #   deploy/install/install.sh                                  # the newest release, an alpha included
-#   deploy/install/install.sh v0.0.1-alpha.5
+#   deploy/install/install.sh v0.1.0-rc.2
 #   GUSTO_INSTALL_DIR=/usr/local/bin deploy/install/install.sh  # where to put them; ~/.local/bin by default
 #   GUSTO_PROGRAMS=gusto-helper deploy/install/install.sh         # which to install; both by default
 #   GUSTO_REQUIRE_COSIGN=1 deploy/install/install.sh             # refuse to go on without checking the signature
