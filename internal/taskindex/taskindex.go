@@ -1,4 +1,4 @@
-// Package taskindex keeps one row for each task, so an organisation can list, search and page
+// Package taskindex keeps one row for each task, so an organization can list, search and page
 // through its tasks without reading every task directory or holding every task in memory, and so that a
 // second replica can read the same list.
 //

@@ -56,7 +56,7 @@ type Upstream struct {
 }
 
 // Dial makes the connection for a server. private lets the address be on a private network, which an administrator allows for a
-// server inside the organisation; without it the address must be public, which is checked where the connection is made, so that a
+// server inside the organization; without it the address must be public, which is checked where the connection is made, so that a
 // name that answers with a private address a moment later is not reached either.
 func Dial(server Server, private bool) *Upstream {
 	return &Upstream{server: server, client: &http.Client{

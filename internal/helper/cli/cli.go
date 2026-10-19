@@ -16,7 +16,7 @@ import (
 
 // serverFlag reads the address of the server a command talks to: the flag, or GUSTO_SERVER.
 func serverFlag(flags *flag.FlagSet) *string {
-	return flags.String("server", os.Getenv("GUSTO_SERVER"), "the address of your organisation's server (default GUSTO_SERVER)")
+	return flags.String("server", os.Getenv("GUSTO_SERVER"), "the address of your organization's server (default GUSTO_SERVER)")
 }
 
 func needServer(address string) (string, bool) {

@@ -49,7 +49,7 @@ type App struct {
 	Started int64  `json:"startedAt"`
 }
 
-// Store is one organisation's apps.
+// Store is one organization's apps.
 type Store struct {
 	dir string
 	mu  sync.Mutex

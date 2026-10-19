@@ -11,7 +11,7 @@
     dest: /usr/local/bin/gusto-dns
     mode: "0755"
 
-- name: gusto cloud's settings, and what every organisation's server is started with
+- name: gusto cloud's settings, and what every organization's server is started with
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"

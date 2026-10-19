@@ -24,7 +24,7 @@ header nav a.new:hover, header nav a.new[aria-current] { background: var(--gu-ac
 header nav a.new svg.i { opacity: 1; }
 
 /* Icons carry no meaning alone, so they never stand in for a word, and they
-   take the non-text colour the tokens reserve for exactly this. */
+   take the non-text color the tokens reserve for exactly this. */
 svg.i { width: 1rem; height: 1rem; flex: none; stroke: currentColor; fill: none;
   stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 
@@ -387,7 +387,7 @@ ul.asks li { padding: var(--gu-space-3) var(--gu-space-4); border: 0.0625rem sol
 .run-side form.stack label { font-size: .8125rem; }
 
 /* Activity: a log, a day at a time. Each event is the time, a dot in its
-   state's colour, where it happened and what was asked, and how it ended. */
+   state's color, where it happened and what was asked, and how it ended. */
 .filters { flex-wrap: wrap; }
 .segments { display: flex; flex-wrap: wrap; gap: var(--gu-space-1); padding: 0.1875rem;
   background: var(--gu-bg-subtle); border-radius: var(--gu-radius-full); }
@@ -455,7 +455,7 @@ details#task .threads-list { margin-bottom: var(--gu-space-4); }
 .panel.file h2 code { font-size: .8125rem; text-transform: none; letter-spacing: 0; color: var(--gu-text); }
 
 /* ── The look ──────────────────────────────────────────────────────────
-   Headings in Sora, the display face the tokens name. Fields of work are told apart by their name and their mark, and not by a colour of their own:
+   Headings in Sora, the display face the tokens name. Fields of work are told apart by their name and their mark, and not by a color of their own:
    the app is neutral and the person chooses the accent. */
 @font-face { font-family: "Sora"; src: url("/static/sora.woff2") format("woff2");
   font-weight: 400 700; font-display: swap; }
@@ -575,10 +575,10 @@ details.steps ol.did .detail { font-family: var(--gu-font-text); font-size: .75r
 .run-title { min-width: 0; }
 .run-title .place { margin: 0 0 var(--gu-space-1); font-size: .75rem; font-weight: 600; color: var(--gu-text-subtle);  text-transform: none; }
 .outcome-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gu-space-3); margin: var(--gu-space-3) 0 0; font-size: .8125rem; }
-.neighbours { display: flex; gap: var(--gu-space-2); flex: none; }
-.neighbours a { padding: var(--gu-space-2) var(--gu-space-3); border: 0.0625rem solid var(--gu-border); border-radius: 0.625rem;
+.neighbors { display: flex; gap: var(--gu-space-2); flex: none; }
+.neighbors a { padding: var(--gu-space-2) var(--gu-space-3); border: 0.0625rem solid var(--gu-border); border-radius: 0.625rem;
   color: var(--gu-text); text-decoration: none; font-size: .8125rem; background: var(--gu-surface); }
-.neighbours a:hover { border-color: var(--gu-accent); }
+.neighbors a:hover { border-color: var(--gu-accent); }
 .run-side details > summary { cursor: pointer; color: var(--gu-text-muted); }
 .run-side details[open] > summary { margin-bottom: var(--gu-space-3); }
 .run-side .small-cta { width: 100%; }
@@ -644,8 +644,8 @@ label.engine .name { font-weight: 600; }
 label.engine .what { grid-column: 2; color: var(--gu-text-muted); font-size: .8125rem; }
 h2.plain { margin: 0; font: 600 1.125rem/1.3 var(--gu-font-display); letter-spacing: -.01em; text-transform: none; color: var(--gu-text); }
 
-/* Under forced colours, shadows and backgrounds are dropped: where they marked the current choice, the system's selected colours do,
-   and a status dot keeps its own colour. */
+/* Under forced colors, shadows and backgrounds are dropped: where they marked the current choice, the system's selected colors do,
+   and a status dot keeps its own color. */
 
 @media (forced-colors: active) {
   .segments a[aria-current], .threads a[aria-current] { forced-color-adjust: none; background: SelectedItem; color: SelectedItemText; }

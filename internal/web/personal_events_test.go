@@ -149,7 +149,7 @@ func TestOnlyAPersonsTokenOpensTheEventStream(t *testing.T) {
 	here := withTokens(t)
 	for name, secret := range here.secrets {
 		if got := here.getAs(secret, "/api/events"); got.Code == http.StatusOK {
-			t.Errorf("the organisation's %q token opened a person's stream", name)
+			t.Errorf("the organization's %q token opened a person's stream", name)
 		}
 	}
 	if got := here.getAs("", "/api/events"); got.Code != http.StatusUnauthorized {

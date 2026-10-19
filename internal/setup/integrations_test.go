@@ -314,7 +314,7 @@ func TestASkillSetExportedAsAPluginIsAnIntegrationWithNoServers(t *testing.T) {
 	store, _ := Open(t.TempDir())
 	store.Save(Setup{Name: "reviewer", Servers: []string{"memory"}}, memory())
 	store.Write("reviewer", Skill{Name: "review", Description: "Use when asked: \"review this\".\nSecond line.", Body: "Read the diff first."})
-	store.Write("reviewer", Skill{Name: "summarise", Description: "Use to summarise.", Body: "Be brief."})
+	store.Write("reviewer", Skill{Name: "summarise", Description: "Use to summarize.", Body: "Be brief."})
 	data, err := store.Export("reviewer")
 	if err != nil {
 		t.Fatal(err)

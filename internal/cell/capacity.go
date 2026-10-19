@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Capacity is what a host has left to give an organisation's computers.
+// Capacity is what a host has left to give an organization's computers.
 type Capacity struct {
 	CPUs               int `json:"cpus"`
 	MemoryAvailableMiB int `json:"memoryAvailableMiB"`

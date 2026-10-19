@@ -112,7 +112,7 @@ func sharedApp(t *testing.T, site *site, where string) (id string) {
 	return all[0].ID
 }
 
-func TestAnAppAnAgentBuiltIsSharedOnceItAnswersAndOnlyTheOrganisationsMembersOpenIt(t *testing.T) {
+func TestAnAppAnAgentBuiltIsSharedOnceItAnswersAndOnlyTheOrganizationsMembersOpenIt(t *testing.T) {
 	site, runner, gateway := sharingSite(t)
 	where := startedInstance(t, site)
 	id := sharedApp(t, site, where)
@@ -158,12 +158,12 @@ func TestAnAppAnAgentBuiltIsSharedOnceItAnswersAndOnlyTheOrganisationsMembersOpe
 	}
 }
 
-func TestAnotherOrganisationsServerHasNoSuchApp(t *testing.T) {
+func TestAnotherOrganizationsServerHasNoSuchApp(t *testing.T) {
 	first, _, _ := sharingSite(t)
 	id := sharedApp(t, first, startedInstance(t, first))
 	second, _, _ := sharingSite(t)
 	if got := second.ask(t, "GET", "/apps/"+id+"/", nil); got.Code != http.StatusNotFound {
-		t.Errorf("another organisation opened it: %d", got.Code)
+		t.Errorf("another organization opened it: %d", got.Code)
 	}
 }
 
@@ -336,7 +336,7 @@ func (s *site) signedInTo(t *testing.T, id string) *http.Cookie {
 }
 
 // An app the agent wrote with absolute paths, which is what an agent writes, works: it has its own
-// host name, so /click is the app's and not the organisation's.
+// host name, so /click is the app's and not the organization's.
 func TestAnAppHasAHostNameOfItsOwnSoWhatItWroteWorksAsItWroteIt(t *testing.T) {
 	site, _, gateway := behindAFrontDoorSharing(t)
 	where := startedInstance(t, site)
@@ -378,7 +378,7 @@ func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *te
 	if got := site.appRequest(t, id, "GET", "/", cookie); got.Code != http.StatusOK {
 		t.Errorf("a person signed in opens the app: %d", got.Code)
 	}
-	// A token is used once, and one for another organisation is not one.
+	// A token is used once, and one for another organization is not one.
 	token := tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())
 	site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(token))
 	if again := site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(token)); again.Code != http.StatusForbidden {
@@ -386,7 +386,7 @@ func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *te
 	}
 	other := tokenFor(t, "globex-com", "eve@globex.com", "runner", time.Now())
 	if got := site.appRequest(t, id, "GET", "/auth/entry?t="+url.QueryEscape(other)); got.Code != http.StatusForbidden {
-		t.Errorf("another organisation's token signed somebody in: %d", got.Code)
+		t.Errorf("another organization's token signed somebody in: %d", got.Code)
 	}
 }
 
@@ -418,8 +418,8 @@ func TestOnlyTheFrontDoorCanNameAnApp(t *testing.T) {
 	}
 }
 
-// On an app's host name nothing of the organisation's own pages can be reached, whatever is asked for.
-func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganisation(t *testing.T) {
+// On an app's host name nothing of the organization's own pages can be reached, whatever is asked for.
+func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganization(t *testing.T) {
 	site, _, gateway := behindAFrontDoorSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
@@ -437,7 +437,7 @@ func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganisation(t *te
 	}
 }
 
-func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganisationsOrForTheWholeDomain(t *testing.T) {
+func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganizationsOrForTheWholeDomain(t *testing.T) {
 	site, _, gateway := behindAFrontDoorSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
@@ -495,7 +495,7 @@ func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServe
 		t.Errorf("the gateway was asked as %q, referred by %q", asked.Header.Get("Origin"), asked.Header.Get("Referer"))
 	}
 
-	// The same, on a server with no front door, where the app is a path of the organisation's own origin.
+	// The same, on a server with no front door, where the app is a path of the organization's own origin.
 	alone, _, aloneGateway := sharingSite(t)
 	aloneID := sharedApp(t, alone, startedInstance(t, alone))
 	request := httptest.NewRequest("POST", "/apps/"+aloneID+"/click", nil)

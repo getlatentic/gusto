@@ -24,7 +24,7 @@ func (r *recordedFolders) Registered() map[string]string { return r.got }
 
 // The desktop app registers a folder with the helper over its own address and token, and a refusal is said to it.
 func TestTheAppRegistersAFolderWithTheHelper(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	folders := &recordedFolders{}

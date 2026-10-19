@@ -74,7 +74,7 @@ func TestAComputerSignsInAsAPersonByTheDeviceFlow(t *testing.T) {
 	}
 }
 
-func TestAPersonsTokenDoesNothingTheOrganisationsTokensDo(t *testing.T) {
+func TestAPersonsTokenDoesNothingTheOrganizationsTokensDo(t *testing.T) {
 	here := withTokens(t)
 	secret := signInADevice(t, here, alice)
 	for _, path := range []string{"/api/spend", "/api/changes", "/metrics"} {
@@ -83,7 +83,7 @@ func TestAPersonsTokenDoesNothingTheOrganisationsTokensDo(t *testing.T) {
 		}
 	}
 	if got := here.call("GET", "/api/me", here.secrets["everyone"]); got.Code == http.StatusOK {
-		t.Errorf("an organisation's token passed for a person: %s", got.Body)
+		t.Errorf("an organization's token passed for a person: %s", got.Body)
 	}
 }
 

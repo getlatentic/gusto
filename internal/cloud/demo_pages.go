@@ -19,7 +19,7 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := view{Title: demoFormTitle, Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length}
-	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organisation, with agents working in workspaces of their own, and nothing to sign up for."))
+	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working in workspaces of their own, and nothing to sign up for."))
 }
 
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and

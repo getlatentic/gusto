@@ -211,7 +211,7 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 
 func TestAnUnknownSortIsRefusedAndNamesTheFour(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
-	for _, path := range []string{"/usage?sort=colour", "/api/usage/sessions?sort=colour"} {
+	for _, path := range []string{"/usage?sort=color", "/api/usage/sessions?sort=color"} {
 		got := here.call("GET", path, here.secrets["finance"])
 		if path[0:4] == "/usa" {
 			got = here.ask(t, "GET", path, nil)

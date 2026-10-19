@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func TestRetryableRecognisesRaceLosses(t *testing.T) {
+func TestRetryableRecognizesRaceLosses(t *testing.T) {
 	for code, want := range map[string]bool{"40001": true, "40P01": true, "23505": false} {
 		err := fmt.Errorf("wrapped: %w", &pgconn.PgError{Code: code})
 		if retryable(err) != want {
@@ -22,7 +22,7 @@ func TestRetryableRecognisesRaceLosses(t *testing.T) {
 	}
 }
 
-func TestRetryableRecognisesABusySQLiteDatabase(t *testing.T) {
+func TestRetryableRecognizesABusySQLiteDatabase(t *testing.T) {
 	path := t.TempDir() + "/busy.db"
 	hold, err := openRaw(path)
 	if err != nil {

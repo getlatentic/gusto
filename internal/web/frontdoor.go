@@ -8,12 +8,12 @@ import (
 	"github.com/getlatentic/gusto/internal/entry"
 )
 
-// FrontDoor makes this server one organisation's in a hosted gusto. Nobody signs
+// FrontDoor makes this server one organization's in a hosted gusto. Nobody signs
 // in here: the front door signs a person in, and hands their browser a token
 // that this server checks against a key only the two of them hold. An address
 // here that wants a sign-in sends the person to the front door.
 type FrontDoor struct {
-	// Key is what tokens are made and checked with, Org is the organisation
+	// Key is what tokens are made and checked with, Org is the organization
 	// this server is, and URL is where the front door is.
 	Key []byte
 	Org string
@@ -26,7 +26,7 @@ type frontDoor struct {
 }
 
 // sessionLife is how long what the front door vouched for is trusted, and the
-// most a person lingers here after they are removed from the organisation. Past
+// most a person lingers here after they are removed from the organization. Past
 // it they go back through the front door, which asks whether they still belong.
 const sessionLife = time.Hour
 
@@ -46,7 +46,7 @@ func (s *Server) toFrontDoor(w http.ResponseWriter, r *http.Request) {
 }
 
 // enter signs a person in with a token the front door made for them. A token that
-// is wrong, old, for another organisation or already used gets a page that says
+// is wrong, old, for another organization or already used gets a page that says
 // so and links to the front door, and never a redirect there, which two
 // servers that disagreed about a key would follow for ever.
 func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +57,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>gusto</title><p>That sign-in link has expired or was used already. <a href="` +
-			html.EscapeString(s.front.URL) + `/org">Open your organisation again.</a></p>`))
+			html.EscapeString(s.front.URL) + `/org">Open your organization again.</a></p>`))
 		return
 	}
 	role := Runner
@@ -69,7 +69,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 	s.afterSignIn(w, r)
 }
 
-// leaseExtend is where a person extends the host this organisation runs on, or nothing
+// leaseExtend is where a person extends the host this organization runs on, or nothing
 // when the server is not behind a front door. The page asks the host, and the host says
 // whether it has a lease, so the script is harmless on one that has none.
 func (s *Server) leaseExtend() string {

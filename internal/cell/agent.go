@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Agent is what runs on a host machine. It starts and stops the organisations' servers the gusto cloud
+// Agent is what runs on a host machine. It starts and stops the organizations' servers the gusto cloud
 // asks for, on this machine, and says what room there is. It does what a signed request says and
 // nothing else, so the secret is what stands between the network and a command run here.
 type Agent struct {
@@ -92,7 +92,7 @@ func (a *Agent) stop(w http.ResponseWriter, r *http.Request) {
 	var asked stopRequest
 	json.NewDecoder(r.Body).Decode(&asked)
 	if cloud.ValidSlug(r.PathValue("slug")) != nil {
-		http.Error(w, "that is not an organisation", http.StatusBadRequest)
+		http.Error(w, "that is not an organization", http.StatusBadRequest)
 		return
 	}
 	a.Servers.Stop(r.PathValue("slug"), time.Duration(max(asked.GraceSeconds, 1))*time.Second)

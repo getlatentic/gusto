@@ -35,7 +35,7 @@
       "title": "Build interview kits",
       "blurb": "Gives every candidate the same questions and a 1 to 4 scoring guide.",
       "description": "Use when asked for interview questions, a scorecard or an interview plan.",
-      "body": "Build a structured kit so every candidate is asked the same questions and scored the same way.\n\n- Four competencies drawn from the job description.\n- For each, one behavioural question (\"Tell me about a time...\"), two follow-up probes, and a 1 to 4 scoring guide with a concrete example of a 1 and a 4.\n- A note for interviewers: score each answer before discussing, and record evidence, not impressions.\n- No questions about age, family, health, religion, nationality or anything else a protected characteristic could be inferred from.\n\nSave it as `interview-kit-<role>.md`."
+      "body": "Build a structured kit so every candidate is asked the same questions and scored the same way.\n\n- Four competencies drawn from the job description.\n- For each, one behavioral question (\"Tell me about a time...\"), two follow-up probes, and a 1 to 4 scoring guide with a concrete example of a 1 and a 4.\n- A note for interviewers: score each answer before discussing, and record evidence, not impressions.\n- No questions about age, family, health, religion, nationality or anything else a protected characteristic could be inferred from.\n\nSave it as `interview-kit-<role>.md`."
     }
   ],
   "starters": [

@@ -28,7 +28,7 @@ type usageQuery struct {
 
 type usageEveryoneKey struct{}
 
-// seesEveryone marks a request made with an organisation's token, or the shared password, which is not about one person.
+// seesEveryone marks a request made with an organization's token, or the shared password, which is not about one person.
 func seesEveryone(r *http.Request) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), usageEveryoneKey{}, true))
 }
@@ -44,10 +44,10 @@ func (s *Server) usageScope(r *http.Request) (person string, allowed bool) {
 }
 
 // usageAccess lets in what the other calls of the API let in: a person's token, which reads that person's calls, an
-// organisation's token with the spend scope, which reads all of them, and a person signed in at the pages.
+// organization's token with the spend scope, which reads all of them, and a person signed in at the pages.
 func (s *Server) usageAccess(next http.HandlerFunc) http.HandlerFunc {
 	forPerson := s.sent(apitoken.Work, next)
-	forOrganisation := s.sent(apitoken.Spend, func(w http.ResponseWriter, r *http.Request) { next(w, seesEveryone(r)) })
+	forOrganization := s.sent(apitoken.Spend, func(w http.ResponseWriter, r *http.Request) { next(w, seesEveryone(r)) })
 	return func(w http.ResponseWriter, r *http.Request) {
 		bearer, bearing := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		switch {
@@ -56,7 +56,7 @@ func (s *Server) usageAccess(next http.HandlerFunc) http.HandlerFunc {
 		case !bearing && s.keeper.knows(r):
 			next(w, r)
 		default:
-			forOrganisation(w, r)
+			forOrganization(w, r)
 		}
 	}
 }

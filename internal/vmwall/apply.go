@@ -108,7 +108,7 @@ func (p Plan) imagePath() string {
 	return filepath.Join(p.Rootfs(), RootfsAsset(p.Platform.GOARCH))
 }
 
-// fetchTools downloads the disk tools into the folder the gateway looks in first, and their licence and source offer beside them.
+// fetchTools downloads the disk tools into the folder the gateway looks in first, and their license and source offer beside them.
 func (p Plan) fetchTools(ctx context.Context) error {
 	if !p.FetchTools {
 		return nil

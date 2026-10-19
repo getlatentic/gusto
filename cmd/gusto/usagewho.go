@@ -38,7 +38,7 @@ func openAttribution(tasks string) (*attribution, error) {
 	return &attribution{tasks: tasks, instances: instances, engines: engines, provider: provider}, nil
 }
 
-// providerOf names providers as the server does: through the web server's own method, over the organisation's
+// providerOf names providers as the server does: through the web server's own method, over the organization's
 // registry when GUSTO_REGISTRY is set.
 func providerOf(engines []catalog.Entry) (usage.ProviderFunc, error) {
 	identity, err := web.NewIdentity(context.Background(), "", "", "", "", web.Access{})

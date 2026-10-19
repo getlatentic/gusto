@@ -16,7 +16,7 @@ import (
 
 func main() {
 	zone := flag.String("zone", "", "the Cloudflare zone, such as example.com")
-	name := flag.String("name", "", "the name organisations are served under")
+	name := flag.String("name", "", "the name organizations are served under")
 	ip := flag.String("ip", "", "the host's public IPv4 address")
 	remove := flag.Bool("remove", false, "remove the records instead of pointing them")
 	tokenFile := flag.String("token-file", "", "a file holding the Cloudflare API token that may edit this zone's DNS")

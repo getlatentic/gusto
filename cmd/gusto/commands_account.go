@@ -6,14 +6,14 @@ import (
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
 )
 
-var envHelperServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organisation's server, when -server is not given"}
+var envHelperServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organization's server, when -server is not given"}
 
 func accountCommands() []*cmdline.Command {
 	return []*cmdline.Command{
 		{
-			Name: "login", Group: groupAccount, Summary: "Sign this computer in as you, by your organisation's server",
+			Name: "login", Group: groupAccount, Summary: "Sign this computer in as you, by your organization's server",
 			Usage:       []string{"[-server <address>] [-label <name>] [-browser=false]"},
-			Description: "Opens your organisation's approval page in the browser, and keeps the token it gives in this computer's keychain.",
+			Description: "Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.",
 			Flags:       loginFlags,
 			Env:         []cmdline.Param{envHelperServer},
 			Examples:    []string{"gusto login -server https://acme.gusto.example.com"},
@@ -185,7 +185,7 @@ func otherCommands() []*cmdline.Command {
 
 // The flags of login, logout and whoami are read by the helper they run; these declarations are what help says of them.
 func serverFlag(set *flag.FlagSet) {
-	set.String("server", "", "the `address` of your organisation's server (default $GUSTO_SERVER)")
+	set.String("server", "", "the `address` of your organization's server (default $GUSTO_SERVER)")
 }
 
 func loginFlags(set *flag.FlagSet) {

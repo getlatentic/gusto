@@ -121,7 +121,7 @@ func TestATurnIsReadAsJSONWithItsStepsItsReplyAndWhatChanged(t *testing.T) {
 		t.Errorf("bob read alice's turn: %d", got.Code)
 	}
 	if got := here.getAs(here.secrets["everyone"], "/api/jobs/"+id); got.Code == http.StatusOK {
-		t.Errorf("an organisation's token read a person's turn")
+		t.Errorf("an organization's token read a person's turn")
 	}
 }
 

@@ -23,9 +23,9 @@ func (s *Server) byAgent(jobs []spend.Line) []spend.Line {
 	})
 }
 
-// labelled is a job's line under what it was asked, with the agent it was
+// labeled is a job's line under what it was asked, with the agent it was
 // asked of beneath, since a job's id means nothing to the person reading.
-func (s *Server) labelled(lines []share) []share {
+func (s *Server) labeled(lines []share) []share {
 	for i := range lines {
 		lines[i].Href = "/jobs/" + lines[i].Name
 		record, found := s.index.Get(lines[i].Name)

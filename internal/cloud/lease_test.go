@@ -88,7 +88,7 @@ func TestEveryPageOfAHostWithALeaseCarriesTheScriptAndAnswersHowLongIsLeft(t *te
 		if _, page := b.get("/"); !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="/lease"`) {
 			t.Errorf("the sign-up page carries no script:\n%s", page)
 		}
-		// Asked on the front door's own name and on an organisation's, which is what its pages ask.
+		// Asked on the front door's own name and on an organization's, which is what its pages ask.
 		for _, host := range []string{"cloud.test", "acme.cloud.test", "anything.cloud.test:8443"} {
 			status, body, header := b.do("GET", "/.gusto/lease", nil, map[string]string{"Host": host})
 			if status != 200 || !strings.HasPrefix(body, `{"seconds":`) || header.Get("Cache-Control") != "no-store" {

@@ -40,7 +40,7 @@ func (a *Agent) say(w *wire, session, text string) {
 }
 
 // prompt is one turn: what the editor said is said in the session's thread, and what the agent does is told back as it goes.
-// The turn ends with how it ended. A turn that was stopped, by the editor or by the person elsewhere, ends cancelled.
+// The turn ends with how it ended. A turn that was stopped, by the editor or by the person elsewhere, ends canceled.
 func (a *Agent) prompt(ctx context.Context, w *wire, got request) {
 	var params struct {
 		SessionID string            `json:"sessionId"`
@@ -66,7 +66,7 @@ func (a *Agent) prompt(ctx context.Context, w *wire, got request) {
 		_ = w.fail(got.ID, codeInvalid, "this session is already working on something: wait, or cancel it")
 		return
 	}
-	s.active, s.cancelled, s.job = true, false, ""
+	s.active, s.canceled, s.job = true, false, ""
 	n, first := s.turns, !s.noted
 	s.turns++
 	s.noted = true
@@ -84,7 +84,7 @@ func (a *Agent) prompt(ctx context.Context, w *wire, got request) {
 	}
 	s.mu.Lock()
 	s.job = sent.Job
-	wasCancelled := s.cancelled
+	wasCancelled := s.canceled
 	s.mu.Unlock()
 	if wasCancelled {
 		_ = a.Cloud.StopJob(ctx, sent.Job)
@@ -177,7 +177,7 @@ func (a *Agent) newText(w *wire, session, told, now string) string {
 // protocol's reasons have none for a failure.
 func (a *Agent) stopReason(w *wire, s *session, ended helper.Ended) string {
 	s.mu.Lock()
-	asked := s.cancelled
+	asked := s.canceled
 	s.mu.Unlock()
 	switch ended.Job.State {
 	case "interrupted":
@@ -193,7 +193,7 @@ func (a *Agent) stopReason(w *wire, s *session, ended helper.Ended) string {
 }
 
 // cancel is the editor asking for a turn to stop. It stops the turn in the cloud, which ends it for good: the editor is told
-// when the turn's own end arrives, as cancelled.
+// when the turn's own end arrives, as canceled.
 func (a *Agent) cancel(ctx context.Context, got request) {
 	var params struct {
 		SessionID string `json:"sessionId"`
@@ -206,7 +206,7 @@ func (a *Agent) cancel(ctx context.Context, got request) {
 		return
 	}
 	s.mu.Lock()
-	s.cancelled = true
+	s.canceled = true
 	job := s.job
 	s.mu.Unlock()
 	// A turn that has not been sent yet is stopped as it is sent. One that is sent is stopped now.

@@ -8,9 +8,9 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-// frontDoorFromEnv is what makes this server one organisation's in a hosted gusto:
+// frontDoorFromEnv is what makes this server one organization's in a hosted gusto:
 // GUSTO_ENTRY_KEY is the file with the key gusto cloud and this server share,
-// GUSTO_ORG is which organisation this is, and GUSTO_FRONT_DOOR is where gusto
+// GUSTO_ORG is which organization this is, and GUSTO_FRONT_DOOR is where gusto
 // cloud is. All three or none: a server that has some is one started wrongly, and
 // a server that did not notice would ask for a password nobody has.
 func frontDoorFromEnv() (*web.FrontDoor, error) {

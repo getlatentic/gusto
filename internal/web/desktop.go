@@ -7,7 +7,7 @@ import (
 )
 
 // UseDesktop gives the server a folder of the desktop app's releases to hand out: a latest.json that says what the newest version is and
-// where each system's update is, and the updates it names. The app updates from the server it is connected to, so an organisation
+// where each system's update is, and the updates it names. The app updates from the server it is connected to, so an organization
 // that runs its own server decides when its people update, and a server with no folder hands out nothing. Every file in it is signed
 // with a key the app holds the public half of, so the server is trusted to hand files out and not to vouch for them.
 func (s *Server) UseDesktop(dir string) { s.desktop = dir }

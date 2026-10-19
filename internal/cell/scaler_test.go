@@ -120,11 +120,11 @@ func TestACellThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHost
 	r.tick(0)
 	r.cell("i-0aaa1111", false)
 	r.hosts.next = "i-0bbb2222"
-	// The cell is up, and the organisation that waited has not been placed on it yet.
+	// The cell is up, and the organization that waited has not been placed on it yet.
 	r.tick(10 * time.Second)
 	r.tick(10 * time.Second)
 	if r.hosts.launched != 1 {
-		t.Fatalf("a second host was started for an organisation that was about to be placed: %d", r.hosts.launched)
+		t.Fatalf("a second host was started for an organization that was about to be placed: %d", r.hosts.launched)
 	}
 	// Placed, so nobody waits, and none is started.
 	r.waiting = 0
@@ -185,7 +185,7 @@ func TestACellWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.
 	r.tick(2 * time.Minute)
 	r.tick(9 * time.Minute)
 	if len(r.hosts.terminated) != 0 {
-		t.Errorf("a cell with an organisation on it was stopped, or its idle time was not reset: %v", r.hosts.terminated)
+		t.Errorf("a cell with an organization on it was stopped, or its idle time was not reset: %v", r.hosts.terminated)
 	}
 	for _, slug := range busy.servers.Running() {
 		busy.servers.Stop(slug, time.Second)
@@ -197,7 +197,7 @@ func TestACellWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.
 	}
 }
 
-func TestAnIdleCellIsKeptWhileAnOrganisationWaitsForRoom(t *testing.T) {
+func TestAnIdleCellIsKeptWhileAnOrganizationWaitsForRoom(t *testing.T) {
 	r := scaling(t)
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
 	r.cell("i-0aaa1111", false)

@@ -128,12 +128,12 @@ func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 		orgs, _ := ds[0].Orgs()
 		people, _ := count(context.Background(), ds[1].db, `SELECT count(*) FROM people`)
 		if bySlug.Load() != 1 || byEmail.Load() != 1 || len(orgs) != 2 || people != 2 {
-			t.Errorf("%d took the slug, %d took the address, %d organisations and %d people were made", bySlug.Load(), byEmail.Load(), len(orgs), people)
+			t.Errorf("%d took the slug, %d took the address, %d organizations and %d people were made", bySlug.Load(), byEmail.Load(), len(orgs), people)
 		}
 	})
 }
 
-func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganisationMayHave(t *testing.T) {
+func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganizationMayHave(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		admin, org := verifiedOrg(t, ds[0], "ada@acme.com", "Acme")
@@ -149,7 +149,7 @@ func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganisationMayHave(t *te
 	})
 }
 
-func TestFrontDoorsTogetherNeverPassTheOrganisationsOneCompanyMayLeaveUnconfirmed(t *testing.T) {
+func TestFrontDoorsTogetherNeverPassTheOrganizationsOneCompanyMayLeaveUnconfirmed(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		var made, full atomic.Int32
@@ -163,12 +163,12 @@ func TestFrontDoorsTogetherNeverPassTheOrganisationsOneCompanyMayLeaveUnconfirme
 			}
 		})
 		if made.Load() != 3 || full.Load() != 9 {
-			t.Errorf("%d organisations were made and %d turned away", made.Load(), full.Load())
+			t.Errorf("%d organizations were made and %d turned away", made.Load(), full.Load())
 		}
 	})
 }
 
-func TestFrontDoorsTogetherNeverLeaveAnOrganisationWithoutAnAdmin(t *testing.T) {
+func TestFrontDoorsTogetherNeverLeaveAnOrganizationWithoutAnAdmin(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		for round := range 6 {
@@ -305,7 +305,7 @@ func TestEveryFrontDoorOnADatabaseSignsAndChecksTheSameCookies(t *testing.T) {
 	})
 }
 
-func TestTwoOrganisationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
+func TestTwoOrganizationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.PerDomain = 100
 		ds := doors(t, set, 2)
@@ -324,7 +324,7 @@ func TestTwoOrganisationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
 			}
 		})
 		if given.Load() != 1 {
-			t.Errorf("%d organisations were given the same two ports on one cell", given.Load())
+			t.Errorf("%d organizations were given the same two ports on one cell", given.Load())
 		}
 	})
 }

@@ -25,7 +25,7 @@ type view struct {
 	// Error is a sentence for the person, and Email and OrgName are what they
 	// typed, so a refused form is not typed again.
 	Error, Email, OrgName string
-	// More says the form also asks for the organisation's name and address: a
+	// More says the form also asks for the organization's name and address: a
 	// person is asked when the domain could not name it, and keeps being asked
 	// after they have been.
 	More bool
@@ -34,7 +34,7 @@ type view struct {
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
 	Token, Action, Button string
-	// The organisation page.
+	// The organization page.
 	Org      Org
 	Person   Person
 	Address  string
@@ -42,11 +42,11 @@ type view struct {
 	Trial    quota.Quota
 	Verified quota.Quota
 	Notice   string
-	// Computers is how many computers the organisation has.
+	// Computers is how many computers the organization has.
 	Computers int
 	// Domain is the company's.
 	Domain string
-	// The organisation's server: how it is, whether a person can open it, and
+	// The organization's server: how it is, whether a person can open it, and
 	// whether the page should look again in a moment.
 	Server  string
 	CanOpen bool

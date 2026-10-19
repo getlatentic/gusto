@@ -118,11 +118,11 @@ func TestTheQueueStartsNoMoreAtOnceThanTheQuotaAllows(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 	if got := claimed(t, index); got != "" {
-		t.Fatalf("the organisation runs one at a time: %q", got)
+		t.Fatalf("the organization runs one at a time: %q", got)
 	}
 	wait, queued := index.WaitOf(second.ID)
 	if !queued || wait.Reason != OrgAtLimit || wait.Limit != 1 || wait.Running != 1 {
-		t.Errorf("the second waits on the organisation's limit: %+v", wait)
+		t.Errorf("the second waits on the organization's limit: %+v", wait)
 	}
 	if err := index.Finish(first.ID, Passed, 0); err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestTheQueueStartsNoMoreAtOnceThanTheQuotaAllows(t *testing.T) {
 	}
 }
 
-// An organisation that was given limits and lost them runs nothing new, and
+// An organization that was given limits and lost them runs nothing new, and
 // what was running goes on.
 func TestAQuotaThatCannotBeReadRefusesNewJobsAndLetsOneRun(t *testing.T) {
 	index, path := limited(t, quota.Quota{Jobs: 10, Concurrent: 4})

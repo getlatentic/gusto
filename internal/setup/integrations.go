@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Integrations is the integrations an organisation has imported, which a setup may name. Only the versions an administrator has
+// Integrations is the integrations an organization has imported, which a setup may name. Only the versions an administrator has
 // turned on are given to a task.
 type Integrations interface {
 	Get(name string) (*integration.Integration, error)

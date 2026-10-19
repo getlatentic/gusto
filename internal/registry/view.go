@@ -7,7 +7,7 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// View is the registry as a page says it: every provider, the operator's and the organisation's, with the models
+// View is the registry as a page says it: every provider, the operator's and the organization's, with the models
 // of each. No key is in it, only where one is.
 type View struct {
 	Version   int64
@@ -21,7 +21,7 @@ type View struct {
 	Available []string
 	// Editable says whether the admin may change what is allowed, which is the two settings Private and Kinds say.
 	Editable bool
-	// Unnamed is set when the operator's own provider has no name, which an organisation cannot add beside.
+	// Unnamed is set when the operator's own provider has no name, which an organization cannot add beside.
 	Unnamed bool
 }
 
@@ -37,7 +37,7 @@ type ProviderView struct {
 	Pending bool
 	// Key is where its key is: "stored", a reference, or "the operator's" for an operator's provider.
 	Key string
-	// Problem is why a provider of the organisation's is not in use.
+	// Problem is why a provider of the organization's is not in use.
 	Problem string
 	Models  []ModelView
 }

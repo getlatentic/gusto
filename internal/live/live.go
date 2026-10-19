@@ -1,4 +1,4 @@
-// Package live reads settings again while the server runs, so that a change to what an organisation is offered, or to its limits, takes
+// Package live reads settings again while the server runs, so that a change to what an organization is offered, or to its limits, takes
 // effect in a minute and nobody in the middle of a task has to be sent away for a restart.
 //
 // A setting is a file, or a folder of files. The watcher looks at each on a fixed cadence, and when what is in it has changed it calls

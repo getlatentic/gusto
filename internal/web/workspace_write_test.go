@@ -142,7 +142,7 @@ func TestSomebodyElsesFolderCannotBeWrittenOrAskedAboutAndAHugeFileIsRefused(t *
 		t.Errorf("bob asked about alice's files: %d", got.Code)
 	}
 	if got := here.put(here.secrets["everyone"], id, "x.txt", "no", ""); got.Code == http.StatusOK {
-		t.Error("an organisation's token wrote in a person's folder")
+		t.Error("an organization's token wrote in a person's folder")
 	}
 	big := strings.Repeat("x", mostFileBytes+1)
 	if got := here.put(ada, id, "big.bin", big, absent); got.Code != http.StatusRequestEntityTooLarge {

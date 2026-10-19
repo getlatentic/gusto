@@ -1,4 +1,4 @@
-// Package usage keeps one row for each model call, so an organisation can search,
+// Package usage keeps one row for each model call, so an organization can search,
 // filter and add up what its agents spent: by session, person, agent, agent type,
 // provider and model.
 //
@@ -33,7 +33,7 @@ type Row struct {
 	// gave the agent they set up, and is empty when the task was not made through one.
 	Engine string `json:"agentType"`
 	Agent  string `json:"agent,omitempty"`
-	// Provider is who answered, by the name the organisation's model registry gives it, and Credential is
+	// Provider is who answered, by the name the organization's model registry gives it, and Credential is
 	// the name of the key the proxy added. The key itself is never here.
 	Provider   string `json:"provider"`
 	Credential string `json:"credential,omitempty"`
@@ -158,7 +158,7 @@ type Who struct {
 // WhoFunc finds who made a task's calls, and is false for a task it does not know.
 type WhoFunc func(task string) (Who, bool)
 
-// ProviderFunc names who answers a model, by the name the organisation's model registry gives it.
+// ProviderFunc names who answers a model, by the name the organization's model registry gives it.
 type ProviderFunc func(model, credential string) string
 
 // Status is how far the index has caught up with the files. A page shows it while Building is true,

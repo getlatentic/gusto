@@ -120,7 +120,7 @@ playbook against the box itself with the vault the box holds. The output
 streams back into the workflow's log.
 
 The deploy runs in a unit rather than in the ssh session, so a dropped
-connection or a cancelled workflow stops the watching and never a deploy
+connection or a canceled workflow stops the watching and never a deploy
 halfway through. One deploy runs at a time: the workflow's concurrency group
 queues merges, and the box holds a lock while it deploys.
 

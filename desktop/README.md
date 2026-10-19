@@ -1,20 +1,20 @@
 # gusto for a computer
 
-A window on gusto, on this computer or on your organisation's server, an icon that says what your agents are doing, and a
+A window on gusto, on this computer or on your organization's server, an icon that says what your agents are doing, and a
 notification when one finishes. It is a [Tauri](https://tauri.app) app: a small Rust shell around the system's own web view, so the
 pages in the window are the server's own pages and not a second interface.
 
-- **On this computer**, which is where the app starts when no organisation is set, it uses gusto as the install script left it running,
+- **On this computer**, which is where the app starts when no organization is set, it uses gusto as the install script left it running,
   or starts the `gusto` it carries (`gusto local run`) and stops it when the app quits. It signs its window in with a link from
   `gusto local link`, so the app never holds gusto's secret ([LOCAL.md](../docs/LOCAL.md)).
-- **For an organisation**, the work is done by `gusto-helper` (sign-in, the synced folder, the editor bridge, following your turns),
+- **For an organization**, the work is done by `gusto-helper` (sign-in, the synced folder, the editor bridge, following your turns),
   which the app carries, starts with its own icon turned off, and keeps going.
 
-The icon's menu says which it is on, and switches: **On this computer**, or **Connect to an organisation…**.
+The icon's menu says which it is on, and switches: **On this computer**, or **Connect to an organization…**.
 
 | Part | What it does |
 | --- | --- |
-| `dist/index.html` | the page that says gusto is starting on this computer, or offers this computer or an organisation's server |
+| `dist/index.html` | the page that says gusto is starting on this computer, or offers this computer or an organization's server |
 | `src-tauri/src/local.rs` | finds gusto on this computer or starts the one the app carries, and the link that signs the window in |
 | `src-tauri/src/config.rs` | keeps the address, and checks that a server answers there |
 | `src-tauri/src/helper.rs` | starts the helper, starts it again when it ends, and asks it what it knows |

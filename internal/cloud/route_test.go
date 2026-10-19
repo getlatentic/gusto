@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// withServers is a front door that starts an organisation's server, the fake, for
+// withServers is a front door that starts an organization's server, the fake, for
 // each sign-up.
 func withServers(t *testing.T, extra ...string) *front {
 	t.Helper()
@@ -36,7 +36,7 @@ func (f *front) signedUp(email string) *browser {
 	return b
 }
 
-func TestSigningUpStartsTheOrganisationsServerAndThePageOffersToOpenIt(t *testing.T) {
+func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -69,9 +69,9 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 func (b *browser) get2(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
 
 // The whole way in: the person is signed in at the front door, is sent to their
-// organisation's own address with a token, and the organisation's server signs them in
-// from it. Nothing about the organisation is asked of them again.
-func TestOpeningAnOrganisationSignsThePersonInToItsServer(t *testing.T) {
+// organization's own address with a token, and the organization's server signs them in
+// from it. Nothing about the organization is asked of them again.
+func TestOpeningAnOrganizationSignsThePersonInToItsServer(t *testing.T) {
 	f := withServers(t)
 	b := f.signedUp("ada@acme.com")
 	status, _, header := b.get2("/open")
@@ -82,14 +82,14 @@ func TestOpeningAnOrganisationSignsThePersonInToItsServer(t *testing.T) {
 	parsed, _ := url.Parse(location)
 	status, _, answer := b.at(parsed.Host, "GET", parsed.RequestURI(), nil)
 	if status != http.StatusSeeOther || answer.Get("Location") != "/" || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "gusto=ada@acme.com|admin") {
-		t.Errorf("the organisation's server signs them in as who and what they are: %d %v", status, answer)
+		t.Errorf("the organization's server signs them in as who and what they are: %d %v", status, answer)
 	}
 	if status, _, header := f.browser().get2("/open"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
 		t.Errorf("a stranger cannot open anything: %d %v", status, header)
 	}
 }
 
-func TestEachHostNameIsOneOrganisationAndTheFrontDoorIsTheDomainItself(t *testing.T) {
+func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -100,13 +100,13 @@ func TestEachHostNameIsOneOrganisationAndTheFrontDoorIsTheDomainItself(t *testin
 			t.Errorf("%d %s", status, body)
 		}
 		if status, _, _ := b.at("nobody.cloud.test", "GET", "/whoami", nil); status != http.StatusNotFound {
-			t.Errorf("no organisation of that name: %d", status)
+			t.Errorf("no organization of that name: %d", status)
 		}
 		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a link") {
 			t.Errorf("the domain itself is the front door: %d", status)
 		}
 		if status, body, _ := b.at("a.acme-com.cloud.test", "GET", "/whoami", nil); status == 200 && strings.Contains(body, "acme-com") {
-			t.Error("a name with two labels is not an organisation")
+			t.Error("a name with two labels is not an organization")
 		}
 		if status, _, _ := b.at("ACME-COM.CLOUD.TEST:8050", "GET", "/whoami", nil); status != 200 {
 			t.Errorf("a host name is not case-sensitive and may have a port: %d", status)
@@ -127,7 +127,7 @@ func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.
 			t.Errorf("what the client claimed is not believed, since the server writes down where people signed in from: %v %v", said["xff"], said["proto"])
 		}
 		if said["cookie"] != "other=1; gusto=session" {
-			t.Errorf("the front door's cookies do not go to an organisation's server: %q", said["cookie"])
+			t.Errorf("the front door's cookies do not go to an organization's server: %q", said["cookie"])
 		}
 
 		behind := newFront(t, Settings{}, func(c *Config) { c.TrustProxy = true; c.Controller = controlled(t, c.Store) })
@@ -140,7 +140,7 @@ func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.
 	})
 }
 
-func TestAStreamFromAnOrganisationsServerArrivesAsItIsWritten(t *testing.T) {
+func TestAStreamFromAnOrganizationsServerArrivesAsItIsWritten(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		f.signedUp("ada@acme.com")
@@ -163,9 +163,9 @@ func TestAStreamFromAnOrganisationsServerArrivesAsItIsWritten(t *testing.T) {
 	})
 }
 
-// One organisation's token is good in that organisation and in no other: each has a
-// key of its own, and the token names its organisation.
-func TestAPersonCannotEnterAnotherOrganisationWithTheirOwnsToken(t *testing.T) {
+// One organization's token is good in that organization and in no other: each has a
+// key of its own, and the token names its organization.
+func TestAPersonCannotEnterAnotherOrganizationWithTheirOwnsToken(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		ada := f.signedUp("ada@acme.com")
@@ -186,12 +186,12 @@ func TestAPersonCannotEnterAnotherOrganisationWithTheirOwnsToken(t *testing.T) {
 		}
 		_, _, header = bob.get2("/open")
 		if !strings.HasPrefix(header.Get("Location"), "http://globex-com.cloud.test/") {
-			t.Errorf("a person opens their own organisation: %q", header.Get("Location"))
+			t.Errorf("a person opens their own organization: %q", header.Get("Location"))
 		}
 	})
 }
 
-func TestAnOrganisationThatIsNotReadyIsToldToWaitAndNotSentAnError(t *testing.T) {
+func TestAnOrganizationThatIsNotReadyIsToldToWaitAndNotSentAnError(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t, "FAKE_DELAY=1500ms")
 		b := f.browser()
@@ -208,7 +208,7 @@ func TestWithNoControllerTheFrontDoorRoutesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		status, page, _ := f.browser().at("acme-com.cloud.test", "GET", "/", nil)
-		if status != 200 || !strings.Contains(page, "Create your organisation") {
+		if status != 200 || !strings.Contains(page, "Create your organization") {
 			t.Errorf("%d", status)
 		}
 	})

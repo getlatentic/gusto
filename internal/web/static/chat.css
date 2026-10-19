@@ -1,5 +1,5 @@
 /* A conversation. What was said is a quiet bubble on the right; what came back is plain text in the column, under what it did, folded, and
-   above what it cost, small. The one colour on the page is the button that sends. */
+   above what it cost, small. The one color on the page is the button that sends. */
 .talk-top { display: flex; align-items: center; gap: var(--gu-space-3); min-height: 3.25rem; padding: var(--gu-space-2) var(--gu-space-6); border-bottom: 0.0625rem solid var(--gu-border); }
 .talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .875rem/1.3 var(--gu-font-text); letter-spacing: 0; text-transform: none; color: var(--gu-text); }
 .talk-top .where { display: flex; align-items: center; gap: var(--gu-space-2); min-width: 0; font-size: .75rem; color: var(--gu-text-muted); }

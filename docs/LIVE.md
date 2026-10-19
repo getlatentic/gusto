@@ -8,7 +8,7 @@ a minute at the default.
 | Setting | What it holds | What a change does |
 | --- | --- | --- |
 | `GUSTO_LIVE` | `limitPerson`, `limitTeam` (tasks at once) and `models` | The queue takes the limits from the next task it picks. The pages offer the new models. A field the file leaves out keeps the value the server started with from `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` and `GUSTO_MODELS`. |
-| `GUSTO_SPEND_POLICY` | prices, team caps, the organisation's cap | From the next call. What has been spent is kept, so a cap lowered below it refuses the next call. |
+| `GUSTO_SPEND_POLICY` | prices, team caps, the organization's cap | From the next call. What has been spent is kept, so a cap lowered below it refuses the next call. |
 | `GUSTO_TOOL_POLICY` | rules that take tools from callers | A task that is running asks the policy at each call, so a rule reaches it at once. |
 | `GUSTO_REDACTION` | the kinds of data to mask (see [GATEWAY.md](GATEWAY.md)) | The next model call, and the next tool answer. A bad file keeps what was masked before. |
 | `GUSTO_CREDENTIALS` | a `<name>.json` for each credential | The next model call through the proxy uses the new key and address, including a task that is running. A folder with no credential is refused. |
@@ -17,7 +17,7 @@ A file that does not read is refused whole, and what was in force stays. A missp
 otherwise be no limit. The server says so on its log and in the change record, which has a line for every change and every refusal
 with a fingerprint of the file before and after, never its contents.
 
-When the organisation has a registry (`GUSTO_REGISTRY`) its administrators change the models, the credentials and the prices in the
+When the organization has a registry (`GUSTO_REGISTRY`) its administrators change the models, the credentials and the prices in the
 console, and those changes were already live. The registry decides them, and the files here do not.
 
 ## Read once, when the server starts

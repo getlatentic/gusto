@@ -4,7 +4,7 @@ import (
 	"github.com/getlatentic/gusto/internal/computer"
 )
 
-// UseComputers hands the console the record of the computers people in this organisation
+// UseComputers hands the console the record of the computers people in this organization
 // have. Without it the Overview has no computers to list.
 func (s *Server) UseComputers(registry *computer.Registry) { s.computers = registry }
 
@@ -16,7 +16,7 @@ type computerRow struct {
 	LastActive int64
 }
 
-// addComputers lists the computers the organisation has and what state each is in.
+// addComputers lists the computers the organization has and what state each is in.
 func (s *Server) addComputers(page map[string]any) {
 	if s.computers == nil {
 		return

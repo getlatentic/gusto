@@ -72,9 +72,9 @@ func (s *Store) orgArgs(o Org) []any {
 
 var insertOrg = dbkit.Upsert{Table: "orgs", Columns: orgFields, Conflict: []string{"slug"}}
 
-// orgsAt is how many organisations a company's domain has, and how many of them
+// orgsAt is how many organizations a company's domain has, and how many of them
 // have an admin who has not yet confirmed their address. It is the second that
-// is limited: a company may have as many organisations as it has real people to
+// is limited: a company may have as many organizations as it has real people to
 // make them, and not more than a few that nobody has answered for.
 func orgsAt(ctx context.Context, q dbkit.Querier, domain string) (existing, pending int, err error) {
 	if domain == "" {
@@ -86,7 +86,7 @@ func orgsAt(ctx context.Context, q dbkit.Querier, domain string) (existing, pend
 }
 
 // create claims the address and the slug in the transaction, which a second caller waits on, and
-// makes the organisation's directory and quota. Nothing is kept unless the transaction commits.
+// makes the organization's directory and quota. Nothing is kept unless the transaction commits.
 func (s *Store) create(ctx context.Context, tx dbkit.Tx, person Person, org Org, q quota.Quota) error {
 	if ok, err := inserted(tx.ExecContext(ctx, insertOrg.SQL(1), s.orgArgs(org)...)); err != nil || !ok {
 		if err == nil {
@@ -123,7 +123,7 @@ func (s *Store) Person(email string) (Person, bool, error) {
 	return fetchPerson(context.Background(), s.db, email)
 }
 
-// Org is an organisation by its address.
+// Org is an organization by its address.
 func (s *Store) Org(slug string) (Org, bool, error) {
 	if ValidSlug(slug) != nil {
 		return Org{}, false, nil
@@ -131,13 +131,13 @@ func (s *Store) Org(slug string) (Org, bool, error) {
 	return fetchOrg(context.Background(), s.db, slug)
 }
 
-// Orgs is every organisation there is.
+// Orgs is every organization there is.
 func (s *Store) Orgs() ([]Org, error) {
 	return collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
 }
 
 // Verify records that a person read the mail sent to them, and lifts their
-// organisation's quota when they administer it.
+// organization's quota when they administer it.
 func (s *Store) Verify(email string) (Person, error) {
 	ctx := context.Background()
 	var person Person

@@ -10,14 +10,14 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-// Signup is what a person gives to start an organisation.
+// Signup is what a person gives to start an organization.
 type Signup struct {
 	Email, OrgName string
-	// Slug is the organisation's address. Left out, it is made from the name.
+	// Slug is the organization's address. Left out, it is made from the name.
 	Slug string
 }
 
-// SignUp makes a person, the organisation they administer and the organisation's
+// SignUp makes a person, the organization they administer and the organization's
 // directory, on the trial quota. A refusal leaves nothing behind.
 func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	email, err := NormalEmail(in.Email)
@@ -76,9 +76,9 @@ func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, dom
 	return person, org, err
 }
 
-// identify is the organisation's name and address. The first at a company's
+// identify is the organization's name and address. The first at a company's
 // domain has the address that domain gives, so no company is put behind another
-// by arriving later. A company can have more than one organisation, a subsidiary or
+// by arriving later. A company can have more than one organization, a subsidiary or
 // a team, and each after the first is named by whoever makes it and has an address
 // from that name. An address at a free mail provider has only a name to go on.
 func (s *Store) identify(in Signup, email, domain string, existing int) (name, slug string, derived bool, err error) {
@@ -105,7 +105,7 @@ func (s *Store) identify(in Signup, email, domain string, existing int) (name, s
 	return name, slug, derived, err
 }
 
-// nameFor is the organisation's name: the one given, or the one the company's
+// nameFor is the organization's name: the one given, or the one the company's
 // domain suggests.
 func (s *Store) nameFor(given, email string) (string, error) {
 	if strings.TrimSpace(given) != "" {

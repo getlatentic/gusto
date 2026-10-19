@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/orgsettings"
 )
 
-// UseOrgSettings says where the choices an admin makes for the organisation are kept,
+// UseOrgSettings says where the choices an admin makes for the organization are kept,
 // which is the monthly budget. Without it the console has no budget to set.
 func (s *Server) UseOrgSettings(path string) { s.orgSettings = orgsettings.Open(path) }
 

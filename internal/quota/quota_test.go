@@ -18,7 +18,7 @@ func TestARefusalSaysWhatWasAllowedAndHowTheLimitIsLifted(t *testing.T) {
 	if !errors.Is(err, ErrExceeded) {
 		t.Fatalf("a refusal is ErrExceeded: %v", err)
 	}
-	if want := "This organisation may start 3 tasks in all and has started 3. Confirm your email address to raise this limit."; err.Error() != want {
+	if want := "This organization may start 3 tasks in all and has started 3. Confirm your email address to raise this limit."; err.Error() != want {
 		t.Errorf("%q, want %q", err.Error(), want)
 	}
 	monthly := Quota{Jobs: 200, Monthly: true}

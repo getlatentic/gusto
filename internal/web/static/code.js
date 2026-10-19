@@ -1,4 +1,4 @@
-// A file of code, read: coloured by what it is written in, with its lines numbered. The text is on the page already and is what a reader
+// A file of code, read: colored by what it is written in, with its lines numbered. The text is on the page already and is what a reader
 // without scripts sees; this only dresses it.
 (function () {
   if (!window.hljs) { return; }
@@ -9,7 +9,7 @@
     var text = block.textContent;
     var html = (language && hljs.getLanguage(language) ? hljs.highlight(text, { language: language, ignoreIllegals: true }).value : escapeText(text)).replace(/\n$/, "");
 
-    // A coloured stretch can run over several lines, so each line closes what it has open and the next one opens it again.
+    // A colored stretch can run over several lines, so each line closes what it has open and the next one opens it again.
     var open = [];
     var lines = html.split("\n").map(function (line) {
       var before = open.join("");

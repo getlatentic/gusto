@@ -48,7 +48,7 @@ func theirs(name string) Give {
 	return Give{Name: name, Address: "https://api.theirs.example/v1", Reference: "stored", Key: "sk-their-secret-key"}
 }
 
-func TestAnOrganisationAddsAProviderAndAModelAndTheProxyHoldsThemWithTheOperators(t *testing.T) {
+func TestAnOrganizationAddsAProviderAndAModelAndTheProxyHoldsThemWithTheOperators(t *testing.T) {
 	r, dir := opened(t, Rules{})
 	var told []int64
 	r.OnChange(func(e Effective) { told = append(told, e.Version) })
@@ -76,7 +76,7 @@ func TestAnOrganisationAddsAProviderAndAModelAndTheProxyHoldsThemWithTheOperator
 		t.Errorf("%+v", credential)
 	}
 	if got.Credentials["platform"].Address == "" || got.Credentials["platform"].Public {
-		t.Errorf("the operator's provider is there as it was, and is not held to an organisation's limits: %+v", got.Credentials["platform"])
+		t.Errorf("the operator's provider is there as it was, and is not held to an organization's limits: %+v", got.Credentials["platform"])
 	}
 	if !slicesEqual(got.Models, []string{"platform/qwen", "acme/big-1"}) {
 		t.Errorf("the operator's models come first: %v", got.Models)
@@ -338,14 +338,14 @@ func TestAKeyIsReplacedWithoutChangingAnythingElse(t *testing.T) {
 		t.Errorf("%+v", got)
 	}
 	if err := r.ReplaceKey("platform", "x"); !errors.Is(err, ErrNoSuch) {
-		t.Errorf("the operator's key is not an organisation's to replace: %v", err)
+		t.Errorf("the operator's key is not an organization's to replace: %v", err)
 	}
 	if err := r.ReplaceKey("acme", ""); err == nil {
 		t.Error("no key")
 	}
 }
 
-func TestAnOrganisationCannotAddAProviderBesideAnUnnamedOne(t *testing.T) {
+func TestAnOrganizationCannotAddAProviderBesideAnUnnamedOne(t *testing.T) {
 	legacy := Platform{Credentials: proxy.Credentials{"": {Address: "https://models.operator.example", Key: "k"}}, Models: []string{"qwen"}}
 	r, err := Open(t.TempDir(), legacy, Rules{}, false)
 	if err != nil {

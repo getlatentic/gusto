@@ -7,5 +7,5 @@
   {{if .Left.CanExtend}}<form method="post" action="/lease/extend">
     <button type="submit">Keep it for {{minutes .Step}} more</button>
   </form>{{else}}<p class="muted">It cannot be kept any longer than this.</p>{{end}}
-  <p class="muted">Anything running is stopped when it goes, and the organisations and sign-ins on it go with it.</p>
+  <p class="muted">Anything running is stopped when it goes, and the organizations and sign-ins on it go with it.</p>
 {{template "foot"}}{{end}}

@@ -11,7 +11,7 @@ This record says what the people who run the platform did to it: who signed in, 
 | `role.changed` | Somebody signs in with a role that is not the one they last had |
 | `setup.saved`, `skill.written`, `skill.dropped` | A skill set is created or its tools change, or a skill is added to it or removed |
 | `token.created`, `token.revoked` | An admin makes or revokes an API token, with what it may do. The secret is never written |
-| `member.invited`, `member.role`, `member.removed` | In an organisation behind gusto cloud, an admin invites a person, changes their role or removes them. gusto cloud reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
+| `member.invited`, `member.role`, `member.removed` | In an organization behind gusto cloud, an admin invites a person, changes their role or removes them. gusto cloud reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
 | `budget.set` | An admin sets, changes or clears the monthly budget, with the figure before and after |
 | `sandbox.confirmed` | A person on their own computer confirms, once, that agents run with no sandbox |
 | `chat.default` | An admin sets or clears what a new chat runs on, with the agent and model before and after |

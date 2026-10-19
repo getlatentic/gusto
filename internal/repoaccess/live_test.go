@@ -90,7 +90,7 @@ func TestLiveAClonePutsTheRepositoryDownAndTheTokenIsGoneAfter(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 	}
 	if apiAt == 0 || gitAt == 0 {
-		t.Fatalf("a revoked token was still honoured after 15s: api %v, git %v", apiAt, gitAt)
+		t.Fatalf("a revoked token was still honored after 15s: api %v, git %v", apiAt, gitAt)
 	}
 	t.Logf("a revoked token was refused over the API after %v and over git after %v", apiAt.Round(100*time.Millisecond), gitAt.Round(100*time.Millisecond))
 }

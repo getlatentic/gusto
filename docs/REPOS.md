@@ -10,7 +10,7 @@ A task for a private repository gets a token for that one repository. The token 
    - Pull requests: read and write. `gusto pr open` opens one.
    - Metadata: read.
 3. Turn the webhook off.
-4. Make the App private to your organisation. Install it on the repositories tasks may use. Choose selected repositories, not all.
+4. Make the App private to your organization. Install it on the repositories tasks may use. Choose selected repositories, not all.
 5. Note the App id, and generate a private key. GitHub gives a `.pem` file.
 
 ## Give it to gusto

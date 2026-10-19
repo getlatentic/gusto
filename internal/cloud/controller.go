@@ -18,25 +18,25 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// Controller makes each organisation's server exist and keeps it running. An
-// organisation is provisioned when it is made and again when the front door starts,
+// Controller makes each organization's server exist and keeps it running. An
+// organization is provisioned when it is made and again when the front door starts,
 // by steps that are each safe to run again, and the state of each is written down as
 // it goes, so a crash between two steps leaves something the next pass finishes.
 type Controller struct {
 	Store *Store
 	// Cell is the one place servers run, when Cells is not set.
 	Cell Cell
-	// Cells is where servers may run when there is more than one. An organisation is placed on
+	// Cells is where servers may run when there is more than one. An organization is placed on
 	// one when it is made and stays there, because its computers are on that cell's gateway.
 	Cells CellSet
-	// Command is the program that is an organisation's server, and its arguments.
+	// Command is the program that is an organization's server, and its arguments.
 	Command []string
-	// Env is the settings every organisation's server has, and only those and
+	// Env is the settings every organization's server has, and only those and
 	// its own: the operator's credentials directory, models and sandbox.
 	Env []string
 	// FrontDoor is the front door's public address, which a server sends people to.
 	FrontDoor string
-	// PortFrom is the first port organisations' servers are given, two each.
+	// PortFrom is the first port organizations' servers are given, two each.
 	PortFrom int
 	// Wait is how long a server has to answer once it is started.
 	Wait time.Duration
@@ -45,14 +45,14 @@ type Controller struct {
 	// StopGrace is how long a server is given to end its jobs' records when it is
 	// asked to stop, before it is made to.
 	StopGrace time.Duration
-	// IndexDir is where organisations' indexes are kept, in a directory for each, on the local disk of the host a server
+	// IndexDir is where organizations' indexes are kept, in a directory for each, on the local disk of the host a server
 	// runs on. It is the index directory under the store's root when not set.
 	IndexDir string
-	// WaitEvery is how often an organisation waiting for a cell is tried again. It is five seconds when not set.
+	// WaitEvery is how often an organization waiting for a cell is tried again. It is five seconds when not set.
 	WaitEvery time.Duration
 
 	// mu guards the two maps below and is held only to read or change them, so
-	// routing never waits on a server that is starting. Each organisation is
+	// routing never waits on a server that is starting. Each organization is
 	// provisioned by one caller at a time, under its own lock, and ports are given
 	// out under portMu, so two do not choose the same.
 	mu     sync.Mutex
@@ -76,7 +76,7 @@ func (c *Controller) indexDir() string {
 
 func (c *Controller) orgDir(slug string) string { return c.Store.OrgDir(slug) }
 
-// Provision makes an organisation's server exist and start, and says when it answers.
+// Provision makes an organization's server exist and start, and says when it answers.
 func (c *Controller) Provision(slug string) error {
 	held := c.lock(slug)
 	held.Lock()
@@ -127,7 +127,7 @@ func (c *Controller) provision(slug string) error {
 	return nil
 }
 
-// cellNamed is the cell an organisation was placed on.
+// cellNamed is the cell an organization was placed on.
 func (c *Controller) cellNamed(name string) (Cell, error) {
 	if c.Cells == nil {
 		return c.Cell, nil
@@ -135,7 +135,7 @@ func (c *Controller) cellNamed(name string) (Cell, error) {
 	return c.Cells.Get(name)
 }
 
-// placement is the cell an organisation's server runs on. One that was placed stays there, since its
+// placement is the cell an organization's server runs on. One that was placed stays there, since its
 // computers are on that cell's gateway, and one that was not is put on the cell with the most room and
 // has that written down before anything is started on it.
 func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
@@ -144,7 +144,7 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 		if !errors.Is(err, ErrCellGone) {
 			return cell, err
 		}
-		slog.Warn("an organisation's host is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
+		slog.Warn("an organization's host is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
 		// The ports were the gone cell's, and are not this one's.
 		runtime.Cell, runtime.Port, runtime.ProxyPort = "", 0, 0
 	}
@@ -159,7 +159,7 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 	return cell, c.Store.SetRuntime(slug, *runtime)
 }
 
-// prepare makes what an organisation's server keeps: its directories, the key it signs
+// prepare makes what an organization's server keeps: its directories, the key it signs
 // its records with, and the key it and the front door share.
 func (c *Controller) prepare(slug string) error {
 	data := c.Store.DataDir(slug)
@@ -191,7 +191,7 @@ func (c *Controller) prepare(slug string) error {
 }
 
 // entryKeyFile is the key the front door makes entry tokens with and the
-// organisation's server checks them with.
+// organization's server checks them with.
 func (c *Controller) entryKeyFile(slug string) string {
 	return filepath.Join(c.orgDir(slug), "entry.key")
 }
@@ -199,8 +199,8 @@ func (c *Controller) entryKeyFile(slug string) string {
 // EntryKey is that key.
 func (c *Controller) EntryKey(slug string) ([]byte, error) { return os.ReadFile(c.entryKeyFile(slug)) }
 
-// environment is the whole environment of an organisation's server: the operator's
-// settings, then what is the organisation's own, which wins.
+// environment is the whole environment of an organization's server: the operator's
+// settings, then what is the organization's own, which wins.
 func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]string, error) {
 	password := make([]byte, 24)
 	if _, err := rand.Read(password); err != nil {
@@ -252,8 +252,8 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 	return env, nil
 }
 
-// givePorts gives an organisation two ports on its cell and writes them down before anyone
-// else is given any, so two organisations provisioned together do not share one.
+// givePorts gives an organization two ports on its cell and writes them down before anyone
+// else is given any, so two organizations provisioned together do not share one.
 func (c *Controller) givePorts(slug string, runtime Runtime, cell Cell) (Runtime, error) {
 	c.portMu.Lock()
 	defer c.portMu.Unlock()
@@ -311,11 +311,11 @@ func (c *Controller) set(slug string, runtime Runtime, state State, why string) 
 	c.states[slug] = runtime
 	c.mu.Unlock()
 	if err := c.Store.SetRuntime(slug, runtime); err != nil {
-		slog.Error("an organisation's state was not written", "org", slug, "error", err)
+		slog.Error("an organization's state was not written", "org", slug, "error", err)
 	}
 }
 
-// wait leaves an organisation waiting for a cell with room, which it is tried for again shortly. It is not a failure
+// wait leaves an organization waiting for a cell with room, which it is tried for again shortly. It is not a failure
 // and is not counted as one, since what it waits for is being made.
 func (c *Controller) wait(slug string, runtime Runtime, err error) error {
 	c.set(slug, runtime, Waiting, err.Error())
@@ -335,7 +335,7 @@ func (c *Controller) waitEvery() time.Duration {
 	return 5 * time.Second
 }
 
-// Waiting is how many organisations are waiting for a cell with room, which is what makes another start.
+// Waiting is how many organizations are waiting for a cell with room, which is what makes another start.
 func (c *Controller) Waiting() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -349,12 +349,12 @@ func (c *Controller) Waiting() int {
 }
 
 func (c *Controller) fail(slug string, runtime Runtime, err error) error {
-	slog.Error("an organisation's server could not be made ready", "org", slug, "error", err)
+	slog.Error("an organization's server could not be made ready", "org", slug, "error", err)
 	c.set(slug, runtime, Failed, err.Error())
 	return err
 }
 
-// Route is where an organisation's server is when it can be reached, and its state
+// Route is where an organization's server is when it can be reached, and its state
 // when it cannot. A server whose process has gone is not reached.
 func (c *Controller) Route(slug string) (address string, state State) {
 	c.mu.Lock()
@@ -373,14 +373,14 @@ func (c *Controller) Route(slug string) (address string, state State) {
 	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
 }
 
-// Run provisions every organisation there is and then keeps their servers running,
+// Run provisions every organization there is and then keeps their servers running,
 // until the context ends, when it stops them all. A server that has stopped is
 // started again, at first at once and then less often, so one that cannot start
 // does not take the machine with it.
 func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	orgs, err := c.Store.Orgs()
 	if err != nil {
-		slog.Error("the organisations could not be listed", "error", err)
+		slog.Error("the organizations could not be listed", "error", err)
 	}
 	// What each server was is known before it is started again, so a request for it
 	// is told it is starting and not that it is not there.
@@ -446,7 +446,7 @@ func (c *Controller) restart(slug string) {
 	}
 }
 
-// alive is whether an organisation's server is running on its cell, and a cell that cannot be
+// alive is whether an organization's server is running on its cell, and a cell that cannot be
 // reached is one whose servers are not known to be.
 func (c *Controller) alive(slug string, runtime Runtime) bool {
 	cell, err := c.cellNamed(runtime.Cell)
@@ -480,7 +480,7 @@ func (c *Controller) stopAll() {
 	wg.Wait()
 }
 
-// Remove stops an organisation's server and forgets it, so it is not started again. What the organisation's
+// Remove stops an organization's server and forgets it, so it is not started again. What the organization's
 // directory holds is the store's to delete, after this.
 func (c *Controller) Remove(slug string) {
 	held := c.lock(slug)

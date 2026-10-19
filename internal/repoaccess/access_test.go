@@ -99,7 +99,7 @@ func TestACloneUsesTheTokenAndLeavesNoCredentialBehind(t *testing.T) {
 	if text, err := os.ReadFile(filepath.Join(dir, "workspace", "secret.txt")); err != nil || string(text) != "the private code\n" {
 		t.Fatalf("the checkout: %q, %v", text, err)
 	}
-	if f.authorised == 0 {
+	if f.authorized == 0 {
 		t.Error("no git request carried a live token")
 	}
 	token := "ghs_test" + strings.Repeat("0", 15) + "1"
@@ -205,8 +205,8 @@ func TestAJobForARepositoryTheAppDoesNotReachIsRefusedInTheRecord(t *testing.T) 
 	if _, err := os.Stat(filepath.Join(dir.Path(), "workspace", ".git")); err == nil {
 		t.Error("a workspace was cloned for a refused job")
 	}
-	if len(f.minted) != 0 || f.authorised != 0 {
-		t.Errorf("the forge saw %d tokens and %d authorised requests", len(f.minted), f.authorised)
+	if len(f.minted) != 0 || f.authorized != 0 {
+		t.Errorf("the forge saw %d tokens and %d authorized requests", len(f.minted), f.authorized)
 	}
 }
 

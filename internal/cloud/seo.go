@@ -12,7 +12,7 @@ const (
 	siteName        = "gusto"
 	landingTitle    = siteName + " — one place for every AI agent your team needs"
 	demoFormTitle   = "Start a demo of " + siteName
-	organisationURL = "https://getlatentic.com"
+	organizationURL = "https://getlatentic.com"
 )
 
 // seen is what a search engine is told about a page it may list: its address, what it is about, and the image a link to it shows.
@@ -30,9 +30,9 @@ func landingDescription(page view) string {
 // structured is what the landing page says about who makes it and what it is, as data a search engine reads. It says only what the
 // page says: there is no price, rating or count in it.
 func (s *Server) structured(description string) template.JS {
-	publisher := map[string]any{"@type": "Organization", "name": "Latentic", "url": organisationURL}
+	publisher := map[string]any{"@type": "Organization", "name": "Latentic", "url": organizationURL}
 	text, _ := json.Marshal(map[string]any{"@context": "https://schema.org", "@graph": []any{
-		map[string]any{"@type": "Organization", "@id": organisationURL + "#organization", "name": "Latentic", "url": organisationURL,
+		map[string]any{"@type": "Organization", "@id": organizationURL + "#organization", "name": "Latentic", "url": organizationURL,
 			"logo": s.URL.JoinPath("/static/mark.png").String()},
 		map[string]any{"@type": "SoftwareApplication", "name": siteName, "url": s.URL.JoinPath("/").String(), "applicationCategory": "BusinessApplication",
 			"operatingSystem": "Web", "description": description, "publisher": publisher},
@@ -76,7 +76,7 @@ func (s *Server) sitemap(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte(out.String()))
 }
 
-// unlisted is what every organisation's address, and every app an agent shares, tells a search engine: nothing here is for listing.
+// unlisted is what every organization's address, and every app an agent shares, tells a search engine: nothing here is for listing.
 func unlisted(w http.ResponseWriter, r *http.Request) bool {
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	if r.Method == http.MethodGet && r.URL.Path == "/robots.txt" {

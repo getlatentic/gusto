@@ -29,7 +29,7 @@ const (
 func pluginFiles(label, description string) map[string]string {
 	return map[string]string{
 		"plugin.json":               `{` + pluginHead + `, "name": "reports", "version": "` + label + `"}`,
-		"skills/summarize/SKILL.md": "---\nname: summarize\ndescription: " + description + "\n---\n\nSummarise.\n",
+		"skills/summarize/SKILL.md": "---\nname: summarize\ndescription: " + description + "\n---\n\nSummarize.\n",
 		"mcp.json":                  `{` + mcpHead + `, "mcpServers": {"api": {"type": "streamable-http", "url": "https://api.example.com/mcp"}}}`,
 	}
 }
@@ -74,7 +74,7 @@ func withIntegrations(t *testing.T) (*tokened, *site) {
 
 func TestAnAdministratorImportsAnIntegrationAndItIsOffUntilTurnedOn(t *testing.T) {
 	here, admin := withIntegrations(t)
-	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
+	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	if made.Code != http.StatusSeeOther || !strings.HasPrefix(made.Header().Get("Location"), "/admin/integrations/reports?version=") {
 		t.Fatalf("importing answered %d to %q", made.Code, made.Header().Get("Location"))
 	}
@@ -95,7 +95,7 @@ func TestAnAdministratorImportsAnIntegrationAndItIsOffUntilTurnedOn(t *testing.T
 
 func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) {
 	here, admin := withIntegrations(t)
-	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
+	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"team"}, "integration": {"reports"}})
 	admin.ask(t, "POST", "/admin/skill-sets/team/enable", nil)
@@ -140,8 +140,8 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 
 func TestEveryChangeToAnIntegrationIsRecordedWithWhatItWasAndBecame(t *testing.T) {
 	here, admin := withIntegrations(t)
-	one := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
-	two := upload(t, admin, zipped(t, pluginFiles("1.1.0", "Summarise it better.")))
+	one := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
+	two := upload(t, admin, zipped(t, pluginFiles("1.1.0", "Summarize it better.")))
 	first, second := strings.SplitN(one.Header().Get("Location"), "version=", 2)[1], strings.SplitN(two.Header().Get("Location"), "version=", 2)[1]
 	admin.ask(t, "POST", "/admin/integrations/reports/enable", url.Values{"version": {first}})
 	admin.ask(t, "POST", "/admin/integrations/reports/enable", url.Values{"version": {second}})
@@ -171,7 +171,7 @@ func TestAPluginThatCannotBeTakenIsRefusedOnThePageAndAnUploadOverFourMegabytesI
 	if !strings.Contains(refused.Header().Get("Location"), "refused=") {
 		t.Errorf("a folder with no plugin.json answered %q", refused.Header().Get("Location"))
 	}
-	big := pluginFiles("1.0.0", "Summarise a report.")
+	big := pluginFiles("1.0.0", "Summarize a report.")
 	random := make([]byte, 5<<20)
 	rand.New(rand.NewSource(1)).Read(random)
 	big["assets/blob.bin"] = string(random)
@@ -240,7 +240,7 @@ func setupWithStarters() setup.Setup {
 
 func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.T) {
 	here, admin := withIntegrations(t)
-	files := pluginFiles("1.0.0", "Summarise a report.")
+	files := pluginFiles("1.0.0", "Summarize a report.")
 	files["mcp.json"] = `{` + mcpHead + `, "mcpServers": {"db": {"type": "stdio", "command": "node", "args": ["${PLUGIN_ROOT}/db.js"]}}}`
 	made := upload(t, admin, zipped(t, files))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
@@ -271,7 +271,7 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 
 func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndAJobForSomebodyElseDoesNotStart(t *testing.T) {
 	here, admin := withIntegrations(t)
-	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarise a report.")))
+	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
 	admin.ask(t, "POST", "/admin/integrations/reports/enable", url.Values{"version": {version}})
 	admin.ask(t, "POST", "/admin/integrations/reports/for", url.Values{"for": {"boss@example.com\n*@finance.example.com\n"}})

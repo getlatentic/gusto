@@ -9,7 +9,7 @@ import (
 
 // Accept makes a person of an invitation's link. They are verified, because they read
 // the mail the link was in, and they are a runner. The room is checked again, since
-// the organisation may have filled while the invitation was out. A link that is
+// the organization may have filled while the invitation was out. A link that is
 // followed is spent whether or not it gets a person in.
 func (s *Store) Accept(secret string) (Person, Org, error) {
 	if secret == "" || len(secret) > longestSecret {
@@ -40,7 +40,7 @@ type acceptance struct {
 }
 
 func (s *Store) acceptIn(ctx context.Context, tx dbkit.Tx, hash string) (acceptance, error) {
-	// The organisation is locked before the link is deleted, in the order Invite takes them.
+	// The organization is locked before the link is deleted, in the order Invite takes them.
 	var slug string
 	if err := tx.QueryRowContext(ctx, `SELECT org FROM links WHERE hash = ? AND purpose = ?`, hash, string(Invite)).Scan(&slug); err == nil {
 		if err := s.lock(ctx, tx, "org:"+slug); err != nil {

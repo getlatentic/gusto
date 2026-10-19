@@ -32,7 +32,7 @@ func TestWhatTheProxyHoldsCanBeChangedWhileItRunsAndACallIsWrittenWithTheVersion
 	}
 }
 
-func TestAnAddressAnOrganisationChoseIsReachedOnlyAtAPublicAddress(t *testing.T) {
+func TestAnAddressAnOrganizationChoseIsReachedOnlyAtAPublicAddress(t *testing.T) {
 	for address, want := range map[string]bool{
 		"93.184.216.34":      true,
 		"2606:2800:220:1::1": true,
@@ -55,7 +55,7 @@ func TestAnAddressAnOrganisationChoseIsReachedOnlyAtAPublicAddress(t *testing.T)
 	}
 }
 
-func TestACredentialAnOrganisationAddedCannotReachThisMachineOrItsNetwork(t *testing.T) {
+func TestACredentialAnOrganizationAddedCannotReachThisMachineOrItsNetwork(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "k")
 	model := proxy.credentials()[""].Address
 	for name, resolve := range map[string]Resolver{

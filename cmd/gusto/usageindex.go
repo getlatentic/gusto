@@ -55,7 +55,7 @@ func startUsage(held *proxy.Proxy, pages *web.Server, tasks string) (func(), err
 		return nil, fmt.Errorf("the usage index at %s: %w", usagePlace(tasks), err)
 	}
 	if os.Getenv("GUSTO_ORG") != "" && strings.HasPrefix(usageURL(), "postgres") && !strings.Contains(usageURL(), "search_path") {
-		fmt.Println("warning: GUSTO_DATABASE_URL names no search_path, so every organisation using this database shares one usage index")
+		fmt.Println("warning: GUSTO_DATABASE_URL names no search_path, so every organization using this database shares one usage index")
 	}
 	progress := &usage.Progress{}
 	pages.SetUsage(store)

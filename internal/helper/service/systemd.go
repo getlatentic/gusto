@@ -19,7 +19,7 @@ func quoted(word string) string {
 // Unit is the user unit: started when the person's session starts, and again a few seconds after it ends by itself.
 func Unit(spec Spec) string {
 	return fmt.Sprintf(`[Unit]
-Description=Your computer's way to your organisation's agents
+Description=Your computer's way to your organization's agents
 
 [Service]
 ExecStart=%s run -server %s

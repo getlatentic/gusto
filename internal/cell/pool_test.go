@@ -28,7 +28,7 @@ func pooled(t *testing.T, min int, cells map[string]*agentHost) *Pool {
 	return &Pool{Dir: dir, Secret: secret, MaxAge: time.Minute, MinFreeMiB: min}
 }
 
-func TestAnOrganisationIsPlacedOnTheCellWithTheMostRoomThatHasEnough(t *testing.T) {
+func TestAnOrganizationIsPlacedOnTheCellWithTheMostRoomThatHasEnough(t *testing.T) {
 	pool := pooled(t, 4096, map[string]*agentHost{
 		"cell-a": newAgent(t, "cell-a", 6000),
 		"cell-b": newAgent(t, "cell-b", 12000),
@@ -102,7 +102,7 @@ func TestThisMachineIsACellToPlaceOnOnlyWhenTheFrontDoorSaysSo(t *testing.T) {
 	}
 }
 
-// controlledOn is a controller that places organisations on the pool, running the test binary as each server.
+// controlledOn is a controller that places organizations on the pool, running the test binary as each server.
 func controlledOn(t *testing.T, pool *Pool) (*cloud.Controller, *cloud.Store) {
 	t.Helper()
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 100, Limits: cloud.DefaultLimits()})
@@ -127,7 +127,7 @@ func whoami(t *testing.T, address string) map[string]string {
 	return seen
 }
 
-func TestOrganisationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreReachedThere(t *testing.T) {
+func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreReachedThere(t *testing.T) {
 	a, b := newAgent(t, "cell-a", 12000), newAgent(t, "cell-b", 11000)
 	pool := pooled(t, 4096, map[string]*agentHost{"cell-a": a, "cell-b": b})
 	c, store := controlledOn(t, pool)
@@ -142,7 +142,7 @@ func TestOrganisationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 		return org.Slug
 	}
 	first := signUp("ada@acme.com", "Acme")
-	a.setFree(2000) // the first organisation took what cell-a had
+	a.setFree(2000) // the first organization took what cell-a had
 	second := signUp("bob@globex.com", "Globex")
 
 	placed := func(slug string) string { r, _ := store.Runtime(slug); return r.Cell }
@@ -159,14 +159,14 @@ func TestOrganisationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	if seen := whoami(t, address); seen["org"] != first || seen["cell"] != "cell-a" || !strings.HasPrefix(seen["addr"], "127.0.0.1:") {
 		t.Errorf("the server knows its own cell and where it listens: %v", seen)
 	}
-	// An organisation is not moved when another cell has more room: its computers are on its cell.
+	// An organization is not moved when another cell has more room: its computers are on its cell.
 	a.setFree(50000)
 	b.setFree(1)
 	if err := c.Provision(second); err != nil {
 		t.Fatal(err)
 	}
 	if placed(second) != "cell-b" {
-		t.Errorf("an organisation was moved to %s", placed(second))
+		t.Errorf("an organization was moved to %s", placed(second))
 	}
 }
 
@@ -219,7 +219,7 @@ func TestPortsAreGivenPerCellSoTwoCellsMayUseTheSameOnesAndOneCellNeverDoes(t *t
 			}
 			seen[key] = true
 		}
-		// Placement follows the room, which two organisations on one cell would drain.
+		// Placement follows the room, which two organizations on one cell would drain.
 		a.setFree(a.free - 4000)
 	}
 }
@@ -288,7 +288,7 @@ func (s cellsOf) Get(name string) (cloud.Cell, error) {
 }
 func (s cellsOf) Place() (cloud.Cell, error) { return s["cell-a"], nil }
 
-func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTheOrganisationsOnThatCell(t *testing.T) {
+func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTheOrganizationsOnThatCell(t *testing.T) {
 	a, b := newACell(t, "cell-a", "10.0.1.5"), newACell(t, "cell-b", "10.0.2.9")
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 100, Limits: cloud.DefaultLimits()})
 	if err != nil {
@@ -416,7 +416,7 @@ func TestACellRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *test
 	}
 }
 
-func TestAnOrganisationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlySilentIsNot(t *testing.T) {
+func TestAnOrganizationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlySilentIsNot(t *testing.T) {
 	old, fresh := newAgent(t, "cell-old", 12000), newAgent(t, "cell-new", 9000)
 	pool := pooled(t, 1000, map[string]*agentHost{"cell-old": old, "cell-new": fresh})
 	pool.GoneAfter = 10 * time.Minute
@@ -428,10 +428,10 @@ func TestAnOrganisationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlyS
 	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
 		t.Fatalf("placed on %s", r.Cell)
 	}
-	// Silent for five minutes: the host may come back, and the organisation's computers are on it.
+	// Silent for five minutes: the host may come back, and the organization's computers are on it.
 	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-5*time.Minute)))
 	if err := c.Provision(org.Slug); err == nil {
-		t.Fatal("an organisation was moved off a cell that was only quiet")
+		t.Fatal("an organization was moved off a cell that was only quiet")
 	}
 	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
 		t.Errorf("moved to %s", r.Cell)

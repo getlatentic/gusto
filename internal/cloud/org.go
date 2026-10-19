@@ -29,7 +29,7 @@ func (s *Server) guard(next func(http.ResponseWriter, *http.Request, Person)) ht
 	}
 }
 
-// org is the organisation a person belongs to, and only that one: the page
+// org is the organization a person belongs to, and only that one: the page
 // reads the person's own record to find it, and takes no name from the request.
 func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 	notice := ""
@@ -42,13 +42,13 @@ func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notice string) {
 	org, found, err := s.Store.Org(person.Org)
 	if err != nil || !found {
-		log.Printf("cloud: an organisation is missing its record: %v", err)
+		log.Printf("cloud: an organization is missing its record: %v", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 		return
 	}
 	quota, err := s.Store.Quota(org.Slug)
 	if err != nil {
-		log.Printf("cloud: an organisation is missing its quota: %v", err)
+		log.Printf("cloud: an organization is missing its quota: %v", err)
 	}
 	computers, byAddress := 0, map[string]string{}
 	if registry, err := s.Store.Computers(org.Slug); err == nil {

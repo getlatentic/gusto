@@ -16,7 +16,7 @@ import (
 
 // Clone is how a plugin is fetched from a git address. It is a variable so that a test can fetch from a folder.
 type Clone struct {
-	// AllowPrivate lets the address be on a private network: a git server inside the organisation. Without it only the public
+	// AllowPrivate lets the address be on a private network: a git server inside the organization. Without it only the public
 	// internet is reached, so an address cannot be used to look at what the server can see and the internet cannot.
 	AllowPrivate bool
 	// Timeout is how long a fetch may take.

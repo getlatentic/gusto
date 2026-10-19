@@ -1,5 +1,5 @@
 ---
-# The organisations' data is on a file system every host of a demo mounts, in a directory of its own for the
+# The organizations' data is on a file system every host of a demo mounts, in a directory of its own for the
 # demo, at the path a single host keeps it: the front door and a cell both write and read it by that path.
 - name: The tool that mounts the file system
   ansible.builtin.apt:
@@ -36,13 +36,13 @@
     group: "{{ demo_user }}"
     mode: "0755"
 
-# What an earlier demo left is not carried into this one: its organisations' computers went with its hosts.
+# What an earlier demo left is not carried into this one: its organizations' computers went with its hosts.
 - name: The directories of earlier demos are removed
   ansible.builtin.command: find /mnt/efs/runs -mindepth 1 -maxdepth 1 -not -name "{{ demo_run }}" -exec rm -rf {} +
   changed_when: false
   when: demo_role == 'orchestrator' and not demo_live | bool
 
-- name: The demo's directory is where the organisations' data is
+- name: The demo's directory is where the organizations' data is
   ansible.posix.mount:
     path: "{{ demo_state }}"
     src: "/mnt/efs/runs/{{ demo_run }}"

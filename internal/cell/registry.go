@@ -13,7 +13,7 @@ import (
 )
 
 // Registration is a host saying it is there: where its agent is, and the address on the private
-// network its organisations' servers bind to. It is written again every few seconds, and a
+// network its organizations' servers bind to. It is written again every few seconds, and a
 // host that has not been heard from lately is not one that can be placed on.
 type Registration struct {
 	Name    string `json:"name"`

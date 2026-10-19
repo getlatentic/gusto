@@ -26,7 +26,7 @@ import (
 //go:embed templates/*.html
 var files embed.FS
 
-// Hosts lists the hosts that run organisations' servers.
+// Hosts lists the hosts that run organizations' servers.
 type Hosts interface {
 	Running() ([]cell.Instance, error)
 }
