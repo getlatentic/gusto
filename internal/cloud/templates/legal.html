@@ -1,0 +1,109 @@
+{{define "legalhead"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+{{template "seo" .}}
+<link rel="icon" href="{{asset "/static/mark.png"}}">
+<link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
+<link rel="stylesheet" href="{{own "/static/landing.css"}}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> Latentic Agent Cloud</a>
+  <nav><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a class="cta small" href="/demo">Explore a live workspace</a></nav>
+</header>
+<main class="legal">{{end}}
+
+{{define "legalfoot"}}</main>
+<footer><p><a href="/">Latentic Agent Cloud</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p></footer>
+</body>
+</html>{{end}}
+
+{{define "privacy"}}{{template "legalhead" .}}
+<h1>Privacy notice</h1>
+<p class="fine">For the Latentic Agent Cloud website and service. Last changed [date to confirm].</p>
+
+<h2>Who we are</h2>
+<p>Latentic Agent Cloud is run by Latentic ("we"), [registered address to confirm]. You can write to us about anything here at [privacy contact address to confirm]. We handle personal data under the Nigeria Data Protection Act 2023.</p>
+
+<h2>What we collect when you ask for a live workspace</h2>
+<ul>
+  <li>The name, work email address and company that you type into the form.</li>
+  <li>When you asked, when your workspace was ready, when it ended and why, and whether you added time.</li>
+  <li>A cookie that keeps you signed in. It is the only cookie we set.</li>
+  <li>Your internet address. We use it to limit how many workspaces one place can start, and our servers keep it in their logs. It is sent to Cloudflare for the bot check.</li>
+</ul>
+<p>We do not send you email when you start a workspace. We may write to the address you gave to follow up.</p>
+
+<h2>What we handle when you use the service</h2>
+<p>Your organisation's workspace holds what you and your team type to agents, the files agents read and make, the records of what ran and what it cost, and the names and email addresses of the people in the organisation. It is kept in the organisation's own space, apart from every other organisation's. We do not read it as a matter of course.</p>
+<p>A live workspace started from this website is temporary. It is removed when its time is up, with the organisation, the computers and everything in them. [How an organisation under an agreement with us is covered, including how long its data is kept and how it is removed, to confirm.]</p>
+
+<h2>Where what you type goes</h2>
+<p>To answer you, an agent sends what you type, and the files it reads, to the company that runs the model your organisation has connected. In the live workspaces on this website:</p>
+<ul>
+  <li>OpenCode, Pi and Hermes use Google's Gemma models, run by Amazon Web Services (Amazon Bedrock) in the United States.</li>
+  <li>Claude Code and Codex use DeepSeek Flash, run by DeepSeek through its API at api.deepseek.com. [Where DeepSeek processes data to confirm.]</li>
+</ul>
+<p>Do not put confidential, personal or regulated information into a live workspace.</p>
+
+<h2>Who else handles it</h2>
+<ul>
+  <li>Amazon Web Services hosts the service and keeps its data in the United States (us-east-1).</li>
+  <li>Cloudflare provides the address of the site, the bot check (Turnstile) and, where we use it, the sending of mail.</li>
+  <li>Google keeps the list of people who asked for a live workspace, in a spreadsheet, so that we can follow up.</li>
+</ul>
+
+<h2>What we keep</h2>
+<p>When a live workspace ends we keep your name, email address, company, the times above and how it ended, in that spreadsheet and on our servers, so that we can follow up with you. We keep them for [retention period to confirm]. Nothing else from a live workspace is kept.</p>
+
+<h2>Why we use it</h2>
+<p>To run the service, to stop it being abused, and to follow up with the person who asked for a workspace. Our lawful basis is our legitimate interest in doing those things, and the cookie is needed to provide the service you asked for.</p>
+
+<h2>Where it is handled</h2>
+<p>The service is hosted in the United States, so the data above is handled outside Nigeria. What you type to Claude Code or Codex in a live workspace is also handled by DeepSeek [where DeepSeek processes data to confirm]. [The safeguards we rely on for data that leaves Nigeria to confirm.]</p>
+
+<h2>Your choices</h2>
+<p>Write to [privacy contact address to confirm] to see what we hold about you, to correct it, to have it deleted, to limit or object to how we use it, or to be given a copy of it. Where we rely on your consent you may withdraw it. If you are not satisfied with our answer you may complain to the Nigeria Data Protection Commission.</p>
+
+<h2>Cookies</h2>
+<p>We set one cookie, to keep you signed in. It is needed for the service to work. Cloudflare's bot check may set its own. We do not use advertising cookies. [Analytics, if we add them, to confirm.]</p>
+
+<h2>Changes</h2>
+<p>When this notice changes we change the date at the top.</p>
+{{template "legalfoot"}}{{end}}
+
+{{define "terms"}}{{template "legalhead" .}}
+<h1>Terms of use</h1>
+<p class="fine">For the Latentic Agent Cloud website and service. Last changed [date to confirm].</p>
+
+<h2>What these terms cover</h2>
+<p>These terms cover the website and the live workspaces you can start from it. An organisation that uses Latentic Agent Cloud under an agreement with us is covered by that agreement. [How the two fit together to confirm.]</p>
+
+<h2>Live workspaces</h2>
+<p>A live workspace is an organisation of your own, with computers of your own, for you to try Latentic Agent Cloud for {{minutes .DemoLeft}}, with one extension. It is removed when the time is up, with everything in it, so copy out what you want to keep before then.</p>
+
+<h2>What you may do</h2>
+<ul>
+  <li>Use it to see how the product works, for yourself or for the company you gave.</li>
+  <li>Do not put confidential, personal or regulated information, passwords or keys into a live workspace. What you type to an agent is sent to the company that runs its model, as the <a href="/privacy">privacy notice</a> says.</li>
+  <li>Do not use the service to break the law, to attack or scan other systems, to mine currency, to send spam, or to get around its limits.</li>
+</ul>
+
+<h2>Limits</h2>
+<p>We limit how many live workspaces one person, one company and the whole service may start in a day, and how much an agent may spend. We may refuse, change, pause or end a workspace at any time.</p>
+
+<h2>What agents make</h2>
+<p>An agent can be wrong. Check what it makes before you rely on it. You keep what you put in and what the agent makes for you.</p>
+
+<h2>No promise</h2>
+<p>A live workspace is provided as it is, without a promise that it will work, be available or suit a purpose. [Limit of our liability to confirm.]</p>
+
+<h2>Law</h2>
+<p>These terms are governed by the laws of the Federal Republic of Nigeria, and the courts of Nigeria may hear any dispute about them.</p>
+
+<h2>Contact</h2>
+<p>These terms are from Latentic. Write to [contact address to confirm].</p>
+{{template "legalfoot"}}{{end}}

@@ -73,3 +73,7 @@ ul.tiles .own .glyph { background: none; border: 1px dashed var(--yg-border-stro
 .faq details { border-bottom: 1px solid var(--yg-border-strong); padding: var(--yg-space-3) 0; }
 .faq summary { cursor: pointer; font: 600 1rem/1.4 var(--yg-font-display); }
 .faq details p { margin-top: var(--yg-space-2); color: var(--yg-text-muted); }
+.legal { max-width: 46rem; padding-top: var(--yg-space-7, 3rem); display: grid; gap: var(--yg-space-3); }
+.legal h2 { margin: var(--yg-space-5) 0 0; font-size: 1.25rem; }
+.legal ul { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--yg-space-2); }
+.top nav a + a { margin-left: 0; }
