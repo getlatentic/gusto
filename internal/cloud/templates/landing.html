@@ -17,10 +17,8 @@
 <header class="top">
   <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> gusto</a>
   <nav>
-    <a href="#harnesses">Agents</a>
-    <a href="#how">How it works</a>
-    <a href="#control">Controls</a>
-    <a href="#proof">Proof</a>
+    <a class="icon" href="https://github.com/getlatentic/gusto" aria-label="gusto on GitHub"><svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a href="/signin">Sign in</a>
     <a class="cta small" href="/demo">Try it now</a>
   </nav>
 </header>
@@ -123,11 +121,11 @@
 <div class="faq">
   <h2>Questions</h2>
   <div class="qas">
-  <div class="qa"><h3>What gets uploaded?</h3><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></div>
-  <div class="qa"><h3>Which agents and models work?</h3><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organization connects.</p></div>
-  <div class="qa"><h3>What happens when the demo ends?</h3><p>The organization, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></div>
-  <div class="qa"><h3>Who can see my workspace and runs?</h3><p>A demo organization is yours alone, on an address of its own. Within an organization, administrators see people, spend and the record of runs.</p></div>
-</div>
+    <div class="qa"><h3>Which agents and models work?</h3><p>Claude Code, Codex, OpenCode, Pi and Hermes, on the models your organization connects.</p></div>
+    <div class="qa"><h3>Where does it run?</h3><p>On a laptop or in the cloud. The code is open source under Apache-2.0.</p></div>
+    <div class="qa"><h3>Who holds the model keys?</h3><p>Your organization. Agents reach a model through a proxy and never hold the key.</p></div>
+    <div class="qa"><h3>Who can see what the agents did?</h3><p>Administrators see people, spend and a signed record of every run.</p></div>
+  </div>
   </div>
   </div>
 </section>
@@ -143,9 +141,6 @@
 </section>
 
 
-<footer>
-  <p>We keep the name, email and company you give so that we can follow up about the demo. Nothing else from it is kept. <a href="/signin">Sign in</a></p>
-</footer>
 </body>
 </html>
 {{end}}
