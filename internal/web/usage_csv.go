@@ -10,7 +10,7 @@ import (
 	"github.com/getlatentic/gusto/internal/usage"
 )
 
-var usageCSVHeader = []string{"time", "session", "task", "line", "person", "team", "project", "agent", "engine", "provider", "key", "model",
+var usageCSVHeader = []string{"time", "session", "task", "line", "person", "team", "project", "agent", "agent_type", "provider", "key", "model",
 	"input_tokens", "output_tokens", "cached_tokens", "cost_usd", "status", "took_ms", "refused", "translated"}
 
 // usageCSV streams every call that matches the filter, the latest first, as the index gives them.

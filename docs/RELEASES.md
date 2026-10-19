@@ -8,10 +8,10 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 **Changed**
 
-- opencode uses the task's own model from `GUSTO_MODEL_PROVIDER` and `GUSTO_MODEL_ID`. Engine configuration moved from `image/harness/` to `internal/harness/config/`; an image built from this repository copies it from there.
+- opencode uses the task's own model from `GUSTO_MODEL_PROVIDER` and `GUSTO_MODEL_ID`. Agent configuration moved from `image/harness/` to `internal/harness/config/`; an image built from this repository copies it from there.
 - `install.sh` and `install.ps1` install `gusto` and `gusto-helper` (`GUSTO_PROGRAMS` names fewer) and live in `deploy/install/`. They install to `~/.local/bin` (`GUSTO_INSTALL_DIR` changes it; `GUSTO_HELPER_DIR` is still read) or, on Windows, `%LOCALAPPDATA%\gusto`, not `%LOCALAPPDATA%\gusto-helper`: an earlier helper stays in the old folder and on the PATH until removed.
-- Every engine is offered every model. A credential's `harnesses` list and the Models page's "works with" boxes are gone, and a file that still has `harnesses` is read with the list ignored. A bearer-token call in Anthropic's Messages shape is translated to Chat Completions when no `wires` is set.
-- A new chat starts on the person's last choice, else the organisation's default (`/admin`, New chats; recorded as `chat.default`), else `GUSTO_CHAT_DEFAULT` (`engine=model`), else the first that can run.
+- Every agent is offered every model. A credential's `harnesses` list and the Models page's "works with" boxes are gone, and a file that still has `harnesses` is read with the list ignored. A bearer-token call in Anthropic's Messages shape is translated to Chat Completions when no `wires` is set.
+- A new chat starts on the person's last choice, else the organisation's default (`/admin`, New chats; recorded as `chat.default`), else `GUSTO_CHAT_DEFAULT` (`agent=model`), else the first that can run.
 - Sign-ins survive a restart. The sign-in key and ended sessions are kept in `.keeper.json` in the sessions folder (`GUSTO_KEEPER` names another file). Delete the file to sign everybody out. The desktop app stays signed in for 14 days.
 
 **New**

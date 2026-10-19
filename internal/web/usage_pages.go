@@ -142,7 +142,7 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"}, {Label: "Engine"},
+	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"}, {Label: "Agent type"},
 		sortable("Cost", "cost"), {Label: "Provider"}, {Label: "Model"}, sortable("Tokens", "tokens"), {Label: "Cache", Num: true}, sortable("Calls", "calls"), {Label: "Record"}}
 }
 
@@ -292,7 +292,7 @@ func callRows(rows []usage.Row) []callRow {
 // chosenIn keeps a value the person chose in the list of its select, so that a choice the dates have since left out is
 // still shown as chosen.
 func chosenIn(f usage.Facets, chosen url.Values) usage.Facets {
-	for name, list := range map[string]*[]string{"person": &f.People, "agent": &f.Agents, "engine": &f.Engines, "provider": &f.Providers, "model": &f.Models} {
+	for name, list := range map[string]*[]string{"person": &f.People, "agent": &f.Agents, "agent_type": &f.Engines, "provider": &f.Providers, "model": &f.Models} {
 		if value := chosen.Get(name); value != "" && !slices.Contains(*list, value) {
 			*list = append(*list, value)
 			slices.Sort(*list)

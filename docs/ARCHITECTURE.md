@@ -89,7 +89,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | Person and role | An account and a sign-in: password, SSO or token | The server, or gusto cloud in the hosted cloud |
 | Workspace | One sandbox per person that keeps their files | The host that runs the organisation's server |
 | Task | A directory holding the brief, the repository, the check and the spend limit | The organisation's data directory |
-| Agent | An adapter: a small JSON file that names the program | Inside the sandbox |
+| Agent | An adapter: a small JSON file that names the agent type | Inside the sandbox |
 | Check | A command run at the end. Its exit code is the verdict | Inside the sandbox |
 | Spend limit | A cap that the proxy counts against and enforces | The model proxy |
 | Record | Hashed files, the check result and a signature | The task directory. `gusto verify` re-checks it anywhere |
@@ -150,7 +150,9 @@ sequenceDiagram
 | organisation | A company or team account | |
 | workspace | One person's place in an organisation, kept between tasks | computer |
 | task | One piece of work for an agent | job |
-| agent | Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent | harness |
+| agent | The worker a task is given to. Both the program (Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent) and a person's own named setup, such as "Finance helper" | harness, engine |
+| agent type | The program: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent. Said when it must be told apart from a named agent | harness, engine |
+| named agent | An agent a person saved with a name, based on an agent type: "Finance helper, based on Claude Code" | |
 | check | The command whose result says pass or fail | gate |
 | record | What a task leaves behind: hashed files, the check result, a signature | evidence |
 | sandbox | The isolated box one task runs in | wall (the level) |

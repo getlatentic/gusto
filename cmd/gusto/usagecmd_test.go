@@ -63,7 +63,7 @@ func TestTheUsageCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
 		}
 	}
 	out, _, _ := clitest.Capture(t, func() int { return run([]string{"help", "usage", "sessions"}) })
-	for _, flag := range []string{"-person", "-agent", "-engine", "-provider", "-model", "-month", "-limit", "-json"} {
+	for _, flag := range []string{"-person", "-agent", "-agent-type", "-provider", "-model", "-month", "-limit", "-json"} {
 		if !strings.Contains(out, flag) {
 			t.Errorf("sessions help lacks %s", flag)
 		}

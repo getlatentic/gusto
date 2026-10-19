@@ -95,7 +95,7 @@ func TestTheSessionsCanBeFilteredAndSearched(t *testing.T) {
 		shows []string
 		hides []string
 	}{
-		{"engine=Codex", []string{"codex-session"}, []string{"alice-session", "bob-session"}},
+		{"agent_type=Codex", []string{"codex-session"}, []string{"alice-session", "bob-session"}},
 		{"provider=openai", []string{"codex-session"}, []string{"alice-session"}},
 		{"model=gpt-5", []string{"codex-session"}, []string{"bob-session"}},
 		{"agent=Notes", []string{"alice-session", "bob-session"}, []string{"codex-session"}},
@@ -129,7 +129,7 @@ func TestTheSessionsCanBeFilteredAndSearched(t *testing.T) {
 func TestTheSelectsOfTheFilterListWhatTheCallsHold(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
 	body := here.ask(t, "GET", "/usage?agent=Notes", nil).Body.String()
-	for _, want := range []string{`name="person" data-autosubmit`, `name="engine" data-autosubmit`, `name="provider" data-autosubmit`, `name="model" data-autosubmit`, "<option selected>Notes</option>", "<option>bedrock</option>"} {
+	for _, want := range []string{`name="person" data-autosubmit`, `name="agent_type" data-autosubmit`, `name="provider" data-autosubmit`, `name="model" data-autosubmit`, "<option selected>Notes</option>", "<option>bedrock</option>"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the filter lacks %q", want)
 		}
@@ -321,12 +321,12 @@ func TestAnIndexStillBeingBuiltSaysHowFarItIs(t *testing.T) {
 	}
 }
 
-func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByEngine(t *testing.T) {
+func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByAgentType(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
 	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if strings.Count(body, "<h2>By agent</h2>") != 1 || strings.Count(body, "<h2>By engine</h2>") != 1 {
-		t.Errorf("the panels are not by agent and by engine:\n%s", body)
+	if strings.Count(body, "<h2>By agent</h2>") != 1 || strings.Count(body, "<h2>By agent type</h2>") != 1 {
+		t.Errorf("the panels are not by agent and by agent type:\n%s", body)
 	}
 }
 

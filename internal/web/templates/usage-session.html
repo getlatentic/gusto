@@ -5,7 +5,7 @@
   <span class="grow"></span>
   <a class="link-quiet" href="{{$.Base}}">All usage</a>
 </div>
-<p class="muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, engine {{.}}{{end}}. The latest call first.</p>
+<p class="muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
 
 <form class="filters" method="get" action="{{$.Base}}/{{.ID}}" role="search">
   <label class="inline search"><span class="sr">Search this session's calls</span><input type="search" name="q" value="{{.Search}}" placeholder="Search"></label>

@@ -105,7 +105,7 @@ An organisation's server has a console for its admins at `/admin`. A person who 
 
 On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organisation's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no task (a team's cap does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
 
-An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`engine=model`), then on the first engine and model that can run.
+An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`agent=model`), then on the first agent and model that can run.
 
 ## Models
 

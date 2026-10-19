@@ -254,7 +254,7 @@ docker build -t gusto:dev \
 | `GUSTO_SANDBOX` | how a task runs: unset is a container, `here` is this process, `openshell` is an OpenShell sandbox. [OPENSHELL.md](OPENSHELL.md) lists the `GUSTO_OPENSHELL*` settings |
 | `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway is on another machine. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` |
 | `GUSTO_LOCAL_REPOS` | server directories a task's repository may be cloned from. Unset, only https and ssh addresses work. [SECURITY.md](SECURITY.md) |
-| `GUSTO_MODELS` | the models the pages offer, comma separated. With credentials configured, an engine is offered only models a credential serves. A person can change their agent's model on its page |
+| `GUSTO_MODELS` | the models the pages offer, comma separated. With credentials configured, an agent is offered only models a credential serves. A person can change their agent's model on its page |
 | `GUSTO_MODEL_UPSTREAM` | the model's root address, with no version. Setting it turns the proxy on |
 | `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `GUSTO_MODEL_NAME` | what the record calls that credential |

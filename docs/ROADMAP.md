@@ -34,4 +34,4 @@ when it ships, and into [RELEASES.md](RELEASES.md).
 
 - Streams that resume at an exact event, and that are pushed when something changes.
 - A turn whose model call failed says it failed (getlatentic/planning#676).
-- `gusto verify` inside a sandbox, and the patches of two engines compared side by side.
+- `gusto verify` inside a sandbox, and the patches of two agents compared side by side.

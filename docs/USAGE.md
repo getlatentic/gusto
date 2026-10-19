@@ -11,10 +11,10 @@ Above the table are the totals for what matches the filter:
 - A call whose model has no price is not in the money. The page says "no price" for it and never shows it as zero. A total that leaves such calls out reads "at least".
 
 The table has one row for each session. A session is the conversation of an agent a person set up (the instance and the thread), or a single task that was not part of one. A row shows:
-- the last request (UTC), the session, who asked, the agent, the engine, the cost, the providers, the models, the tokens, the cache hit rate and the calls.
+- the last request (UTC), the session, who asked, the agent, the agent type, the cost, the providers, the models, the tokens, the cache hit rate and the calls.
 - A link to the signed record of the session's latest task. A session with more tasks says how many more. Each of them is linked from the session page.
 
-An engine is the program: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent. An agent is the named assistant a person set up.
+An agent type is the program: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent. An agent is the named setup a person made, based on one of those types.
 
 Click a session to see its calls, the latest first. Each call shows its time, task (linked to its record), model, provider, key name, tokens, cache hit rate, cost, status, the cap that refused it, and what the proxy translated.
 
@@ -24,11 +24,11 @@ While the index is still being filled, a notice says how many of the tasks it ha
 
 | Filter | Query parameter | Notes |
 | --- | --- | --- |
-| Search | `q` | Part of a session, person, agent, engine, provider or model. Case does not matter |
+| Search | `q` | Part of a session, person, agent, agent type, provider or model. Case does not matter |
 | Person | `person` | Exact |
 | Team | `team` | Exact. The API only |
 | Repository | `project` | Exact. The API only |
-| Engine | `engine` | Exact |
+| Agent type | `agent_type` | Exact |
 | Agent | `agent` | Exact |
 | Provider | `provider` | Exact |
 | Model | `model` | Exact |
@@ -52,11 +52,11 @@ All of these take the filter as query parameters. The lists take `limit` (1 to 1
 | `GET /api/usage/sessions` | `{"sessions":[...],"next":"..."}`. `next` is missing on the last page |
 | `GET /api/usage/calls?session=<id>` | `{"calls":[...],"next":"..."}`, the latest first, only the calls that match the filter |
 | `GET /api/usage/totals` | The calls, the unmeasured calls, the refused calls, the tokens and the dollars of the calls that match |
-| `GET /api/usage/facets` | The people, teams, repositories, engines, agents, providers and models the calls have |
+| `GET /api/usage/facets` | The people, teams, repositories, agent types, agents, providers and models the calls have |
 | `GET /api/usage.csv` | Every call that matches, one line each, with a header line |
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/usage/sessions?engine=Codex&from=2026-10-01&sort=cost&limit=20"
+curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/usage/sessions?agent_type=Codex&from=2026-10-01&sort=cost&limit=20"
 curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/usage/calls?session=20261013-0924-pi:1"
 curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/usage/totals?person=ada@acme.example&to=2026-10-31"
 curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/usage/facets"
@@ -65,7 +65,7 @@ curl -H "Authorization: Bearer $TOKEN" -o usage.csv "$GUSTO/api/usage.csv?q=deep
 
 An answer given while the index is being filled has a `Usage-Index-Building: 3 of 12 tasks` header.
 
-The CSV columns are `time, session, task, line, person, team, project, agent, engine, provider, key, model, input_tokens, output_tokens, cached_tokens, cost_usd, status, took_ms, refused, translated`.
+The CSV columns are `time, session, task, line, person, team, project, agent, agent_type, provider, key, model, input_tokens, output_tokens, cached_tokens, cost_usd, status, took_ms, refused, translated`.
 - `time` is RFC 3339 in UTC.
 - An empty `cost_usd` is a call with no price. An empty count is a count the answer did not carry. Neither is zero.
 - A text cell that begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote put before it, so that a spreadsheet does not run it.
