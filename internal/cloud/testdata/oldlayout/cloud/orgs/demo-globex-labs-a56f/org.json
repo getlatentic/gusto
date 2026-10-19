@@ -1,0 +1,12 @@
+{
+  "slug": "demo-globex-labs-a56f",
+  "name": "Globex Labs",
+  "admin": "ivy@globex.com",
+  "created": "2026-10-01T09:00:00Z",
+  "demo": {
+    "name": "Ivy Ito",
+    "company": "Globex Labs",
+    "ready": "2026-10-01T09:00:00Z",
+    "expires": "2026-10-01T09:30:00Z"
+  }
+}

@@ -1,6 +1,11 @@
 package cloud
 
-import "errors"
+import (
+	"context"
+	"errors"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
+)
 
 // ErrBadRole is the refusal of a role that is neither of the two there are.
 var ErrBadRole = errors.New("a role is admin or runner")
@@ -16,12 +21,28 @@ func (s *Store) SetRole(slug string, by Person, address string, role Role) (was 
 	if err != nil {
 		return "", ErrNoMember
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if by.Org != slug || by.Role != Admin {
 		return "", ErrNotAdmin
 	}
-	target, found, err := s.person(email)
+	ctx := context.Background()
+	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
+		was, err = s.setRoleIn(ctx, tx, slug, email, role)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	if was != role {
+		s.publishRoster(slug)
+	}
+	return was, nil
+}
+
+func (s *Store) setRoleIn(ctx context.Context, tx dbkit.Tx, slug, email string, role Role) (Role, error) {
+	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
+		return "", err
+	}
+	target, found, err := fetchPerson(ctx, tx, email)
 	if err != nil {
 		return "", err
 	}
@@ -32,33 +53,13 @@ func (s *Store) SetRole(slug string, by Person, address string, role Role) (was 
 		return role, nil
 	}
 	if target.Role == Admin {
-		admins, err := s.admins(slug)
-		if err != nil {
+		if admins, err := adminsOf(ctx, tx, slug); err != nil || admins <= 1 {
+			if err == nil {
+				err = ErrLastAdmin
+			}
 			return "", err
 		}
-		if admins <= 1 {
-			return "", ErrLastAdmin
-		}
 	}
-	was, target.Role = target.Role, role
-	if err := writeFile(s.personFile(email), target, 0o600); err != nil {
-		return "", err
-	}
-	s.publishRoster(slug)
-	return was, nil
-}
-
-// admins is how many admins the organisation has.
-func (s *Store) admins(slug string) (int, error) {
-	members, err := s.members(slug)
-	if err != nil {
-		return 0, err
-	}
-	count := 0
-	for _, member := range members {
-		if member.Role == Admin {
-			count++
-		}
-	}
-	return count, nil
+	_, err = tx.ExecContext(ctx, `UPDATE people SET role = ? WHERE email = ?`, string(role), email)
+	return target.Role, err
 }

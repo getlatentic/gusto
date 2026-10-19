@@ -6,14 +6,17 @@ import (
 )
 
 // Limiter counts events in a window that slides, by key, and refuses one past
-// the most allowed. It is kept in memory: a restart forgets it, which lets a
-// person try again and no more.
+// the most allowed. One made by NewLimiter is kept in memory, where a restart
+// forgets it, which lets a person try again and no more. One made by a Store
+// counts in the database, so that every front door on it counts together.
 type Limiter struct {
-	mu   sync.Mutex
-	most int
-	per  time.Duration
-	hits map[string][]time.Time
-	now  func() time.Time
+	mu    sync.Mutex
+	most  int
+	per   time.Duration
+	hits  map[string][]time.Time
+	now   func() time.Time
+	store *Store
+	scope string
 }
 
 // NewLimiter allows most events for a key in any window of per.
@@ -24,6 +27,9 @@ func NewLimiter(most int, per time.Duration) *Limiter {
 // Allow counts an event for key and says whether it may go ahead. A refused
 // event is not counted, so trying again does not lengthen the wait.
 func (l *Limiter) Allow(key string) bool {
+	if l.store != nil {
+		return l.store.allow(l.scope+":"+key, l.most, l.per)
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()

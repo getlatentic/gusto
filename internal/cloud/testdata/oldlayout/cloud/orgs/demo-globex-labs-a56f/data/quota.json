@@ -1,0 +1,8 @@
+{
+  "jobs": 30,
+  "concurrent": 2,
+  "invites": false,
+  "members": 1,
+  "computers": 1,
+  "note": "This is a demo, which is removed when its time is up."
+}

@@ -45,6 +45,9 @@ type Controller struct {
 	// StopGrace is how long a server is given to end its jobs' records when it is
 	// asked to stop, before it is made to.
 	StopGrace time.Duration
+	// IndexDir is where organisations' indexes are kept, in a directory for each, on the local disk of the host a server
+	// runs on. It is the index directory under the store's root when not set.
+	IndexDir string
 	// WaitEvery is how often an organisation waiting for a cell is tried again. It is five seconds when not set.
 	WaitEvery time.Duration
 
@@ -62,6 +65,13 @@ type Controller struct {
 func (c *Controller) lock(slug string) *sync.Mutex {
 	held, _ := c.locks.LoadOrStore(slug, &sync.Mutex{})
 	return held.(*sync.Mutex)
+}
+
+func (c *Controller) indexDir() string {
+	if c.IndexDir != "" {
+		return c.IndexDir
+	}
+	return filepath.Join(c.Store.Root(), "index")
 }
 
 func (c *Controller) orgDir(slug string) string { return c.Store.OrgDir(slug) }
@@ -228,7 +238,7 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
 	}
-	database, err := usageDatabase(c.Env, slug)
+	database, err := usageDatabase(c.Env, slug, c.indexDir())
 	if err != nil {
 		return nil, err
 	}

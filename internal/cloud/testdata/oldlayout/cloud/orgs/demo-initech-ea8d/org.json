@@ -1,0 +1,13 @@
+{
+  "slug": "demo-initech-ea8d",
+  "name": "Initech",
+  "admin": "fay@initech.com",
+  "created": "2026-10-01T11:40:00Z",
+  "demo": {
+    "name": "Fay Fox",
+    "company": "Initech",
+    "ready": "2026-10-01T11:40:00Z",
+    "expires": "2026-10-01T12:20:00Z",
+    "extended": true
+  }
+}

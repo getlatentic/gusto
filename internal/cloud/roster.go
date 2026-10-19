@@ -1,10 +1,12 @@
 package cloud
 
 import (
+	"context"
 	"log/slog"
 	"path/filepath"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/dbkit"
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
@@ -13,29 +15,33 @@ import (
 func (s *Store) RosterFile(slug string) string { return filepath.Join(s.DataDir(slug), "members.json") }
 func (s *Store) InboxDir(slug string) string   { return filepath.Join(s.DataDir(slug), "inbox") }
 
-// PublishRoster writes the organisation's people where its server reads them.
+// PublishRoster writes the organisation's people where its server reads them. The people are read and the
+// file is written under a lock, so two front doors that publish together leave the list of the later read.
 func (s *Store) PublishRoster(slug string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.writeRoster(slug)
+	ctx := context.Background()
+	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
+		if err := s.lock(ctx, tx, "roster:"+slug); err != nil {
+			return err
+		}
+		return s.writeRoster(ctx, tx, slug)
+	})
 }
 
 // publishRoster is PublishRoster for a change that has already been made. The
 // change stands whether or not the list is written, so a failure is said loudly and
 // does not undo it: the next change writes the list again, and so does a restart.
-// The caller holds the lock.
 func (s *Store) publishRoster(slug string) {
-	if err := s.writeRoster(slug); err != nil {
+	if err := s.PublishRoster(slug); err != nil {
 		slog.Error("an organisation's list of people was not written", "org", slug, "error", err)
 	}
 }
 
-func (s *Store) writeRoster(slug string) error {
-	members, err := s.members(slug)
+func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) error {
+	members, err := membersOf(ctx, q, slug)
 	if err != nil {
 		return err
 	}
-	invited, err := s.invitations(slug)
+	invited, err := s.openInvitations(ctx, q, slug)
 	if err != nil {
 		return err
 	}
@@ -56,14 +62,13 @@ func (s *Store) writeRoster(slug string) error {
 // RecordSignIn notes that a person was signed in to their organisation's server, and
 // tells the server.
 func (s *Store) RecordSignIn(email string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	person, found, err := s.person(email)
+	ctx := context.Background()
+	person, found, err := fetchPerson(ctx, s.db, email)
 	if err != nil || !found {
 		return err
 	}
-	person.LastSignIn = s.now().UTC().Truncate(time.Second)
-	if err := writeFile(s.personFile(person.Email), person, 0o600); err != nil {
+	at := s.now().UTC().Truncate(time.Second)
+	if _, err := s.db.ExecContext(ctx, `UPDATE people SET last_sign_in = ? WHERE email = ?`, s.stamp(at), person.Email); err != nil {
 		return err
 	}
 	s.publishRoster(person.Org)

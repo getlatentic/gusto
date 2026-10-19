@@ -1,0 +1,8 @@
+{
+  "jobs": 200,
+  "monthly": true,
+  "concurrent": 4,
+  "invites": true,
+  "members": 4,
+  "computers": 4
+}

@@ -1,0 +1,8 @@
+{
+  "email": "cy@acme.com",
+  "purpose": "invite",
+  "expires": "2026-10-06T13:00:00Z",
+  "org": "acme-com",
+  "role": "runner",
+  "by": "ada@acme.com"
+}

@@ -27,7 +27,9 @@ A controller in gusto cloud moves an organisation through `provisioning`, `ready
 
 | Setting | Meaning |
 | --- | --- |
-| `GUSTO_CLOUD_ROOT` | where accounts are kept, `cloud` by default |
+| `GUSTO_CLOUD_ROOT` | where organisations' files are kept, and `cloud.db` when there is no database address. `cloud` by default |
+| `GUSTO_DATABASE_URL` | where the accounts are kept. Unset, SQLite in `cloud.db` under the root. A `postgres://` address (its `search_path` names the schema, made when missing) lets several front doors share them ([CLOUD-DATABASE.md](CLOUD-DATABASE.md)) |
+| `GUSTO_CLOUD_INDEX_DIR` | the directory for organisations' indexes of model calls and tasks when an organisation's own `GUSTO_DATABASE_URL` is not Postgres: `<dir>/<slug>/index.db` on the local disk of the host the server runs on. `index` under the root by default. Set it to a local path when the root is on a disk that hosts share |
 | `GUSTO_CLOUD_ADDR` | where gusto cloud listens, `127.0.0.1:8050` by default |
 | `GUSTO_CLOUD_URL` | the address links in mail begin with |
 | `GUSTO_CLOUD_DOMAIN` | the domain organisations are served under, as `<slug>.<domain>` |
@@ -44,7 +46,7 @@ A controller in gusto cloud moves an organisation through `provisioning`, `ready
 
 ## Accounts and sign-up
 
-gusto cloud keeps records as files under `GUSTO_CLOUD_ROOT`: `secret` (signs cookies, 0600), `people/<hash of email>.json`, `orgs/<slug>/org.json`, `tokens/<hash>.json` (single-use links) and `outbox/` (mail, when mail goes to files). Each organisation's directory `orgs/<slug>/data/` (0700) is its `gusto` data directory. gusto cloud also writes `quota.json`, `members.json` and `inbox/` there, and the organisation's server writes `settings.json`.
+gusto cloud keeps people, organisations, invitations, single-use links, demos, leads, demo limits, the pause, the signing key for cookies, the abuse counts and each organisation's runtime in a database ([CLOUD-DATABASE.md](CLOUD-DATABASE.md)): SQLite in `cloud.db` under `GUSTO_CLOUD_ROOT`, or Postgres. Under the root it keeps `orgs/<slug>/` for each organisation and `outbox/` (mail, when mail goes to files). Each organisation's directory `orgs/<slug>/data/` (0700) is its `gusto` data directory. gusto cloud also writes `quota.json`, `members.json` and `inbox/` there, and the organisation's server writes `settings.json`. An earlier release kept the accounts as files (`people/`, `orgs/<slug>/org.json`, `tokens/`, `demos/` and a few more); the first start on a database with no import record loads them and leaves them as they were.
 
 1. A person gives a work email. The address is refused when it is disposable, or at a free mail provider unless the operator allows it.
 2. The organisation is named from the company's domain, found with the public suffix list: `ada@acme-research.com` makes "Acme Research", with the address `acme-research-com`. A free mail address names no company, so the person is asked for a name.
@@ -60,6 +62,8 @@ A company can have more than one organisation. The first at a domain gets the do
 | Sign-ups in all | 200 an hour |
 | Organisations for one company domain whose admin has not confirmed their address | 3 |
 | Invitations for one organisation | 20 an hour |
+
+The counts are kept in the database, so front doors that share it share the limits, and a restart does not forget them.
 
 ## Sign-in to an organisation
 
@@ -124,13 +128,13 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
 - At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
-- Create `demos.off` in gusto cloud's directory to pause new demos. Remove it to resume. Running demos continue.
-- Each visitor is kept as a lead in `demos/<address>.json`, which stays after the demo ends.
+- Pause new demos on the operator's page. Resume there. Running demos continue.
+- Each visitor is kept as a lead in the database, which stays after the demo ends.
 - A demo is capped as a whole organisation at 0.50 dollars (`organisation` in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`). The proxy then refuses the next call, and refuses a model with no price. Calls in flight can pass the cap by a few cents.
 
 ## The operator's page
 
-`gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo and are kept in `demo-limits.json` in gusto cloud's directory. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
+`gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo, on every front door, and are kept in the database. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
 
 It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of gusto cloud's host only. It refuses any other address (`GUSTO_OWNER_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/owner.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
 

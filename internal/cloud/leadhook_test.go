@@ -142,25 +142,27 @@ func TestTheLeadHookNeedsBothItsAddressAndItsSecretAndAnHttpsAddress(t *testing.
 }
 
 func TestADemoStartedAndEndedIsToldToTheSheetInThatOrder(t *testing.T) {
-	s := newSheet(t, "s3cret")
-	f := newFront(t, demoSet, func(c *Config) {
-		c.Controller = controlled(t, c.Store)
-		c.ComputersWait = 50 * time.Millisecond
-		c.Leads = s.hook(t, "s3cret")
+	onEachDatabase(t, func(t *testing.T) {
+		s := newSheet(t, "s3cret")
+		f := newFront(t, demoSet, func(c *Config) {
+			c.Controller = controlled(t, c.Store)
+			c.ComputersWait = 50 * time.Millisecond
+			c.Leads = s.hook(t, "s3cret")
+		})
+		b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
+		f.server.Wait()
+		b.get("/demo/wait")
+		slug := demoSlugOf(t, f)
+		f.store.now = func() time.Time { return time.Now().Add(time.Hour) }
+		f.server.EndDueDemos()
+		f.server.ender.running.Wait()
+		waitFor(t, func() bool { return len(s.events()) == 2 })
+		if got := s.events(); got[0] != "started "+slug || got[1] != "ended "+slug {
+			t.Errorf("%v", got)
+		}
+		last := s.got[1]["lead"].(map[string]any)
+		if last["reason"] != "its time was up" || last["email"] != "ada@acme.com" {
+			t.Errorf("%v", last)
+		}
 	})
-	b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
-	f.server.Wait()
-	b.get("/demo/wait")
-	slug := demoSlugOf(t, f)
-	f.store.now = func() time.Time { return time.Now().Add(time.Hour) }
-	f.server.EndDueDemos()
-	f.server.ender.running.Wait()
-	waitFor(t, func() bool { return len(s.events()) == 2 })
-	if got := s.events(); got[0] != "started "+slug || got[1] != "ended "+slug {
-		t.Errorf("%v", got)
-	}
-	last := s.got[1]["lead"].(map[string]any)
-	if last["reason"] != "its time was up" || last["email"] != "ada@acme.com" {
-		t.Errorf("%v", last)
-	}
 }
