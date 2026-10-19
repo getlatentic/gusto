@@ -30,6 +30,8 @@ func Comparable(a, b Manifest) (bool, string) {
 	case a.HarnessDigest == "" || b.HarnessDigest == "":
 		return false, fmt.Sprintf("%s is %s and %s is %s: a name alone does not say how an agent was configured",
 			a.Harness, a.ConfiguredHarness(), b.Harness, b.ConfiguredHarness())
+	case a.HarnessDigest == b.HarnessDigest && a.HarnessVersion != b.HarnessVersion:
+		return false, fmt.Sprintf("both ran %s as %s, but built as %s and %s", a.Harness, a.HarnessDigest, buildOr(a), buildOr(b))
 	case a.HarnessDigest == b.HarnessDigest:
 		return true, fmt.Sprintf("both ran %s as %s", a.Harness, a.HarnessDigest)
 	case a.Harness == b.Harness:
@@ -63,4 +65,12 @@ func harnessComplaints(dir job.Dir, manifest Manifest) []string {
 		return []string{fmt.Sprintf("harnesses/%s changed", spec.Harness)}
 	}
 	return nil
+}
+
+// buildOr is the agent's build, or the words saying none was recorded.
+func buildOr(m Manifest) string {
+	if m.HarnessVersion == "" {
+		return "no build recorded"
+	}
+	return m.HarnessVersion
 }

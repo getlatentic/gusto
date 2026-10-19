@@ -167,6 +167,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 		Gate:            verdict,
 		Harness:         adapter.Name,
 		HarnessDigest:   configured.Digest,
+		HarnessVersion:  harness.VersionOf(adapter.Name),
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,

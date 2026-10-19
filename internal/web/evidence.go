@@ -80,6 +80,7 @@ func shellWord(word string) string {
 func drawEvidence(page map[string]any, record jobs.Record, dir job.Dir, manifest *evidence.Manifest) {
 	if manifest != nil {
 		page["Manifest"] = manifest
+		page["Build"] = manifest.HarnessVersion
 	}
 	if patch, found := readPatch(dir, record.ID); found {
 		page["Patch"] = patch

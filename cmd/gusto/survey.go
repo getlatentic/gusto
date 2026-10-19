@@ -13,7 +13,7 @@ func scanCommand() int {
 	offered := surveyed(harness.Names())
 	for _, entry := range offered {
 		if entry.Ready {
-			fmt.Printf("%-10s offered\n", entry.Name)
+			fmt.Printf("%-10s offered %s\n", entry.Name, entry.Version)
 		} else {
 			fmt.Printf("%-10s not offered: %s\n", entry.Name, entry.Why)
 		}

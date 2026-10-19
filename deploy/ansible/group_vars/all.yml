@@ -43,26 +43,25 @@ gusto_errors_dir: /var/www/gusto-errors
 # its com.getlatentic.gusto.harnesses label, and the server offers a harness only
 # when its program is really on the image's PATH.
 #
-# Each runs on the proxy's per-job token and nobody's account. codex, dsh and
-# hermes are pinned to the versions their adapters were measured against,
-# since a new release can move where a harness reads its model, its key or
-# the session it resumes.
+# Each runs on the proxy's per-job token and nobody's account. Versions are not
+# here: internal/harness/pins.json pins every package, and the image's build
+# verifies each tarball against it.
 runner_harnesses:
   - opencode=opencode-ai
   - claude=@anthropic-ai/claude-code
-  - codex=@openai/codex@0.154.0
+  - codex=@openai/codex
   - pi=@earendil-works/pi-coding-agent
-  - dsh=@deepseek-ai/dsh@0.1.5-rc.3
-  - hermes=hermes-agent@0.21.5
+  - dsh=@deepseek-ai/dsh
+  - hermes=hermes-agent
 
 # The npm packages of the MCP servers the image carries, for mcp_servers to
 # offer, and of what a harness needs to call them. A setup can only give a
 # harness a server whose program is here.
 runner_mcp_packages:
-  - "@modelcontextprotocol/server-memory@2026.8.31"
+  - "@modelcontextprotocol/server-memory"
   # Not a server: the extension pi takes MCP servers through, measured on
   # 2026-09-27 against a probe server.
-  - "pi-mcp-adapter@3.0.0"
+  - "pi-mcp-adapter"
 
 # The MCP servers a setup may choose from, one file each in var/mcp. A server
 # is a program the image carries, or an address a job may reach. What a

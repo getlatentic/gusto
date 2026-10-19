@@ -83,6 +83,10 @@
       "description": "The digest of the configured harness that ran, taken from the files the job carried before the harness started: \"sha256:\" and 64 lowercase hex digits, computed as docs/FORMATS.md describes. Two runs with the same digest ran the same configured harness; two with the same harness name need not have. Absent in a manifest written before it was recorded, which a reader reports as \"no digest recorded\" rather than inventing one.",
       "type": "string"
     },
+    "harnessVersion": {
+      "description": "The agent's build: the npm package and version the runner image installed, as package@version, read from the image's /etc/gusto/harnesses. Absent where the agent was installed by hand, on a person's own computer.",
+      "type": "string"
+    },
     "harnessExit": {
       "description": "The harness's exit code. A harness reporting success is a claim; the gate is the check.",
       "type": "integer"

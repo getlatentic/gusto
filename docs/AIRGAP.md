@@ -24,7 +24,7 @@ Pin and mirror before the first build:
 | Agent packages | each package and its platform package at one pinned version. Measured on x64: `opencode-ai` 1.18.32 with `opencode-linux-x64` and `opencode-linux-x64-baseline`; `@openai/codex` 0.157.1 with `@openai/codex@0.157.1-linux-x64`; `@anthropic-ai/claude-code` 2.1.283 with `@anthropic-ai/claude-code-linux-x64`. arm64 and musl need their own. Seven tarballs, 958 MiB |
 | Ansible collections | `ansible.mysql`, `community.crypto`, as tarballs |
 
-`HARNESSES` defaults to `opencode=opencode-ai` with no version, and `deploy/ansible/group_vars/all.yml` lists all three with none. A mirror serves only what it holds, so pin versions.
+Every package is pinned in `internal/harness/pins.json` (version and sha512), and `deploy/runner/install.mjs` refuses a tarball that does not match. A mirror has to serve those exact tarballs; `internal/harness/pin.sh` moves a pin.
 
 ## Build the image
 
