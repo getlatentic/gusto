@@ -9,8 +9,8 @@ Each task runs in the strongest sandbox your machine has: a virtual machine, a c
 | You have | Run it like this |
 | --- | --- |
 | **A local machine** (laptop or desktop; macOS, Linux, Windows) | Install it with one command. It starts at login and opens in your browser. |
-| **A homelab** (a spare PC or mini server at home) | `sudo server.sh --no-tls` on the box; use it from any computer on your network. |
-| **A VPS** (a cloud machine you rent) | `sudo server.sh --domain agents.example.com`: HTTPS, one password, ready in minutes. |
+| **A homelab** (a spare PC or mini server at home) | Run `server.sh --no-tls` on the box (below); use it from any computer on your network. |
+| **A VPS** (a cloud machine you rent) | Run `server.sh --domain agents.example.com` (below): HTTPS, one password, ready in minutes. |
 | **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per task. See [docs/PILOT.md](docs/PILOT.md). |
 
 ## Try it on your computer
@@ -21,6 +21,16 @@ curl -fsSL https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/in
 
 It installs gusto, starts it, and opens it in your browser, signed in. Add a model key on the first page, pick an agent, and ask it something.
 gusto is a pre-release: it works, and it changes often.
+
+## Set up a server
+
+On a Linux machine you own (Debian or Ubuntu), this installs Docker if it is missing, starts gusto, and prints the address and a password:
+
+```bash
+curl -fsSL https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/server.sh -o server.sh
+sudo sh server.sh --no-tls --release v0.1.0-rc.2                      # a trusted network, plain HTTP
+sudo sh server.sh --domain agents.example.com --release v0.1.0-rc.2   # a domain that points here, with HTTPS
+```
 
 ## What you get
 
