@@ -76,10 +76,10 @@ jobs:
           id="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-live Name=tag:name,Values=front-door Name=instance-state-name,Values=running \
             --query 'Reservations[0].Instances[0].InstanceId' --output text)"
           if [ -z "$id" ] || [ "$id" = None ]; then echo "no gusto cloud is up, so there is nothing to upgrade"; exit 0; fi
-          # What the host was started with is kept in /etc/gusto/live.env. The script of the release it is being brought to is
+          # What the host was started with is kept in /etc/haas/live.env. The script of the release it is being brought to is
           # the one that runs, so a change to how a host is made takes effect in the upgrade that brings it. A command sent
           # over SSM has no home directory, which the AWS command needs.
-          command="export HOME=/root; set -a; . /etc/gusto/live.env; set +a; export PATH=\$PATH:/snap/bin; aws s3 cp s3://\$BUCKET/releases/$GITHUB_SHA/bundle.tgz /tmp/next.tgz --only-show-errors; tar -xzf /tmp/next.tgz -O ./user-data.sh > /tmp/next-user-data.sh; RELEASE=$GITHUB_SHA bash /tmp/next-user-data.sh"
+          command="export HOME=/root; set -a; . /etc/haas/live.env; set +a; export PATH=\$PATH:/snap/bin; aws s3 cp s3://\$BUCKET/releases/$GITHUB_SHA/bundle.tgz /tmp/next.tgz --only-show-errors; tar -xzf /tmp/next.tgz -O ./user-data.sh > /tmp/next-user-data.sh; RELEASE=$GITHUB_SHA bash /tmp/next-user-data.sh"
           run="$(aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$id" \
             --parameters "commands=[\"$command\"]" --query Command.CommandId --output text)"
           for _ in $(seq 1 60); do
