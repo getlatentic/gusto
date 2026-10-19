@@ -1,6 +1,6 @@
 ---
 # greencloud (203.0.113.10) — a SHARED box. It already runs other sites with their
-# own databases, MySQL, PostgreSQL, Redis and nginx. haas coexists: its own user, its own port, its own vhost, and nothing else
+# own databases, MySQL, PostgreSQL, Redis and nginx. gusto coexists: its own user, its own port, its own vhost, and nothing else
 # touched.
 #
 # Measured on 2026-09-26, before any of this: 4 vCPU, 7894 MB of memory with
@@ -15,13 +15,13 @@ job_memory: 900m
 backend_port: 8040
 
 # The box's own MySQL and Redis, claimed the way every other app here claims
-# them: one database, one user granted on `haas.*` and nothing else, and Redis
+# them: one database, one user granted on `gusto.*` and nothing else, and Redis
 # db4 because db0 to db3 are in use. Neither service is installed or
 # reconfigured by this playbook, and no other app's database, user or index is
 # touched. db_password lives in greencloud.vault.yml.
 store: mysql
-db_name: haas
-db_user: haas
+db_name: gusto
+db_user: gusto
 redis_db: 4
 
 # The model this box thinks with. An OpenAI-compatible endpoint with a bearer
@@ -99,10 +99,10 @@ spend_policy:
 # provider refuses anybody else before this server is even asked.
 oidc_issuer: "https://accounts.google.com"
 oidc_allowed: "tosinamuda@gmail.com,amudatosin@gmail.com"
-haas_admins: "tosinamuda@gmail.com"
+gusto_admins: "tosinamuda@gmail.com"
 
 # Autodeploy stays off here until its key exists. To turn it on, put the public
 # half of the key GitHub holds in autodeploy_public_key, set autodeploy_enabled,
 # and run the playbook once by hand; README.md has the steps.
 autodeploy_enabled: true
-autodeploy_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIISdoI6zBtx+cnKvjxpnQ7zp35CLRg/AcjhsZz0NRC3k haas-deploy, asks greencloud to deploy a commit on main"
+autodeploy_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIISdoI6zBtx+cnKvjxpnQ7zp35CLRg/AcjhsZz0NRC3k gusto-deploy, asks greencloud to deploy a commit on main"

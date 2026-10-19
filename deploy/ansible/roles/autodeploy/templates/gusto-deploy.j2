@@ -1,5 +1,5 @@
 #!/bin/sh
-# Managed by ansible (roles/autodeploy/templates/haas-deploy.j2).
+# Managed by ansible (roles/autodeploy/templates/gusto-deploy.j2).
 #
 # The only thing the autodeploy key can do. sshd runs this, through sudo, with
 # whatever the client sent as its one argument, so the argument is data and is
@@ -11,16 +11,16 @@ set -eu
 sha=${1:-}
 case "$sha" in
   *[!0-9a-f]* | "")
-    echo "haas-deploy takes one full commit id, and was given: $sha" >&2
+    echo "gusto-deploy takes one full commit id, and was given: $sha" >&2
     exit 2
     ;;
 esac
 if [ "$(printf %s "$sha" | wc -c)" -ne 40 ]; then
-  echo "haas-deploy takes one full commit id of 40 characters, and was given: $sha" >&2
+  echo "gusto-deploy takes one full commit id of 40 characters, and was given: $sha" >&2
   exit 2
 fi
 
-unit="haas-deploy@$sha.service"
+unit="gusto-deploy@$sha.service"
 
 # The deploy's output, shown to whoever asked, as it happens.
 journalctl --unit="$unit" --follow --output=cat --since="$(date '+%Y-%m-%d %H:%M:%S')" &

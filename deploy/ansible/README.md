@@ -1,4 +1,4 @@
-# Deploying haas
+# Deploying gusto
 
 One playbook, run from a laptop, against a box that already serves other
 people's sites. It is idempotent and additive: it installs what is missing,
@@ -9,7 +9,7 @@ leaves everything else exactly as it was.
 ansible-galaxy collection install -r requirements.yml
 cp inventory.example.ini inventory.ini
 ansible-playbook site.yml -e @greencloud.vault.yml \
-  --vault-password-file ~/.config/haas/vault_pass.txt
+  --vault-password-file ~/.config/gusto/vault_pass.txt
 ```
 
 Code reaches the box by `git pull`, so **push the branch first**. The playbook
@@ -23,28 +23,28 @@ deploys itself, and a hand run is for changing the vault or the box.
 
 | role | what it adds | what it never touches |
 | --- | --- | --- |
-| common | `git`, `acl`, a `haas` user with a home at `/opt/haas`, the checkout | any existing user |
-| autodeploy | a `haas-deploy` user whose one key runs one command, and the box's own deploy under `/opt/haas-deploy` (off until `autodeploy_enabled`) | root's keys, sshd's configuration |
-| toolchain | a pinned Go under `/opt/haas/go`, and a candidate binary at `bin/haas.next` | the box's shared `/usr/local/go`, and the live binary |
-| sandbox | `podman`, `uidmap`, a subuid range, a candidate image `haas:candidate` carrying the agents in `runner_harnesses` | iptables, any daemon (podman runs none), and the live image |
-| store | the `haas` database, a `haas@localhost` user granted on `haas.*`, Redis db4 | every other database, user and index |
+| common | `git`, `acl`, a `gusto` user with a home at `/opt/gusto`, the checkout | any existing user |
+| autodeploy | a `gusto-deploy` user whose one key runs one command, and the box's own deploy under `/opt/gusto-deploy` (off until `autodeploy_enabled`) | root's keys, sshd's configuration |
+| toolchain | a pinned Go under `/opt/gusto/go`, and a candidate binary at `bin/gusto.next` | the box's shared `/usr/local/go`, and the live binary |
+| sandbox | `podman`, `uidmap`, a subuid range, a candidate image `gusto:candidate` carrying the agents in `runner_harnesses` | iptables, any daemon (podman runs none), and the live image |
+| store | the `gusto` database, a `gusto@localhost` user granted on `gusto.*`, Redis db4 | every other database, user and index |
 | smoke | one real task on the candidates, and one refused | the live binary and image |
-| release | the candidates become live; what they replace is kept as `bin/haas.previous` and `haas:previous` | anything, when smoke failed: the play has stopped before it |
+| release | the candidates become live; what they replace is kept as `bin/gusto.previous` and `gusto:previous` | anything, when smoke failed: the play has stopped before it |
 | serve | a systemd unit on `127.0.0.1:8040`, restarted and checked on `/healthz` | ports other apps bind |
-| nginx | one name-based vhost for `haas.getlatentic.com`, and its certificate | the default site and every other vhost |
+| nginx | one name-based vhost for `gusto.tosinamuda.com`, and its certificate | the default site and every other vhost |
 
 `serve_enabled` is **false** until the binary has an HTTP server. Until then the
 playbook gives the box a working runner, which is worth having on its own: a task
-directory on the box runs with `/opt/haas/bin/haas run <dir>`.
+directory on the box runs with `/opt/gusto/bin/gusto run <dir>`.
 
 ## How a deploy replaces what runs
 
 A deploy never builds over the version that is running. The binary is built to
-`/opt/haas/bin/haas.next` and the image is tagged `haas:candidate`. The smoke
+`/opt/gusto/bin/gusto.next` and the image is tagged `gusto:candidate`. The smoke
 task runs against those two, and only when it passes does the release role make
-them live. The binary is renamed over `bin/haas`, and the `haas:dev` tag moves
-to the new image. What they replace is kept first as `bin/haas.previous` and
-`haas:previous`, but only when the candidate differs, so running one commit
+them live. The binary is renamed over `bin/gusto`, and the `gusto:dev` tag moves
+to the new image. What they replace is kept first as `bin/gusto.previous` and
+`gusto:previous`, but only when the candidate differs, so running one commit
 twice never loses the version a rollback goes back to.
 
 A smoke task that fails ends the play before the release role. The live binary,
@@ -54,7 +54,7 @@ the refused candidates stay on disk to look at.
 Once the release role has run, serve restarts the service and waits for
 `/healthz` to answer on `127.0.0.1:8040`. When it does not, the play puts back
 what this deploy replaced, restarts on it, and still fails, so a rollback never
-reads as a green deploy. `journalctl -u haas` has the reason.
+reads as a green deploy. `journalctl -u gusto` has the reason.
 
 ## Rolling back by hand
 
@@ -62,7 +62,7 @@ reads as a green deploy. `journalctl -u haas` has the reason.
 ansible-playbook rollback.yml
 ```
 
-It makes `bin/haas.previous` and `haas:previous` live again, restarts the
+It makes `bin/gusto.previous` and `gusto:previous` live again, restarts the
 service and checks it answers. Running it twice lands in the same place. It
 goes back one version, not to any version: there is one previous copy.
 
@@ -72,10 +72,10 @@ on main, or [turn autodeploy off](#turning-autodeploy-off) first.
 Without ansible, on the box:
 
 ```bash
-cp -p /opt/haas/bin/haas.previous /opt/haas/bin/haas.restoring
-mv -f /opt/haas/bin/haas.restoring /opt/haas/bin/haas
-sudo -u haas -H podman tag haas:previous haas:dev
-systemctl restart haas
+cp -p /opt/gusto/bin/gusto.previous /opt/gusto/bin/gusto.restoring
+mv -f /opt/gusto/bin/gusto.restoring /opt/gusto/bin/gusto
+sudo -u gusto -H podman tag gusto:previous gusto:dev
+systemctl restart gusto
 ```
 
 ## Proving a failing smoke task keeps the previous version
@@ -85,21 +85,21 @@ systemctl restart haas
 would. On the box, write down what runs:
 
 ```bash
-sha256sum /opt/haas/bin/haas
-sudo -u haas -H podman image inspect --format '{{.Id}}' haas:dev
-systemctl show haas -p MainPID
+sha256sum /opt/gusto/bin/gusto
+sudo -u gusto -H podman image inspect --format '{{.Id}}' gusto:dev
+systemctl show gusto -p MainPID
 ```
 
 Then deploy with the broken fixture, from the laptop:
 
 ```bash
 ansible-playbook site.yml -e @greencloud.vault.yml \
-  --vault-password-file ~/.config/haas/vault_pass.txt -e smoke_fixture=broken.json
+  --vault-password-file ~/.config/gusto/vault_pass.txt -e smoke_fixture=broken.json
 ```
 
 It has to fail at "The task runs in a container and passes its check", because
 the adder still subtracts, and no task of the release role may appear. The three readings on the box have to be unchanged, and
-`/opt/haas/bin/haas.next` and `haas:candidate` are there as the refused
+`/opt/gusto/bin/gusto.next` and `gusto:candidate` are there as the refused
 candidates. A run without the override then promotes them. The difference is
 easiest to see right after a merge, when the candidate is built from a newer
 commit than the one running.
@@ -110,12 +110,12 @@ commit than the one running.
 
 A merge to main runs `.github/workflows/deploy.yml`. Its tests (`gofmt`,
 `go vet`, `go test -race`) check the rest. It then connects to the box as
-`haas-deploy` with one ssh key and sends one thing, the commit that passed.
+`gusto-deploy` with one ssh key and sends one thing, the commit that passed.
 That key's `authorized_keys` line forces a command, so whatever the client asks
-for, sshd runs `sudo /usr/local/sbin/haas-deploy <what it asked>`. That script
-refuses anything but a full commit id and starts `haas-deploy@<commit>.service`.
+for, sshd runs `sudo /usr/local/sbin/gusto-deploy <what it asked>`. That script
+refuses anything but a full commit id and starts `gusto-deploy@<commit>.service`.
 The unit checks the commit is on main and is not older than the one deployed,
-checks it out in root's own checkout under `/opt/haas-deploy/src`, and runs this
+checks it out in root's own checkout under `/opt/gusto-deploy/src`, and runs this
 playbook against the box itself with the vault the box holds. The output
 streams back into the workflow's log.
 
@@ -138,16 +138,16 @@ The trade, written down:
 - Whoever can read the `DEPLOY_SSH_KEY` secret can make the box deploy a newer
   commit on main sooner than a merge would. That is code somebody already
   merged, so the power it adds is timing, not content.
-- The box now holds the vault and its password under `/etc/haas-deploy`,
+- The box now holds the vault and its password under `/etc/gusto-deploy`,
   readable by root alone. Root could already reach what the vault's values
   unlock on this box: the model keys and the sign-in secrets are written to
-  `/opt/haas/var/haas.env` and the credential files, and root administers the
+  `/opt/gusto/var/gusto.env` and the credential files, and root administers the
   MySQL the database password opens. What is new is the password itself. `greencloud.vault.yml` has a password
-  of its own, which no other app's vault uses: `~/.config/haas/vault_pass.txt`
+  of its own, which no other app's vault uses: `~/.config/gusto/vault_pass.txt`
   here, and the file `autodeploy_vault_password_file` names on the box.
 - The box runs a playbook it fetched as root. That was true of every hand
   deploy too, with a laptop in the middle. The checkout it runs from belongs to
-  root, not to the `haas` user, so the code the server runs cannot rewrite the
+  root, not to the `gusto` user, so the code the server runs cannot rewrite the
   playbook that deploys it.
 
 A box that pulls on a timer is what a sovereign customer wants, and it is one
@@ -175,9 +175,9 @@ merge runs the tests and deploys nothing.
 ### Turning it on, once
 
 1. Make a key for it, and nothing else:
-   `ssh-keygen -t ed25519 -N '' -C haas-deploy@github -f haas-deploy`.
+   `ssh-keygen -t ed25519 -N '' -C gusto-deploy@github -f gusto-deploy`.
 2. In `host_vars/greencloud.yml`, set `autodeploy_enabled: true` and put the
-   contents of `haas-deploy.pub` in `autodeploy_public_key`. The public half is
+   contents of `gusto-deploy.pub` in `autodeploy_public_key`. The public half is
    not a secret. Commit it and merge it before step 6: the box reads host_vars
    from main when it deploys itself, and a main that says `false` removes the
    key on its next deploy.
@@ -185,10 +185,10 @@ merge runs the tests and deploys nothing.
    user, the sudo rule and the unit, copies the vault and its password to the
    box, and prints the `DEPLOY_KNOWN_HOSTS` line.
 4. Check sshd lets the new user in: `sshd -T | grep -Ei 'allowusers|allowgroups|denyusers|denygroups'`
-   on the box has to name nothing that shuts `haas-deploy` out.
+   on the box has to name nothing that shuts `gusto-deploy` out.
 5. Prove the key from the laptop. This deploys main's head, exactly as a merge
    will:
-   `ssh -i haas-deploy haas-deploy@203.0.113.10 "$(git rev-parse origin/main)"`.
+   `ssh -i gusto-deploy gusto-deploy@203.0.113.10 "$(git rev-parse origin/main)"`.
    Anything but a full commit id sent with that key is refused.
 6. Add the three secrets, delete both halves of the key from the laptop, and
    set `AUTODEPLOY` to `on`.
@@ -199,10 +199,10 @@ A deploy the box runs itself leaves the vault and its password where the first
 hand run put them. When the vault changes, run the playbook by hand again; that
 is what copies it. A hand run does not take the box's lock, so run it when no
 deploy is in progress, or ask the box for the deploy instead:
-`ssh root@203.0.113.10 /usr/local/sbin/haas-deploy "$(git rev-parse origin/main)"`.
+`ssh root@203.0.113.10 /usr/local/sbin/gusto-deploy "$(git rev-parse origin/main)"`.
 
-`/opt/haas-deploy/deployed` names the last commit the box deployed itself, and
-`journalctl -u 'haas-deploy@*'` has every deploy's output.
+`/opt/gusto-deploy/deployed` names the last commit the box deployed itself, and
+`journalctl -u 'gusto-deploy@*'` has every deploy's output.
 
 ### Turning autodeploy off
 
@@ -213,7 +213,7 @@ deploy is in progress, or ask the box for the deploy instead:
   `host_vars/greencloud.yml` and deploy. The role removes the key's
   `authorized_keys` file and the sudo rule. It runs early in the play, so a
   deploy that fails further down still removes them. Then delete the secrets.
-- **On the box, right now:** `rm /var/lib/haas-deploy/.ssh/authorized_keys`.
+- **On the box, right now:** `rm /var/lib/gusto-deploy/.ssh/authorized_keys`.
 
 ## Which agents the image carries
 
@@ -241,7 +241,7 @@ docker's, so `GUSTO_CONTAINER` is all that differs.
 
 ## Why both MySQL and SQLite
 
-Two deployments, both real. This box has MySQL and Redis already, so haas uses
+Two deployments, both real. This box has MySQL and Redis already, so gusto uses
 them: records in its own database, and Redis for the queue and for fanning a
 task's output out to everybody watching it. A customer installing one artifact in
 their own cloud gets SQLite in one file, because a second and third service to
@@ -259,15 +259,43 @@ was free. Raise them only against a fresh reading of `free -m`.
 
 `greencloud.vault.yml` is this app's own vault, gitignored and
 ansible-vault-encrypted with a password of its own
-(`~/.config/haas/vault_pass.txt`). It holds `db_password` and `haas_password`,
+(`~/.config/gusto/vault_pass.txt`). It holds `db_password` and `gusto_password`,
 the shared credential that stands in for sign-in until there is an identity
 provider.
 
 ## Before the first run with serve_enabled
 
-1. Add an A record for `haas.getlatentic.com` → `203.0.113.10`, DNS-only, so
-   certbot's HTTP-01 challenge reaches the box.
+1. Add an A record for `gusto.tosinamuda.com` → `203.0.113.10` in the Cloudflare
+   dashboard of tosinamuda.com, DNS-only (grey cloud), so certbot's HTTP-01
+   challenge reaches the box. `server_name` in `group_vars/all.yml` is the one
+   place the name is set.
 2. Check `ss -tlnH` for `:8040` once more; the inventory can drift.
 3. Rootless podman under a system unit needs `/run/user/<uid>`, which the
    lingering session creates. Confirm it exists before trusting the service to
    survive a reboot.
+
+## Moving a box off the old names
+
+A box deployed before the rename still has the `haas` user, `/opt/haas`,
+`haas.service`, the `haas.conf` vhost, the `haas-deploy` account and its
+`/opt/haas-deploy`, and a `haas` MySQL database. The `migrate` role, the first in
+`site.yml`, moves each to its gusto name and skips itself on a box that has none.
+Delete the role and its line in `site.yml` once every box has run it.
+
+It stops the service and the deploy units, so it cannot run under the deploy the
+box runs for itself: that deploy stops at the role's first task with nothing
+changed. Run it once by hand from a laptop, with no deploy in progress and the
+repository variable `AUTODEPLOY` not `on`:
+
+```bash
+git pull
+ansible-playbook site.yml -e @greencloud.vault.yml \
+  --vault-password-file ~/.config/gusto/vault_pass.txt
+```
+
+Every step keys on the old name existing, and the old unit files are removed last,
+so a run that failed halfway is run again with the same command and resumes. The
+role refuses to guess when an old and a new name both exist, and when the old
+database holds tables. The vault's `haas_password` key is `gusto_password`.
+The deploy key GitHub holds and the `DEPLOY_SSH_KEY` secret are unchanged; the
+workflow connects as `gusto-deploy`.

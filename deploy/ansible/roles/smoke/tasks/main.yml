@@ -65,7 +65,7 @@
 
 - name: The repository is a repository
   ansible.builtin.shell:
-    cmd: git init -q . && git add -A && git -c user.email=haas@localhost -c user.name=haas commit -qm "an adder that subtracts"
+    cmd: git init -q . && git add -A && git -c user.email=gusto@localhost -c user.name=gusto commit -qm "an adder that subtracts"
     chdir: "{{ app_root }}/var/smoke/repo"
     creates: "{{ app_root }}/var/smoke/repo/.git"
   become_user: "{{ app_user }}"
@@ -166,7 +166,7 @@
 - name: And says why where the task page shows it
   ansible.builtin.command:
     cmd: >-
-      grep -F "does not carry haas-smoke-harness-nobody-installed"
+      grep -F "does not carry gusto-smoke-harness-nobody-installed"
       {{ app_root }}/var/smoke/refused/out/transcript.log
   become_user: "{{ app_user }}"
   changed_when: false
