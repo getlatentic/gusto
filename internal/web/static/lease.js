@@ -36,7 +36,7 @@
     document.body.appendChild(bar);
   }
 
-  // The strip takes the bottom of the window, so the page above it is shorter by its height and nothing sits under it.
+  // The page is shorter by the strip, so nothing sits under it.
   function reserve(on) { document.documentElement.style.setProperty("--lease-h", on ? strip : "0rem"); }
 
   function draw() {
