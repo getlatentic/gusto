@@ -259,7 +259,7 @@ was free. Raise them only against a fresh reading of `free -m`.
 
 `greencloud.vault.yml` is this app's own vault, gitignored and
 ansible-vault-encrypted with a password of its own
-(`~/.config/haas/vault_pass.txt`). It holds `db_password` and `gusto_password`,
+(`~/.config/haas/vault_pass.txt`). It holds `db_password` and `haas_password`,
 the shared credential that stands in for sign-in until there is an identity
 provider.
 

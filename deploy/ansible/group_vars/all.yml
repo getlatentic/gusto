@@ -37,7 +37,7 @@ runner_image: haas:dev
 # added to this directory appears in the pages without a new binary.
 harnesses_dir: "{{ app_root }}/var/harnesses"
 # Where nginx finds the page it answers with when the server is not answering.
-gusto_errors_dir: /var/www/haas-errors
+haas_errors_dir: /var/www/haas-errors
 # The harnesses the runner image carries, each as name=package: the adapter's
 # name and the npm package that provides its program. The image lists them in
 # its com.getlatentic.gusto.harnesses label, and the server offers a harness only
@@ -157,7 +157,7 @@ autodeploy_self: false
 # and two places to change a hostname is one place to forget.
 oidc_issuer: ""
 oidc_allowed: ""
-gusto_admins: ""
+haas_admins: ""
 # With a company's own provider, its groups grant the roles and oidc_allowed can
 # stay empty: a person in neither list is refused. oidc_groups_claim and
 # oidc_scopes are for a provider that names groups elsewhere or wants a scope
