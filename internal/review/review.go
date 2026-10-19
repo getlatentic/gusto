@@ -1,11 +1,11 @@
-// Package review checks a pull request's evidence from the repository alone.
+// Package review checks a pull request's record from the repository alone.
 //
-// gusto ship commits a run's job.json and out/ on a ref beside the pull request,
+// gusto pr open commits a run's job.json and out/ on a ref beside the pull request,
 // with the pull request's commit as its parent. Check fetches that ref with
 // git, holds the manifest to the hash the pull request names, re-hashes every
 // file against the manifest, rebuilds the workspace from the hashed patch, and
-// runs the gate. Nothing here talks to GitHub's API or to a gusto server, so the
-// check needs nothing from the platform that produced the evidence.
+// runs the check. Nothing here talks to GitHub's API or to a gusto server, so the
+// check needs nothing from the platform that produced the record.
 package review
 
 import (
@@ -20,18 +20,18 @@ import (
 )
 
 // Report is what a check found. Wrong names every file or commit that does not
-// agree, and the gate runs only when Wrong is empty: code the evidence does not
+// agree, and the check runs only when Wrong is empty: code the record does not
 // vouch for is not run.
 type Report struct {
 	Wrong []string
 	Files int
-	// Claimed is absent when the job had no gate, which a turn in a
+	// Claimed is absent when the task had no check, which a turn in a
 	// conversation does not.
 	Claimed *evidence.Verdict
 	Gate    evidence.Verdict
 }
 
-// Holds is true when every file matches and the gate answers as it did.
+// Holds is true when every file matches and the check answers as it did.
 func (r Report) Holds() bool {
 	if r.Claimed == nil {
 		return false
@@ -46,17 +46,17 @@ func (r Report) Lines() []string {
 	}
 	if !r.Holds() {
 		if r.Claimed == nil {
-			return []string{"this job had no gate, so there is no verdict to check"}
+			return []string{"this task had no check, so there is no verdict to check"}
 		}
-		return []string{fmt.Sprintf("the gate now exits %d, and the manifest says %d", r.Gate.Code, r.Claimed.Code)}
+		return []string{fmt.Sprintf("the check now exits %d, and the manifest says %d", r.Gate.Code, r.Claimed.Code)}
 	}
-	return []string{fmt.Sprintf("%d files match, and the gate still exits %d", r.Files, r.Gate.Code)}
+	return []string{fmt.Sprintf("%d files match, and the check still exits %d", r.Files, r.Gate.Code)}
 }
 
 var sha256Hex = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
-// Check fetches the evidence for the manifest whose sha256 is digest from
-// remote, into a job directory at into, and checks it. into must be empty or
+// Check fetches the record for the manifest whose sha256 is digest from
+// remote, into a task directory at into, and checks it. into must be empty or
 // not yet exist. An error means the check could not be made; a finding is in
 // the report.
 func Check(ctx context.Context, remote, digest, into string) (Report, error) {
@@ -111,7 +111,7 @@ func emptyOrNew(dir job.Dir) error {
 		return err
 	}
 	if len(listing) > 0 {
-		return fmt.Errorf("%s is not empty, and the evidence is unpacked there", dir.Path())
+		return fmt.Errorf("%s is not empty, and the record is unpacked there", dir.Path())
 	}
 	return nil
 }

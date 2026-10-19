@@ -8,7 +8,7 @@ import (
 // Settings is what gusto needs to use what was installed: it is written last, so a half-finished install is not used.
 type Settings struct {
 	Version string `json:"version"`
-	// Binary is the openshell command, Gateway the name it knows the gateway by, and Image the root file system jobs start from.
+	// Binary is the openshell command, Gateway the name it knows the gateway by, and Image the root file system tasks start from.
 	Binary  string `json:"binary"`
 	Gateway string `json:"gateway"`
 	Image   string `json:"image"`

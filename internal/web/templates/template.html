@@ -59,10 +59,10 @@
       </section>
       {{if and (gt (len $.Harnesses) 1) (not (and .Restricted (not $.InBuilding)))}}
       <section class="panel">
-        <h2>Engine</h2>
+        <h2>Agent</h2>
         <form class="stack" method="post" action="/templates/{{.Name}}">
           <select name="harness">{{range $.Harnesses}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
-          <button type="submit" class="quiet">Start with this engine</button>
+          <button type="submit" class="quiet">Start with this agent</button>
         </form>
       </section>
       {{end}}

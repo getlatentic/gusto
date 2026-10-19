@@ -15,7 +15,7 @@ func TestTheVersionIsWrittenToStandardOutput(t *testing.T) {
 	}
 	stdout := os.Stdout
 	os.Stdout = write
-	code := versionCommand(nil)
+	code := versionCommand()
 	os.Stdout = stdout
 	write.Close()
 	said, _ := io.ReadAll(read)

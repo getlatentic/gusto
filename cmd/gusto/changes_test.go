@@ -38,14 +38,14 @@ func TestVerifyingARecordAgainstAHeadKeptEarlier(t *testing.T) {
 	log.Close()
 	t.Setenv(signing.KeyringEnv, ring)
 
-	if code := changesCommand([]string{"verify", path}); code != 0 {
+	if code := changesRun([]string{"verify", path}); code != 0 {
 		t.Fatalf("an intact record exited %d", code)
 	}
 	for name, args := range map[string][]string{
 		"flag first": {"verify", "-head", head, path},
 		"flag last":  {"verify", path, "-head", head},
 	} {
-		if code := changesCommand(args); code != 0 {
+		if code := changesRun(args); code != 0 {
 			t.Errorf("%s: the head is in the record and the check exited %d", name, code)
 		}
 	}
@@ -58,10 +58,10 @@ func TestVerifyingARecordAgainstAHeadKeptEarlier(t *testing.T) {
 	if err := os.WriteFile(path, []byte(strings.Join(lines[:2], "\n")+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if code := changesCommand([]string{"verify", "-head", head, path}); code != 1 {
+	if code := changesRun([]string{"verify", "-head", head, path}); code != 1 {
 		t.Errorf("a record with its tail cut off exited %d, want 1", code)
 	}
-	if code := changesCommand([]string{"verify", path}); code != 0 {
+	if code := changesRun([]string{"verify", path}); code != 0 {
 		t.Errorf("without a head a shorter chain still holds, and exited %d", code)
 	}
 
@@ -69,10 +69,12 @@ func TestVerifyingARecordAgainstAHeadKeptEarlier(t *testing.T) {
 	if err := os.WriteFile(path, []byte(strings.Join(lines[:2], "\n")+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if code := changesCommand([]string{"verify", path}); code != 1 {
+	if code := changesRun([]string{"verify", path}); code != 1 {
 		t.Errorf("an edited record exited %d, want 1", code)
 	}
-	if code := changesCommand([]string{"verify"}); code != 2 {
+	if code := changesRun([]string{"verify"}); code != 2 {
 		t.Errorf("no file exited %d, want 2", code)
 	}
 }
+
+func changesRun(args []string) int { return run(append([]string{"changes"}, args...)) }

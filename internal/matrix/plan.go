@@ -11,32 +11,32 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Plan is what a person asks the matrix to measure: a fixed set of jobs, and
-// the harness and model pairs to run each of them on.
+// Plan is what a person asks the benchmark to measure: a fixed set of tasks, and
+// the agent and model pairs to run each of them on.
 type Plan struct {
 	// Environment names the place the runs happen, such as "laptop" or "box".
-	// The same harness and model cost twenty times as much on a laptop that
+	// The same agent and model cost twenty times as much on a laptop that
 	// carries its whole skill set into every request as in a container that
 	// starts empty, so a row that does not say where it ran cannot be read.
 	Environment string `json:"environment,omitempty"`
-	// Jobs are job directories as `gusto new` leaves them, relative to the
+	// Tasks are task directories as `gusto new` leaves them, relative to the
 	// plan's own file.
 	Jobs []string `json:"jobs"`
-	// Simplest is the job a pair has to finish to be offered at all. It is the
-	// first job when the plan leaves it out.
+	// Simplest is the task a pair has to finish to be offered at all. It is the
+	// first task when the plan leaves it out.
 	Simplest string `json:"simplest,omitempty"`
 	Pairs    []Pair `json:"pairs"`
 }
 
-// Pair is one harness and the model it is asked to think with. A pair with no
-// model runs whatever model the job names, or the harness's own default.
+// Pair is one agent and the model it is asked to think with. A pair with no
+// model runs whatever model the task names, or the agent's own default.
 type Pair struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 }
 
 // Name is how a person writes the pair on the command line and reads it in a
-// table: the harness, then the model after an at sign.
+// table: the agent, then the model after an at sign.
 func (p Pair) Name() string {
 	if p.Model == "" {
 		return p.Harness
@@ -53,7 +53,7 @@ func (p Pair) Dir() string {
 
 var unsafeInDir = regexp.MustCompile(`[^A-Za-z0-9._@-]`)
 
-// ReadPlan reads a plan and makes its job directories absolute, so the matrix
+// ReadPlan reads a plan and makes its task directories absolute, so the benchmark
 // finds them wherever it is run from.
 func ReadPlan(path string) (Plan, error) {
 	text, err := os.ReadFile(path)
@@ -80,7 +80,7 @@ func ReadPlan(path string) (Plan, error) {
 // measure, before anything is cloned or anybody's money is spent.
 func (p Plan) check() error {
 	if len(p.Jobs) == 0 || len(p.Pairs) == 0 {
-		return errors.New("a plan needs at least one job and one harness and model pair")
+		return errors.New("a plan needs at least one task and one agent and model pair")
 	}
 	if err := distinct(p.Jobs, JobName); err != nil {
 		return err
@@ -90,16 +90,16 @@ func (p Plan) check() error {
 	}
 	for _, pair := range p.Pairs {
 		if pair.Harness == "" || pair.Harness != filepath.Base(pair.Harness) {
-			return fmt.Errorf("%q is not a harness name", pair.Harness)
+			return fmt.Errorf("%q is not an agent name", pair.Harness)
 		}
 	}
 	if p.Simplest != "" && !contains(p.Jobs, p.Simplest) {
-		return fmt.Errorf("the simplest job, %s, is not one of the plan's jobs", p.Simplest)
+		return fmt.Errorf("the simplest task, %s, is not one of the plan's tasks", p.Simplest)
 	}
 	return nil
 }
 
-// SimplestJob is the name of the job a pair has to finish to be offered.
+// SimplestJob is the name of the task a pair has to finish to be offered.
 func (p Plan) SimplestJob() string {
 	if p.Simplest != "" {
 		return p.Simplest
@@ -107,7 +107,7 @@ func (p Plan) SimplestJob() string {
 	return JobName(p.Jobs[0])
 }
 
-// JobName is what a job is called in the matrix: its directory's own name.
+// JobName is what a task is called in the benchmark: its directory's own name.
 func JobName(path string) string {
 	return filepath.Base(filepath.Clean(path))
 }

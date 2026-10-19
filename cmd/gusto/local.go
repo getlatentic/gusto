@@ -42,23 +42,6 @@ func localHome() (string, error) {
 	return filepath.Join(userHome, ".local", "share", "gusto"), nil
 }
 
-// localCommand is gusto for one person on their own computer. The install script runs `gusto local install`, which makes gusto a
-// service that starts at login and opens it; `gusto local run` is what that service runs; `gusto local stop` and
-// `gusto local uninstall` take it away.
-func localCommand(args []string) int {
-	if len(args) == 0 || localCommands[args[0]] == nil {
-		fmt.Fprintln(os.Stderr, localUsage)
-		return 2
-	}
-	home, err := localHome()
-	if err != nil {
-		return fail(err)
-	}
-	return localCommands[args[0]](home, args[1:])
-}
-
-const localUsage = "usage: gusto local install|run|stop|uninstall|link, or gusto local use NAME [model...], or gusto local wall install"
-
 // signInLink waits up to wait for gusto to answer, and is a new link that signs in to it, once and within five minutes.
 func signInLink(setup localSetup, wait time.Duration) (string, error) {
 	if !answers(setup.root()+"/healthz", wait) {
@@ -72,7 +55,7 @@ func signInLink(setup localSetup, wait time.Duration) (string, error) {
 }
 
 // printLink prints a new sign-in link and opens nothing, for a program that shows gusto itself, such as the desktop app.
-func printLink(home string, _ []string) int {
+func printLink(home string) int {
 	setup, err := ensureLocal(home)
 	if err != nil {
 		return fail(err)
@@ -85,17 +68,7 @@ func printLink(home string, _ []string) int {
 	return 0
 }
 
-var localCommands = map[string]func(home string, args []string) int{
-	"run":       func(home string, _ []string) int { return runLocal(home) },
-	"install":   func(home string, _ []string) int { return installLocal(home) },
-	"stop":      func(string, []string) int { return failIf(stopService()) },
-	"uninstall": func(home string, _ []string) int { return uninstallLocal(home) },
-	"use":       useKey,
-	"link":      printLink,
-	"wall":      localWall,
-}
-
-// installLocal makes gusto a service of this person's and opens it. It runs in the person's own shell, so it keeps the PATH
+// installLocal is `gusto local install`: it makes gusto a service of this person's, which starts at login, and opens it. It runs in the person's own shell, so it keeps the PATH
 // that shell has, and says which model keys the shell has, without reading them.
 func installLocal(home string) int {
 	setup, err := ensureLocal(home)
@@ -130,8 +103,8 @@ func uninstallLocal(home string) int {
 	return 0
 }
 
-// runLocal is the server for one person: in their own folder, on the loopback, signed in by its own links, and with jobs in this
-// process until the machine has a sandbox to give them (getlatentic/planning#653).
+// runLocal is `gusto local run`, which is what the service runs: the server for one person, in their own folder, on the loopback,
+// signed in by its own links, and with tasks in this process until the machine has a sandbox to give them (getlatentic/planning#653).
 func runLocal(home string) int {
 	setup, err := ensureLocal(home)
 	if err != nil {
@@ -171,11 +144,7 @@ func runLocal(home string) int {
 }
 
 // openCommand opens gusto on this computer in the browser, signed in.
-func openCommand(args []string) int {
-	if len(args) != 0 {
-		fmt.Fprintln(os.Stderr, "usage: gusto open")
-		return 2
-	}
+func openCommand() int {
 	home, err := localHome()
 	if err != nil {
 		return fail(err)

@@ -12,7 +12,7 @@ outlives a host, and the script a host starts with.
 ## The path
 
 1. A merge to `main` that changes what a host is made from runs **demo bundle**. It puts `bundle.tgz` (the Linux `haas`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
-2. **demo up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts the front door. The workflow says when `https://<name>/healthz` answers.
+2. **demo up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts gusto cloud. The workflow says when `https://<name>/healthz` answers.
 3. The host removes itself when its lease ends. **demo down** tells it to power off now. **demo sweep** runs every 30 minutes and terminates anything tagged `haas-poc` that has been up more than six hours.
 
 The CI role can launch the launch template, tell tagged hosts to power off, terminate tagged hosts, and put
@@ -23,42 +23,42 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 
 ## More than one host
 
-**demo up** with `cells` from 1 to 4 makes a front door (the `orchestrator` template, `t3.medium`, no computers) and that
+**demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no workspaces) and that
 many hosts that run the organisations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
 made with `cells` at 0, as before.
 
 - The hosts of one demo share an encrypted file system, mounted at `/var/lib/haas-cloud` on each, in a directory of it
-  named for the run. The front door starts an organisation's server on a cell through the cell's agent
-  (`haas cell`, port 8060), and the server reads and writes its data by the path the front door knows it by. The
-  front door removes the directories of earlier runs when it starts, since the computers they describe went with their hosts.
-- A cell registers in `cells/` of that directory every ten seconds. A new organisation is placed on the cell with the
-  most free memory, and stays there. When its cell has been silent for five minutes it is placed on another, and its
-  people start it again from the front door.
-- The front door writes `cells/orchestrator.beat` every ten seconds. A cell that has not seen it for five minutes powers
-  itself off (and so terminates), after the front door has had 15 minutes to start. A cell has no lease of its own.
-- Requests to a cell are signed with `/haas/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
+  named for the run. gusto cloud starts an organisation's server on a host through the host's agent
+  (`haas host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
+  gusto cloud removes the directories of earlier runs when it starts, since the workspaces they describe went with their hosts.
+- A host registers in `cells/` of that directory every ten seconds. A new organisation is placed on the host with the
+  most free memory, and stays there. When its host has been silent for five minutes it is placed on another host, and its
+  people start it again from gusto cloud.
+- gusto cloud writes `cells/orchestrator.beat` every ten seconds. A host that has not seen it for five minutes powers
+  itself off (and so terminates), after gusto cloud has had 15 minutes to start. A host has no lease of its own.
+- Requests to a host are signed with `/haas/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
   reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
-## The front door that stays up
+## gusto cloud that stays up
 
 `aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs the public demo all the time: nginx and
-the certificate, the front door at `https://<name>`, and the scaler that starts a host for a cell when an organisation
-waits for one and stops a cell that has had nothing on it for ten minutes. With nobody using it there is no cell and
-nothing is paid for but this host, its address and the file system.
+the certificate, gusto cloud at `https://<name>`, and the scaler that starts a host for an organisation that
+waits for one and stops a host that has had nothing on it for ten minutes. With nobody using it there is no such host and
+nothing is paid for but this machine, its address and the file system.
 
 - It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **demo bundle** run
-  then brings it to that release (an SSM command that runs the start-up script again), which restarts the front door
-  and leaves the cells and the organisations on them as they are.
+  then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
+  and leaves the hosts and the organisations on them as they are.
 - Its role is its own, and is the only one that may start and stop hosts. It starts hosts only from the
   `cell-live` template, which tags them `project=haas-live`, and stops only hosts with that tag that it started
-  (`scaler=on`). A cell, which runs other people's code, can start nothing. The demo workflows tag and stop
+  (`scaler=on`). A host that runs other people's code can start nothing. The demo workflows tag and stop
   `project=haas-poc`, so they never touch it, and it never touches theirs.
 - It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
   replaced.
 - Sign-up for a visitor is at `https://<name>/demo`. `DEMO_VISITOR_MINUTES` and `DEMO_BOOK_URL` in `demo.env`, stored
   with `../openshell/put-demo-config.sh`, turn it on and say where a call is booked.
 - The `demo up` workflow makes a separate, short-lived demo with its own name in the same way as before. Both use the
-  same name, so only one of them is up at a time: take the live front door down (`aws ec2 stop-instances`) before
+  same name, so only one of them is up at a time: take the live gusto cloud down (`aws ec2 stop-instances`) before
   running `demo up`.
 
 ## Once
@@ -80,5 +80,5 @@ other, not both. Then the rest:
 ./bootstrap.sh                                  # this directory
 ../openshell/put-cloudflare.sh                  # the two Cloudflare tokens
 ../openshell/put-demo-config.sh                 # what a host reads that is not secret, from demo.env
-../openshell/put-cell-secret.sh                 # the secret cells are told what to do with; only for demos with cells
+../openshell/put-cell-secret.sh                 # the secret hosts are told what to do with; only for demos with several hosts
 ```

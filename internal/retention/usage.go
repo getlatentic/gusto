@@ -6,22 +6,22 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// Usage is what the jobs take on disk, and how far back they go.
+// Usage is what the tasks take on disk, and how far back they go.
 type Usage struct {
 	Bytes      int64
 	Jobs       int
 	Workspaces int64
-	// Oldest is the finished job kept longest, or nil when none has finished.
+	// Oldest is the finished task kept longest, or nil when none has finished.
 	Oldest *Oldest
 }
 
-// Oldest is the finished job that has been kept longest.
+// Oldest is the finished task that has been kept longest.
 type Oldest struct {
 	ID    string
 	Ended int64
 }
 
-// Measure adds up the disk the jobs under root take. It walks every job's
+// Measure adds up the disk the tasks under root take. It walks every task's
 // directory, so a caller that draws it on a page keeps the answer for a while.
 func Measure(root string, all []jobs.Record) Usage {
 	var used Usage

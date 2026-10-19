@@ -14,14 +14,14 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// Options overrides what the job would otherwise decide. Every field may be
-// empty, and then the plan is read off the job alone.
+// Options overrides what the task would otherwise decide. Every field may be
+// empty, and then the plan is read off the task alone.
 type Options struct {
-	// Remote is where the branch is pushed. The job's repository by default.
+	// Remote is where the branch is pushed. The task's repository by default.
 	Remote string
 	// GitHub is owner/name. Read off the remote by default.
 	GitHub string
-	// Base is the branch the pull request targets. The job's ref when the
+	// Base is the branch the pull request targets. The task's ref when the
 	// remote has a branch by that name, and the remote's default otherwise.
 	Base string
 	// Keyring names the signer the pull request gives. An empty one names
@@ -29,8 +29,8 @@ type Options struct {
 	Keyring signing.Keyring
 }
 
-// Plan is everything shipping will do, decided before anything is done. The
-// same job gives the same plan, so a dry run shows exactly what a real run does.
+// Plan is everything opening the pull request will do, decided before anything is done. The
+// same task gives the same plan, so a dry run shows exactly what a real run does.
 type Plan struct {
 	Job             string
 	Remote          string
@@ -50,7 +50,7 @@ type Plan struct {
 	When            int64
 }
 
-// Prepare refuses a job that must not ship, and plans one that may.
+// Prepare refuses a task that must not become a pull request, and plans one that may.
 func Prepare(dir job.Dir, options Options) (Plan, error) {
 	manifest, err := Shippable(dir)
 	if err != nil {

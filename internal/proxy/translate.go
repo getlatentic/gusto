@@ -35,7 +35,7 @@ func asChat(header http.Header) {
 }
 
 // countedReader is a reader that knows how much has been read from it, for the record of a translated call, which is what
-// the provider sent rather than what the harness was given.
+// the provider sent rather than what the agent was given.
 type countedReader struct {
 	from io.Reader
 	n    int64

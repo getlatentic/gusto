@@ -46,7 +46,7 @@ func (s *Server) startInstanceJSON(w http.ResponseWriter, r *http.Request) {
 		Title   string `json:"title"`
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&asked) != nil {
-		answerJSON(w, http.StatusBadRequest, map[string]string{"error": "send JSON: harness, and optionally model, repo, setup and title"})
+		answerJSON(w, http.StatusBadRequest, map[string]string{"error": "send JSON: harness (the agent), and optionally model, repo, setup and title"})
 		return
 	}
 	started, _, why := s.beginInstance(r, instance.Instance{

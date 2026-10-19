@@ -8,9 +8,9 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// SetupFolder is where the job's setup sits in the listing a digest is taken
-// over: its skills and its MCP server definitions, beside the harness's own
-// files. A harness directory may not hold a folder of that name, so one path
+// SetupFolder is where the task's setup sits in the listing a digest is taken
+// over: its skills and its MCP server definitions, beside the agent's own
+// files. An agent directory may not hold a folder of that name, so one path
 // in the listing never means two files.
 const SetupFolder = "setup"
 

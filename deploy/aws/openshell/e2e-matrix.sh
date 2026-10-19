@@ -30,6 +30,6 @@ ssh "${ssh_options[@]}" "ubuntu@$address" "export AWS_REGION=$AWS_REGION AGAIN='
       tr -d "\n " < "$C/state.json" 2>/dev/null | cut -c1-200; echo
       echo "transcript: $(head -c 400 "$C/out/transcript.log" | tr "\n" " ")"
       echo "stderr: $(head -c 400 "$C/out/stderr.log" | tr "\n" " ")"
-      echo "gate: $(tr -d "\n " < "$C/out/gates.json" 2>/dev/null)  model calls: $(grep -c . "$C/out/proxy.jsonl" 2>/dev/null)  denied: $(grep -c DENIED "$C/out/sandbox-events.log" 2>/dev/null)"
+      echo "check: $(tr -d "\n " < "$C/out/gates.json" 2>/dev/null)  model calls: $(grep -c . "$C/out/proxy.jsonl" 2>/dev/null)  denied: $(grep -c DENIED "$C/out/sandbox-events.log" 2>/dev/null)"
     done'
 } 2>&1 | tee out/e2e-matrix.txt

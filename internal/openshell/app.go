@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-// A web app an agent built runs in the agent's computer, in the directory its turns work in. It
+// A web app an agent built runs in the agent's workspace, in the directory its turns work in. It
 // is started as a process that outlives the command that started it, and is given the port
 // it must listen on. The gateway then gives it an address of its own, at a host name that
 // only the gateway answers to and that has no sign-in, so people do not use that address:
 // the organisation's server asks it on their behalf, as somebody signed in.
 
-// InstanceDir is where a conversation's agent works in its computer, and so where an app
+// InstanceDir is where a conversation's agent works in its workspace, and so where an app
 // it built is.
 func InstanceDir(instance string) string {
 	return jobsDir + "/" + dirName("instance-"+instance) + "/workspace"
@@ -22,7 +22,7 @@ func InstanceDir(instance string) string {
 
 func appFile(id, extension string) string { return Home + "/apps/" + id + "." + extension }
 
-// StartApp starts a command in an agent's directory in a computer, with PORT and HOST=0.0.0.0
+// StartApp starts a command in an agent's directory in a workspace, with PORT and HOST=0.0.0.0
 // in its environment, and returns at once. What it writes is kept for AppLog.
 func StartApp(ctx context.Context, cfg Config, sandbox, instance, id, command string, port int) error {
 	script := `port=$1; log=$2; pidfile=$3; command=$4
@@ -63,7 +63,7 @@ var exposedAt = regexp.MustCompile(`URL:\s*(\S+)`)
 // the machine and port to ask.
 type Address struct{ Host, Target string }
 
-// ExposeApp gives a port in a computer an address on the gateway, and says what the address is.
+// ExposeApp gives a port in a workspace an address on the gateway, and says what the address is.
 func ExposeApp(ctx context.Context, cfg Config, sandbox string, port int, name string) (Address, error) {
 	text, err := output((&Sandbox{cfg: cfg}).run(ctx, "service", "expose", sandbox, fmt.Sprint(port), name))
 	if err != nil {

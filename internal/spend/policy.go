@@ -14,12 +14,12 @@ import (
 type Policy struct {
 	Prices map[string]Price   `json:"prices"`
 	Teams  map[string]TeamCap `json:"teams"`
-	// Organisation is what every job of this server may spend together in a calendar month, UTC, whichever team they
+	// Organisation is what every task of this server may spend together in a calendar month, UTC, whichever team they
 	// count against. A demo has one, since an organisation that lasts half an hour has nobody to set a team's cap.
 	Organisation *TeamCap `json:"organisation,omitempty"`
 }
 
-// TeamCap is what one team's jobs may spend together in a calendar month, UTC.
+// TeamCap is what one team's tasks may spend together in a calendar month, UTC.
 type TeamCap struct {
 	USDPerMonth float64 `json:"usdPerMonth"`
 }
@@ -62,7 +62,7 @@ func (p Policy) Cost(credential, model string, usage *Usage, sent time.Time) *fl
 	return &cost
 }
 
-// price is found by the name a job asks for, the credential and the model,
+// price is found by the name a task asks for, the credential and the model,
 // before the model alone: one model served through two credentials can be
 // billed at two rates, and one served at one rate needs writing only once.
 func (p Policy) price(credential, model string) (Price, bool) {

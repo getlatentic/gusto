@@ -21,7 +21,7 @@ func TestThePrintedCommandVerifiesTheEvidence(t *testing.T) {
 	fake := &forge{}
 	shipped(t, dir, fake)
 	said, code := reviewed(t, printedCommand(t, fake))
-	if code != 0 || !strings.Contains(said, "files match, and the gate still exits 0") {
+	if code != 0 || !strings.Contains(said, "files match, and the check still exits 0") {
 		t.Fatalf("the printed command should verify a good job, exit %d:\n%s", code, said)
 	}
 }
@@ -94,13 +94,13 @@ func TestTheEvidenceIsNotPartOfTheChange(t *testing.T) {
 	}
 }
 
-// printedCommand is the one line in the fenced block after "To check it".
+// printedCommand is the one line in the fenced block after "To verify it".
 func printedCommand(t *testing.T, fake *forge) string {
 	t.Helper()
 	body := bodyOf(t, fake)
-	found := regexp.MustCompile("To check it[^\n]*\n\n~~~\n([^\n]+)\n~~~").FindStringSubmatch(body)
-	if found == nil || !strings.HasPrefix(found[1], "gusto check ") {
-		t.Fatalf("the body should print one gusto check command:\n%s", body)
+	found := regexp.MustCompile("To verify it[^\n]*\n\n~~~\n([^\n]+)\n~~~").FindStringSubmatch(body)
+	if found == nil || !strings.HasPrefix(found[1], "gusto pr verify ") {
+		t.Fatalf("the body should print one gusto pr verify command:\n%s", body)
 	}
 	return found[1]
 }

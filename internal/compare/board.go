@@ -14,8 +14,8 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Board keeps the comparisons started from the pages. Their runs are jobs in
-// the server's own queue, named by id, so each is an ordinary job everywhere
+// Board keeps the comparisons started from the pages. Their runs are tasks in
+// the server's own queue, named by id, so each is an ordinary task everywhere
 // else: in Activity, in Spending, and in its own signed record.
 type Board struct {
 	root  string

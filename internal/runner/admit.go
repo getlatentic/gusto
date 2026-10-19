@@ -36,26 +36,26 @@ func admit(spec job.Spec, adapter harness.Adapter, env harness.Env) error {
 	return nil
 }
 
-// Carries checks the program a harness runs is on this runner's PATH, which is
-// the PATH the harness would be started with. Inside a container that is the
+// Carries checks the program an agent runs is on this runner's PATH, which is
+// the PATH the agent would be started with. Inside a container that is the
 // image's, so this is the image answering for itself at the moment it
 // matters, whatever the catalog was told when the server started.
 func Carries(name string, adapter harness.Adapter) error {
 	if _, err := exec.LookPath(adapter.Installed()); err != nil {
-		return fmt.Errorf("this runner does not carry %s, the program the %s harness runs: "+
-			"build the runner image with %s in its HARNESSES, or choose a harness the catalog offers",
+		return fmt.Errorf("this runner does not carry %s, the program the %s agent runs: "+
+			"build the runner image with %s in its HARNESSES, or choose an agent the catalog offers",
 			adapter.Installed(), name, name)
 	}
 	return nil
 }
 
-// Refuse keeps the reason a job never started where a person reading the job
-// looks: the transcript, which the job page, the live stream and a
+// Refuse keeps the reason a task never started where a person reading the task
+// looks: the transcript, which the task page, the live stream and a
 // conversation all show. A run that does start truncates it, so a refusal
 // never outlives the next attempt. The reason is still returned, so the
 // process exits the way any runner error does.
 func Refuse(dir job.Dir, reason error) error {
-	said := "gusto refused this job before the harness started: " + reason.Error() + "\n"
+	said := "gusto refused this task before the agent started: " + reason.Error() + "\n"
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return errors.Join(reason, err)
 	}

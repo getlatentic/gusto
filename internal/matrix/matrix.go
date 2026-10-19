@@ -1,14 +1,14 @@
-// Package matrix measures which harness and model pairs can finish a job.
+// Package matrix measures which agent and model pairs can finish a job.
 //
-// A plan names a fixed set of jobs and the pairs to run each on. Every job
+// A plan names a fixed set of tasks and the pairs to run each on. Every task
 // becomes a comparison in the shape internal/compare keeps, pinned once to one
-// commit, with one ordinary job directory a pair, so every row of the table is
-// a run whose evidence can be verified, shipped or replayed like any other.
-// The matrix is the directory above the comparisons, and matrix.json in it
+// commit, with one ordinary task directory a pair, so every row of the table is
+// a run whose record can be verified, sent as a pull request or rerun like any other.
+// The benchmark is the directory above the comparisons, and matrix.json in it
 // says where the runs happened and how long each one took.
 //
-// Each run costs money, so a cell that already finished is never run again
-// unless it is asked for, and a matrix stopped midway picks up where it was.
+// Each run costs money, so a run that already finished is never run again
+// unless it is asked for, and a benchmark stopped midway picks up where it was.
 package matrix
 
 import (
@@ -28,7 +28,7 @@ import (
 // Again says whether a pair is run again although it already finished.
 type Again func(Pair) bool
 
-// AgainFor reads -again: "all", or pairs by name, harness@model, separated by
+// AgainFor reads -again: "all", or pairs by name, agent@model, separated by
 // commas. Nothing named runs nothing again.
 func AgainFor(named string) Again {
 	wanted := map[string]bool{}
@@ -38,10 +38,10 @@ func AgainFor(named string) Again {
 	return func(pair Pair) bool { return wanted["all"] || wanted[pair.Name()] }
 }
 
-// Measure runs every cell of the plan that has not finished into the matrix at
-// where, one at a time, and returns the matrix as it stands.
+// Measure makes every run of the plan that has not finished into the benchmark at
+// where, one at a time, and returns the benchmark as it stands.
 //
-// The cells run one after another rather than together. The wall clock is one
+// The runs go one after another rather than together. The wall clock is one
 // of the answers, and two runs sharing a machine or a local model would each
 // be measured slowing the other down.
 func Measure(plan Plan, where string, way Way, again Again, progress io.Writer) (Record, error) {
@@ -155,7 +155,7 @@ func (c column) clean(dir job.Dir, pair Pair, commit string) error {
 	return replay.Rewrite(dir, dir, map[string]any{"ref": commit})
 }
 
-// Finished says whether the run at dir left the gate's verdict.
+// Finished says whether the run at dir left the check's verdict.
 func Finished(dir job.Dir) bool {
 	manifest, err := evidence.Read(dir)
 	return err == nil && manifest.Gate != nil

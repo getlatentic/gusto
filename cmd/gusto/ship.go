@@ -15,33 +15,43 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// shipJob opens a pull request from a job whose gate passed. It exits 1 when
-// the job must not ship, the way verify exits 1 when the evidence changed, and
-// 2 when something went wrong on the way.
-func shipJob(args []string) int {
-	flags := flag.NewFlagSet("ship", flag.ContinueOnError)
-	dry := flags.Bool("dry-run", false, "print what would happen, and do none of it")
-	remote := flags.String("remote", "", "where to push, the job's repository by default")
-	github := flags.String("github", "", "owner/name on GitHub, read off the remote by default")
-	base := flags.String("base", "", "the branch the pull request targets")
+type openFlags struct {
+	dry                  bool
+	remote, github, base string
+}
+
+func declareOpen(set *flag.FlagSet) *openFlags {
+	f := &openFlags{}
+	set.BoolVar(&f.dry, "dry-run", false, "print what would happen, and do none of it")
+	set.StringVar(&f.remote, "remote", "", "where to push, as a `url`; the task's repository by default")
+	set.StringVar(&f.github, "github", "", "`owner/name` on GitHub, read off the remote by default")
+	set.StringVar(&f.base, "base", "", "the `branch` the pull request targets")
+	return f
+}
+
+// openPullRequest opens a pull request from a task whose check passed. It exits 1 when
+// the task must not be sent, the way verify exits 1 when the record changed, and
+// when something went wrong on the way.
+func openPullRequest(args []string) int {
+	set := newSet("pr open")
+	f := declareOpen(set)
 	where, rest := split(args)
-	if err := flags.Parse(rest); err != nil {
-		return 2
+	if code, ok := parseFlags("pr open", set, rest); !ok {
+		return code
 	}
-	if where == "" || flags.NArg() > 0 {
-		fmt.Fprintln(os.Stderr, "gusto ship needs a job directory, then its flags")
-		return 2
+	if where == "" || set.NArg() > 0 {
+		return usageError("pr open", "needs one task directory, then its flags")
 	}
 	keyring, err := signing.ConfiguredKeyring()
 	if err != nil {
 		return fail(err)
 	}
-	options := ship.Options{Remote: *remote, GitHub: *github, Base: *base, Keyring: keyring}
+	options := ship.Options{Remote: f.remote, GitHub: f.github, Base: f.base, Keyring: keyring}
 	plan, err := ship.Prepare(job.Dir(where), options)
 	if err != nil {
 		return refusedOr(err)
 	}
-	shipper, release, err := shipperFor(context.Background(), *dry, plan)
+	shipper, release, err := shipperFor(context.Background(), f.dry, plan)
 	if err != nil {
 		return fail(err)
 	}

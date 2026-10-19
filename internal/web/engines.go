@@ -33,7 +33,7 @@ type measuredCell struct {
 
 func (s *Server) enginesPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "engines.html", map[string]any{
-		"Title":    productName + " — how each engine did",
+		"Title":    productName + " — how each agent did",
 		"Nav":      "new",
 		"Measured": measuredOf(s.engines()),
 	})

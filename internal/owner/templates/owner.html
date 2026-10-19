@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 </head>
 <body>
-<header><span class="brand"><img src="{{asset "/static/mark.png"}}" alt="" width="22"> gusto owner</span></header>
+<header><span class="brand"><img src="{{asset "/static/mark.png"}}" alt="" width="22"> gusto operator</span></header>
 {{with .Notice}}<p class="refused" role="status">{{.}}</p>{{end}}
 
 <h1>Demos</h1>
@@ -22,7 +22,7 @@
 <h2>Limits</h2>
 <form class="panel stack" method="post" action="/demos/limits">
   <p class="muted">How many demos may start. A limit of 0 is no limit. A day is the last twenty-four hours, and a person or a company is counted
-  from the leads, so it holds after their demos are deleted.{{if .LimitsSet}} These are the limits you set.{{else}} These are the limits the front door started with.{{end}}</p>
+  from the leads, so it holds after their demos are deleted.{{if .LimitsSet}} These are the limits you set.{{else}} These are the limits gusto cloud started with.{{end}}</p>
   <label>Most in a day, in all <input type="number" name="perDay" min="0" max="1000" value="{{.Limits.PerDay}}" required></label>
   <label>Most one address may start in a day <input type="number" name="perPerson" min="0" max="1000" value="{{.Limits.PerPerson}}" required></label>
   <label>Most one company may start in a day <input type="number" name="perCompany" min="0" max="1000" value="{{.Limits.PerCompany}}" required></label>

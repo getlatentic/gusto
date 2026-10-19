@@ -104,7 +104,7 @@ func checkSkill(meta frontMatter, folder string) string {
 	case meta.Name != folder:
 		return fmt.Sprintf("its name %q is not the name of its folder %q", meta.Name, folder)
 	case strings.TrimSpace(meta.Description) == "":
-		return "it has no description, which is how a harness decides to use it"
+		return "it has no description, which is how an agent decides to use it"
 	case utf8.RuneCountInString(meta.Description) > 1024:
 		return "its description is longer than 1024 characters"
 	case utf8.RuneCountInString(meta.Compatibility) > 500:

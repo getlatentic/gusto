@@ -1,10 +1,10 @@
 // Package catalog says what a person can actually pick.
 //
-// A list of names is not a catalog. Somebody choosing a harness needs to know
+// A list of names is not a catalog. Somebody choosing an agent needs to know
 // what it is, what it needs before it can answer, and — the part a bare list
 // hides — whether this machine can run it at all. Offering one it cannot is how
 // a first run becomes a container that starts, fails to find its program, and
-// reports it as the harness failing.
+// reports it as the agent failing.
 package catalog
 
 import (
@@ -13,30 +13,30 @@ import (
 	"github.com/getlatentic/gusto/internal/harness"
 )
 
-// Entry is one harness, as a person choosing has to see it.
+// Entry is one agent, as a person choosing has to see it.
 type Entry struct {
 	Name    string
 	Title   string
 	What    string
 	Program string
 	Needs   harness.Needs
-	// Skills and MCP are whether the harness can be given skills and MCP
+	// Skills and MCP are whether the agent can be given skills and MCP
 	// servers, so a setup it cannot take is never offered for it.
 	Skills bool
 	MCP    bool
-	// Declared is whether the image names this harness among those it
+	// Declared is whether the image names this agent among those it
 	// carries. It is the image's word; Ready rests on the program itself.
 	Declared bool
 	// Ready is whether this machine can run it now. Why says what is missing
 	// when it cannot, in words somebody can act on.
 	Ready bool
 	Why   string
-	// Measured is what a matrix saw this harness do on its simplest job, one
-	// run a model. Empty is a harness no matrix measured.
+	// Measured is what a benchmark saw this agent do on its simplest task, one
+	// run a model. Empty is an agent no benchmark measured.
 	Measured []Measured
 }
 
-// What a harness needs, said plainly rather than as a keyword.
+// What an agent needs, said plainly rather than as a keyword.
 func (e Entry) Wants() string {
 	switch e.Needs {
 	case harness.NeedsNothing:
@@ -51,10 +51,10 @@ func (e Entry) Wants() string {
 	return string(e.Needs)
 }
 
-// Survey asks the image which harnesses it carries. It is done once, when the
+// Survey asks the image which agents it carries. It is done once, when the
 // server starts, because the answer only changes when the image does and asking
-// per page would start a container for every row. The matrix named by
-// GUSTO_MATRIX is read then too, so a pair that cannot finish the simplest job
+// per page would start a container for every row. The benchmark named by
+// GUSTO_MATRIX is read then too, so a pair that cannot finish the simplest task
 // says so.
 func Survey(runtime, image string, names []string) []Entry {
 	return SurveyOf(Container(runtime, image), names)
@@ -115,7 +115,7 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 	return entry
 }
 
-// notInstalled is how a person installs a harness that is not on their computer.
+// notInstalled is how a person installs an agent that is not on their computer.
 func notInstalled(adapter harness.Adapter) string {
 	if adapter.Package == "" {
 		return adapter.Installed() + " is not installed on this computer"
@@ -123,7 +123,7 @@ func notInstalled(adapter harness.Adapter) string {
 	return "npm install -g " + adapter.Package
 }
 
-// Ready is the names a job may name, which is what a form should offer.
+// Ready is the names a task may name, which is what a form should offer.
 func Ready(entries []Entry) []string {
 	var names []string
 	for _, entry := range entries {
@@ -134,7 +134,7 @@ func Ready(entries []Entry) []string {
 	return names
 }
 
-// titleOf is a harness's name for a person, its program's name when the
+// titleOf is an agent's name for a person, its program's name when the
 // adapter gives none.
 func titleOf(name string, adapter harness.Adapter) string {
 	if adapter.Title != "" {

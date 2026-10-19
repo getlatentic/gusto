@@ -18,7 +18,7 @@ import (
 // directory, beside the skills it was given.
 const serversFile = "servers.json"
 
-// Servers are the MCP server definitions a job was given, or none.
+// Servers are the MCP server definitions a task was given, or none.
 func Servers(dir job.Dir) ([]job.Server, error) {
 	text, err := os.ReadFile(filepath.Join(dir.SetupDir(), serversFile))
 	if errors.Is(err, fs.ErrNotExist) {
@@ -34,7 +34,7 @@ func Servers(dir job.Dir) ([]job.Server, error) {
 	return located(servers)
 }
 
-// GatewayName is what a harness calls the one server that fronts the servers behind the gateway.
+// GatewayName is what an agent calls the one server that fronts the servers behind the gateway.
 const GatewayName = "gateway"
 
 // withGateway gives a job that has servers behind the gateway the one server that reaches them: the proxy's, at the address the

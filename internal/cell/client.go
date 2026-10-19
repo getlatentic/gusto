@@ -15,7 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Remote is a cell on another host, asked in the words of cloud.Cell.
+// Remote is a host on another host, asked in the words of cloud.Cell.
 type Remote struct {
 	name, agent, private string
 	secret               []byte
@@ -27,7 +27,7 @@ func newRemote(r Registration, secret []byte) *Remote {
 	return &Remote{name: r.Name, agent: r.Agent, private: r.Private, secret: secret, client: &http.Client{Timeout: 10 * time.Second}, now: time.Now}
 }
 
-// Detached says the servers on this cell outlive the front door that started them.
+// Detached says the servers on this host outlive the gusto cloud that started them.
 func (c *Remote) Detached() bool { return true }
 
 func (c *Remote) Name() string   { return c.name }
@@ -54,12 +54,12 @@ func (c *Remote) call(method, path string, body, result any, timeout time.Durati
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("the cell %s did not answer: %w", c.name, err)
+		return fmt.Errorf("the host %s did not answer: %w", c.name, err)
 	}
 	defer response.Body.Close()
 	text, _ := io.ReadAll(io.LimitReader(response.Body, maxBody))
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("the cell %s said %d: %s", c.name, response.StatusCode, strings.TrimSpace(string(text)))
+		return fmt.Errorf("the host %s said %d: %s", c.name, response.StatusCode, strings.TrimSpace(string(text)))
 	}
 	if result == nil {
 		return nil
@@ -75,7 +75,7 @@ func (c *Remote) Stop(slug string, grace time.Duration) error {
 	return c.call("POST", "/v1/servers/"+url.PathEscape(slug)+"/stop", stopRequest{GraceSeconds: int(grace / time.Second)}, nil, grace+15*time.Second)
 }
 
-// Alive is false when the cell cannot be asked: a server that is not known to be running is not
+// Alive is false when the host cannot be asked: a server that is not known to be running is not
 // treated as running.
 func (c *Remote) Alive(slug string) bool {
 	var answer struct{ Alive bool }
@@ -93,7 +93,7 @@ func (c *Remote) Ports(from int, taken map[int]bool) (server, proxy int, err err
 	return answer.Server, answer.Proxy, err
 }
 
-// Status is what the cell says of itself.
+// Status is what the host says of itself.
 func (c *Remote) Status() (Status, error) {
 	var status Status
 	return status, c.call("GET", "/v1/status", nil, &status, 3*time.Second)

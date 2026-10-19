@@ -20,7 +20,7 @@
             <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
           <span class="grow"></span>
-          <div class="picker summary"><button type="button" id="run-on" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, engine and model" title="Choose the preset, engine and model"><span class="label"></span>{{template "icon-chevron"}}</button></div>
+          <div class="picker summary"><button type="button" id="run-on" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label"></span>{{template "icon-chevron"}}</button></div>
           <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
         </div>
         <div class="choices" id="chat-choices" hidden>
@@ -30,9 +30,9 @@
             <div class="menu" role="listbox"></div>
           </div>
           <input type="hidden" name="role" id="role-value">
-          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Engine">
+          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Agent">
             <input type="hidden" name="harness" value="{{.Harness}}">
-            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Engine</span>{{template "icon-chevron"}}</button>
+            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Agent</span>{{template "icon-chevron"}}</button>
             <div class="menu" role="listbox"></div>
           </div>
           <div class="picker" id="model-pick" data-picker data-label="Model">
@@ -138,7 +138,7 @@
     var fixed = Boolean(event.detail.harness);
     harness.picker.lock(fixed);
     role.picker.lock(fixed);
-    var why = fixed ? "Set by this folder, which already has conversations. Choose another folder to use another engine." : "";
+    var why = fixed ? "Set by this folder, which already has conversations. Choose another folder to use another agent." : "";
     harness.querySelector("button").title = why;
     role.querySelector("button").title = why;
     setTimeout(summarise, 0);

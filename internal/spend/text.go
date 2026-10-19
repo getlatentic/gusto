@@ -27,7 +27,7 @@ func (r Report) WriteText(to io.Writer) error {
 	for _, part := range []struct {
 		title string
 		lines []Line
-	}{{"team", r.Teams}, {"project", r.Projects}, {"job", r.Jobs}} {
+	}{{"team", r.Teams}, {"project", r.Projects}, {"task", r.Jobs}} {
 		fmt.Fprintf(table, "\n%s\tspent\tcalls\tunmeasured\trefused\tinput tokens\toutput tokens\n", part.title)
 		for _, line := range part.lines {
 			fmt.Fprintf(table, "%s\t%s\t%d\t%d\t%d\t%d\t%d\n", named(line.Name), line.Money(),
@@ -37,7 +37,7 @@ func (r Report) WriteText(to io.Writer) error {
 	return table.Flush()
 }
 
-// named is how a line with no name reads: a job that named no team.
+// named is how a line with no name reads: a task that named no team.
 func named(name string) string {
 	if name == "" {
 		return "(none)"

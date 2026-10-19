@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// Reachable checks a local model answers before the harness starts.
+// Reachable checks a local model answers before the agent starts.
 //
-// An unreachable endpoint otherwise surfaces as the harness's own error, minutes
+// An unreachable endpoint otherwise surfaces as the agent's own error, minutes
 // later, in the middle of a transcript. The common cause is a model server bound
 // to loopback, which no container can reach.
 func Reachable(endpoint string) error {

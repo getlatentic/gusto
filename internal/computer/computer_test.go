@@ -101,7 +101,7 @@ func TestTheNumberOfComputersIsUnderTheOrganisationsQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, err := r.Ensure("c@acme.com", "cell-1")
-	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 computers and has 2") || !strings.Contains(err.Error(), "Ask the operator") {
+	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 workspaces and has 2") || !strings.Contains(err.Error(), "Ask the operator") {
 		t.Fatalf("the third is over the quota: %v", err)
 	}
 	if got, made, err := r.Ensure("a@acme.com", "cell-1"); err != nil || made || got.ID != a.ID {
@@ -146,7 +146,7 @@ func TestTwoAddressesThatHashTheSameShareNoComputer(t *testing.T) {
 	if _, err := r.Change(first.ID, func(c *Computer) { c.User = "someone.else@acme.com" }); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := r.Ensure("a@acme.com", "cell-1"); err == nil || !strings.Contains(err.Error(), "no computer is shared") {
+	if _, _, err := r.Ensure("a@acme.com", "cell-1"); err == nil || !strings.Contains(err.Error(), "no workspace is shared") {
 		t.Errorf("a record of one person is never handed to another: %v", err)
 	}
 }

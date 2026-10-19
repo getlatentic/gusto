@@ -10,17 +10,17 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Work is what a worker does with a claimed job. It is the runner, injected, so
+// Work is what a worker does with a claimed task. It is the runner, injected, so
 // the queue can be tested without a container and the server can choose between
-// running a job here or in a box.
+// running a task here or in a box.
 type Work func(job.Dir) (int, error)
 
-// StoppableWork is Work that is told when to stop. The context ends when somebody stops the job, and the work then ends the
-// job as it would at the end of its budget: what it did is kept, and the record says it did not finish.
+// StoppableWork is Work that is told when to stop. The context ends when somebody stops the task, and the work then ends the
+// task as it would at the end of its budget: what it did is kept, and the record says it did not finish.
 type StoppableWork func(context.Context, job.Dir) (int, error)
 
-// Queue runs a fixed number of jobs at once. The number comes from what the
-// machine can hold, which is memory a job at a time rather than cores.
+// Queue runs a fixed number of tasks at once. The number comes from what the
+// machine can hold, which is memory a task at a time rather than cores.
 type Queue struct {
 	index *Index
 	work  StoppableWork
@@ -62,7 +62,7 @@ func StartStoppable(index *Index, work StoppableWork, workers int) *Queue {
 }
 
 // Wake tells a worker there may be something to take. A full channel already
-// says so, so this never blocks the caller that just queued a job.
+// says so, so this never blocks the caller that just queued a task.
 func (q *Queue) Wake() {
 	select {
 	case q.wake <- struct{}{}:
@@ -76,7 +76,7 @@ func (q *Queue) Stop() {
 }
 
 // Alive is how many workers are running, and Slots how many there should be.
-// A worker that is gone leaves a queue that takes jobs and never starts them.
+// A worker that is gone leaves a queue that takes tasks and never starts them.
 func (q *Queue) Alive() int { return int(q.alive.Load()) }
 
 func (q *Queue) Slots() int { return q.slots }
@@ -113,7 +113,7 @@ func (q *Queue) serve() {
 func (q *Queue) one() bool {
 	record, found, err := q.index.Claim()
 	if err != nil {
-		slog.Error("could not claim a job", "error", err)
+		slog.Error("could not claim a task", "error", err)
 		return false
 	}
 	if !found {
@@ -142,18 +142,18 @@ func (q *Queue) one() bool {
 		// Whoever stopped it ended it: a nonzero exit or an error is what stopping does, and is not the job failing.
 		state = Interrupted
 		if err != nil {
-			slog.Warn("a stopped job ended with an error", "job", record.ID, "error", err)
+			slog.Warn("a stopped task ended with an error", "job", record.ID, "error", err)
 		}
 		exit = -1
 	case err != nil:
-		slog.Error("the job could not run", "job", record.ID, "error", err)
+		slog.Error("the task could not run", "job", record.ID, "error", err)
 		state = Failed
 		exit = -1
 	case exit != 0:
 		state = Failed
 	}
 	if err := q.index.Finish(record.ID, state, exit); err != nil {
-		slog.Error("could not record how a job ended", "job", record.ID, "error", err)
+		slog.Error("could not record how a task ended", "job", record.ID, "error", err)
 	}
 	// A job that ends can free a person's or a team's limit for a job another
 	// worker is asleep on.
@@ -161,8 +161,8 @@ func (q *Queue) one() bool {
 	return true
 }
 
-// Cancel stops a job for somebody: a queued job never runs, and a running one is told to stop and ends interrupted. A job
-// that is over is not stoppable. It says whether the job was running.
+// Cancel stops a task for somebody: a queued task never runs, and a running one is told to stop and ends interrupted. A task
+// that is over is not stoppable. It says whether the task was running.
 func (q *Queue) Cancel(id, by string) (Record, bool, error) {
 	record, wasRunning, err := q.index.Stop(id, by)
 	if err != nil {

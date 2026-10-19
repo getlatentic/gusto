@@ -1,5 +1,5 @@
 [Unit]
-Description=haas — jobs, their evidence, and the pages in front of them
+Description=haas — tasks, their records, and the pages in front of them
 After=network.target{% if store == 'mysql' %} mysql.service redis-server.service{% endif %}
 
 {% if store == 'mysql' %}

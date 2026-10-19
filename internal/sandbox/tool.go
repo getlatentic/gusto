@@ -13,8 +13,8 @@ import (
 )
 
 // Tool is an MCP server that is a program, which a plugin brought and an administrator allowed, to be run in a box of its own. It is not
-// run with the job: the job's agent is not given the program, its files or its credentials, and the program is given nothing of the
-// job but what it is asked.
+// run with the task: the task's agent is not given the program, its files or its credentials, and the program is given nothing of the
+// task but what it is asked.
 type Tool struct {
 	// Job and Name make the container's name.
 	Job, Name string
@@ -26,7 +26,7 @@ type Tool struct {
 	Cwd          string
 }
 
-// ToolImage is the image programs run in: GUSTO_TOOLS_IMAGE, or the job image, which carries the interpreters a plugin is likely to
+// ToolImage is the image programs run in: GUSTO_TOOLS_IMAGE, or the task image, which carries the interpreters a plugin is likely to
 // need. A program that needs more than it has is told so by the container.
 func ToolImage() string {
 	if image := os.Getenv("GUSTO_TOOLS_IMAGE"); image != "" {

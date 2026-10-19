@@ -1,4 +1,4 @@
-// Package evidence is what a job leaves behind, and the hash of all of it.
+// Package evidence is what a task leaves behind, and the hash of all of it.
 //
 // This is what makes a run worth anything to somebody who was not there. A
 // buyer, an auditor or a marketplace re-hashes the files and knows whether they
@@ -19,7 +19,7 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Verdict is the gate's answer. Nothing else in a run has one to give.
+// Verdict is the check's answer. Nothing else in a run has one to give.
 type Verdict struct {
 	Command []string `json:"command"`
 	Code    int      `json:"code"`
@@ -27,10 +27,10 @@ type Verdict struct {
 }
 
 // CapStop says which spending cap stopped a run: the proxy refused the
-// harness's calls to a model once it was spent. Reason is written for the
-// person who asked for the job.
+// agent's calls to a model once it was spent. Reason is written for the
+// person who asked for the task.
 type CapStop struct {
-	// Cap is "job" or "team".
+	// Cap is "job" (a per-task cap) or "team".
 	Cap      string  `json:"cap"`
 	Team     string  `json:"team,omitempty"`
 	LimitUSD float64 `json:"limitUsd"`
@@ -45,7 +45,7 @@ type Entry struct {
 }
 
 // Manifest is the record of a run. A token count or a cost is a pointer, so a
-// harness that does not report one leaves null rather than a zero somebody
+// agent that does not report one leaves null rather than a zero somebody
 // would read as free.
 //
 // Version is the format of manifest.json. A file without one is version 1.
@@ -53,16 +53,16 @@ type Manifest struct {
 	Version int     `json:"version"`
 	Job     string  `json:"job"`
 	Files   []Entry `json:"files"`
-	// Gate is absent when the job had none to run: a turn in a conversation is
+	// Gate is absent when the task had none to run: a turn in a conversation is
 	// not a claim that anything passed.
 	Gate    *Verdict `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
-	// HarnessDigest names the configured harness that ran by what it held,
+	// HarnessDigest names the configured agent that ran by what it held,
 	// taken before it started. A name is what two teams can both say and mean
 	// different things by; this is not. It is empty in a manifest written
 	// before it was recorded, which says so rather than guessing one.
 	HarnessDigest string `json:"harnessDigest,omitempty"`
-	// Session is what the harness calls the conversation this run was a turn in.
+	// Session is what the agent calls the conversation this run was a turn in.
 	Session         string `json:"session,omitempty"`
 	HarnessExit     int    `json:"harnessExit"`
 	StoppedAtBudget bool   `json:"stoppedAtBudget"`
@@ -85,7 +85,7 @@ const Version = 1
 
 func Now() int64 { return time.Now().Unix() }
 
-// Of hashes the job spec and every file in out/ except the manifest itself and
+// Of hashes the task spec and every file in out/ except the manifest itself and
 // its signature, which is made over the manifest after it is written.
 func Of(dir job.Dir) (string, []Entry, error) {
 	spec, err := hash(dir.Spec())

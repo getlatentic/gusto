@@ -15,9 +15,9 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 )
 
-// here runs a job in this process, which is what a person's own computer has until it has a sandbox to give a job. A turn in a
-// container gets the instance's workspace and state mounted over its own; here the job's workspace is made a link to the
-// instance's, and the harness is given a home of the job's own with the instance's state as its data, so a conversation works
+// here runs a task in this process, which is what a person's own computer has until it has a sandbox to give a task. A turn in a
+// container gets the instance's workspace and state mounted over its own; here the task's workspace is made a link to the
+// instance's, and the agent is given a home of the task's own with the instance's state as its data, so a conversation works
 // the same way in both places.
 func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
 	return func(ctx context.Context, dir job.Dir) (int, error) {
@@ -50,7 +50,7 @@ func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
 	}
 }
 
-// jobHome is the home a harness run here is given, as a container's /root is: a folder of the job's own, holding each harness's
+// jobHome is the home an agent run here is given, as a container's /root is: a folder of the task's own, holding each agent's
 // configuration as the image does, and the instance's state as its data, which is what a container mounts at /root/.local/share.
 func jobHome(dir job.Dir, instances *instance.Store, spec job.Spec) (home, data string, err error) {
 	if home, err = filepath.Abs(filepath.Join(dir.Path(), "home")); err != nil {
@@ -70,9 +70,9 @@ func jobHome(dir job.Dir, instances *instance.Store, spec job.Spec) (home, data 
 	return home, data, harness.PlaceConfig(home)
 }
 
-// hereEnv is what a harness run in the server's own process is started with: the proxy, on this machine's loopback, and the token
-// that stands in for the job's credential, so its calls are capped and recorded as a box's are, and of the server's environment only
-// what a program needs to run. Without a proxy the harness reaches the model it was configured with directly.
+// hereEnv is what an agent run in the server's own process is started with: the proxy, on this machine's loopback, and the token
+// that stands in for the task's credential, so its calls are capped and recorded as a box's are, and of the server's environment only
+// what a program needs to run. Without a proxy the agent reaches the model it was configured with directly.
 func (w *WayOut) hereEnv(dir job.Dir, spec job.Spec) (harness.Env, error) {
 	url, token := w.direct, ""
 	if w.proxy != nil {
@@ -89,8 +89,8 @@ func (w *WayOut) hereEnv(dir job.Dir, spec job.Spec) (harness.Env, error) {
 	return harness.Env{Base: base, ModelURL: url, ModelToken: token}, nil
 }
 
-// sharedCache is where a harness run here keeps what it downloads, such as the packages a harness installs into its own
-// configuration: one folder for every job, so a turn does not download them again.
+// sharedCache is where an agent run here keeps what it downloads, such as the packages an agent installs into its own
+// configuration: one folder for every task, so a turn does not download them again.
 func sharedCache() string {
 	if cache, err := os.UserCacheDir(); err == nil {
 		return filepath.Join(cache, "gusto")
@@ -98,7 +98,7 @@ func sharedCache() string {
 	return filepath.Join(os.TempDir(), "gusto-cache")
 }
 
-// homedEnv is env with the harness's home and data put where a program looks for them, so a harness reads the configuration
+// homedEnv is env with the agent's home and data put where a program looks for them, so an agent reads the configuration
 // gusto gave it and not the person's own, and its downloads in cache.
 func homedEnv(env []string, home, data, cache string) []string {
 	homes := []string{"HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"}

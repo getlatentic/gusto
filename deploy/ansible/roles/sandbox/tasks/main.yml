@@ -47,7 +47,7 @@
 
 - name: The runtime can start the candidate
   ansible.builtin.command:
-    cmd: "{{ container_runtime }} run --rm {{ candidate_image }} harnesses"
+    cmd: "{{ container_runtime }} run --rm {{ candidate_image }} agents"
     chdir: "{{ app_root }}"
   become_user: "{{ app_user }}"
   environment:

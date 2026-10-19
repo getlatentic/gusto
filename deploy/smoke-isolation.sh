@@ -1,5 +1,5 @@
 #!/bin/sh
-# One job whose harness probes its own box, and a check of what it found. The harness
+# One task whose agent probes its own box, and a check of what it found. The agent
 # is a fixture that runs a script as an agent would run a command: it tries to reach
 # what a job must not reach, and prints what it sees. Run it as deploy/smoke.sh is run,
 # inside the server:
@@ -35,9 +35,9 @@ cat > "$smoke/isolation-harnesses/probe.json" <<'JSON'
 JSON
 
 GUSTO_HARNESSES="$smoke/isolation-harnesses" gusto new "$smoke/isolation-job" -repo "$smoke/isolation-repo" \
-  -brief "probe the box" -harness probe -- true >/dev/null
+  -brief "probe the box" -agent probe -- true >/dev/null
 if [ -n "${GUSTO_API_TOKENS:-}" ] && [ -z "${GUSTO_TOKEN:-}" ]; then
-  echo "this server takes API tokens: set GUSTO_TOKEN to one that may send jobs" >&2
+  echo "this server takes API tokens: set GUSTO_TOKEN to one that may send tasks" >&2
   exit 2
 fi
 id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/isolation-job" | head -n 1)
@@ -47,14 +47,14 @@ tries=0
 until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
-    echo "no manifest after 120 seconds; the job page says why: /jobs/$id" >&2
+    echo "no manifest after 120 seconds; the task page says why: /jobs/$id" >&2
     exit 1
   fi
   sleep 1
 done
 
 seen="$GUSTO_JOBS/$id/out/transcript.log"
-echo "what the job saw:"
+echo "what the task saw:"
 cat "$seen"
 
 fail=0

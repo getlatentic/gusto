@@ -110,7 +110,7 @@ func (s *Server) savePreset(w http.ResponseWriter, r *http.Request) {
 	}
 	harness := strings.TrimSpace(r.FormValue("harness"))
 	if !slices.ContainsFunc(s.picksFor(r), func(each pick) bool { return each.Name == harness }) {
-		http.Redirect(w, r, back+"?refused="+url.QueryEscape("choose an engine you may use before saving"), http.StatusSeeOther)
+		http.Redirect(w, r, back+"?refused="+url.QueryEscape("choose an agent you may use before saving"), http.StatusSeeOther)
 		return
 	}
 	role := strings.TrimSpace(r.FormValue("role"))

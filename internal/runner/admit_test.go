@@ -68,7 +68,7 @@ func TestTheRefusalIsWhereSomebodyReadingTheJobLooks(t *testing.T) {
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
-	if !strings.Contains(string(transcript), "refused this job before the harness started") ||
+	if !strings.Contains(string(transcript), "refused this task before the agent started") ||
 		!strings.Contains(string(transcript), err.Error()) {
 		t.Fatalf("the transcript says %q", transcript)
 	}

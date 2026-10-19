@@ -49,7 +49,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 	body := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
 	body.DisallowUnknownFields()
 	if err := body.Decode(&sent); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: "this is not a job spec: " + err.Error()})
+		reply(w, http.StatusBadRequest, Answer{Refused: "this is not a task spec: " + err.Error()})
 		return
 	}
 	key, err := requestID(r)
@@ -175,7 +175,7 @@ func keep(dir job.Dir, name string, carried *harness.Adapter) error {
 // only a sent job meets, because the directory crossed a machine.
 func runnable(spec job.Spec, carried *harness.Adapter) (harness.Adapter, error) {
 	if !plainName(spec.Harness) {
-		return harness.Adapter{}, fmt.Errorf("a harness is named in letters, digits and dashes, and this job names %q", spec.Harness)
+		return harness.Adapter{}, fmt.Errorf("an agent is named in letters, digits and dashes, and this task names %q", spec.Harness)
 	}
 	if carried != nil {
 		if carried.Program == "" {
@@ -185,7 +185,7 @@ func runnable(spec job.Spec, carried *harness.Adapter) (harness.Adapter, error) 
 	}
 	adapter, err := harness.Load("", spec.Harness)
 	if err != nil {
-		return harness.Adapter{}, fmt.Errorf("%w here, and the job carries no adapter for it", err)
+		return harness.Adapter{}, fmt.Errorf("%w here, and the task carries no adapter for it", err)
 	}
 	return adapter, nil
 }
@@ -201,16 +201,16 @@ func missing(spec job.Spec) string {
 		absent = append(absent, "a brief")
 	}
 	if strings.TrimSpace(strings.Join(spec.Gate, "")) == "" {
-		absent = append(absent, "a gate")
+		absent = append(absent, "a check")
 	}
 	switch len(absent) {
 	case 0:
 		return ""
 	case 1:
-		return "this job needs " + absent[0]
+		return "this task needs " + absent[0]
 	}
 	last := len(absent) - 1
-	return "this job needs " + strings.Join(absent[:last], ", ") + " and " + absent[last]
+	return "this task needs " + strings.Join(absent[:last], ", ") + " and " + absent[last]
 }
 
 // plainName keeps a harness name a name. It becomes a path inside the job

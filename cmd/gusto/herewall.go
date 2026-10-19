@@ -12,17 +12,17 @@ import (
 	"github.com/getlatentic/gusto/internal/seatbelt"
 )
 
-// wallPolicy is what a job run here may do, whichever sandbox this computer has to hold it to that.
+// wallPolicy is what a task run here may do, whichever sandbox this computer has to hold it to that.
 type wallPolicy struct {
 	// Home is the person's home, which is closed to reading but for Readable.
 	Home string
-	// Writable are the folders the job may write, and Readable the ones under the home it may still read.
+	// Writable are the folders the task may write, and Readable the ones under the home it may still read.
 	Writable, Readable []string
-	// ProxyPort is the one port on this computer the job may connect to, or zero when the network is left open.
+	// ProxyPort is the one port on this computer the task may connect to, or zero when the network is left open.
 	ProxyPort int
 }
 
-// behindProcessWall is what puts a job's engine, and the checks it runs, behind this computer's own sandbox. The job can write its
+// behindProcessWall is what puts a task's engine, and the checks it runs, behind this computer's own sandbox. The task can write its
 // workspace, its own home, its conversation's state and its cache; it can read none of the person's home but those, its own folder,
 // and where its engine and the programs on its PATH are; and it reaches nothing on the network but gusto's proxy, unless the network
 // is left open.

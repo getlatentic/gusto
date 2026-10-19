@@ -33,7 +33,7 @@ func unpack(ctx context.Context, found fetched, dir job.Dir) ([]string, error) {
 		}
 		mode, blob, name := entry(line)
 		if !plainFile(mode) || !jobFile(name) {
-			wrong = append(wrong, fmt.Sprintf("the evidence carries %s, which a job directory does not hold", name))
+			wrong = append(wrong, fmt.Sprintf("the record carries %s, which a task directory does not hold", name))
 			continue
 		}
 		if err := written(ctx, found.workspace, blob, filepath.Join(dir.Path(), filepath.FromSlash(name))); err != nil {

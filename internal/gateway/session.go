@@ -13,14 +13,14 @@ import (
 	"github.com/getlatentic/gusto/internal/redact"
 )
 
-// Mode is how a job is shown its tools.
+// Mode is how a task is shown its tools.
 type Mode string
 
 const (
-	// Discover shows three tools, to search the others, read one's schema and call one, so the definitions of the tools a job never
+	// Discover shows three tools, to search the others, read one's schema and call one, so the definitions of the tools a task never
 	// uses are never in its context.
 	Discover Mode = "discover"
-	// All shows every tool the caller may use, each with its definition, the way a harness is given an MCP server directly.
+	// All shows every tool the caller may use, each with its definition, the way an agent is given an MCP server directly.
 	All Mode = "all"
 )
 
@@ -30,7 +30,7 @@ const (
 	mostListed  = 25
 )
 
-// Config is what a job's gateway is made from.
+// Config is what a task's gateway is made from.
 type Config struct {
 	Caller  Caller
 	Servers []Server
@@ -47,7 +47,7 @@ type Config struct {
 	Record *Record
 }
 
-// Session is the gateway for one job: an MCP server the job's harness calls.
+// Session is the gateway for one task: an MCP server the task's agent calls.
 type Session struct {
 	config    Config
 	catalogue *Catalogue
@@ -56,7 +56,7 @@ type Session struct {
 	recordFailed atomic.Pointer[error]
 }
 
-// New is the gateway for a job.
+// New is the gateway for a task.
 func New(config Config) *Session {
 	if config.Mode == "" {
 		config.Mode = Discover
@@ -72,7 +72,7 @@ func New(config Config) *Session {
 func (s *Session) Close() { s.catalogue.close() }
 
 // ServeHTTP answers one message, or a batch. It keeps no session of its own, and offers no stream: what a server would say unasked,
-// the job's tools do not.
+// the task's tools do not.
 func (s *Session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Header.Get("Origin") != "":
@@ -168,7 +168,7 @@ func (s *Session) handle(r *http.Request, in request) (response, bool) {
 
 func (s *Session) instructions() string {
 	if s.config.Mode == All {
-		return "These are the tools of the servers this job was given."
+		return "These are the tools of the servers this task was given."
 	}
 	return "Tools are found as they are needed. Use tool_search to find one, tool_schema to read how to call it, and tool_call to call it."
 }
@@ -218,7 +218,7 @@ func (s *Session) note(entry Entry) {
 func (s *Session) call(r *http.Request, name string, arguments json.RawMessage) Result {
 	s.catalogue.load(r.Context())
 	if failed := s.recordFailed.Load(); failed != nil {
-		return text("the gateway cannot write down this job's calls, so it makes none: "+(*failed).Error(), true)
+		return text("the gateway cannot write down this task's calls, so it makes none: "+(*failed).Error(), true)
 	}
 	switch name {
 	case "tool_search":

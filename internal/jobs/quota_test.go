@@ -34,7 +34,7 @@ func TestAJobPastTheTrialIsRefusedByNameAndLeavesNoDirectory(t *testing.T) {
 	if !errors.Is(err, quota.ErrExceeded) {
 		t.Fatalf("the fourth job should be refused as over the limit: %v", err)
 	}
-	if !strings.Contains(err.Error(), "3 jobs in all") || !strings.Contains(err.Error(), "Confirm your email address.") {
+	if !strings.Contains(err.Error(), "3 tasks in all") || !strings.Contains(err.Error(), "Confirm your email address.") {
 		t.Errorf("the refusal should say what was allowed and how to lift it: %v", err)
 	}
 	if after, _ := os.ReadDir(index.Root()); len(after) != len(before) {
@@ -55,7 +55,7 @@ func TestAMonthlyQuotaCountsThisMonthOnly(t *testing.T) {
 	}
 	by(t, index, "amy", "", "this month 1")
 	by(t, index, "amy", "", "this month 2")
-	if _, err := index.Reserve("this month 3", time.Now()); !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 jobs a month") {
+	if _, err := index.Reserve("this month 3", time.Now()); !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 tasks a month") {
 		t.Errorf("%v", err)
 	}
 	// The same job asked for next month is the first of that month.

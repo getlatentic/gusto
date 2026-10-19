@@ -17,27 +17,29 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// cloudCommand runs the front door of a hosted gusto: sign-up, sign-in and the
-// organisations' records, and the servers it starts for each organisation and sends
-// their people to. It runs no jobs itself.
-func cloudCommand(args []string) int {
-	if len(args) > 0 && args[0] == "computers" {
-		store, err := cloud.Open(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{})
-		if err != nil {
-			return fail(err)
-		}
-		if err := listComputers(os.Stdout, store); err != nil {
-			return fail(err)
-		}
-		return 0
+// cloudWorkspaces lists every workspace on this host.
+func cloudWorkspaces() int {
+	store, err := cloud.Open(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{})
+	if err != nil {
+		return fail(err)
 	}
+	if err := listComputers(os.Stdout, store); err != nil {
+		return fail(err)
+	}
+	return 0
+}
+
+// cloudCommand runs gusto cloud: sign-up, sign-in and the organisations' records,
+// and the servers it starts for each organisation and sends their people to. It runs
+// no tasks itself.
+func cloudCommand() int {
 	front, controller, err := openCloud()
 	if err != nil {
 		return fail(err)
 	}
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
-	// There is no write timeout: an organisation's job stream stays open for as long as
-	// the job runs, and the front door carries it.
+	// There is no write timeout: an organisation's task stream stays open for as long as
+	// the task runs, and gusto cloud carries it.
 	server := &http.Server{
 		Addr:              address,
 		Handler:           accesslog.Keep(accesslog.Stderr())(front.Handler()),
@@ -71,7 +73,7 @@ func cloudCommand(args []string) int {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	fmt.Printf("the front door is listening on %s\n", address)
+	fmt.Printf("gusto cloud is listening on %s\n", address)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fail(err)
 	}
@@ -80,7 +82,7 @@ func cloudCommand(args []string) int {
 	return 0
 }
 
-// openCloud reads the front door's settings and opens what it keeps. Links
+// openCloud reads gusto cloud's settings and opens what it keeps. Links
 // that expired are swept when it starts and every hour after.
 func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
@@ -143,7 +145,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 // organisationServers is what starts each organisation's gusto serve on this machine.
 // GUSTO_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organisation's
 // server is started with, which is where the operator's model credentials, models and
-// sandbox settings go. Nothing else of the front door's environment goes to them.
+// sandbox settings go. Nothing else of gusto cloud's environment goes to them.
 func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -197,7 +199,7 @@ func operatorEnv(path string) ([]string, error) {
 func sweepLinks(store *cloud.Store) {
 	for {
 		if _, err := store.Sweep(); err != nil {
-			fmt.Fprintf(os.Stderr, "the front door could not sweep expired links: %v\n", err)
+			fmt.Fprintf(os.Stderr, "gusto cloud could not sweep expired links: %v\n", err)
 		}
 		time.Sleep(time.Hour)
 	}
@@ -211,7 +213,7 @@ func lowered(members []string) []string {
 	return out
 }
 
-// demoSettings make the front door offer a demo when GUSTO_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
+// demoSettings make gusto cloud offer a demo when GUSTO_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
 // from when it is ready, GUSTO_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), GUSTO_CLOUD_DEMO_MAX for the
 // most at once (5), GUSTO_CLOUD_DEMO_PER_DAY for the most in a day (40), GUSTO_CLOUD_DEMO_PER_PERSON and GUSTO_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, GUSTO_CLOUD_DEMO_NOTIFY for an address that is mailed when a visitor starts a demo, GUSTO_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and GUSTO_CLOUD_BOOK_URL for where a call is booked.
 func demoSettings() cloud.DemoSettings {

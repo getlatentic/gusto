@@ -150,7 +150,7 @@ func without(ids []string, id string) []string {
 // Options is what a credential says about the calls translated for it.
 type Options struct {
 	// MaxOutput is the most a provider lets a model write in one answer, or 0 when a request is not to be held to
-	// one. A harness asks for what its own provider allows, which another provider can refuse outright.
+	// one. An agent asks for what its own provider allows, which another provider can refuse outright.
 	MaxOutput int
 }
 

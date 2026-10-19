@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// Index is every job under one directory. One process owns it, so a mutex is
+// Index is every task under one directory. One process owns it, so a mutex is
 // the whole of the concurrency story: a second runner is what would earn a
 // database, and there is not one yet.
 type Index struct {
@@ -32,12 +32,12 @@ type Index struct {
 	lastStarted, lastFinished int64
 }
 
-// Open reads what is on disk, and lets the evidence decide.
+// Open reads what is on disk, and lets the record decide.
 //
-// A container is a child of the container runtime, not of this server, so a job
-// whose server was killed often runs on, finishes the gate and writes its
+// A container is a child of the container runtime, not of this server, so a task
+// whose server was killed often runs on, finishes the check and writes its
 // manifest. Calling that interrupted because the state file still says running
-// would throw away a verdict that is on disk. A job is only interrupted when it
+// would throw away a verdict that is on disk. A task is only interrupted when it
 // left no manifest behind.
 func Open(root string) (*Index, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
@@ -98,12 +98,12 @@ func (i *Index) number() {
 
 func (i *Index) Root() string { return i.root }
 
-// Add writes a new job's state and takes it into the index.
+// Add writes a new task's state and takes it into the index.
 func (i *Index) Add(record Record) error {
 	i.guard.Lock()
 	defer i.guard.Unlock()
 	if _, taken := i.records[record.ID]; taken {
-		return fmt.Errorf("a job called %s is already here", record.ID)
+		return fmt.Errorf("a task called %s is already here", record.ID)
 	}
 	// The check that counts: two jobs asked for together both passed the one in
 	// Reserve, and only one of them may pass this.
@@ -128,7 +128,7 @@ func (i *Index) Get(id string) (Record, bool) {
 	return record, found
 }
 
-// FindKey is the job the asker already made with this request id, so that a send made twice is one job. An id is the
+// FindKey is the task the asker already made with this request id, so that a send made twice is one task. An id is the
 // asker's own: the same words from somebody else are another request.
 func (i *Index) FindKey(asked, key string) (Record, bool) {
 	if key == "" {
@@ -156,7 +156,7 @@ func (i *Index) List() []Record {
 	return all
 }
 
-// Claim takes the oldest queued job and marks it running, so two workers cannot
+// Claim takes the oldest queued task and marks it running, so two workers cannot
 // take the same one.
 func (i *Index) Claim() (Record, bool, error) {
 	i.guard.Lock()
@@ -195,18 +195,18 @@ func (i *Index) Claim() (Record, bool, error) {
 	return *oldest, true, nil
 }
 
-// ErrNotStoppable is the answer to stopping a job that is already over.
-var ErrNotStoppable = fmt.Errorf("that job is already over")
+// ErrNotStoppable is the answer to stopping a task that is already over.
+var ErrNotStoppable = fmt.Errorf("that task is already over")
 
-// Stop marks a job as stopped by somebody. A job that is still queued is over at once, interrupted, and never runs. A job
+// Stop marks a task as stopped by somebody. A task that is still queued is over at once, interrupted, and never runs. A task
 // that is running is marked, and ends interrupted when its work returns, which the queue arranges after it has told the
-// work to stop. It gives the job as it stands, and whether it was running.
+// work to stop. It gives the task as it stands, and whether it was running.
 func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
 	record, found := i.records[id]
 	if !found {
-		return Record{}, false, fmt.Errorf("no job called %s", id)
+		return Record{}, false, fmt.Errorf("no task called %s", id)
 	}
 	if record.State.Done() {
 		return record, false, ErrNotStoppable
@@ -227,13 +227,13 @@ func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) 
 	return record, wasRunning, nil
 }
 
-// Finish records how a job ended.
+// Finish records how a task ended.
 func (i *Index) Finish(id string, state State, exit int) error {
 	i.guard.Lock()
 	defer i.guard.Unlock()
 	record, found := i.records[id]
 	if !found {
-		return fmt.Errorf("no job called %s", id)
+		return fmt.Errorf("no task called %s", id)
 	}
 	record.State = state
 	record.Exit = exit

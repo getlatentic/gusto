@@ -18,9 +18,9 @@ type Thread struct {
 	ID       string `json:"id"`
 	Instance string `json:"instance"`
 	Title    string `json:"title"`
-	// Remembered is the harness's own name for this conversation, learned from
+	// Remembered is the agent's own name for this conversation, learned from
 	// the first turn and handed back to resume it. It belongs to the thread
-	// rather than the instance because a harness keeps one per conversation.
+	// rather than the instance because an agent keeps one per conversation.
 	Remembered string `json:"remembered,omitempty"`
 	// Dir is the folder of the workspace this conversation works in, from the workspace's root. It is empty for the root.
 	Dir     string   `json:"dir,omitempty"`
@@ -136,7 +136,7 @@ func (s *Store) Latest(id string) Thread {
 	return threads[len(threads)-1]
 }
 
-// Said records a turn on a thread, and the harness's own name for the
+// Said records a turn on a thread, and the agent's own name for the
 // conversation the first time it says one.
 func (s *Store) Said(id, thread, job, remembered string) error {
 	s.guard.Lock()

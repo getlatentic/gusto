@@ -11,15 +11,15 @@
     <dt>Admin</dt><dd>{{.Org.Admin}}</dd>
     <dt>Email</dt>
     <dd>{{if .Person.Trial}}<span class="state">Not verified</span>{{else}}<span class="state ok">Verified</span>{{end}}</dd>
-    <dt>Jobs</dt>
+    <dt>Tasks</dt>
     <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
     <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
-    <dt>Computers</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
+    <dt>Workspaces</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
     {{if .Server}}<dt>Server</dt><dd><span class="state{{if .CanOpen}} ok{{end}}">{{if .CanOpen}}Ready{{else}}Starting{{end}}</span></dd>{{end}}
   </dl>
   <h2>People</h2>
   <ul class="people">
-    {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}{{with index $.ComputerOf .Email}}, computer {{.}}{{end}}</span>
+    {{range .Members}}<li><span>{{.Email}}</span><span class="muted">{{.Role}}{{with index $.ComputerOf .Email}}, workspace {{.}}{{end}}</span>
       {{if $.IsAdmin}}
       {{if eq .Role "admin"}}{{if gt $.Admins 1}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="runner"><button class="quiet" type="submit">Make runner</button></form>{{end}}
       {{else}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="admin"><button class="quiet" type="submit">Make admin</button></form>{{end}}

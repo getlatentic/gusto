@@ -79,7 +79,7 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		chosen = fit[0].Name
 	}
 	if !slices.ContainsFunc(s.runnersOf(held), func(entry catalog.Entry) bool { return entry.Name == chosen }) {
-		s.turnAway(w, r, back, "choose a harness this deployment can run the template on")
+		s.turnAway(w, r, back, "choose an agent this deployment can run the template on")
 		return
 	}
 	if err := s.install(held); err != nil {

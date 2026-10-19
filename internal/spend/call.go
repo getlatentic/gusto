@@ -1,8 +1,8 @@
-// Package spend is what a job's calls to a model cost, and the caps that stop
-// a job or a team spending more.
+// Package spend is what a task's calls to a model cost, and the caps that stop
+// a task or a team spending more.
 //
 // Everything here is counted at the proxy, from the provider's own answer. A
-// harness reporting its usage is a claim; the answer the provider sent back is
+// agent reporting its usage is a claim; the answer the provider sent back is
 // the count. The ledger, the caps and the report all read the same lines of
 // out/proxy.jsonl, so they cannot disagree.
 package spend
@@ -26,7 +26,7 @@ type Call struct {
 	Registry int64  `json:"registry,omitempty"`
 	Error    string `json:"error,omitempty"`
 	AtUnix   int64  `json:"atUnix"`
-	// Translated is the shape of API the harness called in when the call was translated into Chat Completions for
+	// Translated is the shape of API the agent called in when the call was translated into Chat Completions for
 	// a provider that answers only that: "messages" or "responses". It is empty for a call that went as it came.
 	Translated string `json:"translated,omitempty"`
 	// Model is what the request asked for, and the name the price is found by.
@@ -63,8 +63,8 @@ func (c Call) Measured() bool { return c.USD != nil }
 func (c Call) Counted() bool { return c.InputTokens != nil && c.OutputTokens != nil }
 
 // Named is what a report calls the model this call went to: the credential
-// and the model, as a job names it. A call that named no model, such as a
-// harness listing the models on offer, is named by its path instead.
+// and the model, as a task names it. A call that named no model, such as a
+// agent listing the models on offer, is named by its path instead.
 func (c Call) Named() string {
 	if c.Model == "" {
 		return strings.TrimSpace(c.Credential + " " + c.Path)
@@ -82,14 +82,14 @@ func (c Call) answered() bool { return c.Status >= 200 && c.Status < 300 }
 
 // billed says whether the provider charges for this call. An answer it turned
 // away is not billed, and neither is a request that asked no model anything,
-// such as a harness listing the models on offer. Only an accepted call to a
+// such as an agent listing the models on offer. Only an accepted call to a
 // model that carried no count is money nobody can see.
 func (c Call) billed() bool { return c.answered() && c.Model != "" }
 
 // Refusal says which cap stopped a call and why, in words the person who asked
-// for the job can act on.
+// for the task can act on.
 type Refusal struct {
-	// Cap is "job", "team" or "organisation".
+	// Cap is "job" (a task), "team" or "organisation".
 	Cap      string  `json:"cap"`
 	Team     string  `json:"team,omitempty"`
 	LimitUSD float64 `json:"limitUsd"`

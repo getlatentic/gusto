@@ -7,18 +7,18 @@ import (
 	"github.com/getlatentic/gusto/internal/replay"
 )
 
-// Side is one run as it stands: its verdict and whether its evidence still
+// Side is one run as it stands: its verdict and whether its record still
 // checks.
 type Side struct {
 	Run
 	Manifest evidence.Manifest
-	// Wrong lists what changed in the run's evidence since it ran.
+	// Wrong lists what changed in the run's record since it ran.
 	Wrong []string
 	// Err is a run that could not happen or left no verdict.
 	Err error
 }
 
-// Start runs every side of the comparison at where at once, so no harness
+// Start runs every side of the comparison at where at once, so no agent
 // waits on another and each meets the same hour of the day and the same model
 // load. It returns what each run left.
 func Start(where string, run replay.Run) ([]Side, error) {
@@ -66,7 +66,7 @@ func sideOf(where string, run Run) Side {
 }
 
 // ExitCode is 0 when every side ran, left a verdict and still checks, and 2
-// otherwise. Which harness did better is the answer the comparison prints, not
+// otherwise. Which agent did better is the answer the comparison prints, not
 // a failure of the comparison.
 func ExitCode(sides []Side) int {
 	for _, side := range sides {

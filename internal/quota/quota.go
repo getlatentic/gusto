@@ -16,14 +16,14 @@ import (
 
 // Quota is what may be run. Zero is none.
 type Quota struct {
-	// Jobs is how many jobs may be started: in all, or in a calendar month when
+	// Jobs is how many tasks may be started: in all, or in a calendar month when
 	// Monthly is set.
 	Jobs    int  `json:"jobs"`
 	Monthly bool `json:"monthly,omitempty"`
-	// Concurrent is how many jobs may run at once.
+	// Concurrent is how many tasks may run at once.
 	Concurrent int `json:"concurrent"`
 	// Invites says whether colleagues may be invited, Members how many people
-	// there may be in all, and Computers how many computers.
+	// there may be in all, and Computers how many workspaces.
 	Invites   bool `json:"invites"`
 	Members   int  `json:"members"`
 	Computers int  `json:"computers"`
@@ -35,7 +35,7 @@ type Quota struct {
 // "too many" and not "broken".
 var ErrExceeded = errors.New("this organisation has reached its limit")
 
-// Refuse is nil while started jobs are fewer than the quota allows, and a
+// Refuse is nil while started tasks are fewer than the quota allows, and a
 // sentence a person can act on when they are not.
 func (q Quota) Refuse(started int) error {
 	if started < q.Jobs {
@@ -45,11 +45,11 @@ func (q Quota) Refuse(started int) error {
 	if q.Monthly {
 		within = "a month"
 	}
-	jobs := "jobs"
+	tasks := "tasks"
 	if q.Jobs == 1 {
-		jobs = "job"
+		tasks = "task"
 	}
-	message := fmt.Sprintf("This organisation may start %d %s %s and has started %d.", q.Jobs, jobs, within, started)
+	message := fmt.Sprintf("This organisation may start %d %s %s and has started %d.", q.Jobs, tasks, within, started)
 	if q.Note != "" {
 		message += " " + q.Note
 	}
@@ -90,7 +90,7 @@ func Write(path string, q Quota) error {
 
 // File is a quota kept in a file. It is read again when a second has passed, so
 // a limit that was lifted takes effect at once and a busy queue does not read a
-// file for every job it looks at.
+// file for every task it looks at.
 type File struct {
 	path string
 	mu   sync.Mutex
@@ -131,17 +131,17 @@ func read(path string) (Quota, error) {
 	return q, nil
 }
 
-// RefuseComputers is nil while the computers there are number fewer than the quota
+// RefuseComputers is nil while the workspaces there are number fewer than the quota
 // allows, and a sentence a person can act on when they do not.
 func (q Quota) RefuseComputers(have int) error {
 	if have < q.Computers {
 		return nil
 	}
-	computers := "computers"
+	workspaces := "workspaces"
 	if q.Computers == 1 {
-		computers = "computer"
+		workspaces = "workspace"
 	}
-	message := fmt.Sprintf("This organisation may have %d %s and has %d.", q.Computers, computers, have)
+	message := fmt.Sprintf("This organisation may have %d %s and has %d.", q.Computers, workspaces, have)
 	if q.Note != "" {
 		message += " " + q.Note
 	}

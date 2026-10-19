@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-// proxied is what out/proxy.jsonl says about a job's traffic. The file holds
+// proxied is what out/proxy.jsonl says about a task's traffic. The file holds
 // more than model calls: a call a spending cap refused, which never left, and
 // every request to a host other than the model, which is not a model call.
 // Each is counted apart, so a refusal or a package download never reads as

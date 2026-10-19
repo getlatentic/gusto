@@ -58,7 +58,7 @@ func (s *Server) TakeInbox() int {
 		// the event in its record.
 		if !s.changes.Taken(each.ID) {
 			if _, err := s.changes.Append(eventOf(each)); err != nil {
-				slog.Error("a change the front door reported could not be recorded", "kind", each.Item.Kind, "error", err)
+				slog.Error("a change gusto cloud reported could not be recorded", "kind", each.Item.Kind, "error", err)
 				return taken
 			}
 			taken++
@@ -85,7 +85,7 @@ func eventOf(each inbox.Waiting) changelog.Event {
 }
 
 func (s *Server) setAside(each inbox.Waiting) {
-	slog.Error("a file in the inbox is not a change the front door reports, and is set aside", "file", each.ID, "kind", each.Item.Kind, "error", each.Err)
+	slog.Error("a file in the inbox is not a change gusto cloud reports, and is set aside", "file", each.ID, "kind", each.Item.Kind, "error", each.Err)
 	if err := inbox.SetAside(s.inbox, each.ID); err != nil {
 		slog.Error("a file in the inbox could not be set aside", "file", each.ID, "error", err)
 	}

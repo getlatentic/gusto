@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-// Launcher makes the command that runs a server that is a program. It is given the job's name and the server, and returns a command
-// that has not been started and that does not end with a request, since the program lives as long as the job does, and what is to be
+// Launcher makes the command that runs a server that is a program. It is given the task's name and the server, and returns a command
+// that has not been started and that does not end with a request, since the program lives as long as the task does, and what is to be
 // done when the program has ended, which may be nothing. What it makes is what keeps the program out of the machine: the gateway speaks
 // to whatever the command does, and puts nothing around it.
 type Launcher func(ctx context.Context, job string, server Server) (command *exec.Cmd, ended func(), err error)
@@ -29,7 +29,7 @@ const (
 )
 
 // Program is a connection to a server that is a program, which it speaks to over the program's standard input and output, one JSON
-// message to a line. It starts the program the first time it is used and ends it with the job.
+// message to a line. It starts the program the first time it is used and ends it with the task.
 type Program struct {
 	server Server
 	job    string

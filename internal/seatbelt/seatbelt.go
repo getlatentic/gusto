@@ -1,5 +1,5 @@
 // Package seatbelt puts a process behind macOS's own sandbox, sandbox-exec: the process can write only the folders it is given,
-// cannot read the person's home but for what its engine is made of, and can reach nothing on the network but gusto's proxy. It is a wall
+// cannot read the person's home but for what its engine is made of, and can reach nothing on the network but gusto's proxy. It is a sandbox
 // of the kernel's and not a virtual machine: the computer's kernel is shared, and what is allowed is what a profile says.
 package seatbelt
 
@@ -15,15 +15,15 @@ import (
 // Command is the program that applies a profile.
 const Command = "/usr/bin/sandbox-exec"
 
-// Policy is what one job may do.
+// Policy is what one task may do.
 type Policy struct {
 	// Home is the person's home, which is closed to reading but for Readable.
 	Home string
-	// Writable are the folders the job may write: its workspace, its own home and state, and where it caches what it downloads.
+	// Writable are the folders the task may write: its workspace, its own home and state, and where it caches what it downloads.
 	Writable []string
-	// Readable are the folders under Home the job may still read: its own, and the ones its engine is installed in.
+	// Readable are the folders under Home the task may still read: its own, and the ones its engine is installed in.
 	Readable []string
-	// ProxyPort is the one port on this computer the job may connect to, which is gusto's proxy. Zero opens the network, as
+	// ProxyPort is the one port on this computer the task may connect to, which is gusto's proxy. Zero opens the network, as
 	// GUSTO_JOB_NETWORK=open does.
 	ProxyPort int
 }

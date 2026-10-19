@@ -19,11 +19,11 @@ const (
 )
 
 // Markdown writes the table the way the README's own tables are written: one
-// row a job and pair, and a word rather than a zero where a number is missing.
+// row a task and pair, and a word rather than a zero where a number is missing.
 func Markdown(w io.Writer, table Table) error {
-	fmt.Fprintf(w, "Measured %s. Every row is a run in `%s`, with its evidence kept there.\n\n",
+	fmt.Fprintf(w, "Measured %s. Every row is a run in `%s`, with its record kept there.\n\n",
 		table.Environment, filepath.Base(table.Matrix))
-	fmt.Fprintln(w, "| harness and model | job | finished | wall clock | billed tokens | cost | evidence |")
+	fmt.Fprintln(w, "| agent and model | task | finished | wall clock | billed tokens | cost | record |")
 	fmt.Fprintln(w, "| --- | --- | --- | --- | --- | --- | --- |")
 	for _, row := range table.Rows {
 		if _, err := fmt.Fprintf(w, "| %s | %s | %s | %s | %s | %s | %s |\n", pairOf(row), jobOf(row, table),

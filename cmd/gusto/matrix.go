@@ -2,41 +2,49 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/openshell"
-	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
-// matrixJobs runs a plan's jobs on every harness and model pair it names, or
-// prints a matrix that already ran. In a container every cell goes out the
-// way a server's job does, through the proxy when a credential is held, so
-// its cost is the proxy's count. It exits 0 when every cell left a verdict
-// and its evidence checks, whichever pairs finished, and 2 otherwise.
-func matrixJobs(args []string) int {
-	flags := flag.NewFlagSet("matrix", flag.ContinueOnError)
-	into := flags.String("into", "", "where the matrix goes, beside the plan by default")
-	here := flags.Bool("here", false, "run here, without a container")
-	again := flags.String("again", "", `run finished pairs again: "all", or harness@model,...`)
-	asJSON := flags.Bool("json", false, "print the table as the catalog reads it")
-	named, err := replay.Interspersed(flags, args)
-	if err != nil {
-		return 2
+type benchmarkFlags struct {
+	into, again string
+	here, json  bool
+}
+
+func declareBenchmark(set *flag.FlagSet) *benchmarkFlags {
+	f := &benchmarkFlags{}
+	set.StringVar(&f.into, "into", "", "where the benchmark goes, as a `directory`; beside the plan by default")
+	set.BoolVar(&f.here, "here", false, "run here, without a container")
+	set.StringVar(&f.again, "again", "", "run finished pairs again: `all`, or agent@model,...")
+	set.BoolVar(&f.json, "json", false, "print the table as the catalog reads it")
+	return f
+}
+
+// benchmarkTasks runs a plan's tasks on every agent and model pair it names, or
+// prints a benchmark that already ran. In a container every run goes out the
+// way a server's task does, through the proxy when a credential is held, so
+// its cost is the proxy's count. It exits 0 when every run left a verdict
+// and its record checks, whichever pairs finished, and 2 otherwise.
+func benchmarkTasks(args []string) int {
+	set := newSet("benchmark")
+	f := declareBenchmark(set)
+	named, code, ok := interspersed("benchmark", set, args)
+	if !ok {
+		return code
 	}
 	if len(named) != 1 {
-		fmt.Fprintln(os.Stderr, "gusto matrix needs a plan, or a matrix that ran")
-		return 2
+		return usageError("benchmark", "needs a plan, or a benchmark that ran")
 	}
-	way, err := matrixWay(*here)
+	way, err := matrixWay(f.here)
 	if err != nil {
 		return fail(err)
 	}
 	exit, err := matrix.Answer(os.Stdout, named[0], matrix.Asked{
-		Into: *into, Again: *again, JSON: *asJSON, Way: way, Progress: os.Stderr,
+		Into: f.into, Again: f.again, JSON: f.json, Way: way, Progress: os.Stderr,
 	})
 	if err != nil {
 		return fail(err)
@@ -44,8 +52,8 @@ func matrixJobs(args []string) int {
 	return exit
 }
 
-// matrixWay is where a plan's cells run: in this process, in a sandbox on a
-// gateway when the deployment runs jobs there, and in a container otherwise.
+// matrixWay is where a plan's runs go: in this process, in a sandbox on a
+// gateway when the deployment runs tasks there, and in a container otherwise.
 func matrixWay(here bool) (matrix.Way, error) {
 	if here {
 		return matrix.Here(), nil

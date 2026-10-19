@@ -24,7 +24,7 @@ type ServerSpec struct {
 
 // ErrNoCapacity says no cell has room for another organisation yet. A cell may be starting for it, so an organisation
 // that meets it waits and is tried again soon, and is not failed.
-var ErrNoCapacity = errors.New("no cell has room yet")
+var ErrNoCapacity = errors.New("no host has room yet")
 
 // Cell is where organisations' servers run. The first is this machine. Another is
 // a host with an agent on it, which the controller asks in the same words.
@@ -161,7 +161,7 @@ func (l *LocalCell) Stop(slug string, grace time.Duration) error {
 
 // ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.
 // An organisation placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
-var ErrCellGone = errors.New("the cell is gone")
+var ErrCellGone = errors.New("the host is gone")
 
 // CellSet is the cells organisations' servers may be placed on.
 type CellSet interface {

@@ -35,7 +35,7 @@ func (l links) tree() string {
 // names the manifest's hash, so what it fetches is held to the hash the pull
 // request names and not to whatever the ref holds by then.
 func (l links) command(digest string) string {
-	return shell([]string{"gusto", "check", printable(l.remote), digest})
+	return shell([]string{"gusto", "pr", "verify", printable(l.remote), digest})
 }
 
 // printable is the remote as a pull request may show it. A GitHub remote is
@@ -64,24 +64,24 @@ func withoutCredentials(remote string) string {
 // the manifest hashes.
 func (l links) section(digest, at string) string {
 	var out strings.Builder
-	out.WriteString("\n### The evidence\n\n")
+	out.WriteString("\n### The record\n\n")
 	fmt.Fprintf(&out, "The run's job.json and out/ are committed, byte for byte, at [`%s`](%s) on `%s`. ", short(l.commits.Evidence), l.tree(), l.ref)
 	out.WriteString("That ref is not a branch, so none of it is part of this change.\n\n")
 	fmt.Fprintf(&out, "- [manifest.json](%s), whose sha256 is `%s`\n", l.blob("out/manifest.json"), digest)
-	fmt.Fprintf(&out, "- [transcript.log](%s), what the harness said\n", l.blob("out/transcript.log"))
-	fmt.Fprintf(&out, "- [gate.log](%s), the gate's whole output\n", l.blob("out/gate.log"))
-	out.WriteString("\nTo check it, wherever git can reach this repository:\n\n")
+	fmt.Fprintf(&out, "- [transcript.log](%s), what the agent said\n", l.blob("out/transcript.log"))
+	fmt.Fprintf(&out, "- [gate.log](%s), the check's whole output\n", l.blob("out/gate.log"))
+	out.WriteString("\nTo verify it, wherever git can reach this repository:\n\n")
 	fmt.Fprintf(&out, "~~~\n%s\n~~~\n\n", l.command(digest))
 	fmt.Fprintf(&out, "It fetches `%s`, holds out/manifest.json to the sha256 above, re-hashes every file against the manifest, ", l.ref)
-	fmt.Fprintf(&out, "checks that `%s` is out/diff.patch on `%s`, and runs the gate again. ", short(l.commits.Change), short(at))
-	out.WriteString("Running the gate runs this pull request's code, as any review that runs its tests does.\n")
+	fmt.Fprintf(&out, "checks that `%s` is out/diff.patch on `%s`, and runs the check again. ", short(l.commits.Change), short(at))
+	out.WriteString("Running the check runs this pull request's code, as any review that runs its tests does.\n")
 	return out.String()
 }
 
 // evidenceMessage says what the evidence commit is to anybody who finds it
 // with git alone.
 func evidenceMessage(dir job.Dir, digest string) string {
-	return fmt.Sprintf("gusto evidence for job %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
+	return fmt.Sprintf("gusto record for task %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
 		filepath.Base(filepath.Clean(dir.Path())), digest)
 }
 

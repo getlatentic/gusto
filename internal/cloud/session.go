@@ -54,7 +54,7 @@ func OpenSessions(root string, secure bool) (*Sessions, error) {
 		return nil, err
 	}
 	if len(key) < 32 {
-		return nil, errors.New("the front door's signing key is too short: " + path)
+		return nil, errors.New("gusto cloud's signing key is too short: " + path)
 	}
 	return &Sessions{key: key, secure: secure, life: SessionLife, now: time.Now}, nil
 }

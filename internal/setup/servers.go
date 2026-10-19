@@ -21,7 +21,7 @@ type Servers map[string]job.Server
 // {"url", "headers"}. No directory is a deployment offering none.
 //
 // A program has to be in the runner image, since the box fetches nothing, and
-// an address has to be one the proxy lets a job reach.
+// an address has to be one the proxy lets a task reach.
 func OpenServers(dir string) (Servers, error) {
 	offered := Servers{}
 	if dir == "" {

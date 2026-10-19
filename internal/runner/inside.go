@@ -1,9 +1,9 @@
-// Package runner does the work: the harness, then the gate, then the evidence.
+// Package runner does the work: the agent, then the check, then the record.
 //
-// This runs inside the sandbox. A harness that drives an external CLI could be
-// contained by wrapping that CLI, but a harness with its own tool loop runs its
+// This runs inside the sandbox. An agent that drives an external CLI could be
+// contained by wrapping that CLI, but an agent with its own tool loop runs its
 // edits and shell in its own process — so the boundary goes around the runner,
-// and then every harness is isolated the same way.
+// and then every agent is isolated the same way.
 package runner
 
 import (
@@ -21,18 +21,18 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// Inside does the whole run and returns the exit code the gate earned, so a
+// Inside does the whole run and returns the exit code the check earned, so a
 // caller needs nothing but the process status to know what happened.
 func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(), dir) }
 
-// InsideContext is Inside that stops early when its context ends, as it does when the budget's seconds run out: the harness
+// InsideContext is Inside that stops early when its context ends, as it does when the budget's seconds run out: the agent
 // is killed, what it did is kept, and the manifest says why it stopped.
 func InsideContext(parent context.Context, dir job.Dir) (int, error) {
 	return InsideWith(parent, dir, harness.Here())
 }
 
-// InsideWith is InsideContext for a harness started with the environment given, and not this process's: a job run in the server's
-// own process is given the proxy and its token and nothing of the server's secrets. The gate runs with the same environment.
+// InsideWith is InsideContext for an agent started with the environment given, and not this process's: a task run in the server's
+// own process is given the proxy and its token and nothing of the server's secrets. The check runs with the same environment.
 func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, error) {
 	stopRelay, err := relayOut()
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// Call is a call a harness made in its own shape, as the Chat Completions call it is sent as, and what it takes to give
-// the answer back in the harness's shape.
+// Call is a call an agent made in its own shape, as the Chat Completions call it is sent as, and what it takes to give
+// the answer back in the agent's shape.
 type Call struct {
 	From Shape
 	// Body is the Chat Completions call.
@@ -45,7 +45,7 @@ func Translate(from Shape, body []byte, options Options) (Call, error) {
 	return Call{From: from, Body: translated, streamed: chat.Stream, model: chat.Model, freeText: freeText}, nil
 }
 
-// Fail tells the harness that the call could not be made, in its own shape, so that it shows the reason rather than
+// Fail tells the agent that the call could not be made, in its own shape, so that it shows the reason rather than
 // a body it cannot read.
 func Fail(w http.ResponseWriter, from Shape, status int, message string) {
 	body := responsesError(status, message)
@@ -57,8 +57,8 @@ func Fail(w http.ResponseWriter, from Shape, status int, message string) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
-// Answer gives the provider's answer to the harness in the shape it called in: streamed when it asked for a stream,
-// whatever the provider did, and whole when it did not. A provider's refusal goes back as an error in the harness's
+// Answer gives the provider's answer to the agent in the shape it called in: streamed when it asked for a stream,
+// whatever the provider did, and whole when it did not. A provider's refusal goes back as an error in the agent's
 // shape with the provider's status. An error once a stream has begun is told as the shape's own error event, since
 // the status is already sent; it is also returned, for the record.
 func (c Call) Answer(w http.ResponseWriter, status int, contentType string, body io.Reader) error {

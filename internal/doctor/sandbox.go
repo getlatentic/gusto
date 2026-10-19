@@ -36,7 +36,7 @@ func sandboxChoice(machine Machine) Verdict {
 		missing = append(missing, said)
 	}
 	if len(missing) > 0 {
-		verdict.Remedy = "no stronger wall: " + strings.Join(missing, "; ")
+		verdict.Remedy = "no stronger sandbox: " + strings.Join(missing, "; ")
 	}
 	return verdict
 }

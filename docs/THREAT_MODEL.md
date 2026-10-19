@@ -1,18 +1,16 @@
 # Threat model
 
-What gusto protects, from whom, and what each part trusts. The review that checked
-this against the code, and what it found, is in [SECURITY.md](SECURITY.md).
+gusto protects the assets below from a hostile agent, a hostile caller and a curious colleague. It assumes the agent is hostile, because a model that reads repository content can be talked into anything. The review that checked this against the code is [SECURITY.md](SECURITY.md).
 
 ## What is protected
 
 | Asset | Why it matters |
 | --- | --- |
-| The model credential | Spends the organisation's money and is the one secret every job would want |
-| Repository access | The GitHub App's key can reach every repository it is installed on |
-| Each person's work | Their agents, transcripts and files must not be readable by a colleague |
-| The record | Signed evidence is what an auditor and a reviewer rely on. Forging it defeats the product |
-| The change record | Who changed what, in a chain that shows an edit |
-| The host | Other apps share the box, and the server runs as a user that can read every job |
+| The model credential | Spends the organisation's money. Every task would want it |
+| Repository access | The GitHub App's key reaches every repository it is installed on |
+| Each person's work | Agents, transcripts and files must not be readable by a colleague |
+| The record and the change record | Signed record is what an auditor relies on, and forging it defeats the product. The change record shows who changed what, in a chain that shows an edit |
+| The host | Other apps share the box, and the server's user can read every task |
 | Availability | One person's work must not stop everyone else's |
 
 ## Who is trusted
@@ -21,94 +19,62 @@ this against the code, and what it found, is in [SECURITY.md](SECURITY.md).
 | --- | --- | --- |
 | Operator | Everything: the host, the vault, the playbook | |
 | Admin | Every person's work, tokens, retention, skill sets | The host |
-| Runner (a signed-in person) | Their own agents, jobs and spend | Anyone else's, and settings |
+| Runner (a signed-in person) | Their own agents, tasks and spend | Anyone else's, and settings |
 | API token | Exactly its scopes | Anything else, and any page |
-| The agent inside a job | Its workspace and home in the box, the model through a per-job token | The record, the credential, the network, the host, other jobs |
-| The repository's own code | Nothing: the gate runs it as the agent user | |
-| The model's output | Nothing: it is text, drawn escaped | |
+| The agent in a task | Its workspace and home in the box, the model through a per-task token | The record, the credential, the network, the host, other tasks |
+| The repository's code | Nothing. The check runs it as the agent user | |
+| The model's output | Nothing. It is text, drawn escaped | |
 
-The agent is assumed hostile. It is driven by a model that reads repository
-content and can be talked into anything.
+## The web tier (`internal/web`)
 
-## The three parts
-
-### The web tier (`internal/web`)
-
-Trusts the session it signed, an API token it hashed, and the identity
-provider's signed token. It does not trust anything a browser or a caller sends
-by itself.
+It trusts the session it signed, an API token it hashed, and the identity provider's signed token. It trusts nothing else a browser or caller sends.
 
 | Boundary | Control |
 | --- | --- |
 | Who someone is | An HMAC-signed, HttpOnly, SameSite=Lax cookie carrying the role, 12 hours, ended on the server at sign-out. Google sign-in uses state, PKCE and a nonce, and checks the address is verified |
-| What they may see | Every object carries who owns it. Somebody else's is answered as a missing one, so a guess learns nothing |
-| Cross-site requests | The cookie is SameSite=Lax, so a form posted from another site does not carry it. No route changes state on a GET. The policy's `frame-ancestors 'none'` keeps a page from being framed, and `form-action 'self'` keeps forms to this server |
-| What a page may run | A content security policy with no inline script but the ones carrying the response's nonce, no handler attributes, `object-src 'none'`, `base-uri 'none'` |
-| What a caller may send | 4 MB a request, and 1 MB for a job |
-| Guessing | Ten wrong passwords or bearer credentials from one address in ten minutes turns that address away, the right one included |
-| What is drawn | Templates escape. Markdown from a model is rendered with raw HTML off and links restricted. An evidence file is served as plain text with `nosniff` |
-| What is read from a job's record | A file, and not a link: what the agent could plant in `out/` is never opened |
-| Where a repository comes from | An https or ssh address. A path on the server's disk only under a directory the operator names. Never an address git could read as an option |
-| Caching | Nothing behind the sign-in is cached. HSTS is set over TLS |
+| What they may see | Every object carries its owner. Somebody else's is answered as missing, so a guess learns nothing |
+| Cross-site requests | SameSite=Lax keeps the cookie off a form posted from another site. No route changes state on a GET. `frame-ancestors 'none'` blocks framing and `form-action 'self'` keeps forms to this server |
+| What a page may run | A content security policy: no inline script except with the response's nonce, no handler attributes, `object-src 'none'`, `base-uri 'none'` |
+| Size and guessing | 4 MB a request, 1 MB for a task. Ten wrong passwords or bearer credentials from one address in ten minutes turns that address away, the right one included |
+| What is drawn | Templates escape. Model Markdown has raw HTML off and links restricted. Record files are plain text with `nosniff`. A task's record is read as files, never links, so what the agent plants in `out/` is never opened |
+| Repository source and caching | An https or ssh address. A path on the server's disk only under a directory the operator names. Never an address git could read as an option. Nothing behind the sign-in is cached, and HSTS is set over TLS |
 
-### The model proxy (`internal/proxy`)
+## The model proxy (`internal/proxy`)
 
-Trusts the per-job token, minted for one job and dropped when it ends. It does
-not trust the container's headers, its destination names, or DNS.
+It trusts the per-task token, minted for one task and dropped when it ends. It trusts nothing from the container: not its headers, destination names or DNS.
 
 | Boundary | Control |
 | --- | --- |
-| The credential | Added here and nowhere else. Whatever the container sent in its place is discarded. A redirect from the model is not followed |
-| Which job | A token is one job's. An unknown and an ended token get the same answer |
-| Spend | A cap is checked before a call and counted after it. Calls already in flight when a cap is reached can take a job past it, by at most their own cost |
-| Where a job may reach | Only the hosts the operator named, ports 80 and 443 unless a port is named. A name is resolved once and the connection is made to that answer; a name that resolves to this machine or to a link-local address, such as a cloud's metadata service, is refused |
-| What is recorded | Every call, sent or refused, in the job's own record |
+| Credential and task | The credential is added here only. Whatever the container sent in its place is discarded. A redirect from the model is not followed. A token is one task's, and an unknown and an ended token get the same answer |
+| Spend and record | A cap is checked before a call and counted after. Calls in flight when a cap is reached can pass it, by at most their own cost. Every call, sent or refused, is in the task's record |
+| Where a task may reach | Only the hosts the operator named, on ports 80 and 443 unless a port is named. A name resolves once and the connection goes to that answer. A name resolving to this machine or a link-local address, such as a cloud metadata service, is refused |
 
-### The runner and the box (`internal/runner`, `internal/sandbox`)
+## The runner and the box (`internal/runner`, `internal/sandbox`)
 
-Trusts nothing the agent produced except as bytes to be hashed and shown.
+It treats everything the agent produced as bytes to hash and show.
 
 | Boundary | Control |
 | --- | --- |
-| What the container holds | The job directory and, for a conversation, its own folder. No other mount and no runtime socket |
-| The network | None but the proxy's socket when there is a proxy |
-| Privilege | Root in the box only for the runner, so it alone writes the record. The harness and the gate run as an unprivileged user. Every capability is dropped but the five the runner uses, and no program can gain a privilege by being setuid |
+| Mounts and network | The task directory and, for a conversation, its own folder. No other mount, no runtime socket, and no network but the proxy's socket |
+| Privilege | Only the runner is root in the box, so it alone writes the record. The agent and check run unprivileged. All capabilities are dropped but the five the runner uses, and no setuid program gains privilege. The runner stages the workspace in a repository of its own, so programs named by the workspace's `.git` configuration never run as root |
 | The record | `out/` is closed to the agent. Signing happens on the host after the box is gone, with a key the box never held |
-| The workspace's git | The runner stages the workspace in a repository of its own, so the programs a workspace's `.git` configuration names are never run as root |
-| Limits | Memory, CPU and processes per job |
-| Secrets | Only the per-job token and the proxy address enter the box. The password, the signing key, the model keys and the GitHub App's key are read by the server alone |
+| Limits and secrets | Memory, CPU and processes are limited per task. Only the per-task token and the proxy address enter the box. The password, signing key, model keys and GitHub App key are read by the server alone |
 
-### The OpenShell backend
+## The OpenShell backend
 
-With `GUSTO_SANDBOX=openshell` the harness runs in a microVM on a gateway, and the
-runner stays on the host. The gateway, which controls every sandbox, is trusted
-as the server is. What differs from a container:
+With `GUSTO_SANDBOX=openshell` the agent runs in a microVM on a gateway and the runner stays on the host. The gateway controls every sandbox and is trusted as the server is. It differs from a container as follows.
 
 | Boundary | Control |
 | --- | --- |
-| The record | Written on the host by the runner, after the harness has finished. The harness has no record to write, and the runner is never root inside a sandbox for the sake of one |
-| The network | A policy per job, deny by default: the proxy and the operator's allowed hosts. The sandbox's log of what it allowed and denied is in the record and signed |
-| What comes back | The workspace, links kept as links and never followed |
-| What the sandbox is given | The proxy's address and a per-job token, and skills. Nothing of the server's environment |
-| Where the token shows | Nowhere on the host's process list. It goes into the sandbox on the standard input of `openshell sandbox exec`, and for an agent spoken to over ssh in a file only the sandbox's user can read, which the command removes as it starts. Inside the sandbox it is in the harness's environment. It is worth nothing once the job ends |
+| The record and the check | The runner writes the record on the host after the agent finishes, and is never root inside a sandbox. The check runs in the sandbox, and `gusto verify` re-runs it where verify is run |
+| Network | A deny-by-default policy per task: the proxy and the operator's allowed hosts. The sandbox's log of what it allowed and denied is in the record and signed |
+| What goes in and comes back | It is given the proxy address, a per-task token and skills, and nothing of the server's environment. The workspace comes back with links kept as links and never followed |
+| The token | It never shows on the host's process list. It enters on the standard input of `openshell sandbox exec`, or for an ssh agent in a file only the sandbox's user can read, which the command removes as it starts. Inside, it is in the agent's environment. It is worthless once the task ends |
 
-The gate runs in the sandbox. `gusto verify` re-runs it where verify is run.
+## Not covered
 
-## What the design does not defend against
-
-- **A malicious operator or admin.** They can read everything and change settings.
-  The change record shows what they changed and cannot be edited unseen.
-- **The model.** A prompt-injected agent can do anything inside its box and can
-  spend up to its cap. What it makes is checked by the gate and read by a person.
-- **A harness with its own defects.** Third-party harness programs run inside the
-  box. Their versions are pinned where the adapter was measured against them.
-- **Data leaving through the model.** What an agent reads, it can send to the
-  model provider. That is the provider's trust, chosen by the operator.
-- **A compromised host.** The server holds the keys.
-- **A shared address behind an untrusted proxy.** The wrong-attempt limit is per
-  source address, and a proxy this server does not believe gives everyone one.
-  Use the identity provider there.
-- **A development machine.** On macOS container runtimes a bind mount ignores
-  file permissions, so the box cannot close `out/` to the agent there. The
-  server's own checks (links in `out/` are never read) still hold; the guarantee
-  that the harness cannot write the record does not. Use Linux for anything real.
+- A malicious operator or admin can read everything and change settings. The change record shows what they changed and cannot be edited unseen.
+- A prompt-injected agent can do anything inside its box and spend up to its cap. The check checks what it makes and a person reads it.
+- Third-party agent programs run inside the box with their own defects. Versions are pinned where the adapter was measured. What an agent reads, it can send to the model provider, which the operator chooses. A compromised host is not defended, because the server holds the keys.
+- The wrong-attempt limit is per source address. A proxy this server does not believe gives everyone one address. Use the identity provider there.
+- On macOS container runtimes a bind mount ignores file permissions, so the box cannot close `out/` to the agent. Links in `out/` are still never read, but the guarantee that the agent cannot write the record is lost. Use Linux for real work.

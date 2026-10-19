@@ -137,7 +137,7 @@ func TestASignInByTheFrontDoorIsInTheRecordOfChanges(t *testing.T) {
 	s.handler = s.server.Handler()
 	s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now()))
 	signins := ofKind(written(t, log), changelog.SignedIn)
-	if len(signins) != 1 || signins[0].Who != "ada@acme.com" || signins[0].What["how"] != "the front door" {
+	if len(signins) != 1 || signins[0].Who != "ada@acme.com" || signins[0].What["how"] != "gusto cloud" {
 		t.Errorf("%+v", signins)
 	}
 }

@@ -26,28 +26,28 @@ deploys itself, and a hand run is for changing the vault or the box.
 | common | `git`, `acl`, a `haas` user with a home at `/opt/haas`, the checkout | any existing user |
 | autodeploy | a `haas-deploy` user whose one key runs one command, and the box's own deploy under `/opt/haas-deploy` (off until `autodeploy_enabled`) | root's keys, sshd's configuration |
 | toolchain | a pinned Go under `/opt/haas/go`, and a candidate binary at `bin/haas.next` | the box's shared `/usr/local/go`, and the live binary |
-| sandbox | `podman`, `uidmap`, a subuid range, a candidate image `haas:candidate` carrying `runner_harnesses` | iptables, any daemon (podman runs none), and the live image |
+| sandbox | `podman`, `uidmap`, a subuid range, a candidate image `haas:candidate` carrying the agents in `runner_harnesses` | iptables, any daemon (podman runs none), and the live image |
 | store | the `haas` database, a `haas@localhost` user granted on `haas.*`, Redis db4 | every other database, user and index |
-| smoke | one real job on the candidates, and one refused | the live binary and image |
+| smoke | one real task on the candidates, and one refused | the live binary and image |
 | release | the candidates become live; what they replace is kept as `bin/haas.previous` and `haas:previous` | anything, when smoke failed: the play has stopped before it |
 | serve | a systemd unit on `127.0.0.1:8040`, restarted and checked on `/healthz` | ports other apps bind |
 | nginx | one name-based vhost for `haas.getlatentic.com`, and its certificate | the default site and every other vhost |
 
 `serve_enabled` is **false** until the binary has an HTTP server. Until then the
-playbook gives the box a working runner, which is worth having on its own: a job
+playbook gives the box a working runner, which is worth having on its own: a task
 directory on the box runs with `/opt/haas/bin/haas run <dir>`.
 
 ## How a deploy replaces what runs
 
 A deploy never builds over the version that is running. The binary is built to
 `/opt/haas/bin/haas.next` and the image is tagged `haas:candidate`. The smoke
-job runs against those two, and only when it passes does the release role make
+task runs against those two, and only when it passes does the release role make
 them live. The binary is renamed over `bin/haas`, and the `haas:dev` tag moves
 to the new image. What they replace is kept first as `bin/haas.previous` and
 `haas:previous`, but only when the candidate differs, so running one commit
 twice never loses the version a rollback goes back to.
 
-A smoke job that fails ends the play before the release role. The live binary,
+A smoke task that fails ends the play before the release role. The live binary,
 the live image and the running process are the ones from before the deploy, and
 the refused candidates stay on disk to look at.
 
@@ -78,10 +78,10 @@ sudo -u haas -H podman tag haas:previous haas:dev
 systemctl restart haas
 ```
 
-## Proving a failing smoke job keeps the previous version
+## Proving a failing smoke task keeps the previous version
 
-`smoke_fixture` names the file behind the smoke test's fixture harness.
-`broken.json` changes nothing, so the job's gate fails the way a broken build's
+`smoke_fixture` names the file behind the smoke test's fixture agent.
+`broken.json` changes nothing, so the task's check fails the way a broken build's
 would. On the box, write down what runs:
 
 ```bash
@@ -97,7 +97,7 @@ ansible-playbook site.yml -e @greencloud.vault.yml \
   --vault-password-file ~/.config/haas/vault_pass.txt -e smoke_fixture=broken.json
 ```
 
-It has to fail at "The job runs in a container and passes its gate", because
+It has to fail at "The task runs in a container and passes its check", because
 the adder still subtracts, and no task of the release role may appear. The three readings on the box have to be unchanged, and
 `/opt/haas/bin/haas.next` and `haas:candidate` are there as the refused
 candidates. A run without the override then promotes them. The difference is
@@ -109,7 +109,7 @@ commit than the one running.
 ### What it is
 
 A merge to main runs `.github/workflows/deploy.yml`. Its tests (`gofmt`,
-`go vet`, `go test -race`) gate the rest. It then connects to the box as
+`go vet`, `go test -race`) check the rest. It then connects to the box as
 `haas-deploy` with one ssh key and sends one thing, the commit that passed.
 That key's `authorized_keys` line forces a command, so whatever the client asks
 for, sshd runs `sudo /usr/local/sbin/haas-deploy <what it asked>`. That script
@@ -130,7 +130,7 @@ queues merges, and the box holds a lock while it deploys.
 | --- | --- |
 | Actions runs the playbook over ssh | GitHub holds a root key and the vault password: whoever can run a workflow with those secrets can do anything on this box, and read every secret the vault holds |
 | a self-hosted runner on the box | GitHub gains a process on the box that runs whatever a workflow says, as the runner's user, plus sudo for the deploy |
-| the box pulls on a timer | nothing new outside: the box already reads the repository with its read-only deploy key. Without Actions, nothing gates a deploy on the tests |
+| the box pulls on a timer | nothing new outside: the box already reads the repository with its read-only deploy key. Without Actions, nothing checks a deploy on the tests |
 | **Actions asks, the box deploys itself** (this) | GitHub holds a key that can ask this box to deploy a commit that is already on main, no older than the one running. It cannot choose the code, run a command, open a shell or a tunnel, or read a file |
 
 The trade, written down:
@@ -169,7 +169,7 @@ without that rule.
 | `DEPLOY_HOST` | the address that line begins with, `203.0.113.10` |
 
 The repository variable `AUTODEPLOY` (**Settings → Secrets and variables →
-Actions → Variables**) turns the deploy job on when it is `on`. Until then a
+Actions → Variables**) turns the deploy task on when it is `on`. Until then a
 merge runs the tests and deploys nothing.
 
 ### Turning it on, once
@@ -215,15 +215,15 @@ deploy is in progress, or ask the box for the deploy instead:
   deploy that fails further down still removes them. Then delete the secrets.
 - **On the box, right now:** `rm /var/lib/haas-deploy/.ssh/authorized_keys`.
 
-## Which harnesses the image carries
+## Which agents the image carries
 
-`runner_harnesses` in `group_vars/all.yml` is the list, as `name=package`. The
+`runner_harnesses` in `group_vars/all.yml` is the list of agents, as `name=package`. The
 deploy builds the image with it and reads the image's label back, and fails if
-the two differ. The smoke test runs one job on a harness no image carries and
+the two differ. The smoke test runs one task on an agent no image carries and
 checks it is refused before it starts, with the reason in its transcript.
 
 The box carries opencode, claude, codex, pi, dsh and hermes. Each takes the proxy's
-per-job token instead of anybody's account, and each is offered every model: the
+per-task token instead of anybody's account, and each is offered every model: the
 person finds out which pairs work for them.
 
 ## Why a dedicated user rather than www-data
@@ -235,7 +235,7 @@ A new user changes nothing.
 
 ## Why podman rather than docker
 
-It runs no daemon, so nothing is resident between jobs and no firewall rules are
+It runs no daemon, so nothing is resident between tasks and no firewall rules are
 rewritten on a box whose nginx fronts other sites. The arguments are the same as
 docker's, so `GUSTO_CONTAINER` is all that differs.
 
@@ -243,15 +243,15 @@ docker's, so `GUSTO_CONTAINER` is all that differs.
 
 Two deployments, both real. This box has MySQL and Redis already, so haas uses
 them: records in its own database, and Redis for the queue and for fanning a
-job's output out to everybody watching it. A customer installing one artifact in
+task's output out to everybody watching it. A customer installing one artifact in
 their own cloud gets SQLite in one file, because a second and third service to
 provision is not one artifact. `store` chooses.
 
-## What one job may take
+## What one task may take
 
 Measured on this box on 2026-09-26, before anything was installed: 4 vCPU, 7894
 MB of memory with 3100 MB available, 4095 MB of swap, 58 GB of disk with 25 GB
-free, load 0.00. An `opencode` job peaked at 663 MiB in its container, so
+free, load 0.00. An `opencode` task peaked at 663 MiB in its container, so
 `job_concurrency: 2` with `job_memory: 900m` is about 1.8 GB of the 3.1 GB that
 was free. Raise them only against a fresh reading of `free -m`.
 

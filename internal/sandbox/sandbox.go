@@ -1,4 +1,4 @@
-// Package sandbox is the box one job runs in.
+// Package sandbox is the box one task runs in.
 package sandbox
 
 import (
@@ -25,7 +25,7 @@ func Runtime() string {
 	return "docker"
 }
 
-// Image carrying the runner and the harness it will run. A customer builds
+// Image carrying the runner and the agent it will run. A customer builds
 // their own and names it here.
 func Image() string {
 	if image := os.Getenv("GUSTO_IMAGE"); image != "" {
@@ -34,21 +34,21 @@ func Image() string {
 	return "gusto:dev"
 }
 
-// Run the job in a container and hand back its exit code. The job directory is
+// Run the task in a container and hand back its exit code. The task directory is
 // the only thing mounted, and the container is destroyed with the run.
-// Mount is something outside the job directory that a container needs: a
-// conversation's working directory, or the memory a harness keeps of it.
+// Mount is something outside the task directory that a container needs: a
+// conversation's working directory, or the memory an agent keeps of it.
 type Mount struct {
 	From string
 	To   string
 }
 
 // Run takes the address the container should ask for a model at. It is given
-// rather than read from the environment because it is per job: the proxy mints
+// rather than read from the environment because it is per task: the proxy mints
 // a token for this run, and that token is in the address.
 //
 // The container keeps the runtime's default network, so this is the local case:
-// a model on the host and no credential to keep out. A job with a proxy runs
+// a model on the host and no credential to keep out. A task with a proxy runs
 // Sealed instead.
 func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
 	return RunContext(context.Background(), dir, model, token, mounts...)
@@ -66,8 +66,8 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 	}
 	network := []string{
 		"-e", "GUSTO_MODEL_URL=" + inContainer(model),
-		// Where a harness would have put a credential. The real one stays in the
-		// proxy, and this is worth nothing once the job ends.
+		// Where an agent would have put a credential. The real one stays in the
+		// proxy, and this is worth nothing once the task ends.
 		"-e", "GUSTO_MODEL_TOKEN=" + token,
 	}
 	if alias {
@@ -86,7 +86,7 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
 	command := exec.CommandContext(ctx, Runtime(), args...)
 	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `gusto inside`. That
-	// ends the harness and writes down what it did. Killing the client would leave the container running and spending.
+	// ends the agent and writes down what it did. Killing the client would leave the container running and spending.
 	command.Cancel = func() error { return command.Process.Signal(os.Interrupt) }
 	command.WaitDelay = stopGrace
 	command.Stdout = os.Stdout
@@ -107,17 +107,17 @@ func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
 	return command.ProcessState.ExitCode(), nil
 }
 
-// stopGrace is how long a container is given to write down what a stopped job did before its client is killed.
+// stopGrace is how long a container is given to write down what a stopped task did before its client is killed.
 const stopGrace = 60 * time.Second
 
-// containerName is the name a job's container has, so that it can be removed by it whatever became of the client that
-// started it. A job's id is already a name a container may have.
+// containerName is the name a task's container has, so that it can be removed by it whatever became of the client that
+// started it. A task's id is already a name a container may have.
 func containerName(dir job.Dir) string {
 	return "gusto-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 
-// argv is the container's command line: the job directory, what reaches the
-// network, the mounts, and what one job may take of the machine.
+// argv is the container's command line: the task directory, what reaches the
+// network, the mounts, and what one task may take of the machine.
 func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 	signer, err := signerName()
 	if err != nil {
@@ -162,7 +162,7 @@ func inContainer(url string) string {
 	return url
 }
 
-// ready checks the container can read the job directory, and reports whether the
+// ready checks the container can read the task directory, and reports whether the
 // runtime needs the host-gateway alias to resolve host.docker.internal.
 //
 // Both answers come from one container start because both failures are silent
@@ -188,9 +188,9 @@ func ready(absolute string) (bool, error) {
 	}
 }
 
-// Limits are the flags that bound what one job takes of the machine. They are
-// exported so a check before a job can start a container under the same limits
-// the job will run under, because a runtime can refuse a limit outright.
+// Limits are the flags that bound what one task takes of the machine. They are
+// exported so a check before a task can start a container under the same limits
+// the task will run under, because a runtime can refuse a limit outright.
 func Limits() []string {
 	return []string{
 		"--cpus=" + share("GUSTO_JOB_CPUS", "1"),
@@ -199,9 +199,9 @@ func Limits() []string {
 	}
 }
 
-// Hardening is what a job's container is denied. The runner is root in the box
+// Hardening is what a task's container is denied. The runner is root in the box
 // so that it alone can write the record; it needs to give the agent its files
-// (CHOWN), read them whatever their mode (DAC_OVERRIDE), and start the harness
+// (CHOWN), read them whatever their mode (DAC_OVERRIDE), and start the agent
 // as the agent (SETUID, SETGID). Nothing else, so a process that gets root in the
 // box has no more than that, and no program can gain a privilege by being
 // setuid, which is what no-new-privileges refuses.
@@ -218,9 +218,9 @@ func isExit(err error) bool {
 	return ok
 }
 
-// share is what one job may take of the machine. A runner often sits beside
+// share is what one task may take of the machine. A runner often sits beside
 // something else the owner cares about, and a limit larger than the machine is
-// not a limit: the job takes what it likes and the kernel kills whatever it
+// not a limit: the task takes what it likes and the kernel kills whatever it
 // reaches first.
 func share(name, fallback string) string {
 	if value := os.Getenv(name); value != "" {

@@ -13,7 +13,8 @@ import (
 // ends at the pull request, and the merge happens on the forge.
 const approvalUnseen = "an agent opens a pull request and never merges; a person merges it on the forge, which this platform does not record"
 
-// harnessDefault is what a job that names no model asked for.
+// harnessDefault is what a task that names no model asked for.
+// The text is stored in audit.json and compared on verify, so it stays as written.
 const harnessDefault = "the harness's default"
 
 // Summarize derives audit.json from the files in an export and nothing else
@@ -97,7 +98,7 @@ func field(document Fact[any], name string) Fact[any] {
 	return known(value)
 }
 
-// askedOf names how the job arrived. Who sent it is not recorded: everybody
+// askedOf names how the task arrived. Who sent it is not recorded: everybody
 // signs in with the same password, so the server has no name to write.
 func askedOf(state Fact[any]) Asked {
 	return Asked{
@@ -178,7 +179,7 @@ func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[proxied]) Mo
 	}
 }
 
-// spendOf keeps the harness's claim and the proxy's measure side by side, so
+// spendOf keeps the agent's claim and the proxy's measure side by side, so
 // neither stands in for the other.
 func spendOf(manifest evidence.Manifest, proxy Fact[proxied]) Spend {
 	spend := Spend{

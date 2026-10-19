@@ -1,43 +1,31 @@
 # Installing gusto
 
-One product, four ways to install it. Each installs the same server, and the
-server is the whole product: `gusto serve` answers the pages, the API and the
-model proxy from one process. The pages' templates and assets are compiled into
-the binary (`internal/web/static/PROVENANCE.md` says so), so there is no second
-origin and no front end to build.
+Each install runs the same server. `gusto serve` answers the pages, the API and the model proxy from one process, and the pages are compiled into the binary.
 
-| install | where | follow |
+| Install | Where | Follow |
 | --- | --- | --- |
-| `server.sh` | a Linux machine of your own (a VPS, a virtual machine), with HTTPS | [install/server.sh](install/server.sh): `sudo server.sh --domain agents.example.com`, or `--no-tls` on a trusted network. It installs Docker on Debian and Ubuntu, makes a password, starts gusto and says how to sign in |
-| Install script | one person's own computer, as a service of theirs | [../docs/LOCAL.md](../docs/LOCAL.md) |
-| Ansible | the one box this project runs on, beside other people's sites | [ansible/README.md](ansible/README.md) |
-| Compose | one Linux machine of your own | [compose/README.md](compose/README.md) |
-| Helm | a Kubernetes cluster of your own | [helm/gusto/README.md](helm/gusto/README.md) |
+| `server.sh` | A Linux machine of your own (a VPS, a virtual machine), with HTTPS | [install/server.sh](install/server.sh): `sudo server.sh --domain agents.example.com`, or `--no-tls` on a trusted network. It installs Docker on Debian and Ubuntu, makes a password, starts gusto and says how to sign in |
+| Install script | One person's own computer, as a service of theirs | [../docs/LOCAL.md](../docs/LOCAL.md) |
+| Ansible | The one box this project runs on, beside other people's sites | [ansible/README.md](ansible/README.md) |
+| Compose | One Linux machine of your own | [compose/README.md](compose/README.md) |
+| Helm | A Kubernetes cluster of your own | [helm/gusto/README.md](helm/gusto/README.md) |
 
-To run a pilot for somebody else on their infrastructure, [../docs/PILOT.md](../docs/PILOT.md) lists what they provide and the checks to run before they sign in.
+To run a pilot on somebody else's infrastructure, see [../docs/PILOT.md](../docs/PILOT.md) for what they provide and the checks to run before they sign in.
 
 ## What is installed
 
-| image | built from | what it is |
+| Image | Built from | What it is |
 | --- | --- | --- |
-| server | [server/Dockerfile](server/Dockerfile) | `gusto serve`: the pages, the API and the proxy. It carries `git`, because a job's repository is cloned before its box starts, and the `docker` CLI, which starts the box. It carries no harness |
-| runner | the root [Dockerfile](../Dockerfile) | the runner and the harnesses. The server starts one container from it per job and destroys it afterwards |
+| server | [server/Dockerfile](server/Dockerfile) | `gusto serve`. Carries `git` and the `docker` CLI, and no agent |
+| runner | the root [Dockerfile](../Dockerfile) | The runner and the agents. The server starts one container from it per task and destroys it afterwards |
 | runtime | `docker.io/library/docker:29-dind` | Kubernetes only: the Docker daemon beside the server that runs those containers |
 | cli | `docker.io/library/docker:29-cli` | Kubernetes only: pulls the runner into that daemon before the server starts |
 
-Both installs build the server and the runner from this repository, so the two
-carry the same `gusto`.
-
 ## Published images
 
-A version tag (`v0.1.0`) runs `.github/workflows/release.yml`. It builds the
-server and the runner, pushes both to GHCR with an SBOM and build provenance,
-signs each with the workflow's own identity, and lists both digests in the
-GitHub release. The runner carries the harnesses and MCP packages that
-`ansible/group_vars/all.yml` pins.
+A version tag (`v0.1.0`) runs `.github/workflows/release.yml`. It builds the server and the runner, pushes both to GHCR with an SBOM and build provenance, signs each with the workflow's identity, and lists both digests in the GitHub release. The runner carries the agents and MCP packages that `ansible/group_vars/all.yml` pins.
 
-To install from them instead of building, check the signature and set both
-images in `.env`, from the release's notes:
+To install from them, check the signature and set both images in `.env` from the release's notes:
 
 ```bash
 cosign verify ghcr.io/getlatentic/gusto-server@sha256:<digest> \
@@ -46,200 +34,60 @@ cosign verify ghcr.io/getlatentic/gusto-server@sha256:<digest> \
 docker compose pull && docker compose up -d --no-build
 ```
 
-The chart takes the same digests in `values.yaml`. The repository is private,
-so its images are too: pulling them needs `docker login ghcr.io` with a token
-that can read the packages.
+The chart takes the same digests in `values.yaml`. The images are private, so pulling them needs `docker login ghcr.io` with a token that can read the packages. [helm/gusto/README.md](helm/gusto/README.md#images) has the chart commands.
 
-## Every image by digest
+Base images are pinned by digest. To move one, read the new digest with `docker buildx imagetools inspect docker.io/library/<name>:<tag>` and change the tag and the digest together. The chart refuses a server or runner named by anything but a digest. Compose images are built on the machine and named `gusto-server:local` and `gusto-runner:local`.
 
-Every base image is named by digest:
+## How a task gets its box
 
-- `server/Dockerfile` pins `golang:1.26`, `docker:29-cli` and
-  `debian:bookworm-slim` on its `FROM` lines.
-- The root `Dockerfile` names `golang:1.26` and `node:24-slim` by tag. Compose
-  builds it with a named build context for each, which replaces what the `FROM`
-  line resolves to with the same image by digest, so the file is unchanged and
-  the bases are pinned (`compose/compose.yaml`, `additional_contexts`).
-- The chart pins `docker:29-dind` and `docker:29-cli` in `values.yaml`, and it
-  refuses to render a server or a runner named by anything but a digest.
+`gusto serve` starts every task with `docker run` or `podman run` (`internal/sandbox`): one container per task, destroyed after, sealed with `--network=none` so the proxy's socket is its only way out. Inside Compose or Kubernetes the server is itself in a container, so it needs a container runtime. Each way costs something.
 
-What compose builds for itself is named by the tag compose gives it
-(`gusto-server:local`, `gusto-runner:local`): an image built on the machine that
-runs it, from pinned bases, never pulled. What Kubernetes runs is pulled, so the
-chart takes the digest the registry answered when the image was pushed.
-[helm/gusto/README.md](helm/gusto/README.md#images) has the commands.
+### Compose gives the server the host's runtime socket
 
-To move a base, read the new digest with
-`docker buildx imagetools inspect docker.io/library/<name>:<tag>` and change
-the tag and the digest together.
+The server gets the host's Docker socket, or rootful podman's (`GUSTO_RUNTIME_SOCKET`), and starts each task as a sibling container.
 
-## How a job gets its box
+**Whoever holds that socket has root on the host.** Anybody who takes over the server process, through a flaw in gusto or anything it links, has root on the machine. It is shipped because it keeps what gusto promises about a task:
 
-On the box, `gusto serve` starts every job with `docker run` or `podman run`
-(`internal/sandbox`): one container per job, destroyed after, sealed with
-`--network=none` so the proxy's socket is its only way out. Inside compose or
-Kubernetes the server is itself in a container, so something has to hand it a
-container runtime, and every way of doing that costs something. This is what
-each one costs, and which one each install ships.
+- one container per task, destroyed after, with `--cpus`, `--memory` and `--pids-limit`;
+- the seal: `--network=none`, and the proxy's socket mounted in as the only way out;
+- no credential and no signing key inside a task.
 
-### Compose ships the host's runtime socket
+Put gusto on a machine that runs nothing else you care about. Whoever can change the server's image, its environment or `.env` has the machine. A task does not hold the socket.
 
-The server's container is given the host's Docker socket, or rootful podman's
-(`GUSTO_RUNTIME_SOCKET`), and starts each job as a sibling container on the host.
+Two other options are not shipped:
 
-**Whoever holds that socket holds root on the host.** It can start a privileged
-container that mounts `/`, and the server holds it. Anybody who takes over the
-server process, through a flaw in gusto or in anything it links, has root on the
-machine. It is not safe. It is shipped because it is the one option that keeps
-everything the product promises about a job:
+- Rootless podman inside the server's container needs the host to relax seccomp and AppArmor and to hand over `/dev/fuse`. It trades root-equivalence for a thinner sandbox, and nobody has run gusto that way.
+- `GUSTO_SANDBOX=here` runs each task in the server's own process, with no runtime. Calls still go through the proxy at `127.0.0.1:8041` with the task's own token, and the task gets none of the server's password, keys or tokens. A task can read and write whatever the server's user can, other tasks' directories included, and reach any network. In a container the pages cannot use it: the server finds no agent in the runner image, so only `POST /api/jobs` runs a task.
 
-- one container per job, destroyed after, with `--cpus`, `--memory` and
-  `--pids-limit`;
-- the seal: `--network=none`, and the proxy's socket mounted in as the only way
-  out;
-- no credential and no signing key inside a job.
+### Kubernetes gives the pod a privileged runtime
 
-So put gusto on a machine that runs nothing else you care about, and treat the
-server's container as root on it: whoever can change its image, its
-environment or `.env` has the machine. A job does not hold the socket, so
-signing in and running jobs is not the same as holding it.
+A Kubernetes node runs containerd or CRI-O, so there is rarely a Docker socket to mount. The chart puts a Docker daemon (`docker:29-dind`) beside the server in the same pod, and the server starts every task in it.
 
-The other two options, and why neither is shipped:
+**The daemon's container is privileged, which is root on the node.** The namespace has to admit it (Pod Security `privileged`), and a flaw in gusto is a way onto that node. The daemon listens on a unix socket in the pod and on no TCP port. The image's default opens 2375 to the pod network with no authentication.
 
-- **Rootless podman inside the server's container.** Nested podman needs the
-  host to relax seccomp and AppArmor for the server's container and to hand it
-  `/dev/fuse`. Podman's own guide runs it without `--privileged`, but what it
-  relaxes are the defences the kernel keeps between a container and its host,
-  so it trades root-equivalence for a thinner wall and more moving parts, and
-  nobody has run gusto that way.
-- **`GUSTO_SANDBOX=here`**, which runs each job in the server's own process. It
-  needs no runtime at all. A job still reaches its model through the proxy, on
-  `127.0.0.1:8041`, with a token of its own, so its calls are capped and
-  recorded in `out/proxy.jsonl` as a box's are, and the harness and the gate get
-  only what a program needs of the server's environment (where programs are, the
-  person's home, language and terminal) and no password, key or token of the
-  server's. It gives up the walls: a job can read and write whatever the server's
-  user can, every other job's directory included, and reach any network. And
-  today the pages cannot use it in a container: the server asks the runtime
-  what the runner image carries when it starts, finds none, and offers no
-  harness. A run on 2026-09-27 printed `not offered: the runner image could not
-  be asked what it carries` for every one. Only `POST /api/jobs` would run a
-  job.
-
-### Kubernetes ships a privileged runtime in the pod
-
-A Kubernetes node runs containerd or CRI-O, not Docker, so there is rarely a
-Docker socket on the node to mount, and a hostPath to the node's runtime socket
-would be root on the node with jobs hidden from the kubelet. The chart instead
-puts a Docker daemon beside the server in the same pod (`docker:29-dind`), and
-the server starts every job in it.
-
-**The daemon's container is privileged, which is root on the node that runs
-it.** The namespace has to admit it (Pod Security `privileged`), and a flaw in
-gusto is a way onto that node. The image's documentation runs its rootless
-variant privileged as well, so that variant does not change this. What it keeps is what the
-socket keeps in compose: a container per job, the seal, and no credential in a
-job. What it adds is that the daemon listens on a unix socket in the pod and on
-no TCP port, because the image's default opens 2375 to the pod network with no
-authentication.
-
-What else it costs:
-
-- Jobs run inside the daemon's container, so the scheduler sees one container.
-  `resources.runtime` has to hold `jobs.concurrency` times `jobs.memory`.
+- Tasks run inside the daemon's container, so the scheduler sees one container. `resources.runtime` has to hold `jobs.concurrency` times `jobs.memory`.
 - The daemon's storage lives with the pod, so a new pod pulls the runner again.
+- `GUSTO_SANDBOX=here` is not offered.
 
-`GUSTO_SANDBOX=here` gives up what it gives up in compose, for the same reasons,
-and is not offered.
-
-### What a real answer on Kubernetes needs
-
-A sandbox that asks the Kubernetes API for a Pod per job, from the runner image,
-instead of asking a daemon for a container. The scheduler then places and
-accounts every job, nothing is privileged, and a NetworkPolicy does what
-`--network=none` does. That is Go code in `internal/sandbox`: the job directory
-has to reach a pod on another node, the proxy has to be reachable from that pod
-and from nothing else, the server needs a service account that may create pods
-in one namespace, and the catalog has to ask a pod what the image carries. It
-is a candidate issue, not part of this install.
+A sandbox that asks the Kubernetes API for a Pod per task would remove the privilege. It needs Go code in `internal/sandbox` and is not part of this install.
 
 ## What it needs outbound, and what it does not
 
-[docs/AIRGAP.md](../docs/AIRGAP.md) names every place gusto reaches outside and
-what replaces each one. For these two installs:
+[../docs/AIRGAP.md](../docs/AIRGAP.md) names every place gusto reaches outside and what replaces each.
 
-**Building the images** reaches everything AIRGAP.md's B1 to B5 name, plus the
-server's own: `docker.io` for the bases pinned above, `proxy.golang.org` for the
-Go modules (both Dockerfiles download them), Debian bookworm's mirrors for
-`git` and `ca-certificates` in both images and `openssh-client` in the server,
-and `registry.npmjs.org` for the harnesses in `HARNESSES`.
+- Building the images reaches what AIRGAP.md's B1 to B5 name, plus `docker.io` for the bases, `proxy.golang.org` for the Go modules, Debian bookworm's mirrors for `git`, `ca-certificates` and (in the server) `openssh-client`, and `registry.npmjs.org` for the agents in `HARNESSES`.
+- Installing with Compose reaches nothing more. On Kubernetes the kubelet pulls the server, the runtime and the CLI from the registries the values name, and the runtime pulls the runner whenever a pod starts.
+- Running reaches what AIRGAP.md's S1 to S8 and J1 to J7 name: the identity provider if set, the model upstreams the proxy holds credentials for, the tasks' git hosts, and the hosts `GUSTO_ALLOWED_HOSTS` names. An agent calling home from a sealed task is refused and written down. With no model upstream set there is no proxy, and a task keeps the runtime's default network, which on these installs is the Docker bridge and reaches anything the machine does.
 
-**Installing** reaches nothing more with compose, which runs what it built. On
-Kubernetes the kubelet pulls the server, the runtime and the CLI from the
-registries the values name, and the runtime pulls the runner every time a pod
-starts.
-
-**Running** reaches what AIRGAP.md's S1 to S8 and J1 to J7 name: the identity
-provider if one is set, the model upstreams the proxy holds credentials for,
-the git hosts of the jobs' repositories, and the hosts `GUSTO_ALLOWED_HOSTS`
-names. A harness calling home from a sealed job is refused and written down
-(J1 to J5). With no model upstream set there is no proxy, and a job keeps the
-runtime's default network (J7): on these installs that is the Docker bridge,
-which reaches anything the machine does.
-
-**It does not reach** anything of ours. Nothing in gusto calls a licence server,
-sends telemetry, or checks for updates, and the pages load nothing from outside
-the server. Nothing needs to reach in but the port the pages are on: the proxy
-listens on a unix socket, in the data directory in compose and in a volume only
-the pod shares on Kubernetes, and the chart's Service exposes the pages alone.
+gusto calls no licence server, sends no telemetry, checks for no updates, and its pages load nothing from outside the server. Only the port the pages are on needs to be reachable. The proxy listens on a unix socket, and the chart's Service exposes the pages alone.
 
 ## What has been run, and what has not
 
-Run on 2026-09-27 on a Linux x86-64 machine, as root, with Docker Engine 29.3.1
-and Compose v5.1.1. That machine re-signs outbound TLS with its own CA, so for
-the builds its CA was added to the same pinned bases through a compose file kept
-outside the repository; nothing under `deploy/` changed for it.
-
-- **Compose.** Both images built. `docker compose up -d --build` brought the
-  runner up and down with exit 0 and the server up and healthy. The pages
-  answered: the sign-in page, sign-in with the password, the catalog offering
-  opencode, `/jobs`, and `/static/htmx.min.js`. `smoke.sh` passed with no
-  upstream (the job on the Docker bridge), with an upstream set (the job
-  sealed), and with a signing key, when `gusto verify` named the signer. A job
-  that tried one request through the proxy and one around it, sealed, got the
-  proxy's 403 with a `denied` line in `out/proxy.jsonl`, and `Could not resolve
-  host`.
-- **The chart.** `helm lint --strict` and `helm template` with
-  `helm/gusto/ci/values.yaml`, and `kubeconform -strict` against Kubernetes
-  1.30.0: five resources, all valid. It refuses a tag in place of a digest, a
-  missing password, a setting the chart owns, and Kubernetes before 1.29.
-- **The chart, on a cluster.** The `install-check` workflow
-  (`.github/workflows/install-check.yml`, run 36531022679 on 2026-09-29) checks
-  the signatures of v0.1.0-rc.1's two images with cosign, then installs the chart
-  from their digests on a `kind` cluster with a pull secret. The pod became
-  ready, the server container ran the named digest, sign-in answered 303 and the
-  home page 200. The same run installed compose from the digests with
-  `--no-build` and passed the same checks. Neither ran a job or reached a model.
-- **The chart's pod, without Kubernetes.** kind could not start a pod on that
-  machine (runc failed one level down), so the pod was laid out by hand with
-  Docker: the runtime image privileged with the chart's arguments, the server
-  image beside it, the same volumes at the same paths and the same
-  environment. The runtime listened on no TCP port, `smoke.sh`'s job passed
-  sealed, and the same two requests were refused and found no route.
-
-- **Compose, cold, by a stranger.** An agent with no other context cloned the
-  repository and followed `compose/README.md` alone, on linux/arm64 in the
-  Rancher Desktop VM on an Apple Silicon Mac (2026-09-29). Both images built in
-  48 s, the server read `healthy` about 15 s after `up`, the smoke check passed
-  in 2.2 s, and sign-in and the pages answered. It found eight gaps in the
-  README, which were corrected. It ran no model and did not try TLS, signing or
-  podman.
+Compose was run on Linux x86-64 and linux/arm64: both images build, the server reads `healthy`, `smoke.sh` passes with no upstream, with an upstream set and with a signing key, and a sealed task's request around the proxy is refused. The chart passes `helm lint --strict` and `kubeconform -strict` against Kubernetes 1.30.0, and the `install-check` workflow installs it from a release's digests on a `kind` cluster. No task ran there and no model was reached.
 
 Not run yet:
 
-- the chart on a cluster you run, and its ingress: the `install-check` workflow
-  installs it on a `kind` cluster, with the ingress off;
-- compose on podman's socket, rootful or rootless;
-- a real harness with a real model through either install;
-- the chart on arm64;
-- the chart, on a clean machine, by somebody who did not write it.
+- the chart on a cluster you run, and its ingress (`install-check` runs with the ingress off);
+- Compose on podman's socket, rootful or rootless;
+- a real agent with a real model through either install;
+- the chart on arm64.

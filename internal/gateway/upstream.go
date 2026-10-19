@@ -22,8 +22,8 @@ const (
 	callTime   = 60 * time.Second
 )
 
-// Server is one MCP server the gateway calls on a job's behalf: an address, and the headers it is called with, which may be a
-// credential. They are held here and never given to the job.
+// Server is one MCP server the gateway calls on a task's behalf: an address, and the headers it is called with, which may be a
+// credential. They are held here and never given to the task.
 //
 // A server may instead be a program: the gateway starts it, by the launcher it is given, and speaks to it over its standard input and
 // output. Plugin is the folder of the plugin it came with, which it reads and may not change.
@@ -36,7 +36,7 @@ type Server struct {
 	Env     map[string]string `json:"env,omitempty"`
 	Cwd     string            `json:"cwd,omitempty"`
 	Plugin  string            `json:"plugin,omitempty"`
-	// Data is a folder the program may write, which belongs to this job and goes with it.
+	// Data is a folder the program may write, which belongs to this task and goes with it.
 	Data string `json:"data,omitempty"`
 }
 

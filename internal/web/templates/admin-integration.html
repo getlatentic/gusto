@@ -49,7 +49,7 @@
   {{if .Plugin.Servers}}{{$programs := false}}{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}{{$programs = true}}{{end}}{{end}}
   {{if $programs}}
   <h3>Programs</h3>
-  <p class="muted">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the job or to any credential, and nothing it can write but a folder of the job's.</p>
+  <p class="muted">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the task or to any credential, and nothing it can write but a folder of the task's.</p>
   <ul>{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
   {{if eq $.Held.Programs .ID}}
   <p><strong>Allowed.</strong></p>

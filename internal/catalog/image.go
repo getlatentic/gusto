@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Label is where the runner image lists the harnesses it carries, as the
+// Label is where the runner image lists the agents it carries, as the
 // Dockerfile's HARNESSES wrote them: name=package, space-separated.
 const Label = "com.getlatentic.gusto.harnesses"
 
@@ -21,12 +21,12 @@ type Image interface {
 
 // Carried is one image's answer.
 type Carried struct {
-	// Declared is the harness names the image's label lists.
+	// Declared is the agent names the image's label lists.
 	Declared []string
-	// OnPath is the programs a job in the image would find.
+	// OnPath is the programs a task in the image would find.
 	OnPath map[string]bool
 	// Unasked is an image nobody asked, because there is no container to ask:
-	// a job then runs in this process, and the runner itself refuses a
+	// a task then runs in this process, and the runner itself refuses a
 	// program it cannot find.
 	Unasked bool
 	// Unanswered is why the image could not be asked at all.
@@ -36,7 +36,7 @@ type Carried struct {
 	Machine bool
 }
 
-// Declares reports whether the image names the harness.
+// Declares reports whether the image names the agent.
 func (c Carried) Declares(name string) bool {
 	for _, declared := range c.Declared {
 		if declared == name {
@@ -46,7 +46,7 @@ func (c Carried) Declares(name string) bool {
 	return false
 }
 
-// Runs says whether a job on this harness would find its program, and what to
+// Runs says whether a task on this agent would find its program, and what to
 // do when it would not. The label decides only the advice: a program that is
 // there runs whatever the label says, and one that is missing does not start
 // because the label names it.
@@ -62,7 +62,7 @@ func (c Carried) Runs(name, program string) (bool, string) {
 	return false, "the runner image does not carry " + program + ": add " + name + " to its HARNESSES and rebuild it"
 }
 
-// machine is this computer, as a person's own: a job runs here and finds its program on the PATH.
+// machine is this computer, as a person's own: a task runs here and finds its program on the PATH.
 type machine struct{}
 
 // Machine is this computer's PATH, asked in place of an image.

@@ -33,15 +33,15 @@ func (r record) title() string {
 
 func (r record) body() string {
 	var out strings.Builder
-	out.WriteString("A gusto job wrote this patch, and its gate passed. It is here for review.\n\n")
+	out.WriteString("A gusto task wrote this patch, and its check passed. It is here for review.\n\n")
 	out.WriteString("| | |\n| --- | --- |\n")
-	fmt.Fprintf(&out, "| harness | `%s` |\n", r.manifest.Harness)
+	fmt.Fprintf(&out, "| agent | `%s` |\n", r.manifest.Harness)
 	fmt.Fprintf(&out, "| model | %s |\n", r.model())
-	fmt.Fprintf(&out, "| gate | exit %d |\n", r.manifest.Gate.Code)
+	fmt.Fprintf(&out, "| check | exit %d |\n", r.manifest.Gate.Code)
 	fmt.Fprintf(&out, "| manifest | [sha256 `%s`](%s) |\n", r.digest, r.links.blob("out/manifest.json"))
 	fmt.Fprintf(&out, "| ran against | `%s` |\n", r.at)
 	fmt.Fprintf(&out, "| signer | %s |\n", r.signer)
-	fmt.Fprintf(&out, "\nThe gate:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Gate.Command))
+	fmt.Fprintf(&out, "\nThe check:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Gate.Command))
 	fmt.Fprintf(&out, "\nThe brief:\n\n%s\n", quoted(r.spec.Brief))
 	out.WriteString(r.links.section(r.digest, r.at))
 	return out.String()
@@ -51,7 +51,7 @@ func (r record) body() string {
 // empty: a harness may use its own default, and a harness needing no model has
 // no endpoint.
 func (r record) model() string {
-	asked := "the harness's default"
+	asked := "the agent's default"
 	if r.spec.Model != "" {
 		asked = "`" + r.spec.Model + "`"
 	}
@@ -62,7 +62,7 @@ func (r record) model() string {
 }
 
 func (r record) message(dir job.Dir) string {
-	return fmt.Sprintf("%s\n\nThe patch from gusto job %s, whose gate passed.\nManifest sha256 %s.\n",
+	return fmt.Sprintf("%s\n\nThe patch from gusto task %s, whose check passed.\nManifest sha256 %s.\n",
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }
 

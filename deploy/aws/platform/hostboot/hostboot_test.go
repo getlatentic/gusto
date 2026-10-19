@@ -349,7 +349,7 @@ func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsACell(t 
 		t.Fatalf("the playbook was not told this host is made to be imaged: %v", lines)
 	}
 	survey := index(lines, "systemd-run --wait --collect --unit=haas-bake-survey")
-	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/haas survey") || survey < play {
+	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/haas scan") || survey < play {
 		t.Errorf("the runner image was not prepared after the playbook: %v", lines)
 	}
 	if _, err := os.Stat(done); err != nil {

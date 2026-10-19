@@ -1,17 +1,17 @@
-// Package instance is a harness with a computer.
+// Package instance is an agent with a workspace.
 //
-// An instance is what a person picks from the catalog and keeps: a harness, the
+// An instance is what a person picks from the catalog and keeps: an agent, the
 // model it thinks with, and a workspace that stays. A thread is one conversation
 // with it, and an instance has as many as somebody wants to hold at once.
 //
 // The two are separate because they have different lifetimes. The workspace and
-// the harness's own data directory belong to the instance and outlive every
-// conversation; what the harness remembers of a conversation belongs to the
+// the agent's own data directory belong to the instance and outlive every
+// conversation; what the agent remembers of a conversation belongs to the
 // thread and is asked for again by name when that thread is resumed.
 //
-// Nothing here is a second way to run things. A turn is an ordinary job that
+// Nothing here is a second way to run things. A turn is an ordinary task that
 // mounts the instance's workspace instead of cloning a repository, and it is
-// queued, sandboxed, streamed and recorded exactly as any other job is.
+// queued, sandboxed, streamed and recorded exactly as any other task is.
 package instance
 
 import (
@@ -30,7 +30,7 @@ import (
 	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
-// Instance is the computer: what a harness runs under and works in.
+// Instance is the workspace: what an agent runs under and works in.
 type Instance struct {
 	ID string `json:"id"`
 	// Title is what the people using it call it: the template's name, or one
@@ -88,13 +88,13 @@ func (s *Store) Root() string { return s.root }
 // Dir is where an instance keeps everything that stays.
 func (s *Store) Dir(id string) string { return filepath.Join(s.root, id) }
 
-// Workspace is the directory a harness works in, across every thread.
+// Workspace is the directory an agent works in, across every thread.
 func (s *Store) Workspace(id string) string { return filepath.Join(s.Dir(id), "workspace") }
 
-// State is where a harness keeps its own memory. It is outside the workspace
-// because that is where harnesses put it: opencode keeps its sessions under its
+// State is where an agent keeps its own memory. It is outside the workspace
+// because that is where agents put it: opencode keeps its sessions under its
 // data directory, not beside the files it edits. Threads share it, and the
-// harness tells them apart by the name each thread remembers.
+// agent tells them apart by the name each thread remembers.
 func (s *Store) State(id string) string { return filepath.Join(s.Dir(id), "state") }
 
 func (s *Store) threadsDir(id string) string { return filepath.Join(s.Dir(id), "threads") }
@@ -188,8 +188,8 @@ func (s *Store) SetModel(id, model string) error {
 	return nil
 }
 
-// SetHarness points an instance that nothing has been said to at another harness. One that has been used is its conversations' and
-// stays as it is, since what a harness remembers of them is its own.
+// SetHarness points an instance that nothing has been said to at another agent. One that has been used is its conversations' and
+// stays as it is, since what an agent remembers of them is its own.
 func (s *Store) SetHarness(id, harness string) error {
 	s.guard.Lock()
 	defer s.guard.Unlock()
@@ -199,7 +199,7 @@ func (s *Store) SetHarness(id, harness string) error {
 	}
 	for _, thread := range s.threads[id] {
 		if len(thread.Turns) > 0 {
-			return fmt.Errorf("%s has been used, so it keeps its harness", id)
+			return fmt.Errorf("%s has been used, so it keeps its agent", id)
 		}
 	}
 	held.Harness = harness

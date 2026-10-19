@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">Your own agent</p>
     <h1>Choose how it works</h1>
-    <p class="lede">Pick the engine it thinks with, give it a skill set if you have one, and name it.</p>
+    <p class="lede">Pick the agent it thinks with, give it a skill set if you have one, and name it.</p>
   </div>
 </section>
 
@@ -14,7 +14,7 @@
 <form class="panel stack start-form" method="post" action="/instances">
   <label>Name it <input name="title" placeholder="Agent" maxlength="60"></label>
   <fieldset class="engines">
-    <legend>Engine</legend>
+    <legend>Agent</legend>
     {{range $i, $each := .Engines}}
     <label class="engine">
       <input type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
@@ -22,7 +22,7 @@
       <span class="what">{{$each.What}}</span>
     </label>
     {{end}}
-    <a class="link-quiet" href="/engines">How each engine did →</a>
+    <a class="link-quiet" href="/engines">How each agent did →</a>
   </fieldset>
   {{if .Setups}}
   <label>Skill set

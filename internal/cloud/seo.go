@@ -24,7 +24,7 @@ func (s *Server) seen(page view, path, description string) view {
 
 // landingDescription is what the landing page says it is, for the page's description and for a link to it.
 func landingDescription(page view) string {
-	return "Run Claude Code, Codex, Pi, OpenCode and other agent harnesses with the same controls for credentials, models, spend and oversight. Try it for " + minutes(page.DemoLeft) + "."
+	return "Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight. Try it for " + minutes(page.DemoLeft) + "."
 }
 
 // structured is what the landing page says about who makes it and what it is, as data a search engine reads. It says only what the

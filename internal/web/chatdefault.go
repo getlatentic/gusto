@@ -68,7 +68,7 @@ func (s *Server) setChatDefault(w http.ResponseWriter, r *http.Request) {
 	harness, model, _ := strings.Cut(r.FormValue("default"), "|")
 	chosen := chatDefault{Harness: harness, Model: model}
 	if harness != "" && !s.canRun(r, chosen) {
-		s.turnAway(w, r, "/admin", "that engine and model cannot run here")
+		s.turnAway(w, r, "/admin", "that agent and model cannot run here")
 		return
 	}
 	var was chatDefault

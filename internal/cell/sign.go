@@ -1,6 +1,6 @@
-// Package cell is how the front door runs organisations' servers on other hosts. A host that runs
-// them has an agent, which the front door asks over HTTP with requests signed by a secret only the
-// front door and the cells hold, and which registers itself in a directory all of them see, so that
+// Package cell is how the gusto cloud runs organisations' servers on other hosts. A host that runs
+// them has an agent, which the gusto cloud asks over HTTP with requests signed by a secret only the
+// gusto cloud and the hosts hold, and which registers itself in a directory all of them see, so that
 // adding a host is starting one.
 package cell
 
@@ -40,7 +40,7 @@ func sign(r *http.Request, secret []byte, now time.Time, body []byte) {
 	r.Header.Set(signatureHeader, mac(secret, r.Method, r.URL.RequestURI(), now.Unix(), body))
 }
 
-var errUnsigned = errors.New("the request is not signed by the front door")
+var errUnsigned = errors.New("the request is not signed by gusto cloud")
 
 // verify reads a request's body and says whether it was signed with the secret, recently. The body is
 // put back for the handler.

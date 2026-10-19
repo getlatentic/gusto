@@ -13,14 +13,14 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Rebuild reads every job under root back into a ledger, so a server that
+// Rebuild reads every task under root back into a ledger, so a server that
 // restarts in the middle of a month still knows what each team has spent. The
-// lines in each job's out/proxy.jsonl are the ledger; this is a cache of them.
+// lines in each task's out/proxy.jsonl are the ledger; this is a cache of them.
 func Rebuild(root string, policy Policy) (*Ledger, error) {
 	return RebuildWhere(root, policy, nil)
 }
 
-// RebuildWhere reads back only the jobs keep names, which is how a person's own
+// RebuildWhere reads back only the tasks keep names, which is how a person's own
 // spend is told apart from everybody's. A nil keep reads them all.
 func RebuildWhere(root string, policy Policy, keep func(job string) bool) (*Ledger, error) {
 	ledger := NewLedger(policy)
@@ -55,7 +55,7 @@ func RebuildWhere(root string, policy Policy, keep func(job string) bool) (*Ledg
 // reprice prices a call the proxy counted before its model had a price. The
 // tokens are the provider's and the price is the operator's, so a price added
 // later applies to what was already counted; a line that carried a cost keeps
-// it. The evidence on disk is not rewritten.
+// it. The record on disk is not rewritten.
 func (p Policy) reprice(call Call) Call {
 	if call.Measured() || !call.Counted() || call.Refused != nil {
 		return call
@@ -65,9 +65,9 @@ func (p Policy) reprice(call Call) Call {
 	return call
 }
 
-// dated is a job's calls with a time on every one. The proxy wrote lines
+// dated is a task's calls with a time on every one. The proxy wrote lines
 // without one before it recorded when a call was sent, and those are dated by
-// when the file was last written, which is within the job's own run, rather
+// when the file was last written, which is within the task's own run, rather
 // than filed under 1970.
 func dated(path string) ([]Call, error) {
 	calls, err := ReadCalls(path)
@@ -86,17 +86,17 @@ func dated(path string) ([]Call, error) {
 	return calls, nil
 }
 
-// TermsOf is what a job's spec allows it to spend, and where it is reported.
-// A job's project is the repository it worked in: the one thing every job
+// TermsOf is what a task's spec allows it to spend, and where it is reported.
+// A task's project is the repository it worked in: the one thing every task
 // already names that a platform lead would group spend by.
 func TermsOf(spec job.Spec) Terms {
 	return Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
 }
 
-// ReadCalls is every call a job's proxy record holds. A missing file is a job
+// ReadCalls is every call a task's proxy record holds. A missing file is a task
 // that never reached the proxy. A line that is not a call is passed over and
 // said, because a server killed mid-write leaves half a line and refusing to
-// start over it would stop every other job's accounting too.
+// start over it would stop every other task's accounting too.
 func ReadCalls(path string) ([]Call, error) {
 	file, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -121,9 +121,9 @@ func ReadCalls(path string) ([]Call, error) {
 }
 
 // Stopped is the refusal that stopped a run that started at since, read from
-// the job's proxy record, or nil when no cap refused it anything. The record
+// the task's proxy record, or nil when no cap refused it anything. The record
 // outlives a run, so a refusal from before since belongs to an earlier one. The
-// first refusal is the one that stopped it; any after are the harness asking
+// first refusal is the one that stopped it; any after are the agent asking
 // again.
 func Stopped(path string, since int64) (*Refusal, error) {
 	calls, err := ReadCalls(path)

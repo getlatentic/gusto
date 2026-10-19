@@ -159,14 +159,14 @@
   </a>
   {{end}}
   <a class="role blank" href="/new/blank">
-    <span class="text"><strong>Blank agent</strong><span>Choose the engine, a skill set and a repository yourself.</span></span>
+    <span class="text"><strong>Blank agent</strong><span>Choose the agent, a skill set and a repository yourself.</span></span>
     {{template "icon-go"}}
   </a>
 </div>
 {{end}}
 {{/* engine-choices is a row for each agent a person may start with, for one who knows which they want. */}}
 {{define "engine-choices"}}{{if .}}
-<h2 class="plain">Or pick an engine</h2>
+<h2 class="plain">Or pick an agent</h2>
 <div class="list roles">
   {{range .}}
   <a class="role" href="/instances/new?harness={{.Name}}">
