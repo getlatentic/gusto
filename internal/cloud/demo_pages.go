@@ -153,9 +153,9 @@ func waitingWords(state State) string {
 	case Failed:
 		return "Something went wrong starting your demo. It is being tried again."
 	case Waiting:
-		return "Starting a machine for your demo. When none is running this takes about a minute, and your time starts when it is ready, not before."
+		return "Getting your demo ready. This takes about a minute."
 	}
-	return "Getting your demo ready. When nothing else is running this takes about a minute, and your time starts when it is ready, not before."
+	return "Getting your demo ready. This takes about a minute."
 }
 
 func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Person) {
