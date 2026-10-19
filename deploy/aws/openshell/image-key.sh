@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# What names the runner image: the harnesses, the Dockerfile and image/. The haas program inside it
+# What names the runner image: the harnesses, the Dockerfile and image/. The gusto program inside it
 # belongs to the container backend, and a sandbox on a gateway runs nothing of it, so a change to
 # the Go sources does not make a new image. It prints the key.
 set -euo pipefail

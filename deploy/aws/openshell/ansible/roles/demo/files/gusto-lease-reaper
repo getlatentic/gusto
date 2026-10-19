@@ -13,9 +13,9 @@
 # limit is kept, which is how a test runs it.
 set -euo pipefail
 # shellcheck disable=SC1090
-. "${GUSTO_CONF:-/etc/haas/demo.conf}"
-lease=${GUSTO_LEASE_FILE:-/var/lib/haas/lease.json}
-beat=${GUSTO_BEAT_FILE:-/var/lib/haas-cloud/cells/orchestrator.beat}
+. "${GUSTO_CONF:-/etc/gusto/demo.conf}"
+lease=${GUSTO_LEASE_FILE:-/var/lib/gusto/lease.json}
+beat=${GUSTO_BEAT_FILE:-/var/lib/gusto-cloud/cells/orchestrator.beat}
 now=${GUSTO_NOW:-$(date +%s)}
 uptime=${GUSTO_UPTIME:-$(cut -d. -f1 /proc/uptime)}
 stale=${BEAT_STALE_SECONDS:-300}
@@ -47,6 +47,6 @@ else
   why=$(lease_over || true)
 fi
 if [ -n "$why" ]; then
-  echo "haas-lease: $why, so the host is powering off"
+  echo "gusto-lease: $why, so the host is powering off"
   systemctl poweroff
 fi

@@ -23,7 +23,7 @@ jobs:
           aws-region: us-east-1
       - name: Remove
         run: |
-          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running,stopping \
+          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto-poc Name=instance-state-name,Values=pending,running,stopping \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           if [ -z "$up" ]; then echo "no host is up"; exit 0; fi
           read -ra ids <<< "$up"

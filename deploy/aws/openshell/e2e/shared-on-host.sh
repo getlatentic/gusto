@@ -8,14 +8,14 @@ export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
 export XDG_CONFIG_HOME=/etc/openshell-xdg XDG_STATE_HOME=/var/lib/openshell-xdg
 export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
 G="openshell --gateway spike"
-for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
+for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
 pkill -f "[o]penshell.*forward" 2>/dev/null || true
 export GUSTO_HARNESSES=""
 bash "$S/credentials.sh" "$S/creds"
 
 echo "== A: two harnesses in one sandbox, on one project"
 "$S/shared" -credentials "$S/creds" -project "$S/sample" -gateway spike -image "$HOME/e2e/runner-all-rootfs.tar.gz"
-NAME=$($G sandbox list | awk 'NR>1 && $1 ~ /^haas-/ {print $1}' | head -1)
+NAME=$($G sandbox list | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}' | head -1)
 [ -n "$NAME" ] || { echo "no sandbox was left"; exit 1; }
 # exec reads standard input, which here is the rest of this script, so it is given none.
 inside() { $G sandbox exec --name "$NAME" --workdir /sandbox/workspace --no-login-shell --no-tty -- "$@" </dev/null; }

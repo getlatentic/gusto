@@ -10,5 +10,5 @@ here="$root/deploy/aws/openshell"
   echo "bake format 3"
   "$here/image-key.sh"
   cd "$root" && git ls-files -z deploy/aws/openshell/ansible/roles/openshell deploy/aws/openshell/ansible/roles/demo/tasks/cell.yml \
-    deploy/aws/openshell/ansible/roles/demo/templates/haas-cell.service.j2 | xargs -0 shasum -a 256
+    deploy/aws/openshell/ansible/roles/demo/templates/gusto-cell.service.j2 | xargs -0 shasum -a 256
 } | shasum -a 256 | cut -c1-16

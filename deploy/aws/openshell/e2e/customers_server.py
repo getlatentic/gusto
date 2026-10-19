@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A customer system as an MCP server over Streamable HTTP, for the integration end-to-end run.
 
-It has one tool, find_customer, and answers only a call that carries the key haas's gateway holds, so a harness that reached it
+It has one tool, find_customer, and answers only a call that carries the key gusto's gateway holds, so a harness that reached it
 directly, without the gateway, would be refused. Every request is written to its log, with whether the key was right.
 """
 import json

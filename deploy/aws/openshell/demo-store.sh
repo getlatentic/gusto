@@ -5,7 +5,7 @@
 # and it prints its name.
 source "$(dirname "$0")/env.sh"
 account="$(aws sts get-caller-identity --query Account --output text)"
-bucket="haas-poc-demo-$account"
+bucket="gusto-poc-demo-$account"
 if ! aws s3api head-bucket --bucket "$bucket" >/dev/null 2>&1; then
   if [ "$AWS_REGION" = us-east-1 ]; then
     aws s3api create-bucket --bucket "$bucket" >/dev/null

@@ -49,10 +49,10 @@ func main() {
 	var r run
 	var team string
 	flag.StringVar(&r.host.root, "root", "cloud", "the front door's GUSTO_CLOUD_ROOT")
-	flag.StringVar(&r.host.haas, "haas", "haas", "the haas program")
+	flag.StringVar(&r.host.gusto, "gusto", "gusto", "the gusto program")
 	flag.StringVar(&r.host.gateway, "gateway", "spike", "the OpenShell gateway")
 	flag.StringVar(&r.door, "door", "127.0.0.1:8050", "where the front door listens")
-	flag.StringVar(&r.domain, "domain", "haas.test", "GUSTO_CLOUD_DOMAIN")
+	flag.StringVar(&r.domain, "domain", "gusto.test", "GUSTO_CLOUD_DOMAIN")
 	flag.StringVar(&r.model, "model", "", "the model the agents are given")
 	flag.StringVar(&team, "team", "ada@acme-research.com,bob@acme-research.com,cy@acme-research.com,di@acme-research.com", "the admin, then the people they invite")
 	flag.DurationVar(&r.within, "within", 12*time.Minute, "how long a turn may take")

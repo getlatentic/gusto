@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const script = "../../ansible/roles/demo/files/haas-boot"
+const script = "../../ansible/roles/demo/files/gusto-boot"
 
 // Fakes of the commands the script calls. The store is a directory, and everything done is
 // appended to a log, so a test reads what the host did and in what order.
@@ -35,8 +35,8 @@ f=${@: -1}
 echo "certbot $*" >> "$FAKE_LOG"
 while [ $# -gt 0 ]; do [ "$1" = --cert-name ] && name=$2; shift; done
 mkdir -p "$GUSTO_LE/live/$name"; echo "VALID issued" > "$GUSTO_LE/live/$name/fullchain.pem"`,
-	"haas-dns": `#!/bin/bash
-echo "haas-dns $*" >> "$FAKE_LOG"`,
+	"gusto-dns": `#!/bin/bash
+echo "gusto-dns $*" >> "$FAKE_LOG"`,
 	"curl": `#!/bin/bash
 case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *local-ipv4*) echo 10.0.7.21;; *instance-id*) echo i-0abc123def4567890;; *) exit 22;; esac`,
 	"credentials.sh": `#!/bin/bash
@@ -64,10 +64,10 @@ func newHost(t *testing.T) *host {
 	}
 	os.WriteFile(h.conf, []byte(strings.Join([]string{
 		"AWS_REGION=us-east-1", "NAME=gusto.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
-		"DNS_TOKEN_PARAMETER=/haas/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/haas/poc/cloudflare-mail-token",
-		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
-		"CELL_SECRET_PARAMETER=/haas/poc/cell-secret", "TURNSTILE_PARAMETER=/haas/poc/turnstile-secret",
-		"LEAD_HOOK_URL_PARAMETER=/haas/poc/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/haas/poc/lead-hook-secret",
+		"DNS_TOKEN_PARAMETER=/gusto/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/gusto/poc/cloudflare-mail-token",
+		"MODEL_PARAMETER=/gusto/poc/model-key", "DEEPSEEK_PARAMETER=/gusto/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
+		"CELL_SECRET_PARAMETER=/gusto/poc/cell-secret", "TURNSTILE_PARAMETER=/gusto/poc/turnstile-secret",
+		"LEAD_HOOK_URL_PARAMETER=/gusto/poc/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/gusto/poc/lead-hook-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"GUSTO_CONF="+h.conf, "GUSTO_RUN="+filepath.Join(dir, "run"), "GUSTO_LE="+filepath.Join(dir, "le"), "GUSTO_LIB="+filepath.Join(dir, "lib"),
@@ -128,13 +128,13 @@ func TestAFirstBootIssuesTheCertificateOnceKeepsItInTheStoreAndPointsTheNameLast
 		t.Error("the certificate was not kept in the store")
 	}
 	last := done[len(done)-1]
-	if last != "haas-dns -zone example.com -name gusto.example.com -ip 203.0.113.7 -token-file "+filepath.Join(h.dir, "run", "secrets", "cf-dns-token") {
+	if last != "gusto-dns -zone example.com -name gusto.example.com -ip 203.0.113.7 -token-file "+filepath.Join(h.dir, "run", "secrets", "cf-dns-token") {
 		t.Errorf("the name is pointed at the host last: %v", done)
 	}
 	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
 		t.Errorf("the image: %q", got)
 	}
-	if !strings.Contains(strings.Join(done, "\n"), "credentials /haas/poc/model-key /haas/poc/deepseek-key "+filepath.Join(h.dir, "run", "creds")) {
+	if !strings.Contains(strings.Join(done, "\n"), "credentials /gusto/poc/model-key /gusto/poc/deepseek-key "+filepath.Join(h.dir, "run", "creds")) {
 		t.Errorf("the credentials are built from the two model keys: %v", done)
 	}
 }
@@ -146,9 +146,9 @@ func TestTheTokensAreKeptWhereOnlyTheOwnerCanReadThem(t *testing.T) {
 		t.Fatal(err)
 	}
 	for file, want := range map[string]string{
-		"cf-dns-token":   "value-of-/haas/poc/cloudflare-dns-token",
-		"certbot-cf.ini": "dns_cloudflare_api_token = value-of-/haas/poc/cloudflare-dns-token\n",
-		"mail.env":       "GUSTO_CLOUD_MAIL_TOKEN=value-of-/haas/poc/cloudflare-mail-token\n",
+		"cf-dns-token":   "value-of-/gusto/poc/cloudflare-dns-token",
+		"certbot-cf.ini": "dns_cloudflare_api_token = value-of-/gusto/poc/cloudflare-dns-token\n",
+		"mail.env":       "GUSTO_CLOUD_MAIL_TOKEN=value-of-/gusto/poc/cloudflare-mail-token\n",
 	} {
 		path := filepath.Join(h.dir, "run", "secrets", file)
 		info, err := os.Stat(path)
@@ -184,7 +184,7 @@ func TestALaterHostReusesTheCertificateAndTheImageInsteadOfAskingAgain(t *testin
 	if got, _ := os.ReadFile(filepath.Join(fresh.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
 		t.Errorf("the image: %q", got)
 	}
-	if count(done, "haas-dns ") != 1 {
+	if count(done, "gusto-dns ") != 1 {
 		t.Errorf("%v", done)
 	}
 }
@@ -250,11 +250,11 @@ func mustRead(t *testing.T, path string) string {
 func TestAMissingTokenStopsTheBootBeforeAnythingIsIssuedOrPointed(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")
-	done, err := h.boot("FAKE_MISSING=/haas/poc/cloudflare-mail-token")
+	done, err := h.boot("FAKE_MISSING=/gusto/poc/cloudflare-mail-token")
 	if err == nil {
 		t.Fatal("a token that is not stored fails the boot")
 	}
-	if count(done, "certbot ") != 0 || count(done, "haas-dns ") != 0 {
+	if count(done, "certbot ") != 0 || count(done, "gusto-dns ") != 0 {
 		t.Errorf("nothing was issued or pointed: %v", done)
 	}
 }
@@ -265,7 +265,7 @@ func TestAMissingImageStopsTheBootBeforeTheNameIsPointed(t *testing.T) {
 	if err == nil {
 		t.Fatal("an image that is not in the store fails the boot")
 	}
-	if count(done, "haas-dns ") != 0 {
+	if count(done, "gusto-dns ") != 0 {
 		t.Errorf("a host that cannot run computers does not take the name: %v", done)
 	}
 }

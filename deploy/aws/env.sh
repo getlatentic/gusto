@@ -3,9 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export PATH="$HOME/.local/bin:$PATH"
-export AWS_PROFILE="${AWS_PROFILE:-haas-poc}"
+export AWS_PROFILE="${AWS_PROFILE:-gusto-poc}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
-token_file="${GUSTO_CLOUDFLARE_TOKEN_FILE:-$HOME/.config/haas/cloudflare_token}"
+token_file="${GUSTO_CLOUDFLARE_TOKEN_FILE:-$HOME/.config/gusto/cloudflare_token}"
 [ -r "$token_file" ] || { echo "no Cloudflare token at $token_file" >&2; exit 1; }
 CLOUDFLARE_API_TOKEN="$(tr -d '\n' < "$token_file")"
 export CLOUDFLARE_API_TOKEN

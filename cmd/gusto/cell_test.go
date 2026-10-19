@@ -140,7 +140,7 @@ func TestTheFrontDoorStartsHostsForCellsOnlyWhenItIsToldHowAndToldEnough(t *test
 	if _, err := cellScaler(controller); err == nil {
 		t.Error("no template or script")
 	}
-	t.Setenv("GUSTO_CLOUD_CELL_TEMPLATE", "haas-poc-demo-host-cell")
+	t.Setenv("GUSTO_CLOUD_CELL_TEMPLATE", "gusto-poc-demo-host-cell")
 	t.Setenv("GUSTO_CLOUD_CELL_USERDATA", "/opt/gusto-bundle/user-data.sh")
 	t.Setenv("GUSTO_CLOUD_CELL_SETTINGS", "ROLE=cell,RUN=live")
 	scaler, err := cellScaler(controller)

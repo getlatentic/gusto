@@ -1,5 +1,5 @@
 # The harness, run in a sandbox: it makes the change, asks the model through the
-# haas proxy, and then tries a host nobody allowed.
+# gusto proxy, and then tries a host nobody allowed.
 printf yes > answer.txt
 exec 3<>/dev/tcp/host.openshell.internal/8041 || { echo "the proxy was not reachable"; exit 1; }
 body='{"model":"fake","messages":[{"role":"user","content":"ping"}]}'

@@ -33,7 +33,7 @@ func (h host) jobsAskedBy(slug, email string) []jobOf {
 
 // host is the machine everything runs on: where the front door keeps what it keeps, and
 // the programs that say what the gateway holds.
-type host struct{ root, haas, gateway string }
+type host struct{ root, gusto, gateway string }
 
 func (h host) data(slug string) string { return filepath.Join(h.root, "orgs", slug, "data") }
 
@@ -57,7 +57,7 @@ func (h host) finished(slug, email string, n int, within time.Duration) ([]jobOf
 }
 
 func (h host) computers() (string, error) {
-	command := exec.Command(h.haas, "cloud", "workspaces")
+	command := exec.Command(h.gusto, "cloud", "workspaces")
 	command.Env = append(os.Environ(), "GUSTO_CLOUD_ROOT="+h.root)
 	out, err := command.CombinedOutput()
 	return string(out), err

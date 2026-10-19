@@ -48,7 +48,7 @@ jobs:
           [ -n "$RELEASE" ] || RELEASE="$(aws s3 cp "s3://$BUCKET/releases/latest" -)"
           aws s3api head-object --bucket "$BUCKET" --key "releases/$RELEASE/bundle.tgz" >/dev/null \
             || { echo "there is no bundle for $RELEASE: run the demo bundle workflow"; exit 1; }
-          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running \
+          up="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto-poc Name=instance-state-name,Values=pending,running \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [ -z "$up" ] || { echo "a host is already up: $up"; exit 1; }
           case "$CELLS" in [0-4]) ;; *) echo "the hosts are from 0 to 4"; exit 1;; esac
@@ -64,9 +64,9 @@ jobs:
               --user-data "file://user-data-$1.sh" --query 'Instances[].InstanceId' --output text
           }
           if [ "$CELLS" = 0 ]; then
-            ids="$(launch all haas-poc-demo-host 1)"
+            ids="$(launch all gusto-poc-demo-host 1)"
           else
-            ids="$(launch orchestrator haas-poc-demo-host-orchestrator 1) $(launch cell haas-poc-demo-host-cell "$CELLS")"
+            ids="$(launch orchestrator gusto-poc-demo-host-orchestrator 1) $(launch cell gusto-poc-demo-host-cell "$CELLS")"
           fi
           echo "instances=$ids" >> "$GITHUB_OUTPUT"
           echo "launched $ids from release $RELEASE at $(date -u +%H:%M:%S) UTC"

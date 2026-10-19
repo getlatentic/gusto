@@ -3,7 +3,7 @@
 # hosts. Nothing here costs while no host is up. A host is made from the launch template and
 # removes itself, so no host is in this state.
 #
-# The CI role can launch and remove hosts tagged project=haas-poc and put objects in the
+# The CI role can launch and remove hosts tagged project=gusto-poc and put objects in the
 # bucket. It has no IAM permission, so it cannot change what it may do: this stack is applied by
 # a person, with bootstrap.sh, and changes to it are rare.
 
@@ -17,10 +17,10 @@ data "aws_vpc" "default" {
 
 locals {
   account  = data.aws_caller_identity.here.account_id
-  host     = "haas-poc-demo-host"
-  ci       = "haas-poc-ci"
+  host     = "gusto-poc-demo-host"
+  ci       = "gusto-poc-ci"
   bucket   = "arn:aws:s3:::${var.bucket}"
-  ssm_path = "arn:aws:ssm:${var.region}:${local.account}:parameter/haas/poc/*"
+  ssm_path = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/poc/*"
 }
 
 # ── The host ─────────────────────────────────────────────────────────────────
@@ -51,6 +51,12 @@ resource "aws_security_group" "host" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # The hosts and the file system's mount targets use the group until they are moved to its successor, so a group
+  # whose name changes is made before the old one is removed.
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -121,12 +127,12 @@ resource "aws_launch_template" "host" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { project = "haas-poc", name = "demo-host" }
+    tags          = { project = "gusto-poc", name = "demo-host" }
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = { project = "haas-poc", name = "demo-host" }
+    tags          = { project = "gusto-poc", name = "demo-host" }
   }
 }
 
@@ -134,18 +140,18 @@ resource "aws_launch_template" "host" {
 # its own: a front door runs no computer, so it needs no nested virtualization and a small type will do.
 locals {
   hosts = {
-    orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "haas-poc" }
-    cell         = { type = var.cell_instance_type, nested = true, project = "haas-poc" }
+    orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "gusto-poc" }
+    cell         = { type = var.cell_instance_type, nested = true, project = "gusto-poc" }
     # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a demo's
     # hosts never reach them, and it never reaches theirs.
-    cell-live = { type = var.cell_instance_type, nested = true, project = "haas-live" }
+    cell-live = { type = var.cell_instance_type, nested = true, project = "gusto-live" }
   }
 }
 
 # The image a cell of the live front door is started from. It begins as Ubuntu's, so a cell starts as it always did, and
 # bake-cell-image.sh puts the image it makes here, which is read each time a host is started and so needs no change to this stack.
 resource "aws_ssm_parameter" "cell_image" {
-  name        = "/haas/poc/cell-ami"
+  name        = "/gusto/poc/cell-ami"
   description = "The image a cell of the live front door is started from, made by bake-cell-image.sh"
   type        = "String"
   data_type   = "aws:ec2:image"
@@ -210,8 +216,8 @@ resource "aws_launch_template" "role" {
 # an organisation needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
 # when they are tagged for it, so a cell, which runs other people's code, can start nothing.
 locals {
-  live      = "haas-poc-front-door"
-  live_tag  = "haas-live"
+  live      = "gusto-poc-front-door"
+  live_tag  = "gusto-live"
   ec2_arn   = "arn:aws:ec2:${var.region}:${local.account}"
   cell_live = aws_launch_template.role["cell-live"]
 }
@@ -284,9 +290,10 @@ resource "aws_eip" "live" {
   tags   = { project = local.live_tag, name = "front-door" }
 }
 
-# It is started from the bundle like any host and keeps up to date by running the script again (haas-upgrade). Its
-# disk is what it needs to start from and holds nothing that is not on the file system or in the bucket, so it may
-# be replaced. It is stopped, not removed, if it is powered off.
+# It is started from the bundle like any host and keeps up to date by running the script again (gusto-upgrade). Its
+# disk holds the accounts database and the task index (cloud.db and index/ under /var/lib/gusto) and everything else
+# is on the file system or in the bucket, so replacing it takes a copy of those two. It is stopped, not removed, if it
+# is powered off.
 resource "aws_instance" "live" {
   ami                                  = data.aws_ssm_parameter.ubuntu.value
   instance_type                        = var.front_door_instance_type
@@ -330,7 +337,7 @@ resource "aws_eip_association" "live" {
 # one removes. It costs 30 cents a gigabyte-month, and a demo holds a few megabytes.
 resource "aws_efs_file_system" "shared" {
   encrypted = true
-  tags      = { project = "haas-poc", Name = "${local.host}-shared" }
+  tags      = { project = "gusto-poc", Name = "${local.host}-shared" }
 }
 
 data "aws_subnets" "default" {
@@ -351,6 +358,10 @@ resource "aws_security_group" "efs" {
     to_port         = 2049
     protocol        = "tcp"
     security_groups = [aws_security_group.host.id]
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -411,7 +422,7 @@ resource "aws_iam_role_policy" "ci" {
         Action   = "ec2:RunInstances"
         Resource = ["arn:aws:ec2:${var.region}:${local.account}:instance/*", "arn:aws:ec2:${var.region}:${local.account}:volume/*"]
         Condition = {
-          StringEquals = { "aws:RequestTag/project" = "haas-poc" }
+          StringEquals = { "aws:RequestTag/project" = "gusto-poc" }
         }
       },
       {
@@ -437,7 +448,7 @@ resource "aws_iam_role_policy" "ci" {
         Action   = "ec2:TerminateInstances"
         Resource = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
         Condition = {
-          StringEquals = { "ec2:ResourceTag/project" = "haas-poc" }
+          StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" }
         }
       },
       { Sid = "TellATaggedHostToPowerOff", Effect = "Allow", Action = "ssm:SendCommand", Resource = "arn:aws:ssm:${var.region}::document/AWS-RunShellScript" },
@@ -446,14 +457,14 @@ resource "aws_iam_role_policy" "ci" {
         Effect    = "Allow"
         Action    = "ssm:SendCommand"
         Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
-        Condition = { StringEquals = { "ssm:resourceTag/project" = "haas-live" } }
+        Condition = { StringEquals = { "ssm:resourceTag/project" = "gusto-live" } }
       },
       {
         Sid       = "TellATaggedHostToPowerOffOnlyTagged"
         Effect    = "Allow"
         Action    = "ssm:SendCommand"
         Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
-        Condition = { StringEquals = { "ssm:resourceTag/project" = "haas-poc" } }
+        Condition = { StringEquals = { "ssm:resourceTag/project" = "gusto-poc" } }
       },
     ]
   })

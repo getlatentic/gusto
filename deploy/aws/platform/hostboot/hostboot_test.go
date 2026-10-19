@@ -125,7 +125,7 @@ func TestAHostIsMadeFromTheReleaseWithItsLeaseAndADeadmanScheduledBeforeAnything
 	if err != nil {
 		t.Fatal(err)
 	}
-	if deadman := index(lines, "systemd-run --on-active=3h --unit=haas-deadman"); deadman != 0 {
+	if deadman := index(lines, "systemd-run --on-active=3h --unit=gusto-deadman"); deadman != 0 {
 		t.Errorf("the host is scheduled to go before anything is fetched or run: %v", lines)
 	}
 	play := index(lines, "ansible-playbook ")
@@ -159,7 +159,7 @@ func TestABundleThatIsNotTheOneCIMadeIsNeverRunAndTheHostGoes(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(b.dir, "bundle", "ansible")); err == nil {
 		t.Error("an unchecked bundle was unpacked")
 	}
-	if index(lines, "systemd-run --on-active=15m --unit=haas-failed") < 0 {
+	if index(lines, "systemd-run --on-active=15m --unit=gusto-failed") < 0 {
 		t.Errorf("a host that failed to start is removed: %v", lines)
 	}
 }
@@ -173,7 +173,7 @@ func TestAHostWithNoBundleOrWhoseConfigurationFailsGoesInFifteenMinutes(t *testi
 	failing := newBoot(t)
 	failing.release(false)
 	lines, err = failing.run("FAKE_ANSIBLE_FAILS=1")
-	if err == nil || index(lines, "systemd-run --on-active=15m --unit=haas-failed") < 0 {
+	if err == nil || index(lines, "systemd-run --on-active=15m --unit=gusto-failed") < 0 {
 		t.Errorf("a configuration that failed: %v, %v", err, lines)
 	}
 }
@@ -265,7 +265,7 @@ func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if index(lines, "systemd-run --on-active=3h --unit=haas-deadman") != 0 {
+	if index(lines, "systemd-run --on-active=3h --unit=gusto-deadman") != 0 {
 		t.Errorf("%v", lines)
 	}
 	if _, err := os.Stat(liveEnv); err == nil {
@@ -348,8 +348,8 @@ func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsACell(t 
 	if play < 0 || !strings.Contains(lines[play], "demo_bake=true") {
 		t.Fatalf("the playbook was not told this host is made to be imaged: %v", lines)
 	}
-	survey := index(lines, "systemd-run --wait --collect --unit=haas-bake-survey")
-	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/haas scan") || survey < play {
+	survey := index(lines, "systemd-run --wait --collect --unit=gusto-bake-survey")
+	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/gusto scan") || survey < play {
 		t.Errorf("the runner image was not prepared after the playbook: %v", lines)
 	}
 	if _, err := os.Stat(done); err != nil {
@@ -365,7 +365,7 @@ func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if index(lines, "systemd-run --wait --collect --unit=haas-bake-survey") >= 0 {
+	if index(lines, "systemd-run --wait --collect --unit=gusto-bake-survey") >= 0 {
 		t.Errorf("an ordinary host prepared an image: %v", lines)
 	}
 	if _, err := os.Stat(done); err == nil {

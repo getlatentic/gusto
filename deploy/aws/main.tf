@@ -1,13 +1,13 @@
 locals {
-  name = "haas-poc"
-  tags = { project = "haas-poc" }
+  name = "gusto-poc"
+  tags = { project = "gusto-poc" }
   # The module reports its address only inside its URLs.
   address = regex("^http://([0-9.]+):", module.e2b.api_url)[0]
 }
 
 # E2B Embed on one instance with nested virtualization, from E2B's own module,
 # pinned to the commit this was written against. Its resources are named
-# haas-poc, which the IAM user's inline policy is scoped to.
+# gusto-poc, which the IAM user's inline policy is scoped to.
 module "e2b" {
   source = "github.com/e2b-dev/runtime//embed/terraform/aws?ref=cb88df44c7b6ef7df1ab63d51266e645d19880d8"
 
@@ -32,7 +32,7 @@ resource "cloudflare_dns_record" "poc" {
   content = local.address
   ttl     = 60
   proxied = false
-  comment = "haas POC; made and removed by deploy/aws"
+  comment = "gusto POC; made and removed by deploy/aws"
 }
 
 resource "aws_budgets_budget" "poc" {

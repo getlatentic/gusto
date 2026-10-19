@@ -8,13 +8,13 @@
 #
 # PORT=9000 ./owner.sh uses another port here.
 set -euo pipefail
-: "${AWS_PROFILE:=haas-poc}"
+: "${AWS_PROFILE:=gusto-poc}"
 export AWS_PROFILE
 port="${PORT:-8090}"
 command -v session-manager-plugin >/dev/null || { echo "owner.sh: install the Session Manager plugin first: brew install --cask session-manager-plugin" >&2; exit 1; }
 # gusto cloud is the live host that is not one of the hosts it started, which are tagged scaler=on.
 front="$(aws ec2 describe-instances \
-  --filters Name=tag:project,Values=haas-live Name=instance-state-name,Values=running \
+  --filters Name=tag:project,Values=gusto-live Name=instance-state-name,Values=running \
   --query 'Reservations[].Instances[?!(Tags[?Key==`scaler`])].InstanceId' --output text)"
 [ -n "$front" ] && [ "$(wc -w <<<"$front")" -eq 1 ] || { echo "owner.sh: expected one running host of gusto cloud, found: ${front:-none}" >&2; exit 1; }
 echo "the operator's page is at http://localhost:$port while this runs; Ctrl-C closes it"
