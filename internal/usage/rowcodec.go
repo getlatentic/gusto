@@ -3,6 +3,8 @@ package usage
 import (
 	"database/sql"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 var rowColumns = []string{"task", "line", "called_at", "session", "person", "team", "project", "engine", "agent",
@@ -12,15 +14,15 @@ var rowColumns = []string{"task", "line", "called_at", "session", "person", "tea
 // selectColumns is every Row field, without the search column that only the database reads.
 var selectColumns = strings.Join(rowColumns[:len(rowColumns)-1], ", ")
 
-func (r Row) appendArgs(args []any, d dialect) []any {
-	return append(args, r.Task, r.Line, d.timeArg(r.At), r.Session, r.Person, r.Team, r.Project, r.Engine, r.Agent,
+func (r Row) appendArgs(args []any, db *dbkit.DB) []any {
+	return append(args, r.Task, r.Line, db.TimeArg(r.At), r.Session, r.Person, r.Team, r.Project, r.Engine, r.Agent,
 		r.Provider, r.Credential, r.Model, r.InputTokens, r.OutputTokens, r.CachedTokens, r.USD, r.Status,
 		r.TookMS, r.Refused, r.Translated, r.searchText())
 }
 
 func scanRow(rows *sql.Rows) (Row, error) {
 	var r Row
-	var at timeCol
+	var at dbkit.Time
 	var in, out, cached sql.NullInt64
 	var usd sql.NullFloat64
 	err := rows.Scan(&r.Task, &r.Line, &at, &r.Session, &r.Person, &r.Team, &r.Project, &r.Engine, &r.Agent,

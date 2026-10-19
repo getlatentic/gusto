@@ -39,7 +39,7 @@ func (s *store) valuesOf(ctx context.Context, column string) ([]string, error) {
 		` UNION ALL SELECT ` + fmt.Sprintf(next, `v.x`) + ` FROM v WHERE v.x IS NOT NULL)
 		SELECT x FROM v WHERE x IS NOT NULL`
 	var out []string
-	err := s.query(ctx, s.r, query, nil, func(r *sql.Rows) error {
+	err := s.query(ctx, s.db, query, nil, func(r *sql.Rows) error {
 		var v string
 		if err := r.Scan(&v); err != nil {
 			return err
@@ -59,7 +59,7 @@ func (s *store) valuesWhere(ctx context.Context, where string, args []any, into 
 	}
 	cols := facetColumns
 	query := `SELECT DISTINCT ` + strings.Join(cols, ", ") + ` FROM usage_calls` + where
-	err := s.query(ctx, s.r, query, args, func(r *sql.Rows) error {
+	err := s.query(ctx, s.db, query, args, func(r *sql.Rows) error {
 		values := make([]string, len(cols))
 		dest := make([]any, len(cols))
 		for i := range values {
