@@ -35,9 +35,13 @@
 </section>
 
 {{if .Video}}
-<section class="video" aria-label="The Agent Cloud, from inside">
-  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"{{with .Poster}} poster="{{.}}"{{end}}></video>
+<section class="video" aria-label="gusto, from inside">
+  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"></video>
   {{else}}<iframe src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
+</section>
+{{else if .Shot}}
+<section class="shot" aria-label="A finished task">
+  <img src="{{.Shot}}" width="1224" height="980" alt="A finished task in gusto. It shows the outcome, the time, the cost and the tokens, the file that changed, that no request to another site was refused, and a record marked signed.">
 </section>
 {{end}}
 
