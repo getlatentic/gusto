@@ -292,3 +292,7 @@ button.revoke:hover { text-decoration: underline; }
 .usage-filters .search { flex: 1 1 14rem; margin-left: 0; }
 .usage-filters label.inline { margin-left: 0; }
 .usage-filters input[type="date"] { width: auto; padding: var(--gu-space-2) var(--gu-space-3); }
+
+.threads-list li.routine { display: flex; align-items: center; gap: var(--gu-space-2); }
+.threads-list li.routine > a { flex: 1; min-width: 0; }
+.threads-list li.routine form { margin: 0; }

@@ -261,6 +261,7 @@ func serve(args []string) int {
 	defer stopTasks()
 	background, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
+	go pages.RunRoutines(background, time.Minute)
 	if dir := os.Getenv("GUSTO_RETENTION"); dir != "" {
 		policy, err := retention.LoadPolicy(dir)
 		if err != nil {

@@ -196,6 +196,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /instances/{id}/apps/{app}/remove", s.guard(s.removeApp))
 	mux.HandleFunc("/apps/{id}/{rest...}", s.guard(s.app))
 	mux.HandleFunc("/apps/{id}", s.guard(s.app))
+	mux.HandleFunc("POST /instances/{id}/routines", s.guard(s.addRoutine))
+	mux.HandleFunc("POST /instances/{id}/routines/{routine}/{action}", s.guard(s.changeRoutine))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
