@@ -34,6 +34,8 @@ type Entry struct {
 	// Measured is what a benchmark saw this agent do on its simplest task, one
 	// run a model. Empty is an agent no benchmark measured.
 	Measured []Measured
+	// Version is the agent's build, package@version, where the image recorded one.
+	Version string
 }
 
 // What an agent needs, said plainly rather than as a keyword.
@@ -101,6 +103,7 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		Skills:   adapter.Skills != "",
 		MCP:      adapter.TakesMCP(),
 		Declared: carried.Declares(name),
+		Version:  carried.Versions[name],
 	}
 	entry.Ready, entry.Why = carried.Runs(name, adapter.Installed())
 	if carried.Machine && !entry.Ready {
@@ -120,7 +123,7 @@ func notInstalled(adapter harness.Adapter) string {
 	if adapter.Package == "" {
 		return adapter.Installed() + " is not installed on this computer"
 	}
-	return "npm install -g " + adapter.Package
+	return "npm install -g " + adapter.Install()
 }
 
 // Ready is the names a task may name, which is what a form should offer.

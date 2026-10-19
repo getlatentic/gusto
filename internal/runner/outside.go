@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -160,6 +161,7 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 		Gate:            verdict,
 		Harness:         adapter.Name,
 		HarnessDigest:   configured.Digest,
+		HarnessVersion:  versionIn(ctx, box, adapter.Name),
 		Session:         record.Remembered,
 		HarnessExit:     exit,
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
@@ -231,6 +233,16 @@ func carriedIn(ctx context.Context, box Box, name string, adapter harness.Adapte
 			adapter.Program, name, name)
 	}
 	return nil
+}
+
+// versionIn is the agent's build as the box's image recorded it when it was installed, or nothing from an image that
+// recorded none.
+func versionIn(ctx context.Context, box Box, name string) string {
+	out, err := box.Wrap(ctx, exec.CommandContext(ctx, "cat", harness.BuildsFile)).Output()
+	if err != nil {
+		return ""
+	}
+	return harness.ReadVersions(bytes.NewReader(out))[name]
 }
 
 // talk runs the harness in the box and records what it does: an ACP agent is
