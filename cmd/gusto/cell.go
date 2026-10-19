@@ -14,12 +14,12 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// cellCommand runs the agent on a host that runs organisations' servers for a front door on another
-// host. It starts and stops what the front door asks, signed with the secret they share, and says every few
+// hostCommand runs the agent on a host that runs organisations' servers for a gusto cloud on another
+// host. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few
 // seconds that it is there. Its settings are GUSTO_CELL_NAME, GUSTO_CELL_PRIVATE (the address on the
 // private network its servers bind to), GUSTO_CELL_PORT (8060), GUSTO_CELL_SECRET_FILE and GUSTO_CELLS_DIR,
-// the directory every cell and the front door see.
-func cellCommand(args []string) int {
+// the directory every host and gusto cloud see.
+func hostCommand() int {
 	agent, listen, dir, err := cellFromEnv()
 	if err != nil {
 		return fail(err)
@@ -35,13 +35,13 @@ func cellCommand(args []string) int {
 func cellFromEnv() (agent *cell.Agent, listen, dir string, err error) {
 	name, private := os.Getenv("GUSTO_CELL_NAME"), os.Getenv("GUSTO_CELL_PRIVATE")
 	if !cell.ValidName(name) {
-		return nil, "", "", errors.New("GUSTO_CELL_NAME is what this cell is called: lower case letters, digits and hyphens, up to 31")
+		return nil, "", "", errors.New("GUSTO_CELL_NAME is what this host is called: lower case letters, digits and hyphens, up to 31")
 	}
 	if ip := net.ParseIP(private); ip == nil || ip.To4() == nil {
 		return nil, "", "", errors.New("GUSTO_CELL_PRIVATE is this host's IPv4 address on the private network, which its servers bind to")
 	}
 	if dir = os.Getenv("GUSTO_CELLS_DIR"); dir == "" {
-		return nil, "", "", errors.New("GUSTO_CELLS_DIR is the directory every cell and the front door see")
+		return nil, "", "", errors.New("GUSTO_CELLS_DIR is the directory every host and gusto cloud see")
 	}
 	secret, err := cellSecret("GUSTO_CELL_SECRET_FILE")
 	if err != nil {
@@ -51,12 +51,12 @@ func cellFromEnv() (agent *cell.Agent, listen, dir string, err error) {
 	return agent, net.JoinHostPort(private, setting("GUSTO_CELL_PORT", "8060")), dir, nil
 }
 
-// cellSecret reads the secret the front door and the cells sign with. One too short to be a secret is refused,
-// since everything a cell will run is authorised by it.
+// cellSecret reads the secret gusto cloud and the hosts sign with. One too short to be a secret is refused,
+// since everything a host will run is authorised by it.
 func cellSecret(setting string) ([]byte, error) {
 	path := os.Getenv(setting)
 	if path == "" {
-		return nil, errors.New(setting + " is the file with the secret the front door and the cells sign requests with")
+		return nil, errors.New(setting + " is the file with the secret gusto cloud and the hosts sign requests with")
 	}
 	text, err := os.ReadFile(path)
 	if err != nil {
@@ -69,9 +69,9 @@ func cellSecret(setting string) ([]byte, error) {
 	return secret, nil
 }
 
-// cellPool is the cells the front door may place organisations on, or nothing when there is one machine.
-// GUSTO_CLOUD_CELLS_DIR is the directory cells register in, and GUSTO_CLOUD_CELL_SECRET_FILE the secret. This
-// machine is a cell too when GUSTO_CLOUD_LOCAL_CELL is on. A cell silent for GUSTO_CLOUD_CELL_GONE_MINUTES (30)
+// cellPool is the hosts gusto cloud may place organisations on, or nothing when there is one machine.
+// GUSTO_CLOUD_CELLS_DIR is the directory hosts register in, and GUSTO_CLOUD_CELL_SECRET_FILE the secret. This
+// machine is a host too when GUSTO_CLOUD_LOCAL_CELL is on. A host silent for GUSTO_CLOUD_CELL_GONE_MINUTES (30)
 // is taken to be gone, and the organisations on it are placed on another.
 func cellPool(local *cloud.LocalCell) (*cell.Pool, error) {
 	dir := os.Getenv("GUSTO_CLOUD_CELLS_DIR")
@@ -90,8 +90,8 @@ func cellPool(local *cloud.LocalCell) (*cell.Pool, error) {
 	return pool, nil
 }
 
-// beatForCells says every few seconds that the front door is there, which the hosts of the cells act on:
-// a cell with no front door for a long while has nobody to work for.
+// beatForCells says every few seconds that gusto cloud is there, which the hosts act on:
+// a host with no gusto cloud for a long while has nobody to work for.
 func beatForCells(ctx context.Context, dir string) {
 	for {
 		if err := cell.Beat(dir, time.Now()); err != nil {
@@ -105,24 +105,24 @@ func beatForCells(ctx context.Context, dir string) {
 	}
 }
 
-// cellScaler starts a host for a cell when an organisation waits for room and stops one that has had nothing on it, so
+// cellScaler starts a host when an organisation waits for room and stops one that has had nothing on it, so
 // no host runs while nobody is using one. It is on when GUSTO_CLOUD_CELL_LAUNCH is ec2, and then needs
 // GUSTO_CLOUD_CELL_TEMPLATE (the launch template), GUSTO_CLOUD_CELL_USERDATA (the start-up script) and
 // GUSTO_CLOUD_CELL_SETTINGS, NAME=value pairs separated by commas that fill in the script. GUSTO_CLOUD_CELL_PROJECT
 // is the project tag of the hosts (haas-poc). GUSTO_CLOUD_CELL_MAX (3) is
-// the most hosts, GUSTO_CLOUD_CELL_IDLE_MINUTES (10) how long a cell may have nothing on it, and
-// GUSTO_CLOUD_CELL_BOOT_MINUTES (10) how long a host has to become a cell.
+// the most hosts, GUSTO_CLOUD_CELL_IDLE_MINUTES (10) how long a host may have nothing on it, and
+// GUSTO_CLOUD_CELL_BOOT_MINUTES (10) how long a host has to come up.
 func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
 	if os.Getenv("GUSTO_CLOUD_CELL_LAUNCH") != "ec2" || controller == nil {
 		return nil, nil
 	}
 	pool, ok := controller.Cells.(*cell.Pool)
 	if !ok {
-		return nil, errors.New("GUSTO_CLOUD_CELL_LAUNCH needs GUSTO_CLOUD_CELLS_DIR, which says where cells register")
+		return nil, errors.New("GUSTO_CLOUD_CELL_LAUNCH needs GUSTO_CLOUD_CELLS_DIR, which says where hosts register")
 	}
 	template, script := os.Getenv("GUSTO_CLOUD_CELL_TEMPLATE"), os.Getenv("GUSTO_CLOUD_CELL_USERDATA")
 	if template == "" || script == "" {
-		return nil, errors.New("GUSTO_CLOUD_CELL_TEMPLATE and GUSTO_CLOUD_CELL_USERDATA say what a host for a cell is made from")
+		return nil, errors.New("GUSTO_CLOUD_CELL_TEMPLATE and GUSTO_CLOUD_CELL_USERDATA say what a host is made from")
 	}
 	settings := map[string]string{}
 	for _, pair := range values("GUSTO_CLOUD_CELL_SETTINGS") {

@@ -16,7 +16,7 @@ func virtualMachine(h Host) Backend {
 			return no("this Mac does not offer hardware virtualization")
 		}
 	default:
-		return no("virtual machines for jobs are not supported on " + h.GOOS)
+		return no("virtual machines for tasks are not supported on " + h.GOOS)
 	}
 	binary := h.Getenv("GUSTO_OPENSHELL")
 	if binary == "" {
@@ -68,7 +68,7 @@ func landlock(h Host, no func(string) Backend) Backend {
 	}
 	out, ok := h.Run(h.Self, args...)
 	if !ok {
-		refused := no("this kernel's Landlock cannot hold a job to its folder and gusto's proxy: it needs Linux 6.7 or later")
+		refused := no("this kernel's Landlock cannot hold a task to its folder and gusto's proxy: it needs Linux 6.7 or later")
 		refused.Cause = oneLine(out)
 		return refused
 	}
@@ -86,7 +86,7 @@ func oneLine(said string) string {
 func container(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: Container, Detail: why} }
 	if h.GOOS == "windows" {
-		return no("containers for jobs are not supported on Windows yet")
+		return no("containers for tasks are not supported on Windows yet")
 	}
 	name := runtimeName(h)
 	if _, err := h.LookPath(name); err != nil {
@@ -104,7 +104,7 @@ func container(h Host) Backend {
 	}
 	if h.MountsSocket != nil {
 		if err := h.MountsSocket(name, image); err != nil {
-			refused := no(name + " cannot be given the socket a job reaches the proxy through: Docker on a Mac or Windows runs in a virtual machine that cannot share one")
+			refused := no(name + " cannot be given the socket a task reaches the proxy through: Docker on a Mac or Windows runs in a virtual machine that cannot share one")
 			refused.Cause = oneLine(err.Error())
 			return refused
 		}

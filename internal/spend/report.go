@@ -4,7 +4,7 @@ import (
 	"sort"
 )
 
-// Report is what was spent in one month, by team, by project and by job. It is
+// Report is what was spent in one month, by team, by project and by task. It is
 // read from the ledger's own tallies, the ones a team's cap is checked against,
 // rather than added up again, so a report and a cap cannot disagree.
 type Report struct {
@@ -20,7 +20,7 @@ type Report struct {
 	Days []Line `json:"days"`
 }
 
-// Line is one team, project or job and what it spent. An empty name is a job
+// Line is one team, project or task and what it spent. An empty name is a task
 // that named no team.
 type Line struct {
 	Name string `json:"name"`
@@ -70,7 +70,7 @@ func (l *Ledger) Months() []string {
 	return months
 }
 
-// Job is everything one job has spent, whatever month it was in, and whether
+// Job is everything one task has spent, whatever month it was in, and whether
 // it reached a model at all.
 func (l *Ledger) Job(id string) (Tally, bool) {
 	l.guard.Lock()

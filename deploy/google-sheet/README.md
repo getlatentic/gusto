@@ -1,6 +1,6 @@
 # Leads in a Google Sheet
 
-The front door sends each lead to a Google Sheet when a visitor starts a demo, and again when it ends with how. One lead
+gusto cloud sends each lead to a Google Sheet when a visitor starts a demo, and again when it ends with how. One lead
 is one row.
 
 ## Set up
@@ -17,12 +17,12 @@ is one row.
    deploy/aws/openshell/put-lead-hook.sh
    ```
 
-6. Upgrade the front door, or restart it. Start a demo, and a row appears in the sheet's `Leads` tab.
+6. Upgrade gusto cloud, or restart it. Start a demo, and a row appears in the sheet's `Leads` tab.
 
 ## What protects it
 
 The address is public to whoever has it, so the script does nothing unless the request carries the secret. The address and
-the secret are stored in AWS Systems Manager as SecureStrings and are on no command line. A cell never has them.
+the secret are stored in AWS Systems Manager as SecureStrings and are on no command line. A host never has them.
 
-If the sheet cannot be reached, the front door keeps the lead in `leadhook/` beside its other files and sends it later, in
+If the sheet cannot be reached, gusto cloud keeps the lead in `leadhook/` beside its other files and sends it later, in
 order.

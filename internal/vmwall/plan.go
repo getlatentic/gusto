@@ -149,7 +149,7 @@ func (p Plan) diskTools(ctx context.Context) (tools Rootfs, fetch bool, err erro
 		tools, err = p.releasedAsset(ctx, ToolsAsset)
 		return tools, err == nil, err
 	}
-	return Rootfs{}, false, fmt.Errorf("%s is not on this computer, and the virtual machine wall needs it to build each job's disk: %s", missing[0], p.howToGetTools())
+	return Rootfs{}, false, fmt.Errorf("%s is not on this computer, and the virtual machine sandbox needs it to build each task's disk: %s", missing[0], p.howToGetTools())
 }
 
 func (p Plan) howToGetTools() string {
@@ -171,7 +171,7 @@ func (p Plan) Words() string {
 	if p.FetchTools {
 		fmt.Fprintf(&b, ", and the disk tools a Mac lacks (%d MB)", p.Tools.Size>>20)
 	}
-	b.WriteString(".\nEach job then runs in a virtual machine and sees only its own folder. It needs no password and changes nothing outside your own folders.")
+	b.WriteString(".\nEach task then runs in a virtual machine and sees only its own folder. It needs no password and changes nothing outside your own folders.")
 	return b.String()
 }
 

@@ -6,136 +6,74 @@ What to watch on a gusto server, and what to do when an alert fires.
 
 | Path | Answers | Use it for |
 | --- | --- | --- |
-| `/healthz` | `ok` while the process runs | a liveness probe. It never depends on the workers or the disk |
-| `/readyz` | `ready`, or 503 saying what is wrong: fewer workers running than `GUSTO_JOB_CONCURRENCY`, or the jobs directory cannot be written | a readiness probe, and the check a deploy makes before it keeps a new version |
-| `/metrics` | the Prometheus text format | scraping |
+| `/healthz` | `ok` while the process runs | liveness probe. It never depends on the workers or the disk |
+| `/readyz` | `ready`, or 503: fewer workers than `GUSTO_JOB_CONCURRENCY`, or the tasks directory is not writable | readiness probe, and the check a deploy makes before it keeps a new version |
+| `/metrics` | Prometheus text format | scraping |
 
-`/metrics` needs `Authorization: Bearer`. On a server with API tokens
-([TOKENS.md](TOKENS.md)), make a token that may **read metrics** at `/admin/tokens`.
-On a server without, the shared password is the credential.
+`/metrics` needs `Authorization: Bearer`. With API tokens ([TOKENS.md](TOKENS.md)), make a token that may read metrics at `/admin/tokens`. Without, use the shared password. Counters reset to zero on restart.
 
 ## Metrics
 
-| Metric | Type | Says |
-| --- | --- | --- |
-| `gusto_build_info{release}` | gauge | the release this server is |
-| `gusto_started_timestamp_seconds` | gauge | when it started |
-| `gusto_jobs{state}` | gauge | jobs held, by `queued`, `running`, `passed`, `failed`, `interrupted` |
-| `gusto_queue_depth` | gauge | jobs waiting to start |
-| `gusto_queue_oldest_wait_seconds` | gauge | how long the longest-waiting job has waited |
-| `gusto_queue_stuck_seconds` | gauge | how long the longest-waiting job has waited that **nothing holds back**: no limit, no busy agent, a runner free. Near zero while the queue moves |
-| `gusto_jobs_running` | gauge | jobs running now |
-| `gusto_runner_slots` | gauge | how many jobs run at once |
-| `gusto_runner_workers_alive` | gauge | workers running. Fewer than the slots means the queue is broken |
-| `gusto_jobs_finished_total{state}` | counter | jobs that ended since the server started |
-| `gusto_last_job_started_timestamp_seconds`, `gusto_last_job_finished_timestamp_seconds` | gauge | since the server started; 0 before the first |
-| `gusto_disk_free_bytes{store="jobs"}`, `gusto_disk_total_bytes{store="jobs"}` | gauge | the volume the jobs are on |
-| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes` | gauge | what the jobs take, and the workspaces among them. Measured at most once a minute |
-| `gusto_oldest_finished_job_timestamp_seconds` | gauge | when the finished job kept longest ended |
-| `gusto_proxy_calls_total`, `gusto_proxy_errors_total`, `gusto_proxy_refused_total` | counter | model calls handled; those the model's side failed (no answer, or a 5xx); those a spending cap stopped. Absent when there is no proxy |
-| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | gauge | how the last deploy ended: 1, or 0 for a failure or a rollback. Present where a deploy writes `GUSTO_DEPLOY_RESULT`, as the playbook's autodeploy does |
-
-Counters start again at zero when the server restarts, which Prometheus reads
-as a reset.
+| Metric | Says |
+| --- | --- |
+| `gusto_build_info{release}`, `gusto_started_timestamp_seconds` | the release, and when it started |
+| `gusto_jobs{state}`, `gusto_jobs_finished_total{state}` | tasks held, and tasks ended since start, by `queued`, `running`, `passed`, `failed`, `interrupted` |
+| `gusto_queue_depth`, `gusto_queue_oldest_wait_seconds` | tasks waiting, and the longest wait |
+| `gusto_queue_stuck_seconds` | the longest wait of a task that nothing holds back (no limit, no busy agent, a runner free). Near zero while the queue moves |
+| `gusto_jobs_running`, `gusto_runner_slots`, `gusto_runner_workers_alive` | tasks running, tasks allowed at once, workers alive. Fewer workers than slots means the queue is broken. `gusto_last_job_started_timestamp_seconds` and `gusto_last_job_finished_timestamp_seconds` give the last start and finish, 0 before the first |
+| `gusto_disk_free_bytes{store="jobs"}`, `gusto_disk_total_bytes{store="jobs"}` | the volume the tasks are on |
+| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the workspaces among them, and when the longest-kept finished task ended |
+| `gusto_proxy_calls_total`, `gusto_proxy_errors_total`, `gusto_proxy_refused_total` | model calls; calls the model's side failed (no answer, or a 5xx); calls a spending cap stopped. Absent with no proxy |
+| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT`, as the playbook's autodeploy does |
 
 ## Alerts
 
-`deploy/alerts/gusto.rules.yml` holds the rules, `gusto.rules.test.yml` tests them
-with `promtool`, and `prometheus.example.yml` is a scrape of a server. Every
-rule's `runbook` annotation points at its heading here.
+The rules are in `deploy/alerts/gusto.rules.yml`, with `promtool` tests in `gusto.rules.test.yml` and a scrape in `prometheus.example.yml`. Each rule's `runbook` annotation points at its heading here.
 
 ### GustoDown
 
-Prometheus could not scrape `/metrics` for two minutes. The server is down,
-unreachable, or the token no longer works.
-
-1. `curl -sS https://<host>/healthz`. If that answers and `/metrics` gives 401,
-   the token was revoked or the credential changed: make a new one at `/admin/tokens`.
-2. If nothing answers: `systemctl status gusto` and `journalctl -u gusto -n 100`.
-   A server that will not start says why. Two refusals are deliberate: a
-   change record that does not hold together, and data a newer release wrote
-   ([UPGRADE.md](UPGRADE.md)).
-3. If the last deploy is what broke it, see GustoDeployFailed.
+Prometheus could not scrape `/metrics` for two minutes.
+1. Run `curl -sS https://<host>/healthz`. If it answers and `/metrics` gives 401, make a new token at `/admin/tokens`.
+2. If nothing answers, run `systemctl status gusto` and `journalctl -u gusto -n 100`. The server refuses to start on a change record that does not hold together, and on data a newer release wrote ([UPGRADE.md](UPGRADE.md)). If the last deploy broke it, see GustoDeployFailed.
 
 ### GustoNotReady
 
-Fewer workers are running than `GUSTO_JOB_CONCURRENCY`. The queue takes jobs and
-will not start all it should. `/readyz` gives 503 and says how many.
-
-Restart the service: `systemctl restart gusto`. This ends running jobs, which
-the server marks interrupted when it comes back. If it recurs, read the log for
-the panic or error that took a worker, and report it.
+Fewer workers run than `GUSTO_JOB_CONCURRENCY`. `/readyz` gives 503. Run `systemctl restart gusto`. Running tasks end and are marked interrupted. If it recurs, read the log for the error that took a worker.
 
 ### GustoQueueStuck
 
-A queued job that no limit, no busy agent and no full pool holds back has waited
-over five minutes. Workers are alive but not starting it, so something is failing
-before a job starts: the log says `could not claim a job` when the jobs
-directory cannot be written.
-
-1. `df -h` on the jobs volume, and `journalctl -u gusto | grep "could not claim"`.
-2. Free the disk (GustoDiskLow), or fix the directory's permissions.
-3. `systemctl restart gusto` if the log shows nothing and the queue stays stuck.
+A queued task that nothing holds back has waited over five minutes. The log says `could not claim a task` when the tasks directory is not writable.
+1. Run `df -h` on the tasks volume, and `journalctl -u gusto | grep "could not claim"`.
+2. Free the disk (see GustoDiskLow) or fix the directory's permissions. If the log shows nothing, run `systemctl restart gusto`.
 
 ### GustoRunnersSaturated
 
-Every runner has been busy, with jobs waiting, for half an hour. Nothing is
-broken. Look at Activity: is one person's work taking every runner, or is the
-box too small for the team?
-
-- One person: set `GUSTO_LIMIT_PERSON` ([LIMITS.md](LIMITS.md)).
-- Too little capacity: raise `GUSTO_JOB_CONCURRENCY` if memory allows
-  (`GUSTO_JOB_MEMORY` times the concurrency must fit), or add a machine.
-- A job that hangs: its budget in seconds ends it; a very long budget is the
-  usual cause.
+Every runner has been busy, with tasks waiting, for half an hour. Nothing is broken. Check Activity.
+- One person takes every runner: set `GUSTO_LIMIT_PERSON` ([LIMITS.md](LIMITS.md)).
+- Too little capacity: raise `GUSTO_JOB_CONCURRENCY` if memory allows (`GUSTO_JOB_MEMORY` times the concurrency must fit), or add a machine.
+- A task hangs: shorten its budget in seconds.
 
 ### GustoJobsFailing
 
-More than half the jobs that ended in the last hour failed, and at least five
-did. A job fails when its check does or when it cannot run.
-
-1. Open a few failed jobs from Activity. The page says which: the check, the
-   harness's exit, or a refusal.
-2. Every failure the same? Suspect what they share: a repository the GitHub App
-   cannot reach ([REPOS.md](REPOS.md)), a model credential that expired, a
-   runner image that changed.
-3. `gusto doctor` on the server checks the machine can run a job.
+More than half the tasks that ended in the last hour failed, and at least five did.
+1. Open a few failed tasks from Activity. Each page says whether the check failed, the agent exited, or a refusal came.
+2. If the failures match, suspect what they share: a repository the GitHub App cannot reach ([REPOS.md](REPOS.md)), an expired model credential, a changed runner image.
+3. Run `gusto doctor`.
 
 ### GustoDiskLow
 
-Less than a tenth of the volume the jobs are on is free. Jobs then fail to
-write, and the queue stalls.
-
-1. `/admin/retention` shows what the jobs take and what a sweep would free. Set or
-   shorten the policy ([RETENTION.md](RETENTION.md)), then sweep.
-2. `gusto retention` lists a dry run from the command line.
-3. Other things on the same volume take space too: check with `du`.
+Less than a tenth of the tasks volume is free. Tasks fail to write and the queue stalls. Open `/admin/retention`. Set or shorten the policy ([RETENTION.md](RETENTION.md)), then sweep. `gusto retention` gives a dry run. Run `du` to find other things on the same volume.
 
 ### GustoModelErrors
 
-More than a fifth of the model calls in ten minutes failed on the model's side:
-no answer, or a 5xx. At least ten calls were made.
-
-1. Check the provider's status.
-2. `journalctl -u gusto` and a failed job's page show the error the provider gave.
-3. A credential that expired gives 4xx, which is not counted here: look at
-   failed jobs if the calls are failing another way.
-4. Refusals by a spending cap are counted apart, in `gusto_proxy_refused_total`.
+More than a fifth of model calls in ten minutes failed on the model's side (no answer, or a 5xx), with at least ten calls. Check the provider's status. Read `journalctl -u gusto` and a failed task's page for the provider's error. An expired credential gives 4xx, which this alert does not count.
 
 ### GustoDeployFailed
 
-The last deploy failed, or rolled back. The server that is running is the
-version from before it. The deploy's workflow run in GitHub says which step.
-
-1. `journalctl -u 'gusto-deploy@*'` on the box has the play's output.
-2. A smoke failure means the candidate could not run a job. A refusal from
-   `gusto data check` means the data would not upgrade
-   ([UPGRADE.md](UPGRADE.md)). A rollback means the new version did not answer
-   `/readyz`.
-3. Fix on a branch and merge: a merge to `main` deploys again, and a good deploy
-   clears the alert.
+The last deploy failed or rolled back, and the server runs the earlier version. The deploy's GitHub workflow run says which step failed.
+1. Read `journalctl -u 'gusto-deploy@*'` on the box for the play's output. A smoke failure means the candidate could not run a task. A refusal from `gusto data check` means the data would not upgrade ([UPGRADE.md](UPGRADE.md)). A rollback means the new version did not answer `/readyz`.
+2. Fix on a branch and merge. A merge to `main` deploys again, and a good deploy clears the alert.
 
 ### GustoRestartingOften
 
-The server started three times in half an hour: a crash loop, or a deploy
-that keeps restarting it. `journalctl -u gusto` shows the exit each time.
+The server started three times in half an hour: a crash loop, or a deploy that keeps restarting it. Run `journalctl -u gusto` to see each exit.

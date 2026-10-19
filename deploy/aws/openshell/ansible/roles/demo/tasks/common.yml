@@ -12,7 +12,7 @@
     - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
     - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
 
-- name: The agent of a cell, and the organisations' servers
+- name: The agent of a host, and the organisations' servers
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/haas"
     dest: /usr/local/bin/haas
@@ -20,7 +20,7 @@
   when: demo_role == 'cell'
   notify: Restart the cell
 
-- name: The front door, the owner's page, and the organisations' servers
+- name: gusto cloud, the operator's page, and the organisations' servers
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/haas"
     dest: /usr/local/bin/haas
@@ -36,7 +36,7 @@
     dest: /etc/haas/spend-policy.json
     mode: "0644"
 
-- name: The script that powers the host off when its lease ends, or its front door is gone
+- name: The script that powers the host off when its lease ends, or gusto cloud is gone
   ansible.builtin.copy:
     src: haas-lease-reaper
     dest: /usr/local/bin/haas-lease-reaper

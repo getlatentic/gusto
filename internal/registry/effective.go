@@ -20,7 +20,7 @@ type Effective struct {
 }
 
 // Effective is the registry and the operator's together. A provider whose key cannot be read is left out, with the
-// reason, and so are its models, so a job is never given one that cannot be reached.
+// reason, and so are its models, so a task is never given one that cannot be reached.
 func (r *Registry) Effective() Effective {
 	document := r.Document()
 	held := maps.Clone(r.platform.Credentials)

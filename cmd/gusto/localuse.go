@@ -49,8 +49,7 @@ func foundKeys() []string {
 // key the way the chat page's form does, so the key goes to the computer's keychain and nowhere else.
 func useKey(home string, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: gusto local use NAME [model...], where NAME is one of "+strings.Join(slices.Sorted(maps.Keys(keyProviders)), ", "))
-		return 2
+		return usageError("local use", "needs the name of a key: "+strings.Join(slices.Sorted(maps.Keys(keyProviders)), ", "))
 	}
 	name, models := args[0], args[1:]
 	provider, known := keyProviders[name]

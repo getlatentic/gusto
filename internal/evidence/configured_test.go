@@ -45,7 +45,7 @@ func TestWhetherTwoRunsAreComparableAndWhy(t *testing.T) {
 		{"different harnesses",
 			evidence.Manifest{Harness: "opencode", HarnessDigest: oneDigest},
 			evidence.Manifest{Harness: "claude", HarnessDigest: otherDigest},
-			false, "they ran different harnesses"},
+			false, "they ran different agents"},
 	} {
 		comparable, because := evidence.Comparable(tc.a, tc.b)
 		if comparable != tc.comparable || !strings.Contains(because, tc.because) {

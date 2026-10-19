@@ -27,7 +27,7 @@ import (
 
 // Scopes are what a token may do. A token has at least one.
 const (
-	// Submit sends a job to the API.
+	// Submit sends a task to the API.
 	Submit = "submit"
 	// Spend reads the spend report.
 	Spend = "spend"

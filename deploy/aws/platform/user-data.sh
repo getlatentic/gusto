@@ -127,7 +127,7 @@ if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
   # cold start. It is asked here, as the cell asks it, and the disk is kept in the image.
   systemd-run --wait --collect --unit=haas-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/haas \
-    -p EnvironmentFile=/etc/haas/org.env -p EnvironmentFile=/etc/haas/cell.env -p EnvironmentFile=/run/haas/cell.env /usr/local/bin/haas survey
+    -p EnvironmentFile=/etc/haas/org.env -p EnvironmentFile=/etc/haas/cell.env -p EnvironmentFile=/run/haas/cell.env /usr/local/bin/haas scan
   touch "${GUSTO_BAKE_DONE:-/etc/haas/bake-done}"
 fi
 echo "haas-bootstrap: done"

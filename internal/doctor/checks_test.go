@@ -49,7 +49,7 @@ func TestAMemoryCapTheRuntimeRefusesIsNamed(t *testing.T) {
 	if ok {
 		t.Fatal("every job would exit 125")
 	}
-	failed(t, printed, "job limits", "GUSTO_JOB_MEMORY")
+	failed(t, printed, "task limits", "GUSTO_JOB_MEMORY")
 	for _, said := range []string{"--memory=4m", "exit 125", "Minimum memory limit allowed is 6MB"} {
 		if !strings.Contains(printed, said) {
 			t.Fatalf("the failure should say %q, got:\n%s", said, printed)
@@ -124,7 +124,7 @@ func TestAJobsDirectoryThatIsNotWritableIsNamed(t *testing.T) {
 	machine := machineWith(answering().commands)
 	machine.Writable = func(string) error { return errDenied }
 	printed, _ := examine(machine)
-	failed(t, printed, "jobs directory", "ReadWritePaths")
+	failed(t, printed, "tasks directory", "ReadWritePaths")
 	status(t, printed, "bind mount", Skipped)
 }
 
@@ -132,7 +132,7 @@ func TestAJobsDirectoryThatIsNotThereIsNamed(t *testing.T) {
 	healthy(t)
 	t.Setenv("GUSTO_JOBS", filepath.Join(t.TempDir(), "absent"))
 	printed, _ := examine(machineWith(answering().commands))
-	failed(t, printed, "jobs directory", "set GUSTO_JOBS")
+	failed(t, printed, "tasks directory", "set GUSTO_JOBS")
 }
 
 func TestAWritableJobsDirectoryIsWritable(t *testing.T) {

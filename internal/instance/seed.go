@@ -8,7 +8,7 @@ import (
 )
 
 // Seed writes files into an instance's folder and commits them, so what a
-// template brings is where the harness starts from and not a change it made.
+// template brings is where the agent starts from and not a change it made.
 func (s *Store) Seed(id string, files map[string]string) error {
 	if len(files) == 0 {
 		return nil

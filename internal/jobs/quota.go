@@ -7,10 +7,10 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// UseQuota puts the index under a quota: a job past the number the quota allows
+// UseQuota puts the index under a quota: a task past the number the quota allows
 // is refused when it is asked for, and the queue starts no more at once than it
 // allows. The quota is read as the index goes, so a limit that is lifted applies
-// to the next job without a restart.
+// to the next task without a restart.
 func (i *Index) UseQuota(q *quota.File) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
@@ -26,12 +26,12 @@ func (i *Index) overQuota(now time.Time) error {
 	}
 	q, err := i.quota.Current()
 	if err != nil {
-		return fmt.Errorf("no job is started, because %w", err)
+		return fmt.Errorf("no task is started, because %w", err)
 	}
 	return q.Refuse(i.startedWithin(q.Monthly, now))
 }
 
-// Allowance is what the quota lets the organisation start, and how many jobs it has
+// Allowance is what the quota lets the organisation start, and how many tasks it has
 // started within that: in all, or in this calendar month when the quota is monthly.
 type Allowance struct {
 	Quota   quota.Quota

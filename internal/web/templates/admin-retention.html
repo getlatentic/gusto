@@ -8,21 +8,21 @@
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 
 <section class="figures">
-  <div class="figure"><span class="value">{{.Used}}</span><span class="label">used by {{.Jobs}} job{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="figure"><span class="value">{{.Workspaces}}</span><span class="label">of it in workspaces</span></div>
-  <div class="figure"><span class="value">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="label">{{with .Oldest}}oldest job kept, <a href="/jobs/{{.}}">{{.}}</a>{{else}}no job has finished{{end}}</span></div>
+  <div class="figure"><span class="value">{{.Used}}</span><span class="label">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="figure"><span class="value">{{.Workspaces}}</span><span class="label">of it in working folders</span></div>
+  <div class="figure"><span class="value">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="label">{{with .Oldest}}oldest task kept, <a href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
 <section class="panel">
   <h2>Policy</h2>
   {{if .Removes}}
   <table>
-    <thead><tr><th>A job that</th><th>loses its workspace after</th><th>loses its record after</th></tr></thead>
+    <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="muted">kept</span>{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  <p class="muted">Days are counted from when the job ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
+  <p class="muted">Days are counted from when the task ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
@@ -34,7 +34,7 @@
   {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
   <table>
-    <thead><tr><th>Job</th><th>Removes</th><th>Ended</th><th>Frees</th></tr></thead>
+    <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th>Frees</th></tr></thead>
     <tbody>
       {{range .Upcoming}}<tr><td><a href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td>{{.Days}} days ago</td><td>{{.Bytes}} bytes</td></tr>{{end}}
     </tbody>
@@ -53,7 +53,7 @@
   <table>
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
-      {{range $id, $h := .HeldJobs}}<tr><td>job <a href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
+      {{range $id, $h := .HeldJobs}}<tr><td>task <a href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
         <td><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="quiet-button">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
         <td><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="quiet-button">Release</button></form></td></tr>{{end}}
@@ -61,9 +61,9 @@
   </table>
   {{end}}
   <form method="post" action="/admin/retention/jobs/hold" class="inline">
-    <label>Job <input name="job" placeholder="the job's id, as in its address" required></label>
+    <label>Task <input name="job" placeholder="the task's id, as in its address" required></label>
     <label>Why <input name="why" placeholder="for the record"></label>
-    <button class="quiet-button" type="submit">Keep the job</button>
+    <button class="quiet-button" type="submit">Keep the task</button>
   </form>
   <form method="post" action="/admin/retention/holds" class="inline">
     <label>Person <input name="who" placeholder="amy@acme.test" required></label>
@@ -72,6 +72,6 @@
   </form>
 </section>
 </div>
-<p class="muted note">A job loses its workspace first, which is most of the disk and what shipping and replay need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
+<p class="muted note">A task loses its working folder first, which is most of the disk and what opening a pull request and a rerun need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
 
 {{template "foot" .}}

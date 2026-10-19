@@ -35,7 +35,7 @@ front_door_gone() {
   local seen
   [ "$uptime" -ge "$grace" ] || return 0
   seen=$(python3 -c 'import os,sys; print(int(os.path.getmtime(sys.argv[1])))' "$beat" 2>/dev/null || echo 0)
-  [ $((now - seen)) -lt "$stale" ] || echo "the front door has not been heard from for ${stale} s"
+  [ $((now - seen)) -lt "$stale" ] || echo "gusto cloud has not been heard from for ${stale} s"
 }
 
 why=""

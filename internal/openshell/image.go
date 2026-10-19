@@ -10,7 +10,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 )
 
-// Image is the sandbox image as the catalog asks about it: which programs a job
+// Image is the sandbox image as the catalog asks about it: which programs a task
 // in it would find. A sandbox is made from it, asked once, and removed. The
 // image is a root file system and carries no label, so nothing is declared and
 // what is on the path is all that is known.

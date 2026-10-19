@@ -1,5 +1,5 @@
 // Package landlock puts a process behind Linux's own sandbox, Landlock: the process can write only the folders it is given, can read
-// only the system's folders and the ones it is given, and can connect to nothing on the network but gusto's proxy. It is a wall of
+// only the system's folders and the ones it is given, and can connect to nothing on the network but gusto's proxy. It is a sandbox of
 // the kernel's and not a virtual machine: the kernel is shared. It needs no program installed and no privilege. The network rules
 // need a kernel of 6.7 or later; UDP, which is how a name is looked up, and a unix socket are not limited by any version used here.
 package landlock
@@ -10,13 +10,13 @@ import (
 	"os/exec"
 )
 
-// Policy is what one job may do.
+// Policy is what one task may do.
 type Policy struct {
-	// Read are the folders the job may read and run programs from, beyond the system's own.
+	// Read are the folders the task may read and run programs from, beyond the system's own.
 	Read []string `json:"read"`
-	// Write are the folders the job may read, write and run programs from.
+	// Write are the folders the task may read, write and run programs from.
 	Write []string `json:"write"`
-	// ProxyPort is the one TCP port the job may connect to, which is gusto's proxy. Zero leaves the network open, as
+	// ProxyPort is the one TCP port the task may connect to, which is gusto's proxy. Zero leaves the network open, as
 	// GUSTO_JOB_NETWORK=open does.
 	ProxyPort int `json:"proxyPort"`
 }

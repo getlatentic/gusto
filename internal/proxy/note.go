@@ -10,7 +10,7 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// note writes a call to the job's out/proxy.jsonl and counts it in the ledger.
+// note writes a call to the task's out/proxy.jsonl and counts it in the ledger.
 // The line is the ledger: a server that restarts rebuilds its counts from these
 // lines, and the manifest hashes them with the rest of the evidence.
 func (p *Proxy) note(job string, call spend.Call) {
@@ -38,7 +38,7 @@ func (p *Proxy) note(job string, call spend.Call) {
 }
 
 // refuse answers a call a cap stopped, in the error shape an OpenAI-compatible
-// client already prints, so the reason reaches the harness's own transcript.
+// client already prints, so the reason reaches the agent's own transcript.
 // 402 rather than 429, because a client retries a 429 and a spent cap does not
 // come back by waiting.
 func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
@@ -47,7 +47,7 @@ func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
 	w.WriteHeader(http.StatusPaymentRequired)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
-			"message": "gusto stopped this job: " + call.Refused.Reason,
+			"message": "gusto stopped this task: " + call.Refused.Reason,
 			"type":    "gusto_cap",
 			"code":    call.Refused.Cap + "_cap",
 		},
@@ -55,7 +55,7 @@ func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
 }
 
 // relay hands the container each piece of an answer as it arrives. A streamed
-// answer held in a buffer until it fills is a harness waiting on a model that
+// answer held in a buffer until it fills is an agent waiting on a model that
 // already spoke.
 type relay struct{ to http.ResponseWriter }
 

@@ -69,7 +69,7 @@ func TestACellThatIsSilentOrDoesNotAnswerIsNeverChosenOrReached(t *testing.T) {
 	if _, err := pool.Get("cell-a"); err == nil || !strings.Contains(err.Error(), "has not been heard from") {
 		t.Errorf("%v", err)
 	}
-	if _, err := pool.Get("nobody"); err == nil || !strings.Contains(err.Error(), "no cell called") {
+	if _, err := pool.Get("nobody"); err == nil || !strings.Contains(err.Error(), "no host called") {
 		t.Errorf("%v", err)
 	}
 	if got, err := pool.Get("cell-c"); err != nil || got.Name() != "cell-c" || got.Host() != "127.0.0.1" {

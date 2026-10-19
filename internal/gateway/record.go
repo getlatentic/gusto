@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// RecordFile is the job's record of its tool calls, in the job's out folder, one JSON line each.
+// RecordFile is the task's record of its tool calls, in the task's out folder, one JSON line each.
 const RecordFile = "gateway.jsonl"
 
 // Entry is one line of the record: a call, a refusal, or a listing of tools.
@@ -29,13 +29,13 @@ type Entry struct {
 	// Redacted is how many of each kind of data were masked in what the tool answered. What was masked is not kept.
 	Redacted map[string]int `json:"redacted,omitempty"`
 	// Definitions are how many tools there were and about how many tokens loading all their definitions would cost, against what
-	// the job was shown.
+	// the task was shown.
 	Tools       int `json:"tools,omitempty"`
 	TokensAll   int `json:"tokensAll,omitempty"`
 	TokensShown int `json:"tokensShown,omitempty"`
 }
 
-// Record appends to a job's record.
+// Record appends to a task's record.
 type Record struct {
 	mu   sync.Mutex
 	path string

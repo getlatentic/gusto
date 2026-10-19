@@ -107,7 +107,7 @@ func (s *Server) chatFolders(w http.ResponseWriter, r *http.Request) {
 
 // topFolders is the person's agents, each the top of a folder of their own.
 func (s *Server) topFolders(r *http.Request) shownFolders {
-	shown := shownFolders{Crumbs: []crumb{{Name: "Your cloud computer"}}, Folders: []shownFolder{}, Files: []shownFile{}}
+	shown := shownFolders{Crumbs: []crumb{{Name: "Your cloud workspace"}}, Folders: []shownFolder{}, Files: []shownFile{}}
 	used := s.lastUsed(r)
 	names := projectNames(used)
 	for _, each := range used {
@@ -119,7 +119,7 @@ func (s *Server) topFolders(r *http.Request) shownFolders {
 func (s *Server) insideFolders(held instance.Instance, dir, here string) shownFolders {
 	name := s.agentOf(held).Name
 	shown := shownFolders{At: path.Join(held.ID, dir), Harness: s.engineOf(held.ID, held.Harness), Folders: []shownFolder{}, Files: []shownFile{},
-		Crumbs: []crumb{{Name: "Your cloud computer"}, {Name: name, At: held.ID}}}
+		Crumbs: []crumb{{Name: "Your cloud workspace"}, {Name: name, At: held.ID}}}
 	walked := ""
 	for _, part := range strings.Split(dir, "/") {
 		if part == "" {

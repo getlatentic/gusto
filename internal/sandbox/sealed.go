@@ -9,13 +9,13 @@ import (
 
 // InsideSocket is where a sealed container finds the proxy's socket, and
 // InsideProxy is the address the runner relays to it from. Both are inside the
-// box, so they are the same for every job.
+// box, so they are the same for every task.
 const (
 	InsideSocket = "/run/gusto/proxy.sock"
 	InsideProxy  = "127.0.0.1:8041"
 )
 
-// Sealed runs a job in a container with no network of its own. The only way
+// Sealed runs a task in a container with no network of its own. The only way
 // out is the proxy's socket, mounted in, which the runner inside relays to from
 // loopback. The model is reached through it, and so is every host the
 // allowlist names; the container has no route to anything else, because it has

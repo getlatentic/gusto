@@ -20,7 +20,7 @@ func Rehome(text, home string) string {
 	return containerHome.ReplaceAllString(text, "${1}"+home+"${2}")
 }
 
-// At is the adapter for a harness whose home is home and whose data folder is data, rather than /root and
+// At is the adapter for an agent whose home is home and whose data folder is data, rather than /root and
 // /root/.local/share: its arguments, environment and folders name them.
 func (a Adapter) At(home, data string) Adapter {
 	move := func(text string) string {

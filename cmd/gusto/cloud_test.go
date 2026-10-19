@@ -112,8 +112,8 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		}
 	}
 	err = start("four")
-	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "3 jobs in all") || !strings.Contains(err.Error(), "Confirm the admin's email address") {
-		t.Fatalf("the fourth job is over the trial, and the refusal says how to lift it: %v", err)
+	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "3 tasks in all") || !strings.Contains(err.Error(), "Confirm the admin's email address") {
+		t.Fatalf("the fourth task is over the trial, and the refusal says how to lift it: %v", err)
 	}
 
 	if _, err := front.Store.Verify("ada@acme.com"); err != nil {
@@ -172,7 +172,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganisationAndPerson(t *testing.T) 
 		t.Fatal(err)
 	}
 	text := out.String()
-	for _, want := range []string{"ORGANISATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organisations"} {
+	for _, want := range []string{"ORGANISATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 workspaces in 3 organisations"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("%q is not in:\n%s", want, text)
 		}

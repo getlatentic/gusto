@@ -8,11 +8,11 @@ import (
 )
 
 // NoDigest is what a manifest says in place of a digest it never recorded. A
-// record from before the digest names its harness only by name, and inventing
+// record from before the digest names its agent only by name, and inventing
 // a digest for it would claim a configuration nobody measured.
 const NoDigest = "no digest recorded"
 
-// ConfiguredHarness names the configured harness that ran: its digest, or the
+// ConfiguredHarness names the configured agent that ran: its digest, or the
 // words saying there is none.
 func (m Manifest) ConfiguredHarness() string {
 	if m.HarnessDigest == "" {
@@ -21,14 +21,14 @@ func (m Manifest) ConfiguredHarness() string {
 	return m.HarnessDigest
 }
 
-// Comparable says whether two runs ran the same configured harness, so their
+// Comparable says whether two runs ran the same configured agent, so their
 // results stand for one thing, and why in words. The same digest is the same
-// harness. The same name is not: two teams both saying "opencode" can mean two
+// agent. The same name is not: two teams both saying "opencode" can mean two
 // prompts, two sets of skills and two model policies.
 func Comparable(a, b Manifest) (bool, string) {
 	switch {
 	case a.HarnessDigest == "" || b.HarnessDigest == "":
-		return false, fmt.Sprintf("%s is %s and %s is %s: a name alone does not say how a harness was configured",
+		return false, fmt.Sprintf("%s is %s and %s is %s: a name alone does not say how an agent was configured",
 			a.Harness, a.ConfiguredHarness(), b.Harness, b.ConfiguredHarness())
 	case a.HarnessDigest == b.HarnessDigest:
 		return true, fmt.Sprintf("both ran %s as %s", a.Harness, a.HarnessDigest)
@@ -36,7 +36,7 @@ func Comparable(a, b Manifest) (bool, string) {
 		return false, fmt.Sprintf("both are called %s but were configured differently: %s and %s",
 			a.Harness, a.HarnessDigest, b.HarnessDigest)
 	}
-	return false, fmt.Sprintf("they ran different harnesses: %s as %s, and %s as %s",
+	return false, fmt.Sprintf("they ran different agents: %s as %s, and %s as %s",
 		a.Harness, a.HarnessDigest, b.Harness, b.HarnessDigest)
 }
 

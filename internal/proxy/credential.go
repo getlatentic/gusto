@@ -23,30 +23,30 @@ const (
 )
 
 // AnthropicVersion is the version header Anthropic requires. It is sent only
-// when the container did not send one, so a harness that knows better wins.
+// when the container did not send one, so an agent that knows better wins.
 const AnthropicVersion = "2023-06-01"
 
 // Credential is where a model answers and what it takes to be let in.
 //
 // A deployment holds several, because one provider's key does not reach
 // another's models and two providers do not authenticate the same way. Which
-// one a job may spend is decided when the job starts and carried by its token,
+// one a task may spend is decided when the task starts and carried by its token,
 // never by what the container puts in a request body.
 type Credential struct {
-	// Name is what the evidence records. The key itself never appears anywhere.
+	// Name is what the record records. The key itself never appears anywhere.
 	Name string `json:"name"`
 	// Address is the model's root, with no version on it: the container is given
-	// `.../model/<token>/v1` and the harness appends the rest of the path, so
+	// `.../model/<token>/v1` and the agent appends the rest of the path, so
 	// this must not repeat it.
 	Address string `json:"address"`
 	Key     string `json:"key,omitempty"`
 	Auth    Auth   `json:"auth,omitempty"`
 	// Wires is the shapes of API the provider answers in: "chat", "messages" or "responses". A call in a shape it
-	// does not answer is translated into Chat Completions when it answers that, so that any harness can use its models.
+	// does not answer is translated into Chat Completions when it answers that, so that any agent can use its models.
 	// Naming none is a provider that answers what its authentication says, and nothing is translated for it.
 	Wires []string `json:"wires,omitempty"`
 	// MaxOutput is the most the provider lets a model write in one answer. A translated call that asks for more is
-	// held to it, since a harness asks for what its own provider allows. Zero holds no call to anything.
+	// held to it, since an agent asks for what its own provider allows. Zero holds no call to anything.
 	MaxOutput int `json:"maxOutput,omitempty"`
 	// Public marks a credential an organisation added for itself. Its address is reached only at a public
 	// address, since the organisation chose it and this machine is on a network that others are on too.
@@ -97,7 +97,7 @@ type Credentials map[string]Credential
 // Get is the credential of that name.
 //
 // A deployment configured the older way holds one credential with no name, and
-// that one serves every job whatever its model says — which is what the single
+// that one serves every task whatever its model says — which is what the single
 // upstream did. A deployment that names its credentials is strict: a name it
 // does not hold is not quietly served by another.
 func (c Credentials) Get(name string) (Credential, bool) {

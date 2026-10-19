@@ -11,15 +11,15 @@ import (
 )
 
 // Commits are the two a pull request rests on. Change is the patch on the
-// commit the job ran against, and it is the pull request's head. Evidence holds
+// commit the task ran against, and it is the pull request's head. Record holds
 // job.json and out/ exactly as the run left them, with Change as its parent, so
-// whoever fetches the evidence gets the code it vouches for with it.
+// whoever fetches the record gets the code it vouches for with it.
 type Commits struct {
 	Change   string
 	Evidence string
 }
 
-// EvidenceRef is where the evidence commit lives on the remote. It sits outside
+// EvidenceRef is where the record commit lives on the remote. It sits outside
 // refs/heads and refs/tags, so it is not a branch anyone reviews, merges or
 // builds, and the change under review stays the patch and nothing else.
 func EvidenceRef(digest string) string {
@@ -148,7 +148,7 @@ func planCommits(ctx context.Context, dir job.Dir, plan Plan) (Commits, error) {
 		return err
 	})
 	if err != nil {
-		return Commits{}, fmt.Errorf("the patch and its evidence cannot be committed: %w", err)
+		return Commits{}, fmt.Errorf("the patch and its record cannot be committed: %w", err)
 	}
 	return commits, nil
 }

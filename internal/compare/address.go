@@ -9,7 +9,7 @@ import (
 )
 
 // Answer is the whole of `gusto compare`. A comparison's directory alone prints
-// it again from the evidence; a submission and harnesses make a new one, run
+// it again from the record; a submission and agents make a new one, run
 // it, and print it. Either way the exit code is ExitCode's.
 func Answer(w io.Writer, named []string, parent string, run replay.Run) (int, error) {
 	where, sides, err := addressed(named, parent, run)
@@ -29,7 +29,7 @@ func Answer(w io.Writer, named []string, parent string, run replay.Run) (int, er
 // not an error here: its side says so, beside the sides that did run.
 func addressed(named []string, parent string, run replay.Run) (string, []Side, error) {
 	if len(named) == 0 {
-		return "", nil, errors.New("gusto compare needs a job and the harnesses to run it on, or a comparison")
+		return "", nil, errors.New("gusto compare needs a task and the agents to run it on, or a comparison")
 	}
 	if len(named) == 1 && Is(named[0]) {
 		record, err := Read(named[0])

@@ -12,21 +12,21 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// Configured is a harness as a job runs it: the adapter, and the digest of the
+// Configured is an agent as a task runs it: the adapter, and the digest of the
 // files it came from. Both are taken from one reading of those files, so the
-// digest names exactly the adapter that runs, and a harness that rewrites its
+// digest names exactly the adapter that runs, and an agent that rewrites its
 // own files once it starts cannot change the digest already taken.
 type Configured struct {
 	Adapter Adapter
 	Digest  string
 }
 
-// Open reads the configured harness a job names, looking in the job's own
+// Open reads the configured agent a task names, looking in the task's own
 // directory first, then GUSTO_HARNESSES, then the adapters built into this
-// binary. In each place a harness is a directory, name/, or a bare adapter,
+// binary. In each place an agent is a directory, name/, or a bare adapter,
 // name.json.
 //
-// A harness in the job travels with it, so a job naming a harness of your own
+// An agent in the task travels with it, so a task naming an agent of your own
 // runs on a runner that has never heard of it — in a container, on a fleet, on
 // somebody else's machine. That is the same reason everything else about a run
 // lives in the directory.
@@ -47,19 +47,19 @@ func find(dir job.Dir, name string) (Tree, string, error) {
 	}
 	text, err := builtIn.ReadFile("adapters/" + name + ".json")
 	if err != nil {
-		return nil, "", fmt.Errorf("no harness called %s", name)
+		return nil, "", fmt.Errorf("no agent called %s", name)
 	}
 	return Tree{{Path: AdapterFile, Content: text}}, "", nil
 }
 
-// Load the adapter a job names, from the configured harness Open finds.
+// Load the adapter a task names, from the configured agent Open finds.
 func Load(dir job.Dir, name string) (Adapter, error) {
 	configured, err := Open(dir, name)
 	return configured.Adapter, err
 }
 
-// Carrying reads the configured harness the job itself carries. Found is false
-// when it carries none, which is so for a harness built into every gusto.
+// Carrying reads the configured agent the task itself carries. Found is false
+// when it carries none, which is so for an agent built into every gusto.
 func Carrying(dir job.Dir, name string) (Configured, bool, error) {
 	tree, home, found, err := lookIn(Carried(dir), name)
 	if err != nil || !found {
@@ -69,7 +69,7 @@ func Carrying(dir job.Dir, name string) (Configured, bool, error) {
 	return configured, true, err
 }
 
-// Carried is where the harnesses a job carries sit inside its directory.
+// Carried is where the agents a task carries sit inside its directory.
 func Carried(dir job.Dir) string {
 	return filepath.Join(dir.Path(), "harnesses")
 }
@@ -92,7 +92,7 @@ func lookIn(root, name string) (Tree, string, bool, error) {
 	inFolder, inFile := isDir(folder), isFile(folder+".json")
 	switch {
 	case inFolder && inFile:
-		return nil, "", false, fmt.Errorf("the harness %s in %s %w; keep one", name, root, errBoth)
+		return nil, "", false, fmt.Errorf("the agent %s in %s %w; keep one", name, root, errBoth)
 	case inFolder:
 		return folderTree(folder)
 	case inFile:
@@ -109,7 +109,7 @@ func folderTree(folder string) (Tree, string, bool, error) {
 	}
 	tree, err := walk(home)
 	if err == nil && tree.holdsSetup() {
-		err = fmt.Errorf("the harness at %s has a %s folder, and that name is the job's setup's", home, SetupFolder)
+		err = fmt.Errorf("the agent at %s has a %s folder, and that name is the task's setup's", home, SetupFolder)
 	}
 	return tree, home, true, err
 }
@@ -121,7 +121,7 @@ func folderTree(folder string) (Tree, string, bool, error) {
 func configure(dir job.Dir, tree Tree, home string) (Configured, error) {
 	text, found := tree.adapter()
 	if !found {
-		return Configured{}, fmt.Errorf("the harness at %s has no %s", home, AdapterFile)
+		return Configured{}, fmt.Errorf("the agent at %s has no %s", home, AdapterFile)
 	}
 	adapter, err := parse(text)
 	if err != nil {
@@ -145,7 +145,7 @@ func isFile(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
-// Keep writes a configured harness into the job, so that whoever runs the job
+// Keep writes a configured agent into the task, so that whoever runs the task
 // next has all of it: a bare adapter as name.json, a directory as name/. The
 // one in GUSTO_HARNESSES is kept, because it is the one a runner here would
 // use; a built-in one is already everywhere, so it is not copied.
@@ -160,7 +160,7 @@ func Keep(dir job.Dir, name string) error {
 	if _, err := builtIn.ReadFile("adapters/" + name + ".json"); err == nil || mine == "" {
 		return nil
 	}
-	return fmt.Errorf("no harness called %s in %s: %w", name, mine, fs.ErrNotExist)
+	return fmt.Errorf("no agent called %s in %s: %w", name, mine, fs.ErrNotExist)
 }
 
 // carry replaces whatever the job held for the harness. A copy left in the
@@ -185,7 +185,7 @@ func carry(dir job.Dir, name string, tree Tree, err error) error {
 	return tree.writeTo(folder)
 }
 
-// Names lists every harness this binary can run: the adapters it ships with,
+// Names lists every agent this binary can run: the adapters it ships with,
 // and any of your own in GUSTO_HARNESSES, bare or a directory. The pages offer
 // what the server can actually run, rather than what it was compiled with.
 func Names() []string {

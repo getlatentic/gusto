@@ -1,9 +1,9 @@
-// Package audit turns one job directory into an export an auditor can read and
+// Package audit turns one task directory into an export an auditor can read and
 // check without asking an engineer: who asked, what ran, what changed, which
 // model, how much it spent, and who approved it.
 //
-// An export is a job directory itself. It carries job.json and out/ exactly as
-// the run left them, so the manifest check that verifies a job verifies the
+// An export is a task directory itself. It carries job.json and out/ exactly as
+// the run left them, so the manifest check that verifies a task verifies the
 // export with no second implementation. Beside them it carries audit.json, the
 // summary, which is derived only from the files in the export, so a reader can
 // derive it again and see that it says nothing the files do not.
@@ -44,7 +44,7 @@ type Record struct {
 	Policy     Policy      `json:"policy"`
 }
 
-// Asked is who asked for the job. The server knows how a job arrived and not
+// Asked is who asked for the task. The server knows how a task arrived and not
 // who sent it, because everybody signs in with one shared password.
 type Asked struct {
 	Who Fact[string] `json:"who"`
@@ -52,7 +52,7 @@ type Asked struct {
 	At  Fact[any]    `json:"at"`
 }
 
-// Ran is job.json as the export carries it, and the harness the manifest says
+// Ran is job.json as the export carries it, and the agent the manifest says
 // actually ran. The spec is kept as written rather than read through defaults,
 // so a redacted field stays visibly redacted instead of failing a type.
 type Ran struct {
@@ -63,7 +63,7 @@ type Ran struct {
 	Session         Fact[string] `json:"session"`
 }
 
-// Outcome is what the gate decided and the state the server holds for the job.
+// Outcome is what the check decided and the state the server holds for the task.
 type Outcome struct {
 	State     Fact[any]     `json:"state"`
 	Gate      Fact[Verdict] `json:"gate"`
@@ -73,7 +73,7 @@ type Outcome struct {
 	FinishedAt int64 `json:"finishedAt"`
 }
 
-// Verdict is the gate's answer as the manifest records it.
+// Verdict is the check's answer as the manifest records it.
 type Verdict struct {
 	Command []string `json:"command"`
 	Code    int      `json:"code"`
@@ -87,7 +87,7 @@ type Changed struct {
 	Files  Fact[[]string] `json:"files"`
 }
 
-// Model is the model the job asked for, where the harness said it answered,
+// Model is the model the task asked for, where the agent said it answered,
 // and which credential the proxy added on the way out.
 type Model struct {
 	Asked       Fact[any]      `json:"asked"`
@@ -98,7 +98,7 @@ type Model struct {
 	Registry Fact[[]int64] `json:"registry"`
 }
 
-// Spend holds two counts that are deliberately kept apart: what the harness
+// Spend holds two counts that are deliberately kept apart: what the agent
 // reported, which is a claim, and what the proxy measured of the model calls
 // that left the box. A call a spending cap refused never left, so it is
 // counted apart and costs nothing.
@@ -145,7 +145,7 @@ type Carried struct {
 }
 
 // Redaction is one file the policy changed, and why. Original is the hash the
-// manifest holds for it, so a person with the unredacted job can still match
+// manifest holds for it, so a person with the unredacted task can still match
 // the file to this run.
 type Redaction struct {
 	File     string   `json:"file"`

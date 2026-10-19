@@ -16,11 +16,11 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-// submit sends a job directory to a server instead of running it here. It is the
+// submit sends a task directory to a server instead of running it here. It is the
 // same directory `gusto run` takes and the same spec: work moves off the laptop
-// and outlives the shell without the job being written any differently.
+// and outlives the shell without the task being written any differently.
 func submit(args []string) int {
-	dir, code := oneDir(args)
+	dir, code := oneDir("submit", args)
 	if code != 0 {
 		return code
 	}
@@ -36,8 +36,8 @@ func submit(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	// The adapter the job holds goes with it, because a server that has never
-	// heard of this harness cannot run the job otherwise.
+	// The adapter the task holds goes with it, because a server that has never
+	// heard of this agent cannot run the task otherwise.
 	adapter, err := carriedAdapter(dir, spec.Harness)
 	if err != nil {
 		return fail(err)
@@ -65,7 +65,7 @@ func credential() string {
 func sending(to string) (string, error) {
 	to = strings.TrimSuffix(strings.TrimSpace(to), "/")
 	if to == "" {
-		return "", errors.New("set GUSTO_SERVER to the server that runs the job, like https://gusto.example.com")
+		return "", errors.New("set GUSTO_SERVER to the server that runs the task, like https://gusto.example.com")
 	}
 	if !strings.HasPrefix(to, "http://") && !strings.HasPrefix(to, "https://") {
 		return "", fmt.Errorf("GUSTO_SERVER needs a scheme: http://%s or https://%s", to, to)
@@ -73,8 +73,8 @@ func sending(to string) (string, error) {
 	return to, nil
 }
 
-// carriedAdapter reads the adapter the job holds for its harness. A job naming a
-// built-in harness holds none, and every server has those already.
+// carriedAdapter reads the adapter the task holds for its agent. A task naming a
+// built-in agent holds none, and every server has those already.
 func carriedAdapter(dir job.Dir, name string) (*harness.Adapter, error) {
 	text, err := os.ReadFile(filepath.Join(harness.Carried(dir), name+".json"))
 	if errors.Is(err, os.ErrNotExist) {
@@ -85,7 +85,7 @@ func carriedAdapter(dir job.Dir, name string) (*harness.Adapter, error) {
 	}
 	var adapter harness.Adapter
 	if err := json.Unmarshal(text, &adapter); err != nil {
-		return nil, fmt.Errorf("the adapter this job carries for %s is not readable: %w", name, err)
+		return nil, fmt.Errorf("the adapter this task carries for %s is not readable: %w", name, err)
 	}
 	return &adapter, nil
 }
@@ -121,7 +121,7 @@ func taken(server string, answer *http.Response) (string, error) {
 		if said.Refused == "" {
 			said.Refused = answer.Status
 		}
-		return "", fmt.Errorf("the server refused this job: %s", said.Refused)
+		return "", fmt.Errorf("the server refused this task: %s", said.Refused)
 	}
 	return said.ID, nil
 }

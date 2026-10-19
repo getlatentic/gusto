@@ -92,8 +92,8 @@ limit_team: 0
 # costs a few seconds and it is the only thing that proves the runner works on
 # this box rather than on a laptop.
 smoke: true
-# The file behind the smoke test's fixture harness. broken.json fails the gate
-# on purpose, to show a failing smoke job leaves the previous version running.
+# The file behind the smoke test's fixture agent. broken.json fails the check
+# on purpose, to show a failing smoke task leaves the previous version running.
 smoke_fixture: fixture.json
 
 # ── Releases ────────────────────────────────────────────────────────────────

@@ -3,15 +3,15 @@ package jobs
 import "sort"
 
 // Limits are how much one person or team may run at once. Zero is no limit.
-// Slots is how many jobs the whole server runs at once, which the queue sets.
+// Slots is how many tasks the whole server runs at once, which the queue sets.
 type Limits struct {
 	Person int
 	Team   int
 	Slots  int
 }
 
-// SetLimits sets the per-person and per-team limits. A job over its limit
-// stays queued, and is taken when one of that person's or team's jobs ends.
+// SetLimits sets the per-person and per-team limits. A task over its limit
+// stays queued, and is taken when one of that person's or team's tasks ends.
 func (i *Index) SetLimits(l Limits) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
@@ -32,31 +32,31 @@ func (i *Index) setSlots(slots int) {
 	i.limits.Slots = slots
 }
 
-// Reason is why a queued job has not started.
+// Reason is why a queued task has not started.
 type Reason int
 
 const (
-	// Starting is a job nothing holds back: a free worker takes it next.
+	// Starting is a task nothing holds back: a free worker takes it next.
 	Starting Reason = iota
-	// AgentBusy is a job for an agent that is still on another message.
+	// AgentBusy is a task for an agent that is still on another message.
 	AgentBusy
-	// PersonAtLimit is a job whose person already runs as many as they may.
+	// PersonAtLimit is a task whose person already runs as many as they may.
 	PersonAtLimit
-	// TeamAtLimit is a job whose team already runs as many as it may.
+	// TeamAtLimit is a task whose team already runs as many as it may.
 	TeamAtLimit
-	// OrgAtLimit is a job whose organisation already runs as many as its quota
+	// OrgAtLimit is a task whose organisation already runs as many as its quota
 	// allows.
 	OrgAtLimit
-	// PoolFull is a job that may run, with every worker busy.
+	// PoolFull is a task that may run, with every worker busy.
 	PoolFull
 )
 
-// Wait is where a queued job stands and what it waits for.
+// Wait is where a queued task stands and what it waits for.
 type Wait struct {
 	Reason Reason
-	// Position counts the queued jobs from the front, starting at 1.
+	// Position counts the queued tasks from the front, starting at 1.
 	Position int
-	// Running and Limit are the count and the limit that hold the job, for
+	// Running and Limit are the count and the limit that hold the task, for
 	// PersonAtLimit, TeamAtLimit and PoolFull.
 	Running, Limit int
 	// Who is the person, or the team, that is at their limit.
@@ -109,7 +109,7 @@ func (i *Index) hold(record Record, now running) (Wait, bool) {
 	return Wait{Reason: Starting}, false
 }
 
-// WaitOf says where a queued job stands. It answers false for a job that is
+// WaitOf says where a queued task stands. It answers false for a task that is
 // not queued.
 func (i *Index) WaitOf(id string) (Wait, bool) {
 	i.guard.Lock()
@@ -128,7 +128,7 @@ func (i *Index) WaitOf(id string) (Wait, bool) {
 	return wait, true
 }
 
-// Waiting is every queued job, front first, with what holds each.
+// Waiting is every queued task, front first, with what holds each.
 func (i *Index) Waiting() []Waiting {
 	i.guard.Lock()
 	defer i.guard.Unlock()
@@ -149,7 +149,7 @@ func (i *Index) Waiting() []Waiting {
 	return out
 }
 
-// Waiting is a queued job and what holds it.
+// Waiting is a queued task and what holds it.
 type Waiting struct {
 	Record Record
 	Wait   Wait

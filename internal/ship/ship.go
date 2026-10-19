@@ -1,7 +1,8 @@
-// Package ship hands a finished job back as a pull request.
+// Package ship hands a finished task back as a pull request. It is what
+// `gusto pr open` runs.
 //
-// A job whose gate passed has a patch and a manifest that hashes it. Shipping
-// is putting that patch on a branch at the commit the job ran against, pushing
+// A task whose check passed has a patch and a manifest that hashes it. Opening a
+// pull request is putting that patch on a branch at the commit the task ran against, pushing
 // the branch, and asking the forge for a pull request that says where the
 // patch came from. Review, and everything after it, belongs to a person: the
 // forge here can open a pull request and do nothing else.
@@ -14,8 +15,8 @@ import (
 	"io"
 )
 
-// ErrRefused marks a job that must not ship. The caller tells it apart from a
-// failure to ship, because a refusal is the answer and not a fault.
+// ErrRefused marks a task that must not become a pull request. The caller tells it apart from a
+// failure to open one, because a refusal is the answer and not a fault.
 var ErrRefused = errors.New("refused")
 
 // Pusher puts the plan's branch on its remote.

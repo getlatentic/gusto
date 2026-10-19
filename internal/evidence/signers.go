@@ -21,7 +21,7 @@ type Signers struct {
 	// Unknown is the records signed by a key the keyring does not hold, by key
 	// id. They still hold together; nobody can say whose they are.
 	Unknown map[string]int
-	// Broken is the jobs whose signature does not hold for their manifest, or
+	// Broken is the tasks whose signature does not hold for their manifest, or
 	// cannot be read.
 	Broken []string
 }
@@ -29,7 +29,7 @@ type Signers struct {
 // Sound is whether every record that was signed can be attributed.
 func (s Signers) Sound() bool { return len(s.Unknown) == 0 && len(s.Broken) == 0 }
 
-// SignersUnder reads every job directory in root that has a record.
+// SignersUnder reads every task directory in root that has a record.
 func SignersUnder(root string, keyring signing.Keyring) (Signers, error) {
 	found := Signers{Signed: map[string]int{}, Unknown: map[string]int{}}
 	listing, err := os.ReadDir(root)

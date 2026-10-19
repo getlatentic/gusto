@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Tally is what a job, or a team in a month, has spent.
+// Tally is what a task, or a team in a month, has spent.
 type Tally struct {
 	Calls int `json:"calls"`
 	// USD is the sum of every call whose cost is known. It is a floor, not a
@@ -52,7 +52,7 @@ func valueOf(count *int64) int64 {
 	return *count
 }
 
-// Terms are what a job was allowed when it started: the team it counts
+// Terms are what a task was allowed when it started: the team it counts
 // against, the project it is reported under, and the cap in its own budget. A
 // nil cap is no cap; a zero cap allows nothing.
 type Terms struct {
@@ -62,7 +62,7 @@ type Terms struct {
 	CapUSD  *float64
 }
 
-// account is one job's terms and what it has spent against them. Blind counts
+// account is one task's terms and what it has spent against them. Blind counts
 // the answers the provider accepted and the proxy could not price, which is
 // money a cap has no way to see.
 type account struct {
@@ -83,14 +83,14 @@ const (
 	ByDay     = "day"
 )
 
-// monthly names one tally: a job, a project or a team, in one calendar month.
+// monthly names one tally: a task, a project or a team, in one calendar month.
 type monthly struct {
 	scope string
 	name  string
 	month string
 }
 
-// Ledger holds what every job, project and team spent in each month, and
+// Ledger holds what every task, project and team spent in each month, and
 // decides whether the next call may leave. A team's cap and the report read
 // the same tallies, so they cannot disagree. The proxy is its only writer while
 // a server runs; Rebuild reads the same lines back from disk at start.
@@ -134,8 +134,8 @@ func (l *Ledger) SetPrices(prices map[string]Price) {
 	l.policy.Prices = prices
 }
 
-// Begin records a job's terms. A job run again keeps what it already spent,
-// because its evidence still holds those calls.
+// Begin records a task's terms. A task run again keeps what it already spent,
+// because its record still holds those calls.
 func (l *Ledger) Begin(job string, terms Terms) {
 	l.guard.Lock()
 	defer l.guard.Unlock()
@@ -143,7 +143,7 @@ func (l *Ledger) Begin(job string, terms Terms) {
 }
 
 // Allow is asked before a call leaves. Nil lets it go; a refusal names the cap
-// that stops it. Only calls already in flight can take a job past its cap.
+// that stops it. Only calls already in flight can take a task past its cap.
 func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	l.guard.Lock()
 	defer l.guard.Unlock()
@@ -160,7 +160,7 @@ func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	return l.uncountable(held, credential, model)
 }
 
-// Count adds a call that happened, or was refused, to the job, its project
+// Count adds a call that happened, or was refused, to the task, its project
 // and its team, in the month it happened.
 func (l *Ledger) Count(job string, call Call) {
 	if !call.ToModel() {
@@ -211,7 +211,7 @@ func (l *Ledger) jobSpent(held *account) *Refusal {
 	}
 	return &Refusal{
 		Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD,
-		Reason: fmt.Sprintf("this job has spent $%.4f of its $%.4f cap", held.tally.USD, *limit),
+		Reason: fmt.Sprintf("this task has spent $%.4f of its $%.4f cap", held.tally.USD, *limit),
 	}
 }
 
@@ -231,7 +231,7 @@ func (l *Ledger) teamSpent(held *account) *Refusal {
 	}
 }
 
-// organisationSpent is what every job has spent this month, against the cap on the whole server. It is summed from the jobs,
+// organisationSpent is what every task has spent this month, against the cap on the whole server. It is summed from the tasks,
 // which is the sum the report gives as its total, so the cap and the report cannot disagree.
 func (l *Ledger) organisationSpent() *Refusal {
 	limit, capped := l.policy.organisationCap()
@@ -266,14 +266,14 @@ func (l *Ledger) uncountable(held *account, credential, model string) *Refusal {
 	case model != "" && !l.policy.Priced(credential, model):
 		governing.Reason = fmt.Sprintf("%s has no price in the spend policy, so the %s cap cannot count it", model, governing.Cap)
 	case held.blind > 0:
-		governing.Reason = fmt.Sprintf("an answer to this job carried no usage, so the %s cap cannot count what it spends", governing.Cap)
+		governing.Reason = fmt.Sprintf("an answer to this task carried no usage, so the %s cap cannot count what it spends", governing.Cap)
 	default:
 		return nil
 	}
 	return governing
 }
 
-// governing is the cap this job answers to, the job's own before its team's.
+// governing is the cap this task answers to, the task's own before its team's.
 func (l *Ledger) governing(held *account) (*Refusal, bool) {
 	if limit := held.terms.CapUSD; limit != nil {
 		return &Refusal{Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD}, true

@@ -11,7 +11,7 @@
     dest: /usr/local/bin/haas-dns
     mode: "0755"
 
-- name: The front door's settings, and what every organisation's server is started with
+- name: gusto cloud's settings, and what every organisation's server is started with
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
@@ -21,14 +21,14 @@
     - { src: cloud.env.j2, dest: /etc/haas/cloud.env }
   notify: Restart the front door
 
-- name: The front door's service
+- name: gusto cloud's service
   ansible.builtin.template:
     src: haas-cloud.service.j2
     dest: /etc/systemd/system/haas-cloud.service
     mode: "0644"
   notify: Restart the front door
 
-- name: The owner's page, which listens on this host's loopback and is not in the web server's site
+- name: The operator's page, which listens on this host's loopback and is not in the web server's site
   ansible.builtin.template:
     src: haas-owner.service.j2
     dest: /etc/systemd/system/haas-owner.service
@@ -52,7 +52,7 @@
     - { dest: /etc/nginx/sites-enabled/default, state: absent }
   notify: Reload nginx
 
-- name: The script a host for a cell is started with, where the front door may read it
+- name: The script a host is started with, where gusto cloud may read it
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../user-data.sh"
     dest: "{{ demo_cell_userdata }}"

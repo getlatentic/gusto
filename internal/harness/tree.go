@@ -10,20 +10,20 @@ import (
 	"strings"
 )
 
-// AdapterFile is where a configured harness keeps its adapter. A bare adapter,
+// AdapterFile is where a configured agent keeps its adapter. A bare adapter,
 // name.json, is read as a directory holding this one file and nothing else.
 const AdapterFile = "adapter.json"
 
-// File is one file of a configured harness, as the digest sees it: a slash
-// path inside the harness, whether it is executable, and its bytes. Nothing
-// else a filesystem knows about a file is part of what the harness is.
+// File is one file of a configured agent, as the digest sees it: a slash
+// path inside the agent, whether it is executable, and its bytes. Nothing
+// else a filesystem knows about a file is part of what the agent is.
 type File struct {
 	Path       string
 	Executable bool
 	Content    []byte
 }
 
-// Tree is every file of a configured harness, sorted by path byte for byte, so
+// Tree is every file of a configured agent, sorted by path byte for byte, so
 // two machines holding the same files hold the same tree.
 type Tree []File
 
@@ -90,11 +90,11 @@ func read(root, path string, entry fs.DirEntry) (File, error) {
 	}
 	slashed := filepath.ToSlash(relative)
 	if !entry.Type().IsRegular() {
-		return File{}, fmt.Errorf("%s in the harness at %s is not a regular file, and a harness holds only those", slashed, root)
+		return File{}, fmt.Errorf("%s in the agent at %s is not a regular file, and an agent holds only those", slashed, root)
 	}
 	// A newline in a path would let one digest line pass for two.
 	if strings.ContainsAny(slashed, "\n\r") {
-		return File{}, fmt.Errorf("%q in the harness at %s has a line break in its name", slashed, root)
+		return File{}, fmt.Errorf("%q in the agent at %s has a line break in its name", slashed, root)
 	}
 	info, err := entry.Info()
 	if err != nil {

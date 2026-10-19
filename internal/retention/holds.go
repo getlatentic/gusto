@@ -22,13 +22,13 @@ type Hold struct {
 	Why string `json:"why,omitempty"`
 }
 
-// Held is every hold in force: on single jobs, and on everything a person asked for.
+// Held is every hold in force: on single tasks, and on everything a person asked for.
 type Held struct {
 	Jobs   map[string]Hold `json:"jobs,omitempty"`
 	People map[string]Hold `json:"people,omitempty"`
 }
 
-// Covers says whether a job is held, by itself or by who asked for it.
+// Covers says whether a task is held, by itself or by who asked for it.
 func (h Held) Covers(record jobs.Record) (Hold, bool) {
 	if hold, held := h.Jobs[record.ID]; held {
 		return hold, true
@@ -70,7 +70,7 @@ func (h *Holds) read() (Held, error) {
 	return held, json.Unmarshal(text, &held)
 }
 
-// HoldJob keeps one job whole until it is released.
+// HoldJob keeps one task whole until it is released.
 func (h *Holds) HoldJob(id, by, why string) error {
 	return h.change(func(held *Held) {
 		if held.Jobs == nil {
@@ -80,7 +80,7 @@ func (h *Holds) HoldJob(id, by, why string) error {
 	})
 }
 
-// ReleaseJob lets a job be removed on the policy's schedule again.
+// ReleaseJob lets a task be removed on the policy's schedule again.
 func (h *Holds) ReleaseJob(id string) error {
 	return h.change(func(held *Held) { delete(held.Jobs, id) })
 }

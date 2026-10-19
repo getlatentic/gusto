@@ -1,365 +1,119 @@
-# A job's states
+# A task's states
 
-A job's state is a file. `state.json` sits in the job directory beside the
-evidence, so the directory is the whole story of the job and nothing is left
-behind in a database. The index in memory is a cache of that file, rebuilt by
-reading the directory (`internal/jobs/state.go:1-8`).
+A task's state is a file. `state.json` sits in the task directory beside the record, so the directory is the whole story of the task. The in-memory index is a cache of that file, rebuilt by reading the directory (`internal/jobs/state.go`). Four writers write the file: `Open`, `Add`, `Claim` and `Finish`, all in `internal/jobs/index.go`. Nothing else writes it.
 
-There are five states and four writers. The writers are `Open`, `Add`, `Claim`
-and `Finish`, all in `internal/jobs/index.go`. Nothing else writes the file.
-
-The evidence outranks the state file. A container is a child of the container
-runtime, not of the server, so a job whose server was killed often runs on and
-finishes. `Open` therefore reads `out/manifest.json` before it decides anything
-about a job the file calls `running` (`index.go:22-28`, `138-155`).
+The record outranks the state file. A container is a child of the container runtime, not of the server, so a task whose server was killed often runs on and finishes. `Open` reads `out/manifest.json` before it decides anything about a task the file calls `running`.
 
 ## The states
 
-| state | what it says | written by |
+| State | Meaning | Written by |
 | --- | --- | --- |
-| `queued` | the job is on disk and nobody has taken it | `Add`, `index.go:60-71` |
-| `running` | a worker holds it | `Claim`, `index.go:94-118` |
-| `passed` | the gate exited 0 | `Finish`, `index.go:121-136`; `ended`, `index.go:149-153` |
-| `failed` | the gate exited non-zero, or the job could not run | `Finish`, `index.go:121-136`; `ended`, `index.go:149-153` |
-| `interrupted` | the run left no manifest, so nothing is known about it | `ended`, `index.go:143-147` |
+| `queued` | The task is on disk and nobody has taken it | `Add` |
+| `running` | A worker holds it | `Claim` |
+| `passed` | The check exited 0 | `Finish`, or `Open` from the manifest |
+| `failed` | The check exited non-zero, or the task could not run | `Finish`, or `Open` from the manifest |
+| `interrupted` | The run left no manifest, so nothing is known about it. A stopped task also ends here (see Stopping a task) | `Open` |
 
-A manifest counts as this run's only when it was written after the run started,
-and claiming a job removes the one its last run left (`index.go`). A directory can
-be run again, and without both rules a second run that never reached its gate
-comes back carrying the first run's verdict. A recovered job takes its end from
-the manifest's `atUnix` rather than from the clock at recovery, so an outage is
-not counted as part of the job.
+`passed`, `failed` and `interrupted` are final. Nothing reads a final state and queues the task again.
 
-`passed`, `failed` and `interrupted` are final. `Done` reports all three, and
-nothing reads a final state and queues the job again
-(`internal/jobs/state.go:29-31`).
-
-A directory with no `state.json` is not a job the index knows, and `Open` skips
-it (`index.go:42-45`). `gusto new` writes `job.json` and the adapter and no
-`state.json`, so a job made on the command line inside the server's jobs
-directory is invisible to the server.
-
-`instance` names the instance a job ran on. A task or a turn made on the pages
-records it; a job sent to `POST /api/jobs` has none, and neither has a job made
-by the form `/jobs` carried before a run belonged to an instance. The pages read
-a job without one as having run on no instance, and it lists and opens like any
-other.
+- A manifest counts as this run's only when it was written after the run started. Claiming a task removes the manifest its last run left.
+- A recovered task takes its end from the manifest's `atUnix`, not from the clock at recovery. `endedAt` is when a server wrote the state, so it can differ from the run's end by the length of an outage.
+- A directory with no `state.json` is not a task the index knows, and `Open` skips it. A task made with `gusto new` inside the server's tasks directory is invisible to the server.
+- `instance` names the instance a task ran on. A task or a turn made on the pages records it. A task sent to `POST /api/jobs` has none, and the pages list and open it as running on no instance.
 
 ## The transitions
 
-| from | to | what causes it | what the file gains |
+| From | To | Cause | The file gains |
 | --- | --- | --- | --- |
-| — | `queued` | a task on an instance (`internal/web/tasks.go`), a turn in a thread (`internal/web/instances.go`) or a job sent to `POST /api/jobs` (`internal/web/api.go`) is accepted | every field, `queuedAt`; `instance` for a task or a turn, and `thread` for a turn |
-| `queued` | `running` | a worker takes the oldest queued job (`index.go:94-118`) | `startedAt` |
-| `running` | `passed` | the work returns exit 0 (`internal/jobs/queue.go:96`) | `exit` 0, `endedAt` |
-| `running` | `failed` | the work returns a non-zero exit (`queue.go:102-104`) | that `exit`, `endedAt` |
-| `running` | `failed` | the work returns an error (`queue.go:98-101`) | `exit` -1, `endedAt` |
-| `running` | `passed` | a server starts and the job's manifest says the gate passed (`index.go:149-153`) | `exit` from `manifest.gate.code`, `endedAt` |
-| `running` | `failed` | a server starts and the manifest says the gate failed (`index.go:149-153`) | `exit` from `manifest.gate.code`, `endedAt` |
-| `running` | `interrupted` | a server starts and there is no manifest (`index.go:143-147`) | `exit` -1, `endedAt` |
+| none | `queued` | A task on an instance (`internal/web/tasks.go`), a turn in a thread (`internal/web/instances.go`) or `POST /api/jobs` (`internal/web/api.go`) is accepted | Every field and `queuedAt`. `instance` for a task or turn. `thread` for a turn |
+| `queued` | `running` | A worker takes the oldest queued task under the index mutex, so two workers in one process cannot take the same task | `startedAt` |
+| `running` | `passed` | The work returns exit 0 (`internal/jobs/queue.go`) | `exit` 0, `endedAt` |
+| `running` | `failed` | The work returns a non-zero exit, or an error | That `exit`, or -1 for an error, and `endedAt` |
+| `running` | `passed` or `failed` | A server starts and the manifest says the check passed or failed | `exit` from `manifest.gate.code`, `endedAt` |
+| `running` | `interrupted` | A server starts and there is no manifest | `exit` -1, `endedAt` |
 
-`Claim` picks the queued job with the lowest `queuedAt` under the index mutex,
-so two workers in one process cannot take the same job (`index.go:94-118`).
+## What reaches the disk while a task runs
 
-`endedAt` is when a server wrote the state, not when the run ended
-(`index.go:140`). For a job recovered from its manifest the two differ by the
-length of the outage; the manifest's `atUnix` says when the run ended. Measured
-on a recovered job: `endedAt` 5 seconds after the manifest's `atUnix`, and the
-page reporting `took 20s` for a run of 15 seconds.
+`Claim` writes `state.json` before the work starts. The runner inside the box writes the rest, in this order (`internal/runner/inside.go`):
 
-## What reaches the disk while a job runs
+| Written | When |
+| --- | --- |
+| `out/harness.log`, `out/transcript.log`, `out/calls.jsonl`, `out/stderr.log` | Before the agent starts, truncated. A line is added as the agent prints it |
+| `out/diff.patch` | After the agent stops |
+| `out/gate.log`, `out/gates.json` | After the check answers |
+| `out/manifest.json` | Last, hashing everything above |
 
-`Claim` writes `state.json` before the work starts. Everything after that is
-written by the runner inside the box, in this order
-(`internal/runner/inside.go:26-110`):
+Each line reaches the bind-mounted directory before the next is read, because a container's own disk does not survive the container. `Open` reads only the manifest, whose presence separates a run that reached its end from one that did not.
 
-| written | when | by |
-| --- | --- | --- |
-| `out/harness.log`, `out/transcript.log`, `out/calls.jsonl`, `out/stderr.log` | before the harness starts, truncated | `record.go:30-48` |
-| a line in each | as the harness prints it | `inside.go:141-150` |
-| `out/diff.patch` | after the harness stops | `inside.go:68` |
-| `out/gate.log`, `out/gates.json` | after the gate answers | `runner/gate.go:31-44` |
-| `out/manifest.json` | last, hashing everything above | `inside.go:89-106` |
+The runner refuses a task before the agent starts when the agent's program is not on its PATH, a restricted task names a model that is not local, or an agent needing a local model has none answering (`internal/runner/admit.go`). A refusal writes only `out/transcript.log`, holding the reason. It leaves no check verdict and no manifest. In the box the refusal reaches the queue as exit 2. In the server's own process it reaches the queue as an error.
 
-Each line is on the bind-mounted directory before the next one is read, because
-a container's own disk does not survive the container (`record.go:12-14`).
-
-`out/manifest.json` is the last thing written and the only thing `Open` reads, so
-the manifest's presence is what separates a run that reached its end from one
-that did not.
-
-The runner refuses the job before the harness starts when the harness's program
-is not on its PATH, when a restricted job names a model that is not local, or
-when a harness needing a local model has none answering (`runner/admit.go`). A
-refusal writes one file, `out/transcript.log`, holding the reason, so the job
-page, the live stream and a conversation show why the job never started. It
-leaves no gate verdict and no manifest. In the box the refusal reaches the queue
-as exit 2; in the server's own process it reaches the queue as an error.
-
-The budget that ends a harness is the time budget. `Inside` builds a context
-from `budget.seconds`, which defaults to 900 (`internal/job/job.go`).
-`budget.turns` defaults to 40 and nothing reads it.
-
-A money cap does not end the harness. The proxy refuses the job's next call to
-the model, which takes the model away, and the time budget ends a harness that
-carries on without one. The cap is outside the box, so the runner learns of it
-from the refusal the proxy wrote to `out/proxy.jsonl` since the run started, and
-records it in the manifest as `stoppedByCap` (`internal/runner/capped.go`). The
-job's state is still the gate's answer.
+The time budget ends an agent. It comes from `budget.seconds`, default 900 (`internal/job/job.go`). `budget.turns` defaults to 40 and nothing reads it. A money cap does not end the agent. The proxy refuses the task's next model call, and the time budget ends an agent that carries on without a model. The runner reads the refusal from `out/proxy.jsonl` and records `stoppedByCap` in the manifest (`internal/runner/capped.go`). The task's state is still the check's answer.
 
 ## A server restart
 
-| how the server stops | what happens to the job in flight |
+| How the server stops | What happens to the task in flight |
 | --- | --- |
-| SIGINT or SIGTERM | the job runs on, and `Finish` records it if it ends within 60 seconds |
-| SIGKILL, a crash, the machine | the container runs on, and the next start reads its manifest |
+| SIGINT or SIGTERM | The task runs on, and `Finish` records it if it ends within 60 seconds |
+| SIGKILL, a crash, the machine | The container runs on, and the next start reads its manifest |
 
-On a signal the handler shuts the HTTP server down with a 30-second grace
-(`cmd/gusto/serve.go:53-60`). `queue.Stop()` then closes the stop channel and
-waits for every worker (`queue.go:54-57`). A worker checks that channel between
-jobs, so stopping starts nothing new (`queue.go:66-75`). Measured with one worker
-and six jobs queued: one job ran and five were still queued when `Stop`
-returned.
+- On a signal the server shuts the HTTP server down with a 30-second grace. `queue.Stop()` then waits for every worker. A worker checks for stop between tasks, so nothing new starts (`cmd/gusto/serve.go`, `internal/jobs/queue.go`).
+- The task in flight is not interrupted, so the stop takes as long as that task. The service unit allows 60 seconds, then kills everything in the cgroup (`deploy/ansible/roles/serve/templates/gusto.service.j2`). A task with the default 900-second budget often meets the hard kill. Tasks left queued are the next server's work.
+- A task left `queued` stays `queued`, and the next server takes it. A task that appears in the directory while a server runs waits for the next start, because the index is read once, at `Open`.
+- `GUSTO_SANDBOX=here` runs the work as a function call, so a task dies with the server.
 
-The job in flight is not interrupted, so the stop takes as long as that job does.
-The service unit gives the whole thing 60 seconds and then kills everything in
-the cgroup (`deploy/ansible/roles/serve/templates/gusto.service.j2:23-24`). A job
-with the default budget may take 900 seconds, so the one job in flight often
-meets the hard kill. The comment above those two lines says the service gets time
-to end its jobs and write their evidence before anything is killed
-(`gusto.service.j2:21-22`). That holds for a job of under a minute and for no
-other. The five left queued cost nothing: they are the next server's work.
+After a hard kill the file still says `running`. The next start decides from the record:
 
-After a hard kill the file still says `running`, and what the job ends as depends
-on how far the container got.
-
-| the container | on the next start |
+| The container | On the next start |
 | --- | --- |
-| reached the gate and wrote its manifest | `passed` or `failed`, from `manifest.gate` |
-| died first, or was killed with the server | `interrupted`, `exit` -1 |
+| Reached the check and wrote its manifest | `passed` or `failed`, from `manifest.gate` |
+| Died first, or was killed with the server | `interrupted`, `exit` -1 |
 
-Both rows are from a run. A server SIGKILLed 12 seconds into a harness that
-prints for 15 left the container running; the container finished the harness, ran
-the gate, wrote seven evidence files and a manifest saying `"passed": true`, and
-the next start recorded `passed` with `exit` 0. Killing the container as well
-left the four log files, no manifest, and a next start recording `interrupted`
-with `exit` -1.
+## A runner that dies mid-task
 
-A job running in the server's own process dies with the server instead, because
-`GUSTO_SANDBOX=here` makes the work a function call rather than a container
-(`cmd/gusto/serve.go:70-86`).
-
-A job left `queued` by a stopped server stays `queued`, and the next server takes
-it. Measured: a job directory with a `queued` `state.json`, present before the
-server starts, ends `passed`.
-
-The index is read from disk once, at `Open`. Nothing re-reads the directory
-afterwards, and `Claim` iterates the in-memory map (`index.go:98-107`), so a job
-appearing in the directory while a server runs waits for the next start.
-
-## A runner that dies mid-job
-
-| what dies | the harness line in the manifest | the job's state |
+| What dies | Agent line in the manifest | The task's state |
 | --- | --- | --- |
-| the harness, on its own non-zero exit | `harnessExit` is that code | the gate decides |
-| the harness, by a signal | `harnessExit` -1 | the gate decides |
-| the harness, at the time budget | `harnessExit` -1, `stoppedAtBudget` true | the gate decides |
-| the harness, because a person stopped the job | `harnessExit` -1, `stoppedBy` the person (or `a signal` when nobody is named) | `interrupted`, whatever the gate would say |
-| the harness, with its model refused at a spending cap | whatever it exits with, and `stoppedByCap` | the gate decides |
-| a process the harness started | `harnessExit` is what the harness reports for it | the gate decides |
-| the runner, PID 1 in the box | no manifest | `failed`, with the container's exit |
-| the container never starts | no manifest, and `out/` empty | `failed`, `exit` 125 |
-| the runner, on an error before the gate | no manifest | `failed`, `exit` 2 in the box, -1 on the host |
-| `gusto serve` | written by the container that outlives it | the manifest's verdict, or `interrupted` |
+| The agent, on its own non-zero exit or by a signal | `harnessExit` is that code, or -1 for a signal | The check decides |
+| The agent, at the time budget | `harnessExit` -1, `stoppedAtBudget` true | The check decides |
+| The agent, because a person stopped the task | `harnessExit` -1, `stoppedBy` the person (`a signal` when nobody is named) | `interrupted`, whatever the check would say |
+| The agent, with its model refused at a spending cap | Whatever it exits with, and `stoppedByCap` | The check decides |
+| A process the agent started | `harnessExit` is what the agent reports for it | The check decides |
+| The runner, PID 1 in the box | No manifest | `failed`, with the container's exit |
+| The container never starts | No manifest, `out/` empty | `failed`, `exit` 125 |
+| The runner, on an error before the check | No manifest | `failed`, `exit` 2 in the box, -1 on the host |
+| `gusto serve` | Written by the container that outlives it | The manifest's verdict, or `interrupted` |
 
-Measured, with a harness that kills itself and a gate that passes: the manifest
-says `harnessExit: -1`, `stoppedAtBudget: false`, `gate: {code: 0, passed:
-true}`, and `gusto inside` exits 0. A killed harness does not fail a job. The
-gate decides, on whatever the harness left in the workspace.
-
-`harnessExit` is what the process the runner started reported, and nothing
-deeper. Measured under the same memory cap: a harness that allocates without
-bound itself leaves `harnessExit: -1`, and a harness that is a shell whose child
-allocates leaves `harnessExit: 137`, because the shell reports its child's kill
-as its own status. `stoppedAtBudget` and `stoppedBy` are the fields that name a cause
-(`inside.go`): the time ran out, or somebody stopped the job.
-
-The last runner row has two answers because the boundary is in the middle of it.
-Inside the box, `gusto inside` turns an error into exit 2
-(`cmd/gusto/main.go:122-132`, `main.go:228-231`), the container carries that out,
-and the queue reads it as a non-zero exit (`queue.go:102-104`). On the host —
-reading `job.json`, cloning the repository, starting the container — the error
-reaches the queue as an error and becomes `exit` -1 (`queue.go:98-101`). Measured
-on the container path: a job naming a harness the image does not carry ends
-`failed` with `exit` 2, its transcript naming the missing program, and a job
-whose repository does not exist ends `failed` with `exit` -1.
+- A killed agent does not fail a task. The check decides, on whatever the agent left in the workspace.
+- `harnessExit` is what the process the runner started reported, and nothing deeper. An agent that is a shell reports its child's kill as its own status, such as 137.
+- `stoppedAtBudget` and `stoppedBy` are the fields that name a cause.
+- Inside the box, `gusto inside` turns an error into exit 2 and the queue reads a non-zero exit (`cmd/gusto/main.go`). On the host (reading `job.json`, cloning, starting the container) the error reaches the queue as an error and becomes `exit` -1.
 
 ## What a watcher sees
 
-`/watch/{id}` tails `out/transcript.log` every 300 milliseconds and asks the
-index whether the job has ended (`internal/web/stream.go:19-58`). The file is the
-stream, so a watcher who arrives late is caught up from the beginning.
+`/watch/{id}` tails `out/transcript.log` every 300 milliseconds and asks the index whether the task has ended (`internal/web/stream.go`). A late watcher is caught up from the beginning. An unknown task is answered 404 before a stream opens.
 
-A job the index does not know is answered 404 before a stream opens
-(`stream.go:20-25`), and nothing removes a job from the index once it is there.
-Each read takes the index's newest record of the job, and keeps the record the
-watcher already holds if the index has none (`stream.go:132-141`), so the watcher
-never names a verdict the index did not give.
-
-| the job is | the watcher gets |
+| The task is | The watcher gets |
 | --- | --- |
-| `queued` | an open stream and no data, so the page reads `waiting…` |
-| `running` | each line, in the order the runner wrote it |
-| `passed`, `failed` | one last read of the file, then `event: ended` with the state |
-| `interrupted` | the transcript up to the kill, then `event: ended` with `interrupted` |
+| `queued` | An open stream and no data, so the page reads `waiting…` |
+| `running` | Each line, in the order the runner wrote it |
+| `passed`, `failed` | One last read of the file, then `event: ended` with the state |
+| `interrupted` | The transcript up to the kill, then `event: ended` with `interrupted` |
 
-Measured on a job whose server and container were both killed: the stream
-replays the transcript and then sends `event: ended` / `data: interrupted`.
+A watcher is not told about a server restart. The cookie key is made at boot, so every old cookie is invalid and the reconnect is answered with 303 to `/login`. The page opens a stream only when it was rendered `queued` or `running` (`internal/web/templates/job.html`). Reload and sign in, and the page shows what the record decided.
 
-A watcher across a restart is not told. The cookie key is made at boot
-(`internal/web/auth.go:24-32`), so every cookie from the old process is invalid
-and the reconnect is answered with 303 to `/login` — measured. The page opens a
-stream only when the state it was rendered with is `queued` or `running`, and it
-listens for `ended` and for messages and not for errors
-(`internal/web/templates/job.html:53-72`). The person reloads, signs in, and the
-page then says what the evidence decided.
+## Stopping a task
 
-## What is not decided yet
+A person stops a turn of their own, and an admin stops anybody's, with the Stop button on the conversation or `POST /api/jobs/{id}/stop` with a person's token.
 
-### An interrupted job is never retried
+- A queued task is interrupted at once and never runs. Its record has `stoppedBy`.
+- A running task is told to stop. The server writes `stop.json` in the task's directory (who, and when) and interrupts the container's client. `gusto inside` then kills the agent and everything the agent started, keeps what it did in the workspace, and writes the manifest with `stoppedBy`. The server signs it. The task ends `interrupted`, not `failed`, because the check's answer over half a piece of work is not a verdict on the agent.
+- A container still there after sixty seconds is removed by its name, `gusto-<task id>`.
+- A task that is over answers 409 and is not changed.
+- A run stopped by a signal alone, as when a server shuts down, has `stoppedBy: "a signal"`.
+- This does not stop what the agent started in the workspace and left running after its turn, such as an app it served.
 
-Nothing retries it, and `interrupted` is final (`state.go:29-31`). The state now
-means something narrow: the run left no manifest, so it did not reach its gate.
-That is the only kind of job for which a retry is even the right question.
+## Open points
 
-Three things are true of such a job, and each is a decision nobody has made.
-
-**The container is gone.** `sandbox.Run` passes `--rm`, so the box a job ran in
-does not survive it (`internal/sandbox/sandbox.go:45`). A retry is a new
-container, and nothing is carried over.
-
-**The workspace holds the dead attempt's edits.** `Fill` leaves a directory that
-already holds `.git` exactly as it is (`internal/runner/workspace.go:14-17`). A
-retry runs the harness over those edits, against a brief written for the original
-tree. A safe retry resets the workspace to a named commit first, or clones again
-— and the job has to say which, because "keep what the agent did and carry on"
-and "start over" are different products.
-
-**The evidence of the dead attempt is overwritten.** `Open` creates the four log
-files with `os.Create`, which truncates (`internal/runner/record.go:41`). A retry
-loses the interrupted attempt's transcript, and the manifest hashes only the last
-attempt. An attempt needs its own place in the directory before that is
-acceptable.
-
-One thing stands in the way of retrying anything else. Nothing clears
-`out/manifest.json` before a run starts, and `Open` trusts whatever manifest it
-finds. Measured end to end: a job directory whose first run passed, queued again
-with a harness that writes nothing and killed mid-run, comes back `passed` with
-`exit` 0 while its workspace holds the answer its own gate rejects. So retrying a
-job that already has a verdict is unsafe until a run removes the manifest it is
-going to replace. Retrying an interrupted job is not exposed to this, because an
-interrupted job has no manifest — but the first retry that itself dies brings the
-question back.
-
-### The memory cap
-
-`sandbox.Run` sets `--memory`, `GUSTO_JOB_MEMORY` or `3g`
-(`sandbox.go:45-49, 103-109`). Which state a capped job ends in depends on which
-process the kernel picks.
-
-| the OOM killer picks | measured | the job ends |
-| --- | --- | --- |
-| the harness, a child in the box | the container exits with the gate's answer | `passed` or `failed`, by the gate |
-| the runner, PID 1 in the box | the container exits 137 | `failed`, `exit` 137 |
-
-The container rows are from a run at `--memory=32m`: a container whose PID 1
-allocates without bound exits 137, and one whose child allocates while PID 1
-waits exits with PID 1's own code, 0. The daemon's `OOMKilled` flag reported the
-child's kill in one run of four, so it is not an answer even before `--rm`
-removes the container that carries it.
-
-In this product PID 1 is `gusto inside`, a small Go binary, and the harness is a
-much larger child, so the first row is the likely one. Measured through the
-server at `--memory=64m` with a harness that allocates without bound: the run
-reaches the gate, writes a manifest, and the job ends `failed` with `exit` 1 —
-the gate's answer over a workspace the harness did not finish editing.
-
-Can a reader tell that apart from a harness that simply failed? Partly.
-
-| in the evidence | a harness that failed | a harness killed by the cap |
-| --- | --- | --- |
-| `harnessExit` | its own code, 0 or above | -1, or 137 through a shell |
-| `stoppedAtBudget` | false | false |
-| the job's state | the gate's answer | the gate's answer |
-
-`harnessExit: -1` says a signal killed the process the runner started, which a
-harness exiting on its own never shows. It does not say which signal: SIGKILL
-from the cap, a segfault and a SIGTERM from anywhere else are all -1
-(`inside.go:151-160`). A harness that wraps its work in a shell reports 137
-instead, which is indistinguishable from a harness choosing to exit 137. Nothing
-reads the cap back, and the manifest has no field for the limits the job ran
-under.
-
-The manifest-first rule does not change this, and it changes one thing next to
-it. A capped harness still reaches the gate, so its verdict survives a server
-restart along with it. A cap that kills the runner leaves no manifest, so a job
-whose server also died collapses to `interrupted` with `exit` -1, and the 137 a
-live server would have recorded is gone. The same holds for a cap the runtime
-refuses outright: measured at `GUSTO_JOB_MEMORY=4m`, docker answers `Minimum
-memory limit allowed is 6MB`, the container never starts, `out/` stays empty and
-the job ends `failed` with `exit` 125. `ready` starts a container before the real
-run but passes no memory flags (`sandbox.go:81-96`), so it does not catch a cap
-the runtime will refuse.
-
-Not decided: whether the manifest records the caps a job ran under and the signal
-that ended the harness, and whether an evidence-less death keeps the container's
-exit code instead of -1.
-
-### Two servers on one jobs directory
-
-Two servers pointed at the same jobs directory both claim the same job, and
-nothing prevents it. `Index` is one process's map behind one mutex, and the
-comment says so: a second runner is what would earn a database
-(`index.go:13-15`).
-
-Measured on two indexes over one directory:
-
-| what happens | result |
-| --- | --- |
-| both call `Claim` on one queued job | both get it, the same ID |
-| a second server starts while the first runs a job | the second writes `interrupted`, `exit` -1, over the first's `running` job |
-| the first server then calls `Finish` | the disk says `passed`, and the second server's memory still says `interrupted` |
-
-The second and third rows are worse than the double claim. A server starting up
-decides every `running` job in the directory, whether or not another server is
-running it, and a job that has not reached its gate has no manifest to save it
-(`index.go:46-51`). A watcher on that server is sent `event: ended` with
-`interrupted` for a job that is still going.
-
-What would prevent it: the jobs directory needs one exclusive lock, taken at
-`Open` and held for the life of the process, so a second server on the same
-directory refuses to start and says which process holds it. A lock the kernel
-releases when the holder dies also gives `Open` the thing it is missing — the
-difference between "nobody holds this job" and "another server holds it" — which
-is what makes the sweep over `running` jobs correct rather than a guess. Claiming
-a job with an atomic create per job would make two servers safe instead of
-refusing the second, and that is a larger decision: it is the first piece of a
-fleet, and the queue is one process today.
-
-## Stopping a job
-
-A person stops a turn of their own, and an admin stops anybody's: with the Stop button on the conversation, or
-`POST /api/jobs/{id}/stop` with a person's token.
-
-- **A job that is queued** is interrupted at once and never runs. Its record has `stoppedBy`.
-- **A job that is running** is told to stop. The server writes `stop.json` in the job's directory (who, and when), then
-  interrupts the container's client, which hands it to `gusto inside`; `gusto inside` kills the harness *and everything the
-  harness started*, keeps what it did in the workspace, writes the manifest with `stoppedBy`, and the server signs it.
-  The job ends `interrupted`, not `failed`: whoever stopped it ended it, and the gate's answer over half a piece of work
-  is not a verdict on the agent. A container that is still there after sixty seconds is removed by its name,
-  `gusto-<job id>`.
-- **A job that is over** answers 409 and is not changed.
-- A run that is stopped by a signal alone, as when a server is shut down, has `stoppedBy: "a signal"`.
-
-Not stopped by this: what the agent started in the workspace and left running after its turn (an app it served). Those
-are the agent's apps, and have their own page.
+- **No retry.** Nothing retries an `interrupted` task. A safe retry needs three decisions. `sandbox.Run` passes `--rm`, so a retry is a new container. `Fill` leaves an existing `.git` as it is (`internal/runner/workspace.go`), so a retry would run over the dead attempt's edits, and the task must say whether to reset or clone again. `Open` truncates the four log files (`internal/runner/record.go`), so a retry loses the dead attempt's transcript.
+- **A stale manifest is trusted.** Nothing clears `out/manifest.json` before a run starts. Retrying a task that already has a verdict is unsafe until a run removes the manifest it will replace.
+- **The memory cap.** `sandbox.Run` sets `--memory` from `GUSTO_JOB_MEMORY`, default `3g` (`internal/sandbox/sandbox.go`). When the OOM killer picks the agent, the check decides. When it picks the runner, the task ends `failed` with `exit` 137. `harnessExit` -1 shows a signal killed the agent, but not which one. The manifest has no field for the limits a task ran under or the signal that ended the agent. A cap the runtime refuses, such as `GUSTO_JOB_MEMORY=4m`, ends `failed` with `exit` 125 and `ready` does not catch it.
+- **Two servers on one tasks directory.** Both claim the same task, and a server starting up writes `interrupted` over a `running` task the other server is running. A single exclusive lock on the tasks directory would prevent it. `Index` is one process's map behind one mutex (`internal/jobs/index.go`).

@@ -25,7 +25,7 @@ type Signer interface {
 const Scheme = "ed25519"
 
 // SchemeDigest signs the SHA-512 digest of the file's bytes with plain Ed25519.
-// A key service limits the size of what it signs, and a manifest of a large job
+// A key service limits the size of what it signs, and a manifest of a large task
 // is larger than that limit, so it signs the 64 bytes of the digest instead. It
 // is the same key and the same public half. Any tool that checks plain Ed25519
 // checks it, given the digest: sha512sum of the file is the message.

@@ -1,4 +1,4 @@
-# Runs on the instance: haas matrix, from the plan in ~/e2e/matrix/plan.json, with every
+# Runs on the instance: haas benchmark, from the plan in ~/e2e/matrix/plan.json, with every
 # cell started in an OpenShell sandbox made from the image that carries all the harnesses.
 # The credentials are built here from Parameter Store with the instance's role, so no
 # key is anywhere else. It runs detached and writes ~/e2e/matrix/done when it ends.
@@ -25,7 +25,7 @@ bash "$E/credentials.sh" "$M/creds"
 
 # The one job every pair is given, with a time limit a hung harness cannot outlast.
 [ -d "$M/one-line-fix" ] || "$E/haas" new "$M/one-line-fix" -repo "$M/sample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
-  -harness opencode -model platform/qwen.qwen3-vl-235b-a22b-instruct -- node --test >/dev/null
+  -agent opencode -model platform/qwen.qwen3-vl-235b-a22b-instruct -- node --test >/dev/null
 [ -n "${AGAIN:-}" ] || python3 - "$M/one-line-fix/job.json" <<'PY'
 import json, sys
 spec = json.load(open(sys.argv[1]))
@@ -37,6 +37,6 @@ cd "$M"
 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
   GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 GUSTO_CREDENTIALS="$M/creds" \
   GUSTO_SIGNING_KEY="$M/keys/e2e.key" GUSTO_KEYRING="$M/keys" GUSTO_SIGNER=e2e \
-  "$E/haas" matrix ${AGAIN:+-again "$AGAIN"} "$M/plan.json" > "$M/table.txt" 2> "$M/run.log"
+  "$E/haas" benchmark ${AGAIN:+-again "$AGAIN"} "$M/plan.json" > "$M/table.txt" 2> "$M/run.log"
 echo "exit $?" >> "$M/run.log"
 touch "$M/done"

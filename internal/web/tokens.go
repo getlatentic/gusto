@@ -30,7 +30,7 @@ type tokenRow struct {
 
 // tokenScopeWords say what each scope lets a token do, for the person choosing.
 var tokenScopeWords = map[string]string{
-	apitoken.Submit:  "send jobs",
+	apitoken.Submit:  "send tasks",
 	apitoken.Spend:   "read spending",
 	apitoken.Audit:   "read the change record",
 	apitoken.Metrics: "read metrics",

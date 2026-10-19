@@ -10,8 +10,8 @@ import (
 )
 
 // Rewrite copies from's job.json into to with the named fields set, and nothing
-// else changed. A replay sets ref to the pinned commit; a comparison sets the
-// harness as well.
+// else changed. A rerun sets ref to the pinned commit; a comparison sets the
+// agent as well.
 //
 // The file is copied field by field rather than through job.Spec, so a field
 // this build does not know survives into the copy instead of being dropped, and
@@ -65,8 +65,8 @@ func anchor(fields map[string]json.RawMessage, old job.Dir) error {
 	return err
 }
 
-// Carry gives the new job the adapters the old one carried, so it runs a
-// harness the same way. When none of them is the named harness's, the old job
+// Carry gives the new task the adapters the old one carried, so it runs a
+// agent the same way. When none of them is the named agent's, the old task
 // ran a built-in adapter or one from GUSTO_HARNESSES, and harness.Keep carries
 // the one this machine has now, so a container that has never heard of it
 // still runs it.

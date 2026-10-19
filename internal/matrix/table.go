@@ -13,20 +13,20 @@ import (
 // newest the catalog reads.
 const TableVersion = 1
 
-// Table is the matrix as a person, or the catalog, reads it: a row for every
-// job and pair, each read off its run's evidence.
+// Table is the benchmark as a person, or the catalog, reads it: a row for every
+// task and pair, each read off its run's evidence.
 type Table struct {
 	Version int `json:"version"`
-	// Matrix is where the runs are, so every row's run can be found and
+	// Benchmark is where the runs are, so every row's run can be found and
 	// verified.
 	Matrix      string `json:"matrix"`
 	Environment string `json:"environment"`
-	// Simplest is the job a pair has to finish to be offered.
+	// Simplest is the task a pair has to finish to be offered.
 	Simplest string `json:"simplest"`
 	Rows     []Row  `json:"rows"`
 }
 
-// Row is one job on one pair. Every number in it is null when the run did not
+// Row is one task on one pair. Every number in it is null when the run did not
 // leave it, because a zero would read as free, or instant, or failed.
 type Row struct {
 	Job     string `json:"job"`
@@ -35,7 +35,7 @@ type Row struct {
 	// that left the model to the harness.
 	Model       string `json:"model"`
 	Environment string `json:"environment"`
-	// Finished is the gate's verdict. Null is a run that left none.
+	// Finished is the check's verdict. Null is a run that left none.
 	Finished        *bool    `json:"finished"`
 	GateCode        *int     `json:"gateCode"`
 	StoppedAtBudget bool     `json:"stoppedAtBudget"`
@@ -46,12 +46,12 @@ type Row struct {
 	CostFrom        string   `json:"costFrom,omitempty"`
 	// Run is the run's directory, relative to the matrix.
 	Run string `json:"run"`
-	// Evidence is "checks", the first thing that changed since the run, or
-	// why there is no evidence to check.
+	// Record is "checks", the first thing that changed since the run, or
+	// why there is no record to check.
 	Evidence string `json:"evidence"`
 }
 
-// Tabulate reads the matrix at where back from its runs' evidence.
+// Tabulate reads the benchmark at where back from its runs' evidence.
 func Tabulate(where string) (Table, error) {
 	record, err := Read(where)
 	if err != nil {
@@ -114,7 +114,7 @@ func checked(side compare.Side) string {
 	return "checks"
 }
 
-// ExitCode is 0 when every cell left a verdict and its evidence still checks,
+// ExitCode is 0 when every run left a verdict and its record still checks,
 // whichever pairs finished, and 2 otherwise. Which pairs finish is what the
 // table says, not a failure of the matrix.
 func ExitCode(table Table) int {

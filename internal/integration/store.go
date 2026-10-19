@@ -74,7 +74,7 @@ type Integration struct {
 	// program, and has to be allowed again.
 	Programs string `json:"programs,omitempty"`
 	// For is who the integration is on for, as patterns of the address a person signed in with ("ada@acme.example", "*@acme.example").
-	// None is everyone. A person is who the sign-in says: a team is a label a person chooses for a job, and nothing proves they belong
+	// None is everyone. A person is who the sign-in says: a team is a label a person chooses for a task, and nothing proves they belong
 	// to it, so it cannot decide who may have something.
 	For     []string `json:"for,omitempty"`
 	History []Event  `json:"history,omitempty"`

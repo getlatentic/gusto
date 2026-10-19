@@ -2,8 +2,8 @@ package job
 
 import "strings"
 
-// Words splits a gate written as one line into the command and its arguments,
-// keeping quoted runs together. A gate is a command, and people write
+// Words splits a check written as one line into the command and its arguments,
+// keeping quoted runs together. A check is a command, and people write
 // `sh -c "test $(cat answer) = yes"` — splitting that on spaces produces
 // something that cannot run.
 func Words(line string) []string {

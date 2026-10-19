@@ -1,10 +1,10 @@
 // Package proxy is the only way out of a sandbox.
 //
-// A harness needs a model, and a model needs a credential. Putting that
+// An agent needs a model, and a model needs a credential. Putting that
 // credential in the container would be the one thing this product tells a buyer
 // it does not do, so the container is given an address here instead: the proxy
 // holds the key, adds it on the way out, writes down what actually went, and
-// refuses once a job has spent what it was allowed.
+// refuses once a task has spent what it was allowed.
 package proxy
 
 import (
@@ -13,8 +13,8 @@ import (
 	"sync"
 )
 
-// Ticket is what a token stands for: the job the spending is attributed to, and
-// the credential that job may spend. The credential is decided when the job
+// Ticket is what a token stands for: the task the spending is attributed to, and
+// the credential that task may spend. The credential is decided when the task
 // starts and held here, so a container cannot reach a provider it was not given
 // by naming one in a request.
 type Ticket struct {
@@ -23,8 +23,8 @@ type Ticket struct {
 }
 
 // Tokens are what a container shows instead of a credential. One is minted per
-// job and dropped when the job ends, so it is worth nothing to anybody who takes
-// it later, and what it spends is attributed to a job rather than an account.
+// task and dropped when the task ends, so it is worth nothing to anybody who takes
+// it later, and what it spends is attributed to a task rather than an account.
 type Tokens struct {
 	guard sync.RWMutex
 	jobs  map[string]Ticket
@@ -34,7 +34,7 @@ func NewTokens() *Tokens {
 	return &Tokens{jobs: map[string]Ticket{}}
 }
 
-// Mint gives this job a token good for one credential. A job that already has
+// Mint gives this task a token good for one credential. A task that already has
 // one keeps it, so a restarted run does not orphan the address its container
 // was given.
 func (t *Tokens) Mint(job, credential string) (string, error) {
@@ -62,7 +62,7 @@ func (t *Tokens) Job(token string) (Ticket, bool) {
 	return ticket, found
 }
 
-// Drop ends a job's way out. Called when the job ends, so a container that
+// Drop ends a task's way out. Called when the task ends, so a container that
 // outlives its server cannot keep spending.
 func (t *Tokens) Drop(job string) {
 	t.guard.Lock()

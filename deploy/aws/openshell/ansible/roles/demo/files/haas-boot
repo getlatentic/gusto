@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs as root when a demo host starts, before nginx, haas cloud and haas cell. What it does depends on ROLE:
+# Runs as root when a demo host starts, before nginx, haas cloud and haas host. What it does depends on ROLE:
 #
 #   all           a host that is the front door and runs the organisations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
@@ -151,7 +151,7 @@ orchestrator)
   tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; runner_image; credentials; cell_identity
-  echo "haas-boot: this host is a cell" ;;
+  echo "haas-boot: this host is a host of gusto cloud" ;;
 *)
   echo "haas-boot: ROLE is all, orchestrator or cell, not $role" >&2; exit 2 ;;
 esac

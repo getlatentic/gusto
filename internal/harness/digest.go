@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// Digest names a configured harness by what it holds, so two people who both
+// Digest names a configured agent by what it holds, so two people who both
 // say "opencode" can tell whether they mean the same thing. Anybody holding the
 // files computes the same string without this code; docs/FORMATS.md gives the
 // steps.
@@ -17,8 +17,8 @@ import (
 //
 // where the mode is 100755 for an executable file and 100644 for any other.
 // Timestamps, owners and the rest of the permission bits are left out, because
-// a checkout, an unpacked tarball and a copy into a job each set them afresh
-// and none of them changes what the harness does.
+// a checkout, an unpacked tarball and a copy into a task each set them afresh
+// and none of them changes what the agent does.
 func (t Tree) Digest() string {
 	listing := sha256.New()
 	for _, file := range t {

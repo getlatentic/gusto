@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-// Sensitivity is how sensitive the code in a job is. A runner says whose
+// Sensitivity is how sensitive the code in a task is. A runner says whose
 // machine it is, and the two are matched before anything starts.
 type Sensitivity string
 
@@ -31,7 +31,7 @@ const (
 // Known reports whether this is a label the rules understand.
 //
 // An unknown label must never read as "not restricted". The rules ask whether a
-// job is restricted, so `secret`, `confidential` or `Restricted` would each
+// task is restricted, so `secret`, `confidential` or `Restricted` would each
 // switch off the one rule this platform enforces, silently, by a typo.
 func (s Sensitivity) Known() bool {
 	switch s {
@@ -41,9 +41,9 @@ func (s Sensitivity) Known() bool {
 	return false
 }
 
-// Budget is what a job may spend before a runner stops it.
+// Budget is what a task may spend before a runner stops it.
 //
-// USD is a cap on what the job's calls to a model may cost, counted at the
+// USD is a cap on what the task's calls to a model may cost, counted at the
 // proxy. Nil is no cap, and zero allows nothing, so leaving it out can never
 // be mistaken for a cap of nothing or the other way round.
 type Budget struct {
@@ -52,7 +52,7 @@ type Budget struct {
 	USD     *float64 `json:"usd,omitempty"`
 }
 
-// Spec carries a brief, not a prompt. The brief is input to a harness, and a
+// Spec carries a brief, not a prompt. The brief is input to an agent, and a
 // field that passed a prompt straight through would make this a proxy for
 // somebody else's model account.
 //
@@ -65,43 +65,43 @@ type Spec struct {
 	Gate    []string `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
 	Model   string   `json:"model,omitempty"`
-	// Session names the instance this job is a turn on: the computer whose
+	// Session names the instance this task is a turn on: the computer whose
 	// workspace it mounts instead of cloning. Thread names the conversation on
-	// that instance, and Remembered is the harness's own name for that
+	// that instance, and Remembered is the agent's own name for that
 	// conversation, handed back so it resumes rather than restarts.
 	Session string `json:"session,omitempty"`
 	Thread  string `json:"thread,omitempty"`
-	// Dir is the folder of the workspace the harness works in, from the workspace's root: a turn that was asked to work in one folder
+	// Dir is the folder of the workspace the agent works in, from the workspace's root: a turn that was asked to work in one folder
 	// of the agent's computer starts there. It is empty for the root.
 	Dir         string      `json:"dir,omitempty"`
 	Remembered  string      `json:"remembered,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
-	// Team is who a job's spend counts against. It is a label the person
+	// Team is who a task's spend counts against. It is a label the person
 	// asking chooses: nothing proves they belong to the team yet.
 	Team string `json:"team,omitempty"`
-	// Setup is what the harness was configured with beyond its adapter: the
+	// Setup is what the agent was configured with beyond its adapter: the
 	// skills it was given and the MCP servers it may call.
 	Setup *Setup `json:"setup,omitempty"`
 }
 
 // Setup names a configuration and what was in it. Only names are here,
-// because job.json is evidence anyone with the run can read, and a server's
+// because job.json is a record anyone with the run can read, and a server's
 // definition can carry a token. The definitions themselves travel beside the
-// job, in the directory Setup names.
+// task, in the directory Setup names.
 type Setup struct {
 	Name    string   `json:"name"`
 	Skills  []string `json:"skills,omitempty"`
 	Servers []string `json:"servers,omitempty"`
-	// Gateway is the servers the job reaches only through the gateway, which holds their addresses and credentials. The
-	// harness is given one server for all of them.
+	// Gateway is the servers the task reaches only through the gateway, which holds their addresses and credentials. The
+	// agent is given one server for all of them.
 	Gateway []string `json:"gateway,omitempty"`
-	// Integrations is each integration the job was given skills or servers from, and the version of it: what was turned on when
-	// the job started.
+	// Integrations is each integration the task was given skills or servers from, and the version of it: what was turned on when
+	// the task started.
 	Integrations []IntegrationUse `json:"integrations,omitempty"`
 }
 
-// IntegrationUse is one version of an integration a job ran with.
+// IntegrationUse is one version of an integration a task ran with.
 type IntegrationUse struct {
 	Name string `json:"name"`
 	// Version is the fingerprint of the files, and Label the version the plugin calls itself.
@@ -129,7 +129,7 @@ type Server struct {
 	Headers map[string]string `json:"headers,omitempty"`
 }
 
-// Dir is a job directory.
+// Dir is a task directory.
 type Dir string
 
 func (d Dir) Path() string            { return string(d) }
@@ -138,10 +138,10 @@ func (d Dir) Workspace() string       { return filepath.Join(string(d), "workspa
 func (d Dir) Out() string             { return filepath.Join(string(d), "out") }
 func (d Dir) OutFile(n string) string { return filepath.Join(d.Out(), n) }
 
-// PlainOut says whether out/n is a plain file. A harness that can write out/
+// PlainOut says whether out/n is a plain file. An agent that can write out/
 // (a runner with no agent user to hand the work to) can leave a link there, and
 // a page that opens it would show whatever it points at, or wait on a pipe for
-// ever; so what the server shows of a job's record is read only when it is a
+// ever; so what the server shows of a task's record is read only when it is a
 // file and not a link.
 func (d Dir) PlainOut(n string) bool {
 	if info, err := os.Lstat(d.Out()); err != nil || !info.IsDir() {
@@ -151,9 +151,9 @@ func (d Dir) PlainOut(n string) bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
-// SetupDir is where a job's skills and server definitions wait for the
+// SetupDir is where a task's skills and server definitions wait for the
 // runner. It sits outside out/ and the workspace, so it is neither signed
-// evidence nor in the bundle a reviewer downloads.
+// record nor in the bundle a reviewer downloads.
 func (d Dir) SetupDir() string { return filepath.Join(string(d), "setup") }
 
 func (d Dir) Make() error {
@@ -164,7 +164,7 @@ func (d Dir) Make() error {
 }
 
 // Read the spec, filling in what a person left out. A field this build does not
-// know is ignored, so a job written after an additive change still runs; a
+// know is ignored, so a task written after an additive change still runs; a
 // version it does not know is refused.
 func Read(d Dir) (Spec, error) {
 	text, err := os.ReadFile(d.Spec())
@@ -224,7 +224,7 @@ func (s Spec) Write(d Dir) error {
 	return os.WriteFile(d.Spec(), append(text, '\n'), 0o644)
 }
 
-// CleanDir is a folder of a workspace as a job may name it: relative to the workspace, with no way out of it. It says why when it is not.
+// CleanDir is a folder of a workspace as a task may name it: relative to the workspace, with no way out of it. It says why when it is not.
 func CleanDir(dir string) (string, error) {
 	if dir == "" {
 		return "", nil

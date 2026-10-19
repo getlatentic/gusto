@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Makes the machine image a cell of the live front door starts from, and points /haas/poc/cell-ami at it. A cold start spends its first
+# Makes the machine image a host of the live gusto cloud starts from, and points /haas/poc/cell-ami at it. A cold start spends its first
 # minutes installing packages and running the playbook, and then, once per host, the gateway turns the 1.7 GB runner image into the disk
 # a sandbox starts from, which was 139 of 270 seconds. A host made from this image has all of that done and goes straight to
 # configuring itself from the release it is told to be.
 #
-# It makes a cell as the front door would, except that it is not started as one, and the gateway is asked for its first sandbox
-# (haas survey), which prepares the disk. It then takes an image of it and removes it. About fifteen minutes of an m8i.xlarge,
+# It makes a host as gusto cloud would, except that it is not started as one, and the gateway is asked for its first sandbox
+# (haas scan), which prepares the disk. It then takes an image of it and removes it. About fifteen minutes of an m8i.xlarge,
 # and about 0.60 dollars a month of snapshot while the image is kept. What goes into the image is in its key, which is in the
 # image's tags, so this does nothing when the image of the same key is there: FORCE=1 makes it again.
 set -euo pipefail
@@ -35,7 +35,7 @@ existing="$(aws ec2 describe-images --owners self --filters "Name=tag:haas-bake-
 if [ "$existing" != None ] && [ -z "${FORCE:-}" ]; then
   wait_for_image "$existing"
   aws ssm put-parameter --name "$param" --type String --data-type aws:ec2:image --overwrite --value "$existing" >/dev/null
-  echo "the image $existing has this key, $key, and the cell template uses it"
+  echo "the image $existing has this key, $key, and the host template uses it"
   exit 0
 fi
 
@@ -73,7 +73,7 @@ run() { # run a command on the host with Systems Manager and print what it said
   return 1
 }
 
-printf 'waiting for it to be made a cell and for the gateway to prepare the runner image '
+printf 'waiting for it to be made a host and for the gateway to prepare the runner image '
 for _ in $(seq 1 90); do
   if [ "$(run 'test -e /etc/haas/bake-done && echo done' 2>/dev/null | tr -d '[:space:]')" = done ]; then echo; break; fi
   printf '.'; sleep 10
@@ -87,14 +87,14 @@ run "systemctl stop openshell-gateway haas-boot 2>/dev/null; umount /var/lib/haa
 aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="haas-cell-$key-$(date -u +%Y%m%d%H%M)"
-image="$(aws ec2 create-image --instance-id "$host" --name "$name" --description "A cell of the public cloud with its runner image prepared" \
+image="$(aws ec2 create-image --instance-id "$host" --name "$name" --description "A host of the public cloud with its runner image prepared" \
   --tag-specifications "ResourceType=image,Tags=[{Key=haas-bake-key,Value=$key},{Key=project,Value=haas-poc}]" "ResourceType=snapshot,Tags=[{Key=haas-bake-key,Value=$key},{Key=project,Value=haas-poc}]" \
   --query ImageId --output text)"
 echo "making the image $image"
 wait_for_image "$image"
 aws ssm put-parameter --name "$param" --type String --data-type aws:ec2:image --overwrite --value "$image" >/dev/null
 
-# Two images are kept, the new one and the one before it, which a cell that is starting may still be made from.
+# Two images are kept, the new one and the one before it, which a host that is starting may still be made from.
 aws ec2 describe-images --owners self --filters 'Name=tag-key,Values=haas-bake-key' --query 'sort_by(Images,&CreationDate)[:-2].[ImageId]' --output text | while read -r old; do
   [ -n "$old" ] || continue
   snapshots="$(aws ec2 describe-images --image-ids "$old" --query 'Images[0].BlockDeviceMappings[].Ebs.SnapshotId' --output text)"
@@ -102,4 +102,4 @@ aws ec2 describe-images --owners self --filters 'Name=tag-key,Values=haas-bake-k
   for snapshot in $snapshots; do aws ec2 delete-snapshot --snapshot-id "$snapshot" >/dev/null 2>&1 || true; done
   echo "removed the older image $old"
 done
-echo "made $image from key $key in $(( ($(date +%s) - started) / 60 )) minutes, and the cell template uses it"
+echo "made $image from key $key in $(( ($(date +%s) - started) / 60 )) minutes, and the host template uses it"

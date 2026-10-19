@@ -81,7 +81,7 @@ func (c *conn) call(method string, params any) (json.RawMessage, error) {
 	return nil, fmt.Errorf("%s: %w", method, errClosed)
 }
 
-var errClosed = errors.New("the harness stopped before it answered")
+var errClosed = errors.New("the agent stopped before it answered")
 
 func (c *conn) kept(line string) error {
 	if c.muted {

@@ -96,7 +96,7 @@
     </form>
     {{end}}
     {{range .Setup.Uses}}
-    <p class="muted">{{.Name}}: {{if .On}}{{.Skills}} skill{{if ne .Skills 1}}s{{end}}, {{.Servers}} server{{if ne .Servers 1}}s{{end}}{{range .Held}} · not used: {{.}}{{end}}{{else}}off, so a job with this setup does not start until an administrator turns it on{{end}}</p>
+    <p class="muted">{{.Name}}: {{if .On}}{{.Skills}} skill{{if ne .Skills 1}}s{{end}}, {{.Servers}} server{{if ne .Servers 1}}s{{end}}{{range .Held}} · not used: {{.}}{{end}}{{else}}off, so a task with this setup does not start until an administrator turns it on{{end}}</p>
     {{end}}
   </section>
   {{end}}

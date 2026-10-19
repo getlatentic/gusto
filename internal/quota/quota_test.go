@@ -18,11 +18,11 @@ func TestARefusalSaysWhatWasAllowedAndHowTheLimitIsLifted(t *testing.T) {
 	if !errors.Is(err, ErrExceeded) {
 		t.Fatalf("a refusal is ErrExceeded: %v", err)
 	}
-	if want := "This organisation may start 3 jobs in all and has started 3. Confirm your email address to raise this limit."; err.Error() != want {
+	if want := "This organisation may start 3 tasks in all and has started 3. Confirm your email address to raise this limit."; err.Error() != want {
 		t.Errorf("%q, want %q", err.Error(), want)
 	}
 	monthly := Quota{Jobs: 200, Monthly: true}
-	if err := monthly.Refuse(200); err == nil || !strings.Contains(err.Error(), "200 jobs a month") || strings.HasSuffix(err.Error(), " ") {
+	if err := monthly.Refuse(200); err == nil || !strings.Contains(err.Error(), "200 tasks a month") || strings.HasSuffix(err.Error(), " ") {
 		t.Errorf("%v", err)
 	}
 	if err := (Quota{}).Refuse(0); !errors.Is(err, ErrExceeded) {
@@ -71,7 +71,7 @@ func TestAQuotaThatCannotBeReadIsAnErrorAndNotNoLimit(t *testing.T) {
 }
 
 func TestOneJobIsNotJobs(t *testing.T) {
-	if err := (Quota{Jobs: 1}).Refuse(1); err == nil || !strings.Contains(err.Error(), "1 job in all") {
+	if err := (Quota{Jobs: 1}).Refuse(1); err == nil || !strings.Contains(err.Error(), "1 task in all") {
 		t.Errorf("%v", err)
 	}
 }

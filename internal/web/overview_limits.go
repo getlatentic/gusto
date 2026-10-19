@@ -61,14 +61,14 @@ func (s *Server) planRows(allowed jobs.Allowance, running int) []limitRow {
 		within = "this month"
 	}
 	rows := []limitRow{
-		{What: "Jobs started " + within, Used: fmt.Sprint(allowed.Started), Of: fmt.Sprint(allowed.Quota.Jobs), Over: allowed.Started >= allowed.Quota.Jobs},
-		{What: "Jobs at once", Used: fmt.Sprint(running), Of: fmt.Sprint(allowed.Quota.Concurrent), Over: running >= allowed.Quota.Concurrent},
+		{What: "Tasks started " + within, Used: fmt.Sprint(allowed.Started), Of: fmt.Sprint(allowed.Quota.Jobs), Over: allowed.Started >= allowed.Quota.Jobs},
+		{What: "Tasks at once", Used: fmt.Sprint(running), Of: fmt.Sprint(allowed.Quota.Concurrent), Over: running >= allowed.Quota.Concurrent},
 	}
 	if s.computers == nil {
 		return rows
 	}
 	if all, err := s.computers.All(); err == nil {
-		rows = append(rows, limitRow{What: "Computers", Used: fmt.Sprint(len(all)), Of: fmt.Sprint(allowed.Quota.Computers), Over: len(all) >= allowed.Quota.Computers})
+		rows = append(rows, limitRow{What: "Workspaces", Used: fmt.Sprint(len(all)), Of: fmt.Sprint(allowed.Quota.Computers), Over: len(all) >= allowed.Quota.Computers})
 	}
 	return rows
 }

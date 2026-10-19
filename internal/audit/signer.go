@@ -26,5 +26,5 @@ func signerDisagreement(written, derived string) []string {
 	if written == derived {
 		return nil
 	}
-	return []string{fmt.Sprintf("%s: evidence.signer says %q, and this keyring says %q", SummaryFile, written, derived)}
+	return []string{fmt.Sprintf("%s: the record's evidence.signer says %q, and this keyring says %q", SummaryFile, written, derived)}
 }

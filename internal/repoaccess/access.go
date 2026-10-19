@@ -96,7 +96,7 @@ func (f Forge) Locate(remote string) (Repo, bool) {
 	return Repo{Owner: owner, Name: name}, same
 }
 
-// Check says whether the App can reach the repository, so a job for one it
+// Check says whether the App can reach the repository, so a task for one it
 // cannot is refused by name before anything starts. It asks nothing when the
 // deployment holds no App or the repository is not on this forge.
 func (f Forge) Check(ctx context.Context, remote string) error {

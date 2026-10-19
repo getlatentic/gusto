@@ -202,7 +202,7 @@ func TestTheGateShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 		"<code>sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
 		`<span class="muted">exited 3</span>`,
 		`<span class="state failed">failed</span>`,
-		"What the gate said", "3 tests failed",
+		"What the check said", "3 tests failed",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the gate is missing %s", want)
@@ -269,7 +269,7 @@ func TestTheVerifyCommandOnThePageVerifiesTheBundle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s: %v: %s", command, err, output)
 	}
-	if !strings.Contains(string(output), "files match, and the gate still exits 0") {
+	if !strings.Contains(string(output), "files match, and the check still exits 0") {
 		t.Errorf("%s said %s", command, output)
 	}
 }

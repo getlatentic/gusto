@@ -17,7 +17,7 @@ import (
 
 // liveSettings is what a server reads again while it runs, so that a change takes effect within a minute and nobody mid-task is
 // sent away for a restart. GUSTO_LIVE holds the limits and the models, GUSTO_SPEND_POLICY the prices and caps, GUSTO_TOOL_POLICY the
-// tool rules, and GUSTO_CREDENTIALS the credentials. A job already running keeps the credential it began with and asks the gateway's
+// tool rules, and GUSTO_CREDENTIALS the credentials. A task already running keeps the credential it began with and asks the gateway's
 // policy at each call. GUSTO_RELOAD_SECONDS is how often they are looked at, twenty by default, and a change is taken when it is the same at two looks, so it shows within a minute.
 //
 // When the organisation has a registry its administrators change the models, the credentials and the prices from the console, and
@@ -82,13 +82,13 @@ func (l *liveSettings) applyRedaction() error {
 		return err
 	}
 	if redactor.On() && l.way.proxy == nil {
-		return fmt.Errorf("GUSTO_REDACTION asks for %s to be masked, and this server holds no credential, so its jobs call their model directly and there is no proxy to mask what they send", strings.Join(redactor.Kinds(), ", "))
+		return fmt.Errorf("GUSTO_REDACTION asks for %s to be masked, and this server holds no credential, so its tasks call their model directly and there is no proxy to mask what they send", strings.Join(redactor.Kinds(), ", "))
 	}
 	l.way.UseRedaction(redactor)
 	return nil
 }
 
-// applyFile reads GUSTO_LIVE: the limits, which the queue takes from the next job it picks, and the models.
+// applyFile reads GUSTO_LIVE: the limits, which the queue takes from the next task it picks, and the models.
 func (l *liveSettings) applyFile() error {
 	settings, err := live.ReadSettings(os.Getenv("GUSTO_LIVE"))
 	if err != nil {

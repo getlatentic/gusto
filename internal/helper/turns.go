@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Turn is one of the person's jobs as the server's event stream tells it, the latest word on it.
+// Turn is one of the person's tasks as the server's event stream tells it, the latest word on it.
 type Turn struct {
 	Job      string `json:"job"`
 	Instance string `json:"instance,omitempty"`

@@ -1,4 +1,4 @@
-// Package repoaccess is how a job reaches a private repository: with a token
+// Package repoaccess is how a task reaches a private repository: with a token
 // for that repository alone, which expires, and which never enters the box.
 //
 // A GitHub App holds the access. When somebody asks for a repository, the App

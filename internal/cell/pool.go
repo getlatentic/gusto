@@ -11,19 +11,19 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Pool is the cells the front door may place organisations on: the hosts that have registered,
+// Pool is the hosts the gusto cloud may place organisations on: the hosts that have registered,
 // and this machine when it may run servers too.
 type Pool struct {
 	Dir    string
 	Secret []byte
-	// MaxAge is how long a cell may be silent before it is not placed on or reached.
+	// MaxAge is how long a host may be silent before it is not placed on or reached.
 	MaxAge time.Duration
-	// GoneAfter is how long a cell may be silent before it is taken to be gone for good, when the
+	// GoneAfter is how long a host may be silent before it is taken to be gone for good, when the
 	// organisations placed on it are placed again. It is thirty minutes when not set.
 	GoneAfter time.Duration
-	// MinFreeMiB is the least memory a cell needs to be given another organisation.
+	// MinFreeMiB is the least memory a host needs to be given another organisation.
 	MinFreeMiB int
-	// Local is this machine as a cell, or nothing when it only runs the front door.
+	// Local is this machine as a host, or nothing when it only runs the front door.
 	Local cloud.Cell
 	// Measure says what this machine has left, as an agent does for its own.
 	Measure func() Capacity
@@ -44,7 +44,7 @@ func (p *Pool) maxAge() time.Duration {
 	return 30 * time.Second
 }
 
-// Get is the cell with that name.
+// Get is the host with that name.
 func (p *Pool) Get(name string) (cloud.Cell, error) {
 	if p.Local != nil && name == p.Local.Name() {
 		return p.Local, nil
@@ -56,13 +56,13 @@ func (p *Pool) Get(name string) (cloud.Cell, error) {
 	}
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return nil, fmt.Errorf("there is no cell called %q: %w", name, cloud.ErrCellGone)
+		return nil, fmt.Errorf("there is no host called %q: %w", name, cloud.ErrCellGone)
 	case err != nil:
 		return nil, err
 	case age > gone:
-		return nil, fmt.Errorf("the cell %s has not been heard from for %s: %w", name, age.Round(time.Second), cloud.ErrCellGone)
+		return nil, fmt.Errorf("the host %s has not been heard from for %s: %w", name, age.Round(time.Second), cloud.ErrCellGone)
 	case age > p.maxAge():
-		return nil, fmt.Errorf("the cell %s has not been heard from for %s", name, age.Round(time.Second))
+		return nil, fmt.Errorf("the host %s has not been heard from for %s", name, age.Round(time.Second))
 	}
 	remote := newRemote(registered, p.Secret)
 	remote.now = p.clock
@@ -74,8 +74,8 @@ type candidate struct {
 	free int
 }
 
-// Place is the cell with the most memory to spare that has enough, and this machine counts among them
-// when it runs servers. A cell that does not answer is not a candidate.
+// Place is the host with the most memory to spare that has enough, and this machine counts among them
+// when it runs servers. A host that does not answer is not a candidate.
 func (p *Pool) Place() (cloud.Cell, error) {
 	fresh, err := Fresh(p.Dir, p.clock(), p.maxAge())
 	if err != nil {
@@ -114,7 +114,7 @@ func (p *Pool) Place() (cloud.Cell, error) {
 		return found[a].cell.Name() < found[b].cell.Name()
 	})
 	if len(found) == 0 || found[0].free < p.MinFreeMiB {
-		return nil, fmt.Errorf("no cell has %d MiB to give another organisation: %w", p.MinFreeMiB, cloud.ErrNoCapacity)
+		return nil, fmt.Errorf("no host has %d MiB to give another organisation: %w", p.MinFreeMiB, cloud.ErrNoCapacity)
 	}
 	return found[0].cell, nil
 }

@@ -8,18 +8,32 @@ import (
 	"github.com/getlatentic/gusto/internal/replay"
 )
 
-// compareJobs runs one job on several harnesses as one comparison, or prints a
-// comparison that already ran. It exits 0 when every side ran and its evidence
-// checks, whichever harness did better, and 2 otherwise.
-func compareJobs(args []string) int {
-	flags := flag.NewFlagSet("compare", flag.ContinueOnError)
-	into := flags.String("into", "", "where the comparison goes, beside the job by default")
-	here := flags.Bool("here", false, "run here, without a container")
-	named, err := replay.Interspersed(flags, args)
-	if err != nil {
-		return 2
+type compareFlags struct {
+	into string
+	here bool
+}
+
+func declareCompare(set *flag.FlagSet) *compareFlags {
+	f := &compareFlags{}
+	set.StringVar(&f.into, "into", "", "where the comparison goes, as a `directory`; beside the task by default")
+	set.BoolVar(&f.here, "here", false, "run here, without a container")
+	return f
+}
+
+// compareTasks runs one task on several agents as one comparison, or prints a
+// comparison that already ran. It exits 0 when every side ran and its record
+// checks, whichever agent did better, and 2 otherwise.
+func compareTasks(args []string) int {
+	set := newSet("compare")
+	f := declareCompare(set)
+	named, code, ok := interspersed("compare", set, args)
+	if !ok {
+		return code
 	}
-	exit, err := compare.Answer(os.Stdout, named, *into, replay.Where(*here))
+	if len(named) == 0 || len(named) == 2 {
+		return usageError("compare", "needs a task and the agents to run it on, or a comparison")
+	}
+	exit, err := compare.Answer(os.Stdout, named, f.into, replay.Where(f.here))
 	if err != nil {
 		return fail(err)
 	}

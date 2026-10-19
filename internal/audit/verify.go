@@ -73,7 +73,7 @@ func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
 	}
 	derived = derived.asWritten(record.Version, manifest)
 	report.Problems = append(report.Problems, signerDisagreement(record.Evidence.Signer, derived.Evidence.Signer)...)
-	// The signer was compared above, by name; the rest of evidence still is.
+	// The signer was compared above, by name; the rest of the record still is.
 	derived.Evidence.Signer = record.Evidence.Signer
 	report.Problems = append(report.Problems, disagreements(written, derived)...)
 	report.Covered = covered(carried)

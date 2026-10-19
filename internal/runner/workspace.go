@@ -51,7 +51,7 @@ func Fill(spec job.Spec, dir job.Dir) error {
 	return git(dir.Workspace(), "checkout", "--quiet", spec.Ref)
 }
 
-// Snapshot is the workspace as a git tree, before the harness touches it. A
+// Snapshot is the workspace as a git tree, before the agent touches it. A
 // turn in a conversation works in a folder earlier turns already changed, and
 // what this turn changed is the difference from here, not from the folder's
 // first commit.
@@ -65,7 +65,7 @@ func Snapshot(dir job.Dir) (string, error) {
 	return treeOf(dir)
 }
 
-// Diff writes what the harness changed since before: every file added,
+// Diff writes what the agent changed since before: every file added,
 // removed or edited, new ones with their contents.
 func Diff(dir job.Dir, before string) error {
 	defer os.RemoveAll(objectsOf(dir))

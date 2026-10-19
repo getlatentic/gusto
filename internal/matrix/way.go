@@ -7,7 +7,7 @@ import (
 	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
-// Way is how the matrix starts a run, and what it writes down about where.
+// Way is how the benchmark starts a run, and what it writes down about where.
 type Way struct {
 	// Where is how the runs start, as the environment column says it.
 	Where string
@@ -16,7 +16,7 @@ type Way struct {
 	Open func(root string) (replay.Run, func(), error)
 }
 
-// Here runs every cell in this process, the way `gusto inside` does. A harness
+// Here runs every run in this process, the way `gusto inside` does. An agent
 // run here reads this machine's own configuration, which is what makes a
 // laptop's row differ from a container's.
 func Here() Way {
@@ -29,7 +29,7 @@ func Here() Way {
 }
 
 // Door is the way out of a container the server uses: the proxy when a
-// credential is held, which writes every call into the job's out/proxy.jsonl,
+// credential is held, which writes every call into the task's out/proxy.jsonl,
 // and the model's own address when none is.
 type Door interface {
 	Listen() (func(), error)
@@ -37,8 +37,8 @@ type Door interface {
 	Done(dir job.Dir)
 }
 
-// Contained runs every cell through a door opened for each comparison, in the
-// box that where says. The proxy names a job by its directory under the root it
+// Contained runs every run through a door opened for each comparison, in the
+// box that where says. The proxy names a task by its directory under the root it
 // was opened on, so a comparison's runs are that root's children.
 func Contained(where string, open func(root string) (Door, error)) Way {
 	return Way{

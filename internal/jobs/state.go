@@ -1,7 +1,7 @@
-// Package jobs is the set of job directories a server knows about, and what
+// Package jobs is the set of task directories a server knows about, and what
 // each one is doing.
 //
-// The state lives in the job directory beside the evidence, so a job is still
+// The state lives in the task directory beside the record, so a task is still
 // the whole story of itself: copy the directory to another machine and nothing
 // is left behind in a database. The index in memory is a cache of what is on
 // disk, rebuilt by reading it.
@@ -25,7 +25,7 @@ const (
 	Interrupted State = "interrupted"
 )
 
-// Done reports whether a job will change no further without being asked again.
+// Done reports whether a task will change no further without being asked again.
 // String is the word for the state, so a message can say it.
 func (s State) String() string { return string(s) }
 
@@ -34,7 +34,7 @@ func (s State) Done() bool {
 }
 
 // Record is what a person needs to see in a list, and what the queue needs to
-// pick the next job. Everything else is in the directory.
+// pick the next task. Everything else is in the directory.
 type Record struct {
 	ID      string `json:"id"`
 	State   State  `json:"state"`
@@ -42,19 +42,19 @@ type Record struct {
 	Repo    string `json:"repo"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
-	// Instance and Thread are set when this job is a turn in a conversation.
+	// Instance and Thread are set when this task is a turn in a conversation.
 	// The instance is what serialises them: its threads share one workspace, so
 	// two of its turns must never run at once.
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	Asked    string `json:"asked"`
-	// Key is the request id the sender gave, so that the same send made twice is one job. It belongs to the asker.
+	// Key is the request id the sender gave, so that the same send made twice is one task. It belongs to the asker.
 	Key string `json:"requestId,omitempty"`
-	// StoppedBy is who asked for the job to be stopped. A job with it ends interrupted, whatever its harness said on the way out.
+	// StoppedBy is who asked for the task to be stopped. A task with it ends interrupted, whatever its agent said on the way out.
 	StoppedBy string `json:"stoppedBy,omitempty"`
-	// Team is who the job counts against, for the team limit.
+	// Team is who the task counts against, for the team limit.
 	Team string `json:"team,omitempty"`
-	// Seq is the order this job arrived in. Queued is a second, and two jobs
+	// Seq is the order this task arrived in. Queued is a second, and two tasks
 	// submitted in one second are two messages a person sent in order, so the
 	// clock alone cannot say which of them goes first.
 	Seq     int64 `json:"seq,omitempty"`

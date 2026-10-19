@@ -10,9 +10,9 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
-// AgentUIDEnv names the user a harness runs as inside the box. The runner
+// AgentUIDEnv names the user an agent runs as inside the box. The runner
 // stays root there, so the record in out/ is written by the runner alone: the
-// harness, and whatever code it runs, can read its workspace and its own home
+// agent, and whatever code it runs, can read its workspace and its own home
 // and cannot touch the record, the proxy's log included.
 const AgentUIDEnv = "GUSTO_AGENT_UID"
 

@@ -8,7 +8,7 @@ import (
 )
 
 // SocketMount is the test of whether a container runtime can be given a unix socket of this computer, made in gusto's own folder
-// where the jobs' socket will be. It starts a container of the image that does nothing with the socket mounted, and says what the
+// where the tasks' socket will be. It starts a container of the image that does nothing with the socket mounted, and says what the
 // runtime answered when it cannot.
 func SocketMount(run func(program string, args ...string) (string, bool)) func(runtime, image string) error {
 	return func(runtime, image string) error {

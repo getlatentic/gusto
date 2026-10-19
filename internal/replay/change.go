@@ -7,12 +7,12 @@ const (
 	Same   Change = "same"
 	Worse  Change = "worse"
 	Better Change = "better"
-	// Unknown is a replay that gave no verdict, so nothing can be said.
+	// Unknown is a rerun that gave no verdict, so nothing can be said.
 	Unknown Change = "unknown"
 )
 
-// Change compares the gate's answers. Passing is what the gate decides, so a
-// job that passed and now fails got worse, whatever the harness says about it.
+// Change compares the check's answers. Passing is what the check decides, so a
+// task that passed and now fails got worse, whatever the agent says about it.
 // An exit code that differs while the pass stays the same is shown in the
 // summary and is not a change in the verdict.
 func (r Row) Change() Change {
@@ -30,7 +30,7 @@ func (r Row) Change() Change {
 }
 
 // ExitCode says how the sweep went in one number: 1 when any verdict got worse,
-// 2 when any job could not be replayed and none got worse, 0 otherwise. A
+// 2 when any task could not be rerun and none got worse, 0 otherwise. A
 // worse verdict wins over an error because it is the answer the sweep was run
 // to find, and either one is non-zero.
 func ExitCode(rows []Row) int {

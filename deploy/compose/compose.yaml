@@ -12,9 +12,9 @@ name: gusto
 
 services:
   # The runner is not a service that stays up: the server starts a fresh
-  # container from this image for every job and destroys it afterwards. Compose
-  # builds the image and runs it once with `harnesses`, so an image that cannot
-  # start stops the install here rather than at somebody's first job.
+  # container from this image for every task and destroys it afterwards. Compose
+  # builds the image and runs it once with `agents`, so an image that cannot
+  # start stops the install here rather than at somebody's first task.
   runner:
     image: ${GUSTO_RUNNER_IMAGE:-gusto-runner:local}
     build:
@@ -30,7 +30,7 @@ services:
       additional_contexts:
         "golang:1.26": docker-image://docker.io/library/golang:1.26@sha256:6c2a5538f964f1c82f97ad14988bf05de100d922d159d0e398b54c7b0ca0c6c9
         "node:24-slim": docker-image://docker.io/library/node:24-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
-    command: ["harnesses"]
+    command: ["agents"]
     network_mode: none
     restart: "no"
 

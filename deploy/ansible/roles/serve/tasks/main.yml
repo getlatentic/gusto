@@ -24,7 +24,7 @@
   when: credentials | length > 0
 
 # no_log, because the content is a key. That file is the only place it lands.
-- name: A credential a job may spend
+- name: A credential a task may spend
   ansible.builtin.copy:
     dest: "{{ app_root }}/var/credentials/{{ item.name }}.json"
     content: |

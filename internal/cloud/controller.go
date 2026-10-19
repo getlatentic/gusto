@@ -134,7 +134,7 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 		if !errors.Is(err, ErrCellGone) {
 			return cell, err
 		}
-		slog.Warn("an organisation's cell is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
+		slog.Warn("an organisation's host is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
 		// The ports were the gone cell's, and are not this one's.
 		runtime.Cell, runtime.Port, runtime.ProxyPort = "", 0, 0
 	}
@@ -206,8 +206,8 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
 		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
 		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
-		signing.KeyEnv:      filepath.Join(data, "keys", slug+".key"),
-		signing.KeyringEnv:  filepath.Join(data, "keys"),
+		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
+		signing.KeyringEnv:   filepath.Join(data, "keys"),
 		"GUSTO_SIGNER":       slug,
 		"GUSTO_QUOTA":        c.Store.QuotaFile(slug),
 		"GUSTO_MEMBERS":      c.Store.RosterFile(slug),
@@ -226,7 +226,7 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_JOB_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
 		// Nobody knows this: a server behind the front door has no password to type.
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
-		"HOME":          filepath.Join(c.orgDir(slug), "home"),
+		"HOME":           filepath.Join(c.orgDir(slug), "home"),
 	}
 	env := append([]string{}, c.Env...)
 	for name, value := range own {

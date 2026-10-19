@@ -11,7 +11,7 @@ import (
 )
 
 // Record is what a run writes while it happens. A container's disk does not
-// survive a stop, so each line is on the bind-mounted job directory before the
+// survive a stop, so each line is on the bind-mounted task directory before the
 // next one is read.
 type Record struct {
 	adapter    harness.Adapter
@@ -21,7 +21,7 @@ type Record struct {
 	commands   *os.File
 	errs       *os.File
 
-	// Remembered is the harness's own name for the conversation, said in its
+	// Remembered is the agent's own name for the conversation, said in its
 	// output. Handing it back is how the next turn continues rather than starts.
 	Remembered string
 
@@ -62,7 +62,7 @@ func Open(dir job.Dir, adapter harness.Adapter) (*Record, error) {
 	return record, nil
 }
 
-// Out keeps one line of the harness's output: raw always, and the text and the
+// Out keeps one line of the agent's output: raw always, and the text and the
 // numbers when the adapter says where they are.
 func (r *Record) Out(line string) error {
 	if _, err := r.raw.WriteString(line + "\n"); err != nil {
@@ -189,9 +189,9 @@ func (r *Record) Err(line string) error {
 	return err
 }
 
-// Spent is what the harness reported. Nothing reported is nothing claimed, so
+// Spent is what the agent reported. Nothing reported is nothing claimed, so
 // the caller writes null rather than zero — and the two are asked separately,
-// because a harness that counts its tokens and names no price is the ordinary
+// because an agent that counts its tokens and names no price is the ordinary
 // case. Writing zero there would say a run was free, which is the one thing a
 // record of spending must never say by accident.
 func (r *Record) Spent() (*int64, *float64) {

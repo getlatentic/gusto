@@ -60,11 +60,11 @@
 
 - name: The candidate answers
   ansible.builtin.command:
-    cmd: "{{ candidate_bin }} harnesses"
+    cmd: "{{ candidate_bin }} agents"
   become_user: "{{ app_user }}"
   changed_when: false
   register: harnesses
 
-- name: Harnesses this build knows
+- name: Agents this build knows
   ansible.builtin.debug:
     var: harnesses.stdout_lines

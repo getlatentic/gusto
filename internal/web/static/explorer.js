@@ -159,7 +159,7 @@
     function placesList() {
       var side = el("nav", "d-places");
       side.setAttribute("aria-label", "Projects");
-      var top = button("place root" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("cloud"), el("span", "t", "Your cloud computer")]);
+      var top = button("place root" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("cloud"), el("span", "t", "Your cloud workspace")]);
       if (!state.here.at) { top.setAttribute("aria-current", "true"); }
       side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {
