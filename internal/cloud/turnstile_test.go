@@ -64,7 +64,7 @@ func TestTheDemoFormCarriesTheBotCheckAndMayLoadItsScriptFromCloudflareAndNothin
 	onEachDatabase(t, func(t *testing.T) {
 		f := checkedFront(t, newCloudflare(t))
 		status, page, header := f.browser().do("GET", "/demo", nil, nil)
-		if status != http.StatusOK || !strings.Contains(page, `class="cf-turnstile" data-sitekey="the-site-key"`) || !strings.Contains(page, "https://challenges.cloudflare.com/turnstile/v0/api.js") {
+		if status != http.StatusOK || !strings.Contains(page, `class="cf-turnstile" data-size="flexible" data-sitekey="the-site-key"`) || !strings.Contains(page, "https://challenges.cloudflare.com/turnstile/v0/api.js") {
 			t.Errorf("the form has no widget:\n%s", page)
 		}
 		csp := header.Get("Content-Security-Policy")
