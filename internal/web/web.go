@@ -66,6 +66,7 @@ type Server struct {
 	publishing sync.WaitGroup
 	ledger     *spend.Ledger
 	usage      usageIndex
+	listing    taskIndex
 	keyring    signing.Keyring
 	// front is set when this server is one organisation's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and

@@ -1,11 +1,13 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/internal/taskindex"
 )
 
 // run is one line of the record: the job, what it cost, and what it ran on.
@@ -58,10 +60,20 @@ func (s *Server) origin(record jobs.Record) origin {
 // what needs a person counted across the top. It starts nothing itself; a run
 // happens on an instance.
 func (s *Server) list(w http.ResponseWriter, r *http.Request) {
+	shown, err := s.boardFor(r)
+	var bad badQuery
+	switch {
+	case errors.As(err, &bad):
+		http.Error(w, bad.Error(), http.StatusBadRequest)
+		return
+	case err != nil:
+		http.Error(w, "the tasks could not be read: "+taskindex.Scrub(err), http.StatusInternalServerError)
+		return
+	}
 	s.render(w, "list.html", map[string]any{
 		"Title": productName + " — tasks",
 		"Nav":   "jobs",
-		"Board": s.board(r),
+		"Board": shown,
 	})
 }
 

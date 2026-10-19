@@ -52,6 +52,7 @@ func (s *Server) protocol() []call {
 		{"GET", "/api/instances/{id}/threads/{thread}", whoPerson, "a thread: what was said and what came back", false, s.threadJSON},
 		{"POST", "/api/instances/{id}/threads/{thread}/say", whoPerson, "say something in a thread, which starts a turn; an Idempotency-Key makes a retry the same turn", false, s.saidJSON},
 
+		{"GET", "/api/jobs", whoPerson, "the person's tasks, newest first, narrowed by ?q, ?state and the other filters, a page at a time", false, s.tasksJSON},
 		{"GET", "/api/jobs/{id}", whoPerson, "one turn: its steps, its reply and its state", false, s.jobJSON},
 		{"GET", "/api/jobs/{id}/follow", whoPerson, "follow one turn: each step, the reply as it grows, and the end", true, s.followJSON},
 		{"POST", "/api/jobs/{id}/stop", whoPerson, "stop a turn that is running", false, s.stopJSON},
