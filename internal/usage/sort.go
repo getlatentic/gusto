@@ -4,7 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
+
+var errTimeColumn = dbkit.ErrTimeColumn
 
 // ErrBadSort is a Page.Sort that no listing offers.
 var ErrBadSort = errors.New("usage: unknown sort")
@@ -15,17 +19,17 @@ var ErrBadSort = errors.New("usage: unknown sort")
 type sortSpec struct {
 	expr string
 	// arg turns a rank held in a cursor into the form the database compares it in.
-	arg func(d dialect, v int64) any
+	arg func(db *dbkit.DB, v int64) any
 }
 
-func plainRank(_ dialect, v int64) any { return v }
+func plainRank(_ *dbkit.DB, v int64) any { return v }
 
 // Money is ranked in billionths of a dollar; a session with no measured call ranks below every measured one,
 // even one that cost nothing.
 const costRank = `COALESCE(CAST(SUM(CAST(ROUND(usd * 1000000000) AS BIGINT)) AS BIGINT), -1)`
 
 var sortSpecs = map[string]sortSpec{
-	"last":   {"MAX(called_at)", func(d dialect, v int64) any { return d.timeArg(time.Unix(0, v)) }},
+	"last":   {"MAX(called_at)", func(db *dbkit.DB, v int64) any { return db.TimeArg(time.Unix(0, v)) }},
 	"cost":   {costRank, plainRank},
 	"calls":  {"count(*)", plainRank},
 	"tokens": {"CAST(COALESCE(SUM(input_tokens), 0) + COALESCE(SUM(output_tokens), 0) AS BIGINT)", plainRank},
