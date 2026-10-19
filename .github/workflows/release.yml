@@ -105,6 +105,7 @@ jobs:
           provenance: mode=max
           sbom: true
           build-args: |
+            RELEASE=${{ github.ref_name }}
             HARNESSES=${{ steps.pins.outputs.harnesses }}
             MCP_SERVERS=${{ steps.pins.outputs.mcp }}
           build-contexts: |

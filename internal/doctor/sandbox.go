@@ -1,8 +1,6 @@
 package doctor
 
 import (
-	"os"
-	"runtime"
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/isolation"
@@ -11,15 +9,11 @@ import (
 // sandboxChoice says which wall gusto would put between an agent and this computer's files, in words, and why a stronger one was not
 // chosen. Having none is not a failure of the computer, so it passes, with what would give it one.
 func sandboxChoice(machine Machine) Verdict {
-	host := isolation.Host{
-		GOOS:     runtime.GOOS,
-		Getenv:   os.Getenv,
-		Exists:   func(path string) bool { _, err := os.Stat(path); return err == nil },
-		LookPath: machine.LookPath,
-		Run: func(program string, args ...string) (string, bool) {
-			outcome := machine.Commands(program, args...)
-			return strings.TrimSpace(outcome.Output), outcome.Started && outcome.Code == 0
-		},
+	host := isolation.This()
+	host.LookPath = machine.LookPath
+	host.Run = func(program string, args ...string) (string, bool) {
+		outcome := machine.Commands(program, args...)
+		return strings.TrimSpace(outcome.Output), outcome.Started && outcome.Code == 0
 	}
 	host.MountsSocket = isolation.SocketMount(host.Run)
 	choice := isolation.Choose(host)
