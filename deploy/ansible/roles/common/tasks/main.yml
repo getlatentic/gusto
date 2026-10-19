@@ -45,7 +45,7 @@
   community.crypto.openssh_keypair:
     path: "{{ app_root }}/.ssh/id_ed25519"
     type: ed25519
-    comment: "haas@greencloud"
+    comment: "gusto@greencloud"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0600"
@@ -75,4 +75,4 @@
     accept_hostkey: false
     force: true # the box mirrors origin; it is not an editing copy
   become_user: "{{ app_user }}"
-  notify: Restart haas
+  notify: Restart gusto

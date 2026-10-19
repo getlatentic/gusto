@@ -3,8 +3,8 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Restart haas
+- name: Restart gusto
   ansible.builtin.systemd:
-    name: haas
+    name: gusto
     state: restarted
   when: serve_enabled | bool

@@ -1,4 +1,4 @@
-# Managed by ansible (roles/nginx/templates/haas.conf.j2).
+# Managed by ansible (roles/nginx/templates/gusto.conf.j2).
 # One name-based vhost for {{ server_name }}, coexisting with the other sites on
 # this nginx. The binary serves its own pages as well as its API, so everything
 # is proxied at the root rather than under /api/.
@@ -18,10 +18,10 @@ server {
 
     # When the server is not answering, as it is for a second while a deploy restarts it, nginx cannot ask it for a page, so it gives
     # its own: one that tries again by itself. It keeps the status, so that whatever watches the site still sees the failure.
-    error_page 502 503 504 /__haas_down.html;
-    location = /__haas_down.html {
+    error_page 502 503 504 /__gusto_down.html;
+    location = /__gusto_down.html {
         internal;
-        alias {{ haas_errors_dir }}/down.html;
+        alias {{ gusto_errors_dir }}/down.html;
         add_header Cache-Control "no-store" always;
     }
 

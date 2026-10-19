@@ -1,12 +1,12 @@
 ---
 # ── Identity ────────────────────────────────────────────────────────────────
-# haas runs as its own user rather than www-data, which is the convention for
+# gusto runs as its own user rather than www-data, which is the convention for
 # the other apps on a shared box. Rootless containers need a subuid range and a
 # writable home for the image store, and www-data has neither. Giving them to a
 # user that eight other services run as would change those services; a new user
 # changes nothing.
-app_user: haas
-app_root: /opt/haas
+app_user: gusto
+app_root: /opt/gusto
 manage_app_user: true
 manage_default_site: false # never touch the default site or another app's vhost
 
@@ -32,12 +32,12 @@ go_sha256: "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b"
 # podman, because it runs no daemon: nothing is resident between jobs and no
 # iptables rules are rewritten on a box whose nginx fronts other sites.
 container_runtime: podman
-runner_image: haas:dev
+runner_image: gusto:dev
 # Adapters of your own live here. The server offers what it finds, so a harness
 # added to this directory appears in the pages without a new binary.
 harnesses_dir: "{{ app_root }}/var/harnesses"
 # Where nginx finds the page it answers with when the server is not answering.
-haas_errors_dir: /var/www/haas-errors
+gusto_errors_dir: /var/www/gusto-errors
 # The harnesses the runner image carries, each as name=package: the adapter's
 # name and the npm package that provides its program. The image lists them in
 # its com.getlatentic.gusto.harnesses label, and the server offers a harness only
@@ -100,11 +100,11 @@ smoke_fixture: fixture.json
 # A deploy builds a candidate binary and a candidate image beside the live ones
 # and promotes them only after smoke passes. The version it replaces is kept as
 # the previous one, which is what a failed start and rollback.yml go back to.
-live_bin: "{{ app_root }}/bin/haas"
-candidate_bin: "{{ app_root }}/bin/haas.next"
-previous_bin: "{{ app_root }}/bin/haas.previous"
-candidate_image: haas:candidate
-previous_image: haas:previous
+live_bin: "{{ app_root }}/bin/gusto"
+candidate_bin: "{{ app_root }}/bin/gusto.next"
+previous_bin: "{{ app_root }}/bin/gusto.previous"
+candidate_image: gusto:candidate
+previous_image: gusto:previous
 # How long a promoted server has to answer /healthz before the previous one
 # comes back: health_retries tries, health_delay seconds apart. A ceiling, not
 # a measured start time.
@@ -116,7 +116,9 @@ health_delay: 3
 # unit, the vhost and the certificate.
 serve_enabled: false
 backend_port: 8040
-server_name: haas.getlatentic.com
+# The name the vhost, its certificate, the sign-in redirect and the record signer
+# carry. This is the one place it is set.
+server_name: gusto.tosinamuda.com
 api_public_port: 443
 enable_tls: true
 certbot_email: tosinamuda@gmail.com
@@ -129,12 +131,12 @@ acme_webroot: /var/www/letsencrypt
 # nothing else. README.md has the setup, the trade, and how to turn it off.
 autodeploy_enabled: false
 autodeploy_public_key: ""
-autodeploy_user: haas-deploy
-autodeploy_home: /var/lib/haas-deploy
+autodeploy_user: gusto-deploy
+autodeploy_home: /var/lib/gusto-deploy
 # Root's alone: the checkout the box deploys from, Ansible's virtualenv, the
 # collections, the lock, and the commit last deployed.
-autodeploy_root: /opt/haas-deploy
-autodeploy_etc: /etc/haas-deploy
+autodeploy_root: /opt/gusto-deploy
+autodeploy_etc: /etc/gusto-deploy
 # pip picks the newest release in this range that the box's Python supports.
 autodeploy_ansible: "ansible-core>=2.16,<2.20"
 # Copied to the box from the laptop that enables autodeploy.
@@ -142,7 +144,7 @@ autodeploy_vault_file: "{{ playbook_dir }}/greencloud.vault.yml"
 # This app's vault has a password of its own, not the one shared with the other
 # apps on the box: autodeploy puts the password on the box, and a shared one
 # would put every other app's secrets within reach of this app's deploy.
-autodeploy_vault_password_file: ~/.config/haas/vault_pass.txt
+autodeploy_vault_password_file: ~/.config/gusto/vault_pass.txt
 # Set by the box when it deploys itself, and by nothing else.
 autodeploy_self: false
 
@@ -157,7 +159,7 @@ autodeploy_self: false
 # and two places to change a hostname is one place to forget.
 oidc_issuer: ""
 oidc_allowed: ""
-haas_admins: ""
+gusto_admins: ""
 # With a company's own provider, its groups grant the roles and oidc_allowed can
 # stay empty: a person in neither list is refused. oidc_groups_claim and
 # oidc_scopes are for a provider that names groups elsewhere or wants a scope
@@ -176,10 +178,10 @@ oidc_redirect: "{{ 'https' if enable_tls else 'http' }}://{{ server_name }}/auth
 # its own database and user, and a numbered Redis index for the queue and for
 # fanning a job's output out to everybody watching it.
 store: sqlite
-sqlite_path: "{{ app_root }}/var/haas.db"
+sqlite_path: "{{ app_root }}/var/gusto.db"
 
-db_name: haas
-db_user: haas
+db_name: gusto
+db_user: gusto
 mysql_socket: /var/run/mysqld/mysqld.sock
 # db_password comes from the vault, never from here.
 
@@ -235,7 +237,7 @@ github_api: ""
 signer_name: "{{ inventory_hostname }}"
 
 # The API takes scoped, revocable tokens an admin makes at /tokens, and not the
-# shared password. Turning this on stops `haas submit` and deploy/smoke.sh
+# shared password. Turning this on stops `gusto submit` and deploy/smoke.sh
 # working with the password: they need GUSTO_TOKEN. docs/TOKENS.md.
 api_tokens: false
 
