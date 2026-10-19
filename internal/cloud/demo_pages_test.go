@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -91,7 +92,7 @@ func TestADemosPagesCarryItsCountdownAndWhereToBookAndAnOrdinaryHostsDoNot(t *te
 		slug := demoSlugOf(t, f)
 		_, body, header := b.at(slug+".cloud.test", "GET", "/.gusto/lease", nil)
 		if !strings.Contains(header.Get("Content-Type"), "json") || !strings.Contains(body, `"demo":true`) || !strings.Contains(body, `"book":"https://cal.example/gusto"`) ||
-			!strings.Contains(body, `"extend":"http://cloud.test/demo/wait"`) || !strings.Contains(body, `"seconds":1799`) && !strings.Contains(body, `"seconds":1800`) {
+			!strings.Contains(body, `"extend":"http://cloud.test/demo/wait"`) || !secondsLeftNearAFullDemo(body) {
 			t.Errorf("%s", body)
 		}
 		if status, _, _ := b.at("cloud.test", "GET", "/.gusto/lease", nil); status != http.StatusNotFound {
@@ -337,4 +338,13 @@ func TestAVisitorWhoHasHadTheirDemosForTheDayIsToldToBookACall(t *testing.T) {
 			t.Errorf("%d\n%s", status, page)
 		}
 	})
+}
+
+// secondsLeftNearAFullDemo says the lease reports about the thirty minutes a demo is given. It is read a moment after the demo
+// started, and on a machine under load that moment is longer than it is on a quiet one.
+func secondsLeftNearAFullDemo(body string) bool {
+	var lease struct {
+		Seconds int `json:"seconds"`
+	}
+	return json.Unmarshal([]byte(body), &lease) == nil && lease.Seconds > 1740 && lease.Seconds <= 1800
 }

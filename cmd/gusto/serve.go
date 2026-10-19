@@ -17,6 +17,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/evidence"
@@ -25,6 +26,7 @@ import (
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/quota"
@@ -261,6 +263,11 @@ func serve(args []string) int {
 	defer stopTasks()
 	background, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
+	news, err := routineNews()
+	if err != nil {
+		return fail(err)
+	}
+	pages.UseRoutineNews(news, os.Getenv("GUSTO_PUBLIC_URL"))
 	go pages.RunRoutines(background, time.Minute)
 	if dir := os.Getenv("GUSTO_RETENTION"); dir != "" {
 		policy, err := retention.LoadPolicy(dir)
@@ -453,4 +460,26 @@ func ranInSandbox(ctx context.Context, way *WayOut, cfg openshell.Config, index 
 		return way.RunInComputer(ctx, dir, spec, cfg, registry, person)
 	}
 	return way.RunInSandboxContext(ctx, dir, spec, cfg)
+}
+
+// routineNews is who is told how each run of a routine ended: an address that takes a signed request, named by
+// GUSTO_NOTIFY_WEBHOOK and GUSTO_NOTIFY_SECRET, and mail to the person who added the routine, set up as GUSTO_CLOUD_MAIL is by
+// GUSTO_MAIL and GUSTO_MAIL_TOKEN. With neither set nothing is sent, and the tray still hears of the turn.
+func routineNews() (notify.Every, error) {
+	var news notify.Every
+	if url := os.Getenv("GUSTO_NOTIFY_WEBHOOK"); url != "" {
+		hook := notify.Webhook{URL: url, Secret: os.Getenv("GUSTO_NOTIFY_SECRET")}
+		if err := hook.Check(); err != nil {
+			return nil, err
+		}
+		news = append(news, hook)
+	}
+	if how := os.Getenv("GUSTO_MAIL"); how != "" {
+		sender, err := cloud.MailFrom(how, setting("GUSTO_MAIL_OUTBOX", "outbox"), os.Getenv("GUSTO_MAIL_TOKEN"))
+		if err != nil {
+			return nil, err
+		}
+		news = append(news, notify.Mail{Via: sender})
+	}
+	return news, nil
 }
