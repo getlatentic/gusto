@@ -106,19 +106,19 @@ const faultPage = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title><link rel="stylesheet" href="/static/tokens.css"><link rel="stylesheet" href="/static/theme.css">
 <script nonce="{{nonce}}">(function () {
-  var root = document.documentElement, theme = "system", accent = "graphite";
+  var root = document.documentElement, theme = "system", accent = "green";
   try { theme = localStorage.getItem("gusto-theme") || theme; accent = localStorage.getItem("gusto-accent") || accent; } catch (e) {}
   root.dataset.theme = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
   root.dataset.accent = accent;
 })();</script>
 <style>
-body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--yg-bg); color: var(--yg-text); font: .9375rem/1.55 var(--yg-font-text); }
-main { width: min(26rem, 92vw); display: grid; gap: var(--yg-space-4); padding: var(--yg-space-8); text-align: center; }
-h1 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em; }
-p { margin: 0; color: var(--yg-text-muted); }
-.row { display: flex; flex-wrap: wrap; gap: var(--yg-space-3); justify-content: center; }
-a { padding: var(--yg-space-2) var(--yg-space-4); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-sm); background: var(--yg-surface); color: var(--yg-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
-a.main { background: var(--yg-accent); border-color: var(--yg-accent); color: var(--yg-on-accent); }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--gu-bg); color: var(--gu-text); font: .9375rem/1.55 var(--gu-font-text); }
+main { width: min(26rem, 92vw); display: grid; gap: var(--gu-space-4); padding: var(--gu-space-8); text-align: center; }
+h1 { margin: 0; font: 600 1.375rem/1.2 var(--gu-font-display); letter-spacing: -.02em; }
+p { margin: 0; color: var(--gu-text-muted); }
+.row { display: flex; flex-wrap: wrap; gap: var(--gu-space-3); justify-content: center; }
+a { padding: var(--gu-space-2) var(--gu-space-4); border: 0.0625rem solid var(--gu-border-strong); border-radius: var(--gu-radius-sm); background: var(--gu-surface); color: var(--gu-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
+a.main { background: var(--gu-accent); border-color: var(--gu-accent); color: var(--gu-on-accent); }
 </style></head><body><main>
 <h1>{{title}}</h1>
 <p>{{text}}</p>

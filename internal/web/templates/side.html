@@ -1,6 +1,6 @@
 {{define "side"}}<aside class="side" id="side" aria-label="Menu">
   <nav class="rail" aria-label="Places">
-    <a class="mark" href="/chat" aria-label="gusto">{{template "brand-glyph"}}</a>
+    <a class="brand-mark" href="/chat" aria-label="gusto"><img src="{{asset "/static/mark.svg"}}" alt=""></a>
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Conversations" aria-expanded="true" aria-controls="sidepanel">{{template "icon-sidebar"}}</button>
     <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>

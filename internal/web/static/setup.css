@@ -1,37 +1,37 @@
 /* A form that sets gusto up on a person's own computer: add the model, confirm there is no sandbox. One card, set apart from the page by
    its background; a group of fields, and a group of actions, with space between the groups and less between what belongs together. */
-.setup { display: grid; gap: var(--yg-space-6); width: 100%; max-width: 34rem; padding: var(--yg-space-6);
-  background: var(--yg-surface); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.setup { display: grid; gap: var(--gu-space-6); width: 100%; max-width: 34rem; padding: var(--gu-space-6);
+  background: var(--gu-surface); border-radius: var(--gu-radius-md); box-shadow: var(--gu-shadow-1); }
 .setup p, .setup ul { margin: 0; }
-.setup .setup-group { display: grid; gap: var(--yg-space-4); }
+.setup .setup-group { display: grid; gap: var(--gu-space-4); }
 .setup .setup-group[hidden] { display: none; }
-.setup .setup-lede { color: var(--yg-text); }
-.setup .setup-aside { font-size: .8125rem; color: var(--yg-text-muted); }
+.setup .setup-lede { color: var(--gu-text); }
+.setup .setup-aside { font-size: .8125rem; color: var(--gu-text-muted); }
 
-.setup .setup-field { display: grid; gap: var(--yg-space-2); }
-.setup .setup-field > label, .setup .setup-field > .setup-name { font: 500 .8125rem/1.4 var(--yg-font-text); color: var(--yg-text-muted); }
-.setup .setup-field .setup-hint { font-size: .75rem; color: var(--yg-text-subtle); }
+.setup .setup-field { display: grid; gap: var(--gu-space-2); }
+.setup .setup-field > label, .setup .setup-field > .setup-name { font: 500 .8125rem/1.4 var(--gu-font-text); color: var(--gu-text-muted); }
+.setup .setup-field .setup-hint { font-size: .75rem; color: var(--gu-text-subtle); }
 .setup .setup-hint:empty { display: none; }
-.setup .setup-control { display: flex; gap: var(--yg-space-2); }
+.setup .setup-control { display: flex; gap: var(--gu-space-2); }
 .setup .setup-control > input { flex: 1; min-width: 0; }
 
 /* One height for everything a person types in or presses, so a row of them lines up. */
 .setup input, .setup select, .setup .quiet-button, .setup button[type=submit] { height: 2.5rem; box-sizing: border-box; font-size: .875rem; }
-.setup input, .setup select { padding: 0 var(--yg-space-3); border-radius: var(--yg-radius-sm); }
-.setup input::placeholder { color: var(--yg-text-subtle); }
-.setup .quiet-button { flex: none; padding: 0 var(--yg-space-4); }
-.setup button[type=submit] { padding: 0 var(--yg-space-6); }
+.setup input, .setup select { padding: 0 var(--gu-space-3); border-radius: var(--gu-radius-sm); }
+.setup input::placeholder { color: var(--gu-text-subtle); }
+.setup .quiet-button { flex: none; padding: 0 var(--gu-space-4); }
+.setup button[type=submit] { padding: 0 var(--gu-space-6); }
 
 /* A menu looks like the other menus, not like the system's: its own arrow, drawn as the icons are. */
 .setup .setup-menu { position: relative; display: block; }
-.setup .setup-menu select { appearance: none; -webkit-appearance: none; padding-right: var(--yg-space-8); cursor: pointer; }
-.setup .setup-menu .i { position: absolute; right: var(--yg-space-3); top: 50%; width: 1rem; height: 1rem; margin-top: -0.5rem;
-  pointer-events: none; color: var(--yg-text-muted); }
+.setup .setup-menu select { appearance: none; -webkit-appearance: none; padding-right: var(--gu-space-8); cursor: pointer; }
+.setup .setup-menu .i { position: absolute; right: var(--gu-space-3); top: 50%; width: 1rem; height: 1rem; margin-top: -0.5rem;
+  pointer-events: none; color: var(--gu-text-muted); }
 
-.setup .setup-engines { display: grid; gap: var(--yg-space-2); padding-top: var(--yg-space-4); border-top: 0.0625rem solid var(--yg-border); }
-.setup .setup-engines > .setup-name { font: 500 .8125rem/1.4 var(--yg-font-text); color: var(--yg-text-muted); }
-.setup .setup-engines dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--yg-space-2) var(--yg-space-4); margin: 0; font-size: .8125rem; }
-.setup .setup-engines dt { color: var(--yg-text); }
+.setup .setup-engines { display: grid; gap: var(--gu-space-2); padding-top: var(--gu-space-4); border-top: 0.0625rem solid var(--gu-border); }
+.setup .setup-engines > .setup-name { font: 500 .8125rem/1.4 var(--gu-font-text); color: var(--gu-text-muted); }
+.setup .setup-engines dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--gu-space-2) var(--gu-space-4); margin: 0; font-size: .8125rem; }
+.setup .setup-engines dt { color: var(--gu-text); }
 .setup .setup-engines dd { margin: 0; }
-.setup code { font: .75rem/1.5 var(--yg-font-mono); padding: 0 var(--yg-space-1); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-xs); overflow-wrap: anywhere; }
-.setup .setup-reasons { padding-left: var(--yg-space-5); display: grid; gap: var(--yg-space-1); font-size: .8125rem; color: var(--yg-text-muted); }
+.setup code { font: .75rem/1.5 var(--gu-font-mono); padding: 0 var(--gu-space-1); background: var(--gu-bg-subtle); border-radius: var(--gu-radius-xs); overflow-wrap: anywhere; }
+.setup .setup-reasons { padding-left: var(--gu-space-5); display: grid; gap: var(--gu-space-1); font-size: .8125rem; color: var(--gu-text-muted); }
