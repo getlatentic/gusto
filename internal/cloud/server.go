@@ -82,8 +82,16 @@ func New(c Config) (*Server, error) {
 		return nil, err
 	}
 	return &Server{Config: c, pages: pages,
-		signups: NewLimiter(c.PerAddress, time.Hour), mails: NewLimiter(c.PerMailbox, time.Hour), all: NewLimiter(c.InAll, time.Hour),
-		invites: NewLimiter(20, time.Hour)}, nil
+		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
+		invites: c.limiter("invites", 20)}, nil
+}
+
+// limiter counts most events an hour. With a store the count is shared by every front door on its database.
+func (c Config) limiter(scope string, most int) *Limiter {
+	if c.Store == nil {
+		return NewLimiter(most, time.Hour)
+	}
+	return c.Store.Limiter(scope, most, time.Hour)
 }
 
 // Handler is every page the front door has, and every organisation's server behind

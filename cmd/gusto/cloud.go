@@ -17,12 +17,16 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
+// cloudDatabaseURL is where the accounts are: empty is SQLite in cloud.db under the root.
+func cloudDatabaseURL() string { return strings.TrimSpace(os.Getenv("GUSTO_DATABASE_URL")) }
+
 // cloudWorkspaces lists every workspace on this host.
 func cloudWorkspaces() int {
-	store, err := cloud.Open(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{})
+	store, err := cloud.Attach(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{DatabaseURL: cloudDatabaseURL()})
 	if err != nil {
 		return fail(err)
 	}
+	defer store.Close()
 	if err := listComputers(os.Stdout, store); err != nil {
 		return fail(err)
 	}
@@ -37,6 +41,7 @@ func cloudCommand() int {
 	if err != nil {
 		return fail(err)
 	}
+	defer front.Store.Close()
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
 	// There is no write timeout: an organisation's task stream stays open for as long as
 	// the task runs, and gusto cloud carries it.
@@ -73,7 +78,7 @@ func cloudCommand() int {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	fmt.Printf("gusto cloud is listening on %s\n", address)
+	fmt.Printf("gusto cloud is listening on %s, with its accounts in %s\n", address, front.Store.Database())
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fail(err)
 	}
@@ -83,7 +88,8 @@ func cloudCommand() int {
 }
 
 // openCloud reads gusto cloud's settings and opens what it keeps. Links
-// that expired are swept when it starts and every hour after.
+// that expired are swept when it starts and every hour after. A database that has no accounts yet
+// takes in the files an earlier release kept under the root.
 func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
 	public, err := url.Parse(setting("GUSTO_CLOUD_URL", "http://"+address))
@@ -104,12 +110,14 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		PerDomain:      number("GUSTO_CLOUD_PER_DOMAIN", 3),
 		Limits:         limits,
 		Demo:           demoSettings(),
+		DatabaseURL:    cloudDatabaseURL(),
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	sessions, err := cloud.OpenSessions(root, public.Scheme == "https")
+	sessions, err := store.OpenSessions(public.Scheme == "https")
 	if err != nil {
+		store.Close()
 		return nil, nil, err
 	}
 	mail, err := cloud.MailFrom(os.Getenv("GUSTO_CLOUD_MAIL"), filepath.Join(root, "outbox"), os.Getenv("GUSTO_CLOUD_MAIL_TOKEN"))
@@ -160,6 +168,7 @@ func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env,
 		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: number("GUSTO_CLOUD_PORT_FROM", 9100),
 		Wait: time.Duration(number("GUSTO_CLOUD_START_WAIT_SECONDS", 120)) * time.Second, Concurrent: limits.Verified.Concurrent,
+		IndexDir: setting("GUSTO_CLOUD_INDEX_DIR", filepath.Join(store.Root(), "index")),
 	}
 	pool, err := cellPool(local)
 	if err != nil {

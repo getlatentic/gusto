@@ -1,14 +1,15 @@
 package cloud
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"os"
-	"path/filepath"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 // Purpose is what a link is for. A link made to verify an address does not sign
@@ -42,79 +43,115 @@ const (
 	SignInLife = 20 * time.Minute
 )
 
-func (s *Store) linkFile(secret, suffix string) string {
+const longestSecret = 128
+
+// digest is how a link's secret is kept: only the hash is in the database, so the database cannot be
+// used to sign in.
+func digest(secret string) string {
 	sum := sha256.Sum256([]byte(secret))
-	return filepath.Join(s.root, "tokens", hex.EncodeToString(sum[:])+suffix)
+	return hex.EncodeToString(sum[:])
 }
 
-// MakeLink is the secret of a single-use link for an address. Only the hash of
-// the secret is kept, so the files here cannot be used to sign in.
+var linkFields = []string{"hash", "email", "purpose", "expires", "org", "role", "invited_by"}
+
+var insertLink = dbkit.Upsert{Table: "links", Columns: linkFields, Conflict: []string{"hash"}}
+
+func (s *Store) linkArgs(hash string, l link) []any {
+	return []any{hash, l.Email, string(l.Purpose), s.stamp(l.Expires), l.Org, string(l.Role), l.By}
+}
+
+func scanLink(r rowScanner) (link, error) {
+	var l link
+	var purpose, role string
+	var expires dbkit.Time
+	if err := r.Scan(&l.Email, &purpose, &expires, &l.Org, &role, &l.By); err != nil {
+		return link{}, err
+	}
+	l.Purpose, l.Role, l.Expires = Purpose(purpose), Role(role), expires.Time
+	return l, nil
+}
+
+// MakeLink is the secret of a single-use link for an address.
 func (s *Store) MakeLink(email string, purpose Purpose, life time.Duration) (string, error) {
-	return s.makeLink(link{Email: email, Purpose: purpose, Expires: s.now().Add(life)})
+	ctx := context.Background()
+	var secret string
+	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
+		secret, err = s.putLink(ctx, tx, link{Email: email, Purpose: purpose, Expires: s.now().Add(life)})
+		return err
+	})
+	return secret, err
 }
 
-func (s *Store) makeLink(made link) (string, error) {
+func (s *Store) putLink(ctx context.Context, tx dbkit.Tx, made link) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}
 	secret := base64.RawURLEncoding.EncodeToString(raw)
-	return secret, writeFile(s.linkFile(secret, ".json"), made, 0o600)
+	_, err := tx.ExecContext(ctx, insertLink.SQL(1), s.linkArgs(digest(secret), made)...)
+	return secret, err
 }
 
-// UseLink is the address a link was made for, and the link is spent. It is
-// renamed out of the way before it is read, and a rename has one winner, so two
-// requests with the same link cannot both get in.
+// UseLink is the address a link was made for, and the link is spent. It is deleted in
+// the step that reads it, and a row has one deleter, so two requests with the same link
+// cannot both get in, even on two front doors.
 func (s *Store) UseLink(secret string, purpose Purpose) (string, error) {
 	used, err := s.useLink(secret, purpose)
 	return used.Email, err
 }
 
 func (s *Store) useLink(secret string, purpose Purpose) (link, error) {
-	if secret == "" || len(secret) > 128 {
+	if secret == "" || len(secret) > longestSecret {
 		return link{}, ErrLink
 	}
-	spent := s.linkFile(secret, ".spent")
-	if err := os.Rename(s.linkFile(secret, ".json"), spent); err != nil {
-		return link{}, ErrLink
-	}
-	defer os.Remove(spent)
+	ctx := context.Background()
 	var made link
-	if err := readFile(spent, &made); err != nil || made.Purpose != purpose || !s.now().Before(made.Expires) {
+	var found bool
+	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
+		made, found, err = s.spend(ctx, tx, digest(secret))
+		return err
+	})
+	if err != nil {
+		return link{}, err
+	}
+	if !found || made.Purpose != purpose || !s.now().Before(made.Expires) {
 		return link{}, ErrLink
 	}
 	return made, nil
 }
 
-// Sweep removes links that have run out, and returns how many.
+// spend deletes a link and returns what it was.
+func (s *Store) spend(ctx context.Context, tx dbkit.Tx, hash string) (link, bool, error) {
+	return one(ctx, tx, scanLink, `DELETE FROM links WHERE hash = ? RETURNING email, purpose, expires, org, role, invited_by`, hash)
+}
+
+// Sweep removes links that have run out, and returns how many. Invitations and rate counts that have
+// run out go with them.
 func (s *Store) Sweep() (int, error) {
-	entries, err := os.ReadDir(filepath.Join(s.root, "tokens"))
+	ctx, now := context.Background(), s.stamp(s.now())
+	done, err := s.db.ExecContext(ctx, `DELETE FROM links WHERE expires <= ?`, now)
 	if err != nil {
 		return 0, err
 	}
-	removed := 0
-	for _, entry := range entries {
-		path := filepath.Join(s.root, "tokens", entry.Name())
-		var made link
-		if readFile(path, &made) == nil && s.now().Before(made.Expires) {
-			continue
-		}
-		if os.Remove(path) == nil {
-			removed++
+	for _, table := range []struct{ name, column string }{{"invitations", "expires"}, {"rate_events", "until"}} {
+		if _, err := s.db.ExecContext(ctx, `DELETE FROM `+table.name+` WHERE `+table.column+` <= ?`, now); err != nil {
+			return 0, err
 		}
 	}
-	return removed, nil
+	removed, err := done.RowsAffected()
+	return int(removed), err
 }
 
 // peekInvitation is what an invitation link is for, without spending it, so the page
 // that asks a person to join can say what they are joining. A link that is not an
 // invitation, has run out or never was is not found.
 func (s *Store) peekInvitation(secret string) (link, bool) {
-	if secret == "" || len(secret) > 128 {
+	if secret == "" || len(secret) > longestSecret {
 		return link{}, false
 	}
-	var made link
-	if err := readFile(s.linkFile(secret, ".json"), &made); err != nil || made.Purpose != Invite || !s.now().Before(made.Expires) {
+	made, found, err := one(context.Background(), s.db, scanLink,
+		`SELECT email, purpose, expires, org, role, invited_by FROM links WHERE hash = ?`, digest(secret))
+	if err != nil || !found || made.Purpose != Invite || !s.now().Before(made.Expires) {
 		return link{}, false
 	}
 	return made, true

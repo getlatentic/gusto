@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"path/filepath"
 	"strings"
 )
 
@@ -45,10 +46,15 @@ func truncated(s string, n int) string {
 	return s
 }
 
+// indexFile is the name of an organisation's index in its own directory under the index root.
+const indexFile = "index.db"
+
 // usageDatabase is the GUSTO_DATABASE_URL an organisation's server is given, from the operator's settings. A Postgres
 // address gets the search_path of the organisation's own schema, in place of any the operator wrote. Any other
-// address, and none, is left out, and the server keeps its index in a file in its own data directory.
-func usageDatabase(operator []string, slug string) (string, error) {
+// address, and none, gives the organisation a SQLite file of its own under indexDir, which is on the local disk of the
+// host the server runs on: the index is built from the organisation's files and is rebuilt when it is lost, so it does
+// not belong on a disk that hosts share.
+func usageDatabase(operator []string, slug, indexDir string) (string, error) {
 	var raw string
 	for _, setting := range operator {
 		if value, found := strings.CutPrefix(setting, databaseURLEnv+"="); found {
@@ -56,16 +62,30 @@ func usageDatabase(operator []string, slug string) (string, error) {
 		}
 	}
 	parsed, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || raw == "" {
+	if err != nil {
 		return "", badURL(raw, err)
 	}
 	if scheme := strings.ToLower(parsed.Scheme); scheme != "postgres" && scheme != "postgresql" {
-		return "", nil
+		return localIndex(indexDir, slug)
 	}
 	query := parsed.Query()
 	query.Set("search_path", usageSchema(slug))
 	parsed.RawQuery = query.Encode()
 	return parsed.String(), nil
+}
+
+// localIndex is the sqlite:// address of an organisation's index under indexDir, which the server's database kit opens
+// as a file.
+func localIndex(indexDir, slug string) (string, error) {
+	dir, err := filepath.Abs(indexDir)
+	if err != nil {
+		return "", err
+	}
+	path := filepath.ToSlash(filepath.Join(dir, slug, indexFile))
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return (&url.URL{Scheme: "sqlite", Path: path}).String(), nil
 }
 
 // badURL is no error for an unset address, and a refusal that quotes nothing of an address that does not parse.

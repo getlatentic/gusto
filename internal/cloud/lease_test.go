@@ -82,65 +82,71 @@ func leasedFront(t *testing.T, left, hardMax time.Duration) (*front, *Lease) {
 }
 
 func TestEveryPageOfAHostWithALeaseCarriesTheScriptAndAnswersHowLongIsLeft(t *testing.T) {
-	f, _ := leasedFront(t, 20*time.Minute, 4*time.Hour)
-	b := f.browser()
-	if _, page := b.get("/"); !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="/lease"`) {
-		t.Errorf("the sign-up page carries no script:\n%s", page)
-	}
-	// Asked on the front door's own name and on an organisation's, which is what its pages ask.
-	for _, host := range []string{"cloud.test", "acme.cloud.test", "anything.cloud.test:8443"} {
-		status, body, header := b.do("GET", "/.gusto/lease", nil, map[string]string{"Host": host})
-		if status != 200 || !strings.HasPrefix(body, `{"seconds":`) || header.Get("Cache-Control") != "no-store" {
-			t.Errorf("%s: %d %q", host, status, body)
+	onEachDatabase(t, func(t *testing.T) {
+		f, _ := leasedFront(t, 20*time.Minute, 4*time.Hour)
+		b := f.browser()
+		if _, page := b.get("/"); !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="/lease"`) {
+			t.Errorf("the sign-up page carries no script:\n%s", page)
 		}
-	}
+		// Asked on the front door's own name and on an organisation's, which is what its pages ask.
+		for _, host := range []string{"cloud.test", "acme.cloud.test", "anything.cloud.test:8443"} {
+			status, body, header := b.do("GET", "/.gusto/lease", nil, map[string]string{"Host": host})
+			if status != 200 || !strings.HasPrefix(body, `{"seconds":`) || header.Get("Cache-Control") != "no-store" {
+				t.Errorf("%s: %d %q", host, status, body)
+			}
+		}
+	})
 }
 
 func TestAHostWithNoLeaseSaysSoAndCarriesNoScript(t *testing.T) {
-	f := newFront(t, Settings{}, nil)
-	b := f.browser()
-	if _, page := b.get("/"); strings.Contains(page, "lease.js") {
-		t.Error("a host with no lease carries the script")
-	}
-	for _, path := range []string{"/.gusto/lease", "/lease"} {
-		if status, _ := b.get(path); status != http.StatusNotFound && status != http.StatusSeeOther {
-			t.Errorf("%s: %d", path, status)
+	onEachDatabase(t, func(t *testing.T) {
+		f := newFront(t, Settings{}, nil)
+		b := f.browser()
+		if _, page := b.get("/"); strings.Contains(page, "lease.js") {
+			t.Error("a host with no lease carries the script")
 		}
-	}
-	b.post("/signup", signup("ada@acme.com", "Acme"))
-	if status, _ := b.get("/lease"); status != http.StatusNotFound {
-		t.Errorf("signed in, /lease: %d", status)
-	}
-	if status, _, _ := b.post("/lease/extend", nil); status != http.StatusNotFound {
-		t.Errorf("extending: %d", status)
-	}
+		for _, path := range []string{"/.gusto/lease", "/lease"} {
+			if status, _ := b.get(path); status != http.StatusNotFound && status != http.StatusSeeOther {
+				t.Errorf("%s: %d", path, status)
+			}
+		}
+		b.post("/signup", signup("ada@acme.com", "Acme"))
+		if status, _ := b.get("/lease"); status != http.StatusNotFound {
+			t.Errorf("signed in, /lease: %d", status)
+		}
+		if status, _, _ := b.post("/lease/extend", nil); status != http.StatusNotFound {
+			t.Errorf("extending: %d", status)
+		}
+	})
 }
 
 func TestOnlyAPersonSignedInExtendsAndTheHostKeepsItsLatestEnd(t *testing.T) {
-	f, l := leasedFront(t, 10*time.Minute, 50*time.Minute)
-	stranger := f.browser()
-	if status, _, header := stranger.post("/lease/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
-		t.Errorf("a stranger extended: %d %v", status, header)
-	}
-	if left, _ := l.Status(); left.Remaining > 10*time.Minute {
-		t.Errorf("a stranger's request changed the lease: %v", left.Remaining)
-	}
-	person := f.browser()
-	person.post("/signup", signup("ada@acme.com", "Acme"))
-	if status, page := person.get("/lease"); status != 200 || !strings.Contains(page, "Keep it for 30 minutes more") {
-		t.Fatalf("%d\n%s", status, page)
-	}
-	if status, _, header := person.post("/lease/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/lease" {
-		t.Fatalf("%d %v", status, header)
-	}
-	if left, _ := l.Status(); left.Remaining < 39*time.Minute || left.Remaining > 40*time.Minute {
-		t.Errorf("ten minutes and a step: %v", left.Remaining)
-	}
-	person.post("/lease/extend", nil)
-	if status, page, _ := person.do("POST", "/lease/extend", nil, nil); status != http.StatusConflict || !strings.Contains(page, "as long as it may have") {
-		t.Errorf("past the latest: %d\n%s", status, page)
-	}
-	if left, _ := l.Status(); left.Remaining > 50*time.Minute {
-		t.Errorf("the host was kept past its latest end: %v", left.Remaining)
-	}
+	onEachDatabase(t, func(t *testing.T) {
+		f, l := leasedFront(t, 10*time.Minute, 50*time.Minute)
+		stranger := f.browser()
+		if status, _, header := stranger.post("/lease/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
+			t.Errorf("a stranger extended: %d %v", status, header)
+		}
+		if left, _ := l.Status(); left.Remaining > 10*time.Minute {
+			t.Errorf("a stranger's request changed the lease: %v", left.Remaining)
+		}
+		person := f.browser()
+		person.post("/signup", signup("ada@acme.com", "Acme"))
+		if status, page := person.get("/lease"); status != 200 || !strings.Contains(page, "Keep it for 30 minutes more") {
+			t.Fatalf("%d\n%s", status, page)
+		}
+		if status, _, header := person.post("/lease/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/lease" {
+			t.Fatalf("%d %v", status, header)
+		}
+		if left, _ := l.Status(); left.Remaining < 39*time.Minute || left.Remaining > 40*time.Minute {
+			t.Errorf("ten minutes and a step: %v", left.Remaining)
+		}
+		person.post("/lease/extend", nil)
+		if status, page, _ := person.do("POST", "/lease/extend", nil, nil); status != http.StatusConflict || !strings.Contains(page, "as long as it may have") {
+			t.Errorf("past the latest: %d\n%s", status, page)
+		}
+		if left, _ := l.Status(); left.Remaining > 50*time.Minute {
+			t.Errorf("the host was kept past its latest end: %v", left.Remaining)
+		}
+	})
 }
