@@ -3,7 +3,6 @@
   hosts: app
   become: true
   roles:
-    - migrate # the names a box had before gusto, once (a hand run)
     - common # git, acl, the app user and its home, the checkout
     # The key GitHub may use to ask for a deploy, or its removal. Early, so
     # turning it off takes effect even on a deploy that fails further down.
