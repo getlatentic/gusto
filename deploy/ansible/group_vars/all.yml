@@ -40,7 +40,7 @@ harnesses_dir: "{{ app_root }}/var/harnesses"
 gusto_errors_dir: /var/www/haas-errors
 # The harnesses the runner image carries, each as name=package: the adapter's
 # name and the npm package that provides its program. The image lists them in
-# its com.getlatentic.haas.harnesses label, and the server offers a harness only
+# its com.getlatentic.gusto.harnesses label, and the server offers a harness only
 # when its program is really on the image's PATH.
 #
 # Each runs on the proxy's per-job token and nobody's account. codex, dsh and
