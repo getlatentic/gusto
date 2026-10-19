@@ -31,6 +31,9 @@ type Proxy struct {
 	client   *http.Client
 	public   *http.Client
 	guard    sync.Mutex
+	// lines is how many lines each task's record has, kept under guard.
+	lines    map[string]int
+	recorder atomic.Pointer[Recorder]
 	counts   counters
 	resolve  Resolver
 	gateways atomic.Pointer[Gateways]

@@ -65,13 +65,19 @@ type Filter struct {
 	Search   string
 }
 
-// Cursor continues a listing where the last page ended. It is opaque, and empty at the start and at the end.
+// Cursor continues a listing where the last page ended. It is opaque, and empty at the start and at the end. It
+// is valid only for the method, and for Sessions the sort, that made it; any other use is ErrBadCursor.
 type Cursor string
 
-// Page is how many rows to return, and where to start. A Limit of zero is 50.
+// Page is how many rows to return, and where to start. A Limit of zero is 50, and no page holds more than 1000.
+// Sort ranks sessions, always from the greatest: "last" (the default) is the latest call, "cost" the sum of
+// the measured USD (a session with no measured call comes last), "calls" the number of calls, and "tokens" the
+// input and output tokens together. Sessions of equal rank come in the order of their ids. Calls ignores Sort,
+// and an unknown one is ErrBadSort.
 type Page struct {
 	Limit int
 	After Cursor
+	Sort  string
 }
 
 // Session is the calls of one conversation, added up. Providers and Models are in the order of first use.
@@ -111,21 +117,30 @@ type Facets struct {
 	Models    []string `json:"models"`
 }
 
-// Store is the index. Every method is safe to call from many goroutines.
+// Store is the index. Every method is safe to call from many goroutines, and a SQLite file may be used by more
+// than one process at once (it keeps a write-ahead log and waits for a busy lock). A list that has no value, such
+// as the Facets of an empty index, is nil.
 type Store interface {
 	// Add inserts rows. A row whose (Task, Line) is held is left as it is, so a rebuild may add all of a
 	// task's calls again.
 	Add(ctx context.Context, rows []Row) error
-	// Sessions lists sessions, the most recently used first, that have a call matching the filter.
+	// Sessions lists sessions that have a call matching the filter, in the order the page's Sort gives.
 	// Each session's totals count only the calls that match.
 	Sessions(ctx context.Context, filter Filter, page Page) ([]Session, Cursor, error)
-	// Calls lists one session's calls, the latest first, and is ErrNotFound for a session with none.
-	Calls(ctx context.Context, session string, page Page) ([]Row, Cursor, error)
+	// Calls lists the calls of one session that match the filter, the latest first. A session none of whose
+	// calls match gives an empty page; ErrNotFound is for a session the index holds no call of at all.
+	Calls(ctx context.Context, session string, filter Filter, page Page) ([]Row, Cursor, error)
+	// Export calls fn with every call that matches the filter, the latest first, in batches so that memory
+	// stays flat however many there are. It stops at the first error from fn, and returns it.
+	Export(ctx context.Context, filter Filter, fn func(Row) error) error
 	Totals(ctx context.Context, filter Filter) (Totals, error)
+	// Facets lists the distinct values, in order, of the calls that match the filter.
 	Facets(ctx context.Context, filter Filter) (Facets, error)
 	// Indexed is, for each task the index holds, how many of its calls it holds: one more than the highest Line.
 	// A rebuild reads only the lines past it.
 	Indexed(ctx context.Context) (map[string]int, error)
+	// Reset deletes every row and says how many it removed, which is how an index is rebuilt from scratch.
+	Reset(ctx context.Context) (int64, error)
 	Close() error
 }
 

@@ -280,3 +280,15 @@ button.revoke:hover { text-decoration: underline; }
   .figure[aria-current], .console-nav a[aria-current], .chip[aria-pressed="true"] { forced-color-adjust: none; background: SelectedItem; color: SelectedItemText; }
   .figure .label::before { forced-color-adjust: none; }
 }
+
+/* Usage: a table of calls too wide for a narrow window scrolls inside its card, and the long cells are cut. */
+.list.usage { overflow-x: auto; }
+.list.usage table { white-space: nowrap; }
+.list.usage td.cut { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
+.list.usage th a { color: inherit; text-decoration: none; }
+.list.usage th[aria-sort] a::after { content: " \2193"; }
+.list.usage th[aria-sort="ascending"] a::after { content: " \2191"; }
+.usage-filters { flex-wrap: wrap; }
+.usage-filters .search { flex: 1 1 14rem; margin-left: 0; }
+.usage-filters label.inline { margin-left: 0; }
+.usage-filters input[type="date"] { width: auto; padding: var(--yg-space-2) var(--yg-space-3); }

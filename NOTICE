@@ -10,6 +10,18 @@ Go modules compiled into gusto and gusto-helper (checked 13 October 2026 by read
   18 Apache-2.0, 4 BSD-3-Clause, 1 BSD-2-Clause, 3 MIT. None is GPL, LGPL, AGPL or MPL.
   `go list -deps ./cmd/gusto ./cmd/gusto-helper` lists them.
 
+The usage index (internal/usage) adds a pure Go database driver for each of SQLite and Postgres, so that the release
+builds with CGO_ENABLED=0 (checked 19 October 2026 by reading each module's licence file). None is GPL, LGPL, AGPL or MPL:
+  modernc.org/sqlite, modernc.org/libc, modernc.org/mathutil, modernc.org/memory
+                  BSD-3-Clause (the SQLite code it carries is in the public domain; its sqlite-vec extension, MIT,
+                  is not imported)
+  github.com/jackc/pgx/v5, pgpassfile, pgservicefile, puddle/v2
+                  MIT
+  github.com/dustin/go-humanize, mattn/go-isatty, ncruces/go-strftime
+                  MIT
+  github.com/google/uuid, remyoudompheng/bigfft, golang.org/x/sync
+                  BSD-3-Clause
+
 The design tokens (tokens.css) and the mark (mark.png) in internal/web/static are Latentic's own.
 
 Files served from the binary (internal/web/static, see PROVENANCE.md there):

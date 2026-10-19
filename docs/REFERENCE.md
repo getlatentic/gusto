@@ -238,7 +238,7 @@ docker build -t gusto:dev \
 - A bind mount of a path the runtime does not share gives an empty directory. `run` refuses by name. Docker on a Mac shares `/Users`, not `/private/tmp`.
 - A model on the host must listen on more than loopback. For Ollama, set `OLLAMA_HOST=0.0.0.0` and restart.
 
-`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_JOBS`, `GUSTO_MODEL_URL` and `GUSTO_HARNESSES`. It reports whether `GUSTO_PASSWORD` is set, never its value.
+`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_JOBS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
 
 ## Environment
 
@@ -277,6 +277,7 @@ docker build -t gusto:dev \
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
 | `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
 | `GUSTO_JOBS` | the directory `gusto serve` keeps tasks in |
+| `GUSTO_DATABASE_URL` | where the index of model calls is kept. Unset, it is `usage.db` in the directory that holds `GUSTO_JOBS`. A `postgres://` address keeps it in Postgres, and its `search_path` parameter names the schema, which is how organisations that share a database stay apart. The tasks' `out/proxy.jsonl` stays the record: the index is built from it, and `gusto usage reindex` rebuilds it. Retention leaves the index's rows, which hold no content |
 | `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
 | `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on. It needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [SSO.md](SSO.md) |
 | `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | scopes to ask for besides `openid` and `email`, and the claim the groups arrive in (`groups` by default) |

@@ -14,6 +14,7 @@ func (s *Server) sections() []section {
 	all := []section{
 		{"overview", "/admin", "Overview"},
 		{"spending", "/admin/spending", "Spending"},
+		{"usage", "/admin/usage", "Usage"},
 	}
 	if s.changes != nil {
 		all = append(all, section{"activity", "/admin/activity", "Activity"})

@@ -65,6 +65,11 @@ func (s *Server) protocol() []call {
 
 		{"POST", "/api/jobs", apitoken.Submit, "send a task directory to be run, as an organisation's program does", false, s.sent(apitoken.Submit, s.accept)},
 		{"GET", "/api/spend", apitoken.Spend, "the spend report", false, s.sent(apitoken.Spend, s.spendJSON)},
+		{"GET", "/api/usage/sessions", apitoken.Spend, "the model calls added up by session, the latest first; a person's token reads that person's own", false, s.usageAccess(s.usageSessionsJSON)},
+		{"GET", "/api/usage/calls", apitoken.Spend, "one session's calls, the latest first, from ?session=", false, s.usageAccess(s.usageCallsJSON)},
+		{"GET", "/api/usage/totals", apitoken.Spend, "the calls that match, added up", false, s.usageAccess(s.usageTotalsJSON)},
+		{"GET", "/api/usage/facets", apitoken.Spend, "the people, agents, engines, providers and models that calls have", false, s.usageAccess(s.usageFacetsJSON)},
+		{"GET", "/api/usage.csv", apitoken.Spend, "every call that matches, as CSV", false, s.usageAccess(s.usageCSV)},
 		{"GET", "/api/changes", apitoken.Audit, "the record of what changed on the platform", false, s.sent(apitoken.Audit, s.changesScript)},
 	}
 }

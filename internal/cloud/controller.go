@@ -228,7 +228,14 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
 	}
-	env := append([]string{}, c.Env...)
+	database, err := usageDatabase(c.Env, slug)
+	if err != nil {
+		return nil, err
+	}
+	if database != "" {
+		own[databaseURLEnv] = database
+	}
+	env := withoutSetting(c.Env, databaseURLEnv)
 	for name, value := range own {
 		env = append(env, name+"="+value)
 	}

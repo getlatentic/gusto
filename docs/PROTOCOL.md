@@ -51,8 +51,17 @@ The token acts as that person, on their own work. The person ends it from `/devi
 | `POST /api/instances/{id}/hashes` | a person | The hashes of the files named, so a client sends only what differs |
 | `POST /api/jobs` | token: submit | Send a task directory to be run |
 | `GET /api/spend` | token: spend | The spend report |
+| `GET /api/usage/sessions` | token: spend, or a person | The model calls added up by session, the latest first (docs/USAGE.md) |
+| `GET /api/usage/calls` | token: spend, or a person | One session's calls, the latest first, from `?session=` |
+| `GET /api/usage/totals` | token: spend, or a person | The calls that match, added up |
+| `GET /api/usage/facets` | token: spend, or a person | The people, agents, engines, providers and models that calls have |
+| `GET /api/usage.csv` | token: spend, or a person | Every call that matches, as CSV (a stream) |
 | `GET /api/changes` | token: audit | The record of what changed on the platform |
 | `GET /api/protocol` | nobody | The protocol version and this table, as JSON |
+
+## Reading usage
+
+The five `/api/usage` calls read the index of model calls. A person's token reads that person's own calls. A token with the `spend` scope reads all of them. The calls also take a signed-in session, which is how the **Download CSV** link on `/usage` works. Every filter narrows the lists, the totals, the CSV and a session's calls. The lists take `limit` (up to 1000) and `after`, and the sessions take `sort` (`last`, `cost`, `calls` or `tokens`, from the greatest). The filters and the answers are in [USAGE.md](USAGE.md).
 
 ## A turn
 
