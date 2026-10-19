@@ -80,6 +80,21 @@ DeepSeek Flash on every agent, on 2026-10-02 (plan: [`matrix/flash.json`](matrix
 
 Claude Code and Codex on Gemma, translated (2026-10-05, plan: [`matrix/gemma-translated.json`](matrix/gemma-translated.json)). The Gemma models answer Chat Completions alone, so the proxy translates the Messages and Responses calls ([GATEWAY.md](GATEWAY.md)). The `gemma` credential sets `"wires": ["chat"]` and `"maxOutput": 8192`. All five finished. Wall clock and model calls: `claude` on 26b 33 s and 8, `claude` on 31b 40 s and 8, `codex` on 26b 1 m 13 s and 41, `codex` on 31b 35 s and 11, and `opencode`, which is not translated, on 26b 38 s and 10.
 
+## Re-measured on the pinned builds
+
+DeepSeek Flash on every agent, on 2026-10-20 (plan: [`matrix/flash.json`](matrix/flash.json)), in an OpenShell sandbox made from the runner image the deployment builds, through the proxy. Each run's manifest names the build it ran in `harnessVersion`. Claude Code and Codex ran over ACP. All six finished the one-line fix and passed its check.
+
+| Agent | Build | Wall clock |
+| --- | --- | --- |
+| Pi | `@earendil-works/pi-coding-agent@1.3.0` | 27 s |
+| Claude Code | `@agentclientprotocol/claude-agent-acp@0.94.0` | 32 s |
+| Codex | `@agentclientprotocol/codex-acp@2.2.2` | 35 s |
+| Hermes | `hermes-agent@0.21.5` | 37 s |
+| DeepSeek Agent | `@deepseek-ai/dsh@0.1.5-rc.3` | 36 s |
+| OpenCode | `opencode-ai@1.19.3` | 2 m 53 s |
+
+The 2026-10-02 run had the same order and times within a few seconds. The table's token column reads "unmeasured" for Claude Code and DeepSeek Agent: the proxy counted their calls but not the tokens, so their cost is "unpriced" here, while the manifests carry the agents' own totals.
+
 ## Agents tried over ACP and not carried
 
 Tried on 2026-10-20 against the stub model, through the proxy, with the maintained ACP adapters. Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex (`@agentclientprotocol/codex-acp`) each finished a turn: the proxy translated their Messages and Responses calls and counted 1,100 tokens. These did not make it:
