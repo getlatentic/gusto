@@ -32,10 +32,10 @@ padded 1024 10 /tmp/gusto-icon-cut.png
 hull=$(magick /tmp/gusto-icon-cut.png -channel A -separate +channel -threshold 50% -format "%[convex-hull]" info: | tr -d '\n')
 magick -size 1024x1024 xc:none -fill '#F5FBF6' -draw "polygon $hull" /tmp/gusto-icon-fill.png
 magick /tmp/gusto-icon-fill.png /tmp/gusto-icon-cut.png -composite /tmp/gusto-icon-1024.png
-magick /tmp/gusto-icon-1024.png -resize 512x512 "$icons/icon.png"
-magick /tmp/gusto-icon-1024.png -resize 256x256 "$icons/128x128@2x.png"
-magick /tmp/gusto-icon-1024.png -resize 128x128 "$icons/128x128.png"
-magick /tmp/gusto-icon-1024.png -resize 32x32 "$icons/32x32.png"
+magick /tmp/gusto-icon-1024.png -resize 512x512 "PNG32:$icons/icon.png"
+magick /tmp/gusto-icon-1024.png -resize 256x256 "PNG32:$icons/128x128@2x.png"
+magick /tmp/gusto-icon-1024.png -resize 128x128 "PNG32:$icons/128x128.png"
+magick /tmp/gusto-icon-1024.png -resize 32x32 "PNG32:$icons/32x32.png"
 sizes=()
 for s in 16 24 32 48 64 256; do magick /tmp/gusto-icon-1024.png -resize "${s}x${s}" "/tmp/gusto-ico-$s.png"; sizes+=("/tmp/gusto-ico-$s.png"); done
 magick "${sizes[@]}" "$icons/icon.ico"
@@ -50,7 +50,7 @@ fi
 
 # The menu bar icon is a template: one colour and transparent, so the system tints it.
 padded 44 6 "$icons/tray.png" "$mono"
-magick "$icons/tray.png" -fill black -colorize 100 "$icons/tray.png"
+magick "$icons/tray.png" -fill black -colorize 100 "PNG32:$icons/tray.png"
 
 # The helper's tray icon.
 cp "$icons/tray.png" "$desk/icon.png"
