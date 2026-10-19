@@ -2,11 +2,11 @@
 # Puts a release's desktop app where a server hands it out. The app updates itself from /desktop/latest.json on the server it is
 # connected to, and that file names each system's update by an address on that server, so it is made here for one server.
 #
-#   deploy/desktop/publish.sh v0.0.1-alpha.6 /srv/gusto/desktop https://gusto.example.com
+#   deploy/desktop/publish.sh v0.1.0-rc.2 /srv/gusto/desktop https://gusto.example.com
 #
 # Then start the server with GUSTO_DESKTOP=/srv/gusto/desktop. Needs the GitHub command line signed in, for a private repository, and jq.
 set -eu
-tag=${1:?the release, such as v0.0.1-alpha.6}
+tag=${1:?the release, such as v0.1.0-rc.2}
 dir=${2:?the folder the server hands out, which GUSTO_DESKTOP names}
 base=${3:?the address of the server, such as https://gusto.example.com}
 repo=${GUSTO_REPO:-getlatentic/gusto}

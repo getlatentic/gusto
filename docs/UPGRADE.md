@@ -43,17 +43,17 @@ To allow a migration that cannot be undone, copy the directories first. Set `GUS
 Keep the newer release installed, because only it can undo what it did:
 
 ```bash
-gusto data rollback -to v0.1.0-rc.1
+gusto data rollback -to v0.1.0-rc.2
 ```
 
 It checks every store first. If one has a migration that cannot be undone, it names the store and changes nothing. Otherwise it takes each store back to the format that release wrote. Install that release and start it. Tasks and messages made under the newer release stay, in the older format.
 
-The releases v0.1.0-rc.1 and v0.0.1-alpha.1 to v0.0.1-alpha.5 wrote every store at format 1, so rolling back to any of them (`gusto data rollback -to <release>`) undoes nothing. A release that changes a format adds itself to `internal/datadir/releases.go`.
+The release v0.1.0-rc.2 wrote every store at format 1, so rolling back to it (`gusto data rollback -to <release>`) undoes nothing. A release that changes a format adds itself to `internal/datadir/releases.go`.
 
 ## Rehearse it on your data
 
 ```bash
-deploy/rehearse-upgrade.sh ./gusto /var/lib/gusto v0.0.1-alpha.2
+deploy/rehearse-upgrade.sh ./gusto /var/lib/gusto v0.1.0-rc.2
 ```
 
 It never changes the original. On a copy of your data directory it shows what the new binary would migrate, starts a server, loads each task's page, and runs `gusto verify` on every record. With a release named, it then rolls the copy back to that release's formats. It exits 1 and names the task when a page does not load or a record does not verify.
