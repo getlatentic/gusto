@@ -26,8 +26,6 @@ p { margin: 0; }
 .error { font-size: .8125rem; color: var(--gu-danger); }
 .muted, .other { color: var(--gu-text-muted); font-size: .8125rem; }
 .other { text-align: center; }
-.note { margin: 0; color: var(--gu-text-muted); font-size: .8125rem; }
-.note strong { color: var(--gu-text); font-weight: 600; }
 .other a, .row a { color: inherit; }
 dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--gu-space-2) var(--gu-space-6); margin: 0; }
 dt { color: var(--gu-text-muted); }
