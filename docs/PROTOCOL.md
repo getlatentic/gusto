@@ -33,8 +33,8 @@ The token acts as that person, on their own work. The person ends it from `/devi
 | `GET /api/me` | a person | Who this token acts as |
 | `DELETE /api/me` | a person | Sign this computer out: its token ends |
 | `GET /api/instances` | a person | The person's instances |
-| `POST /api/instances` | a person | Start an instance of an engine, in a folder of its own |
-| `GET /api/engines` | a person | The engines this server can start |
+| `POST /api/instances` | a person | Start an instance of an agent type, in a folder of its own |
+| `GET /api/engines` | a person | The agent types this server can start |
 | `GET /api/instances/{id}` | a person | One instance |
 | `GET /api/instances/{id}/threads` | a person | An instance's threads |
 | `POST /api/instances/{id}/threads` | a person | Open a thread |
@@ -54,7 +54,7 @@ The token acts as that person, on their own work. The person ends it from `/devi
 | `GET /api/usage/sessions` | token: spend, or a person | The model calls added up by session, the latest first (docs/USAGE.md) |
 | `GET /api/usage/calls` | token: spend, or a person | One session's calls, the latest first, from `?session=` |
 | `GET /api/usage/totals` | token: spend, or a person | The calls that match, added up |
-| `GET /api/usage/facets` | token: spend, or a person | The people, agents, engines, providers and models that calls have |
+| `GET /api/usage/facets` | token: spend, or a person | The people, agents, agent types, providers and models that calls have |
 | `GET /api/usage.csv` | token: spend, or a person | Every call that matches, as CSV (a stream) |
 | `GET /api/changes` | token: audit | The record of what changed on the platform |
 | `GET /api/protocol` | nobody | The protocol version and this table, as JSON |

@@ -44,8 +44,8 @@ func (s *Server) protocol() []call {
 		{"DELETE", "/api/me", whoPerson, "sign this computer out: its token ends", false, s.endMe},
 
 		{"GET", "/api/instances", whoPerson, "the person's instances", false, s.instancesJSON},
-		{"POST", "/api/instances", whoPerson, "start an instance of an agent, in a folder of its own", false, s.startInstanceJSON},
-		{"GET", "/api/engines", whoPerson, "the agents this server can start", false, s.enginesJSON},
+		{"POST", "/api/instances", whoPerson, "start an instance of an agent type, in a folder of its own", false, s.startInstanceJSON},
+		{"GET", "/api/engines", whoPerson, "the agent types this server can start", false, s.enginesJSON},
 		{"GET", "/api/instances/{id}", whoPerson, "one instance", false, s.instanceJSON},
 		{"GET", "/api/instances/{id}/threads", whoPerson, "an instance's threads", false, s.threadsJSON},
 		{"POST", "/api/instances/{id}/threads", whoPerson, "open a thread", false, s.newThreadJSON},
@@ -68,7 +68,7 @@ func (s *Server) protocol() []call {
 		{"GET", "/api/usage/sessions", apitoken.Spend, "the model calls added up by session, the latest first; a person's token reads that person's own", false, s.usageAccess(s.usageSessionsJSON)},
 		{"GET", "/api/usage/calls", apitoken.Spend, "one session's calls, the latest first, from ?session=", false, s.usageAccess(s.usageCallsJSON)},
 		{"GET", "/api/usage/totals", apitoken.Spend, "the calls that match, added up", false, s.usageAccess(s.usageTotalsJSON)},
-		{"GET", "/api/usage/facets", apitoken.Spend, "the people, agents, engines, providers and models that calls have", false, s.usageAccess(s.usageFacetsJSON)},
+		{"GET", "/api/usage/facets", apitoken.Spend, "the people, agents, agent types, providers and models that calls have", false, s.usageAccess(s.usageFacetsJSON)},
 		{"GET", "/api/usage.csv", apitoken.Spend, "every call that matches, as CSV", false, s.usageAccess(s.usageCSV)},
 		{"GET", "/api/changes", apitoken.Audit, "the record of what changed on the platform", false, s.sent(apitoken.Audit, s.changesScript)},
 	}

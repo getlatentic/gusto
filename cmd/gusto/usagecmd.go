@@ -30,7 +30,7 @@ func usageCommands() []*cmdline.Command {
 		Subs: []*cmdline.Command{
 			{
 				Name: "sessions", Summary: "List sessions with what they spent, the most recently used first",
-				Usage: []string{"[-person <who>] [-agent <name>] [-engine <name>] [-provider <name>] [-model <name>] [-month <2006-01>] [-limit <n>] [-tasks <dir>] [-json]"},
+				Usage: []string{"[-person <who>] [-agent <name>] [-agent-type <type>] [-provider <name>] [-model <name>] [-month <2006-01>] [-limit <n>] [-tasks <dir>] [-json]"},
 				Description: "Lists the sessions that have a call matching the flags. A session is the calls of one conversation, or of one " +
 					"task that is in none. The cost counts only calls the models' prices were known for: a cost ending in + leaves out " +
 					"some calls, and n/a is a session none of whose calls have a price. Cache is the share of input tokens the provider's cache answered.",
@@ -68,16 +68,16 @@ func usageCommands() []*cmdline.Command {
 }
 
 type sessionsFlags struct {
-	person, agent, engine, provider, model, month, tasks string
-	limit                                                int
-	json                                                 bool
+	person, agent, agentType, provider, model, month, tasks string
+	limit                                                   int
+	json                                                    bool
 }
 
 func declareSessions(set *flag.FlagSet) *sessionsFlags {
 	f := &sessionsFlags{}
 	set.StringVar(&f.person, "person", "", "only this `person`'s sessions")
 	set.StringVar(&f.agent, "agent", "", "only this `agent`, by the name its person gave it")
-	set.StringVar(&f.engine, "engine", "", "only this `engine`, the program that made the calls")
+	set.StringVar(&f.agentType, "agent-type", "", "only this `agent type`, the program that made the calls")
 	set.StringVar(&f.provider, "provider", "", "only calls this `provider` answered")
 	set.StringVar(&f.model, "model", "", "only calls to this `model`")
 	set.StringVar(&f.month, "month", "", "only calls in this month, as `2006-01`")
@@ -88,7 +88,7 @@ func declareSessions(set *flag.FlagSet) *sessionsFlags {
 }
 
 func (f *sessionsFlags) filter() (usage.Filter, error) {
-	filter := usage.Filter{Person: f.person, Agent: f.agent, Engine: f.engine, Provider: f.provider, Model: f.model}
+	filter := usage.Filter{Person: f.person, Agent: f.agent, Engine: f.agentType, Provider: f.provider, Model: f.model}
 	if f.month == "" {
 		return filter, nil
 	}
@@ -164,7 +164,7 @@ func printSessions(found []usage.Session) int {
 		return 0
 	}
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(table, "LAST USED\tSESSION\tPERSON\tAGENT\tENGINE\tCOST\tPROVIDER\tMODEL\tTOKENS\tCACHE")
+	fmt.Fprintln(table, "LAST USED\tSESSION\tPERSON\tAGENT\tAGENT TYPE\tCOST\tPROVIDER\tMODEL\tTOKENS\tCACHE")
 	for _, s := range found {
 		fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			s.Last.UTC().Format("2006-01-02 15:04"), s.ID, s.Person, orDash(s.Agent), s.Engine, costOf(s.Totals),

@@ -1257,7 +1257,7 @@ Flags:
 List sessions with what they spent, the most recently used first
 
 ```text
-gusto usage sessions [-person <who>] [-agent <name>] [-engine <name>] [-provider <name>] [-model <name>] [-month <2006-01>] [-limit <n>] [-tasks <dir>] [-json]
+gusto usage sessions [-person <who>] [-agent <name>] [-agent-type <type>] [-provider <name>] [-model <name>] [-month <2006-01>] [-limit <n>] [-tasks <dir>] [-json]
 ```
 
 Lists the sessions that have a call matching the flags. A session is the calls of one conversation, or of one task that is in none. The cost counts only calls the models' prices were known for: a cost ending in + leaves out some calls, and n/a is a session none of whose calls have a price. Cache is the share of input tokens the provider's cache answered.
@@ -1265,7 +1265,7 @@ Lists the sessions that have a call matching the flags. A session is the calls o
 Flags:
 
 - `-agent <agent>`: only this agent, by the name its person gave it
-- `-engine <engine>`: only this engine, the program that made the calls
+- `-agent-type <agent type>`: only this agent type, the program that made the calls
 - `-json`: print the sessions as JSON
 - `-limit <sessions>`: the most sessions to list (default 20)
 - `-model <model>`: only calls to this model

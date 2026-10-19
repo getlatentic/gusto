@@ -1,5 +1,5 @@
 // Package usage keeps one row for each model call, so an organisation can search,
-// filter and add up what its agents spent: by session, person, agent, engine,
+// filter and add up what its agents spent: by session, person, agent, agent type,
 // provider and model.
 //
 // The task's out/proxy.jsonl stays the record, and is what the manifest hashes. These
@@ -29,9 +29,9 @@ type Row struct {
 	Person  string `json:"person"`
 	Team    string `json:"team,omitempty"`
 	Project string `json:"project,omitempty"`
-	// Engine is the program that made the call: Claude Code, Codex and the others. Agent is the name a person
+	// Engine is the agent type that made the call: Claude Code, Codex and the others. Agent is the name a person
 	// gave the agent they set up, and is empty when the task was not made through one.
-	Engine string `json:"engine"`
+	Engine string `json:"agentType"`
 	Agent  string `json:"agent,omitempty"`
 	// Provider is who answered, by the name the organisation's model registry gives it, and Credential is
 	// the name of the key the proxy added. The key itself is never here.
@@ -52,7 +52,7 @@ type Row struct {
 }
 
 // Filter narrows rows. A zero field matches everything. Search matches part of a session, person,
-// agent, engine, provider or model, without regard to case.
+// agent, agent type, provider or model, without regard to case.
 type Filter struct {
 	From, To time.Time
 	Person   string
@@ -85,7 +85,7 @@ type Session struct {
 	ID        string    `json:"id"`
 	Person    string    `json:"person"`
 	Agent     string    `json:"agent,omitempty"`
-	Engine    string    `json:"engine"`
+	Engine    string    `json:"agentType"`
 	Providers []string  `json:"providers"`
 	Models    []string  `json:"models"`
 	Tasks     []string  `json:"tasks"`
@@ -111,7 +111,7 @@ type Facets struct {
 	People    []string `json:"people"`
 	Teams     []string `json:"teams"`
 	Projects  []string `json:"projects"`
-	Engines   []string `json:"engines"`
+	Engines   []string `json:"agentTypes"`
 	Agents    []string `json:"agents"`
 	Providers []string `json:"providers"`
 	Models    []string `json:"models"`

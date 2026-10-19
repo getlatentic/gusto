@@ -33,12 +33,12 @@
 </section>
 
 <form class="filters usage-filters" method="get" action="{{$.Base}}" role="search">
-  <label class="inline search"><span class="sr">Search sessions, people, agents, engines, providers and models</span>
+  <label class="inline search"><span class="sr">Search sessions, people, agents, agent types, providers and models</span>
     <input type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
   </label>
   {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
   {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
-  {{template "usage-select" (dict "Name" "engine" "Label" "Engine" "All" "every engine" "Options" .Facets.Engines "Chosen" (.Values.Get "engine"))}}
+  {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
   {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
   {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
   <label class="inline">From <input type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit></label>

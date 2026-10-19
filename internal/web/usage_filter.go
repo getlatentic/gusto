@@ -69,7 +69,7 @@ func (s *Server) holdsPersonToken(secret string) bool {
 	return err == nil && token.Person != "" && token.May(apitoken.Work)
 }
 
-var usageFields = []string{"q", "person", "team", "project", "engine", "agent", "provider", "model", "from", "to"}
+var usageFields = []string{"q", "person", "team", "project", "agent_type", "agent", "provider", "model", "from", "to"}
 
 // readUsageQuery reads the filter from the query, and forces its person to the one the request may read.
 func (s *Server) readUsageQuery(r *http.Request) (usageQuery, bool, error) {
@@ -88,7 +88,7 @@ func (s *Server) readUsageQuery(r *http.Request) (usageQuery, bool, error) {
 		made.Values.Set("person", person)
 	}
 	f := usage.Filter{Search: made.Values.Get("q"), Person: made.Values.Get("person"), Team: made.Values.Get("team"),
-		Project: made.Values.Get("project"), Engine: made.Values.Get("engine"), Agent: made.Values.Get("agent"),
+		Project: made.Values.Get("project"), Engine: made.Values.Get("agent_type"), Agent: made.Values.Get("agent"),
 		Provider: made.Values.Get("provider"), Model: made.Values.Get("model")}
 	var err error
 	if f.From, err = usageTime(made.Values.Get("from"), false); err != nil {

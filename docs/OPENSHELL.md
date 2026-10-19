@@ -95,6 +95,6 @@ gusto can fetch, check, sign and start OpenShell in user space, with no password
 
 - Download, 6 s. Sign the driver with `codesign -s -`, 0.3 s. The gateway listens about 1 s after start.
 - The first sandbox took 27.7 s, and one with the image staged took 9.6 s. A chat took 13 s, and each turn gets a fresh VM.
-- The gateway kept 2.2 GB after a few runs, and 6.0 GB after one chat with the six-engine image.
+- The gateway kept 2.2 GB after a few runs, and 6.0 GB after one chat with the six-agent image.
 
 `gusto local sandbox install` writes a launch agent (macOS) or systemd user unit (Linux) named `gusto`. `gusto local sandbox uninstall` removes it. The driver needs `mke2fs`, `debugfs` and `e2fsck`. `deploy/e2fsprogs/build.sh` builds them static from e2fsprogs 1.47.4 (GPLv2). The release workflow builds `gusto-rootfs-<arch>.tar.gz` for amd64 and arm64. Neither release task has run. Not checked: a Mac with no e2fsprogs at all, Linux with KVM, and a gateway kept for days.
