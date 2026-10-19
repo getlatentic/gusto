@@ -23,7 +23,7 @@ variable "public_key" {
 variable "name" {
   description = "What the instance, its group and its key are called."
   type        = string
-  default     = "haas-poc-openshell"
+  default     = "gusto-poc-openshell"
 }
 
 variable "public_https" {

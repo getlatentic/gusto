@@ -8,5 +8,5 @@
 cd "$(dirname "$0")"
 for which in dns mail; do
   echo "== the $which token"
-  GUSTO_MODEL_PARAMETER="/haas/poc/cloudflare-$which-token" ./put-key.sh
+  GUSTO_MODEL_PARAMETER="/gusto/poc/cloudflare-$which-token" ./put-key.sh
 done

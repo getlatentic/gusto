@@ -16,7 +16,7 @@ variable "operator_cidrs" {
 }
 
 variable "hugepages" {
-  description = "2 MiB hugepages the host reserves for sandbox memory. 8192 is 16 GiB, leaving the rest for the host, E2B's services and haas."
+  description = "2 MiB hugepages the host reserves for sandbox memory. 8192 is 16 GiB, leaving the rest for the host, E2B's services and gusto."
   type        = number
   default     = 8192
 }

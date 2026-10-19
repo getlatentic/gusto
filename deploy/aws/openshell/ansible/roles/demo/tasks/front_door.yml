@@ -7,8 +7,8 @@
 
 - name: The program that points the name at this host
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/haas-dns"
-    dest: /usr/local/bin/haas-dns
+    src: "{{ playbook_dir }}/../.state/gusto-dns"
+    dest: /usr/local/bin/gusto-dns
     mode: "0755"
 
 - name: gusto cloud's settings, and what every organisation's server is started with
@@ -17,28 +17,28 @@
     dest: "{{ item.dest }}"
     mode: "0644"
   loop:
-    - { src: org.env.j2, dest: /etc/haas/org.env }
-    - { src: cloud.env.j2, dest: /etc/haas/cloud.env }
+    - { src: org.env.j2, dest: /etc/gusto/org.env }
+    - { src: cloud.env.j2, dest: /etc/gusto/cloud.env }
   notify: Restart the front door
 
 - name: gusto cloud's service
   ansible.builtin.template:
-    src: haas-cloud.service.j2
-    dest: /etc/systemd/system/haas-cloud.service
+    src: gusto-cloud.service.j2
+    dest: /etc/systemd/system/gusto-cloud.service
     mode: "0644"
   notify: Restart the front door
 
 - name: The operator's page, which listens on this host's loopback and is not in the web server's site
   ansible.builtin.template:
-    src: haas-owner.service.j2
-    dest: /etc/systemd/system/haas-owner.service
+    src: gusto-owner.service.j2
+    dest: /etc/systemd/system/gusto-owner.service
     mode: "0644"
   notify: Restart the owner's page
 
 - name: The web server's site
   ansible.builtin.template:
     src: nginx-site.conf.j2
-    dest: /etc/nginx/sites-available/haas
+    dest: /etc/nginx/sites-available/gusto
     mode: "0644"
   notify: Reload nginx
 
@@ -48,7 +48,7 @@
     dest: "{{ item.dest }}"
     state: "{{ item.state }}"
   loop:
-    - { src: /etc/nginx/sites-available/haas, dest: /etc/nginx/sites-enabled/haas, state: link }
+    - { src: /etc/nginx/sites-available/gusto, dest: /etc/nginx/sites-enabled/gusto, state: link }
     - { dest: /etc/nginx/sites-enabled/default, state: absent }
   notify: Reload nginx
 

@@ -20,11 +20,11 @@ when the month is forecast to pass $100.
 
 ## Before the first run
 
-- An AWS profile `haas-poc` (`aws configure --profile haas-poc`), for the IAM
-  user `haas-poc-terraform`: `PowerUserAccess` and an inline policy allowing
-  IAM on `haas-poc*` roles, instance profiles and policies only.
+- An AWS profile `gusto-poc` (`aws configure --profile gusto-poc`), for the IAM
+  user `gusto-poc-terraform`: `PowerUserAccess` and an inline policy allowing
+  IAM on `gusto-poc*` roles, instance profiles and policies only.
 - A Cloudflare token with DNS edit on `getlatentic.com`, in
-  `~/.config/haas/cloudflare_token`, mode 600.
+  `~/.config/gusto/cloudflare_token`, mode 600.
 - Terraform 1.7.5 or newer.
 
 ## Run
@@ -33,7 +33,7 @@ when the month is forecast to pass $100.
 ./up.sh       # makes it, and waits until E2B answers
 ./check.sh    # E2B's smoke test on the instance: a sandbox made, a port in it reached
 ./bench.sh    # bench/work.py on the host and in a sandbox, and sandbox start times
-./down.sh     # removes it, then lists anything still tagged haas-poc
+./down.sh     # removes it, then lists anything still tagged gusto-poc
 ```
 
 The E2B API, dashboard and sandbox proxy (ports 3000 to 3002) answer only the

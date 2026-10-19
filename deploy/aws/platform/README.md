@@ -11,9 +11,9 @@ outlives a host, and the script a host starts with.
 
 ## The path
 
-1. A merge to `main` that changes what a host is made from runs **demo bundle**. It puts `bundle.tgz` (the Linux `haas`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
+1. A merge to `main` that changes what a host is made from runs **demo bundle**. It puts `bundle.tgz` (the Linux `gusto`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
 2. **demo up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts gusto cloud. The workflow says when `https://<name>/healthz` answers.
-3. The host removes itself when its lease ends. **demo down** tells it to power off now. **demo sweep** runs every 30 minutes and terminates anything tagged `haas-poc` that has been up more than six hours.
+3. The host removes itself when its lease ends. **demo down** tells it to power off now. **demo sweep** runs every 30 minutes and terminates anything tagged `gusto-poc` that has been up more than six hours.
 
 The CI role can launch the launch template, tell tagged hosts to power off, terminate tagged hosts, and put
 objects under `releases/` and `image/`. It has no IAM right, so it cannot widen itself.
@@ -27,16 +27,16 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 many hosts that run the organisations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
 made with `cells` at 0, as before.
 
-- The hosts of one demo share an encrypted file system, mounted at `/var/lib/haas-cloud` on each, in a directory of it
+- The hosts of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
   named for the run. gusto cloud starts an organisation's server on a host through the host's agent
-  (`haas host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
+  (`gusto host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
   gusto cloud removes the directories of earlier runs when it starts, since the workspaces they describe went with their hosts.
 - A host registers in `cells/` of that directory every ten seconds. A new organisation is placed on the host with the
   most free memory, and stays there. When its host has been silent for five minutes it is placed on another host, and its
   people start it again from gusto cloud.
 - gusto cloud writes `cells/orchestrator.beat` every ten seconds. A host that has not seen it for five minutes powers
   itself off (and so terminates), after gusto cloud has had 15 minutes to start. A host has no lease of its own.
-- Requests to a host are signed with `/haas/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
+- Requests to a host are signed with `/gusto/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
   reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
 ## gusto cloud that stays up
@@ -50,9 +50,9 @@ nothing is paid for but this machine, its address and the file system.
   then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
   and leaves the hosts and the organisations on them as they are.
 - Its role is its own, and is the only one that may start and stop hosts. It starts hosts only from the
-  `cell-live` template, which tags them `project=haas-live`, and stops only hosts with that tag that it started
+  `cell-live` template, which tags them `project=gusto-live`, and stops only hosts with that tag that it started
   (`scaler=on`). A host that runs other people's code can start nothing. The demo workflows tag and stop
-  `project=haas-poc`, so they never touch it, and it never touches theirs.
+  `project=gusto-poc`, so they never touch it, and it never touches theirs.
 - It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
   replaced.
 - Sign-up for a visitor is at `https://<name>/demo`. `DEMO_VISITOR_MINUTES` and `DEMO_BOOK_URL` in `demo.env`, stored

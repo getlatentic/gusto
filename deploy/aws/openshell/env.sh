@@ -4,7 +4,7 @@ set -euo pipefail
 export TF_IN_AUTOMATION=1 TF_CLI_ARGS="-no-color"
 cd "$(dirname "$0")"
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
-export AWS_PROFILE="${AWS_PROFILE:-haas-poc}"
+export AWS_PROFILE="${AWS_PROFILE:-gusto-poc}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_DEFAULT_REGION="$AWS_REGION"
 state=".state"

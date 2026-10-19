@@ -8,7 +8,7 @@ locals {
 
 resource "aws_budgets_budget" "monthly" {
   count        = length(local.alerts) > 0 ? 1 : 0
-  name         = "haas-monthly-usage"
+  name         = "gusto-monthly-usage"
   budget_type  = "COST"
   limit_amount = tostring(var.monthly_budget_usd)
   limit_unit   = "USD"
@@ -37,7 +37,7 @@ resource "aws_budgets_budget" "monthly" {
 
 resource "aws_budgets_budget" "daily" {
   count        = length(local.alerts) > 0 ? 1 : 0
-  name         = "haas-daily-usage"
+  name         = "gusto-daily-usage"
   budget_type  = "COST"
   limit_amount = tostring(var.daily_budget_usd)
   limit_unit   = "USD"

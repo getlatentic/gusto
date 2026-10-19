@@ -4,10 +4,10 @@
 # profile. The standard tier and the AWS-managed key cost nothing. The key is
 # typed at a hidden prompt, or piped in, and never in your shell history or in
 # a process's arguments. It outlives ./down.sh, so it
-# is stored once; delete it with:  aws ssm delete-parameter --name /haas/poc/model-key
+# is stored once; delete it with:  aws ssm delete-parameter --name /gusto/poc/model-key
 source "$(dirname "$0")/env.sh"
-name="${GUSTO_MODEL_PARAMETER:-/haas/poc/model-key}"
-case "$name" in /haas/poc/*) ;; *) echo "the instance's role reads only /haas/poc/*: $name" >&2; exit 2 ;; esac
+name="${GUSTO_MODEL_PARAMETER:-/gusto/poc/model-key}"
+case "$name" in /gusto/poc/*) ;; *) echo "the instance's role reads only /gusto/poc/*: $name" >&2; exit 2 ;; esac
 read -rsp "key for $name: " key; echo
 [ -n "$key" ] || { echo "no key given" >&2; exit 2; }
 # A file only you can read, removed on exit: the CLI reads its input twice, so a pipe

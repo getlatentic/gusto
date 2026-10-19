@@ -7,23 +7,23 @@
     group: "{{ item.owner | default('root') }}"
     mode: "0755"
   loop:
-    - { path: /etc/haas }
-    - { path: /usr/local/lib/haas }
+    - { path: /etc/gusto }
+    - { path: /usr/local/lib/gusto }
     - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
     - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
 
 - name: The agent of a host, and the organisations' servers
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/haas"
-    dest: /usr/local/bin/haas
+    src: "{{ playbook_dir }}/../.state/gusto"
+    dest: /usr/local/bin/gusto
     mode: "0755"
   when: demo_role == 'cell'
   notify: Restart the cell
 
 - name: gusto cloud, the operator's page, and the organisations' servers
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/haas"
-    dest: /usr/local/bin/haas
+    src: "{{ playbook_dir }}/../.state/gusto"
+    dest: /usr/local/bin/gusto
     mode: "0755"
   when: demo_role != 'cell'
   notify:
@@ -33,25 +33,25 @@
 - name: What each model costs, which the organisations' servers price their spending by
   ansible.builtin.copy:
     src: spend-policy.json
-    dest: /etc/haas/spend-policy.json
+    dest: /etc/gusto/spend-policy.json
     mode: "0644"
 
 - name: The script that powers the host off when its lease ends, or gusto cloud is gone
   ansible.builtin.copy:
-    src: haas-lease-reaper
-    dest: /usr/local/bin/haas-lease-reaper
+    src: gusto-lease-reaper
+    dest: /usr/local/bin/gusto-lease-reaper
     mode: "0755"
 
 - name: The script that runs when the host starts
   ansible.builtin.copy:
-    src: haas-boot
-    dest: /usr/local/bin/haas-boot
+    src: gusto-boot
+    dest: /usr/local/bin/gusto-boot
     mode: "0755"
 
 - name: The settings of the start-up script and the reaper
   ansible.builtin.template:
     src: demo.conf.j2
-    dest: /etc/haas/demo.conf
+    dest: /etc/gusto/demo.conf
     mode: "0644"
   notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"
 
@@ -60,5 +60,5 @@
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
     mode: "0644"
-  loop: "{{ ['haas-boot.service'] if demo_live | bool else ['haas-boot.service', 'haas-lease.service', 'haas-lease.timer'] }}"
+  loop: "{{ ['gusto-boot.service'] if demo_live | bool else ['gusto-boot.service', 'gusto-lease.service', 'gusto-lease.timer'] }}"
   notify: "{{ 'Restart the cell' if demo_role == 'cell' else 'Restart the front door' }}"

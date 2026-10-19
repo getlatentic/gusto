@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs as root when a demo host starts, before nginx, haas cloud and haas host. What it does depends on ROLE:
+# Runs as root when a demo host starts, before nginx, gusto cloud and gusto host. What it does depends on ROLE:
 #
 #   all           a host that is the front door and runs the organisations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
@@ -16,10 +16,10 @@
 # The paths can be moved with GUSTO_RUN, GUSTO_LE, GUSTO_LIB, GUSTO_LEASE_FILE and GUSTO_CONF, and the owner of the
 # files with GUSTO_OWNER (empty leaves them alone), which is how a test runs it.
 set -euo pipefail
-CONF=${GUSTO_CONF:-/etc/haas/demo.conf}
-run=${GUSTO_RUN:-/run/haas}
+CONF=${GUSTO_CONF:-/etc/gusto/demo.conf}
+run=${GUSTO_RUN:-/run/gusto}
 le=${GUSTO_LE:-/etc/letsencrypt}
-lib=${GUSTO_LIB:-/var/lib/haas}
+lib=${GUSTO_LIB:-/var/lib/gusto}
 owner=${GUSTO_OWNER-ubuntu}
 # shellcheck disable=SC1090
 . "$CONF"
@@ -55,7 +55,7 @@ turnstile() {
   if secret=$(param "$TURNSTILE_PARAMETER" 2>/dev/null) && [ -n "$secret" ]; then
     (umask 077; printf 'GUSTO_CLOUD_TURNSTILE_SECRET=%s\n' "$secret" > "$run/secrets/turnstile.env")
   else
-    echo "haas-boot: no bot check, since $TURNSTILE_PARAMETER is not stored"
+    echo "gusto-boot: no bot check, since $TURNSTILE_PARAMETER is not stored"
   fi
 }
 
@@ -67,7 +67,7 @@ lead_hook() {
   if address=$(param "$LEAD_HOOK_URL_PARAMETER" 2>/dev/null) && secret=$(param "$LEAD_HOOK_SECRET_PARAMETER" 2>/dev/null) && [ -n "$address" ] && [ -n "$secret" ]; then
     (umask 077; printf 'GUSTO_CLOUD_LEAD_HOOK_URL=%s\nGUSTO_CLOUD_LEAD_HOOK_SECRET=%s\n' "$address" "$secret" > "$run/secrets/leadhook.env")
   else
-    echo "haas-boot: no lead hook, since $LEAD_HOOK_URL_PARAMETER and $LEAD_HOOK_SECRET_PARAMETER are not both stored"
+    echo "gusto-boot: no lead hook, since $LEAD_HOOK_URL_PARAMETER and $LEAD_HOOK_SECRET_PARAMETER are not both stored"
   fi
 }
 
@@ -103,7 +103,7 @@ runner_image() {
 
 credentials() {
   rm -rf "$run/creds"
-  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/haas/credentials.sh}" "$run/creds"
+  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
   chmod 0700 "$run/creds"
   own "$run/creds"
 }
@@ -138,8 +138,8 @@ cell_identity() {
 point_the_name_here() {
   local ip
   ip=$(metadata public-ipv4)
-  haas-dns -zone "$ZONE" -name "$NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
-  echo "haas-boot: $NAME and *.$NAME point at $ip"
+  gusto-dns -zone "$ZONE" -name "$NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
+  echo "gusto-boot: $NAME and *.$NAME point at $ip"
 }
 
 install -d -m 0755 "$run" "$lib"
@@ -151,7 +151,7 @@ orchestrator)
   tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; runner_image; credentials; cell_identity
-  echo "haas-boot: this host is a host of gusto cloud" ;;
+  echo "gusto-boot: this host is a host of gusto cloud" ;;
 *)
-  echo "haas-boot: ROLE is all, orchestrator or cell, not $role" >&2; exit 2 ;;
+  echo "gusto-boot: ROLE is all, orchestrator or cell, not $role" >&2; exit 2 ;;
 esac

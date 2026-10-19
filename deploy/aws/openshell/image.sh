@@ -16,8 +16,8 @@ scp -q "${ssh_options[@]}" "$state/src.tgz" "ubuntu@$address:src.tgz"
 ssh "${ssh_options[@]}" "ubuntu@$address" "set -e
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq podman >/dev/null 2>&1
   tar xzf ~/src.tgz -C ~/src && cd ~/src
-  sudo podman build -q --build-arg 'HARNESSES=$harnesses' -t docker.io/library/haas-runner . >/dev/null
-  cid=\$(sudo podman create docker.io/library/haas-runner true)
+  sudo podman build -q --build-arg 'HARNESSES=$harnesses' -t docker.io/library/gusto-runner . >/dev/null
+  cid=\$(sudo podman create docker.io/library/gusto-runner true)
   sudo podman export \"\$cid\" | gzip -1 > ~/e2e/$name.tar.gz
   sudo podman rm \"\$cid\" >/dev/null
   ls -la ~/e2e/$name.tar.gz"
