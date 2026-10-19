@@ -242,8 +242,8 @@ func (s *Server) landing(w http.ResponseWriter) {
 	page.LD = s.structured(description)
 	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 	if demo.VideoURL == "" {
-		// A finished task and its signed record is what is shown unless an operator names a video of their own.
-		page.Shot = "/static/hero.webp"
+		// A short conversation with an agent is what is shown unless an operator names a video of their own.
+		page.Shot, page.ShotDark = "/static/hero-light.webp", "/static/hero-dark.webp"
 	} else if video, file, frame := videoOf(demo.VideoURL); video != "" {
 		page.Video, page.VideoFile = video, file
 		if file {

@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css static/landing.css static/hero.webp static/og.png
+//go:embed templates/*.html static/cloud.css static/landing.css static/hero-light.webp static/hero-dark.webp static/landing-theme.js static/og.png
 var files embed.FS
 
 // Config is what a front door is made from.
@@ -163,7 +163,9 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/landing.css", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero.webp", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/landing-theme.js", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
