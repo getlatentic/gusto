@@ -72,7 +72,7 @@ func TestAHarnessTheImageLacksSaysHowToCarryIt(t *testing.T) {
 func TestTheLabelIsAClaimAndThePathIsTheAnswer(t *testing.T) {
 	entries := surveyed(&runtime{
 		label: "opencode=opencode-ai codex=@openai/codex",
-		holds: map[string]bool{"claude": true},
+		holds: map[string]bool{"claude-agent-acp": true},
 	})
 	if entries["opencode"].Ready {
 		t.Fatal("opencode is declared and not on the PATH, and was offered")

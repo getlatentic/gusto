@@ -2,81 +2,28 @@
   "name": "codex",
   "title": "Codex",
   "what": "OpenAI's coding agent, run once per task rather than held open.",
-  "program": "codex",
-  "package": "@openai/codex",
-  "argv": [
-    "exec",
-    "--json",
-    "--skip-git-repo-check",
-    "-s",
-    "workspace-write",
-    "-c",
-    "model_providers.gusto.name=gusto",
-    "-c",
-    "model_providers.gusto.base_url={modelUrl}",
-    "-c",
-    "model_providers.gusto.env_key=GUSTO_MODEL_TOKEN",
-    "-c",
-    "model_providers.gusto.wire_api=responses",
-    "-c",
-    "model_provider=gusto",
-    "--model={modelId}"
-  ],
-  "resume": [
-    "exec",
-    "-s",
-    "workspace-write",
-    "resume",
-    "--json",
-    "--skip-git-repo-check",
-    "-c",
-    "model_providers.gusto.name=gusto",
-    "-c",
-    "model_providers.gusto.base_url={modelUrl}",
-    "-c",
-    "model_providers.gusto.env_key=GUSTO_MODEL_TOKEN",
-    "-c",
-    "model_providers.gusto.wire_api=responses",
-    "-c",
-    "model_provider=gusto",
-    "-m",
-    "{modelId}",
-    "{session}",
-    "-"
-  ],
-  "stdin": "{brief}",
+  "program": "codex-acp",
+  "package": "@agentclientprotocol/codex-acp",
+  "argv": [],
+  "env": {
+    "CODEX_HOME": "/root/.local/share/codex",
+    "OPENAI_API_KEY": "{modelToken}",
+    "GUSTO_MODEL_TOKEN": "{modelToken}",
+    "CODEX_CONFIG": "{\"model\": \"{modelId}\", \"model_provider\": \"gusto\", \"model_providers\": {\"gusto\": {\"name\": \"gusto\", \"base_url\": \"{modelUrl}\", \"env_key\": \"GUSTO_MODEL_TOKEN\", \"wire_api\": \"responses\"}}}",
+    "INITIAL_AGENT_MODE": "workspace-write",
+    "NO_BROWSER": "1"
+  },
+  "whenBoxed": {
+    "workspace-write": "agent-full-access"
+  },
+  "authenticate": "api-key",
   "needs": "key",
   "speaks": "responses",
   "skills": "/root/.local/share/codex/skills",
   "keeps": "/root/.local/share/codex",
-  "whenBoxed": {
-    "workspace-write": "danger-full-access"
-  },
   "mcp": {
-    "format": "codex",
-    "argv": [
-      "-c",
-      "{mcp}"
-    ]
+    "format": "acp"
   },
-  "stream": "jsonl",
-  "when": {
-    "text": {
-      "item.type": "agent_message"
-    }
-  },
-  "totals": "perCall",
-  "text": "item.text",
-  "message": "item.id",
-  "toolName": "item.command",
-  "toolStatus": "item.status",
-  "sessionId": "thread_id",
-  "inputTokens": "usage.input_tokens",
-  "outputTokens": "usage.output_tokens",
-  "cacheReadTokens": "usage.cached_input_tokens",
-  "cacheWriteTokens": "usage.cache_write_input_tokens",
-  "endpoint": "https://api.openai.com",
-  "env": {
-    "CODEX_HOME": "/root/.local/share/codex"
-  }
+  "stream": "acp",
+  "endpoint": "https://api.openai.com"
 }

@@ -35,7 +35,7 @@ gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, OPENAI_API_KEY,
 gusto runs agents it finds on your PATH. The page lists the ones it is missing, with the command for each:
 
 ```bash
-npm install -g opencode-ai            # or @anthropic-ai/claude-code, @openai/codex
+npm install -g opencode-ai            # or @agentclientprotocol/claude-agent-acp, @agentclientprotocol/codex-acp
 ```
 
 ## 4. Ask it something

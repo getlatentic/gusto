@@ -3,7 +3,6 @@ package harness
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,7 +23,7 @@ func TestTheAdaptersThatShipParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if adapter.Name != name || adapter.Program == "" || len(adapter.Argv) == 0 {
+		if adapter.Name != name || adapter.Program == "" || (len(adapter.Argv) == 0 && adapter.Stream != ACP) {
 			t.Errorf("%s is not runnable: %+v", name, adapter)
 		}
 	}
@@ -143,40 +142,9 @@ func TestANewJobKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
 	}
 }
 
-// Read off a real run of Claude Code: the text arrives as a list of blocks, and
-// the totals arrive on the last line.
-const claudeText = `{"type":"assistant","message":{"model":"claude-opus-5","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":2,"output_tokens":4}}}`
-const claudeResult = `{"duration_api_ms":1733,"stop_reason":"end_turn","total_cost_usd":0.39709999999999995,"usage":{"input_tokens":2,"cache_creation_input_tokens":39699,"output_tokens":4}}`
-
-func TestTheClaudeAdapterReadsALineWithAListInIt(t *testing.T) {
-	adapter, err := Load("", "claude")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var said map[string]any
-	if err := json.Unmarshal([]byte(claudeText), &said); err != nil {
-		t.Fatal(err)
-	}
-	value, ok := Pick(said, adapter.Text)
-	if !ok || value != "ok" {
-		t.Fatalf("text through a list: %v %t", value, ok)
-	}
-	var result map[string]any
-	if err := json.Unmarshal([]byte(claudeResult), &result); err != nil {
-		t.Fatal(err)
-	}
-	cost, ok := Number(result, adapter.CostUSD)
-	if !ok || cost < 0.39 || cost > 0.40 {
-		t.Fatalf("cost: %v %t", cost, ok)
-	}
-	if adapter.Totals != Cumulative {
-		t.Fatal("Claude Code reports a running total, so summing would count every call again")
-	}
-}
-
 func TestAPathIntoAListThatIsNotThereIsNotFound(t *testing.T) {
 	var said map[string]any
-	if err := json.Unmarshal([]byte(claudeText), &said); err != nil {
+	if err := json.Unmarshal([]byte(`{"message":{"content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":2}}}`), &said); err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range []string{"message.content.9.text", "message.content.x.text", "message.usage.0"} {
@@ -222,78 +190,6 @@ func TestTheNamesOfferedIncludeYourOwn(t *testing.T) {
 	}
 }
 
-// Some harnesses take the brief as an argument and some read it. codex waits on
-// standard input forever when it is given neither, which in a container is a
-// job that never ends.
-func TestAHarnessThatReadsItsBriefIsGivenIt(t *testing.T) {
-	adapter, err := Load("", "codex")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if adapter.Stdin == "" {
-		t.Fatal("codex reads its brief on standard input and the adapter does not say so")
-	}
-	command := adapter.Command(context.Background(), job.Spec{Brief: "fix the adder"}, t.TempDir())
-	if command.Stdin == nil {
-		t.Fatal("nothing was put on standard input")
-	}
-	given, err := io.ReadAll(command.Stdin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(given) != "fix the adder" {
-		t.Fatalf("standard input carried %q", given)
-	}
-	for _, argument := range command.Args {
-		if argument == "fix the adder" {
-			t.Fatal("the brief was also passed as an argument, which codex would read as a path")
-		}
-	}
-}
-
-// Read off a real codex run with gpt-5.5. The text arrives as a completed item
-// and the usage on the turn that finished; codex reports no cost at all.
-const codexText = `{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"ok"}}`
-const codexUsage = `{"type":"turn.completed","usage":{"input_tokens":21768,"cached_input_tokens":1408,"cache_write_input_tokens":0,"output_tokens":5,"reasoning_output_tokens":0}}`
-const codexThread = `{"type":"thread.started","thread_id":"01a0de23-bcfd-7220-8282-bba4fac27745"}`
-
-func TestTheCodexAdapterReadsARealRun(t *testing.T) {
-	adapter, err := Load("", "codex")
-	if err != nil {
-		t.Fatal(err)
-	}
-	said := decode(t, codexText)
-	if value, ok := Pick(said, adapter.Text); !ok || value != "ok" {
-		t.Fatalf("text: %v %t", value, ok)
-	}
-	// An error item carries a message rather than text, so the text path does
-	// not mistake a warning for something the agent said.
-	warning := decode(t, `{"type":"item.completed","item":{"type":"error","message":"skills were shortened"}}`)
-	if _, ok := Pick(warning, adapter.Text); ok {
-		t.Fatal("an error item read as something the agent said")
-	}
-
-	usage := decode(t, codexUsage)
-	for path, want := range map[string]float64{
-		adapter.InputTokens:      21768,
-		adapter.OutputTokens:     5,
-		adapter.CacheReadTokens:  1408,
-		adapter.CacheWriteTokens: 0,
-	} {
-		if got, ok := Number(usage, path); !ok || got != want {
-			t.Errorf("%s = %v (%t), want %v", path, got, ok, want)
-		}
-	}
-	if adapter.CostUSD != "" {
-		t.Fatal("codex reports no cost, and inventing one would be a number nobody measured")
-	}
-
-	thread := decode(t, codexThread)
-	if value, ok := Pick(thread, adapter.SessionID); !ok || value != "01a0de23-bcfd-7220-8282-bba4fac27745" {
-		t.Fatalf("the conversation's name: %v %t", value, ok)
-	}
-}
-
 func decode(t *testing.T, line string) map[string]any {
 	t.Helper()
 	var decoded map[string]any
@@ -301,42 +197,6 @@ func decode(t *testing.T, line string) map[string]any {
 		t.Fatal(err)
 	}
 	return decoded
-}
-
-// Codex names no tool. A shell call is an item carrying a command, and nothing
-// else in its stream has that field — which is what tells a call from a message.
-// Both lines here are real, from a run against deepseek-flash.
-func TestCodexShellCallsAreToldApartFromItsMessages(t *testing.T) {
-	adapter, err := Load("", "codex")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ran := `{"type":"item.completed","item":{"id":"item_2","type":"command_execution",` +
-		`"command":"/bin/zsh -lc 'cat adder.sh'","status":"completed"}}`
-	said := `{"type":"item.completed","item":{"id":"item_4","type":"agent_message",` +
-		`"text":"Root cause: the arithmetic operator is - instead of +."}}`
-
-	var call, message map[string]any
-	if err := json.Unmarshal([]byte(ran), &call); err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal([]byte(said), &message); err != nil {
-		t.Fatal(err)
-	}
-	name, isCall := Pick(call, adapter.ToolName)
-	if ran, _ := name.(string); !isCall || !strings.Contains(ran, "cat adder.sh") {
-		t.Errorf("a shell call read as %q, %v", name, isCall)
-	}
-	if status, found := Pick(call, adapter.ToolStatus); !found || status != "completed" {
-		t.Errorf("its status read as %q, %v", status, found)
-	}
-	if _, isCall := Pick(message, adapter.ToolName); isCall {
-		t.Error("what the harness said was recorded as a command it ran")
-	}
-	text, found := Pick(message, adapter.Text)
-	if said, _ := text.(string); !found || !strings.Contains(said, "Root cause") {
-		t.Errorf("what it said read as %q, %v", text, found)
-	}
 }
 
 // pi reports one message's usage on message_update, message_end and turn_end
