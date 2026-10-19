@@ -1,7 +1,7 @@
 [package]
-name = "latentic-agent-cloud"
+name = "gusto-desktop"
 version = "0.1.0"
-description = "The window, the tray and the notifications for Latentic Agent Cloud. The work is done by gusto-helper, which this starts."
+description = "The window, the tray and the notifications for gusto. The work is done by gusto-helper, which this starts."
 edition = "2021"
 rust-version = "1.80"
 publish = false

@@ -51,7 +51,7 @@ fn allowed(app: AppHandle) -> impl Fn(&url::Url) -> bool + Send + 'static {
 
 fn build(app: &AppHandle, target: WebviewUrl) -> tauri::Result<WebviewWindow> {
     let window = WebviewWindowBuilder::new(app, LABEL, target)
-        .title("Latentic Agent Cloud")
+        .title("gusto")
         .inner_size(1200.0, 820.0)
         .min_inner_size(640.0, 480.0)
         .initialization_script("window.latenticDesktop = true;")

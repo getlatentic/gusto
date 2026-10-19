@@ -17,7 +17,7 @@ func (s *Server) noticeOfDemo(slug string) {
 	}
 	subject := "New demo: " + oneLine(lead.Name) + ", " + oneLine(lead.Company)
 	body := strings.Join([]string{
-		"Someone started a demo of Latentic Agent Cloud.",
+		"Someone started a demo of gusto.",
 		"",
 		"Name: " + oneLine(lead.Name),
 		"Email: " + oneLine(lead.Email),

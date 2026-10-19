@@ -241,7 +241,7 @@ func redirected(to string, status int) http.HandlerFunc {
 }
 
 // productName is what every page calls itself.
-const productName = "Latentic Agent Cloud"
+const productName = "gusto"
 
 func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

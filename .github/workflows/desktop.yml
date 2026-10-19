@@ -58,4 +58,4 @@ jobs:
         run: |
           cargo install tauri-cli --version "^2" --locked
           cargo tauri build --bundles app
-          test -x "target/release/bundle/macos/Latentic Agent Cloud.app/Contents/MacOS/gusto-helper"
+          test -x "target/release/bundle/macos/gusto.app/Contents/MacOS/gusto-helper"

@@ -2082,7 +2082,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "latentic-agent-cloud"
+name = "gusto-desktop"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",

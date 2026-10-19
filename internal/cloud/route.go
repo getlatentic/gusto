@@ -111,7 +111,7 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 		w.Header().Set("Retry-After", "3")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>Latentic Agent Cloud</title><p>` + stateWords(state) + `</p>`))
+		w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>gusto</title><p>` + stateWords(state) + `</p>`))
 		return
 	}
 	(&httputil.ReverseProxy{
@@ -122,7 +122,7 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 			slog.Warn("an organisation's server did not answer", "org", slug, "error", err)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>Latentic Agent Cloud</title><p>This organisation's server is not answering. It is being started again.</p>`))
+			w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>gusto</title><p>This organisation's server is not answering. It is being started again.</p>`))
 		},
 	}).ServeHTTP(w, r)
 }
