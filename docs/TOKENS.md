@@ -7,16 +7,16 @@ when one token ends.
 
 ## Turn it on
 
-Set `HAAS_API_TOKENS` to the file the tokens are kept in. The server makes the
+Set `GUSTO_API_TOKENS` to the file the tokens are kept in. The server makes the
 file when the first token is made.
 
 | Install | Setting |
 | --- | --- |
-| Compose | `HAAS_API_TOKENS=/var/lib/haas/tokens/tokens.json` in `.env` |
+| Compose | `GUSTO_API_TOKENS=/var/lib/gusto/tokens/tokens.json` in `.env` |
 | Chart | `auth.apiTokens: true` |
 | Playbook | `api_tokens: true` |
 
-A person's computer signs in by the device flow (`haas-helper login`): it needs the tokens on, and a signed-in person to approve its code. Where
+A person's computer signs in by the device flow (`gusto-helper login`): it needs the tokens on, and a signed-in person to approve its code. Where
 an identity provider is named, the shared password is nobody in particular and cannot approve one. Where none is, the shared password is the one
 owner of the server, as for a developer's own, and a computer it approves acts as that owner.
 
@@ -40,12 +40,12 @@ only a hash of it, so nobody can show it again: make another and revoke the old
 one.
 
 ```bash
-export HAAS_SERVER=https://haas.example.com
-export HAAS_TOKEN=haas_3fa1c2d0_...
-haas submit ./job
+export GUSTO_SERVER=https://gusto.example.com
+export GUSTO_TOKEN=gusto_3fa1c2d0_...
+gusto submit ./job
 ```
 
-`haas submit` sends `HAAS_TOKEN` when it is set, and `HAAS_PASSWORD` otherwise.
+`gusto submit` sends `GUSTO_TOKEN` when it is set, and `GUSTO_PASSWORD` otherwise.
 Any other caller sends `Authorization: Bearer <token>`.
 
 ## A token for a person
@@ -62,18 +62,18 @@ It needs the token file above, and it is not made at `/admin/tokens`.
    It is told `authorization_pending` until the person approves, and then given the
    token once. A code lasts ten minutes.
 
-`haas-helper login` (or `haas login`) does these steps on a person's computer: it shows the address and the
+`gusto-helper login` (or `gusto login`) does these steps on a person's computer: it shows the address and the
 code, opens the browser, waits for the approval, and keeps the token in the
 operating system's keychain (the Keychain on macOS, the Credential Manager on
 Windows, the Secret Service on Linux). With no keychain it keeps the token in a file
 in the person's own settings folder that only they can read, and says so;
-`HAAS_VAULT=file` asks for the file alone. `whoami` asks the server who the
+`GUSTO_VAULT=file` asks for the file alone. `whoami` asks the server who the
 token acts as, and `logout` ends the token on the server and forgets it.
 
 ```bash
-haas-helper login -server https://haas.example.com
-haas-helper whoami -server https://haas.example.com
-haas-helper logout -server https://haas.example.com
+gusto-helper login -server https://gusto.example.com
+gusto-helper whoami -server https://gusto.example.com
+gusto-helper logout -server https://gusto.example.com
 ```
 
 The token has one scope, `work`. It can do nothing an organisation's token does:

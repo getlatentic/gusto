@@ -35,7 +35,7 @@ func person(t *testing.T) (home string, policy Policy) {
 	if err != nil {
 		t.Skip("no home")
 	}
-	home, err = os.MkdirTemp(real, ".haas-seatbelt-test-")
+	home, err = os.MkdirTemp(real, ".gusto-seatbelt-test-")
 	if err != nil {
 		t.Skip("the home cannot be written")
 	}
@@ -74,7 +74,7 @@ func TestAJobReadsNoneOfThePersonsHomeButItsOwnFoldersAndItsEngine(t *testing.T)
 	}
 }
 
-func TestAJobReachesOnlyHaassProxy(t *testing.T) {
+func TestAJobReachesOnlyGustosProxy(t *testing.T) {
 	_, policy := person(t)
 	proxy, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

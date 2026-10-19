@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // invite sends an invitation to join the organisation, from an admin. It is mailed

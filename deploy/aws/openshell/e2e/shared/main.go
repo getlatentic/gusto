@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/openshell"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 const (

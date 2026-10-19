@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A folder of the person's cloud computer is named by where it is: nothing for the top, where their agents' folders are, then an agent's

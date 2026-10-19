@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var demoSet = Settings{Demo: DemoSettings{Length: 30 * time.Minute, Extend: 10 * time.Minute, MaxOrgs: 3, Patience: 10 * time.Minute, BookURL: "https://cal.example/haas"}}
+var demoSet = Settings{Demo: DemoSettings{Length: 30 * time.Minute, Extend: 10 * time.Minute, MaxOrgs: 3, Patience: 10 * time.Minute, BookURL: "https://cal.example/gusto"}}
 
 // clocked is a store whose clock a test moves.
 func clocked(t *testing.T, set Settings) (*Store, *time.Time) {

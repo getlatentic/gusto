@@ -69,7 +69,7 @@ func TestOnlyAnAddressAHostNameCanTakeIsAllowed(t *testing.T) {
 			t.Errorf("%q should be refused as an address: %v", bad, err)
 		}
 	}
-	for _, kept := range []string{"www", "admin", "api", "haas", "localhost"} {
+	for _, kept := range []string{"www", "admin", "api", "gusto", "localhost"} {
 		if err := ValidSlug(kept); !errors.Is(err, ErrReservedSlug) {
 			t.Errorf("%q should be kept: %v", kept, err)
 		}

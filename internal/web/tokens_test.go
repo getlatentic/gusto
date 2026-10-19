@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/apitoken"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // tokened is a site that takes API tokens, with the change log on, and the
@@ -128,7 +128,7 @@ func TestAWrongTokenAndARevokedOneGetTheSameAnswer(t *testing.T) {
 	if got := here.call("GET", "/api/spend", here.secrets["everyone"]); got.Code != http.StatusOK {
 		t.Fatalf("a live token gave %d", got.Code)
 	}
-	before := here.call("GET", "/api/spend", "haas_00000000_nothing")
+	before := here.call("GET", "/api/spend", "gusto_00000000_nothing")
 	if revoked := here.ask(t, "POST", "/admin/tokens/"+id+"/revoke", url.Values{}); revoked.Code != http.StatusSeeOther {
 		t.Fatalf("revoking gave %d", revoked.Code)
 	}
@@ -146,7 +146,7 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	here := withTokens(t)
 	here.signIn(t)
 	made := here.ask(t, "POST", "/admin/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
-	secret := regexp.MustCompile(`haas_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
+	secret := regexp.MustCompile(`gusto_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if secret == "" {
 		t.Fatalf("the page did not show the secret:\n%s", made.Body.String())
 	}
@@ -173,7 +173,7 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(raw), secret) || strings.Contains(string(raw), strings.TrimPrefix(secret, "haas_")[9:]) {
+	if strings.Contains(string(raw), secret) || strings.Contains(string(raw), strings.TrimPrefix(secret, "gusto_")[9:]) {
 		t.Fatal("the change log holds a token's secret")
 	}
 	for _, held := range here.server.tokens.List() {
@@ -222,7 +222,7 @@ func TestATokenNeedsAValidNameAndAScopeAndKeepsNoSecret(t *testing.T) {
 		"a name in use":      {"name": {"ci"}, "scope": {"submit"}},
 	} {
 		page := here.ask(t, "POST", "/admin/tokens", form).Body.String()
-		if !strings.Contains(page, `class="refused"`) || strings.Contains(page, "haas_") {
+		if !strings.Contains(page, `class="refused"`) || strings.Contains(page, "gusto_") {
 			t.Errorf("%s was not refused, or showed a secret:\n%s", name, page)
 		}
 	}

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/redact"
+	"github.com/getlatentic/gusto/internal/redact"
 )
 
 func namesOf(t *testing.T, h *harness) []string {

@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/registry"
-	"github.com/getlatentic/haas/internal/roster"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // UseRegistry gives the console a page of the models the organisation may use, which its admins change, and
@@ -31,7 +31,7 @@ func (s *Server) UseLiveModels(models func() Models) {
 
 func (s *Server) hasRegistry() bool { return s.registry != nil }
 
-// ownsItsModels is haas on a person's own computer, where the person adds the models they use.
+// ownsItsModels is gusto on a person's own computer, where the person adds the models they use.
 func (s *Server) ownsItsModels() bool { return s.local != nil && s.registry != nil }
 
 // formLimit is the most a form to the registry may be.

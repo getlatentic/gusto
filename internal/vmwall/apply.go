@@ -21,7 +21,7 @@ const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
 var startupWait = 45 * time.Second
 
 // Apply installs: it downloads and checks the programs, makes the gateway's certificates and configuration, starts the gateway for
-// good, and last records what it made so haas uses it. Run again, it replaces the programs and keeps the certificates.
+// good, and last records what it made so gusto uses it. Run again, it replaces the programs and keeps the certificates.
 func (p Plan) Apply(ctx context.Context) error {
 	steps := []struct {
 		say string
@@ -96,7 +96,7 @@ func (p Plan) configure(context.Context) error {
 	return os.WriteFile(p.Config(), []byte(p.ConfigText()), 0o600)
 }
 
-// imagePath is the root file system jobs start from, once it is where haas keeps it.
+// imagePath is the root file system jobs start from, once it is where gusto keeps it.
 func (p Plan) imagePath() string {
 	if p.ImageFile != "" {
 		abs, err := filepath.Abs(p.ImageFile)
@@ -128,7 +128,7 @@ func (p Plan) fetchTools(ctx context.Context) error {
 	})
 }
 
-// fetchImage downloads haas's root file system and keeps it only if it is the one the release's checksum file names.
+// fetchImage downloads gusto's root file system and keeps it only if it is the one the release's checksum file names.
 func (p Plan) fetchImage(ctx context.Context) error {
 	if p.ImageFile != "" || p.Exists(p.imagePath()) {
 		return nil
@@ -149,7 +149,7 @@ func (p Plan) gatewayRecord() string {
 }
 
 // register gives the openshell command the client certificates where it looks for them, which it requires before it will take
-// the gateway, and tells it of the gateway under haas's own name.
+// the gateway, and tells it of the gateway under gusto's own name.
 func (p Plan) register(ctx context.Context) error {
 	mtls := filepath.Join(p.gatewayRecord(), "mtls")
 	if err := ensureDirs(mtls); err != nil {
@@ -184,7 +184,7 @@ func (p Plan) answers(ctx context.Context) error {
 	}
 }
 
-// cliEnv is what the programs haas runs while installing get: the person's home and the folders they search, and nothing else.
+// cliEnv is what the programs gusto runs while installing get: the person's home and the folders they search, and nothing else.
 func (p Plan) cliEnv() []string {
 	env := []string{"HOME=" + p.User, "PATH=" + p.GatewayPath()}
 	if config := p.Getenv("XDG_CONFIG_HOME"); config != "" {

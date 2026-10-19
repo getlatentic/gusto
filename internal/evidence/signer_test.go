@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Every record here has a manifest that claims "whoever-it-claims". The claim

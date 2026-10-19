@@ -1,4 +1,4 @@
-// Package industry is the templates haas ships with: a harness set up for the
+// Package industry is the templates gusto ships with: a harness set up for the
 // work of one field, with skills written for it, starters, and a folder of
 // sample files so the starters work on the first try.
 //
@@ -12,7 +12,7 @@ import (
 	"path"
 	"sort"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 //go:embed templates/*.json

@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Kinds of event.

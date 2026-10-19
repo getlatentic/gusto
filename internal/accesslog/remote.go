@@ -9,7 +9,7 @@ import (
 )
 
 // forwardedTrusted says the server is reached only through a proxy of its own, so the address the proxy forwards is believed
-// whatever connected. It is set when haas is told it is behind one (HAAS_BEHIND_PROXY): in a container the proxy never connects
+// whatever connected. It is set when gusto is told it is behind one (GUSTO_BEHIND_PROXY): in a container the proxy never connects
 // from the loopback, so everybody would otherwise be one source to the sign-in lock and the record.
 var forwardedTrusted atomic.Bool
 
@@ -20,7 +20,7 @@ func TrustForwarded(on bool) { forwardedTrusted.Store(on) }
 //
 // Behind nginx the direct peer is always loopback, and the client is in the
 // headers nginx sets. From anywhere else those headers are whatever the caller
-// chose to write, so they are believed only when the peer is loopback, or when haas was told it is only reached through a proxy.
+// chose to write, so they are believed only when the peer is loopback, or when gusto was told it is only reached through a proxy.
 func Remote(r *http.Request) string { return remote(r) }
 
 func remote(r *http.Request) string {

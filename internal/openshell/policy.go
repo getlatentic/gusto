@@ -13,7 +13,7 @@ import (
 //
 // Everything is denied that is not named. The sandbox may read the system
 // paths and write its workspace, /tmp and the harness's own directories. It may
-// reach the haas proxy, which holds the model credential, and the hosts the
+// reach the gusto proxy, which holds the model credential, and the hosts the
 // operator allowed, and nothing else. A name the operator wrote as a wildcard
 // needs three labels in OpenShell, and an entry that cannot be translated is
 // refused here and not dropped.
@@ -27,7 +27,7 @@ func Policy(cfg Config, modelURL string, writable []string) ([]byte, error) {
 		return nil, fmt.Errorf("%q names no port", modelURL)
 	}
 	rules := map[string]any{
-		"haas_model_proxy": rule([]endpoint{{Host: address.Hostname(), Ports: []int{port}}}),
+		"gusto_model_proxy": rule([]endpoint{{Host: address.Hostname(), Ports: []int{port}}}),
 	}
 	for i, entry := range cfg.Allowed {
 		endpoints, err := translate(entry)
@@ -98,7 +98,7 @@ func rule(endpoints []endpoint) map[string]any {
 	return map[string]any{"endpoints": listed, "binaries": []map[string]string{{"path": "/**"}}}
 }
 
-// translate reads one entry of HAAS_ALLOWED_HOSTS: a host, which allows ports 80
+// translate reads one entry of GUSTO_ALLOWED_HOSTS: a host, which allows ports 80
 // and 443, host:port for one port, and *.domain for every name under it.
 func translate(entry string) ([]endpoint, error) {
 	entry = strings.ToLower(strings.TrimSpace(entry))

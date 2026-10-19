@@ -25,7 +25,7 @@
 <main>
   <h1>Latentic Agent Cloud</h1>
   <section id="starting" hidden>
-    <p id="starting-said">Starting haas on this computer…</p>
+    <p id="starting-said">Starting gusto on this computer…</p>
     <div id="cannot" role="alert"></div>
     <button id="choose" type="button" hidden>Choose another way</button>
   </section>
@@ -46,10 +46,10 @@
   const form = document.getElementById('form'), problem = document.getElementById('problem'), go = document.getElementById('go');
   function showStarting() { starting.hidden = false; choice.hidden = true; }
   function showChoice() { starting.hidden = true; choice.hidden = false; }
-  // The app says here why haas could not start on this computer.
+  // The app says here why gusto could not start on this computer.
   window.cannotStart = (why) => {
     showStarting();
-    document.getElementById('starting-said').textContent = 'haas could not start on this computer.';
+    document.getElementById('starting-said').textContent = 'gusto could not start on this computer.';
     document.getElementById('cannot').textContent = why;
     document.getElementById('choose').hidden = false;
   };

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // errMoved is a local file that is not what the look found: the person is editing it, or it came while the run was going. It is
@@ -68,7 +68,7 @@ func (e *Engine) fetch(ctx context.Context, name, full, hash string, executable 
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	scratch, err := os.CreateTemp(filepath.Dir(full), ".haas-pull-*")
+	scratch, err := os.CreateTemp(filepath.Dir(full), ".gusto-pull-*")
 	if err != nil {
 		return err
 	}

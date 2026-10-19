@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // recording is a site whose changes are written to a log signed by a key the
@@ -206,16 +206,16 @@ func TestTheSettingsAServerStartsWithAreRecordedAndEveryChangeToThem(t *testing.
 	_, log := recording(t)
 	first := &Server{changes: log}
 
-	first.UseSettings(map[string]string{"HAAS_ADMINS": "a@example.com", "HAAS_ALLOWED": "@example.com"})
-	first.UseSettings(map[string]string{"HAAS_ADMINS": "a@example.com", "HAAS_ALLOWED": "@example.com"})
-	first.UseSettings(map[string]string{"HAAS_ADMINS": "a@example.com,b@example.com", "HAAS_ALLOWED": "@example.com"})
+	first.UseSettings(map[string]string{"GUSTO_ADMINS": "a@example.com", "GUSTO_ALLOWED": "@example.com"})
+	first.UseSettings(map[string]string{"GUSTO_ADMINS": "a@example.com", "GUSTO_ALLOWED": "@example.com"})
+	first.UseSettings(map[string]string{"GUSTO_ADMINS": "a@example.com,b@example.com", "GUSTO_ALLOWED": "@example.com"})
 
 	events := written(t, log)
 	if starts := ofKind(events, changelog.ServerStarted); len(starts) != 3 {
 		t.Fatalf("%d starts", len(starts))
 	}
 	changed := ofKind(events, changelog.SettingsChanged)
-	if len(changed) != 1 || changed[0].What["setting"] != "HAAS_ADMINS" ||
+	if len(changed) != 1 || changed[0].What["setting"] != "GUSTO_ADMINS" ||
 		changed[0].What["was"] != "a@example.com" || changed[0].What["now"] != "a@example.com,b@example.com" {
 		t.Fatalf("the change: %+v", changed)
 	}
@@ -231,7 +231,7 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
-	for _, want := range []string{"created skill set reviewer", "admin@example.com", "the chain holds", "haas changes verify"} {
+	for _, want := range []string{"created skill set reviewer", "admin@example.com", "the chain holds", "gusto changes verify"} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page does not say %q:\n%s", want, page.Body.String())
 		}

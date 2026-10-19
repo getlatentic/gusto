@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/gateway"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/gateway"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Setup is one configuration, as kept.
@@ -38,7 +38,7 @@ type Setup struct {
 	Off  bool   `json:"off,omitempty"`
 	Who  string `json:"who,omitempty"`
 	Made int64  `json:"madeAt"`
-	// Wrote is the fingerprint of each SKILL.md haas itself last wrote, so a
+	// Wrote is the fingerprint of each SKILL.md gusto itself last wrote, so a
 	// skill still matching it can take a newer version and one a person has
 	// edited is left alone.
 	Wrote map[string]string `json:"wrote,omitempty"`

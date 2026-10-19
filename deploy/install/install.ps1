@@ -1,25 +1,25 @@
-# Installs haas and haas-helper on Windows from a release: downloads each package for this system, checks it against the
+# Installs gusto and gusto-helper on Windows from a release: downloads each package for this system, checks it against the
 # release's checksums, and checks the checksums' signature when cosign is installed. It downloads with the GitHub command line
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address. It puts the
-# programs in %LOCALAPPDATA%\haas and adds that folder to your PATH, which is the only thing it changes about your settings.
+# programs in %LOCALAPPDATA%\gusto and adds that folder to your PATH, which is the only thing it changes about your settings.
 #
-#   irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex      # in PowerShell
-#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/haas/releases/latest/download/install.ps1 | iex"   # in cmd
+#   irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex      # in PowerShell
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex"   # in cmd
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.0.1-alpha.5
-#   .\install.ps1 -Programs haas-helper
-#   .\install.ps1 -NoStart              # install, and do not start haas for this person
-#   $env:HAAS_RELEASE_URL = "http://10.0.2.2:8000"; .\install.ps1 -Tag v0.0.0-test   # a release's files from another address
+#   .\install.ps1 -Programs gusto-helper
+#   .\install.ps1 -NoStart              # install, and do not start gusto for this person
+#   $env:GUSTO_RELEASE_URL = "http://10.0.2.2:8000"; .\install.ps1 -Tag v0.0.0-test   # a release's files from another address
 #
-# Piped to iex it takes no arguments, so HAAS_TAG, HAAS_PROGRAMS (names separated by spaces) and HAAS_NO_START say the same.
+# Piped to iex it takes no arguments, so GUSTO_TAG, GUSTO_PROGRAMS (names separated by spaces) and GUSTO_NO_START say the same.
 #
-# Once haas is installed it is started for the person running this, at logon and now, and opened in their browser, signed in.
+# Once gusto is installed it is started for the person running this, at logon and now, and opened in their browser, signed in.
 param(
-  [string]$Tag = $(if ($env:HAAS_TAG) { $env:HAAS_TAG } else { "latest" }),
-  [string]$Repo = $(if ($env:HAAS_REPO) { $env:HAAS_REPO } else { "getlatentic/haas" }),
-  [string]$Dir = $(Join-Path $env:LOCALAPPDATA "haas"),
-  [string[]]$Programs = $(if ($env:HAAS_PROGRAMS) { $env:HAAS_PROGRAMS -split '\s+' } else { @("haas", "haas-helper") }),
-  [switch]$NoStart = ($env:HAAS_NO_START -eq "1")
+  [string]$Tag = $(if ($env:GUSTO_TAG) { $env:GUSTO_TAG } else { "latest" }),
+  [string]$Repo = $(if ($env:GUSTO_REPO) { $env:GUSTO_REPO } else { "getlatentic/gusto" }),
+  [string]$Dir = $(Join-Path $env:LOCALAPPDATA "gusto"),
+  [string[]]$Programs = $(if ($env:GUSTO_PROGRAMS) { $env:GUSTO_PROGRAMS -split '\s+' } else { @("gusto", "gusto-helper") }),
+  [switch]$NoStart = ($env:GUSTO_NO_START -eq "1")
 )
 $ErrorActionPreference = "Stop"
 
@@ -27,9 +27,9 @@ $ErrorActionPreference = "Stop"
 function Fail($message) { throw "install: $message" }
 $arch = switch ($env:PROCESSOR_ARCHITECTURE) { "AMD64" { "amd64" } "ARM64" { "arm64" } default { Fail "$($env:PROCESSOR_ARCHITECTURE) is a processor no package is built for" } }
 
-# The GitHub command line reads a private release; a public one is read with no account. HAAS_RELEASE_URL is a folder with a
+# The GitHub command line reads a private release; a public one is read with no account. GUSTO_RELEASE_URL is a folder with a
 # release's files in it, such as a test build served to a machine that cannot reach GitHub.
-$from = $env:HAAS_RELEASE_URL
+$from = $env:GUSTO_RELEASE_URL
 $viaGh = $false
 if (-not $from -and (Get-Command gh -ErrorAction SilentlyContinue)) {
   gh auth status 2>$null | Out-Null
@@ -48,7 +48,7 @@ function Fetch($name, $into) {
 }
 
 if ($Tag -eq "latest") {
-  if ($from) { Fail "HAAS_RELEASE_URL needs the release's tag, as -Tag or HAAS_TAG" }
+  if ($from) { Fail "GUSTO_RELEASE_URL needs the release's tag, as -Tag or GUSTO_TAG" }
   if ($viaGh) {
     $Tag = (gh release list -R $Repo --limit 1 --json tagName --jq ".[0].tagName")
   } else {
@@ -57,7 +57,7 @@ if ($Tag -eq "latest") {
   if (-not $Tag) { Fail "$Repo has no release this machine can see: a private one needs the GitHub command line, signed in (https://cli.github.com)" }
 }
 
-$work = Join-Path ([System.IO.Path]::GetTempPath()) ("haas-install-" + [guid]::NewGuid())
+$work = Join-Path ([System.IO.Path]::GetTempPath()) ("gusto-install-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $work | Out-Null
 try {
   try { Fetch "SHA256SUMS" $work } catch { Fail "the release $Tag cannot be read from here" }
@@ -69,8 +69,8 @@ try {
       --certificate-oidc-issuer https://token.actions.githubusercontent.com 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail "the checksums' signature does not hold: do not use these packages" }
     Write-Host "The checksums are signed by $Repo's release workflow."
-  } elseif ($env:HAAS_REQUIRE_COSIGN -eq "1") {
-    Fail "cosign is not installed, and HAAS_REQUIRE_COSIGN=1 says not to go on without it"
+  } elseif ($env:GUSTO_REQUIRE_COSIGN -eq "1") {
+    Fail "cosign is not installed, and GUSTO_REQUIRE_COSIGN=1 says not to go on without it"
   } else {
     Write-Host "cosign is not installed, so the packages are checked against the checksums, and not who made them."
   }
@@ -101,9 +101,9 @@ try {
     [Environment]::SetEnvironmentVariable("Path", ($path.TrimEnd(';') + ";" + $Dir), "User")
     Write-Host "$Dir is now on your PATH. Open a new terminal to use it."
   }
-  if (($Programs -contains "haas") -and -not $NoStart) {
-    & (Join-Path $Dir "haas.exe") local install
-    if ($LASTEXITCODE -ne 0) { Fail "haas is installed, and could not be started: run haas local install to see why" }
+  if (($Programs -contains "gusto") -and -not $NoStart) {
+    & (Join-Path $Dir "gusto.exe") local install
+    if ($LASTEXITCODE -ne 0) { Fail "gusto is installed, and could not be started: run gusto local install to see why" }
   }
 } finally {
   Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue

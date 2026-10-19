@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // post sends a JSON body the way a person's computer does, with no cookie.

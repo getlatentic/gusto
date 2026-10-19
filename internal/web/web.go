@@ -17,21 +17,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apitoken"
-	"github.com/getlatentic/haas/internal/apps"
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/computer"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/orgsettings"
-	"github.com/getlatentic/haas/internal/preset"
-	"github.com/getlatentic/haas/internal/registry"
-	"github.com/getlatentic/haas/internal/setup"
-	"github.com/getlatentic/haas/internal/signing"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/apps"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/orgsettings"
+	"github.com/getlatentic/gusto/internal/preset"
+	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 //go:embed templates/*.html
@@ -48,9 +48,9 @@ type Server struct {
 	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
 	// install a harness while the server runs.
 	liveCatalog func() []catalog.Entry
-	// foundKeys is the names of the model keys a person's shell had when haas was installed on their computer.
+	// foundKeys is the names of the model keys a person's shell had when gusto was installed on their computer.
 	foundKeys []string
-	// needs says what a person's computer lacks that haas needs.
+	// needs says what a person's computer lacks that gusto needs.
 	needs func() []string
 	// wall is which wall agents run behind on a person's own computer.
 	wall   *Wall
@@ -66,7 +66,7 @@ type Server struct {
 	publishing sync.WaitGroup
 	ledger     *spend.Ledger
 	keyring    signing.Keyring
-	// front is set when this server is one organisation's in a hosted haas, and
+	// front is set when this server is one organisation's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and
 	// inbox is where the front door leaves what its admins did, for the change
 	// record.

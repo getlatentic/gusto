@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/openshell"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 var appConfig = openshell.Config{Binary: "openshell"}
@@ -121,13 +121,13 @@ func TestEveryAgentIsGivenTheGuidanceOnTheSandboxsNetworkWhetherOrNotItHasASetup
 	dir, _ := aJob(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","skills":"/root/.config/fixture/skills",
-	  "argv":["-c","printf yes > answer.txt; cat ../../../.config/fixture/skills/haas-sandbox/SKILL.md"],"needs":"nothing","stream":"plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	  "argv":["-c","printf yes > answer.txt; cat ../../../.config/fixture/skills/gusto-sandbox/SKILL.md"],"needs":"nothing","stream":"plain"}`)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if exit, err := runner.Outside(dir, inComputer(t, dir, "c-12345678-abcdefgh", "20260930-1200-guidance")); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
-	for _, want := range []string{"name: haas-sandbox", "PORT", "0.0.0.0", "listen(port, '0.0.0.0')", "does not resolve", "relative", "no network but the model"} {
+	for _, want := range []string{"name: gusto-sandbox", "PORT", "0.0.0.0", "listen(port, '0.0.0.0')", "does not resolve", "relative", "no network but the model"} {
 		if !strings.Contains(string(said), want) {
 			t.Errorf("the guidance does not say %q:\n%s", want, said)
 		}

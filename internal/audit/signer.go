@@ -3,7 +3,7 @@ package audit
 import (
 	"fmt"
 
-	"github.com/getlatentic/haas/internal/evidence"
+	"github.com/getlatentic/gusto/internal/evidence"
 )
 
 // asWritten is the derived summary as the version the export was written at

@@ -23,7 +23,7 @@ import (
 
 // workspaceMark replaces the box's path in a link, so that a path from the folder's root is told from one relative to where the agent
 // was working.
-const workspaceMark = "haas-workspace:"
+const workspaceMark = "gusto-workspace:"
 
 var hasScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 

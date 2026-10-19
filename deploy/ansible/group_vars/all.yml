@@ -13,7 +13,7 @@ manage_default_site: false # never touch the default site or another app's vhost
 # ── Code delivery (git only) ────────────────────────────────────────────────
 # The box clones and pulls; nothing is copied up from a laptop. A private repo
 # needs a read-only deploy key, which the common role generates and prints.
-repo_url: git@github.com:getlatentic/haas.git
+repo_url: git@github.com:getlatentic/gusto.git
 repo_branch: main
 # What the checkout lands on. A hand deploy takes the branch's head; a deploy
 # the box runs itself names the exact commit that passed its tests.
@@ -37,7 +37,7 @@ runner_image: haas:dev
 # added to this directory appears in the pages without a new binary.
 harnesses_dir: "{{ app_root }}/var/harnesses"
 # Where nginx finds the page it answers with when the server is not answering.
-haas_errors_dir: /var/www/haas-errors
+gusto_errors_dir: /var/www/haas-errors
 # The harnesses the runner image carries, each as name=package: the adapter's
 # name and the npm package that provides its program. The image lists them in
 # its com.getlatentic.haas.harnesses label, and the server offers a harness only
@@ -157,7 +157,7 @@ autodeploy_self: false
 # and two places to change a hostname is one place to forget.
 oidc_issuer: ""
 oidc_allowed: ""
-haas_admins: ""
+gusto_admins: ""
 # With a company's own provider, its groups grant the roles and oidc_allowed can
 # stay empty: a person in neither list is refused. oidc_groups_claim and
 # oidc_scopes are for a provider that names groups elsewhere or wants a scope
@@ -236,7 +236,7 @@ signer_name: "{{ inventory_hostname }}"
 
 # The API takes scoped, revocable tokens an admin makes at /tokens, and not the
 # shared password. Turning this on stops `haas submit` and deploy/smoke.sh
-# working with the password: they need HAAS_TOKEN. docs/TOKENS.md.
+# working with the password: they need GUSTO_TOKEN. docs/TOKENS.md.
 api_tokens: false
 
 # How long finished work is kept, in days after a job ends, by the state it

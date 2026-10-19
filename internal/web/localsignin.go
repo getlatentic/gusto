@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-// linkLife is how long a sign-in link for haas on a person's own computer can be followed after it is made.
+// linkLife is how long a sign-in link for gusto on a person's own computer can be followed after it is made.
 const linkLife = 5 * time.Minute
 
-// localSignIn is how the one person haas runs for on their own computer signs in: by a link the haas command makes with the
+// localSignIn is how the one person gusto runs for on their own computer signs in: by a link the gusto command makes with the
 // secret only this person's files hold, followed once and within minutes. Nobody else on the machine has the secret, so a
 // server on the machine's loopback is not open to every user of the machine.
 type localSignIn struct {
@@ -28,7 +28,7 @@ func (s *Server) UseLocalSignIn(secret, who string) {
 	s.local = &localSignIn{secret: []byte(secret), who: who, used: map[string]int64{}}
 }
 
-// LocalLink is the sign-in link for haas at root, made at now with the nonce given: the path and query the server answers.
+// LocalLink is the sign-in link for gusto at root, made at now with the nonce given: the path and query the server answers.
 func LocalLink(secret, nonce string, now time.Time) string {
 	until := strconv.FormatInt(now.Add(linkLife).Unix(), 10)
 	return "/local/enter?n=" + nonce + "&e=" + until + "&c=" + linkCode(secret, nonce, until)
@@ -45,7 +45,7 @@ func (s *Server) enterLocal(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	nonce, until, code := query.Get("n"), query.Get("e"), query.Get("c")
 	if !s.local.admits(nonce, until, code, time.Now()) {
-		http.Error(w, "This sign-in link has been used, has run out, or is not this computer's. Run haas open for a new one.", http.StatusForbidden)
+		http.Error(w, "This sign-in link has been used, has run out, or is not this computer's. Run gusto open for a new one.", http.StatusForbidden)
 		return
 	}
 	s.keeper.issueFor(w, r, s.local.who, Admin)

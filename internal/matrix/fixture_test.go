@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/matrix"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/matrix"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 // Harnesses that are programs, so no model is asked anything. "says" writes the
@@ -33,12 +33,12 @@ func hermetic(t *testing.T) {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	t.Setenv("HAAS_SIGNER", "a-test")
+	t.Setenv("GUSTO_SIGNER", "a-test")
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "says.json"), says)
 	write(t, filepath.Join(harnesses, "priced.json"), priced)
 	write(t, filepath.Join(harnesses, "missing.json"), missing)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 }
 
 // remote is a bare repository on main whose answer is no.
@@ -65,7 +65,7 @@ func advance(t *testing.T, bare string) {
 	git(t, work, "push", "--quiet", "origin", "main")
 }
 
-// submitted is a job as `haas new` leaves it, named name, under at.
+// submitted is a job as `gusto new` leaves it, named name, under at.
 func submitted(t *testing.T, at, name, bare string) string {
 	t.Helper()
 	dir := job.Dir(filepath.Join(at, name))

@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // toolModel answers Chat Completions the way a model that uses tools does: asked with a shell tool, it calls it to run
@@ -153,10 +153,10 @@ func run(t *testing.T, harness, proxy, token string) string {
 			"DISABLE_TELEMETRY=1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1")
 	case "codex":
 		command = exec.Command("codex", "exec", "--json", "--skip-git-repo-check", "-s", "read-only",
-			"-c", "model_providers.haas.name=haas", "-c", "model_providers.haas.base_url="+proxy+"/model/v1",
-			"-c", "model_providers.haas.env_key=HAAS_MODEL_TOKEN", "-c", "model_providers.haas.wire_api=responses",
-			"-c", "model_provider=haas", "--model=a-model", "Run echo hi, then echo bye, in the shell")
-		command.Env = append(os.Environ(), "HAAS_MODEL_TOKEN="+token, "CODEX_HOME="+home)
+			"-c", "model_providers.gusto.name=gusto", "-c", "model_providers.gusto.base_url="+proxy+"/model/v1",
+			"-c", "model_providers.gusto.env_key=GUSTO_MODEL_TOKEN", "-c", "model_providers.gusto.wire_api=responses",
+			"-c", "model_provider=gusto", "--model=a-model", "Run echo hi, then echo bye, in the shell")
+		command.Env = append(os.Environ(), "GUSTO_MODEL_TOKEN="+token, "CODEX_HOME="+home)
 	}
 	command.Dir = work
 	command.Stdin = strings.NewReader("")

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // A person's own computer signs in by the device flow: it asks for a code, the person approves the code on a page they

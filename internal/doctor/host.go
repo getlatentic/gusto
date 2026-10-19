@@ -4,10 +4,10 @@ import (
 	"os"
 )
 
-// JobsDirectory is where haas serve keeps jobs, and so where a job's directory
+// JobsDirectory is where gusto serve keeps jobs, and so where a job's directory
 // is mounted from.
 func JobsDirectory() string {
-	if dir := os.Getenv("HAAS_JOBS"); dir != "" {
+	if dir := os.Getenv("GUSTO_JOBS"); dir != "" {
 		return dir
 	}
 	return "jobs"
@@ -18,7 +18,7 @@ func JobsDirectory() string {
 func gitOnPath(machine Machine) Verdict {
 	path, err := machine.LookPath("git")
 	if err != nil {
-		return fail("git is not on PATH", "install git where haas runs; the runner clones before the container starts")
+		return fail("git is not on PATH", "install git where gusto runs; the runner clones before the container starts")
 	}
 	return pass("git is at " + path)
 }
@@ -30,9 +30,9 @@ func jobsWritable(machine Machine) Verdict {
 	info, err := os.Stat(dir)
 	switch {
 	case err != nil:
-		return fail(dir+" does not exist", "create it, or set HAAS_JOBS to the directory jobs should live in")
+		return fail(dir+" does not exist", "create it, or set GUSTO_JOBS to the directory jobs should live in")
 	case !info.IsDir():
-		return fail(dir+" is not a directory", "set HAAS_JOBS to a directory")
+		return fail(dir+" is not a directory", "set GUSTO_JOBS to a directory")
 	}
 	if err := machine.Writable(dir); err != nil {
 		return fail(dir+" is not writable by this user: "+err.Error(),

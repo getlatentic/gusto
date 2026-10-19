@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/signature/v1.json",
-  "title": "haas out/manifest.sig, version 1",
+  "$id": "https://raw.githubusercontent.com/getlatentic/gusto/main/schema/signature/v1.json",
+  "title": "gusto out/manifest.sig, version 1",
   "description": "A detached Ed25519 signature over the exact bytes of out/manifest.json. The public key it carries shows whether the manifest changed after signing; who the key belongs to is the verifier's keyring's word, never this file's. A record without this file is unsigned. A reader ignores a field it does not know.",
   "type": "object",
   "required": ["scheme", "key", "publicKey", "signature"],

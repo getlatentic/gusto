@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 // The test binary is also an organisation's server: a cell that is told to start it with CELL_FAKE_ORG=1
@@ -23,9 +23,9 @@ func TestMain(m *testing.M) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 		mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(map[string]string{"org": os.Getenv("HAAS_ORG"), "cell": os.Getenv("HAAS_CELL"), "addr": os.Getenv("HAAS_ADDR")})
+			json.NewEncoder(w).Encode(map[string]string{"org": os.Getenv("GUSTO_ORG"), "cell": os.Getenv("GUSTO_CELL"), "addr": os.Getenv("GUSTO_ADDR")})
 		})
-		listener, err := net.Listen("tcp", os.Getenv("HAAS_ADDR"))
+		listener, err := net.Listen("tcp", os.Getenv("GUSTO_ADDR"))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
@@ -84,7 +84,7 @@ func fakeOrg(t *testing.T, slug string, port int) cloud.ServerSpec {
 	t.Helper()
 	exe, _ := os.Executable()
 	return cloud.ServerSpec{Slug: slug, Command: []string{exe, "serve"}, Log: filepath.Join(t.TempDir(), "server.log"),
-		Env: []string{"CELL_FAKE_ORG=1", "HAAS_ORG=" + slug, fmt.Sprintf("HAAS_ADDR=127.0.0.1:%d", port), "HAAS_CELL=fake"}}
+		Env: []string{"CELL_FAKE_ORG=1", "GUSTO_ORG=" + slug, fmt.Sprintf("GUSTO_ADDR=127.0.0.1:%d", port), "GUSTO_CELL=fake"}}
 }
 
 func answers(port int) bool {

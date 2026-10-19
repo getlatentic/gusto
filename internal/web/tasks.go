@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // runTask is work done on an instance's own computer: a brief, a gate, and the

@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-// Provided is haas's own name on a setup it wrote from a template.
-const Provided = "haas"
+// Provided is gusto's own name on a setup it wrote from a template.
+const Provided = "gusto"
 
-// Provide keeps a setup haas ships up to date with the version it ships. A
-// skill still as haas last wrote it takes the new version; a skill a person
+// Provide keeps a setup gusto ships up to date with the version it ships. A
+// skill still as gusto last wrote it takes the new version; a skill a person
 // has changed keeps their change. A setup of that name that somebody else made
 // is not touched.
 func (s *Store) Provide(wanted Setup, offered Servers) error {
@@ -46,8 +46,8 @@ func (s *Store) Provide(wanted Setup, offered Servers) error {
 	return s.saveLocked(wanted)
 }
 
-// untouched is a skill nobody but haas has written: absent, matching what
-// haas last wrote, or, in a setup saved before haas kept fingerprints, not
+// untouched is a skill nobody but gusto has written: absent, matching what
+// gusto last wrote, or, in a setup saved before gusto kept fingerprints, not
 // changed since the setup was made.
 func (s *Store) untouched(held Setup, skill string) bool {
 	path := s.skillFile(held.Name, skill)

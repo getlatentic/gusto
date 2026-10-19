@@ -12,12 +12,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/quota"
-	"github.com/getlatentic/haas/internal/repoaccess"
-	"github.com/getlatentic/haas/internal/rules"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/rules"
 )
 
 // Submission is a job directory on its way to a server: the spec, and the
@@ -122,7 +122,7 @@ func reachable(ctx context.Context, repo string) error {
 }
 
 // queued writes the job directory and takes it into the index, so a sent job
-// leaves on disk what `haas new` leaves and the queue picks it up the same way.
+// leaves on disk what `gusto new` leaves and the queue picks it up the same way.
 func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked, key string) (string, error) {
 	id, err := s.index.Reserve(spec.Brief, time.Now())
 	if err != nil {

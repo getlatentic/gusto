@@ -4,7 +4,7 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/getlatentic/haas/internal/apps"
+	"github.com/getlatentic/gusto/internal/apps"
 )
 
 // previewScript is a static file server in the one thing every agent's computer has, node, so a page an agent built can be
@@ -13,7 +13,7 @@ import (
 const previewScript = `const[h,f,p]=["http","fs","path"].map(require),d=p.resolve(process.argv[1]),t={".html":"text/html",".js":"text/javascript",".css":"text/css",".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".jpg":"image/jpeg",".ico":"image/x-icon"};` +
 	`h.createServer((q,s)=>{let u=p.join(d,decodeURIComponent(q.url.split("?")[0]));if(u!==d&&!u.startsWith(d+p.sep)){s.writeHead(403);return s.end()}` +
 	`if(f.existsSync(u)&&f.statSync(u).isDirectory())u=p.join(u,"index.html");` +
-	`f.readFile(u,(e,b)=>{if(e){s.writeHead(404);return s.end("not found")}s.writeHead(200,{"Content-Type":t[p.extname(u)]||"application/octet-stream","X-Haas-Preview":"1"});s.end(b)})}).listen(+process.env.PORT,"0.0.0.0")`
+	`f.readFile(u,(e,b)=>{if(e){s.writeHead(404);return s.end("not found")}s.writeHead(200,{"Content-Type":t[p.extname(u)]||"application/octet-stream","X-Gusto-Preview":"1"});s.end(b)})}).listen(+process.env.PORT,"0.0.0.0")`
 
 // previewFolder is a folder in the agent's folder, as it is named in a command.
 var previewFolder = regexp.MustCompile(`^(?:\.|[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9_][A-Za-z0-9._-]*)*)$`)

@@ -25,7 +25,7 @@ root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
 image_key="$(./image-key.sh)"
 
-(cd "$root" && for program in haas:./cmd/haas haas-dns:./deploy/aws/openshell/demo/dns; do
+(cd "$root" && for program in haas:./cmd/gusto haas-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
 done)
 

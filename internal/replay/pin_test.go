@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 // A job naming a branch checks out a local branch of that name, and a harness

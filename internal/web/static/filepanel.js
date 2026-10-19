@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var made = 0;
   var opener = null;
 
-  window.haasResize(document.getElementById("file-panel-resize"), { name: "--files-w", key: "haas-files-w", min: 22, max: 60, def: 36, edge: "left", share: function () { return 0.7; } });
+  window.gustoResize(document.getElementById("file-panel-resize"), { name: "--files-w", key: "gusto-files-w", min: 22, max: 60, def: 36, edge: "left", share: function () { return 0.7; } });
 
   var roomy = function () { return window.innerWidth / (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) >= 72; };
 

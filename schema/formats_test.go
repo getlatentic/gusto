@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
-	"github.com/getlatentic/haas/schema"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/schema"
 )
 
 // Each schema's $id carries the version its const names, so a reader can tell
@@ -43,11 +43,11 @@ func TestEachSchemaIsVersionedAndAgreesWithTheCode(t *testing.T) {
 	}
 }
 
-// The job `haas new` writes is the one people start from, so the test builds
+// The job `gusto new` writes is the one people start from, so the test builds
 // the command and validates its output rather than a spec made in the test.
-func TestAJobFromHaasNewMatchesTheSchema(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "haas")
-	build := exec.Command("go", "build", "-o", binary, "../cmd/haas")
+func TestAJobFromGustoNewMatchesTheSchema(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "gusto")
+	build := exec.Command("go", "build", "-o", binary, "../cmd/gusto")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v: %s", err, output)
 	}
@@ -55,14 +55,14 @@ func TestAJobFromHaasNewMatchesTheSchema(t *testing.T) {
 	create := exec.Command(binary, "new", dir, "-repo", "https://example.com/r.git",
 		"-brief", "make the answer yes", "-harness", "opencode", "--", "sh", "-c", "test yes = yes")
 	if output, err := create.CombinedOutput(); err != nil {
-		t.Fatalf("haas new: %v: %s", err, output)
+		t.Fatalf("gusto new: %v: %s", err, output)
 	}
 	written, err := os.ReadFile(job.Dir(dir).Spec())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := schema.Validate(schema.Job(), written); err != nil {
-		t.Fatalf("haas new wrote a job the schema refuses:\n%v\n%s", err, written)
+		t.Fatalf("gusto new wrote a job the schema refuses:\n%v\n%s", err, written)
 	}
 	if !strings.Contains(string(written), `"version": 1`) {
 		t.Fatalf("a writer puts the version in:\n%s", written)

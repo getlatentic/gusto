@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Registry is one organisation's computers, one file each. It belongs to that

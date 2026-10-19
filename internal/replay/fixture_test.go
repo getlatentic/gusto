@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // Harnesses that are programs. One leaves the answer the gate wants, one leaves
@@ -27,12 +27,12 @@ func hermetic(t *testing.T) string {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	t.Setenv("HAAS_SIGNER", "a-test")
+	t.Setenv("GUSTO_SIGNER", "a-test")
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "yes.json"), answersYes)
 	write(t, filepath.Join(harnesses, "maybe.json"), answersNo)
 	write(t, filepath.Join(harnesses, "committer.json"), commitsYes)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	return harnesses
 }
 

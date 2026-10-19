@@ -6,7 +6,7 @@
 # a process's arguments. It outlives ./down.sh, so it
 # is stored once; delete it with:  aws ssm delete-parameter --name /haas/poc/model-key
 source "$(dirname "$0")/env.sh"
-name="${HAAS_MODEL_PARAMETER:-/haas/poc/model-key}"
+name="${GUSTO_MODEL_PARAMETER:-/haas/poc/model-key}"
 case "$name" in /haas/poc/*) ;; *) echo "the instance's role reads only /haas/poc/*: $name" >&2; exit 2 ;; esac
 read -rsp "key for $name: " key; echo
 [ -n "$key" ] || { echo "no key given" >&2; exit 2; }

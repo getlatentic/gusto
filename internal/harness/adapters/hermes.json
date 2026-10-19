@@ -11,7 +11,7 @@
   ],
   "env": {
     "HERMES_HOME": "/root/.local/share/hermes",
-    "HAAS_MODEL_ID": "{modelId}"
+    "GUSTO_MODEL_ID": "{modelId}"
   },
   "needs": "key",
   "skills": "/root/.agents/skills",

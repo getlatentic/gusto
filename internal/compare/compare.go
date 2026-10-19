@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 // Prepare makes a comparison of submission across harnesses under parent, with

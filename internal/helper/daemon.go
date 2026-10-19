@@ -57,7 +57,7 @@ func StateFile(dir string) string { return filepath.Join(dir, "helper.json") }
 func Discover(dir string) (Local, error) {
 	text, err := os.ReadFile(StateFile(dir))
 	if errors.Is(err, os.ErrNotExist) {
-		return Local{}, errors.New("the helper is not running: start it with `haas-helper run`")
+		return Local{}, errors.New("the helper is not running: start it with `gusto-helper run`")
 	}
 	if err != nil {
 		return Local{}, err

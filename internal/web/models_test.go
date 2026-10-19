@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Two engines that can both run anything.

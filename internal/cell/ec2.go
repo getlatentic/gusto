@@ -67,7 +67,7 @@ func (e *EC2) Launch() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp("", "haas-cell-userdata-")
+	file, err := os.CreateTemp("", "gusto-cell-userdata-")
 	if err != nil {
 		return "", err
 	}

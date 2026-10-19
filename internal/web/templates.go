@@ -6,11 +6,11 @@ import (
 	"slices"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/setup"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/setup"
 )
 
 // templatePage is one template: what it is for, what it brings, and which of

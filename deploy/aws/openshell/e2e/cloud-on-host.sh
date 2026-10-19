@@ -20,18 +20,18 @@ PATH=/opt/openshell/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin
 XDG_CONFIG_HOME=$XDG_CONFIG_HOME
 XDG_STATE_HOME=$XDG_STATE_HOME
 OPENSHELL_LOCAL_TLS_DIR=$OPENSHELL_LOCAL_TLS_DIR
-HAAS_SANDBOX=openshell
-HAAS_OPENSHELL_IMAGE=$HOME/e2e/runner-all-rootfs.tar.gz
-HAAS_OPENSHELL_GATEWAY=spike
-HAAS_OPENSHELL_MEMORY=3Gi
-HAAS_OPENSHELL_CPU=2
-HAAS_CREDENTIALS=$C/creds
-HAAS_MODELS=$MODEL
+GUSTO_SANDBOX=openshell
+GUSTO_OPENSHELL_IMAGE=$HOME/e2e/runner-all-rootfs.tar.gz
+GUSTO_OPENSHELL_GATEWAY=spike
+GUSTO_OPENSHELL_MEMORY=3Gi
+GUSTO_OPENSHELL_CPU=2
+GUSTO_CREDENTIALS=$C/creds
+GUSTO_MODELS=$MODEL
 ENV
 chmod 600 "$C/org.env"
 
-HAAS_CLOUD_ROOT=$C/cloud HAAS_CLOUD_ADDR=127.0.0.1:8050 HAAS_CLOUD_URL=http://haas.test:8050 HAAS_CLOUD_DOMAIN=haas.test \
-  HAAS_CLOUD_ORG_ENV=$C/org.env HAAS_CLOUD_PORT_FROM=9100 \
+GUSTO_CLOUD_ROOT=$C/cloud GUSTO_CLOUD_ADDR=127.0.0.1:8050 GUSTO_CLOUD_URL=http://haas.test:8050 GUSTO_CLOUD_DOMAIN=haas.test \
+  GUSTO_CLOUD_ORG_ENV=$C/org.env GUSTO_CLOUD_PORT_FROM=9100 \
   setsid nohup "$C/haas" cloud > "$C/front-door.log" 2>&1 < /dev/null &
 for _ in $(seq 1 20); do curl -fs http://127.0.0.1:8050/healthz >/dev/null && break; sleep 1; done
 curl -fs http://127.0.0.1:8050/healthz >/dev/null || { echo "the front door did not start"; cat "$C/front-door.log"; exit 1; }

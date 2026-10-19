@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // unpack writes the evidence commit's files into the job directory, each as
@@ -75,7 +75,7 @@ func written(ctx context.Context, workspace, blob, path string) error {
 }
 
 // held holds manifest.json to the hash the pull request names, then re-hashes
-// every file against the manifest the way `haas verify` does. The first check
+// every file against the manifest the way `gusto verify` does. The first check
 // is what ties the files to the pull request: whoever can push can move the
 // ref, and only a manifest with the named hash is the one the pull request
 // vouched for.

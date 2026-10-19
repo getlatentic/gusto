@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // spentJob leaves a job directory with a proxy record, as a run through the

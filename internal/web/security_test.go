@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
@@ -178,7 +178,7 @@ func TestSigningOutEndsTheSessionOnTheServerAndNotOnlyInTheBrowser(t *testing.T)
 
 func TestARepositoryAddressIsHeldToWhatGitReachesOverAnEncryptedTransport(t *testing.T) {
 	here := open(t)
-	for _, repo := range []string{"--upload-pack=touch /tmp/x;", "ext::sh -c id", "file:///etc", "/etc", "/var/lib/haas/sessions/x/workspace", "http://github.com/a/b"} {
+	for _, repo := range []string{"--upload-pack=touch /tmp/x;", "ext::sh -c id", "file:///etc", "/etc", "/var/lib/gusto/sessions/x/workspace", "http://github.com/a/b"} {
 		body, _ := jsonSubmission(repo)
 		request := httptest.NewRequest("POST", "/api/jobs", strings.NewReader(body))
 		request.Header.Set("Authorization", "Bearer "+password)

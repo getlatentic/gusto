@@ -106,7 +106,7 @@ pub fn go(app: &AppHandle, address: &str) {
     }
 }
 
-/// Finds or starts haas on this computer and signs the window in to it, or says on the page why it could not.
+/// Finds or starts gusto on this computer and signs the window in to it, or says on the page why it could not.
 pub fn start_here(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || match local::start(&app) {
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn the_chat_is_under_the_server() {
-        assert_eq!(chat_address("https://haas.example.com"), "https://haas.example.com/chat");
+        assert_eq!(chat_address("https://gusto.example.com"), "https://gusto.example.com/chat");
         assert_eq!(chat_address("http://127.0.0.1:8040/"), "http://127.0.0.1:8040/chat");
     }
 }

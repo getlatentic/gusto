@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // note writes a call to the job's out/proxy.jsonl and counts it in the ledger.
@@ -47,8 +47,8 @@ func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
 	w.WriteHeader(http.StatusPaymentRequired)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
-			"message": "haas stopped this job: " + call.Refused.Reason,
-			"type":    "haas_cap",
+			"message": "gusto stopped this job: " + call.Refused.Reason,
+			"type":    "gusto_cap",
 			"code":    call.Refused.Cap + "_cap",
 		},
 	})

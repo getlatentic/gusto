@@ -1,4 +1,4 @@
-// Package keychain keeps the keys a person gives haas on their own computer in the computer's own store of secrets: the
+// Package keychain keeps the keys a person gives gusto on their own computer in the computer's own store of secrets: the
 // Keychain on macOS, the Credential Manager on Windows, and the Secret Service on Linux. A key is never written to a file,
 // passed as an argument another user could read, or shown.
 package keychain
@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-// service is what haas's keys are kept under, each by the provider it is for.
-const service = "haas"
+// service is what gusto's keys are kept under, each by the provider it is for.
+const service = "gusto"
 
 // Store is this computer's store of secrets.
 type Store interface {
@@ -21,7 +21,7 @@ type Store interface {
 
 // probe is kept, read and forgotten when the store is opened, so a store that cannot be used now is known before a person's
 // key is given to it.
-const probe = "haas-probe"
+const probe = "gusto-probe"
 
 // Open is this computer's store, when it can be used now.
 func Open() (Store, error) {

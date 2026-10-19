@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // record is what the pull request says about the run behind it: enough for a
@@ -28,12 +28,12 @@ func (r record) title() string {
 	if len(runes) > 72 {
 		runes = append(runes[:71], '…')
 	}
-	return "haas: " + string(runes)
+	return "gusto: " + string(runes)
 }
 
 func (r record) body() string {
 	var out strings.Builder
-	out.WriteString("A haas job wrote this patch, and its gate passed. It is here for review.\n\n")
+	out.WriteString("A gusto job wrote this patch, and its gate passed. It is here for review.\n\n")
 	out.WriteString("| | |\n| --- | --- |\n")
 	fmt.Fprintf(&out, "| harness | `%s` |\n", r.manifest.Harness)
 	fmt.Fprintf(&out, "| model | %s |\n", r.model())
@@ -62,7 +62,7 @@ func (r record) model() string {
 }
 
 func (r record) message(dir job.Dir) string {
-	return fmt.Sprintf("%s\n\nThe patch from haas job %s, whose gate passed.\nManifest sha256 %s.\n",
+	return fmt.Sprintf("%s\n\nThe patch from gusto job %s, whose gate passed.\nManifest sha256 %s.\n",
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }
 

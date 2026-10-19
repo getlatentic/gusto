@@ -15,7 +15,7 @@ case "$2" in
 list) [ -n "${NO_SANDBOX:-}" ] && { echo "NAME CREATED PHASE"; exit 0; }
       printf 'NAME CREATED PHASE\nc-test 2026-10-02 05:31:13 Ready\n';;
 get) echo "  network_policies:"
-     for r in ${POLICY_RULES:-haas_model_proxy}; do
+     for r in ${POLICY_RULES:-gusto_model_proxy}; do
        echo "    $r:"; echo "      name: $r"; echo "      endpoints:"
        echo "        - host: host.openshell.internal"; echo "          port: 9101"
      done
@@ -81,7 +81,7 @@ func TestTheIsolationCheckFailsWhenTheProbeCannotTellBlockedFromBroken(t *testin
 
 func TestTheIsolationCheckFailsWhenThePolicyAllowsMoreThanTheModelProxyOrNamesLeave(t *testing.T) {
 	open := "OPEN=host.openshell.internal:9101"
-	if out, err := runCheck(t, open, "POLICY_RULES=haas_model_proxy allowed_1"); err == nil || !strings.Contains(out, "allows more than the model proxy: allowed_1") {
+	if out, err := runCheck(t, open, "POLICY_RULES=gusto_model_proxy allowed_1"); err == nil || !strings.Contains(out, "allows more than the model proxy: allowed_1") {
 		t.Errorf("an extra rule: %v\n%s", err, out)
 	}
 	if out, err := runCheck(t, open, "ANSWER=93.184.216.34"); err == nil || !strings.Contains(out, "may leave it") {

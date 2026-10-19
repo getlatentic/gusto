@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/getlatentic/haas/internal/acp"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/acp"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // hangUp is how long a harness is given to exit once the turn is over and its
@@ -55,7 +55,7 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec,
 		return 0, nil
 	}
 	if ctx.Err() == nil {
-		if err := record.Err("haas: " + failed.Error()); err != nil {
+		if err := record.Err("gusto: " + failed.Error()); err != nil {
 			return 0, err
 		}
 	}

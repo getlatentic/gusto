@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // PolicyFile is where a retention directory keeps its policy.

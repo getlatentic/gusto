@@ -91,7 +91,7 @@
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
-    HAAS_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
+    GUSTO_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
   changed_when: true
 
 - name: The job runs in a container and passes its gate
@@ -100,11 +100,11 @@
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
-    HAAS_CONTAINER: "{{ container_runtime }}"
-    HAAS_IMAGE: "{{ candidate_image }}"
-    HAAS_JOB_MEMORY: "{{ job_memory }}"
-    HAAS_JOB_CPUS: "{{ job_cpus }}"
-    HAAS_SIGNER: "greencloud"
+    GUSTO_CONTAINER: "{{ container_runtime }}"
+    GUSTO_IMAGE: "{{ candidate_image }}"
+    GUSTO_JOB_MEMORY: "{{ job_memory }}"
+    GUSTO_JOB_CPUS: "{{ job_cpus }}"
+    GUSTO_SIGNER: "greencloud"
   changed_when: true
 
 - name: Its evidence agrees with itself
@@ -146,7 +146,7 @@
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
-    HAAS_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
+    GUSTO_HARNESSES: "{{ app_root }}/var/smoke/harnesses"
   changed_when: true
 
 - name: It is refused before it starts
@@ -155,10 +155,10 @@
   become_user: "{{ app_user }}"
   environment:
     HOME: "{{ app_root }}"
-    HAAS_CONTAINER: "{{ container_runtime }}"
-    HAAS_IMAGE: "{{ candidate_image }}"
-    HAAS_JOB_MEMORY: "{{ job_memory }}"
-    HAAS_JOB_CPUS: "{{ job_cpus }}"
+    GUSTO_CONTAINER: "{{ container_runtime }}"
+    GUSTO_IMAGE: "{{ candidate_image }}"
+    GUSTO_JOB_MEMORY: "{{ job_memory }}"
+    GUSTO_JOB_CPUS: "{{ job_cpus }}"
   register: refusal
   changed_when: true
   failed_when: refusal.rc == 0

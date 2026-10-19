@@ -13,7 +13,7 @@ const Version = 1
 // because a field whose meaning changed would be obeyed wrongly and silently.
 func Readable(file string, got, known int) error {
 	if got < 0 || got > known {
-		return fmt.Errorf("%s is version %d, and this build reads up to version %d: use a haas that knows it", file, got, known)
+		return fmt.Errorf("%s is version %d, and this build reads up to version %d: use a gusto that knows it", file, got, known)
 	}
 	return nil
 }

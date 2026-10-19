@@ -1,19 +1,19 @@
 # The formats
 
-Two files are the contract between the parts of a run, and between haas and
+Two files are the contract between the parts of a run, and between gusto and
 anybody who writes their own runner or reader: `job.json`, which says what to
 do, and `out/manifest.json`, which records what happened. Each is published as a
 JSON Schema, draft 2020-12.
 
 | file | schema | `$id` |
 | --- | --- | --- |
-| `job.json` | [`schema/job/v1.json`](../schema/job/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/job/v1.json` |
-| `out/manifest.json` | [`schema/manifest/v1.json`](../schema/manifest/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json` |
-| `audit.json` | [`schema/audit/v2.json`](../schema/audit/v2.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/audit/v2.json` |
-| `out/manifest.sig` | [`schema/signature/v1.json`](../schema/signature/v1.json) | `https://raw.githubusercontent.com/getlatentic/haas/main/schema/signature/v1.json` |
+| `job.json` | [`schema/job/v1.json`](../schema/job/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/job/v1.json` |
+| `out/manifest.json` | [`schema/manifest/v1.json`](../schema/manifest/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/manifest/v1.json` |
+| `audit.json` | [`schema/audit/v2.json`](../schema/audit/v2.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/audit/v2.json` |
+| `out/manifest.sig` | [`schema/signature/v1.json`](../schema/signature/v1.json) | `https://raw.githubusercontent.com/getlatentic/gusto/main/schema/signature/v1.json` |
 
 The tests validate against these same files, embedded into the build. A job that
-`haas new` writes and the job and manifest a fixture run leaves must each match
+`gusto new` writes and the job and manifest a fixture run leaves must each match
 their schema, so a writer that drifts from the published format fails a test.
 
 ## The version field
@@ -67,15 +67,15 @@ The public key it carries lets `evidence.Check` tell that a manifest changed
 after it was signed, with no keyring, so `verify`, `export`, `replay` and `check`
 all refuse one. It says nothing about who signed: any key vouches for itself.
 Who signed is the verifier's keyring's answer, a directory of `<name>.pub` files
-named by `HAAS_KEYRING`, looked up by `key` and checked against the keyring's own
+named by `GUSTO_KEYRING`, looked up by `key` and checked against the keyring's own
 copy of the key. The manifest's `signer` field stays what it was, the runner's
-own word for itself, and nothing shows it as the signer: `haas show`, the job
-page, the pull request `haas ship` opens and `audit.json` each name the signer
+own word for itself, and nothing shows it as the signer: `gusto show`, the job
+page, the pull request `gusto ship` opens and `audit.json` each name the signer
 through `evidence.SignedBy`, which gives the keyring's name or says in words why
 it cannot (`unsigned`, `signed, not checked: no keyring`, `signed, not checked: key
 <id> is not in the keyring`, `signed, and the signature does not hold`).
 
-A record without `manifest.sig` is unsigned. `haas verify` says so in those
+A record without `manifest.sig` is unsigned. `gusto verify` says so in those
 words and passes it, unless `-signed` is given, because every record made before
 signing is unsigned and the version rule below promises it still verifies. A
 signature from a key the keyring does not hold is refused by the key's id.
@@ -162,14 +162,14 @@ its setup digest as one directory holding both.
 
 The runner reads the configured harness once, before the harness starts, and
 takes both the adapter it runs and the digest from that one reading, from the
-job's own `harnesses/` when the job carries it, and from the job's `setup/`. A harness built into haas is
+job's own `harnesses/` when the job carries it, and from the job's `setup/`. A harness built into gusto is
 not carried, and its digest is of the adapter built into the runner that ran
 it, which is what ran.
 
 Nothing a harness writes during its run can change the digest in the manifest,
 because the digest was taken already. A harness that writes to its own
 directory in the job changes the copy the job carries, and `evidence.Check`
-digests that copy again and reports `harnesses/<name> changed`, so `haas
+digests that copy again and reports `harnesses/<name> changed`, so `gusto
 verify` fails the record. A job that carries no harness, and an export, which
 leaves `harnesses/` out, have nothing there to check.
 
@@ -191,7 +191,7 @@ the words say so.
 
 ## The audit export
 
-`haas export` writes a third format, `audit.json`, at the root of an export
+`gusto export` writes a third format, `audit.json`, at the root of an export
 directory. It follows the same version rules as the other two, and its schema is
 [`schema/audit/v2.json`](../schema/audit/v2.json). The code that writes and
 checks it is `internal/audit`.
@@ -212,8 +212,8 @@ the summary again with the signer taken from the manifest, which is what version
 signer. An older reader refuses a version 2 export by name.
 
 The signer is the one value in `audit.json` that rests on something outside the
-export: the keyring. `haas export -verify` names it again with its own
-`HAAS_KEYRING`, and when that answer differs from the one the export wrote, it
+export: the keyring. `gusto export -verify` names it again with its own
+`GUSTO_KEYRING`, and when that answer differs from the one the export wrote, it
 reports both, naming `evidence.signer`, rather than choosing which to believe.
 
 ### What an export is
@@ -238,7 +238,7 @@ on the manifest, an export is held to as well.
 | where else | `outbound` | the hosts other than the model in `out/proxy.jsonl`, reached and denied |
 | who approved | `approval` | `not recorded` |
 | who looked | `requests` | the request log's lines whose path names the job |
-| who signed | `evidence.signer` | `out/manifest.sig`, checked against the exporter's `HAAS_KEYRING`; never the manifest's `signer` field |
+| who signed | `evidence.signer` | `out/manifest.sig`, checked against the exporter's `GUSTO_KEYRING`; never the manifest's `signer` field |
 
 The request that created a job is never among its request lines. It is `POST
 /instances/{id}/tasks`, a thread's `POST .../say` or `POST /api/jobs`, and the

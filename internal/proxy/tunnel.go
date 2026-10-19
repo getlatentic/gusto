@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // dialLimit is how long the proxy waits for an allowed host to accept.

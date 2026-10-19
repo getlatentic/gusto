@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/gateway"
-	"github.com/getlatentic/haas/internal/integration"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/schema"
+	"github.com/getlatentic/gusto/internal/gateway"
+	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/schema"
 )
 
 const (

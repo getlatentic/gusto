@@ -12,9 +12,9 @@ laptop closes. The desktop side is a client. It is not a harness, and it runs no
 agent.
 
 ```
- editor ──── haas acp ───┐
- terminal ── haas ───────┤
- tray ───────────────────┼── haas helper (Go, on the person's computer) ──── the organisation's server
+ editor ──── gusto acp ───┐
+ terminal ── gusto ───────┤
+ tray ───────────────────┼── gusto helper (Go, on the person's computer) ──── the organisation's server
  folder ── sync ─────────┘        │
                                   └── token in the operating system's keychain
 ```
@@ -83,8 +83,8 @@ them. A server with no folder hands out nothing, and its people are not offered 
 To hand out a release, give the server a folder and put the release in it:
 
 ```bash
-deploy/desktop/publish.sh v0.0.1-alpha.6 /srv/haas/desktop https://haas.example.com
-HAAS_DESKTOP=/srv/haas/desktop haas serve
+deploy/desktop/publish.sh v0.0.1-alpha.6 /srv/gusto/desktop https://gusto.example.com
+GUSTO_DESKTOP=/srv/gusto/desktop gusto serve
 ```
 
 `publish.sh` needs the GitHub command line signed in, because the releases are private. It writes the `latest.json` for that one
@@ -95,26 +95,26 @@ The release workflow signs each update with the key in the repository secret `TA
 
 ## Installing the helper
 
-Each release has the helper and `haas` for macOS, Linux and Windows, on Intel and Arm, as
-`haas-helper_<release>_<system>_<processor>.tar.gz` and `haas_<release>_<system>_<processor>.tar.gz`
+Each release has the helper and `gusto` for macOS, Linux and Windows, on Intel and Arm, as
+`gusto-helper_<release>_<system>_<processor>.tar.gz` and `gusto_<release>_<system>_<processor>.tar.gz`
 (a `.zip` on Windows), with a `SHA256SUMS` that the release workflow signs with its own identity
 (cosign, keyless). While the releases are private, the install scripts use the GitHub command
 line, signed in to an account that can read them; once they are public they download with no account:
 
 ```bash
-gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.sh -O - | sh -s -- v0.0.1-alpha.5
+gh release download v0.0.1-alpha.5 -R getlatentic/gusto -p install.sh -O - | sh -s -- v0.0.1-alpha.5
 ```
 
 ```powershell
-gh release download v0.0.1-alpha.5 -R getlatentic/haas -p install.ps1 -O install.ps1; powershell -ExecutionPolicy ByPass -File install.ps1 -Tag v0.0.1-alpha.5
+gh release download v0.0.1-alpha.5 -R getlatentic/gusto -p install.ps1 -O install.ps1; powershell -ExecutionPolicy ByPass -File install.ps1 -Tag v0.0.1-alpha.5
 ```
 
 The script downloads the packages for this system, checks them against the checksums, checks the
-checksums' signature when `cosign` is installed (`HAAS_REQUIRE_COSIGN=1` refuses to go on
-without it), and puts `haas` and `haas-helper` in `~/.local/bin` (`HAAS_INSTALL_DIR` changes that,
-and `HAAS_PROGRAMS=haas-helper` installs the helper alone) or, on Windows, in `%LOCALAPPDATA%\haas`,
-which it adds to the user's PATH: the only setting it changes. `haas version` and
-`haas-helper version` say which release is installed. The scripts are `deploy/install/install.sh`
+checksums' signature when `cosign` is installed (`GUSTO_REQUIRE_COSIGN=1` refuses to go on
+without it), and puts `gusto` and `gusto-helper` in `~/.local/bin` (`GUSTO_INSTALL_DIR` changes that,
+and `GUSTO_PROGRAMS=gusto-helper` installs the helper alone) or, on Windows, in `%LOCALAPPDATA%\gusto`,
+which it adds to the user's PATH: the only setting it changes. `gusto version` and
+`gusto-helper version` say which release is installed. The scripts are `deploy/install/install.sh`
 and `install.ps1`. The packages are built by
 `deploy/helper/build.sh`. Linux and Windows programs are built with no C compiler. macOS programs
 are built on macOS, because the menu bar icon is drawn through the system's libraries. No package
@@ -128,9 +128,9 @@ SmartScreen. The checksum and the cosign signature are what vouch for it until t
 
 ## The helper
 
-It is its own program, `haas-helper` (`cmd/haas-helper`), with its commands in
+It is its own program, `gusto-helper` (`cmd/gusto-helper`), with its commands in
 `internal/helper/cli`, so that a person's computer does not carry the server's
-program. `haas` itself builds for Windows too, for the verbs a person uses there
+program. `gusto` itself builds for Windows too, for the verbs a person uses there
 (`login`, `whoami`, `submit`, `verify`, `show`); the server's own verbs need Docker
 and a Linux box, and are not what Windows is for. Both programs build without a C
 compiler for macOS, Windows and Linux, on Intel and Arm, and a workflow builds and
@@ -140,7 +140,7 @@ Credential Manager on a Windows runner.
 Built so far: `login` by the device flow, `whoami`, `logout` (which ends the token on
 the server), `run`, `status` and `service`.
 
-**`haas-helper run`** is the helper. It keeps one connection to the server's event
+**`gusto-helper run`** is the helper. It keeps one connection to the server's event
 stream, gets it back after it drops (asking the server to catch up from a minute
 before the last event it heard), and tells every program on the computer what it
 hears. A person who signs in or out while it runs needs no restart: it looks again.
@@ -161,7 +161,7 @@ A second `run` refuses while one answers. No route has cross-origin headers: a s
 that is a web view on another origin needs the helper told to allow it. The tray
 (see Attention) is part of the helper, so it needs no such route.
 
-**`haas-helper service install -server <address>`** makes the helper start at login
+**`gusto-helper service install -server <address>`** makes the helper start at login
 and starts it now, with what each system has for a program a person runs: a launch
 agent on macOS, a user unit of systemd on Linux, and a scheduled task at logon on
 Windows. None needs an administrator. `uninstall` stops it and removes the start,
@@ -175,7 +175,7 @@ Windows runner by the builds workflow.
 
 ## Files
 
-`haas-helper sync -folder ~/work/project` keeps that folder the same as the person's agent's
+`gusto-helper sync -folder ~/work/project` keeps that folder the same as the person's agent's
 folder in the cloud, in both directions, as real files on both sides. There is no virtual
 file system and no kernel extension: those are three hard integrations (macOS File
 Provider, Windows Cloud Files, Linux FUSE), and are added only when a measured workspace is
@@ -228,7 +228,7 @@ on both.
   moved); and a listing in the cloud that was cut short, in which the files not listed would
   look deleted. `-force` goes on anyway.
 - It leaves out `.git/` (the agent's copy and the person's are two clones), `node_modules/`,
-  `.venv/`, `__pycache__/`, `*.pyc` and operating-system litter, and whatever a `.haasignore`
+  `.venv/`, `__pycache__/`, `*.pyc` and operating-system litter, and whatever a `.gustoignore`
   in the folder's root adds, one pattern to a line: a name (`*.log`), a folder (`build/`), or
   a path from the root (`docs/drafts`). A `!` line is not understood and is said so. An
   ignored file is never deleted on either side.
@@ -249,7 +249,7 @@ on Windows, and not against a very large folder.
 
 ## Editors
 
-`haas-helper acp` is the helper as an agent for an editor that speaks the
+`gusto-helper acp` is the helper as an agent for an editor that speaks the
 [Agent Client Protocol](https://agentclientprotocol.com): the editor starts it, and they talk
 on standard input and output, one JSON-RPC message to a line. Nothing else is written to
 standard output; what the helper has to say goes to standard error, where an editor's
@@ -268,7 +268,7 @@ protocol's reasons have none for a failure. A reply the server cut short, as it 
 
 Closing the editor ends the helper and not the turn: the agent is in the cloud, and the turn
 finishes there. Signed out, `session/new` answers with the protocol's authentication error
-and says to run `haas-helper login`; signing in later needs no restart of the editor.
+and says to run `gusto-helper login`; signing in later needs no restart of the editor.
 
 **What the editor does not get yet.** The agent works in its folder in the cloud, not in the
 folder the editor has open: the first thing it says in a session is that. `cwd` is read and
@@ -281,10 +281,10 @@ machine. MCP servers an editor passes are ignored.
 
 ```jsonc
 // Zed, settings.json
-{ "agent_servers": { "haas": { "type": "custom", "command": "haas-helper", "args": ["acp", "-server", "https://haas.example.com"], "env": {} } } }
+{ "agent_servers": { "gusto": { "type": "custom", "command": "gusto-helper", "args": ["acp", "-server", "https://gusto.example.com"], "env": {} } } }
 
 // JetBrains, ~/.jetbrains/acp.json
-{ "agent_servers": { "Latentic Agent Cloud": { "command": "/path/to/haas-helper", "args": ["acp", "-server", "https://haas.example.com"] } } }
+{ "agent_servers": { "Latentic Agent Cloud": { "command": "/path/to/gusto-helper", "args": ["acp", "-server", "https://gusto.example.com"] } } }
 ```
 
 Zed's `dev: open acp logs` shows the conversation with the helper.
@@ -292,18 +292,18 @@ Zed's `dev: open acp logs` shows the conversation with the helper.
 **What was checked.** The bridge is driven in tests by a scripted editor, and against the
 real server, for an answer and for a cancel that really stops the turn. The official
 TypeScript client library (`@agentclientprotocol/sdk` 1.7.0, which checks messages against the
-protocol's schema) was also run against `haas-helper acp` and a stub of the server:
+protocol's schema) was also run against `gusto-helper acp` and a stub of the server:
 `login` by the device flow, `initialize`, `session/new`, a prompt with steps and a reply, and a
 cancel that ends `cancelled` and reaches the server as a stop. No editor has been used.
 
 ## Attention
 
-`haas-helper run` shows an icon in the menu bar or tray (`-tray=false` turns it off). Its menu says
+`gusto-helper run` shows an icon in the menu bar or tray (`-tray=false` turns it off). Its menu says
 how the helper stands and lists up to eight turns, running ones first. A click on a turn opens its
 conversation in the browser. A notification names a turn that finished, failed or was stopped, and
 only a turn the helper saw going: the turns the server repeats on a reconnect are silent. A turn
 that waits for an approval is not announced, because the server sends no event for it yet.
-A computer with nowhere to show the icon runs the helper with no icon, and `haas-helper status` says so and why (`icon: shown`, or
+A computer with nowhere to show the icon runs the helper with no icon, and `gusto-helper status` says so and why (`icon: shown`, or
 `icon: none: ...`, or `icon: off` when it was started with `-tray=false`). Everything else, which is the sync, the editor bridge and the
 notifications where the system has them, goes on. A macOS helper built without a C compiler has no icon either.
 There is no window in the first version. A person who wants
@@ -324,7 +324,7 @@ Notifications on Linux go through `notify-send` and on Windows through a toast, 
 clickable (see above). The tray is never the only way in: the web, an editor and the terminal reach everything it shows.
 
 On Windows the helper is built as a program with no window of its own, so that starting it at login does not open a black one. When
-it is started from a terminal it attaches to that terminal, so `haas-helper login` and `status` print there as they do elsewhere.
+it is started from a terminal it attaches to that terminal, so `gusto-helper login` and `status` print there as they do elsewhere.
 Linux desktops and Windows were not tried by a person; what is checked is stated in the table.
 
 The tray is part of the helper process. There is no shell around it. The spike

@@ -1,4 +1,4 @@
-// Package cli is the commands of the helper on a person's computer. They are here and not in cmd/haas so that a program with
+// Package cli is the commands of the helper on a person's computer. They are here and not in cmd/gusto so that a program with
 // only these commands builds on every operating system, which the server's own program does not.
 package cli
 
@@ -11,17 +11,17 @@ import (
 	"os/signal"
 	"runtime"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
-// serverFlag reads the address of the server a command talks to: the flag, or HAAS_SERVER.
+// serverFlag reads the address of the server a command talks to: the flag, or GUSTO_SERVER.
 func serverFlag(flags *flag.FlagSet) *string {
-	return flags.String("server", os.Getenv("HAAS_SERVER"), "the address of your organisation's server (default HAAS_SERVER)")
+	return flags.String("server", os.Getenv("GUSTO_SERVER"), "the address of your organisation's server (default GUSTO_SERVER)")
 }
 
 func needServer(address string) (string, bool) {
 	if address == "" {
-		fmt.Fprintln(os.Stderr, "name the server: -server https://haas.example.com, or set HAAS_SERVER")
+		fmt.Fprintln(os.Stderr, "name the server: -server https://gusto.example.com, or set GUSTO_SERVER")
 		return "", false
 	}
 	return helper.Server(address), true
@@ -157,6 +157,6 @@ func openBrowser(address string) {
 
 // ShowVersion says which release the helper is.
 func ShowVersion(args []string) int {
-	fmt.Println("haas-helper", Version)
+	fmt.Println("gusto-helper", Version)
 	return 0
 }

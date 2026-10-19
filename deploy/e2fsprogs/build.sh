@@ -8,7 +8,7 @@ set -eu
 out=${1:-dist}
 version=1.47.4
 sha256=fd5bf388cbdbe006a3d3b318d983b2948382440acc85a87f1e7d108653e8db0b
-name=haas-e2fsprogs-darwin-arm64.tar.gz
+name=gusto-e2fsprogs-darwin-arm64.tar.gz
 source=https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$version/e2fsprogs-$version.tar.xz
 
 work=$(mktemp -d)
@@ -35,7 +35,7 @@ mke2fs, debugfs and e2fsck are e2fsprogs $version, built unchanged from its sour
 They are free software under the GNU General Public License version 2 (COPYING). The source is at
   $source
   sha256 $sha256
-and the script that built these is deploy/e2fsprogs/build.sh in github.com/getlatentic/haas.
+and the script that built these is deploy/e2fsprogs/build.sh in github.com/getlatentic/gusto.
 TEXT
 for tool in mke2fs debugfs e2fsck; do
   if otool -L "$pack/$tool" | tail -n +2 | grep -v "/usr/lib/libSystem" >/dev/null; then

@@ -125,7 +125,7 @@ func withProvider(t *testing.T) (*site, *provider) {
 	t.Helper()
 	p := newProvider(t)
 	here := open(t)
-	redirect := "https://haas.acme.test/auth/callback"
+	redirect := "https://gusto.acme.test/auth/callback"
 	identity, err := NewIdentity(context.Background(), p.server.URL, "client", "secret", redirect, Access{Allowed: []string{"amy@acme.test"}})
 	if err != nil {
 		t.Fatal(err)

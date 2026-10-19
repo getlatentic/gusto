@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/repoaccess"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // A token is for one repository and for what the work needs of it, so a job for

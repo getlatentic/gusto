@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/audit"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/audit"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 const secret = "sk-test-0123456789abcdef"

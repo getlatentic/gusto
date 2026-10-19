@@ -1,0 +1,83 @@
+# Prometheus alert rules for gusto. Each alert names its runbook entry in
+# docs/RUNBOOK.md. Scrape /metrics with a token that may read metrics, under the
+# job name "gusto": deploy/alerts/prometheus.example.yml.
+groups:
+  - name: gusto
+    rules:
+      - alert: GustoDown
+        expr: up{job="gusto"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "gusto is not answering /metrics"
+          runbook: "docs/RUNBOOK.md#gustodown"
+
+      - alert: GustoNotReady
+        expr: gusto_runner_workers_alive < gusto_runner_slots
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "gusto has fewer workers running than it should"
+          runbook: "docs/RUNBOOK.md#gustonotready"
+
+      - alert: GustoQueueStuck
+        expr: gusto_queue_stuck_seconds > 300
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "A job nothing holds back has waited over five minutes and has not started"
+          runbook: "docs/RUNBOOK.md#gustoqueuestuck"
+
+      - alert: GustoRunnersSaturated
+        expr: gusto_queue_depth > 0 and gusto_jobs_running >= gusto_runner_slots
+        for: 30m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Every runner has been busy with jobs waiting for half an hour"
+          runbook: "docs/RUNBOOK.md#gustorunnerssaturated"
+
+      - alert: GustoJobsFailing
+        expr: |
+          sum(increase(gusto_jobs_finished_total{state="failed"}[1h])) >= 5
+          and
+          sum(increase(gusto_jobs_finished_total{state="failed"}[1h]))
+            / sum(increase(gusto_jobs_finished_total[1h])) > 0.5
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: "More than half the jobs that ended in the last hour failed"
+          runbook: "docs/RUNBOOK.md#gustojobsfailing"
+
+      - alert: GustoDiskLow
+        expr: gusto_disk_free_bytes{store="jobs"} / gusto_disk_total_bytes{store="jobs"} < 0.10
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: "Less than 10% of the disk the jobs are kept on is free"
+          runbook: "docs/RUNBOOK.md#gustodisklow"
+
+      - alert: GustoModelErrors
+        expr: |
+          increase(gusto_proxy_calls_total[10m]) >= 10
+          and
+          increase(gusto_proxy_errors_total[10m]) / increase(gusto_proxy_calls_total[10m]) > 0.2
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: "More than a fifth of the model calls in the last ten minutes failed on the model's side"
+          runbook: "docs/RUNBOOK.md#gustomodelerrors"
+
+      - alert: GustoDeployFailed
+        expr: gusto_last_deploy_ok == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: "The last deploy failed or was rolled back"
+          runbook: "docs/RUNBOOK.md#gustodeployfailed"
+
+      - alert: GustoRestartingOften
+        expr: changes(gusto_started_timestamp_seconds[30m]) >= 3
+        labels: { severity: page }
+        annotations:
+          summary: "gusto has restarted three times in half an hour"
+          runbook: "docs/RUNBOOK.md#gustorestartingoften"

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/ship"
+	"github.com/getlatentic/gusto/internal/ship"
 )
 
 // The agent opens a pull request and never merges it. These tests hold that in

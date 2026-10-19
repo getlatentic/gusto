@@ -9,15 +9,15 @@
 # from that image has /etc/haas/baked and goes straight to configuring itself.
 # LIVE is on for the front door that stays up: it has no lease and no limit on how long it runs, keeps what
 # is on the file system, starts hosts for cells when organisations need one, and is brought up to a newer
-# release by running this again (HAAS_LIVE_ENV names the file that keeps what it was started with).
+# release by running this again (GUSTO_LIVE_ENV names the file that keeps what it was started with).
 set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
 LEASE_MINUTES=${LEASE_MINUTES:-@LEASE_MINUTES@} MAX_HOURS=${MAX_HOURS:-@MAX_HOURS@}
 ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@} BAKE=${BAKE:-off}
-baked_marker=${HAAS_BAKED:-/etc/haas/baked}
-live_env=${HAAS_LIVE_ENV:-/etc/haas/live.env}
-dir=${HAAS_BUNDLE_DIR:-/opt/haas-bundle} tmp=${HAAS_TMP:-/tmp}
-exec > >(tee -a "${HAAS_BOOTSTRAP_LOG:-/var/log/haas-bootstrap.log}") 2>&1
+baked_marker=${GUSTO_BAKED:-/etc/haas/baked}
+live_env=${GUSTO_LIVE_ENV:-/etc/haas/live.env}
+dir=${GUSTO_BUNDLE_DIR:-/opt/haas-bundle} tmp=${GUSTO_TMP:-/tmp}
+exec > >(tee -a "${GUSTO_BOOTSTRAP_LOG:-/var/log/haas-bootstrap.log}") 2>&1
 
 # A host that never finishes starting is still removed: the instance terminates when it powers off. One that
 # is meant to stay up is not, since it is looked at and started again rather than lost.
@@ -27,10 +27,10 @@ if [ "$LIVE" != on ]; then
 fi
 
 # A small host needs room for the installs of a start and of an upgrade, which the memory it runs in does not leave.
-if [ ! -e "${HAAS_SWAPFILE:-/swapfile}" ] && [ "$(awk '/MemTotal/ {print int($2/1024)}' "${HAAS_MEMINFO:-/proc/meminfo}")" -lt 3000 ]; then
-  swapfile=${HAAS_SWAPFILE:-/swapfile}
+if [ ! -e "${GUSTO_SWAPFILE:-/swapfile}" ] && [ "$(awk '/MemTotal/ {print int($2/1024)}' "${GUSTO_MEMINFO:-/proc/meminfo}")" -lt 3000 ]; then
+  swapfile=${GUSTO_SWAPFILE:-/swapfile}
   fallocate -l 1G "$swapfile" && chmod 600 "$swapfile" && mkswap "$swapfile" >/dev/null && swapon "$swapfile"
-  grep -q "^$swapfile " "${HAAS_FSTAB:-/etc/fstab}" || echo "$swapfile none swap sw 0 0" >> "${HAAS_FSTAB:-/etc/fstab}"
+  grep -q "^$swapfile " "${GUSTO_FSTAB:-/etc/fstab}" || echo "$swapfile none swap sw 0 0" >> "${GUSTO_FSTAB:-/etc/fstab}"
 fi
 
 export HOME=${HOME:-/root}
@@ -43,7 +43,7 @@ warm_the_disk() {
   python3 - <<'PY'
 import concurrent.futures as futures, os, sys
 CHUNK = 8 << 20
-roots = [os.environ.get("HAAS_WARM_DIR", "/var/lib/haas"), os.environ.get("HAAS_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
+roots = [os.environ.get("GUSTO_WARM_DIR", "/var/lib/haas"), os.environ.get("GUSTO_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
 spans = []
 for root in roots:
     for dirpath, _, names in os.walk(root):
@@ -128,6 +128,6 @@ if [ "$BAKE" = on ]; then
   # cold start. It is asked here, as the cell asks it, and the disk is kept in the image.
   systemd-run --wait --collect --unit=haas-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/haas \
     -p EnvironmentFile=/etc/haas/org.env -p EnvironmentFile=/etc/haas/cell.env -p EnvironmentFile=/run/haas/cell.env /usr/local/bin/haas survey
-  touch "${HAAS_BAKE_DONE:-/etc/haas/bake-done}"
+  touch "${GUSTO_BAKE_DONE:-/etc/haas/bake-done}"
 fi
 echo "haas-bootstrap: done"

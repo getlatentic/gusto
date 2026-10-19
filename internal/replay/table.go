@@ -5,7 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/getlatentic/haas/internal/evidence"
+	"github.com/getlatentic/gusto/internal/evidence"
 )
 
 // Print writes the sweep's one summary: a line a job, then the totals, then

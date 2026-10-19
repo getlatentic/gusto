@@ -15,15 +15,15 @@ python3 "$E/fake_model.py" >/dev/null 2>&1 </dev/null &
 cp "$E/box-probe.json" "$E/harnesses/probe.json"
 
 cd "$E"
-HAAS_PASSWORD=e2e HAAS_ADDR=127.0.0.1:8040 HAAS_SANDBOX=openshell HAAS_MODEL_UPSTREAM=http://127.0.0.1:9000 HAAS_MODEL_KEY=not-a-real-key \
-  HAAS_LOCAL_REPOS="$E/repo" HAAS_HARNESSES="$E/harnesses" \
-  HAAS_JOBS="$E/data/jobs" HAAS_SESSIONS="$E/data/sessions" HAAS_SETUPS="$E/data/setups" HAAS_COMPARISONS="$E/data/comparisons" HAAS_CHANGES="$E/data/changes/changes.jsonl" \
-  HAAS_OPENSHELL_GATEWAY=spike HAAS_JOB_CONCURRENCY=1 \
+GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_MODEL_UPSTREAM=http://127.0.0.1:9000 GUSTO_MODEL_KEY=not-a-real-key \
+  GUSTO_LOCAL_REPOS="$E/repo" GUSTO_HARNESSES="$E/harnesses" \
+  GUSTO_JOBS="$E/data/jobs" GUSTO_SESSIONS="$E/data/sessions" GUSTO_SETUPS="$E/data/setups" GUSTO_COMPARISONS="$E/data/comparisons" GUSTO_CHANGES="$E/data/changes/changes.jsonl" \
+  GUSTO_OPENSHELL_GATEWAY=spike GUSTO_JOB_CONCURRENCY=1 \
   setsid nohup "$E/haas" serve > "$E/serve.log" 2>&1 </dev/null &
 for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 
-HAAS_HARNESSES="$E/harnesses" "$E/haas" new "$E/job" -repo "$E/repo" -brief "probe the box" -harness probe -- true >/dev/null
-id=$(HAAS_SERVER=http://127.0.0.1:8040 HAAS_PASSWORD=e2e "$E/haas" submit "$E/job" | head -n 1)
+GUSTO_HARNESSES="$E/harnesses" "$E/haas" new "$E/job" -repo "$E/repo" -brief "probe the box" -harness probe -- true >/dev/null
+id=$(GUSTO_SERVER=http://127.0.0.1:8040 GUSTO_PASSWORD=e2e "$E/haas" submit "$E/job" | head -n 1)
 echo "submitted $id"
 for _ in $(seq 1 180); do [ -f "$E/data/jobs/$id/out/manifest.json" ] && break; sleep 1; done
 sleep 1

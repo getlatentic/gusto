@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 root="$(git rev-parse --show-toplevel)"
 mkdir -p public out
-cp ../recording/haas-demo.mp4 public/footage.mp4
+cp ../recording/gusto-demo.mp4 public/footage.mp4
 cp ../recording/timeline.json public/timeline.json
 [ -d node_modules ] || npm install --no-audit --no-fund
 npx tsc --noEmit

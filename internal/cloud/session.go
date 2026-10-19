@@ -63,9 +63,9 @@ func OpenSessions(root string, secure bool) (*Sessions, error) {
 // sibling subdomain cannot set: an organisation's own server is one.
 func (s *Sessions) name() string {
 	if s.secure {
-		return "__Host-haas_cloud"
+		return "__Host-gusto_cloud"
 	}
-	return "haas_cloud"
+	return "gusto_cloud"
 }
 
 func (s *Sessions) sign(payload string) string {

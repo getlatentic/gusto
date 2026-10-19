@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/bridge"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/bridge"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // anEditor is an editor speaking the protocol to the bridge, which is talking to the real server.

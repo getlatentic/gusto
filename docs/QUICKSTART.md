@@ -1,4 +1,4 @@
-# Quickstart: haas on your computer in five minutes
+# Quickstart: gusto on your computer in five minutes
 
 You need a computer (macOS, Linux or Windows), and a key for a model you can pay for (DeepSeek, OpenAI, Anthropic, OpenRouter) or Ollama
 running on the same computer.
@@ -8,17 +8,17 @@ running on the same computer.
 macOS and Linux:
 
 ```bash
-curl -fsSL https://github.com/getlatentic/haas/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2
+curl -fsSL https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2
 ```
 
 Windows, in PowerShell:
 
 ```powershell
-$env:HAAS_TAG = "v0.1.0-rc.2"; irm https://github.com/getlatentic/haas/releases/download/v0.1.0-rc.2/install.ps1 | iex
+$env:GUSTO_TAG = "v0.1.0-rc.2"; irm https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/install.ps1 | iex
 ```
 
-It puts haas in `~/.local/bin` (Windows: `%LOCALAPPDATA%\haas`), starts it as a service that runs at login, and opens it in your browser, signed in.
-If the browser does not open: `haas open`.
+It puts gusto in `~/.local/bin` (Windows: `%LOCALAPPDATA%\gusto`), starts it as a service that runs at login, and opens it in your browser, signed in.
+If the browser does not open: `gusto open`.
 
 ## 2. Add a model
 
@@ -27,12 +27,12 @@ The first page asks for one. Pick your provider, paste the key, press **List my 
 Or from a terminal, if your shell already has the key:
 
 ```bash
-haas local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
+gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
 ```
 
 ## 3. Install an agent
 
-haas runs agents it finds on your PATH. The page lists the ones it is missing, with the command for each:
+gusto runs agents it finds on your PATH. The page lists the ones it is missing, with the command for each:
 
 ```bash
 npm install -g opencode-ai            # or @anthropic-ai/claude-code, @openai/codex
@@ -48,16 +48,16 @@ it took and what it cost. The page says under the box which wall the job ran beh
 Every job leaves a record. Open the job from the page, or from a terminal:
 
 ```bash
-haas verify "<data folder>/jobs/<job id>"
+gusto verify "<data folder>/jobs/<job id>"
 # 7 files match, and the job had no gate to run again
-haas show "<data folder>/jobs/<job id>"
+gusto show "<data folder>/jobs/<job id>"
 ```
 
-The data folder is `~/Library/Application Support/haas/data` on macOS, `~/.local/share/haas` on Linux and `%LOCALAPPDATA%\haas\data` on
+The data folder is `~/Library/Application Support/gusto/data` on macOS, `~/.local/share/gusto` on Linux and `%LOCALAPPDATA%\gusto\data` on
 Windows. A record made without a signing key says `unsigned`; [KEYS.md](KEYS.md) says how to sign one.
 
 ## Next
 
-- A stronger wall for each job, on Apple Silicon or Linux with KVM: `haas local wall install` ([LOCAL.md](LOCAL.md)).
+- A stronger wall for each job, on Apple Silicon or Linux with KVM: `gusto local wall install` ([LOCAL.md](LOCAL.md)).
 - A server of your own, with HTTPS: [deploy/README.md](../deploy/README.md).
-- Stop it: `haas local stop`. Remove it: `haas local uninstall`.
+- Stop it: `gusto local stop`. Remove it: `gusto local uninstall`.

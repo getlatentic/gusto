@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // verifiedOrg is an organisation whose admin has confirmed their address, which is

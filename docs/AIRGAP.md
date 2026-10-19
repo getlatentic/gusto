@@ -4,7 +4,7 @@ An air-gapped install has no route to the internet from any machine it touches:
 not the machine that builds the image, not the box it is deployed to, not the
 server, and not a job's container. It may reach services inside the building: a
 registry mirror, a git host, an identity provider, a model server. This page
-names every place haas reaches outside, says what replaces each one, and ends
+names every place gusto reaches outside, says what replaces each one, and ends
 with what the product commits to. It answers getlatentic/planning#255.
 
 Every claim below points at a file, or at a run described in
@@ -25,8 +25,8 @@ namespace with nothing but loopback (`unshare -rn`), which is what
 `--network=none` gives a container. Inside the namespace ran two stand-ins:
 
 - a proxy on `127.0.0.1:8041`, named in `HTTPS_PROXY` and `HTTP_PROXY` the way
-  `internal/sandbox/sealed.go:48-56` names haas's, which writes down every host
-  it is asked for and answers 403, as haas's proxy does for a host the allowlist
+  `internal/sandbox/sealed.go:48-56` names gusto's, which writes down every host
+  it is asked for and answers 403, as gusto's proxy does for a host the allowlist
   does not name;
 - a model on `127.0.0.1:11434` that answers one streamed turn saying `done`, in
   the chat completions, responses and Anthropic messages shapes.
@@ -43,7 +43,7 @@ connections were to loopback. The arguments were the adapters' own, from
 | codex | `@openai/codex` | 0.157.1 |
 | claude | `@anthropic-ai/claude-code` | 2.1.283 |
 
-This is not the same as a run in haas's image through haas's proxy. It measures
+This is not the same as a run in gusto's image through gusto's proxy. It measures
 what each program asks for with no network, which is the question here; the
 seal itself on podman is still unmeasured, as the README says.
 
@@ -69,9 +69,9 @@ The Dockerfile's `golang:1.26` and the playbook's `go_version: "1.26.1"` both
 satisfy `go.mod`, so neither triggers it today; a build on an older Go does.
 
 B2 was measured both ways. With no module cache and no network,
-`go build ./cmd/haas` fails at `internal/web/oidc.go:14`, trying
+`go build ./cmd/gusto` fails at `internal/web/oidc.go:14`, trying
 `proxy.golang.org`. With `go mod vendor` run first, the vendor tree is 560K and
-`GOPROXY=off GOFLAGS=-mod=vendor go build ./cmd/haas` succeeds with no network.
+`GOPROXY=off GOFLAGS=-mod=vendor go build ./cmd/gusto` succeeds with no network.
 `go mod vendor` needs `schema/` present, because `internal/audit`'s tests import
 it.
 
@@ -95,11 +95,11 @@ must carry that a list of names hides:
 | --- | --- | --- | --- | --- |
 | D1 | `ansible-galaxy collection install` of `ansible.mysql` and `community.crypto`, from Galaxy, on the operator's machine | `deploy/ansible/requirements.yml:3-4`, `deploy/ansible/README.md:9` | the collections downloaded once as tarballs and installed from files, or an internal Galaxy | config |
 | D2 | apt on the box: `git`, `curl`, `acl`, `podman`, `uidmap`, `slirp4netns`, `python3-pymysql` | `common/tasks/main.yml:2-10`, `sandbox/tasks/main.yml:5-13`, `store/tasks/main.yml:5-10` | an internal Debian or Ubuntu mirror in the box's sources | config |
-| D3 | `ssh-keyscan github.com`, and a clone of `git@github.com:getlatentic/haas.git` | `common/tasks/main.yml:53-57`, `group_vars/all.yml:16` | an internal git host holding a mirror of this repository | `repo_url` is config; the host key lookup names github.com, so code (C6) |
+| D3 | `ssh-keyscan github.com`, and a clone of `git@github.com:getlatentic/gusto.git` | `common/tasks/main.yml:53-57`, `group_vars/all.yml:16` | an internal git host holding a mirror of this repository | `repo_url` is config; the host key lookup names github.com, so code (C6) |
 | D4 | the Go tarball from `go.dev` | `toolchain/tasks/main.yml:7` | the tarball placed at `{{ app_root }}/go{{ go_version }}.tar.gz` first, or a variable for the address | code (C6) for a variable |
 | D5 | `go build` on the box, which downloads the modules into `GOMODCACHE` | `toolchain/tasks/main.yml:23-31` | the vendored tree from B2 | code (C1) |
 | D6 | the image build on the box, which is all of B1 to B5 again | `sandbox/tasks/main.yml:32-43` | the same replacements, or an image built elsewhere and pushed to the internal registry | as B1 to B5 |
-| D7 | `certbot certonly --webroot`, an ACME challenge to Let's Encrypt | `nginx/tasks/main.yml:44-52` | a certificate from the building's own CA, or an internal ACME server | code (C6): the vhost only reads `/etc/letsencrypt/live/<name>/` (`nginx/templates/haas.conf.j2:10-11`) |
+| D7 | `certbot certonly --webroot`, an ACME challenge to Let's Encrypt | `nginx/tasks/main.yml:44-52` | a certificate from the building's own CA, or an internal ACME server | code (C6): the vhost only reads `/etc/letsencrypt/live/<name>/` (`nginx/templates/gusto.conf.j2:10-11`) |
 
 The smoke role reaches nothing: it makes its repository with `git init` and runs
 a fixture harness (`smoke/tasks/main.yml:57-99`).
@@ -108,13 +108,13 @@ a fixture harness (`smoke/tasks/main.yml:57-99`).
 
 | # | what reaches out | where | replaced by | change |
 | --- | --- | --- | --- | --- |
-| S1 | the identity provider's discovery document at startup, then its token endpoint at every sign-in; Google on greencloud | `internal/web/oidc.go:52`, `internal/web/oidc.go:142`, `host_vars/greencloud.yml:56` | a provider in the building that speaks OIDC, named by `HAAS_OIDC_ISSUER`; or no provider, and the shared password alone | config |
+| S1 | the identity provider's discovery document at startup, then its token endpoint at every sign-in; Google on greencloud | `internal/web/oidc.go:52`, `internal/web/oidc.go:142`, `host_vars/greencloud.yml:56` | a provider in the building that speaks OIDC, named by `GUSTO_OIDC_ISSUER`; or no provider, and the shared password alone | config |
 | S2 | the model upstreams the proxy adds a credential for; on greencloud, `bedrock-mantle.us-east-1.api.aws` and `api.deepseek.com` | `internal/proxy/proxy.go:103`, `host_vars/greencloud.yml:36-45` | a model server in the building, named as a credential's `address` | config |
 | S3 | `git clone` of a job's repository, on the host before the container starts | `internal/runner/workspace.go:29`, `internal/instance/instance.go:172` | an internal git host; `repo` is any URL git takes | config |
-| S4 | `haas ship`: the GitHub API, `api.github.com` by default | `internal/ship/github.go:34` | `HAAS_GITHUB_API` pointed at a GitHub Enterprise Server | config |
-| S5 | `haas ship`: `git push` with the token, which is only ever sent to `https://github.com/` | `internal/ship/git.go:59-65` | the header scoped to the configured host | code (C5) |
-| S6 | `haas ship`: the pull request's links and the remote it prints, both written as `https://github.com/...` | `internal/ship/links.go:26-32`, `internal/ship/links.go:46-49`, `internal/ship/plan.go:162-169` | links built from the configured host | code (C5) |
-| S7 | `haas check`: `git fetch` of the evidence ref, with the reviewer's own credentials | `internal/review/fetch.go:37` | nothing: it fetches from whatever remote the pull request names | none |
+| S4 | `gusto ship`: the GitHub API, `api.github.com` by default | `internal/ship/github.go:34` | `GUSTO_GITHUB_API` pointed at a GitHub Enterprise Server | config |
+| S5 | `gusto ship`: `git push` with the token, which is only ever sent to `https://github.com/` | `internal/ship/git.go:59-65` | the header scoped to the configured host | code (C5) |
+| S6 | `gusto ship`: the pull request's links and the remote it prints, both written as `https://github.com/...` | `internal/ship/links.go:26-32`, `internal/ship/links.go:46-49`, `internal/ship/plan.go:162-169` | links built from the configured host | code (C5) |
+| S7 | `gusto check`: `git fetch` of the evidence ref, with the reviewer's own credentials | `internal/review/fetch.go:37` | nothing: it fetches from whatever remote the pull request names | none |
 | S8 | TLS to any of the above signed by the building's own CA | the Go binary's default HTTP client, `internal/proxy/proxy.go:44`, `internal/ship/github.go:36` | the CA in the host's trust store | config |
 
 The pages reach nothing. `htmx.min.js`, `tokens.css` and `mark.png` are served
@@ -123,7 +123,7 @@ A search of `internal/web/templates` and `internal/web/static` found no address
 outside the server. The schemas' `$id` fields name `raw.githubusercontent.com`
 (`schema/*/v1.json:3`); nothing in the code fetches them.
 
-`haas ship` on a non-GitHub forge (GitLab, Gitea) is not an air-gap question,
+`gusto ship` on a non-GitHub forge (GitLab, Gitea) is not an air-gap question,
 and is not covered: `internal/ship/github.go` speaks GitHub's API only.
 
 ### Inside a job's container
@@ -135,8 +135,8 @@ and is not covered: `internal/ship/github.go` speaks GitHub's API only.
 | J3 | codex, to `github.com` (`git ls-remote https://github.com/openai/plugins.git HEAD`), `api.github.com` and `chatgpt.com` | measured | `-c features.plugins=false` | code (C3) |
 | J4 | codex, to `ab.chatgpt.com` | measured | `-c analytics.enabled=false` | code (C3) |
 | J5 | claude, to `api.anthropic.com`, five connections a run | measured | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` | code (C3) |
-| J6 | the gate and the harness fetching the job's own dependencies, for example `go test` downloading modules | the job's gate, `internal/runner/gate.go:20` | the building's own mirrors, named in `HAAS_ALLOWED_HOSTS` | config |
-| J7 | a container with no credential configured, which keeps the runtime's default network and is not sealed | `cmd/haas/wayout.go:98-99`, `internal/sandbox/sandbox.go:48-70` | a credential whose address is the local model, so every job runs sealed | config today; code (C7) to make it the default |
+| J6 | the gate and the harness fetching the job's own dependencies, for example `go test` downloading modules | the job's gate, `internal/runner/gate.go:20` | the building's own mirrors, named in `GUSTO_ALLOWED_HOSTS` | config |
+| J7 | a container with no credential configured, which keeps the runtime's default network and is not sealed | `cmd/gusto/wayout.go:98-99`, `internal/sandbox/sandbox.go:48-70` | a credential whose address is the local model, so every job runs sealed | config today; code (C7) to make it the default |
 
 What each harness did, measured as above. A run is one invocation from a clean
 `HOME`; "denied" is a request the stand-in proxy refused.
@@ -169,7 +169,7 @@ the npm call. opencode's log records it as
 and the run carries on.
 
 Every one of these calls failed open: the harness went on and answered. In a
-sealed haas container each would leave a `denied` line in `out/proxy.jsonl`
+sealed gusto container each would leave a `denied` line in `out/proxy.jsonl`
 (`README.md`, "Nothing else leaves"), which is noise in the record and nothing
 worse. Silencing them matters for the record, and for a sealed run that is
 **not** air-gapped, where an allowlist entry for the building's mirrors must not
@@ -236,7 +236,7 @@ Each one says what would settle it. None is answered by guessing.
 5. **Can claude run air-gapped at all?** Its adapter needs a person's account
    (`adapters/claude.json:15-16`), and no account signs in without a network.
    Pointed at a server by `ANTHROPIC_BASE_URL`, it asked for `/v1/messages`
-   under that address, but `HAAS_MODEL_URL` already ends in `/v1`
+   under that address, but `GUSTO_MODEL_URL` already ends in `/v1`
    (`internal/sandbox/sealed.go:53`), so the adapter cannot reuse `{modelUrl}`.
    It also needs a server that speaks Anthropic's messages API. Settle it by
    running a local server that claims to, through the proxy with
@@ -258,10 +258,10 @@ Each one says what would settle it. None is answered by guessing.
 
 ## The decision
 
-### What haas commits to
+### What gusto commits to
 
 An air-gapped install is supported when the customer runs these inside the
-building, and haas needs nothing else:
+building, and gusto needs nothing else:
 
 - an OCI registry, or images loaded by hand;
 - a Debian mirror, an npm mirror, and the vendored Go modules;
@@ -275,19 +275,19 @@ nothing in `out/proxy.jsonl` is a harness calling home. Every job runs sealed:
 a deployment with only a local model still names it as a credential, so its
 containers have no network but the proxy's socket (J7).
 
-`haas check` works against any git host the reviewer can reach. `haas ship`
+`gusto check` works against any git host the reviewer can reach. `gusto ship`
 works against GitHub Enterprise Server once C5 is done.
 
 ### What it does not commit to
 
-- **Model weights or a model server.** haas points at one; it never ships one.
+- **Model weights or a model server.** gusto points at one; it never ships one.
   The model and the credentials are never in a bundle, as `docs/DIRECTION.md`
   already says of bundles.
 - **Which model is good enough.** Until open question 3 has a table, the
   product says an air-gapped job runs, not that it passes.
 - **claude.** It needs an account or an Anthropic-compatible server, and a
   change to its adapter (open question 5).
-- **`haas ship` to a forge that is not GitHub.**
+- **`gusto ship` to a forge that is not GitHub.**
 - **An ACME server inside.** A certificate from the customer's CA replaces the
   certbot path.
 - **One offline bundle file.** Until a second customer asks, the install is the
@@ -306,7 +306,7 @@ it.
 | C4 | rules: judge a restricted job by the credential's address, not the adapter's vendor endpoint | `internal/runner/admit.go:21` and `internal/web/api.go:89` check `adapter.EndpointOf()`, which for codex is `https://api.openai.com` (`adapters/codex.json:25`) whatever the credential points at, so a restricted job on codex is refused even when its model is in the building |
 | C5 | ship: push to and link a GitHub Enterprise host, not only github.com | the token header in `internal/ship/git.go:64`, the links in `internal/ship/links.go:27-48` and the remote parsing in `internal/ship/plan.go:164` follow the configured host |
 | C6 | deploy: install from internal mirrors | the known-hosts entry follows `repo_url` (`common/tasks/main.yml:53-57`); the Go tarball's address is a variable (`toolchain/tasks/main.yml:7`); the vhost takes certificate paths, so certbot is one way to fill them (`nginx/tasks/main.yml:44-52`) |
-| C7 | sandbox: seal every job, not only one with a credential | `cmd/haas/wayout.go:98-99` runs a job with no proxy on the runtime's default network; with a local model the proxy is still what records what left |
+| C7 | sandbox: seal every job, not only one with a credential | `cmd/gusto/wayout.go:98-99` runs a job with no proxy on the runtime's default network; with a local model the proxy is still what records what left |
 
 C4 is the one that surprised. The rule the product already enforces,
 "restricted code only talks to a model in the same building", refuses exactly

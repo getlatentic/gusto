@@ -1,4 +1,4 @@
-module github.com/getlatentic/haas
+module github.com/getlatentic/gusto
 
 go 1.26.8
 

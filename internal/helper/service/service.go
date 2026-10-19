@@ -13,10 +13,10 @@ import (
 )
 
 // Name is what the service is called on every system.
-const Name = "haas-helper"
+const Name = "gusto-helper"
 
 // label is macOS's reverse-domain name for a launch agent.
-const label = "com.latentic.haas-helper"
+const label = "com.latentic.gusto-helper"
 
 // Spec is what to start: the program, and the server it is to follow.
 type Spec struct {

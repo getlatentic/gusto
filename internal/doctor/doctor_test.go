@@ -35,7 +35,7 @@ func TestACheckWhoseNeedFailedIsSkippedAndSaysWhy(t *testing.T) {
 }
 
 func TestSkippedChecksAloneLeaveAMachineHealthy(t *testing.T) {
-	if !Healthy([]Result{{Name: "model", Verdict: skip("HAAS_MODEL_URL is not set")}}) {
+	if !Healthy([]Result{{Name: "model", Verdict: skip("GUSTO_MODEL_URL is not set")}}) {
 		t.Fatal("a check that does not apply is not a failure")
 	}
 }
@@ -56,29 +56,29 @@ func TestThePasswordIsNeverPrinted(t *testing.T) {
 
 func TestAMissingPasswordIsNamedForServe(t *testing.T) {
 	healthy(t)
-	t.Setenv("HAAS_PASSWORD", "")
+	t.Setenv("GUSTO_PASSWORD", "")
 	printed, ok := examine(machineWith(answering().commands))
 	if ok {
 		t.Fatal("serve will not start without a password")
 	}
-	failed(t, printed, "sign-in", "set HAAS_PASSWORD")
+	failed(t, printed, "sign-in", "set GUSTO_PASSWORD")
 }
 
 func TestJobsRunInProcessNeedNoContainer(t *testing.T) {
 	healthy(t)
-	t.Setenv("HAAS_SANDBOX", "here")
+	t.Setenv("GUSTO_SANDBOX", "here")
 	printed, ok := examine(machineWith(fakeRuntime{}.commands))
 	if !ok {
 		t.Fatalf("a runner that uses no container should not fail on one, got:\n%s", printed)
 	}
 	status(t, printed, "container command", Skipped)
-	if !strings.Contains(printed, "HAAS_SANDBOX=here") {
+	if !strings.Contains(printed, "GUSTO_SANDBOX=here") {
 		t.Fatalf("the skip should say why, got:\n%s", printed)
 	}
 }
 
 func TestACommandThatIsNotThereNeverStarted(t *testing.T) {
-	if outcome := execute("haas-no-such-program"); outcome.Started {
+	if outcome := execute("gusto-no-such-program"); outcome.Started {
 		t.Fatalf("a missing program should not read as started, got %+v", outcome)
 	}
 	outcome := execute("sh", "-c", "echo refused; exit 125")

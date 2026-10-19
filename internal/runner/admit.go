@@ -6,9 +6,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/rules"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/rules"
 )
 
 // admit decides whether this job can start here at all. Each check is one a
@@ -55,7 +55,7 @@ func Carries(name string, adapter harness.Adapter) error {
 // never outlives the next attempt. The reason is still returned, so the
 // process exits the way any runner error does.
 func Refuse(dir job.Dir, reason error) error {
-	said := "haas refused this job before the harness started: " + reason.Error() + "\n"
+	said := "gusto refused this job before the harness started: " + reason.Error() + "\n"
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return errors.Join(reason, err)
 	}

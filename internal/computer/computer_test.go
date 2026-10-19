@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 func open(t *testing.T, org string) *Registry {
@@ -46,7 +46,7 @@ func TestASandboxNameFitsAGatewayAndSaysWhichOrganisationItIs(t *testing.T) {
 	if Prefix("acme-research") == Prefix("acme-rocket") {
 		t.Error("two organisations whose addresses begin alike do not share a prefix")
 	}
-	if strings.HasPrefix(name, "haas-") {
+	if strings.HasPrefix(name, "gusto-") {
 		t.Error("a computer's name is not a job's")
 	}
 }
@@ -205,7 +205,7 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganisationOnly(t *testing.T) 
 		running.Sandbox,
 		Prefix("acme") + "ffffffff", // one of ours the record does not know
 		Name("globex", "bob@globex.com"),
-		"haas-1a2b3c4d5e6f", // a job's
+		"gusto-1a2b3c4d5e6f", // a job's
 	}
 	drift, err := r.Compare(gateway)
 	if err != nil {
@@ -220,7 +220,7 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganisationOnly(t *testing.T) 
 	if drift.Clean() {
 		t.Error("they disagree")
 	}
-	clean, _ := open(t, "acme").Compare([]string{"haas-1a2b3c4d5e6f"})
+	clean, _ := open(t, "acme").Compare([]string{"gusto-1a2b3c4d5e6f"})
 	if !clean.Clean() {
 		t.Errorf("an empty record and a gateway with only jobs agree: %+v", clean)
 	}

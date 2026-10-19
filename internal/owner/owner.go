@@ -1,4 +1,4 @@
-// Package owner is the page the owner of a hosted haas manages it from: who asked for a demo, which demos are running,
+// Package owner is the page the owner of a hosted gusto manages it from: who asked for a demo, which demos are running,
 // whether new ones are being accepted, and which hosts are up. It is its own program, listening only on this machine's
 // loopback, so that nothing the front door serves reaches it; the owner reaches it through a tunnel they are allowed to
 // open.
@@ -18,9 +18,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cell"
-	"github.com/getlatentic/haas/internal/cloud"
-	"github.com/getlatentic/haas/internal/web"
+	"github.com/getlatentic/gusto/internal/cell"
+	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 //go:embed templates/*.html
@@ -101,7 +101,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	page := map[string]any{"Title": "haas owner", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
+	page := map[string]any{"Title": "gusto owner", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
 	page["Running"] = a.running()
 	if a.Hosts != nil {
 		if hosts, err := a.Hosts.Running(); err != nil {
@@ -189,7 +189,7 @@ func (a *App) leadsCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="haas-leads.csv"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="gusto-leads.csv"`)
 	out := csv.NewWriter(w)
 	_ = out.Write([]string{"requested", "name", "email", "company", "ready", "ended", "extended", "why it ended"})
 	for _, lead := range leads {

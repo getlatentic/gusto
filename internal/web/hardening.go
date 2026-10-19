@@ -107,7 +107,7 @@ const faultPage = `<!doctype html>
 <title>{{title}}</title><link rel="stylesheet" href="/static/tokens.css"><link rel="stylesheet" href="/static/theme.css">
 <script nonce="{{nonce}}">(function () {
   var root = document.documentElement, theme = "system", accent = "graphite";
-  try { theme = localStorage.getItem("haas-theme") || theme; accent = localStorage.getItem("haas-accent") || accent; } catch (e) {}
+  try { theme = localStorage.getItem("gusto-theme") || theme; accent = localStorage.getItem("gusto-accent") || accent; } catch (e) {}
   root.dataset.theme = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
   root.dataset.accent = accent;
 })();</script>

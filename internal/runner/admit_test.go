@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
 )
 
 // absent names a program no machine has, which is what a job naming a harness
 // the image was not built with looks like from inside the box.
 const absent = `{
   "name": "absent",
-  "program": "haas-fixture-harness-nobody-installed",
+  "program": "gusto-fixture-harness-nobody-installed",
   "argv": ["{brief}"],
   "needs": "nothing",
   "stream": "plain"
@@ -25,7 +25,7 @@ func refused(t *testing.T) (job.Dir, error) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "absent.json"), absent)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ func TestAHarnessTheRunnerLacksIsRefusedBeforeItStarts(t *testing.T) {
 	if err == nil {
 		t.Fatal("a job whose harness is not here should be refused")
 	}
-	for _, said := range []string{"does not carry haas-fixture-harness-nobody-installed", "absent in its HARNESSES"} {
+	for _, said := range []string{"does not carry gusto-fixture-harness-nobody-installed", "absent in its HARNESSES"} {
 		if !strings.Contains(err.Error(), said) {
 			t.Errorf("the refusal says %q, and should say %q", err, said)
 		}

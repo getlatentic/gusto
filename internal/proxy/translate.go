@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/wire"
+	"github.com/getlatentic/gusto/internal/wire"
 )
 
 // translation is what goes out for a call: the body and path it came with when its credential's provider answers its

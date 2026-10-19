@@ -147,7 +147,7 @@ func TestAnInstallPutsEachProgramWhereTheGatewayFindsItAndRecordsItLast(t *testi
 		t.Error("the gateway was not started")
 	}
 	settings, ok := Installed(plan.Layout)
-	if !ok || settings.Binary != plan.Program(CLI) || settings.Gateway != GatewayName || !strings.HasSuffix(settings.Image, "haas-rootfs-arm64.tar.gz") {
+	if !ok || settings.Binary != plan.Program(CLI) || settings.Gateway != GatewayName || !strings.HasSuffix(settings.Image, "gusto-rootfs-arm64.tar.gz") {
 		t.Fatalf("settings are %+v", settings)
 	}
 	if _, err := os.Stat(settings.Image); err != nil {
@@ -168,7 +168,7 @@ func TestAnInstallPutsEachProgramWhereTheGatewayFindsItAndRecordsItLast(t *testi
 	}
 }
 
-func TestAnInstallThatFailsLeavesNothingThatHaasWouldUse(t *testing.T) {
+func TestAnInstallThatFailsLeavesNothingThatGustoWouldUse(t *testing.T) {
 	c, env := newComputer(t, "arm64")
 	c.failRun = "sandbox list"
 	was := startupWait
@@ -187,7 +187,7 @@ func TestAnInstallThatFailsLeavesNothingThatHaasWouldUse(t *testing.T) {
 	}
 }
 
-func TestAFileThatIsNotTheOneHaasCarriesTheChecksumOfIsNotKept(t *testing.T) {
+func TestAFileThatIsNotTheOneGustoCarriesTheChecksumOfIsNotKept(t *testing.T) {
 	c, env := newComputer(t, "arm64")
 	for url := range c.served {
 		if strings.HasPrefix(url, releaseURL) {
@@ -252,18 +252,18 @@ func TestAnImageThePersonNamesIsUsedWhereTheyKeepIt(t *testing.T) {
 	}
 }
 
-func TestAnInstallIsUsedByHaasButNeverOverAnOperatorsSetting(t *testing.T) {
+func TestAnInstallIsUsedByGustoButNeverOverAnOperatorsSetting(t *testing.T) {
 	c, env := newComputer(t, "arm64")
 	plan, _ := Prepare(context.Background(), env, c.root, c.user, "")
 	if err := plan.Apply(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	set := map[string]string{}
-	Adopt(plan.Layout, func(name string) string { return map[string]string{"HAAS_OPENSHELL_IMAGE": "theirs"}[name] }, func(name, value string) { set[name] = value })
-	if set["HAAS_OPENSHELL"] != plan.Program(CLI) || set["HAAS_OPENSHELL_GATEWAY"] != GatewayName {
+	Adopt(plan.Layout, func(name string) string { return map[string]string{"GUSTO_OPENSHELL_IMAGE": "theirs"}[name] }, func(name, value string) { set[name] = value })
+	if set["GUSTO_OPENSHELL"] != plan.Program(CLI) || set["GUSTO_OPENSHELL_GATEWAY"] != GatewayName {
 		t.Errorf("the install is not used: %v", set)
 	}
-	if _, overridden := set["HAAS_OPENSHELL_IMAGE"]; overridden {
+	if _, overridden := set["GUSTO_OPENSHELL_IMAGE"]; overridden {
 		t.Error("an operator's image was replaced")
 	}
 }
@@ -297,7 +297,7 @@ func TestTheGatewayIsConfiguredForVirtualMachinesAndRunsWithShortStateAndItsOwnT
 		t.Errorf("the state folder %q is too long for a socket path", state)
 	}
 	if !strings.HasPrefix(l.GatewayPath(), l.Bin()+":") {
-		t.Errorf("the gateway does not look in haas's own folder first: %s", l.GatewayPath())
+		t.Errorf("the gateway does not look in gusto's own folder first: %s", l.GatewayPath())
 	}
 }
 

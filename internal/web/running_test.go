@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // startedTheOldWay writes an instance the way the two-step start left one on

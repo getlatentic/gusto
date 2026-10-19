@@ -18,18 +18,18 @@ func virtualMachine(h Host) Backend {
 	default:
 		return no("virtual machines for jobs are not supported on " + h.GOOS)
 	}
-	binary := h.Getenv("HAAS_OPENSHELL")
+	binary := h.Getenv("GUSTO_OPENSHELL")
 	if binary == "" {
 		binary = "openshell"
 	}
 	if _, err := h.LookPath(binary); err != nil {
 		return no("OpenShell is not installed")
 	}
-	if h.Getenv("HAAS_OPENSHELL_IMAGE") == "" {
-		return no("HAAS_OPENSHELL_IMAGE names no image that carries the engines")
+	if h.Getenv("GUSTO_OPENSHELL_IMAGE") == "" {
+		return no("GUSTO_OPENSHELL_IMAGE names no image that carries the engines")
 	}
 	list := []string{"sandbox", "list"}
-	if gateway := h.Getenv("HAAS_OPENSHELL_GATEWAY"); gateway != "" {
+	if gateway := h.Getenv("GUSTO_OPENSHELL_GATEWAY"); gateway != "" {
 		list = append([]string{"--gateway", gateway}, list...)
 	}
 	if _, ok := h.Run(binary, list...); !ok {
@@ -39,7 +39,7 @@ func virtualMachine(h Host) Backend {
 }
 
 // processSandbox is the computer's own sandbox around a process: Seatbelt on a Mac, which is nothing to install, and Landlock on
-// Linux, which haas applies itself. It is tried with a real process, and not assumed from the command or the kernel being there.
+// Linux, which gusto applies itself. It is tried with a real process, and not assumed from the command or the kernel being there.
 func processSandbox(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: Process, Detail: why} }
 	switch h.GOOS {
@@ -56,19 +56,19 @@ func processSandbox(h Host) Backend {
 	return no("a process sandbox is for macOS and Linux only so far")
 }
 
-// landlock is Linux's sandbox, tried by haas starting itself behind it. Limiting the network to haas's proxy needs a kernel of 6.7 or
+// landlock is Linux's sandbox, tried by gusto starting itself behind it. Limiting the network to gusto's proxy needs a kernel of 6.7 or
 // later, and a kernel without that is not given the wall unless the person has left the network open.
 func landlock(h Host, no func(string) Backend) Backend {
 	if h.Self == "" {
-		return no("haas does not know where its own program is")
+		return no("gusto does not know where its own program is")
 	}
 	args := []string{"sandbox-run", "--check"}
-	if h.Getenv("HAAS_JOB_NETWORK") != "open" {
+	if h.Getenv("GUSTO_JOB_NETWORK") != "open" {
 		args = append(args, "--network")
 	}
 	out, ok := h.Run(h.Self, args...)
 	if !ok {
-		refused := no("this kernel's Landlock cannot hold a job to its folder and haas's proxy: it needs Linux 6.7 or later")
+		refused := no("this kernel's Landlock cannot hold a job to its folder and gusto's proxy: it needs Linux 6.7 or later")
 		refused.Cause = oneLine(out)
 		return refused
 	}
@@ -95,9 +95,9 @@ func container(h Host) Backend {
 	if _, ok := h.Run(name, "info"); !ok {
 		return no(name + " is installed and does not answer: start it")
 	}
-	image := h.Getenv("HAAS_IMAGE")
+	image := h.Getenv("GUSTO_IMAGE")
 	if image == "" {
-		image = "haas:dev"
+		image = "gusto:dev"
 	}
 	if _, ok := h.Run(name, "image", "inspect", image); !ok {
 		return no(name + " answers, and the runner image " + image + " is not on this computer")

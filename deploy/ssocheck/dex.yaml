@@ -8,7 +8,7 @@ oauth2: { skipApprovalScreen: true }
 connectors:
   - { type: mockCallback, id: mock, name: Mock }
 staticClients:
-  - id: haas
-    secret: haas-secret
-    name: haas
+  - id: gusto
+    secret: gusto-secret
+    name: gusto
     redirectURIs: ["http://127.0.0.1:8040/auth/callback"]

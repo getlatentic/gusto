@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/preset"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/preset"
 )
 
 // UsePresets is where what people save to start a chat the same way again is kept.

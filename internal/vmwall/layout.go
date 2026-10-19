@@ -5,15 +5,15 @@ import (
 	"strings"
 )
 
-// GatewayName is what haas calls its gateway to the openshell command, so a gateway the person already has is left alone.
-const GatewayName = "haas"
+// GatewayName is what gusto calls its gateway to the openshell command, so a gateway the person already has is left alone.
+const GatewayName = "gusto"
 
 // gatewayAddress is where the gateway listens, on the loopback.
 const gatewayAddress = "https://localhost:17670"
 
-// Layout is where everything haas installs for the virtual machine wall is kept.
+// Layout is where everything gusto installs for the virtual machine wall is kept.
 type Layout struct {
-	// Root is the folder of OpenShell inside haas's own, and User the person's home.
+	// Root is the folder of OpenShell inside gusto's own, and User the person's home.
 	Root, User string
 }
 
@@ -26,8 +26,8 @@ func (l Layout) Settings() string { return filepath.Join(l.Root, "vm.json") }
 func (l Layout) Rootfs() string   { return filepath.Join(l.Root, "rootfs") }
 
 // State is the gateway's working folder. The driver's socket lives under it and a socket's path may not pass 104 bytes, so it is
-// short, where haas's own folder on a Mac is not.
-func (l Layout) State() string { return filepath.Join(l.User, ".haas-vm") }
+// short, where gusto's own folder on a Mac is not.
+func (l Layout) State() string { return filepath.Join(l.User, ".gusto-vm") }
 
 // Program is the path a program of the release is run from. The gateway finds its driver in the libexec folder beside its bin.
 func (l Layout) Program(name string) string {
@@ -44,7 +44,7 @@ var toolFolders = []string{"/opt/homebrew/opt/e2fsprogs/bin", "/opt/homebrew/opt
 // diskTools are the programs the driver runs on the host to make each sandbox's disk.
 var diskTools = []string{"mke2fs", "debugfs", "e2fsck"}
 
-// GatewayPath is the PATH the gateway runs with: haas's own folder first, so the disk tools haas ships are the ones used.
+// GatewayPath is the PATH the gateway runs with: gusto's own folder first, so the disk tools gusto ships are the ones used.
 func (l Layout) GatewayPath() string {
 	return strings.Join(append([]string{l.Bin()}, append(toolFolders, "/usr/bin", "/bin")...), string(filepath.ListSeparator))
 }

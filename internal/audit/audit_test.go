@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/audit"
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
-	"github.com/getlatentic/haas/schema"
+	"github.com/getlatentic/gusto/internal/audit"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/schema"
 )
 
 func exported(t *testing.T, from job.Dir, options audit.Options) job.Dir {

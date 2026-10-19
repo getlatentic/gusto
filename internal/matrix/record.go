@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // RecordFile is the matrix's own file. It sits at the top of the matrix, above

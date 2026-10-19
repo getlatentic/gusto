@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: macOS, runner: '["self-hosted", "haas"]'}
+          - {name: macOS, runner: '["self-hosted", "gusto"]'}
           - {name: Windows, runner: '"windows-latest"'}
           - {name: Linux, runner: '"ubuntu-latest"'}
     name: app (${{ matrix.name }})
@@ -56,4 +56,4 @@ jobs:
         run: |
           cargo install tauri-cli --version "^2" --locked
           cargo tauri build --bundles app
-          test -x "target/release/bundle/macos/Latentic Agent Cloud.app/Contents/MacOS/haas-helper"
+          test -x "target/release/bundle/macos/Latentic Agent Cloud.app/Contents/MacOS/gusto-helper"

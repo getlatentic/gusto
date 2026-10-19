@@ -38,7 +38,7 @@ func newService(t *testing.T) *service {
 }
 
 func (s *service) GetPublicKey(_ context.Context, in *kms.GetPublicKeyInput, _ ...func(*kms.Options)) (*kms.GetPublicKeyOutput, error) {
-	if *in.KeyId != "alias/haas" {
+	if *in.KeyId != "alias/gusto" {
 		return nil, errors.New("NotFoundException")
 	}
 	der, err := x509.MarshalPKIXPublicKey(s.private.Public())
@@ -65,7 +65,7 @@ func (s *service) Sign(_ context.Context, in *kms.SignInput, _ ...func(*kms.Opti
 
 func opened(t *testing.T, s *service) Signer {
 	t.Helper()
-	signer, err := newKMSKey(context.Background(), s, "alias/haas")
+	signer, err := newKMSKey(context.Background(), s, "alias/gusto")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestAKMSKeyThatCannotSignARecordIsRefusedWhenOpened(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := newService(t)
 			change(s)
-			if _, err := newKMSKey(context.Background(), s, "alias/haas"); err == nil {
+			if _, err := newKMSKey(context.Background(), s, "alias/gusto"); err == nil {
 				t.Fatal("the key was accepted")
 			}
 		})

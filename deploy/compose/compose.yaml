@@ -1,14 +1,14 @@
-# haas on one Linux machine: the server, the proxy inside it, and the runner
+# gusto on one Linux machine: the server, the proxy inside it, and the runner
 # image it starts one container from per job. README.md beside this file is the
 # path to follow, and deploy/README.md says what the runtime socket below gives
 # the server.
 #
-#   cp env.example .env     # then set HAAS_PASSWORD
+#   cp env.example .env     # then set GUSTO_PASSWORD
 #   docker compose up -d --build
 #
 # Settings come from .env, which is gitignored at the repository root.
 
-name: haas
+name: gusto
 
 services:
   # The runner is not a service that stays up: the server starts a fresh
@@ -16,13 +16,13 @@ services:
   # builds the image and runs it once with `harnesses`, so an image that cannot
   # start stops the install here rather than at somebody's first job.
   runner:
-    image: ${HAAS_RUNNER_IMAGE:-haas-runner:local}
+    image: ${GUSTO_RUNNER_IMAGE:-gusto-runner:local}
     build:
       context: ../..
       dockerfile: Dockerfile
       args:
-        HARNESSES: ${HAAS_RUNNER_HARNESSES:-opencode=opencode-ai}
-        MCP_SERVERS: ${HAAS_RUNNER_MCP:-}
+        HARNESSES: ${GUSTO_RUNNER_HARNESSES:-opencode=opencode-ai}
+        MCP_SERVERS: ${GUSTO_RUNNER_MCP:-}
       # The root Dockerfile names its bases by tag. A named context replaces
       # what a FROM line resolves to, so this install builds the same file from
       # bases pinned by digest without changing it. A key is the FROM line's
@@ -35,7 +35,7 @@ services:
     restart: "no"
 
   server:
-    image: ${HAAS_SERVER_IMAGE:-haas-server:local}
+    image: ${GUSTO_SERVER_IMAGE:-gusto-server:local}
     build:
       context: ../..
       dockerfile: deploy/server/Dockerfile
@@ -49,44 +49,44 @@ services:
     environment:
       # What the install decides, so .env cannot move it out from under the
       # mounts below.
-      HAAS_ADDR: 0.0.0.0:8040
-      # 1 when only a proxy of yours reaches the server, which is so when HAAS_PUBLISH is the loopback: in a container the proxy
+      GUSTO_ADDR: 0.0.0.0:8040
+      # 1 when only a proxy of yours reaches the server, which is so when GUSTO_PUBLISH is the loopback: in a container the proxy
       # connects from the bridge, and the address it forwards is then believed. deploy/install/server.sh sets it.
-      HAAS_BEHIND_PROXY: ${HAAS_BEHIND_PROXY:-}
-      HAAS_CONTAINER: docker
-      HAAS_IMAGE: ${HAAS_RUNNER_IMAGE:-haas-runner:local}
-      HAAS_JOBS: ${HAAS_DATA:-/var/lib/haas}/jobs
-      HAAS_SESSIONS: ${HAAS_DATA:-/var/lib/haas}/sessions
-      HAAS_SETUPS: ${HAAS_DATA:-/var/lib/haas}/setups
-      HAAS_INTEGRATIONS: ${HAAS_DATA:-/var/lib/haas}/integrations
-      HAAS_PRESETS: ${HAAS_DATA:-/var/lib/haas}/presets
-      HAAS_CHANGES: ${HAAS_DATA:-/var/lib/haas}/changes/changes.jsonl
-      HAAS_RETENTION: ${HAAS_DATA:-/var/lib/haas}/retention
+      GUSTO_BEHIND_PROXY: ${GUSTO_BEHIND_PROXY:-}
+      GUSTO_CONTAINER: docker
+      GUSTO_IMAGE: ${GUSTO_RUNNER_IMAGE:-gusto-runner:local}
+      GUSTO_JOBS: ${GUSTO_DATA:-/var/lib/gusto}/jobs
+      GUSTO_SESSIONS: ${GUSTO_DATA:-/var/lib/gusto}/sessions
+      GUSTO_SETUPS: ${GUSTO_DATA:-/var/lib/gusto}/setups
+      GUSTO_INTEGRATIONS: ${GUSTO_DATA:-/var/lib/gusto}/integrations
+      GUSTO_PRESETS: ${GUSTO_DATA:-/var/lib/gusto}/presets
+      GUSTO_CHANGES: ${GUSTO_DATA:-/var/lib/gusto}/changes/changes.jsonl
+      GUSTO_RETENTION: ${GUSTO_DATA:-/var/lib/gusto}/retention
       # The one place on the volume a job may clone from disk: deploy/smoke.sh's
       # repository. Everything else is an https or ssh address.
-      HAAS_LOCAL_REPOS: ${HAAS_DATA:-/var/lib/haas}/smoke
-      HAAS_COMPARISONS: ${HAAS_DATA:-/var/lib/haas}/comparisons
-      DOCKER_HOST: unix:///run/haas/runtime.sock
+      GUSTO_LOCAL_REPOS: ${GUSTO_DATA:-/var/lib/gusto}/smoke
+      GUSTO_COMPARISONS: ${GUSTO_DATA:-/var/lib/gusto}/comparisons
+      DOCKER_HOST: unix:///run/gusto/runtime.sock
     ports:
       # Loopback by default: the shared password travels in the clear over
       # plain HTTP, so something that terminates TLS goes in front.
-      - ${HAAS_PUBLISH:-127.0.0.1:8040}:8040
+      - ${GUSTO_PUBLISH:-127.0.0.1:8040}:8040
     volumes:
       # The same path on both sides, and that is required. The server names a
       # job's directory, a conversation's workspace and the proxy's socket to
       # the runtime by the path it sees, and the runtime resolves that path on
       # the host.
       - type: bind
-        source: ${HAAS_DATA:-/var/lib/haas}
-        target: ${HAAS_DATA:-/var/lib/haas}
+        source: ${GUSTO_DATA:-/var/lib/gusto}
+        target: ${GUSTO_DATA:-/var/lib/gusto}
         bind:
           create_host_path: true
       # The host's container runtime. Whoever holds this socket can start a
       # privileged container and so holds root on the host: this is the trade
       # deploy/README.md names, not a safe default.
       - type: bind
-        source: ${HAAS_RUNTIME_SOCKET:-/var/run/docker.sock}
-        target: /run/haas/runtime.sock
+        source: ${GUSTO_RUNTIME_SOCKET:-/var/run/docker.sock}
+        target: /run/gusto/runtime.sock
     healthcheck:
       # bash, because the image carries no HTTP client and /dev/tcp is bash's.
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8040 && printf 'GET /healthz HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '^ok' <&3"]
@@ -95,8 +95,8 @@ services:
       retries: 6
 
   # HTTPS in front of the server, for a machine people sign in to from elsewhere. It is off until asked for:
-  # `docker compose --profile tls up -d`, with HAAS_DOMAIN set to the name that points at this machine, which gets a certificate
-  # of its own. deploy/install/server.sh sets this up. With HAAS_PUBLISH on the loopback the server is reached only through this.
+  # `docker compose --profile tls up -d`, with GUSTO_DOMAIN set to the name that points at this machine, which gets a certificate
+  # of its own. deploy/install/server.sh sets this up. With GUSTO_PUBLISH on the loopback the server is reached only through this.
   tls:
     profiles: ["tls"]
     image: docker.io/library/caddy:2
@@ -105,8 +105,8 @@ services:
       server:
         condition: service_healthy
     environment:
-      HAAS_DOMAIN: ${HAAS_DOMAIN:-localhost}
-      HAAS_CADDY_TLS: ${HAAS_CADDY_TLS:-}
+      GUSTO_DOMAIN: ${GUSTO_DOMAIN:-localhost}
+      GUSTO_CADDY_TLS: ${GUSTO_CADDY_TLS:-}
     ports:
       - "80:80"
       - "443:443"

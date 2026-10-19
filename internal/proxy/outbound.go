@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // outbound answers a container using the proxy as an ordinary forward proxy,
@@ -18,7 +18,7 @@ import (
 func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
 	ticket, known := p.tokens.Job(proxyToken(r))
 	if !known {
-		w.Header().Set("Proxy-Authenticate", `Basic realm="haas"`)
+		w.Header().Set("Proxy-Authenticate", `Basic realm="gusto"`)
 		http.Error(w, "no", http.StatusProxyAuthRequired)
 		return
 	}
@@ -28,7 +28,7 @@ func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
 	if !p.allowed.Permits(address) {
 		call.Status, call.Denied = http.StatusForbidden, "not on the allowlist"
 		p.note(ticket.Job, call)
-		http.Error(w, "haas refused "+address+": it is not on this job's allowlist", http.StatusForbidden)
+		http.Error(w, "gusto refused "+address+": it is not on this job's allowlist", http.StatusForbidden)
 		return
 	}
 	if r.Method == http.MethodConnect {
@@ -76,7 +76,7 @@ func destination(r *http.Request) string {
 }
 
 // proxyToken is the job's token as a forward-proxy client presents it: the
-// password in a proxy URL such as http://haas:<token>@127.0.0.1:8041, which a
+// password in a proxy URL such as http://gusto:<token>@127.0.0.1:8041, which a
 // client sends as Proxy-Authorization.
 func proxyToken(r *http.Request) string {
 	given := r.Header.Get("Proxy-Authorization")

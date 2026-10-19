@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/getlatentic/haas/main/schema/manifest/v1.json",
-  "title": "haas out/manifest.json, version 1",
-  "description": "The record of a run: a SHA-256 of job.json and of every file in out/ except this one and its signature, the gate's verdict, what the harness did, and who the runner says stands behind it. `haas verify` re-hashes the files against it. A runner with a key signs these exact bytes in out/manifest.sig, described by schema/signature/v1.json. A reader ignores a field it does not know.",
+  "$id": "https://raw.githubusercontent.com/getlatentic/gusto/main/schema/manifest/v1.json",
+  "title": "gusto out/manifest.json, version 1",
+  "description": "The record of a run: a SHA-256 of job.json and of every file in out/ except this one and its signature, the gate's verdict, what the harness did, and who the runner says stands behind it. `gusto verify` re-hashes the files against it. A runner with a key signs these exact bytes in out/manifest.sig, described by schema/signature/v1.json. A reader ignores a field it does not know.",
   "type": "object",
   "required": [
     "job",
@@ -142,7 +142,7 @@
       ]
     },
     "signer": {
-      "description": "Who the runner says stands behind the run: HAAS_SIGNER on the runner; with no name, the id of the key it signs with; with neither, \"unsigned\". It is the runner's own word: a verifier names the signer from its keyring and out/manifest.sig, never from this field.",
+      "description": "Who the runner says stands behind the run: GUSTO_SIGNER on the runner; with no name, the id of the key it signs with; with neither, \"unsigned\". It is the runner's own word: a verifier names the signer from its keyring and out/manifest.sig, never from this field.",
       "type": "string"
     },
     "atUnix": {

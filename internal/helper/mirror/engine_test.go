@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // cloud is an agent's folder in memory, and says no the way the server does.
@@ -499,7 +499,7 @@ func TestACutListingAndTheHomeFolderAndTheRootOfADiskAreRefused(t *testing.T) {
 
 func TestIgnoredFilesNeverCrossAndAreNeverDeleted(t *testing.T) {
 	p := newPair(t)
-	p.write(".haasignore", "*.tmp\nscratch/\n")
+	p.write(".gustoignore", "*.tmp\nscratch/\n")
 	p.write("node_modules/pkg/index.js", "x")
 	p.write("work.tmp", "x")
 	p.write("scratch/a", "x")

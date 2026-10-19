@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // overviewPage is where an admin starts: what the organisation has spent this month

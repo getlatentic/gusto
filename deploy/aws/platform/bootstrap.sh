@@ -11,8 +11,8 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH" TF_IN_AUTOMATION=1 TF_CLI
 export AWS_PROFILE="${AWS_PROFILE:-haas-poc}" AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
 # How GitHub names this repository in a workflow's token depends on the repository: the immutable form
 # carries the ids of the owner and the repository. Asking GitHub is the only way to know.
-subject="$(gh api repos/getlatentic/haas/actions/oidc/customization/sub --jq .sub_claim_prefix 2>/dev/null || true)"
-subject="${subject:-repo:getlatentic/haas}"
+subject="$(gh api repos/getlatentic/gusto/actions/oidc/customization/sub --jq .sub_claim_prefix 2>/dev/null || true)"
+subject="${subject:-repo:getlatentic/gusto}"
 echo "the workflows' token names the repository as $subject"
 bucket="$(../openshell/demo-store.sh)"
 terraform init -input=false -reconfigure -backend-config="bucket=$bucket" -backend-config="region=$AWS_REGION" >/dev/null
@@ -30,7 +30,7 @@ MSG
 fi
 echo
 echo "Set these once on the repository, and the workflows can run:"
-echo "  gh variable set HAAS_AWS_ROLE   --repo getlatentic/haas --body '$(terraform output -raw ci_role)'"
-echo "  gh variable set HAAS_BUCKET     --repo getlatentic/haas --body '$bucket'"
-echo "  gh variable set HAAS_DEMO_NAME  --repo getlatentic/haas --body \"\$DEMO_NAME\"   # from demo.env"
-echo "  gh variable set HAAS_EFS        --repo getlatentic/haas --body '$(terraform output -raw file_system)'   # only for demos with cells"
+echo "  gh variable set GUSTO_AWS_ROLE   --repo getlatentic/gusto --body '$(terraform output -raw ci_role)'"
+echo "  gh variable set GUSTO_BUCKET     --repo getlatentic/gusto --body '$bucket'"
+echo "  gh variable set GUSTO_DEMO_NAME  --repo getlatentic/gusto --body \"\$DEMO_NAME\"   # from demo.env"
+echo "  gh variable set GUSTO_EFS        --repo getlatentic/gusto --body '$(terraform output -raw file_system)'   # only for demos with cells"

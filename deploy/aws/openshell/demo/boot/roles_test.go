@@ -61,7 +61,7 @@ func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 		t.Errorf("computers on a cell reach the models: %v", done)
 	}
 	identity := mustRead(t, filepath.Join(h.dir, "run", "cell.env"))
-	if want := "HAAS_CELL_NAME=cell-0abc123def4567890\nHAAS_CELL_PRIVATE=10.0.7.21\n"; identity != want {
+	if want := "GUSTO_CELL_NAME=cell-0abc123def4567890\nGUSTO_CELL_PRIVATE=10.0.7.21\n"; identity != want {
 		t.Errorf("who it is: %q", identity)
 	}
 	if h.has("run/secrets/cf-dns-token") || h.has("run/secrets/mail.env") || h.has("lease/lease.json") {
@@ -102,7 +102,7 @@ func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOn
 		}
 		path := filepath.Join(h.dir, "run", "secrets", "turnstile.env")
 		info, err := os.Stat(path)
-		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "HAAS_CLOUD_TURNSTILE_SECRET=value-of-/haas/poc/turnstile-secret\n" {
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "GUSTO_CLOUD_TURNSTILE_SECRET=value-of-/haas/poc/turnstile-secret\n" {
 			t.Errorf("%s: %v %v", role, info, err)
 		}
 	}
@@ -145,7 +145,7 @@ func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded
 		}
 		path := filepath.Join(h.dir, "run", "secrets", "leadhook.env")
 		info, err := os.Stat(path)
-		want := "HAAS_CLOUD_LEAD_HOOK_URL=value-of-/haas/poc/lead-hook-url\nHAAS_CLOUD_LEAD_HOOK_SECRET=value-of-/haas/poc/lead-hook-secret\n"
+		want := "GUSTO_CLOUD_LEAD_HOOK_URL=value-of-/haas/poc/lead-hook-url\nGUSTO_CLOUD_LEAD_HOOK_SECRET=value-of-/haas/poc/lead-hook-secret\n"
 		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
 			t.Errorf("%s: %v %v", role, info, err)
 		}

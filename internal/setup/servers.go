@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Servers is every MCP server the deployment offers, by name.

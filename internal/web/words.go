@@ -3,8 +3,8 @@ package web
 import (
 	"strings"
 
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/instance"
 )
 
 // The pages are for people who do not know what a harness, a model id or a
@@ -62,7 +62,7 @@ func (s *Server) engineName(harness string) string {
 }
 
 // knownModels are the names providers give their models in their own
-// catalogues, for the ids haas is configured with.
+// catalogues, for the ids gusto is configured with.
 var knownModels = map[string]string{
 	"deepseek-flash":                   "DeepSeek Flash",
 	"deepseek-v4-pro":                  "DeepSeek Pro",

@@ -56,7 +56,7 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 
 // makeSandboxOnly makes the sandbox with its policy and nothing in it.
 func (s *Sandbox) makeSandboxOnly(ctx context.Context) error {
-	policy, err := os.CreateTemp("", "haas-sandbox-policy-")
+	policy, err := os.CreateTemp("", "gusto-sandbox-policy-")
 	if err != nil {
 		return err
 	}

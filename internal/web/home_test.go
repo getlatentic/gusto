@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // The home page is the harnesses somebody has, and starting another is one

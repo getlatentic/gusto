@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
 func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {
@@ -188,13 +188,13 @@ func TestAJobWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 func TestAReplayCarriesTheAdapterTheOldJobCarried(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
-	// Carried is written after the run, as a job made by `haas new` would hold
+	// Carried is written after the run, as a job made by `gusto new` would hold
 	// it. It is outside out/, so the evidence still checks.
 	if err := os.MkdirAll(filepath.Join(old.Path(), "harnesses"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	write(t, filepath.Join(old.Path(), "harnesses", "yes.json"), answersYes)
-	t.Setenv("HAAS_HARNESSES", t.TempDir())
+	t.Setenv("GUSTO_HARNESSES", t.TempDir())
 
 	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 func TestTheStatusSaysWhetherTheIconIsShownAndWhyNotWhenItIsNot(t *testing.T) {

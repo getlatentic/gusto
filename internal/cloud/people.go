@@ -3,7 +3,7 @@ package cloud
 import (
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Role is what a person may do in their organisation.

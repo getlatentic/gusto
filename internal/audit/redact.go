@@ -129,7 +129,7 @@ func (s *scrubber) text(text string) string {
 	return text
 }
 
-// encode writes JSON the way the rest of haas does, and without escaping the
+// encode writes JSON the way the rest of gusto does, and without escaping the
 // angle brackets a redaction marker never has but a transcript often does.
 func encode(value any, indent bool) ([]byte, error) {
 	var out bytes.Buffer

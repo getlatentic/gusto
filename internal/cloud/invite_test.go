@@ -1,7 +1,7 @@
 package cloud
 
 import (
-	"github.com/getlatentic/haas/internal/computer"
+	"github.com/getlatentic/gusto/internal/computer"
 	"net/http"
 	"net/url"
 	"strings"
@@ -189,7 +189,7 @@ func TestSomeoneWhoJoinsIsSentToTheirOrganisationsServerWithTheRoleTheyHave(t *t
 	}
 	parsed, _ := url.Parse(location)
 	status, _, answer := bob.at(parsed.Host, "GET", parsed.RequestURI(), nil)
-	if status != http.StatusSeeOther || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "haas=bob@acme.com|runner") {
+	if status != http.StatusSeeOther || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "gusto=bob@acme.com|runner") {
 		t.Errorf("the organisation's server has them as a runner: %d %v", status, answer)
 	}
 }

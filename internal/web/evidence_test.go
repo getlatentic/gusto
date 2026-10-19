@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // leftBehind is a job directory as a runner leaves it, written without running
@@ -241,7 +241,7 @@ var shownCommand = regexp.MustCompile(`<code id="verify">([^<]*)</code>`)
 
 // The command on the page is only worth showing if it works on what the page
 // hands over, so this downloads the bundle and runs the command as written,
-// with a haas built from this tree.
+// with a gusto built from this tree.
 func TestTheVerifyCommandOnThePageVerifiesTheBundle(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -258,9 +258,9 @@ func TestTheVerifyCommandOnThePageVerifiesTheBundle(t *testing.T) {
 	put(t, filepath.Join(downloads, id+".tar.gz"), bundle.Body.String(), 0o644)
 
 	bin := t.TempDir()
-	build := exec.Command("go", "build", "-o", filepath.Join(bin, "haas"), "github.com/getlatentic/haas/cmd/haas")
+	build := exec.Command("go", "build", "-o", filepath.Join(bin, "gusto"), "github.com/getlatentic/gusto/cmd/gusto")
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("building haas: %v: %s", err, output)
+		t.Fatalf("building gusto: %v: %s", err, output)
 	}
 	run := exec.Command("sh", "-c", command)
 	run.Dir = downloads

@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 // Instance is the computer: what a harness runs under and works in.

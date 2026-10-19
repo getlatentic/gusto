@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // view is what a page is drawn from. Every page uses the fields it names.

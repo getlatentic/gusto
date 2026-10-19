@@ -3,7 +3,7 @@ package web
 import (
 	"fmt"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // waiting says in words where a queued job stands and what it waits for, or

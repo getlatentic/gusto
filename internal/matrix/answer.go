@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Asked is what `haas matrix` was asked on the command line.
+// Asked is what `gusto matrix` was asked on the command line.
 type Asked struct {
 	// Into is where the matrix goes. Empty is beside the plan, named after it.
 	Into string
@@ -20,7 +20,7 @@ type Asked struct {
 	Progress io.Writer
 }
 
-// Answer is the whole of `haas matrix`. A matrix's directory alone prints its
+// Answer is the whole of `gusto matrix`. A matrix's directory alone prints its
 // table again from the evidence; a plan runs whatever is due into its matrix,
 // writes the table there, and prints it. Either way the exit code is
 // ExitCode's.

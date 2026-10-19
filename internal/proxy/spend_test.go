@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // These answers are fixtures written to the documented OpenAI-compatible shape,

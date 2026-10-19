@@ -1,8 +1,8 @@
 # The certificate is the domain's own, from Let's Encrypt, once the name points at this machine and ports 80 and 443 are open.
-# HAAS_CADDY_TLS is `tls internal` for a name or an address no public authority can vouch for: the certificate is then Caddy's own
+# GUSTO_CADDY_TLS is `tls internal` for a name or an address no public authority can vouch for: the certificate is then Caddy's own
 # and a browser warns, so use it to try an install and not to keep one.
-{$HAAS_DOMAIN:localhost} {
-	{$HAAS_CADDY_TLS}
+{$GUSTO_DOMAIN:localhost} {
+	{$GUSTO_CADDY_TLS}
 	reverse_proxy server:8040 {
 		flush_interval -1
 	}

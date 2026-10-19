@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apps"
-	"github.com/getlatentic/haas/internal/entry"
-	"github.com/getlatentic/haas/internal/web"
+	"github.com/getlatentic/gusto/internal/apps"
+	"github.com/getlatentic/gusto/internal/entry"
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 // provision starts an organisation's server, without making the person wait for it.
@@ -151,7 +151,7 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 		}
 		pr.Out.Header.Del("Cookie")
 		for _, cookie := range pr.In.Cookies() {
-			if cookie.Name != "haas_cloud" && cookie.Name != "__Host-haas_cloud" {
+			if cookie.Name != "gusto_cloud" && cookie.Name != "__Host-gusto_cloud" {
 				pr.Out.AddCookie(cookie)
 			}
 		}

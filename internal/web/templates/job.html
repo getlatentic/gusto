@@ -121,7 +121,7 @@
     {{else}}
     <p class="proof-line">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
     {{end}}
-    <p class="muted small">Check it on your own machine, without haas.</p>
+    <p class="muted small">Check it on your own machine, without gusto.</p>
     <p class="proof-downloads"><a class="button small" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="button small plain" href="{{.}}" download>The signing key</a>{{end}}</p>
     <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
     <details><summary>Each file and its fingerprint</summary>

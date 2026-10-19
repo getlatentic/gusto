@@ -141,7 +141,7 @@ func TestASandboxReadsOnlyWhatAProgramNeedsOfEtcAndNoLogs(t *testing.T) {
 }
 
 func TestEveryCommandInASandboxStartsUnderAProcessLimit(t *testing.T) {
-	s := &Sandbox{cfg: Config{Binary: "openshell", Processes: 77}, name: "haas-x"}
+	s := &Sandbox{cfg: Config{Binary: "openshell", Processes: 77}, name: "gusto-x"}
 	wrapped := s.Wrap(t.Context(), exec.Command("harness", "--go"))
 	script := strings.Join(wrapped.Args, " ")
 	if !strings.Contains(script, "ulimit -u 77") || !strings.Contains(script, "ulimit -p 77") {
@@ -154,12 +154,12 @@ func TestEveryCommandInASandboxStartsUnderAProcessLimit(t *testing.T) {
 
 func TestAProcessLimitThatIsNotANumberAboveZeroIsRefused(t *testing.T) {
 	for _, bad := range []string{"0", "-3", "many"} {
-		t.Setenv("HAAS_OPENSHELL_PROCESSES", bad)
+		t.Setenv("GUSTO_OPENSHELL_PROCESSES", bad)
 		if _, err := FromEnv(); err == nil {
 			t.Errorf("%q was taken as a process limit", bad)
 		}
 	}
-	t.Setenv("HAAS_OPENSHELL_PROCESSES", "")
+	t.Setenv("GUSTO_OPENSHELL_PROCESSES", "")
 	if cfg, err := FromEnv(); err != nil || cfg.Processes != 512 {
 		t.Errorf("with none set the limit is %d, %v", cfg.Processes, err)
 	}

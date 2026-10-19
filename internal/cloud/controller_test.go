@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/roster"
+	"github.com/getlatentic/gusto/internal/roster"
 )
 
 func whoIs(t *testing.T, address string) map[string]any {

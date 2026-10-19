@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Source says where a version came from, so that the same version can be found again and the person who turns it on can see it.
