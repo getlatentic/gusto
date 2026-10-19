@@ -1,0 +1,352 @@
+---
+# Moves a box that still carries the haas names to the gusto names, once. Delete
+# this role and its line in site.yml when every box has run it.
+#
+# Every step keys on the old name existing and the new one not, so a box that is
+# already on the new names skips the whole role and a run that failed halfway
+# resumes where it stopped. The old unit files go last because they are what
+# tells the next run that anything is left.
+#
+# It stops the deploy the box runs for itself, so it cannot run under it: run
+# the playbook by hand from a laptop (README.md, "Moving a box off the old names").
+
+- name: The accounts on this box
+  ansible.builtin.getent:
+    database: passwd
+
+- name: The groups on this box
+  ansible.builtin.getent:
+    database: group
+
+- name: Which of the old and new paths exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ legacy_paths + [app_root, autodeploy_root] }}"
+  register: probed
+
+- name: What is left of the old deployment
+  ansible.builtin.set_fact:
+    box_users: "{{ ansible_facts.getent_passwd }}"
+    box_groups: "{{ ansible_facts.getent_group }}"
+    path_exists: "{{ dict(probed.results | map(attribute='item') | zip(probed.results | map(attribute='stat.exists'))) }}"
+    legacy_left: >-
+      {{ (probed.results | selectattr('item', 'in', legacy_paths) | selectattr('stat.exists') | list | length > 0)
+         or (legacy_user in ansible_facts.getent_passwd)
+         or (legacy_deploy_user in ansible_facts.getent_passwd) }}
+
+- name: The deploy the box runs for itself is not the one renaming it
+  ansible.builtin.assert:
+    that: not (legacy_left | bool) or not (autodeploy_self | bool)
+    fail_msg: >-
+      This box still has the {{ legacy_name }} names, and renaming them stops the deploy that is
+      running this play. Run the playbook by hand from a laptop once; README.md
+      says how under "Moving a box off the old names". Nothing was changed.
+
+- name: Old and new names are not both there
+  ansible.builtin.assert:
+    that:
+      - not (legacy_user in box_users and app_user in box_users)
+      - not (legacy_deploy_user in box_users and autodeploy_user in box_users)
+      - not (path_exists[legacy_root] and path_exists[app_root])
+      - not (path_exists[legacy_deploy_root] and path_exists[autodeploy_root])
+    fail_msg: >-
+      Both a {{ legacy_name }} and a {{ app_user }} account or directory exist, so which one holds
+      the state is a decision for a person. Nothing was changed.
+  when: legacy_left | bool
+
+- name: Stop the old deployment
+  when: legacy_left | bool
+  block:
+    - name: The old service stopped and disabled
+      ansible.builtin.systemd:
+        name: "{{ legacy_name }}"
+        state: stopped
+        enabled: false
+      when: path_exists[legacy_service_unit]
+
+    - name: Deploys in flight stopped
+      ansible.builtin.command:
+        cmd: "systemctl stop '{{ legacy_name }}-deploy@*.service'"
+      failed_when: false
+      changed_when: false
+      when: path_exists[legacy_deploy_unit]
+
+    # usermod refuses an account that has a process. Rootless podman leaves a
+    # session, a pause process and conmon behind after the service stops.
+    - name: Nothing runs as the old account
+      ansible.builtin.shell:
+        cmd: |
+          loginctl disable-linger {{ legacy_user }} || true
+          loginctl terminate-user {{ legacy_user }} || true
+          for _ in $(seq 20); do pgrep -u {{ legacy_user }} >/dev/null || exit 0; sleep 1; done
+          pkill -KILL -u {{ legacy_user }}; sleep 1
+          ! pgrep -u {{ legacy_user }} >/dev/null
+        executable: /bin/bash
+      when: legacy_user in box_users
+      changed_when: true
+
+    - name: The linger record of the old account removed
+      ansible.builtin.file:
+        path: "/var/lib/systemd/linger/{{ legacy_user }}"
+        state: absent
+
+- name: Rename the app account and its home
+  when: legacy_left | bool
+  block:
+    - name: The account renamed
+      ansible.builtin.command:
+        cmd: "usermod --login {{ app_user }} {{ legacy_user }}"
+      when: legacy_user in box_users and app_user not in box_users
+
+    - name: Its group renamed
+      ansible.builtin.command:
+        cmd: "groupmod --new-name {{ app_user }} {{ legacy_user }}"
+      when: legacy_user in box_groups and app_user not in box_groups
+
+    # Rootless podman finds its id range by the account's name.
+    - name: The subordinate id ranges follow the account
+      ansible.builtin.replace:
+        path: "{{ item }}"
+        regexp: "^{{ legacy_user }}:"
+        replace: "{{ app_user }}:"
+      loop:
+        - /etc/subuid
+        - /etc/subgid
+
+    - name: Both ranges are the new account's
+      ansible.builtin.command:
+        cmd: "grep -q '^{{ app_user }}:' {{ item }}"
+      loop:
+        - /etc/subuid
+        - /etc/subgid
+      changed_when: false
+
+    - name: The home moved
+      ansible.builtin.command:
+        cmd: "mv {{ legacy_root }} {{ app_root }}"
+        removes: "{{ legacy_root }}"
+        creates: "{{ app_root }}"
+
+    - name: The account's home now
+      ansible.builtin.command:
+        cmd: "getent passwd {{ app_user }}"
+      register: app_entry
+      changed_when: false
+      failed_when: app_entry.rc not in [0, 2]
+      check_mode: false
+
+    - name: The account points at the moved home
+      ansible.builtin.command:
+        cmd: "usermod --home {{ app_root }} {{ app_user }}"
+      when: app_entry.rc == 0 and app_entry.stdout.split(':')[5] == legacy_root
+
+    - name: Binaries, the previous one included, carry the new name
+      ansible.builtin.command:
+        cmd: "mv {{ app_root }}/bin/{{ item.from }} {{ item.to }}"
+        removes: "{{ app_root }}/bin/{{ item.from }}"
+        creates: "{{ item.to }}"
+      loop:
+        - { from: "{{ legacy_name }}", to: "{{ live_bin }}" }
+        - { from: "{{ legacy_name }}.previous", to: "{{ previous_bin }}" }
+      loop_control:
+        label: "{{ item.to }}"
+
+    - name: The SQLite store carries the new name
+      ansible.builtin.command:
+        cmd: "mv {{ app_root }}/var/{{ legacy_name }}.db{{ item }} {{ app_root }}/var/gusto.db{{ item }}"
+        removes: "{{ app_root }}/var/{{ legacy_name }}.db{{ item }}"
+        creates: "{{ app_root }}/var/gusto.db{{ item }}"
+      loop: ["", "-wal", "-shm"]
+
+    # serve writes the new environment file; the old one holds the secrets.
+    - name: Files of the old name that are written again, removed
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ app_root }}/bin/{{ legacy_name }}.next"
+        - "{{ app_root }}/var/{{ legacy_name }}.env"
+
+- name: Keep the container images
+  when: legacy_left | bool
+  block:
+    - name: Podman's database
+      ansible.builtin.stat:
+        path: "{{ app_root }}/.local/share/containers/storage/db.sql"
+      register: podman_db
+
+    - name: Podman reads its images from the moved home
+      ansible.builtin.command:
+        cmd: "podman image list --quiet"
+      become_user: "{{ app_user }}"
+      environment:
+        HOME: "{{ app_root }}"
+      register: podman_moved
+      failed_when: false
+      changed_when: false
+      check_mode: false
+      when: podman_db.stat.exists
+
+    # Podman's database names the directories it was created in and refuses to
+    # open from any other. It holds the containers and nothing that an image
+    # needs; the images are in the storage beside it, and podman makes a new one.
+    - name: The database of the old paths dropped
+      ansible.builtin.file:
+        path: "{{ app_root }}/.local/share/containers/storage/db.sql"
+        state: absent
+      when: podman_moved is not skipped and podman_moved.rc != 0 and 'mismatch' in podman_moved.stderr
+
+    - name: Podman reads its images from the moved home, for certain
+      ansible.builtin.command:
+        cmd: "podman image list --quiet"
+      become_user: "{{ app_user }}"
+      environment:
+        HOME: "{{ app_root }}"
+      changed_when: false
+      when: podman_moved is not skipped and podman_moved.rc != 0
+
+    - name: The live and the previous image carry the new name
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          for tag in $(podman images --noheading --format '{% raw %}{{.Repository}}:{{.Tag}}{% endraw %}' | grep '^localhost/{{ legacy_name }}:' || true); do
+            podman tag "$tag" "localhost/{{ app_user }}:${tag#localhost/{{ legacy_name }}:}" && podman untag "$tag" && echo "$tag"
+          done
+        executable: /bin/bash
+      become_user: "{{ app_user }}"
+      environment:
+        HOME: "{{ app_root }}"
+      register: retagged
+      changed_when: retagged.stdout | length > 0
+      when: podman_db.stat.exists
+
+- name: Rename the web side
+  when: legacy_left | bool
+  block:
+    - name: nginx's old vhost and page for when the server is down removed
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/etc/nginx/sites-enabled/{{ legacy_name }}.conf"
+        - "/etc/nginx/sites-available/{{ legacy_name }}.conf"
+        - "{{ legacy_errors_dir }}"
+      notify: Reload nginx
+
+    - name: The box's inventory note, without the old block
+      ansible.builtin.blockinfile:
+        path: /opt/INVENTORY.md
+        marker: "<!-- {mark} {{ legacy_name }} (managed by {{ legacy_name }}/deploy/ansible) -->"
+        state: absent
+      failed_when: false
+
+- name: Rename the database
+  when: legacy_left | bool and store == 'mysql'
+  block:
+    - name: What the old database and user hold
+      ansible.builtin.command:
+        cmd: >-
+          mysql --batch --skip-column-names --execute
+          "SELECT
+            (SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = '{{ legacy_name }}'),
+            (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{{ legacy_name }}'),
+            (SELECT COUNT(*) FROM mysql.user WHERE user = '{{ legacy_name }}' AND host = 'localhost')"
+      register: legacy_db
+      changed_when: false
+      check_mode: false
+
+    - name: The old database is empty, so recreating it under the new name loses nothing
+      ansible.builtin.assert:
+        that: (legacy_db.stdout.split()[1] | int) == 0
+        fail_msg: >-
+          The database {{ legacy_name }} holds {{ legacy_db.stdout.split()[1] }} tables. Copy them into
+          {{ db_name }} with `mysqldump {{ legacy_name }} | mysql {{ db_name }}` once the play has created it,
+          drop {{ legacy_name }}, and run again.
+
+    - name: The old database dropped
+      ansible.builtin.command:
+        cmd: "mysql --execute 'DROP DATABASE `{{ legacy_name }}`'"
+      when: legacy_db.stdout.split()[0] | int > 0
+
+    - name: The old database user dropped
+      ansible.builtin.command:
+        cmd: "mysql --execute \"DROP USER '{{ legacy_name }}'@'localhost'\""
+      when: legacy_db.stdout.split()[2] | int > 0
+
+- name: Rename the deploy the box runs for itself
+  when: legacy_left | bool
+  block:
+    - name: The deploy account renamed
+      ansible.builtin.command:
+        cmd: "usermod --login {{ autodeploy_user }} {{ legacy_deploy_user }}"
+      when: legacy_deploy_user in box_users and autodeploy_user not in box_users
+
+    - name: Its group renamed
+      ansible.builtin.command:
+        cmd: "groupmod --new-name {{ autodeploy_user }} {{ legacy_deploy_user }}"
+      when: legacy_deploy_user in box_groups and autodeploy_user not in box_groups
+
+    - name: Its home, the deploy's own checkout and its configuration moved
+      ansible.builtin.command:
+        cmd: "mv {{ item.from }} {{ item.to }}"
+        removes: "{{ item.from }}"
+        creates: "{{ item.to }}"
+      loop:
+        - { from: "{{ legacy_deploy_home }}", to: "{{ autodeploy_home }}" }
+        - { from: "{{ legacy_deploy_root }}", to: "{{ autodeploy_root }}" }
+        - { from: "{{ legacy_deploy_etc }}", to: "{{ autodeploy_etc }}" }
+      loop_control:
+        label: "{{ item.to }}"
+
+    - name: The deploy account's home now
+      ansible.builtin.command:
+        cmd: "getent passwd {{ autodeploy_user }}"
+      register: deploy_entry
+      changed_when: false
+      failed_when: deploy_entry.rc not in [0, 2]
+      check_mode: false
+
+    - name: The deploy account points at the moved home
+      ansible.builtin.command:
+        cmd: "usermod --home {{ autodeploy_home }} {{ autodeploy_user }}"
+      when: deploy_entry.rc == 0 and deploy_entry.stdout.split(':')[5] == legacy_deploy_home
+
+    # A virtualenv names its own directory in the first line of every program in
+    # it, so a moved one cannot run. autodeploy builds it again.
+    - name: Whether the virtualenv still names the old directory
+      ansible.builtin.command:
+        cmd: "grep -q '{{ legacy_deploy_root }}' {{ autodeploy_root }}/venv/pyvenv.cfg"
+      register: venv_old
+      failed_when: false
+      changed_when: false
+      check_mode: false
+
+    - name: The moved virtualenv removed
+      ansible.builtin.file:
+        path: "{{ autodeploy_root }}/venv"
+        state: absent
+      when: venv_old.rc == 0
+
+    - name: The deploy's old entry points removed
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/etc/sudoers.d/{{ legacy_name }}-deploy"
+        - "/usr/local/sbin/{{ legacy_name }}-deploy"
+        - "/usr/local/sbin/{{ legacy_name }}-deploy-run"
+
+- name: The old unit files removed, last
+  when: legacy_left | bool
+  block:
+    - name: The old units deleted
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ legacy_service_unit }}"
+        - "{{ legacy_deploy_unit }}"
+
+    - name: systemd forgets them
+      ansible.builtin.systemd:
+        daemon_reload: true

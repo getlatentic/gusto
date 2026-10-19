@@ -6,7 +6,7 @@
 #
 # It does not move main. The next merge deploys main again, so revert what
 # broke, or turn autodeploy off first (README.md says how).
-- name: The previous haas version, back in service
+- name: The previous gusto version, back in service
   hosts: app
   become: true
   tasks:

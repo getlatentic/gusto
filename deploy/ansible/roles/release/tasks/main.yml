@@ -58,7 +58,7 @@
     cmd: "mv -f {{ candidate_bin }} {{ live_bin }}"
   when: candidate_sum != live_sum
   changed_when: true
-  notify: Restart haas
+  notify: Restart gusto
 
 - name: A candidate identical to the live binary, removed
   ansible.builtin.file:
@@ -105,14 +105,14 @@
     HOME: "{{ app_root }}"
   when: candidate_id != live_id
   changed_when: true
-  notify: Restart haas
+  notify: Restart gusto
 
 # The candidate tag is left where it is, pointing at the image now live. It
 # costs no disk, because it is the same image, and the next build moves it.
 #
 # It used to be untagged here, and that took the live tag with it: podman
-# stores a local build as localhost/haas:candidate, an unqualified
-# haas:candidate does not match that name, and podman then removes *every* name
+# stores a local build as localhost/gusto:candidate, an unqualified
+# gusto:candidate does not match that name, and podman then removes *every* name
 # from the image rather than refusing. The live tag went with the candidate on
 # every deploy, and the server came up offering no harness at all because it
 # could not find the image it names.

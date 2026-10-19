@@ -46,7 +46,7 @@
 
 - name: The service runs the previous binary
   ansible.builtin.systemd:
-    name: haas
+    name: gusto
     state: restarted
   when: serve_enabled | bool and restore_bin | bool
 
