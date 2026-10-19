@@ -10,7 +10,7 @@ on:
     inputs:
       tag:
         description: The release tag to install
-        default: v0.1.0-rc.1
+        default: v0.1.0-rc.2
   push:
     branches: ["issue-307-*"]
     paths:
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      TAG: ${{ inputs.tag || 'v0.1.0-rc.1' }}
+      TAG: ${{ inputs.tag || 'v0.1.0-rc.2' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      TAG: ${{ inputs.tag || 'v0.1.0-rc.1' }}
+      TAG: ${{ inputs.tag || 'v0.1.0-rc.2' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

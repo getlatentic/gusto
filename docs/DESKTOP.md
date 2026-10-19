@@ -19,7 +19,7 @@ The app adds **Sync one from this computer**. It opens the system's folder choos
 The app asks its server for `/desktop/latest.json` shortly after it starts and every six hours, and offers an update in its menu. It checks each update against a public key it holds. A server with no folder to hand out offers no updates. To hand out a release:
 
 ```bash
-deploy/desktop/publish.sh v0.0.1-alpha.6 /srv/gusto/desktop https://gusto.example.com
+deploy/desktop/publish.sh v0.1.0-rc.2 /srv/gusto/desktop https://gusto.example.com
 GUSTO_DESKTOP=/srv/gusto/desktop gusto serve
 ```
 
@@ -32,11 +32,11 @@ The release workflow signs updates with the repository secret `TAURI_SIGNING_PRI
 Each release has `gusto-helper` and `gusto` for macOS, Linux and Windows on Intel and Arm, as `gusto-helper_<release>_<system>_<processor>.tar.gz` and `gusto_<release>_<system>_<processor>.tar.gz` (`.zip` on Windows), with a `SHA256SUMS` signed with cosign. While the releases are private, the scripts need the GitHub command line, signed in.
 
 ```bash
-gh release download v0.0.1-alpha.5 -R getlatentic/gusto -p install.sh -O - | sh -s -- v0.0.1-alpha.5
+gh release download v0.1.0-rc.2 -R getlatentic/gusto -p install.sh -O - | sh -s -- v0.1.0-rc.2
 ```
 
 ```powershell
-gh release download v0.0.1-alpha.5 -R getlatentic/gusto -p install.ps1 -O install.ps1; powershell -ExecutionPolicy ByPass -File install.ps1 -Tag v0.0.1-alpha.5
+gh release download v0.1.0-rc.2 -R getlatentic/gusto -p install.ps1 -O install.ps1; powershell -ExecutionPolicy ByPass -File install.ps1 -Tag v0.1.0-rc.2
 ```
 
 The script checks the packages against the checksums, and the signature when `cosign` is installed (`GUSTO_REQUIRE_COSIGN=1` refuses to go on without it). It installs to `~/.local/bin`, or on Windows to `%LOCALAPPDATA%\gusto`, which it adds to your PATH. `GUSTO_INSTALL_DIR` changes the folder and `GUSTO_PROGRAMS=gusto-helper` installs the helper alone. `gusto version` and `gusto-helper version` print the release. The scripts are `deploy/install/install.sh` and `install.ps1`, and `deploy/helper/build.sh` builds the packages.

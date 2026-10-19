@@ -3,9 +3,9 @@
 # itself from with its signature, and a small record of which system that is. Run from the root of the repository, with the update
 # signing key in TAURI_SIGNING_PRIVATE_KEY.
 #
-#   deploy/desktop/build.sh v0.0.1-alpha.6 aarch64-apple-darwin dist
+#   deploy/desktop/build.sh v0.1.0-rc.2 aarch64-apple-darwin dist
 set -eu
-tag=${1:?the release, such as v0.0.1-alpha.6}
+tag=${1:?the release, such as v0.1.0-rc.2}
 triple=${2:?the Rust target, such as aarch64-apple-darwin}
 out=${3:-dist}
 version=${tag#v}
