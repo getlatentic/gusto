@@ -324,7 +324,7 @@ jobs:
         run: |
           cp deploy/install/install.sh deploy/install/install.ps1 dist/
           cd dist
-          sha256sum gusto_* gusto-helper_* gusto-rootfs-* gusto-e2fsprogs-* latentic-agent-cloud_* desktop-manifest.json install.sh install.ps1 server.sh gusto-compose_* > SHA256SUMS
+          sha256sum gusto_* gusto-helper_* gusto-rootfs-* gusto-e2fsprogs-* gusto-desktop_* desktop-manifest.json install.sh install.ps1 server.sh gusto-compose_* > SHA256SUMS
           cosign sign-blob --yes SHA256SUMS --bundle SHA256SUMS.sigstore.json
           ls -la
       - name: Release
@@ -369,7 +369,7 @@ jobs:
 
           On Windows, \`install.ps1\` is attached beside it.
 
-          The desktop app, \`latentic-agent-cloud_*\`: a disk image for macOS (Apple silicon and Intel), an installer for Windows
+          The desktop app, \`gusto-desktop_*\`: a disk image for macOS (Apple silicon and Intel), an installer for Windows
           and an AppImage and a package for Linux. A server hands the app out to update itself with \`deploy/desktop/publish.sh\`
           (docs/DESKTOP.md, The app).
           EOF

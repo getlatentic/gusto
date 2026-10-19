@@ -38,7 +38,7 @@ fn deliver(app: &AppHandle, title: &str, body: &str, page: &str) {
 
 #[cfg(all(unix, not(target_os = "macos")))]
 fn deliver(app: &AppHandle, title: &str, body: &str, page: &str) {
-    let shown = notify_rust::Notification::new().appname("Latentic Agent Cloud").summary(title).body(body).action("default", "Open").show();
+    let shown = notify_rust::Notification::new().appname("gusto").summary(title).body(body).action("default", "Open").show();
     if let Ok(handle) = shown {
         handle.wait_for_action(|action| {
             if action == "default" {
