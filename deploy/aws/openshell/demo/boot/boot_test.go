@@ -63,7 +63,7 @@ func newHost(t *testing.T) *host {
 		}
 	}
 	os.WriteFile(h.conf, []byte(strings.Join([]string{
-		"AWS_REGION=us-east-1", "NAME=agentcloud.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
+		"AWS_REGION=us-east-1", "NAME=gusto.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
 		"DNS_TOKEN_PARAMETER=/haas/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/haas/poc/cloudflare-mail-token",
 		"MODEL_PARAMETER=/haas/poc/model-key", "DEEPSEEK_PARAMETER=/haas/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
 		"CELL_SECRET_PARAMETER=/haas/poc/cell-secret", "TURNSTILE_PARAMETER=/haas/poc/turnstile-secret",
@@ -121,14 +121,14 @@ func TestAFirstBootIssuesTheCertificateOnceKeepsItInTheStoreAndPointsTheNameLast
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count(done, "certbot ") != 1 || !strings.Contains(strings.Join(done, "\n"), "-d agentcloud.example.com -d *.agentcloud.example.com") {
+	if count(done, "certbot ") != 1 || !strings.Contains(strings.Join(done, "\n"), "-d gusto.example.com -d *.gusto.example.com") {
 		t.Errorf("one certificate for the name and every name under it: %v", done)
 	}
-	if _, err := os.Stat(filepath.Join(h.store, "tls", "agentcloud.example.com.tgz")); err != nil {
+	if _, err := os.Stat(filepath.Join(h.store, "tls", "gusto.example.com.tgz")); err != nil {
 		t.Error("the certificate was not kept in the store")
 	}
 	last := done[len(done)-1]
-	if last != "haas-dns -zone example.com -name agentcloud.example.com -ip 203.0.113.7 -token-file "+filepath.Join(h.dir, "run", "secrets", "cf-dns-token") {
+	if last != "haas-dns -zone example.com -name gusto.example.com -ip 203.0.113.7 -token-file "+filepath.Join(h.dir, "run", "secrets", "cf-dns-token") {
 		t.Errorf("the name is pointed at the host last: %v", done)
 	}
 	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
@@ -212,7 +212,7 @@ func TestACertificateNearExpiryInTheStoreIsIssuedAgainAndReplaced(t *testing.T) 
 	}
 	// The store's copy is one that is nearly out of time.
 	le := filepath.Join(h.dir, "le")
-	os.WriteFile(filepath.Join(le, "live", "agentcloud.example.com", "fullchain.pem"), []byte("EXPIRING\n"), 0o644)
+	os.WriteFile(filepath.Join(le, "live", "gusto.example.com", "fullchain.pem"), []byte("EXPIRING\n"), 0o644)
 	done, err := h.boot()
 	if err != nil {
 		t.Fatal(err)

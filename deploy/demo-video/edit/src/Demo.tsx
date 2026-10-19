@@ -109,7 +109,7 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
         <Card local={now - INTRO - lengthOf(takes)} length={OUTRO}>
           <Img src={staticFile("mark.png")} style={{ width: 64 }} />
           <div style={{ font: `700 52px/1.15 ${brand.font}`, letterSpacing: "-0.02em", maxWidth: 900 }}>Explore a live workspace</div>
-          <div style={{ padding: "16px 34px", borderRadius: 12, background: brand.orange, font: `700 30px/1 ${brand.font}` }}>agentcloud.getlatentic.com</div>
+          <div style={{ padding: "16px 34px", borderRadius: 12, background: brand.orange, font: `700 30px/1 ${brand.font}` }}>gusto.getlatentic.com</div>
           <div style={{ font: `500 24px/1.3 ${brand.font}`, color: brand.muted }}>No sign-up. Deleted when it ends.</div>
         </Card>
       </Sequence>

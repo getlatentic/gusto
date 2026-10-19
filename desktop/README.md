@@ -62,5 +62,5 @@ A release does steps 1 and 2 for every system, and `deploy/desktop/publish.sh` d
 
 ## Settings
 
-The server's address is in `config.json` in the app's settings folder (`~/Library/Application Support/com.latentic.gusto.desktop` on
+The server's address is in `config.json` in the app's settings folder (`~/Library/Application Support/com.latentic.gusto` on
 macOS). The helper's own log is `helper.log` in the app's log folder.

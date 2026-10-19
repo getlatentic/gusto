@@ -96,11 +96,11 @@ func namesAndIPs(s *zoneServer) map[string][]string {
 
 func TestTheNameAndEveryNameUnderItArePointedAtTheHostAndOnlyChangedWhenTheyDiffer(t *testing.T) {
 	fake, api, token := setUp(t)
-	if err := run(api, "example.com", "agentcloud.example.com", "203.0.113.7", token, false); err != nil {
+	if err := run(api, "example.com", "gusto.example.com", "203.0.113.7", token, false); err != nil {
 		t.Fatal(err)
 	}
 	got := namesAndIPs(fake)
-	if len(got) != 2 || got["agentcloud.example.com"][0] != "203.0.113.7" || got["*.agentcloud.example.com"][0] != "203.0.113.7" {
+	if len(got) != 2 || got["gusto.example.com"][0] != "203.0.113.7" || got["*.gusto.example.com"][0] != "203.0.113.7" {
 		t.Fatalf("%v", got)
 	}
 	for _, each := range fake.records {
@@ -109,7 +109,7 @@ func TestTheNameAndEveryNameUnderItArePointedAtTheHostAndOnlyChangedWhenTheyDiff
 		}
 	}
 	fake.calls = nil
-	if err := run(api, "example.com", "agentcloud.example.com", "203.0.113.7", token, false); err != nil {
+	if err := run(api, "example.com", "gusto.example.com", "203.0.113.7", token, false); err != nil {
 		t.Fatal(err)
 	}
 	for _, call := range fake.calls {
@@ -117,23 +117,23 @@ func TestTheNameAndEveryNameUnderItArePointedAtTheHostAndOnlyChangedWhenTheyDiff
 			t.Errorf("a record that is right was written again: %v", fake.calls)
 		}
 	}
-	if err := run(api, "example.com", "agentcloud.example.com", "198.51.100.9", token, false); err != nil {
+	if err := run(api, "example.com", "gusto.example.com", "198.51.100.9", token, false); err != nil {
 		t.Fatal(err)
 	}
 	got = namesAndIPs(fake)
-	if len(got) != 2 || len(got["agentcloud.example.com"]) != 1 || got["agentcloud.example.com"][0] != "198.51.100.9" || got["*.agentcloud.example.com"][0] != "198.51.100.9" {
+	if len(got) != 2 || len(got["gusto.example.com"]) != 1 || got["gusto.example.com"][0] != "198.51.100.9" || got["*.gusto.example.com"][0] != "198.51.100.9" {
 		t.Errorf("a new host takes the names over and leaves one record for each: %v", got)
 	}
 }
 
 func TestExtraRecordsForOneNameAreReducedToOne(t *testing.T) {
 	fake, api, token := setUp(t)
-	fake.records["a"] = record{ID: "a", Type: "A", Name: "agentcloud.example.com", Content: "192.0.2.1", TTL: 300}
-	fake.records["b"] = record{ID: "b", Type: "A", Name: "agentcloud.example.com", Content: "192.0.2.2", TTL: 300}
-	if err := run(api, "example.com", "agentcloud.example.com", "203.0.113.7", token, false); err != nil {
+	fake.records["a"] = record{ID: "a", Type: "A", Name: "gusto.example.com", Content: "192.0.2.1", TTL: 300}
+	fake.records["b"] = record{ID: "b", Type: "A", Name: "gusto.example.com", Content: "192.0.2.2", TTL: 300}
+	if err := run(api, "example.com", "gusto.example.com", "203.0.113.7", token, false); err != nil {
 		t.Fatal(err)
 	}
-	if got := namesAndIPs(fake)["agentcloud.example.com"]; len(got) != 1 || got[0] != "203.0.113.7" {
+	if got := namesAndIPs(fake)["gusto.example.com"]; len(got) != 1 || got[0] != "203.0.113.7" {
 		t.Errorf("%v", got)
 	}
 }
@@ -141,14 +141,14 @@ func TestExtraRecordsForOneNameAreReducedToOne(t *testing.T) {
 func TestRemovingTakesTheNameAndEveryNameUnderItAway(t *testing.T) {
 	fake, api, token := setUp(t)
 	fake.records["x"] = record{ID: "x", Type: "A", Name: "other.example.com", Content: "192.0.2.1"}
-	run(api, "example.com", "agentcloud.example.com", "203.0.113.7", token, false)
-	if err := run(api, "example.com", "agentcloud.example.com", "", token, true); err != nil {
+	run(api, "example.com", "gusto.example.com", "203.0.113.7", token, false)
+	if err := run(api, "example.com", "gusto.example.com", "", token, true); err != nil {
 		t.Fatal(err)
 	}
 	if got := namesAndIPs(fake); len(got) != 1 || len(got["other.example.com"]) != 1 {
 		t.Errorf("only this host's names go: %v", got)
 	}
-	if err := run(api, "example.com", "agentcloud.example.com", "", token, true); err != nil {
+	if err := run(api, "example.com", "gusto.example.com", "", token, true); err != nil {
 		t.Errorf("names that are already gone are done: %v", err)
 	}
 }
@@ -157,19 +157,19 @@ func TestWhatIsWrongIsRefusedByNameAndTheTokenIsNeverSaid(t *testing.T) {
 	fake, api, token := setUp(t)
 	bad := filepath.Join(t.TempDir(), "bad")
 	os.WriteFile(bad, []byte("wrong-token"), 0o600)
-	if err := run(api, "example.com", "agentcloud.example.com", "203.0.113.7", bad, false); err == nil || !strings.Contains(err.Error(), "Invalid access token") || strings.Contains(err.Error(), "wrong-token") {
+	if err := run(api, "example.com", "gusto.example.com", "203.0.113.7", bad, false); err == nil || !strings.Contains(err.Error(), "Invalid access token") || strings.Contains(err.Error(), "wrong-token") {
 		t.Errorf("%v", err)
 	}
 	fake.zones = 0
-	if err := run(api, "example.com", "agentcloud.example.com", "203.0.113.7", token, false); err == nil || !strings.Contains(err.Error(), "0 zones") {
+	if err := run(api, "example.com", "gusto.example.com", "203.0.113.7", token, false); err == nil || !strings.Contains(err.Error(), "0 zones") {
 		t.Errorf("a token that sees no zone says so: %v", err)
 	}
 	fake.zones = 1
 	for name, args := range map[string][3]string{
-		"a name outside the zone": {"example.com", "agentcloud.example.org", "203.0.113.7"},
-		"a lookalike zone suffix": {"example.com", "agentcloudexample.com", "203.0.113.7"},
-		"an IPv6 address":         {"example.com", "agentcloud.example.com", "2001:db8::1"},
-		"no address":              {"example.com", "agentcloud.example.com", ""},
+		"a name outside the zone": {"example.com", "gusto.example.org", "203.0.113.7"},
+		"a lookalike zone suffix": {"example.com", "gustoexample.com", "203.0.113.7"},
+		"an IPv6 address":         {"example.com", "gusto.example.com", "2001:db8::1"},
+		"no address":              {"example.com", "gusto.example.com", ""},
 		"no name":                 {"example.com", "", "203.0.113.7"},
 	} {
 		if err := run(api, args[0], args[1], args[2], token, false); err == nil {

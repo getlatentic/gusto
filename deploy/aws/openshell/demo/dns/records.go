@@ -152,4 +152,4 @@ func (z *zoneClient) remove(name string) error {
 	return nil
 }
 
-var errNoName = errors.New("-name is the name organisations are served under, such as agentcloud.example.com")
+var errNoName = errors.New("-name is the name organisations are served under, such as gusto.example.com")

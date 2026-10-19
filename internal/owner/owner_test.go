@@ -51,7 +51,7 @@ func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 		host   string
 		header map[string]string
 	}{
-		"another host name":  {"agentcloud.getlatentic.com", nil},
+		"another host name":  {"gusto.getlatentic.com", nil},
 		"a rebinding name":   {"evil.example:8090", nil},
 		"through a proxy":    {"127.0.0.1:8090", map[string]string{"X-Forwarded-For": "203.0.113.9"}},
 		"a forwarded header": {"localhost:8090", map[string]string{"Forwarded": "for=203.0.113.9"}},
