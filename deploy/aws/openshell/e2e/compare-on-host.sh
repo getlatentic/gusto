@@ -1,14 +1,14 @@
-# Runs on the instance: a haas server whose jobs run in OpenShell sandboxes made
+# Runs on the instance: a gusto server whose jobs run in OpenShell sandboxes made
 # from a Node root file system, two engines (one fixes the sample's bug and one
 # does nothing), and one comparison started from the pages' own form.
 set -uo pipefail
 E=$HOME/e2e
-pkill -f "[e]2e/haas serve" 2>/dev/null || true
+pkill -f "[e]2e/gusto serve" 2>/dev/null || true
 rm -rf "$E/cdata" "$E/charnesses"; mkdir -p "$E/cdata" "$E/charnesses"
 export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
 export XDG_CONFIG_HOME=/etc/openshell-xdg XDG_STATE_HOME=/var/lib/openshell-xdg
 export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
-for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
+for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
 
 cat > "$E/charnesses/fixer.json" <<'JSON'
 {"name":"fixer","program":"bash","skills":"/root/.agents/skills","needs":"nothing","stream":"plain",
@@ -19,13 +19,13 @@ cat > "$E/charnesses/idler.json" <<'JSON'
  "argv":["-c","echo I looked at it and changed nothing"]}
 JSON
 
-mkdir -p "$E/keys" && "$E/haas" keygen e2e -dir "$E/keys" >/dev/null 2>&1
+mkdir -p "$E/keys" && "$E/gusto" keygen e2e -dir "$E/keys" >/dev/null 2>&1
 cd "$E"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/node-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
   GUSTO_MODEL_UPSTREAM=http://127.0.0.1:9000 GUSTO_MODEL_KEY=not-a-real-key GUSTO_MODEL_NAME=platform GUSTO_MODELS=platform/fake \
   GUSTO_HARNESSES="$E/charnesses" GUSTO_JOB_CONCURRENCY=2 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
   GUSTO_JOBS="$E/cdata/jobs" GUSTO_SESSIONS="$E/cdata/sessions" GUSTO_SETUPS="$E/cdata/setups" GUSTO_COMPARISONS="$E/cdata/comparisons" GUSTO_CHANGES="$E/cdata/changes/changes.jsonl" \
-  setsid nohup "$E/haas" serve > "$E/cserve.log" 2>&1 </dev/null &
+  setsid nohup "$E/gusto" serve > "$E/cserve.log" 2>&1 </dev/null &
 for _ in $(seq 1 90); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 echo "== engines the sandbox image offers"; grep -E "fixer|idler" "$E/cserve.log" | head -4
 
@@ -55,7 +55,7 @@ for J in "$E"/cdata/jobs/*/; do
   id=$(basename "$J"); [ -f "$J/out/manifest.json" ] || continue
   echo "-- $id: $(tr -d '\n ' < "$J/state.json" | cut -c1-120)"
   ls "$J/out" | tr '\n' ' '; echo
-  GUSTO_KEYRING="$E/keys" "$E/haas" verify "$J" 2>&1 | tail -2
+  GUSTO_KEYRING="$E/keys" "$E/gusto" verify "$J" 2>&1 | tail -2
   grep -cE "NET:|HTTP:" "$J/out/sandbox-events.log" | sed 's/^/network events in the guard log: /'
 done
 echo "== sandboxes left"; openshell sandbox list 2>&1 | head -4

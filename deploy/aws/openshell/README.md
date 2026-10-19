@@ -3,8 +3,8 @@
 One instance with nested virtualization, OpenShell's gateway on it with the VM
 driver, and a probe that says what a sandbox may and may not do. It is separate
 from the E2B POC in the directory above: its own Terraform state, and no DNS,
-budget alarm or E2B services. It uses the same `haas-poc` AWS profile and the
-same tag, `project=haas-poc`.
+budget alarm or E2B services. It uses the same `gusto-poc` AWS profile and the
+same tag, `project=gusto-poc`.
 
 ## Cost
 
@@ -18,7 +18,7 @@ same tag, `project=haas-poc`.
 ```bash
 ./up.sh       # Terraform makes the instance; Ansible installs OpenShell and starts the gateway
 ./probe.sh    # starts two sandboxes and runs probe/inside.sh in one; output in out/probe.txt
-./down.sh     # removes everything, then asks AWS whether anything tagged haas-poc is left
+./down.sh     # removes everything, then asks AWS whether anything tagged gusto-poc is left
 ```
 
 `up.sh` makes an SSH key under `.state/` and opens port 22 to this machine's
@@ -38,21 +38,21 @@ second.
 | `dns example.com` | a name resolves to the sandbox's policy proxy, not to the internet |
 | `tcp ...: refused` | direct connections are refused, the metadata address and a VPC address included |
 | `write ...` | `/etc` and `/root` are not writable and `/tmp` is |
-| `read /etc/shadow: allowed` | the default policy allows reads that haas's policy should narrow |
+| `read /etc/shadow: allowed` | the default policy allows reads that gusto's policy should narrow |
 
 ## The end-to-end runs
 
-`up.sh` and `probe.sh` show what a sandbox is. Two more scripts run haas on the
+`up.sh` and `probe.sh` show what a sandbox is. Two more scripts run gusto on the
 instance with `GUSTO_SANDBOX=openshell`:
 
 ```bash
-./e2e.sh           # one task: an agent in a sandbox asks the model through haas's proxy, and tries a host nobody allowed
+./e2e.sh           # one task: an agent in a sandbox asks the model through gusto's proxy, and tries a host nobody allowed
 ./e2e-compare.sh   # one comparison from the pages' form, in sandboxes made from a Node root file system
 ./e2e-integrations.sh   # an integration imported in the console and used by Claude Code and Codex from sandboxes, through the gateway
 ```
 
 `e2e-compare.sh` makes the root file system from `node:24-slim` for x86-64 with
-docker or podman on this machine, and copies it and a Linux build of haas to the
+docker or podman on this machine, and copies it and a Linux build of gusto to the
 instance. Both keep their output in `out/`. The first run's result:
 
 ```
@@ -69,7 +69,7 @@ were among the files the manifest hashes.
 `e2e-real.sh` runs opencode, then a comparison of opencode and pi, from the
 runner image. Without a model it uses one that only answers "pong". With a
 model it reads the key on the instance, from Parameter Store, with the
-instance's own role. That role may read `/haas/poc/*` and nothing else.
+instance's own role. That role may read `/gusto/poc/*` and nothing else.
 
 ```bash
 ./up.sh
@@ -81,7 +81,7 @@ GUSTO_MODEL_UPSTREAM=https://bedrock-mantle.us-east-1.api.aws GUSTO_MODEL_NAME=b
 
 The standard tier of Parameter Store and the AWS-managed key cost nothing.
 The parameter outlives `./down.sh`. Delete it with
-`aws ssm delete-parameter --name /haas/poc/model-key`.
+`aws ssm delete-parameter --name /gusto/poc/model-key`.
 
 ## The box's benchmark
 
@@ -92,7 +92,7 @@ Parameter Store, so store DeepSeek's too:
 
 ```bash
 python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth.json")))["deepseek"]["apiKey"])' \
-  | GUSTO_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh
+  | GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh
 ./e2e-matrix.sh                       # about 15 minutes after the image is built
 AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
 ```
@@ -123,7 +123,7 @@ ansible/                                         the role: pinned, checksummed b
 probe/inside.sh                                  runs inside a sandbox
 probe/on-host.sh                                 runs on the instance and starts the sandboxes
 probe/expected.txt                               what the first run printed
-e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         haas on the instance, with tasks in sandboxes
+e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         gusto on the instance, with tasks in sandboxes
 e2e-matrix.sh, image.sh                          the box's benchmark, and the image it runs from
 put-key.sh, put-cloudflare.sh                    store a model's key, and the two Cloudflare tokens, in Parameter Store
 demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
@@ -151,7 +151,7 @@ Let's Encrypt is free, and the store bucket costs cents.
 
 | Piece | How |
 | --- | --- |
-| Name | An A record for `<name>` and one for `*.<name>`, set by `haas-dns` when the host starts, 60 s TTL. |
+| Name | An A record for `<name>` and one for `*.<name>`, set by `gusto-dns` when the host starts, 60 s TTL. |
 | Certificate | Let's Encrypt, for `<name>` and `*.<name>`, by a DNS challenge through Cloudflare. It is kept in the store bucket and reused until it has under 30 days left. |
 | Web server | nginx on the host passes to gusto cloud on `127.0.0.1:8050`, and answers no name that is not this one. |
 | Mail | Cloudflare Email Sending, `GUSTO_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
@@ -161,7 +161,7 @@ Once, from your machine:
 
 ```bash
 ./put-key.sh            # the model key
-GUSTO_MODEL_PARAMETER=/haas/poc/deepseek-key ./put-key.sh   # and the second
+GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
 cp demo.env.example demo.env   # and fill it in
 ```
@@ -180,7 +180,7 @@ AWS credential to do it. A person signed in at `https://<name>/lease` can add th
 and every page shows a banner for the last five minutes with a link to that page. No extension passes
 `DEMO_MAX_HOURS` (four by default), and a host that has been up that long goes whatever its lease says.
 `demo-sweep.sh` is the backstop from somewhere that is not the host: it terminates anything tagged
-`haas-poc` that has been up more than `MAX_HOURS` (six by default).
+`gusto-poc` that has been up more than `MAX_HOURS` (six by default).
 
 The DNS token is limited to the zone's DNS records. The mail token can send mail and
 nothing else. Both stay in Parameter Store, and the host reads them with its own role.

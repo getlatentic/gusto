@@ -19,5 +19,5 @@ provider "aws" {
 }
 
 # The token is read from CLOUDFLARE_API_TOKEN, which up.sh sets from
-# ~/.config/haas/cloudflare_token, so it is never in a file here.
+# ~/.config/gusto/cloudflare_token, so it is never in a file here.
 provider "cloudflare" {}

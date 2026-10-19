@@ -25,5 +25,5 @@ print(json.dumps({
 }))
 PY
 )"
-aws ssm put-parameter --name /haas/poc/demo-config --type String --overwrite --value "$config" --query Version --output text
-echo "stored /haas/poc/demo-config in $AWS_REGION"
+aws ssm put-parameter --name /gusto/poc/demo-config --type String --overwrite --value "$config" --query Version --output text
+echo "stored /gusto/poc/demo-config in $AWS_REGION"

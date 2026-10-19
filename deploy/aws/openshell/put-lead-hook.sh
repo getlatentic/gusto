@@ -18,6 +18,6 @@ trap 'rm -rf "$held"' EXIT
 printf '%s' "$address" > "$held/url"
 printf '%s' "$secret" > "$held/secret"
 unset address secret
-aws ssm put-parameter --name /haas/poc/lead-hook-url --type SecureString --overwrite --value "file://$held/url" --query Version --output text >/dev/null
-aws ssm put-parameter --name /haas/poc/lead-hook-secret --type SecureString --overwrite --value "file://$held/secret" --query Version --output text >/dev/null
-echo "stored /haas/poc/lead-hook-url and /haas/poc/lead-hook-secret in $AWS_REGION"
+aws ssm put-parameter --name /gusto/poc/lead-hook-url --type SecureString --overwrite --value "file://$held/url" --query Version --output text >/dev/null
+aws ssm put-parameter --name /gusto/poc/lead-hook-secret --type SecureString --overwrite --value "file://$held/secret" --query Version --output text >/dev/null
+echo "stored /gusto/poc/lead-hook-url and /gusto/poc/lead-hook-secret in $AWS_REGION"

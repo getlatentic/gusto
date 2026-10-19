@@ -34,7 +34,7 @@ var computerName = regexp.MustCompile(`c-[0-9a-f]{8}-[0-9a-f]{8}`)
 // of them the organisation's, and nothing else left in the gateway.
 func (r run) observe(slug string, threads []*thread) {
 	listed, err := r.host.computers()
-	must(err, "haas cloud workspaces")
+	must(err, "gusto cloud workspaces")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {
@@ -78,7 +78,7 @@ func (r run) isolation(slug string, threads []*thread) {
 	check(strings.Contains(to, "/login"), "%s is not signed in to %s: sent to %s", bob.person.email, second, to)
 
 	listed, err := r.host.computers()
-	must(err, "haas cloud workspaces")
+	must(err, "gusto cloud workspaces")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {

@@ -3,12 +3,12 @@
 # to make IAM roles: the role a host has, the launch template a host is made from, and the role GitHub
 # Actions takes. Applying it again changes what changed. After it, hosts are made and removed by the
 # workflows in .github/workflows and nothing runs from a laptop. The CI role can launch and remove
-# hosts tagged project=haas-poc and put objects in the bucket, and has no IAM right, so it cannot
+# hosts tagged project=gusto-poc and put objects in the bucket, and has no IAM right, so it cannot
 # widen itself: a change to this stack is made here, by a person.
 set -euo pipefail
 cd "$(dirname "$0")"
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH" TF_IN_AUTOMATION=1 TF_CLI_ARGS="-no-color"
-export AWS_PROFILE="${AWS_PROFILE:-haas-poc}" AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
+export AWS_PROFILE="${AWS_PROFILE:-gusto-poc}" AWS_REGION="${AWS_REGION:-us-east-1}" AWS_DEFAULT_REGION="${AWS_REGION:-us-east-1}"
 # How GitHub names this repository in a workflow's token depends on the repository: the immutable form
 # carries the ids of the owner and the repository. Asking GitHub is the only way to know.
 subject="$(gh api repos/getlatentic/gusto/actions/oidc/customization/sub --jq .sub_claim_prefix 2>/dev/null || true)"

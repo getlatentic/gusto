@@ -1,0 +1,22 @@
+[Unit]
+Description=gusto public cloud: gusto cloud and each organisation's server
+After=gusto-boot.service{{ ' openshell-gateway.service' if demo_role != 'orchestrator' else '' }}
+Requires=gusto-boot.service
+RequiresMountsFor={{ demo_state }}
+
+[Service]
+User={{ demo_user }}
+SupplementaryGroups=kvm
+WorkingDirectory={{ demo_state }}
+# The AWS command is a snap, which the default path does not have.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
+EnvironmentFile=/etc/gusto/cloud.env
+EnvironmentFile=/run/gusto/secrets/mail.env
+EnvironmentFile=-/run/gusto/secrets/turnstile.env
+EnvironmentFile=-/run/gusto/secrets/leadhook.env
+ExecStart=/usr/local/bin/gusto cloud
+Restart={{ "always" if demo_live | bool else "on-failure" }}
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

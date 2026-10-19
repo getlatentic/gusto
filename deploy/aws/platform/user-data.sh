@@ -6,7 +6,7 @@
 # the last two share the file system EFS, and RUN is the directory of it that this demo's hosts use.
 # BAKE is on for the host an image of a cell is made from: it is made as a cell is, its runner image is prepared for the gateway,
 # and it is not started as a cell, so that the image holds everything a cell has to wait for and nothing that is its own. A host made
-# from that image has /etc/haas/baked and goes straight to configuring itself.
+# from that image has /etc/gusto/baked and goes straight to configuring itself.
 # LIVE is on for the front door that stays up: it has no lease and no limit on how long it runs, keeps what
 # is on the file system, starts hosts for cells when organisations need one, and is brought up to a newer
 # release by running this again (GUSTO_LIVE_ENV names the file that keeps what it was started with).
@@ -14,16 +14,16 @@ set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
 LEASE_MINUTES=${LEASE_MINUTES:-@LEASE_MINUTES@} MAX_HOURS=${MAX_HOURS:-@MAX_HOURS@}
 ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@} BAKE=${BAKE:-off}
-baked_marker=${GUSTO_BAKED:-/etc/haas/baked}
-live_env=${GUSTO_LIVE_ENV:-/etc/haas/live.env}
-dir=${GUSTO_BUNDLE_DIR:-/opt/haas-bundle} tmp=${GUSTO_TMP:-/tmp}
-exec > >(tee -a "${GUSTO_BOOTSTRAP_LOG:-/var/log/haas-bootstrap.log}") 2>&1
+baked_marker=${GUSTO_BAKED:-/etc/gusto/baked}
+live_env=${GUSTO_LIVE_ENV:-/etc/gusto/live.env}
+dir=${GUSTO_BUNDLE_DIR:-/opt/gusto-bundle} tmp=${GUSTO_TMP:-/tmp}
+exec > >(tee -a "${GUSTO_BOOTSTRAP_LOG:-/var/log/gusto-bootstrap.log}") 2>&1
 
 # A host that never finishes starting is still removed: the instance terminates when it powers off. One that
 # is meant to stay up is not, since it is looked at and started again rather than lost.
 if [ "$LIVE" != on ]; then
-  systemd-run --on-active="${MAX_HOURS}h" --unit=haas-deadman systemctl poweroff
-  trap 'echo "haas-bootstrap: failed, so the host powers off in 15 minutes"; systemd-run --on-active=15m --unit=haas-failed systemctl poweroff' ERR
+  systemd-run --on-active="${MAX_HOURS}h" --unit=gusto-deadman systemctl poweroff
+  trap 'echo "gusto-bootstrap: failed, so the host powers off in 15 minutes"; systemd-run --on-active=15m --unit=gusto-failed systemctl poweroff' ERR
 fi
 
 # A small host needs room for the installs of a start and of an upgrade, which the memory it runs in does not leave.
@@ -43,7 +43,7 @@ warm_the_disk() {
   python3 - <<'PY'
 import concurrent.futures as futures, os, sys
 CHUNK = 8 << 20
-roots = [os.environ.get("GUSTO_WARM_DIR", "/var/lib/haas"), os.environ.get("GUSTO_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
+roots = [os.environ.get("GUSTO_WARM_DIR", "/var/lib/gusto"), os.environ.get("GUSTO_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
 spans = []
 for root in roots:
     for dirpath, _, names in os.walk(root):
@@ -77,7 +77,7 @@ with futures.ThreadPoolExecutor(max_workers=16) as pool:
 PY
 }
 if [ -e "$baked_marker" ]; then
-  echo "haas-bootstrap: warming the disk of the image in the background"
+  echo "gusto-bootstrap: warming the disk of the image in the background"
   warm_the_disk > /dev/null 2>&1 &
 fi
 
@@ -99,7 +99,7 @@ aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sh
 tar -xzf "$tmp/bundle.tgz" -C "$dir"
 # The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
 # into a variable.
-demo_vars=$(aws ssm get-parameter --name /haas/poc/demo-config --query Parameter.Value --output text)
+demo_vars=$(aws ssm get-parameter --name /gusto/poc/demo-config --query Parameter.Value --output text)
 printf '%s\n' "$demo_vars" > "$dir/demo-vars.json"
 
 if [ "$LIVE" = on ]; then
@@ -126,8 +126,8 @@ ansible-playbook -c local -i 'spike,' \
 if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
   # cold start. It is asked here, as the cell asks it, and the disk is kept in the image.
-  systemd-run --wait --collect --unit=haas-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/haas \
-    -p EnvironmentFile=/etc/haas/org.env -p EnvironmentFile=/etc/haas/cell.env -p EnvironmentFile=/run/haas/cell.env /usr/local/bin/haas scan
-  touch "${GUSTO_BAKE_DONE:-/etc/haas/bake-done}"
+  systemd-run --wait --collect --unit=gusto-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/gusto \
+    -p EnvironmentFile=/etc/gusto/org.env -p EnvironmentFile=/etc/gusto/cell.env -p EnvironmentFile=/run/gusto/cell.env /usr/local/bin/gusto scan
+  touch "${GUSTO_BAKE_DONE:-/etc/gusto/bake-done}"
 fi
-echo "haas-bootstrap: done"
+echo "gusto-bootstrap: done"

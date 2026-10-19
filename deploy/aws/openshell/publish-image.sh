@@ -5,7 +5,7 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 bucket="$(./demo-store.sh)"
-[[ "$bucket" =~ ^haas-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 key="$(./image-key.sh)"
 if aws s3api head-object --bucket "$bucket" --key "image/$key.tar.gz" >/dev/null 2>&1; then
   echo "the image $key is in the bucket"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Terminates any instance tagged project=haas-poc that has been up longer than MAX_HOURS
+# Terminates any instance tagged project=gusto-poc that has been up longer than MAX_HOURS
 # (six by default). It is the backstop for a host whose own timer did not remove it, and it
 # runs from somewhere that is not the host. It prints what it terminated, and says so when
 # there was nothing. GUSTO_NOW (an ISO time) moves the clock, which is how a test runs it.
@@ -9,7 +9,7 @@ max_hours="${MAX_HOURS:-6}"
 now="${GUSTO_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 
 listed="$(aws ec2 describe-instances \
-  --filters Name=tag:project,Values=haas-poc Name=instance-state-name,Values=pending,running \
+  --filters Name=tag:project,Values=gusto-poc Name=instance-state-name,Values=pending,running \
   --query 'Reservations[].Instances[].[InstanceId,LaunchTime]' --output text)"
 old="$(python3 -c '
 import sys, datetime
@@ -22,7 +22,7 @@ for line in sys.stdin.read().splitlines():
         print(fields[0])
 ' "$now" "$max_hours" <<<"$listed")"
 if [ -z "$old" ]; then
-  echo "nothing tagged haas-poc has been up longer than $max_hours hours"
+  echo "nothing tagged gusto-poc has been up longer than $max_hours hours"
   exit 0
 fi
 for id in $old; do

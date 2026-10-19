@@ -1,21 +1,21 @@
 [Unit]
-Description=haas host: starts and stops organisations' servers for gusto cloud
-After=haas-boot.service openshell-gateway.service
-Requires=haas-boot.service
+Description=gusto host: starts and stops organisations' servers for gusto cloud
+After=gusto-boot.service openshell-gateway.service
+Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}
 
 [Service]
 User={{ demo_user }}
 SupplementaryGroups=kvm
 WorkingDirectory={{ demo_lib }}
-EnvironmentFile=/etc/haas/org.env
-EnvironmentFile=/etc/haas/cell.env
-EnvironmentFile=/run/haas/cell.env
+EnvironmentFile=/etc/gusto/org.env
+EnvironmentFile=/etc/gusto/cell.env
+EnvironmentFile=/run/gusto/cell.env
 # The first question asked of the image waits for the gateway to import it. It is asked here, so the cell registers,
 # and is given organisations, once the servers it starts will not wait for that.
-ExecStartPre=/usr/local/bin/haas scan
+ExecStartPre=/usr/local/bin/gusto scan
 TimeoutStartSec=900
-ExecStart=/usr/local/bin/haas host
+ExecStart=/usr/local/bin/gusto host
 Restart=on-failure
 LimitNOFILE=65536
 

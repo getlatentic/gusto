@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Makes what a demo host configures itself from: the Linux haas and its DNS program, the
+# Makes what a demo host configures itself from: the Linux gusto and its DNS program, the
 # playbooks and what they copy, and the key of the runner image it needs. bundle.tgz and its
 # checksum are written to the directory given, which CI puts in the store bucket.
 set -euo pipefail
@@ -9,7 +9,7 @@ here="$root/deploy/aws/openshell"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$out" "$stage/.state" "$stage/probe" "$stage/e2e"
-(cd "$root" && for program in haas:./cmd/gusto haas-dns:./deploy/aws/openshell/demo/dns; do
+(cd "$root" && for program in gusto:./cmd/gusto gusto-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$stage/.state/${program%%:*}" "${program#*:}"
 done)
 cp -R "$here/ansible" "$stage/ansible"
