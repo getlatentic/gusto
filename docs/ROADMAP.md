@@ -16,6 +16,7 @@ when it ships, and into [RELEASES.md](RELEASES.md).
 - An MCP server, so a person working in Claude, Codex or an editor can start a governed task without leaving it. It is a layer over
   [the protocol](PROTOCOL.md).
 - Install and first-run counts, opt in and transparent, so we can see where people stop.
+- Routines that start from an event, such as a push or a failed check, as they start today from a time. A notification by mail or a webhook when a routine's run ends, beside the tray's.
 
 ## Stronger sandboxes
 

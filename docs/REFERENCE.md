@@ -154,6 +154,10 @@ An agent is the program: `claude`, `codex`, `opencode`. An adapter is how to run
 
 `gusto agents` lists them with what each needs: `nothing`, `local`, `account` or `key`. With `nothing`, no model is involved and no endpoint is checked.
 
+## Routines
+
+A routine is a question an agent is asked on a schedule, in a conversation of its own, so the agent remembers from one run to the next. Add one on the agent's page under Routines: a title, what to ask, and either a time of day (`08:00`, in the server's own zone) or a number of hours between runs. Once a minute the server starts every routine whose slot has come as an ordinary turn: through the proxy, under the team's cap, and into the signed record, with the brief `[routine] <title>: <what to ask>`. A routine whose last turn is still answering skips the slot, and the page says so. A routine added after today's time waits for tomorrow's. Routines are kept in `routines.json` in the agent's folder. The person who added a routine is told how each run went the way they are told of any turn of theirs, on the events a tray listens to (`/api/events`). Pause, resume and remove are on the same page; removing a routine keeps its conversation.
+
 An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a built-in adapter of the same name, or adds one. It holds bare adapters (`name.json`) or configured agents (`name/adapter.json` with its files beside it, reached through `{harnessDir}`).
 
 ```json
