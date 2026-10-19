@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/getlatentic/gusto/internal/seatbelt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -130,9 +129,10 @@ func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
 	t.Setenv("GUSTO_SANDBOX", "")
 	t.Setenv("GUSTO_CONTAINER", "")
 	t.Setenv("PATH", t.TempDir())
-	// A computer with no docker and no VM has its own sandbox when it is a Mac, and nothing otherwise.
+	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a job to a folder and a
+	// port, and nothing otherwise.
 	expected := "here"
-	if runtime.GOOS == "darwin" && seatbelt.Available() == nil {
+	if processWallHere() {
 		expected = "process"
 	}
 	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != expected || wall == nil {
