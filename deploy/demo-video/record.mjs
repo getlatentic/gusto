@@ -15,7 +15,7 @@ import { spawnSync } from "node:child_process";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || "playwright-core");
 
-const base = process.argv[2] || "https://agentcloud.getlatentic.com";
+const base = process.argv[2] || "https://gusto.getlatentic.com";
 const ended = process.argv[3] || "";
 const person = { name: "John Smith", email: "john.smith@futureacmebank.com", company: "Future Acme Bank" };
 const task = "Create a loan repayment calculator as a single file, index.html, in the current folder. It has fields for the loan amount, the yearly interest rate and the years, a Calculate button, and shows the monthly payment.";

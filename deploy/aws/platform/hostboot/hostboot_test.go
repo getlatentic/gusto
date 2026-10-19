@@ -21,7 +21,7 @@ echo "apt-get $*" >> "$FAKE_LOG"`,
 echo "aws $1 $2 ${3:-}" >> "$FAKE_LOG"
 case "$1 $2" in
 "s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; if [ "$dst" = - ]; then cat "$f"; else cp "$f" "$dst"; fi;;
-"ssm get-parameter") echo '{"demo_name":"agentcloud.example.com","demo_zone":"example.com"}';;
+"ssm get-parameter") echo '{"demo_name":"gusto.example.com","demo_zone":"example.com"}';;
 esac`,
 	"fallocate": `#!/bin/bash
 echo "fallocate $*" >> "$FAKE_LOG"; : > "$3"`,
@@ -141,7 +141,7 @@ func TestAHostIsMadeFromTheReleaseWithItsLeaseAndADeadmanScheduledBeforeAnything
 	if index(lines, "systemd-run --on-active=15m") >= 0 {
 		t.Errorf("a host that started is not scheduled to go for having failed: %v", lines)
 	}
-	if got, _ := os.ReadFile(filepath.Join(b.dir, "bundle", "demo-vars.json")); !strings.Contains(string(got), "agentcloud.example.com") {
+	if got, _ := os.ReadFile(filepath.Join(b.dir, "bundle", "demo-vars.json")); !strings.Contains(string(got), "gusto.example.com") {
 		t.Errorf("the host's settings were read from Parameter Store: %q", got)
 	}
 }
