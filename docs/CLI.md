@@ -48,6 +48,7 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto retention`](#gusto-retention): List what a retention sweep would remove now
 - [`gusto data`](#gusto-data): Show, check and roll back the format of the data
 - [`gusto spend`](#gusto-spend): What the tasks spent this month, by team, project and task
+- [`gusto usage`](#gusto-usage): Search the model calls the agents made, by session
 
 **Other**
 
@@ -1231,6 +1232,104 @@ gusto spend -month 2026-10 -json
 ```
 
 See also: `gusto retention`
+
+## `gusto usage`
+
+Search the model calls the agents made, by session
+
+```text
+gusto usage <command> [arguments]
+```
+
+The index of model calls is built from each task's proxy record (out/proxy.jsonl), which stays the record. These commands read the index and rebuild it. A rebuilt index holds the same rows as the one it replaces.
+
+Commands:
+
+- `sessions`: List sessions with what they spent, the most recently used first
+- `reindex`: Fill the index from the tasks' records now
+
+Flags:
+
+- `-h, --help`: show this help
+
+### `gusto usage sessions`
+
+List sessions with what they spent, the most recently used first
+
+```text
+gusto usage sessions [-person <who>] [-agent <name>] [-agent-type <type>] [-provider <name>] [-model <name>] [-month <2006-01>] [-limit <n>] [-tasks <dir>] [-json]
+```
+
+Lists the sessions that have a call matching the flags. A session is the calls of one conversation, or of one task that is in none. The cost counts only calls the models' prices were known for: a cost ending in + leaves out some calls, and n/a is a session none of whose calls have a price. Cache is the share of input tokens the provider's cache answered.
+
+Flags:
+
+- `-agent <agent>`: only this agent, by the name its person gave it
+- `-agent-type <agent type>`: only this agent type, the program that made the calls
+- `-json`: print the sessions as JSON
+- `-limit <sessions>`: the most sessions to list (default 20)
+- `-model <model>`: only calls to this model
+- `-month <2006-01>`: only calls in this month, as 2006-01
+- `-person <person>`: only this person's sessions
+- `-provider <provider>`: only calls this provider answered
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-h, --help`: show this help
+
+Environment:
+
+- `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
+- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+
+Exit codes:
+
+- `0`: success, including when no session matches
+- `1`: the index could not be read
+- `2`: usage error
+
+Examples:
+
+```sh
+gusto usage sessions -month 2026-10
+gusto usage sessions -person ada@acme.com -provider anthropic -json
+```
+
+See also: `gusto usage reindex`, `gusto spend`
+
+### `gusto usage reindex`
+
+Fill the index from the tasks' records now
+
+```text
+gusto usage reindex [-from-scratch] [-tasks <dir>]
+```
+
+Reads the model calls the index does not hold from every task's proxy record and adds them, printing how far it has got. It can be run again at any time and picks up where an interrupted run stopped. With -from-scratch it first removes every row, says how many, and rebuilds them all. A task that retention removed has no record to read, so a rebuild from scratch leaves its calls out.
+
+Flags:
+
+- `-from-scratch`: remove every row first, then rebuild them all
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-h, --help`: show this help
+
+Environment:
+
+- `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
+- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+
+Exit codes:
+
+- `0`: the index holds every call in the records
+- `1`: the index could not be read or written, or the run was interrupted
+- `2`: usage error
+
+Examples:
+
+```sh
+gusto usage reindex
+gusto usage reindex -from-scratch
+```
+
+See also: `gusto usage sessions`, `gusto data`
 
 ## `gusto agents`
 

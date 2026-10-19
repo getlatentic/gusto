@@ -4,7 +4,7 @@
   <h1>Models</h1>
   <span class="count">Which models the organisation may use, and what each costs</span>
 </div>
-<details class="how page-why"><summary>How this works</summary><p>A model that is not here cannot be chosen, and an agent is offered only the models its agent program can use. Registry version {{.View.Version}}: every call a task makes is written with the version it was sent under.</p></details>
+<details class="how page-why"><summary>How this works</summary><p>A model that is not here cannot be chosen, and an agent is offered only the models its agent type can use. Registry version {{.View.Version}}: every call a task makes is written with the version it was sent under.</p></details>
 
 {{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
 

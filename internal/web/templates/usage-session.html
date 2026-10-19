@@ -1,0 +1,51 @@
+{{template "head" .}}
+{{with .Session}}
+<div class="title-row">
+  <h1>Session <code>{{.ID}}</code></h1>
+  <span class="grow"></span>
+  <a class="link-quiet" href="{{$.Base}}">All usage</a>
+</div>
+<p class="muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
+
+<form class="filters" method="get" action="{{$.Base}}/{{.ID}}" role="search">
+  <label class="inline search"><span class="sr">Search this session's calls</span><input type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
+  <button type="submit">Search</button>
+  {{if .Search}}<a class="clear" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
+</form>
+
+<div class="list usage">
+  <table>
+    <thead><tr>
+      <th scope="col">Time (UTC)</th><th scope="col">Task</th><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Key</th>
+      <th scope="col" class="num">Tokens</th><th scope="col" class="num">Cache</th><th scope="col" class="num">Cost</th><th scope="col">Status</th>
+      <th scope="col">Refused by</th><th scope="col">Translated</th>
+    </tr></thead>
+    <tbody>
+      {{range .Calls}}
+      <tr>
+        <td title="{{.AtFull}}">{{.At}}</td>
+        <td class="cut"><a href="{{.Record}}" title="The signed record of {{.Task}}">{{.Task}}</a></td>
+        <td class="cut" title="{{.Model}}">{{.Model}}</td>
+        <td>{{.Provider}}</td>
+        <td>{{or .Key "—"}}</td>
+        <td class="num">{{.In}} in, {{.Out}} out</td>
+        <td class="num">{{.Cache}}</td>
+        <td class="num">{{if .Unpriced}}<span class="muted">no price</span>{{else}}{{.Cost}}{{end}}</td>
+        <td>{{if .Refused}}<span class="state failed">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
+        <td>{{or .Refused "—"}}</td>
+        <td>{{or .Translated "—"}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{if not .Calls}}<p class="empty muted">No call of this session matches.</p>{{end}}
+  {{if or .Newest .Next}}
+  <nav class="pager" aria-label="Pages">
+    {{if .Newest}}<a href="{{.Newest}}">Latest</a>{{end}}
+    <span class="gap"></span>
+    {{if .Next}}<a href="{{.Next}}" rel="next">Earlier</a>{{end}}
+  </nav>
+  {{end}}
+</div>
+{{end}}
+{{template "foot" .}}

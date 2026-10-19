@@ -85,6 +85,8 @@ func dataStatus() int {
 		fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%d\n", store, dir, format, by, datadir.Current[store])
 	}
 	table.Flush()
+	fmt.Println()
+	fmt.Println(usageStatusLine())
 	return 0
 }
 

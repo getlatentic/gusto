@@ -51,7 +51,7 @@ In a container, the default, each run mounts only its own directory. An agent ca
 
 ## From the pages
 
-`/compare` gives one task to several engines on a template that has a check. Today that is the Software engineer template, checked by `node --test`.
+`/compare` gives one task to several agents on a template that has a check. Today that is the Software engineer template, checked by `node --test`.
 
 - Each run is an ordinary task in the queue. It shows in Activity and Spending and keeps its own signed record.
 - Every run clones the template's sample from one commit, held in `GUSTO_COMPARISONS/samples/<template>`, with the same model, skills and check.

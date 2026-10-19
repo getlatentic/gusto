@@ -52,7 +52,7 @@
   {{template "shares" (dict "Title" "By agent" "Lines" .Agents)}}
   {{with .Askers}}{{template "shares" (dict "Title" "By who asked" "Lines" .)}}{{end}}
   {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
-  {{template "shares" (dict "Title" "By agent" "Lines" .Harnesses)}}
+  {{template "shares" (dict "Title" "By agent type" "Lines" .Harnesses)}}
   {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
   {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
 </div>
