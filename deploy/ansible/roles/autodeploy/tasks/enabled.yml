@@ -92,13 +92,13 @@
     group: root
     mode: "0755"
   loop:
-    - haas-deploy
-    - haas-deploy-run
+    - gusto-deploy
+    - gusto-deploy-run
 
 - name: One unit a commit, so a deploy outlives the connection that asked for it
   ansible.builtin.template:
-    src: haas-deploy@.service.j2
-    dest: /etc/systemd/system/haas-deploy@.service
+    src: gusto-deploy@.service.j2
+    dest: /etc/systemd/system/gusto-deploy@.service
     owner: root
     group: root
     mode: "0644"
@@ -136,18 +136,18 @@
   ansible.builtin.copy:
     dest: "{{ autodeploy_home }}/.ssh/authorized_keys"
     content: |
-      restrict,command="sudo -n /usr/local/sbin/haas-deploy \"$SSH_ORIGINAL_COMMAND\"" {{ autodeploy_public_key | trim }}
+      restrict,command="sudo -n /usr/local/sbin/gusto-deploy \"$SSH_ORIGINAL_COMMAND\"" {{ autodeploy_public_key | trim }}
     owner: root
     group: root
     mode: "0644"
 
 - name: The one command it may run as root
   ansible.builtin.copy:
-    dest: /etc/sudoers.d/haas-deploy
+    dest: /etc/sudoers.d/gusto-deploy
     content: |
       # Managed by ansible (roles/autodeploy). The trigger checks its argument
       # is one full commit id before it does anything with it.
-      {{ autodeploy_user }} ALL=(root) NOPASSWD: /usr/local/sbin/haas-deploy
+      {{ autodeploy_user }} ALL=(root) NOPASSWD: /usr/local/sbin/gusto-deploy
     owner: root
     group: root
     mode: "0440"

@@ -1,4 +1,4 @@
 # Host-specific and secret files stay local — commit the .example instead.
 inventory.ini
-*.vault.yml
+*.vault.yml*
 .collections/

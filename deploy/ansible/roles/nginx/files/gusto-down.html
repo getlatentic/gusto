@@ -24,7 +24,7 @@ button.main { background: var(--accent); border-color: var(--accent); color: var
 <script>
 (function () {
   var root = document.documentElement, theme = "system";
-  try { theme = localStorage.getItem("haas-theme") || theme; } catch (e) {}
+  try { theme = localStorage.getItem("gusto-theme") || theme; } catch (e) {}
   root.dataset.theme = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
   var state = document.getElementById("state"), tries = 0;
   // The page is served at the address that was asked for, so reloading asks for that again once the server answers.
