@@ -28,10 +28,13 @@ func openUsage(ctx context.Context, tasks string) (usage.Store, error) {
 }
 
 // usagePlace says where the index is, with no password in it.
-func usagePlace(tasks string) string {
+func usagePlace(tasks string) string { return databasePlace(tasks, "usage.db") }
+
+// databasePlace says where an index kept in file is, with no password in it.
+func databasePlace(tasks, file string) string {
 	raw := usageURL()
 	if raw == "" {
-		return filepath.Join(usageDataDir(tasks), "usage.db")
+		return filepath.Join(usageDataDir(tasks), file)
 	}
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Host == "" {
@@ -86,22 +89,25 @@ func usageCheck() doctor.Result {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	current, latest, err := usage.Version(ctx, usageURL(), usageDataDir(tasks))
-	place := usagePlace(tasks)
+	result.Verdict = schemaVerdict(usagePlace(tasks), current, latest, err)
+	return result
+}
+
+// schemaVerdict is the doctor's verdict on a database that holds an index: that it opens, and what schema it is at.
+func schemaVerdict(place string, current, latest int, err error) doctor.Verdict {
 	switch {
 	case err != nil:
-		result.Verdict = doctor.Verdict{Status: doctor.Fail, Said: place + ": " + err.Error(),
+		return doctor.Verdict{Status: doctor.Fail, Said: place + ": " + err.Error(),
 			Remedy: "check GUSTO_DATABASE_URL and that the database is up; leave it empty to keep the index in a file beside the tasks"}
 	case current > latest:
-		result.Verdict = doctor.Verdict{Status: doctor.Fail, Said: fmt.Sprintf("%s is at schema version %d, which is newer than this release reads (%d)", place, current, latest),
+		return doctor.Verdict{Status: doctor.Fail, Said: fmt.Sprintf("%s is at schema version %d, which is newer than this release reads (%d)", place, current, latest),
 			Remedy: "run the release that wrote it"}
 	case current == 0:
-		result.Verdict = doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s does not exist yet; the server makes it at schema version %d", place, latest)}
+		return doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s does not exist yet; the server makes it at schema version %d", place, latest)}
 	case current < latest:
-		result.Verdict = doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s is at schema version %d; the server upgrades it to %d at start", place, current, latest)}
-	default:
-		result.Verdict = doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s opens, at schema version %d", place, current)}
+		return doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s is at schema version %d; the server upgrades it to %d at start", place, current, latest)}
 	}
-	return result
+	return doctor.Verdict{Status: doctor.Pass, Said: fmt.Sprintf("%s opens, at schema version %d", place, current)}
 }
 
 // usageStatusLine is what `gusto data status` says of the index. It opens the index only when it is already at the
