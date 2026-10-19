@@ -48,7 +48,7 @@
       <section class="panel">
         <h2>Instructions it follows</h2>
         <ul class="skills">{{range .Skills}}<li><span class="name">{{.Title}}</span>
-          <details><summary>Read</summary><div class="reply">{{markdown .Body}}</div></details></li>{{end}}</ul>
+          <details><summary>Read</summary><div class="reply prose">{{markdown .Body}}</div></details></li>{{end}}</ul>
       </section>
     </div>
     <aside class="run-side" aria-label="About this kind of work">
