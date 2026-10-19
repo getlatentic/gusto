@@ -79,3 +79,14 @@ Prices from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pric
 DeepSeek Flash on every agent, on 2026-10-02 (plan: [`matrix/flash.json`](matrix/flash.json)). `claude` uses `https://api.deepseek.com/anthropic`, the others `https://api.deepseek.com`. All finished. Cost read "unmeasured" for `codex`, `claude` and `dsh`, and the host's spend policy had no DeepSeek prices. Wall clock and model calls: `opencode` 2 m 46 s and 8, `codex` 35 s and 6, `claude` 30 s and 5, `pi` 28 s and 6, `dsh` 39 s and 7, `hermes` 40 s and 8.
 
 Claude Code and Codex on Gemma, translated (2026-10-05, plan: [`matrix/gemma-translated.json`](matrix/gemma-translated.json)). The Gemma models answer Chat Completions alone, so the proxy translates the Messages and Responses calls ([GATEWAY.md](GATEWAY.md)). The `gemma` credential sets `"wires": ["chat"]` and `"maxOutput": 8192`. All five finished. Wall clock and model calls: `claude` on 26b 33 s and 8, `claude` on 31b 40 s and 8, `codex` on 26b 1 m 13 s and 41, `codex` on 31b 35 s and 11, and `opencode`, which is not translated, on 26b 38 s and 10.
+
+## Agents tried over ACP and not carried
+
+Tried on 2026-10-20 against the stub model, through the proxy, with the maintained ACP adapters. Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex (`@agentclientprotocol/codex-acp`) each finished a turn: the proxy translated their Messages and Responses calls and counted 1,100 tokens. These did not make it:
+
+| Agent | Why not |
+| --- | --- |
+| Gemini CLI (`gemini --acp`) | speaks the Gemini API, which the proxy does not carry; a model behind the proxy answers Chat Completions, Messages or Responses |
+| Goose (`goose acp`) | installs from a release archive, and the image's installer takes npm packages alone |
+| OpenClaw (`openclaw acp`) | its ACP is a bridge to a separate gateway process on a port of its own, with its own configuration file; the bridge refuses per-session MCP servers |
+

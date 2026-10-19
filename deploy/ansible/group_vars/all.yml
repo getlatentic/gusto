@@ -48,8 +48,8 @@ gusto_errors_dir: /var/www/gusto-errors
 # verifies each tarball against it.
 runner_harnesses:
   - opencode=opencode-ai
-  - claude=@anthropic-ai/claude-code
-  - codex=@openai/codex
+  - claude=@agentclientprotocol/claude-agent-acp
+  - codex=@agentclientprotocol/codex-acp
   - pi=@earendil-works/pi-coding-agent
   - dsh=@deepseek-ai/dsh
   - hermes=hermes-agent

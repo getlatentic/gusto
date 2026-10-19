@@ -2,70 +2,23 @@
   "name": "claude",
   "title": "Claude Code",
   "what": "Anthropic's coding agent, on whichever Anthropic-shaped endpoint the deployment points it at.",
-  "program": "claude",
-  "package": "@anthropic-ai/claude-code",
-  "argv": [
-    "-p",
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--permission-mode",
-    "acceptEdits",
-    "--allowedTools",
-    "Bash",
-    "--model={modelId}"
-  ],
-  "resume": [
-    "-p",
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--permission-mode",
-    "acceptEdits",
-    "--allowedTools",
-    "Bash",
-    "--model={modelId}",
-    "--resume",
-    "{session}"
-  ],
+  "program": "claude-agent-acp",
+  "package": "@agentclientprotocol/claude-agent-acp",
+  "argv": [],
   "env": {
     "ANTHROPIC_BASE_URL": "{modelRoot}",
     "ANTHROPIC_API_KEY": "{modelToken}",
-    "CLAUDE_CONFIG_DIR": "/root/.local/share/claude"
+    "ANTHROPIC_MODEL": "{modelId}",
+    "CLAUDE_CONFIG_DIR": "/root/.local/share/claude",
+    "NO_BROWSER": "1"
   },
-  "stdin": "{brief}",
   "needs": "key",
   "speaks": "anthropic",
   "skills": "/root/.local/share/claude/skills",
   "keeps": "/root/.local/share/claude",
   "mcp": {
-    "format": "claude",
-    "argv": [
-      "--mcp-config",
-      "{mcp}",
-      "--allowedTools",
-      "{mcpTools}"
-    ]
+    "format": "acp"
   },
-  "stream": "jsonl",
-  "totals": "cumulative",
-  "when": {
-    "text": {
-      "type": "assistant"
-    },
-    "tool": {
-      "type": "assistant"
-    }
-  },
-  "text": "message.content.0.text",
-  "message": "message.id",
-  "toolName": "message.content.0.name",
-  "toolInput": "message.content.0.input",
-  "sessionId": "session_id",
-  "inputTokens": "usage.input_tokens",
-  "outputTokens": "usage.output_tokens",
-  "cacheReadTokens": "usage.cache_read_input_tokens",
-  "cacheWriteTokens": "usage.cache_creation_input_tokens",
-  "endpoint": "https://api.anthropic.com",
-  "costUsd": "total_cost_usd"
+  "stream": "acp",
+  "endpoint": "https://api.anthropic.com"
 }

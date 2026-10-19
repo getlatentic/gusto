@@ -57,7 +57,7 @@ The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a 
 
 ## Models and keys
 
-gusto finds agents on the PATH. The chat page lists missing ones with the install command, such as `npm install -g @anthropic-ai/claude-code`. Until there is a model, the chat page asks for a provider (Anthropic, OpenAI, DeepSeek, OpenRouter, Ollama, or another address), the API shape, the key and the models. **List my models** asks the provider. Every agent is offered every model. Add providers on the console's Models page.
+gusto finds agents on the PATH. The chat page lists missing ones with the install command, such as `npm install -g @agentclientprotocol/claude-agent-acp@0.94.0`. Until there is a model, the chat page asks for a provider (Anthropic, OpenAI, DeepSeek, OpenRouter, Ollama, or another address), the API shape, the key and the models. **List my models** asks the provider. Every agent is offered every model. Add providers on the console's Models page.
 
 A key your shell already has is offered, not taken. `gusto local use` adds it. It knows `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` and `OPENROUTER_API_KEY`:
 

@@ -259,7 +259,7 @@ func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
-	return converse(ctx, live, box.Workdir(), spec, servers, record)
+	return converse(ctx, live, box.Workdir(), spec, servers, adapter.Authenticate, record)
 }
 
 // boxCommand is the command that starts the harness in a box, with the servers it is to be given. A job's servers behind the gateway
