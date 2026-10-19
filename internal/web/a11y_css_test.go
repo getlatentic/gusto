@@ -11,22 +11,22 @@ import (
 
 var (
 	themeBlock  = regexp.MustCompile(`(?s)([^{}]+)\{([^{}]*)\}`)
-	themeColour = regexp.MustCompile(`--gu-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
+	themeColor  = regexp.MustCompile(`--gu-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
 	themeAccent = regexp.MustCompile(`data-accent="([a-z]+)"`)
 )
 
 // The focus ring is drawn in --gu-focus with nothing between it and the surface it sits on, so it has 3 to 1 against every surface a
 // control is drawn on, in each theme and each accent.
 func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
-	colours := themeColours(t)
+	colors := themeColors(t)
 	for _, theme := range []string{"light", "dark"} {
-		for accent := range colours["light"] {
+		for accent := range colors["light"] {
 			if accent == "" {
 				continue
 			}
-			focus := themeLookup(colours, theme, accent, "focus")
+			focus := themeLookup(colors, theme, accent, "focus")
 			for _, surface := range []string{"rail", "bg-subtle", "bg", "surface"} {
-				if ratio := contrast(focus, themeLookup(colours, theme, accent, surface)); ratio < 3 {
+				if ratio := contrast(focus, themeLookup(colors, theme, accent, surface)); ratio < 3 {
 					t.Errorf("%s %s: the focus ring #%s is %.2f to 1 on %s", theme, accent, focus, ratio, surface)
 				}
 			}
@@ -34,14 +34,14 @@ func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
 	}
 }
 
-// themeColours reads theme.css into colours by theme, then by accent ("" for the rules that name none), then by token.
-func themeColours(t *testing.T) map[string]map[string]map[string]string {
+// themeColors reads theme.css into colors by theme, then by accent ("" for the rules that name none), then by token.
+func themeColors(t *testing.T) map[string]map[string]map[string]string {
 	t.Helper()
 	body, err := fs.ReadFile(assets, "static/theme.css")
 	if err != nil {
 		t.Fatal(err)
 	}
-	colours := map[string]map[string]map[string]string{"light": {}, "dark": {}}
+	colors := map[string]map[string]map[string]string{"light": {}, "dark": {}}
 	for _, block := range themeBlock.FindAllStringSubmatch(cssComment.ReplaceAllString(string(body), ""), -1) {
 		for _, selector := range strings.Split(block[1], ",") {
 			theme, accent := "light", ""
@@ -51,20 +51,20 @@ func themeColours(t *testing.T) map[string]map[string]map[string]string {
 			if named := themeAccent.FindStringSubmatch(selector); named != nil {
 				accent = named[1]
 			}
-			if colours[theme][accent] == nil {
-				colours[theme][accent] = map[string]string{}
+			if colors[theme][accent] == nil {
+				colors[theme][accent] = map[string]string{}
 			}
-			for _, colour := range themeColour.FindAllStringSubmatch(block[2], -1) {
-				colours[theme][accent][colour[1]] = colour[2]
+			for _, color := range themeColor.FindAllStringSubmatch(block[2], -1) {
+				colors[theme][accent][color[1]] = color[2]
 			}
 		}
 	}
-	return colours
+	return colors
 }
 
 // themeLookup is a token as the page resolves it: the accent's own rule, then the theme's, then the light theme's.
-func themeLookup(colours map[string]map[string]map[string]string, theme, accent, token string) string {
-	for _, rule := range []map[string]string{colours[theme][accent], colours[theme][""], colours["light"][""]} {
+func themeLookup(colors map[string]map[string]map[string]string, theme, accent, token string) string {
+	for _, rule := range []map[string]string{colors[theme][accent], colors[theme][""], colors["light"][""]} {
 		if hex, ok := rule[token]; ok {
 			return hex
 		}

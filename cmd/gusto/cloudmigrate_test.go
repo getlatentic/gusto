@@ -69,7 +69,7 @@ func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOl
 	}
 }
 
-func TestEachOrganisationsIndexDirectoryIsTheOneTheOperatorNamesOrBelowTheRoot(t *testing.T) {
+func TestEachOrganizationsIndexDirectoryIsTheOneTheOperatorNamesOrBelowTheRoot(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "cloud")
 	t.Setenv("GUSTO_CLOUD_ROOT", root)
 	t.Setenv("GUSTO_DATABASE_URL", "")
@@ -80,7 +80,7 @@ func TestEachOrganisationsIndexDirectoryIsTheOneTheOperatorNamesOrBelowTheRoot(t
 	}
 	defer store.Close()
 	public, _ := url.Parse("https://cloud.example.com")
-	controller, err := organisationServers(store, public, cloud.DefaultLimits())
+	controller, err := organizationServers(store, public, cloud.DefaultLimits())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestEachOrganisationsIndexDirectoryIsTheOneTheOperatorNamesOrBelowTheRoot(t
 		t.Errorf("the default: %q", controller.IndexDir)
 	}
 	t.Setenv("GUSTO_CLOUD_INDEX_DIR", "/var/lib/gusto/index")
-	if controller, _ = organisationServers(store, public, cloud.DefaultLimits()); controller.IndexDir != "/var/lib/gusto/index" {
+	if controller, _ = organizationServers(store, public, cloud.DefaultLimits()); controller.IndexDir != "/var/lib/gusto/index" {
 		t.Errorf("the operator's: %q", controller.IndexDir)
 	}
 }

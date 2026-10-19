@@ -28,7 +28,7 @@ func (s *Server) engines() []catalog.Entry {
 // UseLiveCatalog has the catalog read again each time a page asks for it.
 func (s *Server) UseLiveCatalog(read func() []catalog.Entry) { s.liveCatalog = read }
 
-// offered is what this deployment offers to think with now. It changes when an organisation's admin changes the
+// offered is what this deployment offers to think with now. It changes when an organization's admin changes the
 // registry, so what a page says is read when the page is drawn.
 func (s *Server) offered() Models {
 	if s.live != nil {
@@ -37,7 +37,7 @@ func (s *Server) offered() Models {
 	return s.models
 }
 
-// offeredTo is what the person who made this request may think with: what is offered, less what the organisation
+// offeredTo is what the person who made this request may think with: what is offered, less what the organization
 // has limited them away from. A person limited to models that are no longer offered is offered none, which is
 // different from a deployment that names no model and leaves an engine to its own default.
 func (s *Server) offeredTo(r *http.Request) Models {

@@ -9,7 +9,7 @@ import (
 )
 
 // step is one thing an agent did during a turn, said the way a person would:
-// "Read adder.sh", "Searched memory for favourite colour".
+// "Read adder.sh", "Searched memory for favorite color".
 type step struct {
 	What   string
 	Detail string

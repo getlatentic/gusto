@@ -15,7 +15,7 @@ import (
 
 // sharedApps runs the web apps that agents built in the computers of the people whose agents they
 // are. An app is a process in the computer, given an address on the gateway that answers
-// only this server, and this server passes on what a signed-in member of the organisation asks it.
+// only this server, and this server passes on what a signed-in member of the organization asks it.
 type sharedApps struct {
 	cfg      openshell.Config
 	registry *computer.Registry

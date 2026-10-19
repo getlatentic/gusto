@@ -18,16 +18,16 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 )
 
-// computersFromEnv is the record of the computers people in this organisation have, when
-// this server is an organisation's and runs tasks in sandboxes: GUSTO_COMPUTERS is its
-// directory, GUSTO_ORG the organisation, and GUSTO_QUOTA is the limit on how many.
+// computersFromEnv is the record of the computers people in this organization have, when
+// this server is an organization's and runs tasks in sandboxes: GUSTO_COMPUTERS is its
+// directory, GUSTO_ORG the organization, and GUSTO_QUOTA is the limit on how many.
 func computersFromEnv() (*computer.Registry, error) {
 	dir, org := os.Getenv("GUSTO_COMPUTERS"), os.Getenv("GUSTO_ORG")
 	if dir == "" || os.Getenv("GUSTO_SANDBOX") != "openshell" {
 		return nil, nil
 	}
 	if org == "" {
-		return nil, errors.New("GUSTO_COMPUTERS names the workspaces of an organisation, and GUSTO_ORG says which")
+		return nil, errors.New("GUSTO_COMPUTERS names the workspaces of an organization, and GUSTO_ORG says which")
 	}
 	registry, err := computer.Open(dir, org)
 	if err != nil {
@@ -50,7 +50,7 @@ func personWhoAsked(index *jobs.Index, dir job.Dir) string {
 }
 
 // RunInComputer runs a task in the computer of the person who asked for it, making it
-// when they have none. What is refused, a computer past the organisation's quota
+// when they have none. What is refused, a computer past the organization's quota
 // among it, is said in the task's record like any other refusal.
 func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, cfg openshell.Config, registry *computer.Registry, person string) (int, error) {
 	if w.proxy == nil {
@@ -118,7 +118,7 @@ func (c *computerBox) update(change func(*computer.Computer)) {
 
 func now() time.Time { return time.Now().UTC().Truncate(time.Second) }
 
-// tendComputers removes the computers people were removed from the organisation
+// tendComputers removes the computers people were removed from the organization
 // for, and stops those nobody has used for a while. Removing needs the gateway, which
 // this server reaches and gusto cloud does not, so gusto cloud only marks them.
 func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer.Registry, busy func(person string) bool, every, idle time.Duration) {

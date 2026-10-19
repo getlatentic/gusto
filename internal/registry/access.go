@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// maxAccess is the most people an organisation may limit, which keeps the file a size a page can show.
+// maxAccess is the most people an organization may limit, which keeps the file a size a page can show.
 const maxAccess = 500
 
 // Access is a person who may use only some of the models, and which.
@@ -19,7 +19,7 @@ type Access struct {
 }
 
 // AllowedFor is the models a person is limited to, and whether they are limited at all. A person nobody has said
-// anything about may use every model the organisation has.
+// anything about may use every model the organization has.
 func (r *Registry) AllowedFor(email string) ([]string, bool) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	for _, limit := range r.Document().Access {
@@ -37,7 +37,7 @@ func (r *Registry) Limits() []Access {
 	return limits
 }
 
-// SetAccess limits a person to these models, which must be ones the organisation has now. No models removes the limit.
+// SetAccess limits a person to these models, which must be ones the organization has now. No models removes the limit.
 func (r *Registry) SetAccess(email string, models []string) error {
 	address, err := mail.ParseAddress(strings.TrimSpace(email))
 	if err != nil || address.Name != "" || len(address.Address) > 254 {
@@ -47,7 +47,7 @@ func (r *Registry) SetAccess(email string, models []string) error {
 	have := r.Effective().Models
 	for _, model := range models {
 		if !slices.Contains(have, model) {
-			return fmt.Errorf("%s is not a model this organisation has", model)
+			return fmt.Errorf("%s is not a model this organization has", model)
 		}
 	}
 	models = slices.Clone(models)

@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
-// endStatements take away what an ended demo had, the organisation's record last.
+// endStatements take away what an ended demo had, the organization's record last.
 var endStatements = []string{
 	`DELETE FROM invitations WHERE org = ?`,
 	`DELETE FROM people WHERE org = ?`,
@@ -19,9 +19,9 @@ var endStatements = []string{
 	`DELETE FROM orgs WHERE slug = ?`,
 }
 
-var errNoOrg = fmt.Errorf("there is no such organisation: %w", fs.ErrNotExist)
+var errNoOrg = fmt.Errorf("there is no such organization: %w", fs.ErrNotExist)
 
-// changeDemo reads an organisation under its lock, lets change alter the demo's record, and keeps the result.
+// changeDemo reads an organization under its lock, lets change alter the demo's record, and keeps the result.
 func (s *Store) changeDemo(slug string, change func(*Org) error) (Org, error) {
 	ctx := context.Background()
 	var org Org
@@ -52,7 +52,7 @@ func (s *Store) saveDemo(ctx context.Context, tx dbkit.Tx, org Org) error {
 	return err
 }
 
-// DemoReady starts a demo's time, when it is not started. It is asked each time the organisation is found ready and
+// DemoReady starts a demo's time, when it is not started. It is asked each time the organization is found ready and
 // starts the time once.
 func (s *Store) DemoReady(slug string) (Demo, error) {
 	org, err := s.changeDemo(slug, func(org *Org) error {
@@ -101,7 +101,7 @@ func (s *Store) StopDemo(slug string) error {
 	return err
 }
 
-// DemoLeft is a demo's record and how long it has, and whether the organisation is a demo at all. A demo that is not
+// DemoLeft is a demo's record and how long it has, and whether the organization is a demo at all. A demo that is not
 // ready has its whole time still, which is not counting down.
 func (s *Store) DemoLeft(slug string) (Demo, time.Duration, bool) {
 	org, found, err := s.Org(slug)
@@ -136,7 +136,7 @@ func (s *Store) DemosDue() (map[string]string, error) {
 }
 
 // EndDemo deletes a demo: its people, its data and its record, and keeps the lead with why it ended. The
-// organisation's server and computers are stopped before this, since nothing here reaches them. The data goes
+// organization's server and computers are stopped before this, since nothing here reaches them. The data goes
 // first and the record in one step after it, so a failure part way leaves a demo that is found and tried again.
 func (s *Store) EndDemo(slug, reason string) error {
 	org, found, err := s.Org(slug)

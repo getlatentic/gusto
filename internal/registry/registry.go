@@ -1,8 +1,8 @@
-// Package registry is the models an organisation may use, and where each answers: one place that says what a
+// Package registry is the models an organization may use, and where each answers: one place that says what a
 // model is called, where it lives, and what it costs.
 //
 // The operator's own models, from the deployment's settings, are always there and cannot be changed from here.
-// An organisation adds providers and models of its own, which are kept in one file in its data directory. The
+// An organization adds providers and models of its own, which are kept in one file in its data directory. The
 // two together are what the proxy holds, what the forms offer and what the ledger prices at, and the registry
 // has a version that goes up with every change, which each call the proxy makes is written with.
 package registry
@@ -67,7 +67,7 @@ type Document struct {
 	Access []Access `json:"access,omitempty"`
 }
 
-// Platform is what the operator configured, which an organisation's registry is added to.
+// Platform is what the operator configured, which an organization's registry is added to.
 type Platform struct {
 	Credentials proxy.Credentials
 	// Models are full names, in the order they are offered.
@@ -75,7 +75,7 @@ type Platform struct {
 	Prices map[string]spend.Price
 }
 
-// Rules are what an organisation's admin may and may not do. The operator sets them, and where the registry is
+// Rules are what an organization's admin may and may not do. The operator sets them, and where the registry is
 // editable, which is a deployment for one company whose admin is its operator, an admin changes the two that are
 // about trust from the console.
 type Rules struct {
@@ -84,12 +84,12 @@ type Rules struct {
 	PrivateAddresses bool
 	// KeySources are the kinds of reference a key may be given as, besides "stored", which is a
 	// key the admin typed once and which is never shown again. "file", "ssm" and "secretsmanager" let an
-	// admin name anything this machine can read, so a deployment that hosts other people's organisations
+	// admin name anything this machine can read, so a deployment that hosts other people's organizations
 	// leaves them out.
 	KeySources []string
 }
 
-// Registry is an organisation's registry, kept in a file, with the operator's added.
+// Registry is an organization's registry, kept in a file, with the operator's added.
 type Registry struct {
 	path     string
 	keys     Keys

@@ -111,7 +111,7 @@ func TestADroppedProxyRecordIsRedacted(t *testing.T) {
 	}
 }
 
-// Every call is written with the version of the organisation's registry it was sent under, and the
+// Every call is written with the version of the organization's registry it was sent under, and the
 // record says which versions a job's calls were sent under, so a change of models or prices is never
 // mistaken for a change of what the job did.
 func TestTheRecordSaysWhichVersionsOfTheModelRegistryTheCallsWereSentUnder(t *testing.T) {

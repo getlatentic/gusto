@@ -24,7 +24,7 @@ func systemResolver(ctx context.Context, host string) ([]netip.Addr, error) {
 func (r *Registry) SetResolver(resolve Resolver) { r.resolve = resolve }
 
 // checkAddress says whether a provider may be at this address, and gives it as it is kept. Where a provider is
-// is where the organisation's key is sent, from a machine that other organisations' servers are on too, so an
+// is where the organization's key is sent, from a machine that other organizations' servers are on too, so an
 // address that is this machine, a private network or a cloud's metadata service is refused unless the operator
 // allowed it. The proxy checks again when it connects, since a name can change.
 func (r *Registry) checkAddress(address string) (string, error) {

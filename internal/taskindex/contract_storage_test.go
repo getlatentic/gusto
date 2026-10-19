@@ -125,7 +125,7 @@ var storageCases = []contractCase{
 			t.Fatalf("types = %v %v", types, err)
 		}
 	}},
-	{"a cancelled context stops every call", func(t *testing.T, s taskindex.Store) {
+	{"a canceled context stops every call", func(t *testing.T, s taskindex.Store) {
 		put(t, s, task("a", 1))
 		done, cancel := context.WithCancel(ctx)
 		cancel()
@@ -142,7 +142,7 @@ var storageCases = []contractCase{
 			}
 		}
 		if _, err := s.Get(ctx, "b"); err == nil {
-			t.Fatal("a cancelled upsert held a row")
+			t.Fatal("a canceled upsert held a row")
 		}
 	}},
 }

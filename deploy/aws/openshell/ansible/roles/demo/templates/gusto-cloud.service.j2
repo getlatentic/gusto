@@ -1,5 +1,5 @@
 [Unit]
-Description=gusto public cloud: gusto cloud and each organisation's server
+Description=gusto public cloud: gusto cloud and each organization's server
 After=gusto-boot.service{{ ' openshell-gateway.service' if demo_role != 'orchestrator' else '' }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}

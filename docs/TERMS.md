@@ -5,7 +5,7 @@ Three terms, two of them easy to confuse.
 | --- | --- |
 | agent | The program that does the work: `claude`, `codex`, `opencode`, `pi`. A task names one in `job.json` |
 | adapter | How to run an agent: the program, its arguments, its environment, and where the numbers sit in its output |
-| configured agent | An agent plus what shapes its behaviour: skills, MCP servers, a prompt, a model policy, tool permissions |
+| configured agent | An agent plus what shapes its behavior: skills, MCP servers, a prompt, a model policy, tool permissions |
 
 A person shares, rents or sells a configured agent. Two people running `opencode` run the same agent and, usually, different configured agents.
 

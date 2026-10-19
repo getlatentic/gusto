@@ -48,7 +48,7 @@
   <thead><tr><th>Host</th><th>Up since</th></tr></thead>
   <tbody>{{range .Hosts}}<tr><td>{{.ID}}</td><td>{{ago .Launched $.Now}}</td></tr>{{end}}</tbody>
 </table>
-{{else}}<p class="muted">No host is running for organisations. One starts when a demo is asked for.</p>{{end}}
+{{else}}<p class="muted">No host is running for organizations. One starts when a demo is asked for.</p>{{end}}
 {{else}}<p class="muted">Hosts are not started on demand here.</p>{{end}}
 
 <h2>Leads</h2>

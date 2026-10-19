@@ -22,13 +22,13 @@ type Launcher interface {
 	Running() ([]Instance, error)
 }
 
-// Scaler keeps as many hosts as the organisations need: one is started when an organisation waits for room and none is
-// on its way, and a host with no organisation on it for a while is stopped. With nothing to run there is no host, and
+// Scaler keeps as many hosts as the organizations need: one is started when an organization waits for room and none is
+// on its way, and a host with no organization on it for a while is stopped. With nothing to run there is no host, and
 // nothing is paid for.
 type Scaler struct {
 	Pool     *Pool
 	Launcher Launcher
-	// Waiting is how many organisations wait for a host with room.
+	// Waiting is how many organizations wait for a host with room.
 	Waiting func() int
 	// Max is the most hosts there may be at once.
 	Max int
@@ -38,7 +38,7 @@ type Scaler struct {
 	Boot time.Duration
 	// Backoff is how long after a host could not be started another is not tried.
 	Backoff time.Duration
-	// Settle is how long a host that has just registered is given to take the organisations that wait, which are placed
+	// Settle is how long a host that has just registered is given to take the organizations that wait, which are placed
 	// on it when the controller next looks. A host is not started for them in that time, since they are about to have room.
 	Settle time.Duration
 
@@ -81,7 +81,7 @@ func (s *Scaler) Run(ctx context.Context, every time.Duration) {
 }
 
 // Tick makes one decision: it stops hosts that failed to become hosts and hosts that have been idle, and starts a host
-// when an organisation waits and none is starting.
+// when an organization waits and none is starting.
 func (s *Scaler) Tick() {
 	hosts, err := s.Launcher.Running()
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *Scaler) Tick() {
 			slog.Error("a host could not be started", "error", err)
 			return
 		}
-		slog.Info("a host was started, because organisations are waiting", "host", id, "waiting", waiting)
+		slog.Info("a host was started, because organizations are waiting", "host", id, "waiting", waiting)
 	}
 }
 

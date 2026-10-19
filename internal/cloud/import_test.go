@@ -51,7 +51,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 			t.Errorf("%+v", rt)
 		}
 		if q, err := s.Quota("acme-com"); err != nil || q != DefaultLimits().Verified {
-			t.Errorf("an organisation's own directory is found where it was: %+v %v", q, err)
+			t.Errorf("an organization's own directory is found where it was: %+v %v", q, err)
 		}
 		if _, err := os.Stat(s.DataDir("globex-com")); err != nil {
 			t.Error(err)
@@ -109,7 +109,7 @@ func TestADemosLeadSurvivesTheImportAndTheDemosGoOnWhereTheyWere(t *testing.T) {
 			t.Errorf("a demo that ended keeps why: %+v", ended)
 		}
 		if _, found, _ := s.Org(secrets["demoEnded"]); found {
-			t.Error("a demo that ended has no organisation")
+			t.Error("a demo that ended has no organization")
 		}
 		leads, _ := s.Leads()
 		if len(leads) != 4 || leads[0].Slug != secrets["demoWaiting"] {
@@ -183,7 +183,7 @@ func TestAHalfWrittenFileIsLeftOutAndTheRestAreLoaded(t *testing.T) {
 			t.Error("half a record was loaded")
 		}
 		if _, found, _ := s.Person("lost@nowhere.com"); found {
-			t.Error("a person of no organisation was loaded")
+			t.Error("a person of no organization was loaded")
 		}
 	})
 }
@@ -236,7 +236,7 @@ func TestTwoFrontDoorsStartedTogetherImportOnce(t *testing.T) {
 		people, _ := count(context.Background(), stores[1].db, `SELECT count(*) FROM people`)
 		records, _ := count(context.Background(), stores[2].db, `SELECT count(*) FROM imports`)
 		if len(orgs) != 5 || people != 6 || records != 1 {
-			t.Errorf("%d organisations, %d people, %d import records", len(orgs), people, records)
+			t.Errorf("%d organizations, %d people, %d import records", len(orgs), people, records)
 		}
 		for _, s := range stores {
 			s.Close()
@@ -263,7 +263,7 @@ func TestAttachNeverMigratesOrImports(t *testing.T) {
 	}
 	defer look.Close()
 	if orgs, _ := look.Orgs(); len(orgs) != 5 {
-		t.Errorf("%d organisations", len(orgs))
+		t.Errorf("%d organizations", len(orgs))
 	}
 }
 

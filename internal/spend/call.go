@@ -22,7 +22,7 @@ type Call struct {
 	Took   int64  `json:"tookMs"`
 	// Credential names the key the proxy added. The key itself is never here.
 	Credential string `json:"credential,omitempty"`
-	// Registry is the version of the organisation's model registry the call was sent under.
+	// Registry is the version of the organization's model registry the call was sent under.
 	Registry int64  `json:"registry,omitempty"`
 	Error    string `json:"error,omitempty"`
 	AtUnix   int64  `json:"atUnix"`

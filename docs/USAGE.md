@@ -91,4 +91,4 @@ The proxy writes each call to the task's `out/proxy.jsonl`, and that file stays 
 | empty | A SQLite file, `usage.db`, in the data directory |
 | `postgres://...` | In Postgres |
 
-A `search_path` parameter in the Postgres URL gives each organisation its own schema on a shared Postgres.
+A `search_path` parameter in the Postgres URL gives each organization its own schema on a shared Postgres.

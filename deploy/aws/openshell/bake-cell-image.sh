@@ -67,7 +67,7 @@ run() { # run a command on the host with Systems Manager and print what it said
   id="$(aws ssm send-command --instance-ids "$host" --document-name AWS-RunShellScript --parameters "commands=[\"$1\"]" --query Command.CommandId --output text 2>/dev/null)" || return 1
   for _ in $(seq 1 60); do
     status="$(aws ssm get-command-invocation --command-id "$id" --instance-id "$host" --query Status --output text 2>/dev/null || true)"
-    case "$status" in Success) aws ssm get-command-invocation --command-id "$id" --instance-id "$host" --query StandardOutputContent --output text; return 0 ;; Failed|Cancelled|TimedOut) return 1 ;; esac
+    case "$status" in Success) aws ssm get-command-invocation --command-id "$id" --instance-id "$host" --query StandardOutputContent --output text; return 0 ;; Failed|Canceling|TimedOut) return 1 ;; esac
     sleep 5
   done
   return 1

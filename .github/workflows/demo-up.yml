@@ -1,5 +1,5 @@
 # Launches a demo of the public cloud from a release bundle, and says when it answers. With no cells it is
-# one host. With cells it is a front door and that many hosts that run the organisations' servers, which share
+# one host. With cells it is a front door and that many hosts that run the organizations' servers, which share
 # a file system. Each host is made from a launch template and configures itself, and removes itself when its
 # lease ends unless somebody extends it at /lease, or, for a cell, when its front door is gone. Only main can run it.
 name: demo up
@@ -11,7 +11,7 @@ on:
         description: How long the host has, in minutes. Anybody signed in extends it.
         default: "30"
       cells:
-        description: How many hosts run the organisations' servers, from 0 to 4. None makes one host that does everything.
+        description: How many hosts run the organizations' servers, from 0 to 4. None makes one host that does everything.
         default: "0"
       release:
         description: The commit whose bundle it is made from. The newest when empty.

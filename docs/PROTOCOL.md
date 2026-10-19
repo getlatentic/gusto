@@ -8,7 +8,7 @@ Every client uses the same calls in the same shapes: the desktop app, the helper
 | --- | --- | --- |
 | Your computer (`gusto local`) | `http://127.0.0.1:<port>`, loopback only | A link that works once for five minutes (`gusto local link`) opens a session. Another computer of yours uses the device flow |
 | Another computer you own | its address, behind TLS | The shared password opens a session. With no identity provider you are the one owner and approve a computer by the device flow |
-| An organisation's | its address, behind TLS | Single sign-on opens a session. A person approves a computer by the device flow. A program carries a token with a scope |
+| An organization's | its address, behind TLS | Single sign-on opens a session. A person approves a computer by the device flow. A program carries a token with a scope |
 
 The desktop app and the helper refuse a plain `http` address unless it is this computer's own.
 ## Signing in
@@ -24,7 +24,7 @@ The token acts as that person, on their own work. The person ends it from `/devi
 
 ## The calls
 
-"A person" is a device-flow token. "Token: x" is an organisation token with scope x. Somebody else's work is answered as missing.
+"A person" is a device-flow token. "Token: x" is an organization token with scope x. Somebody else's work is answered as missing.
 
 | Call | Who | What it does |
 | --- | --- | --- |

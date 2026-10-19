@@ -144,7 +144,7 @@ func TestAPersonOpensAThreadOfTheirOwnAndNotSomebodyElses(t *testing.T) {
 	}
 }
 
-// post sends a job with an organisation's token and a request id.
+// post sends a job with an organization's token and a request id.
 func (s *tokened) postJob(secret, key string) (int, Answer) {
 	body, _ := json.Marshal(Submission{Spec: aJob()})
 	request := httptest.NewRequest("POST", "/api/jobs", bytes.NewReader(body))

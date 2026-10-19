@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The whole public cloud on this instance, on a real model: an admin signs up, invites three
-# people, each gets a computer and asks an agent for something, and a second organisation
+# people, each gets a computer and asks an agent for something, and a second organization
 # is made beside it. Run ./up.sh first (INSTANCE_TYPE=m8i.2xlarge is enough for four
 # computers), and ./put-key.sh for both keys. Output is kept in out/e2e-cloud.txt. The
 # front door is left running on the instance, on port 8050.

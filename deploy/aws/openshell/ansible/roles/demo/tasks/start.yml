@@ -30,7 +30,7 @@
     state: reloaded
   when: demo_role != 'cell'
 
-# A host an image is made from is not started as a cell, which would register it and give it organisations.
+# A host an image is made from is not started as a cell, which would register it and give it organizations.
 - name: The host is running
   ansible.builtin.systemd:
     name: gusto-cell

@@ -17,15 +17,15 @@
       "name": "fix-a-bug",
       "title": "Fix bugs",
       "blurb": "Reproduces the bug with a failing test, then fixes it.",
-      "description": "Use when asked to fix a bug, a failing test, or behaviour that is wrong.",
-      "body": "Fix it the way a careful engineer would.\n\n1. Run the tests first and read the failure, or write a test that fails for the reported behaviour.\n2. Find the cause in the code, not just the symptom. Say what it was in one sentence.\n3. Make the smallest change that fixes the cause.\n4. Run the tests again, all of them, and show that they pass.\n5. Report: the cause, the change, and the test that now guards it."
+      "description": "Use when asked to fix a bug, a failing test, or behavior that is wrong.",
+      "body": "Fix it the way a careful engineer would.\n\n1. Run the tests first and read the failure, or write a test that fails for the reported behavior.\n2. Find the cause in the code, not just the symptom. Say what it was in one sentence.\n3. Make the smallest change that fixes the cause.\n4. Run the tests again, all of them, and show that they pass.\n5. Report: the cause, the change, and the test that now guards it."
     },
     {
       "name": "write-tests",
       "title": "Write tests",
       "blurb": "Covers edge cases: empty input, zero, negative and too-large values.",
-      "description": "Use when asked to add tests, raise coverage, or check a function's behaviour.",
-      "body": "Write tests with the project's own test runner and style.\n\n- One test a behaviour, named for what it proves.\n- Cover the edges: empty input, zero, negative, the largest allowed value, and one past it.\n- A test must fail if the behaviour breaks: check it would, by reasoning or by trying.\n- Run the whole suite at the end and report what passed."
+      "description": "Use when asked to add tests, raise coverage, or check a function's behavior.",
+      "body": "Write tests with the project's own test runner and style.\n\n- One test a behavior, named for what it proves.\n- Cover the edges: empty input, zero, negative, the largest allowed value, and one past it.\n- A test must fail if the behavior breaks: check it would, by reasoning or by trying.\n- Run the whole suite at the end and report what passed."
     },
     {
       "name": "review-change",

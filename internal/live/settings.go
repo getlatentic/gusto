@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// Settings are what an organisation's administrator changes in GUSTO_LIVE: how many tasks a person and a team may run at once, and
+// Settings are what an organization's administrator changes in GUSTO_LIVE: how many tasks a person and a team may run at once, and
 // which models people are offered. A field the file leaves out keeps the value the server started with.
 type Settings struct {
 	LimitPerson *int     `json:"limitPerson,omitempty"`

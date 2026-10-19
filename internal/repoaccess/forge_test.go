@@ -48,12 +48,12 @@ type forge struct {
 	minted    []minted
 	live      map[string]bool
 	revoked   []string
-	// authorised counts git requests that carried a live token.
-	authorised int
+	// authorized counts git requests that carried a live token.
+	authorized int
 	refused    int
 	// root is where the forge keeps its bare repositories.
 	root string
-	// flake is how many authorised git requests the forge answers "not found"
+	// flake is how many authorized git requests the forge answers "not found"
 	// to before it answers properly, as GitHub's git servers sometimes do.
 	flake int
 }
@@ -237,7 +237,7 @@ func (f *forge) gated(next http.Handler) http.Handler {
 			ok, flaking = false, true
 		}
 		if ok {
-			f.authorised++
+			f.authorized++
 		} else {
 			f.refused++
 		}

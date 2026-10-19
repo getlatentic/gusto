@@ -51,7 +51,7 @@ func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// consoleSpend is the same report in the console, for the whole organisation.
+// consoleSpend is the same report in the console, for the whole organization.
 func (s *Server) consoleSpend(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.spendData(w, r, "/admin/spending"); ok {
 		s.drawConsole(w, "spend.html", "spending", page)

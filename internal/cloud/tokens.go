@@ -19,7 +19,7 @@ type Purpose string
 const (
 	Verify Purpose = "verify"
 	SignIn Purpose = "signin"
-	// Invite is a link an admin sent to a person, to join their organisation.
+	// Invite is a link an admin sent to a person, to join their organization.
 	Invite Purpose = "invite"
 )
 
@@ -31,7 +31,7 @@ type link struct {
 	Email   string    `json:"email"`
 	Purpose Purpose   `json:"purpose"`
 	Expires time.Time `json:"expires"`
-	// An invitation is for an organisation, in a role, from a person.
+	// An invitation is for an organization, in a role, from a person.
 	Org  string `json:"org,omitempty"`
 	Role Role   `json:"role,omitempty"`
 	By   string `json:"by,omitempty"`

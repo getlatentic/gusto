@@ -32,7 +32,7 @@ func environmentFor(t *testing.T, operator []string, slug string) []string {
 	return env
 }
 
-func TestEachOrganisationGetsItsOwnPostgresSchemaInTheOperatorsURL(t *testing.T) {
+func TestEachOrganizationGetsItsOwnPostgresSchemaInTheOperatorsURL(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		operator := []string{"GUSTO_DATABASE_URL=postgres://gusto:pw@db.internal:5432/usage?sslmode=require&search_path=shared"}
 		got := map[string]string{}
@@ -102,11 +102,11 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 				}
 				got[slug] = value
 				if jobs, _ := settingOf(env, "GUSTO_JOBS"); !strings.Contains(jobs, slug) {
-					t.Errorf("the tasks directory is not the organisation's: %q", jobs)
+					t.Errorf("the tasks directory is not the organization's: %q", jobs)
 				}
 			}
 			if got["acme"] == got["globex"] {
-				t.Errorf("two organisations share an index: %q", got["acme"])
+				t.Errorf("two organizations share an index: %q", got["acme"])
 			}
 			for slug, raw := range got {
 				db, err := dbkit.Open(context.Background(), raw, "/not/used", "usage.db")
@@ -122,7 +122,7 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 	})
 }
 
-func TestTheIndexDirectoryIsTheStoresRootByDefaultAndIsNotInAnOrganisationsDataDirectory(t *testing.T) {
+func TestTheIndexDirectoryIsTheStoresRootByDefaultAndIsNotInAnOrganizationsDataDirectory(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		store := open(t, Settings{})
 		c := &Controller{Store: store, Cell: &LocalCell{}, FrontDoor: "https://cloud.test"}

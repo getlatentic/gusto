@@ -1,5 +1,5 @@
-// Package quota is what an organisation's server may run, kept in a file its
-// front door writes and the server reads as it goes. A hosted organisation's
+// Package quota is what an organization's server may run, kept in a file its
+// front door writes and the server reads as it goes. A hosted organization's
 // limit changes when its admin confirms an address, and the server that is
 // running must see that without a restart.
 package quota
@@ -33,7 +33,7 @@ type Quota struct {
 
 // ErrExceeded is what a refusal is: it wraps to this, so a caller can answer
 // "too many" and not "broken".
-var ErrExceeded = errors.New("this organisation has reached its limit")
+var ErrExceeded = errors.New("this organization has reached its limit")
 
 // Refuse is nil while started tasks are fewer than the quota allows, and a
 // sentence a person can act on when they are not.
@@ -49,7 +49,7 @@ func (q Quota) Refuse(started int) error {
 	if q.Jobs == 1 {
 		tasks = "task"
 	}
-	message := fmt.Sprintf("This organisation may start %d %s %s and has started %d.", q.Jobs, tasks, within, started)
+	message := fmt.Sprintf("This organization may start %d %s %s and has started %d.", q.Jobs, tasks, within, started)
 	if q.Note != "" {
 		message += " " + q.Note
 	}
@@ -141,7 +141,7 @@ func (q Quota) RefuseComputers(have int) error {
 	if q.Computers == 1 {
 		workspaces = "workspace"
 	}
-	message := fmt.Sprintf("This organisation may have %d %s and has %d.", q.Computers, workspaces, have)
+	message := fmt.Sprintf("This organization may have %d %s and has %d.", q.Computers, workspaces, have)
 	if q.Note != "" {
 		message += " " + q.Note
 	}

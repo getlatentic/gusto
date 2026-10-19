@@ -80,7 +80,7 @@ type Integration struct {
 	History []Event  `json:"history,omitempty"`
 }
 
-// Store is every integration an organisation has imported, one folder each, with a file that says what is on.
+// Store is every integration an organization has imported, one folder each, with a file that says what is on.
 type Store struct {
 	root string
 	mu   sync.Mutex
@@ -375,7 +375,7 @@ type Changes struct {
 	ServersRemoved []string `json:"serversRemoved,omitempty"`
 	// ServersChanged is a server whose address, command or anything else about it differs: the part most worth reading.
 	ServersChanged []string `json:"serversChanged,omitempty"`
-	// Manifest names the descriptive fields that differ: the version, the description, the author, the licence, the repository.
+	// Manifest names the descriptive fields that differ: the version, the description, the author, the license, the repository.
 	Manifest []string `json:"manifest,omitempty"`
 }
 

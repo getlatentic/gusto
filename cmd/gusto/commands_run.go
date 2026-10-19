@@ -15,7 +15,7 @@ var envServer = []cmdline.Param{
 	{Name: "GUSTO_ADMINS", Text: "the people who administer the server"},
 	{Name: "GUSTO_API_TOKENS", Text: "the file of API tokens"},
 	{Name: "GUSTO_RETENTION", Text: "the directory of the retention policy and holds"},
-	{Name: "GUSTO_REGISTRY", Text: "the directory of the organisation's registry of models"},
+	{Name: "GUSTO_REGISTRY", Text: "the directory of the organization's registry of models"},
 }
 
 func runCommands() []*cmdline.Command {
@@ -52,24 +52,24 @@ func runCommands() []*cmdline.Command {
 		{
 			Name: "cloud", Group: groupRun, Summary: "Run gusto cloud, the hosted server for accounts and routing",
 			Usage: []string{"", "workspaces", "migrate"},
-			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organisations' records, and the servers it " +
-				"starts for each organisation and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ " +
+			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it " +
+				"starts for each organization and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ " +
 				"variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in " +
 				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
 			Env: append([]cmdline.Param{
 				{Name: "GUSTO_CLOUD_ADDR", Text: "where to listen (default 127.0.0.1:8050)"},
 				{Name: "GUSTO_CLOUD_URL", Text: "the address links in mail begin with, such as https://cloud.example.com"},
-				{Name: "GUSTO_CLOUD_DOMAIN", Text: "the domain organisations' servers are under"},
-				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organisation's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organisation a schema of its own for its indexes"},
-				{Name: "GUSTO_CLOUD_INDEX_DIR", Text: "where organisations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)"},
+				{Name: "GUSTO_CLOUD_DOMAIN", Text: "the domain organizations' servers are under"},
+				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes"},
+				{Name: "GUSTO_CLOUD_INDEX_DIR", Text: "where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)"},
 			}, envCloudDatabase...),
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud workspaces"},
 			SeeAlso:  []string{"host", "operator"},
 			Run:      none("cloud", cloudCommand),
 			Subs: []*cmdline.Command{{
 				Name: "workspaces", Summary: "List every workspace on this host",
-				Description: "Lists every workspace on this host, with the organisation each is in and whose it is: the operator's " +
-					"view across organisations, read from each one's own record.",
+				Description: "Lists every workspace on this host, with the organization each is in and whose it is: the operator's " +
+					"view across organizations, read from each one's own record.",
 				Env:      envCloudDatabase,
 				Examples: []string{"gusto cloud workspaces"},
 				SeeAlso:  []string{"cloud"},
@@ -77,8 +77,8 @@ func runCommands() []*cmdline.Command {
 			}, cloudMigrateCommand()},
 		},
 		{
-			Name: "host", Group: groupRun, Summary: "Run a host for organisations' servers, for a gusto cloud",
-			Description: "Runs the agent on a host that runs organisations' servers for a gusto cloud on another. It starts and stops " +
+			Name: "host", Group: groupRun, Summary: "Run a host for organizations' servers, for a gusto cloud",
+			Description: "Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops " +
 				"what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.",
 			Env: []cmdline.Param{
 				{Name: "GUSTO_CELL_NAME", Text: "what this host is called: lower case letters, digits and hyphens, up to 31"},

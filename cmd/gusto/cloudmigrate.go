@@ -18,7 +18,7 @@ import (
 
 var envCloudDatabase = []cmdline.Param{
 	{Name: "GUSTO_DATABASE_URL", Text: "where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)"},
-	{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)"},
+	{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)"},
 }
 
 func cloudMigrateCommand() *cmdline.Command {
@@ -26,7 +26,7 @@ func cloudMigrateCommand() *cmdline.Command {
 		Name: "migrate", Summary: "Show the accounts database, or load the old account files into it",
 		Usage: []string{"[-import]"},
 		Description: "Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release " +
-			"reads, and how many organisations, people, invitations, links, demo leads and runtime records it holds. It also says " +
+			"reads, and how many organizations, people, invitations, links, demo leads and runtime records it holds. It also says " +
 			"how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an " +
 			"import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. " +
 			"With -import it brings the schema up to date and loads those files into the database now, if the database has not had " +

@@ -15,8 +15,8 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// Registry is one organisation's workspaces, one file each. It belongs to that
-// organisation: it makes workspaces for nobody else, so a record of another's
+// Registry is one organization's workspaces, one file each. It belongs to that
+// organization: it makes workspaces for nobody else, so a record of another's
 // cannot get in by a mistake in what calls it.
 type Registry struct {
 	dir   string
@@ -26,10 +26,10 @@ type Registry struct {
 	now   func() time.Time
 }
 
-// Open is the organisation's record under dir, which is made when it is not there.
+// Open is the organization's record under dir, which is made when it is not there.
 func Open(dir, org string) (*Registry, error) {
 	if org == "" {
-		return nil, errors.New("a record of workspaces belongs to an organisation")
+		return nil, errors.New("a record of workspaces belongs to an organization")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func Open(dir, org string) (*Registry, error) {
 	return &Registry{dir: dir, org: org, now: time.Now}, nil
 }
 
-// UseQuota puts the number of workspaces under the organisation's quota.
+// UseQuota puts the number of workspaces under the organization's quota.
 func (r *Registry) UseQuota(q *quota.File) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -47,8 +47,8 @@ func (r *Registry) UseQuota(q *quota.File) {
 func (r *Registry) file(id string) string { return filepath.Join(r.dir, id+".json") }
 
 // Ensure is the person's workspace, made when they have none. A person has one in
-// an organisation, so asking again finds it. Making a new one counts against the
-// organisation's quota, and a workspace that was deleted is made anew.
+// an organization, so asking again finds it. Making a new one counts against the
+// organization's quota, and a workspace that was deleted is made anew.
 func (r *Registry) Ensure(user, host string) (computer Computer, made bool, err error) {
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
@@ -167,7 +167,7 @@ func (r *Registry) read(id string) (Computer, error) {
 		return Computer{}, fmt.Errorf("the record of a workspace in %s is not valid: %w", r.file(id), err)
 	}
 	if computer.Org != r.org {
-		return Computer{}, fmt.Errorf("%s is a workspace of the organisation %q, and this record is of %q", r.file(id), computer.Org, r.org)
+		return Computer{}, fmt.Errorf("%s is a workspace of the organization %q, and this record is of %q", r.file(id), computer.Org, r.org)
 	}
 	return computer, nil
 }
@@ -198,7 +198,7 @@ func (r *Registry) write(computer Computer) error {
 
 // retireFile is the mark that asks for a person's computer to be removed. It is a file of
 // its own and not a change to the record, because the front door makes it and the
-// organisation's server, which reaches the gateway, acts on it, and two processes
+// organization's server, which reaches the gateway, acts on it, and two processes
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
 
@@ -220,7 +220,7 @@ func (r *Registry) Retire(user string) error {
 	return file.Close()
 }
 
-// RetireAll asks for every workspace of the organisation to be removed, which is what ending the organisation does.
+// RetireAll asks for every workspace of the organization to be removed, which is what ending the organization does.
 func (r *Registry) RetireAll() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

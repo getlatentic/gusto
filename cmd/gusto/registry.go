@@ -13,13 +13,13 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-// openRegistry is the organisation's registry of models, kept in GUSTO_REGISTRY, which is added to the models
+// openRegistry is the organization's registry of models, kept in GUSTO_REGISTRY, which is added to the models
 // this deployment's operator configured. It needs a proxy, since the keys are held there, so a deployment with
 // no credential of its own has none and its console has no page for it.
 //
 // What the operator allows an admin is GUSTO_REGISTRY_KEYS, the kinds of reference besides a key typed into the
 // page that a key may be given as (file, ssm, secretsmanager), and GUSTO_REGISTRY_PRIVATE=allow, which lets a
-// provider be at a private address. A deployment that hosts other people's organisations sets neither.
+// provider be at a private address. A deployment that hosts other people's organizations sets neither.
 //
 // The returned function is what the forms offer, read each time a page is drawn, and changed is called after
 // each change, once the proxy and the ledger have it.

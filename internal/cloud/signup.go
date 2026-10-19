@@ -20,16 +20,16 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, http.StatusOK, "signup", view{Title: "Create your organisation"})
+	s.render(w, http.StatusOK, "signup", view{Title: "Create your organization"})
 }
 
-// signUp makes the person and their organisation, signs them in, and mails them
+// signUp makes the person and their organization, signs them in, and mails them
 // the link that lifts the trial. A person who was refused sees why and keeps
 // what they typed.
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
 	again := func(status int, why string, more bool) {
-		s.render(w, status, "signup", view{Title: "Create your organisation", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug,
+		s.render(w, status, "signup", view{Title: "Create your organization", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug,
 			More: more || in.OrgName != "" || in.Slug != ""})
 	}
 	if !s.all.Allow("all") {
@@ -51,7 +51,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
-// asksForMore says the form needs the organisation's name and address, because
+// asksForMore says the form needs the organization's name and address, because
 // the domain could not give them or gave ones that will not do.
 func asksForMore(err error) bool {
 	for _, known := range []error{ErrNeedName, ErrSameCompany, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {

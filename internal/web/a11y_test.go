@@ -47,10 +47,10 @@ func TestEveryControlHasAName(t *testing.T) {
 // Every field has a label, its own or one around it.
 func TestEveryFieldHasALabel(t *testing.T) {
 	for path, doc := range a11yPages(t) {
-		labelled := map[string]bool{}
+		labeled := map[string]bool{}
 		each(doc, func(n *html.Node) {
 			if n.Data == "label" && attr(n, "for") != "" {
-				labelled[attr(n, "for")] = true
+				labeled[attr(n, "for")] = true
 			}
 		})
 		each(doc, func(n *html.Node) {
@@ -60,7 +60,7 @@ func TestEveryFieldHasALabel(t *testing.T) {
 			if kind := attr(n, "type"); kind == "hidden" || kind == "submit" {
 				return
 			}
-			if attr(n, "aria-label") == "" && attr(n, "aria-labelledby") == "" && !labelled[attr(n, "id")] && !inside(n, "label") {
+			if attr(n, "aria-label") == "" && attr(n, "aria-labeledby") == "" && !labeled[attr(n, "id")] && !inside(n, "label") {
 				t.Errorf("%s: a field with no label: %s", path, render(n))
 			}
 		})
@@ -262,7 +262,7 @@ func inside(n *html.Node, tag string) bool {
 
 // accessibleName is the label a control is given, or else the text it holds that is not hidden from assistive technology.
 func accessibleName(n *html.Node) string {
-	if label := strings.TrimSpace(attr(n, "aria-label") + attr(n, "aria-labelledby")); label != "" {
+	if label := strings.TrimSpace(attr(n, "aria-label") + attr(n, "aria-labeledby")); label != "" {
 		return label
 	}
 	var text strings.Builder

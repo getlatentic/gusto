@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// Config is an organisation's choice: the kinds to mask, in a file an administrator changes.
+// Config is an organization's choice: the kinds to mask, in a file an administrator changes.
 type Config struct {
 	Patterns []string `json:"patterns"`
 }

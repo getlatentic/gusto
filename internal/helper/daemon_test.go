@@ -43,8 +43,8 @@ func (m *memoryVault) Delete(server string) error {
 	return nil
 }
 
-// organisation is a server that says who a token is and streams the events a test gives it.
-type organisation struct {
+// organization is a server that says who a token is and streams the events a test gives it.
+type organization struct {
 	*httptest.Server
 	mu      sync.Mutex
 	opened  []string
@@ -52,9 +52,9 @@ type organisation struct {
 	refused bool
 }
 
-func newOrganisation(t *testing.T) *organisation {
+func newOrganization(t *testing.T) *organization {
 	t.Helper()
-	o := &organisation{frames: make(chan string, 16)}
+	o := &organization{frames: make(chan string, 16)}
 	o.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		o.mu.Lock()
 		refused := o.refused
@@ -95,19 +95,19 @@ func newOrganisation(t *testing.T) *organisation {
 	return o
 }
 
-func (o *organisation) say(kind, job, state string, at int64) {
+func (o *organization) say(kind, job, state string, at int64) {
 	body, _ := json.Marshal(Turn{Job: job, Brief: "a brief", State: state, At: at})
 	o.frames <- "event: " + kind + "\ndata: " + string(body) + "\n\n"
 }
 
-func (o *organisation) queries() []string {
+func (o *organization) queries() []string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	return append([]string(nil), o.opened...)
 }
 
-// running starts a helper against the organisation and stops it when the test ends.
-func running(t *testing.T, o *organisation, vault Vault, dir string, setup ...func(*Daemon)) (*Daemon, Local, context.CancelFunc) {
+// running starts a helper against the organization and stops it when the test ends.
+func running(t *testing.T, o *organization, vault Vault, dir string, setup ...func(*Daemon)) (*Daemon, Local, context.CancelFunc) {
 	t.Helper()
 	d := &Daemon{Server: o.URL, Vault: vault, Dir: dir, Retry: func(int) time.Duration { return 10 * time.Millisecond }, Signed: 20 * time.Millisecond}
 	for _, each := range setup {
@@ -143,7 +143,7 @@ func askStatus(local Local) Status {
 }
 
 func TestTheHelperHearsTheServerAndTellsEveryShellWhatItHeard(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	_, local, _ := running(t, o, vault, t.TempDir())
@@ -196,7 +196,7 @@ func TestTheHelperHearsTheServerAndTellsEveryShellWhatItHeard(t *testing.T) {
 }
 
 func TestOnlyAProgramWithTheTokenAndTheRightAddressIsAnswered(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	_, local, _ := running(t, o, vault, t.TempDir())
@@ -228,7 +228,7 @@ func TestOnlyAProgramWithTheTokenAndTheRightAddressIsAnswered(t *testing.T) {
 }
 
 func TestASecondHelperRefusesAndTheFirstLeavesNothingBehind(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	dir := t.TempDir()
@@ -251,7 +251,7 @@ func TestASecondHelperRefusesAndTheFirstLeavesNothingBehind(t *testing.T) {
 }
 
 func TestAConnectionThatDropsIsGotBackAndAsksToCatchUp(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	_, local, _ := running(t, o, vault, t.TempDir())
@@ -284,7 +284,7 @@ func askTurns(t *testing.T, local Local) []Turn {
 }
 
 func TestAPersonWhoSignsInAfterTheHelperStartedNeedsNoRestart(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	_, local, _ := running(t, o, vault, t.TempDir())
 	if status := askStatus(local); status.SignedIn || status.Connected {
@@ -295,7 +295,7 @@ func TestAPersonWhoSignsInAfterTheHelperStartedNeedsNoRestart(t *testing.T) {
 }
 
 func TestATokenTheServerEndedMakesThePersonSignedOutAndTheHelperKeepsRunning(t *testing.T) {
-	o := newOrganisation(t)
+	o := newOrganization(t)
 	vault := &memoryVault{}
 	vault.Set(o.URL, "good")
 	_, local, _ := running(t, o, vault, t.TempDir())

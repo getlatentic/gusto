@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAnOrganisationStartsWithNoSettingsAndWhatIsChangedIsKept(t *testing.T) {
+func TestAnOrganizationStartsWithNoSettingsAndWhatIsChangedIsKept(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
 	file := Open(path)
 	if got, err := file.Read(); err != nil || got.MonthlyBudgetUSD != 0 {

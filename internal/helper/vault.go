@@ -1,4 +1,4 @@
-// Package helper is what runs on a person's own computer to reach their organisation's server: it signs in once, keeps the
+// Package helper is what runs on a person's own computer to reach their organization's server: it signs in once, keeps the
 // token where the operating system keeps secrets, and speaks to the server's API for the person.
 package helper
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAServerIsAnOrganisationsWhenAllThreeSettingsAreGiven(t *testing.T) {
+func TestAServerIsAnOrganizationsWhenAllThreeSettingsAreGiven(t *testing.T) {
 	key := filepath.Join(t.TempDir(), "entry.key")
 	os.WriteFile(key, []byte(strings.Repeat("k", 32)), 0o600)
 	t.Setenv("GUSTO_ENTRY_KEY", key)

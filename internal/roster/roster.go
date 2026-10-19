@@ -1,4 +1,4 @@
-// Package roster is who is in an organisation, kept in a file that its front door
+// Package roster is who is in an organization, kept in a file that its front door
 // writes and its server reads. Gusto cloud owns the people, since it signs them
 // in and invites them; the server only shows them, so it holds no second copy that
 // could disagree.
@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
-// Member is a person in the organisation. Role is "admin" or "runner".
+// Member is a person in the organization. Role is "admin" or "runner".
 type Member struct {
 	Email      string    `json:"email"`
 	Role       string    `json:"role"`
@@ -40,7 +40,7 @@ type Roster struct {
 func Write(path string, r Roster) error { return atomicfile.Write(path, r, 0o600) }
 
 // Read is the roster at path. A file that cannot be read is an error and not an
-// empty organisation: a page that showed nobody would be wrong, and would look right.
+// empty organization: a page that showed nobody would be wrong, and would look right.
 func Read(path string) (Roster, error) {
 	text, err := os.ReadFile(path)
 	if err != nil {

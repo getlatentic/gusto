@@ -9,10 +9,10 @@ export const captionAtTop = (shot?: Shot, at?: [number, number]): boolean => sho
 export const shots: Shot[] = [
   { match: /Choose the agent/, at: [0.32, 0.6], zoom: 1.35, top: false, caption: "Choose the agent to work with. Each gets the same workspace and controls." },
   { match: /Start it/, at: [0.3, 0.45], zoom: 1.7, caption: "Start it. The agent gets an isolated workspace of its own." },
-  { match: /Only the models/, at: [0.5, 0.9], zoom: 1.5, speed: 1.5, caption: "Only the models your organisation allows. The key never enters the sandbox." },
+  { match: /Only the models/, at: [0.5, 0.9], zoom: 1.5, speed: 1.5, caption: "Only the models your organization allows. The key never enters the sandbox." },
   { match: /works inside its sandbox/, at: [0.4, 0.42], zoom: 1.5, fixed: true, lapse: 5, caption: "It works inside its sandbox. The model key stays outside it." },
   { match: /Every step/, at: [0.4, 0.4], zoom: 1.35, caption: "Every step is recorded, down to the files it touched." },
-  { match: /Preview what it built/, at: [0.5, 0.5], zoom: 1, top: true, speed: 3, caption: "Preview what it built, shared only with your organisation." },
+  { match: /Preview what it built/, at: [0.5, 0.5], zoom: 1, top: true, speed: 3, caption: "Preview what it built, shared only with your organization." },
   { match: /loan calculator/i, at: [0.5, 0.45], zoom: 1.2, speed: 1.8, caption: "Running in the agent's workspace." },
   { match: /admin console/, at: [0.22, 0.22], zoom: 1.8, top: false, caption: "The admin console: what was spent, by whom, on which model." },
   { match: /Which models/, at: [0.58, 0.38], zoom: 1.35, speed: 1.3, caption: "Which models are approved, what each costs, and who may use which." },

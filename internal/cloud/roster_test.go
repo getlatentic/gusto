@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// acme is an organisation with a verified admin, ada, and a front door that starts its
+// acme is an organization with a verified admin, ada, and a front door that starts its
 // server, which is the fake.
 func acme(t *testing.T) (*front, *browser) {
 	t.Helper()
@@ -80,7 +80,7 @@ func TestTheServerIsGivenTheListOfPeopleAtStartAndAfterEveryChangeToIt(t *testin
 	}
 	list = f.roster()
 	if got, _ := member(list, "ada@acme.com"); got.LastSignIn.Before(before) {
-		t.Errorf("signing in to the organisation is in the list: %+v", got)
+		t.Errorf("signing in to the organization is in the list: %+v", got)
 	}
 	if got, _ := member(list, "bob@acme.com"); !got.LastSignIn.IsZero() {
 		t.Errorf("a person who was not signed in has no sign-in: %+v", got)
@@ -89,7 +89,7 @@ func TestTheServerIsGivenTheListOfPeopleAtStartAndAfterEveryChangeToIt(t *testin
 	ada.post("/org/invite", url.Values{"email": {"cy@acme.com"}})
 	ada.post("/org/invites/cancel", url.Values{"email": {"cy@acme.com"}})
 	if list := f.roster(); len(list.Invited) != 0 {
-		t.Errorf("a cancelled invitation is still listed: %+v", list.Invited)
+		t.Errorf("a canceled invitation is still listed: %+v", list.Invited)
 	}
 
 	ada.post("/org/people/remove", url.Values{"email": {"bob@acme.com"}})
@@ -98,7 +98,7 @@ func TestTheServerIsGivenTheListOfPeopleAtStartAndAfterEveryChangeToIt(t *testin
 	}
 }
 
-func TestOpeningAnAppIsNotSigningInToTheOrganisation(t *testing.T) {
+func TestOpeningAnAppIsNotSigningInToTheOrganization(t *testing.T) {
 	f, ada := acme(t)
 	if status, _, _ := ada.get2("/open?app=abcdef0123"); status != http.StatusSeeOther {
 		t.Fatalf("opening an app: %d", status)
@@ -108,7 +108,7 @@ func TestOpeningAnAppIsNotSigningInToTheOrganisation(t *testing.T) {
 	}
 }
 
-func TestAnAdminChangesRolesAndAnOrganisationKeepsAnAdmin(t *testing.T) {
+func TestAnAdminChangesRolesAndAnOrganizationKeepsAnAdmin(t *testing.T) {
 	f, ada := acme(t)
 	bob := f.invitedAndJoined(ada, "bob@acme.com")
 	f.signedUp("eve@globex.com")
@@ -148,7 +148,7 @@ func TestAnAdminChangesRolesAndAnOrganisationKeepsAnAdmin(t *testing.T) {
 		t.Errorf("nobody by that address: %d", status)
 	}
 	if status := role(bob, "eve@globex.com", "runner"); status != http.StatusUnprocessableEntity || roleOf("eve@globex.com") != Admin {
-		t.Errorf("a person of another organisation is not this one's to change: %d", status)
+		t.Errorf("a person of another organization is not this one's to change: %d", status)
 	}
 	if got, _ := member(f.roster(), "ada@acme.com"); got.Role != "runner" {
 		t.Errorf("the list follows: %+v", got)

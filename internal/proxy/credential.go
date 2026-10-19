@@ -48,8 +48,8 @@ type Credential struct {
 	// MaxOutput is the most the provider lets a model write in one answer. A translated call that asks for more is
 	// held to it, since an agent asks for what its own provider allows. Zero holds no call to anything.
 	MaxOutput int `json:"maxOutput,omitempty"`
-	// Public marks a credential an organisation added for itself. Its address is reached only at a public
-	// address, since the organisation chose it and this machine is on a network that others are on too.
+	// Public marks a credential an organization added for itself. Its address is reached only at a public
+	// address, since the organization chose it and this machine is on a network that others are on too.
 	Public bool `json:"-"`
 }
 

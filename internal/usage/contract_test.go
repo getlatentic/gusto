@@ -157,7 +157,7 @@ var storageCases = []contractCase{
 			t.Fatalf("filtered facets = %+v", got)
 		}
 	}},
-	{"a cancelled context stops every call", func(t *testing.T, s usage.Store) {
+	{"a canceled context stops every call", func(t *testing.T, s usage.Store) {
 		add(t, s, callRow("t", 0, "s", 1))
 		done, cancel := context.WithCancel(ctx)
 		cancel()
@@ -174,7 +174,7 @@ var storageCases = []contractCase{
 			}
 		}
 		if got := totals(t, s, usage.Filter{}).Calls; got != 1 {
-			t.Fatalf("a cancelled add held %d calls", got)
+			t.Fatalf("a canceled add held %d calls", got)
 		}
 	}},
 }

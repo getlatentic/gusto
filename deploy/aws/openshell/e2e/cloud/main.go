@@ -1,7 +1,7 @@
 // Drives the public cloud as people would, on the machine that runs it: an admin signs up
-// and confirms their address, invites three people, each opens the organisation and asks
+// and confirms their address, invites three people, each opens the organization and asks
 // an agent for something, and what the host holds afterwards is checked against what was
-// asked. A second organisation is made to see that the first cannot be reached from it.
+// asked. A second organization is made to see that the first cannot be reached from it.
 package main
 
 import (
@@ -74,13 +74,13 @@ func main() {
 	fmt.Println("\nevery check held")
 }
 
-// signUp makes the organisation and confirms the admin's address from the mail they were sent.
+// signUp makes the organization and confirms the admin's address from the mail they were sent.
 func (r run) signUp(email, name string) string {
 	admin := newVisitor(email, r.door)
 	shown, err := admin.post(r.front()+"/signup", url.Values{"email": {email}, "org": {name}})
 	must(err, "sign-up")
 	slug := regexp.MustCompile(`([a-z0-9-]+)\.` + regexp.QuoteMeta(r.domain)).FindStringSubmatch(shown.body)
-	check(shown.status == 200 && slug != nil, "%s signs up and is shown the organisation's address (%s)", email, first(slug))
+	check(shown.status == 200 && slug != nil, "%s signs up and is shown the organization's address (%s)", email, first(slug))
 	if slug == nil {
 		os.Exit(1)
 	}
@@ -103,7 +103,7 @@ func first(found []string) string {
 	return ""
 }
 
-// waitReady waits for the organisation's own server, which the sign-up started.
+// waitReady waits for the organization's own server, which the sign-up started.
 func (r run) waitReady(v *visitor, slug string) {
 	started := time.Now()
 	for time.Since(started) < 3*time.Minute {
@@ -145,7 +145,7 @@ type thread struct {
 	secret   string
 }
 
-// firstTurns has every person open the organisation, start an agent and ask it for
+// firstTurns has every person open the organization, start an agent and ask it for
 // something, all at once.
 func (r run) firstTurns(slug string, people []*visitor) []*thread {
 	threads := make([]*thread, len(people))
@@ -155,8 +155,8 @@ func (r run) firstTurns(slug string, people []*visitor) []*thread {
 		go func() {
 			defer group.Done()
 			opened, err := person.get(r.front() + "/open")
-			must(err, "opening the organisation")
-			check(opened.status == 200 && strings.HasPrefix(opened.url, r.orgAt(slug)), "%s opens the organisation and is signed in there", person.email)
+			must(err, "opening the organization")
+			check(opened.status == 200 && strings.HasPrefix(opened.url, r.orgAt(slug)), "%s opens the organization and is signed in there", person.email)
 			started, err := person.post(r.orgAt(slug)+"/instances", url.Values{"harness": {"opencode"}, "model": {r.model}})
 			must(err, "starting an agent")
 			path := regexp.MustCompile(`/instances/([^/]+)/threads/[^/?#]+`).FindString(started.url)

@@ -35,7 +35,7 @@ func TestTheStoreAtScale(t *testing.T) {
 			}
 			return err
 		})
-		measure(t, "sign-up (person, organisation, directory)", 300, func(i int) error {
+		measure(t, "sign-up (person, organization, directory)", 300, func(i int) error {
 			_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("new%d@fresh%d.com", i, i), OrgName: fmt.Sprintf("Fresh %d", i)})
 			return err
 		})
@@ -129,5 +129,5 @@ func seed(t *testing.T, s *Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("seeded %d people, %d organisations and %d leads in %s", scalePeople, scaleOrgs, scaleLeads, time.Since(start).Round(time.Millisecond))
+	t.Logf("seeded %d people, %d organizations and %d leads in %s", scalePeople, scaleOrgs, scaleLeads, time.Since(start).Round(time.Millisecond))
 }

@@ -20,7 +20,7 @@ import (
 // tool rules, and GUSTO_CREDENTIALS the credentials. A task already running keeps the credential it began with and asks the gateway's
 // policy at each call. GUSTO_RELOAD_SECONDS is how often they are looked at, twenty by default, and a change is taken when it is the same at two looks, so it shows within a minute.
 //
-// When the organisation has a registry its administrators change the models, the credentials and the prices from the console, and
+// When the organization has a registry its administrators change the models, the credentials and the prices from the console, and
 // those are theirs: the files here change what the registry does not hold.
 // pageHooks is what the pages are told when a setting is read again.
 type pageHooks interface {

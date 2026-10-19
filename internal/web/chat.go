@@ -82,7 +82,7 @@ func (s *Server) picksFor(r *http.Request) []pick {
 	return picks
 }
 
-// defaultPick is the harness and model last used that can still be used, else the organisation's default when it can run, else the
+// defaultPick is the harness and model last used that can still be used, else the organization's default when it can run, else the
 // first harness and its first model.
 func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model string) {
 	for _, each := range recent {

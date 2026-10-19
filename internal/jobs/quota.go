@@ -19,7 +19,7 @@ func (i *Index) UseQuota(q *quota.File) {
 
 // overQuota is a refusal when one more job would pass the quota, and is called
 // with the lock held. A quota that cannot be read refuses every job: an
-// organisation that was given limits and lost them runs nothing.
+// organization that was given limits and lost them runs nothing.
 func (i *Index) overQuota(now time.Time) error {
 	if i.quota == nil {
 		return nil
@@ -31,7 +31,7 @@ func (i *Index) overQuota(now time.Time) error {
 	return q.Refuse(i.startedWithin(q.Monthly, now))
 }
 
-// Allowance is what the quota lets the organisation start, and how many tasks it has
+// Allowance is what the quota lets the organization start, and how many tasks it has
 // started within that: in all, or in this calendar month when the quota is monthly.
 type Allowance struct {
 	Quota   quota.Quota
@@ -40,7 +40,7 @@ type Allowance struct {
 
 // Allowance reads the quota and how much of it is used. It says false when the index
 // is under no quota, and an error when the quota cannot be read, since a page that
-// showed the organisation with no limit would be wrong and look right.
+// showed the organization with no limit would be wrong and look right.
 func (i *Index) Allowance(now time.Time) (Allowance, bool, error) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
@@ -85,7 +85,7 @@ func (i *Index) orgLimit() (int, bool) {
 	return q.Concurrent, true
 }
 
-// orgFull says the organisation runs as many as its quota allows.
+// orgFull says the organization runs as many as its quota allows.
 func (i *Index) orgFull(running int) bool {
 	limit, applies := i.orgLimit()
 	return applies && running >= limit

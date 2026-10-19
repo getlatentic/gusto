@@ -73,14 +73,14 @@ func withGateway(t *testing.T) string {
 	return root
 }
 
-// organisationServer is what serve is made of for an organisation that runs jobs in
+// organizationServer is what serve is made of for an organization that runs jobs in
 // computers: the index, the way out, the record of computers, and the work that runs a job.
-func organisationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string) {
-	work, index, registry, cfg, root, _ := organisationWithInstances(t, quotaOf)
+func organizationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string) {
+	work, index, registry, cfg, root, _ := organizationWithInstances(t, quotaOf)
 	return work, index, registry, cfg, root
 }
 
-func organisationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
+func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
 	t.Helper()
 	root := withGateway(t)
 	harnesses := t.TempDir()
@@ -145,7 +145,7 @@ func transcriptOf(dir job.Dir) string {
 }
 
 func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *testing.T) {
-	work, index, registry, _, root := organisationServer(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
 	adaOne := jobBy(t, work, index, "ada@acme.com", "first thing for ada")
 	adaTwo := jobBy(t, work, index, "Ada@Acme.com", "second thing for ada")
 	bob := jobBy(t, work, index, "bob@acme.com", "a thing for bob")
@@ -180,8 +180,8 @@ func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *te
 	}
 }
 
-func TestAPersonPastTheOrganisationsComputersIsRefusedInTheRecordOfTheirTask(t *testing.T) {
-	work, index, registry, _, root := organisationServer(t, quota.Quota{Computers: 1, Jobs: 100, Note: "Ask the admin for more."})
+func TestAPersonPastTheOrganizationsComputersIsRefusedInTheRecordOfTheirTask(t *testing.T) {
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 1, Jobs: 100, Note: "Ask the admin for more."})
 	jobBy(t, work, index, "ada@acme.com", "the first")
 	carol := jobBy(t, work, index, "carol@acme.com", "the second")
 	text := transcriptOf(carol)
@@ -198,7 +198,7 @@ func TestAPersonPastTheOrganisationsComputersIsRefusedInTheRecordOfTheirTask(t *
 }
 
 func TestAComputerThatCannotBeMadeIsFailedInTheRecordWithTheReason(t *testing.T) {
-	work, index, registry, _, root := organisationServer(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
 	os.WriteFile(filepath.Join(root, "unused"), nil, 0o644)
 	// The gateway can make nothing.
 	bad := filepath.Join(t.TempDir(), "openshell")
@@ -213,7 +213,7 @@ func TestAComputerThatCannotBeMadeIsFailedInTheRecordWithTheReason(t *testing.T)
 }
 
 func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *testing.T) {
-	work, index, registry, cfg, root := organisationServer(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, cfg, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
 	jobBy(t, work, index, "ada@acme.com", "for ada")
 	jobBy(t, work, index, "bob@acme.com", "for bob")
 	jobBy(t, work, index, "cy@acme.com", "for cy")
@@ -223,7 +223,7 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 	cy, _ := registry.Of("cy@acme.com")
 	dee, _ := registry.Of("dee@acme.com")
 
-	// Ada was removed from the organisation, by the front door, which only marks her computer.
+	// Ada was removed from the organization, by the front door, which only marks her computer.
 	if err := registry.Retire("ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}

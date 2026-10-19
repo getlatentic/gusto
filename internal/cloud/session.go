@@ -69,7 +69,7 @@ func (s *Store) storedKey() ([]byte, error) {
 }
 
 // name is the cookie's name. Over https it is a host-locked one, which a
-// sibling subdomain cannot set: an organisation's own server is one.
+// sibling subdomain cannot set: an organization's own server is one.
 func (s *Sessions) name() string {
 	if s.secure {
 		return "__Host-gusto_cloud"

@@ -1,6 +1,6 @@
-// Package computer is the record of the workspaces an organisation's people have:
-// one microVM for each person, tied to that person and to the organisation. The
-// record is what the organisation has, and the gateway's own list is checked
+// Package computer is the record of the workspaces an organization's people have:
+// one microVM for each person, tied to that person and to the organization. The
+// record is what the organization has, and the gateway's own list is checked
 // against it.
 package computer
 
@@ -22,13 +22,13 @@ const (
 	Deleted  State = "deleted"
 )
 
-// Workspace is one person's, in one organisation.
+// Workspace is one person's, in one organization.
 type Computer struct {
 	ID   string `json:"id"`
 	Org  string `json:"org"`
 	User string `json:"user"`
 	// Sandbox is the name the gateway knows it by. It begins with a digest of the
-	// organisation, so what is an organisation's on the gateway is found by it.
+	// organization, so what is an organization's on the gateway is found by it.
 	Sandbox    string    `json:"sandbox"`
 	Host       string    `json:"host"`
 	State      State     `json:"state"`
@@ -38,7 +38,7 @@ type Computer struct {
 	Note string `json:"note,omitempty"`
 }
 
-// Live says the workspace takes a place in the organisation's limit.
+// Live says the workspace takes a place in the organization's limit.
 func (c Computer) Live() bool { return c.State != Deleted }
 
 // Marker begins the name of every workspace's sandbox, and no task's: a task's
@@ -46,22 +46,22 @@ func (c Computer) Live() bool { return c.State != Deleted }
 const Marker = "c-"
 
 // A gateway takes at most 19 characters in a sandbox's name: the marker, eight
-// characters of a digest of the organisation, a hyphen and eight of a digest of the
-// organisation and the person. The organisation's digest is the same for all of its
-// computers, so what is the organisation's on the gateway is found by it exactly.
+// characters of a digest of the organization, a hyphen and eight of a digest of the
+// organization and the person. The organization's digest is the same for all of its
+// computers, so what is the organization's on the gateway is found by it exactly.
 func digest(text string) string {
 	sum := sha256.Sum256([]byte(text))
 	return hex.EncodeToString(sum[:])[:8]
 }
 
-// Prefix is the organisation's part of its workspaces' names.
+// Prefix is the organization's part of its workspaces' names.
 func Prefix(org string) string { return Marker + digest("org\x00"+org) + "-" }
 
-// ID is the workspace's own name in the organisation's record. The organisation is in
-// what is hashed, so one address in two organisations is two computers.
+// ID is the workspace's own name in the organization's record. The organization is in
+// what is hashed, so one address in two organizations is two computers.
 func ID(org, user string) string { return digest(org + "\x00" + user) }
 
-// Name is the sandbox name of a person's workspace in an organisation.
+// Name is the sandbox name of a person's workspace in an organization.
 func Name(org, user string) string { return Prefix(org) + ID(org, user) }
 
 // ErrNone is what asking for a workspace nobody has made says.

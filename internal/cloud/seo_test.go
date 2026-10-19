@@ -127,7 +127,7 @@ func TestRobotsAndTheSitemapAnswerForTheFrontDoorAndNameOnlyWhatIsWorthFinding(t
 	})
 }
 
-func TestEveryOrganisationsAddressAndEveryAppIsKeptOutOfSearch(t *testing.T) {
+func TestEveryOrganizationsAddressAndEveryAppIsKeptOutOfSearch(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")

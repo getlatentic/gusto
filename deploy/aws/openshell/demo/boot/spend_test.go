@@ -31,13 +31,13 @@ func TestEveryModelTheDemoOffersHasAPriceInTheDemosSpendPolicy(t *testing.T) {
 	}
 }
 
-// A demo is an organisation that lasts half an hour, so what its agents may spend together is capped as a whole.
-func TestTheDemosSpendPolicyCapsWhatTheWholeOrganisationMaySpend(t *testing.T) {
+// A demo is an organization that lasts half an hour, so what its agents may spend together is capped as a whole.
+func TestTheDemosSpendPolicyCapsWhatTheWholeOrganizationMaySpend(t *testing.T) {
 	policy, err := spend.LoadPolicy("../../ansible/roles/demo/files/spend-policy.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if policy.Organisation == nil || policy.Organisation.USDPerMonth <= 0 || policy.Organisation.USDPerMonth > 1 {
-		t.Errorf("the demo's organisation is not capped at a dollar or less: %+v", policy.Organisation)
+	if policy.Organization == nil || policy.Organization.USDPerMonth <= 0 || policy.Organization.USDPerMonth > 1 {
+		t.Errorf("the demo's organization is not capped at a dollar or less: %+v", policy.Organization)
 	}
 }

@@ -60,7 +60,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	// An organisation's gusto cloud writes what it may run, and this server reads it
+	// An organization's gusto cloud writes what it may run, and this server reads it
 	// as it goes. One that cannot read it does not start.
 	if path := os.Getenv("GUSTO_QUOTA"); path != "" {
 		limits := quota.Open(path)

@@ -65,7 +65,7 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 	return p
 }
 
-// SetCredentials changes what the proxy holds, and says which version of the organisation's registry
+// SetCredentials changes what the proxy holds, and says which version of the organization's registry
 // that is. A call in flight keeps the credential it began with; the next one finds what is set here.
 func (p *Proxy) SetCredentials(credentials Credentials, registry int64) {
 	p.held.Store(&credentials)

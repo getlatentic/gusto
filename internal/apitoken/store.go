@@ -66,7 +66,7 @@ type Token struct {
 	Scopes []string `json:"scopes"`
 	// Hash is the SHA-256 of the secret's random part.
 	Hash string `json:"hash"`
-	// Person is who a token with the Work scope acts as. Empty for the organisation's tokens.
+	// Person is who a token with the Work scope acts as. Empty for the organization's tokens.
 	Person    string `json:"person,omitempty"`
 	Made      int64  `json:"made"`
 	By        string `json:"by"`

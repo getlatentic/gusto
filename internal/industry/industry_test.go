@@ -37,7 +37,7 @@ func TestEveryTemplateIsCompleteAndItsFilesAreInvented(t *testing.T) {
 			t.Errorf("%s: no sample file says it is invented", held.Name)
 		}
 	}
-	if defence, _ := Get("defence"); !defence.Restricted() {
-		t.Error("the defence template is not restricted")
+	if defense, _ := Get("defence"); !defense.Restricted() {
+		t.Error("the defense template is not restricted")
 	}
 }

@@ -44,7 +44,7 @@ const (
 	PersonAtLimit
 	// TeamAtLimit is a task whose team already runs as many as it may.
 	TeamAtLimit
-	// OrgAtLimit is a task whose organisation already runs as many as its quota
+	// OrgAtLimit is a task whose organization already runs as many as its quota
 	// allows.
 	OrgAtLimit
 	// PoolFull is a task that may run, with every worker busy.

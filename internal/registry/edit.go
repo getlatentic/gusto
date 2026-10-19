@@ -235,7 +235,7 @@ func checkPrice(p *spend.Price) error {
 		}
 	}
 	if p.Peak != nil {
-		return errors.New("an organisation does not set peak prices")
+		return errors.New("an organization does not set peak prices")
 	}
 	return nil
 }

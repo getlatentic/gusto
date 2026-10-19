@@ -1,4 +1,4 @@
-// Package cell is how the gusto cloud runs organisations' servers on other hosts. A host that runs
+// Package cell is how the gusto cloud runs organizations' servers on other hosts. A host that runs
 // them has an agent, which the gusto cloud asks over HTTP with requests signed by a secret only the
 // gusto cloud and the hosts hold, and which registers itself in a directory all of them see, so that
 // adding a host is starting one.

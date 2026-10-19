@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Pool is the hosts the gusto cloud may place organisations on: the hosts that have registered,
+// Pool is the hosts the gusto cloud may place organizations on: the hosts that have registered,
 // and this machine when it may run servers too.
 type Pool struct {
 	Dir    string
@@ -19,9 +19,9 @@ type Pool struct {
 	// MaxAge is how long a host may be silent before it is not placed on or reached.
 	MaxAge time.Duration
 	// GoneAfter is how long a host may be silent before it is taken to be gone for good, when the
-	// organisations placed on it are placed again. It is thirty minutes when not set.
+	// organizations placed on it are placed again. It is thirty minutes when not set.
 	GoneAfter time.Duration
-	// MinFreeMiB is the least memory a host needs to be given another organisation.
+	// MinFreeMiB is the least memory a host needs to be given another organization.
 	MinFreeMiB int
 	// Local is this machine as a host, or nothing when it only runs the front door.
 	Local cloud.Cell
@@ -114,7 +114,7 @@ func (p *Pool) Place() (cloud.Cell, error) {
 		return found[a].cell.Name() < found[b].cell.Name()
 	})
 	if len(found) == 0 || found[0].free < p.MinFreeMiB {
-		return nil, fmt.Errorf("no host has %d MiB to give another organisation: %w", p.MinFreeMiB, cloud.ErrNoCapacity)
+		return nil, fmt.Errorf("no host has %d MiB to give another organization: %w", p.MinFreeMiB, cloud.ErrNoCapacity)
 	}
 	return found[0].cell, nil
 }

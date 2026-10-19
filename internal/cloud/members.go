@@ -11,11 +11,11 @@ import (
 // Refusals a member's invitation or removal can meet.
 var (
 	ErrNotAdmin     = errors.New("only an admin can do that")
-	ErrNoInvites    = errors.New("this organisation cannot invite people until its admin has confirmed their email address")
-	ErrFull         = errors.New("this organisation has as many people as it may")
+	ErrNoInvites    = errors.New("this organization cannot invite people until its admin has confirmed their email address")
+	ErrFull         = errors.New("this organization has as many people as it may")
 	ErrCannotInvite = errors.New("that address cannot be invited")
-	ErrLastAdmin    = errors.New("an organisation keeps its last admin")
-	ErrNoMember     = errors.New("nobody by that address is in this organisation")
+	ErrLastAdmin    = errors.New("an organization keeps its last admin")
+	ErrNoMember     = errors.New("nobody by that address is in this organization")
 )
 
 // Invitation is an invitation that has not been answered.
@@ -25,7 +25,7 @@ type Invitation struct {
 	By      string    `json:"by"`
 	Created time.Time `json:"created"`
 	Expires time.Time `json:"expires"`
-	// Link is the digest of the link's secret, which is how a cancelled
+	// Link is the digest of the link's secret, which is how a canceled
 	// invitation's link is taken away without anyone holding the secret.
 	Link string `json:"link"`
 }
@@ -33,7 +33,7 @@ type Invitation struct {
 // InviteLife is how long an invitation can be accepted.
 const InviteLife = 7 * 24 * time.Hour
 
-// Members is the people in an organisation, its admins first and then in the order
+// Members is the people in an organization, its admins first and then in the order
 // they joined.
 func (s *Store) Members(slug string) ([]Person, error) {
 	return membersOf(context.Background(), s.db, slug)
@@ -44,14 +44,14 @@ func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, err
 		ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, created, email`, slug)
 }
 
-// Invitations is what an organisation has sent that nobody has answered, oldest
+// Invitations is what an organization has sent that nobody has answered, oldest
 // first. One that ran out is not listed.
 func (s *Store) Invitations(slug string) ([]Invitation, error) {
 	return s.openInvitations(context.Background(), s.db, slug)
 }
 
 // Invite makes an invitation for an address, from an admin. It is refused unless the
-// organisation may invite, has room for one more person counting those already
+// organization may invite, has room for one more person counting those already
 // invited, and the address is not already somebody's here or elsewhere. The refusal
 // for an address that has an account says nothing of whose, so the form is not a way
 // to find out.
@@ -112,7 +112,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 	return secret, err
 }
 
-// roomFor is a refusal when one more person would pass the number the organisation may
+// roomFor is a refusal when one more person would pass the number the organization may
 // have. People and the invitations that are open both count, and an address that is
 // already invited does not count twice.
 func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int, email string) error {

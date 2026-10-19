@@ -13,7 +13,7 @@ import (
 
 const slugAttempts = 5
 
-// StartDemo makes a person and the demo organisation they administer. A refusal leaves nothing behind.
+// StartDemo makes a person and the demo organization they administer. A refusal leaves nothing behind.
 func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 	name = strings.TrimSpace(name)
 	switch {

@@ -92,7 +92,7 @@ func TestADemoIsStartedOnlyForAVisitorCloudflareAcceptsAndTheSecretAndAddressAre
 			t.Errorf("%d\n%s", status, page)
 		}
 		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
-			t.Error("a robot made an organisation")
+			t.Error("a robot made an organization")
 		}
 		asked := c.questions()
 		if status, _ := f.tryDemo(""); status != http.StatusForbidden || c.questions() != asked {
@@ -110,7 +110,7 @@ func TestADemoIsStartedOnlyForAVisitorCloudflareAcceptsAndTheSecretAndAddressAre
 			t.Errorf("%v", last)
 		}
 		if orgs, _ := f.store.Orgs(); len(orgs) != 1 {
-			t.Errorf("%d organisations", len(orgs))
+			t.Errorf("%d organizations", len(orgs))
 		}
 	})
 }

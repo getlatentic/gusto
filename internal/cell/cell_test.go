@@ -16,7 +16,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// The test binary is also an organisation's server: a cell that is told to start it with CELL_FAKE_ORG=1
+// The test binary is also an organization's server: a cell that is told to start it with CELL_FAKE_ORG=1
 // gets a real process on a real port.
 func TestMain(m *testing.M) {
 	if os.Getenv("CELL_FAKE_ORG") == "1" {
@@ -62,7 +62,7 @@ func newAgent(t *testing.T, name string, free int) *agentHost {
 	return h
 }
 
-// stopServers ends every organisation's server on the host. A test that leaves servers running registers it after it
+// stopServers ends every organization's server on the host. A test that leaves servers running registers it after it
 // makes the folders they write to, because cleanups run last first and a folder cannot be removed under a server.
 func (h *agentHost) stopServers() {
 	for _, slug := range h.servers.Running() {

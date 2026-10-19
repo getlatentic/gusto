@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
     pane.id = id + "-pane";
     pane.tabIndex = 0;
     pane.setAttribute("role", "tabpanel");
-    pane.setAttribute("aria-labelledby", name.id);
+    pane.setAttribute("aria-labeledby", name.id);
     pane.textContent = "Opening…";
     bodies.appendChild(pane);
     open[key] = { tab: tab, name: name, pane: pane };
@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch(function () { pane.textContent = "This file could not be opened."; });
   }
 
-  // Scripts that come with a tab's html are not run by being put on the page, so the ones it names are loaded in turn: code is coloured
+  // Scripts that come with a tab's html are not run by being put on the page, so the ones it names are loaded in turn: code is colored
   // and numbered by them.
   function dressed(pane) {
     var wanted = [].slice.call(pane.querySelectorAll("script[src]")).map(function (tag) { return tag.getAttribute("src"); });

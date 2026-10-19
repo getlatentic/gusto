@@ -15,7 +15,7 @@ const (
 	schemaLimit = 63
 )
 
-// usageSchema is the Postgres schema an organisation's index of model calls lives in: org_ and the slug, with every
+// usageSchema is the Postgres schema an organization's index of model calls lives in: org_ and the slug, with every
 // character outside a-z, 0-9 and underscore made an underscore. A slug that was changed or is too long ends in
 // a short hash of the slug itself, so that two slugs never share a schema.
 func usageSchema(slug string) string {
@@ -46,13 +46,13 @@ func truncated(s string, n int) string {
 	return s
 }
 
-// indexFile is the name of an organisation's index in its own directory under the index root.
+// indexFile is the name of an organization's index in its own directory under the index root.
 const indexFile = "index.db"
 
-// usageDatabase is the GUSTO_DATABASE_URL an organisation's server is given, from the operator's settings. A Postgres
-// address gets the search_path of the organisation's own schema, in place of any the operator wrote. Any other
-// address, and none, gives the organisation a SQLite file of its own under indexDir, which is on the local disk of the
-// host the server runs on: the index is built from the organisation's files and is rebuilt when it is lost, so it does
+// usageDatabase is the GUSTO_DATABASE_URL an organization's server is given, from the operator's settings. A Postgres
+// address gets the search_path of the organization's own schema, in place of any the operator wrote. Any other
+// address, and none, gives the organization a SQLite file of its own under indexDir, which is on the local disk of the
+// host the server runs on: the index is built from the organization's files and is rebuilt when it is lost, so it does
 // not belong on a disk that hosts share.
 func usageDatabase(operator []string, slug, indexDir string) (string, error) {
 	var raw string
@@ -74,7 +74,7 @@ func usageDatabase(operator []string, slug, indexDir string) (string, error) {
 	return parsed.String(), nil
 }
 
-// localIndex is the sqlite:// address of an organisation's index under indexDir, which the server's database kit opens
+// localIndex is the sqlite:// address of an organization's index under indexDir, which the server's database kit opens
 // as a file.
 func localIndex(indexDir, slug string) (string, error) {
 	dir, err := filepath.Abs(indexDir)
