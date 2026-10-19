@@ -1,5 +1,5 @@
 [Unit]
-Description=haas — tasks, their records, and the pages in front of them
+Description=gusto — tasks, their records, and the pages in front of them
 After=network.target{% if store == 'mysql' %} mysql.service redis-server.service{% endif %}
 
 {% if store == 'mysql' %}
@@ -10,7 +10,7 @@ Wants=mysql.service redis-server.service
 User={{ app_user }}
 Group={{ app_user }}
 WorkingDirectory={{ app_root }}
-EnvironmentFile={{ app_root }}/var/haas.env
+EnvironmentFile={{ app_root }}/var/gusto.env
 # Rootless podman keeps its image store under this home, and needs a user
 # runtime directory to talk to conmon.
 Environment=HOME={{ app_root }}

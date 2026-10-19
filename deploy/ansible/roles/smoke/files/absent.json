@@ -1,6 +1,6 @@
 {
   "name": "absent",
-  "program": "haas-smoke-harness-nobody-installed",
+  "program": "gusto-smoke-harness-nobody-installed",
   "argv": ["{brief}"],
   "needs": "nothing",
   "stream": "plain"

@@ -1,8 +1,8 @@
 #!/bin/sh
-# Managed by ansible (roles/autodeploy/templates/haas-deploy-run.j2).
+# Managed by ansible (roles/autodeploy/templates/gusto-deploy-run.j2).
 #
 # Deploys one commit of {{ repo_branch }} onto this box, from this box. It runs as
-# root under haas-deploy@<commit>.service, from a checkout only root can write,
+# root under gusto-deploy@<commit>.service, from a checkout only root can write,
 # with the vault and the password this box already holds. Nothing the caller
 # sends reaches it except the commit id, and that commit has to be on
 # {{ repo_branch }} already.

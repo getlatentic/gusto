@@ -1,4 +1,12 @@
 ---
+# A configuration nginx would refuse is found before the reload, with the
+# running configuration still serving.
+- name: Check the nginx configuration
+  ansible.builtin.command:
+    cmd: nginx -t
+  listen: Reload nginx
+  changed_when: false
+
 - name: Reload nginx
   ansible.builtin.service:
     name: nginx
