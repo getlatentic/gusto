@@ -1,8 +1,10 @@
 package cloud
 
 import (
-	"path/filepath"
+	"context"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 // State is where an organisation's server is.
@@ -32,36 +34,33 @@ type Runtime struct {
 	Updated   time.Time `json:"updated"`
 }
 
-func (s *Store) runtimeFile(slug string) string { return filepath.Join(s.OrgDir(slug), "runtime.json") }
+var runtimeFields = []string{"slug", "state", "cell", "port", "proxy_port", "error", "restarts", "updated"}
+
+var putRuntime = dbkit.Upsert{Table: "runtime", Columns: runtimeFields, Conflict: []string{"slug"}, Update: runtimeFields[1:]}
+
+func scanRuntime(r rowScanner) (Runtime, error) {
+	var rt Runtime
+	var state string
+	var updated dbkit.Time
+	if err := r.Scan(&state, &rt.Cell, &rt.Port, &rt.ProxyPort, &rt.Error, &rt.Restarts, &updated); err != nil {
+		return Runtime{}, err
+	}
+	rt.State, rt.Updated = State(state), updated.Time
+	return rt, nil
+}
 
 // Runtime is the state of an organisation's server. One never provisioned has none.
 func (s *Store) Runtime(slug string) (Runtime, error) {
-	var runtime Runtime
-	err := readFile(s.runtimeFile(slug), &runtime)
-	if missing(err) {
-		return Runtime{}, nil
-	}
-	return runtime, err
+	rt, _, err := one(context.Background(), s.db, scanRuntime,
+		`SELECT state, cell, port, proxy_port, error, restarts, updated FROM runtime WHERE slug = ?`, slug)
+	return rt, err
 }
 
-// SetRuntime keeps the state of an organisation's server.
-func (s *Store) SetRuntime(slug string, runtime Runtime) error {
-	runtime.Updated = s.now().UTC().Truncate(time.Second)
-	return writeFile(s.runtimeFile(slug), runtime, 0o600)
-}
-
-// Orgs is every organisation there is.
-func (s *Store) Orgs() ([]Org, error) {
-	entries, err := readDir(filepath.Join(s.root, "orgs"))
-	if err != nil {
-		return nil, err
-	}
-	var orgs []Org
-	for _, name := range entries {
-		var org Org
-		if err := readFile(filepath.Join(s.root, "orgs", name, "org.json"), &org); err == nil {
-			orgs = append(orgs, org)
-		}
-	}
-	return orgs, nil
+// SetRuntime keeps the state of an organisation's server. Two organisations on one cell cannot be given
+// the same port, even by two front doors.
+func (s *Store) SetRuntime(slug string, rt Runtime) error {
+	rt.Updated = s.now().UTC().Truncate(time.Second)
+	_, err := s.db.ExecContext(context.Background(), putRuntime.SQL(1),
+		slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated))
+	return err
 }

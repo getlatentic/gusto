@@ -1,0 +1,100 @@
+package cloud
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+)
+
+// Builds the old file layout with the old code, for the importer's tests.
+func TestGenerateOldLayoutFixture(t *testing.T) {
+	out := os.Getenv("FIXTURE_OUT")
+	if out == "" {
+		t.Skip()
+	}
+	os.RemoveAll(out)
+	root := filepath.Join(out, "cloud")
+	set := Settings{AllowFreeMail: true, Demo: DemoSettings{Length: 30 * time.Minute, Extend: 10 * time.Minute, MaxOrgs: 5, Patience: 10 * time.Minute, PerDay: 40, PerPerson: 2, PerCompany: 6}}
+	s, err := Open(root, set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	T := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	at := T.Add(-48 * time.Hour)
+	s.now = func() time.Time { return at }
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	m := map[string]string{}
+
+	_, _, err = s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme Research"})
+	must(err)
+	_, err = s.Verify("ada@acme.com")
+	must(err)
+	ada, _, _ := s.Person("ada@acme.com")
+	secret, err := s.Invite("acme-com", ada, "bob@acme.com")
+	must(err)
+	_, _, err = s.Accept(secret)
+	must(err)
+	at = at.Add(time.Hour)
+	m["inviteCy"], err = s.Invite("acme-com", ada, "cy@acme.com")
+	must(err)
+	at = T.Add(-9 * 24 * time.Hour)
+	m["inviteExpired"], err = s.Invite("acme-com", ada, "dee@acme.com")
+	must(err)
+	at = T.Add(-time.Hour)
+	must(s.RecordSignIn("ada@acme.com"))
+	must(s.SetRuntime("acme-com", Runtime{State: Ready, Cell: "cell-a", Port: 9100, ProxyPort: 9101, Restarts: 2}))
+
+	at = T.Add(-3 * time.Hour)
+	_, _, err = s.SignUp(Signup{Email: "eve@globex.com", OrgName: "Globex"})
+	must(err)
+	m["verifyEve"], err = s.MakeLink("eve@globex.com", Verify, VerifyLife)
+	must(err)
+	at = T.Add(-2 * time.Hour)
+	m["signinExpired"], err = s.MakeLink("eve@globex.com", SignIn, SignInLife)
+	must(err)
+	at = T.Add(-5 * time.Minute)
+	m["signinLive"], err = s.MakeLink("ada@acme.com", SignIn, SignInLife)
+	must(err)
+
+	at = T.Add(-20 * time.Minute)
+	_, fay, err := s.StartDemo("Fay Fox", "fay@initech.com", "Initech")
+	must(err)
+	_, err = s.DemoReady(fay.Slug)
+	must(err)
+	at = T.Add(-15 * time.Minute)
+	_, err = s.ExtendDemo(fay.Slug)
+	must(err)
+	m["demoReady"] = fay.Slug
+	at = T.Add(-5 * time.Minute)
+	_, gus, err := s.StartDemo("Gus Gray", "gus+tag@hooli.com", "Hooli")
+	must(err)
+	m["demoWaiting"] = gus.Slug
+	at = T.Add(-3 * time.Hour)
+	_, ivy, err := s.StartDemo("Ivy Ito", "ivy@globex.com", "Globex Labs")
+	must(err)
+	_, err = s.DemoReady(ivy.Slug)
+	must(err)
+	m["demoTimeUp"] = ivy.Slug
+	at = T.Add(-26 * time.Hour)
+	_, hal, err := s.StartDemo("Hal Hill", "hal@umbrella.com", "Umbrella")
+	must(err)
+	at = T.Add(-25 * time.Hour)
+	must(s.EndDemo(hal.Slug, "its time was up"))
+	m["demoEnded"] = hal.Slug
+
+	must(s.SetDemoLimits(DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}))
+	must(s.SetDemosPaused(true))
+	sessions, err := OpenSessions(root, false)
+	_ = sessions
+	must(err)
+
+	text, _ := json.MarshalIndent(m, "", "  ")
+	must(os.WriteFile(filepath.Join(out, "manifest.json"), text, 0o644))
+}

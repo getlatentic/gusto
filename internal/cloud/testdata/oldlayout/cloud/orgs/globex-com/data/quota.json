@@ -1,0 +1,8 @@
+{
+  "jobs": 3,
+  "concurrent": 1,
+  "invites": false,
+  "members": 1,
+  "computers": 1,
+  "note": "Confirm the admin's email address to raise this limit."
+}

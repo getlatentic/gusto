@@ -1,14 +1,14 @@
 package cloud
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +16,7 @@ import (
 
 // Sessions are signed cookies that hold an address and a time, and nothing else.
 // What a person may do is read from the store on each request, so removing them
-// takes effect at once. The key is kept in a file, so a restart signs nobody out.
+// takes effect at once. The key is kept in the database, so a restart signs nobody out.
 type Sessions struct {
 	key    []byte
 	secure bool
@@ -27,36 +27,45 @@ type Sessions struct {
 // SessionLife is how long a sign-in lasts.
 const SessionLife = 30 * 24 * time.Hour
 
-// OpenSessions reads the signing key in root, and makes it when there is none.
+// OpenSessions reads the signing key the database holds, and makes it when there is none, so that
+// every front door on one database signs and checks the same cookies and a restart signs nobody out.
 // secure is whether the cookie is for a site served over https.
-func OpenSessions(root string, secure bool) (*Sessions, error) {
-	path := filepath.Join(root, "secret")
-	key, err := os.ReadFile(path)
-	if missing(err) {
-		key = make([]byte, 32)
-		if _, err := rand.Read(key); err != nil {
-			return nil, err
-		}
-		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-		if err == nil {
-			_, err = file.Write(key)
-			if closeErr := file.Close(); err == nil {
-				err = closeErr
-			}
-		}
-		if os.IsExist(err) {
-			key, err = os.ReadFile(path)
-		}
-		if err != nil {
-			return nil, err
-		}
-	} else if err != nil {
+func (s *Store) OpenSessions(secure bool) (*Sessions, error) {
+	key, err := s.sessionKey()
+	if err != nil {
 		return nil, err
 	}
-	if len(key) < 32 {
-		return nil, errors.New("gusto cloud's signing key is too short: " + path)
-	}
 	return &Sessions{key: key, secure: secure, life: SessionLife, now: time.Now}, nil
+}
+
+func (s *Store) sessionKey() ([]byte, error) {
+	if key, err := s.storedKey(); err != nil || key != nil {
+		return key, err
+	}
+	fresh := make([]byte, 32)
+	if _, err := rand.Read(fresh); err != nil {
+		return nil, err
+	}
+	if _, err := s.db.ExecContext(context.Background(), keepSetting.SQL(1), settingSessionKey, hex.EncodeToString(fresh)); err != nil {
+		return nil, err
+	}
+	key, err := s.storedKey()
+	if err == nil && key == nil {
+		err = errors.New("gusto cloud's signing key was not kept")
+	}
+	return key, err
+}
+
+func (s *Store) storedKey() ([]byte, error) {
+	text, found, err := s.setting(settingSessionKey)
+	if err != nil || !found {
+		return nil, err
+	}
+	key, err := hex.DecodeString(text)
+	if err != nil || len(key) < 32 {
+		return nil, errors.New("gusto cloud's signing key in the database is too short or damaged")
+	}
+	return key, nil
 }
 
 // name is the cookie's name. Over https it is a host-locked one, which a

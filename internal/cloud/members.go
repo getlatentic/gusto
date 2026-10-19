@@ -1,14 +1,11 @@
 package cloud
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"context"
 	"errors"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"sort"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 // Refusals a member's invitation or removal can meet.
@@ -36,67 +33,21 @@ type Invitation struct {
 // InviteLife is how long an invitation can be accepted.
 const InviteLife = 7 * 24 * time.Hour
 
-func (s *Store) invitesDir(slug string) string { return filepath.Join(s.OrgDir(slug), "invites") }
-
-func (s *Store) invitationFile(slug, email string) string {
-	sum := sha256.Sum256([]byte(email))
-	return filepath.Join(s.invitesDir(slug), hex.EncodeToString(sum[:16])+".json")
-}
-
 // Members is the people in an organisation, its admins first and then in the order
 // they joined.
 func (s *Store) Members(slug string) ([]Person, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.members(slug)
+	return membersOf(context.Background(), s.db, slug)
 }
 
-func (s *Store) members(slug string) ([]Person, error) {
-	names, err := readDir(filepath.Join(s.root, "people"))
-	if err != nil {
-		return nil, err
-	}
-	var members []Person
-	for _, name := range names {
-		var person Person
-		if readFile(filepath.Join(s.root, "people", name), &person) == nil && person.Org == slug {
-			members = append(members, person)
-		}
-	}
-	sort.SliceStable(members, func(a, b int) bool {
-		if (members[a].Role == Admin) != (members[b].Role == Admin) {
-			return members[a].Role == Admin
-		}
-		return members[a].Created.Before(members[b].Created)
-	})
-	return members, nil
+func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, error) {
+	return collect(ctx, q, scanPerson, `SELECT `+personColumns+` FROM people WHERE org = ?
+		ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, created, email`, slug)
 }
 
 // Invitations is what an organisation has sent that nobody has answered, oldest
 // first. One that ran out is not listed.
 func (s *Store) Invitations(slug string) ([]Invitation, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.invitations(slug)
-}
-
-func (s *Store) invitations(slug string) ([]Invitation, error) {
-	names, err := readDir(s.invitesDir(slug))
-	if missing(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var open []Invitation
-	for _, name := range names {
-		var invitation Invitation
-		if readFile(filepath.Join(s.invitesDir(slug), name), &invitation) == nil && s.now().Before(invitation.Expires) {
-			open = append(open, invitation)
-		}
-	}
-	sort.Slice(open, func(a, b int) bool { return open[a].Created.Before(open[b].Created) })
-	return open, nil
+	return s.openInvitations(context.Background(), s.db, slug)
 }
 
 // Invite makes an invitation for an address, from an admin. It is refused unless the
@@ -112,8 +63,6 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 	if err := workEmail(email, true, s.refused); err != nil {
 		return "", err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if by.Org != slug || by.Role != Admin {
 		return "", ErrNotAdmin
 	}
@@ -124,64 +73,62 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 	if !quota.Invites {
 		return "", ErrNoInvites
 	}
-	if _, found, err := s.person(email); err != nil || found {
-		if err == nil {
-			err = ErrCannotInvite
-		}
-		return "", err
-	}
-	if err := s.roomFor(slug, quota.Members, email); err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(s.invitesDir(slug), 0o700); err != nil {
-		return "", err
-	}
-	now := s.now().UTC().Truncate(time.Second)
-	secret, err = s.makeLink(link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by.Email})
+	ctx := context.Background()
+	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
+		secret, err = s.invite(ctx, tx, slug, by.Email, email, quota.Members)
+		return err
+	})
 	if err != nil {
-		return "", err
-	}
-	sum := sha256.Sum256([]byte(secret))
-	invitation := Invitation{Email: email, Role: Runner, By: by.Email, Created: now, Expires: now.Add(InviteLife), Link: hex.EncodeToString(sum[:])}
-	// Inviting an address again replaces the earlier invitation, and takes its link away.
-	if earlier := s.readInvitation(slug, email); earlier.Link != "" {
-		os.Remove(filepath.Join(s.root, "tokens", earlier.Link+".json"))
-	}
-	if err := writeFile(s.invitationFile(slug, email), invitation, 0o600); err != nil {
 		return "", err
 	}
 	s.publishRoster(slug)
 	return secret, nil
 }
 
+func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string, most int) (string, error) {
+	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
+		return "", err
+	}
+	if _, found, err := fetchPerson(ctx, tx, email); err != nil || found {
+		if err == nil {
+			err = ErrCannotInvite
+		}
+		return "", err
+	}
+	if err := s.roomFor(ctx, tx, slug, most, email); err != nil {
+		return "", err
+	}
+	now := s.now().UTC().Truncate(time.Second)
+	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by})
+	if err != nil {
+		return "", err
+	}
+	invitation := Invitation{Email: email, Role: Runner, By: by, Created: now, Expires: now.Add(InviteLife), Link: digest(secret)}
+	// Inviting an address again replaces the earlier invitation, and takes its link away.
+	if err := dropInvitationLink(ctx, tx, slug, email); err != nil {
+		return "", err
+	}
+	_, err = tx.ExecContext(ctx, putInvitation.SQL(1), s.invitationArgs(slug, invitation)...)
+	return secret, err
+}
+
 // roomFor is a refusal when one more person would pass the number the organisation may
 // have. People and the invitations that are open both count, and an address that is
 // already invited does not count twice.
-func (s *Store) roomFor(slug string, most int, email string) error {
-	members, err := s.members(slug)
+func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int, email string) error {
+	members, err := count(ctx, tx, `SELECT count(*) FROM people WHERE org = ?`, slug)
 	if err != nil {
 		return err
 	}
-	open, err := s.invitations(slug)
+	open, err := count(ctx, tx, `SELECT count(*) FROM invitations WHERE org = ? AND expires > ? AND email <> ?`,
+		slug, s.stamp(s.now()), email)
 	if err != nil {
 		return err
 	}
-	have := len(members)
-	for _, invitation := range open {
-		if invitation.Email != email {
-			have++
-		}
-	}
-	if have >= most {
+	if members+open >= most {
 		return ErrFull
 	}
 	return nil
-}
-
-func (s *Store) readInvitation(slug, email string) Invitation {
-	var invitation Invitation
-	readFile(s.invitationFile(slug, email), &invitation)
-	return invitation
 }
 
 // Cancel takes an invitation back, and its link with it.
@@ -190,96 +137,20 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if err != nil {
 		return err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if by.Org != slug || by.Role != Admin {
 		return ErrNotAdmin
 	}
-	if invitation := s.readInvitation(slug, email); invitation.Link != "" {
-		os.Remove(filepath.Join(s.root, "tokens", invitation.Link+".json"))
-	}
-	if err := os.Remove(s.invitationFile(slug, email)); err != nil && !missing(err) {
+	ctx := context.Background()
+	err = s.db.InTx(ctx, func(tx dbkit.Tx) error {
+		if err := dropInvitationLink(ctx, tx, slug, email); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM invitations WHERE org = ? AND email = ?`, slug, email)
+		return err
+	})
+	if err != nil {
 		return err
 	}
 	s.publishRoster(slug)
 	return nil
-}
-
-// Accept makes a person of an invitation's link. They are verified, because they read
-// the mail the link was in, and they are a runner. The room is checked again, since
-// the organisation may have filled while the invitation was out.
-func (s *Store) Accept(secret string) (Person, Org, error) {
-	invited, err := s.useLink(secret, Invite)
-	if err != nil {
-		return Person{}, Org{}, err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	org, found, err := s.Org(invited.Org)
-	if err != nil || !found {
-		return Person{}, Org{}, ErrLink
-	}
-	os.Remove(s.invitationFile(invited.Org, invited.Email))
-	quota, err := s.Quota(org.Slug)
-	if err != nil {
-		return Person{}, Org{}, err
-	}
-	members, err := s.members(org.Slug)
-	if err != nil {
-		return Person{}, Org{}, err
-	}
-	if len(members) >= quota.Members {
-		return Person{}, Org{}, ErrFull
-	}
-	now := s.now().UTC().Truncate(time.Second)
-	person := Person{Email: invited.Email, Org: org.Slug, Role: invited.Role, Created: now, Verified: now, By: invited.By}
-	if err := createFile(s.personFile(person.Email), person, 0o600); err != nil {
-		if errors.Is(err, fs.ErrExist) {
-			return Person{}, Org{}, ErrEmailTaken
-		}
-		return Person{}, Org{}, err
-	}
-	s.publishRoster(org.Slug)
-	return person, org, nil
-}
-
-// Remove takes a person out of an organisation. An admin may remove anybody but
-// themselves and the last admin, so an organisation is never left with nobody to run it.
-func (s *Store) Remove(slug string, by Person, address string) error {
-	email, err := NormalEmail(address)
-	if err != nil {
-		return ErrNoMember
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if by.Org != slug || by.Role != Admin {
-		return ErrNotAdmin
-	}
-	target, found, err := s.person(email)
-	if err != nil {
-		return err
-	}
-	if !found || target.Org != slug {
-		return ErrNoMember
-	}
-	if target.Role == Admin {
-		admins, err := s.admins(slug)
-		if err != nil {
-			return err
-		}
-		if admins <= 1 || target.Email == by.Email {
-			return ErrLastAdmin
-		}
-	}
-	if err := os.Remove(s.personFile(email)); err != nil {
-		return err
-	}
-	s.publishRoster(slug)
-	// Their computer is marked, and the organisation's server, which reaches the gateway,
-	// removes it. A person who never had one has nothing marked.
-	registry, err := s.Computers(slug)
-	if err != nil {
-		return err
-	}
-	return registry.Retire(email)
 }
