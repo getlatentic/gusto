@@ -43,12 +43,9 @@ h2 { margin: 0; font: 600 .9375rem/1.3 var(--gu-font-display); }
 .people form { display: block; }
 .people button { padding: var(--gu-space-1) var(--gu-space-3); font-size: .8125rem; }
 form.invite { grid-template-columns: 1fr auto; align-items: center; }
-.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gu-space-3); }
-.steps li { display: flex; align-items: center; gap: var(--gu-space-3); color: var(--gu-text-muted); }
-.steps li::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gu-border-strong); }
-.steps li.done { color: var(--gu-text); }
-.steps li.done::before { background: var(--gu-success); border-color: var(--gu-success); }
-.steps li.now { color: var(--gu-text); font-weight: 600; }
-.steps li.now::before { border-color: var(--gu-accent); border-top-color: transparent; animation: spin 1s linear infinite; }
+.wait { display: grid; justify-items: center; gap: var(--gu-space-5); text-align: center; }
+.wait .brand { justify-content: center; }
+.stage { display: inline-flex; align-items: center; gap: var(--gu-space-3); margin: 0; font-weight: 600; }
+.stage::before { content: ""; flex: none; width: 1rem; height: 1rem; border-radius: 50%; border: 0.125rem solid var(--gu-accent); border-top-color: transparent; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .steps li.now::before { animation: none; border-top-color: var(--gu-accent); } }
+@media (prefers-reduced-motion: reduce) { .stage::before { animation: none; } }
