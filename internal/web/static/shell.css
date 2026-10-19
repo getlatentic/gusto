@@ -1,7 +1,7 @@
 /* The shell: a side list that is always there, and a page beside it. The side list holds where to go and the conversations to carry on
    with; the page is whatever was asked for. */
-body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
-.shell { display: grid; height: 100dvh; }
+body.app { max-width: none; margin: 0; padding: 0; height: calc(100dvh - var(--lease-h, 0rem)); overflow: hidden; }
+.shell { display: grid; height: calc(100dvh - var(--lease-h, 0rem)); }
 
 .shell { grid-template-columns: auto minmax(0, 1fr); }
 .side { position: relative; display: flex; width: calc(4rem + var(--panel-w, 16rem)); min-height: 0; min-width: 0; border-right: 0.0625rem solid var(--gu-border); }

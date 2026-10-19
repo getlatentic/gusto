@@ -4,14 +4,14 @@
 // counts down the demo, links to more time and to booking a call, and says when it has ended.
 (function () {
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");
-  var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, demo = false;
+  var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, demo = false, strip = "2rem";
 
   function build() {
     bar = document.createElement("div");
     bar.setAttribute("role", "status");
-    bar.style.cssText = "position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:1000;" +
-      "max-width:calc(100vw - 2rem);padding:0.625rem 1rem;border-radius:0.625rem;background:#0E1511;color:#F5FBF6;" +
-      "font:500 0.875rem system-ui,sans-serif;box-shadow:0 0.25rem 1rem rgba(0,0,0,.25);display:flex;gap:0.75rem;align-items:center";
+    bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;height:" + strip + ";z-index:1000;box-sizing:border-box;" +
+      "padding:0 1rem;background:#0E1511;color:#F5FBF6;font:500 0.8125rem system-ui,sans-serif;" +
+      "display:flex;gap:0.75rem;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden";
     text = document.createElement("span");
     link = document.createElement("a");
     link.textContent = "Keep it";
@@ -36,11 +36,15 @@
     document.body.appendChild(bar);
   }
 
+  // The strip takes the bottom of the window, so the page above it is shorter by its height and nothing sits under it.
+  function reserve(on) { document.documentElement.style.setProperty("--lease-h", on ? strip : "0rem"); }
+
   function draw() {
     if (left === null) { return; }
-    if (!demo && left > warnAt) { if (bar) { bar.style.display = "none"; } return; }
+    if (!demo && left > warnAt) { if (bar) { bar.style.display = "none"; } reserve(false); return; }
     if (!bar) { build(); }
     bar.style.display = "flex";
+    reserve(true);
     if (demo) {
       if (left <= 0) {
         text.textContent = "Your demo has ended.";
