@@ -94,7 +94,7 @@
 {{template "side" .}}
 <div class="scrim"></div>
 <main class="page{{if .Chat}} chat{{end}}" id="main" tabindex="-1">
-<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> Latentic Agent Cloud</a></div>
+<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> gusto</a></div>
 <div class="wrap">{{end}}
 {{end}}
 
@@ -105,7 +105,7 @@
   <div class="who"><span class="mark">{{template "icon-shield"}}</span><span class="text"><strong>Admin</strong>{{with .Org}}<span>{{.}}</span>{{end}}</span></div>
   {{range .Sections}}<a href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
   <span class="grow"></span>
-  <a class="back" href="/">{{template "icon-back"}} Back to Latentic Agent Cloud</a>
+  <a class="back" href="/">{{template "icon-back"}} Back to gusto</a>
   <form method="post" action="/logout"><button class="back" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
 <main class="page" id="main" tabindex="-1"><div class="wrap">

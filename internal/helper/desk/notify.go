@@ -33,7 +33,7 @@ func notifyCommand(system string, note Note) *exec.Cmd {
 		command.Env = append(os.Environ(), "GUSTO_NOTE_TITLE="+note.Title, "GUSTO_NOTE_BODY="+note.Body)
 		return command
 	default:
-		return exec.Command("notify-send", "--app-name=Latentic Agent Cloud", "--", note.Title, note.Body)
+		return exec.Command("notify-send", "--app-name=gusto", "--", note.Title, note.Body)
 	}
 }
 

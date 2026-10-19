@@ -92,7 +92,7 @@ Setup, from the editors' own documentation (neither tried):
 { "agent_servers": { "gusto": { "type": "custom", "command": "gusto-helper", "args": ["acp", "-server", "https://gusto.example.com"], "env": {} } } }
 
 // JetBrains, ~/.jetbrains/acp.json
-{ "agent_servers": { "Latentic Agent Cloud": { "command": "/path/to/gusto-helper", "args": ["acp", "-server", "https://gusto.example.com"] } } }
+{ "agent_servers": { "gusto": { "command": "/path/to/gusto-helper", "args": ["acp", "-server", "https://gusto.example.com"] } } }
 ```
 
 Zed's `dev: open acp logs` shows the conversation with the helper.

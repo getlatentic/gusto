@@ -94,7 +94,7 @@ func (a *Agent) handle(ctx context.Context, w *wire, got request) {
 				"promptCapabilities": map[string]bool{"image": false, "audio": false, "embeddedContext": false},
 				"mcpCapabilities":    map[string]bool{"http": false, "sse": false},
 			},
-			"agentInfo":   map[string]string{"name": "gusto-helper", "title": "Latentic Agent Cloud", "version": a.Version},
+			"agentInfo":   map[string]string{"name": "gusto-helper", "title": "gusto", "version": a.Version},
 			"authMethods": []any{},
 		})
 	case "session/new":
