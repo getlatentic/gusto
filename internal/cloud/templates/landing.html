@@ -45,7 +45,7 @@
 <section class="shot" aria-label="gusto in use">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
-    <img src="{{.Shot}}" width="1318" height="896" alt="A short conversation in gusto. A finance lead asks an agent what to decide first, has it draft a spending policy with a monthly limit per person, and asks for a note to the team. Each answer shows its time and cost and is marked signed.">
+    <img src="{{.Shot}}" width="1318" height="896" alt="A conversation with an agent in gusto">
   </picture>
 </section>
 {{end}}
@@ -66,7 +66,7 @@
       </ul>
       <p class="lead">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
     </div>
-    <figure class="frame">{{picture "agents" "The start page, where a person picks an agent: Claude Code, Codex, DeepSeek Agent, Hermes, OpenCode or Pi, each with a line about it." 560 400}}</figure>
+    <figure class="frame">{{picture "agents" "The agents to choose from" 560 400}}</figure>
   </div>
 </section>
 
@@ -74,10 +74,10 @@
   <div class="wrap">
     <h2>How it works</h2>
     <ol class="flow">
-      <li><span class="n">1</span><h3>Pick an agent</h3><p>Choose the one for the work.</p><figure class="frame">{{picture "agents" "The start page, where a person picks an agent." 560 400}}</figure></li>
-      <li><span class="n">2</span><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p><figure class="frame">{{picture "step-files" "A file an agent wrote, policy.md, shown in the workspace's files." 620 400}}</figure></li>
-      <li><span class="n">3</span><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p><figure class="frame">{{picture "step-spend" "The spending page: what was spent this month, and how many model calls were made and how many were refused by a cap." 457 193}}</figure></li>
-      <li><span class="n">4</span><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p><figure class="frame">{{picture "step-record" "A record of one reply: its outcome, time, cost, model, and that it is signed." 549 162}}</figure></li>
+      <li><span class="n">1</span><h3>Pick an agent</h3><p>Choose the one for the work.</p></li>
+      <li><span class="n">2</span><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p></li>
+      <li><span class="n">3</span><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p></li>
+      <li><span class="n">4</span><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p></li>
     </ol>
   </div>
 </section>
@@ -86,9 +86,9 @@
   <div class="wrap">
     <h2>One workspace. One set of controls. One record.</h2>
     <ul class="controls">
-      <li><figure class="frame">{{darkScreen "keys" "A model provider set by the operator, with the key the operator's, and the models it serves." 700 269}}</figure><div class="text"><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></div></li>
-      <li><figure class="frame">{{darkScreen "limits" "The limits on an organization: tasks started, tasks at once and workspaces, against what is allowed." 514 300}}</figure><div class="text"><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></div></li>
-      <li><figure class="frame">{{darkScreen "activity" "The activity list: each task, its agent and model, its outcome, its time and its cost." 680 400}}</figure><div class="text"><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></div></li>
+      <li><figure class="frame">{{darkScreen "keys" "A model provider and its key, set by the operator" 700 269}}</figure><div class="text"><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></div></li>
+      <li><figure class="frame">{{darkScreen "limits" "The limits on an organization" 514 300}}</figure><div class="text"><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></div></li>
+      <li><figure class="frame">{{darkScreen "activity" "The activity list" 680 400}}</figure><div class="text"><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></div></li>
     </ul>
   </div>
 </section>
@@ -99,15 +99,15 @@
       <h2>Tested across multiple agents.</h2>
       <p class="lead">Same task. Same model. Same environment.</p>
       <ul class="ran" aria-label="Agents that finished the task">
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Pi</span><span class="took">28 s</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Claude Code</span><span class="took">30 s</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Codex</span><span class="took">35 s</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Hermes</span><span class="took">40 s</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">OpenCode</span><span class="took">2 m 46 s</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Pi</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Claude Code</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Codex</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Hermes</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">OpenCode</span></li>
         </ul>
-      <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each agent runs here, not which is best for your work.</p>
+      <p class="fine">A one-line fix, checked by a test.</p>
     </div>
-    <figure class="frame">{{picture "record" "The record of one reply: what was asked, its outcome, time, cost, tokens, agent and model, and that the record is signed." 700 520}}</figure>
+    <figure class="frame">{{picture "record" "The signed record of one reply" 570 375}}</figure>
   </div>
 </section>
 
