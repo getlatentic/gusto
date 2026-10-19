@@ -2,8 +2,8 @@
 // under it, as A records that do not go through Cloudflare's proxy. The host runs it
 // when it starts, so nothing else needs the token.
 //
-//	dns -zone example.com -name agentcloud.example.com -ip 203.0.113.7
-//	dns -zone example.com -name agentcloud.example.com -remove
+//	dns -zone example.com -name gusto.example.com -ip 203.0.113.7
+//	dns -zone example.com -name gusto.example.com -remove
 package main
 
 import (
