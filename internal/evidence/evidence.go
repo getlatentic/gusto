@@ -62,6 +62,9 @@ type Manifest struct {
 	// different things by; this is not. It is empty in a manifest written
 	// before it was recorded, which says so rather than guessing one.
 	HarnessDigest string `json:"harnessDigest,omitempty"`
+	// HarnessVersion is the agent's build, package@version as the runner image installed it from its pins. It is empty on a
+	// computer where the agent was installed by hand, which says so rather than guessing one.
+	HarnessVersion string `json:"harnessVersion,omitempty"`
 	// Session is what the agent calls the conversation this run was a turn in.
 	Session         string `json:"session,omitempty"`
 	HarnessExit     int    `json:"harnessExit"`

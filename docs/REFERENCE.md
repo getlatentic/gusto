@@ -227,7 +227,7 @@ GUSTO_MODEL_URL=http://localhost:11434/v1 gusto run /tmp/fix
 
 `run` mounts the task directory, allows 512 processes and the limits in `GUSTO_JOB_CPUS` and `GUSTO_JOB_MEMORY`, and destroys the container afterwards. On a shared machine, set the limits. `GUSTO_IMAGE` names another image.
 
-`HARNESSES` lists the agents an image carries as `name=package` pairs (adapter name, npm package). The default is `opencode=opencode-ai`. `gusto serve` reads the image label `com.getlatentic.gusto.harnesses`, checks the image's PATH for each program, and offers only those it finds. A task that names a missing agent fails before it starts.
+`HARNESSES` lists the agents an image carries as `name=package` pairs (adapter name, npm package). The default is `opencode=opencode-ai`. The version of each package is pinned in `internal/harness/pins.json` with the registry's sha512, and the build refuses a tarball that differs; the image records what it installed in `/etc/gusto/harnesses`, which the record names as the agent's build (`harnessVersion`). `gusto serve` reads the image label `com.getlatentic.gusto.harnesses`, checks the image's PATH for each program, and offers only those it finds. A task that names a missing agent fails before it starts.
 
 ```bash
 docker build -t gusto:dev \

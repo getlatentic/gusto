@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/harness"
 )
 
 // Label is where the runner image lists the agents it carries, as the
@@ -34,6 +36,8 @@ type Carried struct {
 	// Machine says the programs were looked for on this computer's PATH, where a person installs them themselves, and not in an
 	// image.
 	Machine bool
+	// Versions is each agent's build, package@version, as the image recorded it when it installed the agent.
+	Versions map[string]string
 }
 
 // Declares reports whether the image names the agent.
@@ -114,12 +118,12 @@ func (c container) Carried(programs []string) Carried {
 		return Carried{Unanswered: fmt.Errorf("%s is not an image here: %w", c.image, err)}
 	}
 	found, err := c.ask(append([]string{"run", "--rm", "--entrypoint", "sh", c.image,
-		"-c", `for program; do command -v "$program" >/dev/null && echo "$program"; done; true`, "sh"},
-		programs...)...)
+		"-c", Probe, "sh"}, programs...)...)
 	if err != nil {
 		return Carried{Unanswered: fmt.Errorf("could not start %s: %w", c.image, err)}
 	}
-	return Carried{Declared: Declared(label), OnPath: lines(found)}
+	onPath, versions := Answered(found)
+	return Carried{Declared: Declared(label), OnPath: onPath, Versions: versions}
 }
 
 // Declared reads the names out of a label: the part of each member before its
@@ -149,3 +153,13 @@ func lines(text string) map[string]bool {
 type unasked struct{}
 
 func (unasked) Carried([]string) Carried { return Carried{Unasked: true} }
+
+// Probe is the shell an image is asked with: which of the programs given are on its PATH, then a line of dashes, then
+// the builds it recorded when it installed its agents.
+const Probe = `for program; do command -v "$program" >/dev/null && echo "$program"; done; echo --; cat ` + harness.BuildsFile + ` 2>/dev/null; true`
+
+// Answered reads what Probe printed.
+func Answered(text string) (onPath map[string]bool, versions map[string]string) {
+	found, recorded, _ := strings.Cut(text, "\n--\n")
+	return lines(found), harness.ReadVersions(strings.NewReader(recorded))
+}
