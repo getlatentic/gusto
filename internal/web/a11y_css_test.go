@@ -11,11 +11,11 @@ import (
 
 var (
 	themeBlock  = regexp.MustCompile(`(?s)([^{}]+)\{([^{}]*)\}`)
-	themeColour = regexp.MustCompile(`--yg-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
+	themeColour = regexp.MustCompile(`--gu-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
 	themeAccent = regexp.MustCompile(`data-accent="([a-z]+)"`)
 )
 
-// The focus ring is drawn in --yg-focus with nothing between it and the surface it sits on, so it has 3 to 1 against every surface a
+// The focus ring is drawn in --gu-focus with nothing between it and the surface it sits on, so it has 3 to 1 against every surface a
 // control is drawn on, in each theme and each accent.
 func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
 	colours := themeColours(t)
