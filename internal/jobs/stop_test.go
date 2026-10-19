@@ -96,3 +96,18 @@ func TestAStopThatCameWhileTheJobWasBeingClaimedStillStopsIt(t *testing.T) {
 		t.Fatalf("%q", got.State)
 	}
 }
+
+// A readiness check can arrive the moment the queue starts, before its goroutines have been scheduled, and must find the
+// workers it was started with.
+func TestAQueueThatHasJustStartedAlreadyCountsItsWorkers(t *testing.T) {
+	for range 200 {
+		queue := Start(at(t), func(job.Dir) (int, error) { return 0, nil }, 3)
+		if queue.Alive() != 3 || queue.Slots() != 3 {
+			t.Fatalf("%d of %d workers", queue.Alive(), queue.Slots())
+		}
+		queue.Stop()
+		if queue.Alive() != 0 {
+			t.Fatalf("%d workers after stopping", queue.Alive())
+		}
+	}
+}

@@ -53,7 +53,10 @@ func StartStoppable(index *Index, work StoppableWork, workers int) *Queue {
 		wake:    make(chan struct{}, workers),
 		stop:    make(chan struct{}),
 	}
+	// Counted here and not in the goroutine, so a queue that has just started is already as alive as it is going to be: a
+	// readiness check that arrived before the goroutines were scheduled would otherwise find no workers.
 	queue.workers.Add(workers)
+	queue.alive.Add(int32(workers))
 	for worker := 0; worker < workers; worker++ {
 		go queue.serve()
 	}
@@ -82,7 +85,6 @@ func (q *Queue) Alive() int { return int(q.alive.Load()) }
 func (q *Queue) Slots() int { return q.slots }
 
 func (q *Queue) serve() {
-	q.alive.Add(1)
 	defer q.alive.Add(-1)
 	defer q.workers.Done()
 	// The tick is a backstop for a wake that was missed. It does not find work

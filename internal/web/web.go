@@ -26,6 +26,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/registry"
@@ -41,10 +42,13 @@ type Server struct {
 	index     *jobs.Index
 	instances *instance.Store
 	queue     *jobs.Queue
-	keeper    *keeper
-	templates *template.Template
-	identity  *Identity
-	catalog   []catalog.Entry
+	// routineNews is told how each run of a routine ended, and where the server says its own pages are.
+	routineNews notify.Every
+	publicURL   string
+	keeper      *keeper
+	templates   *template.Template
+	identity    *Identity
+	catalog     []catalog.Entry
 	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
 	// install a harness while the server runs.
 	liveCatalog func() []catalog.Entry
