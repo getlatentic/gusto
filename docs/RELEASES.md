@@ -6,6 +6,10 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 ## Next release
 
+Nothing yet.
+
+## v0.1.0-rc.2
+
 **Changed**
 
 - opencode uses the task's own model from `GUSTO_MODEL_PROVIDER` and `GUSTO_MODEL_ID`. Agent configuration moved from `image/harness/` to `internal/harness/config/`; an image built from this repository copies it from there.
