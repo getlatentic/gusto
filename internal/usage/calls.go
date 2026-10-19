@@ -66,12 +66,12 @@ func (s *store) latest(ctx context.Context, conds []string, args []any, after *r
 	conds, args = slices.Clone(conds), slices.Clone(args)
 	if after != nil {
 		conds = append(conds, "(called_at, task, line) < (?, ?, ?)")
-		args = append(args, s.d.timeArg(after.at), after.task, after.line)
+		args = append(args, s.db.TimeArg(after.at), after.task, after.line)
 	}
 	query := `SELECT ` + selectColumns + ` FROM usage_calls WHERE ` + strings.Join(conds, " AND ") +
 		` ORDER BY called_at DESC, task DESC, line DESC LIMIT ?`
 	var out []Row
-	err := s.query(ctx, s.r, query, append(args, n), func(r *sql.Rows) error {
+	err := s.query(ctx, s.db, query, append(args, n), func(r *sql.Rows) error {
 		row, err := scanRow(r)
 		out = append(out, row)
 		return err
@@ -114,7 +114,7 @@ func (s *store) Export(ctx context.Context, filter Filter, fn func(Row) error) e
 // requireSession is ErrNotFound unless the session has calls, for a page that came back empty.
 func (s *store) requireSession(ctx context.Context, session string) error {
 	var one int
-	err := s.r.QueryRowContext(ctx, s.d.rebind(`SELECT 1 FROM usage_calls WHERE session = ? LIMIT 1`), session).Scan(&one)
+	err := s.db.QueryRowContext(ctx, `SELECT 1 FROM usage_calls WHERE session = ? LIMIT 1`, session).Scan(&one)
 	switch err {
 	case nil:
 		return nil

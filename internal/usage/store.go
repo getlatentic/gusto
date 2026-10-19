@@ -3,42 +3,31 @@ package usage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
+
+var insertCalls = dbkit.Upsert{Table: "usage_calls", Columns: rowColumns, Conflict: []string{"task", "line"}}
 
 // maxRowsPerTx is the most rows Add puts in one transaction.
 const maxRowsPerTx = 1000
 
-// querier is what *sql.DB and *sql.Tx share.
-type querier interface {
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-}
-
-// store is the SQL implementation of Store. Writes go through w and reads through r: for SQLite those
-// are a single connection and a pool of readers, and for Postgres the same pool.
+// store is the SQL implementation of Store.
 type store struct {
-	d dialect
-	w *sql.DB
-	r *sql.DB
+	db *dbkit.DB
+	fl flavor
 }
 
 var _ Store = (*store)(nil)
 
-func (s *store) Close() error {
-	err := s.w.Close()
-	if s.r != s.w {
-		err = errors.Join(err, s.r.Close())
-	}
-	return err
-}
+func newStore(db *dbkit.DB) *store { return &store{db: db, fl: flavorOf(db.Dialect())} }
+
+func (s *store) Close() error { return s.db.Close() }
 
 // query runs a query and hands each row to scan.
-func (s *store) query(ctx context.Context, q querier, query string, args []any, scan func(*sql.Rows) error) error {
-	rows, err := q.QueryContext(ctx, s.d.rebind(query), args...)
+func (s *store) query(ctx context.Context, q dbkit.Querier, query string, args []any, scan func(*sql.Rows) error) error {
+	rows, err := q.QueryContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("usage: %w", err)
 	}
@@ -64,27 +53,23 @@ func (s *store) Add(ctx context.Context, rows []Row) error {
 }
 
 func (s *store) addChunk(ctx context.Context, rows []Row) error {
-	tx, err := s.w.BeginTx(ctx, nil)
+	args := make([]any, 0, len(rows)*len(rowColumns))
+	for _, r := range rows {
+		args = r.appendArgs(args, s.db)
+	}
+	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
+		_, err := tx.ExecContext(ctx, insertCalls.SQL(len(rows)), args...)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("usage: add: %w", err)
 	}
-	defer tx.Rollback()
-	args := make([]any, 0, len(rows)*len(rowColumns))
-	for _, r := range rows {
-		args = r.appendArgs(args, s.d)
-	}
-	group := "(" + strings.TrimSuffix(strings.Repeat("?,", len(rowColumns)), ",") + ")"
-	query := "INSERT INTO usage_calls (" + strings.Join(rowColumns, ", ") + ") VALUES " +
-		strings.TrimSuffix(strings.Repeat(group+",", len(rows)), ",") + " ON CONFLICT (task, line) DO NOTHING"
-	if _, err := tx.ExecContext(ctx, s.d.rebind(query), args...); err != nil {
-		return fmt.Errorf("usage: add: %w", err)
-	}
-	return tx.Commit()
+	return nil
 }
 
 // Reset deletes every row and says how many there were.
 func (s *store) Reset(ctx context.Context) (int64, error) {
-	done, err := s.w.ExecContext(ctx, `DELETE FROM usage_calls`)
+	done, err := s.db.ExecContext(ctx, `DELETE FROM usage_calls`)
 	if err != nil {
 		return 0, fmt.Errorf("usage: reset: %w", err)
 	}
@@ -93,7 +78,7 @@ func (s *store) Reset(ctx context.Context) (int64, error) {
 
 func (s *store) Indexed(ctx context.Context) (map[string]int, error) {
 	out := map[string]int{}
-	err := s.query(ctx, s.r, `SELECT task, MAX(line) + 1 FROM usage_calls GROUP BY task`, nil, func(r *sql.Rows) error {
+	err := s.query(ctx, s.db, `SELECT task, MAX(line) + 1 FROM usage_calls GROUP BY task`, nil, func(r *sql.Rows) error {
 		var task string
 		var n int
 		if err := r.Scan(&task, &n); err != nil {
@@ -119,7 +104,7 @@ func (t *Totals) destinations() []any {
 func (s *store) Totals(ctx context.Context, filter Filter) (Totals, error) {
 	var t Totals
 	where, args := s.where(filter)
-	err := s.r.QueryRowContext(ctx, s.d.rebind(`SELECT `+totalsColumns+` FROM usage_calls`+where), args...).Scan(t.destinations()...)
+	err := s.db.QueryRowContext(ctx, `SELECT `+totalsColumns+` FROM usage_calls`+where, args...).Scan(t.destinations()...)
 	if err != nil {
 		return Totals{}, fmt.Errorf("usage: totals: %w", err)
 	}
