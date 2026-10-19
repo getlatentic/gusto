@@ -1,0 +1,104 @@
+{{template "head" .}}
+
+<div class="title-row">
+  <h1>Usage</h1>
+  {{with .Usage}}<span class="grow"></span>
+  <a class="quiet-button" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
+</div>
+
+{{with .Usage}}
+{{with .Building}}{{if .Building}}<p class="notice" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
+
+<section class="figures">
+  <div class="figure headline">
+    <span class="value">{{.Figures.Spent}}</span>
+    <span class="label">{{.Figures.SpentCaption}}</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{.Figures.Calls}}</span>
+    <span class="label">model calls</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{.Figures.In}}</span>
+    <span class="label">tokens in, {{.Figures.Cache}} cached</span>
+  </div>
+  <div class="figure">
+    <span class="value">{{.Figures.Out}}</span>
+    <span class="label">tokens out</span>
+  </div>
+  <div class="figure{{if .Figures.Refused}} failed{{end}}">
+    <span class="value">{{.Figures.Refused}}</span>
+    <span class="label">refused by a cap</span>
+  </div>
+</section>
+
+<form class="filters usage-filters" method="get" action="{{$.Base}}" role="search">
+  <label class="inline search"><span class="sr">Search sessions, people, agents, agent types, providers and models</span>
+    <input type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
+  </label>
+  {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
+  {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
+  {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
+  {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
+  {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
+  <label class="inline">From <input type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit></label>
+  <label class="inline">To <input type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></label>
+  <button type="submit">Filter</button>
+  {{if .Filtered}}<a class="clear" href="{{$.Base}}">Clear</a>{{end}}
+</form>
+
+{{if .Rows}}
+<div class="list usage">
+  <table>
+    <thead><tr>
+      {{range .Columns}}<th scope="col"{{with .Sorted}} aria-sort="{{.}}"{{end}}{{if .Num}} class="num"{{end}}>{{if .Href}}<a href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>
+      {{end}}
+    </tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td title="{{.LastFull}}">{{.Last}}</td>
+        <td class="cut"><a href="{{.Href}}" title="{{.ID}}">{{.ID}}</a></td>
+        <td class="cut">{{.Person}}</td>
+        <td class="cut">{{or .Agent "—"}}</td>
+        <td>{{.Engine}}</td>
+        <td class="num">{{if eq .Cost "no price"}}<span class="muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="muted">{{.}}</span>{{end}}</td>
+        <td class="cut" title="{{.Providers}}">{{.Providers}}</td>
+        <td class="cut" title="{{.Models}}">{{.Models}}</td>
+        <td class="num">{{.In}} in, {{.Out}} out</td>
+        <td class="num">{{.Cache}}</td>
+        <td class="num">{{.Calls}}{{with .Refused}} <span class="state failed" title="refused by a cap">+{{.}}</span>{{end}}</td>
+        <td>{{if .Record}}<a href="{{.Record}}" title="The signed record of the latest task in this session">Record</a>{{with .MoreTasks}} <span class="muted">+{{.}}</span>{{end}}{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{if or .Newest .Next}}
+  <nav class="pager" aria-label="Pages">
+    {{if .Newest}}<a href="{{.Newest}}">Newest</a>{{end}}
+    <span class="gap"></span>
+    {{if .Next}}<a href="{{.Next}}" rel="next">Older</a>{{end}}
+  </nav>
+  {{end}}
+</div>
+{{else if .Filtered}}
+<p class="empty muted">No session matches these filters. <a href="{{$.Base}}">Clear them</a>.</p>
+{{else if .Building.Building}}
+<p class="empty muted">Nothing is listed yet: the index is still being built.</p>
+{{else}}
+<p class="empty muted">No model call has been recorded yet. Every call an agent makes goes through the proxy, and each one is listed here, whoever made it.</p>
+{{end}}
+
+<p class="note muted">Counted at the proxy from each provider's own answer. A call whose model has no price set is shown as "no price", not as free.</p>
+{{else}}
+<p class="empty muted">This server keeps no usage index.</p>
+{{end}}
+
+{{template "foot" .}}
+
+{{define "usage-select"}}<label class="inline"><span class="sr">{{.Label}}</span>
+  <select name="{{.Name}}" data-autosubmit>
+    <option value="">{{.All}}</option>
+    {{$chosen := .Chosen}}{{range .Options}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
+  </select>
+</label>{{end}}

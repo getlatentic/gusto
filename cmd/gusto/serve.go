@@ -249,6 +249,11 @@ func serve(args []string) int {
 		}
 		pages.UseTokens(tokens)
 	}
+	stopUsage, err := startUsage(way.proxy, pages, index.Root())
+	if err != nil {
+		return fail(err)
+	}
+	defer stopUsage()
 	background, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
 	if dir := os.Getenv("GUSTO_RETENTION"); dir != "" {

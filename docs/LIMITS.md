@@ -13,7 +13,7 @@ A person is the signed-in address, the shared sign-in (one person), or `token:<n
 
 A limit is a hard cap. With two runners and a person limit of one, a second runner stays idle when nobody else waits. Set the person limit to the share of runners one person should hold. Leave it unset on a server with one user.
 
-Comparisons start one task per engine. A person limit of one makes a comparison run its engines one after another.
+Comparisons start one task per agent. A person limit of one makes a comparison run its agents one after another.
 
 ## A task over its limit
 

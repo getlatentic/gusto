@@ -113,6 +113,8 @@ func due(policy Policy, record jobs.Record, days int) string {
 	return ""
 }
 
+// remove takes a task's files and nothing from the usage index: its rows hold metadata and no content, and a rebuild
+// only adds what the files that remain hold.
 func remove(all Jobs, record jobs.Record, kind, target string) error {
 	if kind == Record {
 		return all.Remove(record.ID)
