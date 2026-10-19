@@ -24,7 +24,7 @@ func openStore(t *testing.T) *Store {
 func versionOf(label string, _ map[string]string) map[string]string {
 	files := map[string]string{
 		"plugin.json":               `{` + pluginSchema + `, "name": "reports", "version": "` + label + `"}`,
-		"skills/summarize/SKILL.md": skillText("summarize", "Summarise a report."),
+		"skills/summarize/SKILL.md": skillText("summarize", "Summarize a report."),
 		"mcp.json":                  `{` + mcpHeader + `, "mcpServers": {"api": {"type": "streamable-http", "url": "https://api.example.com/mcp"}}}`,
 	}
 	return files
@@ -71,7 +71,7 @@ func TestANewVersionDoesNotReplaceTheOneThatIsOnAndTheOldOneCanBePutBack(t *test
 	store := openStore(t)
 	_, one, _ := store.Import(folder(t, versionOf("1.0.0", nil)), git, "ada")
 	store.Enable("reports", one.ID, "ada")
-	held, two, err := store.Import(folder(t, with(versionOf("1.1.0", nil), map[string]string{"skills/summarize/SKILL.md": skillText("summarize", "Summarise it differently.")})), git, "ada")
+	held, two, err := store.Import(folder(t, with(versionOf("1.1.0", nil), map[string]string{"skills/summarize/SKILL.md": skillText("summarize", "Summarize it differently.")})), git, "ada")
 	if err != nil {
 		t.Fatal(err)
 	}

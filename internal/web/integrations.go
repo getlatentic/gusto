@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/integration"
 )
 
-// integrationsPath is where the console keeps the integrations an organisation has imported.
+// integrationsPath is where the console keeps the integrations an organization has imported.
 const integrationsPath = "/admin/integrations"
 
 // UseIntegrations hands the pages the store of imported integrations and the way to fetch one from a git address. A server without

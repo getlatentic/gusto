@@ -7,7 +7,7 @@ import (
 )
 
 // ProtocolVersion is the version of the protocol a client speaks to a gusto server, whether the server is on the same computer, on
-// another, or an organisation's. It is the same server program and the same calls in each place: what differs is only how a client
+// another, or an organization's. It is the same server program and the same calls in each place: what differs is only how a client
 // signs in (docs/PROTOCOL.md). A change that breaks a client raises it. A client asks GET /api/protocol and finds out.
 const ProtocolVersion = 1
 
@@ -25,7 +25,7 @@ const (
 type call struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
-	// Who is whoNobody, whoPerson, or the scope of an organisation's token (apitoken).
+	// Who is whoNobody, whoPerson, or the scope of an organization's token (apitoken).
 	Who  string `json:"who"`
 	Does string `json:"does"`
 	// Streams says the answer is a stream of server-sent events that goes on until the thing it follows ends or the client leaves.
@@ -64,7 +64,7 @@ func (s *Server) protocol() []call {
 		{"DELETE", "/api/instances/{id}/file", whoPerson, "remove one file", false, s.removeFile},
 		{"POST", "/api/instances/{id}/hashes", whoPerson, "the hashes of the files named, so a client sends only what differs", false, s.hashesJSON},
 
-		{"POST", "/api/jobs", apitoken.Submit, "send a task directory to be run, as an organisation's program does", false, s.sent(apitoken.Submit, s.accept)},
+		{"POST", "/api/jobs", apitoken.Submit, "send a task directory to be run, as an organization's program does", false, s.sent(apitoken.Submit, s.accept)},
 		{"GET", "/api/spend", apitoken.Spend, "the spend report", false, s.sent(apitoken.Spend, s.spendJSON)},
 		{"GET", "/api/usage/sessions", apitoken.Spend, "the model calls added up by session, the latest first; a person's token reads that person's own", false, s.usageAccess(s.usageSessionsJSON)},
 		{"GET", "/api/usage/calls", apitoken.Spend, "one session's calls, the latest first, from ?session=", false, s.usageAccess(s.usageCallsJSON)},

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// demoFront is a front door that offers a demo and starts an organisation's server, the fake, for each.
+// demoFront is a front door that offers a demo and starts an organization's server, the fake, for each.
 func demoFront(t *testing.T, extra ...string) *front {
 	t.Helper()
 	return newFront(t, demoSet, func(c *Config) {
@@ -42,7 +42,7 @@ func TestAHostThatOffersNoDemoHasNoDemoPage(t *testing.T) {
 func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t, "FAKE_DELAY=1500ms")
-		if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try gusto for 30 minutes") || !strings.Contains(page, "https://cal.example/gusto") {
+		if status, page := f.browser().get("/demo"); status != http.StatusOK || !strings.Contains(page, "Try gusto free for 30 minutes") || !strings.Contains(page, "https://cal.example/gusto") {
 			t.Fatalf("%d\n%s", status, page)
 		}
 		b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
@@ -68,7 +68,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 		}
 		status, _, header = b.get2("/open")
 		if status != http.StatusSeeOther || !strings.HasPrefix(header.Get("Location"), "http://"+org.Slug+".cloud.test/auth/entry?t=") {
-			t.Errorf("the visitor opens their own organisation: %d %v", status, header)
+			t.Errorf("the visitor opens their own organization: %d %v", status, header)
 		}
 	})
 }
@@ -125,7 +125,7 @@ func TestADemoIsExtendedOnceFromThePage(t *testing.T) {
 	})
 }
 
-func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddressSaysSoAndOffersACall(t *testing.T) {
+func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddressSaysSoAndOffersACall(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
@@ -147,7 +147,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddr
 		f.server.ender.running.Wait()
 
 		if _, found, _ := f.store.Org(slug); found {
-			t.Error("the organisation is still there")
+			t.Error("the organization is still there")
 		}
 		if address, state := f.server.Controller.Route(slug); address != "" || state != "" {
 			t.Errorf("the server was not stopped and forgotten: %q %q", address, state)
@@ -166,7 +166,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganisationAreRemovedAndTheAddr
 			t.Errorf("%+v", lead)
 		}
 		if _, found, _ := f.store.Org("initech-com"); !found {
-			t.Error("an organisation that is not a demo was ended")
+			t.Error("an organization that is not a demo was ended")
 		}
 	})
 }
@@ -179,7 +179,7 @@ func TestADemoThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 			t.Errorf("%d\n%s", status, page)
 		}
 		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
-			t.Error("a refusal made an organisation")
+			t.Error("a refusal made an organization")
 		}
 		startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
 		status, page, _ = f.browser().post("/demo", url.Values{"name": {"Ada"}, "email": {"ada@acme.com"}, "company": {"Acme"}})
@@ -225,13 +225,13 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 			t.Errorf("a video of its own opens nothing up: %s", csp)
 		}
 		f := newFront(t, demoSet, nil)
-		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organisation") {
+		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
 			t.Errorf("sign-up is still there: %d", status)
 		}
 		if status, css, _ := f.browser().do("GET", "/static/landing.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".hero") {
 			t.Errorf("its stylesheet is served: %d", status)
 		}
-		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organisation") {
+		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
 			t.Errorf("a host that offers no demo still has the sign-up page at the front: %d", status)
 		}
 	})
@@ -265,7 +265,7 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 	})
 }
 
-func TestASignedInVisitorIsSentToTheirOrganisationAndNotShownTheLandingPage(t *testing.T) {
+func TestASignedInVisitorIsSentToTheirOrganizationAndNotShownTheLandingPage(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
@@ -305,7 +305,7 @@ func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *test
 			t.Fatalf("%d %v", status, header)
 		}
 		if _, found, _ := f.store.Org(slug); found {
-			t.Error("the organisation is still there")
+			t.Error("the organization is still there")
 		}
 		if lead, _ := f.store.LeadOf(slug); lead.Reason != "the visitor ended it" || lead.Ended.IsZero() {
 			t.Errorf("%+v", lead)

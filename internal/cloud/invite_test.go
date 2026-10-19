@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// verifiedAdmin signs up an organisation, follows the mail's link to confirm the
+// verifiedAdmin signs up an organization, follows the mail's link to confirm the
 // admin's address, and returns the admin's browser.
 func (f *front) verifiedAdmin(email, name string) *browser {
 	f.t.Helper()
@@ -50,7 +50,7 @@ func (f *front) invitedAndJoined(admin *browser, email string) *browser {
 	return b
 }
 
-func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganisation(t *testing.T) {
+func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganization(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
@@ -94,13 +94,13 @@ func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganisation(t *testin
 	})
 }
 
-func TestAnOrganisationThatHasNotConfirmedItsAdminCannotInvite(t *testing.T) {
+func TestAnOrganizationThatHasNotConfirmedItsAdminCannotInvite(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.browser()
 		admin.post("/signup", url.Values{"email": {"ada@acme.com"}})
 		if _, page := admin.get("/org"); strings.Contains(page, `action="/org/invite"`) {
-			t.Error("an organisation on the trial offers to invite")
+			t.Error("an organization on the trial offers to invite")
 		}
 		status, page, _ := admin.post("/org/invite", url.Values{"email": {"bob@acme.com"}})
 		if status != http.StatusConflict || !strings.Contains(page, "cannot invite people until its admin has confirmed") {
@@ -109,7 +109,7 @@ func TestAnOrganisationThatHasNotConfirmedItsAdminCannotInvite(t *testing.T) {
 	})
 }
 
-func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganisationReachNoOther(t *testing.T) {
+func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganizationReachNoOther(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
@@ -127,10 +127,10 @@ func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganisationReachNoOther(t *
 			t.Errorf("Acme's admin cannot remove Globex's person: %d", status)
 		}
 		if _, found, _ := f.store.Person("fay@globex.com"); !found {
-			t.Error("a person of another organisation was removed")
+			t.Error("a person of another organization was removed")
 		}
 		if _, page := ada.get("/org"); strings.Contains(page, "globex") || strings.Contains(page, "fay@") {
-			t.Errorf("one organisation's page names another's people:\n%s", page)
+			t.Errorf("one organization's page names another's people:\n%s", page)
 		}
 	})
 }
@@ -158,7 +158,7 @@ func TestARemovedPersonIsSignedOutOfTheFrontDoorAtOnce(t *testing.T) {
 	})
 }
 
-func TestACancelledInvitationsLinkIsGoneAndTheOrganisationFillsAtAnAdminAndThree(t *testing.T) {
+func TestACancelledInvitationsLinkIsGoneAndTheOrganizationFillsAtAnAdminAndThree(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
@@ -168,7 +168,7 @@ func TestACancelledInvitationsLinkIsGoneAndTheOrganisationFillsAtAnAdminAndThree
 			}
 		}
 		if _, page := ada.get("/org"); strings.Contains(page, `action="/org/invite"`) {
-			t.Error("a full organisation offers to invite")
+			t.Error("a full organization offers to invite")
 		}
 		if status, page, _ := ada.post("/org/invite", url.Values{"email": {"d@acme.com"}}); status != http.StatusConflict || !strings.Contains(page, "as many people as it may") {
 			t.Errorf("%d\n%s", status, page)
@@ -178,7 +178,7 @@ func TestACancelledInvitationsLinkIsGoneAndTheOrganisationFillsAtAnAdminAndThree
 			t.Fatal(status)
 		}
 		if status, _ := f.browser().get(link); status != http.StatusGone {
-			t.Errorf("a cancelled invitation's link opens nothing: %d", status)
+			t.Errorf("a canceled invitation's link opens nothing: %d", status)
 		}
 		if _, page := ada.get("/org"); !strings.Contains(page, `action="/org/invite"`) {
 			t.Error("a place was freed")
@@ -186,7 +186,7 @@ func TestACancelledInvitationsLinkIsGoneAndTheOrganisationFillsAtAnAdminAndThree
 	})
 }
 
-func TestSomeoneWhoJoinsIsSentToTheirOrganisationsServerWithTheRoleTheyHave(t *testing.T) {
+func TestSomeoneWhoJoinsIsSentToTheirOrganizationsServerWithTheRoleTheyHave(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		ada := f.signedUp("ada@acme.com")
@@ -201,12 +201,12 @@ func TestSomeoneWhoJoinsIsSentToTheirOrganisationsServerWithTheRoleTheyHave(t *t
 		parsed, _ := url.Parse(location)
 		status, _, answer := bob.at(parsed.Host, "GET", parsed.RequestURI(), nil)
 		if status != http.StatusSeeOther || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "gusto=bob@acme.com|runner") {
-			t.Errorf("the organisation's server has them as a runner: %d %v", status, answer)
+			t.Errorf("the organization's server has them as a runner: %d %v", status, answer)
 		}
 	})
 }
 
-func TestInvitationsAreLimitedForOneOrganisationInAnHour(t *testing.T) {
+func TestInvitationsAreLimitedForOneOrganizationInAnHour(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
@@ -220,7 +220,7 @@ func TestInvitationsAreLimitedForOneOrganisationInAnHour(t *testing.T) {
 	})
 }
 
-func TestTheOrganisationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testing.T) {
+func TestTheOrganizationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")

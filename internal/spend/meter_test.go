@@ -92,7 +92,7 @@ func TestUsageIsCountedWhicheverWayTheProviderNamesIt(t *testing.T) {
 }
 
 // A naming nobody knows counts nothing rather than guessing a number.
-func TestUsageNobodyRecognisesIsNotInvented(t *testing.T) {
+func TestUsageNobodyRecognizesIsNotInvented(t *testing.T) {
 	meter := NewMeter("application/json")
 	if _, err := meter.Write([]byte(`{"usage":{"tokens_used":85}}`)); err != nil {
 		t.Fatal(err)

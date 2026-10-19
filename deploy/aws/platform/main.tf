@@ -213,7 +213,7 @@ resource "aws_launch_template" "role" {
 # ── The front door that stays up ─────────────────────────────────────────────
 
 # It runs the public demo: nginx and the certificate, the front door, and the scaler that starts a host for a cell when
-# an organisation needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
+# an organization needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
 # when they are tagged for it, so a cell, which runs other people's code, can start nothing.
 locals {
   live      = "gusto-poc-front-door"
@@ -332,7 +332,7 @@ resource "aws_eip_association" "live" {
 
 # ── The file system the hosts of a demo share ────────────────────────────────
 
-# The organisations' data, which the front door and a cell both read and write. It is not in a
+# The organizations' data, which the front door and a cell both read and write. It is not in a
 # host's disk, since a cell is a host that goes, and each demo has a directory of it that the next
 # one removes. It costs 30 cents a gigabyte-month, and a demo holds a few megabytes.
 resource "aws_efs_file_system" "shared" {

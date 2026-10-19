@@ -154,7 +154,7 @@ func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	if refusal := l.teamSpent(held); refusal != nil {
 		return refusal
 	}
-	if refusal := l.organisationSpent(); refusal != nil {
+	if refusal := l.organizationSpent(); refusal != nil {
 		return refusal
 	}
 	return l.uncountable(held, credential, model)
@@ -231,10 +231,10 @@ func (l *Ledger) teamSpent(held *account) *Refusal {
 	}
 }
 
-// organisationSpent is what every task has spent this month, against the cap on the whole server. It is summed from the tasks,
+// organizationSpent is what every task has spent this month, against the cap on the whole server. It is summed from the tasks,
 // which is the sum the report gives as its total, so the cap and the report cannot disagree.
-func (l *Ledger) organisationSpent() *Refusal {
-	limit, capped := l.policy.organisationCap()
+func (l *Ledger) organizationSpent() *Refusal {
+	limit, capped := l.policy.organizationCap()
 	if !capped {
 		return nil
 	}
@@ -250,7 +250,7 @@ func (l *Ledger) organisationSpent() *Refusal {
 	}
 	return &Refusal{
 		Cap: "organisation", LimitUSD: limit, SpentUSD: spent,
-		Reason: fmt.Sprintf("this organisation has spent $%.4f of its $%.4f cap for %s", spent, limit, month),
+		Reason: fmt.Sprintf("this organization has spent $%.4f of its $%.4f cap for %s", spent, limit, month),
 	}
 }
 
@@ -282,7 +282,7 @@ func (l *Ledger) governing(held *account) (*Refusal, bool) {
 		spent := l.tally(ByTeam, held.terms.Team, monthOf(l.now())).USD
 		return &Refusal{Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent}, true
 	}
-	if limit, capped := l.policy.organisationCap(); capped {
+	if limit, capped := l.policy.organizationCap(); capped {
 		return &Refusal{Cap: "organisation", LimitUSD: limit}, true
 	}
 	return nil, false

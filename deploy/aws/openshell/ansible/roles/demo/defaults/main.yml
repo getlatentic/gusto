@@ -1,5 +1,5 @@
 ---
-# The name organisations are served under, and the zone in Cloudflare it belongs to.
+# The name organizations are served under, and the zone in Cloudflare it belongs to.
 demo_region: us-east-1
 demo_name: ""
 demo_zone: ""
@@ -26,9 +26,9 @@ demo_max_hours: 4
 demo_user: ubuntu
 demo_state: /var/lib/gusto-cloud
 demo_lib: /var/lib/gusto
-# all is one host that is the front door and runs the organisations' servers. orchestrator is the front door
+# all is one host that is the front door and runs the organizations' servers. orchestrator is the front door
 # alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one demo share
-# demo_efs, the address of a shared file system, and the directory demo_run of it, where the organisations' data is.
+# demo_efs, the address of a shared file system, and the directory demo_run of it, where the organizations' data is.
 demo_role: all
 demo_efs: ""
 demo_run: ""
@@ -37,7 +37,7 @@ demo_cell_gone_minutes: 5
 demo_cell_port: 8060
 # A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
 # The front door that stays up: no lease, what is on the file system kept, and hosts for cells started when
-# organisations need one, from the launch template demo_cell_template, tagged demo_project.
+# organizations need one, from the launch template demo_cell_template, tagged demo_project.
 demo_live: false
 demo_release: ""
 demo_bundle_dir: /opt/gusto-bundle

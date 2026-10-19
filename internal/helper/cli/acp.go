@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/helper/bridge"
 )
 
-// signedInCloud is the person's organisation, reached with the token the keychain holds at the moment of each call, so a
+// signedInCloud is the person's organization, reached with the token the keychain holds at the moment of each call, so a
 // person who signs in after their editor started the helper needs to start nothing again.
 type signedInCloud struct {
 	server string

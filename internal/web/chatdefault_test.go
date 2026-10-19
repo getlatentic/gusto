@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 )
 
-func TestANewChatRunsOnTheLastChoiceThenTheOrganisationsDefaultThenTheFirstThatCanRun(t *testing.T) {
+func TestANewChatRunsOnTheLastChoiceThenTheOrganizationsDefaultThenTheFirstThatCanRun(t *testing.T) {
 	picks := []pick{
 		{Entry: catalog.Entry{Name: "first"}, Models: []string{"m1", "m2"}},
 		{Entry: catalog.Entry{Name: "second"}, Models: []string{"m3", "m4"}},
@@ -24,7 +24,7 @@ func TestANewChatRunsOnTheLastChoiceThenTheOrganisationsDefaultThenTheFirstThatC
 		harness, mode string
 	}{
 		"nothing chosen":                {nil, chatDefault{}, "first", "m1"},
-		"the organisation's default":    {nil, chatDefault{"second", "m4"}, "second", "m4"},
+		"the organization's default":    {nil, chatDefault{"second", "m4"}, "second", "m4"},
 		"a default model that is gone":  {nil, chatDefault{"second", "gone"}, "second", "m3"},
 		"a default engine that is gone": {nil, chatDefault{"gone", "m4"}, "first", "m1"},
 		"the person's own last choice":  {[]yours{{agent: agent{Instance: instance.Instance{Harness: "first", Model: "m2"}}}}, chatDefault{"second", "m4"}, "first", "m2"},
@@ -58,7 +58,7 @@ func TestAnAdminSetsWhatANewChatRunsOnAndTheChangeIsRecorded(t *testing.T) {
 
 	chat := here.ask(t, "GET", "/chat", nil).Body.String()
 	if !regexp.MustCompile(`name="harness" value="fixture"`).MatchString(chat) || !strings.Contains(chat, `name="model" value="platform/test-model"`) {
-		t.Errorf("a new chat does not start on the organisation's default")
+		t.Errorf("a new chat does not start on the organization's default")
 	}
 
 	refused := here.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"nothing|that-runs"}})
@@ -82,15 +82,15 @@ func TestTheNewChatBoxSaysWhatItRunsOnAndKeepsTheChoicesBehindIt(t *testing.T) {
 	}
 }
 
-func TestTheOperatorsDefaultIsUsedUntilTheOrganisationChoosesItsOwn(t *testing.T) {
+func TestTheOperatorsDefaultIsUsedUntilTheOrganizationChoosesItsOwn(t *testing.T) {
 	here, _, _ := budgeted(t)
 	here.server.UseChatDefault("fixture", "platform/test-model")
 	if got := here.server.orgDefault(); got != (chatDefault{"fixture", "platform/test-model"}) {
-		t.Errorf("with no organisation default, a new chat runs on %v", got)
+		t.Errorf("with no organization default, a new chat runs on %v", got)
 	}
 	here.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"fixture|platform/test-model"}})
 	here.server.UseChatDefault("other", "m")
 	if got := here.server.orgDefault(); got.Harness != "fixture" {
-		t.Errorf("the organisation's own default did not win over the operator's: %v", got)
+		t.Errorf("the organization's own default did not win over the operator's: %v", got)
 	}
 }

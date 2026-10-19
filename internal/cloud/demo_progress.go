@@ -11,7 +11,7 @@ type Step struct {
 	Mark  string
 }
 
-var demoStages = []string{"Finding a machine", "Starting your organisation", "Opening your demo"}
+var demoStages = []string{"Finding a machine", "Starting your organization", "Opening your demo"}
 
 // demoSteps is where a demo is among its stages, from the state its server is in.
 func demoSteps(state State) []Step {
@@ -47,7 +47,7 @@ func waited(since time.Time, now time.Time) string {
 	return fmt.Sprintf("%d min %02d s", seconds/60, seconds%60)
 }
 
-// orgExists says an organisation is still there, whether or not its server is running.
+// orgExists says an organization is still there, whether or not its server is running.
 func (s *Server) orgExists(slug string) bool {
 	_, found, _ := s.Store.Org(slug)
 	return found

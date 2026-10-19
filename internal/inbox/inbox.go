@@ -1,7 +1,7 @@
-// Package inbox is how gusto cloud tells an organisation's server what an admin
+// Package inbox is how gusto cloud tells an organization's server what an admin
 // did, so that the server can put it in its change record.
 //
-// The change record has one writer, the organisation's server, because two
+// The change record has one writer, the organization's server, because two
 // processes appending to one chained file would fork it. Gusto cloud drops a
 // file for each event in a directory, and the server takes them into its record
 // in the order they were dropped and removes them.

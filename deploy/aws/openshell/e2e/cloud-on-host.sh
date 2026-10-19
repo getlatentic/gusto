@@ -1,5 +1,5 @@
 # Runs on the instance. Starts the front door as an operator would, with every
-# organisation's server given the OpenShell settings and the model credentials, then drives it
+# organization's server given the OpenShell settings and the model credentials, then drives it
 # with e2e/cloud as people would. Nothing is removed at the end, so the pages can be looked at.
 set -uo pipefail
 C=$HOME/e2e/cloud

@@ -83,7 +83,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .composer .box { display: grid; gap: var(--gu-space-2); padding: var(--gu-space-4) var(--gu-space-3) var(--gu-space-3) var(--gu-space-5);
   background: var(--gu-surface); border: 0.0625rem solid var(--gu-border-strong); border-radius: 1.25rem; box-shadow: var(--gu-shadow-1);
   transition: border-color var(--gu-dur-fast) var(--gu-ease-standard), box-shadow var(--gu-dur-fast) var(--gu-ease-standard); }
-/* The box draws the ring for its field, two pixels of the focus colour. The clear outline shows only under forced colours, which drop shadows. */
+/* The box draws the ring for its field, two pixels of the focus color. The clear outline shows only under forced colors, which drop shadows. */
 .composer .box:has(textarea:focus-visible) { border-color: var(--gu-focus); box-shadow: 0 0 0 0.0625rem var(--gu-focus); outline: 0.125rem solid transparent; }
 .composer textarea { width: 100%; min-height: 1.75rem; max-height: 14rem; padding: 0; border: 0; background: none; resize: none;
   font: inherit; line-height: 1.55; }
@@ -244,7 +244,7 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 .picker .menu { min-width: 16rem; max-width: 24rem; }
 .picker .menu .detail { white-space: nowrap; }
 
-/* A mark is a quiet tile: the colours of the fields were a lot of colour for a list. */
+/* A mark is a quiet tile: the colors of the fields were a lot of color for a list. */
 .mark { background: var(--gu-bg-subtle); color: var(--gu-text-muted); box-shadow: inset 0 0 0 0.0625rem var(--gu-border); }
 .title-row .grow { flex: 1; }
 
@@ -322,8 +322,8 @@ body.app { max-width: none; margin: 0; padding: 0; height: 100dvh; overflow: hid
 
 @container (max-width: 72rem) { .file-panel { display: none; } }
 
-/* Under forced colours the current place, choice and tab are drawn in the system's selected colours, since their surface and shadow are
-   dropped; the swatches keep their own colours, and the tick on a chosen option is drawn in the text colour. */
+/* Under forced colors the current place, choice and tab are drawn in the system's selected colors, since their surface and shadow are
+   dropped; the swatches keep their own colors, and the tick on a chosen option is drawn in the text color. */
 
 @media (forced-colors: active) {
   .rail .tool[aria-current], .side .item[aria-current], .side .proj ol a[aria-current], .d-places .place.current, .d-list .folder.selected,

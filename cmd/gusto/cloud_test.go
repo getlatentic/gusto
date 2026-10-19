@@ -16,7 +16,7 @@ import (
 )
 
 func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
-	// A test binary is not a gusto that can serve an organisation.
+	// A test binary is not a gusto that can serve an organization.
 	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
 	root := filepath.Join(t.TempDir(), "cloud")
 	t.Setenv("GUSTO_CLOUD_ROOT", root)
@@ -50,7 +50,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	get.AddCookie(cookie)
 	front.Handler().ServeHTTP(page, get)
 	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), "7 in all") {
-		t.Errorf("the page should show the organisation's address and the trial from the settings:\n%s", page.Body)
+		t.Errorf("the page should show the organization's address and the trial from the settings:\n%s", page.Body)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 
 // The criterion the story ends on: a sign-up cannot make more than a small amount
 // of work until it is verified. The front door writes the limit and the
-// organisation's own server enforces it, and confirming the address lifts it
+// organization's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
@@ -87,8 +87,8 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The organisation's server, as it would be started: a jobs directory of its
-	// own under the organisation's data directory, and the quota the front door wrote.
+	// The organization's server, as it would be started: a jobs directory of its
+	// own under the organization's data directory, and the quota the front door wrote.
 	index, err := jobs.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
 	if err != nil {
 		t.Fatal(err)
@@ -125,9 +125,9 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	}
 }
 
-func TestTheOperatorsSettingsForEveryOrganisationAreReadFromAFile(t *testing.T) {
+func TestTheOperatorsSettingsForEveryOrganizationAreReadFromAFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "org.env")
-	os.WriteFile(path, []byte("# what every organisation's server has\nGUSTO_CREDENTIALS=/etc/gusto/credentials\n\n  GUSTO_SANDBOX=openshell  \n"), 0o600)
+	os.WriteFile(path, []byte("# what every organization's server has\nGUSTO_CREDENTIALS=/etc/gusto/credentials\n\n  GUSTO_SANDBOX=openshell  \n"), 0o600)
 	env, err := operatorEnv(path)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestTheOperatorsSettingsForEveryOrganisationAreReadFromAFile(t *testing.T) 
 	}
 }
 
-func TestTheOperatorSeesEveryComputerWithItsOrganisationAndPerson(t *testing.T) {
+func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) {
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 10})
 	if err != nil {
 		t.Fatal(err)
@@ -172,12 +172,12 @@ func TestTheOperatorSeesEveryComputerWithItsOrganisationAndPerson(t *testing.T) 
 		t.Fatal(err)
 	}
 	text := out.String()
-	for _, want := range []string{"ORGANISATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 workspaces in 3 organisations"} {
+	for _, want := range []string{"ORGANIZATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 workspaces in 3 organizations"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("%q is not in:\n%s", want, text)
 		}
 	}
 	if strings.Contains(text, "ned@initech.com") {
-		t.Errorf("an organisation with no computers lists none:\n%s", text)
+		t.Errorf("an organization with no computers lists none:\n%s", text)
 	}
 }

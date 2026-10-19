@@ -31,7 +31,7 @@ type WayOut struct {
 	proxy  *proxy.Proxy
 	tokens *proxy.Tokens
 	ledger *spend.Ledger
-	// held is every credential this deployment holds now, which changes when an organisation's registry does.
+	// held is every credential this deployment holds now, which changes when an organization's registry does.
 	held atomic.Pointer[proxy.Credentials]
 	// platform is what the operator configured, which a registry is added to.
 	platform registry.Platform
@@ -123,7 +123,7 @@ func (w *WayOut) SetCredentials(credentials proxy.Credentials) {
 	w.proxy.SetCredentials(credentials, 0)
 }
 
-// Apply makes what an organisation's registry comes to what the proxy holds and the ledger prices at, from the
+// Apply makes what an organization's registry comes to what the proxy holds and the ledger prices at, from the
 // next call on. A task already running keeps the credential it began with, which the proxy finds again by name.
 func (w *WayOut) Apply(effective registry.Effective) {
 	w.held.Store(&effective.Credentials)

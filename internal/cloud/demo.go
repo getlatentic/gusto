@@ -7,7 +7,7 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// DemoSettings make the front door offer a demo: an organisation that a visitor starts without signing up, that
+// DemoSettings make the front door offer a demo: an organization that a visitor starts without signing up, that
 // has a time, and that is deleted when the time is up. A demo is offered when Length is set.
 type DemoSettings struct {
 	// Length is how long a demo lasts from when its server is ready, and Extend is what the one extension adds.
@@ -44,7 +44,7 @@ func DefaultDemoLimits() quota.Quota {
 	return quota.Quota{Jobs: 30, Concurrent: 2, Members: 1, Computers: 1, Note: "This is a demo, which is removed when its time is up."}
 }
 
-// Demo is what makes an organisation a demo. Ready is when its server first answered, which is when its time
+// Demo is what makes an organization a demo. Ready is when its server first answered, which is when its time
 // starts, so a visitor who waits for a cell to start is not charged for the wait.
 type Demo struct {
 	Name     string    `json:"name"`
@@ -76,7 +76,7 @@ var (
 	ErrNeedCompany   = errors.New("say which company you are with")
 	ErrDemoNeedsName = errors.New("say who you are")
 	ErrNoExtension   = errors.New("this demo cannot be extended any more")
-	ErrNotDemo       = errors.New("this organisation is not a demo")
+	ErrNotDemo       = errors.New("this organization is not a demo")
 	ErrDemoPaused    = errors.New("demos are paused")
 	ErrDemoDaily     = errors.New("today's demos are all taken")
 	ErrDemoRepeat    = errors.New("that address has had its demos for today")

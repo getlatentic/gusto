@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// hostCommand runs the agent on a host that runs organisations' servers for a gusto cloud on another
+// hostCommand runs the agent on a host that runs organizations' servers for a gusto cloud on another
 // host. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few
 // seconds that it is there. Its settings are GUSTO_CELL_NAME, GUSTO_CELL_PRIVATE (the address on the
 // private network its servers bind to), GUSTO_CELL_PORT (8060), GUSTO_CELL_SECRET_FILE and GUSTO_CELLS_DIR,
@@ -52,7 +52,7 @@ func cellFromEnv() (agent *cell.Agent, listen, dir string, err error) {
 }
 
 // cellSecret reads the secret gusto cloud and the hosts sign with. One too short to be a secret is refused,
-// since everything a host will run is authorised by it.
+// since everything a host will run is authorized by it.
 func cellSecret(setting string) ([]byte, error) {
 	path := os.Getenv(setting)
 	if path == "" {
@@ -69,10 +69,10 @@ func cellSecret(setting string) ([]byte, error) {
 	return secret, nil
 }
 
-// cellPool is the hosts gusto cloud may place organisations on, or nothing when there is one machine.
+// cellPool is the hosts gusto cloud may place organizations on, or nothing when there is one machine.
 // GUSTO_CLOUD_CELLS_DIR is the directory hosts register in, and GUSTO_CLOUD_CELL_SECRET_FILE the secret. This
 // machine is a host too when GUSTO_CLOUD_LOCAL_CELL is on. A host silent for GUSTO_CLOUD_CELL_GONE_MINUTES (30)
-// is taken to be gone, and the organisations on it are placed on another.
+// is taken to be gone, and the organizations on it are placed on another.
 func cellPool(local *cloud.LocalCell) (*cell.Pool, error) {
 	dir := os.Getenv("GUSTO_CLOUD_CELLS_DIR")
 	if dir == "" {
@@ -105,7 +105,7 @@ func beatForCells(ctx context.Context, dir string) {
 	}
 }
 
-// cellScaler starts a host when an organisation waits for room and stops one that has had nothing on it, so
+// cellScaler starts a host when an organization waits for room and stops one that has had nothing on it, so
 // no host runs while nobody is using one. It is on when GUSTO_CLOUD_CELL_LAUNCH is ec2, and then needs
 // GUSTO_CLOUD_CELL_TEMPLATE (the launch template), GUSTO_CLOUD_CELL_USERDATA (the start-up script) and
 // GUSTO_CLOUD_CELL_SETTINGS, NAME=value pairs separated by commas that fill in the script. GUSTO_CLOUD_CELL_PROJECT

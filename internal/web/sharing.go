@@ -199,7 +199,7 @@ func (s *Server) verifiedApp(header string) (string, bool) {
 
 // byApp keeps a request for an app's own host name away from everything else on this
 // server: it is signed in with the token the front door made, and passed to the app, and
-// nothing of the organisation's pages can be reached on that name.
+// nothing of the organization's pages can be reached on that name.
 func (s *Server) byApp(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get(AppHeader)
@@ -217,7 +217,7 @@ func (s *Server) byApp(next http.Handler) http.Handler {
 }
 
 // appOrigin serves an app at the root of its own host name, so that what the app wrote works
-// as it wrote it, absolute paths included, and the browser keeps it apart from the organisation's pages.
+// as it wrote it, absolute paths included, and the browser keeps it apart from the organization's pages.
 func (s *Server) appOrigin(w http.ResponseWriter, r *http.Request, id string) {
 	if r.Method == http.MethodGet && r.URL.Path == "/auth/entry" {
 		s.enter(w, r)
@@ -311,7 +311,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 				pr.Out.Header.Del(header)
 			}
 			pr.Out.Header.Del("Cookie")
-			// The gateway refuses a request whose Origin is not its own, as a defence for the apps behind
+			// The gateway refuses a request whose Origin is not its own, as a defense for the apps behind
 			// it, and a browser sends the address it drew the page at. This server stands in for the
 			// gateway's own address, so a request that names an origin names that.
 			pr.Out.Header.Del("Referer")
@@ -361,7 +361,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 }
 
 // keepAppCookies gives back the cookies an app set for itself. They are the app's own, host only, and
-// none is one of this server's: a cookie with a Domain would be sent to the organisation's pages as well,
+// none is one of this server's: a cookie with a Domain would be sent to the organization's pages as well,
 // and one with this server's session name would sign a person out of, or in as somebody, on this host.
 func keepAppCookies(resp *http.Response, lines []string) {
 	for _, line := range lines {

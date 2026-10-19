@@ -8,7 +8,7 @@
   {{with .Waited}}<p class="muted">Waiting for {{.}}.</p>{{end}}
   <p class="muted">You have {{minutes .DemoLeft}} once it is ready. This page looks again by itself.</p>
   {{else}}
-  <p>You have <strong>{{minutes .DemoLeft}}</strong> left. Your organisation, its workspaces and everything in it are deleted when it ends.</p>
+  <p>You have <strong>{{minutes .DemoLeft}}</strong> left. Your organization, its workspaces and everything in it are deleted when it ends.</p>
   {{if .CanOpen}}<p><a class="button" href="/open">Open my demo</a></p>{{end}}
   {{if .Extendable}}<form method="post" action="/demo/extend"><button type="submit">Give me 10 more minutes</button></form>{{end}}
   {{end}}

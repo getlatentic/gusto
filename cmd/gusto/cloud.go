@@ -33,8 +33,8 @@ func cloudWorkspaces() int {
 	return 0
 }
 
-// cloudCommand runs gusto cloud: sign-up, sign-in and the organisations' records,
-// and the servers it starts for each organisation and sends their people to. It runs
+// cloudCommand runs gusto cloud: sign-up, sign-in and the organizations' records,
+// and the servers it starts for each organization and sends their people to. It runs
 // no tasks itself.
 func cloudCommand() int {
 	front, controller, err := openCloud()
@@ -43,7 +43,7 @@ func cloudCommand() int {
 	}
 	defer front.Store.Close()
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
-	// There is no write timeout: an organisation's task stream stays open for as long as
+	// There is no write timeout: an organization's task stream stays open for as long as
 	// the task runs, and gusto cloud carries it.
 	server := &http.Server{
 		Addr:              address,
@@ -126,7 +126,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	}
 	var controller *cloud.Controller
 	if os.Getenv("GUSTO_CLOUD_SERVERS") != "off" {
-		if controller, err = organisationServers(store, public, limits); err != nil {
+		if controller, err = organizationServers(store, public, limits); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -150,11 +150,11 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	return front, controller, nil
 }
 
-// organisationServers is what starts each organisation's gusto serve on this machine.
-// GUSTO_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organisation's
+// organizationServers is what starts each organization's gusto serve on this machine.
+// GUSTO_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organization's
 // server is started with, which is where the operator's model credentials, models and
 // sandbox settings go. Nothing else of gusto cloud's environment goes to them.
-func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
+func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func organisationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 	return controller, nil
 }
 
-// operatorEnv reads the settings every organisation's server gets. A line is
+// operatorEnv reads the settings every organization's server gets. A line is
 // KEY=VALUE, and blank lines and lines that begin with # are skipped. PATH is
 // this process's unless the file sets it, so a server finds git and openshell.
 func operatorEnv(path string) ([]string, error) {

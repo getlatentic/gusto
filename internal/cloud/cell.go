@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-// ServerSpec is how to run one organisation's server: the command, the whole of its
+// ServerSpec is how to run one organization's server: the command, the whole of its
 // environment, and where its output goes. Nothing of the front door's own
 // environment is in it, so what the front door holds, its mail password among
-// it, is not what an organisation's server can read.
+// it, is not what an organization's server can read.
 type ServerSpec struct {
 	Slug    string
 	Command []string
@@ -22,14 +22,14 @@ type ServerSpec struct {
 	Log     string
 }
 
-// ErrNoCapacity says no cell has room for another organisation yet. A cell may be starting for it, so an organisation
+// ErrNoCapacity says no cell has room for another organization yet. A cell may be starting for it, so an organization
 // that meets it waits and is tried again soon, and is not failed.
 var ErrNoCapacity = errors.New("no host has room yet")
 
-// Cell is where organisations' servers run. The first is this machine. Another is
+// Cell is where organizations' servers run. The first is this machine. Another is
 // a host with an agent on it, which the controller asks in the same words.
 //
-// An organisation's data is on storage every cell and the front door see at the same paths, so a
+// An organization's data is on storage every cell and the front door see at the same paths, so a
 // server started on any cell reads and writes what the front door does.
 type Cell interface {
 	Name() string
@@ -48,7 +48,7 @@ type Cell interface {
 	Alive(slug string) bool
 }
 
-// LocalCell runs organisations' servers as children of this process. They end
+// LocalCell runs organizations' servers as children of this process. They end
 // when it does, so a front door that is killed leaves none of them holding a port
 // that its successor wants.
 type LocalCell struct {
@@ -73,7 +73,7 @@ func (l *LocalCell) Ports(from int, taken map[int]bool) (server, proxy int, err 
 		}
 	}
 	if len(found) < 2 {
-		return 0, 0, errors.New("no ports are free for another organisation's server")
+		return 0, 0, errors.New("no ports are free for another organization's server")
 	}
 	return found[0], found[1], nil
 }
@@ -121,7 +121,7 @@ func finished(c *child) bool {
 	}
 }
 
-// Running is the organisations whose servers are running here.
+// Running is the organizations whose servers are running here.
 func (l *LocalCell) Running() []string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -160,13 +160,13 @@ func (l *LocalCell) Stop(slug string, grace time.Duration) error {
 }
 
 // ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.
-// An organisation placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
+// An organization placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
 var ErrCellGone = errors.New("the host is gone")
 
-// CellSet is the cells organisations' servers may be placed on.
+// CellSet is the cells organizations' servers may be placed on.
 type CellSet interface {
 	// Get is the cell with that name, or says why it cannot be reached.
 	Get(name string) (Cell, error)
-	// Place chooses the cell for an organisation that has none: the one with the most room.
+	// Place chooses the cell for an organization that has none: the one with the most room.
 	Place() (Cell, error)
 }

@@ -92,7 +92,7 @@ var exportCases = []contractCase{
 			t.Fatalf("err = %v after %d calls", err, calls)
 		}
 	}},
-	{"export honours the context", func(t *testing.T, s usage.Store) {
+	{"export honors the context", func(t *testing.T, s usage.Store) {
 		add(t, s, exportRows()...)
 		done, cancel := context.WithCancel(ctx)
 		calls := 0
@@ -187,7 +187,7 @@ var exportCases = []contractCase{
 			t.Fatalf("err = %v", err)
 		}
 		if got := totals(t, s, usage.Filter{}).Calls; got != 1 {
-			t.Fatal("a cancelled reset deleted rows")
+			t.Fatal("a canceled reset deleted rows")
 		}
 	}},
 	{"facets leave out the people a person filter excludes", func(t *testing.T, s usage.Store) {

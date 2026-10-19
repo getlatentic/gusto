@@ -67,7 +67,7 @@ func TestAQueuedTurnThatIsStoppedNeverRunsAndSomebodyElsesCannotBeStopped(t *tes
 		t.Errorf("bob stopped alice's turn: %d", got.Code)
 	}
 	if got := here.postAs(here.secrets["everyone"], "/api/jobs/"+id+"/stop", ""); got.Code == http.StatusOK {
-		t.Errorf("an organisation's token stopped a person's turn")
+		t.Errorf("an organization's token stopped a person's turn")
 	}
 	if got := here.postAs(ada, "/api/jobs/"+id+"/stop", ""); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"wasRunning":false`) {
 		t.Fatalf("stopping a queued turn gave %d %s", got.Code, got.Body)

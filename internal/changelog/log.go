@@ -78,7 +78,7 @@ const (
 	IntegrationScoped   = "integration.scoped"
 )
 
-// FromFrontDoor says whether a kind of event is one that an organisation's front
+// FromFrontDoor says whether a kind of event is one that an organization's front
 // door reports. Only these are taken from its inbox: what else is in the record was
 // written by this server about itself.
 func FromFrontDoor(kind string) bool {

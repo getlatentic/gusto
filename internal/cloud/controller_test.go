@@ -39,7 +39,7 @@ func made(t *testing.T, s *Store, email, name string) Org {
 	return org
 }
 
-func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSettings(t *testing.T) {
+func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSettings(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
@@ -63,7 +63,7 @@ func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 			}
 		}
 		if said["mailVisible"] != false {
-			t.Error("the front door's mail password reached an organisation's server")
+			t.Error("the front door's mail password reached an organization's server")
 		}
 		if !strings.HasPrefix(fmt.Sprint(said["addr"]), "127.0.0.1:") || said["addr"] == said["proxyAddr"] {
 			t.Errorf("a server listens on the loopback, and its proxy is another port: %v %v", said["addr"], said["proxyAddr"])
@@ -91,7 +91,7 @@ func TestAnOrganisationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 	})
 }
 
-func TestOrganisationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testing.T) {
+func TestOrganizationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 100})
 		c := controlled(t, s)
@@ -237,7 +237,7 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 				break
 			}
 			if time.Now().After(deadline) {
-				t.Fatal("the organisation was never starting")
+				t.Fatal("the organization was never starting")
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -257,7 +257,7 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 	})
 }
 
-func TestRunStartsEveryOrganisationAndStopsThemAllWhenItIsToldToEnd(t *testing.T) {
+func TestRunStartsEveryOrganizationAndStopsThemAllWhenItIsToldToEnd(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 100})
 		c := controlled(t, s)
@@ -297,7 +297,7 @@ func TestAServerThatIgnoresBeingAskedToStopIsMadeToAfterTheGrace(t *testing.T) {
 
 // What was Ready before the front door restarted is starting until it answers again,
 // and not gone: a request in that moment is told to wait.
-func TestAnOrganisationThatWasReadyIsStartingAgainWhenTheFrontDoorRestarts(t *testing.T) {
+func TestAnOrganizationThatWasReadyIsStartingAgainWhenTheFrontDoorRestarts(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		first := controlled(t, s)
@@ -327,7 +327,7 @@ func waitFor(t *testing.T, done func() bool) {
 
 var _ = io.Discard
 
-// Ports are written down as they are given, so the next organisation to be given
+// Ports are written down as they are given, so the next organization to be given
 // some, at the same moment, is not given the same. Nothing is listening on them yet,
 // so the record is all that keeps two apart.
 func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
@@ -362,7 +362,7 @@ func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
 		}
 		wg.Wait()
 		if len(given) != 50 {
-			t.Errorf("%d ports were given to 25 organisations", len(given))
+			t.Errorf("%d ports were given to 25 organizations", len(given))
 		}
 	})
 }

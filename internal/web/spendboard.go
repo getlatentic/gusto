@@ -107,7 +107,7 @@ func (s *Server) viewLedger(report spend.Report, months []string, now time.Time)
 	if len(jobs) > topJobs {
 		jobs = jobs[:topJobs]
 	}
-	view.Jobs = s.labelled(shares(jobs, view.Measure))
+	view.Jobs = s.labeled(shares(jobs, view.Measure))
 	return view
 }
 

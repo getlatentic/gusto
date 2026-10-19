@@ -8,7 +8,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 )
 
-// invite sends an invitation to join the organisation, from an admin. It is mailed
+// invite sends an invitation to join the organization, from an admin. It is mailed
 // once, and asking again for the same address replaces the earlier link.
 func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 	if !s.invites.Allow(person.Org) {
@@ -42,8 +42,8 @@ func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
-// removePerson takes a person out of the organisation. Their sign-in at the front door
-// stops at once, since what it says is looked up on each request, and the organisation's
+// removePerson takes a person out of the organization. Their sign-in at the front door
+// stops at once, since what it says is looked up on each request, and the organization's
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {
 	email, _ := NormalEmail(r.PostFormValue("email"))
@@ -56,7 +56,7 @@ func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Per
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
-// changeRole makes a person of the organisation an admin or a runner. A role that is
+// changeRole makes a person of the organization an admin or a runner. A role that is
 // the one they have changes nothing and is not recorded.
 func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Person) {
 	email, _ := NormalEmail(r.PostFormValue("email"))

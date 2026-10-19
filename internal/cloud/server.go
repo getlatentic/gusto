@@ -23,7 +23,7 @@ type Config struct {
 	Mail     Mailer
 	Sessions *Sessions
 	// URL is the address links in mail begin with, and Domain is the domain
-	// organisations are served under, as <slug>.<domain>.
+	// organizations are served under, as <slug>.<domain>.
 	URL    *url.URL
 	Domain string
 	// TrustProxy says the address of a request is the last one a proxy in front
@@ -32,8 +32,8 @@ type Config struct {
 	// The most sign-ups from one address in an hour, mail to one address in an
 	// hour, and sign-ups in all in an hour.
 	PerAddress, PerMailbox, InAll int
-	// Controller runs the organisations' servers. Without one the front door has
-	// accounts and no organisation to open.
+	// Controller runs the organizations' servers. Without one the front door has
+	// accounts and no organization to open.
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
@@ -94,12 +94,12 @@ func (c Config) limiter(scope string, most int) *Limiter {
 	return c.Store.Limiter(scope, most, time.Hour)
 }
 
-// Handler is every page the front door has, and every organisation's server behind
+// Handler is every page the front door has, and every organization's server behind
 // its own host name.
 func (s *Server) Handler() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Asked on every host name, so a page of an organisation can warn of the end of the host.
+		// Asked on every host name, so a page of an organization can warn of the end of the host.
 		if r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
 			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(w, slug) {
 				return
@@ -172,7 +172,7 @@ func (s *Server) routes() http.Handler {
 }
 
 // Wait returns when every mail started so far has been handed on, and every
-// organisation started so far has answered or failed.
+// organization started so far has answered or failed.
 func (s *Server) Wait() {
 	s.sending.Wait()
 	s.making.Wait()

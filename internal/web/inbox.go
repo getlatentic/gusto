@@ -10,7 +10,7 @@ import (
 )
 
 // UseInbox says where the front door leaves what its admins did to the
-// organisation's people. This server is the one writer of the change record, so it
+// organization's people. This server is the one writer of the change record, so it
 // takes those events into it. Without a change record they wait where they are.
 func (s *Server) UseInbox(dir string) { s.inbox = dir }
 

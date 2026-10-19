@@ -20,7 +20,7 @@ func (l *lateCells) Place() (Cell, error) {
 	return l.local, nil
 }
 
-func TestAnOrganisationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testing.T) {
+func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
@@ -29,7 +29,7 @@ func TestAnOrganisationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 		org := made(t, s, "ada@acme.com", "Acme")
 
 		if err := c.Provision(org.Slug); err == nil {
-			t.Fatal("an organisation with nowhere to go was provisioned")
+			t.Fatal("an organization with nowhere to go was provisioned")
 		}
 		if address, state := c.Route(org.Slug); state != Waiting || address != "" || c.Waiting() != 1 {
 			t.Fatalf("it waits, which is not failing: %q %q %d", address, state, c.Waiting())

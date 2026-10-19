@@ -110,7 +110,7 @@ func TestOnlyAPersonsTokenReachesThesePersonalRoutes(t *testing.T) {
 	here := withTokens(t)
 	for name, secret := range here.secrets {
 		if got := here.getAs(secret, "/api/instances"); got.Code == http.StatusOK {
-			t.Errorf("the organisation's %q token read a person's agents", name)
+			t.Errorf("the organization's %q token read a person's agents", name)
 		}
 	}
 	if got := here.getAs(password, "/api/instances"); got.Code == http.StatusOK {

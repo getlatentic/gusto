@@ -10,8 +10,8 @@ import (
 // ErrBadRole is the refusal of a role that is neither of the two there are.
 var ErrBadRole = errors.New("a role is admin or runner")
 
-// SetRole changes the role of a person in the organisation, and says what it was. An
-// admin may change anybody's, and the organisation keeps at least one admin, so the
+// SetRole changes the role of a person in the organization, and says what it was. An
+// admin may change anybody's, and the organization keeps at least one admin, so the
 // last cannot be made a runner.
 func (s *Store) SetRole(slug string, by Person, address string, role Role) (was Role, err error) {
 	if role != Admin && role != Runner {

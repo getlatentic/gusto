@@ -29,14 +29,14 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto open`](#gusto-open): Open gusto on this computer in the browser, signed in
 - [`gusto local`](#gusto-local): Run gusto for one person on this computer
 - [`gusto cloud`](#gusto-cloud): Run gusto cloud, the hosted server for accounts and routing
-- [`gusto host`](#gusto-host): Run a host for organisations' servers, for a gusto cloud
+- [`gusto host`](#gusto-host): Run a host for organizations' servers, for a gusto cloud
 - [`gusto operator`](#gusto-operator): Serve the operator's page for a gusto cloud, on loopback
 - [`gusto scan`](#gusto-scan): Ask the runner image which agents it carries
 - [`gusto doctor`](#gusto-doctor): Check this computer can run a task, before one is sent
 
 **Account**
 
-- [`gusto login`](#gusto-login): Sign this computer in as you, by your organisation's server
+- [`gusto login`](#gusto-login): Sign this computer in as you, by your organization's server
 - [`gusto logout`](#gusto-logout): End this computer's sign-in and forget it
 - [`gusto whoami`](#gusto-whoami): Who this computer is signed in as
 
@@ -556,7 +556,7 @@ Environment:
 - `GUSTO_ADMINS`: the people who administer the server
 - `GUSTO_API_TOKENS`: the file of API tokens
 - `GUSTO_RETENTION`: the directory of the retention policy and holds
-- `GUSTO_REGISTRY`: the directory of the organisation's registry of models
+- `GUSTO_REGISTRY`: the directory of the organization's registry of models
 
 Examples:
 
@@ -775,7 +775,7 @@ gusto cloud workspaces
 gusto cloud migrate
 ```
 
-With no subcommand, runs gusto cloud: sign-up, sign-in and the organisations' records, and the servers it starts for each organisation and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
+With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
 
 Commands:
 
@@ -790,11 +790,11 @@ Environment:
 
 - `GUSTO_CLOUD_ADDR`: where to listen (default 127.0.0.1:8050)
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com
-- `GUSTO_CLOUD_DOMAIN`: the domain organisations' servers are under
-- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organisation's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organisation a schema of its own for its indexes
-- `GUSTO_CLOUD_INDEX_DIR`: where organisations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
+- `GUSTO_CLOUD_DOMAIN`: the domain organizations' servers are under
+- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
+- `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 
 Examples:
 
@@ -814,7 +814,7 @@ List every workspace on this host
 gusto cloud workspaces
 ```
 
-Lists every workspace on this host, with the organisation each is in and whose it is: the operator's view across organisations, read from each one's own record.
+Lists every workspace on this host, with the organization each is in and whose it is: the operator's view across organizations, read from each one's own record.
 
 Flags:
 
@@ -823,7 +823,7 @@ Flags:
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 
 Examples:
 
@@ -841,7 +841,7 @@ Show the accounts database, or load the old account files into it
 gusto cloud migrate [-import]
 ```
 
-Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organisations, people, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
+Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
 
 Flags:
 
@@ -851,7 +851,7 @@ Flags:
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 
 Exit codes:
 
@@ -871,13 +871,13 @@ See also: `gusto cloud`, `gusto operator`
 
 ## `gusto host`
 
-Run a host for organisations' servers, for a gusto cloud
+Run a host for organizations' servers, for a gusto cloud
 
 ```text
 gusto host
 ```
 
-Runs the agent on a host that runs organisations' servers for a gusto cloud on another. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
+Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
 
 Flags:
 
@@ -911,7 +911,7 @@ Environment:
 
 - `GUSTO_OWNER_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090)
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 
 See also: `gusto cloud`
 
@@ -965,24 +965,24 @@ See also: `gusto scan`, `gusto agents`
 
 ## `gusto login`
 
-Sign this computer in as you, by your organisation's server
+Sign this computer in as you, by your organization's server
 
 ```text
 gusto login [-server <address>] [-label <name>] [-browser=false]
 ```
 
-Opens your organisation's approval page in the browser, and keeps the token it gives in this computer's keychain.
+Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.
 
 Flags:
 
 - `-browser`: open the approval page in your browser (default true)
 - `-label <string>`: what to call this computer in your list of approved ones (default its host name)
-- `-server <address>`: the address of your organisation's server (default $GUSTO_SERVER)
+- `-server <address>`: the address of your organization's server (default $GUSTO_SERVER)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_SERVER`: your organisation's server, when -server is not given
+- `GUSTO_SERVER`: your organization's server, when -server is not given
 
 Examples:
 
@@ -1002,12 +1002,12 @@ gusto logout [-server <address>]
 
 Flags:
 
-- `-server <address>`: the address of your organisation's server (default $GUSTO_SERVER)
+- `-server <address>`: the address of your organization's server (default $GUSTO_SERVER)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_SERVER`: your organisation's server, when -server is not given
+- `GUSTO_SERVER`: your organization's server, when -server is not given
 
 See also: `gusto login`
 
@@ -1021,12 +1021,12 @@ gusto whoami [-server <address>]
 
 Flags:
 
-- `-server <address>`: the address of your organisation's server (default $GUSTO_SERVER)
+- `-server <address>`: the address of your organization's server (default $GUSTO_SERVER)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_SERVER`: your organisation's server, when -server is not given
+- `GUSTO_SERVER`: your organization's server, when -server is not given
 
 See also: `gusto login`
 

@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// limitRow is one limit the organisation is under, what has been used of it, and
+// limitRow is one limit the organization is under, what has been used of it, and
 // whether it is used up.
 type limitRow struct {
 	What, Used, Of string
@@ -53,7 +53,7 @@ func teamCaps(policy spend.Policy, report spend.Report) []limitRow {
 	return rows
 }
 
-// planRows is the limits the organisation's quota sets: the jobs it may start, how many
+// planRows is the limits the organization's quota sets: the jobs it may start, how many
 // may run at once, and how many computers it may have.
 func (s *Server) planRows(allowed jobs.Allowance, running int) []limitRow {
 	within := "in all"

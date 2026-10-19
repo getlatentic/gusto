@@ -24,14 +24,14 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 ## More than one host
 
 **demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no workspaces) and that
-many hosts that run the organisations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
+many hosts that run the organizations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
 made with `cells` at 0, as before.
 
 - The hosts of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
-  named for the run. gusto cloud starts an organisation's server on a host through the host's agent
+  named for the run. gusto cloud starts an organization's server on a host through the host's agent
   (`gusto host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
   gusto cloud removes the directories of earlier runs when it starts, since the workspaces they describe went with their hosts.
-- A host registers in `cells/` of that directory every ten seconds. A new organisation is placed on the host with the
+- A host registers in `cells/` of that directory every ten seconds. A new organization is placed on the host with the
   most free memory, and stays there. When its host has been silent for five minutes it is placed on another host, and its
   people start it again from gusto cloud.
 - gusto cloud writes `cells/orchestrator.beat` every ten seconds. A host that has not seen it for five minutes powers
@@ -42,13 +42,13 @@ made with `cells` at 0, as before.
 ## gusto cloud that stays up
 
 `aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs the public demo all the time: nginx and
-the certificate, gusto cloud at `https://<name>`, and the scaler that starts a host for an organisation that
+the certificate, gusto cloud at `https://<name>`, and the scaler that starts a host for an organization that
 waits for one and stops a host that has had nothing on it for ten minutes. With nobody using it there is no such host and
 nothing is paid for but this machine, its address and the file system.
 
 - It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **demo bundle** run
   then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
-  and leaves the hosts and the organisations on them as they are.
+  and leaves the hosts and the organizations on them as they are.
 - Its role is its own, and is the only one that may start and stop hosts. It starts hosts only from the
   `cell-live` template, which tags them `project=gusto-live`, and stops only hosts with that tag that it started
   (`scaler=on`). A host that runs other people's code can start nothing. The demo workflows tag and stop

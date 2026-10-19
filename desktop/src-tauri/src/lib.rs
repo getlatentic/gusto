@@ -1,6 +1,6 @@
-//! gusto for a person's own computer: a window on gusto, on this computer or on their organisation's server, an icon that
+//! gusto for a person's own computer: a window on gusto, on this computer or on their organization's server, an icon that
 //! says what their agents are doing, and a notification when one finishes. On this computer the app uses gusto as the install script
-//! left it, or starts the one it carries; for an organisation the work is done by gusto-helper, which the app starts and keeps going.
+//! left it, or starts the one it carries; for an organization the work is done by gusto-helper, which the app starts and keeps going.
 
 mod config;
 mod folders;
@@ -30,7 +30,7 @@ fn connect(app: AppHandle, server: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Uses gusto on this computer: forgets the organisation's server, ends the helper that followed it, and starts or finds gusto here.
+/// Uses gusto on this computer: forgets the organization's server, ends the helper that followed it, and starts or finds gusto here.
 #[tauri::command]
 fn use_this_computer(app: AppHandle) -> Result<(), String> {
     config::save(&app, &config::Config { server: None })?;

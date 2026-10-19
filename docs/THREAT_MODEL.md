@@ -6,7 +6,7 @@ gusto protects the assets below from a hostile agent, a hostile caller and a cur
 
 | Asset | Why it matters |
 | --- | --- |
-| The model credential | Spends the organisation's money. Every task would want it |
+| The model credential | Spends the organization's money. Every task would want it |
 | Repository access | The GitHub App's key reaches every repository it is installed on |
 | Each person's work | Agents, transcripts and files must not be readable by a colleague |
 | The record and the change record | Signed record is what an auditor relies on, and forging it defeats the product. The change record shows who changed what, in a chain that shows an edit |

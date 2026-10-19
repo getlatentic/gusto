@@ -38,7 +38,7 @@ func TestACompanyAddressIsAskedForAndAFreeOneIsTurnedAwayUnlessAllowed(t *testin
 	}
 }
 
-func TestAnOrganisationsNameIsTextAndItsAddressIsMadeFromIt(t *testing.T) {
+func TestAnOrganizationsNameIsTextAndItsAddressIsMadeFromIt(t *testing.T) {
 	name, err := OrgName("  Acme   Research  ")
 	if err != nil || name != "Acme Research" {
 		t.Fatalf("%q %v", name, err)
@@ -76,7 +76,7 @@ func TestOnlyAnAddressAHostNameCanTakeIsAllowed(t *testing.T) {
 	}
 }
 
-func TestACompanyDomainNamesItsOrganisationAndAFreeOneDoesNot(t *testing.T) {
+func TestACompanyDomainNamesItsOrganizationAndAFreeOneDoesNot(t *testing.T) {
 	for domain, want := range map[string]string{
 		"acme.com": "Acme", "acme-research.com": "Acme Research", "mail.acme.co.uk": "Acme", "acme.io": "Acme",
 		"corp.local": "Corp", "a-b-c.org": "A B C", "team.a-b-c.org": "A B C", "a-b-c.example.org": "Example",

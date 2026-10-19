@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// UseRoster says where the list of the organisation's people is. The front door owns
+// UseRoster says where the list of the organization's people is. The front door owns
 // the people and writes the list, so this server shows what it says and nothing else.
 // Without it the console has no page of people.
 func (s *Server) UseRoster(path string) { s.rosterPath = path }
@@ -32,7 +32,7 @@ type inviteRow struct {
 	Expires int64
 }
 
-// peoplePage is who is in the organisation, with what each has spent this month.
+// peoplePage is who is in the organization, with what each has spent this month.
 func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	page := map[string]any{"Title": productName + " — people"}
 	if s.front != nil {

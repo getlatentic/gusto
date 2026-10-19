@@ -45,7 +45,7 @@
     </form>
     <div class="starters" id="chat-starters">
       <button type="button" class="starter" data-said="Fix the failing tests">Fix the failing tests</button>
-      <button type="button" class="starter" data-said="Summarise this folder">Summarise this folder</button>
+      <button type="button" class="starter" data-said="Summarize this folder">Summarize this folder</button>
       <button type="button" class="starter" data-said="Add tests for what changed">Add tests for what changed</button>
     </div>
     <form class="save-preset" id="save-preset" method="post" action="/presets" hidden>
@@ -114,7 +114,7 @@
   var runOn = document.getElementById("run-on");
   var panel = document.getElementById("chat-choices");
   var labelOf = function (picker) { return picker.querySelector("button .label").textContent.trim(); };
-  var summarise = function () {
+  var summarize = function () {
     var parts = [labelOf(harness), labelOf(model)];
     if (roleValue.value || (role.picker.value && role.picker.value !== "")) {
       var named = labelOf(role);
@@ -128,8 +128,8 @@
     panel.hidden = !panel.hidden;
     runOn.setAttribute("aria-expanded", String(!panel.hidden));
   });
-  [role, harness, model].forEach(function (each) { each.addEventListener("pick", function () { setTimeout(summarise, 0); }); });
-  summarise();
+  [role, harness, model].forEach(function (each) { each.addEventListener("pick", function () { setTimeout(summarize, 0); }); });
+  summarize();
 
   // The folder a chat works in is chosen in the explorer, which follows the agent it belongs to.
   var chosen = document.getElementById("folder-pick");
@@ -141,7 +141,7 @@
     var why = fixed ? "Set by this folder, which already has conversations. Choose another folder to use another agent." : "";
     harness.querySelector("button").title = why;
     role.querySelector("button").title = why;
-    setTimeout(summarise, 0);
+    setTimeout(summarize, 0);
   });
 
   var box = document.querySelector(".composer textarea");

@@ -1,4 +1,4 @@
-//! gusto on this computer, for a person with no organisation: the app uses the one already running, which the install script left as a
+//! gusto on this computer, for a person with no organization: the app uses the one already running, which the install script left as a
 //! service, or starts the one it carries and stops it when the app quits. It signs the window in with a link gusto makes for it, so the
 //! app never holds gusto's secret.
 
@@ -99,12 +99,12 @@ pub fn stop(app: &AppHandle) {
     *local.address.lock().unwrap() = None;
 }
 
-/// Whether the app is on this computer, which is when no organisation's server is set.
+/// Whether the app is on this computer, which is when no organization's server is set.
 pub fn on_this_computer(app: &AppHandle) -> bool {
     config::load(app).server.is_none()
 }
 
-/// The server the window shows: the organisation's, or gusto on this computer once it answers.
+/// The server the window shows: the organization's, or gusto on this computer once it answers.
 pub fn server(app: &AppHandle) -> Option<String> {
     config::load(app).server.or_else(|| app.state::<Local>().address.lock().unwrap().clone())
 }

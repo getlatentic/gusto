@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 # One deploy at a time. A merge that lands while one runs waits for it rather
-# than cancelling it; when several wait, only the newest runs, and it carries
+# than canceling it; when several wait, only the newest runs, and it carries
 # everything the others would have.
 concurrency:
   group: deploy-greencloud

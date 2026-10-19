@@ -229,10 +229,10 @@ func TestAHarnessNamedAsAPathIsRefusedBeforeAnythingIsWritten(t *testing.T) {
 	site.nothing(t)
 }
 
-// An organisation over its limit is told so, and can tell that from a fault:
+// An organization over its limit is told so, and can tell that from a fault:
 // the answer is "too many" with the reason and how to lift it, and nothing is
 // left on disk.
-func TestAJobPastTheOrganisationsQuotaIsAnswered429WithTheReason(t *testing.T) {
+func TestAJobPastTheOrganizationsQuotaIsAnswered429WithTheReason(t *testing.T) {
 	site := onlyBuiltIn(t)
 	path := filepath.Join(t.TempDir(), "quota.json")
 	if err := quota.Write(path, quota.Quota{Jobs: 1, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."}); err != nil {

@@ -20,8 +20,8 @@ type entry struct {
 	Flat string
 }
 
-// Catalogue is the tools of a task's servers that its caller may use. It is read from the servers the first time it is asked for.
-type Catalogue struct {
+// Catalog is the tools of a task's servers that its caller may use. It is read from the servers the first time it is asked for.
+type Catalog struct {
 	servers map[string]Conn
 	order   []string
 	policy  func() Policy
@@ -37,8 +37,8 @@ type Catalogue struct {
 	broken  map[string]string
 }
 
-func newCatalogue(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record) *Catalogue {
-	c := &Catalogue{servers: map[string]Conn{}, policy: policy, caller: caller, record: record}
+func newCatalog(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record) *Catalog {
+	c := &Catalog{servers: map[string]Conn{}, policy: policy, caller: caller, record: record}
 	for _, server := range servers {
 		if server.IsProgram() {
 			c.servers[server.Name] = StartProgram(server, caller.Job, launch)
@@ -50,13 +50,13 @@ func newCatalogue(servers []Server, private bool, launch Launcher, policy func()
 	return c
 }
 
-func (c *Catalogue) close() {
+func (c *Catalog) close() {
 	for _, upstream := range c.servers {
 		upstream.Close()
 	}
 }
 
-func (c *Catalogue) load(ctx context.Context) {
+func (c *Catalog) load(ctx context.Context) {
 	c.once.Do(func() {
 		c.byName, c.byFlat, c.broken = map[string]entry{}, map[string]entry{}, map[string]string{}
 		for _, name := range c.order {
@@ -79,7 +79,7 @@ func (c *Catalogue) load(ctx context.Context) {
 var notFlat = regexp.MustCompile(`[^A-Za-z0-9_-]+`)
 
 // flat is a name that is unique among the tools and a harness takes.
-func (c *Catalogue) flat(server, tool string) string {
+func (c *Catalog) flat(server, tool string) string {
 	base := notFlat.ReplaceAllString(server+"__"+tool, "_")
 	if len(base) > 60 {
 		base = base[:60]
@@ -94,12 +94,12 @@ func (c *Catalogue) flat(server, tool string) string {
 }
 
 // allows says whether the caller may use a tool now, and what to say when not.
-func (c *Catalogue) allows(found entry) (bool, string) {
+func (c *Catalog) allows(found entry) (bool, string) {
 	return c.policy().Allows(c.caller, found.Server, found.Tool.Name)
 }
 
 // visible is the tools the caller may use now.
-func (c *Catalogue) visible() []entry {
+func (c *Catalog) visible() []entry {
 	out := make([]entry, 0, len(c.entries))
 	for _, candidate := range c.entries {
 		if allowed, _ := c.allows(candidate); allowed {
@@ -110,7 +110,7 @@ func (c *Catalogue) visible() []entry {
 }
 
 // find is the tool a name asks for. Both forms of its name are taken.
-func (c *Catalogue) find(name string) (entry, bool) {
+func (c *Catalog) find(name string) (entry, bool) {
 	if found, ok := c.byName[name]; ok {
 		return found, true
 	}
@@ -119,7 +119,7 @@ func (c *Catalogue) find(name string) (entry, bool) {
 }
 
 // search is the tools that match a query, best first. A query with no words matches every tool.
-func (c *Catalogue) search(query, server string, limit int) []entry {
+func (c *Catalog) search(query, server string, limit int) []entry {
 	words := strings.Fields(strings.ToLower(query))
 	type scored struct {
 		entry
@@ -175,7 +175,7 @@ func definitionsTokens(tools []Tool) int {
 	return (size + 3) / 4
 }
 
-func (c *Catalogue) tools() []Tool {
+func (c *Catalog) tools() []Tool {
 	visible := c.visible()
 	out := make([]Tool, 0, len(visible))
 	for _, candidate := range visible {

@@ -191,7 +191,7 @@ gusto is running.
 
 To use it from your computer:
   gusto-helper login -server $address     (the code it shows is approved in the page above)
-  or the desktop app: Connect to an organisation, and type $address
+  or the desktop app: Connect to an organization, and type $address
 
 Nothing is sent anywhere but to the model provider you add. The server holds this machine's Docker socket, which is root on it:
 keep nothing else of value here (deploy/README.md says why).

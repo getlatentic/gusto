@@ -1,6 +1,6 @@
 // Warns, on any page, that the demo host is about to remove itself, and links to where it
 // is extended. It asks the host how long is left, counts down between asks, and does
-// nothing on a host that has no lease. On a demo organisation the bar is always there: it
+// nothing on a host that has no lease. On a demo organization the bar is always there: it
 // counts down the demo, links to more time and to booking a call, and says when it has ended.
 (function () {
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");

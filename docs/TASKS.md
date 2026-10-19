@@ -78,7 +78,7 @@ The task index and the [usage index](USAGE.md) use the same setting.
 | empty | A SQLite file, `tasks.db`, in the directory that holds `GUSTO_JOBS` |
 | `postgres://...` | In Postgres, in the same schema as the usage index |
 
-A `search_path` parameter in the Postgres URL gives each organisation its own schema. The tables are `tasks` and `tasks_schema_migrations`. The server upgrades the schema when it starts, and refuses a database that a newer gusto made. It uses only features of Postgres 13 and later. Postgres 14 was tested.
+A `search_path` parameter in the Postgres URL gives each organization its own schema. The tables are `tasks` and `tasks_schema_migrations`. The server upgrades the schema when it starts, and refuses a database that a newer gusto made. It uses only features of Postgres 13 and later. Postgres 14 was tested.
 
 ## Size
 

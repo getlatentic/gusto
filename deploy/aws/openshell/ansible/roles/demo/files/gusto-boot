@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Runs as root when a demo host starts, before nginx, gusto cloud and gusto host. What it does depends on ROLE:
 #
-#   all           a host that is the front door and runs the organisations' servers too
+#   all           a host that is the front door and runs the organizations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
-#   cell          a host that runs organisations' servers: the runner image, the model credentials,
+#   cell          a host that runs organizations' servers: the runner image, the model credentials,
 #                 and who it is to the agent
 #
 # An orchestrator and a cell both have the secret their requests are signed with. The name is

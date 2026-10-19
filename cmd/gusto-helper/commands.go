@@ -14,14 +14,14 @@ const (
 	groupOther  = "Other"
 )
 
-var envServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organisation's server, when -server is not given"}
+var envServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organization's server, when -server is not given"}
 
 // program is the command table. The flags of each command are read by the command itself, in internal/helper/cli; the
 // declarations here are what help says of them.
 func program() *cmdline.Program {
 	return &cmdline.Program{
 		Name:    "gusto-helper",
-		Tagline: "gusto-helper is your computer's way to your organisation's agents.",
+		Tagline: "gusto-helper is your computer's way to your organization's agents.",
 		Groups:  []string{groupSignIn, groupWork, groupOther},
 		Exit: []cmdline.Param{
 			{Name: "0", Text: "success"},
@@ -32,7 +32,7 @@ func program() *cmdline.Program {
 			{
 				Name: "login", Group: groupSignIn, Summary: "Sign this computer in as you",
 				Usage:       []string{"[-server <address>] [-label <name>] [-browser=false]"},
-				Description: "Opens your organisation's approval page in the browser, and keeps the token it gives in this computer's keychain.",
+				Description: "Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.",
 				Flags:       loginFlags,
 				Env:         []cmdline.Param{envServer},
 				Examples:    []string{"gusto-helper login -server https://acme.gusto.example.com"},
@@ -123,7 +123,7 @@ func serviceCommand(name, summary string) *cmdline.Command {
 }
 
 func serverFlag(set *flag.FlagSet) {
-	set.String("server", "", "the `address` of your organisation's server (default $GUSTO_SERVER)")
+	set.String("server", "", "the `address` of your organization's server (default $GUSTO_SERVER)")
 }
 
 func loginFlags(set *flag.FlagSet) {

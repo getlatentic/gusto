@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// jobOf is the part of a job's record this run reads from the organisation's directory.
+// jobOf is the part of a job's record this run reads from the organization's directory.
 type jobOf struct {
 	ID    string `json:"id"`
 	State string `json:"state"`
@@ -78,7 +78,7 @@ func (h host) sandboxes() ([]string, error) {
 	return names, nil
 }
 
-// fileIn is a file of an instance's workspace, wherever the organisation keeps instances.
+// fileIn is a file of an instance's workspace, wherever the organization keeps instances.
 func (h host) fileIn(slug, instance, name string) (string, error) {
 	found, _ := filepath.Glob(filepath.Join(h.data(slug), "*", instance, "workspace", name))
 	if len(found) == 0 {

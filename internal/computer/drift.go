@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-// Drift is where the record and the gateway disagree about an organisation.
+// Drift is where the record and the gateway disagree about an organization.
 type Drift struct {
 	// Missing are workspaces the record says are there and the gateway has no
 	// sandbox for.
 	Missing []Computer
-	// Orphans are sandboxes the gateway has under this organisation's name and
+	// Orphans are sandboxes the gateway has under this organization's name and
 	// the record has no workspace for.
 	Orphans []string
 }

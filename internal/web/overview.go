@@ -7,7 +7,7 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// overviewPage is where an admin starts: what the organisation has spent this month
+// overviewPage is where an admin starts: what the organization has spent this month
 // and against which limits, what its jobs are doing, and what computers and apps it has.
 // The figures are the ledger's, the queue's and the records' own, so this page and the
 // pages they came from cannot disagree.

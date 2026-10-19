@@ -10,7 +10,7 @@ import (
 
 var key = []byte("0123456789abcdef0123456789abcdef")
 
-func TestATokenIsGoodForItsOrganisationAndItsPersonForAMinute(t *testing.T) {
+func TestATokenIsGoodForItsOrganizationAndItsPersonForAMinute(t *testing.T) {
 	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 	token, err := Mint(key, "acme-com", "ada@acme.com", "admin", now)
 	if err != nil {
@@ -24,7 +24,7 @@ func TestATokenIsGoodForItsOrganisationAndItsPersonForAMinute(t *testing.T) {
 		t.Errorf("a token runs out: %v", err)
 	}
 	if _, err := Verify(key, "globex-com", token, now); !errors.Is(err, ErrInvalid) {
-		t.Errorf("a token for one organisation is not good in another: %v", err)
+		t.Errorf("a token for one organization is not good in another: %v", err)
 	}
 	if _, err := Verify([]byte("another key another key another!"), "acme-com", token, now); !errors.Is(err, ErrInvalid) {
 		t.Errorf("a token made with another key is not one: %v", err)
