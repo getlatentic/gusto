@@ -50,75 +50,99 @@
 </section>
 {{end}}
 
-<section id="harnesses" class="harnesses">
-  <h2>Use the agents your team already wants.</h2>
-  <ul class="tiles">
-    <li><span class="glyph" aria-hidden="true">C</span>Claude Code</li>
-    <li><span class="glyph" aria-hidden="true">X</span>Codex</li>
-    <li><span class="glyph" aria-hidden="true">O</span>OpenCode</li>
-    <li><span class="glyph" aria-hidden="true">π</span>Pi</li>
-    <li><span class="glyph" aria-hidden="true">H</span>Hermes</li>
-    <li class="own"><span class="glyph" aria-hidden="true">+</span>Your own</li>
-  </ul>
-  <p class="lead">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+</main>
+
+<section id="harnesses" class="band">
+  <div class="wrap split">
+    <div class="copy">
+      <h2>Use the agents your team already wants.</h2>
+      <ul class="tiles">
+        <li><span class="glyph" aria-hidden="true">C</span>Claude Code</li>
+        <li><span class="glyph" aria-hidden="true">X</span>Codex</li>
+        <li><span class="glyph" aria-hidden="true">O</span>OpenCode</li>
+        <li><span class="glyph" aria-hidden="true">π</span>Pi</li>
+        <li><span class="glyph" aria-hidden="true">H</span>Hermes</li>
+        <li class="own"><span class="glyph" aria-hidden="true">+</span>Your own</li>
+      </ul>
+      <p class="lead">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+    </div>
+    <figure class="frame">{{picture "agents" "The start page, where a person picks an agent: Claude Code, Codex, DeepSeek Agent, Hermes, OpenCode or Pi, each with a line about it." 560 400}}</figure>
+  </div>
 </section>
 
-<section id="how" class="steps">
-  <h2>How it works</h2>
-  <ol>
-    <li><h3>Pick an agent</h3><p>Choose the one for the work.</p></li>
-    <li><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p></li>
-    <li><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p></li>
-    <li><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p></li>
-  </ol>
+<section id="how" class="band tint">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <ol class="flow">
+      <li><span class="n">1</span><h3>Pick an agent</h3><p>Choose the one for the work.</p><figure class="frame">{{picture "agents" "The start page, where a person picks an agent." 560 400}}</figure></li>
+      <li><span class="n">2</span><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p><figure class="frame">{{picture "step-files" "A file an agent wrote, policy.md, shown in the workspace's files." 620 400}}</figure></li>
+      <li><span class="n">3</span><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p><figure class="frame">{{picture "step-spend" "The spending page: what was spent this month, and how many model calls were made and how many were refused by a cap." 457 193}}</figure></li>
+      <li><span class="n">4</span><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p><figure class="frame">{{picture "step-record" "A record of one reply: its outcome, time, cost, model, and that it is signed." 549 162}}</figure></li>
+    </ol>
+  </div>
 </section>
 
-<section id="control" class="points">
-  <h2>One workspace. One set of controls. One record.</h2>
-  <ul>
-    <li><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></li>
-    <li><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></li>
-    <li><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></li>
-  </ul>
+<section id="control" class="band carbon">
+  <div class="wrap">
+    <h2>One workspace. One set of controls. One record.</h2>
+    <ul class="controls">
+      <li><figure class="frame">{{darkScreen "keys" "A model provider set by the operator, with the key the operator's, and the models it serves." 700 269}}</figure><div class="text"><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></div></li>
+      <li><figure class="frame">{{darkScreen "limits" "The limits on an organization: tasks started, tasks at once and workspaces, against what is allowed." 514 300}}</figure><div class="text"><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></div></li>
+      <li><figure class="frame">{{darkScreen "activity" "The activity list: each task, its agent and model, its outcome, its time and its cost." 680 400}}</figure><div class="text"><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></div></li>
+    </ul>
+  </div>
 </section>
 
-<section id="proof" class="proof">
-  <h2>Tested across multiple agents.</h2>
-  <p class="lead">Same task. Same model. Same environment.</p>
-  <table>
-    <thead><tr><th>Agent</th><th>Finished</th><th>Time</th></tr></thead>
-    <tbody>
-      <tr><td>Pi</td><td>Yes</td><td><progress max="166" value="28" aria-hidden="true"></progress>28 s</td></tr>
-      <tr><td>Claude Code</td><td>Yes</td><td><progress max="166" value="30" aria-hidden="true"></progress>30 s</td></tr>
-      <tr><td>Codex</td><td>Yes</td><td><progress max="166" value="35" aria-hidden="true"></progress>35 s</td></tr>
-      <tr><td>Hermes</td><td>Yes</td><td><progress max="166" value="40" aria-hidden="true"></progress>40 s</td></tr>
-      <tr><td>OpenCode</td><td>Yes</td><td><progress max="166" value="166" aria-hidden="true"></progress>2 m 46 s</td></tr>
-    </tbody>
-  </table>
-  <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each agent runs here, not which is best for your work.</p>
+<section id="proof" class="band proof">
+  <div class="wrap split">
+    <div class="copy">
+      <h2>Tested across multiple agents.</h2>
+      <p class="lead">Same task. Same model. Same environment.</p>
+      <table>
+        <thead><tr><th>Agent</th><th>Finished</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td>Pi</td><td>Yes</td><td><progress max="166" value="28" aria-hidden="true"></progress>28 s</td></tr>
+          <tr><td>Claude Code</td><td>Yes</td><td><progress max="166" value="30" aria-hidden="true"></progress>30 s</td></tr>
+          <tr><td>Codex</td><td>Yes</td><td><progress max="166" value="35" aria-hidden="true"></progress>35 s</td></tr>
+          <tr><td>Hermes</td><td>Yes</td><td><progress max="166" value="40" aria-hidden="true"></progress>40 s</td></tr>
+          <tr><td>OpenCode</td><td>Yes</td><td><progress max="166" value="166" aria-hidden="true"></progress>2 m 46 s</td></tr>
+        </tbody>
+      </table>
+      <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each agent runs here, not which is best for your work.</p>
+    </div>
+    <figure class="frame">{{picture "record" "The record of one reply: what was asked, its outcome, time, cost, tokens, agent and model, and that the record is signed." 700 520}}</figure>
+  </div>
 </section>
 
-<section class="audience">
-  <p>Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
-  <ul class="tags"><li>Engineering teams</li><li>Platform teams</li><li>Regulated organizations</li></ul>
+<section class="band tint audience">
+  <div class="wrap split">
+    <p>Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
+    <ul class="tags"><li>Engineering teams</li><li>Platform teams</li><li>Regulated organizations</li></ul>
+  </div>
 </section>
 
-<section class="faq">
+<section class="band">
+  <div class="wrap narrow">
+<div class="faq">
   <h2>Questions</h2>
   <details><summary>What gets uploaded?</summary><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></details>
   <details><summary>Which agents and models work?</summary><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organization connects.</p></details>
   <details><summary>What happens when the demo ends?</summary><p>The organization, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></details>
   <details><summary>Who can see my workspace and runs?</summary><p>A demo organization is yours alone, on an address of its own. Within an organization, administrators see people, spend and the record of runs.</p></details>
+</div>
+  </div>
 </section>
 
-<section class="close">
-  <h2>Use different AI agents without setting up each one from scratch.</h2>
+<section class="band carbon close">
+  <div class="wrap">
+<h2>Use different AI agents without setting up each one from scratch.</h2>
   <div class="actions">
     <a class="cta" href="/demo">Try it now</a>
     {{if .Book}}<a class="ghost" href="{{.Book}}">Talk to us</a>{{end}}
   </div>
+  </div>
 </section>
-</main>
+
 
 <footer>
   <p>We keep the name, email and company you give so that we can follow up about the demo. Nothing else from it is kept. <a href="/signin">Sign in</a></p>
