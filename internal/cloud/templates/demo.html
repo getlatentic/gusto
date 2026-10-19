@@ -7,7 +7,7 @@
     <label>Your name <input type="text" name="name" value="{{.Name}}" maxlength="80" autocomplete="name" autofocus required></label>
     <label>Work email <input type="email" name="email" value="{{.Email}}" autocomplete="email" required></label>
     <label>Company <input type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
-    {{with .TurnstileSite}}<div class="cf-turnstile" data-sitekey="{{.}}"></div>
+    {{with .TurnstileSite}}<div class="cf-turnstile" data-size="flexible" data-sitekey="{{.}}"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
     <button type="submit">Start my demo</button>
   </form>
