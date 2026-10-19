@@ -77,6 +77,8 @@ type view struct {
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
 	Video string
 	Shot  string
+	// ShotDark is the picture shown instead of Shot where the visitor prefers a dark page.
+	ShotDark string
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
 	VideoFile     bool
