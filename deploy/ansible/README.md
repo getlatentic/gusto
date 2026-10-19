@@ -273,29 +273,3 @@ provider.
 3. Rootless podman under a system unit needs `/run/user/<uid>`, which the
    lingering session creates. Confirm it exists before trusting the service to
    survive a reboot.
-
-## Moving a box off the old names
-
-A box deployed before the rename still has the `haas` user, `/opt/haas`,
-`haas.service`, the `haas.conf` vhost, the `haas-deploy` account and its
-`/opt/haas-deploy`, and a `haas` MySQL database. The `migrate` role, the first in
-`site.yml`, moves each to its gusto name and skips itself on a box that has none.
-Delete the role and its line in `site.yml` once every box has run it.
-
-It stops the service and the deploy units, so it cannot run under the deploy the
-box runs for itself: that deploy stops at the role's first task with nothing
-changed. Run it once by hand from a laptop, with no deploy in progress and the
-repository variable `AUTODEPLOY` not `on`:
-
-```bash
-git pull
-ansible-playbook site.yml -e @greencloud.vault.yml \
-  --vault-password-file ~/.config/gusto/vault_pass.txt
-```
-
-Every step keys on the old name existing, and the old unit files are removed last,
-so a run that failed halfway is run again with the same command and resumes. The
-role refuses to guess when an old and a new name both exist, and when the old
-database holds tables. The vault's `haas_password` key is `gusto_password`.
-The deploy key GitHub holds and the `DEPLOY_SSH_KEY` secret are unchanged; the
-workflow connects as `gusto-deploy`.
