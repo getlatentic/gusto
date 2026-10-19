@@ -7,6 +7,7 @@
     <a class="tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
     <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
     <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
+    <a class="tool" href="/usage" data-tip="Usage" aria-label="Usage"{{if eq .Nav "usage"}} aria-current="page"{{end}}>{{template "icon-log"}}</a>
     {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
     <span class="grow"></span>
     <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance" aria-expanded="false" aria-controls="look">{{template "icon-palette"}}</button>

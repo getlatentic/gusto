@@ -65,6 +65,7 @@ type Server struct {
 	runner     AppRunner
 	publishing sync.WaitGroup
 	ledger     *spend.Ledger
+	usage      usageIndex
 	keyring    signing.Keyring
 	// front is set when this server is one organisation's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and
@@ -213,6 +214,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
+	s.mountUsage(mux)
 	s.consoleRoutes(mux)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
