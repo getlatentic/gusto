@@ -2,9 +2,9 @@
 # Joins the per-system records the desktop builds leave into the release's desktop-manifest.json: the version, and for each system the
 # file its update is and that file's signature. publish.sh turns it into the latest.json of one server.
 #
-#   deploy/desktop/manifest.sh v0.0.1-alpha.6 dist
+#   deploy/desktop/manifest.sh v0.1.0-rc.2 dist
 set -eu
-tag=${1:?the release, such as v0.0.1-alpha.6}
+tag=${1:?the release, such as v0.1.0-rc.2}
 dir=${2:-dist}
 jq -s --arg version "${tag#v}" --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg notes "$tag" '{
   version: $version, notes: $notes, pub_date: $date,

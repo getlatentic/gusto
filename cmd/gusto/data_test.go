@@ -106,7 +106,7 @@ func TestDataRollbackNamesAReleaseAndRefusesAnUnknownOne(t *testing.T) {
 	if err := ready(); err != nil {
 		t.Fatal(err)
 	}
-	if code := dataRollback([]string{"-to", "v0.1.0-rc.1"}); code != 0 {
+	if code := dataRollback([]string{"-to", "v0.1.0-rc.2"}); code != 0 {
 		t.Fatalf("rolling back to the release that wrote format 1 gave %d", code)
 	}
 	if stamp, _, _ := datadir.Read(dirs[datadir.Jobs]); stamp.Format != 1 {
