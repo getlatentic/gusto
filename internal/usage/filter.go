@@ -26,10 +26,10 @@ func (s *store) conditions(f Filter) ([]string, []any) {
 	var conds []string
 	var args []any
 	if !f.From.IsZero() {
-		conds, args = append(conds, "called_at >= ?"), append(args, s.d.timeArg(f.From))
+		conds, args = append(conds, "called_at >= ?"), append(args, s.db.TimeArg(f.From))
 	}
 	if !f.To.IsZero() {
-		conds, args = append(conds, "called_at < ?"), append(args, s.d.timeArg(f.To))
+		conds, args = append(conds, "called_at < ?"), append(args, s.db.TimeArg(f.To))
 	}
 	for _, e := range []struct{ column, value string }{{"person", f.Person}, {"team", f.Team}, {"project", f.Project},
 		{"engine", f.Engine}, {"agent", f.Agent}, {"provider", f.Provider}, {"model", f.Model}} {
@@ -47,5 +47,5 @@ func (s *store) appendSearch(conds []string, args []any, search string) ([]strin
 	if strings.Contains(search, fieldSeparator) {
 		return append(conds, "1 = 0"), args
 	}
-	return append(conds, s.d.contains), append(args, strings.ToLower(search))
+	return append(conds, s.fl.contains), append(args, strings.ToLower(search))
 }

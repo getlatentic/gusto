@@ -3,9 +3,10 @@ package usage
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 // Sessions finds the page of sessions in one query that reads only the session and its rank, then adds up
@@ -16,26 +17,26 @@ func (s *store) Sessions(ctx context.Context, filter Filter, page Page) ([]Sessi
 	if err != nil {
 		return nil, "", err
 	}
-	tx, err := s.r.BeginTx(ctx, s.d.readOnly)
+	var out []Session
+	var next Cursor
+	err = s.db.InReadTx(ctx, func(tx dbkit.Tx) error {
+		var err error
+		if out, next, err = s.sessionPage(ctx, tx, filter, page, sortName, spec); err != nil {
+			return err
+		}
+		return s.describe(ctx, tx, filter, out)
+	})
 	if err != nil {
-		return nil, "", fmt.Errorf("usage: sessions: %w", err)
-	}
-	defer tx.Rollback()
-	out, next, err := s.sessionPage(ctx, tx, filter, page, sortName, spec)
-	if err != nil {
-		return nil, "", err
-	}
-	if err := s.describe(ctx, tx, filter, out); err != nil {
 		return nil, "", err
 	}
 	return out, next, nil
 }
 
-func (s *store) sessionPage(ctx context.Context, q querier, filter Filter, page Page, sortName string, spec sortSpec) ([]Session, Cursor, error) {
+func (s *store) sessionPage(ctx context.Context, q dbkit.Querier, filter Filter, page Page, sortName string, spec sortSpec) ([]Session, Cursor, error) {
 	conds, args := s.conditions(filter)
 	where, group := "", "session"
 	if len(conds) > 0 {
-		where, group = " WHERE "+strings.Join(conds, " AND "), s.d.filteredGroup
+		where, group = " WHERE "+strings.Join(conds, " AND "), s.fl.filteredGroup
 	}
 	having, args, err := s.sessionCursor(page.After, sortName, spec, args)
 	if err != nil {
@@ -78,13 +79,13 @@ func (s *store) sessionCursor(after Cursor, sortName string, spec sortSpec, args
 	if err != nil {
 		return "", nil, ErrBadCursor
 	}
-	v := spec.arg(s.d, rank)
+	v := spec.arg(s.db, rank)
 	having := ` HAVING (` + spec.expr + ` < ? OR (` + spec.expr + ` = ? AND session > ?))`
 	return having, append(args, v, v, parts[2]), nil
 }
 
 // describe fills in the sessions on a page with their totals, who made them, and what they used.
-func (s *store) describe(ctx context.Context, q querier, filter Filter, sessions []Session) error {
+func (s *store) describe(ctx context.Context, q dbkit.Querier, filter Filter, sessions []Session) error {
 	if len(sessions) == 0 {
 		return nil
 	}
@@ -126,11 +127,11 @@ func (s *store) scope(filter Filter, sessions []Session) (string, []any) {
 	return " WHERE " + strings.Join(conds, " AND "), args
 }
 
-func (s *store) addTotals(ctx context.Context, q querier, scope string, args []any, index map[string]*Session) error {
+func (s *store) addTotals(ctx context.Context, q dbkit.Querier, scope string, args []any, index map[string]*Session) error {
 	query := `SELECT session, MIN(called_at), MAX(called_at), ` + totalsColumns + ` FROM usage_calls` + scope + ` GROUP BY session`
 	return s.query(ctx, q, query, args, func(r *sql.Rows) error {
 		var id string
-		var first, last timeCol
+		var first, last dbkit.Time
 		var t Totals
 		if err := r.Scan(append([]any{&id, &first, &last}, t.destinations()...)...); err != nil {
 			return err
@@ -143,7 +144,7 @@ func (s *store) addTotals(ctx context.Context, q querier, scope string, args []a
 }
 
 // addWho takes who made a session from its earliest matching call.
-func (s *store) addWho(ctx context.Context, q querier, scope string, args []any, index map[string]*Session) error {
+func (s *store) addWho(ctx context.Context, q dbkit.Querier, scope string, args []any, index map[string]*Session) error {
 	query := `SELECT session, person, agent, engine FROM (
 		SELECT session, person, agent, engine,
 		       ROW_NUMBER() OVER (PARTITION BY session ORDER BY called_at, task, line) AS n
@@ -161,7 +162,7 @@ func (s *store) addWho(ctx context.Context, q querier, scope string, args []any,
 }
 
 // addUsed lists each value of a column a session used, in the order of its first use and then by name.
-func (s *store) addUsed(ctx context.Context, q querier, column, scope string, args []any, index map[string]*Session, into func(*Session) *[]string) error {
+func (s *store) addUsed(ctx context.Context, q dbkit.Querier, column, scope string, args []any, index map[string]*Session, into func(*Session) *[]string) error {
 	query := `SELECT session, ` + column + ` FROM usage_calls` + scope +
 		` GROUP BY session, ` + column + ` ORDER BY session, MIN(called_at), ` + column
 	return s.query(ctx, q, query, args, func(r *sql.Rows) error {
