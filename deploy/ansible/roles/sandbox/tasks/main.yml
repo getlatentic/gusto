@@ -60,7 +60,7 @@
   ansible.builtin.command:
     cmd: >-
       {{ container_runtime }} image inspect
-      --format '{{ '{{' }} index .Config.Labels "com.getlatentic.haas.harnesses" {{ '}}' }}'
+      --format '{{ '{{' }} index .Config.Labels "com.getlatentic.gusto.harnesses" {{ '}}' }}'
       {{ candidate_image }}
   become_user: "{{ app_user }}"
   environment:
