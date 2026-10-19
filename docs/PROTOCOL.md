@@ -40,6 +40,7 @@ The token acts as that person, on their own work. The person ends it from `/devi
 | `POST /api/instances/{id}/threads` | a person | Open a thread |
 | `GET /api/instances/{id}/threads/{thread}` | a person | A thread: what was said and what came back |
 | `POST /api/instances/{id}/threads/{thread}/say` | a person | Say something, which starts a turn. An Idempotency-Key makes a retry the same turn |
+| `GET /api/jobs` | a person | The person's tasks, newest first, narrowed by `q`, `state` and the other filters, a page at a time (docs/TASKS.md) |
 | `GET /api/jobs/{id}` | a person | One turn: its steps, reply and state |
 | `GET /api/jobs/{id}/follow` | a person | Follow one turn (a stream) |
 | `POST /api/jobs/{id}/stop` | a person | Stop a turn that is running |
@@ -62,6 +63,25 @@ The token acts as that person, on their own work. The person ends it from `/devi
 ## Reading usage
 
 The five `/api/usage` calls read the index of model calls. A person's token reads that person's own calls. A token with the `spend` scope reads all of them. The calls also take a signed-in session, which is how the **Download CSV** link on `/usage` works. Every filter narrows the lists, the totals, the CSV and a session's calls. The lists take `limit` (up to 1000) and `after`, and the sessions take `sort` (`last`, `cost`, `calls` or `tokens`, from the greatest). The filters and the answers are in [USAGE.md](USAGE.md).
+
+## Listing tasks
+
+`GET /api/jobs` lists the tasks of the person whose token it is, from the index of tasks, the newest asked first. A person is never shown another person's task: a `person` parameter cannot widen the list. A server with no index answers 404.
+
+| Parameter | Meaning |
+| --- | --- |
+| `q` | Part of a task's id, brief, asker or repository. Case does not matter, and `%` and `_` are themselves |
+| `state` | `queued`, `running`, `passed`, `failed` or `interrupted`, or several separated by commas |
+| `agent_type`, `team`, `repo`, `instance`, `thread` | Exact |
+| `from`, `to` | When the task was asked for. An RFC 3339 time, or a date. `to` is not included when it is a time, and is included when it is a date |
+| `sort` | `queued` (the default), `ended` or `seq`, from the greatest |
+| `limit`, `after` | 1 to 1000 (50 by default), and the `next` of the last answer |
+
+The answer is `{"tasks":[...],"counts":{"passed":12,...},"next":"..."}`. `counts` is how many tasks match, by state, over all pages. `next` is missing on the last page. A cursor made for one `sort` is answered 400 when it is used with another. An answer given while the index is still being filled has a `Task-Index-Building: 3 of 12 tasks` header.
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$GUSTO/api/jobs?state=failed,interrupted&q=login&limit=20"
+```
 
 ## A turn
 

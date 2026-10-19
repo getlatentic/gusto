@@ -149,7 +149,7 @@ func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
 	for _, path := range []string{"/admin", "/admin/spending", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/activity", "/admin/people"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
-		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to Latentic Agent Cloud") {
+		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)
 		}
 		for _, employee := range []string{`href="/compare"`, `href="/jobs"`, `href="/new"`, `href="/spend"`} {

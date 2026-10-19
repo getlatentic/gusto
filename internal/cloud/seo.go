@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	siteName        = "Latentic Agent Cloud"
+	siteName        = "gusto"
 	landingTitle    = siteName + " — one place for every AI agent your team needs"
 	demoFormTitle   = "Start a demo of " + siteName
 	organisationURL = "https://getlatentic.com"
