@@ -1,146 +1,124 @@
-/* Yarngo Design Tokens v1.0 — generated from Brand Guidelines */
+/* gusto design tokens */
 
 :root {
-  /* Brand ramps */
-  --yg-orange-50:  #FFF3E6;
-  --yg-orange-100: #FFE2C2;
-  --yg-orange-200: #FFCB93;
-  --yg-orange-300: #FFB264;
-  --yg-orange-400: #FF9C3D;
-  --yg-orange-500: #FF8A1F; /* Yarngo Orange */
-  --yg-orange-600: #E6740F;
-  --yg-orange-700: #BF5C08;
-  --yg-orange-800: #8F4406;
-  --yg-orange-900: #5E2C03;
+  /* Brand ramps. Relay Green is the brand colour, Forest its dark partner, Volt the highlight, Carbon and Snow the neutrals. */
+  --gu-green-50:  #E7F8EF;
+  --gu-green-100: #C3EED8;
+  --gu-green-200: #8FDFB7;
+  --gu-green-300: #4FCB8B;
+  --gu-green-400: #17B96D;
+  --gu-green-500: #00A85A; /* Relay Green */
+  --gu-green-600: #008F4C;
+  --gu-green-700: #00753F; /* Forest */
+  --gu-green-800: #005A31;
+  --gu-green-900: #003D21;
 
-  --yg-neutral-50:  #FFF9F2; /* Warm White */
-  --yg-neutral-100: #F7F1E8;
-  --yg-neutral-200: #EBE4D9;
-  --yg-neutral-300: #D8D0C4;
-  --yg-neutral-400: #B0A79B;
-  --yg-neutral-500: #857D72;
-  --yg-neutral-600: #5F594F;
-  --yg-neutral-700: #423E37;
-  --yg-neutral-800: #2A2723;
-  --yg-neutral-900: #171717; /* Yarngo Ink */
+  --gu-volt: #D8FF36; /* Volt: one spark on a page, never a fill for text */
 
-  --yg-leaf-50:  #E9F5EF;
-  --yg-leaf-100: #C9E7D9;
-  --yg-leaf-300: #7FC3A5;
-  --yg-leaf-500: #287A57; /* Leaf */
-  --yg-leaf-700: #1B5C41;
-  --yg-leaf-900: #0E3A28;
+  --gu-neutral-50:  #F5FBF6; /* Snow */
+  --gu-neutral-100: #EAF4EC;
+  --gu-neutral-200: #DCE9DF;
+  --gu-neutral-300: #C6D6CA;
+  --gu-neutral-400: #9BAEA0;
+  --gu-neutral-500: #738779;
+  --gu-neutral-600: #4F6055;
+  --gu-neutral-700: #36443B;
+  --gu-neutral-800: #1F2B24;
+  --gu-neutral-900: #0E1511; /* Carbon */
 
-  --yg-signal-50:  #EEF0FE;
-  --yg-signal-100: #D8DDFD;
-  --yg-signal-300: #9AA6FB;
-  --yg-signal-500: #596DF8; /* Signal Blue */
-  --yg-signal-700: #3A4CD1;
-  --yg-signal-900: #23308F;
+  --gu-signal-50:  #EEF0FE;
+  --gu-signal-100: #D8DDFD;
+  --gu-signal-300: #9AA6FB;
+  --gu-signal-500: #596DF8; /* Signal Blue */
+  --gu-signal-700: #3A4CD1;
+  --gu-signal-900: #23308F;
 
-  /* Semantic — light (default) */
-  --yg-bg: var(--yg-neutral-50);
-  --yg-bg-subtle: var(--yg-neutral-100);
-  --yg-surface: #FFFFFF;
-  --yg-surface-sunken: #F1EBE1;
-  --yg-border: var(--yg-neutral-200);
-  --yg-border-strong: var(--yg-neutral-300);
-  --yg-text: var(--yg-neutral-900);
-  --yg-text-muted: var(--yg-neutral-600);
-  --yg-text-subtle: #6B645A; /* 5.8:1 on surface — smallest text colour that still passes */
-  --yg-text-nontext: var(--yg-neutral-500); /* #857D72 — icons, dividers, disabled marks. Never a string. */
-  --yg-text-inverse: var(--yg-neutral-50);
-  --yg-accent: var(--yg-orange-500);
-  --yg-accent-hover: var(--yg-orange-600);
-  --yg-accent-press: var(--yg-orange-700);
-  --yg-accent-text: var(--yg-orange-800); /* 6.7:1 — orange that passes at body size */
-  --yg-accent-text-large: var(--yg-orange-700); /* 4.2:1 — 24px+ only */
-  --yg-accent-surface: var(--yg-orange-50);
-  --yg-on-accent: var(--yg-neutral-900); /* Ink on orange, never white */
-  --yg-success: var(--yg-leaf-500);
-  --yg-success-surface: var(--yg-leaf-50);
-  --yg-warning: #C97A00;
-  --yg-warning-surface: #FBF0DC;
-  --yg-danger: #C7362B;
-  --yg-danger-surface: #FBEBE8;
-  --yg-info: var(--yg-signal-500);
-  --yg-info-surface: var(--yg-signal-50);
-  --yg-focus: var(--yg-signal-500);
+  /* Semantic, light (default) */
+  --gu-bg: var(--gu-neutral-50);
+  --gu-bg-subtle: var(--gu-neutral-100);
+  --gu-surface: #FFFFFF;
+  --gu-surface-sunken: #EDF5EF;
+  --gu-border: var(--gu-neutral-200);
+  --gu-border-strong: var(--gu-neutral-300);
+  --gu-text: var(--gu-neutral-900);
+  --gu-text-muted: var(--gu-neutral-600);
+  --gu-text-subtle: #566A5C;
+  --gu-text-nontext: var(--gu-neutral-500); /* icons, dividers, disabled marks. Never a string. */
+  --gu-text-inverse: var(--gu-neutral-50);
+  --gu-accent: var(--gu-green-500);
+  --gu-accent-hover: var(--gu-green-600);
+  --gu-accent-press: var(--gu-green-700);
+  --gu-accent-text: var(--gu-green-700); /* green that reads as text on the page */
+  --gu-accent-text-large: var(--gu-green-600);
+  --gu-accent-surface: var(--gu-green-50);
+  --gu-on-accent: var(--gu-neutral-900); /* Carbon on Relay Green, never white */
+  --gu-success: var(--gu-green-700);
+  --gu-success-surface: var(--gu-green-50);
+  --gu-warning: #8A5300;
+  --gu-warning-surface: #FBF0DC;
+  --gu-danger: #C7362B;
+  --gu-danger-surface: #FBEBE8;
+  --gu-info: var(--gu-signal-500);
+  --gu-info-surface: var(--gu-signal-50);
+  --gu-focus: var(--gu-signal-500);
 
   /* Type */
-  --yg-font-display: "Sora", system-ui, sans-serif;
-  --yg-font-text: "Noto Sans", system-ui, sans-serif;
-  --yg-font-mono: "Noto Sans Mono", ui-monospace, monospace;
+  --gu-font-display: "Sora", system-ui, sans-serif;
+  --gu-font-text: "Noto Sans", system-ui, sans-serif;
+  --gu-font-mono: "Noto Sans Mono", ui-monospace, monospace;
 
   /* Space (4pt) */
-  --yg-space-1: 4px;  --yg-space-2: 8px;   --yg-space-3: 12px;
-  --yg-space-4: 16px; --yg-space-5: 20px;  --yg-space-6: 24px;
-  --yg-space-8: 32px; --yg-space-10: 40px; --yg-space-12: 48px;
-  --yg-space-16: 64px; --yg-space-20: 80px; --yg-space-24: 96px;
+  --gu-space-1: 4px;  --gu-space-2: 8px;   --gu-space-3: 12px;
+  --gu-space-4: 16px; --gu-space-5: 20px;  --gu-space-6: 24px;
+  --gu-space-8: 32px; --gu-space-10: 40px; --gu-space-12: 48px;
+  --gu-space-16: 64px; --gu-space-20: 80px; --gu-space-24: 96px;
 
   /* Radius */
-  --yg-radius-xs: 4px;  --yg-radius-sm: 8px;  --yg-radius-md: 12px;
-  --yg-radius-lg: 16px; --yg-radius-xl: 24px; --yg-radius-2xl: 32px;
-  --yg-radius-full: 999px;
+  --gu-radius-xs: 4px;  --gu-radius-sm: 8px;  --gu-radius-md: 12px;
+  --gu-radius-lg: 16px; --gu-radius-xl: 24px; --gu-radius-2xl: 32px;
+  --gu-radius-full: 999px;
 
   /* Elevation — warm shadows only */
-  --yg-shadow-1: 0 1px 2px rgba(23,23,23,.06);
-  --yg-shadow-2: 0 4px 16px rgba(23,23,23,.08);
-  --yg-shadow-3: 0 12px 32px rgba(23,23,23,.12);
+  --gu-shadow-1: 0 1px 2px rgba(23,23,23,.06);
+  --gu-shadow-2: 0 4px 16px rgba(23,23,23,.08);
+  --gu-shadow-3: 0 12px 32px rgba(23,23,23,.12);
 
   /* Motion */
-  --yg-dur-instant: 120ms; --yg-dur-fast: 180ms; --yg-dur-base: 240ms;
-  --yg-dur-slow: 320ms;    --yg-dur-breathe: 1600ms;
-  --yg-ease-standard: cubic-bezier(.2,0,0,1);
-  --yg-ease-out: cubic-bezier(0,0,0,1);
-  --yg-ease-in: cubic-bezier(.3,0,1,1);
+  --gu-dur-instant: 120ms; --gu-dur-fast: 180ms; --gu-dur-base: 240ms;
+  --gu-dur-slow: 320ms;    --gu-dur-breathe: 1600ms;
+  --gu-ease-standard: cubic-bezier(.2,0,0,1);
+  --gu-ease-out: cubic-bezier(0,0,0,1);
+  --gu-ease-in: cubic-bezier(.3,0,1,1);
 }
 
 [data-theme="dark"] {
-  --yg-bg: #121110;
-  --yg-bg-subtle: #1A1816;
-  --yg-surface: #1F1C19;
-  --yg-surface-sunken: #171513;
-  --yg-border: #35302A;
-  --yg-border-strong: #4A443C;
-  --yg-text: #FFF9F2;
-  --yg-text-muted: #B0A79B;
-  --yg-text-subtle: #B0A79B; /* dark panels carry one muted value */
-  --yg-text-nontext: #857D72;
-  --yg-text-inverse: #171717;
-  --yg-accent: #FF9C3D;
-  --yg-accent-hover: #FFB264;
-  --yg-accent-press: #FF8A1F;
-  --yg-accent-text: #FFB264;
-  --yg-accent-surface: #2E1F10;
-  --yg-on-accent: #171717;
-  --yg-success: #7FC3A5;
-  --yg-success-surface: #10291F;
-  --yg-warning: #E3A21F;
-  --yg-warning-surface: #2E200F;
-  --yg-danger: #E8695C;
-  --yg-danger-surface: #2E1512;
-  --yg-info: #9AA6FB;
-  --yg-info-surface: #1A1D3A;
+  --gu-bg: #0E1511;
+  --gu-bg-subtle: #131C16;
+  --gu-surface: #18231B;
+  --gu-surface-sunken: #0B110D;
+  --gu-border: #263329;
+  --gu-border-strong: #35453A;
+  --gu-text: #F5FBF6;
+  --gu-text-muted: #9FB3A5;
+  --gu-text-subtle: #9FB3A5; /* dark panels carry one muted value */
+  --gu-text-nontext: #6F8576;
+  --gu-text-inverse: #0E1511;
+  --gu-accent: #1DBF70;
+  --gu-accent-hover: #45D18B;
+  --gu-accent-press: #00A85A;
+  --gu-accent-text: #6FE0A5;
+  --gu-accent-surface: #0F2A1D;
+  --gu-on-accent: #06130C;
+  --gu-success: #5FD99A;
+  --gu-success-surface: #0F2A1D;
+  --gu-warning: #E3A21F;
+  --gu-warning-surface: #2E200F;
+  --gu-danger: #E8695C;
+  --gu-danger-surface: #2E1512;
+  --gu-info: #9AA6FB;
+  --gu-info-surface: #1A1D3A;
   /* Dark surfaces separate with border + raised fill, not shadow */
-  --yg-shadow-1: none;
-  --yg-shadow-2: none;
-  --yg-shadow-3: 0 12px 32px rgba(0,0,0,.5);
+  --gu-shadow-1: none;
+  --gu-shadow-2: none;
+  --gu-shadow-3: 0 12px 32px rgba(0,0,0,.5);
 }
-
-/* ── Accent, resolved 2026-08 ──────────────────────────────────────────────
-   --yg-accent-action: #FF6E08   primary button / primary action fill
-   --yg-on-action:     #FFFEFD   label on that fill
-   --yg-orange-500:    #FF8A1F   BRAND orange — logo files, icons, meters,
-                                 avatars, waveforms. Unchanged.
-
-   DOCUMENTED CONTRAST EXCEPTION
-   #FFFEFD on #FF6E08 measures 2.78:1. WCAG AA for 15px bold text is 4.5:1,
-   and the 3:1 large-text floor is also not met. Accepted by the brand owner
-   as a deliberate exception, scoped to PRIMARY BUTTON FILLS ONLY.
-   Everything else keeps ink (#171717) on orange, which measures 6.39:1.
-   Do not extend this pairing to tabs, chips, badges, links or body text.
-   White-on-orange would need ≈#C24A00 to pass; revisit if an audit blocks.
-
-   Dark theme keeps --yg-accent-dark #FF9C3D: #FF6E08 goes muddy on #121110.
-   ───────────────────────────────────────────────────────────────────────── */

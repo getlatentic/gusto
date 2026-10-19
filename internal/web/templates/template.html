@@ -26,7 +26,7 @@
 </section>
 
 {{if .Restricted}}
-<div class="callout {{if not $.InBuilding}}warn{{end}}" style="margin-bottom: var(--yg-space-8)"><span class="sign">{{template "icon-lock"}}</span>
+<div class="callout {{if not $.InBuilding}}warn{{end}}" style="margin-bottom: var(--gu-space-8)"><span class="sign">{{template "icon-lock"}}</span>
   <div><strong>Stays inside your network</strong>
   <p>{{if $.InBuilding}}This work only goes to models in your own network.{{else}}It needs a model in your own network, and this deployment has none. gusto will not send this work anywhere else.{{end}}</p></div></div>
 {{end}}

@@ -1,102 +1,102 @@
 /* A conversation. What was said is a quiet bubble on the right; what came back is plain text in the column, under what it did, folded, and
    above what it cost, small. The one colour on the page is the button that sends. */
-.talk-top { display: flex; align-items: center; gap: var(--yg-space-3); min-height: 3.25rem; padding: var(--yg-space-2) var(--yg-space-6); border-bottom: 0.0625rem solid var(--yg-border); }
-.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .875rem/1.3 var(--yg-font-text); letter-spacing: 0; text-transform: none; color: var(--yg-text); }
-.talk-top .where { display: flex; align-items: center; gap: var(--yg-space-2); min-width: 0; font-size: .75rem; color: var(--yg-text-muted); }
-.talk-top .where .project { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-2); color: inherit; text-decoration: none; min-width: 0; }
+.talk-top { display: flex; align-items: center; gap: var(--gu-space-3); min-height: 3.25rem; padding: var(--gu-space-2) var(--gu-space-6); border-bottom: 0.0625rem solid var(--gu-border); }
+.talk-top .which { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .875rem/1.3 var(--gu-font-text); letter-spacing: 0; text-transform: none; color: var(--gu-text); }
+.talk-top .where { display: flex; align-items: center; gap: var(--gu-space-2); min-width: 0; font-size: .75rem; color: var(--gu-text-muted); }
+.talk-top .where .project { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--gu-space-2); color: inherit; text-decoration: none; min-width: 0; }
 .talk-top .where .project span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
-.talk-top .where .project:hover { color: var(--yg-text); }
-.talk-top .where .sep { color: var(--yg-text-subtle); }
-.talk-top .where .dir { color: var(--yg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
-.talk-top .sealed { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--yg-radius-full); color: var(--yg-text-subtle); cursor: default; }
-.talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--yg-bg-subtle); color: var(--yg-text); }
+.talk-top .where .project:hover { color: var(--gu-text); }
+.talk-top .where .sep { color: var(--gu-text-subtle); }
+.talk-top .where .dir { color: var(--gu-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
+.talk-top .sealed { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--gu-radius-full); color: var(--gu-text-subtle); cursor: default; }
+.talk-top .sealed:hover, .talk-top .sealed:focus-visible { background: var(--gu-bg-subtle); color: var(--gu-text); }
 .talk-top .sealed svg.i { width: 1rem; height: 1rem; opacity: 1; }
 /* The seal says what it means in its name, and shows that name on focus as well as on hover. */
 .talk-top .sealed { position: relative; }
-.talk-top .sealed::after { content: attr(aria-label); position: absolute; top: calc(100% + var(--yg-space-2)); right: 0; z-index: 40; width: max-content; max-width: 20rem;
-  padding: var(--yg-space-2) var(--yg-space-3); border-radius: var(--yg-radius-sm); background: var(--yg-text); color: var(--yg-text-inverse);
-  font: 500 .75rem/1.4 var(--yg-font-text); white-space: normal; text-align: left; opacity: 0; pointer-events: none; }
+.talk-top .sealed::after { content: attr(aria-label); position: absolute; top: calc(100% + var(--gu-space-2)); right: 0; z-index: 40; width: max-content; max-width: 20rem;
+  padding: var(--gu-space-2) var(--gu-space-3); border-radius: var(--gu-radius-sm); background: var(--gu-text); color: var(--gu-text-inverse);
+  font: 500 .75rem/1.4 var(--gu-font-text); white-space: normal; text-align: left; opacity: 0; pointer-events: none; }
 .talk-top .sealed:hover::after, .talk-top .sealed:focus-visible::after { opacity: 1; }
 
-.turn { margin-bottom: var(--yg-space-8); }
+.turn { margin-bottom: var(--gu-space-8); }
 .turn pre { margin: 0; }
-.said { margin: 0 0 var(--yg-space-4) auto; width: fit-content; max-width: 34rem; padding: .625rem var(--yg-space-4); background: var(--yg-bg-subtle); border-radius: var(--yg-radius-lg);
+.said { margin: 0 0 var(--gu-space-4) auto; width: fit-content; max-width: 34rem; padding: .625rem var(--gu-space-4); background: var(--gu-bg-subtle); border-radius: var(--gu-radius-lg);
   font-size: .875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
-.answer { display: grid; gap: var(--yg-space-3); min-width: 0; }
+.answer { display: grid; gap: var(--gu-space-3); min-width: 0; }
 
 details.steps { font-size: .75rem; }
-details.steps > summary { display: inline-flex; align-items: center; gap: var(--yg-space-1); width: fit-content; min-height: 1.5rem; padding: 0.125rem var(--yg-space-2) 0.125rem var(--yg-space-1); border-radius: var(--yg-radius-sm);
-  list-style: none; cursor: pointer; color: var(--yg-text-subtle); }
+details.steps > summary { display: inline-flex; align-items: center; gap: var(--gu-space-1); width: fit-content; min-height: 1.5rem; padding: 0.125rem var(--gu-space-2) 0.125rem var(--gu-space-1); border-radius: var(--gu-radius-sm);
+  list-style: none; cursor: pointer; color: var(--gu-text-subtle); }
 details.steps > summary::-webkit-details-marker { display: none; }
-details.steps > summary svg.i { width: 0.875rem; height: 0.875rem; opacity: 1; transform: rotate(-90deg); transition: transform var(--yg-dur-fast) var(--yg-ease-standard); }
+details.steps > summary svg.i { width: 0.875rem; height: 0.875rem; opacity: 1; transform: rotate(-90deg); transition: transform var(--gu-dur-fast) var(--gu-ease-standard); }
 details.steps[open] > summary svg.i { transform: none; }
-details.steps > summary:hover { background: var(--yg-bg-subtle); color: var(--yg-text); }
-details.steps ol.did { list-style: none; margin: var(--yg-space-2) 0 0 var(--yg-space-2); padding: 0 0 0 var(--yg-space-4); border-left: 0.0625rem solid var(--yg-border-strong); display: grid; gap: var(--yg-space-2); }
-details.steps .what { font-weight: 600; color: var(--yg-text); margin-right: var(--yg-space-2); }
-details.steps .detail { color: var(--yg-text-muted); font-family: var(--yg-font-mono); font-size: 0.75rem; overflow-wrap: anywhere; }
+details.steps > summary:hover { background: var(--gu-bg-subtle); color: var(--gu-text); }
+details.steps ol.did { list-style: none; margin: var(--gu-space-2) 0 0 var(--gu-space-2); padding: 0 0 0 var(--gu-space-4); border-left: 0.0625rem solid var(--gu-border-strong); display: grid; gap: var(--gu-space-2); }
+details.steps .what { font-weight: 600; color: var(--gu-text); margin-right: var(--gu-space-2); }
+details.steps .detail { color: var(--gu-text-muted); font-family: var(--gu-font-mono); font-size: 0.75rem; overflow-wrap: anywhere; }
 
-.answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--yg-space-4); margin: 0; font-size: .75rem; color: var(--yg-text-subtle); }
-.answer .meta a { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--yg-space-1); color: inherit; text-decoration: none; }
-.answer .meta a:hover { color: var(--yg-text); text-decoration: underline; }
+.answer .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gu-space-4); margin: 0; font-size: .75rem; color: var(--gu-text-subtle); }
+.answer .meta a { display: inline-flex; align-items: center; min-height: 1.5rem; gap: var(--gu-space-1); color: inherit; text-decoration: none; }
+.answer .meta a:hover { color: var(--gu-text); text-decoration: underline; }
 .answer .meta svg.i { width: 0.8125rem; height: 0.8125rem; }
-.stopped { margin: 0; padding: var(--yg-space-3) var(--yg-space-4); font-size: .8125rem; background: var(--yg-danger-surface); color: var(--yg-danger); border-radius: var(--yg-radius-sm); }
-.stopped code { font: 0.75rem/1.5 var(--yg-font-mono); overflow-wrap: anywhere; }
+.stopped { margin: 0; padding: var(--gu-space-3) var(--gu-space-4); font-size: .8125rem; background: var(--gu-danger-surface); color: var(--gu-danger); border-radius: var(--gu-radius-sm); }
+.stopped code { font: 0.75rem/1.5 var(--gu-font-mono); overflow-wrap: anywhere; }
 .answer .changed { margin: 0; }
-.answer .changed a { border-color: var(--yg-border); }
-.answer .changed a:hover { border-color: var(--yg-text-subtle); }
+.answer .changed a { border-color: var(--gu-border); }
+.answer .changed a:hover { border-color: var(--gu-text-subtle); }
 
 /* What a turn is doing while it runs: the latest step by name, the steps before it ticked off, and nothing it has not done yet. */
-.turn-live { display: grid; gap: var(--yg-space-3); }
-.turn-live .status { display: flex; align-items: center; gap: var(--yg-space-3); margin: 0; font-size: .8125rem; font-weight: 500; color: var(--yg-text); }
-.turn-live .elapsed { margin-left: auto; font-weight: 400; font-variant-numeric: tabular-nums; color: var(--yg-text-subtle); }
-.spin { width: .875rem; height: .875rem; flex: none; border: 0.125rem solid var(--yg-border-strong); border-top-color: var(--yg-text); border-radius: 50%; animation: spin .8s linear infinite; }
+.turn-live { display: grid; gap: var(--gu-space-3); }
+.turn-live .status { display: flex; align-items: center; gap: var(--gu-space-3); margin: 0; font-size: .8125rem; font-weight: 500; color: var(--gu-text); }
+.turn-live .elapsed { margin-left: auto; font-weight: 400; font-variant-numeric: tabular-nums; color: var(--gu-text-subtle); }
+.spin { width: .875rem; height: .875rem; flex: none; border: 0.125rem solid var(--gu-border-strong); border-top-color: var(--gu-text); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--yg-border-strong); } }
-.turn-live ol.live { list-style: none; margin: 0; padding: 0 0 0 var(--yg-space-2); display: grid; gap: var(--yg-space-2); }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--gu-border-strong); } }
+.turn-live ol.live { list-style: none; margin: 0; padding: 0 0 0 var(--gu-space-2); display: grid; gap: var(--gu-space-2); }
 .turn-live ol.live:empty { display: none; }
-.turn-live ol.live li { display: flex; align-items: baseline; gap: var(--yg-space-2); min-width: 0; font-size: .75rem; color: var(--yg-text-subtle); }
-.turn-live ol.live li.now { color: var(--yg-text); }
+.turn-live ol.live li { display: flex; align-items: baseline; gap: var(--gu-space-2); min-width: 0; font-size: .75rem; color: var(--gu-text-subtle); }
+.turn-live ol.live li.now { color: var(--gu-text); }
 .turn-live ol.live li .mark-step { display: grid; place-items: center; flex: none; width: .875rem; height: .875rem; align-self: center; }
-.turn-live ol.live li .mark-step svg { width: 100%; height: 100%; fill: none; stroke: var(--yg-success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.turn-live ol.live li.now .mark-step::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--yg-text); }
+.turn-live ol.live li .mark-step svg { width: 100%; height: 100%; fill: none; stroke: var(--gu-success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.turn-live ol.live li.now .mark-step::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--gu-text); }
 .turn-live .what { font-weight: 600; flex: none; }
-.turn-live .detail { font-family: var(--yg-font-mono); font-size: 0.75rem; color: var(--yg-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn-live .detail { font-family: var(--gu-font-mono); font-size: 0.75rem; color: var(--gu-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.start { display: grid; justify-items: center; gap: var(--yg-space-6); text-align: center; padding: var(--yg-space-16) 0 var(--yg-space-8); }
-.start h2 { margin: 0; font: 600 1.375rem/1.2 var(--yg-font-display); letter-spacing: -.02em; text-transform: none; color: var(--yg-text); }
-.starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--yg-space-3); width: 100%; }
-button.starter { padding: var(--yg-space-3) var(--yg-space-4); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-md); background: var(--yg-surface); color: var(--yg-text);
-  font: 400 .8125rem/1.4 var(--yg-font-text); text-align: left; cursor: pointer; }
-button.starter:hover { border-color: var(--yg-text-subtle); }
+.start { display: grid; justify-items: center; gap: var(--gu-space-6); text-align: center; padding: var(--gu-space-16) 0 var(--gu-space-8); }
+.start h2 { margin: 0; font: 600 1.375rem/1.2 var(--gu-font-display); letter-spacing: -.02em; text-transform: none; color: var(--gu-text); }
+.starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--gu-space-3); width: 100%; }
+button.starter { padding: var(--gu-space-3) var(--gu-space-4); border: 0.0625rem solid var(--gu-border); border-radius: var(--gu-radius-md); background: var(--gu-surface); color: var(--gu-text);
+  font: 400 .8125rem/1.4 var(--gu-font-text); text-align: left; cursor: pointer; }
+button.starter:hover { border-color: var(--gu-text-subtle); }
 
-.composer button.send.stop { background: var(--yg-text); color: var(--yg-text-inverse); }
-.composer button.send.stop:hover { background: var(--yg-neutral-700); }
+.composer button.send.stop { background: var(--gu-text); color: var(--gu-text-inverse); }
+.composer button.send.stop:hover { background: var(--gu-neutral-700); }
 .composer button.send[hidden] { display: none; }
 
 /* Saving what a chat is about to start with: a name, and where it goes. */
-.save-preset { display: flex; align-items: center; gap: var(--yg-space-2); margin-top: var(--yg-space-3); padding: var(--yg-space-3); background: var(--yg-surface); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-md); box-shadow: var(--yg-shadow-1); }
+.save-preset { display: flex; align-items: center; gap: var(--gu-space-2); margin-top: var(--gu-space-3); padding: var(--gu-space-3); background: var(--gu-surface); border: 0.0625rem solid var(--gu-border-strong); border-radius: var(--gu-radius-md); box-shadow: var(--gu-shadow-1); }
 .save-preset[hidden] { display: none; }
-.save-preset input[name="name"] { flex: 1; min-width: 0; height: 2.25rem; padding: 0 var(--yg-space-3); }
+.save-preset input[name="name"] { flex: 1; min-width: 0; height: 2.25rem; padding: 0 var(--gu-space-3); }
 .save-preset .cta { height: 2.25rem; }
 
 /* Stop is a button with its name, in the box where Send would be. */
-.composer .stop-pill { flex: none; display: inline-flex; align-items: center; gap: var(--yg-space-2); height: 2.25rem; padding: 0 var(--yg-space-4) 0 var(--yg-space-3); margin-left: var(--yg-space-1); border: 0.0625rem solid var(--yg-border-strong); border-radius: var(--yg-radius-full); background: var(--yg-surface); color: var(--yg-text); font: 600 .8125rem/1 var(--yg-font-text); cursor: pointer; }
-.composer .stop-pill:hover { background: var(--yg-bg-subtle); }
+.composer .stop-pill { flex: none; display: inline-flex; align-items: center; gap: var(--gu-space-2); height: 2.25rem; padding: 0 var(--gu-space-4) 0 var(--gu-space-3); margin-left: var(--gu-space-1); border: 0.0625rem solid var(--gu-border-strong); border-radius: var(--gu-radius-full); background: var(--gu-surface); color: var(--gu-text); font: 600 .8125rem/1 var(--gu-font-text); cursor: pointer; }
+.composer .stop-pill:hover { background: var(--gu-bg-subtle); }
 .composer .stop-pill svg.i { width: .875rem; height: .875rem; opacity: 1; }
-.composer .tools .meta-left { padding-left: var(--yg-space-1); }
+.composer .tools .meta-left { padding-left: var(--gu-space-1); }
 
 /* On a new chat the starters are short pills under the box. */
-#chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--yg-space-2); max-width: 45rem; margin: var(--yg-space-6) auto 0; }
-#chat-starters .starter { height: 2.25rem; padding: 0 var(--yg-space-4); border-radius: var(--yg-radius-full); font-size: .8125rem; }
-.folderpick .chip { height: 2rem; padding: 0 var(--yg-space-3) 0 var(--yg-space-2); border: 0.0625rem solid var(--yg-border); border-radius: var(--yg-radius-sm); background: var(--yg-bg-subtle); color: var(--yg-text-muted); font-size: .75rem; font-weight: 500; }
+#chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gu-space-2); max-width: 45rem; margin: var(--gu-space-6) auto 0; }
+#chat-starters .starter { height: 2.25rem; padding: 0 var(--gu-space-4); border-radius: var(--gu-radius-full); font-size: .8125rem; }
+.folderpick .chip { height: 2rem; padding: 0 var(--gu-space-3) 0 var(--gu-space-2); border: 0.0625rem solid var(--gu-border); border-radius: var(--gu-radius-sm); background: var(--gu-bg-subtle); color: var(--gu-text-muted); font-size: .75rem; font-weight: 500; }
 
 /* What the agent said, whole, where it said it among the steps it took. */
-.turn-live ol.live li.said-block { display: block; margin-left: var(--yg-space-2); padding-left: var(--yg-space-3); border-left: 0.125rem solid var(--yg-border); font-size: .8125rem; line-height: 1.55; color: var(--yg-text-muted); }
+.turn-live ol.live li.said-block { display: block; margin-left: var(--gu-space-2); padding-left: var(--gu-space-3); border-left: 0.125rem solid var(--gu-border); font-size: .8125rem; line-height: 1.55; color: var(--gu-text-muted); }
 .turn-live ol.live li.said-block p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.turn-live ol.live li.said-block p + p { margin-top: var(--yg-space-2); }
-.turn-live ol.live li.cut { display: block; font-size: .75rem; color: var(--yg-text-subtle); }
+.turn-live ol.live li.said-block p + p { margin-top: var(--gu-space-2); }
+.turn-live ol.live li.cut { display: block; font-size: .75rem; color: var(--gu-text-subtle); }
 /* Which wall agents run behind, under the box a message is typed in. */
-.wall { margin: var(--yg-space-3) auto 0; max-width: 46rem; text-align: center; font-size: .75rem; }
-.wall-more { margin-top: var(--yg-space-2); }
+.wall { margin: var(--gu-space-3) auto 0; max-width: 46rem; text-align: center; font-size: .75rem; }
+.wall-more { margin-top: var(--gu-space-2); }
 .wall-more summary { cursor: pointer; }
-.wall-more p { margin: var(--yg-space-2) 0 0; }
+.wall-more p { margin: var(--gu-space-2) 0 0; }
