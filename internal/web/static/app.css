@@ -457,8 +457,6 @@ details#task .threads-list { margin-bottom: var(--gu-space-4); }
 /* ── The look ──────────────────────────────────────────────────────────
    Headings in Sora, the display face the tokens name. Fields of work are told apart by their name and their mark, and not by a color of their own:
    the app is neutral and the person chooses the accent. */
-@font-face { font-family: "Sora"; src: url("/static/sora.woff2") format("woff2");
-  font-weight: 400 700; font-display: swap; }
 strong, b { font-weight: 600; }
 h1, .display { font-family: var(--gu-font-display); }
 

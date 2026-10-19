@@ -44,7 +44,7 @@
     <h2 class="section-title">What it said</h2>
     {{with .Transcript}}
     {{if .Empty}}<p class="muted">It said nothing.</p>{{else}}
-    <div class="reply">{{markdown .Text}}</div>
+    <div class="reply prose">{{markdown .Text}}</div>
     {{template "cut" .}}{{end}}
     {{else}}<p class="muted">Nothing was recorded.</p>{{end}}
   </section>
