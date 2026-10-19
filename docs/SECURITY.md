@@ -45,7 +45,7 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 
 ## How a task is isolated
 
-A task runs in a container or in an OpenShell sandbox, which is a microVM. `deploy/smoke-isolation.sh` runs a task whose agent probes its own box. `deploy/aws/openshell/box-probe.sh` runs the same probe in a sandbox. Both ran on 2026-10-07 against release v0.0.1-alpha.2. The container probe runs on every release, in the Compose install and the chart ([PILOT.md](PILOT.md)).
+A task runs in a container or in an OpenShell sandbox, which is a microVM. `deploy/smoke-isolation.sh` runs a task whose agent probes its own box. `deploy/aws/openshell/box-probe.sh` runs the same probe in a sandbox. Both ran on 2026-10-07 against an earlier pre-release, since withdrawn. The container probe runs on every release, in the Compose install and the chart ([PILOT.md](PILOT.md)).
 
 | Probe result | Container | OpenShell sandbox |
 | --- | --- | --- |

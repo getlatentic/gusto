@@ -3,9 +3,9 @@
 # the system and the processor. The release workflow runs it for six targets, and a person can run it to build their own. It needs
 # no C compiler, so every target builds on any machine.
 #
-#   deploy/server/build.sh v0.0.1-alpha.6 darwin arm64 dist
+#   deploy/server/build.sh v0.1.0-rc.2 darwin arm64 dist
 set -eu
-tag=${1:?the release, such as v0.0.1-alpha.6, or dev}
+tag=${1:?the release, such as v0.1.0-rc.2, or dev}
 os=${2:?linux, darwin or windows}
 arch=${3:?amd64 or arm64}
 out=${4:-dist}
