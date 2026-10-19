@@ -21,7 +21,7 @@ const hangUp = 10 * time.Second
 // status is the turn's: an answered prompt is 0 whatever the teardown took, and
 // a turn the harness failed or never answered is 1, with its reason in stderr.
 // cwd is the directory the conversation works in, by the path the harness sees.
-func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, record *Record) (int, error) {
+func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, auth string, record *Record) (int, error) {
 	in, err := command.StdinPipe()
 	if err != nil {
 		return 0, err
@@ -45,6 +45,7 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec,
 		Brief:   spec.Brief,
 		Session: spec.Remembered,
 		Servers: servers,
+		Auth:    auth,
 	}, record.Out)
 	record.Remembered = ended.Session
 	in.Close()

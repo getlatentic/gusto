@@ -168,6 +168,7 @@ An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a bu
 
 - `{brief}`, `{model}` and `{modelUrl}` come from the task.
 - A `jsonl` stream adds dotted paths: `text`, `inputTokens`, `outputTokens`, `costUsd`. `totals` says whether the agent reports per call or as a running total.
+- An `acp` stream holds the conversation over the Agent Client Protocol, and the paths default to where the protocol says things. `authenticate` names the agent's authentication method, by its id, for one that refuses a session until it is chosen (`codex-acp` lists `api-key`); the credential itself is in `env`. Claude Code and Codex run through their maintained ACP adapters, `@agentclientprotocol/claude-agent-acp` and `@agentclientprotocol/codex-acp`.
 - Write a path only after a real run shows where the number sits. An unmeasured stream is read as plain text, and the numbers are left out.
 - Cache tokens are counted, because they are billed.
 
@@ -231,7 +232,7 @@ GUSTO_MODEL_URL=http://localhost:11434/v1 gusto run /tmp/fix
 
 ```bash
 docker build -t gusto:dev \
-  --build-arg HARNESSES="opencode=opencode-ai claude=@anthropic-ai/claude-code codex=@openai/codex" .
+  --build-arg HARNESSES="opencode=opencode-ai claude=@agentclientprotocol/claude-agent-acp codex=@agentclientprotocol/codex-acp" .
 ```
 
 - Each agent's configuration is a directory under `internal/harness/config/`, copied to `/root/.config/<name>/`.

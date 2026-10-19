@@ -98,7 +98,7 @@ func TestOnAPersonsComputerAHarnessIsReadyWhenItsProgramIsOnThePath(t *testing.T
 	if !byName["opencode"].Ready {
 		t.Errorf("opencode is on the PATH and not ready: %+v", byName["opencode"])
 	}
-	if claude := byName["claude"]; claude.Ready || !strings.HasPrefix(claude.Why, "npm install -g @anthropic-ai/claude-code@") {
+	if claude := byName["claude"]; claude.Ready || !strings.HasPrefix(claude.Why, "npm install -g @agentclientprotocol/claude-agent-acp@") {
 		t.Errorf("claude: %+v", claude)
 	}
 	// hermes is started through sh, which is on every PATH, and is ready only when hermes itself is.

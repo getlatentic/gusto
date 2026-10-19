@@ -107,11 +107,14 @@ type Adapter struct {
 	// looks for a conversation that is gone. The runner makes it, because some
 	// agents refuse to start without it.
 	Keeps string `json:"keeps,omitempty"`
-	// WhenBoxed swaps an argument for another when the box the agent runs in
+	// WhenBoxed swaps an argument, or an environment value, for another when the box the agent runs in
 	// confines it already. An agent that makes its own sandbox out of namespaces
 	// cannot make one inside a sandbox that forbids them, and there the box is
 	// the boundary.
 	WhenBoxed map[string]string `json:"whenBoxed,omitempty"`
+	// Authenticate is the ACP authentication method, by its id, an agent is asked for before a session is opened, for an
+	// agent that lists one and refuses a session until it is chosen. The credential itself is in the environment.
+	Authenticate string `json:"authenticate,omitempty"`
 	// MCP is how the agent takes MCP servers, or nil when it takes none.
 	MCP    *MCP   `json:"mcp,omitempty"`
 	Needs  Needs  `json:"needs"`
@@ -264,7 +267,11 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 	}
 	command.Env = append([]string{}, env.Base...)
 	for key, value := range a.Env {
-		command.Env = append(command.Env, key+"="+a.fill(value, spec, env))
+		filled := a.fill(value, spec, env)
+		if instead, swapped := a.WhenBoxed[filled]; swapped && env.Boxed {
+			filled = instead
+		}
+		command.Env = append(command.Env, key+"="+filled)
 	}
 	return command
 }

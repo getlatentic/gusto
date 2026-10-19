@@ -76,7 +76,8 @@ func TestAHarnessInABoxIsGivenTheGatewayAtTheProxyItReachesItsModelAt(t *testing
 			t.Errorf("%s: servers = %+v", name, servers)
 		}
 		line := strings.Join(append(command.Args, command.Env...), " ")
-		if !strings.Contains(line, "host.openshell.internal:8041/model/mcp") || !strings.Contains(line, "box-token") {
+		// An ACP harness is given its servers when the session opens, not on its command line.
+		if adapter.Stream != harness.ACP && (!strings.Contains(line, "host.openshell.internal:8041/model/mcp") || !strings.Contains(line, "box-token")) {
 			t.Errorf("%s: the command does not carry the gateway: %s", name, line)
 		}
 		if strings.Contains(line, "crm") || strings.Contains(line, "billing") {

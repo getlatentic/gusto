@@ -1,11 +1,6 @@
 {
   "_note": "Written by pin.sh. Each package the runner image installs, at one version, with the registry's sha512 integrity of that tarball.",
   "packages": {
-    "@anthropic-ai/claude-code": {
-      "version": "2.1.304",
-      "integrity": "sha512-oAD2KLEUdAbsAMxQMWYHq/AHCUlkYuZ80ovkL0mVSy07z+EeDhIo19/XpRA2NVI+9/LZCC+NXCJm+/hIvhNWWQ==",
-      "tarball": "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.304.tgz"
-    },
     "@deepseek-ai/dsh": {
       "version": "0.1.5-rc.3",
       "integrity": "sha512-c0W6Xqc4ChjFcCJkbzPeIxZQdnbKqe+QAcJzWGtogg0ZzsnZRcw3vopMyZ5oZU6E2fmyqGcyDR1sBeiCH4yHcg==",
@@ -21,11 +16,6 @@
       "integrity": "sha512-ljj/3S4aGjxdNSQWw6gucKKGnTLdBPWxzapyY/MT2tOVyZwvxChvevXSLPwx59nKJAlVpUVW+cOlnVRXRwiqMQ==",
       "tarball": "https://registry.npmjs.org/@modelcontextprotocol/server-memory/-/server-memory-2026.8.31.tgz"
     },
-    "@openai/codex": {
-      "version": "0.154.0",
-      "integrity": "sha512-FV/x1OHXYv/ifjf3mXj9ThTTAWcUZN6cGIRQRhRxkKNOPuImu1WW0c8ev1vUkE9XGH90dEnYG1tBjIkxRikg0w==",
-      "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.154.0.tgz"
-    },
     "hermes-agent": {
       "version": "0.21.5",
       "integrity": "sha512-cjmXp1bhw7QEZ5Z+eRBNK74R3HRkY944tSFafFhu/SHQ/deRNbRc04gdc2KZ7cUm22/2rnl7jtcFeuhROMrdmQ==",
@@ -40,6 +30,16 @@
       "version": "3.0.0",
       "integrity": "sha512-6NkkTNVeQziRzIJeJuwqHpdvmSG96UPQhd7J3a6MJKZMMiZlSrPyVD+AU8BbFRBGi0MxuFwlOnduImv6rb2cpA==",
       "tarball": "https://registry.npmjs.org/pi-mcp-adapter/-/pi-mcp-adapter-3.0.0.tgz"
+    },
+    "@agentclientprotocol/claude-agent-acp": {
+      "version": "0.94.0",
+      "integrity": "sha512-3quBG9QaMKhETZPF0QaD/Ue2C0UCQDzDztDbzs8AVYM8RQKX93TPL0YzJl7sx06qYPLQvxrCDdiAp5a6cgFfZg==",
+      "tarball": "https://registry.npmjs.org/@agentclientprotocol/claude-agent-acp/-/claude-agent-acp-0.94.0.tgz"
+    },
+    "@agentclientprotocol/codex-acp": {
+      "version": "2.2.2",
+      "integrity": "sha512-vNdeNV3jxbqaH7MYvVWzyB6cMOz+YGIV9W1xyBDsQfoii92DulZLM+ahCL2T2G6uohlaB1Yma347p2kLfAab2w==",
+      "tarball": "https://registry.npmjs.org/@agentclientprotocol/codex-acp/-/codex-acp-2.2.2.tgz"
     }
   }
 }

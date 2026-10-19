@@ -10,6 +10,26 @@ import (
 	"github.com/getlatentic/gusto/internal/job"
 )
 
+// claudeStream is Claude Code's own JSON stream, as its adapter read it before the agent spoke ACP: a cumulative total
+// on the last line, with the cache tokens beside it, and the words in a list of blocks. The record reads any such stream
+// the same way, so the shape stays here as the one it is tested with.
+func claudeStream() harness.Adapter {
+	return harness.Adapter{
+		Name: "claude", Program: "claude", Argv: []string{"-p"}, Needs: harness.NeedsKey, Stream: harness.JSONL, Totals: harness.Cumulative,
+		When:             map[string]map[string]string{"text": {"type": "assistant"}, "tool": {"type": "assistant"}},
+		Text:             "message.content.0.text",
+		Message:          "message.id",
+		ToolName:         "message.content.0.name",
+		ToolInput:        "message.content.0.input",
+		SessionID:        "session_id",
+		InputTokens:      "usage.input_tokens",
+		OutputTokens:     "usage.output_tokens",
+		CacheReadTokens:  "usage.cache_read_input_tokens",
+		CacheWriteTokens: "usage.cache_creation_input_tokens",
+		CostUSD:          "total_cost_usd",
+	}
+}
+
 // The line Claude Code ends a run with. Its cache write dwarfs the rest, so a
 // total that leaves cache out disagrees with the cost printed beside it.
 const result = `{"total_cost_usd":1.3161,"usage":{"input_tokens":12,"cache_creation_input_tokens":39699,"cache_read_input_tokens":6744,"output_tokens":300}}`
@@ -19,11 +39,7 @@ func TestASpendTotalCountsTheCacheTokensItWasBilledFor(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	adapter, err := harness.Load("", "claude")
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, err := Open(dir, adapter)
+	record, err := Open(dir, claudeStream())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,11 +233,7 @@ func TestClaudeCodeIsHeardOnlyWhereTheAgentSpeaks(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	adapter, err := harness.Load("", "claude")
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, err := Open(dir, adapter)
+	record, err := Open(dir, claudeStream())
 	if err != nil {
 		t.Fatal(err)
 	}
