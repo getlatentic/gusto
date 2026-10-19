@@ -38,14 +38,9 @@ fi
 # box back to an older commit. That is what rollback.yml is for.
 if [ -s "$state/deployed" ]; then
   deployed=$(cat "$state/deployed")
-  ancestry=0
-  git -C "$checkout" merge-base --is-ancestor "$deployed" "$sha" 2>/dev/null || ancestry=$?
-  if [ "$ancestry" -eq 1 ]; then
-    echo "$deployed is deployed and $sha is older than it. Nothing to do."
+  if git -C "$checkout" merge-base --is-ancestor "$sha" "$deployed" 2>/dev/null; then
+    echo "$deployed is deployed and $sha is not newer than it. Nothing to do."
     exit 0
-  fi
-  if [ "$ancestry" -ne 0 ]; then
-    echo "$deployed, the deployed commit, is no longer on $branch; deploying $sha anyway."
   fi
 fi
 
