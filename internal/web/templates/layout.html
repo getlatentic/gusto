@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
-<link rel="icon" href="{{asset "/static/mark.png"}}">
+<link rel="icon" type="image/svg+xml" href="{{asset "/static/mark.svg"}}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{asset "/static/favicon-32.png"}}">
+<link rel="apple-touch-icon" href="{{asset "/static/apple-touch-icon.png"}}">
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{asset "/static/theme.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
@@ -21,7 +23,7 @@
   <script nonce="{{.Nonce}}">
     // The theme and the accent are the person's, kept on this device and set before the page is drawn so that it does not flash.
     (function () {
-      var root = document.documentElement, theme = "system", accent = "graphite", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");
+      var root = document.documentElement, theme = "system", accent = "green", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");
       var steps = [80, 90, 100, 110, 125, 150, 175, 200];
       try { theme = localStorage.getItem("gusto-theme") || theme; accent = localStorage.getItem("gusto-accent") || accent; zoom = +localStorage.getItem("gusto-zoom") || zoom; } catch (e) {}
       function apply() { root.dataset.theme = theme === "dark" || (theme === "system" && dark.matches) ? "dark" : "light"; root.dataset.accent = accent; root.style.fontSize = zoom + "%"; }
@@ -193,7 +195,6 @@
 {{define "icon-chat"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>{{end}}
 {{define "icon-activity"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>{{end}}
 {{define "icon-palette"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>{{end}}
-{{define "brand-glyph"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11.5" cy="12.5" r="7"/><path d="M18.5 3.5v3.5M16.75 5.25h3.5"/></svg>{{end}}
 {{define "icon-search"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>{{end}}
 {{define "icon-back"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>{{end}}
 {{define "icon-trash"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>{{end}}

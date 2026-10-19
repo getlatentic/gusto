@@ -22,7 +22,7 @@ builds with CGO_ENABLED=0 (checked 19 October 2026 by reading each module's lice
   github.com/google/uuid, remyoudompheng/bigfft, golang.org/x/sync
                   BSD-3-Clause
 
-The design tokens (tokens.css) and the mark (mark.png) in internal/web/static are Latentic's own.
+The design tokens (tokens.css) and the mark (mark.svg and its images) in internal/web/static are Latentic's own.
 
 Files served from the binary (internal/web/static, see PROVENANCE.md there):
   htmx            BSD-style (htmx.org)
