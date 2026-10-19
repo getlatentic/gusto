@@ -10,7 +10,7 @@
     bar = document.createElement("div");
     bar.setAttribute("role", "status");
     bar.style.cssText = "position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:1000;" +
-      "max-width:calc(100vw - 2rem);padding:0.625rem 1rem;border-radius:0.625rem;background:#1f1a17;color:#fff;" +
+      "max-width:calc(100vw - 2rem);padding:0.625rem 1rem;border-radius:0.625rem;background:#0E1511;color:#F5FBF6;" +
       "font:500 0.875rem system-ui,sans-serif;box-shadow:0 0.25rem 1rem rgba(0,0,0,.25);display:flex;gap:0.75rem;align-items:center";
     text = document.createElement("span");
     link = document.createElement("a");
@@ -18,17 +18,17 @@
     link.href = extend || "/lease";
     link.target = "_blank";
     link.rel = "noopener";
-    link.style.cssText = "color:#ffb27a;font-weight:600";
+    link.style.cssText = "color:#D8FF36;font-weight:600";
     book = document.createElement("a");
     book.textContent = "Book a call";
     book.target = "_blank";
     book.rel = "noopener";
-    book.style.cssText = "color:#ffb27a;font-weight:600;display:none";
+    book.style.cssText = "color:#D8FF36;font-weight:600;display:none";
     stop = document.createElement("a");
     stop.textContent = "End demo";
     stop.target = "_blank";
     stop.rel = "noopener";
-    stop.style.cssText = "color:#c9bfb8;display:none";
+    stop.style.cssText = "color:#9FB3A5;display:none";
     bar.appendChild(text);
     bar.appendChild(link);
     bar.appendChild(book);
