@@ -11,7 +11,7 @@ type Step struct {
 	Mark  string
 }
 
-var demoStages = []string{"Finding a machine", "Starting your organization", "Opening your demo"}
+var demoStages = []string{"Getting a computer ready", "Setting up your demo", "Opening your demo"}
 
 // demoSteps is where a demo is among its stages, from the state its server is in.
 func demoSteps(state State) []Step {
