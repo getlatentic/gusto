@@ -139,6 +139,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
 		"Tasks":     s.tasks(held.ID),
+		"Routines":  s.routineRows(held.ID),
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }

@@ -28,6 +28,34 @@
     </ol>
   </section>
 
+  <section class="panel" id="routines">
+    <h2 class="section-title">Routines</h2>
+    <p class="muted">A question this agent is asked on a schedule, in a conversation of its own, so it remembers from one run to the next.</p>
+    {{if .Routines}}
+    <ol class="threads-list">
+      {{range .Routines}}
+      <li class="routine">
+        <a href="/instances/{{$.Instance.ID}}/threads/{{.Thread}}"><span class="name" title="{{.Prompt}}">{{.Title}}</span><span class="last">{{.When}}{{if .Paused}} · paused{{end}} · {{.Last}}</span></a>
+        <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/{{if .Paused}}resume{{else}}pause{{end}}"><button type="submit" class="quiet">{{if .Paused}}Resume{{else}}Pause{{end}}</button></form>
+        <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/remove" data-confirm="Remove this routine? Its conversation is kept."><button type="submit" class="quiet">Remove</button></form>
+      </li>
+      {{end}}
+    </ol>
+    {{end}}
+    <details>
+      <summary>Add a routine</summary>
+      <form class="stack" method="post" action="/instances/{{.Instance.ID}}/routines">
+        <label>Title <input name="title" placeholder="Morning summary" required></label>
+        <label>What to ask <textarea name="prompt" placeholder="Summarize what changed in the repository since yesterday." required></textarea></label>
+        <div class="row">
+          <label>Daily at <input name="daily" placeholder="08:00"></label>
+          <label>or every <span class="muted">hours</span> <input name="every" inputmode="numeric" placeholder="6"></label>
+        </div>
+        <button type="submit">Add it</button>
+      </form>
+    </details>
+  </section>
+
   {{if .Sharing}}{{template "apps" .}}{{end}}
 
   <section class="panel">
