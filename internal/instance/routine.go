@@ -35,6 +35,12 @@ type Ran struct {
 	At      int64  `json:"at"`
 	Job     string `json:"job,omitempty"`
 	Skipped string `json:"skipped,omitempty"`
+	// Told is the channels that have taken the news of how the run ended, Tries how many times it was offered and not all
+	// taken it, and Notified that it is settled: taken by every channel, or given up on, with why in NotifyError.
+	Told        []string `json:"told,omitempty"`
+	Tries       int      `json:"tries,omitempty"`
+	Notified    bool     `json:"notified,omitempty"`
+	NotifyError string   `json:"notifyError,omitempty"`
 }
 
 // Schedule checks the routine's schedule: a time of day as HH:MM, or a number of hours, and not both.
@@ -131,6 +137,15 @@ func (s *Store) PauseRoutine(id, routine string, paused bool) error {
 // RoutineRan records a routine's latest slot.
 func (s *Store) RoutineRan(id, routine string, ran Ran) error {
 	return s.changeRoutine(id, routine, func(r *Routine) { r.Last = &ran })
+}
+
+// NoteRun changes the latest slot of a routine, which is how the news of how it ended is kept.
+func (s *Store) NoteRun(id, routine string, change func(*Ran)) error {
+	return s.changeRoutine(id, routine, func(r *Routine) {
+		if r.Last != nil {
+			change(r.Last)
+		}
+	})
 }
 
 // RemoveRoutine forgets a routine. Its thread and its turns stay.

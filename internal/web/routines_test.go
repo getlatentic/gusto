@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/notify"
 )
 
 // aRoutine adds a routine through the form and says which instance it is on.
@@ -124,5 +126,108 @@ func TestSomebodyElsesAgentTakesNoRoutineAndAnswersAsAMissingOneDoes(t *testing.
 	site.signIn(t)
 	if got := site.ask(t, "POST", "/instances/nobody-here/routines", url.Values{"title": {"x"}, "prompt": {"y"}, "every": {"1"}}).Code; got != http.StatusNotFound {
 		t.Errorf("answered %d", got)
+	}
+}
+
+// news records what it was told, and refuses while down is set.
+type news struct {
+	channel string
+	down    bool
+	told    []notify.Event
+}
+
+func (n *news) Channel() string { return n.channel }
+func (n *news) Notify(e notify.Event) error {
+	if n.down {
+		return errors.New("down")
+	}
+	n.told = append(n.told, e)
+	return nil
+}
+
+// aFinishedRun starts a routine and lets its turn end, and says which instance and routine it was.
+func aFinishedRun(t *testing.T, site *site) (id, routine string) {
+	t.Helper()
+	id, _ = aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"go"}, "every": {"1"}})
+	routine = site.server.instances.Routines(id)[0].ID
+	site.server.StartDueRoutines(time.Now())
+	<-site.ran
+	last := site.server.instances.Routines(id)[0].Last
+	for range 100 {
+		if record, _ := site.index.Get(last.Job); record.State.Done() {
+			return id, routine
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("the turn did not end")
+	return "", ""
+}
+
+func TestTheNewsOfARunIsTakenOnceByEachChannelAndAFailedOneIsRetriedAlone(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	mail, hook := &news{channel: "mail"}, &news{channel: "webhook", down: true}
+	site.server.UseRoutineNews(notify.Every{mail, hook}, "https://gusto.example/")
+	id, routine := aFinishedRun(t, site)
+
+	site.server.tellRoutines()
+	if len(mail.told) != 1 || mail.told[0].State != "finished" || mail.told[0].Title != "Morning" ||
+		!strings.HasPrefix(mail.told[0].Link, "https://gusto.example/jobs/") || mail.told[0].Answer == "" {
+		t.Fatalf("mail was told %+v", mail.told)
+	}
+	ran := site.server.instances.Routines(id)[0].Last
+	if ran.Notified || ran.Tries != 1 || len(ran.Told) != 1 || ran.NotifyError == "" {
+		t.Fatalf("one channel is down and the run is not settled: %+v", ran)
+	}
+
+	hook.down = false
+	site.server.tellRoutines()
+	site.server.tellRoutines()
+	if len(mail.told) != 1 || len(hook.told) != 1 {
+		t.Errorf("each channel takes it once: mail %d, webhook %d", len(mail.told), len(hook.told))
+	}
+	if ran := site.server.instances.Routines(id)[0].Last; !ran.Notified || ran.NotifyError != "" {
+		t.Errorf("settled: %+v", ran)
+	}
+	_ = routine
+}
+
+func TestTheNewsIsGivenUpOnAfterFiveTriesAndSaysWhy(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	hook := &news{channel: "webhook", down: true}
+	site.server.UseRoutineNews(notify.Every{hook}, "")
+	id, _ := aFinishedRun(t, site)
+	for range 8 {
+		site.server.tellRoutines()
+	}
+	ran := site.server.instances.Routines(id)[0].Last
+	if !ran.Notified || ran.Tries != 5 || !strings.Contains(ran.NotifyError, "down") {
+		t.Errorf("%+v", ran)
+	}
+}
+
+func TestARunWhoseTurnHasNotEndedIsNotToldYet(t *testing.T) {
+	started, release := make(chan string, 4), make(chan struct{})
+	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+		started <- dir.Path()
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return 0, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	site := open(t)
+	t.Cleanup(func() { close(release) })
+	site.signIn(t)
+	mail := &news{channel: "mail"}
+	site.server.UseRoutineNews(notify.Every{mail}, "")
+	aRoutine(t, site, url.Values{"title": {"Slow"}, "prompt": {"go"}, "every": {"1"}})
+	site.server.StartDueRoutines(time.Now())
+	<-started
+	site.server.tellRoutines()
+	if len(mail.told) != 0 {
+		t.Errorf("told of a run that is still going: %+v", mail.told)
 	}
 }

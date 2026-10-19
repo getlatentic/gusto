@@ -14,6 +14,7 @@ on:
       - go.sum
       - Dockerfile
       - image/**
+      - deploy/runner/**
       - deploy/aws/openshell/**
       - deploy/aws/platform/user-data.sh
       - .github/workflows/demo-bundle.yml

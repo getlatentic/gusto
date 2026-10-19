@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/notify"
 )
 
 // RunRoutines starts the turns routines are due for, every interval until ctx ends. A routine is a turn like any other:
@@ -19,6 +22,7 @@ func (s *Server) RunRoutines(ctx context.Context, every time.Duration) {
 	defer tick.Stop()
 	for {
 		s.StartDueRoutines(time.Now())
+		s.tellRoutines()
 		select {
 		case <-ctx.Done():
 			return
@@ -37,6 +41,70 @@ func (s *Server) StartDueRoutines(now time.Time) {
 			}
 		}
 	}
+}
+
+// UseRoutineNews has the server tell these how each run of a routine ended, and link the run at publicURL when it is given.
+func (s *Server) UseRoutineNews(news notify.Every, publicURL string) {
+	s.routineNews, s.publicURL = news, strings.TrimRight(publicURL, "/")
+}
+
+// maxTries is how many times news of a run is offered before it is given up on.
+const maxTries = 5
+
+// tellRoutines offers the news of each ended run to the channels that have not taken it. A run whose turn has not ended waits.
+func (s *Server) tellRoutines() {
+	if len(s.routineNews) == 0 {
+		return
+	}
+	for _, held := range s.instances.List() {
+		for _, routine := range s.instances.Routines(held.ID) {
+			ran := routine.Last
+			if ran == nil || ran.Job == "" || ran.Notified {
+				continue
+			}
+			record, found := s.index.Get(ran.Job)
+			if !found || !record.State.Done() {
+				continue
+			}
+			taken, err := s.routineNews.Offer(s.routineEvent(held.ID, routine, record), ran.Told)
+			_ = s.instances.NoteRun(held.ID, routine.ID, func(r *instance.Ran) {
+				r.Told = taken
+				if err == nil {
+					r.Notified, r.NotifyError = true, ""
+					return
+				}
+				r.Tries++
+				r.NotifyError = err.Error()
+				r.Notified = r.Tries >= maxTries
+			})
+		}
+	}
+}
+
+func (s *Server) routineEvent(instanceID string, routine instance.Routine, record jobs.Record) notify.Event {
+	state := map[jobs.State]string{jobs.Passed: "finished", jobs.Failed: "failed", jobs.Interrupted: "interrupted"}[record.State]
+	event := notify.Event{
+		Name: "routine." + state, Instance: instanceID, Routine: routine.ID, Title: routine.Title,
+		Job: record.ID, State: state, At: record.Ended, Who: routine.Who,
+		Answer: lastWords(record.Dir(s.index.Root()).OutFile("transcript.log")),
+	}
+	if s.publicURL != "" {
+		event.Link = s.publicURL + "/jobs/" + record.ID
+	}
+	return event
+}
+
+// lastWords is the end of what the agent said, for a mail that says how the run went.
+func lastWords(transcript string) string {
+	text, err := os.ReadFile(transcript)
+	if err != nil {
+		return ""
+	}
+	words := []rune(strings.TrimSpace(string(text)))
+	if len(words) > 1500 {
+		return "…" + string(words[len(words)-1500:])
+	}
+	return string(words)
 }
 
 func (s *Server) startRoutine(now time.Time, held instance.Instance, routine instance.Routine) {
