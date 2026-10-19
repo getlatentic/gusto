@@ -98,7 +98,7 @@ func Choose(h Host) Choice {
 	case "here":
 		return Choice{Kind: Nothing, Forced: true}
 	case "process":
-		return Choice{Kind: Process, Detail: "Seatbelt", Forced: true}
+		return Choice{Kind: Process, Detail: processName(h), Forced: true}
 	default:
 		return Choice{Kind: Container, Detail: runtimeName(h), Forced: true}
 	}

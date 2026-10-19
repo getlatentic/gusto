@@ -38,6 +38,14 @@ func virtualMachine(h Host) Backend {
 	return Backend{Kind: VM, Ready: true, Detail: "OpenShell"}
 }
 
+// processName is what a computer calls its own sandbox around a process.
+func processName(h Host) string {
+	if h.GOOS == "linux" {
+		return "Landlock"
+	}
+	return "Seatbelt"
+}
+
 // processSandbox is the computer's own sandbox around a process: Seatbelt on a Mac, which is nothing to install, and Landlock on
 // Linux, which gusto applies itself. It is tried with a real process, and not assumed from the command or the kernel being there.
 func processSandbox(h Host) Backend {
