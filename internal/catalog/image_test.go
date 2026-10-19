@@ -122,3 +122,14 @@ func TestTheLabelNamesTheHarnessesNotThePackages(t *testing.T) {
 		}
 	}
 }
+
+func TestWhatAnImageAnswersIsItsProgramsAndTheBuildsItRecorded(t *testing.T) {
+	onPath, versions := Answered("opencode\ncodex\n--\nopencode=opencode-ai@1.19.3\ncodex=@openai/codex@0.154.0\n")
+	if !onPath["opencode"] || !onPath["codex"] || len(onPath) != 2 || versions["codex"] != "@openai/codex@0.154.0" || len(versions) != 2 {
+		t.Errorf("got %v and %v", onPath, versions)
+	}
+	onPath, versions = Answered("opencode\n")
+	if !onPath["opencode"] || len(versions) != 0 {
+		t.Errorf("an image that recorded no builds: got %v and %v", onPath, versions)
+	}
+}

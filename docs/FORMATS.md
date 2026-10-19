@@ -73,6 +73,7 @@ This prints the hex without the prefix and does not refuse links, so run `find .
 - An agent that writes to its own directory in the task changes the copy the task carries. `evidence.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A task that carries no agent, and an export, have nothing to check.
 - Two runs with the same `harnessDigest` ran the same configured agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different agents, or a run with no digest.
 - `harnessDigest` is a new optional field, so the manifest stays at version 1. A manifest written before it reports `no digest recorded`, and is comparable by name only.
+- `harnessVersion` is the agent's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `internal/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the agent was installed by hand.
 
 ## The audit export
 

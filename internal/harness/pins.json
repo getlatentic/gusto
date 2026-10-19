@@ -1,0 +1,45 @@
+{
+  "_note": "Written by pin.sh. Each package the runner image installs, at one version, with the registry's sha512 integrity of that tarball.",
+  "packages": {
+    "@anthropic-ai/claude-code": {
+      "version": "2.1.304",
+      "integrity": "sha512-oAD2KLEUdAbsAMxQMWYHq/AHCUlkYuZ80ovkL0mVSy07z+EeDhIo19/XpRA2NVI+9/LZCC+NXCJm+/hIvhNWWQ==",
+      "tarball": "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.304.tgz"
+    },
+    "@deepseek-ai/dsh": {
+      "version": "0.1.5-rc.3",
+      "integrity": "sha512-c0W6Xqc4ChjFcCJkbzPeIxZQdnbKqe+QAcJzWGtogg0ZzsnZRcw3vopMyZ5oZU6E2fmyqGcyDR1sBeiCH4yHcg==",
+      "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.1.5-rc.3.tgz"
+    },
+    "@earendil-works/pi-coding-agent": {
+      "version": "1.3.0",
+      "integrity": "sha512-V/WoCjA2hQSe3QLWIUB24cTRdtEdeLiIzkDqU5RMXV6VWuD+KGZnzVBMhglwdnQTySkehZsjt8a3g6Jd2g4nnw==",
+      "tarball": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-1.3.0.tgz"
+    },
+    "@modelcontextprotocol/server-memory": {
+      "version": "2026.8.31",
+      "integrity": "sha512-ljj/3S4aGjxdNSQWw6gucKKGnTLdBPWxzapyY/MT2tOVyZwvxChvevXSLPwx59nKJAlVpUVW+cOlnVRXRwiqMQ==",
+      "tarball": "https://registry.npmjs.org/@modelcontextprotocol/server-memory/-/server-memory-2026.8.31.tgz"
+    },
+    "@openai/codex": {
+      "version": "0.154.0",
+      "integrity": "sha512-FV/x1OHXYv/ifjf3mXj9ThTTAWcUZN6cGIRQRhRxkKNOPuImu1WW0c8ev1vUkE9XGH90dEnYG1tBjIkxRikg0w==",
+      "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.154.0.tgz"
+    },
+    "hermes-agent": {
+      "version": "0.21.5",
+      "integrity": "sha512-cjmXp1bhw7QEZ5Z+eRBNK74R3HRkY944tSFafFhu/SHQ/deRNbRc04gdc2KZ7cUm22/2rnl7jtcFeuhROMrdmQ==",
+      "tarball": "https://registry.npmjs.org/hermes-agent/-/hermes-agent-0.21.5.tgz"
+    },
+    "opencode-ai": {
+      "version": "1.19.3",
+      "integrity": "sha512-wDRcUlMDibaLzecIGvVGUA9naghXVqzCWcUE7N3qagpGiLSUlU4VbixI+bpsErwJp+AAuSO2lhSr/XxJl7XbrQ==",
+      "tarball": "https://registry.npmjs.org/opencode-ai/-/opencode-ai-1.19.3.tgz"
+    },
+    "pi-mcp-adapter": {
+      "version": "3.0.0",
+      "integrity": "sha512-6NkkTNVeQziRzIJeJuwqHpdvmSG96UPQhd7J3a6MJKZMMiZlSrPyVD+AU8BbFRBGi0MxuFwlOnduImv6rb2cpA==",
+      "tarball": "https://registry.npmjs.org/pi-mcp-adapter/-/pi-mcp-adapter-3.0.0.tgz"
+    }
+  }
+}

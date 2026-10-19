@@ -26,18 +26,14 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 # HARNESSES is the list this image carries: each member is an adapter's name, an
 # equals sign, and the npm package that provides its program, so the name a job
-# asks for and the package that answers it are written down together. A version
-# pins the same way it does for npm: codex=@openai/codex@0.1.0.
+# asks for and the package that answers it are written down together. The
+# version comes from internal/harness/pins.json, and the installer refuses a
+# tarball whose sha512 is not the pinned one. What it installed is written to
+# /etc/gusto/harnesses, one name=package@version a line: the record names the
+# agent's build from it, and the catalog reads the version there.
+COPY internal/harness/pins.json deploy/runner/install.mjs /opt/gusto/runner/
 ARG HARNESSES="opencode=opencode-ai"
-RUN set -eu; \
-    packages=""; \
-    for member in $HARNESSES; do \
-      case "$member" in \
-        ?*=?*) packages="$packages ${member#*=}" ;; \
-        *) echo "HARNESSES wants name=package, and $member is not" >&2; exit 1 ;; \
-      esac; \
-    done; \
-    if [ -n "$packages" ]; then npm install -g --no-fund --no-audit $packages; fi
+RUN node /opt/gusto/runner/install.mjs /opt/gusto/runner/pins.json /etc/gusto/harnesses $HARNESSES
 # The image says what it carries, so `docker image inspect` and the server's
 # catalog both read it without anybody opening this file. The catalog still
 # asks each program's PATH, because a label is a claim and the PATH is what a
@@ -47,7 +43,7 @@ LABEL com.getlatentic.gusto.harnesses="$HARNESSES"
 # harness. The box fetches nothing once it is sealed, so a server a setup names
 # is one the image already carries.
 ARG MCP_SERVERS=""
-RUN if [ -n "$MCP_SERVERS" ]; then npm install -g --no-fund --no-audit $MCP_SERVERS; fi
+RUN node /opt/gusto/runner/install.mjs /opt/gusto/runner/pins.json /etc/gusto/mcp $MCP_SERVERS
 LABEL com.getlatentic.gusto.mcp="$MCP_SERVERS"
 COPY --from=build /gusto /usr/local/bin/gusto
 # A harness's own configuration is not the adapter's: the adapter has to stay

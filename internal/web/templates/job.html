@@ -25,6 +25,7 @@
   {{with .Calls}}<div class="tile"><span class="k">Tokens</span><span class="v">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></div>{{end}}
   {{with .Gate}}<div class="tile"><span class="k">Check</span><span class="v">{{with .Verdict}}<span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>{{else}}no answer{{end}}</span></div>{{end}}
   <div class="tile"><span class="k">Agent</span><span class="v">{{with .Agent}}<a href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></div>
+  {{with .Build}}<div class="tile"><span class="k">Build</span><span class="v">{{.}}</span></div>{{end}}
   {{if not .Agent}}<div class="tile wide"><span class="k">Came from</span><span class="v">{{template "origin" .On}}</span></div>{{end}}
   <div class="tile"><span class="k">Model</span><span class="v">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></div>
   {{with .Proof}}<div class="tile"><span class="k">Record</span><span class="v">{{if not .Holds}}<span class="state failed">does not check out</span>{{else if .Signed}}<a href="#proof"><span class="state passed">signed</span></a>{{else}}<a href="#proof">not signed</a>{{end}}</span></div>{{end}}

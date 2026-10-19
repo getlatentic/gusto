@@ -45,12 +45,13 @@ func (i image) Carried(programs []string) catalog.Carried {
 		return catalog.Carried{Unanswered: fmt.Errorf("could not start a sandbox to ask what the image carries: %w", err)}
 	}
 	ask := append([]string{"sandbox", "exec", "--name", probe.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", `for program; do command -v "$program" >/dev/null && echo "$program"; done; true`, "sh"}, programs...)
+		"sh", "-c", catalog.Probe, "sh"}, programs...)
 	found, err := output(probe.run(ctx, ask...))
 	if err != nil {
 		return catalog.Carried{Unanswered: fmt.Errorf("could not ask the sandbox what it carries: %w", err)}
 	}
-	return catalog.Carried{OnPath: names(string(found))}
+	onPath, versions := catalog.Answered(string(found))
+	return catalog.Carried{OnPath: onPath, Versions: versions}
 }
 
 func names(text string) map[string]bool {
