@@ -129,6 +129,23 @@ func TestANewConversationKeepsWhatTheAgentSaidAndItsSession(t *testing.T) {
 	}
 }
 
+func TestAnAgentThatAsksToBeAuthenticatedIsBeforeItsSessionIsOpened(t *testing.T) {
+	a := &agent{
+		capabilities: `{"protocolVersion":1,"agentCapabilities":{},"authMethods":[{"id":"api-key","name":"API Key"}]}`,
+		answers: map[string]string{
+			"authenticate":   `"result":{}`,
+			"session/new":    `"result":{"sessionId":"s1"}`,
+			"session/prompt": `"result":{"stopReason":"end_turn"}`,
+		},
+	}
+	if _, _, err := run(t, a, Turn{Cwd: "/job/workspace", Brief: "fix it", Auth: "api-key"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(a.asked) < 3 || a.asked[1] != "authenticate" || a.asked[2] != "session/new" {
+		t.Errorf("asked %v, want authenticate before session/new", a.asked)
+	}
+}
+
 func TestARememberedSessionIsResumedRatherThanStartedAgain(t *testing.T) {
 	a := &agent{
 		capabilities: dshCapabilities,

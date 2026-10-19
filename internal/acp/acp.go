@@ -23,6 +23,9 @@ type Turn struct {
 	Session string
 	// Servers are the MCP servers the session may call.
 	Servers []job.Server
+	// Auth is the agent's authentication method to use, by the id it lists, for an agent that will not open a session
+	// until one is chosen. Empty asks for none.
+	Auth string
 }
 
 // Ended is how the turn finished: the session it belongs to, which the next
@@ -40,6 +43,11 @@ func Converse(in io.Writer, out io.Reader, turn Turn, keep func(line string) err
 	can, err := initialize(c)
 	if err != nil {
 		return Ended{}, err
+	}
+	if turn.Auth != "" {
+		if _, err := c.call("authenticate", map[string]any{"methodId": turn.Auth}); err != nil {
+			return Ended{}, err
+		}
 	}
 	session, err := open(c, turn, can)
 	if err != nil {
