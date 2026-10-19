@@ -74,9 +74,9 @@ type view struct {
 	Ended      bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
-	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed.
-	Video  string
-	Poster string
+	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
+	Video string
+	Shot  string
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
 	VideoFile     bool

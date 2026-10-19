@@ -218,8 +218,8 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 				t.Errorf("the landing page does not say %q", want)
 			}
 		}
-		if status != http.StatusOK || !strings.Contains(page, `<video controls preload="metadata" src="/static/demo.mp4" poster="/static/demo-poster.jpg">`) || strings.Contains(page, "<iframe") {
-			t.Errorf("%d: the video that comes with gusto is shown\n%s", status, page)
+		if status != http.StatusOK || !strings.Contains(page, `<img src="/static/hero.webp"`) || strings.Contains(page, "<iframe") || strings.Contains(page, "<video") {
+			t.Errorf("%d: a finished task is what the landing page shows when there is no video\n%s", status, page)
 		}
 		if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
 			t.Errorf("a video of its own opens nothing up: %s", csp)
@@ -276,15 +276,11 @@ func TestASignedInVisitorIsSentToTheirOrganisationAndNotShownTheLandingPage(t *t
 	})
 }
 
-func TestTheVideoThatComesWithGustoIsServedAsAVideoThatCanBeSeekedIn(t *testing.T) {
+func TestThePictureOfAFinishedTaskIsServed(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, demoSet, nil)
-		status, body, header := f.browser().do("GET", "/static/demo.mp4", nil, map[string]string{"Range": "bytes=0-99"})
-		if status != http.StatusPartialContent || len(body) != 100 || !strings.HasPrefix(header.Get("Content-Type"), "video/mp4") || !strings.Contains(header.Get("Content-Range"), "bytes 0-99/") {
-			t.Errorf("%d %d bytes %q %q", status, len(body), header.Get("Content-Type"), header.Get("Content-Range"))
-		}
-		if status, _, header := f.browser().do("GET", "/static/demo-poster.jpg", nil, nil); status != http.StatusOK || header.Get("Content-Type") != "image/jpeg" {
-			t.Errorf("%d %q", status, header.Get("Content-Type"))
+		if status, body, header := f.browser().do("GET", "/static/hero.webp", nil, nil); status != http.StatusOK || len(body) < 1000 || header.Get("Content-Type") != "image/webp" {
+			t.Errorf("%d %d bytes %q", status, len(body), header.Get("Content-Type"))
 		}
 	})
 }

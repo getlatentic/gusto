@@ -24,6 +24,7 @@ p { margin: 0; }
 .ghost { border: 1px solid var(--gu-border-strong); }
 .ghost:hover { background: var(--gu-bg-subtle); }
 .fine { font-size: .875rem; color: var(--gu-text-muted); }
+.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--gu-border); border-radius: var(--gu-radius-lg); box-shadow: var(--gu-shadow-2); }
 .video video, .video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--gu-radius-lg); background: #000; box-shadow: var(--gu-shadow-2); }
 .steps ol, .points ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gu-space-5); grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
 .steps li, .points li { padding: var(--gu-space-5); background: var(--gu-surface); border-radius: var(--gu-radius-lg); box-shadow: var(--gu-shadow-1, 0 1px 3px rgba(0,0,0,.08)); }
