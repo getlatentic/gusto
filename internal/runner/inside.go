@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Inside does the whole run and returns the exit code the gate earned, so a
@@ -277,7 +277,7 @@ func asExit(err error, into **exec.ExitError) bool {
 // runner with a key and no name gives the key's id, so a signed record never
 // calls itself unsigned.
 func signer(key signing.Signer, keyed bool) string {
-	if name := os.Getenv("HAAS_SIGNER"); name != "" {
+	if name := os.Getenv("GUSTO_SIGNER"); name != "" {
 		return name
 	}
 	if keyed {

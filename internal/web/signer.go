@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // UseKeyring gives the pages the keyring that names a record's signer. Without

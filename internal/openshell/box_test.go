@@ -10,19 +10,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/openshell"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // A harness that makes the change, and says what it was started with.
 const fixture = `{
   "name": "fixture",
   "program": "sh",
-  "argv": ["-c", "printf yes > answer.txt; echo model=$HAAS_MODEL_URL token=$HAAS_MODEL_TOKEN; echo password=${HAAS_PASSWORD:-absent} signer=${HAAS_SIGNER:-absent}; echo wrote the answer"],
+  "argv": ["-c", "printf yes > answer.txt; echo model=$GUSTO_MODEL_URL token=$GUSTO_MODEL_TOKEN; echo password=${GUSTO_PASSWORD:-absent} signer=${GUSTO_SIGNER:-absent}; echo wrote the answer"],
   "needs": "nothing",
   "stream": "plain"
 }`
@@ -44,7 +44,7 @@ func aJob(t *testing.T) (job.Dir, job.Spec) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), fixture)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -82,8 +82,8 @@ func sandboxFor(t *testing.T, dir job.Dir) *openshell.Sandbox {
 // saw is in the record the signature covers.
 func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	root := installFake(t)
-	t.Setenv("HAAS_PASSWORD", "the-servers-own-secret")
-	t.Setenv("HAAS_SIGNER", "the-servers-signer")
+	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
+	t.Setenv("GUSTO_SIGNER", "the-servers-signer")
 	keys := t.TempDir()
 	key, err := signing.Generate(keys, "acme")
 	if err != nil {
@@ -183,8 +183,8 @@ func TestWhatASandboxCannotYetCarryIsRefusedByNameBeforeAnythingStarts(t *testin
 
 func TestADriverSubprocessCarriesNoneOfTheServersSecrets(t *testing.T) {
 	installFake(t)
-	t.Setenv("HAAS_PASSWORD", "the-servers-own-secret")
-	t.Setenv("HAAS_MODEL_KEY", "a-real-key")
+	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
+	t.Setenv("GUSTO_MODEL_KEY", "a-real-key")
 	t.Setenv("OPENSHELL_GATEWAY", "kept")
 	dir, _ := aJob(t)
 	if _, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil {
@@ -229,7 +229,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
   "name": "fixture", "program": "sh", "skills": "/root/.config/fixture/skills",
   "argv": ["-c", "printf yes > answer.txt; cat .config/fixture/skills/review/SKILL.md 2>/dev/null | head -1 > /dev/null; echo skills: $(ls ../.config/fixture/skills 2>&1 | tr '\\n' ' ')"],
   "needs": "nothing", "stream": "plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if err := os.MkdirAll(filepath.Join(dir.SetupDir(), "skills", "review"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	// The fake keeps a sandbox as a directory, and it is gone after the run, so
 	// the run itself is what shows it: the harness listed the skills folder.
 	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
-	if !strings.Contains(string(said), "skills: haas-sandbox review") {
+	if !strings.Contains(string(said), "skills: gusto-sandbox review") {
 		t.Errorf("the skill was not where the harness looks:\n%s", said)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
@@ -266,7 +266,7 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 	dir, _ := aJob(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"a-program-no-image-carries","argv":[],"needs":"nothing","stream":"plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	_, err := runner.Outside(dir, sandboxFor(t, dir))
 	if err == nil || !strings.Contains(err.Error(), "does not carry a-program-no-image-carries") {
 		t.Fatalf("%v", err)
@@ -314,7 +314,7 @@ func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
   "name": "fixture", "program": "sh", "keeps": "/root/.local/share/fixture",
   "argv": ["-c", "printf yes > answer.txt; test -d ../.local/share/fixture && echo state folder is there || echo state folder is missing"],
   "needs": "nothing", "stream": "plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
@@ -334,7 +334,7 @@ func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
     *'"method":"initialize"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1,"agentCapabilities":{},"authMethods":[]}}\n' "$id";;
     *'"method":"session/new"'*) printf '%s' "$line" > asked-new.json; printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id";;
     *'"method":"session/prompt"'*) printf yes > answer.txt
-      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Made it yes. token=%s"}}}}\n' "$HAAS_MODEL_TOKEN"
+      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Made it yes. token=%s"}}}}\n' "$GUSTO_MODEL_TOKEN"
       printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id";;
   esac
 done`
@@ -346,7 +346,7 @@ done`
 	}
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), string(adapter))
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
@@ -357,10 +357,10 @@ done`
 	if strings.Contains(string(calls), "a-job-token") {
 		t.Errorf("the job's token is an argument on the host:\n%s", calls)
 	}
-	if left, _ := filepath.Glob("/tmp/haas-env-*"); len(left) != 0 {
+	if left, _ := filepath.Glob("/tmp/gusto-env-*"); len(left) != 0 {
 		t.Errorf("the file that carried the environment was left: %v", left)
 	}
-	if !strings.Contains(string(calls), "ssh-config") || !strings.Contains(string(calls), "ssh haas-") {
+	if !strings.Contains(string(calls), "ssh-config") || !strings.Contains(string(calls), "ssh gusto-") {
 		t.Errorf("a conversation should be held over ssh, since exec cannot carry one: %s", calls)
 	}
 	asked, err := os.ReadFile(filepath.Join(dir.Workspace(), "asked-new.json"))
@@ -412,7 +412,7 @@ func TestAHarnessIsToldItsOwnSandboxIsNotNeededInsideOne(t *testing.T) {
   "argv": ["-c", "printf yes > answer.txt; echo mode=$1", "sh", "workspace-write"],
   "whenBoxed": {"workspace-write": "danger-full-access"},
   "needs": "nothing", "stream": "plain"}`)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}

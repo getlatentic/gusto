@@ -42,7 +42,7 @@ func secretTool(stdin string, args ...string) ([]byte, error) {
 }
 
 func (secretService) Keep(provider, key string) error {
-	_, err := secretTool(key, "store", "--label", "haas: "+provider, "service", service, "provider", provider)
+	_, err := secretTool(key, "store", "--label", "gusto: "+provider, "service", service, "provider", provider)
 	return err
 }
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/audit"
+	"github.com/getlatentic/gusto/internal/audit"
 )
 
 // A cap refusal never left the box and a request to another host is not a

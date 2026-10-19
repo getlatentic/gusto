@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/mirror"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/mirror"
 )
 
 // A person's folder and an agent's folder on the real server are kept the same, and when both sides change a file neither
@@ -100,7 +100,7 @@ func TestAPersonsFolderAndAnAgentsFolderOnTheRealServerAreKeptTheSameAndConflict
 	if _, err := os.Stat(filepath.Join(cloudRoot, "src/main.go")); err == nil {
 		t.Error("a file deleted here is still in the agent's folder")
 	}
-	if entries, _ := filepath.Glob(filepath.Join(cloudRoot, ".haas-write-*")); len(entries) != 0 {
+	if entries, _ := filepath.Glob(filepath.Join(cloudRoot, ".gusto-write-*")); len(entries) != 0 {
 		t.Errorf("a write left %v", entries)
 	}
 }

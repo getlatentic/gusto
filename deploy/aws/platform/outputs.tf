@@ -15,7 +15,7 @@ output "launch_templates" {
 }
 
 output "file_system" {
-  description = "Its id is the repository variable HAAS_EFS."
+  description = "Its id is the repository variable GUSTO_EFS."
   value       = aws_efs_file_system.shared.id
 }
 

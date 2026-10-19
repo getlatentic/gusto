@@ -3,7 +3,7 @@ package desk
 import (
 	"strings"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 const briefWidth = 48

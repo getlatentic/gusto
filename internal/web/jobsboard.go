@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // perPage is how many jobs one page of the record shows. The record only

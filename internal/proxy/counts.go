@@ -3,7 +3,7 @@ package proxy
 import (
 	"sync/atomic"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // Counts is what the proxy has done since it started, for the metrics. Errors

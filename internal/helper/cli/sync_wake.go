@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/mirror"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/mirror"
 )
 
 // backstop is how often the folders are compared with nothing to say that they changed. A watcher can drop events, and a change

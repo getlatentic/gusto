@@ -1,16 +1,16 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "haas-{env:HAAS_MODEL_PROVIDER}": {
+    "gusto-{env:GUSTO_MODEL_PROVIDER}": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "{env:HAAS_MODEL_PROVIDER}",
+      "name": "{env:GUSTO_MODEL_PROVIDER}",
       "options": {
-        "baseURL": "{env:HAAS_MODEL_URL}",
-        "apiKey": "{env:HAAS_MODEL_TOKEN}"
+        "baseURL": "{env:GUSTO_MODEL_URL}",
+        "apiKey": "{env:GUSTO_MODEL_TOKEN}"
       },
       "models": {
-        "{env:HAAS_MODEL_ID}": {
-          "name": "{env:HAAS_MODEL_ID}"
+        "{env:GUSTO_MODEL_ID}": {
+          "name": "{env:GUSTO_MODEL_ID}"
         }
       }
     },
@@ -31,7 +31,7 @@
     }
   },
   "disabled_providers": [
-    "haas"
+    "gusto"
   ],
   "permission": {
     "bash": "allow",

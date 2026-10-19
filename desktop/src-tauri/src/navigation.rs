@@ -13,13 +13,13 @@ pub enum Move {
     PickFolder,
     /// The window goes to this address instead: the sign-in page that offers the browser.
     Instead(Url),
-    /// The window stays, and the app signs it in to haas on this computer again, with a new link.
+    /// The window stays, and the app signs it in to gusto on this computer again, with a new link.
     SignInHere,
     /// The window stays, and the person's browser opens it.
     Browser,
 }
 
-/// What to do about the window going to `to`, when it is showing `server`, which is haas on this computer when `here`.
+/// What to do about the window going to `to`, when it is showing `server`, which is gusto on this computer when `here`.
 pub fn decide(server: &Url, to: &Url, here: bool) -> Move {
     if !matches!(to.scheme(), "http" | "https") || to.host_str() == Some("tauri.localhost") {
         return Move::Allow;
@@ -50,7 +50,7 @@ mod tests {
     }
 
     #[test]
-    fn haas_on_this_computer_is_signed_in_to_again_by_the_app() {
+    fn gusto_on_this_computer_is_signed_in_to_again_by_the_app() {
         let here = |to: &str| decide(&Url::parse("http://127.0.0.1:7140").unwrap(), &Url::parse(to).unwrap(), true);
         assert_eq!(here("http://127.0.0.1:7140/login"), Move::SignInHere);
         assert_eq!(here("http://127.0.0.1:7140/chat"), Move::Allow);

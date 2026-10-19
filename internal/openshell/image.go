@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 // Image is the sandbox image as the catalog asks about it: which programs a job
@@ -29,7 +29,7 @@ func (i image) Carried(programs []string) catalog.Carried {
 		return catalog.Carried{Unanswered: err}
 	}
 
-	policy, err := os.CreateTemp("", "haas-survey-policy-")
+	policy, err := os.CreateTemp("", "gusto-survey-policy-")
 	if err != nil {
 		return catalog.Carried{Unanswered: err}
 	}

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/entry"
+	"github.com/getlatentic/gusto/internal/entry"
 )
 
 // The test binary is also the organisation's server: a controller that is told to
@@ -35,7 +35,7 @@ func fakeOrgServer() {
 	if delay, err := time.ParseDuration(os.Getenv("FAKE_DELAY")); err == nil {
 		time.Sleep(delay)
 	}
-	org, addr := os.Getenv("HAAS_ORG"), os.Getenv("HAAS_ADDR")
+	org, addr := os.Getenv("GUSTO_ORG"), os.Getenv("GUSTO_ADDR")
 	terms := make(chan os.Signal, 1)
 	signal.Notify(terms, syscall.SIGTERM)
 	go func() {
@@ -43,7 +43,7 @@ func fakeOrgServer() {
 		if os.Getenv("FAKE_IGNORE_TERM") != "" {
 			select {}
 		}
-		os.WriteFile(filepath.Join(os.Getenv("HAAS_JOBS"), "..", "stopped"), []byte("asked\n"), 0o600)
+		os.WriteFile(filepath.Join(os.Getenv("GUSTO_JOBS"), "..", "stopped"), []byte("asked\n"), 0o600)
 		os.Exit(0)
 	}()
 	mux := http.NewServeMux()
@@ -51,11 +51,11 @@ func fakeOrgServer() {
 	mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"org": org, "pid": os.Getpid(), "addr": addr, "host": r.Host, "xff": r.Header.Get("X-Forwarded-For"),
-			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Haas-App"),
-			"jobs": os.Getenv("HAAS_JOBS"), "quota": os.Getenv("HAAS_QUOTA"), "members": os.Getenv("HAAS_MEMBERS"), "inbox": os.Getenv("HAAS_INBOX"), "orgSettings": os.Getenv("HAAS_ORG_SETTINGS"), "home": os.Getenv("HOME"),
-			"entryKey": os.Getenv("HAAS_ENTRY_KEY"), "signingKey": os.Getenv("HAAS_SIGNING_KEY"),
-			"proxyAddr": os.Getenv("HAAS_PROXY_ADDR"), "front": os.Getenv("HAAS_FRONT_DOOR"), "concurrency": os.Getenv("HAAS_JOB_CONCURRENCY"),
-			"mailVisible": os.Getenv("HAAS_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
+			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Gusto-App"),
+			"jobs": os.Getenv("GUSTO_JOBS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
+			"entryKey": os.Getenv("GUSTO_ENTRY_KEY"), "signingKey": os.Getenv("GUSTO_SIGNING_KEY"),
+			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_FRONT_DOOR"), "concurrency": os.Getenv("GUSTO_JOB_CONCURRENCY"),
+			"mailVisible": os.Getenv("GUSTO_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
 		})
 	})
 	mux.HandleFunc("/die", func(http.ResponseWriter, *http.Request) { os.Exit(3) })
@@ -68,13 +68,13 @@ func fakeOrgServer() {
 		}
 	})
 	mux.HandleFunc("/auth/entry", func(w http.ResponseWriter, r *http.Request) {
-		key, _ := os.ReadFile(os.Getenv("HAAS_ENTRY_KEY"))
+		key, _ := os.ReadFile(os.Getenv("GUSTO_ENTRY_KEY"))
 		claims, err := entry.Verify(key, org, r.URL.Query().Get("t"), time.Now())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: "haas", Value: claims.Email + "|" + claims.Role, Path: "/"})
+		http.SetCookie(w, &http.Cookie{Name: "gusto", Value: claims.Email + "|" + claims.Role, Path: "/"})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 	listener, err := net.Listen("tcp", addr)
@@ -94,7 +94,7 @@ func controlled(t *testing.T, store *Store, extra ...string) *Controller {
 	}
 	// The operator's settings, and what a careless one would not want a server to see is
 	// in this process's environment and not in them.
-	t.Setenv("HAAS_CLOUD_MAIL", "smtp://user:secret@mail.example.com:587?from=x@example.com")
+	t.Setenv("GUSTO_CLOUD_MAIL", "smtp://user:secret@mail.example.com:587?from=x@example.com")
 	c := &Controller{
 		Store: store, Cell: &LocalCell{}, Command: []string{exe, "serve"},
 		Env:       append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),

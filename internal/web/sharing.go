@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apps"
+	"github.com/getlatentic/gusto/internal/apps"
 )
 
 // AppRunner runs the web apps that agents built, where the agents are. Start runs the app's
@@ -176,7 +176,7 @@ func (s *Server) stopApp(app apps.App) {
 // AppHeader says which app a request is for. The front door sets it, for a request to an
 // app's own host name, and signs it with the key it shares with this server, so a client
 // cannot write it and the request it arrives on can reach nothing but that app.
-const AppHeader = "X-Haas-App"
+const AppHeader = "X-Gusto-App"
 
 // SignApp is the header's value for an app: its id, and a signature only the front door and this server can make.
 func SignApp(key []byte, id string) string {

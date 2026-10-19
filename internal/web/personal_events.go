@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // eventEvery is how often the stream looks at a person's jobs, and keepAlive how long it may be quiet before it sends a

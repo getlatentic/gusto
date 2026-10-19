@@ -42,7 +42,7 @@ type Computer struct {
 func (c Computer) Live() bool { return c.State != Deleted }
 
 // Marker begins the name of every computer's sandbox, and no job's: a job's
-// sandbox is called haas-<digest>.
+// sandbox is called gusto-<digest>.
 const Marker = "c-"
 
 // A gateway takes at most 19 characters in a sandbox's name: the marker, eight

@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/replay"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/replay"
 )
 
-// A job in the matrix is a comparison, in the shape `haas compare` writes and
+// A job in the matrix is a comparison, in the shape `gusto compare` writes and
 // reads: comparison.json above one ordinary job directory a pair, every one
-// pinned to one commit. So `haas compare <matrix>/<job>` prints any column of
+// pinned to one commit. So `gusto compare <matrix>/<job>` prints any column of
 // the matrix, and a matrix is many comparisons side by side.
 
 // prepared is the comparison for one job with a run for every pair, made
@@ -160,7 +160,7 @@ func holds(record compare.Record, dir string) bool {
 }
 
 // writeComparison writes compare's own record, at compare's version, so the
-// comparison reads back through compare.Read like one `haas compare` made.
+// comparison reads back through compare.Read like one `gusto compare` made.
 func writeComparison(where string, record compare.Record) error {
 	record.Version = compare.RecordVersion
 	text, err := json.MarshalIndent(record, "", "  ")

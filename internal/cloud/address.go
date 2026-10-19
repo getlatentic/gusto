@@ -1,6 +1,6 @@
-// Package cloud is the front door of a hosted haas: the accounts, the
+// Package cloud is the front door of a hosted gusto: the accounts, the
 // organisations they create, and the limits an organisation runs under. It runs
-// no jobs. Each organisation's work is done by a haas server of its own.
+// no jobs. Each organisation's work is done by a gusto server of its own.
 package cloud
 
 import (
@@ -121,7 +121,7 @@ var slugShape = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$`)
 // server or a mail server takes for its own.
 var reserved = setOf("www", "api", "app", "admin", "cloud", "static", "mail", "smtp", "imap", "ftp", "ns1", "ns2",
 	"status", "docs", "help", "support", "billing", "login", "signin", "signup", "auth", "console", "dashboard",
-	"root", "haas", "latentic", "getlatentic", "staging", "demo", "test", "localhost", "security", "abuse", "postmaster")
+	"root", "gusto", "latentic", "getlatentic", "staging", "demo", "test", "localhost", "security", "abuse", "postmaster")
 
 // SlugFor is the address a name suggests: its letters and digits, joined by
 // hyphens. It may be too short to use, and then a person picks one.

@@ -8,16 +8,16 @@ import (
 )
 
 // The tests keep a key in this computer's real keychain, which a machine with no desktop session cannot open, so they run
-// when asked: HAAS_TEST_KEYCHAIN=1.
+// when asked: GUSTO_TEST_KEYCHAIN=1.
 func TestAKeyIsKeptReadAndForgotten(t *testing.T) {
-	if os.Getenv("HAAS_TEST_KEYCHAIN") != "1" {
-		t.Skip("set HAAS_TEST_KEYCHAIN=1 to use this computer's keychain")
+	if os.Getenv("GUSTO_TEST_KEYCHAIN") != "1" {
+		t.Skip("set GUSTO_TEST_KEYCHAIN=1 to use this computer's keychain")
 	}
 	store, err := Open()
 	if err != nil {
 		t.Fatal(err)
 	}
-	const provider = "haas-test-provider"
+	const provider = "gusto-test-provider"
 	t.Cleanup(func() { store.Forget(provider) })
 	if err := store.Keep(provider, "sk-first"); err != nil {
 		t.Fatal(err)

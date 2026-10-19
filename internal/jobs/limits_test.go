@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // by queues a job asked for by who, for team, and returns it.

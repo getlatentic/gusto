@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 const (

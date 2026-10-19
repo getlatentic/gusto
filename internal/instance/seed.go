@@ -30,6 +30,6 @@ func (s *Store) Seed(id string, files map[string]string) error {
 	if err := run(workspace, "add", "-A"); err != nil {
 		return err
 	}
-	return run(workspace, "-c", "user.name=haas", "-c", "user.email=haas@localhost",
+	return run(workspace, "-c", "user.name=gusto", "-c", "user.email=gusto@localhost",
 		"commit", "--quiet", "-m", "the template's sample files")
 }

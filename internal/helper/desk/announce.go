@@ -3,7 +3,7 @@ package desk
 import (
 	"context"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // Announcer says when a turn the person was waiting on ends. It speaks of a turn it saw going, so that the turns the server

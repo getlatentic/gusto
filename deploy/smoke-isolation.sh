@@ -12,7 +12,7 @@
 # about a kernel bug: a container shares the host's kernel.
 set -eu
 
-data=$(dirname "$HAAS_JOBS")
+data=$(dirname "$GUSTO_JOBS")
 smoke="$data/smoke"
 rm -rf "$smoke/isolation-job"
 mkdir -p "$smoke/isolation-repo" "$smoke/isolation-harnesses"
@@ -21,30 +21,30 @@ cd "$smoke/isolation-repo"
 if [ ! -d .git ]; then
   echo "nothing to change" > README
   git init -q . && git add -A
-  git -c user.email=haas@localhost -c user.name=haas commit -qm "a repository to probe from"
+  git -c user.email=gusto@localhost -c user.name=gusto commit -qm "a repository to probe from"
 fi
 
 cat > "$smoke/isolation-harnesses/probe.json" <<'JSON'
 {
   "name": "probe",
   "program": "bash",
-  "argv": ["-c", "echo uid=$(id -u); echo interfaces=$(ls /sys/class/net | tr '\\n' ' '); for t in 1.1.1.1:443 8.8.8.8:53 169.254.169.254:80 172.17.0.1:22 172.17.0.1:8040 host.docker.internal:8040; do h=${t%:*}; p=${t#*:}; if timeout 3 bash -c \"exec 3<>/dev/tcp/$h/$p\" 2>/dev/null; then echo \"OPEN $t\"; else echo \"closed $t\"; fi; done; if getent hosts example.com >/dev/null 2>&1; then echo 'OPEN dns'; else echo 'closed dns'; fi; echo \"docker-socket=$(ls /var/run/docker.sock /run/docker.sock 2>&1 | head -1)\"; echo \"server-data=$(ls /var/lib/haas 2>&1 | head -1)\"; grep -E 'NoNewPrivs|Seccomp:|CapEff|CapBnd' /proc/self/status | tr -s '\\t ' ' '; echo kernel=$(uname -r)"],
+  "argv": ["-c", "echo uid=$(id -u); echo interfaces=$(ls /sys/class/net | tr '\\n' ' '); for t in 1.1.1.1:443 8.8.8.8:53 169.254.169.254:80 172.17.0.1:22 172.17.0.1:8040 host.docker.internal:8040; do h=${t%:*}; p=${t#*:}; if timeout 3 bash -c \"exec 3<>/dev/tcp/$h/$p\" 2>/dev/null; then echo \"OPEN $t\"; else echo \"closed $t\"; fi; done; if getent hosts example.com >/dev/null 2>&1; then echo 'OPEN dns'; else echo 'closed dns'; fi; echo \"docker-socket=$(ls /var/run/docker.sock /run/docker.sock 2>&1 | head -1)\"; echo \"server-data=$(ls /var/lib/gusto 2>&1 | head -1)\"; grep -E 'NoNewPrivs|Seccomp:|CapEff|CapBnd' /proc/self/status | tr -s '\\t ' ' '; echo kernel=$(uname -r)"],
   "needs": "nothing",
   "stream": "plain"
 }
 JSON
 
-HAAS_HARNESSES="$smoke/isolation-harnesses" haas new "$smoke/isolation-job" -repo "$smoke/isolation-repo" \
+GUSTO_HARNESSES="$smoke/isolation-harnesses" gusto new "$smoke/isolation-job" -repo "$smoke/isolation-repo" \
   -brief "probe the box" -harness probe -- true >/dev/null
-if [ -n "${HAAS_API_TOKENS:-}" ] && [ -z "${HAAS_TOKEN:-}" ]; then
-  echo "this server takes API tokens: set HAAS_TOKEN to one that may send jobs" >&2
+if [ -n "${GUSTO_API_TOKENS:-}" ] && [ -z "${GUSTO_TOKEN:-}" ]; then
+  echo "this server takes API tokens: set GUSTO_TOKEN to one that may send jobs" >&2
   exit 2
 fi
-id=$(HAAS_SERVER=http://127.0.0.1:8040 haas submit "$smoke/isolation-job" | head -n 1)
+id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/isolation-job" | head -n 1)
 echo "submitted $id"
 
 tries=0
-until [ -f "$HAAS_JOBS/$id/out/manifest.json" ]; do
+until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
     echo "no manifest after 120 seconds; the job page says why: /jobs/$id" >&2
@@ -53,7 +53,7 @@ until [ -f "$HAAS_JOBS/$id/out/manifest.json" ]; do
   sleep 1
 done
 
-seen="$HAAS_JOBS/$id/out/transcript.log"
+seen="$GUSTO_JOBS/$id/out/transcript.log"
 echo "what the job saw:"
 cat "$seen"
 

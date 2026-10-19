@@ -102,7 +102,7 @@ func (c Client) send(ctx context.Context, method, path string, headers map[strin
 		return err
 	}
 	if response.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+		return fmt.Errorf("%w: run `gusto-helper login` again", ErrSignedOut)
 	}
 	if response.StatusCode < 200 || response.StatusCode > 299 {
 		var said struct {
@@ -197,7 +197,7 @@ func (c Client) FollowJob(ctx context.Context, job string, told Follower) (Ended
 	defer response.Body.Close()
 	switch {
 	case response.StatusCode == http.StatusUnauthorized:
-		return Ended{}, fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+		return Ended{}, fmt.Errorf("%w: run `gusto-helper login` again", ErrSignedOut)
 	case response.StatusCode != http.StatusOK:
 		return Ended{}, &Refused{Status: response.StatusCode, Message: "the turn could not be followed"}
 	}
@@ -323,7 +323,7 @@ func (c Client) Upload(ctx context.Context, instance, path string, body io.Reade
 	case http.StatusPreconditionFailed:
 		return "", &Changed{Hash: answer.Hash}
 	case http.StatusUnauthorized:
-		return "", fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+		return "", fmt.Errorf("%w: run `gusto-helper login` again", ErrSignedOut)
 	}
 	return "", &Refused{Status: response.StatusCode, Message: firstNonEmpty(answer.Error, "the file could not be put")}
 }
@@ -353,7 +353,7 @@ func (c Client) Remove(ctx context.Context, instance, path, saw string) error {
 	case http.StatusPreconditionFailed:
 		return &Changed{Hash: answer.Hash}
 	case http.StatusUnauthorized:
-		return fmt.Errorf("%w: run `haas-helper login` again", ErrSignedOut)
+		return fmt.Errorf("%w: run `gusto-helper login` again", ErrSignedOut)
 	}
 	return &Refused{Status: response.StatusCode, Message: firstNonEmpty(answer.Error, "the file could not be removed")}
 }

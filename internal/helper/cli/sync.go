@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/mirror"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/mirror"
 )
 
 // Sync keeps a folder on this computer the same as an agent's folder in the cloud. Files are real files on both sides, and the
@@ -24,7 +24,7 @@ import (
 func Sync(args []string) int {
 	flags := flag.NewFlagSet("sync", flag.ContinueOnError)
 	address := serverFlag(flags)
-	instance := flags.String("instance", os.Getenv("HAAS_INSTANCE"), "the agent in the cloud whose folder this is (default your newest)")
+	instance := flags.String("instance", os.Getenv("GUSTO_INSTANCE"), "the agent in the cloud whose folder this is (default your newest)")
 	folder := flags.String("folder", "", "the folder on this computer")
 	once := flags.Bool("once", false, "compare once and stop")
 	dry := flags.Bool("dry-run", false, "say what would be done, and do nothing")
@@ -112,7 +112,7 @@ func agentFor(ctx context.Context, client helper.Client, named string) (helper.I
 		if named != "" {
 			return helper.Instance{}, fmt.Errorf("you have no agent called %s", named)
 		}
-		return helper.Instance{}, fmt.Errorf("you have no agent yet: start one on the web, or with `haas-helper acp`, and run this again")
+		return helper.Instance{}, fmt.Errorf("you have no agent yet: start one on the web, or with `gusto-helper acp`, and run this again")
 	}
 	return *picked, nil
 }

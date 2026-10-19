@@ -17,9 +17,9 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/getlatentic/haas/internal/atomicfile"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // Provider is where models answer and how to be let in. Its key is never kept here: Key says where it is.

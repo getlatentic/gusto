@@ -1,6 +1,6 @@
 # Roadmap
 
-What is next for haas, in the order we are doing it. Each line names the issue it is tracked in where there is one. A line moves out of here
+What is next for gusto, in the order we are doing it. Each line names the issue it is tracked in where there is one. A line moves out of here
 when it ships, and into [RELEASES.md](RELEASES.md).
 
 ## Now: a release anyone can install
@@ -34,4 +34,4 @@ when it ships, and into [RELEASES.md](RELEASES.md).
 
 - Streams that resume at an exact event, and that are pushed when something changes.
 - A turn whose model call failed says it failed (getlatentic/planning#676).
-- `haas verify` inside a sandbox, and the patches of two engines compared side by side.
+- `gusto verify` inside a sandbox, and the patches of two engines compared side by side.

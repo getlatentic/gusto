@@ -1,25 +1,25 @@
 #!/bin/sh
 # Rehearses an upgrade on a copy of your data, so a migration is not first tried on the real thing.
 #
-#   deploy/rehearse-upgrade.sh <the new haas binary> <your HAAS_DATA directory> [<a release to roll back to>]
+#   deploy/rehearse-upgrade.sh <the new gusto binary> <your GUSTO_DATA directory> [<a release to roll back to>]
 #
 # The directory is copied and never changed. On the copy, the script has the new binary check what it would migrate, starts
-# it as a server, reads the job pages, and runs `haas verify` on every job. With a release named, it then rolls the copy back
+# it as a server, reads the job pages, and runs `gusto verify` on every job. With a release named, it then rolls the copy back
 # to that release's formats. It runs jobs in the server's own process and runs none, so it needs the binary and curl, and no
-# container runtime. A binary is built from a checkout with `go build -o haas ./cmd/haas`.
+# container runtime. A binary is built from a checkout with `go build -o gusto ./cmd/gusto`.
 #
-# It reads the signing keys' public halves from <data>/keys when that directory exists, or from HAAS_KEYRING. A job signed
-# with a key it cannot find is reported, so point HAAS_KEYRING at the keyring the server uses.
+# It reads the signing keys' public halves from <data>/keys when that directory exists, or from GUSTO_KEYRING. A job signed
+# with a key it cannot find is reported, so point GUSTO_KEYRING at the keyring the server uses.
 #
 # It exits 0 when the copy upgrades, the pages load and every job verifies, and 1 otherwise, saying which.
 set -eu
 
-[ "$#" -ge 2 ] || { echo "usage: $0 <new haas binary> <HAAS_DATA directory> [<release to roll back to>]" >&2; exit 2; }
+[ "$#" -ge 2 ] || { echo "usage: $0 <new gusto binary> <GUSTO_DATA directory> [<release to roll back to>]" >&2; exit 2; }
 binary=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 source_dir=$2
 release=${3:-}
 [ -x "$binary" ] || { echo "$1 is not a program" >&2; exit 2; }
-[ -d "$source_dir/jobs" ] || { echo "$source_dir has no jobs directory: give the directory HAAS_DATA names" >&2; exit 2; }
+[ -d "$source_dir/jobs" ] || { echo "$source_dir has no jobs directory: give the directory GUSTO_DATA names" >&2; exit 2; }
 
 work=$(mktemp -d)
 pid=""
@@ -29,9 +29,9 @@ data="$work/data"
 echo "copying $source_dir to a scratch directory"
 cp -R "$source_dir" "$data"
 
-export HAAS_JOBS="$data/jobs" HAAS_SESSIONS="$data/sessions" HAAS_SETUPS="$data/setups" HAAS_INTEGRATIONS="$data/integrations" HAAS_PRESETS="$data/presets" \
-  HAAS_COMPARISONS="$data/comparisons" HAAS_CHANGES="$data/changes/changes.jsonl"
-[ -z "${HAAS_KEYRING:-}" ] && [ -d "$data/keys" ] && export HAAS_KEYRING="$data/keys"
+export GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" \
+  GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl"
+[ -z "${GUSTO_KEYRING:-}" ] && [ -d "$data/keys" ] && export GUSTO_KEYRING="$data/keys"
 
 echo "== what the new binary would migrate"
 "$binary" data check
@@ -39,7 +39,7 @@ echo "== what the new binary would migrate"
 port=$((20000 + $$ % 20000))
 address="127.0.0.1:$port"
 echo "== starting it on the copy"
-HAAS_PASSWORD=rehearsal HAAS_ADDR="$address" HAAS_SANDBOX=here HAAS_LOCAL_REPOS="$data/smoke" \
+GUSTO_PASSWORD=rehearsal GUSTO_ADDR="$address" GUSTO_SANDBOX=here GUSTO_LOCAL_REPOS="$data/smoke" \
   "$binary" serve > "$work/serve.log" 2>&1 &
 pid=$!
 tries=0

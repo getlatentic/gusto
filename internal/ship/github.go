@@ -21,17 +21,17 @@ type GitHub struct {
 	Client *http.Client
 }
 
-// GitHubFromEnv reads the token from HAAS_GITHUB_TOKEN and the API from
-// HAAS_GITHUB_API, which defaults to api.github.com. It is read before anything
+// GitHubFromEnv reads the token from GUSTO_GITHUB_TOKEN and the API from
+// GUSTO_GITHUB_API, which defaults to api.github.com. It is read before anything
 // is pushed, so a missing token never leaves a branch behind with no pull
 // request.
 func GitHubFromEnv() (GitHub, error) {
-	token := os.Getenv("HAAS_GITHUB_TOKEN")
+	token := os.Getenv("GUSTO_GITHUB_TOKEN")
 	if token == "" {
-		return GitHub{}, errors.New("set HAAS_GITHUB_TOKEN to a token that may push and open pull requests")
+		return GitHub{}, errors.New("set GUSTO_GITHUB_TOKEN to a token that may push and open pull requests")
 	}
 	return GitHub{
-		API:    strings.TrimSuffix(or(os.Getenv("HAAS_GITHUB_API"), "https://api.github.com"), "/"),
+		API:    strings.TrimSuffix(or(os.Getenv("GUSTO_GITHUB_API"), "https://api.github.com"), "/"),
 		Token:  token,
 		Client: &http.Client{Timeout: 30 * time.Second},
 	}, nil

@@ -24,8 +24,8 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/haas-helper",
-      "binaries/haas"
+      "binaries/gusto-helper",
+      "binaries/gusto"
     ],
     "category": "DeveloperTool",
     "shortDescription": "Latentic Agent Cloud",

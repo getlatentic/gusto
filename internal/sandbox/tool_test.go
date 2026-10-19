@@ -44,7 +44,7 @@ func TestAProgramsBoxHasNoCapabilityNoNetworkAndNothingItMayWriteButItsOwnFolder
 	if strings.Contains(line, "/elsewhere") || strings.Contains(line, "A=B") {
 		t.Errorf("the package set a variable that is the client's: %s", line)
 	}
-	if args[4] != "--name" || args[5] != "haas-tool-20261008-1200-a-turn-reports-db" {
+	if args[4] != "--name" || args[5] != "gusto-tool-20261008-1200-a-turn-reports-db" {
 		t.Errorf("name: %v", args[:8])
 	}
 }
@@ -53,12 +53,12 @@ func TestTheNetworkIsOpenOnlyWhenAnAdministratorSaysSo(t *testing.T) {
 	if ToolNetwork() != "none" {
 		t.Fatal("a program has a network by default")
 	}
-	t.Setenv("HAAS_TOOLS_NETWORK", "open")
+	t.Setenv("GUSTO_TOOLS_NETWORK", "open")
 	args, _ := ToolArgs(aTool(t))
 	if !strings.Contains(strings.Join(args, " "), "--network=bridge") {
 		t.Errorf("%v", args)
 	}
-	t.Setenv("HAAS_TOOLS_NETWORK", "host")
+	t.Setenv("GUSTO_TOOLS_NETWORK", "host")
 	if ToolNetwork() != "none" {
 		t.Error("anything but open is not open")
 	}
@@ -124,13 +124,13 @@ rl.on("line", (line) => {
 
 func TestAProgramRunsInARealBoxThatHoldsItInAndTheGatewayCanSpeakToIt(t *testing.T) {
 	image := realToolImage(t)
-	t.Setenv("HAAS_TOOLS_IMAGE", image)
+	t.Setenv("GUSTO_TOOLS_IMAGE", image)
 	// A folder under the home directory, which a runtime that is a virtual machine shares and a temporary folder it may not.
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no home directory")
 	}
-	root, err := os.MkdirTemp(home, ".haas-tool-test-")
+	root, err := os.MkdirTemp(home, ".gusto-tool-test-")
 	if err != nil {
 		t.Skip(err)
 	}

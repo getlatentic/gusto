@@ -1,12 +1,12 @@
 # Limits on what one person or team runs at once
 
-`HAAS_JOB_CONCURRENCY` says how many jobs the server runs at once. Two more
+`GUSTO_JOB_CONCURRENCY` says how many jobs the server runs at once. Two more
 settings stop one person or team from taking all of them.
 
 | Setting | Meaning |
 | --- | --- |
-| `HAAS_LIMIT_PERSON` | the most jobs one person runs at once |
-| `HAAS_LIMIT_TEAM` | the most jobs one team runs at once |
+| `GUSTO_LIMIT_PERSON` | the most jobs one person runs at once |
+| `GUSTO_LIMIT_TEAM` | the most jobs one team runs at once |
 
 Zero, or nothing, is no limit. The playbook has `limit_person` and `limit_team`,
 compose has the two variables in `.env`, and the chart has `jobs.limitPerson`
@@ -50,7 +50,7 @@ comparison run its engines one after another.
 ## A quota for the whole server
 
 A hosted organisation's server runs under a quota that its front door writes
-(`docs/CLOUD.md`). `HAAS_QUOTA` names the file:
+(`docs/CLOUD.md`). `GUSTO_QUOTA` names the file:
 
 ```json
 {"jobs": 3, "concurrent": 1, "note": "Confirm the admin's email address to raise this limit."}
@@ -67,7 +67,7 @@ the reason, and the API answers 429 with it. A job past `concurrent` stays queue
 and says "This organisation may run 1 at a time and has 1 running".
 
 The file is read again each second, so a limit that is lifted applies to the next
-job without a restart. A server started with `HAAS_QUOTA` and a file it cannot
+job without a restart. A server started with `GUSTO_QUOTA` and a file it cannot
 read does not start. One that loses the file while it runs refuses every new job
 and lets one run at a time, and does not fall back to no limit.
 

@@ -32,7 +32,7 @@ func message(from, to, subject, body string) ([]byte, error) {
 	id := make([]byte, 12)
 	rand.Read(id)
 	var out strings.Builder
-	fmt.Fprintf(&out, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMessage-ID: <%s@haas>\r\n",
+	fmt.Fprintf(&out, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMessage-ID: <%s@gusto>\r\n",
 		from, to, subject, time.Now().UTC().Format(time.RFC1123Z), hex.EncodeToString(id))
 	out.WriteString("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
 	out.WriteString(strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n"))
@@ -88,26 +88,26 @@ func (m SMTP) Send(to, subject, body string) error {
 	return smtp.SendMail(m.Addr, auth, from.Address, []string{to}, text)
 }
 
-// MailFrom reads HAAS_CLOUD_MAIL: `outbox`,
+// MailFrom reads GUSTO_CLOUD_MAIL: `outbox`,
 // smtp://user:password@host:587?from=name@example.com, or
 // cloudflare://<account id>?from=name@example.com, whose API token is given apart from
 // the setting so that it is kept where a secret is.
 func MailFrom(setting, outbox, cloudflareToken string) (Mailer, error) {
 	if setting == "" || setting == "outbox" {
-		return Outbox{Dir: outbox, From: "haas <no-reply@localhost>"}, nil
+		return Outbox{Dir: outbox, From: "gusto <no-reply@localhost>"}, nil
 	}
-	const usage = "HAAS_CLOUD_MAIL is outbox, smtp://user:password@host:587?from=name@example.com, or cloudflare://<account id>?from=name@example.com"
+	const usage = "GUSTO_CLOUD_MAIL is outbox, smtp://user:password@host:587?from=name@example.com, or cloudflare://<account id>?from=name@example.com"
 	parsed, err := url.Parse(setting)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "smtp" && parsed.Scheme != "cloudflare") {
 		return nil, errors.New(usage)
 	}
 	from := parsed.Query().Get("from")
 	if _, err := mail.ParseAddress(from); err != nil {
-		return nil, errors.New("HAAS_CLOUD_MAIL needs ?from=name@example.com, the address the mail is sent from")
+		return nil, errors.New("GUSTO_CLOUD_MAIL needs ?from=name@example.com, the address the mail is sent from")
 	}
 	if parsed.Scheme == "cloudflare" {
 		if cloudflareToken == "" {
-			return nil, errors.New("HAAS_CLOUD_MAIL_TOKEN is the Cloudflare API token that may send mail, and it is not set")
+			return nil, errors.New("GUSTO_CLOUD_MAIL_TOKEN is the Cloudflare API token that may send mail, and it is not set")
 		}
 		return Cloudflare{Account: parsed.Host, Token: cloudflareToken, From: from, Wait: time.Second}, nil
 	}

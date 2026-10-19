@@ -24,7 +24,7 @@ getlatentic/planning#372.
 | # | Severity | Finding | Status |
 | --- | --- | --- | --- |
 | 1 | High | A repository address that began with a dash was read by git as an option. `--upload-pack=<command>` runs the command on the host, outside any box, when a person or an API caller names it as the repository | Fixed. Addresses are held to https and ssh forms; a dash is refused; `git clone` gets `--`; git may not use `ext::`, `git://` or `http://` |
-| 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned, so any runner could name another person's workspace, or any directory the server can read, and read it back through the file viewer | Fixed. A path is refused unless it is under a directory in `HAAS_LOCAL_REPOS`, which is empty by default |
+| 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned, so any runner could name another person's workspace, or any directory the server can read, and read it back through the file viewer | Fixed. A path is refused unless it is under a directory in `GUSTO_LOCAL_REPOS`, which is empty by default |
 | 3 | High | The runner is root in the box and staged the agent's workspace with the agent's own git configuration. A filter or an fsmonitor the agent set ran as root at the step that writes the record. Reproduced | Fixed. The runner stages the workspace in a repository of its own with no configuration from the workspace, and no longer trusts the workspace's ownership |
 | 4 | High | The Go 1.26.1 standard library on the box carried 19 vulnerabilities this server calls, in `net/http`, `crypto/tls`, `html/template` and others | Fixed. Go 1.26.8, with the tarball's checksum pinned, in the playbook and `go.mod`. `govulncheck` reports none |
 | 5 | Medium | A link in a job's `out/` was followed by the pages that show a record, and by the hash that a verifier takes. On a runner with no separate agent user the harness can plant one | Fixed. A record's files are read only when they are files; verify names a link. Not reachable with the agent user in place, so it is depth |
@@ -37,9 +37,9 @@ getlatentic/planning#372.
 | 12 | Low | Google sign-in had state but no PKCE and no nonce | Fixed. Both, tested against a provider that checks them |
 | 13 | Low | The model's redirect would have been followed with the credential's headers | Fixed. A redirect is not followed |
 | 14 | Info | A spending cap is checked before a call and counted after, so calls in flight when it is reached can pass it | Accepted. The excess is bounded by the calls in flight, and is documented. Tracked: getlatentic/planning#369 |
-| 15 | Info | `haas ship` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which refuses a source whose `objects/` holds links. The playbook's box has it. `haas doctor` should check: getlatentic/planning#370 |
+| 15 | Info | `gusto ship` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which refuses a source whose `objects/` holds links. The playbook's box has it. `gusto doctor` should check: getlatentic/planning#370 |
 | 16 | Info | Three of the six harness packages in the runner image are not pinned to a version | Open. A pin for `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent` means measuring each. The image is built by digest, so a build is still reproducible. Tracked: getlatentic/planning#361 |
-| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the harness can write `out/` | Documented. Development only. `haas doctor` should detect it: getlatentic/planning#370 |
+| 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the harness can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
 
 ## Checked and sound
 
@@ -75,9 +75,9 @@ container side runs on every release, in the Compose install and in the chart
 | Who the agent is | user 1000, no capabilities held (`CapEff` 0), `no-new-privileges`, a seccomp filter | the same, and no capabilities in the bounding set either (`CapBnd` 0) |
 | Capabilities a process could still be given | `CapBnd` is `cb`: chown, override of file modes, file ownership, setuid and setgid, kept for the runner that writes the record | none |
 | The container runtime's socket | not in the box | not in the box |
-| The server's data (`/var/lib/haas`) | not in the box | not in the box |
-| Limits | `--cpus`, `--memory` and `--pids-limit=512` | `HAAS_OPENSHELL_CPU` and `HAAS_OPENSHELL_MEMORY` |
-| What the host must have | Docker or Podman | KVM, which a cloud machine has only with nested virtualization. A server refuses `HAAS_SANDBOX=openshell` on a Linux machine without `/dev/kvm`, and says why |
+| The server's data (`/var/lib/gusto`) | not in the box | not in the box |
+| Limits | `--cpus`, `--memory` and `--pids-limit=512` | `GUSTO_OPENSHELL_CPU` and `GUSTO_OPENSHELL_MEMORY` |
+| What the host must have | Docker or Podman | KVM, which a cloud machine has only with nested virtualization. A server refuses `GUSTO_SANDBOX=openshell` on a Linux machine without `/dev/kvm`, and says why |
 
 **What a container does not isolate.** It shares the host's kernel, so a kernel
 flaw reaches every job and the machine. On Compose the server also holds the host's
@@ -117,6 +117,6 @@ Each is a backlog issue in getlatentic/planning:
 | #361 | pin the three unpinned harness packages |
 | #367 | believe a named proxy's forwarded address when limiting wrong sign-ins |
 | #369 | hold a spending cap under concurrent calls |
-| #370 | `haas doctor` checks permissions on bind mounts and the git version |
+| #370 | `gusto doctor` checks permissions on bind mounts and the git version |
 | #371 | a read-only root filesystem and a tighter system-call profile |
 | #372 | review the identity provider, TLS, the vault and the deploy path, and an outside test |

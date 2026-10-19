@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // kinds are what the protocol calls the things an agent does, by the verb the pages use for each step.

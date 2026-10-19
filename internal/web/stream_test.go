@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // A watcher here is served over a pipe rather than a socket. A write to a pipe
@@ -48,7 +48,7 @@ func watchOverAPipe(t *testing.T, site *site, id string) *viewer {
 		_ = server.Close()
 		_ = client.Close()
 	})
-	head := "GET /watch/" + id + " HTTP/1.1\r\nHost: haas\r\nCookie: " +
+	head := "GET /watch/" + id + " HTTP/1.1\r\nHost: gusto\r\nCookie: " +
 		site.cookie.Name + "=" + site.cookie.Value + "\r\n\r\n"
 	if _, err := client.Write([]byte(head)); err != nil {
 		t.Fatal(err)

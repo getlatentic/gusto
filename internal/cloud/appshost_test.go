@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/web"
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 const someApp = "0123456789"
@@ -104,7 +104,7 @@ func TestOpeningAnAppSignsThePersonInOnTheAppsOwnHostNameWithATokenForTheirOrgan
 	// The fake organisation's server checks the token as the real one does, on the app's host name.
 	parsed, _ := url.Parse(location)
 	status, _, header = b.at(parsed.Host, "GET", parsed.RequestURI(), nil)
-	if status != http.StatusSeeOther || header.Get("Location") != "/" || !strings.Contains(header.Get("Set-Cookie"), "haas=ada@acme.com|admin") {
+	if status != http.StatusSeeOther || header.Get("Location") != "/" || !strings.Contains(header.Get("Set-Cookie"), "gusto=ada@acme.com|admin") {
 		t.Errorf("the app's host signed the person in: %d %v", status, header)
 	}
 	for _, bad := range []string{"", "zzzz", "../x", someApp + "0"} {

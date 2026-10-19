@@ -31,12 +31,12 @@ z.close()
 PY
 
 cd "$R"
-HAAS_PASSWORD=e2e HAAS_ADDR=127.0.0.1:8040 HAAS_SANDBOX=openshell HAAS_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" HAAS_OPENSHELL_GATEWAY=spike \
-  HAAS_OPENSHELL_MEMORY=3Gi HAAS_OPENSHELL_CPU=2 HAAS_CREDENTIALS="$R/creds" HAAS_MODELS="anthropic/deepseek-flash,deepseek/deepseek-flash" \
-  HAAS_GATEWAY_PRIVATE=1 HAAS_INTEGRATIONS_PRIVATE=1 HAAS_ADMINS="" HAAS_LOCAL_REPOS="$R/sample" HAAS_JOB_CONCURRENCY=1 \
-  HAAS_SIGNING_KEY="$R/keys/e2e.key" HAAS_KEYRING="$R/keys" HAAS_SIGNER=e2e \
-  HAAS_JOBS="$R/data/jobs" HAAS_SESSIONS="$R/data/sessions" HAAS_SETUPS="$R/data/setups" HAAS_INTEGRATIONS="$R/data/integrations" \
-  HAAS_COMPARISONS="$R/data/comparisons" HAAS_CHANGES="$R/data/changes/changes.jsonl" \
+GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
+  GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 GUSTO_CREDENTIALS="$R/creds" GUSTO_MODELS="anthropic/deepseek-flash,deepseek/deepseek-flash" \
+  GUSTO_GATEWAY_PRIVATE=1 GUSTO_INTEGRATIONS_PRIVATE=1 GUSTO_ADMINS="" GUSTO_LOCAL_REPOS="$R/sample" GUSTO_JOB_CONCURRENCY=1 \
+  GUSTO_SIGNING_KEY="$R/keys/e2e.key" GUSTO_KEYRING="$R/keys" GUSTO_SIGNER=e2e \
+  GUSTO_JOBS="$R/data/jobs" GUSTO_SESSIONS="$R/data/sessions" GUSTO_SETUPS="$R/data/setups" GUSTO_INTEGRATIONS="$R/data/integrations" \
+  GUSTO_COMPARISONS="$R/data/comparisons" GUSTO_CHANGES="$R/data/changes/changes.jsonl" \
   setsid nohup "$E/haas" serve > "$R/serve.log" 2>&1 </dev/null &
 for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 H=http://127.0.0.1:8040; jar=$R/jar
@@ -87,7 +87,7 @@ run() {
   grep -q '"person"' "$J/out/gateway.jsonl" 2>/dev/null; ok $? "$harness: the record says who asked"
   grep -rq 'e2e-customer-system-key' "$J" 2>/dev/null && ! grep -rlq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the customer system's key is in the job's private setup folder and not in anything it wrote"
   ! grep -rq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the key is nowhere in the job's evidence"
-  HAAS_KEYRING="$R/keys" "$E/haas" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
+  GUSTO_KEYRING="$R/keys" "$E/haas" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
 }
 run claude anthropic/deepseek-flash
 run codex deepseek/deepseek-flash

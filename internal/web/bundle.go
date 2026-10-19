@@ -12,8 +12,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // bundle hands the whole job back as one archive, so a person can check the run
@@ -44,7 +44,7 @@ func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
 // writeBundle writes the job as a gzipped tar under one directory named by the
 // job, so unpacking cannot scatter files over whatever directory a person is in.
 //
-// What goes in is what `haas verify` reads: job.json, whose hash the manifest
+// What goes in is what `gusto verify` reads: job.json, whose hash the manifest
 // names and whose gate verify re-runs; out/, which it re-hashes; and workspace/,
 // which is where the gate runs. Measured on a job whose gate is a script in its
 // own checkout: out/ alone stops verify at "no such file or directory" on

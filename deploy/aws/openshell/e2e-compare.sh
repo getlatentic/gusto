@@ -14,7 +14,7 @@ runtime="$(command -v docker || command -v podman)"
   "$runtime" export "$cid" | gzip -1 > "$state/node-rootfs.tar.gz"
   "$runtime" rm "$cid" >/dev/null
 }
-(cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/haas" ./cmd/haas)
+(cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/haas" ./cmd/gusto)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e; pkill -f "[e]2e/haas serve" || true; pkill -f "[f]ake_model.py" || true; sleep 1; rm -f ~/e2e/haas'
 scp -q "${ssh_options[@]}" "$state/haas" "$state/node-rootfs.tar.gz" e2e/fake_model.py "ubuntu@$address:e2e/"
 ssh "${ssh_options[@]}" "ubuntu@$address" 'python3 ~/e2e/fake_model.py >/dev/null 2>&1 </dev/null & disown; true'

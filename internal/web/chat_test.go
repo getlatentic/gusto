@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/gusto/internal/instance"
 	"net/http"
 	"net/http/httptest"
 	"net/url"

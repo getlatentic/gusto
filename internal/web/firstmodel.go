@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/registry"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/registry"
 )
 
 // A person on their own computer starts with no model, and adds the one they have a key for: where it answers, whether it
@@ -37,13 +37,13 @@ var modelPresets = []modelPreset{
 	{"Ollama on this computer", "http://127.0.0.1:11434", proxy.Bearer},
 }
 
-// UseFoundKeys names the model keys the person's shell had when haas was installed, which the chat page offers.
+// UseFoundKeys names the model keys the person's shell had when gusto was installed, which the chat page offers.
 func (s *Server) UseFoundKeys(names []string) { s.foundKeys = names }
 
-// UseNeeds says how to ask what this computer lacks that haas needs, each said with how to get it.
+// UseNeeds says how to ask what this computer lacks that gusto needs, each said with how to get it.
 func (s *Server) UseNeeds(needs func() []string) { s.needs = needs }
 
-// lacking is what this computer lacks that haas needs, now.
+// lacking is what this computer lacks that gusto needs, now.
 func (s *Server) lacking() []string {
 	if s.needs == nil {
 		return nil
@@ -51,13 +51,13 @@ func (s *Server) lacking() []string {
 	return s.needs()
 }
 
-// needsModel says whether this person's own haas has no model yet, so the chat page asks for one in place of a box nothing
+// needsModel says whether this person's own gusto has no model yet, so the chat page asks for one in place of a box nothing
 // can answer.
 func (s *Server) needsModel(r *http.Request) bool {
 	return s.ownsItsModels() && s.admin(r) && len(s.offered()) == 0
 }
 
-// missingEngines is the engines this computer does not have yet, each with how to install it, on a person's own haas.
+// missingEngines is the engines this computer does not have yet, each with how to install it, on a person's own gusto.
 func (s *Server) missingEngines() []catalog.Entry {
 	if s.local == nil {
 		return nil
@@ -166,7 +166,7 @@ func modelNames(text string) []string {
 	return names
 }
 
-// listModels asks a provider which models a key can use, for the form to offer. It is for a person's own haas alone, since
+// listModels asks a provider which models a key can use, for the form to offer. It is for a person's own gusto alone, since
 // it calls the address the person gives it.
 func (s *Server) listModels(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, formLimit)

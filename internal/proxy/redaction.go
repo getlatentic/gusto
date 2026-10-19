@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/redact"
+	"github.com/getlatentic/gusto/internal/redact"
 )
 
 // UseRedaction sets what is masked in what passes through the proxy: a request before it leaves for the provider, and the answer

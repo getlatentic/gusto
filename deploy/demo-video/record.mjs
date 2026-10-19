@@ -1,4 +1,4 @@
-// Records the demo as a person already in the platform sees it, on the live front door, into recording/haas-demo.webm,
+// Records the demo as a person already in the platform sees it, on the live front door, into recording/gusto-demo.webm,
 // with the waits it had to make marked in recording/segments.json so encode.sh can speed them up. The demo is started
 // off camera, as John Smith of Future Acme Bank, and the recording begins inside the organisation. Nothing is faked:
 // each step is the page the person gets. End every demo on the host first: one address has one demo, and only a few run.

@@ -52,7 +52,7 @@ func (c Client) do(ctx context.Context, method, path string, want ...int) ([]byt
 		}
 	}
 	if response.StatusCode == http.StatusUnauthorized {
-		return nil, fmt.Errorf("%w: run `haas login` again", ErrSignedOut)
+		return nil, fmt.Errorf("%w: run `gusto login` again", ErrSignedOut)
 	}
 	return nil, fmt.Errorf("%s %s answered %d", method, path, response.StatusCode)
 }

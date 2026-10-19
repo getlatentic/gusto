@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // engineJSON is an agent a person may start and the models they may start it with.

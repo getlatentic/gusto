@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 // pooled is a pool over a directory of registrations, with the cells given.
@@ -315,10 +315,10 @@ func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTh
 	}
 	_, third := provision("cy@initech.com", "Initech")
 
-	if got := a.started[0]; !containsEnv(got.Env, "HAAS_ADDR=10.0.1.5:"+fmt.Sprint(first.Port)) || !containsEnv(got.Env, "HAAS_CELL=cell-a") {
+	if got := a.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.1.5:"+fmt.Sprint(first.Port)) || !containsEnv(got.Env, "GUSTO_CELL=cell-a") {
 		t.Errorf("a server on a cell listens on the cell's own address: %v", got.Env)
 	}
-	if got := b.started[0]; !containsEnv(got.Env, "HAAS_ADDR=10.0.2.9:") || !containsEnv(got.Env, "HAAS_CELL=cell-b") {
+	if got := b.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.2.9:") || !containsEnv(got.Env, "GUSTO_CELL=cell-b") {
 		t.Errorf("%v", got.Env)
 	}
 	taken := 0

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/repoaccess"
 )
 
 // setUp is the step between picking a harness and having one: what it thinks

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A directory the container cannot read the job from has to be named as the
@@ -39,18 +39,18 @@ func TestTheContainerCommandIsYours(t *testing.T) {
 	if Runtime() != "docker" {
 		t.Fatalf("docker is the default, got %q", Runtime())
 	}
-	t.Setenv("HAAS_CONTAINER", "podman")
+	t.Setenv("GUSTO_CONTAINER", "podman")
 	if Runtime() != "podman" {
-		t.Fatalf("HAAS_CONTAINER should choose the runtime, got %q", Runtime())
+		t.Fatalf("GUSTO_CONTAINER should choose the runtime, got %q", Runtime())
 	}
 }
 
 func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
-	if got := share("HAAS_JOB_MEMORY", "3g"); got != "3g" {
+	if got := share("GUSTO_JOB_MEMORY", "3g"); got != "3g" {
 		t.Fatalf("default memory = %q", got)
 	}
-	t.Setenv("HAAS_JOB_MEMORY", "900m")
-	if got := share("HAAS_JOB_MEMORY", "3g"); got != "900m" {
+	t.Setenv("GUSTO_JOB_MEMORY", "900m")
+	if got := share("GUSTO_JOB_MEMORY", "3g"); got != "900m" {
 		t.Fatalf("a small machine should be able to say so, got %q", got)
 	}
 }

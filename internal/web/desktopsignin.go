@@ -18,7 +18,7 @@ import (
 // link another program on the computer saw is no use to it.
 
 const (
-	desktopCookie = "haas-desktop"
+	desktopCookie = "gusto-desktop"
 	// ticketLife is how long the browser has to hand a ticket to the app.
 	ticketLife = 2 * time.Minute
 	// desktopLife is how long the desktop app stays signed in.

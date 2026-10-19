@@ -1,7 +1,7 @@
 // Package openshell runs a job's harness in an OpenShell sandbox, driven
-// through the openshell command against a gateway. haas calls it as a component
+// through the openshell command against a gateway. gusto calls it as a component
 // below itself: the sandbox enforces what the agent may reach and write, and
-// haas keeps the record, so the record is written outside the sandbox and the
+// gusto keeps the record, so the record is written outside the sandbox and the
 // sandbox's own log of what it allowed and denied goes into it.
 package openshell
 
@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // Config says where the gateway is and what the sandboxes are made from.
@@ -37,7 +37,7 @@ type Config struct {
 	Image string
 	// Host is the name a sandbox uses for the machine the gateway runs on.
 	Host string
-	// Allowed are the hosts a job may reach besides its model, as haas
+	// Allowed are the hosts a job may reach besides its model, as gusto
 	// configures them: a host, or host:port, or *.domain.
 	Allowed []string
 	// CPU and Memory limit a sandbox, in OpenShell's forms ("2", "4Gi").
@@ -56,19 +56,19 @@ var unsetProcesses = defaultProcesses
 // FromEnv reads the settings of a deployment that runs jobs in sandboxes.
 func FromEnv() (Config, error) {
 	cfg := Config{
-		Binary:  or(os.Getenv("HAAS_OPENSHELL"), "openshell"),
-		Gateway: os.Getenv("HAAS_OPENSHELL_GATEWAY"),
-		Image:   os.Getenv("HAAS_OPENSHELL_IMAGE"),
-		Host:    or(os.Getenv("HAAS_OPENSHELL_HOST"), "host.openshell.internal"),
-		CPU:     or(os.Getenv("HAAS_OPENSHELL_CPU"), "1"),
-		Memory:  or(os.Getenv("HAAS_OPENSHELL_MEMORY"), "3Gi"),
+		Binary:  or(os.Getenv("GUSTO_OPENSHELL"), "openshell"),
+		Gateway: os.Getenv("GUSTO_OPENSHELL_GATEWAY"),
+		Image:   os.Getenv("GUSTO_OPENSHELL_IMAGE"),
+		Host:    or(os.Getenv("GUSTO_OPENSHELL_HOST"), "host.openshell.internal"),
+		CPU:     or(os.Getenv("GUSTO_OPENSHELL_CPU"), "1"),
+		Memory:  or(os.Getenv("GUSTO_OPENSHELL_MEMORY"), "3Gi"),
 	}
-	processes, err := strconv.Atoi(or(os.Getenv("HAAS_OPENSHELL_PROCESSES"), strconv.Itoa(defaultProcesses)))
+	processes, err := strconv.Atoi(or(os.Getenv("GUSTO_OPENSHELL_PROCESSES"), strconv.Itoa(defaultProcesses)))
 	if err != nil || processes < 1 {
-		return cfg, fmt.Errorf("HAAS_OPENSHELL_PROCESSES is %q, and has to be a number of processes above zero", os.Getenv("HAAS_OPENSHELL_PROCESSES"))
+		return cfg, fmt.Errorf("GUSTO_OPENSHELL_PROCESSES is %q, and has to be a number of processes above zero", os.Getenv("GUSTO_OPENSHELL_PROCESSES"))
 	}
 	cfg.Processes = processes
-	for _, entry := range strings.Split(os.Getenv("HAAS_ALLOWED_HOSTS"), ",") {
+	for _, entry := range strings.Split(os.Getenv("GUSTO_ALLOWED_HOSTS"), ",") {
 		if entry = strings.TrimSpace(entry); entry != "" {
 			cfg.Allowed = append(cfg.Allowed, entry)
 		}
@@ -114,7 +114,7 @@ type Sandbox struct {
 }
 
 // New prepares the sandbox for a job. modelURL is where the sandbox reaches the
-// haas proxy, on the name the sandbox gives the gateway's machine, and token
+// gusto proxy, on the name the sandbox gives the gateway's machine, and token
 // stands in for the credential the proxy holds.
 func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
 	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token}
@@ -191,11 +191,11 @@ const Home = "/sandbox"
 // folder of its own name. The skills were written by this server, and the
 // sandbox is only handed them.
 func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error {
-	// A harness's own configuration is part of the image, under /opt/haas/harness
+	// A harness's own configuration is part of the image, under /opt/gusto/harness
 	// where the sandbox user can read it, and belongs in the home the harness will
 	// look in. An image without it has nothing to copy, and that is not an error.
 	place := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", placeConfig("/opt/haas/harness", Home))
+		"sh", "-c", placeConfig("/opt/gusto/harness", Home))
 	if _, err := output(place); err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ exit 0`, from, home)
 // always the same sandbox, and two jobs cannot be.
 func nameOf(id string) string {
 	sum := sha256.Sum256([]byte(id))
-	return "haas-" + hex.EncodeToString(sum[:6])
+	return "gusto-" + hex.EncodeToString(sum[:6])
 }
 
 // Name is the sandbox a job runs in, for a person looking for it on the gateway.
@@ -272,7 +272,7 @@ func (s *Sandbox) Env() harness.Env {
 		Boxed: true,
 		// The two variables a container is started with, so a harness that reads
 		// them finds them where it does there.
-		Base:     []string{"HAAS_MODEL_URL=" + s.model, "HAAS_MODEL_TOKEN=" + s.token},
+		Base:     []string{"GUSTO_MODEL_URL=" + s.model, "GUSTO_MODEL_TOKEN=" + s.token},
 		ModelURL: s.model, ModelToken: s.token,
 	}
 }
@@ -347,7 +347,7 @@ func (s *Sandbox) Start(ctx context.Context, workspace string) error {
 }
 
 func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
-	policy, err := os.CreateTemp("", "haas-sandbox-policy-")
+	policy, err := os.CreateTemp("", "gusto-sandbox-policy-")
 	if err != nil {
 		return err
 	}
@@ -440,7 +440,7 @@ func (s *Sandbox) limit() string {
 	if n < 1 {
 		n = unsetProcesses
 	}
-	return fmt.Sprintf(`{ ulimit -u %d 2>/dev/null || ulimit -p %d; } || { echo "haas: the sandbox's process limit could not be set" >&2; exit 126; }; `, n, n)
+	return fmt.Sprintf(`{ ulimit -u %d 2>/dev/null || ulimit -p %d; } || { echo "gusto: the sandbox's process limit could not be set" >&2; exit 126; }; `, n, n)
 }
 
 // carried is the command's environment as the lines launcher reads, followed by what the command itself is given.
@@ -508,7 +508,7 @@ func (s *Sandbox) leaveEnv(ctx context.Context, env []string) (string, error) {
 	if _, err := rand.Read(name); err != nil {
 		return "", err
 	}
-	file := "/tmp/haas-env-" + hex.EncodeToString(name)
+	file := "/tmp/gusto-env-" + hex.EncodeToString(name)
 	var lines strings.Builder
 	for _, entry := range env {
 		if strings.Contains(entry, "=") {
@@ -541,7 +541,7 @@ func (s *Sandbox) reachable(ctx context.Context) error {
 	if s.sshHost == "" {
 		return fmt.Errorf("openshell sandbox ssh-config named no host for %s", s.name)
 	}
-	file, err := os.CreateTemp("", "haas-sandbox-ssh-")
+	file, err := os.CreateTemp("", "gusto-sandbox-ssh-")
 	if err != nil {
 		return err
 	}

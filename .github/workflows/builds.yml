@@ -1,4 +1,4 @@
-# haas and the helper on a person's computer have to build for every system a person has. This builds both programs for each
+# gusto and the helper on a person's computer have to build for every system a person has. This builds both programs for each
 # system on every Go change. The helper's keychain code is tested on Windows by builds-windows.
 name: builds
 
@@ -25,12 +25,12 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Build haas and haas-helper, with no C compiler
+      - name: Build gusto and gusto-helper, with no C compiler
         env:
           CGO_ENABLED: "0"
         run: |
           target="${{ matrix.target }}"
-          GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null ./cmd/haas ./cmd/haas-helper
+          GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null ./cmd/gusto ./cmd/gusto-helper
       - name: Vet every package and test for it
         env:
           CGO_ENABLED: "0"

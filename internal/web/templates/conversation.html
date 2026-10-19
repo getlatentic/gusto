@@ -214,7 +214,7 @@
     {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
     {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
     <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
-      {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that haas refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
+      {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
       {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
       <a href="/jobs/{{.ID}}">Record</a></p>
     {{if $.Sharing}}{{range .Previews}}

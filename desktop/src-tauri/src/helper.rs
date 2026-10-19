@@ -54,9 +54,9 @@ struct Local {
 }
 
 /// Where the helper keeps its settings and says how to reach it: the same folder the helper itself uses, which is the system's own
-/// folder for a program's settings and a folder named haas in it.
+/// folder for a program's settings and a folder named gusto in it.
 fn settings_dir(app: &AppHandle) -> Option<PathBuf> {
-    app.path().config_dir().ok().map(|dir| dir.join("haas"))
+    app.path().config_dir().ok().map(|dir| dir.join("gusto"))
 }
 
 fn local(app: &AppHandle) -> Option<Local> {
@@ -102,7 +102,7 @@ pub fn turns(app: &AppHandle) -> Option<Vec<Turn>> {
 
 /// The program the app carries: it is in the folder the app's own program is in.
 fn program() -> PathBuf {
-    let name = if cfg!(windows) { "haas-helper.exe" } else { "haas-helper" };
+    let name = if cfg!(windows) { "gusto-helper.exe" } else { "gusto-helper" };
     std::env::current_exe().ok().and_then(|exe| exe.parent().map(|dir| dir.join(name))).unwrap_or_else(|| PathBuf::from(name))
 }
 

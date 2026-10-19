@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/getlatentic/haas/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // podmanRuntimeDirectory checks rootless podman can reach the directory it

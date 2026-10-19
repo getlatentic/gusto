@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // run is one line of the record: the job, what it cost, and what it ran on.

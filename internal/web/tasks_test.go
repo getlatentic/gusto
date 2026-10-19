@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // aTask runs a task on a freshly started instance and says which job it made.

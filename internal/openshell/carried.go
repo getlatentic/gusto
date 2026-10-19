@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlatentic/haas/internal/catalog"
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 // Remembered is an image that says what it carries from an answer kept beside the image file, and asks the

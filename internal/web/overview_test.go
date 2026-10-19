@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/apps"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/computer"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/quota"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/apps"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // overview is the Overview as an admin reads it.

@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Runtime is the container command. Podman takes the same arguments and runs no
 // daemon at all, which matters on a small machine and to a customer who will not
 // install one.
 func Runtime() string {
-	if runtime := os.Getenv("HAAS_CONTAINER"); runtime != "" {
+	if runtime := os.Getenv("GUSTO_CONTAINER"); runtime != "" {
 		return runtime
 	}
 	return "docker"
@@ -28,10 +28,10 @@ func Runtime() string {
 // Image carrying the runner and the harness it will run. A customer builds
 // their own and names it here.
 func Image() string {
-	if image := os.Getenv("HAAS_IMAGE"); image != "" {
+	if image := os.Getenv("GUSTO_IMAGE"); image != "" {
 		return image
 	}
-	return "haas:dev"
+	return "gusto:dev"
 }
 
 // Run the job in a container and hand back its exit code. The job directory is
@@ -65,10 +65,10 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 		return 0, err
 	}
 	network := []string{
-		"-e", "HAAS_MODEL_URL=" + inContainer(model),
+		"-e", "GUSTO_MODEL_URL=" + inContainer(model),
 		// Where a harness would have put a credential. The real one stays in the
 		// proxy, and this is worth nothing once the job ends.
-		"-e", "HAAS_MODEL_TOKEN=" + token,
+		"-e", "GUSTO_MODEL_TOKEN=" + token,
 	}
 	if alias {
 		network = append(network, "--add-host=host.docker.internal:host-gateway")
@@ -82,10 +82,10 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 
 // start runs the container, then signs the manifest it left. The manifest is
 // written inside the box, where the agent runs, so the key never goes in: the
-// host signs once the box is gone, with the key HAAS_SIGNING_KEY names here.
+// host signs once the box is gone, with the key GUSTO_SIGNING_KEY names here.
 func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
 	command := exec.CommandContext(ctx, Runtime(), args...)
-	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `haas inside`. That
+	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `gusto inside`. That
 	// ends the harness and writes down what it did. Killing the client would leave the container running and spending.
 	command.Cancel = func() error { return command.Process.Signal(os.Interrupt) }
 	command.WaitDelay = stopGrace
@@ -113,7 +113,7 @@ const stopGrace = 60 * time.Second
 // containerName is the name a job's container has, so that it can be removed by it whatever became of the client that
 // started it. A job's id is already a name a container may have.
 func containerName(dir job.Dir) string {
-	return "haas-" + filepath.Base(filepath.Clean(dir.Path()))
+	return "gusto-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 
 // argv is the container's command line: the job directory, what reaches the
@@ -123,9 +123,9 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"run", "--rm", "--name", "haas-" + filepath.Base(absolute),
+	args := []string{"run", "--rm", "--name", "gusto-" + filepath.Base(absolute),
 		"-v", absolute + ":/job",
-		"-e", "HAAS_SIGNER=" + signer,
+		"-e", "GUSTO_SIGNER=" + signer,
 	}
 	args = append(args, network...)
 	for _, mount := range mounts {
@@ -141,13 +141,13 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 	return args, nil
 }
 
-// signerName is the name the box writes into the manifest: HAAS_SIGNER, or the
+// signerName is the name the box writes into the manifest: GUSTO_SIGNER, or the
 // id of the key the host will sign with, so a record the host signs never
 // calls itself unsigned. Reading the key here also stops a run whose key is
 // unreadable before the agent does any work.
 func signerName() (string, error) {
 	key, keyed, err := signing.Configured()
-	if name := os.Getenv("HAAS_SIGNER"); name != "" || err != nil || !keyed {
+	if name := os.Getenv("GUSTO_SIGNER"); name != "" || err != nil || !keyed {
 		return name, err
 	}
 	return key.ID(), nil
@@ -193,8 +193,8 @@ func ready(absolute string) (bool, error) {
 // the job will run under, because a runtime can refuse a limit outright.
 func Limits() []string {
 	return []string{
-		"--cpus=" + share("HAAS_JOB_CPUS", "1"),
-		"--memory=" + share("HAAS_JOB_MEMORY", "3g"),
+		"--cpus=" + share("GUSTO_JOB_CPUS", "1"),
+		"--memory=" + share("GUSTO_JOB_MEMORY", "3g"),
 		"--pids-limit=512",
 	}
 }

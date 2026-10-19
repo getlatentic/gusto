@@ -80,7 +80,7 @@ func (l Login) Run(ctx context.Context) (token, person string, err error) {
 	case err != nil:
 		return "", "", err
 	case status == http.StatusNotFound:
-		return "", "", errors.New("this server takes no tokens for a person: its administrator has to turn on API tokens (HAAS_API_TOKENS)")
+		return "", "", errors.New("this server takes no tokens for a person: its administrator has to turn on API tokens (GUSTO_API_TOKENS)")
 	case status == http.StatusTooManyRequests:
 		return "", "", errors.New("the server is asked for too many sign-ins from here: wait a few minutes and try again")
 	case status != http.StatusOK || started.DeviceCode == "":
@@ -112,10 +112,10 @@ func (l Login) Run(ctx context.Context) (token, person string, err error) {
 		case got.Error == "slow_down":
 			every += 5 * time.Second
 		case got.Error == "expired_token":
-			return "", "", errors.New("the code expired before it was approved: run `haas login` again")
+			return "", "", errors.New("the code expired before it was approved: run `gusto login` again")
 		default:
 			return "", "", fmt.Errorf("the server refused the sign-in: %d %s", status, got.Error)
 		}
 	}
-	return "", "", errors.New("the code expired before it was approved: run `haas login` again")
+	return "", "", errors.New("the code expired before it was approved: run `gusto login` again")
 }

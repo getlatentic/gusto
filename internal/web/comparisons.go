@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/industry"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/rules"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/industry"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/rules"
 )
 
 // UseBoard gives the pages somewhere to keep comparisons. Without one, a

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // chatProvider answers Chat Completions alone, as the Gemma models on Bedrock do, and keeps what it was sent.

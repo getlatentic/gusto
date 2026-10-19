@@ -74,12 +74,12 @@ mod tests {
     #[test]
     fn an_address_is_kept_as_a_scheme_a_host_and_a_port() {
         for (typed, want) in [
-            ("haas.example.com", "https://haas.example.com"),
-            ("  https://haas.example.com/  ", "https://haas.example.com"),
-            ("https://haas.example.com/some/path?x=1#y", "https://haas.example.com"),
+            ("gusto.example.com", "https://gusto.example.com"),
+            ("  https://gusto.example.com/  ", "https://gusto.example.com"),
+            ("https://gusto.example.com/some/path?x=1#y", "https://gusto.example.com"),
             ("http://localhost:8040", "http://localhost:8040"),
             ("http://127.0.0.1:8040/", "http://127.0.0.1:8040"),
-            ("https://haas.example.com:8443", "https://haas.example.com:8443"),
+            ("https://gusto.example.com:8443", "https://gusto.example.com:8443"),
         ] {
             assert_eq!(normalize(typed).as_deref(), Ok(want), "{typed}");
         }

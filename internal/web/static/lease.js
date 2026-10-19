@@ -67,7 +67,7 @@
   }
 
   function ask() {
-    fetch("/.haas/lease", { cache: "no-store", credentials: "omit" })
+    fetch("/.gusto/lease", { cache: "no-store", credentials: "omit" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (d && typeof d.seconds === "number") {

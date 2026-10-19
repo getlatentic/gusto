@@ -8,12 +8,12 @@
     "--profile",
     "acp",
     "--patch",
-    "/root/.config/dsh/haas.patch.yml"
+    "/root/.config/dsh/gusto.patch.yml"
   ],
   "env": {
     "DEEPSEEK_BASE_URL": "{modelUrl}",
     "DEEPSEEK_API_KEY": "{modelToken}",
-    "HAAS_MODEL_ID": "{modelId}",
+    "GUSTO_MODEL_ID": "{modelId}",
     "DSH_HOME": "/root/.local/share/dsh",
     "DSH_AGENTS_HOME": "/root/.agents"
   },

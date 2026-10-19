@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 // Remote is a cell on another host, asked in the words of cloud.Cell.

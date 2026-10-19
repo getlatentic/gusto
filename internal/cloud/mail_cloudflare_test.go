@@ -12,7 +12,7 @@ import (
 )
 
 func cloudflareAt(server *httptest.Server) Cloudflare {
-	return Cloudflare{Account: "acct123", Token: "secret-token", From: "haas <no-reply@notifications.example.com>", API: server.URL, Wait: time.Millisecond}
+	return Cloudflare{Account: "acct123", Token: "secret-token", From: "gusto <no-reply@notifications.example.com>", API: server.URL, Wait: time.Millisecond}
 }
 
 func TestAMailGoesToCloudflareAsARequestWithTheTokenAndTheFromAddress(t *testing.T) {
@@ -32,7 +32,7 @@ func TestAMailGoesToCloudflareAsARequestWithTheTokenAndTheFromAddress(t *testing
 		t.Errorf("%s %s", path, auth)
 	}
 	from, _ := got["from"].(map[string]any)
-	if got["to"] != "ada@acme.com" || got["subject"] != "Confirm your address" || from["address"] != "no-reply@notifications.example.com" || from["name"] != "haas" ||
+	if got["to"] != "ada@acme.com" || got["subject"] != "Confirm your address" || from["address"] != "no-reply@notifications.example.com" || from["name"] != "gusto" ||
 		!strings.Contains(got["text"].(string), "https://x.test/verify?t=abc") {
 		t.Errorf("%v", got)
 	}
@@ -91,11 +91,11 @@ func TestAnAddressCloudflareBouncedIsAFailureAndAMailWithALineBreakIsNotSent(t *
 }
 
 func TestTheCloudflareSettingNeedsAnAccountASenderAndAToken(t *testing.T) {
-	sender, err := MailFrom("cloudflare://acct123?from=haas%20%3Cno-reply@notifications.example.com%3E", "", "tok")
+	sender, err := MailFrom("cloudflare://acct123?from=gusto%20%3Cno-reply@notifications.example.com%3E", "", "tok")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, ok := sender.(Cloudflare); !ok || got.Account != "acct123" || got.Token != "tok" || got.From != "haas <no-reply@notifications.example.com>" {
+	if got, ok := sender.(Cloudflare); !ok || got.Account != "acct123" || got.Token != "tok" || got.From != "gusto <no-reply@notifications.example.com>" {
 		t.Errorf("%+v", sender)
 	}
 	for name, setting := range map[string]struct{ setting, token string }{

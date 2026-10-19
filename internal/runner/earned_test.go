@@ -3,8 +3,8 @@ package runner
 import (
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A turn names no gate, so its harness's exit is what says it failed. A turn

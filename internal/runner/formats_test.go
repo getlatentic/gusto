@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/schema"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/schema"
 )
 
 func TestARunLeavesAManifestTheSchemaAccepts(t *testing.T) {
@@ -38,7 +38,7 @@ func TestARunLeavesAManifestTheSchemaAccepts(t *testing.T) {
 func TestAnOldJobStillRunsAfterTheFormatGainsAField(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
-	t.Setenv("HAAS_HARNESSES", harnesses)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)

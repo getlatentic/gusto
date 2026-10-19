@@ -21,7 +21,7 @@ import (
 
 // Source is one setting that is read again.
 type Source struct {
-	// Name is what the record calls it, such as HAAS_SPEND_POLICY.
+	// Name is what the record calls it, such as GUSTO_SPEND_POLICY.
 	Name string
 	// Path is the file, or the folder of .json files, it is read from. A source with no path is not watched.
 	Path string

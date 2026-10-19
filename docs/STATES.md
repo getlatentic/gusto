@@ -35,7 +35,7 @@ nothing reads a final state and queues the job again
 (`internal/jobs/state.go:29-31`).
 
 A directory with no `state.json` is not a job the index knows, and `Open` skips
-it (`index.go:42-45`). `haas new` writes `job.json` and the adapter and no
+it (`index.go:42-45`). `gusto new` writes `job.json` and the adapter and no
 `state.json`, so a job made on the command line inside the server's jobs
 directory is invisible to the server.
 
@@ -115,7 +115,7 @@ job's state is still the gate's answer.
 | SIGKILL, a crash, the machine | the container runs on, and the next start reads its manifest |
 
 On a signal the handler shuts the HTTP server down with a 30-second grace
-(`cmd/haas/serve.go:53-60`). `queue.Stop()` then closes the stop channel and
+(`cmd/gusto/serve.go:53-60`). `queue.Stop()` then closes the stop channel and
 waits for every worker (`queue.go:54-57`). A worker checks that channel between
 jobs, so stopping starts nothing new (`queue.go:66-75`). Measured with one worker
 and six jobs queued: one job ran and five were still queued when `Stop`
@@ -123,11 +123,11 @@ returned.
 
 The job in flight is not interrupted, so the stop takes as long as that job does.
 The service unit gives the whole thing 60 seconds and then kills everything in
-the cgroup (`deploy/ansible/roles/serve/templates/haas.service.j2:23-24`). A job
+the cgroup (`deploy/ansible/roles/serve/templates/gusto.service.j2:23-24`). A job
 with the default budget may take 900 seconds, so the one job in flight often
 meets the hard kill. The comment above those two lines says the service gets time
 to end its jobs and write their evidence before anything is killed
-(`haas.service.j2:21-22`). That holds for a job of under a minute and for no
+(`gusto.service.j2:21-22`). That holds for a job of under a minute and for no
 other. The five left queued cost nothing: they are the next server's work.
 
 After a hard kill the file still says `running`, and what the job ends as depends
@@ -146,8 +146,8 @@ left the four log files, no manifest, and a next start recording `interrupted`
 with `exit` -1.
 
 A job running in the server's own process dies with the server instead, because
-`HAAS_SANDBOX=here` makes the work a function call rather than a container
-(`cmd/haas/serve.go:70-86`).
+`GUSTO_SANDBOX=here` makes the work a function call rather than a container
+(`cmd/gusto/serve.go:70-86`).
 
 A job left `queued` by a stopped server stays `queued`, and the next server takes
 it. Measured: a job directory with a `queued` `state.json`, present before the
@@ -170,11 +170,11 @@ appearing in the directory while a server runs waits for the next start.
 | the runner, PID 1 in the box | no manifest | `failed`, with the container's exit |
 | the container never starts | no manifest, and `out/` empty | `failed`, `exit` 125 |
 | the runner, on an error before the gate | no manifest | `failed`, `exit` 2 in the box, -1 on the host |
-| `haas serve` | written by the container that outlives it | the manifest's verdict, or `interrupted` |
+| `gusto serve` | written by the container that outlives it | the manifest's verdict, or `interrupted` |
 
 Measured, with a harness that kills itself and a gate that passes: the manifest
 says `harnessExit: -1`, `stoppedAtBudget: false`, `gate: {code: 0, passed:
-true}`, and `haas inside` exits 0. A killed harness does not fail a job. The
+true}`, and `gusto inside` exits 0. A killed harness does not fail a job. The
 gate decides, on whatever the harness left in the workspace.
 
 `harnessExit` is what the process the runner started reported, and nothing
@@ -185,8 +185,8 @@ as its own status. `stoppedAtBudget` and `stoppedBy` are the fields that name a 
 (`inside.go`): the time ran out, or somebody stopped the job.
 
 The last runner row has two answers because the boundary is in the middle of it.
-Inside the box, `haas inside` turns an error into exit 2
-(`cmd/haas/main.go:122-132`, `main.go:228-231`), the container carries that out,
+Inside the box, `gusto inside` turns an error into exit 2
+(`cmd/gusto/main.go:122-132`, `main.go:228-231`), the container carries that out,
 and the queue reads it as a non-zero exit (`queue.go:102-104`). On the host —
 reading `job.json`, cloning the repository, starting the container — the error
 reaches the queue as an error and becomes `exit` -1 (`queue.go:98-101`). Measured
@@ -263,7 +263,7 @@ question back.
 
 ### The memory cap
 
-`sandbox.Run` sets `--memory`, `HAAS_JOB_MEMORY` or `3g`
+`sandbox.Run` sets `--memory`, `GUSTO_JOB_MEMORY` or `3g`
 (`sandbox.go:45-49, 103-109`). Which state a capped job ends in depends on which
 process the kernel picks.
 
@@ -278,7 +278,7 @@ waits exits with PID 1's own code, 0. The daemon's `OOMKilled` flag reported the
 child's kill in one run of four, so it is not an answer even before `--rm`
 removes the container that carries it.
 
-In this product PID 1 is `haas inside`, a small Go binary, and the harness is a
+In this product PID 1 is `gusto inside`, a small Go binary, and the harness is a
 much larger child, so the first row is the likely one. Measured through the
 server at `--memory=64m` with a harness that allocates without bound: the run
 reaches the gate, writes a manifest, and the job ends `failed` with `exit` 1 —
@@ -305,7 +305,7 @@ it. A capped harness still reaches the gate, so its verdict survives a server
 restart along with it. A cap that kills the runner leaves no manifest, so a job
 whose server also died collapses to `interrupted` with `exit` -1, and the 137 a
 live server would have recorded is gone. The same holds for a cap the runtime
-refuses outright: measured at `HAAS_JOB_MEMORY=4m`, docker answers `Minimum
+refuses outright: measured at `GUSTO_JOB_MEMORY=4m`, docker answers `Minimum
 memory limit allowed is 6MB`, the container never starts, `out/` stays empty and
 the job ends `failed` with `exit` 125. `ready` starts a container before the real
 run but passes no memory flags (`sandbox.go:81-96`), so it does not catch a cap
@@ -353,11 +353,11 @@ A person stops a turn of their own, and an admin stops anybody's: with the Stop 
 
 - **A job that is queued** is interrupted at once and never runs. Its record has `stoppedBy`.
 - **A job that is running** is told to stop. The server writes `stop.json` in the job's directory (who, and when), then
-  interrupts the container's client, which hands it to `haas inside`; `haas inside` kills the harness *and everything the
+  interrupts the container's client, which hands it to `gusto inside`; `gusto inside` kills the harness *and everything the
   harness started*, keeps what it did in the workspace, writes the manifest with `stoppedBy`, and the server signs it.
   The job ends `interrupted`, not `failed`: whoever stopped it ended it, and the gate's answer over half a piece of work
   is not a verdict on the agent. A container that is still there after sixty seconds is removed by its name,
-  `haas-<job id>`.
+  `gusto-<job id>`.
 - **A job that is over** answers 409 and is not changed.
 - A run that is stopped by a signal alone, as when a server is shut down, has `stoppedBy: "a signal"`.
 

@@ -22,7 +22,7 @@ func sweep(t *testing.T, instances string, extra ...string) (terminated []string
 	os.WriteFile(filepath.Join(bin, "aws"), []byte(fake), 0o755)
 	command := exec.Command("bash", script)
 	command.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"HAAS_NOW=2026-09-30T12:00:00Z", "FAKE_INSTANCES="+instances)
+		"GUSTO_NOW=2026-09-30T12:00:00Z", "FAKE_INSTANCES="+instances)
 	command.Env = append(command.Env, extra...)
 	out, err := command.CombinedOutput()
 	if err != nil {

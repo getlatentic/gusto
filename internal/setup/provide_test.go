@@ -55,7 +55,7 @@ func TestAnEditedSkillKeepsTheEdit(t *testing.T) {
 	}
 }
 
-// A setup saved before haas kept fingerprints takes the newer version only
+// A setup saved before gusto kept fingerprints takes the newer version only
 // where its files are as old as the setup, and a setup somebody else made is
 // never touched.
 func TestAnOlderSetupIsUpdatedOnlyWhereUntouched(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud"
 )
 
 // Pool is the cells the front door may place organisations on: the hosts that have registered,

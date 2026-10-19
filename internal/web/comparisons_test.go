@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // twoEngines is a server offering two harnesses that need no account.
@@ -29,7 +29,7 @@ func twoEngines(t *testing.T) *site {
 		entries = append(entries, catalog.Entry{Name: name, Title: strings.ToUpper(name[:1]) + name[1:], Program: "sh",
 			Needs: harness.NeedsNothing, Ready: true, Skills: true, MCP: true})
 	}
-	t.Setenv("HAAS_HARNESSES", adapters)
+	t.Setenv("GUSTO_HARNESSES", adapters)
 	site := openOffering(t, entries)
 	board, err := compare.OpenBoard(t.TempDir())
 	if err != nil {

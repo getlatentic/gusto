@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/entry"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/entry"
 )
 
 var entryKey = []byte("0123456789abcdef0123456789abcdef")
 
-// behindAFrontDoor is a server that is the organisation acme-com's in a hosted haas.
+// behindAFrontDoor is a server that is the organisation acme-com's in a hosted gusto.
 func behindAFrontDoor(t *testing.T) *site {
 	t.Helper()
 	s := open(t)
@@ -161,7 +161,7 @@ func TestAnOrganisationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.
 	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease"`) {
 		t.Errorf("the page does not warn of the end of the host:\n%s", page[:min(len(page), 900)])
 	}
-	if script := behind.ask(t, "GET", "/static/lease.js", nil); script.Code != http.StatusOK || !strings.Contains(script.Body.String(), "/.haas/lease") {
+	if script := behind.ask(t, "GET", "/static/lease.js", nil); script.Code != http.StatusOK || !strings.Contains(script.Body.String(), "/.gusto/lease") {
 		t.Errorf("the script is not served: %d", script.Code)
 	}
 

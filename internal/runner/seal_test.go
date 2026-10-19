@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/runner"
-	"github.com/getlatentic/haas/internal/signing"
-	"github.com/getlatentic/haas/schema"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/schema"
 )
 
 // keyed names a fresh key as the runner's and returns the keyring holding its
@@ -60,7 +60,7 @@ func TestARunWithNoKeyIsUnsigned(t *testing.T) {
 	}
 }
 
-// A runner with a key and no HAAS_SIGNER names the key in the manifest, so a
+// A runner with a key and no GUSTO_SIGNER names the key in the manifest, so a
 // signed record never calls itself unsigned.
 func TestASignedManifestWithNoNameGivesTheKeysID(t *testing.T) {
 	keyring := keyed(t, "acme")
@@ -96,13 +96,13 @@ func unnamedRun(t *testing.T) job.Dir {
 	return dir
 }
 
-// unnamedJob is the fixture job with HAAS_SIGNER unset.
+// unnamedJob is the fixture job with GUSTO_SIGNER unset.
 func unnamedJob(t *testing.T) job.Dir {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
-	t.Setenv("HAAS_HARNESSES", harnesses)
-	t.Setenv("HAAS_SIGNER", "")
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	t.Setenv("GUSTO_SIGNER", "")
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)

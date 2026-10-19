@@ -10,7 +10,7 @@ package catalog
 import (
 	"sort"
 
-	"github.com/getlatentic/haas/internal/harness"
+	"github.com/getlatentic/gusto/internal/harness"
 )
 
 // Entry is one harness, as a person choosing has to see it.
@@ -54,7 +54,7 @@ func (e Entry) Wants() string {
 // Survey asks the image which harnesses it carries. It is done once, when the
 // server starts, because the answer only changes when the image does and asking
 // per page would start a container for every row. The matrix named by
-// HAAS_MATRIX is read then too, so a pair that cannot finish the simplest job
+// GUSTO_MATRIX is read then too, so a pair that cannot finish the simplest job
 // says so.
 func Survey(runtime, image string, names []string) []Entry {
 	return SurveyOf(Container(runtime, image), names)

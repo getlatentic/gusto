@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/apitoken"
-	"github.com/getlatentic/haas/internal/instance"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/quota"
+	"github.com/getlatentic/gusto/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // The routes below are a person's own work as JSON, for the helper on their computer, an editor and a tray. They are

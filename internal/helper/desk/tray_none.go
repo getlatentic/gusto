@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/getlatentic/haas/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper"
 )
 
 // ErrNoTray is this computer having nowhere to show an icon: a session with no desktop, or a build with no menu bar.

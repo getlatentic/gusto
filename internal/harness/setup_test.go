@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // jobWithSetup is a job carrying the configured fixture and a setup: a skill
@@ -62,7 +62,7 @@ func TestAHarnessDirectoryMayNotHoldASetupOfItsOwn(t *testing.T) {
 	mine := t.TempDir()
 	folder := configuredFixture(t, mine)
 	put(t, folder, "setup/servers.json", "[]", 0o644)
-	t.Setenv("HAAS_HARNESSES", mine)
+	t.Setenv("GUSTO_HARNESSES", mine)
 	_, err := Open("", "fixture")
 	if err == nil || !strings.Contains(err.Error(), "has a setup folder") {
 		t.Fatalf("want the setup folder refused, got %v", err)

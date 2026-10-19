@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/apps"
+	"github.com/getlatentic/gusto/internal/apps"
 )
 
 func TestAFolderWithAPageInItCanBePreviewedAndNothingElseCan(t *testing.T) {

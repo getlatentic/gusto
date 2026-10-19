@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/jobs"
+	"github.com/getlatentic/gusto/internal/jobs"
 )
 
 // say sends something into a thread with a person's token and, when it has one, a request id.

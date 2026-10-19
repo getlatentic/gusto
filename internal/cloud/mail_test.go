@@ -10,7 +10,7 @@ import (
 )
 
 func TestAMailWithALineBreakInAHeaderIsNotSent(t *testing.T) {
-	out := Outbox{Dir: t.TempDir(), From: "haas <no-reply@example.com>"}
+	out := Outbox{Dir: t.TempDir(), From: "gusto <no-reply@example.com>"}
 	if err := out.Send("ada@acme.com\r\nBcc: victim@example.org", "hello", "body"); err == nil {
 		t.Error("an address may not carry a header")
 	}
@@ -23,7 +23,7 @@ func TestAMailWithALineBreakInAHeaderIsNotSent(t *testing.T) {
 }
 
 func TestTheOutboxKeepsWhatAPersonWouldRead(t *testing.T) {
-	out := Outbox{Dir: t.TempDir(), From: "haas <no-reply@example.com>"}
+	out := Outbox{Dir: t.TempDir(), From: "gusto <no-reply@example.com>"}
 	if err := out.Send("ada@acme.com", "Confirm your address", "Follow this link:\nhttps://x.test/verify?t=abc"); err != nil {
 		t.Fatal(err)
 	}
@@ -43,11 +43,11 @@ func TestMailSettingsAreReadOrRefusedByName(t *testing.T) {
 	if m, err := MailFrom("", t.TempDir(), ""); err != nil || m == nil {
 		t.Errorf("no setting means the outbox: %v", err)
 	}
-	m, err := MailFrom("smtp://user:p%40ss@mail.example.com:587?from=haas@example.com", "", "")
+	m, err := MailFrom("smtp://user:p%40ss@mail.example.com:587?from=gusto@example.com", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m.(SMTP); got.Addr != "mail.example.com:587" || got.User != "user" || got.Password != "p@ss" || got.From != "haas@example.com" {
+	if got := m.(SMTP); got.Addr != "mail.example.com:587" || got.User != "user" || got.Password != "p@ss" || got.From != "gusto@example.com" {
 		t.Errorf("%+v", got)
 	}
 	for _, bad := range []string{"smtp://mail.example.com:587", "http://x", "smtp://", "nonsense"} {
@@ -106,7 +106,7 @@ func TestSMTPDeliversTheMessageToTheServer(t *testing.T) {
 			}
 		}
 	}()
-	send := SMTP{Addr: listener.Addr().String(), User: "u", Password: "p", From: "haas <no-reply@example.com>"}
+	send := SMTP{Addr: listener.Addr().String(), User: "u", Password: "p", From: "gusto <no-reply@example.com>"}
 	if err := send.Send("ada@acme.com", "Confirm", "the link"); err != nil {
 		t.Fatal(err)
 	}

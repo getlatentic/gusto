@@ -87,7 +87,7 @@ func TestANewDemoChatStartsOnAPairTheDemoOffers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(env), "HAAS_CHAT_DEFAULT={{ demo_chat_default }}") {
+	if !strings.Contains(string(env), "GUSTO_CHAT_DEFAULT={{ demo_chat_default }}") {
 		t.Error("an organisation's server is not given the demo's default for a new chat")
 	}
 }

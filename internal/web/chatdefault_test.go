@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/catalog"
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/instance"
+	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/instance"
 )
 
 func TestANewChatRunsOnTheLastChoiceThenTheOrganisationsDefaultThenTheFirstThatCanRun(t *testing.T) {

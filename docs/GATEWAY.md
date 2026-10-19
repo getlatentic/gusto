@@ -110,7 +110,7 @@ hundred tokens at most, and its worth is the control, the credentials kept outsi
 definition in the request, and the 60 cost it about 9,000 tokens more than none, against about 5,000 for the gateway's three on
 the same runs; the free model's counts move by several thousand between calls, so the OpenCode figures say a saving of the order
 of 5,000 to 9,000 tokens for 60 tools and not a precise one. The other harnesses were not measured.
-`HAAS_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway` repeats it: it makes short calls to the models those
+`GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway` repeats it: it makes short calls to the models those
 programs are signed in to.
 
 **How a job reaches it.** A setup's integrations put the servers they bring behind the gateway: their
@@ -120,8 +120,8 @@ with the job's token, and the proxy answers `/mcp` for the job whose token it is
 model but has servers behind the gateway is given a token that stands in for no credential.
 A job on a deployment with no proxy is refused by name.
 
-**Settings.** `HAAS_TOOL_POLICY` is the policy file, `HAAS_GATEWAY_MODE` is `discover` (the default) or
-`all`, and `HAAS_GATEWAY_PRIVATE=1` lets the servers be on a private network. All three, with the
+**Settings.** `GUSTO_TOOL_POLICY` is the policy file, `GUSTO_GATEWAY_MODE` is `discover` (the default) or
+`all`, and `GUSTO_GATEWAY_PRIVATE=1` lets the servers be on a private network. All three, with the
 policy's fingerprint, are in the settings the change record watches.
 
 **Checked against real clients.** `go test -tags realclients -run RealClient ./internal/gateway` connects
@@ -138,13 +138,13 @@ the programs of that version, and then in a box that is not the job's:
 | The plugin | its folder, mounted read-only at `/plugin` (`${PLUGIN_ROOT}`) |
 | A place to write | a folder of this job's, at `/data` (`${PLUGIN_DATA}`), which goes with the job and is not kept between jobs |
 | The rest of the file system | read-only, with 64 MiB of scratch space in `/tmp` |
-| The network | none. `HAAS_TOOLS_NETWORK=open` gives it the runtime's own network, which lets a program send what it is given to any host on it, and is for an administrator to choose |
-| Privilege | no capability, no new privilege, user 65534, at most 0.5 CPU, 512 MiB and 128 processes (`HAAS_TOOL_CPUS`, `HAAS_TOOL_MEMORY`) |
+| The network | none. `GUSTO_TOOLS_NETWORK=open` gives it the runtime's own network, which lets a program send what it is given to any host on it, and is for an administrator to choose |
+| Privilege | no capability, no new privilege, user 65534, at most 0.5 CPU, 512 MiB and 128 processes (`GUSTO_TOOL_CPUS`, `GUSTO_TOOL_MEMORY`) |
 | The job | nothing: not its folder, its files, its token, the proxy or the docker socket |
 
-The image is `HAAS_TOOLS_IMAGE`, or the job image. The image's own entry is replaced by the plugin's command, and the plugin's
+The image is `GUSTO_TOOLS_IMAGE`, or the job image. The image's own entry is replaced by the plugin's command, and the plugin's
 placeholders are expanded the way the format says. A plugin that needs a program the image lacks, a network it is not given, or a
-secret (the format has no way to give one) cannot run yet. A job that runs in the server's own process (`HAAS_SANDBOX=here`) has no
+secret (the format has no way to give one) cannot run yet. A job that runs in the server's own process (`GUSTO_SANDBOX=here`) has no
 container to put a program in, and runs none.
 
 The gateway speaks to the program a line of JSON at a time, answers a ping, tells it this client does not do what else it asks, ends
@@ -153,7 +153,7 @@ it did not start or died in a call.
 
 ## Masking personal data and secrets
 
-`HAAS_REDACTION` is a file of the kinds to mask for the whole deployment: `{"patterns": ["email", "card", "key"]}`. It is read
+`GUSTO_REDACTION` is a file of the kinds to mask for the whole deployment: `{"patterns": ["email", "card", "key"]}`. It is read
 again while the server runs ([LIVE.md](LIVE.md)); a name that is not a kind is refused, and a server with no proxy refuses to start
 with it, since its jobs call their model directly and nothing could mask what they send.
 

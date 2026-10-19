@@ -77,7 +77,7 @@ func TestOpeningAnOrganisationSignsThePersonInToItsServer(t *testing.T) {
 	}
 	parsed, _ := url.Parse(location)
 	status, _, answer := b.at(parsed.Host, "GET", parsed.RequestURI(), nil)
-	if status != http.StatusSeeOther || answer.Get("Location") != "/" || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "haas=ada@acme.com|admin") {
+	if status != http.StatusSeeOther || answer.Get("Location") != "/" || !strings.Contains(strings.Join(answer.Values("Set-Cookie"), ";"), "gusto=ada@acme.com|admin") {
 		t.Errorf("the organisation's server signs them in as who and what they are: %d %v", status, answer)
 	}
 	if status, _, header := f.browser().get2("/open"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
@@ -112,14 +112,14 @@ func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.
 	f := withServers(t)
 	b := f.signedUp("ada@acme.com")
 	_, body, _ := b.at("acme-com.cloud.test", "GET", "/whoami", map[string]string{
-		"X-Forwarded-For": "6.6.6.6", "X-Forwarded-Proto": "https", "Cookie": "haas_cloud=abc; other=1; __Host-haas_cloud=x; haas=session",
+		"X-Forwarded-For": "6.6.6.6", "X-Forwarded-Proto": "https", "Cookie": "gusto_cloud=abc; other=1; __Host-gusto_cloud=x; gusto=session",
 	})
 	var said map[string]any
 	json.Unmarshal([]byte(body), &said)
 	if said["xff"] != "127.0.0.1" || said["proto"] != "http" {
 		t.Errorf("what the client claimed is not believed, since the server writes down where people signed in from: %v %v", said["xff"], said["proto"])
 	}
-	if said["cookie"] != "other=1; haas=session" {
+	if said["cookie"] != "other=1; gusto=session" {
 		t.Errorf("the front door's cookies do not go to an organisation's server: %q", said["cookie"])
 	}
 

@@ -9,15 +9,15 @@
 # there, and a cell that has not heard it for BEAT_STALE_SECONDS powers off, once it has been up long
 # enough for the front door to have been started (BEAT_GRACE_SECONDS).
 #
-# HAAS_LEASE_FILE, HAAS_BEAT_FILE, HAAS_NOW and HAAS_UPTIME move what it reads, and HAAS_CONF where the
+# GUSTO_LEASE_FILE, GUSTO_BEAT_FILE, GUSTO_NOW and GUSTO_UPTIME move what it reads, and GUSTO_CONF where the
 # limit is kept, which is how a test runs it.
 set -euo pipefail
 # shellcheck disable=SC1090
-. "${HAAS_CONF:-/etc/haas/demo.conf}"
-lease=${HAAS_LEASE_FILE:-/var/lib/haas/lease.json}
-beat=${HAAS_BEAT_FILE:-/var/lib/haas-cloud/cells/orchestrator.beat}
-now=${HAAS_NOW:-$(date +%s)}
-uptime=${HAAS_UPTIME:-$(cut -d. -f1 /proc/uptime)}
+. "${GUSTO_CONF:-/etc/haas/demo.conf}"
+lease=${GUSTO_LEASE_FILE:-/var/lib/haas/lease.json}
+beat=${GUSTO_BEAT_FILE:-/var/lib/haas-cloud/cells/orchestrator.beat}
+now=${GUSTO_NOW:-$(date +%s)}
+uptime=${GUSTO_UPTIME:-$(cut -d. -f1 /proc/uptime)}
 stale=${BEAT_STALE_SECONDS:-300}
 grace=${BEAT_GRACE_SECONDS:-900}
 

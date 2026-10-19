@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/haas/internal/changelog"
-	"github.com/getlatentic/haas/internal/inbox"
+	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/inbox"
 )
 
 // withInbox is a server with a change record and an inbox the front door leaves events in.
@@ -108,7 +108,7 @@ func TestWhatIsNotAnEventTheFrontDoorReportsIsSetAsideAndNeverRecorded(t *testin
 	here, log, dir := withInbox(t)
 	drop(t, dir,
 		adminDid(changelog.SignedIn, time.Now(), map[string]string{"how": "a forged sign-in"}),
-		adminDid(changelog.SettingsChanged, time.Now(), map[string]string{"setting": "HAAS_ADMINS"}),
+		adminDid(changelog.SettingsChanged, time.Now(), map[string]string{"setting": "GUSTO_ADMINS"}),
 	)
 	if err := os.WriteFile(filepath.Join(dir, "00000000000000000000-bad.json"), []byte("{not json"), 0o600); err != nil {
 		t.Fatal(err)

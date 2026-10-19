@@ -6,9 +6,9 @@
   "package": "@earendil-works/pi-coding-agent",
   "argv": [
     "-e",
-    "/root/.config/pi/haas-provider.ts",
+    "/root/.config/pi/gusto-provider.ts",
     "--provider",
-    "haas",
+    "gusto",
     "--model",
     "{modelId}",
     "--mode",
@@ -18,7 +18,7 @@
     "/root/.local/share/pi"
   ],
   "env": {
-    "HAAS_MODEL_ID": "{modelId}"
+    "GUSTO_MODEL_ID": "{modelId}"
   },
   "stdin": "{brief}",
   "needs": "key",
@@ -52,9 +52,9 @@
   "outputTokens": "message.usage.output",
   "resume": [
     "-e",
-    "/root/.config/pi/haas-provider.ts",
+    "/root/.config/pi/gusto-provider.ts",
     "--provider",
-    "haas",
+    "gusto",
     "--model",
     "{modelId}",
     "--mode",

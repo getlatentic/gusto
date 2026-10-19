@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/proxy"
-	"github.com/getlatentic/haas/internal/retention"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/internal/retention"
 )
 
 // Health is what /metrics and /readyz report on besides the index: the release
@@ -59,56 +59,56 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	out := &exposition{w: w}
 	stats := s.index.Stats(time.Now())
 
-	out.gauge("haas_build_info", "The release this server is.", 1, label{"release", or(s.health.Release, "unknown")})
-	out.gauge("haas_started_timestamp_seconds", "When this server started.", float64(s.startedAt.Unix()))
+	out.gauge("gusto_build_info", "The release this server is.", 1, label{"release", or(s.health.Release, "unknown")})
+	out.gauge("gusto_started_timestamp_seconds", "When this server started.", float64(s.startedAt.Unix()))
 
-	out.header("haas_jobs", "gauge", "Jobs the server holds, by state.")
+	out.header("gusto_jobs", "gauge", "Jobs the server holds, by state.")
 	for _, state := range []jobs.State{jobs.Queued, jobs.Running, jobs.Passed, jobs.Failed, jobs.Interrupted} {
-		out.sample("haas_jobs", float64(stats.ByState[state]), label{"state", string(state)})
+		out.sample("gusto_jobs", float64(stats.ByState[state]), label{"state", string(state)})
 	}
-	out.gauge("haas_queue_depth", "Jobs waiting to start.", float64(stats.ByState[jobs.Queued]))
-	out.gauge("haas_queue_oldest_wait_seconds", "How long the job queued longest has waited.", float64(stats.OldestWaitSeconds))
-	out.gauge("haas_queue_stuck_seconds", "How long the longest-waiting job has waited that no limit, busy agent or full pool holds back. Near zero while the queue moves.", float64(stats.StuckSeconds))
-	out.gauge("haas_jobs_running", "Jobs running now.", float64(stats.ByState[jobs.Running]))
-	out.gauge("haas_runner_slots", "How many jobs the server runs at once.", float64(stats.Slots))
+	out.gauge("gusto_queue_depth", "Jobs waiting to start.", float64(stats.ByState[jobs.Queued]))
+	out.gauge("gusto_queue_oldest_wait_seconds", "How long the job queued longest has waited.", float64(stats.OldestWaitSeconds))
+	out.gauge("gusto_queue_stuck_seconds", "How long the longest-waiting job has waited that no limit, busy agent or full pool holds back. Near zero while the queue moves.", float64(stats.StuckSeconds))
+	out.gauge("gusto_jobs_running", "Jobs running now.", float64(stats.ByState[jobs.Running]))
+	out.gauge("gusto_runner_slots", "How many jobs the server runs at once.", float64(stats.Slots))
 	if s.queue != nil {
-		out.gauge("haas_runner_workers_alive", "Workers running. Fewer than the slots means the queue takes jobs it will not start.", float64(s.queue.Alive()))
+		out.gauge("gusto_runner_workers_alive", "Workers running. Fewer than the slots means the queue takes jobs it will not start.", float64(s.queue.Alive()))
 	}
-	out.header("haas_jobs_finished_total", "counter", "Jobs that ended since this server started, by how.")
+	out.header("gusto_jobs_finished_total", "counter", "Jobs that ended since this server started, by how.")
 	for _, state := range []jobs.State{jobs.Passed, jobs.Failed, jobs.Interrupted} {
-		out.sample("haas_jobs_finished_total", float64(stats.Finished[state]), label{"state", string(state)})
+		out.sample("gusto_jobs_finished_total", float64(stats.Finished[state]), label{"state", string(state)})
 	}
-	out.gauge("haas_last_job_started_timestamp_seconds", "When a job last started, since this server started.", float64(stats.LastStarted))
-	out.gauge("haas_last_job_finished_timestamp_seconds", "When a job last ended, since this server started.", float64(stats.LastFinished))
+	out.gauge("gusto_last_job_started_timestamp_seconds", "When a job last started, since this server started.", float64(stats.LastStarted))
+	out.gauge("gusto_last_job_finished_timestamp_seconds", "When a job last ended, since this server started.", float64(stats.LastFinished))
 
 	s.diskMetrics(out)
 	if s.health.Proxy != nil {
 		counts := s.health.Proxy()
-		out.counter("haas_proxy_calls_total", "Calls the model proxy has handled since it started.", float64(counts.Calls))
-		out.counter("haas_proxy_errors_total", "Of them, calls the model's side failed: no answer, or a 5xx.", float64(counts.Errors))
-		out.counter("haas_proxy_refused_total", "Of them, calls a spending cap stopped.", float64(counts.Refused))
+		out.counter("gusto_proxy_calls_total", "Calls the model proxy has handled since it started.", float64(counts.Calls))
+		out.counter("gusto_proxy_errors_total", "Of them, calls the model's side failed: no answer, or a 5xx.", float64(counts.Errors))
+		out.counter("gusto_proxy_refused_total", "Of them, calls a spending cap stopped.", float64(counts.Refused))
 	}
 	if result, found := deployResult(s.health.DeployResult); found {
 		ok := 0.0
 		if result.OK {
 			ok = 1
 		}
-		out.gauge("haas_last_deploy_ok", "1 when the last deploy ended with the new version serving, 0 when it failed or rolled back.", ok, label{"release", result.Release})
-		out.gauge("haas_last_deploy_timestamp_seconds", "When the last deploy ended.", float64(result.At))
+		out.gauge("gusto_last_deploy_ok", "1 when the last deploy ended with the new version serving, 0 when it failed or rolled back.", ok, label{"release", result.Release})
+		out.gauge("gusto_last_deploy_timestamp_seconds", "When the last deploy ended.", float64(result.At))
 	}
 }
 
 func (s *Server) diskMetrics(out *exposition) {
 	root := s.index.Root()
 	if free, total, err := volume(root); err == nil {
-		out.gauge("haas_disk_free_bytes", "Free space on the volume the jobs are kept on.", float64(free), label{"store", "jobs"})
-		out.gauge("haas_disk_total_bytes", "Size of the volume the jobs are kept on.", float64(total), label{"store", "jobs"})
+		out.gauge("gusto_disk_free_bytes", "Free space on the volume the jobs are kept on.", float64(free), label{"store", "jobs"})
+		out.gauge("gusto_disk_total_bytes", "Size of the volume the jobs are kept on.", float64(total), label{"store", "jobs"})
 	}
 	used := s.disk.get(s)
-	out.gauge("haas_jobs_disk_bytes", "Bytes the jobs take, workspaces included. Measured at most once a minute.", float64(used.Bytes))
-	out.gauge("haas_jobs_workspace_bytes", "Of them, the workspaces.", float64(used.Workspaces))
+	out.gauge("gusto_jobs_disk_bytes", "Bytes the jobs take, workspaces included. Measured at most once a minute.", float64(used.Bytes))
+	out.gauge("gusto_jobs_workspace_bytes", "Of them, the workspaces.", float64(used.Workspaces))
 	if used.Oldest != nil {
-		out.gauge("haas_oldest_finished_job_timestamp_seconds", "When the finished job kept longest ended.", float64(used.Oldest.Ended))
+		out.gauge("gusto_oldest_finished_job_timestamp_seconds", "When the finished job kept longest ended.", float64(used.Oldest.Ended))
 	}
 }
 

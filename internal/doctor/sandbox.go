@@ -5,10 +5,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/isolation"
+	"github.com/getlatentic/gusto/internal/isolation"
 )
 
-// sandboxChoice says which wall haas would put between an agent and this computer's files, in words, and why a stronger one was not
+// sandboxChoice says which wall gusto would put between an agent and this computer's files, in words, and why a stronger one was not
 // chosen. Having none is not a failure of the computer, so it passes, with what would give it one.
 func sandboxChoice(machine Machine) Verdict {
 	host := isolation.Host{
@@ -25,7 +25,7 @@ func sandboxChoice(machine Machine) Verdict {
 	choice := isolation.Choose(host)
 	verdict := Verdict{Status: Pass, Said: choice.Words()}
 	if choice.Forced {
-		verdict.Said += " (set by HAAS_SANDBOX)"
+		verdict.Said += " (set by GUSTO_SANDBOX)"
 	}
 	var missing []string
 	for _, backend := range choice.Passed {

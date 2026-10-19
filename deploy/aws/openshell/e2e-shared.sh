@@ -11,4 +11,4 @@ root="$(git rev-parse --show-toplevel)"
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e/shared; rm -rf ~/e2e/shared/sample'
 scp -q -r "${ssh_options[@]}" e2e/sample "ubuntu@$address:e2e/shared/"
 scp -q "${ssh_options[@]}" "$state/shared" e2e/shared-on-host.sh e2e/credentials.sh "ubuntu@$address:e2e/shared/"
-ssh "${ssh_options[@]}" "ubuntu@$address" "export AWS_REGION=$AWS_REGION BEDROCK_PARAMETER=${HAAS_MODEL_PARAMETER:-/haas/poc/model-key} DEEPSEEK_PARAMETER=${HAAS_DEEPSEEK_PARAMETER:-/haas/poc/deepseek-key}; bash ~/e2e/shared/shared-on-host.sh" 2>&1 | tee out/e2e-shared.txt
+ssh "${ssh_options[@]}" "ubuntu@$address" "export AWS_REGION=$AWS_REGION BEDROCK_PARAMETER=${GUSTO_MODEL_PARAMETER:-/haas/poc/model-key} DEEPSEEK_PARAMETER=${GUSTO_DEEPSEEK_PARAMETER:-/haas/poc/deepseek-key}; bash ~/e2e/shared/shared-on-host.sh" 2>&1 | tee out/e2e-shared.txt

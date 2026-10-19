@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/integration"
+	"github.com/getlatentic/gusto/internal/integration"
 )
 
 // Export is a skill set as an Agent Plugin, in a zip: a plugin.json and its skills, and no servers. It is a plugin like any other,

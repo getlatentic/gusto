@@ -3,9 +3,9 @@ package web
 import (
 	"net/http"
 
-	"github.com/getlatentic/haas/internal/compare"
-	"github.com/getlatentic/haas/internal/jobs"
-	"github.com/getlatentic/haas/internal/spend"
+	"github.com/getlatentic/gusto/internal/compare"
+	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/spend"
 )
 
 // side is one engine's run as the comparison shows it: whether the check

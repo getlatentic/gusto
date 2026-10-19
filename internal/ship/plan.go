@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/haas/internal/evidence"
-	"github.com/getlatentic/haas/internal/job"
-	"github.com/getlatentic/haas/internal/signing"
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Options overrides what the job would otherwise decide. Every field may be
@@ -127,7 +127,7 @@ func (p Plan) Pull() Pull {
 // The name tells a person which job it is, and the hash tells two runs of the
 // same directory apart, so shipping the same run twice names the same branch.
 func branchName(dir job.Dir, digest string) string {
-	return "haas/" + slug(filepath.Base(filepath.Clean(dir.Path()))) + "-" + digest[:12]
+	return "gusto/" + slug(filepath.Base(filepath.Clean(dir.Path()))) + "-" + digest[:12]
 }
 
 func slug(text string) string {

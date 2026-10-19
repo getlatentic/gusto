@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/getlatentic/haas/internal/helper"
-	"github.com/getlatentic/haas/internal/helper/bridge"
+	"github.com/getlatentic/gusto/internal/helper"
+	"github.com/getlatentic/gusto/internal/helper/bridge"
 )
 
 // signedInCloud is the person's organisation, reached with the token the keychain holds at the moment of each call, so a
@@ -89,8 +89,8 @@ func (c signedInCloud) StopJob(ctx context.Context, job string) error {
 func ACP(args []string) int {
 	flags := flag.NewFlagSet("acp", flag.ContinueOnError)
 	address := serverFlag(flags)
-	instance := flags.String("instance", os.Getenv("HAAS_INSTANCE"), "the agent in the cloud to work with (default your newest, or a new one)")
-	engine := flags.String("agent", os.Getenv("HAAS_AGENT_KIND"), "the kind of agent to start when you have none (default the first this server can run)")
+	instance := flags.String("instance", os.Getenv("GUSTO_INSTANCE"), "the agent in the cloud to work with (default your newest, or a new one)")
+	engine := flags.String("agent", os.Getenv("GUSTO_AGENT_KIND"), "the kind of agent to start when you have none (default the first this server can run)")
 	if flags.Parse(args) != nil {
 		return 2
 	}

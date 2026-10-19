@@ -4,8 +4,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/getlatentic/haas/internal/harness"
-	"github.com/getlatentic/haas/internal/job"
+	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/internal/job"
 )
 
 // A job run in the server's own process is given the proxy, and it is the proxy that has to answer, not the model address the
@@ -16,7 +16,7 @@ func TestAHarnessNeedingAModelIsAdmittedWhenTheAddressItIsGivenAnswers(t *testin
 		t.Fatal(err)
 	}
 	defer listener.Close()
-	t.Setenv("HAAS_MODEL_URL", "http://127.0.0.1:1/v1")
+	t.Setenv("GUSTO_MODEL_URL", "http://127.0.0.1:1/v1")
 	adapter := harness.Adapter{Name: "local", Program: "sh", Needs: harness.NeedsLocal}
 	given := harness.Env{ModelURL: "http://" + listener.Addr().String() + "/model/v1"}
 	if err := admit(job.Spec{Harness: "local"}, adapter, given); err != nil {
