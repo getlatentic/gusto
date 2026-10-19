@@ -98,16 +98,13 @@
     <div class="copy">
       <h2>Tested across multiple agents.</h2>
       <p class="lead">Same task. Same model. Same environment.</p>
-      <table>
-        <thead><tr><th>Agent</th><th>Finished</th><th>Time</th></tr></thead>
-        <tbody>
-          <tr><td>Pi</td><td>Yes</td><td><progress max="166" value="28" aria-hidden="true"></progress>28 s</td></tr>
-          <tr><td>Claude Code</td><td>Yes</td><td><progress max="166" value="30" aria-hidden="true"></progress>30 s</td></tr>
-          <tr><td>Codex</td><td>Yes</td><td><progress max="166" value="35" aria-hidden="true"></progress>35 s</td></tr>
-          <tr><td>Hermes</td><td>Yes</td><td><progress max="166" value="40" aria-hidden="true"></progress>40 s</td></tr>
-          <tr><td>OpenCode</td><td>Yes</td><td><progress max="166" value="166" aria-hidden="true"></progress>2 m 46 s</td></tr>
-        </tbody>
-      </table>
+      <ul class="ran" aria-label="Agents that finished the task">
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Pi</span><span class="took">28 s</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Claude Code</span><span class="took">30 s</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Codex</span><span class="took">35 s</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">Hermes</span><span class="took">40 s</span></li>
+          <li><span class="tick" aria-hidden="true"></span><span class="name">OpenCode</span><span class="took">2 m 46 s</span></li>
+        </ul>
       <p class="fine">A one-line fix, checked by a test, on DeepSeek Flash. Test-environment measurements from 2 October 2026. They show that each agent runs here, not which is best for your work.</p>
     </div>
     <figure class="frame">{{picture "record" "The record of one reply: what was asked, its outcome, time, cost, tokens, agent and model, and that the record is signed." 700 520}}</figure>
@@ -122,14 +119,16 @@
 </section>
 
 <section class="band">
-  <div class="wrap narrow">
+  <div class="wrap">
 <div class="faq">
   <h2>Questions</h2>
-  <details><summary>What gets uploaded?</summary><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></details>
-  <details><summary>Which agents and models work?</summary><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organization connects.</p></details>
-  <details><summary>What happens when the demo ends?</summary><p>The organization, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></details>
-  <details><summary>Who can see my workspace and runs?</summary><p>A demo organization is yours alone, on an address of its own. Within an organization, administrators see people, spend and the record of runs.</p></details>
+  <div class="qas">
+  <div class="qa"><h3>What gets uploaded?</h3><p>Nothing from your computer. A demo starts with an empty workspace, and the agent sees only what you type to it.</p></div>
+  <div class="qa"><h3>Which agents and models work?</h3><p>Claude Code, Codex, OpenCode, Pi and Hermes each finished the test above. The public demo offers all five: OpenCode, Pi and Hermes on open Gemma models, and Claude Code and Codex on DeepSeek Flash. A deployment of your own runs them on the models your organization connects.</p></div>
+  <div class="qa"><h3>What happens when the demo ends?</h3><p>The organization, its workspaces and everything in them are removed. We keep the name, email and company you gave so that we can follow up about the demo, and nothing else.</p></div>
+  <div class="qa"><h3>Who can see my workspace and runs?</h3><p>A demo organization is yours alone, on an address of its own. Within an organization, administrators see people, spend and the record of runs.</p></div>
 </div>
+  </div>
   </div>
 </section>
 
