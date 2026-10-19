@@ -53,7 +53,7 @@ func TestAJobFromGustoNewMatchesTheSchema(t *testing.T) {
 	}
 	dir := filepath.Join(t.TempDir(), "job")
 	create := exec.Command(binary, "new", dir, "-repo", "https://example.com/r.git",
-		"-brief", "make the answer yes", "-harness", "opencode", "--", "sh", "-c", "test yes = yes")
+		"-brief", "make the answer yes", "-agent", "opencode", "--", "sh", "-c", "test yes = yes")
 	if output, err := create.CombinedOutput(); err != nil {
 		t.Fatalf("gusto new: %v: %s", err, output)
 	}
