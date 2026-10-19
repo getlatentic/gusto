@@ -1,0 +1,24 @@
+{
+  "written": "2026-10-01T11:00:00Z",
+  "members": [
+    {
+      "email": "ada@acme.com",
+      "role": "admin",
+      "joined": "2026-09-29T12:00:00Z",
+      "lastSignIn": "2026-10-01T11:00:00Z"
+    },
+    {
+      "email": "bob@acme.com",
+      "role": "runner",
+      "joined": "2026-09-29T12:00:00Z"
+    }
+  ],
+  "invited": [
+    {
+      "email": "cy@acme.com",
+      "by": "ada@acme.com",
+      "created": "2026-09-29T13:00:00Z",
+      "expires": "2026-10-06T13:00:00Z"
+    }
+  ]
+}

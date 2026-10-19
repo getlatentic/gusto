@@ -51,29 +51,30 @@ func runCommands() []*cmdline.Command {
 		},
 		{
 			Name: "cloud", Group: groupRun, Summary: "Run gusto cloud, the hosted server for accounts and routing",
-			Usage: []string{"", "workspaces"},
+			Usage: []string{"", "workspaces", "migrate"},
 			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organisations' records, and the servers it " +
 				"starts for each organisation and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ " +
-				"variables; docs/CLOUD.md lists them.",
-			Env: []cmdline.Param{
+				"variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in " +
+				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
+			Env: append([]cmdline.Param{
 				{Name: "GUSTO_CLOUD_ADDR", Text: "where to listen (default 127.0.0.1:8050)"},
 				{Name: "GUSTO_CLOUD_URL", Text: "the address links in mail begin with, such as https://cloud.example.com"},
-				{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps its records in (default cloud)"},
 				{Name: "GUSTO_CLOUD_DOMAIN", Text: "the domain organisations' servers are under"},
-				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organisation's server starts with"},
-			},
-			Examples: []string{"gusto cloud", "gusto cloud workspaces"},
+				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organisation's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organisation a schema of its own for its indexes"},
+				{Name: "GUSTO_CLOUD_INDEX_DIR", Text: "where organisations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)"},
+			}, envCloudDatabase...),
+			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud workspaces"},
 			SeeAlso:  []string{"host", "operator"},
 			Run:      none("cloud", cloudCommand),
 			Subs: []*cmdline.Command{{
 				Name: "workspaces", Summary: "List every workspace on this host",
 				Description: "Lists every workspace on this host, with the organisation each is in and whose it is: the operator's " +
 					"view across organisations, read from each one's own record.",
-				Env:      []cmdline.Param{{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps its records in (default cloud)"}},
+				Env:      envCloudDatabase,
 				Examples: []string{"gusto cloud workspaces"},
 				SeeAlso:  []string{"cloud"},
 				Run:      none("cloud workspaces", cloudWorkspaces),
-			}},
+			}, cloudMigrateCommand()},
 		},
 		{
 			Name: "host", Group: groupRun, Summary: "Run a host for organisations' servers, for a gusto cloud",
@@ -93,10 +94,9 @@ func runCommands() []*cmdline.Command {
 			Name: "operator", Group: groupRun, Summary: "Serve the operator's page for a gusto cloud, on loopback",
 			Description: "Serves the page an operator manages a gusto cloud from. It listens on the loopback of the machine gusto cloud " +
 				"runs on and refuses any other address, so nothing gusto cloud serves can reach it. Open a tunnel to it.",
-			Env: []cmdline.Param{
+			Env: append([]cmdline.Param{
 				{Name: "GUSTO_OWNER_ADDR", Text: "where to listen; a loopback address (default 127.0.0.1:8090)"},
-				{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps its records in (default cloud)"},
-			},
+			}, envCloudDatabase...),
 			SeeAlso: []string{"cloud"},
 			Run:     none("operator", operatorCommand),
 		},

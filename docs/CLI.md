@@ -772,13 +772,15 @@ Run gusto cloud, the hosted server for accounts and routing
 ```text
 gusto cloud
 gusto cloud workspaces
+gusto cloud migrate
 ```
 
-With no subcommand, runs gusto cloud: sign-up, sign-in and the organisations' records, and the servers it starts for each organisation and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them.
+With no subcommand, runs gusto cloud: sign-up, sign-in and the organisations' records, and the servers it starts for each organisation and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
 
 Commands:
 
 - `workspaces`: List every workspace on this host
+- `migrate`: Show the accounts database, or load the old account files into it
 
 Flags:
 
@@ -788,14 +790,17 @@ Environment:
 
 - `GUSTO_CLOUD_ADDR`: where to listen (default 127.0.0.1:8050)
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps its records in (default cloud)
 - `GUSTO_CLOUD_DOMAIN`: the domain organisations' servers are under
-- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organisation's server starts with
+- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organisation's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organisation a schema of its own for its indexes
+- `GUSTO_CLOUD_INDEX_DIR`: where organisations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
 
 Examples:
 
 ```sh
 gusto cloud
+gusto cloud migrate
 gusto cloud workspaces
 ```
 
@@ -817,7 +822,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps its records in (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
 
 Examples:
 
@@ -826,6 +832,42 @@ gusto cloud workspaces
 ```
 
 See also: `gusto cloud`
+
+### `gusto cloud migrate`
+
+Show the accounts database, or load the old account files into it
+
+```text
+gusto cloud migrate [-import]
+```
+
+Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organisations, people, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
+
+Flags:
+
+- `-import`: load the files of an earlier release into the database now, if it has not had them
+- `-h, --help`: show this help
+
+Environment:
+
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
+
+Exit codes:
+
+- `0`: the report was printed, or the import ran or had run
+- `1`: the database cannot be reached, is at a newer schema than this release reads, or the import failed
+- `2`: usage error
+
+Examples:
+
+```sh
+gusto cloud migrate
+gusto cloud migrate -import
+GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import
+```
+
+See also: `gusto cloud`, `gusto operator`
 
 ## `gusto host`
 
@@ -868,7 +910,8 @@ Flags:
 Environment:
 
 - `GUSTO_OWNER_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090)
-- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps its records in (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
+- `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organisations' files in, and cloud.db when there is no database address (default cloud)
 
 See also: `gusto cloud`
 

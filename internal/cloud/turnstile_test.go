@@ -61,54 +61,58 @@ func (f *front) tryDemo(answer string) (int, string) {
 }
 
 func TestTheDemoFormCarriesTheBotCheckAndMayLoadItsScriptFromCloudflareAndNothingElse(t *testing.T) {
-	f := checkedFront(t, newCloudflare(t))
-	status, page, header := f.browser().do("GET", "/demo", nil, nil)
-	if status != http.StatusOK || !strings.Contains(page, `class="cf-turnstile" data-sitekey="the-site-key"`) || !strings.Contains(page, "https://challenges.cloudflare.com/turnstile/v0/api.js") {
-		t.Errorf("the form has no widget:\n%s", page)
-	}
-	csp := header.Get("Content-Security-Policy")
-	for _, want := range []string{"script-src 'self' https://challenges.cloudflare.com", "frame-src https://challenges.cloudflare.com", "frame-ancestors 'none'"} {
-		if !strings.Contains(csp, want) {
-			t.Errorf("%q is not in %s", want, csp)
+	onEachDatabase(t, func(t *testing.T) {
+		f := checkedFront(t, newCloudflare(t))
+		status, page, header := f.browser().do("GET", "/demo", nil, nil)
+		if status != http.StatusOK || !strings.Contains(page, `class="cf-turnstile" data-sitekey="the-site-key"`) || !strings.Contains(page, "https://challenges.cloudflare.com/turnstile/v0/api.js") {
+			t.Errorf("the form has no widget:\n%s", page)
 		}
-	}
-	if strings.Contains(page, "the-secret") {
-		t.Error("the secret is on the form")
-	}
-	_, plain, plainHeader := newFront(t, demoSet, nil).browser().do("GET", "/demo", nil, nil)
-	if strings.Contains(plain, "turnstile") || strings.Contains(plainHeader.Get("Content-Security-Policy"), "cloudflare") {
-		t.Error("a host with no bot check loads a script from Cloudflare")
-	}
-	f.server.Wait()
+		csp := header.Get("Content-Security-Policy")
+		for _, want := range []string{"script-src 'self' https://challenges.cloudflare.com", "frame-src https://challenges.cloudflare.com", "frame-ancestors 'none'"} {
+			if !strings.Contains(csp, want) {
+				t.Errorf("%q is not in %s", want, csp)
+			}
+		}
+		if strings.Contains(page, "the-secret") {
+			t.Error("the secret is on the form")
+		}
+		_, plain, plainHeader := newFront(t, demoSet, nil).browser().do("GET", "/demo", nil, nil)
+		if strings.Contains(plain, "turnstile") || strings.Contains(plainHeader.Get("Content-Security-Policy"), "cloudflare") {
+			t.Error("a host with no bot check loads a script from Cloudflare")
+		}
+		f.server.Wait()
+	})
 }
 
 func TestADemoIsStartedOnlyForAVisitorCloudflareAcceptsAndTheSecretAndAddressAreWhatItIsAsked(t *testing.T) {
-	c := newCloudflare(t)
-	f := checkedFront(t, c)
-	if status, page := f.tryDemo("a-robot"); status != http.StatusForbidden || !strings.Contains(page, "could not tell that you are not a robot") || !strings.Contains(page, `value="maria@futureacmebank.com"`) {
-		t.Errorf("%d\n%s", status, page)
-	}
-	if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
-		t.Error("a robot made an organisation")
-	}
-	asked := c.questions()
-	if status, _ := f.tryDemo(""); status != http.StatusForbidden || c.questions() != asked {
-		t.Errorf("a form with no answer is turned away without asking Cloudflare: %d, %d questions", status, c.questions()-asked)
-	}
-	if status, _ := f.tryDemo(strings.Repeat("x", 3000)); status != http.StatusForbidden || c.questions() != asked {
-		t.Errorf("an answer that cannot be one is not sent on: %d", status)
-	}
-	if status, _ := f.tryDemo("a-human"); status != http.StatusSeeOther {
-		t.Fatalf("a visitor Cloudflare accepts was refused: %d", status)
-	}
-	f.server.Wait()
-	last := c.asked[len(c.asked)-1]
-	if last.Get("secret") != "the-secret" || last.Get("response") != "a-human" || last.Get("remoteip") == "" {
-		t.Errorf("%v", last)
-	}
-	if orgs, _ := f.store.Orgs(); len(orgs) != 1 {
-		t.Errorf("%d organisations", len(orgs))
-	}
+	onEachDatabase(t, func(t *testing.T) {
+		c := newCloudflare(t)
+		f := checkedFront(t, c)
+		if status, page := f.tryDemo("a-robot"); status != http.StatusForbidden || !strings.Contains(page, "could not tell that you are not a robot") || !strings.Contains(page, `value="maria@futureacmebank.com"`) {
+			t.Errorf("%d\n%s", status, page)
+		}
+		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+			t.Error("a robot made an organisation")
+		}
+		asked := c.questions()
+		if status, _ := f.tryDemo(""); status != http.StatusForbidden || c.questions() != asked {
+			t.Errorf("a form with no answer is turned away without asking Cloudflare: %d, %d questions", status, c.questions()-asked)
+		}
+		if status, _ := f.tryDemo(strings.Repeat("x", 3000)); status != http.StatusForbidden || c.questions() != asked {
+			t.Errorf("an answer that cannot be one is not sent on: %d", status)
+		}
+		if status, _ := f.tryDemo("a-human"); status != http.StatusSeeOther {
+			t.Fatalf("a visitor Cloudflare accepts was refused: %d", status)
+		}
+		f.server.Wait()
+		last := c.asked[len(c.asked)-1]
+		if last.Get("secret") != "the-secret" || last.Get("response") != "a-human" || last.Get("remoteip") == "" {
+			t.Errorf("%v", last)
+		}
+		if orgs, _ := f.store.Orgs(); len(orgs) != 1 {
+			t.Errorf("%d organisations", len(orgs))
+		}
+	})
 }
 
 func TestWhenTheCheckCannotBeMadeNobodyIsLetThroughAndTheyAreToldToTryAgain(t *testing.T) {
@@ -130,35 +134,35 @@ func TestWhenTheCheckCannotBeMadeNobodyIsLetThroughAndTheyAreToldToTryAgain(t *t
 }
 
 func TestTheLimitsAreCheckedBeforeCloudflareIsAskedAnything(t *testing.T) {
-	c := newCloudflare(t)
-	f := checkedFront(t, c)
-	f.server.signups = NewLimiter(1, 3600e9)
-	f.tryDemo("a-robot")
-	asked := c.questions()
-	if status, _ := f.tryDemo("a-robot"); status != http.StatusTooManyRequests || c.questions() != asked {
-		t.Errorf("a visitor over the limit costs a question to Cloudflare: %d", status)
-	}
+	onEachDatabase(t, func(t *testing.T) {
+		c := newCloudflare(t)
+		f := checkedFront(t, c)
+		f.server.signups = NewLimiter(1, 3600e9)
+		f.tryDemo("a-robot")
+		asked := c.questions()
+		if status, _ := f.tryDemo("a-robot"); status != http.StatusTooManyRequests || c.questions() != asked {
+			t.Errorf("a visitor over the limit costs a question to Cloudflare: %d", status)
+		}
+	})
 }
 
 func TestABotCheckThatIsHalfSetUpStopsTheFrontDoorStartingAndNoneIsFine(t *testing.T) {
-	for name, tc := range map[string]struct {
-		check Turnstile
-		ok    bool
-	}{
-		"none":          {Turnstile{}, true},
-		"both":          {Turnstile{Site: "s", Secret: "x"}, true},
-		"a site only":   {Turnstile{Site: "s"}, false},
-		"a secret only": {Turnstile{Secret: "x"}, false},
-	} {
-		root := t.TempDir()
-		store, err := Open(root, Settings{})
-		if err != nil {
-			t.Fatal(err)
+	onEachDatabase(t, func(t *testing.T) {
+		for name, tc := range map[string]struct {
+			check Turnstile
+			ok    bool
+		}{
+			"none":          {Turnstile{}, true},
+			"both":          {Turnstile{Site: "s", Secret: "x"}, true},
+			"a site only":   {Turnstile{Site: "s"}, false},
+			"a secret only": {Turnstile{Secret: "x"}, false},
+		} {
+			store := open(t, Settings{})
+			sessions, _ := store.OpenSessions(false)
+			_, err := New(Config{Store: store, Sessions: sessions, Turnstile: tc.check})
+			if (err == nil) != tc.ok {
+				t.Errorf("%s: %v", name, err)
+			}
 		}
-		sessions, _ := OpenSessions(root, false)
-		_, err = New(Config{Store: store, Sessions: sessions, Turnstile: tc.check})
-		if (err == nil) != tc.ok {
-			t.Errorf("%s: %v", name, err)
-		}
-	}
+	})
 }
