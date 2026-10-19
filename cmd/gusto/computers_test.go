@@ -23,7 +23,7 @@ import (
 // changes nothing.
 func hostProcesses(t *testing.T) int {
 	t.Helper()
-	out, err := exec.Command("sh", "-c", "ulimit -u").Output()
+	out, err := exec.Command("bash", "-c", "ulimit -u").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
