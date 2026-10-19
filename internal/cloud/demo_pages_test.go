@@ -218,7 +218,7 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 				t.Errorf("the landing page does not say %q", want)
 			}
 		}
-		if status != http.StatusOK || !strings.Contains(page, `<img src="/static/hero.webp"`) || strings.Contains(page, "<iframe") || strings.Contains(page, "<video") {
+		if status != http.StatusOK || !strings.Contains(page, `<img src="/static/hero-light.webp"`) || strings.Contains(page, "<iframe") || strings.Contains(page, "<video") {
 			t.Errorf("%d: a finished task is what the landing page shows when there is no video\n%s", status, page)
 		}
 		if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
@@ -279,7 +279,7 @@ func TestASignedInVisitorIsSentToTheirOrganizationAndNotShownTheLandingPage(t *t
 func TestThePictureOfAFinishedTaskIsServed(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, demoSet, nil)
-		if status, body, header := f.browser().do("GET", "/static/hero.webp", nil, nil); status != http.StatusOK || len(body) < 1000 || header.Get("Content-Type") != "image/webp" {
+		if status, body, header := f.browser().do("GET", "/static/hero-light.webp", nil, nil); status != http.StatusOK || len(body) < 1000 || header.Get("Content-Type") != "image/webp" {
 			t.Errorf("%d %d bytes %q", status, len(body), header.Get("Content-Type"))
 		}
 	})

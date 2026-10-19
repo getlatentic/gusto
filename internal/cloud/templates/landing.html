@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
 <link rel="stylesheet" href="{{own "/static/landing.css"}}">
+<script src="{{own "/static/landing-theme.js"}}"></script>
 </head>
 <body>
 <header class="top">
@@ -41,8 +42,11 @@
   {{else}}<iframe src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{else if .Shot}}
-<section class="shot" aria-label="A finished task">
-  <img src="{{.Shot}}" width="1224" height="980" alt="A finished task in gusto. It shows the outcome, the time, the cost and the tokens, the file that changed, that no request to another site was refused, and a record marked signed.">
+<section class="shot" aria-label="gusto in use">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
+    <img src="{{.Shot}}" width="1318" height="896" alt="A short conversation in gusto. A finance lead asks an agent what to decide first, has it draft a spending policy with a monthly limit per person, and asks for a note to the team. Each answer shows its time and cost and is marked signed.">
+  </picture>
 </section>
 {{end}}
 
