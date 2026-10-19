@@ -35,6 +35,7 @@ p { margin: 0; }
 footer { max-width: 64rem; margin: 0 auto; padding: var(--gu-space-6) var(--gu-space-5) var(--gu-space-8); font-size: .8125rem; color: var(--gu-text-muted); }
 a:focus-visible { outline: 2px solid var(--gu-focus); outline-offset: 2px; }
 @media (max-width: 40rem) { .top nav a:not(.cta) { display: none; } }
+@media (max-width: 30rem) { .top nav { display: none; } }
 .hero .body { max-width: 42rem; }
 .prose { max-width: 46rem; display: grid; gap: var(--gu-space-4); }
 .prose .lead, .try .lead, .close .lead { font-size: 1.1875rem; color: var(--gu-text-muted); max-width: 44rem; }
