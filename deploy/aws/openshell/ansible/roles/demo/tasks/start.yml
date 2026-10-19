@@ -1,14 +1,14 @@
 ---
 - name: The host's start-up work runs now, which gets the certificate or the image and points the name here
   ansible.builtin.systemd:
-    name: haas-boot
+    name: gusto-boot
     state: restarted
     enabled: true
     daemon_reload: true
 
 - name: The lease is watched
   ansible.builtin.systemd:
-    name: haas-lease.timer
+    name: gusto-lease.timer
     state: started
     enabled: true
     daemon_reload: true
@@ -19,7 +19,7 @@
     name: "{{ item }}"
     state: started
     enabled: true
-  loop: [nginx, haas-cloud, haas-owner]
+  loop: [nginx, gusto-cloud, gusto-owner]
   when: demo_role != 'cell'
 
 # nginx starts when it is installed, with its default site, and a play that fails drops
@@ -33,7 +33,7 @@
 # A host an image is made from is not started as a cell, which would register it and give it organisations.
 - name: The host is running
   ansible.builtin.systemd:
-    name: haas-cell
+    name: gusto-cell
     state: started
     enabled: true
   when: demo_role == 'cell' and not (demo_bake | bool)

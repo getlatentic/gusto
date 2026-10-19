@@ -1,4 +1,4 @@
-# Runs on the instance: a haas server whose jobs run in OpenShell sandboxes, an integration imported through its console, turned on and
+# Runs on the instance: a gusto server whose jobs run in OpenShell sandboxes, an integration imported through its console, turned on and
 # given to a setup, and Claude Code and Codex each asked, from the pages' own form, for a customer's account id, which only the
 # integration's tool and skill can answer. The customer system is a server on the instance that answers only the key the gateway
 # holds. It prints PASS or FAIL for each thing it checks, and the evidence under each.
@@ -7,13 +7,13 @@ E=$HOME/e2e; R=$E/integ
 export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
 export XDG_CONFIG_HOME=/etc/openshell-xdg XDG_STATE_HOME=/var/lib/openshell-xdg
 export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
-pkill -f "[e]2e/haas serve" 2>/dev/null || true; pkill -f "[c]ustomers_server.py" 2>/dev/null || true; sleep 1
-for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
+pkill -f "[e]2e/gusto serve" 2>/dev/null || true; pkill -f "[c]ustomers_server.py" 2>/dev/null || true; sleep 1
+for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
 rm -rf "$R"; mkdir -p "$R/keys" "$R/creds" "$R/sample"
 cp "$E"/sample/* "$R/sample/"; (cd "$R/sample" && git init -q . && git add -A && git -c user.email=a@b -c user.name=x commit -qm sample)
-"$E/haas" keygen e2e -dir "$R/keys" >/dev/null 2>&1
+"$E/gusto" keygen e2e -dir "$R/keys" >/dev/null 2>&1
 bash "$E/credentials.sh" "$R/creds"
-[ -s "$R/creds/deepseek.json" ] || { echo "FAIL no credentials: is /haas/poc/deepseek-key stored? (./put-key.sh)"; exit 1; }
+[ -s "$R/creds/deepseek.json" ] || { echo "FAIL no credentials: is /gusto/poc/deepseek-key stored? (./put-key.sh)"; exit 1; }
 
 python3 "$E/customers_server.py" "$R/customers.log" >/dev/null 2>&1 </dev/null &
 sleep 1
@@ -37,7 +37,7 @@ GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENS
   GUSTO_SIGNING_KEY="$R/keys/e2e.key" GUSTO_KEYRING="$R/keys" GUSTO_SIGNER=e2e \
   GUSTO_JOBS="$R/data/jobs" GUSTO_SESSIONS="$R/data/sessions" GUSTO_SETUPS="$R/data/setups" GUSTO_INTEGRATIONS="$R/data/integrations" \
   GUSTO_COMPARISONS="$R/data/comparisons" GUSTO_CHANGES="$R/data/changes/changes.jsonl" \
-  setsid nohup "$E/haas" serve > "$R/serve.log" 2>&1 </dev/null &
+  setsid nohup "$E/gusto" serve > "$R/serve.log" 2>&1 </dev/null &
 for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 H=http://127.0.0.1:8040; jar=$R/jar
 sleep 3
@@ -87,7 +87,7 @@ run() {
   grep -q '"person"' "$J/out/gateway.jsonl" 2>/dev/null; ok $? "$harness: the record says who asked"
   grep -rq 'e2e-customer-system-key' "$J" 2>/dev/null && ! grep -rlq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the customer system's key is in the job's private setup folder and not in anything it wrote"
   ! grep -rq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the key is nowhere in the job's evidence"
-  GUSTO_KEYRING="$R/keys" "$E/haas" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
+  GUSTO_KEYRING="$R/keys" "$E/gusto" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
 }
 run claude anthropic/deepseek-flash
 run codex deepseek/deepseek-flash

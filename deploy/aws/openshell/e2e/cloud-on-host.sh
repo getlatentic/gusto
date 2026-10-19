@@ -9,10 +9,10 @@ export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
 G="openshell --gateway spike"
 
 pkill -f "[h]aas cloud" 2>/dev/null; pkill -f "[h]aas serve" 2>/dev/null; sleep 1
-for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && ($1 ~ /^haas-/ || $1 ~ /^c-/) {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
+for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && ($1 ~ /^gusto-/ || $1 ~ /^c-/) {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
 rm -rf "$C/cloud" "$C/creds"
 bash "$C/credentials.sh" "$C/creds"
-[ -s "$C/creds/platform.json" ] || { echo "no credentials: is /haas/poc/model-key stored? (./put-key.sh)"; exit 1; }
+[ -s "$C/creds/platform.json" ] || { echo "no credentials: is /gusto/poc/model-key stored? (./put-key.sh)"; exit 1; }
 
 MODEL=${MODEL:-platform/qwen.qwen3-vl-235b-a22b-instruct}
 cat > "$C/org.env" <<ENV
@@ -30,12 +30,12 @@ GUSTO_MODELS=$MODEL
 ENV
 chmod 600 "$C/org.env"
 
-GUSTO_CLOUD_ROOT=$C/cloud GUSTO_CLOUD_ADDR=127.0.0.1:8050 GUSTO_CLOUD_URL=http://haas.test:8050 GUSTO_CLOUD_DOMAIN=haas.test \
+GUSTO_CLOUD_ROOT=$C/cloud GUSTO_CLOUD_ADDR=127.0.0.1:8050 GUSTO_CLOUD_URL=http://gusto.test:8050 GUSTO_CLOUD_DOMAIN=gusto.test \
   GUSTO_CLOUD_ORG_ENV=$C/org.env GUSTO_CLOUD_PORT_FROM=9100 \
-  setsid nohup "$C/haas" cloud > "$C/front-door.log" 2>&1 < /dev/null &
+  setsid nohup "$C/gusto" cloud > "$C/front-door.log" 2>&1 < /dev/null &
 for _ in $(seq 1 20); do curl -fs http://127.0.0.1:8050/healthz >/dev/null && break; sleep 1; done
 curl -fs http://127.0.0.1:8050/healthz >/dev/null || { echo "gusto cloud did not start"; cat "$C/front-door.log"; exit 1; }
 
-"$C/drive" -root "$C/cloud" -haas "$C/haas" -gateway spike -model "$MODEL" -within 12m
+"$C/drive" -root "$C/cloud" -gusto "$C/gusto" -gateway spike -model "$MODEL" -within 12m
 echo "exit $?"
 echo; echo "gusto cloud is left running on port 8050; its log is $C/front-door.log"

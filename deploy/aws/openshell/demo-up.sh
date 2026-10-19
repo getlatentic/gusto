@@ -15,17 +15,17 @@ for need in DEMO_NAME DEMO_ZONE DEMO_ACCOUNT_ID DEMO_MAIL_FROM DEMO_CERT_EMAIL; 
   [ -n "${!need:-}" ] || { echo "$need is not set in demo.env" >&2; exit 2; }
 done
 for parameter in cloudflare-dns-token cloudflare-mail-token model-key deepseek-key; do
-  aws ssm get-parameter --name "/haas/poc/$parameter" --query Parameter.Name --output text >/dev/null 2>&1 \
-    || { echo "/haas/poc/$parameter is not stored: run ./put-key.sh or ./put-cloudflare.sh" >&2; exit 2; }
+  aws ssm get-parameter --name "/gusto/poc/$parameter" --query Parameter.Name --output text >/dev/null 2>&1 \
+    || { echo "/gusto/poc/$parameter is not stored: run ./put-key.sh or ./put-cloudflare.sh" >&2; exit 2; }
 done
 
 bucket="$(./demo-store.sh)"
-[[ "$bucket" =~ ^haas-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
 image_key="$(./image-key.sh)"
 
-(cd "$root" && for program in haas:./cmd/gusto haas-dns:./deploy/aws/openshell/demo/dns; do
+(cd "$root" && for program in gusto:./cmd/gusto gusto-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
 done)
 

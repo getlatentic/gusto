@@ -4,6 +4,6 @@
 cd "$(dirname "$0")"
 source ./env.sh
 if address="$(terraform output -raw address 2>/dev/null)" && [ -n "$address" ]; then
-  ssh "${ssh_options[@]}" "ubuntu@$address" 'sudo systemctl stop haas-cloud haas-boot' || echo "the DNS records could not be removed from the host: remove them in Cloudflare" >&2
+  ssh "${ssh_options[@]}" "ubuntu@$address" 'sudo systemctl stop gusto-cloud gusto-boot' || echo "the DNS records could not be removed from the host: remove them in Cloudflare" >&2
 fi
 ./down.sh

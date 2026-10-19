@@ -3,7 +3,7 @@
 # hosts read it. It is made here, never shown, and not made again when there is one: a demo that is up
 # uses the one it started with.
 source "$(dirname "$0")/env.sh"
-name=/haas/poc/cell-secret
+name=/gusto/poc/cell-secret
 if aws ssm get-parameter --name "$name" --query Parameter.Name --output text >/dev/null 2>&1; then
   echo "$name is stored already"
   exit 0

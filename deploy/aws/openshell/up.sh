@@ -4,7 +4,7 @@
 # down.sh removes everything.
 source "$(dirname "$0")/env.sh"
 
-[ -f "$state/key" ] || ssh-keygen -q -t ed25519 -N '' -C haas-poc-openshell -f "$state/key"
+[ -f "$state/key" ] || ssh-keygen -q -t ed25519 -N '' -C gusto-poc-openshell -f "$state/key"
 export TF_VAR_public_key="$(cat "$state/key.pub")"
 
 terraform init -input=false >/dev/null

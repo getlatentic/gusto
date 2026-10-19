@@ -22,7 +22,7 @@ print(json.dumps({"commands": [
 PY
 )"
 command="$(aws ssm send-command --instance-ids "$instance" --document-name AWS-RunShellScript \
-  --comment "haas POC benchmark" --timeout-seconds 1200 --parameters "$parameters" \
+  --comment "gusto POC benchmark" --timeout-seconds 1200 --parameters "$parameters" \
   --query Command.CommandId --output text)"
 printf 'benchmark on %s ' "$instance"
 while :; do

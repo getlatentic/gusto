@@ -7,7 +7,7 @@ instance="$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-na
   --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`] | [0].InstanceId' --output text)"
 [ "$instance" != "None" ] || { echo "no running instance in $group" >&2; exit 1; }
 command="$(aws ssm send-command --instance-ids "$instance" --document-name AWS-RunShellScript \
-  --comment "haas POC smoke" --timeout-seconds 900 \
+  --comment "gusto POC smoke" --timeout-seconds 900 \
   --parameters 'commands=["cd /opt/e2b && time docker compose --profile test run --rm smoke 2>&1 | tail -40","ls -l /dev/kvm","nproc; free -g | head -2"]' \
   --query Command.CommandId --output text)"
 printf 'smoke on %s ' "$instance"

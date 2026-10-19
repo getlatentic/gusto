@@ -1,15 +1,15 @@
-# Runs on the instance: a haas server whose jobs run in OpenShell sandboxes made
+# Runs on the instance: a gusto server whose jobs run in OpenShell sandboxes made
 # from the runner image, and one job for opencode on the sample project. The
 # model is the one in ~/e2e/model.env when there is one, and a model that only
 # answers "pong" when there is not.
 set -uo pipefail
 E=$HOME/e2e
-pkill -f "[e]2e/haas serve" 2>/dev/null || true; pkill -f "[f]ake_model.py" 2>/dev/null || true
+pkill -f "[e]2e/gusto serve" 2>/dev/null || true; pkill -f "[f]ake_model.py" 2>/dev/null || true
 rm -rf "$E/rdata" "$E/rsample" "$E/rjob"; mkdir -p "$E/rdata" "$E/rsample"
 export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
 export XDG_CONFIG_HOME=/etc/openshell-xdg XDG_STATE_HOME=/var/lib/openshell-xdg
 export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
-for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^haas-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
+for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
 
 # The sample project: a discount that is a hundred times too large, and tests that say so.
 cp "$E"/sample/* "$E/rsample/"
@@ -23,7 +23,7 @@ else
   GUSTO_MODEL_UPSTREAM=http://127.0.0.1:9000; GUSTO_MODEL_KEY=not-a-real-key; GUSTO_MODEL_NAME=deepseek; GUSTO_MODEL_ID=deepseek-flash
   echo "model: a fake one that answers pong"
 fi
-mkdir -p "$E/keys" && "$E/haas" keygen e2e -dir "$E/keys" >/dev/null 2>&1
+mkdir -p "$E/keys" && "$E/gusto" keygen e2e -dir "$E/keys" >/dev/null 2>&1
 
 cd "$E"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
@@ -31,13 +31,13 @@ GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENS
   GUSTO_LOCAL_REPOS="$E/rsample" GUSTO_JOB_CONCURRENCY=1 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
   GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 \
   GUSTO_JOBS="$E/rdata/jobs" GUSTO_SESSIONS="$E/rdata/sessions" GUSTO_SETUPS="$E/rdata/setups" GUSTO_COMPARISONS="$E/rdata/comparisons" GUSTO_CHANGES="$E/rdata/changes/changes.jsonl" \
-  setsid nohup "$E/haas" serve > "$E/rserve.log" 2>&1 </dev/null &
+  setsid nohup "$E/gusto" serve > "$E/rserve.log" 2>&1 </dev/null &
 for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 echo "== engines the image offers"; grep -E "opencode|not offered" "$E/rserve.log" | head -4 | cut -c1-200
 
-"$E/haas" new "$E/rjob" -repo "$E/rsample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
+"$E/gusto" new "$E/rjob" -repo "$E/rsample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \
   -agent opencode -model "$GUSTO_MODEL_NAME/$GUSTO_MODEL_ID" -- node --test >/dev/null
-id=$(GUSTO_SERVER=http://127.0.0.1:8040 GUSTO_PASSWORD=e2e "$E/haas" submit "$E/rjob" | head -n 1)
+id=$(GUSTO_SERVER=http://127.0.0.1:8040 GUSTO_PASSWORD=e2e "$E/gusto" submit "$E/rjob" | head -n 1)
 echo "submitted $id"
 for _ in $(seq 1 360); do [ -f "$E/rdata/jobs/$id/out/manifest.json" ] && break; grep -q '"state":"failed"' "$E/rdata/jobs/$id/state.json" 2>/dev/null && break; sleep 1; done
 sleep 2
@@ -50,7 +50,7 @@ echo "== diff";         head -30 "$J/out/diff.patch" 2>/dev/null
 echo "== proxy record"; cut -c1-220 "$J/out/proxy.jsonl" 2>/dev/null | head -8
 echo "== guard: network"; grep -E "NET:OPEN|HTTP:|FINDING|DENIED|REFUSE" "$J/out/sandbox-events.log" 2>/dev/null | cut -c1-250 | head -30
 echo "== files";        ls "$J/out" 2>/dev/null | tr '\n' ' '; echo
-echo "== verify";       GUSTO_KEYRING="$E/keys" "$E/haas" verify "$J" 2>&1 | tail -2
+echo "== verify";       GUSTO_KEYRING="$E/keys" "$E/gusto" verify "$J" 2>&1 | tail -2
 echo "== serve log";    grep -E "ERROR" "$E/rserve.log" | cut -c1-400 | tail -5
 echo "== sandboxes left"; openshell sandbox list 2>&1 | head -4
 
@@ -72,7 +72,7 @@ for row in re.findall(r"<tr>(.*?)</tr>",t,re.S)[1:]:
 '
 for J in "$E"/rdata/jobs/*/; do
   [ -f "$J/out/manifest.json" ] || continue
-  echo "-- $(basename "$J"): agent $(grep -o '"harness":"[a-z]*"' "$J/state.json") $(grep -o '"state":"[a-z]*"' "$J/state.json"); $(GUSTO_KEYRING="$E/keys" "$E/haas" verify "$J" 2>&1 | head -1); model calls: $(grep -c . "$J/out/proxy.jsonl" 2>/dev/null); denied: $(grep -c "DENIED" "$J/out/sandbox-events.log")"
+  echo "-- $(basename "$J"): agent $(grep -o '"harness":"[a-z]*"' "$J/state.json") $(grep -o '"state":"[a-z]*"' "$J/state.json"); $(GUSTO_KEYRING="$E/keys" "$E/gusto" verify "$J" 2>&1 | head -1); model calls: $(grep -c . "$J/out/proxy.jsonl" 2>/dev/null); denied: $(grep -c "DENIED" "$J/out/sandbox-events.log")"
 done
 echo "== serve log errors"; grep -E "ERROR" "$E/rserve.log" | cut -c1-300 | tail -5
 echo "== sandboxes left"; openshell sandbox list 2>&1 | head -3

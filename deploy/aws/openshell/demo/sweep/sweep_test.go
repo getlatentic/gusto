@@ -50,7 +50,7 @@ func TestOnlyAnInstanceUpLongerThanTheLimitIsTerminated(t *testing.T) {
 
 func TestWithNothingOldItSaysSoAndTerminatesNothing(t *testing.T) {
 	got, said := sweep(t, "")
-	if len(got) != 0 || !strings.Contains(said, "nothing tagged haas-poc") {
+	if len(got) != 0 || !strings.Contains(said, "nothing tagged gusto-poc") {
 		t.Errorf("%v: %s", got, said)
 	}
 }
@@ -66,7 +66,7 @@ func TestItAsksOnlyForInstancesTaggedForTheProject(t *testing.T) {
 		t.Fatalf("%v: %s", err, out)
 	}
 	text, _ := os.ReadFile(log)
-	if !strings.Contains(string(text), "Name=tag:project,Values=haas-poc") || !strings.Contains(string(text), "pending,running") {
+	if !strings.Contains(string(text), "Name=tag:project,Values=gusto-poc") || !strings.Contains(string(text), "pending,running") {
 		t.Errorf("%s", text)
 	}
 }

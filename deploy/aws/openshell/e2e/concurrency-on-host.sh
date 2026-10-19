@@ -1,4 +1,4 @@
-# Runs on the instance: N sandboxes made at once on one gateway, at the size haas uses (2 CPU,
+# Runs on the instance: N sandboxes made at once on one gateway, at the size gusto uses (2 CPU,
 # 3 GiB). For each N it reports how long every sandbox took to be ready, how long the same
 # fixed piece of CPU work took inside each of them at the same time, and the host's memory
 # and load. This is the measurement getlatentic/planning#426 asks for.
@@ -10,7 +10,7 @@ G="openshell --gateway spike"
 IMAGE=$HOME/e2e/runner-all-rootfs.tar.gz
 POLICY=$(mktemp)
 echo '{"version":1,"filesystem_policy":{"include_workdir":false,"read_only":["/usr","/lib","/bin","/etc","/opt","/proc","/dev/urandom","/var/log"],"read_write":["/sandbox","/tmp","/dev/null","/dev/ptmx","/dev/pts"]},"network_policies":{}}' > "$POLICY"
-for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^(haas|conc)-/ {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
+for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^(gusto|conc)-/ {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
 pkill -f "[o]penshell.*forward" 2>/dev/null || true
 WORK="let t=Date.now(),x=0;for(let i=0;i<4e8;i++)x+=i;console.log(Date.now()-t)"
 

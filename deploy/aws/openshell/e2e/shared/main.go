@@ -1,6 +1,6 @@
 // Command shared runs two different harnesses, one after the other, in one
 // OpenShell sandbox on one project, and shows what each turn changed. It is a
-// test for the instance in deploy/aws/openshell, not part of haas: it uses the
+// test for the instance in deploy/aws/openshell, not part of gusto: it uses the
 // packages a server would, and keeps the sandbox for the next steps of the test.
 package main
 

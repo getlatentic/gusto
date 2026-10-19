@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const script = "../../ansible/roles/demo/files/haas-lease-reaper"
+const script = "../../ansible/roles/demo/files/gusto-lease-reaper"
 
 // run is the script on a host with the lease given ("" for none), a clock at 1000, and the
 // time it has been up. It says whether the host was told to power off.

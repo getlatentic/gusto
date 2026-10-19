@@ -1,0 +1,6 @@
+[Unit]
+Description=Power off a gusto demo host whose lease has ended
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gusto-lease-reaper

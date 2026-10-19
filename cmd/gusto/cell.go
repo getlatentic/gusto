@@ -109,7 +109,7 @@ func beatForCells(ctx context.Context, dir string) {
 // no host runs while nobody is using one. It is on when GUSTO_CLOUD_CELL_LAUNCH is ec2, and then needs
 // GUSTO_CLOUD_CELL_TEMPLATE (the launch template), GUSTO_CLOUD_CELL_USERDATA (the start-up script) and
 // GUSTO_CLOUD_CELL_SETTINGS, NAME=value pairs separated by commas that fill in the script. GUSTO_CLOUD_CELL_PROJECT
-// is the project tag of the hosts (haas-poc). GUSTO_CLOUD_CELL_MAX (3) is
+// is the project tag of the hosts (gusto-poc). GUSTO_CLOUD_CELL_MAX (3) is
 // the most hosts, GUSTO_CLOUD_CELL_IDLE_MINUTES (10) how long a host may have nothing on it, and
 // GUSTO_CLOUD_CELL_BOOT_MINUTES (10) how long a host has to come up.
 func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {

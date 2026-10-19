@@ -225,7 +225,7 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 	os.WriteFile(script, []byte("ROLE=@ROLE@ RUN=@RUN@ RELEASE=@RELEASE@\n"), 0o644)
 	var ran [][]string
 	var seen string
-	e := &EC2{Template: "haas-poc-demo-host-cell", UserData: script, Settings: map[string]string{"ROLE": "cell", "RUN": "live", "RELEASE": "abc123"},
+	e := &EC2{Template: "gusto-poc-demo-host-cell", UserData: script, Settings: map[string]string{"ROLE": "cell", "RUN": "live", "RELEASE": "abc123"},
 		Run: func(args ...string) ([]byte, error) {
 			ran = append(ran, args)
 			for i, arg := range args {
@@ -244,7 +244,7 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 		t.Fatalf("%q %v %q", id, err, seen)
 	}
 	args := strings.Join(ran[0], " ")
-	for _, want := range []string{"LaunchTemplateName=haas-poc-demo-host-cell,Version=$Latest", "Key=project,Value=haas-poc", "Key=scaler,Value=on"} {
+	for _, want := range []string{"LaunchTemplateName=gusto-poc-demo-host-cell,Version=$Latest", "Key=project,Value=gusto-poc", "Key=scaler,Value=on"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("%q is not in %s", want, args)
 		}

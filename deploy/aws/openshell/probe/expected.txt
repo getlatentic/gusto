@@ -9,7 +9,7 @@ tcp 93.184.216.34:443: refused
 tcp 1.1.1.1:53: refused
 tcp 169.254.169.254:80: refused
 tcp 10.0.0.2:22: refused
-write /etc/haas-test: denied
+write /etc/gusto-test: denied
 write /root/x: denied
 write /tmp/x: allowed
 read /etc/shadow: allowed

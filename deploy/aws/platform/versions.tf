@@ -19,6 +19,6 @@ provider "aws" {
   region = var.region
 
   default_tags {
-    tags = { project = "haas-poc", stack = "platform" }
+    tags = { project = "gusto-poc", stack = "platform" }
   }
 }
