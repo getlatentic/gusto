@@ -254,6 +254,11 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	defer stopUsage()
+	stopTasks, err := startTasks(index, pages, queue.Stop)
+	if err != nil {
+		return fail(err)
+	}
+	defer stopTasks()
 	background, stopBackground := context.WithCancel(context.Background())
 	defer stopBackground()
 	if dir := os.Getenv("GUSTO_RETENTION"); dir != "" {

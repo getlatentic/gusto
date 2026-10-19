@@ -38,6 +38,9 @@ type board struct {
 	Shown string
 	Newer string
 	Older string
+	// Index is set when the board is read from the index of tasks, which adds search, a person, an order and
+	// pages that continue from the last task of the one before.
+	Index *indexed
 }
 
 // day is one day of the log.
@@ -88,7 +91,10 @@ func filed(state jobs.State) string {
 
 func (s *Server) board(r *http.Request) board {
 	query := r.URL.Query()
-	shown := board{State: query.Get("state"), Harness: query.Get("harness")}
+	shown := board{State: query.Get("state"), Harness: query.Get("agent_type")}
+	if shown.Harness == "" {
+		shown.Harness = query.Get("harness")
+	}
 	all := s.ownJobs(r, s.index.List())
 	since := time.Now().Add(-lately).Unix()
 	counts := map[string]int{}
@@ -147,12 +153,15 @@ func filtered(query url.Values, key, value string) string {
 	for name, values := range query {
 		next[name] = slices.Clone(values)
 	}
-	if key != "page" {
+	paging := key == "page" || key == "after"
+	if !paging {
 		next.Del("page")
+		next.Del("after")
 	}
-	if next.Get(key) == value && key != "page" {
+	switch {
+	case value == "" || (next.Get(key) == value && !paging):
 		next.Del(key)
-	} else {
+	default:
 		next.Set(key, value)
 	}
 	if len(next) == 0 {
