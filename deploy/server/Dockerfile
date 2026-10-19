@@ -19,7 +19,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd cmd
 COPY internal internal
-RUN CGO_ENABLED=0 go build -trimpath -o /gusto ./cmd/gusto
+ARG RELEASE=
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-X main.release=${RELEASE}" -o /gusto ./cmd/gusto
 
 # The docker CLI speaks to a Docker daemon and to podman's Docker-compatible
 # socket alike, so one client serves every runtime this install supports. The
