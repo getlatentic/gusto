@@ -49,6 +49,7 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto data`](#gusto-data): Show, check and roll back the format of the data
 - [`gusto spend`](#gusto-spend): What the tasks spent this month, by team, project and task
 - [`gusto usage`](#gusto-usage): Search the model calls the agents made, by session
+- [`gusto tasks`](#gusto-tasks): List and search the tasks a server has, from its index
 
 **Other**
 
@@ -1330,6 +1331,106 @@ gusto usage reindex -from-scratch
 ```
 
 See also: `gusto usage sessions`, `gusto data`
+
+## `gusto tasks`
+
+List and search the tasks a server has, from its index
+
+```text
+gusto tasks <command> [arguments]
+```
+
+The index of tasks keeps one row for each task, so that a long list can be searched and paged without reading every task directory. Each task's state.json stays the truth. The server keeps the index current as tasks change, and these commands read it and rebuild it. A rebuilt index holds the same rows as the one it replaces.
+
+Commands:
+
+- `list`: List tasks, the most recently asked first
+- `reindex`: Fill the index from the task directories now
+
+Flags:
+
+- `-h, --help`: show this help
+
+### `gusto tasks list`
+
+List tasks, the most recently asked first
+
+```text
+gusto tasks list [-person <who>] [-state <state>] [-agent-type <type>] [-repo <repo>] [-team <team>] [-search <text>] [-month <2006-01>] [-sort queued|ended|seq] [-limit <n>] [-tasks <dir>] [-json]
+```
+
+Lists the tasks that match every flag given, read from the index and not from the task directories. -state is queued, running, passed, failed or interrupted, or several of them separated by commas. -search matches part of a task's id, brief, asker or repository, without regard to case. -sort orders from the greatest: queued is the task asked for last, ended the task that ended last, and seq the task that arrived last. An index that was never filled lists nothing: run gusto tasks reindex.
+
+Flags:
+
+- `-agent-type <agent type>`: only this agent type, the program that runs the task
+- `-json`: print the tasks as JSON
+- `-limit <tasks>`: the most tasks to list (default 20)
+- `-month <2006-01>`: only tasks asked for in this month, as 2006-01
+- `-person <person>`: only this person's tasks
+- `-repo <repository>`: only tasks on this repository
+- `-search <text>`: only tasks whose id, brief, asker or repository holds this text
+- `-sort <order>`: the order: queued (the default), ended or seq, from the greatest
+- `-state <state>`: only tasks in this state, or several separated by commas
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-team <team>`: only this team's tasks
+- `-h, --help`: show this help
+
+Environment:
+
+- `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
+- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+
+Exit codes:
+
+- `0`: success, including when no task matches
+- `1`: the index could not be read
+- `2`: usage error
+
+Examples:
+
+```sh
+gusto tasks list -state failed,interrupted -month 2026-10
+gusto tasks list -person ada@acme.com -search login -json
+```
+
+See also: `gusto tasks reindex`, `gusto data`
+
+### `gusto tasks reindex`
+
+Fill the index from the task directories now
+
+```text
+gusto tasks reindex [-from-scratch] [-tasks <dir>]
+```
+
+Reads every task's state.json and brings the index up to date: it adds the tasks that have no row, corrects the rows that differ from the file in any field, and removes the rows of tasks whose directory is gone. It changes no task. It can be run again at any time, and while a server runs. With -from-scratch it first removes every row, says how many, and rebuilds them all. A task a server is running is indexed as the file says, running, until the server writes it again.
+
+Flags:
+
+- `-from-scratch`: remove every row first, then rebuild them all
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-h, --help`: show this help
+
+Environment:
+
+- `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
+- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+
+Exit codes:
+
+- `0`: the index says what the task directories say
+- `1`: the index could not be read or written, or the run was interrupted
+- `2`: usage error
+
+Examples:
+
+```sh
+gusto tasks reindex
+gusto tasks reindex -from-scratch
+```
+
+See also: `gusto tasks list`, `gusto usage reindex`
 
 ## `gusto agents`
 

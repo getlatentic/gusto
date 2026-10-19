@@ -25,7 +25,7 @@ const (
 // wrong use.
 func program() *cmdline.Program {
 	var commands []*cmdline.Command
-	for _, part := range [][]*cmdline.Command{taskCommands(), sendCommands(), runCommands(), accountCommands(), recordCommands(), usageCommands(), otherCommands()} {
+	for _, part := range [][]*cmdline.Command{taskCommands(), sendCommands(), runCommands(), accountCommands(), recordCommands(), usageCommands(), tasksCommands(), otherCommands()} {
 		commands = append(commands, part...)
 	}
 	return &cmdline.Program{

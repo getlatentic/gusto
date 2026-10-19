@@ -87,6 +87,7 @@ func dataStatus() int {
 	table.Flush()
 	fmt.Println()
 	fmt.Println(usageStatusLine())
+	fmt.Println(taskIndexStatusLine())
 	return 0
 }
 
