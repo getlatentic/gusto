@@ -86,7 +86,7 @@ jobs:
             state="$(aws ssm get-command-invocation --command-id "$run" --instance-id "$id" --query Status --output text 2>/dev/null || echo Pending)"
             case "$state" in
               Success) echo "gusto cloud $id is at $GITHUB_SHA"; exit 0;;
-              Failed|Cancelled|TimedOut) echo "the upgrade of $id ended as $state"; aws ssm get-command-invocation --command-id "$run" --instance-id "$id" --query StandardErrorContent --output text | tail -20; exit 1;;
+              Failed|Canceling|TimedOut) echo "the upgrade of $id ended as $state"; aws ssm get-command-invocation --command-id "$run" --instance-id "$id" --query StandardErrorContent --output text | tail -20; exit 1;;
             esac
             sleep 15
           done

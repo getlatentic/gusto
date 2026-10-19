@@ -1,7 +1,7 @@
-// Package entry is how a hosted organisation's server knows who a person is
+// Package entry is how a hosted organization's server knows who a person is
 // without a sign-in page of its own. Gusto cloud signs a person in, and then
 // hands their browser a token, good for a minute and for one use, that the
-// organisation's server checks against a key only the two of them share.
+// organization's server checks against a key only the two of them share.
 package entry
 
 import (
@@ -17,7 +17,7 @@ import (
 )
 
 // Claims are what gusto cloud says: who this is, what they may do in the
-// organisation, which organisation it is, and until when the word is good.
+// organization, which organization it is, and until when the word is good.
 type Claims struct {
 	Email   string `json:"e"`
 	Role    string `json:"r"`
@@ -32,7 +32,7 @@ const Life = time.Minute
 // ErrInvalid is every reason a token does not work, said once.
 var ErrInvalid = errors.New("that sign-in link has been used or has expired")
 
-// Mint is a token for a person to enter an organisation with.
+// Mint is a token for a person to enter an organization with.
 func Mint(key []byte, org, email, role string, now time.Time) (string, error) {
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
@@ -53,7 +53,7 @@ func sign(key []byte, payload string) string {
 }
 
 // Verify is the claims in a token, when it was made with the key, is for this
-// organisation, and has not run out. It does not say the token is unused: that
+// organization, and has not run out. It does not say the token is unused: that
 // is Seen's.
 func Verify(key []byte, org, token string, now time.Time) (Claims, error) {
 	payload, signature, found := strings.Cut(token, ".")

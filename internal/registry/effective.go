@@ -15,7 +15,7 @@ type Effective struct {
 	// Models are full names, the operator's first.
 	Models []string
 	Prices map[string]spend.Price
-	// Problems say why a provider of the organisation's is not in use, by its name.
+	// Problems say why a provider of the organization's is not in use, by its name.
 	Problems map[string]string
 }
 

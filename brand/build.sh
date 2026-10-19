@@ -21,12 +21,12 @@ padded() { # size margin-percent out [svg]
 cp "$mark" "$web/mark.svg"
 rsvg-convert -w 192 --keep-aspect-ratio "$mark" -o "$web/mark.png"
 
-# The browser tab icon and the touch icon: the badge fills its square, on the page colour for the touch icon.
+# The browser tab icon and the touch icon: the badge fills its square, on the page color for the touch icon.
 rsvg-convert -w 32 -h 32 --keep-aspect-ratio "$mark" -o "$web/favicon-32.png"
 padded 180 10 "$web/apple-touch-icon.png"
 magick "$web/apple-touch-icon.png" -background '#F5FBF6' -alpha remove -alpha off "$web/apple-touch-icon.png"
 
-# The desktop app. The g is a hole in the badge, and an app icon has a desktop behind it, so the hole is filled with the page colour.
+# The desktop app. The g is a hole in the badge, and an app icon has a desktop behind it, so the hole is filled with the page color.
 # The badge is convex, so its convex hull is the badge without the g.
 padded 1024 10 /tmp/gusto-icon-cut.png
 hull=$(magick /tmp/gusto-icon-cut.png -channel A -separate +channel -threshold 50% -format "%[convex-hull]" info: | tr -d '\n')
@@ -48,7 +48,7 @@ if command -v iconutil >/dev/null; then
   iconutil -c icns "$set_dir" -o "$icons/icon.icns"
 fi
 
-# The menu bar icon is a template: one colour and transparent, so the system tints it.
+# The menu bar icon is a template: one color and transparent, so the system tints it.
 padded 44 6 "$icons/tray.png" "$mono"
 magick "$icons/tray.png" -fill black -colorize 100 "PNG32:$icons/tray.png"
 

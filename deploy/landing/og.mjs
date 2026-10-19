@@ -1,5 +1,5 @@
 // Draws the image a link to the landing page shows, 1200 by 630, into internal/cloud/static/og.png from og.html, in the site's own
-// font and colours:
+// font and colors:
 //
 //   PLAYWRIGHT_CORE=<path to playwright-core> CHROME=<a chromium, when the library's own is not installed> node og.mjs
 import { createRequire } from "node:module";

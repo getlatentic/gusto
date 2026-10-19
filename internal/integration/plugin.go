@@ -2,7 +2,7 @@
 // 1.0.0): a folder with a plugin.json, Agent Skills under skills/, and MCP servers in mcp.json.
 //
 // Reading follows the specification's failure boundaries. A manifest that is wrong rejects the plugin. A skill or a server that
-// is wrong is left out and said so, and the rest of the plugin is kept, so that one bad entry does not stop an organisation
+// is wrong is left out and said so, and the rest of the plugin is kept, so that one bad entry does not stop an organization
 // from taking the others. The plugin is untrusted input: nothing in it is run here, and a path that leaves its folder is refused.
 package integration
 

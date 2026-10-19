@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/orgsettings"
 )
 
-// chatDefault is the engine and model the organisation's admins chose for a new chat, which a person gets until they choose their own.
+// chatDefault is the engine and model the organization's admins chose for a new chat, which a person gets until they choose their own.
 type chatDefault struct{ Harness, Model string }
 
 func (d chatDefault) words() string {
@@ -19,13 +19,13 @@ func (d chatDefault) words() string {
 	return strings.TrimSuffix(d.Harness+" "+d.Model, " ")
 }
 
-// UseChatDefault is what a new chat runs on when neither the person nor the organisation's admins have chosen: a pair the operator
+// UseChatDefault is what a new chat runs on when neither the person nor the organization's admins have chosen: a pair the operator
 // knows finishes a job, so that a first chat on a deployment that offers every model to every engine still gets a reply.
 func (s *Server) UseChatDefault(harness, model string) {
 	s.operatorDefault = chatDefault{Harness: harness, Model: model}
 }
 
-// orgDefault is the organisation's default for a new chat, else the operator's.
+// orgDefault is the organization's default for a new chat, else the operator's.
 func (s *Server) orgDefault() chatDefault {
 	if s.orgSettings == nil {
 		return s.operatorDefault
@@ -43,7 +43,7 @@ type defaultChoice struct {
 	Chosen       bool
 }
 
-// defaultChoices are the engines and models that can run here, each pair one choice, with the organisation's current default marked.
+// defaultChoices are the engines and models that can run here, each pair one choice, with the organization's current default marked.
 func (s *Server) defaultChoices(r *http.Request) []defaultChoice {
 	now := s.orgDefault()
 	var choices []defaultChoice

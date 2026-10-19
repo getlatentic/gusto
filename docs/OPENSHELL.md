@@ -82,10 +82,10 @@ Speed holds to four sandboxes and slows in proportion beyond that. The gateway s
 
 ## Share an app from a sandbox
 
-On an agent's page, "Share an app this agent built" takes the start command and the port. The server runs the command in the agent's folder with `PORT` and `HOST=0.0.0.0` set, gives the port an address on the gateway, and shows the link once something answers. Only signed-in members of the organisation can open it. A stopped or unresponsive app no longer opens.
+On an agent's page, "Share an app this agent built" takes the start command and the port. The server runs the command in the agent's folder with `PORT` and `HOST=0.0.0.0` set, gives the port an address on the gateway, and shows the link once something answers. Only signed-in members of the organization can open it. A stopped or unresponsive app no longer opens.
 
 - The gateway's own address has no sign-in and is never given to a person. The server asks it as itself, without the person's credentials.
-- Behind gusto cloud, each app has its own host name, `<organisation>--<id>.<domain>`. A cookie the app sets stays on that host name. One named like the organisation's session cookie, or with a `__Host-` prefix, is dropped.
+- Behind gusto cloud, each app has its own host name, `<organization>--<id>.<domain>`. A cookie the app sets stays on that host name. One named like the organization's session cookie, or with a `__Host-` prefix, is dropped.
 - With no gusto cloud, an app is the path `/apps/<id>/`. It runs under `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-modals`, and its links must be relative.
 - In the sandbox, a server on `::` (Node's `listen(port)`) resets an IPv4 client at `127.0.0.1`. Listen on `0.0.0.0` or `127.0.0.1`. `localhost` does not resolve.
 

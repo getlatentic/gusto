@@ -12,7 +12,7 @@
     - { path: "{{ demo_state }}", owner: "{{ demo_user }}" }
     - { path: "{{ demo_lib }}", owner: "{{ demo_user }}" }
 
-- name: The agent of a host, and the organisations' servers
+- name: The agent of a host, and the organizations' servers
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/gusto"
     dest: /usr/local/bin/gusto
@@ -20,7 +20,7 @@
   when: demo_role == 'cell'
   notify: Restart the cell
 
-- name: gusto cloud, the operator's page, and the organisations' servers
+- name: gusto cloud, the operator's page, and the organizations' servers
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/gusto"
     dest: /usr/local/bin/gusto
@@ -30,7 +30,7 @@
     - Restart the front door
     - Restart the owner's page
 
-- name: What each model costs, which the organisations' servers price their spending by
+- name: What each model costs, which the organizations' servers price their spending by
   ansible.builtin.copy:
     src: spend-policy.json
     dest: /etc/gusto/spend-policy.json

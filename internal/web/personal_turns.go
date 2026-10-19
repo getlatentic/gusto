@@ -21,7 +21,7 @@ type engineJSON struct {
 }
 
 // enginesJSON lists what this deployment can run and what this person may think with: the second is narrower than the
-// deployment's when the organisation limited them to some models.
+// deployment's when the organization limited them to some models.
 func (s *Server) enginesJSON(w http.ResponseWriter, r *http.Request) {
 	offered := s.offeredTo(r)
 	out := []engineJSON{}

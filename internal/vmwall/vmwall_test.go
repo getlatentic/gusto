@@ -301,7 +301,7 @@ func TestTheGatewayIsConfiguredForVirtualMachinesAndRunsWithShortStateAndItsOwnT
 	}
 }
 
-func TestAMacWithNoDiskToolsGetsTheReleasesAndTheLicenceBesideThem(t *testing.T) {
+func TestAMacWithNoDiskToolsGetsTheReleasesAndTheLicenseBesideThem(t *testing.T) {
 	c, env := newComputer(t, "arm64")
 	var out bytes.Buffer
 	zipped := gzip.NewWriter(&out)
@@ -332,6 +332,6 @@ func TestAMacWithNoDiskToolsGetsTheReleasesAndTheLicenceBesideThem(t *testing.T)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(plan.Root, "licenses", "COPYING")); err != nil {
-		t.Errorf("the licence is not kept beside the tools: %v", err)
+		t.Errorf("the license is not kept beside the tools: %v", err)
 	}
 }

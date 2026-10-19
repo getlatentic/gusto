@@ -1,6 +1,6 @@
 // Records the demo as a person already in the platform sees it, on the live front door, into recording/gusto-demo.webm,
 // with the waits it had to make marked in recording/segments.json so encode.sh can speed them up. The demo is started
-// off camera, as John Smith of Future Acme Bank, and the recording begins inside the organisation. Nothing is faked:
+// off camera, as John Smith of Future Acme Bank, and the recording begins inside the organization. Nothing is faked:
 // each step is the page the person gets. End every demo on the host first: one address has one demo, and only a few run.
 //
 // Each caption is also written, with the time it was said, to recording/marks.json, so that edit/ can draw its own captions and
@@ -185,7 +185,7 @@ const failed = async (error) => {
 process.on("unhandledRejection", failed);
 process.on("uncaughtException", failed);
 
-// 1. In the organisation, choosing an agent.
+// 1. In the organization, choosing an agent.
 await page.goto(home);
 await say("Choose the agent to work with. Each gets the same workspace and controls", [{ all: 'a.choice[href^="/instances/new"]' }]);
 await pause(3.2);
@@ -195,7 +195,7 @@ await say("Start it. The agent gets an isolated workspace of its own", ["form.st
 await pause(2.4);
 await clickOn("button.cta");
 await page.waitForSelector("textarea");
-await say("Only the models your organisation allows, and the model key never enters the sandbox", ["textarea"]);
+await say("Only the models your organization allows, and the model key never enters the sandbox", ["textarea"]);
 await pause(1.5);
 await clickOn("textarea", { rest: 0.2, leaves: false });
 await page.keyboard.type(task, { delay: 45 });
@@ -210,7 +210,7 @@ await clickOn("details.steps summary", { leaves: false }).catch(() => {});
 await pause(3);
 
 // 2. What it built.
-await say("Preview what it built, shared only with your organisation", ["form.preview button"], 24);
+await say("Preview what it built, shared only with your organization", ["form.preview button"], 24);
 await pause(1.4);
 await clickOn("form.preview button");
 await waiting("starting the preview", () => page.waitForSelector("a:has-text('Open the app')", { timeout: 420000 }));
@@ -249,7 +249,7 @@ await pause(3);
 // 4. The end.
 if (ended) {
   await go(ended);
-  await say("When the demo ends, the organisation and everything in it is removed");
+  await say("When the demo ends, the organization and everything in it is removed");
   await pause(5);
 }
 await say("");

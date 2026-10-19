@@ -13,7 +13,7 @@ func TestStepsAreSaidInWords(t *testing.T) {
 		want step
 	}{
 		{ran{Tool: "skill", Input: json.RawMessage(`{"name":"keep-facts"}`)}, step{"Used skill", "Keep facts"}},
-		{ran{Tool: "mcp__memory__search_nodes", Input: json.RawMessage(`{"query":"favourite colour"}`)}, step{"Memory", "search nodes: favourite colour"}},
+		{ran{Tool: "mcp__memory__search_nodes", Input: json.RawMessage(`{"query":"favorite color"}`)}, step{"Memory", "search nodes: favorite color"}},
 		{ran{Tool: "mcp__memory__read_graph", Input: json.RawMessage(`{}`)}, step{"Memory", "read graph"}},
 		{ran{Tool: "read", Input: json.RawMessage(`{"file_path":"/job/workspace/visit-notes.txt"}`)}, step{"Read", "visit-notes.txt"}},
 		{ran{Tool: "bash", Input: json.RawMessage(`{"command":"bash adder.sh 2 3","description":"x"}`)}, step{"Ran", "bash adder.sh 2 3"}},

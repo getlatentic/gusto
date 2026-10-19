@@ -17,7 +17,7 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// registered is a console whose organisation has a registry, and the models the forms offer as that registry comes to.
+// registered is a console whose organization has a registry, and the models the forms offer as that registry comes to.
 func registered(t *testing.T, rules registry.Rules) (*tokened, *registry.Registry, *atomic.Pointer[Models]) {
 	t.Helper()
 	return registeredAs(t, rules, false)

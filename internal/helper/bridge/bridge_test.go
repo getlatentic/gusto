@@ -108,7 +108,7 @@ func (e *editor) call(method string, params any) (map[string]any, []map[string]a
 	return e.answer(e.start(method, params))
 }
 
-// cloud is a person's organisation as the tests need it.
+// cloud is a person's organization as the tests need it.
 type cloud struct {
 	mu        sync.Mutex
 	instances []helper.Instance

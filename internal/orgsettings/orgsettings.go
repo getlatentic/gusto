@@ -1,5 +1,5 @@
-// Package orgsettings is what an organisation's admins choose for it, kept in one file
-// in its data directory. Only the organisation's own server writes it, so there is one
+// Package orgsettings is what an organization's admins choose for it, kept in one file
+// in its data directory. Only the organization's own server writes it, so there is one
 // writer, and it reads the file as it goes.
 package orgsettings
 
@@ -16,7 +16,7 @@ import (
 
 // Settings are the choices there are.
 type Settings struct {
-	// MonthlyBudgetUSD is what the organisation means to spend in a calendar month, UTC.
+	// MonthlyBudgetUSD is what the organization means to spend in a calendar month, UTC.
 	// Zero is no budget.
 	MonthlyBudgetUSD float64 `json:"monthlyBudgetUsd,omitempty"`
 	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
@@ -24,14 +24,14 @@ type Settings struct {
 	DefaultModel   string `json:"defaultModel,omitempty"`
 }
 
-// File is the organisation's settings kept in a file.
+// File is the organization's settings kept in a file.
 type File struct {
 	path string
 	mu   sync.Mutex
 }
 
 // Open is the settings at path. A file that is not there is settings that choose
-// nothing, since an organisation starts with none.
+// nothing, since an organization starts with none.
 func Open(path string) *File { return &File{path: path} }
 
 // Read is the settings now. A file that is there and cannot be read is an error and not

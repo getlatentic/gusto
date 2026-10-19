@@ -79,7 +79,7 @@ A sandbox that asks the Kubernetes API for a Pod per task would remove the privi
 - Installing with Compose reaches nothing more. On Kubernetes the kubelet pulls the server, the runtime and the CLI from the registries the values name, and the runtime pulls the runner whenever a pod starts.
 - Running reaches what AIRGAP.md's S1 to S8 and J1 to J7 name: the identity provider if set, the model upstreams the proxy holds credentials for, the tasks' git hosts, and the hosts `GUSTO_ALLOWED_HOSTS` names. An agent calling home from a sealed task is refused and written down. With no model upstream set there is no proxy, and a task keeps the runtime's default network, which on these installs is the Docker bridge and reaches anything the machine does.
 
-gusto calls no licence server, sends no telemetry, checks for no updates, and its pages load nothing from outside the server. Only the port the pages are on needs to be reachable. The proxy listens on a unix socket, and the chart's Service exposes the pages alone.
+gusto calls no license server, sends no telemetry, checks for no updates, and its pages load nothing from outside the server. Only the port the pages are on needs to be reachable. The proxy listens on a unix socket, and the chart's Service exposes the pages alone.
 
 ## What has been run, and what has not
 

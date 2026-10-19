@@ -21,7 +21,7 @@
     dialog.className = "dialog";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-labelledby", "d-title");
+    dialog.setAttribute("aria-labeledby", "d-title");
     dialog.tabIndex = -1;
     var head = document.createElement("div");
     head.className = "d-head";

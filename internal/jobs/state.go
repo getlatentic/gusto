@@ -43,7 +43,7 @@ type Record struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	// Instance and Thread are set when this task is a turn in a conversation.
-	// The instance is what serialises them: its threads share one workspace, so
+	// The instance is what serializes them: its threads share one workspace, so
 	// two of its turns must never run at once.
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`

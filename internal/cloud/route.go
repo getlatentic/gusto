@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-// provision starts an organisation's server, without making the person wait for it.
+// provision starts an organization's server, without making the person wait for it.
 func (s *Server) provision(slug string) {
 	if s.Controller == nil {
 		return
@@ -23,12 +23,12 @@ func (s *Server) provision(slug string) {
 	go func() {
 		defer s.making.Done()
 		if err := s.Controller.Provision(slug); err != nil {
-			slog.Error("an organisation's server could not be started", "org", slug, "error", err)
+			slog.Error("an organization's server could not be started", "org", slug, "error", err)
 		}
 	}()
 }
 
-// orgSlug is the organisation a host name is, when it is <slug>.<domain>. The front
+// orgSlug is the organization a host name is, when it is <slug>.<domain>. The front
 // door's own name is the domain itself, and is not one.
 func (s *Server) orgSlug(host string) (string, bool) {
 	if s.Controller == nil {
@@ -45,8 +45,8 @@ func (s *Server) orgSlug(host string) (string, bool) {
 }
 
 // appHost is the app a host name is, when it is <slug>--<id>.<domain>: an app a person
-// shared from an agent of the organisation, at a name of its own so that the browser keeps it
-// apart from the organisation's pages. An organisation's address never has two hyphens in a row,
+// shared from an agent of the organization, at a name of its own so that the browser keeps it
+// apart from the organization's pages. An organization's address never has two hyphens in a row,
 // so the two are never mistaken.
 func (s *Server) appHost(host string) (slug, id string, ok bool) {
 	if s.Controller == nil {
@@ -75,7 +75,7 @@ func (s *Server) appURL(slug, id string) string {
 	return s.URL.Scheme + "://" + host
 }
 
-// orgURL is the address of an organisation's server as a browser reaches it.
+// orgURL is the address of an organization's server as a browser reaches it.
 func (s *Server) orgURL(slug string) string {
 	host := slug + "." + s.Domain
 	if port := s.URL.Port(); port != "" {
@@ -84,18 +84,18 @@ func (s *Server) orgURL(slug string) string {
 	return s.URL.Scheme + "://" + host
 }
 
-// route sends a request to the organisation's server, or says why it cannot.
+// route sends a request to the organization's server, or says why it cannot.
 func (s *Server) route(w http.ResponseWriter, r *http.Request, slug string) {
 	s.forward(w, r, slug, "")
 }
 
-// routeApp sends a request for an app's own host name to the organisation's server, signed as
+// routeApp sends a request for an app's own host name to the organization's server, signed as
 // being for that app, which is all the request can then reach there.
 func (s *Server) routeApp(w http.ResponseWriter, r *http.Request, slug, id string) {
 	s.forward(w, r, slug, id)
 }
 
-// forward sends a request to the organisation's server, for one of its apps when an app is named.
+// forward sends a request to the organization's server, for one of its apps when an app is named.
 func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app string) {
 	address, state := s.Controller.Route(slug)
 	if state == "" {
@@ -119,17 +119,17 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 		FlushInterval: -1,
 		Transport:     &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * time.Second, MaxIdleConnsPerHost: 8},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			slog.Warn("an organisation's server did not answer", "org", slug, "error", err)
+			slog.Warn("an organization's server did not answer", "org", slug, "error", err)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>gusto</title><p>This organisation's server is not answering. It is being started again.</p>`))
+			w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>gusto</title><p>This organization's server is not answering. It is being started again.</p>`))
 		},
 	}).ServeHTTP(w, r)
 }
 
 // rewrite sends a request on to the address as the front door saw it: the client
 // is who the front door says, and none of the front door's own cookies go. What the
-// client claimed about itself is not believed, since the organisation's server
+// client claimed about itself is not believed, since the organization's server
 // writes down where a person signed in from.
 func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyRequest) {
 	target := &url.URL{Scheme: "http", Host: address}
@@ -158,23 +158,23 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 	}
 }
 
-// appSignature is the signed header value for an app of an organisation, or nothing when no
-// app is named or the organisation's key cannot be read.
+// appSignature is the signed header value for an app of an organization, or nothing when no
+// app is named or the organization's key cannot be read.
 func (s *Server) appSignature(slug, id string) string {
 	if id == "" {
 		return ""
 	}
 	key, err := s.Controller.EntryKey(slug)
 	if err != nil {
-		slog.Error("an organisation's entry key could not be read", "org", slug, "error", err)
+		slog.Error("an organization's entry key could not be read", "org", slug, "error", err)
 		return ""
 	}
 	return web.SignApp(key, id)
 }
 
-// open signs a person in to their organisation's server, with a token that server
+// open signs a person in to their organization's server, with a token that server
 // checks, and sends their browser there. For an app it is the app's own host name they
-// are signed in on, which is a different origin from the organisation's.
+// are signed in on, which is a different origin from the organization's.
 func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	if s.Controller == nil {
 		http.NotFound(w, r)
@@ -186,7 +186,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	}
 	key, err := s.Controller.EntryKey(person.Org)
 	if err != nil {
-		slog.Error("an organisation's entry key could not be read", "org", person.Org, "error", err)
+		slog.Error("an organization's entry key could not be read", "org", person.Org, "error", err)
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
@@ -204,7 +204,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	if err := s.Store.RecordSignIn(person.Email); err != nil {
-		slog.Error("a sign-in to an organisation was not recorded", "org", person.Org, "error", err)
+		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 }
@@ -213,11 +213,11 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 func stateWords(state State) string {
 	switch state {
 	case Failed:
-		return "This organisation's server could not be started. It is being tried again."
+		return "This organization's server could not be started. It is being tried again."
 	case Starting:
-		return "This organisation's server is starting."
+		return "This organization's server is starting."
 	case Waiting:
-		return "A machine is starting for this organisation. That takes about a minute when none is running."
+		return "A machine is starting for this organization. That takes about a minute when none is running."
 	}
-	return "This organisation is being set up."
+	return "This organization is being set up."
 }

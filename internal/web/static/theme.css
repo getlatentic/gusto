@@ -1,4 +1,4 @@
-/* The colours of the app, in layers and without a tint of their own. From the outside in: the rail, the conversations beside it, the page, and the
+/* The colors of the app, in layers and without a tint of their own. From the outside in: the rail, the conversations beside it, the page, and the
    cards that sit on the page, each a step lighter than the one outside it (a step darker, in the dark theme, than the page for the chrome and
    lighter than it for the cards). The accent is the person's choice and is used for the one action of a page and for where they are.
    <html> carries data-theme (light or dark, resolved from the person's choice and the system) and data-accent. */
@@ -24,7 +24,7 @@
   --gu-shadow-1: 0 0.0625rem 0.125rem rgb(0 0 0 / .06);
   --gu-shadow-2: 0 0.25rem 1rem rgb(0 0 0 / .08);
   --gu-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .12);
-  /* The status colours of the vendored tokens, darkened where their text falls under 4.5 to 1 on its own surface. */
+  /* The status colors of the vendored tokens, darkened where their text falls under 4.5 to 1 on its own surface. */
   --gu-warning: #8A5300;
 }
 

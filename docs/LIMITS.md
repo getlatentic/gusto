@@ -30,7 +30,7 @@ The task's page and its Activity line say what holds it, and where it stands in 
 
 ## A quota for the whole server
 
-A hosted organisation's server runs under a quota that its gusto cloud writes ([CLOUD.md](CLOUD.md)). `GUSTO_QUOTA` names the file:
+A hosted organization's server runs under a quota that its gusto cloud writes ([CLOUD.md](CLOUD.md)). `GUSTO_QUOTA` names the file:
 
 ```json
 {"jobs": 3, "concurrent": 1, "note": "Confirm the admin's email address to raise this limit."}
@@ -45,7 +45,7 @@ A hosted organisation's server runs under a quota that its gusto cloud writes ([
 Zero is none.
 
 - A task past `jobs` is refused when asked for. The pages show the reason and the API answers 429.
-- A task past `concurrent` stays queued and says "This organisation may run 1 at a time and has 1 running".
+- A task past `concurrent` stays queued and says "This organization may run 1 at a time and has 1 running".
 - The server rereads the file each second. A lifted limit applies to the next task without a restart.
 - A server started with `GUSTO_QUOTA` and an unreadable file does not start.
 - A server that loses the file while running refuses every new task and runs one at a time. It does not fall back to no limit.

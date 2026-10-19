@@ -11,7 +11,7 @@ import (
 )
 
 // clientFor is the client a call to this credential's model goes out with. An address somebody
-// chose for their organisation is reached only at a public address, and everything else with the
+// chose for their organization is reached only at a public address, and everything else with the
 // client every credential has had.
 func (p *Proxy) clientFor(credential Credential) *http.Client {
 	if !credential.Public {

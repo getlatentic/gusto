@@ -14,9 +14,9 @@ import (
 type Policy struct {
 	Prices map[string]Price   `json:"prices"`
 	Teams  map[string]TeamCap `json:"teams"`
-	// Organisation is what every task of this server may spend together in a calendar month, UTC, whichever team they
-	// count against. A demo has one, since an organisation that lasts half an hour has nobody to set a team's cap.
-	Organisation *TeamCap `json:"organisation,omitempty"`
+	// Organization is what every task of this server may spend together in a calendar month, UTC, whichever team they
+	// count against. A demo has one, since an organization that lasts half an hour has nobody to set a team's cap.
+	Organization *TeamCap `json:"organisation,omitempty"`
 }
 
 // TeamCap is what one team's tasks may spend together in a calendar month, UTC.
@@ -73,12 +73,12 @@ func (p Policy) price(credential, model string) (Price, bool) {
 	return price, found
 }
 
-// organisationCap is the monthly cap on the whole server, if the policy sets one.
-func (p Policy) organisationCap() (float64, bool) {
-	if p.Organisation == nil {
+// organizationCap is the monthly cap on the whole server, if the policy sets one.
+func (p Policy) organizationCap() (float64, bool) {
+	if p.Organization == nil {
 		return 0, false
 	}
-	return p.Organisation.USDPerMonth, true
+	return p.Organization.USDPerMonth, true
 }
 
 // teamCap is the monthly cap on a team, if the policy sets one.

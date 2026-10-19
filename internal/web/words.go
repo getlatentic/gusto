@@ -62,7 +62,7 @@ func (s *Server) engineName(harness string) string {
 }
 
 // knownModels are the names providers give their models in their own
-// catalogues, for the ids gusto is configured with.
+// catalogs, for the ids gusto is configured with.
 var knownModels = map[string]string{
 	"deepseek-flash":                   "DeepSeek Flash",
 	"deepseek-v4-pro":                  "DeepSeek Pro",
@@ -92,7 +92,7 @@ func modelName(model string) string {
 	return strings.Join(words, " ")
 }
 
-// fieldClass is the colour a field's work is drawn in.
+// fieldClass is the color a field's work is drawn in.
 func fieldClass(field string) string {
 	if field == "" {
 		return "hue-general"

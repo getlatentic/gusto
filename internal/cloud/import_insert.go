@@ -84,7 +84,7 @@ func (s *Store) legacyInvitationArgs(i legacyInvitation) []any {
 	return s.invitationArgs(i.org, i.Invitation)
 }
 
-// insertRuntimes keeps each organisation's runtime unless another row already holds its slug or its ports, in
+// insertRuntimes keeps each organization's runtime unless another row already holds its slug or its ports, in
 // which case that one stands and the controller works the ports out again.
 func (s *Store) insertRuntimes(ctx context.Context, tx dbkit.Tx, old legacy) (int, error) {
 	added := 0

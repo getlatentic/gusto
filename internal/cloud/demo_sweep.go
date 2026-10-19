@@ -14,7 +14,7 @@ type demoEnder struct {
 	running sync.WaitGroup
 }
 
-// ComputersWait is how long an ending demo waits for its organisation's server to remove its computers, which it
+// ComputersWait is how long an ending demo waits for its organization's server to remove its computers, which it
 // does when it next looks, before the server is stopped anyway.
 const ComputersWait = 90 * time.Second
 
@@ -62,7 +62,7 @@ func (s *Server) EndDueDemos() {
 	}
 }
 
-// endDemo removes a demo's workspaces, then its server, then the organisation. A demo that cannot be ended is tried
+// endDemo removes a demo's workspaces, then its server, then the organization. A demo that cannot be ended is tried
 // again at the next sweep, which it is not until this has finished.
 func (s *Server) endDemo(slug, reason string) {
 	defer func() {

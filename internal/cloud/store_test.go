@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestASignUpMakesAPersonAnOrganisationAndItsDirectoryOnTheTrial(t *testing.T) {
+func TestASignUpMakesAPersonAnOrganizationAndItsDirectoryOnTheTrial(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		person, org, err := s.SignUp(Signup{Email: "Ada@Acme.com", OrgName: "Acme Research"})
@@ -41,7 +41,7 @@ func TestASignUpMakesAPersonAnOrganisationAndItsDirectoryOnTheTrial(t *testing.T
 	})
 }
 
-func TestVerifyingLiftsTheQuotaOfTheOrganisationTheirAdminMade(t *testing.T) {
+func TestVerifyingLiftsTheQuotaOfTheOrganizationTheirAdminMade(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
@@ -50,7 +50,7 @@ func TestVerifyingLiftsTheQuotaOfTheOrganisationTheirAdminMade(t *testing.T) {
 			t.Fatalf("%+v %v", person, err)
 		}
 		if quota, _ := s.Quota(org.Slug); quota != DefaultLimits().Verified {
-			t.Errorf("a verified organisation has the larger quota: %+v", quota)
+			t.Errorf("a verified organization has the larger quota: %+v", quota)
 		}
 		again, err := s.Verify("ada@acme.com")
 		if err != nil || !again.Verified.Equal(person.Verified) {
@@ -92,7 +92,7 @@ func TestASignUpThatIsRefusedLeavesNothingBehind(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, err := os.Stat(s.OrgDir("elsewhere")); err == nil {
-			t.Error("a refused sign-up left its organisation's directory")
+			t.Error("a refused sign-up left its organization's directory")
 		}
 		if _, _, err := s.SignUp(Signup{Email: "eve@example.net", OrgName: "Elsewhere", Slug: "elsewhere"}); err != nil {
 			t.Errorf("the slug should be free again: %v", err)
@@ -101,7 +101,7 @@ func TestASignUpThatIsRefusedLeavesNothingBehind(t *testing.T) {
 }
 
 // Two people racing for one address or one slug: exactly one wins, and the loser
-// leaves no organisation behind.
+// leaves no organization behind.
 func TestTwoSignUpsForOneNameHaveOneWinner(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 100})
@@ -143,13 +143,13 @@ func TestADirectoryWithNoRecordDoesNotHoldItsAddress(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, found, _ := s.Org("half-made"); found {
-			t.Error("a directory is not an organisation")
+			t.Error("a directory is not an organization")
 		}
 		if _, _, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Half Made", Slug: "half-made"}); err != nil {
 			t.Errorf("a sign-up that stopped part way does not hold its address: %v", err)
 		}
 		if _, err := s.Quota("half-made"); err != nil {
-			t.Errorf("the organisation made over the directory has its quota: %v", err)
+			t.Errorf("the organization made over the directory has its quota: %v", err)
 		}
 	})
 }
@@ -245,7 +245,7 @@ func TestOnlyTheHashOfALinkIsKeptAndRunOutLinksAreSwept(t *testing.T) {
 	})
 }
 
-func TestAnOrganisationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *testing.T) {
+func TestAnOrganizationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		person, org, err := s.SignUp(Signup{Email: "ada@acme-research.com"})
@@ -283,7 +283,7 @@ func TestAFreeMailAddressHasNoCompanyToNameItAndClaimsNoDomain(t *testing.T) {
 	})
 }
 
-// An address that comes from a company's domain is always one an organisation can
+// An address that comes from a company's domain is always one an organization can
 // have, and is that company's alone: the whole registrable domain, so two companies
 // whose names are alike each have one, and neither is put ahead of the other.
 func TestAnAddressFromADomainIsTheWholeDomainAndIsAlwaysUsable(t *testing.T) {
@@ -322,10 +322,10 @@ func TestAnAddressFromAVeryLongDomainStaysWithinWhatAHostNameTakesAndDifferentFr
 	}
 }
 
-// A company is more than one organisation when it has subsidiaries or teams that
+// A company is more than one organization when it has subsidiaries or teams that
 // keep apart. The first has the address its domain gives, and each after it is
 // named by whoever makes it and has an address from that name.
-func TestACompanyCanHaveSeveralOrganisationsAndEachAfterTheFirstIsNamedByItsCreator(t *testing.T) {
+func TestACompanyCanHaveSeveralOrganizationsAndEachAfterTheFirstIsNamedByItsCreator(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 10})
 		_, first, err := s.SignUp(Signup{Email: "ada@acme.com"})
@@ -352,10 +352,10 @@ func TestACompanyCanHaveSeveralOrganisationsAndEachAfterTheFirstIsNamedByItsCrea
 	})
 }
 
-// Nobody is kept from making an organisation because their company has one. What is
-// limited is organisations nobody has confirmed an address for, which is what
+// Nobody is kept from making an organization because their company has one. What is
+// limited is organizations nobody has confirmed an address for, which is what
 // making many to hold names or to get many trials looks like.
-func TestOnlyOrganisationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T) {
+func TestOnlyOrganizationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 2})
 		s.SignUp(Signup{Email: "a@acme.com"})
@@ -373,7 +373,7 @@ func TestOnlyOrganisationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T
 		s.Verify("c@acme.com")
 		for _, who := range []string{"d", "e", "f", "g"} {
 			if _, _, err := s.SignUp(Signup{Email: who + "@acme.com", OrgName: "Org " + who}); err != nil {
-				t.Fatalf("a company with all of its organisations confirmed is not held to a number: %v", err)
+				t.Fatalf("a company with all of its organizations confirmed is not held to a number: %v", err)
 			}
 			s.Verify(who + "@acme.com")
 		}
@@ -383,9 +383,9 @@ func TestOnlyOrganisationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T
 	})
 }
 
-// Two people at one company who both make the first organisation at once: one gets
+// Two people at one company who both make the first organization at once: one gets
 // the domain's address and the other is asked for a name of its own.
-func TestTwoSignUpsForOneCompanysFirstOrganisationAtOnceHaveOneWinner(t *testing.T) {
+func TestTwoSignUpsForOneCompanysFirstOrganizationAtOnceHaveOneWinner(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 100})
 		var wg sync.WaitGroup
@@ -410,7 +410,7 @@ func TestTwoSignUpsForOneCompanysFirstOrganisationAtOnceHaveOneWinner(t *testing
 			}
 		}
 		if won != 1 {
-			t.Fatalf("%d organisations have the domain's address", won)
+			t.Fatalf("%d organizations have the domain's address", won)
 		}
 	})
 }

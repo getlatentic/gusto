@@ -12,7 +12,7 @@ import (
 // is started as a process that outlives the command that started it, and is given the port
 // it must listen on. The gateway then gives it an address of its own, at a host name that
 // only the gateway answers to and that has no sign-in, so people do not use that address:
-// the organisation's server asks it on their behalf, as somebody signed in.
+// the organization's server asks it on their behalf, as somebody signed in.
 
 // InstanceDir is where a conversation's agent works in its workspace, and so where an app
 // it built is.

@@ -9,15 +9,15 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// listComputers is every workspace on this host, with the organisation each is in and
-// whose it is: the operator's view across organisations, read from each one's own record.
+// listComputers is every workspace on this host, with the organization each is in and
+// whose it is: the operator's view across organizations, read from each one's own record.
 func listComputers(w io.Writer, store *cloud.Store) error {
 	orgs, err := store.Orgs()
 	if err != nil {
 		return err
 	}
 	table := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(table, "ORGANISATION\tPERSON\tSTATE\tHOST\tSANDBOX\tLAST ACTIVE")
+	fmt.Fprintln(table, "ORGANIZATION\tPERSON\tSTATE\tHOST\tSANDBOX\tLAST ACTIVE")
 	total := 0
 	for _, org := range orgs {
 		registry, err := store.Computers(org.Slug)
@@ -40,6 +40,6 @@ func listComputers(w io.Writer, store *cloud.Store) error {
 	if err := table.Flush(); err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "%d workspaces in %d organisations\n", total, len(orgs))
+	fmt.Fprintf(w, "%d workspaces in %d organizations\n", total, len(orgs))
 	return nil
 }

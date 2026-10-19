@@ -32,7 +32,7 @@ func limited(t *testing.T, r *Registry, q quota.Quota) string {
 	return path
 }
 
-func TestASandboxNameFitsAGatewayAndSaysWhichOrganisationItIs(t *testing.T) {
+func TestASandboxNameFitsAGatewayAndSaysWhichOrganizationItIs(t *testing.T) {
 	name := Name("acme", "ada@acme.com")
 	if len(name) != 19 || !strings.HasPrefix(name, Marker) || !strings.HasPrefix(name, Prefix("acme")) {
 		t.Errorf("%q", name)
@@ -41,10 +41,10 @@ func TestASandboxNameFitsAGatewayAndSaysWhichOrganisationItIs(t *testing.T) {
 		t.Error("the same person is the same name each time")
 	}
 	if name == Name("acme", "bob@acme.com") || Name("acme", "ada@acme.com") == Name("globex", "ada@acme.com") {
-		t.Error("two people, and one person in two organisations, are different computers")
+		t.Error("two people, and one person in two organizations, are different computers")
 	}
 	if Prefix("acme-research") == Prefix("acme-rocket") {
-		t.Error("two organisations whose addresses begin alike do not share a prefix")
+		t.Error("two organizations whose addresses begin alike do not share a prefix")
 	}
 	if strings.HasPrefix(name, "gusto-") {
 		t.Error("a computer's name is not a job's")
@@ -78,7 +78,7 @@ func TestAPersonHasOneComputerAndAskingAgainFindsIt(t *testing.T) {
 	}
 }
 
-func TestARecordIsOfOneOrganisationAndRefusesAnotherOnes(t *testing.T) {
+func TestARecordIsOfOneOrganizationAndRefusesAnotherOnes(t *testing.T) {
 	r := open(t, "acme")
 	other := &Registry{dir: r.dir, org: "globex", now: time.Now}
 	made, _, err := other.Ensure("bob@globex.com", "cell-1")
@@ -86,14 +86,14 @@ func TestARecordIsOfOneOrganisationAndRefusesAnotherOnes(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := r.Change(made.ID, func(c *Computer) { c.State = Running }); err == nil || !strings.Contains(err.Error(), `"globex"`) {
-		t.Errorf("a computer of another organisation cannot be changed through this record: %v", err)
+		t.Errorf("a computer of another organization cannot be changed through this record: %v", err)
 	}
 	if all, err := r.All(); err == nil {
-		t.Errorf("a record with another organisation's computer in it is refused, not read past: %v %v", all, err)
+		t.Errorf("a record with another organization's computer in it is refused, not read past: %v %v", all, err)
 	}
 }
 
-func TestTheNumberOfComputersIsUnderTheOrganisationsQuota(t *testing.T) {
+func TestTheNumberOfComputersIsUnderTheOrganizationsQuota(t *testing.T) {
 	r := open(t, "acme")
 	path := limited(t, r, quota.Quota{Computers: 2, Note: "Ask the operator for more."})
 	a, _, _ := r.Ensure("a@acme.com", "cell-1")
@@ -191,7 +191,7 @@ func TestComputersAskedForTogetherAreNeverMoreThanAreAllowed(t *testing.T) {
 	}
 }
 
-func TestTheRecordAndTheGatewayAreComparedForThisOrganisationOnly(t *testing.T) {
+func TestTheRecordAndTheGatewayAreComparedForThisOrganizationOnly(t *testing.T) {
 	r := open(t, "acme")
 	running, _, _ := r.Ensure("run@acme.com", "cell-1")
 	r.Change(running.ID, func(c *Computer) { c.State = Running })
@@ -215,7 +215,7 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganisationOnly(t *testing.T) 
 		t.Errorf("only a computer that should be there and is not is missing: %+v", drift.Missing)
 	}
 	if len(drift.Orphans) != 1 || drift.Orphans[0] != Prefix("acme")+"ffffffff" {
-		t.Errorf("only a sandbox that is this organisation's and unrecorded is an orphan: %v", drift.Orphans)
+		t.Errorf("only a sandbox that is this organization's and unrecorded is an orphan: %v", drift.Orphans)
 	}
 	if drift.Clean() {
 		t.Error("they disagree")

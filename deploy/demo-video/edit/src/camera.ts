@@ -51,14 +51,14 @@ const BACK = 0.6;
 const HOLD = 0.6;
 
 // The camera zooms about one fixed point, so the picture grows from where it is and never slides: the point is chosen so that the
-// zoomed view ends centred on what the take looks at, kept inside the page.
+// zoomed view ends centerd on what the take looks at, kept inside the page.
 type Pose = { zoom: number; origin: [number, number] };
 const wide: Pose = { zoom: 1, origin: [0.5, 0.5] };
 
 const originFor = (at: [number, number], zoom: number): [number, number] => {
   const half = 0.5 / zoom;
-  const centre = (v: number) => Math.min(1 - half, Math.max(half, v));
-  const o = (v: number) => (centre(v) - half) / (1 - 1 / zoom);
+  const center = (v: number) => Math.min(1 - half, Math.max(half, v));
+  const o = (v: number) => (center(v) - half) / (1 - 1 / zoom);
   return [o(at[0]), o(at[1])];
 };
 

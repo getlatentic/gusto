@@ -191,7 +191,7 @@ func TestACapChangeKeepsWhatWasSpentAndAppliesFromTheNextCall(t *testing.T) {
 		t.Fatal(err)
 	}
 	policy := r.way.ledger.Policy()
-	if policy.Teams["payments"].USDPerMonth != 25 || policy.Organisation == nil || policy.Organisation.USDPerMonth != 100 {
+	if policy.Teams["payments"].USDPerMonth != 25 || policy.Organization == nil || policy.Organization.USDPerMonth != 100 {
 		t.Errorf("policy = %+v", policy)
 	}
 }

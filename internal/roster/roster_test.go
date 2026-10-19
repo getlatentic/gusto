@@ -28,7 +28,7 @@ func TestWhatIsWrittenIsWhatIsRead(t *testing.T) {
 	}
 }
 
-func TestAListThatCannotBeReadIsAnErrorAndNotAnEmptyOrganisation(t *testing.T) {
+func TestAListThatCannotBeReadIsAnErrorAndNotAnEmptyOrganization(t *testing.T) {
 	dir := t.TempDir()
 	if _, err := Read(filepath.Join(dir, "none.json")); err == nil || !strings.Contains(err.Error(), "none.json") {
 		t.Errorf("a missing list: %v", err)

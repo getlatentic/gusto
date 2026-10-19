@@ -123,7 +123,7 @@ func (q *Queue) one() bool {
 	q.guard.Lock()
 	q.running[record.ID] = cancel
 	q.guard.Unlock()
-	// A stop that came between the job being claimed and its work being given a way to hear it is honoured now.
+	// A stop that came between the job being claimed and its work being given a way to hear it is honored now.
 	if now, found := q.index.Get(record.ID); found && now.StoppedBy != "" {
 		cancel()
 	}

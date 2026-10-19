@@ -54,7 +54,7 @@ func conversational(t *testing.T) {
 }
 
 func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWhatItLeft(t *testing.T) {
-	work, index, registry, _, _, instances := organisationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
 	conversational(t)
 	held, err := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	if err != nil {
@@ -91,7 +91,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
-	work, index, _, _, _, instances := organisationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
 	conversational(t)
 	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	thread := instances.Latest(held.ID)

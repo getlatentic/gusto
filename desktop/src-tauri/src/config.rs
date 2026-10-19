@@ -34,7 +34,7 @@ pub fn save(app: &AppHandle, config: &Config) -> Result<(), String> {
 pub fn normalize(typed: &str) -> Result<String, String> {
     let typed = typed.trim();
     if typed.is_empty() {
-        return Err("type the address of your organisation's server".into());
+        return Err("type the address of your organization's server".into());
     }
     let with_scheme = if typed.contains("://") { typed.to_string() } else { format!("https://{typed}") };
     let parsed = url::Url::parse(&with_scheme).map_err(|_| format!("{typed} is not an address"))?;

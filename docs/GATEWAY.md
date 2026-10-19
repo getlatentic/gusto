@@ -2,7 +2,7 @@
 
 Every call an agent makes to a model leaves its sandbox through the proxy. The sandbox network policy allows the proxy and no other host. The proxy holds the keys, counts the spend, stops a call over its cap and keeps the record.
 
-The agent calls the address it was given, with the task's token where its key would go. The proxy finds the task and its credential by the token, so a container cannot choose a credential. The ledger checks the task's, the team's and the organisation's caps. The proxy sends the call as it came, or translated, counts the answer from the provider's own usage and writes one line to `out/proxy.jsonl`.
+The agent calls the address it was given, with the task's token where its key would go. The proxy finds the task and its credential by the token, so a container cannot choose a credential. The ledger checks the task's, the team's and the organization's caps. The proxy sends the call as it came, or translated, counts the answer from the provider's own usage and writes one line to `out/proxy.jsonl`.
 
 ## Translation
 

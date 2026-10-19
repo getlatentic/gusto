@@ -98,7 +98,7 @@ fn menu(app: &AppHandle, view: &View) -> tauri::Result<Menu<tauri::Wry>> {
     builder
         .item(&CheckMenuItemBuilder::with_id("login", "Start at login").checked(view.login).build(app)?)
         .item(&CheckMenuItemBuilder::with_id("here", "On this computer").checked(view.here).build(app)?)
-        .item(&MenuItemBuilder::with_id("server", if view.here { "Connect to an organisation…" } else { "Change organisation…" }).build(app)?)
+        .item(&MenuItemBuilder::with_id("server", if view.here { "Connect to an organization…" } else { "Change organization…" }).build(app)?)
         .separator()
         .item(&MenuItemBuilder::with_id("quit", "Quit").build(app)?)
         .build()

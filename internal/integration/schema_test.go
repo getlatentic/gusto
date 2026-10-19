@@ -109,7 +109,7 @@ func TestNoManifestTheSchemaRefusesIsTaken(t *testing.T) {
 	}
 }
 
-// ecmaScript is the regular expression flavour JSON Schema means. The plugin name's pattern needs a look-ahead, which Go's own
+// ecmaScript is the regular expression flavor JSON Schema means. The plugin name's pattern needs a look-ahead, which Go's own
 // package does not have.
 type ecmaScriptPattern struct{ *regexp2.Regexp }
 

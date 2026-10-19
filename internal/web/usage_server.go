@@ -43,7 +43,7 @@ func (s *Server) UsageWho(task string) (usage.Who, bool) {
 	}), true
 }
 
-// UsageProvider names who answers a model, as the organisation's registry names its providers. A model the registry
+// UsageProvider names who answers a model, as the organization's registry names its providers. A model the registry
 // does not list is attributed to the key the proxy used, and to the start of its own name when it has none.
 func (s *Server) UsageProvider(model, credential string) string {
 	if s.registry != nil {

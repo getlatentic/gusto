@@ -143,7 +143,7 @@ func TestAFieldTheFormatDoesNotHaveIsSaidAndIgnored(t *testing.T) {
 func TestSkillsAreFoundOneFolderDeepAndABadOneIsLeftOut(t *testing.T) {
 	plugin := read(t, map[string]string{
 		"plugin.json":                      manifest(""),
-		"skills/summarize/SKILL.md":        skillText("summarize", "Summarise a report."),
+		"skills/summarize/SKILL.md":        skillText("summarize", "Summarize a report."),
 		"skills/summarize/scripts/run.sh":  "echo",
 		"skills/summarize/references/a.md": "x",
 		"skills/wrong-name/SKILL.md":       skillText("other", "d"),

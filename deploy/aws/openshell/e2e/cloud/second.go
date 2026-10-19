@@ -31,7 +31,7 @@ func (r run) secondTurns(slug string, threads []*thread) {
 var computerName = regexp.MustCompile(`c-[0-9a-f]{8}-[0-9a-f]{8}`)
 
 // observe checks what the host holds against who asked: one computer for each person, all
-// of them the organisation's, and nothing else left in the gateway.
+// of them the organization's, and nothing else left in the gateway.
 func (r run) observe(slug string, threads []*thread) {
 	listed, err := r.host.computers()
 	must(err, "gusto cloud workspaces")
@@ -45,7 +45,7 @@ func (r run) observe(slug string, threads []*thread) {
 	for name := range held {
 		orgs[name[:10]] = true
 	}
-	check(len(orgs) == 1, "every one of them carries the organisation's mark")
+	check(len(orgs) == 1, "every one of them carries the organization's mark")
 	for _, each := range threads {
 		check(strings.Contains(listed, each.person.email) && strings.Contains(listed, slug), "%s has a computer in %s", each.person.email, slug)
 	}
@@ -61,7 +61,7 @@ func (r run) observe(slug string, threads []*thread) {
 	check(len(names) == len(held), "nothing else is left on the gateway: %v", names)
 }
 
-// isolation makes a second organisation, and checks the first cannot be reached from it or
+// isolation makes a second organization, and checks the first cannot be reached from it or
 // by another of its own people.
 func (r run) isolation(slug string, threads []*thread) {
 	const other = "dan@globex-industries.com"
@@ -72,9 +72,9 @@ func (r run) isolation(slug string, threads []*thread) {
 	bob, cy := threads[0], threads[1]
 	seen, err := bob.person.get(r.orgAt(slug) + "/instances/" + cy.instance)
 	must(err, "another person's instance")
-	check(seen.status == 404, "%s cannot open %s's agent in their own organisation (%d)", bob.person.email, cy.person.email, seen.status)
+	check(seen.status == 404, "%s cannot open %s's agent in their own organization (%d)", bob.person.email, cy.person.email, seen.status)
 	to, err := bob.person.where(r.orgAt(second) + "/")
-	must(err, "another organisation")
+	must(err, "another organization")
 	check(strings.Contains(to, "/login"), "%s is not signed in to %s: sent to %s", bob.person.email, second, to)
 
 	listed, err := r.host.computers()
@@ -84,6 +84,6 @@ func (r run) isolation(slug string, threads []*thread) {
 	for _, name := range computerName.FindAllString(listed, -1) {
 		held[name] = true
 	}
-	check(len(held) == len(threads)+1, "two organisations, %d computers", len(held))
+	check(len(held) == len(threads)+1, "two organizations, %d computers", len(held))
 	check(strings.Contains(listed, second) && strings.Contains(listed, other), "%s's computer is listed under %s", other, second)
 }

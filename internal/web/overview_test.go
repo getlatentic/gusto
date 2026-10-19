@@ -127,7 +127,7 @@ func limitOf(t *testing.T, page, what string) string {
 	return found[1]
 }
 
-func TestTheOverviewShowsTheOrganisationsQuotaAndHowMuchOfItIsUsed(t *testing.T) {
+func TestTheOverviewShowsTheOrganizationsQuotaAndHowMuchOfItIsUsed(t *testing.T) {
 	here := open(t)
 	path := filepath.Join(t.TempDir(), "quota.json")
 	if err := quota.Write(path, quota.Quota{Jobs: 10, Monthly: true, Concurrent: 2, Computers: 3}); err != nil {
@@ -196,10 +196,10 @@ func TestALimitThatIsUsedUpIsMarkedSo(t *testing.T) {
 	}
 }
 
-func TestTheOverviewSaysWhenNothingLimitsTheOrganisationAndWhenTheLimitsCannotBeRead(t *testing.T) {
+func TestTheOverviewSaysWhenNothingLimitsTheOrganizationAndWhenTheLimitsCannotBeRead(t *testing.T) {
 	plain := open(t)
 	plain.signIn(t)
-	if page := overview(t, plain); !strings.Contains(page, "Nothing limits this organisation.") {
+	if page := overview(t, plain); !strings.Contains(page, "Nothing limits this organization.") {
 		t.Errorf("a server with no limit:\n%s", page)
 	}
 
@@ -211,7 +211,7 @@ func TestTheOverviewSaysWhenNothingLimitsTheOrganisationAndWhenTheLimitsCannotBe
 	broken.index.UseQuota(quota.Open(path))
 	broken.signIn(t)
 	page := overview(t, broken)
-	if !strings.Contains(page, "The limits could not be read.") || strings.Contains(page, "Nothing limits this organisation.") {
+	if !strings.Contains(page, "The limits could not be read.") || strings.Contains(page, "Nothing limits this organization.") {
 		t.Errorf("a quota that cannot be read is shown as no limit:\n%s", page)
 	}
 }

@@ -129,7 +129,7 @@ func (f *front) lastLink() string {
 	return found[1]
 }
 
-func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T) {
+func TestSigningUpMakesTheOrganizationSignsThePersonInAndMailsALink(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		b := f.browser()
@@ -143,7 +143,7 @@ func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T
 		}
 		for _, want := range []string{"Acme Research", "acme-com.cloud.test", "acme.com", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month", "0 of 1"} {
 			if !strings.Contains(page, want) {
-				t.Errorf("the organisation page lacks %q:\n%s", want, page)
+				t.Errorf("the organization page lacks %q:\n%s", want, page)
 			}
 		}
 		if mails := f.mails(); len(mails) != 1 || !strings.Contains(mails[0], "To: ada@acme.com") || !strings.Contains(mails[0], "/verify?t=") {
@@ -151,7 +151,7 @@ func TestSigningUpMakesTheOrganisationSignsThePersonInAndMailsALink(t *testing.T
 		}
 		quota, err := f.store.Quota("acme-com")
 		if err != nil || quota.Jobs != 3 || quota.Concurrent != 1 {
-			t.Errorf("an organisation that is not verified runs a small trial: %+v %v", quota, err)
+			t.Errorf("an organization that is not verified runs a small trial: %+v %v", quota, err)
 		}
 	})
 }
@@ -215,7 +215,7 @@ func TestASignUpThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 				t.Errorf("%s: %d\n%s", name, status, page)
 			}
 			if !strings.Contains(page, `value="`+c.form.Get("org")+`"`) {
-				t.Errorf("%s: the organisation's name should still be in the form", name)
+				t.Errorf("%s: the organization's name should still be in the form", name)
 			}
 		}
 		if len(f.mails()) != 1 {
@@ -337,9 +337,9 @@ func TestASignInLinkSignsThePersonInOnceAndTheSessionEndsWhenTheySignOut(t *test
 	})
 }
 
-// Nobody outside an organisation sees it: another person's page names another
-// organisation, and a cookie made up for an address is no sign-in.
-func TestOnePersonNeverSeesAnotherOrganisation(t *testing.T) {
+// Nobody outside an organization sees it: another person's page names another
+// organization, and a cookie made up for an address is no sign-in.
+func TestOnePersonNeverSeesAnotherOrganization(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada, bob := f.browser(), f.browser()
@@ -349,11 +349,11 @@ func TestOnePersonNeverSeesAnotherOrganisation(t *testing.T) {
 		_, adaPage := ada.get("/org")
 		_, bobPage := bob.get("/org")
 		if strings.Contains(adaPage, "Globex") || strings.Contains(adaPage, "bob@globex.com") || strings.Contains(bobPage, "Acme") || strings.Contains(bobPage, "ada@acme.com") {
-			t.Errorf("a page named the other organisation:\n%s\n%s", adaPage, bobPage)
+			t.Errorf("a page named the other organization:\n%s\n%s", adaPage, bobPage)
 		}
-		// The page takes nothing from the request to say which organisation it draws.
+		// The page takes nothing from the request to say which organization it draws.
 		if _, page := ada.get("/org?org=globex-secret-works&slug=globex-secret-works"); strings.Contains(page, "Globex") {
-			t.Error("a parameter chose the organisation")
+			t.Error("a parameter chose the organization")
 		}
 		// A cookie for another address, made with the wrong key, is nobody.
 		forged := f.browser()
@@ -365,9 +365,9 @@ func TestOnePersonNeverSeesAnotherOrganisation(t *testing.T) {
 		if status, _ := forged.get("/org"); status != http.StatusSeeOther {
 			t.Errorf("a cookie signed with another key signs nobody in: %d", status)
 		}
-		// And the organisations' directories are apart.
+		// And the organizations' directories are apart.
 		if f.store.DataDir("acme-com") == f.store.DataDir("globex-com") {
-			t.Error("two organisations share a directory")
+			t.Error("two organizations share a directory")
 		}
 	})
 }
@@ -414,7 +414,7 @@ func TestEveryPageIsSentWithTheHeadersThatKeepItFromBeingFramedOrScripted(t *tes
 	})
 }
 
-func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganisation(t *testing.T) {
+func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganization(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		if _, page := f.browser().get("/"); strings.Contains(page, `name="org"`) || strings.Contains(page, `name="slug"`) || !strings.Contains(page, `name="email"`) {
@@ -434,7 +434,7 @@ func TestAFreeMailSignUpIsAskedForANameAndKeepsTheEmailTyped(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{AllowFreeMail: true}, nil)
 		status, page, _ := f.browser().post("/signup", url.Values{"email": {"ada@gmail.com"}})
-		if status != http.StatusUnprocessableEntity || !strings.Contains(page, "give your organisation a name") || !strings.Contains(page, `name="org"`) || !strings.Contains(page, `value="ada@gmail.com"`) {
+		if status != http.StatusUnprocessableEntity || !strings.Contains(page, "give your organization a name") || !strings.Contains(page, `name="org"`) || !strings.Contains(page, `value="ada@gmail.com"`) {
 			t.Fatalf("%d\n%s", status, page)
 		}
 		b := f.browser()
@@ -482,9 +482,9 @@ func TestTwoCompaniesWithAlikeNamesAreTreatedTheSame(t *testing.T) {
 	})
 }
 
-// A company with subsidiaries has an organisation for each. The second at a domain is
+// A company with subsidiaries has an organization for each. The second at a domain is
 // asked what to call it, and then has an address from that name.
-func TestACompanyWithSubsidiariesHasAnOrganisationForEach(t *testing.T) {
+func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		first, second := f.browser(), f.browser()
@@ -508,7 +508,7 @@ func TestACompanyWithSubsidiariesHasAnOrganisationForEach(t *testing.T) {
 			}
 		}
 		if strings.Contains(firstPage, "Insurance") || strings.Contains(secondPage, "ada@acme.com") {
-			t.Error("one organisation's page names the other")
+			t.Error("one organization's page names the other")
 		}
 	})
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/entry"
 )
 
-// The test binary is also the organisation's server: a controller that is told to
+// The test binary is also the organization's server: a controller that is told to
 // start `<this binary> serve` with CLOUD_FAKE_ORG=1 in its environment gets a real
 // process on a real port, which is what starting, stopping and losing one are
 // tested against.

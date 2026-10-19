@@ -15,14 +15,14 @@ import (
 	"github.com/getlatentic/gusto/internal/spend"
 )
 
-// UseRegistry gives the console a page of the models the organisation may use, which its admins change, and
+// UseRegistry gives the console a page of the models the organization may use, which its admins change, and
 // says how the models this server offers are read once they have. Without it the console has no such page.
 func (s *Server) UseRegistry(r *registry.Registry, models func() Models) {
 	s.registry, s.live = r, models
 }
 
 // UseLiveModels says how the models this server offers are read when they come from a setting read again while it runs, and not
-// from the organisation's registry. The registry, when there is one, decides them.
+// from the organization's registry. The registry, when there is one, decides them.
 func (s *Server) UseLiveModels(models func() Models) {
 	if s.registry == nil {
 		s.live = models
@@ -285,7 +285,7 @@ func (s *Server) clearAccess(r *http.Request) (map[string]string, error) {
 	return map[string]string{"email": strings.ToLower(email)}, nil
 }
 
-// memberEmails is who is in the organisation, for the form that limits a person, or nobody when the list cannot be read.
+// memberEmails is who is in the organization, for the form that limits a person, or nobody when the list cannot be read.
 func (s *Server) memberEmails() []string {
 	if !s.hasRoster() {
 		return nil

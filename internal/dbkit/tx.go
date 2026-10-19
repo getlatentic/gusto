@@ -40,7 +40,7 @@ func (t tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Res
 }
 
 // InTx runs fn in a write transaction and commits it when fn returns nil. SQLite takes the write lock when
-// the transaction begins. A transaction that fails because it lost a race (a serialisation failure or
+// the transaction begins. A transaction that fails because it lost a race (a serialization failure or
 // deadlock on Postgres, a busy database on SQLite) is rolled back and run again, so fn must not leave effects
 // outside the transaction.
 func (db *DB) InTx(ctx context.Context, fn func(Tx) error) error {
@@ -107,7 +107,7 @@ func retryable(err error) bool {
 }
 
 // lock holds a lock named by key until the transaction ends. It does nothing on SQLite, whose write lock
-// already serialises transactions.
+// already serializes transactions.
 func (db *DB) lock(ctx context.Context, t Tx, key string) error {
 	if db.dialect != Postgres {
 		return nil

@@ -1,7 +1,7 @@
 /* gusto design tokens */
 
 :root {
-  /* Brand ramps. Relay Green is the brand colour, Forest its dark partner, Volt the highlight, Carbon and Snow the neutrals. */
+  /* Brand ramps. Relay Green is the brand color, Forest its dark partner, Volt the highlight, Carbon and Snow the neutrals. */
   --gu-green-50:  #E7F8EF;
   --gu-green-100: #C3EED8;
   --gu-green-200: #8FDFB7;

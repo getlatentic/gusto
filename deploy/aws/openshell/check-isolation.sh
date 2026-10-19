@@ -15,7 +15,7 @@ id="$(aws ssm send-command --instance-ids "$cell" --document-name AWS-RunShellSc
   --parameters "commands=[\"echo $script | base64 -d > /tmp/isolation.sh && sudo FRONT_DOOR=$front bash /tmp/isolation.sh 2>&1\"]" --query Command.CommandId --output text)"
 for _ in $(seq 1 30); do
   status="$(aws ssm get-command-invocation --command-id "$id" --instance-id "$cell" --query Status --output text 2>/dev/null || true)"
-  case "$status" in Success|Failed|Cancelled|TimedOut) break ;; esac
+  case "$status" in Success|Failed|Canceling|TimedOut) break ;; esac
   sleep 4
 done
 aws ssm get-command-invocation --command-id "$id" --instance-id "$cell" --query StandardOutputContent --output text

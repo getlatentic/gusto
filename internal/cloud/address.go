@@ -1,6 +1,6 @@
 // Package cloud is the front door of a hosted gusto: the accounts, the
-// organisations they create, and the limits an organisation runs under. It runs
-// no jobs. Each organisation's work is done by a gusto server of its own.
+// organizations they create, and the limits an organization runs under. It runs
+// no jobs. Each organization's work is done by a gusto server of its own.
 package cloud
 
 import (
@@ -21,30 +21,30 @@ var (
 	ErrBadEmail     = errors.New("that is not an email address")
 	ErrFreeMail     = errors.New("sign up with the email address your company gave you")
 	ErrDisposable   = errors.New("that email provider gives out addresses that expire, so it cannot be used to sign up")
-	ErrBadOrgName   = errors.New("an organisation's name is 2 to 80 characters")
-	ErrBadSlug      = errors.New("an organisation's address is 3 to 32 letters, digits and hyphens, and starts and ends with a letter or digit")
+	ErrBadOrgName   = errors.New("an organization's name is 2 to 80 characters")
+	ErrBadSlug      = errors.New("an organization's address is 3 to 32 letters, digits and hyphens, and starts and ends with a letter or digit")
 	ErrReservedSlug = errors.New("that address is kept, so pick another")
 	ErrEmailTaken   = errors.New("that address already has an account, so sign in instead")
-	ErrSlugTaken    = errors.New("that organisation address is taken, so pick another")
-	ErrDomainFull   = errors.New("this company already has the most organisations it may make, so ask an admin there to invite you")
-	// ErrNeedName is a sign-up with no name for an organisation, from an address
+	ErrSlugTaken    = errors.New("that organization address is taken, so pick another")
+	ErrDomainFull   = errors.New("this company already has the most organizations it may make, so ask an admin there to invite you")
+	// ErrNeedName is a sign-up with no name for an organization, from an address
 	// that is not a company's, so its name cannot come from the domain.
-	ErrNeedName = errors.New("that address is not a company's, so give your organisation a name")
-	// ErrSameCompany is a sign-up at a domain that has an organisation already,
+	ErrNeedName = errors.New("that address is not a company's, so give your organization a name")
+	// ErrSameCompany is a sign-up at a domain that has an organization already,
 	// with no name for this one: a company can have several, a subsidiary or a
 	// team, and each has a name of its own.
-	ErrSameCompany = errors.New("this company already has an organisation here, so name this one, a subsidiary or a team, or ask its admin to invite you")
+	ErrSameCompany = errors.New("this company already has an organization here, so name this one, a subsidiary or a team, or ask its admin to invite you")
 )
 
 // freeMail is the providers a person has for themselves and not for a company.
-// A sign-up that is meant to start a company's organisation is not made from one
+// A sign-up that is meant to start a company's organization is not made from one
 // unless the operator says so, which a demonstration does.
 var freeMail = setOf("gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
 	"yahoo.com", "ymail.com", "icloud.com", "me.com", "mac.com", "aol.com", "proton.me", "protonmail.com",
 	"gmx.com", "gmx.net", "mail.com", "zoho.com", "yandex.com")
 
 // disposable is providers whose addresses last minutes, which is what someone
-// making many organisations to get many trials would use.
+// making many organizations to get many trials would use.
 var disposable = setOf("mailinator.com", "guerrillamail.com", "10minutemail.com", "tempmail.com",
 	"temp-mail.org", "yopmail.com", "sharklasers.com", "trashmail.com", "throwawaymail.com",
 	"getnada.com", "dispostable.com", "maildrop.cc")
@@ -150,7 +150,7 @@ func slugify(name string) string {
 	return strings.Trim(out.String(), "-")
 }
 
-// ValidSlug says whether an address can name an organisation.
+// ValidSlug says whether an address can name an organization.
 func ValidSlug(slug string) error {
 	switch {
 	case !slugShape.MatchString(slug) || strings.Contains(slug, "--"):
@@ -173,7 +173,7 @@ func company(domain string) string {
 	return name
 }
 
-// FromDomain is the name an organisation is given when its admin gave none, and
+// FromDomain is the name an organization is given when its admin gave none, and
 // the address that follows from it: acme-research.com is "Acme Research" at
 // acme-research. An address at a free mail provider names nobody's company, so
 // the admin is asked.
@@ -195,7 +195,7 @@ func FromDomain(domain string) (name string, err error) {
 	return strings.Join(strings.Fields(strings.Join(words, " ")), " "), nil
 }
 
-// AddressFor is the address a company's domain gives its organisation: the whole
+// AddressFor is the address a company's domain gives its organization: the whole
 // of its registrable domain, hyphenated, so acme-research.com is acme-research-com
 // and acme-research.co is acme-research-co. A domain is one company's alone, so
 // nobody is put ahead of another by arriving first, and nobody is asked to take

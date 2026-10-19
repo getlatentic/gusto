@@ -19,7 +19,7 @@ func clocked(t *testing.T, set Settings) (*Store, *time.Time) {
 	return s, &now
 }
 
-func TestAVisitorStartsADemoOrganisationOnTheDemoQuotaAndIsKeptAsALead(t *testing.T) {
+func TestAVisitorStartsADemoOrganizationOnTheDemoQuotaAndIsKeptAsALead(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		person, org, err := s.StartDemo("Ada Lovelace", "Ada@Acme.com", "Acme Research")
@@ -65,7 +65,7 @@ func TestAVisitorWhoLeavesOutWhoTheyAreOrHaveAnUnusableAddressStartsNothing(t *t
 			}
 		}
 		if orgs, _ := s.Orgs(); len(orgs) != 0 {
-			t.Errorf("a refusal left an organisation: %+v", orgs)
+			t.Errorf("a refusal left an organization: %+v", orgs)
 		}
 		if _, _, err := open(t, Settings{}).StartDemo("Ada", "ada@acme.com", "Acme"); err == nil {
 			t.Error("a host that offers no demo made one")
@@ -100,7 +100,7 @@ func TestADemosTimeStartsWhenItsServerIsReadyAndNotWhenItWasAskedFor(t *testing.
 			t.Error("the lead says when the demo was ready")
 		}
 		if _, err := s.DemoReady("acme-com"); err == nil {
-			t.Error("an organisation that is not a demo was started")
+			t.Error("an organization that is not a demo was started")
 		}
 	})
 }
@@ -134,7 +134,7 @@ func TestADemoIsExtendedOnceAndOnlyWhileItHasTime(t *testing.T) {
 	})
 }
 
-func TestADemoIsDueWhenItsTimeIsUpOrItWasNeverReadyAndNoOtherOrganisationIs(t *testing.T) {
+func TestADemoIsDueWhenItsTimeIsUpOrItWasNeverReadyAndNoOtherOrganizationIs(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
 		_, running, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
@@ -155,12 +155,12 @@ func TestADemoIsDueWhenItsTimeIsUpOrItWasNeverReadyAndNoOtherOrganisationIs(t *t
 			t.Errorf("%v", due)
 		}
 		if _, found := due[real.Slug]; found {
-			t.Error("an organisation that is not a demo is due to be deleted")
+			t.Error("an organization that is not a demo is due to be deleted")
 		}
 	})
 }
 
-func TestEndingADemoDeletesItsOrganisationAndPeopleKeepsTheLeadAndFreesTheAddress(t *testing.T) {
+func TestEndingADemoDeletesItsOrganizationAndPeopleKeepsTheLeadAndFreesTheAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
 		person, org, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
@@ -170,7 +170,7 @@ func TestEndingADemoDeletesItsOrganisationAndPeopleKeepsTheLeadAndFreesTheAddres
 			t.Fatal(err)
 		}
 		if _, found, _ := s.Org(org.Slug); found {
-			t.Error("the organisation is still there")
+			t.Error("the organization is still there")
 		}
 		if _, err := os.Stat(s.OrgDir(org.Slug)); err == nil {
 			t.Error("its directory is still there")
@@ -188,21 +188,21 @@ func TestEndingADemoDeletesItsOrganisationAndPeopleKeepsTheLeadAndFreesTheAddres
 	})
 }
 
-func TestEndingAnOrganisationThatIsNotADemoIsRefusedAndDeletesNothing(t *testing.T) {
+func TestEndingAnOrganizationThatIsNotADemoIsRefusedAndDeletesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		person, org, _ := s.SignUp(Signup{Email: "cy@initech.com", OrgName: "Initech"})
 		if err := s.EndDemo(org.Slug, "a mistake"); err == nil {
-			t.Fatal("a real organisation was ended as a demo")
+			t.Fatal("a real organization was ended as a demo")
 		}
 		if _, found, _ := s.Org(org.Slug); !found {
-			t.Error("the organisation was deleted")
+			t.Error("the organization was deleted")
 		}
 		if _, found, _ := s.Person(person.Email); !found {
 			t.Error("the person was deleted")
 		}
 		if err := s.EndDemo("nobody", "x"); err == nil {
-			t.Error("an organisation that is not there was ended")
+			t.Error("an organization that is not there was ended")
 		}
 	})
 }

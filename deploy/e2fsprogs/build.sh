@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds mke2fs, debugfs and e2fsck from e2fsprogs's source to stand alone on a Mac, which has none: the three programs link only the
-# system's libSystem, so one archive runs on a Mac with nothing installed. They are GPLv2 programs, so the archive carries the licence
+# system's libSystem, so one archive runs on a Mac with nothing installed. They are GPLv2 programs, so the archive carries the license
 # and an offer of the source. The OpenShell driver runs them on the host to build each sandbox's disk.
 #
 #   deploy/e2fsprogs/build.sh dist     (on an Apple Silicon Mac, with the Xcode command line tools)

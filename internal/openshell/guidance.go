@@ -2,7 +2,7 @@ package openshell
 
 // networkGuidance is the skill every agent in a sandbox is given, so that what it builds works
 // where it will run. An app the agent builds is started by a person with a command they give, in
-// the agent's folder, and colleagues open it through the organisation's pages, so what the agent
+// the agent's folder, and colleagues open it through the organization's pages, so what the agent
 // does not know about this network is what its first attempt gets wrong.
 const networkGuidance = `---
 name: gusto-sandbox
@@ -12,7 +12,7 @@ description: How this sandbox's network works and how a web app you build is sha
 # The sandbox's network
 
 - **A web app you build is shared for you.** The person you work for starts it with one command and
-  gives it a port. Colleagues open it through their organisation's pages. When you finish, say the
+  gives it a port. Colleagues open it through their organization's pages. When you finish, say the
   one line that starts the app, and the port.
 - **Listen on the port in the ` + "`PORT`" + ` environment variable**, and on ` + "`0.0.0.0`" + `, which ` + "`HOST`" + ` is also
   set to. Node's ` + "`listen(port)`" + ` listens on ` + "`::`" + ` and resets IPv4 clients here, so write

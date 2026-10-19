@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/helper"
 )
 
-// Cloud is what the bridge asks of the person's organisation: the calls of the server's API for their own work.
+// Cloud is what the bridge asks of the person's organization: the calls of the server's API for their own work.
 type Cloud interface {
 	Instances(ctx context.Context) ([]helper.Instance, error)
 	Engines(ctx context.Context) ([]helper.Engine, error)
@@ -49,12 +49,12 @@ type session struct {
 	instance helper.Instance
 	thread   helper.Thread
 
-	mu        sync.Mutex
-	turns     int
-	active    bool
-	job       string
-	cancelled bool
-	noted     bool
+	mu       sync.Mutex
+	turns    int
+	active   bool
+	job      string
+	canceled bool
+	noted    bool
 }
 
 func (a *Agent) logf(format string, args ...any) {
@@ -114,7 +114,7 @@ func (a *Agent) handle(ctx context.Context, w *wire, got request) {
 // failure turns an error from the cloud into what the editor should be told.
 func failure(err error) (int, string) {
 	if errors.Is(err, helper.ErrSignedOut) || errors.Is(err, helper.ErrNotSignedIn) {
-		return codeAuth, "this computer is not signed in to your organisation: run `gusto-helper login`"
+		return codeAuth, "this computer is not signed in to your organization: run `gusto-helper login`"
 	}
 	var refused *helper.Refused
 	if errors.As(err, &refused) {
@@ -204,7 +204,7 @@ func (a *Agent) engine(ctx context.Context) (string, error) {
 			return engine.Name, nil
 		}
 	}
-	return "", errors.New("your organisation's server cannot start an agent for you yet")
+	return "", errors.New("your organization's server cannot start an agent for you yet")
 }
 
 func (a *Agent) session(id string) *session {

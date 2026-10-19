@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// verifiedOrg is an organisation whose admin has confirmed their address, which is
+// verifiedOrg is an organization whose admin has confirmed their address, which is
 // what lets it invite, with the admin as a person.
 func verifiedOrg(t *testing.T, s *Store, email, name string) (Person, Org) {
 	t.Helper()
@@ -38,7 +38,7 @@ func joined(t *testing.T, s *Store, org Org, admin Person, email string) Person 
 	return person
 }
 
-func TestOnlyAnAdminOfAnOrganisationMayChangeARoleInIt(t *testing.T) {
+func TestOnlyAnAdminOfAnOrganizationMayChangeARoleInIt(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		ada, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
@@ -48,7 +48,7 @@ func TestOnlyAnAdminOfAnOrganisationMayChangeARoleInIt(t *testing.T) {
 			t.Errorf("a runner cannot: %v", err)
 		}
 		if _, err := s.SetRole(org.Slug, eve, "bob@acme.com", Admin); !errors.Is(err, ErrNotAdmin) {
-			t.Errorf("an admin of another organisation cannot: %v", err)
+			t.Errorf("an admin of another organization cannot: %v", err)
 		}
 		if was, err := s.SetRole(org.Slug, ada, "BOB@acme.com", Admin); err != nil || was != Runner {
 			t.Errorf("an admin can, at an address written in any case: %v %v", was, err)
@@ -59,12 +59,12 @@ func TestOnlyAnAdminOfAnOrganisationMayChangeARoleInIt(t *testing.T) {
 	})
 }
 
-func TestOnlyAnAdminOfAnOrganisationWhoseAddressIsConfirmedMayInvite(t *testing.T) {
+func TestOnlyAnAdminOfAnOrganizationWhoseAddressIsConfirmedMayInvite(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		ada, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
 		if _, err := s.Invite(org.Slug, ada, "bob@acme.com"); !errors.Is(err, ErrNoInvites) {
-			t.Fatalf("an organisation on the trial cannot invite: %v", err)
+			t.Fatalf("an organization on the trial cannot invite: %v", err)
 		}
 		admin, _ := s.Verify("ada@acme.com")
 		secret, err := s.Invite(org.Slug, admin, "Bob@Acme.com")
@@ -77,7 +77,7 @@ func TestOnlyAnAdminOfAnOrganisationWhoseAddressIsConfirmedMayInvite(t *testing.
 		}
 		other, otherOrg := verifiedOrg(t, s, "eve@globex.com", "Globex")
 		if _, err := s.Invite(org.Slug, other, "fay@globex.com"); !errors.Is(err, ErrNotAdmin) {
-			t.Errorf("an admin of another organisation cannot invite into this one: %v", err)
+			t.Errorf("an admin of another organization cannot invite into this one: %v", err)
 		}
 		if _, err := s.Invite(otherOrg.Slug, admin, "fay@globex.com"); !errors.Is(err, ErrNotAdmin) {
 			t.Errorf("nor can this one's into that: %v", err)
@@ -118,7 +118,7 @@ func TestAnInvitedPersonJoinsAsAVerifiedRunnerAndTheirInvitationIsSpent(t *testi
 		if len(members) != 2 || members[0].Email != "ada@acme.com" || members[1].Email != "bob@acme.com" {
 			t.Errorf("admins first: %+v", members)
 		}
-		// Their being verified changes nothing for the organisation: only its admin's address does that.
+		// Their being verified changes nothing for the organization: only its admin's address does that.
 		if q, _ := s.Quota(org.Slug); q != DefaultLimits().Verified {
 			t.Errorf("%+v", q)
 		}
@@ -145,7 +145,7 @@ func TestAnAddressThatHasAnAccountCannotBeInvitedAndTheAnswerIsTheSameWhoseItIs(
 	})
 }
 
-func TestAnOrganisationHasNoMorePeopleThanItMayCountingThoseInvited(t *testing.T) {
+func TestAnOrganizationHasNoMorePeopleThanItMayCountingThoseInvited(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		admin, org := verifiedOrg(t, s, "ada@acme.com", "Acme") // an admin and three more
@@ -155,7 +155,7 @@ func TestAnOrganisationHasNoMorePeopleThanItMayCountingThoseInvited(t *testing.T
 		if _, err := s.Invite(org.Slug, admin, "d@acme.com"); !errors.Is(err, ErrFull) {
 			t.Fatalf("invitations count: %v", err)
 		}
-		// Inviting an address again does not count it twice, and cancelling gives the place back.
+		// Inviting an address again does not count it twice, and canceling gives the place back.
 		if _, err := s.Invite(org.Slug, admin, "a@acme.com"); err != nil {
 			t.Errorf("the same address again: %v", err)
 		}
@@ -163,14 +163,14 @@ func TestAnOrganisationHasNoMorePeopleThanItMayCountingThoseInvited(t *testing.T
 			t.Fatal(err)
 		}
 		if _, err := s.Invite(org.Slug, admin, "d@acme.com"); err != nil {
-			t.Errorf("a cancelled invitation freed its place: %v", err)
+			t.Errorf("a canceled invitation freed its place: %v", err)
 		}
 	})
 }
 
-// The room is checked when the invitation is answered too: the organisation may have been
+// The room is checked when the invitation is answered too: the organization may have been
 // given fewer places while it was out.
-func TestAnInvitationIsRefusedWhenTheOrganisationHasFilledSinceItWasSent(t *testing.T) {
+func TestAnInvitationIsRefusedWhenTheOrganizationHasFilledSinceItWasSent(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		admin, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
@@ -203,10 +203,10 @@ func TestACancelledInvitationsLinkNoLongerWorksAndInvitingAgainReplacesTheEarlie
 			t.Fatal(err)
 		}
 		if _, _, err := s.Accept(second); !errors.Is(err, ErrLink) {
-			t.Errorf("a cancelled invitation's link does not work: %v", err)
+			t.Errorf("a canceled invitation's link does not work: %v", err)
 		}
 		if err := s.Cancel(org.Slug, admin, "nobody@acme.com"); err != nil {
-			t.Errorf("cancelling what is not there is not an error: %v", err)
+			t.Errorf("canceling what is not there is not an error: %v", err)
 		}
 		runner := joined(t, s, org, admin, "cy@acme.com")
 		if err := s.Cancel(org.Slug, runner, "bob@acme.com"); !errors.Is(err, ErrNotAdmin) {
@@ -271,10 +271,10 @@ func TestAnAdminRemovesPeopleButNotThemselvesOrTheLastAdmin(t *testing.T) {
 		}
 		other, _ := verifiedOrg(t, s, "eve@globex.com", "Globex")
 		if err := s.Remove(org.Slug, other, "bob@acme.com"); !errors.Is(err, ErrNotAdmin) {
-			t.Errorf("another organisation's admin removes nobody here: %v", err)
+			t.Errorf("another organization's admin removes nobody here: %v", err)
 		}
 		if err := s.Remove(org.Slug, admin, "eve@globex.com"); !errors.Is(err, ErrNoMember) {
-			t.Errorf("a person of another organisation is not here to remove: %v", err)
+			t.Errorf("a person of another organization is not here to remove: %v", err)
 		}
 		if err := s.Remove(org.Slug, admin, "nobody@acme.com"); !errors.Is(err, ErrNoMember) {
 			t.Errorf("%v", err)
@@ -356,7 +356,7 @@ func TestOneInvitationMakesOnePersonHoweverManyTimeItIsFollowed(t *testing.T) {
 }
 
 // A person's computer is marked for removal when they are removed, by the front door, which
-// leaves the removing to the organisation's server.
+// leaves the removing to the organization's server.
 func TestRemovingAPersonMarksTheirComputerForRemoval(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})

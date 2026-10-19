@@ -6,12 +6,12 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 Third-party software
 --------------------
 
-Go modules compiled into gusto and gusto-helper (checked 13 October 2026 by reading each module's licence file):
+Go modules compiled into gusto and gusto-helper (checked 13 October 2026 by reading each module's license file):
   18 Apache-2.0, 4 BSD-3-Clause, 1 BSD-2-Clause, 3 MIT. None is GPL, LGPL, AGPL or MPL.
   `go list -deps ./cmd/gusto ./cmd/gusto-helper` lists them.
 
 The usage index (internal/usage) adds a pure Go database driver for each of SQLite and Postgres, so that the release
-builds with CGO_ENABLED=0 (checked 19 October 2026 by reading each module's licence file). None is GPL, LGPL, AGPL or MPL:
+builds with CGO_ENABLED=0 (checked 19 October 2026 by reading each module's license file). None is GPL, LGPL, AGPL or MPL:
   modernc.org/sqlite, modernc.org/libc, modernc.org/mathutil, modernc.org/memory
                   BSD-3-Clause (the SQLite code it carries is in the public domain; its sqlite-vec extension, MIT,
                   is not imported)
@@ -33,4 +33,4 @@ Files served from the binary (internal/web/static, see PROVENANCE.md there):
 Programs a person may install beside gusto, which gusto runs and does not link:
   OpenShell       Apache-2.0 (github.com/NVIDIA/OpenShell)
   e2fsprogs       mke2fs, debugfs and e2fsck are GPL version 2. The release carries them as separate programs with their
-                  licence and the source address, built by deploy/e2fsprogs/build.sh.
+                  license and the source address, built by deploy/e2fsprogs/build.sh.

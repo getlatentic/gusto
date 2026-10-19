@@ -93,7 +93,7 @@ var faults = map[int]fault{
 	http.StatusServiceUnavailable:  {Title: "This is busy", Text: "Too much is being asked of it just now. Try again in a moment.", Retry: true},
 }
 
-// page is the whole of a page that says what went wrong, in the app's own colours and in the theme the person chose, with the ways out.
+// page is the whole of a page that says what went wrong, in the app's own colors and in the theme the person chose, with the ways out.
 func (f fault) page(nonce string) string {
 	ways := `<a href="#" id="back">Go back</a><a class="main" href="/chat">Chat</a>`
 	if f.Retry {

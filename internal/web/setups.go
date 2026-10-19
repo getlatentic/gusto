@@ -73,7 +73,7 @@ func setupOf(held instance.Instance) *job.Setup {
 	return &job.Setup{Name: held.Setup}
 }
 
-// sensitivityOf is what a turn on this instance is labelled: the instance's
+// sensitivityOf is what a turn on this instance is labeled: the instance's
 // own, or internal.
 func sensitivityOf(held instance.Instance) job.Sensitivity {
 	if held.Sensitivity == "" {

@@ -68,7 +68,7 @@ type Server struct {
 	usage      usageIndex
 	listing    taskIndex
 	keyring    signing.Keyring
-	// front is set when this server is one organisation's in a hosted gusto, and
+	// front is set when this server is one organization's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and
 	// inbox is where the front door leaves what its admins did, for the change
 	// record.
@@ -77,12 +77,12 @@ type Server struct {
 	inbox      string
 	taking     sync.Mutex
 	admins     map[string]bool
-	// orgSettings is what the organisation's admins choose for it, and computers is
+	// orgSettings is what the organization's admins choose for it, and computers is
 	// the record of the computers its people have.
 	orgSettings *orgsettings.File
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
-	// operatorDefault is what a new chat runs on when neither the person nor the organisation has chosen.
+	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
 	operatorDefault chatDefault
 	computers       *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
@@ -90,7 +90,7 @@ type Server struct {
 	changes *changelog.Log
 	tokens  *apitoken.Store
 	devices deviceCodes
-	// keyed serialises the sends that carry a request id, so that two arriving together are one.
+	// keyed serializes the sends that carry a request id, so that two arriving together are one.
 	keyed sync.Mutex
 	// known remembers the hash of files in agents' folders; locks, with writers, make one writer at a time of each folder.
 	known     hashes

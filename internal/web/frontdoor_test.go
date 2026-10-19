@@ -14,7 +14,7 @@ import (
 
 var entryKey = []byte("0123456789abcdef0123456789abcdef")
 
-// behindAFrontDoor is a server that is the organisation acme-com's in a hosted gusto.
+// behindAFrontDoor is a server that is the organization acme-com's in a hosted gusto.
 func behindAFrontDoor(t *testing.T) *site {
 	t.Helper()
 	s := open(t)
@@ -79,7 +79,7 @@ func TestARunnerIsNotAnAdminAndAnAdminIs(t *testing.T) {
 	}
 }
 
-func TestATokenThatIsUsedOldForAnotherOrganisationOrMadeWithAnotherKeyIsRefusedWithAPage(t *testing.T) {
+func TestATokenThatIsUsedOldForAnotherOrganizationOrMadeWithAnotherKeyIsRefusedWithAPage(t *testing.T) {
 	s := behindAFrontDoor(t)
 	good := tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())
 	if s.enterWith(t, good).Code != http.StatusSeeOther {
@@ -154,7 +154,7 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 
 // A host that removes itself warns on every page, and the warning links to where it is extended, which
 // is the front door. A server that is not behind one has nowhere to send a person, and carries no script.
-func TestAnOrganisationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
+func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
 	behind := behindAFrontDoor(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := behind.ask(t, "GET", "/", nil).Body.String()

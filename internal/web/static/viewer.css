@@ -89,7 +89,7 @@
 .ex-page .d-list .row:hover { background: var(--gu-bg-subtle); }
 .ex-page .d-empty { padding: var(--gu-space-12) var(--gu-space-4); font-size: .875rem; }
 
-/* Code: lines numbered in the margin and coloured quietly by what they are. */
+/* Code: lines numbered in the margin and colored quietly by what they are. */
 .viewer .code code { font: inherit; background: none; padding: 0; }
 .viewer .code.numbered code { counter-reset: line; }
 .viewer .code .ln::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.25em; margin-right: 1.25em; text-align: right; color: var(--gu-text-subtle); opacity: .7; user-select: none; }

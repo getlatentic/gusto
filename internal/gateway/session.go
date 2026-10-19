@@ -49,9 +49,9 @@ type Config struct {
 
 // Session is the gateway for one task: an MCP server the task's agent calls.
 type Session struct {
-	config    Config
-	catalogue *Catalogue
-	now       func() time.Time
+	config  Config
+	catalog *Catalog
+	now     func() time.Time
 	// recordFailed is the error that stopped a line being written, which stops the calls after it.
 	recordFailed atomic.Pointer[error]
 }
@@ -65,11 +65,11 @@ func New(config Config) *Session {
 	if policy == nil {
 		policy = func() Policy { return config.Policy }
 	}
-	return &Session{config: config, now: time.Now, catalogue: newCatalogue(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record)}
+	return &Session{config: config, now: time.Now, catalog: newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record)}
 }
 
 // Close ends the sessions with the servers.
-func (s *Session) Close() { s.catalogue.close() }
+func (s *Session) Close() { s.catalog.close() }
 
 // ServeHTTP answers one message, or a batch. It keeps no session of its own, and offers no stream: what a server would say unasked,
 // the task's tools do not.
@@ -175,17 +175,17 @@ func (s *Session) instructions() string {
 
 // list is the tools the job is shown, and writes down how many there are and what showing them all would cost.
 func (s *Session) list(r *http.Request) []Tool {
-	s.catalogue.load(r.Context())
+	s.catalog.load(r.Context())
 	shown := s.shownTools()
 	if s.config.Mode == All {
 		shown = shown[:0]
-		for _, candidate := range s.catalogue.visible() {
+		for _, candidate := range s.catalog.visible() {
 			tool := candidate.Tool
 			tool.Name = candidate.Flat
 			shown = append(shown, tool)
 		}
 	}
-	s.note(Entry{Kind: "list", Tools: len(s.catalogue.visible()), TokensAll: definitionsTokens(s.catalogue.tools()), TokensShown: definitionsTokens(shown)})
+	s.note(Entry{Kind: "list", Tools: len(s.catalog.visible()), TokensAll: definitionsTokens(s.catalog.tools()), TokensShown: definitionsTokens(shown)})
 	return shown
 }
 
@@ -216,7 +216,7 @@ func (s *Session) note(entry Entry) {
 }
 
 func (s *Session) call(r *http.Request, name string, arguments json.RawMessage) Result {
-	s.catalogue.load(r.Context())
+	s.catalog.load(r.Context())
 	if failed := s.recordFailed.Load(); failed != nil {
 		return text("the gateway cannot write down this task's calls, so it makes none: "+(*failed).Error(), true)
 	}
@@ -252,7 +252,7 @@ func (s *Session) search(arguments json.RawMessage) Result {
 	if limit == 0 {
 		limit = listed
 	}
-	found := s.catalogue.search(asked.Query, asked.Server, limit)
+	found := s.catalog.search(asked.Query, asked.Server, limit)
 	var out strings.Builder
 	for _, hit := range found {
 		fmt.Fprintf(&out, "%s: %s\n", hit.Name, oneLine(hit.Tool.Description))
@@ -260,8 +260,8 @@ func (s *Session) search(arguments json.RawMessage) Result {
 	if out.Len() == 0 {
 		out.WriteString("no tool matches")
 	}
-	for _, name := range s.catalogue.order {
-		if why, down := s.catalogue.broken[name]; down {
+	for _, name := range s.catalog.order {
+		if why, down := s.catalog.broken[name]; down {
 			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, oneLine(why))
 		}
 	}
@@ -276,7 +276,7 @@ func (s *Session) schema(arguments json.RawMessage) Result {
 	if json.Unmarshal(arguments, &asked) != nil || asked.Name == "" {
 		return text("tool_schema needs the name of a tool", true)
 	}
-	found, ok := s.catalogue.find(asked.Name)
+	found, ok := s.catalog.find(asked.Name)
 	if !ok {
 		return text(fmt.Sprintf("there is no tool %q: use tool_search to find one", asked.Name), true)
 	}
@@ -287,9 +287,9 @@ func (s *Session) schema(arguments json.RawMessage) Result {
 
 func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage) Result {
 	entry := Entry{Kind: "call", Tool: name, ArgBytes: len(arguments)}
-	found, ok := s.catalogue.find(name)
+	found, ok := s.catalog.find(name)
 	if ok {
-		if allowed, why := s.catalogue.allows(found); !allowed {
+		if allowed, why := s.catalog.allows(found); !allowed {
 			entry.Server, entry.Tool, entry.Outcome, entry.Why = found.Server, found.Tool.Name, "refused", why
 			s.note(entry)
 			return text(why, true)
@@ -302,7 +302,7 @@ func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage
 	}
 	entry.Server, entry.Tool = found.Server, found.Tool.Name
 	began := s.now()
-	result, err := s.catalogue.servers[found.Server].Call(r.Context(), found.Tool.Name, arguments)
+	result, err := s.catalog.servers[found.Server].Call(r.Context(), found.Tool.Name, arguments)
 	entry.Millis = s.now().Sub(began).Milliseconds()
 	if err != nil {
 		entry.Outcome, entry.Why = "failed", err.Error()

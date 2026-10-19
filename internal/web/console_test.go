@@ -198,15 +198,15 @@ func TestTheAddressesTheAdminPagesHadStillWork(t *testing.T) {
 	}
 }
 
-func TestTheConsoleNamesTheOrganisationAndAnotherOrganisationsTokenDoesNotOpenIt(t *testing.T) {
+func TestTheConsoleNamesTheOrganizationAndAnotherOrganizationsTokenDoesNotOpenIt(t *testing.T) {
 	here := behindAFrontDoor(t)
 	here.server.UseAdmins(nil)
 	stranger := here.enterWith(t, tokenFor(t, "other-com", "eve@other.com", "admin", time.Now()))
 	if stranger.Code != http.StatusForbidden {
-		t.Fatalf("a token for another organisation was accepted: %d", stranger.Code)
+		t.Fatalf("a token for another organization was accepted: %d", stranger.Code)
 	}
 	if got := here.ask(t, "GET", "/admin", nil); got.Header().Get("Location") != "/login" {
-		t.Errorf("without a sign-in of this organisation the console answered %d", got.Code)
+		t.Errorf("without a sign-in of this organization the console answered %d", got.Code)
 	}
 	here.cookie = cookieOf(t, here.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := here.ask(t, "GET", "/admin", nil)

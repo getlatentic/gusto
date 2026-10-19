@@ -160,7 +160,7 @@ func TestALoginStopsWhenThePersonGivesUp(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, _, err := (Login{Server: server.URL}).Run(ctx); !errors.Is(err, context.Canceled) {
-		t.Errorf("a cancelled login said %v", err)
+		t.Errorf("a canceled login said %v", err)
 	}
 }
 

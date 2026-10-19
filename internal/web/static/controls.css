@@ -1,6 +1,6 @@
 /* Buttons come in three styles, and a region has one primary. The primary is the accent fill: the one action a form or card is for. Everything
    else a person presses is quiet, a line and no fill, including the actions on a row and the changes that can be undone. What cannot be
-   undone is destructive: the same line, in the danger colour, and never filled. */
+   undone is destructive: the same line, in the danger color, and never filled. */
 .quiet-button { display: inline-flex; align-items: center; gap: var(--gu-space-2); height: 2rem; padding: 0 var(--gu-space-3); border: 0.0625rem solid var(--gu-border); border-radius: var(--gu-radius-sm);
   background: var(--gu-surface); color: var(--gu-text); font: 500 .75rem/1 var(--gu-font-text); text-decoration: none; white-space: nowrap; }
 .quiet-button:hover { background: var(--gu-bg-subtle); }

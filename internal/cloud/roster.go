@@ -10,12 +10,12 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// RosterFile is the list of people the organisation's server reads, and InboxDir is
+// RosterFile is the list of people the organization's server reads, and InboxDir is
 // where the front door leaves it what its admins did, for its change record.
 func (s *Store) RosterFile(slug string) string { return filepath.Join(s.DataDir(slug), "members.json") }
 func (s *Store) InboxDir(slug string) string   { return filepath.Join(s.DataDir(slug), "inbox") }
 
-// PublishRoster writes the organisation's people where its server reads them. The people are read and the
+// PublishRoster writes the organization's people where its server reads them. The people are read and the
 // file is written under a lock, so two front doors that publish together leave the list of the later read.
 func (s *Store) PublishRoster(slug string) error {
 	ctx := context.Background()
@@ -32,7 +32,7 @@ func (s *Store) PublishRoster(slug string) error {
 // does not undo it: the next change writes the list again, and so does a restart.
 func (s *Store) publishRoster(slug string) {
 	if err := s.PublishRoster(slug); err != nil {
-		slog.Error("an organisation's list of people was not written", "org", slug, "error", err)
+		slog.Error("an organization's list of people was not written", "org", slug, "error", err)
 	}
 }
 
@@ -59,7 +59,7 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	return roster.Write(s.RosterFile(slug), list)
 }
 
-// RecordSignIn notes that a person was signed in to their organisation's server, and
+// RecordSignIn notes that a person was signed in to their organization's server, and
 // tells the server.
 func (s *Store) RecordSignIn(email string) error {
 	ctx := context.Background()

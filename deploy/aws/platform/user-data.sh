@@ -2,13 +2,13 @@
 # Runs once, as root, when a demo host is launched, and makes it a demo host of the public
 # cloud from the release bundle in the store bucket: no person and no SSH is needed. The launcher
 # fills in the settings on the next lines. ROLE is all (a host that is the front door and runs the
-# organisations' servers), orchestrator (the front door alone) or cell (runs servers for a front door);
+# organizations' servers), orchestrator (the front door alone) or cell (runs servers for a front door);
 # the last two share the file system EFS, and RUN is the directory of it that this demo's hosts use.
 # BAKE is on for the host an image of a cell is made from: it is made as a cell is, its runner image is prepared for the gateway,
 # and it is not started as a cell, so that the image holds everything a cell has to wait for and nothing that is its own. A host made
 # from that image has /etc/gusto/baked and goes straight to configuring itself.
 # LIVE is on for the front door that stays up: it has no lease and no limit on how long it runs, keeps what
-# is on the file system, starts hosts for cells when organisations need one, and is brought up to a newer
+# is on the file system, starts hosts for cells when organizations need one, and is brought up to a newer
 # release by running this again (GUSTO_LIVE_ENV names the file that keeps what it was started with).
 set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
