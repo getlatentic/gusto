@@ -1,6 +1,6 @@
 {{define "side"}}<aside class="side" id="side" aria-label="Menu">
   <nav class="rail" aria-label="Places">
-    <a class="mark" href="/chat" aria-label="Latentic Agent Cloud">{{template "brand-glyph"}}</a>
+    <a class="mark" href="/chat" aria-label="gusto">{{template "brand-glyph"}}</a>
     <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Conversations" aria-expanded="true" aria-controls="sidepanel">{{template "icon-sidebar"}}</button>
     <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
     <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
@@ -14,7 +14,7 @@
     <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
   <div class="sidepanel" id="sidepanel">
-    <div class="sidepanel-head"><span class="name">{{or .Org "Latentic Agent Cloud"}}</span></div>
+    <div class="sidepanel-head"><span class="name">{{or .Org "gusto"}}</span></div>
     <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats"></div>{{end}}
   </div>

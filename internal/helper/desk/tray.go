@@ -48,7 +48,7 @@ func (t Tray) ready() {
 	if t.Shown != nil {
 		t.Shown()
 	}
-	systray.SetTooltip("Latentic Agent Cloud")
+	systray.SetTooltip("gusto")
 	lines := make([]*systray.MenuItem, Slots+1)
 	pages := make([]string, Slots+1)
 	for i := range lines {
@@ -63,7 +63,7 @@ func (t Tray) ready() {
 		}()
 	}
 	systray.AddSeparator()
-	web := systray.AddMenuItem("Open Latentic Agent Cloud", "")
+	web := systray.AddMenuItem("Open gusto", "")
 	quit := systray.AddMenuItem("Quit", "")
 	draw := func() {
 		entries := Menu(t.Server, t.Status(), t.Hub.Turns())

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
@@ -30,6 +29,8 @@ type Index struct {
 	// ended today.
 	finished                  map[State]int64
 	lastStarted, lastFinished int64
+	// pump copies each change to a Mirror, when there is one.
+	pump *pump
 }
 
 // Open reads what is on disk, and lets the record decide.
@@ -44,18 +45,11 @@ func Open(root string) (*Index, error) {
 		return nil, err
 	}
 	index := &Index{root: root, records: map[string]Record{}, finished: map[State]int64{}}
-	listing, err := os.ReadDir(root)
+	found, err := readAll(root)
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range listing {
-		if !entry.IsDir() {
-			continue
-		}
-		record, err := read(job.Dir(root + "/" + entry.Name()))
-		if err != nil {
-			continue // a directory without state is not a job this server made
-		}
+	for _, record := range found {
 		if record.State == Running {
 			record = ended(record, root)
 			if err := write(record.Dir(root), record); err != nil {
@@ -69,16 +63,19 @@ func Open(root string) (*Index, error) {
 }
 
 // number gives every job an arrival order, and says what the next one is.
-// A job written before this field existed has none, so they are numbered by
-// the clock and then by name: arbitrary between two of the same second, but
-// the same on every read, and always before anything queued since.
-func (i *Index) number() {
+func (i *Index) number() { i.seq = renumber(i.records) }
+
+// renumber gives a job written before Seq existed one. They are numbered by the clock and then by name:
+// arbitrary between two of the same second, but the same on every read, and always before anything queued
+// since. It says what the next job's number is.
+func renumber(records map[string]Record) int64 {
 	var missing []Record
-	for id := range i.records {
-		if record := i.records[id]; record.Seq == 0 {
+	next := int64(1)
+	for id := range records {
+		if record := records[id]; record.Seq == 0 {
 			missing = append(missing, record)
-		} else if record.Seq >= i.seq {
-			i.seq = record.Seq + 1
+		} else if record.Seq >= next {
+			next = record.Seq + 1
 		}
 	}
 	sort.Slice(missing, func(a, b int) bool {
@@ -89,11 +86,9 @@ func (i *Index) number() {
 	})
 	for at, record := range missing {
 		record.Seq = int64(at) - int64(len(missing))
-		i.records[record.ID] = record
+		records[record.ID] = record
 	}
-	if i.seq < 1 {
-		i.seq = 1
-	}
+	return next
 }
 
 func (i *Index) Root() string { return i.root }
@@ -118,6 +113,7 @@ func (i *Index) Add(record Record) error {
 		return err
 	}
 	i.records[record.ID] = record
+	i.mirrored(record)
 	return nil
 }
 
@@ -192,6 +188,7 @@ func (i *Index) Claim() (Record, bool, error) {
 		return Record{}, false, err
 	}
 	i.records[oldest.ID] = *oldest
+	i.mirrored(*oldest)
 	return *oldest, true, nil
 }
 
@@ -220,6 +217,7 @@ func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) 
 		return Record{}, false, err
 	}
 	i.records[id] = record
+	i.mirrored(record)
 	if !wasRunning {
 		i.finished[Interrupted]++
 		i.lastFinished = record.Ended
@@ -242,6 +240,7 @@ func (i *Index) Finish(id string, state State, exit int) error {
 		return err
 	}
 	i.records[id] = record
+	i.mirrored(record)
 	i.finished[state]++
 	i.lastFinished = record.Ended
 	return nil

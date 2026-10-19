@@ -66,6 +66,7 @@ type Server struct {
 	publishing sync.WaitGroup
 	ledger     *spend.Ledger
 	usage      usageIndex
+	listing    taskIndex
 	keyring    signing.Keyring
 	// front is set when this server is one organisation's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and
@@ -240,7 +241,7 @@ func redirected(to string, status int) http.HandlerFunc {
 }
 
 // productName is what every page calls itself.
-const productName = "Latentic Agent Cloud"
+const productName = "gusto"
 
 func (s *Server) render(w http.ResponseWriter, page string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -133,7 +133,7 @@ func (s *Server) mailSignIn(email string) {
 		log.Printf("cloud: a sign-in link was not made: %v", err)
 		return
 	}
-	s.send(email, "Your Latentic Agent Cloud sign-in link",
+	s.send(email, "Your gusto sign-in link",
 		"Follow this link to sign in:\n\n"+s.link("/signin/link", secret)+"\n\nThe link works once and expires in 20 minutes. If you did not ask for it, ignore this mail.\n")
 }
 

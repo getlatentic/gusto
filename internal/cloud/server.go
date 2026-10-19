@@ -139,7 +139,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signin", s.signIn)
 	mux.HandleFunc("GET /verify", s.confirmPage(Verify, "Confirm your email address", "Confirm"))
 	mux.HandleFunc("POST /verify", s.useLink(Verify))
-	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to Latentic Agent Cloud", "Continue"))
+	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))

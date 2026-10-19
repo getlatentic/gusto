@@ -101,7 +101,7 @@ export const Demo: React.FC<DemoProps> = ({ footageSeconds }) => {
       <Sequence durationInFrames={Math.round(INTRO * fps)}>
         <Card local={now} length={INTRO}>
           <Img src={staticFile("mark.png")} style={{ width: 64 }} />
-          <div style={{ font: `700 56px/1.1 ${brand.font}`, letterSpacing: "-0.02em" }}>Latentic Agent Cloud</div>
+          <div style={{ font: `700 56px/1.1 ${brand.font}`, letterSpacing: "-0.02em" }}>gusto</div>
           <div style={{ font: `500 28px/1.3 ${brand.font}`, color: brand.muted }}>Every agent, in one workspace, under one set of controls</div>
         </Card>
       </Sequence>
