@@ -73,7 +73,7 @@ for ref in "$@"; do
   cat > "$data/harnesses/fixture.json" <<'JSON'
 {"name":"fixture","program":"sh","argv":["-c","sed -i.bak s/-/+/ adder.sh; true"],"needs":"nothing","stream":"plain"}
 JSON
-  GUSTO_HARNESSES="$data/harnesses" "$old" new "$data/job" -repo "$data/repo" -brief "make add add" -harness fixture -- sh test.sh >/dev/null
+  GUSTO_HARNESSES="$data/harnesses" "$old" new "$data/job" -repo "$data/repo" -brief "make add add" -agent fixture -- sh test.sh >/dev/null
 
   echo "  $ref makes a task"
   start "$old"
