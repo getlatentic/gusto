@@ -210,7 +210,7 @@
       {{template "steps" .}}
     </details>
     {{end}}
-    {{if .Replied}}<div class="reply">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
+    {{if .Replied}}<div class="reply prose">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
     {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
     {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
     <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}

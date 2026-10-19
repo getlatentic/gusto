@@ -1,31 +1,3 @@
-/* Words as they are read: a reply, a Markdown file, a document. One set of rules, so a heading, a quote or a table looks the same wherever
-   it is, and none of it is boxed in a box. */
-.reply, .prose { overflow-wrap: anywhere; font-size: .875rem; line-height: 1.7; color: var(--gu-text); }
-.reply > :first-child, .prose > :first-child { margin-top: 0; }
-.reply > :last-child, .prose > :last-child { margin-bottom: 0; }
-.reply p, .reply ul, .reply ol, .reply pre, .reply table, .reply blockquote,
-.prose p, .prose ul, .prose ol, .prose pre, .prose table, .prose blockquote { margin: 0 0 var(--gu-space-4); }
-.reply h1, .reply h2, .reply h3, .reply h4, .prose h1, .prose h2, .prose h3, .prose h4 { font-family: var(--gu-font-text); letter-spacing: -.01em; text-transform: none; color: var(--gu-text); line-height: 1.3; }
-.prose h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 var(--gu-space-5); }
-.prose h2 { font-size: 1.125rem; font-weight: 600; margin: var(--gu-space-8) 0 var(--gu-space-3); padding-bottom: var(--gu-space-2); border-bottom: 0.0625rem solid var(--gu-border); }
-.prose h3 { font-size: .875rem; font-weight: 600; margin: var(--gu-space-6) 0 var(--gu-space-2); }
-.prose h4 { font-size: .875rem; font-weight: 600; margin: var(--gu-space-5) 0 var(--gu-space-2); }
-.reply h1, .reply h2, .reply h3, .reply h4 { font-size: .875rem; font-weight: 600; margin: var(--gu-space-5) 0 var(--gu-space-2); }
-.reply ul, .reply ol, .prose ul, .prose ol { padding-left: 1.4rem; }
-.reply li + li, .prose li + li { margin-top: var(--gu-space-1); }
-.reply code, .prose code { font: 0.75rem/1.5 var(--gu-font-mono); background: var(--gu-bg-subtle); padding: 0.0625rem 0.3125rem; border-radius: var(--gu-radius-xs); }
-.reply pre, .prose pre { padding: var(--gu-space-4); background: var(--gu-bg-subtle); border-radius: var(--gu-radius-sm); }
-.reply pre code, .prose pre code { background: none; padding: 0; }
-.reply blockquote, .prose blockquote { padding: var(--gu-space-1) 0 var(--gu-space-1) var(--gu-space-4); border-left: 0.1875rem solid var(--gu-border-strong); color: var(--gu-text-muted); }
-.reply blockquote p:last-child, .prose blockquote p:last-child { margin-bottom: 0; }
-.reply hr, .prose hr { margin: var(--gu-space-6) 0; border: 0; border-top: 0.0625rem solid var(--gu-border); }
-.reply table, .prose table { display: block; width: auto; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .8125rem; }
-.reply th, .reply td, .prose th, .prose td { padding: var(--gu-space-2) var(--gu-space-4) var(--gu-space-2) 0; border-bottom: 0.0625rem solid var(--gu-border); text-align: left; vertical-align: top; }
-.reply th, .prose th { font-size: .75rem;  text-transform: none; color: var(--gu-text-subtle); }
-.reply .image, .prose .image { color: var(--gu-text-muted); font-size: .8125rem; }
-.reply a, .prose a { color: var(--gu-text); text-decoration-color: var(--gu-border-strong); text-underline-offset: 0.1875rem; }
-.reply a:hover, .prose a:hover { text-decoration-color: var(--gu-text); }
-.reply .gone { color: var(--gu-text-muted); }
 
 /* The viewer: where the file is, what it is, and the file. */
 .viewer { display: grid; gap: var(--gu-space-5); max-width: 60rem; }

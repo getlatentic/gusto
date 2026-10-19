@@ -26,7 +26,7 @@
           {{if $.Console}}<form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>{{end}}
         </div>
         <p class="muted">{{.Description}}</p>
-        <details><summary>Instructions</summary><div class="reply">{{markdown .Body}}</div></details>
+        <details><summary>Instructions</summary><div class="reply prose">{{markdown .Body}}</div></details>
       </li>
       {{end}}
     </ul>
