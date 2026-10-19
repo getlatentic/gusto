@@ -1,7 +1,7 @@
 {{define "demo"}}{{template "head" .}}
   <div class="brand"><img src="/static/mark.png" alt=""> gusto</div>
   <h1>Try gusto for {{minutes .DemoLeft}}</h1>
-  <p class="muted">See how gusto gives your company its own AI cloud, with popular AI agents ready to use, a private computer for every employee, and built-in controls for models, spending and network access.</p>
+  <p class="muted">Try gusto, an AI agent cloud for your organization. Run ready-to-use agents like Claude Code and Codex, and see how gusto lets companies give every employee a private cloud computer where their agents work, with built-in controls for models, spending, and security.</p>
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
   <form method="post" action="/demo">
     <label>Your name <input type="text" name="name" value="{{.Name}}" maxlength="80" autocomplete="name" autofocus required></label>
@@ -11,7 +11,5 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
     <button type="submit">Start my demo</button>
   </form>
-  <p class="note"><strong>Demo:</strong> Private {{minuteLong .DemoLeft}} sample. No account or credit card required.</p>
-  <p class="note"><strong>Privacy:</strong> We use your details only to follow up about the demo.</p>
   {{if .Book}}<p class="other">Rather be shown? <a href="{{.Book}}">Book a call</a></p>{{end}}
 {{template "foot"}}{{end}}
