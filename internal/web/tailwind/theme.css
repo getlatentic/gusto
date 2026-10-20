@@ -1,0 +1,83 @@
+/* The names the utilities use, each one a gusto token. `inline` makes a utility read the variable when it is used, so it follows the
+   theme and the accent the person chose and nothing here is a color of its own. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant panel-closed (html.panel-closed &);
+@custom-variant side-open (body.side-open &);
+@custom-variant open (&:where([open], .open, .open *));
+
+@theme inline {
+  --color-*: initial;
+  --color-canvas: var(--gu-bg);
+  --color-rail: var(--gu-rail);
+  --color-wash: var(--gu-bg-subtle);
+  --color-sunken: var(--gu-surface-sunken);
+  --color-surface: var(--gu-surface);
+  --color-line: var(--gu-border);
+  --color-line-strong: var(--gu-border-strong);
+  --color-ink: var(--gu-text);
+  --color-muted: var(--gu-text-muted);
+  --color-subtle: var(--gu-text-subtle);
+  --color-faint: var(--gu-text-nontext);
+  --color-inverse: var(--gu-text-inverse);
+  --color-accent: var(--gu-accent);
+  --color-accent-hover: var(--gu-accent-hover);
+  --color-accent-press: var(--gu-accent-press);
+  --color-accent-ink: var(--gu-accent-text);
+  --color-accent-wash: var(--gu-accent-surface);
+  --color-on-accent: var(--gu-on-accent);
+  --color-ok: var(--gu-success);
+  --color-ok-wash: var(--gu-success-surface);
+  --color-warn: var(--gu-warning);
+  --color-warn-wash: var(--gu-warning-surface);
+  --color-bad: var(--gu-danger);
+  --color-bad-wash: var(--gu-danger-surface);
+  --color-info: var(--gu-info);
+  --color-info-wash: var(--gu-info-surface);
+  --color-focus: var(--gu-focus);
+  --color-hover: var(--gu-hover);
+  --color-scrim: var(--gu-scrim);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-display: var(--gu-font-display);
+  --font-sans: var(--gu-font-text);
+  --font-mono: var(--gu-font-mono);
+
+  --radius-xs: var(--gu-radius-xs);
+  --radius-sm: var(--gu-radius-sm);
+  --radius-md: var(--gu-radius-md);
+  --radius-lg: var(--gu-radius-lg);
+  --radius-xl: var(--gu-radius-xl);
+  --radius-2xl: var(--gu-radius-2xl);
+  --radius-full: var(--gu-radius-full);
+
+  --shadow-*: initial;
+  --shadow-1: var(--gu-shadow-1);
+  --shadow-2: var(--gu-shadow-2);
+  --shadow-3: var(--gu-shadow-3);
+
+  --ease-standard: var(--gu-ease-standard);
+  --default-transition-duration: var(--gu-dur-fast);
+  --default-transition-timing-function: var(--gu-ease-standard);
+}
+
+/* Not variables of the tokens: the type scale, the one measure the pages share, and what a person's text size scales. The spacing
+   scale is Tailwind's own, whose steps are the tokens' (p-1 is --gu-space-1). */
+@theme {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.15;
+  --container-page: 72rem;
+  --container-prose: 46rem;
+}

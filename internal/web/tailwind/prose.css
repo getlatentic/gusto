@@ -1,13 +1,5 @@
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities) source(none);
-@plugin "@tailwindcss/typography";
+/* Markdown as it is read: the typography plugin, on the gusto tokens. */
 @source inline("prose");
-
-@theme {
---font-sans: "Noto Sans", system-ui, sans-serif;
---font-mono: "Noto Sans Mono", ui-monospace, monospace;
-}
 
 /* Unlayered, so every rule here beats the plugin's own in the utilities layer. */
 .prose {
