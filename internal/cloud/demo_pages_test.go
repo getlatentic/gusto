@@ -157,7 +157,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddr
 		if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/gusto"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
 			t.Errorf("%d\n%s", status, body)
 		}
-		if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".brand") {
+		if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".bg-accent") {
 			t.Errorf("the page of an ended demo has no styles: %d %v", status, header)
 		}
 		if status, _, header := b.get2("/demo/wait"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
@@ -214,12 +214,12 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, header := landingAt(t, demoSet)
-		for _, want := range []string{"One place for every AI agent your team needs.", "gusto", `href="/demo"`, "Try it now", `href="https://cal.example/gusto"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple agents.", `rel="stylesheet" href="/static/landing.css`} {
+		for _, want := range []string{"One place for every AI agent your team needs.", "gusto", `href="/demo"`, "Try it now", `href="https://cal.example/gusto"`, "One workspace. One set of controls. One record.", "How it works", "Tested across multiple agents.", `rel="stylesheet" href="/static/cloud.css`} {
 			if !strings.Contains(strings.ToLower(page), strings.ToLower(want)) {
 				t.Errorf("the landing page does not say %q", want)
 			}
 		}
-		if status != http.StatusOK || !strings.Contains(page, `<img src="/static/hero-light.webp"`) || strings.Contains(page, "<iframe") || strings.Contains(page, "<video") {
+		if status != http.StatusOK || !strings.Contains(page, `src="/static/hero-light.webp"`) || strings.Contains(page, "<iframe") || strings.Contains(page, "<video") {
 			t.Errorf("%d: a finished task is what the landing page shows when there is no video\n%s", status, page)
 		}
 		if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
@@ -229,7 +229,7 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
 			t.Errorf("sign-up is still there: %d", status)
 		}
-		if status, css, _ := f.browser().do("GET", "/static/landing.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".hero") {
+		if status, css, _ := f.browser().do("GET", "/static/cloud.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".bg-accent") {
 			t.Errorf("its stylesheet is served: %d", status)
 		}
 		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
