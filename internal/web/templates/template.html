@@ -1,68 +1,68 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
 {{with .Template}}
-<section class="hero {{hue .Industry}}">
+<section class="mb-8 flex items-center gap-5 @max-[56rem]:flex-wrap">
   {{template "mark" (dict "Field" .Industry "Name" .Title "Size" "lg")}}
-  <div>
-    <p class="eyebrow">{{.Industry}}</p>
-    <h1>{{.Title}}</h1>
-    <p class="lede">{{.Summary}}</p>
+  <div class="min-w-0 flex-1 basis-72">
+    <p class="text-xs font-medium text-muted">{{.Industry}}</p>
+    <h1 class="mt-1">{{.Title}}</h1>
+    <p class="mt-2 max-w-[36rem] text-lg text-muted">{{.Summary}}</p>
   </div>
-  <div class="actions">
+  <div class="flex flex-wrap items-center gap-4">
     {{if and .Restricted (not $.InBuilding)}}
-    <button class="cta" disabled>Start</button>
+    <button class="{{template "ag-btn"}}" disabled>Start</button>
     {{else if $.Harnesses}}
     <form method="post" action="/templates/{{.Name}}">
       <input type="hidden" name="harness" value="{{(index $.Harnesses 0).Name}}">
-      <button type="submit" class="cta">Start {{.Title}}</button>
+      <button type="submit" class="{{template "ag-btn"}}">Start {{.Title}}</button>
     </form>
     {{else}}
-    <button class="cta" disabled>Start</button>
+    <button class="{{template "ag-btn"}}" disabled>Start</button>
     {{end}}
-    <a class="link-quiet" href="/new">← Back</a>
+    <a class="{{template "ag-link-quiet"}}" href="/new">← Back</a>
   </div>
 </section>
 
 {{if .Restricted}}
-<div class="callout {{if not $.InBuilding}}warn{{end}}" style="margin-bottom: var(--gu-space-8)"><span class="sign">{{template "icon-lock"}}</span>
-  <div><strong>Stays inside your network</strong>
-  <p>{{if $.InBuilding}}This work only goes to models in your own network.{{else}}It needs a model in your own network, and this deployment has none. gusto will not send this work anywhere else.{{end}}</p></div></div>
+<div class="mb-8 flex items-start gap-3 rounded-md px-5 py-4 {{if $.InBuilding}}bg-info-wash{{else}}bg-warn-wash{{end}}"><span class="{{if $.InBuilding}}text-info{{else}}text-warn{{end}}">{{template "icon-lock"}}</span>
+  <div><strong class="block">Stays inside your network</strong>
+  <p class="text-sm text-muted">{{if $.InBuilding}}This work only goes to models in your own network.{{else}}It needs a model in your own network, and this deployment has none. gusto will not send this work anywhere else.{{end}}</p></div></div>
 {{end}}
 
-<h2 class="section-title">What it can do</h2>
-<div class="abilities {{hue .Industry}}">
+<h2 class="mb-3">What it can do</h2>
+<div class="mb-8 grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
   {{range .Skills}}
-  <div class="ability"><strong>{{.Title}}</strong><p>{{.Blurb}}</p></div>
+  <div class="{{template "ag-panel"}}"><strong class="block font-display text-sm">{{.Title}}</strong><p class="mt-1 text-sm text-muted">{{.Blurb}}</p></div>
   {{end}}
 </div>
 
-<h2 class="section-title">Try asking</h2>
-<ul class="asks-row">{{range .Starters}}<li>{{.}}</li>{{end}}</ul>
+<h2 class="mb-3">Try asking</h2>
+<ul class="mb-8 flex flex-wrap gap-2">{{range .Starters}}<li class="rounded-full border border-line bg-surface px-4 py-2 text-sm">{{.}}</li>{{end}}</ul>
 
-<details class="more">
-  <summary>Details</summary>
-  <div class="run">
-    <div class="run-main">
-      <section class="panel">
-        <h2>Instructions it follows</h2>
-        <ul class="skills">{{range .Skills}}<li><span class="name">{{.Title}}</span>
-          <details><summary>Read</summary><div class="reply prose">{{markdown .Body}}</div></details></li>{{end}}</ul>
+<details class="group mb-8">
+  <summary class="{{template "ag-summary"}} w-fit">{{template "ag-chev"}} Details</summary>
+  <div class="{{template "ag-two-col"}} mt-4">
+    <div class="{{template "ag-col"}}">
+      <section class="{{template "ag-panel"}}">
+        <h2 class="{{template "ag-panel-title"}}">Instructions it follows</h2>
+        <ul class="divide-y divide-line">{{range .Skills}}<li class="py-3 first:pt-0 last:pb-0"><span class="font-semibold">{{.Title}}</span>
+          <details class="group mt-1"><summary class="{{template "ag-summary"}}">{{template "ag-chev"}} Read</summary><div class="reply prose mt-3">{{markdown .Body}}</div></details></li>{{end}}</ul>
       </section>
     </div>
-    <aside class="run-side" aria-label="About this kind of work">
-      <section class="panel">
-        <h2>Sample files</h2>
-        <ul class="files">{{range $name, $text := .Files}}<li><code>{{$name}}</code></li>{{end}}</ul>
-        <p class="muted small">Invented for demonstration.</p>
+    <aside class="{{template "ag-col"}}" aria-label="About this kind of work">
+      <section class="{{template "ag-panel"}}">
+        <h2 class="{{template "ag-panel-title"}}">Sample files</h2>
+        <ul class="grid gap-1 text-sm">{{range $name, $text := .Files}}<li><code class="break-all">{{$name}}</code></li>{{end}}</ul>
+        <p class="mt-3 text-xs text-muted">Invented for demonstration.</p>
       </section>
       {{if and (gt (len $.Harnesses) 1) (not (and .Restricted (not $.InBuilding)))}}
-      <section class="panel">
-        <h2>Agent</h2>
-        <form class="stack" method="post" action="/templates/{{.Name}}">
-          <select name="harness">{{range $.Harnesses}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
-          <button type="submit" class="quiet">Start with this agent</button>
+      <section class="{{template "ag-panel"}}">
+        <h2 class="{{template "ag-panel-title"}}">Agent</h2>
+        <form class="grid gap-3" method="post" action="/templates/{{.Name}}">
+          <select class="{{template "ag-input"}}" name="harness" aria-label="Agent">{{range $.Harnesses}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select>
+          <div><button type="submit" class="{{template "ag-btn-quiet"}}">Start with this agent</button></div>
         </form>
       </section>
       {{end}}
