@@ -52,6 +52,16 @@ func (s *Server) agentOf(held instance.Instance) agent {
 }
 
 // engineName is the program's name for a person.
+// harnessOf is the name of the harness a title belongs to, or nothing for a title no harness has.
+func (s *Server) harnessOf(title string) string {
+	for _, entry := range s.engines() {
+		if entry.Title == title {
+			return entry.Name
+		}
+	}
+	return ""
+}
+
 func (s *Server) engineName(harness string) string {
 	for _, entry := range s.engines() {
 		if entry.Name == harness && entry.Title != "" {
