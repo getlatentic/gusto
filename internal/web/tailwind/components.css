@@ -45,3 +45,12 @@
   .sr-only-label { @apply sr-only; }
   .empty { @apply rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1; }
 }
+
+@layer components {
+  .console-link {
+    @apply flex h-[2.375rem] w-full items-center gap-3 rounded-sm border border-transparent bg-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline cursor-pointer
+      hover:bg-hover hover:text-ink @max-[56rem]:w-auto;
+  }
+  .console-link[aria-current] { @apply border-line-strong bg-surface font-semibold text-ink; }
+  .console-link svg.i { @apply size-4; }
+}
