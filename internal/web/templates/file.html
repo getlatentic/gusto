@@ -1,21 +1,21 @@
 {{template "head" .}}
 
-<div class="viewer">
-  <nav class="trail" aria-label="Where this is">
-    {{if .Evidence}}<a href="/jobs">Activity</a><span class="sep">/</span><a href="/jobs/{{.Evidence}}">Record</a>
+<div class="grid max-w-[60rem] gap-5">
+  <nav class="flex flex-wrap items-center gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
+    {{if .Evidence}}<a href="/jobs">Activity</a><span>/</span><a href="/jobs/{{.Evidence}}">Record</a>
     {{else}}<a href="/files">Files</a>
-    {{range .Crumbs}}<span class="sep">/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}{{end}}
+    {{range .Crumbs}}<span>/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}{{end}}
   </nav>
 
-  <header class="viewer-head">
-    <div class="viewer-title">
-      <h1>{{.File.Name}}</h1>
-      <p class="muted small">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
+  <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
+    <div class="min-w-0 flex-1 basis-48">
+      <h1 class="text-lg wrap-anywhere">{{.File.Name}}</h1>
+      <p class="mt-1 text-xs text-muted">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
     </div>
-    <div class="viewer-actions">
-      {{if .Back}}<a class="quiet-button" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
-      {{if eq .File.Kind "html"}}<a class="quiet-button" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
-      <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+    <div class="flex flex-none flex-wrap gap-2">
+      {{if .Back}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
+      {{if eq .File.Kind "html"}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
     </div>
   </header>
 
@@ -27,55 +27,59 @@
 {{/* file-body is what a file is, drawn by its kind, whether it is a page or a tab beside a chat. */}}
 {{define "file-body"}}
   {{if eq .File.Kind "markdown"}}
-  <article class="prose">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
+  <article class="prose max-w-[46rem]">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
   {{else if eq .File.Kind "text"}}
-  <pre class="code"{{with .File.Language}} data-language="{{.}}"{{end}}><code>{{.File.Text}}</code></pre>
+  <pre class="code overflow-x-auto rounded-md bg-wash px-5 py-4 leading-relaxed whitespace-pre [tab-size:4] [&_code]:bg-transparent [&_code]:p-0 [&_code]:[counter-reset:line]
+    [&_.ln]:before:inline-block [&_.ln]:before:w-[3.25em] [&_.ln]:before:mr-[1.25em] [&_.ln]:before:text-right [&_.ln]:before:text-subtle [&_.ln]:before:opacity-70 [&_.ln]:before:select-none [&_.ln]:before:[counter-increment:line] [&_.ln]:before:content-[counter(line)]
+    [&_:is(.hljs-comment,.hljs-quote)]:text-subtle [&_:is(.hljs-comment,.hljs-quote)]:italic [&_:is(.hljs-keyword,.hljs-selector-tag,.hljs-literal,.hljs-doctag)]:text-info
+    [&_:is(.hljs-string,.hljs-regexp,.hljs-addition)]:text-ok [&_:is(.hljs-number,.hljs-symbol,.hljs-bullet)]:text-warn [&_:is(.hljs-title,.hljs-section,.hljs-name)]:font-semibold
+    [&_:is(.hljs-attr,.hljs-attribute,.hljs-built_in,.hljs-type,.hljs-variable)]:text-muted [&_.hljs-deletion]:text-bad"{{with .File.Language}} data-language="{{.}}"{{end}}><code>{{.File.Text}}</code></pre>
   {{if .File.Lines}}<script src="{{asset "/static/highlight.min.js"}}"></script>
   <script src="{{asset "/static/code.js"}}"></script>{{end}}
   {{else if eq .File.Kind "table"}}
-  <div class="grid-scroll"><table class="grid">
+  <div class="overflow-x-auto"><table class="w-auto min-w-full text-xs [&_th]:border [&_th]:border-line [&_th]:bg-wash [&_th]:px-4 [&_th]:py-2 [&_th]:whitespace-nowrap [&_th]:text-ink [&_td]:max-w-96 [&_td]:truncate [&_td]:border [&_td]:border-line [&_td]:px-4 [&_td]:py-2">
     {{range $i, $row := .File.Rows}}<tr>{{range $row}}{{if eq $i 0}}<th>{{.}}</th>{{else}}<td>{{.}}</td>{{end}}{{end}}</tr>
     {{end}}
   </table></div>
   {{else if eq .File.Kind "image"}}
-  <div class="media"><img src="{{.File.Raw}}" alt="{{.File.Name}}"></div>
+  <div class="grid place-items-center rounded-md bg-wash p-4"><img class="max-h-[70vh] rounded-sm" src="{{.File.Raw}}" alt="{{.File.Name}}"></div>
   {{else if eq .File.Kind "pdf"}}
-  <iframe class="frame" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "html"}}
-  <iframe class="frame" sandbox="allow-scripts" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" sandbox="allow-scripts" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "audio"}}
-  <div class="media"><audio controls src="{{.File.Raw}}"></audio></div>
+  <div class="grid place-items-center rounded-md bg-wash p-4"><audio controls src="{{.File.Raw}}"></audio></div>
   {{else if eq .File.Kind "video"}}
-  <div class="media"><video controls src="{{.File.Raw}}"></video></div>
+  <div class="grid place-items-center rounded-md bg-wash p-4"><video class="max-h-[70vh] rounded-sm" controls src="{{.File.Raw}}"></video></div>
   {{else if eq .File.Kind "office"}}
-  <p class="note">This is the text of the file, not how it looks. Download it to open it in its own program.</p>
+  <p class="rounded-sm bg-wash px-4 py-3 text-xs text-muted">This is the text of the file, not how it looks. Download it to open it in its own program.</p>
   {{range .File.Parts}}
-  <section class="part">
-    {{with .Title}}<h2>{{.}}</h2>{{end}}
-    {{range .Lines}}{{if eq .Heading 0}}<p>{{.Text}}</p>{{else if eq .Heading 1}}<h3>{{.Text}}</h3>{{else}}<h4>{{.Text}}</h4>{{end}}{{end}}
-    {{with .Rows}}<div class="grid-scroll"><table class="grid">{{range .}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</table></div>{{end}}
+  <section class="grid gap-3 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    {{with .Title}}<h2 class="text-xs font-semibold text-subtle">{{.}}</h2>{{end}}
+    {{range .Lines}}{{if eq .Heading 0}}<p class="leading-relaxed whitespace-pre-wrap">{{.Text}}</p>{{else if eq .Heading 1}}<h3 class="mt-2 text-sm">{{.Text}}</h3>{{else}}<h4 class="text-sm">{{.Text}}</h4>{{end}}{{end}}
+    {{with .Rows}}<div class="overflow-x-auto"><table class="w-auto min-w-full text-xs [&_td]:max-w-96 [&_td]:truncate [&_td]:border [&_td]:border-line [&_td]:px-4 [&_td]:py-2">{{range .}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</table></div>{{end}}
   </section>
   {{end}}
   {{else}}
-  <div class="nothing">
+  <div class="grid justify-items-center gap-3 rounded-md bg-wash px-4 py-16 text-center text-muted">
     {{template "icon-file"}}
     <p>This kind of file cannot be shown here.</p>
-    <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download it</span></a>
+    <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-surface hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download it</span></a>
   </div>
   {{end}}
-  {{if .File.Cut}}<p class="muted small">The file is longer than the page draws. Download it to read the rest.</p>{{end}}
+  {{if .File.Cut}}<p class="text-xs text-muted">The file is longer than the page draws. Download it to read the rest.</p>{{end}}
 {{end}}
 
 {{/* file-panel is a file as a tab beside a chat: its name and what can be done with it, and the file. */}}
-{{define "file-panel"}}<div class="viewer panel-file">
-  <header class="viewer-head">
-    <div class="viewer-title">
-      <h2>{{.File.Name}}</h2>
-      <p class="muted small">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
+{{define "file-panel"}}<div class="grid gap-5">
+  <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
+    <div class="min-w-0 flex-1 basis-40">
+      <h2 class="text-lg wrap-anywhere">{{.File.Name}}</h2>
+      <p class="mt-1 text-xs text-muted">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
     </div>
-    <div class="viewer-actions">
-      <a class="quiet-button" data-page href="{{.Page}}">Open as a page</a>
-      <a class="quiet-button" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+    <div class="flex flex-none flex-wrap gap-2">
+      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" data-page href="{{.Page}}">Open as a page</a>
+      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
     </div>
   </header>
   {{template "file-body" .}}

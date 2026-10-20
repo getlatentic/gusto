@@ -1,139 +1,144 @@
 {{template "head" .}}
 
-<nav class="crumb" aria-label="Where this is">
+<nav class="mb-4 flex flex-wrap items-baseline gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
   {{if .Agent}}<a href="/">Agents</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
   {{with .Talk}}<a href="{{$.ThreadPath}}">{{.Name}}</a>{{else}}<span>this run</span>{{end}}
   <span>/</span><span>Record</span>
 </nav>
 
-<header class="record-head">
-  <div class="record-title">
-    <p class="place">Record{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
-    <h1 class="brief">{{.Job.Brief}}</h1>
-    {{with waiting .Job.ID}}<p class="muted" id="why">{{.}}</p>{{end}}
+<header class="mb-5 flex items-end justify-between gap-4 @max-[56rem]:flex-col @max-[56rem]:items-start">
+  <div class="min-w-0">
+    <p class="mb-1 text-xs font-semibold text-subtle">Record{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
+    <h1 class="wrap-anywhere">{{.Job.Brief}}</h1>
+    {{with waiting .Job.ID}}<p class="mt-1 text-muted" id="why">{{.}}</p>{{end}}
   </div>
-  <div class="record-actions">
-    {{with .Talk}}{{if .Before}}<a class="quiet-link" href="/jobs/{{.Before}}">← Previous</a>{{end}}{{if .After}}<a class="quiet-link" href="/jobs/{{.After}}">Next →</a>{{end}}{{end}}
-    {{if .ThreadPath}}<a class="cta small-cta" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
+  <div class="flex flex-none items-center gap-2">
+    {{with .Talk}}{{if .Before}}<a class="inline-flex items-center rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.Before}}">← Previous</a>{{end}}{{if .After}}<a class="inline-flex items-center rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.After}}">Next →</a>{{end}}{{end}}
+    {{if .ThreadPath}}<a class="inline-flex items-center justify-center rounded-sm bg-accent px-4 py-2 text-sm font-semibold whitespace-nowrap text-on-accent no-underline transition-colors hover:bg-accent-hover" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
   </div>
 </header>
 
-<section class="strip" aria-label="Summary">
-  <div class="tile"><span class="k">Outcome</span><span class="v"><span class="state {{.Job.State}}" id="state">{{outcome .Run}}</span></span></div>
-  <div class="tile"><span class="k">Time</span><span class="v">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}</span></div>
-  {{if .Run.Metered}}<div class="tile"><span class="k">Cost</span><span class="v">{{template "cost" .Run}}</span></div>{{end}}
-  {{with .Calls}}<div class="tile"><span class="k">Tokens</span><span class="v">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></div>{{end}}
-  {{with .Gate}}<div class="tile"><span class="k">Check</span><span class="v">{{with .Verdict}}<span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>{{else}}no answer{{end}}</span></div>{{end}}
-  <div class="tile"><span class="k">Agent</span><span class="v">{{with .Agent}}<a href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></div>
-  {{with .Build}}<div class="tile"><span class="k">Build</span><span class="v">{{.}}</span></div>{{end}}
-  {{if not .Agent}}<div class="tile wide"><span class="k">Came from</span><span class="v">{{template "origin" .On}}</span></div>{{end}}
-  <div class="tile"><span class="k">Model</span><span class="v">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></div>
-  {{with .Proof}}<div class="tile"><span class="k">Record</span><span class="v">{{if not .Holds}}<span class="state failed">does not check out</span>{{else if .Signed}}<a href="#proof"><span class="state passed">signed</span></a>{{else}}<a href="#proof">not signed</a>{{end}}</span></div>{{end}}
+<section class="mb-5 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" aria-label="Summary">
+  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Outcome</span><span class="text-sm font-semibold">{{template "state" (dict "State" .Job.State "Text" (outcome .Run) "ID" "state")}}</span></div>
+  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Time</span><span class="truncate text-sm font-semibold">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}</span></div>
+  {{if .Run.Metered}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Cost</span><span class="truncate text-sm font-semibold">{{template "cost" .Run}}</span></div>{{end}}
+  {{with .Calls}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Tokens</span><span class="truncate text-sm font-semibold">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></div>{{end}}
+  {{with .Gate}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Check</span><span class="text-sm font-semibold">{{with .Verdict}}{{template "state" (dict "State" (printf "%s" (or (and .Passed "passed") "failed")) "Text" (or (and .Passed "passed") "failed"))}}{{else}}no answer{{end}}</span></div>{{end}}
+  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Agent</span><span class="truncate text-sm font-semibold">{{with .Agent}}<a class="text-inherit no-underline hover:underline" href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></div>
+  {{with .Build}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Build</span><span class="truncate text-sm font-semibold">{{.}}</span></div>{{end}}
+  {{if not .Agent}}<div class="col-span-2 grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Came from</span><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></div>{{end}}
+  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Model</span><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></div>
+  {{with .Proof}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Record</span><span class="text-sm font-semibold">{{if not .Holds}}{{template "state" (dict "State" "failed" "Text" "does not check out")}}{{else if .Signed}}<a class="no-underline" href="#proof">{{template "state" (dict "State" "passed" "Text" "signed")}}</a>{{else}}<a class="text-inherit no-underline hover:underline" href="#proof">not signed</a>{{end}}</span></div>{{end}}
 </section>
 
-{{with .Manifest}}{{with .StoppedByCap}}<p class="stopped-line"><span class="state failed">stopped by the {{.Cap}} cap</span> {{.Reason}}</p>{{end}}{{end}}
+{{with .Manifest}}{{with .StoppedByCap}}<p class="mb-4 flex flex-wrap items-center gap-2 text-sm">{{template "state" (dict "State" "failed" "Text" (printf "stopped by the %s cap" .Cap))}} <span class="text-muted">{{.Reason}}</span></p>{{end}}{{end}}
 
-<div class="record">
+<div class="grid max-w-4xl gap-4">
 
   {{if .Live}}
-  <section class="panel">
-    <h2 class="section-title">Running now</h2>
-    <pre id="stream" class="muted">waiting…</pre>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">Running now</h2>
+    <pre id="stream" class="max-h-[28rem] overflow-auto rounded-sm bg-wash p-4 whitespace-pre-wrap text-muted">waiting…</pre>
   </section>
   {{else if not .Talk}}
-  <section class="panel">
-    <h2 class="section-title">What it said</h2>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">What it said</h2>
     {{with .Transcript}}
-    {{if .Empty}}<p class="muted">It said nothing.</p>{{else}}
-    <div class="reply prose">{{markdown .Text}}</div>
+    {{if .Empty}}<p class="text-muted">It said nothing.</p>{{else}}
+    <div class="prose">{{markdown .Text}}</div>
     {{template "cut" .}}{{end}}
-    {{else}}<p class="muted">Nothing was recorded.</p>{{end}}
+    {{else}}<p class="text-muted">Nothing was recorded.</p>{{end}}
   </section>
   {{end}}
 
-  <section class="panel">
-    <h2 class="section-title">What changed</h2>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">What changed</h2>
     {{with .Patch}}
-    {{if .Empty}}<p class="muted">No files changed.</p>{{else}}
-    <p class="muted small">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}.</p>
+    {{if .Empty}}<p class="text-muted">No files changed.</p>{{else}}
+    <p class="mb-2 text-xs text-muted">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}.</p>
+    <div class="divide-y divide-line">
     {{range .Files}}
-    <details class="diff-file">
-      <summary><code>{{.Name}}</code> <span class="plus">+{{.Added}}</span> <span class="minus">−{{.Removed}}</span></summary>
-      {{range .Meta}}<div class="diff-meta">{{.}}</div>{{end}}
-      {{if .Binary}}<p class="muted">A binary file. The patch names it and does not carry its contents.</p>{{end}}
+    <details class="group py-2">
+      <summary class="flex cursor-pointer list-none items-center gap-3 py-1 text-sm text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}<code class="min-w-0 wrap-anywhere text-xs">{{.Name}}</code> <span class="text-xs text-ok">+{{.Added}}</span> <span class="text-xs text-bad">−{{.Removed}}</span></summary>
+      {{range .Meta}}<div class="mt-2 font-mono text-xs text-muted">{{.}}</div>{{end}}
+      {{if .Binary}}<p class="mt-2 text-muted">A binary file. The patch names it and does not carry its contents.</p>{{end}}
       {{with .Hunks}}
-      <div class="diff-scroll"><table class="diff">
+      <div class="mt-2 overflow-x-auto rounded-sm border border-line"><table class="w-full font-mono text-xs leading-[1.55] [&_td]:px-2 [&_td]:align-top [&_td.n]:w-[1%] [&_td.n]:min-w-10 [&_td.n]:text-right [&_td.n]:text-subtle [&_td.n]:select-none [&_td.code]:whitespace-pre">
         {{range .}}
-        <tr class="hunk"><td class="n"></td><td class="n"></td><td class="code">{{.Header}}</td></tr>
-        {{range .Lines}}<tr class="{{.Kind}}"><td class="n">{{if .Old}}{{.Old}}{{end}}</td><td class="n">{{if .New}}{{.New}}{{end}}</td><td class="code">{{.Text}}</td></tr>
+        <tr class="bg-wash text-muted"><td class="n"></td><td class="n"></td><td class="code">{{.Header}}</td></tr>
+        {{range .Lines}}<tr{{if eq .Kind "added"}} class="bg-ok-wash"{{else if eq .Kind "removed"}} class="bg-bad-wash"{{end}}><td class="n">{{if .Old}}{{.Old}}{{end}}</td><td class="n">{{if .New}}{{.New}}{{end}}</td><td class="code">{{.Text}}</td></tr>
         {{end}}{{end}}
       </table></div>
       {{end}}
     </details>
     {{end}}
+    </div>
     {{template "cut" .}}{{end}}
-    {{else}}<p class="muted">Nothing was recorded.</p>{{end}}
+    {{else}}<p class="text-muted">Nothing was recorded.</p>{{end}}
   </section>
 
   {{with .Steps}}
-  <section class="panel">
-    <h2 class="section-title">What it did</h2>
-    <details class="steps-all"><summary>{{len .}} step{{if ne (len .) 1}}s{{end}}</summary>{{template "steps" .}}</details>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">What it did</h2>
+    <details class="group"><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}{{len .}} step{{if ne (len .) 1}}s{{end}}</summary>
+      <ol class="mt-3 ml-1 grid list-none gap-2 border-l border-line-strong pl-4 text-sm">{{range .}}<li class="min-w-0 wrap-anywhere"><span class="mr-1 font-semibold">{{.What}}</span>{{with .Detail}}<span class="text-xs text-muted">{{.}}</span>{{end}}</li>{{end}}</ol>
+    </details>
   </section>
   {{end}}
 
-  <section class="panel">
-    <h2 class="section-title">Network</h2>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">Network</h2>
     {{with .Calls}}{{with .Denied}}
-    <p class="muted small">The agent asked for {{len .}} address{{if ne (len .) 1}}es{{end}} outside the model, and each was refused.</p>
-    <table class="sites"><thead><tr><th>Site</th><th class="num">Times</th></tr></thead><tbody>
-      {{range $.Calls.Sites}}<tr><td><code>{{.Host}}</code></td><td class="num">{{.Times}}</td></tr>{{end}}
+    <p class="mb-2 text-xs text-muted">The agent asked for {{len .}} address{{if ne (len .) 1}}es{{end}} outside the model, and each was refused.</p>
+    <table class="w-full text-sm [&_td]:border-b [&_td]:border-line [&_td]:py-2 [&_th]:border-b [&_th]:border-line [&_th]:py-1">
+      <thead><tr><th>Site</th><th class="w-20 text-right">Times</th></tr></thead><tbody>
+      {{range $.Calls.Sites}}<tr><td><code class="text-xs">{{.Host}}</code></td><td class="text-right tabular-nums">{{.Times}}</td></tr>{{end}}
     </tbody></table>
-    {{else}}<p class="muted">No request to another site was refused.</p>{{end}}
-    {{else}}<p class="muted">No requests were recorded.</p>{{end}}
+    {{else}}<p class="text-muted">No request to another site was refused.</p>{{end}}
+    {{else}}<p class="text-muted">No requests were recorded.</p>{{end}}
   </section>
 
   {{with .Gate}}
-  <section class="panel">
-    <h2 class="section-title">The check</h2>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">The check</h2>
     {{with .Verdict}}
-    <p class="verdict"><span class="state {{if .Passed}}passed{{else}}failed{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</span>
-      <code>{{$.Gate.Command}}</code> <span class="muted">exited {{.Code}}</span></p>
+    <p class="mb-3 flex flex-wrap items-center gap-3 text-sm">{{template "state" (dict "State" (or (and .Passed "passed") "failed") "Text" (or (and .Passed "passed") "failed"))}}
+      <code class="text-xs wrap-anywhere">{{$.Gate.Command}}</code> <span class="text-muted">exited {{.Code}}</span></p>
     {{else}}
-    <p class="muted">The run stopped before its check answered.</p>
+    <p class="text-muted">The run stopped before its check answered.</p>
     {{end}}
     {{with .Log}}
-    {{if $.Gate.Explains}}<h3>What the check said</h3><pre class="log">{{.Text}}</pre>{{template "cut" .}}
-    {{else}}<details><summary>What the check printed ({{.Whole}})</summary><pre class="log">{{.Text}}</pre>{{template "cut" .}}</details>{{end}}
+    {{if $.Gate.Explains}}<h3 class="mt-4 mb-2 text-sm">What the check said</h3><pre class="max-h-96 overflow-auto rounded-sm bg-wash p-4 whitespace-pre-wrap">{{.Text}}</pre>{{template "cut" .}}
+    {{else}}<details class="group"><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}What the check printed ({{.Whole}})</summary><pre class="mt-3 max-h-96 overflow-auto rounded-sm bg-wash p-4 whitespace-pre-wrap">{{.Text}}</pre>{{template "cut" .}}</details>{{end}}
     {{end}}
   </section>
   {{end}}
 
   {{with .Proof}}
-  <section class="panel proof" id="proof">
-    <h2 class="section-title">Proof of what ran</h2>
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" id="proof">
+    <h2 class="mb-3 text-sm font-semibold">Proof of what ran</h2>
     {{if not .Holds}}
-    <p class="proof-line bad">{{template "icon-shield"}} This record does not check out.</p>
-    <ul class="denied">{{range .Wrong}}<li>{{.}}</li>{{end}}</ul>
+    <p class="mb-2 flex items-start gap-2 font-medium text-bad [&_svg]:mt-0.5 [&_svg]:size-[1.125rem] [&_svg]:opacity-100">{{template "icon-shield"}} This record does not check out.</p>
+    <ul class="mt-3 grid list-none gap-2 text-sm">{{range .Wrong}}<li>{{.}}</li>{{end}}</ul>
     {{else if .Unchecked}}
-    <p class="proof-line">All {{.Files}} files match; {{.Unchecked}}.</p>
+    <p class="mb-2 font-medium">All {{.Files}} files match; {{.Unchecked}}.</p>
     {{else if .Signed}}
-    <p class="proof-line good">{{template "icon-seal"}} Signed by {{.Signer}}. All {{.Files}} files match.</p>
+    <p class="mb-2 flex items-start gap-2 font-medium text-ok [&_svg]:mt-0.5 [&_svg]:size-[1.125rem] [&_svg]:opacity-100">{{template "icon-seal"}} Signed by {{.Signer}}. All {{.Files}} files match.</p>
     {{else}}
-    <p class="proof-line">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
+    <p class="mb-2 font-medium">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
     {{end}}
-    <p class="muted small">Check it on your own machine, without gusto.</p>
-    <p class="proof-downloads"><a class="button small" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="button small plain" href="{{.}}" download>The signing key</a>{{end}}</p>
-    <div class="command"><code id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="quiet">Copy</button></div>
-    <details><summary>Each file and its fingerprint</summary>
-      <ul class="files">
-        {{range $.Files}}{{if .SHA256}}<li><a href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a><code>{{.SHA256}}</code></li>{{end}}{{end}}
+    <p class="mb-3 text-xs text-muted">Check it on your own machine, without gusto.</p>
+    <p class="mb-3 flex flex-wrap gap-2"><a class="inline-flex items-center justify-center rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-on-accent no-underline transition-colors hover:bg-accent-hover" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="inline-flex items-center justify-center rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.}}" download>The signing key</a>{{end}}</p>
+    <div class="mb-3 flex items-center gap-2 rounded-sm bg-wash py-2 pr-2 pl-3"><code class="min-w-0 flex-1 text-xs wrap-anywhere" id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="cursor-pointer rounded-sm border border-line-strong px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink">Copy</button></div>
+    <details class="group"><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}Each file and its fingerprint</summary>
+      <ul class="mt-3 grid list-none gap-2 text-sm">
+        {{range $.Files}}{{if .SHA256}}<li class="grid gap-0.5"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a><code class="text-xs wrap-anywhere text-subtle">{{.SHA256}}</code></li>{{end}}{{end}}
       </ul>
     </details>
   </section>
   {{end}}
 
-  {{with .Job.Repo}}<p class="muted small">Repository: <span class="wrap">{{.}}</span></p>{{end}}
+  {{with .Job.Repo}}<p class="text-xs text-muted">Repository: <span class="wrap-anywhere">{{.}}</span></p>{{end}}
 </div>
 
 <script nonce="{{.Nonce}}">
@@ -153,16 +158,20 @@
   var box = document.getElementById("stream");
   var state = document.getElementById("state");
   if (state.textContent.trim() !== "queued" && state.textContent.trim() !== "running") return;
+  var tones = {
+    finished: "bg-ok-wash text-ok", passed: "bg-ok-wash text-ok",
+    failed: "bg-bad-wash text-bad", interrupted: "bg-bad-wash text-bad"
+  };
   var stream = new EventSource("/watch/{{.Job.ID}}");
   var first = true;
   stream.onmessage = function (event) {
-    if (first) { box.textContent = ""; box.classList.remove("muted"); first = false; }
+    if (first) { box.textContent = ""; box.classList.remove("text-muted"); first = false; }
     box.textContent += event.data + "\n";
     box.scrollTop = box.scrollHeight;
   };
   stream.addEventListener("ended", function (event) {
     state.textContent = event.data;
-    state.className = "state " + event.data;
+    state.className = "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap " + (tones[event.data] || "bg-wash text-subtle");
     stream.close();
     setTimeout(function () { location.reload(); }, 400);
   });
@@ -171,5 +180,11 @@
 
 {{template "foot" .}}
 
-{{define "cut"}}{{if .Cut}}<p class="muted">{{.Name}} is {{.Whole}}, and the page draws the first {{.Shown}}.
-<a href="{{.Raw}}">Read the whole file</a>.</p>{{end}}{{end}}
+{{define "cut"}}{{if .Cut}}<p class="mt-2 text-sm text-muted">{{.Name}} is {{.Whole}}, and the page draws the first {{.Shown}}.
+<a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Raw}}">Read the whole file</a>.</p>{{end}}{{end}}
+
+{{/* state is a short word for how something ended, in the color of its meaning. */}}
+{{define "state"}}{{$tone := "bg-wash text-subtle"}}{{if or (eq .State "passed") (eq .State "finished")}}{{$tone = "bg-ok-wash text-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{$tone = "bg-bad-wash text-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{$tone = "bg-warn-wash text-warn"}}{{end -}}
+<span{{with .ID}} id="{{.}}"{{end}} class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap {{$tone}}">{{.Text}}</span>{{end}}
+
+{{define "chevron"}}<svg class="i size-3.5 flex-none transition-transform group-open:rotate-90" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>{{end}}
