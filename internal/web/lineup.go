@@ -12,6 +12,7 @@ import (
 // passed, what it took and cost, and how much it changed.
 type side struct {
 	Engine  string
+	Harness string
 	Model   string
 	Record  jobs.Record
 	Checked bool
@@ -75,7 +76,7 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 }
 
 func (s *Server) sideOf(entry compare.Entry, record jobs.Record, ledger *spend.Ledger) side {
-	shown := side{Engine: s.engineName(entry.Harness), Model: modelName(record.Model), Record: record}
+	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record}
 	dir := record.Dir(s.index.Root())
 	if manifest := readManifest(dir); manifest != nil && manifest.Gate != nil {
 		shown.Checked, shown.Passed = true, manifest.Gate.Passed
