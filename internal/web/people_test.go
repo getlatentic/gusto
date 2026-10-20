@@ -52,7 +52,7 @@ func unmeasuredNow() string {
 
 func rowOf(t *testing.T, page, email string) string {
 	t.Helper()
-	found := regexp.MustCompile(`(?s)<tr>\s*<td>(?:<span class="who-cell">.*?<span>)?` + regexp.QuoteMeta(email) + `(?:</span></span>)?</td>(.*?)</tr>`).FindStringSubmatch(page)
+	found := regexp.MustCompile(`(?s)<tr>\s*<td>(?:<span class="[^"]*">.*?<span>)?` + regexp.QuoteMeta(email) + `(?:</span></span>)?</td>(.*?)</tr>`).FindStringSubmatch(page)
 	if found == nil {
 		t.Fatalf("%s is not in the table:\n%s", email, page)
 	}

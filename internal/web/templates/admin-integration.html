@@ -1,37 +1,37 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/admin/integrations">Integrations</a><span>/</span><span>{{.Held.Name}}</span></nav>
-<div class="title-row">
-  <h1>{{.Held.Name}} <span class="muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
-  <div>
-    {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="quiet-button">Turn off</button></form>{{end}}
-    {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="quiet-button">Put the earlier version back</button></form>{{end}}
-  </div>
+<nav class="mb-2 flex items-center gap-2 text-sm text-muted" aria-label="Where this is"><a class="hover:text-ink" href="/admin/integrations">Integrations</a><span aria-hidden="true">/</span><span>{{.Held.Name}}</span></nav>
+<div class="{{template "adm-title"}}">
+  <h1>{{.Held.Name}} <span class="text-base font-normal text-muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
+  <span class="flex-1"></span>
+  {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn off</button></form>{{end}}
+  {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="{{template "adm-btn-quiet"}}">Put the earlier version back</button></form>{{end}}
 </div>
 
-<section class="panel">
-  <h2>Who it is on for</h2>
-  <p class="muted">Addresses people sign in with, one to a line: <code>ada@example.com</code>, or <code>*@example.com</code> for everybody at a company. Leave it empty for everybody. A team is a label a person chooses, and does not decide who may have what.</p>
-  <form class="stack" method="post" action="/admin/integrations/{{.Held.Name}}/for">
-    <textarea name="for" rows="3">{{range .Held.For}}{{.}}
+<div class="grid gap-4">
+<section class="{{template "adm-card"}} grid gap-3">
+  <h2 class="text-sm font-semibold">Who it is on for</h2>
+  <p class="{{template "adm-note"}} max-w-prose">Addresses people sign in with, one to a line: <code>ada@example.com</code>, or <code>*@example.com</code> for everybody at a company. Leave it empty for everybody. A team is a label a person chooses, and does not decide who may have what.</p>
+  <form class="grid max-w-prose gap-3" method="post" action="/admin/integrations/{{.Held.Name}}/for">
+    <textarea class="{{template "adm-input"}}" name="for" rows="3" aria-label="Addresses">{{range .Held.For}}{{.}}
 {{end}}</textarea>
-    <button type="submit">Save</button>
+    <div><button type="submit" class="{{template "adm-btn"}}">Save</button></div>
   </form>
 </section>
 
-<section class="panel">
-  <h2>Versions <span class="muted">{{len .Held.Versions}}</span></h2>
-  <table>
+<section class="{{template "adm-card"}} overflow-x-auto">
+  <h2 class="{{template "adm-card-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2>
+  <table class="{{template "adm-table"}}">
     <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
     <tbody>
       {{range .Held.Versions}}
       <tr>
-        <td><a href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <strong>on</strong>{{end}}</td>
-        <td class="muted">{{.Source.Kind}}{{with .Source.Address}} {{.}}{{end}}{{with .Source.Commit}} @ {{.}}{{end}}</td>
-        <td class="muted">{{when .Imported}} by {{.By}}</td>
-        <td>{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit" class="quiet-button">Turn on</button></form>{{end}}</td>
+        <td><a class="font-medium hover:underline" href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="font-mono text-xs text-muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <span class="rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok">on</span>{{end}}</td>
+        <td class="text-muted">{{.Source.Kind}}{{with .Source.Address}} {{.}}{{end}}{{with .Source.Commit}} @ {{.}}{{end}}</td>
+        <td class="whitespace-nowrap text-muted">{{when .Imported}} by {{.By}}</td>
+        <td class="text-right">{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn on</button></form>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -39,40 +39,40 @@
 </section>
 
 {{with .Shown}}
-<section class="panel">
+<section class="{{template "adm-card"}} grid gap-3">
   <h2>{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</h2>
   {{with .Plugin.Description}}<p>{{.}}</p>{{end}}
-  <h3>Skills <span class="muted">{{len .Plugin.Skills}}</span></h3>
-  <ul>{{range .Plugin.Skills}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Description}}</span></li>{{else}}<li class="muted">none</li>{{end}}</ul>
-  <h3>MCP servers <span class="muted">{{len .Plugin.Servers}}</span></h3>
-  <ul>{{range .Plugin.Servers}}<li><strong>{{.Name}}</strong> <span class="muted">{{.Transport}}{{with .URL}} {{.}}{{end}}{{with .Command}} runs {{.}}{{end}}</span>{{if eq (printf "%s" .Transport) "stdio"}} <span class="muted">· waits for the gateway</span>{{else if eq (printf "%s" .Transport) "sse"}} <span class="muted">· older transport, not used yet</span>{{end}}</li>{{else}}<li class="muted">none</li>{{end}}</ul>
+  <h3 class="mt-2">Skills <span class="font-normal text-muted">{{len .Plugin.Skills}}</span></h3>
+  <ul class="grid gap-1.5 text-sm">{{range .Plugin.Skills}}<li><strong>{{.Name}}</strong> <span class="text-muted">{{.Description}}</span></li>{{else}}<li class="text-muted">none</li>{{end}}</ul>
+  <h3 class="mt-2">MCP servers <span class="font-normal text-muted">{{len .Plugin.Servers}}</span></h3>
+  <ul class="grid gap-1.5 text-sm">{{range .Plugin.Servers}}<li><strong>{{.Name}}</strong> <span class="text-muted">{{.Transport}}{{with .URL}} {{.}}{{end}}{{with .Command}} runs {{.}}{{end}}</span>{{if eq (printf "%s" .Transport) "stdio"}} <span class="text-muted">· waits for the gateway</span>{{else if eq (printf "%s" .Transport) "sse"}} <span class="text-muted">· older transport, not used yet</span>{{end}}</li>{{else}}<li class="text-muted">none</li>{{end}}</ul>
   {{if .Plugin.Servers}}{{$programs := false}}{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}{{$programs = true}}{{end}}{{end}}
   {{if $programs}}
-  <h3>Programs</h3>
-  <p class="muted">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the task or to any credential, and nothing it can write but a folder of the task's.</p>
-  <ul>{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
+  <h3 class="mt-2">Programs</h3>
+  <p class="{{template "adm-note"}} max-w-prose">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the task or to any credential, and nothing it can write but a folder of the task's.</p>
+  <ul class="grid gap-1.5 text-sm">{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="text-muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
   {{if eq $.Held.Programs .ID}}
   <p><strong>Allowed.</strong></p>
-  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="quiet-button">Stop allowing them</button></form>
+  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="{{template "adm-btn-quiet"}}">Stop allowing them</button></form>
   {{else}}
-  <form class="stack" method="post" action="/admin/integrations/{{$.Held.Name}}/programs/allow">
+  <form class="grid max-w-prose gap-3" method="post" action="/admin/integrations/{{$.Held.Name}}/programs/allow">
     <input type="hidden" name="version" value="{{.ID}}">
-    <label class="check"><input type="checkbox" name="understood" value="yes"> I have read what these programs are and I allow this version's to run.</label>
-    <button type="submit">Allow the programs</button>
+    <label class="flex items-start gap-2 text-sm"><input class="mt-1" type="checkbox" name="understood" value="yes"> I have read what these programs are and I allow this version's to run.</label>
+    <div><button type="submit" class="{{template "adm-btn"}}">Allow the programs</button></div>
   </form>
   {{end}}
   {{end}}
   {{end}}
   {{if .Plugin.Problems}}
-  <h3>Left out or ignored</h3>
-  <ul>{{range .Plugin.Problems}}<li><code>{{.Where}}</code> {{.Message}}{{if .Left}} <span class="muted">· left out</span>{{end}}</li>{{end}}</ul>
+  <h3 class="mt-2">Left out or ignored</h3>
+  <ul class="grid gap-1.5 text-sm">{{range .Plugin.Problems}}<li><code>{{.Where}}</code> {{.Message}}{{if .Left}} <span class="text-muted">· left out</span>{{end}}</li>{{end}}</ul>
   {{end}}
 </section>
 {{with $.Changes}}
-<section class="panel">
-  <h2>What turning this on changes <span class="muted">against the version that is on</span></h2>
-  {{if .None}}<p class="muted">Nothing differs in skills, servers or manifest.</p>{{else}}
-  <ul>
+<section class="{{template "adm-card"}} grid gap-3">
+  <h2>What turning this on changes <span class="text-sm font-normal text-muted">against the version that is on</span></h2>
+  {{if .None}}<p class="{{template "adm-note"}}">Nothing differs in skills, servers or manifest.</p>{{else}}
+  <ul class="grid gap-1.5 text-sm">
     {{with .SkillsAdded}}<li>Skills added: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
     {{with .SkillsRemoved}}<li>Skills removed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
     {{with .SkillsChanged}}<li>Skills changed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
@@ -86,9 +86,10 @@
 {{end}}
 {{end}}
 
-<section class="panel">
-  <h2>History</h2>
-  <ul>{{range .Held.History}}<li class="muted">{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
+<section class="{{template "adm-card"}}">
+  <h2 class="{{template "adm-card-title"}}">History</h2>
+  <ul class="grid gap-1.5 text-sm text-muted">{{range .Held.History}}<li>{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
 </section>
+</div>
 
 {{template "foot" .}}

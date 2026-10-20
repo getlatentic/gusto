@@ -1,55 +1,57 @@
 {{template "head" .}}
 
-<div class="title-row">
+<div class="{{template "adm-title"}}">
   <h1>API tokens</h1>
-  <span class="count">What programs use to call this server</span>
-  <span class="grow"></span>
-  <button class="cta" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
+  <span class="text-sm text-muted">What programs use to call this server</span>
+  <span class="flex-1"></span>
+  <button class="{{template "adm-btn"}}" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
 </div>
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
+<div class="grid gap-4">
 {{if .Secret}}
-<section class="panel">
-  <h2>Token {{.Made}}</h2>
+<section class="{{template "adm-card"}} grid gap-2">
+  <h2 class="text-sm">Token {{.Made}}</h2>
   <p>Copy it now. This page is the only place it is ever shown.</p>
-  <p><code>{{.Secret}}</code></p>
-  <p class="muted">Set it as <code>GUSTO_TOKEN</code> where <code>gusto submit</code> runs, or send it as <code>Authorization: Bearer</code>.</p>
+  <p><code class="block overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-sm">{{.Secret}}</code></p>
+  <p class="{{template "adm-note"}}">Set it as <code>GUSTO_TOKEN</code> where <code>gusto submit</code> runs, or send it as <code>Authorization: Bearer</code>.</p>
 </section>
 {{end}}
 
-<section class="panel" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
-  <h2>Make a token</h2>
-  <form method="post" action="/admin/tokens">
-    <label>Name <input name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
-    <fieldset class="servers"><legend class="muted">It may</legend>
-      {{range .Offered}}<label class="check"><input type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
+<section class="{{template "adm-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
+  <h2 class="{{template "adm-card-title"}}">Make a token</h2>
+  <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
+    <label class="{{template "adm-field"}}">Name <input class="{{template "adm-input"}}" name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
+    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
+      {{range .Offered}}<label class="{{template "adm-check"}}"><input type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
     </fieldset>
-    <button type="submit">Make token</button>
+    <div><button class="{{template "adm-btn"}}" type="submit">Make token</button></div>
   </form>
 </section>
 
 {{if .Tokens}}
-<div class="list tokens">
-  <table>
+<div class="{{template "adm-card"}} overflow-x-auto">
+  <table class="{{template "adm-table"}}">
     <thead><tr><th>Name</th><th>Can</th><th>Made</th><th>Last used</th><th></th></tr></thead>
     <tbody>
       {{range .Tokens}}
       <tr>
-        <td class="tname">{{.Name}}</td>
-        <td><span class="chips">{{range split .May ", "}}<span class="pill-chip">{{.}}</span>{{end}}</span></td>
-        <td class="made" title="{{.Made}}"><span>{{.MadeDay}}</span><span class="by">by {{.By}}</span></td>
-        <td class="muted nowrap"{{if .LastUsed}} title="{{.LastUsed}}"{{end}}>{{if .UsedAt}}{{ago .UsedAt}}{{else}}Never{{end}}</td>
-        <td class="end">{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button class="revoke" type="submit">Revoke</button></form>{{else}}<span class="muted" title="{{.Ended}}">Revoked</span>{{end}}</td>
+        <td class="whitespace-nowrap font-medium">{{.Name}}</td>
+        <td><span class="flex flex-wrap gap-1">{{range split .May ", "}}<span class="{{template "adm-badge"}}">{{.}}</span>{{end}}</span></td>
+        <td class="whitespace-nowrap" title="{{.Made}}"><span>{{.MadeDay}}</span> <span class="text-xs text-muted">by {{.By}}</span></td>
+        <td class="whitespace-nowrap text-muted"{{if .LastUsed}} title="{{.LastUsed}}"{{end}}>{{if .UsedAt}}{{ago .UsedAt}}{{else}}Never{{end}}</td>
+        <td class="text-right">{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button class="{{template "adm-btn-danger"}}" type="submit">Revoke</button></form>{{else}}<span class="text-muted" title="{{.Ended}}">Revoked</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
 </div>
-<p class="muted note">A token is shown once, when it is made. Revoking stops it at once, and the shared password no longer opens the API.</p>
+<p class="text-xs text-muted">A token is shown once, when it is made. Revoking stops it at once, and the shared password no longer opens the API.</p>
 {{else}}
-<p class="muted">No token has been made yet.</p>
+<p class="text-muted">No token has been made yet.</p>
 {{end}}
+</div>
 
 <script src="{{asset "/static/reveal.js"}}"></script>
 
