@@ -15,7 +15,7 @@
     <thead><tr><th class="{{template "ag-th"}}">Agent type</th>{{range .Models}}<th class="{{template "ag-th"}}">{{.}}</th>{{end}}</tr></thead>
     <tbody>
     {{range .Rows}}
-    <tr class="group/row"><td class="{{template "ag-td"}} font-semibold">{{.Title}}</td>
+    <tr class="group/row"><td class="{{template "ag-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}{{.Title}}</span></td>
       {{range .Cells}}<td class="{{template "ag-td"}}">{{if not .Tried}}<span class="text-subtle">not tried</span>{{else if .Finished}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Finished</span><span class="block text-xs text-subtle">{{.Took}}{{with .Cost}} · {{.}}{{end}}</span>{{else}}<span class="font-medium text-bad">Did not finish</span><span class="block text-xs text-subtle">{{.Took}}</span>{{end}}</td>{{end}}
     </tr>
     {{end}}
