@@ -30,3 +30,7 @@
     *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   }
 }
+
+@layer base {
+  html.resizing, html.resizing * { cursor: col-resize !important; user-select: none; }
+}
