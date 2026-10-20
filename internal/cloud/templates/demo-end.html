@@ -1,11 +1,11 @@
 {{define "demo-end"}}{{template "head" .}}
-  <div class="brand"><img src="/static/mark.png" alt=""> gusto</div>
-  {{if .Ending}}<h1>Ending your demo</h1>
+  {{template "brand"}}
+  {{if .Ending}}<h1 class="text-xl font-semibold">Ending your demo</h1>
   <p role="status">Deleting your workspaces and everything in them. This takes a minute, and this page looks again by itself.</p>
-  {{else}}<h1>Your demo has ended</h1>
+  {{else}}<h1 class="text-xl font-semibold">Your demo has ended</h1>
   <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>
-  <p class="muted">We keep your name, work email and company so that we can follow up about a call.</p>{{end}}
+  <p class="text-sm text-muted">We keep your name, work email and company so that we can follow up about a call.</p>{{end}}
   {{if and .Book (not .Ending)}}<p>The next step is a call, to see how this fits your team.</p>
-  <p><a class="button" href="{{.Book}}">Book a call</a></p>{{end}}
-  {{if not .Ending}}<p class="other"><a href="/demo">Start another demo</a></p>{{end}}
+  <p><a class="block rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" href="{{.Book}}">Book a call</a></p>{{end}}
+  {{if not .Ending}}<p class="text-center text-sm text-muted"><a class="underline" href="/demo">Start another demo</a></p>{{end}}
 {{template "foot"}}{{end}}

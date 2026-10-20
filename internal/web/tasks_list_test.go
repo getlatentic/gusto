@@ -68,7 +68,7 @@ func (l *listed) somePeoplesTasks(t *testing.T) {
 	l.addTask(t, "b-old", bob, jobs.Failed, "claude-code", "bobs old failure", now-30*24*3600)
 }
 
-var taskLink = regexp.MustCompile(`class="brief" href="/jobs/([^"]+)"`)
+var taskLink = regexp.MustCompile(`class="[^"]*\bbrief\b[^"]*" href="/jobs/([^"]+)"`)
 
 func idsOnPage(body string) []string {
 	var ids []string
@@ -78,7 +78,7 @@ func idsOnPage(body string) []string {
 	return ids
 }
 
-var figureCounts = regexp.MustCompile(`class="is-(\w+)" href="[^"]*"[^>]*><span class="dot"></span>\w+ <span class="n">(\d+)</span>`)
+var figureCounts = regexp.MustCompile(`class="is-(\w+)[^"]*" href="[^"]*"[^>]*><span class="[^"]*\bdot\b[^"]*"></span>\w+ <span class="[^"]*\bn\b[^"]*">(\d+)</span>`)
 
 func figuresOnPage(body string) string {
 	var out []string
@@ -191,7 +191,7 @@ func TestTheListPagesByCursor(t *testing.T) {
 		body := here.ask(t, "GET", path, nil).Body.String()
 		seen = append(seen, idsOnPage(body)...)
 		path = ""
-		if found := regexp.MustCompile(`<a href="([^"]*after=[^"]*)">Older</a>`).FindStringSubmatch(body); found != nil {
+		if found := regexp.MustCompile(`<a class="[^"]*" href="([^"]*after=[^"]*)">Older</a>`).FindStringSubmatch(body); found != nil {
 			path = strings.ReplaceAll(found[1], "&amp;", "&")
 		}
 	}

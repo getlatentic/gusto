@@ -94,7 +94,7 @@ func luminance(hex string) float64 {
 }
 
 var (
-	motionRule     = regexp.MustCompile(`(?s)@media \(prefers-reduced-motion: reduce\) \{\s*\*, \*::before, \*::after \{([^}]*)\}`)
+	motionRule     = regexp.MustCompile(`@media\(prefers-reduced-motion:reduce\)\{\*,(?:\*::before|:before),(?:\*::after|:after)\{([^}]*)\}`)
 	motionDuration = regexp.MustCompile(`(?:transition|animation)[a-z-]*:[^;}]*?(\d*\.?\d+)(ms|s)\b`)
 )
 
@@ -104,8 +104,8 @@ func TestMotionIsShortAndOptional(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rule := motionRule.FindStringSubmatch(string(app))
-	if rule == nil || !strings.Contains(rule[1], "transition-duration: 0s") || !strings.Contains(rule[1], "animation-duration: 0s") {
+	rule := motionRule.FindStringSubmatch(strings.NewReplacer(" ", "", "\n", "", "\t", "").Replace(string(app)))
+	if rule == nil || !strings.Contains(rule[1], "transition-duration:0s") || !strings.Contains(rule[1], "animation-duration:0s") {
 		t.Fatal("app.css does not stop every transition and animation under prefers-reduced-motion")
 	}
 	err = fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {

@@ -1,44 +1,41 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
 {{if .Instances}}
-<div class="title-row">
-  <h1>Your agents</h1>
-  <span class="grow"></span>
-  <a class="quiet-button" href="/compare">Compare</a>
-  <a class="cta" href="/new">New agent</a>
+<div class="mb-6 flex items-center gap-3">
+  <h1 class="flex-1">Your agents</h1>
+  <a class="{{template "ag-btn-quiet"}}" href="/compare">Compare</a>
+  <a class="{{template "ag-btn"}}" href="/new">New agent</a>
 </div>
-<div class="list">
-  <table class="agents">
-    <thead><tr><th>Agent</th><th>Latest conversation</th><th>Conversations</th><th>Last used</th></tr></thead>
+<div class="{{template "ag-table-wrap"}}">
+  <table class="table-fixed">
+    <thead><tr><th class="{{template "ag-th"}} w-[34%] @max-[48rem]:w-auto">Agent</th><th class="{{template "ag-th"}} @max-[48rem]:hidden">Latest conversation</th><th class="{{template "ag-th"}} w-36 @max-[48rem]:hidden">Conversations</th><th class="{{template "ag-th"}} w-32 text-right">Last used</th></tr></thead>
     <tbody>
     {{range .Instances}}
-    <tr>
-      <td><span class="who-cell">{{template "mark" (dict "Field" .Field "Name" .Name "Size" "sm")}}
-        <span><a href="{{.Where}}">{{.Name}}</a><span class="sub">{{.Runs}}</span></span></span></td>
-      <td><span class="snippet"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
-      <td class="muted">{{.Threads}}</td>
-      <td class="muted" title="{{when .Active}}">{{ago .Active}}</td>
+    <tr class="group/row relative hover:bg-wash">
+      <td class="{{template "ag-td"}} align-middle"><span class="flex min-w-0 items-center gap-3">{{template "mark" (dict "Field" .Field "Name" .Name "Size" "sm")}}
+        <span class="min-w-0"><a class="block truncate font-semibold text-ink no-underline after:absolute after:inset-0 after:content-['']" href="{{.Where}}">{{.Name}}</a><span class="block truncate text-xs text-muted">{{.Runs}}</span></span></span></td>
+      <td class="{{template "ag-td"}} align-middle @max-[48rem]:hidden"><span class="block truncate text-sm text-muted"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
+      <td class="{{template "ag-td"}} align-middle text-muted @max-[48rem]:hidden">{{.Threads}}</td>
+      <td class="{{template "ag-td"}} align-middle text-right text-muted" title="{{when .Active}}">{{ago .Active}}</td>
     </tr>
     {{end}}
     </tbody>
   </table>
   {{if or .Newer .Older}}
-  <div class="pager">
-    <span>{{.From}}–{{.To}} of {{.Total}}</span><span class="gap"></span>
-    {{with .Newer}}<a href="{{.}}">Previous</a>{{end}}
-    {{with .Older}}<a href="{{.}}">Next</a>{{end}}
+  <div class="flex items-center gap-2 px-5 py-3 text-sm text-muted">
+    <span class="flex-1">{{.From}}–{{.To}} of {{.Total}}</span>
+    {{with .Newer}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Previous</a>{{end}}
+    {{with .Older}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Next</a>{{end}}
   </div>
   {{end}}
 </div>
 {{else}}
-<section class="hero hue-general">
-  <div>
-    <p class="eyebrow">Welcome</p>
-    <h1>Start an agent</h1>
-    <p class="lede">Choose the agent to work with. Each gets the same workspace and the same controls.</p>
-  </div>
+<section class="mb-8 max-w-prose">
+  <p class="text-xs font-medium text-muted">Welcome</p>
+  <h1 class="mt-1">Start an agent</h1>
+  <p class="mt-2 text-lg text-muted">Choose the agent to work with. Each gets the same workspace and the same controls.</p>
 </section>
 {{template "engine-choices" .Engines}}
 {{template "kinds" .Templates}}

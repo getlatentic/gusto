@@ -11,14 +11,6 @@
 <link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
 <link rel="stylesheet" href="{{asset "/static/theme.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
-<link rel="stylesheet" href="{{asset "/static/controls.css"}}">
-<link rel="stylesheet" href="{{asset "/static/shell.css"}}">
-<link rel="stylesheet" href="{{asset "/static/record.css"}}">
-<link rel="stylesheet" href="{{asset "/static/chat.css"}}">
-<link rel="stylesheet" href="{{asset "/static/setup.css"}}">
-<link rel="stylesheet" href="{{asset "/static/viewer.css"}}">
-<link rel="stylesheet" href="{{asset "/static/prose.css"}}">
-<link rel="stylesheet" href="{{asset "/static/pages.css"}}">
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script>{{end}}
@@ -92,27 +84,27 @@
     });
   </script>
 </head>
-<body class="app">
-<a class="skip" href="#main">Skip to the page</a>
-{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell">
+<body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
+<a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
+{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
 {{template "side" .}}
-<div class="scrim"></div>
-<main class="page{{if .Chat}} chat{{end}}" id="main" tabindex="-1">
-<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> gusto</a></div>
-<div class="wrap">{{end}}
+<div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
+<main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
+<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
+<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
 {{end}}
 
 {{/* The console is the admin's own place: its sections down the side, one way
      back to the pages everybody uses, and no other link between the two. */}}
-{{define "console-bar"}}<div class="shell console-shell">
-<nav class="console-nav" aria-label="Admin">
-  <div class="who"><span class="mark">{{template "icon-shield"}}</span><span class="text"><strong>Admin</strong>{{with .Org}}<span>{{.}}</span>{{end}}</span></div>
-  {{range .Sections}}<a href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
-  <span class="grow"></span>
-  <a class="back" href="/">{{template "icon-back"}} Back to gusto</a>
-  <form method="post" action="/logout"><button class="back" type="submit">{{template "icon-out"}} Sign out</button></form>
+{{define "console-bar"}}<div class="shell grid h-full min-h-0 grid-cols-[15.5rem_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)] @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
+<nav class="flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto border-r border-line-strong bg-wash px-3 py-4 @max-[56rem]:flex-row @max-[56rem]:flex-wrap @max-[56rem]:border-r-0 @max-[56rem]:border-b" aria-label="Admin">
+  <div class="flex min-h-12 items-center gap-3 px-3 @max-[56rem]:basis-full"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-shield"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold tracking-tight">Admin</strong>{{with .Org}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
+  {{range .Sections}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+  <span class="flex-1 @max-[56rem]:hidden"></span>
+  <a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" href="/">{{template "icon-back"}} Back to gusto</a>
+  <form method="post" action="/logout"><button class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
-<main class="page" id="main" tabindex="-1"><div class="wrap">
+<main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1"><div class="wrap mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16">
 {{end}}
 
 {{define "foot"}}{{if .Console}}</div>
@@ -129,7 +121,7 @@
 {{/* origin is the instance a run belonged to: a link when there is one to go
      to, and otherwise a short word for why there is none, never an empty link.
      The whole reason is one hover away. */}}
-{{define "origin"}}{{if .Link}}<a href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}
+{{define "origin"}}{{if .Link}}<a href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}
 
 {{define "icon-harness"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 8h-3"/><path d="m15 2-1 2h3a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2h3"/><path d="M16 22a4 4 0 00-8 0"/><path d="m9 2 3 6"/><circle cx="12" cy="15" r="3"/></svg>{{end}}
 {{define "icon-log"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>{{end}}
@@ -137,51 +129,50 @@
 {{define "icon-add"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>{{end}}
 {{/* mark is an agent's sign in its field's color: the field's drawing,
      or its initial when it was started blank. */}}
-{{define "mark"}}<span class="mark {{.Size}} {{hue .Field}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="letter">{{initial .Name}}</span>{{end}}</span>{{end}}
+{{define "mark"}}<span class="mark grid flex-none place-items-center bg-wash text-muted ring-1 ring-line ring-inset [&_svg]:size-[55%] [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]{{if eq .Size "lg"}} size-16 rounded-lg{{else if eq .Size "sm"}} size-8 rounded-sm{{else}} size-10 rounded-xl{{end}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="font-display text-sm leading-none font-semibold">{{initial .Name}}</span>{{end}}</span>{{end}}
 {{define "field-drawing"}}<svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defense"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else if eq . "Engineering"}}<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>{{else}}<path d="M12 3v18M3 12h18"/>{{end}}</svg>{{end}}
 {{define "icon-info"}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8h.01M11 12h1v5h1"/><circle cx="12" cy="12" r="9"/></svg>{{end}}
 {{define "icon-disk"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>{{end}}
 {{define "icon-lock"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{end}}
 {{/* industry is a template's mark: a line drawing for its field. */}}
-{{define "industry"}}<span class="field" aria-hidden="true"><svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defense"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else}}<path d="M4 4h16v16H4z"/>{{end}}</svg></span>{{end}}
 {{/* choices is a card a template, and one to start a blank agent. */}}
 {{/* kinds is the ready-made kinds of work, below the agents, for one who knows the work and not the agent. */}}
 {{define "kinds"}}
-<div class="page-head">
-  <h2 class="plain">Or start from a kind of work</h2>
-  <p class="muted">Each comes ready to use, with an agent and skills chosen for it.</p>
+<div class="mt-10 mb-3">
+  <h2 class="text-base font-semibold">Or start from a kind of work</h2>
+  <p class="text-sm text-muted">Each comes ready to use, with an agent and skills chosen for it.</p>
 </div>
 {{template "choices" .}}
 {{end}}
 {{define "choices"}}
-<div class="list roles">
+<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
   {{range .}}
-  <a class="role" href="/templates/{{.Name}}">
-    <span class="text"><strong>{{.Title}}</strong><span>{{.Summary}}</span></span>
-    <span class="kind">{{.Industry}}</span>
+  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/templates/{{.Name}}">
+    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.Summary}}</span></span>
+    <span class="flex-none text-xs text-subtle">{{.Industry}}</span>
     {{template "icon-go"}}
   </a>
   {{end}}
-  <a class="role blank" href="/new/blank">
-    <span class="text"><strong>Blank agent</strong><span>Choose the agent, a skill set and a repository yourself.</span></span>
+  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/new/blank">
+    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">Blank agent</strong><span class="text-[0.8125rem] text-muted">Choose the agent, a skill set and a repository yourself.</span></span>
     {{template "icon-go"}}
   </a>
 </div>
 {{end}}
 {{/* engine-choices is a row for each agent a person may start with, for one who knows which they want. */}}
 {{define "engine-choices"}}{{if .}}
-<h2 class="plain">Or pick an agent</h2>
-<div class="list roles">
+<h2 class="mt-10 mb-3 text-base font-semibold">Or pick an agent</h2>
+<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
   {{range .}}
-  <a class="role" href="/instances/new?harness={{.Name}}">
-    <span class="text"><strong>{{.Title}}</strong><span>{{.What}}</span></span>
+  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/instances/new?harness={{.Name}}">
+    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.What}}</span></span>
     {{template "icon-go"}}
   </a>
   {{end}}
 </div>{{end}}{{end}}
-{{define "icon-go"}}<svg class="i go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
+{{define "icon-go"}}<svg class="i size-4 flex-none text-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
-{{define "steps"}}<ol class="did">{{range .}}<li><span class="what">{{.What}}</span>{{with .Detail}} <span class="detail">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
+{{define "steps"}}<ol class="mt-2 ml-2 grid list-none gap-2 border-l border-line-strong pl-4">{{range .}}<li><span class="mr-2 font-semibold text-ink">{{.What}}</span>{{with .Detail}} <span class="font-mono text-xs [overflow-wrap:anywhere] text-muted">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
 {{define "icon-shield"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>{{end}}
 {{define "icon-seal"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m16 9-5.5 5.5L8 12"/></svg>{{end}}
 {{define "icon-file"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>{{end}}

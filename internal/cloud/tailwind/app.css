@@ -1,0 +1,45 @@
+/* The front door's stylesheet, built by build.sh into ../static/cloud.css for every page it serves: the landing page, sign-in and sign-up,
+   the organization page and the demo pages. Colors, fonts, radius and shadow are the gusto tokens (../../web/static/tokens.css), mapped to
+   Tailwind's names by the app's theme.css, so these pages follow the theme exactly as the app does. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../templates";
+
+@import "../../web/tailwind/theme.css";
+
+@theme {
+  --text-md: 0.9375rem;
+  --text-copy: 1rem;
+  --text-lead: 1.1875rem;
+}
+
+/* A band that is dark in both themes: it re-points the tokens its utilities read. */
+@utility carbon {
+  --gu-bg: #0E1511;
+  --gu-text: #F5FBF6;
+  --gu-text-muted: #A9B9AE;
+  --gu-surface: #16201A;
+  --gu-border: #26342B;
+  --gu-border-strong: #34463A;
+  --gu-accent: #00A85A;
+  --gu-on-accent: #0E1511;
+  --gu-focus: #D8FF36;
+}
+
+@layer base {
+  html { font-family: var(--gu-font-text); }
+  body { @apply bg-canvas text-ink font-sans antialiased; }
+  h1, h2, h3 { @apply font-display tracking-[-0.01em]; }
+  a { @apply text-inherit; }
+  strong { @apply font-semibold; }
+  [hidden] { display: none !important; }
+  :where(a, button, input, select, textarea, summary):focus-visible { @apply outline-2 outline-offset-2 outline-focus; }
+  button { @apply cursor-pointer; }
+  ::selection { background: color-mix(in srgb, var(--gu-accent) 28%, transparent); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  }
+}

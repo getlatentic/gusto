@@ -1,14 +1,14 @@
 {{define "signin"}}{{template "head" .}}
-  <div class="brand"><img src="/static/mark.png" alt=""> gusto</div>
-  <h1>Sign in</h1>
-  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  {{template "brand"}}
+  <h1 class="text-xl font-semibold">Sign in</h1>
+  {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
   {{if .Sent}}
   <p>If that address has an account, a link is on its way. It works once, for 20 minutes.</p>
   {{else}}
-  <form method="post" action="/signin">
-    <label>Email <input type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
-    <button type="submit">Email me a link</button>
+  <form class="grid gap-3" method="post" action="/signin">
+    <label class="grid gap-1 text-sm text-muted">Email <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
+    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Email me a link</button>
   </form>
   {{end}}
-  <p class="other"><a href="/">Create an organization</a></p>
+  <p class="text-center text-sm text-muted"><a class="underline" href="/">Create an organization</a></p>
 {{template "foot"}}{{end}}

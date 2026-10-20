@@ -1,48 +1,49 @@
 {{template "head" .}}
 {{with .Session}}
-<div class="title-row">
-  <h1>Session <code>{{.ID}}</code></h1>
-  <span class="grow"></span>
-  <a class="link-quiet" href="{{$.Base}}">All usage</a>
+<div class="mb-2 flex items-center gap-3">
+  <h1>Session <code class="text-xl">{{.ID}}</code></h1>
+  <a class="ml-auto text-sm text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">All usage</a>
 </div>
-<p class="muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
+<p class="mb-6 text-muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
 
-<form class="filters" method="get" action="{{$.Base}}/{{.ID}}" role="search">
-  <label class="inline search"><span class="sr">Search this session's calls</span><input type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
-  <button type="submit">Search</button>
-  {{if .Search}}<a class="clear" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
+<form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}/{{.ID}}" role="search">
+  <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
+  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Search</button>
+  {{if .Search}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
 </form>
 
-<div class="list usage">
-  <table>
+<div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
+  <div class="overflow-x-auto">
+  <table class="text-sm [&_th]:bg-wash [&_th]:px-3 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_td]:whitespace-nowrap">
     <thead><tr>
       <th scope="col">Time (UTC)</th><th scope="col">Task</th><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Key</th>
-      <th scope="col" class="num">Tokens</th><th scope="col" class="num">Cache</th><th scope="col" class="num">Cost</th><th scope="col">Status</th>
+      <th scope="col" class="text-right">Tokens</th><th scope="col" class="text-right">Cache</th><th scope="col" class="text-right">Cost</th><th scope="col">Status</th>
       <th scope="col">Refused by</th><th scope="col">Translated</th>
     </tr></thead>
     <tbody>
       {{range .Calls}}
       <tr>
         <td title="{{.AtFull}}">{{.At}}</td>
-        <td class="cut"><a href="{{.Record}}" title="The signed record of {{.Task}}">{{.Task}}</a></td>
-        <td class="cut" title="{{.Model}}">{{.Model}}</td>
+        <td class="max-w-48 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Record}}" title="The signed record of {{.Task}}">{{.Task}}</a></td>
+        <td class="max-w-48 truncate" title="{{.Model}}">{{.Model}}</td>
         <td>{{.Provider}}</td>
         <td>{{or .Key "—"}}</td>
-        <td class="num">{{.In}} in, {{.Out}} out</td>
-        <td class="num">{{.Cache}}</td>
-        <td class="num">{{if .Unpriced}}<span class="muted">no price</span>{{else}}{{.Cost}}{{end}}</td>
-        <td>{{if .Refused}}<span class="state failed">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
+        <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
+        <td class="text-right tabular-nums">{{.Cache}}</td>
+        <td class="text-right tabular-nums">{{if .Unpriced}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}</td>
+        <td>{{if .Refused}}<span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
         <td>{{or .Refused "—"}}</td>
         <td>{{or .Translated "—"}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
-  {{if not .Calls}}<p class="empty muted">No call of this session matches.</p>{{end}}
+  </div>
+  {{if not .Calls}}<p class="px-6 py-12 text-center text-muted">No call of this session matches.</p>{{end}}
   {{if or .Newest .Next}}
-  <nav class="pager" aria-label="Pages">
+  <nav class="flex items-center justify-between border-t border-line px-5 py-3 text-sm [&_a]:rounded-sm [&_a]:border [&_a]:border-line-strong [&_a]:px-3 [&_a]:py-1 [&_a]:no-underline [&_a]:hover:border-accent" aria-label="Pages">
     {{if .Newest}}<a href="{{.Newest}}">Latest</a>{{end}}
-    <span class="gap"></span>
+    <span class="flex-1"></span>
     {{if .Next}}<a href="{{.Next}}" rel="next">Earlier</a>{{end}}
   </nav>
   {{end}}

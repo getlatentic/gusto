@@ -8,60 +8,72 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{{asset "/static/favicon-32.png"}}">
 <link rel="apple-touch-icon" href="{{asset "/static/apple-touch-icon.png"}}">
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
+<link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
+<link rel="stylesheet" href="{{asset "/static/theme.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 </head>
-<body>
-<header><span class="brand"><img src="{{asset "/static/mark.png"}}" alt="" width="22"> gusto operator</span></header>
-{{with .Notice}}<p class="refused" role="status">{{.}}</p>{{end}}
+<body class="min-h-dvh">
+<header class="border-b border-line bg-surface px-4 py-3"><div class="mx-auto flex max-w-page items-center gap-2 font-display text-base font-semibold tracking-tight"><img class="w-[1.375rem]" src="{{asset "/static/mark.png"}}" alt="" width="22"> gusto operator</div></header>
+<main class="mx-auto grid max-w-page gap-4 px-4 pt-8 pb-20">
+{{with .Notice}}<p class="rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="status">{{.}}</p>{{end}}
 
 <h1>Demos</h1>
-<form class="panel stack" method="post" action="/demos/pause">
+<form class="grid gap-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" method="post" action="/demos/pause">
   <p>{{if .Paused}}<strong>New demos are paused.</strong> Visitors are told to try again later. Demos that are running go on.{{else}}New demos are being accepted.{{end}}</p>
   <input type="hidden" name="paused" value="{{if .Paused}}off{{else}}on{{end}}">
-  <button type="submit" class="cta">{{if .Paused}}Accept new demos{{else}}Pause new demos{{end}}</button>
+  <div><button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover">{{if .Paused}}Accept new demos{{else}}Pause new demos{{end}}</button></div>
 </form>
 
-<h2>Limits</h2>
-<form class="panel stack" method="post" action="/demos/limits">
-  <p class="muted">How many demos may start. A limit of 0 is no limit. A day is the last twenty-four hours, and a person or a company is counted
+<h2 class="mt-4">Limits</h2>
+<form class="grid max-w-prose gap-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" method="post" action="/demos/limits">
+  <p class="text-sm text-muted">How many demos may start. A limit of 0 is no limit. A day is the last twenty-four hours, and a person or a company is counted
   from the leads, so it holds after their demos are deleted.{{if .LimitsSet}} These are the limits you set.{{else}} These are the limits gusto cloud started with.{{end}}</p>
-  <label>Most in a day, in all <input type="number" name="perDay" min="0" max="1000" value="{{.Limits.PerDay}}" required></label>
-  <label>Most one address may start in a day <input type="number" name="perPerson" min="0" max="1000" value="{{.Limits.PerPerson}}" required></label>
-  <label>Most one company may start in a day <input type="number" name="perCompany" min="0" max="1000" value="{{.Limits.PerCompany}}" required></label>
-  <label>Most running at once <input type="number" name="maxOrgs" min="1" max="50" value="{{.Limits.MaxOrgs}}" required></label>
-  <button type="submit" class="cta">Save the limits</button>
-  {{if .LimitsSet}}<button type="submit" name="reset" value="1" class="quiet" formnovalidate>Go back to the starting limits</button>{{end}}
+  <label class="grid gap-1.5 text-xs font-medium text-subtle">Most in a day, in all <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="perDay" min="0" max="1000" value="{{.Limits.PerDay}}" required></label>
+  <label class="grid gap-1.5 text-xs font-medium text-subtle">Most one address may start in a day <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="perPerson" min="0" max="1000" value="{{.Limits.PerPerson}}" required></label>
+  <label class="grid gap-1.5 text-xs font-medium text-subtle">Most one company may start in a day <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="perCompany" min="0" max="1000" value="{{.Limits.PerCompany}}" required></label>
+  <label class="grid gap-1.5 text-xs font-medium text-subtle">Most running at once <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="maxOrgs" min="1" max="50" value="{{.Limits.MaxOrgs}}" required></label>
+  <div class="flex flex-wrap gap-3">
+    <button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover">Save the limits</button>
+    {{if .LimitsSet}}<button type="submit" name="reset" value="1" class="inline-flex cursor-pointer items-center justify-center rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" formnovalidate>Go back to the starting limits</button>{{end}}
+  </div>
 </form>
 
-<h2>Running now</h2>
+<h2 class="mt-4">Running now</h2>
 {{if .Running}}
-<table>
+<div class="overflow-x-auto rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<table class="w-full [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr:last-child_td]:border-b-0 [&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0">
   <thead><tr><th>Who</th><th>Company</th><th>State</th><th>Time left</th></tr></thead>
   <tbody>{{range .Running}}<tr><td>{{.Name}}</td><td>{{.Company}}</td><td>{{if .Ready}}in use{{else}}starting{{end}}</td><td>{{if .Ready}}{{left .Left}}{{else}}not started{{end}}</td></tr>{{end}}</tbody>
 </table>
-{{else}}<p class="muted">No demo is running.</p>{{end}}
+</div>
+{{else}}<p class="text-muted">No demo is running.</p>{{end}}
 
-<h2>Hosts</h2>
-{{if .HostsError}}<p class="refused">The hosts could not be listed: {{.HostsError}}</p>
+<h2 class="mt-4">Hosts</h2>
+{{if .HostsError}}<p class="rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">The hosts could not be listed: {{.HostsError}}</p>
 {{else if .HostsKnown}}{{if .Hosts}}
-<table>
+<div class="overflow-x-auto rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<table class="w-full [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr:last-child_td]:border-b-0 [&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0">
   <thead><tr><th>Host</th><th>Up since</th></tr></thead>
   <tbody>{{range .Hosts}}<tr><td>{{.ID}}</td><td>{{ago .Launched $.Now}}</td></tr>{{end}}</tbody>
 </table>
-{{else}}<p class="muted">No host is running for organizations. One starts when a demo is asked for.</p>{{end}}
-{{else}}<p class="muted">Hosts are not started on demand here.</p>{{end}}
+</div>
+{{else}}<p class="text-muted">No host is running for organizations. One starts when a demo is asked for.</p>{{end}}
+{{else}}<p class="text-muted">Hosts are not started on demand here.</p>{{end}}
 
-<h2>Leads</h2>
-<p><a href="/leads.csv">Download as a spreadsheet</a> · {{len .Leads}} so far</p>
+<h2 class="mt-4">Leads</h2>
+<p class="text-sm text-muted"><a class="text-ink underline underline-offset-2" href="/leads.csv">Download as a spreadsheet</a> · {{len .Leads}} so far</p>
 {{if .Leads}}
-<table>
+<div class="overflow-x-auto rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<table class="w-full [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr:last-child_td]:border-b-0 [&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0">
   <thead><tr><th>Asked</th><th>Name</th><th>Email</th><th>Company</th><th>Outcome</th></tr></thead>
   <tbody>{{range .Leads}}<tr>
-    <td title="{{.Requested.Format "2 Jan 2006 15:04 MST"}}">{{ago .Requested $.Now}}</td>
+    <td class="whitespace-nowrap" title="{{.Requested.Format "2 Jan 2006 15:04 MST"}}">{{ago .Requested $.Now}}</td>
     <td>{{.Name}}</td><td>{{.Email}}</td><td>{{.Company}}</td>
     <td>{{if .Ended.IsZero}}{{if .Ready.IsZero}}starting{{else}}in use{{end}}{{else}}{{.Reason}}{{end}}{{if .Extended}} · extended{{end}}</td>
   </tr>{{end}}</tbody>
 </table>
-{{else}}<p class="muted">Nobody has asked for a demo yet.</p>{{end}}
+</div>
+{{else}}<p class="text-muted">Nobody has asked for a demo yet.</p>{{end}}
+</main>
 </body>
 </html>

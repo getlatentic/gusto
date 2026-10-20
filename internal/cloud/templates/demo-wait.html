@@ -1,16 +1,16 @@
 {{define "demo-wait"}}{{template "head" .}}
-<div class="wait">
-  <div class="brand"><img src="/static/mark.png" alt=""> gusto</div>
-  <h1>Your gusto demo</h1>
-  {{if .Notice}}<p class="error" role="status">{{.Notice}}</p>{{end}}
+<div class="grid justify-items-center gap-5 text-center">
+  {{template "brand"}}
+  <h1 class="text-xl font-semibold">Your gusto demo</h1>
+  {{if .Notice}}<p class="text-sm text-bad" role="status">{{.Notice}}</p>{{end}}
   {{if .DemoWords}}
   <p role="status">{{.DemoWords}}</p>
-  {{range .Steps}}{{if eq .Mark "now"}}<p class="stage" aria-current="step">{{.Label}}</p>{{end}}{{end}}
+  {{range .Steps}}{{if eq .Mark "now"}}<p class="inline-flex items-center gap-3 font-semibold before:size-4 before:flex-none before:animate-spin before:rounded-full before:border-2 before:border-accent before:border-t-transparent before:content-['']" aria-current="step">{{.Label}}</p>{{end}}{{end}}
   {{else}}
   <p>You have <strong>{{minutes .DemoLeft}}</strong> left. Everything in it is deleted when it ends.</p>
-  {{if .CanOpen}}<p><a class="button" href="/open">Open my demo</a></p>{{end}}
-  {{if .Extendable}}<form method="post" action="/demo/extend"><button type="submit">Give me 10 more minutes</button></form>{{end}}
+  {{if .CanOpen}}<p><a class="block rounded-sm bg-accent px-5 py-3 text-center font-semibold text-on-accent hover:bg-accent-hover" href="/open">Open my demo</a></p>{{end}}
+  {{if .Extendable}}<form method="post" action="/demo/extend"><button class="rounded-sm bg-accent px-5 py-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Give me 10 more minutes</button></form>{{end}}
   {{end}}
-  {{if .Book}}<p class="other">Want this for your team? <a href="{{.Book}}">Book a call</a></p>{{end}}
+  {{if .Book}}<p class="text-sm text-muted">Want this for your team? <a class="underline" href="{{.Book}}">Book a call</a></p>{{end}}
 </div>
 {{template "foot"}}{{end}}
