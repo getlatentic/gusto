@@ -1,44 +1,44 @@
 {{define "first-model"}}
-<form class="setup first-model" method="post" action="/setup/model">
-  <div class="setup-group">
-    <p class="setup-lede">Every agent can use it. Its key stays on this computer with gusto, and no agent is given it.</p>
-    {{range .FoundKeys}}<p class="setup-aside">Your shell has {{.}}. To use it, run <code>gusto local use {{.}}</code> in a terminal.</p>{{end}}
+<form class="first-model grid w-full max-w-[34rem] gap-6" method="post" action="/setup/model">
+  <div class="grid gap-4">
+    <p class="text-ink">Every agent can use it. Its key stays on this computer with gusto, and no agent is given it.</p>
+    {{range .FoundKeys}}<p class="text-sm text-muted">Your shell has {{.}}. To use it, run <code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">gusto local use {{.}}</code> in a terminal.</p>{{end}}
   </div>
-  <div class="setup-group">
-    <div class="setup-field">
-      <label for="preset">Provider</label>
-      <span class="setup-menu"><select id="preset">
+  <div class="grid gap-4">
+    <div class="grid gap-2">
+      <label class="text-sm font-medium text-muted" for="preset">Provider</label>
+      <span class="relative block"><select class="h-10 cursor-pointer appearance-none pr-8 {{template "talk-input"}}" id="preset">
         {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
         <option value="" data-auth="">Another provider</option>
-      </select>{{template "icon-chevron"}}</span>
+      </select><span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 [&>svg]:size-4">{{template "icon-chevron"}}</span></span>
     </div>
-    <div class="setup-group setup-custom" id="custom">
-      <div class="setup-field">
-        <label for="address">Address</label>
-        <input name="address" id="address" required placeholder="https://api.example.com">
+    <div class="grid gap-4" id="custom">
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-muted" for="address">Address</label>
+        <input class="h-10 {{template "talk-input"}}" name="address" id="address" required placeholder="https://api.example.com">
       </div>
-      <div class="setup-field">
-        <label for="auth">Answers like</label>
-        <span class="setup-menu"><select name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>{{template "icon-chevron"}}</span>
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-muted" for="auth">Answers like</label>
+        <span class="relative block"><select class="h-10 cursor-pointer appearance-none pr-8 {{template "talk-input"}}" name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select><span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 [&>svg]:size-4">{{template "icon-chevron"}}</span></span>
       </div>
     </div>
-    <div class="setup-field">
-      <label for="key">Key</label>
-      <input type="password" name="key" id="key" autocomplete="off">
+    <div class="grid gap-2">
+      <label class="text-sm font-medium text-muted" for="key">Key</label>
+      <input class="h-10 {{template "talk-input"}}" type="password" name="key" id="key" autocomplete="off">
     </div>
-    <div class="setup-field">
-      <label for="models">Models</label>
-      <div class="setup-control"><input name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="quiet-button">List my models</button></div>
-      <span class="setup-hint" id="list-said" role="status"></span>
+    <div class="grid gap-2">
+      <label class="text-sm font-medium text-muted" for="models">Models</label>
+      <div class="flex gap-2"><input class="h-10 min-w-0 flex-1 {{template "talk-input"}}" name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="h-10 flex-none px-4 {{template "talk-btn-quiet"}}">List my models</button></div>
+      <span class="text-xs text-subtle empty:hidden" id="list-said" role="status"></span>
     </div>
     <datalist id="found-models"></datalist>
   </div>
-  <button type="submit">Add</button>
+  <button type="submit" class="h-10 px-6 {{template "talk-btn"}}">Add</button>
   {{with .Missing}}
-  <div class="setup-engines">
-    <span class="setup-name">Not on this computer yet</span>
-    <dl>{{range .}}<dt>{{.Title}}</dt><dd><code>{{.Why}}</code></dd>{{end}}</dl>
-    <p class="setup-aside">Then run <code>gusto open</code> in the same terminal, so gusto looks where that terminal does.</p>
+  <div class="grid gap-2 border-t border-line pt-4">
+    <span class="text-sm font-medium text-muted">Not on this computer yet</span>
+    <dl class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">{{range .}}<dt class="text-ink">{{.Title}}</dt><dd class="m-0"><code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">{{.Why}}</code></dd>{{end}}</dl>
+    <p class="text-sm text-muted">Then run <code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">gusto open</code> in the same terminal, so gusto looks where that terminal does.</p>
   </div>
   {{end}}
 </form>
