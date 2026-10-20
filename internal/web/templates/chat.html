@@ -1,62 +1,63 @@
+{{define "talk-btn"}}inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border-0 bg-accent px-4 text-sm font-semibold text-on-accent no-underline transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50{{end}}
+{{define "talk-btn-quiet"}}inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-3 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
+{{define "talk-input"}}w-full rounded-sm border border-line-strong bg-surface px-3 text-base text-ink transition-colors focus-visible:border-focus focus-visible:outline-1 focus-visible:-outline-offset-1{{end}}
+{{define "talk-notice"}}m-0 w-full max-w-[46rem] rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
+
+{{/* A picker is a button that names the choice and a menu that lists the choices; picker.js fills the menu and the label.
+     It takes ID, Label, Name and Value for the hidden input, Options (JSON, optional), Below to open downward, and Form (optional). */}}
+{{define "picker"}}<div class="picker relative [&.locked>button]:cursor-default [&.locked>button]:opacity-75" id="{{.ID}}" data-picker{{with .Options}} data-options="{{.}}"{{end}} data-label="{{.Label}}">
+  <input type="hidden" name="{{.Name}}" value="{{.Value}}"{{with .Form}} form="{{.}}"{{end}}>
+  <button type="button" class="inline-flex h-8 max-w-60 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink open:bg-wash open:text-ink [&>svg]:size-3.5" aria-haspopup="listbox" aria-expanded="false"><span class="label truncate">{{.Label}}</span>{{template "icon-chevron"}}</button>
+  <div class="menu absolute z-30 hidden max-h-[min(30rem,70dvh)] min-w-72 max-w-96 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-3 open:grid open:gap-px {{if .Below}}top-[calc(100%+0.25rem)] left-0{{else}}right-0 bottom-[calc(100%+0.5rem)]{{end}}" role="listbox"></div>
+</div>{{end}}
+
 {{template "head" .}}
 
-<section class="talk fresh">
-  <div class="fresh-body">
-    <h1>{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
-    {{if .Refused}}<p class="refused" id="refused" role="alert">{{.Refused}}</p>{{end}}
-    {{range .Lacking}}<p class="refused" role="status">{{.}}</p>{{end}}
-    {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="muted">This deployment cannot start an agent yet.</p>{{end}}
+<section class="talk fresh grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
+  <div class="grid min-h-0 grid-cols-[minmax(0,1fr)] content-center justify-items-center gap-6 overflow-y-auto p-6">
+    <h1 class="text-center tracking-tighter">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
+    {{if .Refused}}<p class="{{template "talk-notice"}}" id="refused" role="alert">{{.Refused}}</p>{{end}}
+    {{range .Lacking}}<p class="{{template "talk-notice"}}" role="status">{{.}}</p>{{end}}
+    {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="text-muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
-    <div class="composer">
-    <form class="column" method="post" action="/chat">
-      <div class="box">
-        <textarea name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
-        <div class="tools">
-          <div class="folderpick" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
+    <div class="composer w-full max-w-[46rem]">
+    <form method="post" action="/chat">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
+        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
+        <div class="tools flex items-center gap-1">
+          <div class="folderpick relative flex min-w-0 items-center" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
             <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
-            <button type="button" class="chip" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label">Choose a folder</span></button>
-            <button type="button" class="clear" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
+            <button type="button" class="chip inline-flex h-8 min-w-0 cursor-pointer items-center gap-2 rounded-full border-0 bg-wash px-3 text-xs font-medium text-muted hover:bg-sunken hover:text-ink aria-expanded:bg-sunken aria-expanded:text-ink [&>svg]:size-3.5" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label max-w-56 truncate @max-[56rem]:max-w-24">Choose a folder</span></button>
+            <button type="button" class="clear grid size-6 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 text-subtle hover:bg-wash hover:text-ink [&>svg]:size-3.5" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
-          <span class="grow"></span>
-          <div class="picker summary"><button type="button" id="run-on" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label"></span>{{template "icon-chevron"}}</button></div>
-          <button type="submit" class="send" title="Send">{{template "icon-send"}}<span class="sr">Send</span></button>
+          <span class="flex-1"></span>
+          <div class="relative min-w-0"><button type="button" id="run-on" class="inline-flex h-8 min-w-0 max-w-[22rem] cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink aria-expanded:bg-wash aria-expanded:text-ink [&>svg]:size-3.5" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label truncate"></span>{{template "icon-chevron"}}</button></div>
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-accent p-0 text-on-accent hover:bg-accent-hover [&>svg]:size-[1.125rem] [&>svg]:opacity-100" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
         </div>
-        <div class="choices" id="chat-choices" hidden>
-          <div class="picker" id="role-pick" data-picker data-options="{{.Roles}}" data-label="Preset">
-            <input type="hidden" name="choice" value="{{.Role}}">
-            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Preset</span>{{template "icon-chevron"}}</button>
-            <div class="menu" role="listbox"></div>
-          </div>
+        <div class="flex flex-wrap items-center gap-1 border-t border-line pt-2" id="chat-choices" hidden>
+          {{template "picker" (dict "ID" "role-pick" "Label" "Preset" "Name" "choice" "Value" .Role "Options" .Roles "Below" true)}}
           <input type="hidden" name="role" id="role-value">
-          <div class="picker" id="harness-pick" data-picker data-options="{{.Agents}}" data-label="Agent">
-            <input type="hidden" name="harness" value="{{.Harness}}">
-            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Agent</span>{{template "icon-chevron"}}</button>
-            <div class="menu" role="listbox"></div>
-          </div>
-          <div class="picker" id="model-pick" data-picker data-label="Model">
-            <input type="hidden" name="model" value="{{.Model}}">
-            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Model</span>{{template "icon-chevron"}}</button>
-            <div class="menu" role="listbox"></div>
-          </div>
+          {{template "picker" (dict "ID" "harness-pick" "Label" "Agent" "Name" "harness" "Value" .Harness "Options" .Agents "Below" true)}}
+          {{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Model "Below" true)}}
         </div>
       </div>
     </form>
-    <div class="starters" id="chat-starters">
-      <button type="button" class="starter" data-said="Fix the failing tests">Fix the failing tests</button>
-      <button type="button" class="starter" data-said="Summarize this folder">Summarize this folder</button>
-      <button type="button" class="starter" data-said="Add tests for what changed">Add tests for what changed</button>
+    <div class="mx-auto mt-6 flex max-w-[45rem] flex-wrap justify-center gap-2" id="chat-starters">
+      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Fix the failing tests">Fix the failing tests</button>
+      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
+      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Add tests for what changed">Add tests for what changed</button>
     </div>
-    <form class="save-preset" id="save-preset" method="post" action="/presets" hidden>
-      <input name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
+    <form class="mt-3 flex items-center gap-2 rounded-md border border-line-strong bg-surface p-3 shadow-1" id="save-preset" method="post" action="/presets" hidden>
+      <input class="h-9 min-w-0 flex-1 {{template "talk-input"}}" name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
       <input type="hidden" name="harness"><input type="hidden" name="model"><input type="hidden" name="role">
-      <button type="submit" class="cta">Save preset</button>
-      <button type="button" class="quiet-button" data-cancel>Cancel</button>
+      <button type="submit" class="h-9 {{template "talk-btn"}}">Save preset</button>
+      <button type="button" class="h-9 {{template "talk-btn-quiet"}}" data-cancel>Cancel</button>
     </form>
-    {{with .Wall}}<div class="muted wall" title="{{.Words}}">
+    {{with .Wall}}<div class="mx-auto mt-3 max-w-[46rem] text-center text-xs text-muted" title="{{.Words}}">
       <span>Agents run in {{.Short}}.</span>
-      {{if .Missing}}<details class="wall-more"><summary>Why not stronger?</summary>{{range .Missing}}<p>{{.}}.</p>{{end}}</details>{{end}}
+      {{if .Missing}}<details class="group mt-2"><summary class="inline-flex cursor-pointer list-none items-center gap-1 hover:text-ink [&::-webkit-details-marker]:hidden">Why not stronger?<span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5">{{template "icon-chevron"}}</span></summary>{{range .Missing}}<p class="mt-2">{{.}}.</p>{{end}}</details>{{end}}
     </div>{{end}}
     </div>
     {{end}}
