@@ -10,7 +10,7 @@ cp ../recording/gusto-demo.mp4 public/footage.mp4
 cp ../recording/timeline.json public/timeline.json
 [ -d node_modules ] || npm install --no-audit --no-fund
 npx tsc --noEmit
-cp "$root/internal/web/static/sora.woff2" public/sora.woff2
+cp "$root/brand/fonts/sora.woff2" public/sora.woff2
 cp "$root/internal/web/static/mark.png" public/mark.png
 npx remotion render src/index.ts Demo out/demo.mp4 --scale=1.5 --crf=26
 [ "${MASTER:-}" = 1 ] && npx remotion render src/index.ts Demo out/demo-4k.mp4 --scale=3 --crf=18

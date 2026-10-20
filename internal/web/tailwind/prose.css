@@ -33,7 +33,7 @@
   --tw-prose-pre-bg: var(--gu-bg-subtle);
   --tw-prose-th-borders: var(--gu-border);
   --tw-prose-td-borders: var(--gu-border);
-  max-width: none; font-size: .875rem; line-height: 1.7; }
+  max-width: none; font-size: 1rem; line-height: 1.65; }
 .prose :where(h1) { font-size: 1.5em; font-weight: 600; letter-spacing: -.01em; margin-bottom: 1.2em; }
 .prose :where(h2) { font-size: 1.2857em; font-weight: 600; letter-spacing: -.01em; margin: 2.2em 0 .8em; padding-bottom: .4em; border-bottom: 0.0625rem solid var(--gu-border); }
 .prose :where(h3, h4) { font-size: 1em; font-weight: 600; margin: 1.6em 0 .5em; }

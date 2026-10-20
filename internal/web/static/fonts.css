@@ -1,7 +1,5 @@
-/* The three faces the tokens name, served from the binary. */
-@font-face { font-family: "Sora"; src: url("/static/sora.woff2") format("woff2");
-  font-weight: 400 700; font-display: swap; }
-@font-face { font-family: "Noto Sans"; src: url("/static/noto-sans.woff2") format("woff2");
-  font-weight: 100 900; font-display: swap; }
+/* The two faces the tokens name, served from the binary. */
+@font-face { font-family: "Manrope"; src: url("/static/manrope.woff2") format("woff2");
+  font-weight: 200 800; font-display: swap; }
 @font-face { font-family: "Noto Sans Mono"; src: url("/static/noto-sans-mono.woff2") format("woff2");
   font-weight: 100 900; font-display: swap; }
