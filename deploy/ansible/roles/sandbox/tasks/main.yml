@@ -29,6 +29,17 @@
     cmd: "loginctl enable-linger {{ app_user }}"
     creates: "/var/lib/systemd/linger/{{ app_user }}"
 
+# A build that failed leaves its layers with no name, and the next build needs the room. Only images with no tag are removed:
+# the live, candidate and previous images keep theirs.
+- name: Layers left by builds that did not finish
+  ansible.builtin.command:
+    cmd: "{{ container_runtime }} image prune -f"
+  become_user: "{{ app_user }}"
+  environment:
+    HOME: "{{ app_root }}"
+  register: unnamed
+  changed_when: unnamed.stdout | trim | length > 0
+
 # Tagged as the candidate, so jobs the live server starts meanwhile keep the
 # image they were deployed with. The release role moves the live tag.
 - name: The candidate runner image
