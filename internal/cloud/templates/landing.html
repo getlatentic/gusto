@@ -1,5 +1,5 @@
 {{define "landing"}}<!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-pt-18">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,136 +10,135 @@
 <link rel="apple-touch-icon" href="{{asset "/static/apple-touch-icon.png"}}">
 <link rel="stylesheet" href="{{asset "/static/tokens.css"}}">
 <link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
-<link rel="stylesheet" href="{{own "/static/landing.css"}}">
+<link rel="stylesheet" href="{{own "/static/cloud.css"}}">
 <script src="{{own "/static/landing-theme.js"}}"></script>
 </head>
-<body>
-<header class="top">
-  <a class="brand" href="/"><img src="{{asset "/static/mark.png"}}" alt=""> gusto</a>
-  <nav>
-    <a class="icon" href="https://github.com/getlatentic/gusto" aria-label="gusto on GitHub"><svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
-    <a class="cta small" href="/demo">Try it now</a>
+<body class="text-copy leading-[1.6]">
+<header class="sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-line bg-canvas px-[max(1.25rem,calc((100vw-64rem)/2))] py-4">
+  <a class="flex items-center gap-3 font-display text-lg leading-none font-semibold tracking-[-0.01em]" href="/"><img class="h-auto w-7" src="{{asset "/static/mark.png"}}" alt=""> gusto</a>
+  <nav class="flex items-center gap-5 text-md">
+    <a class="inline-flex items-center text-muted hover:text-ink" href="https://github.com/getlatentic/gusto" aria-label="gusto on GitHub"><svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a class="rounded-sm bg-accent px-4 py-2 font-semibold whitespace-nowrap text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
   </nav>
 </header>
 
-<main>
-<section class="hero">
-  <h1>One place for every AI agent your team needs.</h1>
-  <p class="lede">Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight.</p>
-  <div class="actions">
-    <a class="cta" href="/demo">Try it now</a>
-    {{if .Book}}<a class="ghost" href="{{.Book}}">Talk to us</a>{{end}}
+<main class="mx-auto max-w-5xl px-5 pb-8">
+<section class="grid gap-5 pt-20">
+  <h1 class="max-w-[18ch] font-display text-[length:clamp(2rem,5vw,3.25rem)] leading-[1.1] font-semibold tracking-[-0.02em]">One place for every AI agent your team needs.</h1>
+  <p class="max-w-2xl text-lead text-muted">Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight.</p>
+  <div class="flex flex-wrap gap-3">
+    <a class="inline-block rounded-sm bg-accent px-5 py-3 font-semibold text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
+    {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="{{.Book}}">Talk to us</a>{{end}}
   </div>
-  <p class="fine">Free. No credit card. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.</p>
+  <p class="text-[0.875rem] text-muted">Free. No credit card. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.</p>
 </section>
 
 {{if .Video}}
-<section class="video" aria-label="gusto, from inside">
-  {{if .VideoFile}}<video controls preload="metadata" src="{{.Video}}"></video>
-  {{else}}<iframe src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
+<section class="pt-8" aria-label="gusto, from inside">
+  {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls preload="metadata" src="{{.Video}}"></video>
+  {{else}}<iframe class="aspect-video w-full rounded-lg border-0 bg-black shadow-2" src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{else if .Shot}}
-<section class="shot" aria-label="gusto in use">
+<section class="pt-8" aria-label="gusto in use">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
-    <img src="{{.Shot}}" width="1318" height="896" alt="A conversation with an agent in gusto">
+    <img class="block h-auto w-full rounded-lg border border-line shadow-2" src="{{.Shot}}" width="1318" height="896" alt="A conversation with an agent in gusto">
   </picture>
 </section>
 {{end}}
 
 </main>
 
-<section id="harnesses" class="band">
-  <div class="wrap split">
-    <div class="copy">
-      <h2>Use the agents your team already wants.</h2>
-      <ul class="tiles">
-        <li><span class="glyph" aria-hidden="true">C</span>Claude Code</li>
-        <li><span class="glyph" aria-hidden="true">X</span>Codex</li>
-        <li><span class="glyph" aria-hidden="true">O</span>OpenCode</li>
-        <li><span class="glyph" aria-hidden="true">π</span>Pi</li>
-        <li><span class="glyph" aria-hidden="true">H</span>Hermes</li>
-        <li class="own"><span class="glyph" aria-hidden="true">+</span>Your own</li>
+<section id="harnesses" class="bg-canvas py-20 text-ink">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
+    <div class="grid content-start gap-5">
+      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use the agents your team already wants.</h2>
+      <ul class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3">
+        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1"><span class="inline-grid size-9 place-items-center rounded-sm bg-accent font-bold text-on-accent" aria-hidden="true">C</span>Claude Code</li>
+        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1"><span class="inline-grid size-9 place-items-center rounded-sm bg-accent font-bold text-on-accent" aria-hidden="true">X</span>Codex</li>
+        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1"><span class="inline-grid size-9 place-items-center rounded-sm bg-accent font-bold text-on-accent" aria-hidden="true">O</span>OpenCode</li>
+        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1"><span class="inline-grid size-9 place-items-center rounded-sm bg-accent font-bold text-on-accent" aria-hidden="true">π</span>Pi</li>
+        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1"><span class="inline-grid size-9 place-items-center rounded-sm bg-accent font-bold text-on-accent" aria-hidden="true">H</span>Hermes</li>
+        <li class="flex items-center gap-3 rounded-lg border border-dashed border-line-strong p-4 font-display text-copy leading-tight font-semibold text-muted"><span class="inline-grid size-9 place-items-center rounded-sm border border-dashed border-line-strong font-bold text-muted" aria-hidden="true">+</span>Your own</li>
       </ul>
-      <p class="lead">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
     </div>
-    <figure class="frame">{{picture "agents" "The agents to choose from" 560 400}}</figure>
+    <figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-line [&_img]:bg-surface [&_img]:shadow-2">{{picture "agents" "The agents to choose from" 560 400}}</figure>
   </div>
 </section>
 
-<section id="how" class="band tint">
-  <div class="wrap">
-    <h2>How it works</h2>
-    <ol class="flow">
-      <li><span class="n">1</span><h3>Pick an agent</h3><p>Choose the one for the work.</p></li>
-      <li><span class="n">2</span><h3>Give it a workspace</h3><p>Files, tools and context stay together.</p></li>
-      <li><span class="n">3</span><h3>Keep the same controls</h3><p>Keys, models, network and spend stay outside the agent.</p></li>
-      <li><span class="n">4</span><h3>See what happened</h3><p>Calls, changes, cost and results are recorded.</p></li>
+<section id="how" class="bg-wash py-20 text-ink">
+  <div class="mx-auto max-w-5xl px-5">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">How it works</h2>
+    <ol class="mt-12 grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 min-[44rem]:grid-cols-2 min-[64rem]:grid-cols-4">
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">1</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Pick an agent</h3><p class="leading-[1.6] text-md text-muted">Choose the one for the work.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">2</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Give it a workspace</h3><p class="leading-[1.6] text-md text-muted">Files, tools and context stay together.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">3</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Keep the same controls</h3><p class="leading-[1.6] text-md text-muted">Keys, models, network and spend stay outside the agent.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">4</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">See what happened</h3><p class="leading-[1.6] text-md text-muted">Calls, changes, cost and results are recorded.</p></li>
     </ol>
   </div>
 </section>
 
-<section id="control" class="band carbon">
-  <div class="wrap">
-    <h2>One workspace. One set of controls. One record.</h2>
-    <ul class="controls">
-      <li><figure class="frame">{{darkScreen "keys" "A model provider and its key, set by the operator" 700 269}}</figure><div class="text"><h3>Protected credentials</h3><p>Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></div></li>
-      <li><figure class="frame">{{darkScreen "limits" "The limits on an organization" 514 300}}</figure><div class="text"><h3>Controlled access</h3><p>Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></div></li>
-      <li><figure class="frame">{{darkScreen "activity" "The activity list" 680 400}}</figure><div class="text"><h3>Full activity</h3><p>See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></div></li>
+<section id="control" class="carbon bg-canvas py-20 text-ink">
+  <div class="mx-auto max-w-5xl px-5">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">One workspace. One set of controls. One record.</h2>
+    <ul class="mt-12 grid gap-8">
+      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-line [&_img]:bg-surface [&_img]:shadow-2">{{darkScreen "keys" "A model provider and its key, set by the operator" 700 269}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Protected credentials</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">Model keys stay outside the agent. It reaches a model through a proxy and never holds the key.</p></div></li>
+      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-line [&_img]:bg-surface [&_img]:shadow-2">{{darkScreen "limits" "The limits on an organization" 514 300}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Controlled access</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">Choose which models people can use, set spending limits, and decide what a workspace can reach on the network.</p></div></li>
+      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-line [&_img]:bg-surface [&_img]:shadow-2">{{darkScreen "activity" "The activity list" 680 400}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Full activity</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">See who started work, which agent ran, which model it used, what it changed, what it cost and whether the checks passed.</p></div></li>
     </ul>
   </div>
 </section>
 
-<section id="proof" class="band proof">
-  <div class="wrap split">
-    <div class="copy">
-      <h2>Tested across multiple agents.</h2>
-      <p class="lead">Same task. Same model. Same environment.</p>
-      <ul class="ran" aria-label="Agents that finished the task">
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Pi</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Claude Code</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Codex</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">Hermes</span></li>
-          <li><span class="tick" aria-hidden="true"></span><span class="name">OpenCode</span></li>
+<section id="proof" class="bg-canvas py-20 text-ink">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+    <div class="grid content-start gap-5">
+      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Tested across multiple agents.</h2>
+       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Same task. Same model. Same environment.</p>
+      <ul class="grid gap-2" aria-label="Agents that finished the task">
+          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{template "tick"}}<span class="font-display text-copy leading-[1.3] font-semibold">Pi</span></li>
+          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{template "tick"}}<span class="font-display text-copy leading-[1.3] font-semibold">Claude Code</span></li>
+          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{template "tick"}}<span class="font-display text-copy leading-[1.3] font-semibold">Codex</span></li>
+          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{template "tick"}}<span class="font-display text-copy leading-[1.3] font-semibold">Hermes</span></li>
+          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{template "tick"}}<span class="font-display text-copy leading-[1.3] font-semibold">OpenCode</span></li>
         </ul>
-      <p class="fine">A one-line fix, checked by a test.</p>
+      <p class="text-[0.875rem] text-muted">A one-line fix, checked by a test.</p>
     </div>
-    <figure class="frame">{{picture "record" "The signed record of one reply" 570 375}}</figure>
+    <figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:mask-r-from-82%">{{picture "record" "The signed record of one reply" 570 375}}</figure>
   </div>
 </section>
 
-<section class="band tint audience">
-  <div class="wrap split">
-    <p>Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
-    <ul class="tags"><li>Engineering teams</li><li>Platform teams</li><li>Regulated organizations</li></ul>
+<section class="bg-wash py-12 text-ink">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+    <p class="max-w-[40rem] text-lead">Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
+    <ul class="flex flex-wrap justify-start gap-2"><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Engineering teams</li><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Platform teams</li><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Regulated organizations</li></ul>
   </div>
 </section>
 
-<section class="band">
-  <div class="wrap">
-<div class="faq">
-  <h2>Questions</h2>
-  <div class="qas">
-    <div class="qa"><h3>Which agents and models work?</h3><p>Claude Code, Codex, OpenCode, Pi and Hermes, on the models your organization connects.</p></div>
-    <div class="qa"><h3>Where does it run?</h3><p>On a laptop or in the cloud. The code is open source under Apache-2.0.</p></div>
-    <div class="qa"><h3>Who holds the model keys?</h3><p>Your organization. Agents reach a model through a proxy and never hold the key.</p></div>
-    <div class="qa"><h3>Who can see what the agents did?</h3><p>Administrators see people, spend and a signed record of every run.</p></div>
-  </div>
-  </div>
-  </div>
-</section>
-
-<section class="band carbon close">
-  <div class="wrap">
-<h2>Use different AI agents without setting up each one from scratch.</h2>
-  <div class="actions">
-    <a class="cta" href="/demo">Try it now</a>
-    {{if .Book}}<a class="ghost" href="{{.Book}}">Talk to us</a>{{end}}
+<section class="bg-canvas py-20 text-ink">
+  <div class="mx-auto max-w-5xl px-5">
+  <h2 class="mb-6 text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Questions</h2>
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-6 min-[44rem]:grid-cols-2">
+    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Which agents and models work?</h3><p class="leading-[1.6] text-md text-muted">Claude Code, Codex, OpenCode, Pi and Hermes, on the models your organization connects.</p></div>
+    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Where does it run?</h3><p class="leading-[1.6] text-md text-muted">On a laptop or in the cloud. The code is open source under Apache-2.0.</p></div>
+    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Who holds the model keys?</h3><p class="leading-[1.6] text-md text-muted">Your organization. Agents reach a model through a proxy and never hold the key.</p></div>
+    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Who can see what the agents did?</h3><p class="leading-[1.6] text-md text-muted">Administrators see people, spend and a signed record of every run.</p></div>
   </div>
   </div>
 </section>
 
+<section class="carbon bg-canvas py-20 text-center text-ink">
+  <div class="mx-auto grid max-w-5xl justify-items-center gap-5 px-5">
+<h2 class="max-w-[28ch] text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use different AI agents without setting up each one from scratch.</h2>
+  <div class="flex flex-wrap justify-center gap-3">
+    <a class="inline-block rounded-sm bg-accent px-5 py-3 font-semibold text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
+    {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-surface" href="{{.Book}}">Talk to us</a>{{end}}
+  </div>
+  </div>
+</section>
 
 </body>
 </html>
 {{end}}
+
+{{define "tick"}}<span class="grid size-5 place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true"><svg class="size-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5.5"/></svg></span>{{end}}

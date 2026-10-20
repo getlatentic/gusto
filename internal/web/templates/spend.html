@@ -1,54 +1,42 @@
 {{template "head" .}}
 {{with .Ledger}}
 
-<div class="title-row">
+<div class="mb-6 flex items-center gap-3">
   <h1>Spending</h1>
-  <form class="month" method="get" action="{{$.Base}}">
-    <label class="inline"><span class="sr">Month</span>
-      <select name="month" data-autosubmit>
+  <form class="ml-auto" method="get" action="{{$.Base}}">
+    <label><span class="sr-only">Month</span>
+      <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>
     </label>
-    <noscript><button type="submit">Show</button></noscript>
+    <noscript><button class="inline-flex h-9 items-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent" type="submit">Show</button></noscript>
   </form>
 </div>
 
-<section class="figures">
-  <div class="figure headline">
-    <span class="value">{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}—{{else}}{{usd .Total.USD}}{{end}}</span>
-    <span class="label">{{if eq .Total.Unmeasured 0}}spent this month{{else if eq .Total.Calls .Total.Unmeasured}}no price set for these models{{else}}spent this month, at least{{end}}</span>
-  </div>
-  <div class="figure">
-    <span class="value">{{.Total.Calls}}</span>
-    <span class="label">model calls{{with .Total.Uncounted}}, {{.}} uncounted{{end}}</span>
-  </div>
-  <div class="figure">
-    <span class="value">{{tokens .Total.InputTokens}}</span>
-    <span class="label">tokens in, {{percent .Total.CachedTokens .Total.InputTokens}} cached</span>
-  </div>
-  <div class="figure">
-    <span class="value">{{tokens .Total.OutputTokens}}</span>
-    <span class="label">tokens out</span>
-  </div>
-  <div class="figure{{if .Total.Refused}} failed{{end}}">
-    <span class="value">{{.Total.Refused}}</span>
-    <span class="label">refused by a cap</span>
-  </div>
+<section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+  {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
+  {{$caption := "spent this month, at least"}}{{if eq .Total.Unmeasured 0}}{{$caption = "spent this month"}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$caption = "no price set for these models"}}{{end}}
+  {{template "figure" (dict "Headline" true "Value" $spent "Label" $caption)}}
+  {{$calls := "model calls"}}{{with .Total.Uncounted}}{{$calls = printf "model calls, %v uncounted" .}}{{end}}
+  {{template "figure" (dict "Value" .Total.Calls "Label" $calls)}}
+  {{template "figure" (dict "Value" (tokens .Total.InputTokens) "Label" (printf "tokens in, %s cached" (percent .Total.CachedTokens .Total.InputTokens)))}}
+  {{template "figure" (dict "Value" (tokens .Total.OutputTokens) "Label" "tokens out")}}
+  {{template "figure" (dict "Value" .Total.Refused "Label" "refused by a cap" "Bad" .Total.Refused)}}
 </section>
 
-<section class="panel">
-  <h2>By day <span class="muted">in {{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
+<section class="mb-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+  <h2 class="mb-3 text-sm font-semibold">By day <span class="font-normal text-muted">in {{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
   {{if .Daily}}
-  <div class="bars" role="img" aria-label="Spending on each day of {{.Month}}">
+  <div class="group/bars flex h-40 items-stretch gap-[0.1875rem]" role="img" aria-label="Spending on each day of {{.Month}}">
     {{range .Daily}}
-    <div class="day" title="{{.Says}}"><span class="fill" style="height: {{printf "%.1f" .Height}}%"></span><span class="date">{{.Label}}</span></div>
+    <div class="group/day grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-1" title="{{.Says}}"><span class="block min-h-px self-end rounded-t-xs bg-accent group-hover/day:bg-accent-hover" style="height: {{printf "%.1f" .Height}}%"></span><span class="text-center text-xs text-subtle @max-[56rem]:invisible">{{.Label}}</span></div>
     {{end}}
   </div>
   {{end}}
 </section>
 
-<div class="panels">
+<div class="mb-4 grid grid-cols-2 gap-4 @max-[56rem]:grid-cols-1">
   {{template "shares" (dict "Title" "By agent" "Lines" .Agents)}}
   {{with .Askers}}{{template "shares" (dict "Title" "By who asked" "Lines" .)}}{{end}}
   {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
@@ -59,33 +47,33 @@
 
 {{template "shares" (dict "Title" "Most expensive messages" "Lines" .Jobs)}}
 
-<p class="note muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
+<p class="mt-4 text-xs text-muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
 
 {{end}}
 {{template "foot" .}}
 
 {{define "shares"}}
-<section class="panel">
-  <h2>{{.Title}}</h2>
+<section class="min-w-0 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+  <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
-  <table class="shares">
-    <thead><tr><th>Name</th><th class="num">Spent</th><th class="num">Tokens</th><th class="num">Calls</th></tr></thead>
+  <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">
+    <thead><tr><th>Name</th><th class="text-right">Spent</th><th class="text-right">Tokens</th><th class="text-right">Calls</th></tr></thead>
     <tbody>
     {{range .Lines}}
     <tr>
-      <td class="name">
-        {{if not .Name}}<span class="muted">none named</span>{{else if .Href}}<a href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="sub">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
-        <span class="share" aria-hidden="true"><span style="width: {{printf "%.1f" .Width}}%"></span></span>
+      <td class="w-[55%] min-w-0 pr-3">
+        {{if not .Name}}<span class="text-muted">none named</span>{{else if .Href}}<a class="line-clamp-2 underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="block text-xs text-subtle">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
+        <span class="mt-1 block h-1 rounded-xs bg-wash" aria-hidden="true"><span class="block h-full rounded-xs bg-accent" style="width: {{printf "%.1f" .Width}}%"></span></span>
       </td>
-      <td class="num">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="muted">no price</span>{{else}}{{.Money}}{{end}}</td>
-      <td class="num">{{tokens (add .InputTokens .OutputTokens)}}</td>
-      <td class="num">{{.Calls}}{{with .Refused}} <span class="state failed" title="refused by a cap">+{{.}}</span>{{end}}</td>
+      <td class="text-right tabular-nums whitespace-nowrap">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{.Money}}{{end}}</td>
+      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{tokens (add .InputTokens .OutputTokens)}}</td>
+      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{.Calls}}{{with .Refused}} <span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad" title="refused by a cap">+{{.}}</span>{{end}}</td>
     </tr>
     {{end}}
     </tbody>
   </table>
   {{else}}
-  <p class="muted">Nothing this month.</p>
+  <p class="text-muted">Nothing this month.</p>
   {{end}}
 </section>
 {{end}}

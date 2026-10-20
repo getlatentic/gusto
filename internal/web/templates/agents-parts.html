@@ -1,0 +1,31 @@
+{{/* The pieces the agent, skill-set, preset and comparison pages share. A class partial is a pile of utilities used by name in a class
+     attribute; the others are small fragments of markup. */}}
+{{define "ag-btn"}}inline-flex items-center justify-center gap-2 rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent no-underline cursor-pointer transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ag-btn-quiet"}}inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-4 py-2 text-sm font-medium text-muted no-underline cursor-pointer transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ag-btn-small"}}inline-flex items-center justify-center gap-1.5 rounded-sm border border-line-strong bg-transparent px-3 py-1 text-xs font-medium text-muted no-underline cursor-pointer transition-colors hover:bg-wash hover:text-ink{{end}}
+{{define "ag-btn-small-danger"}}inline-flex items-center justify-center gap-1.5 rounded-sm border border-bad/40 bg-transparent px-3 py-1 text-xs font-medium text-bad no-underline cursor-pointer transition-colors hover:bg-bad-wash{{end}}
+{{define "ag-btn-danger"}}inline-flex items-center justify-center gap-2 rounded-sm border border-bad/40 bg-transparent px-4 py-2 text-sm font-medium text-bad no-underline cursor-pointer transition-colors hover:bg-bad-wash{{end}}
+{{define "ag-input"}}w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-base text-ink transition-colors focus-visible:border-focus focus-visible:outline-1 focus-visible:-outline-offset-1{{end}}
+{{define "ag-field"}}grid gap-1.5 text-xs font-medium text-subtle{{end}}
+{{define "ag-check"}}flex items-center gap-2 text-sm text-ink{{end}}
+{{define "ag-panel"}}rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line{{end}}
+{{define "ag-panel-title"}}mb-3 text-sm font-semibold text-ink{{end}}
+{{define "ag-badge"}}inline-flex items-center whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-subtle{{end}}
+{{define "ag-badge-ok"}}inline-flex items-center whitespace-nowrap rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok{{end}}
+{{define "ag-badge-warn"}}inline-flex items-center whitespace-nowrap rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn{{end}}
+{{define "ag-badge-bad"}}inline-flex items-center whitespace-nowrap rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad{{end}}
+{{define "ag-link-quiet"}}inline-flex items-center gap-1.5 text-sm text-muted no-underline hover:text-ink hover:underline{{end}}
+{{define "ag-crumb"}}mb-5 flex flex-wrap items-baseline gap-2 text-sm text-subtle{{end}}
+{{define "ag-crumb-link"}}text-muted no-underline hover:text-ink hover:underline{{end}}
+{{define "ag-head"}}mb-6{{end}}
+{{define "ag-lede"}}mt-1 max-w-[68ch] text-base text-muted text-pretty{{end}}
+{{define "ag-summary"}}flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden{{end}}
+{{define "ag-chev"}}<svg class="i size-3.5 flex-none transition-transform group-open:rotate-90" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>{{end}}
+{{define "ag-flash"}}{{if .Refused}}<p class="mb-5 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{.Refused}}</p>{{end}}{{end}}
+{{define "ag-table-wrap"}}overflow-x-auto rounded-md bg-surface shadow-1 dark:border dark:border-line{{end}}
+{{define "ag-th"}}px-5 py-3 text-xs font-semibold text-subtle border-b border-line{{end}}
+{{define "ag-td"}}px-5 py-3 border-b border-line group-last/row:border-b-0{{end}}
+{{define "ag-two-col"}}grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}
+{{define "ag-col"}}grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4{{end}}
+{{define "ag-stack"}}grid gap-4{{end}}
+{{define "ag-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed")}}{{template "ag-badge-ok"}}{{else if or (eq . "failed") (eq . "interrupted")}}{{template "ag-badge-bad"}}{{else if or (eq . "running") (eq . "queued")}}{{template "ag-badge-warn"}}{{else}}{{template "ag-badge"}}{{end}}">{{.}}</span>{{end}}

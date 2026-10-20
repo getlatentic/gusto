@@ -85,7 +85,7 @@ func TestARunnerCannotReachTheConsoleAndAStrangerIsSentToSignIn(t *testing.T) {
 	}
 }
 
-var navLink = regexp.MustCompile(`(?s)<nav class="console-nav"[^>]*>(.*?)</nav>`)
+var navLink = regexp.MustCompile(`(?s)<nav [^>]*aria-label="Admin"[^>]*>(.*?)</nav>`)
 
 func sectionsOf(t *testing.T, page string) string {
 	t.Helper()
@@ -210,7 +210,7 @@ func TestTheConsoleNamesTheOrganizationAndAnotherOrganizationsTokenDoesNotOpenIt
 	}
 	here.cookie = cookieOf(t, here.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := here.ask(t, "GET", "/admin", nil)
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "<strong>Admin</strong><span>acme-com</span>") {
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), ">acme-com</span>") {
 		t.Errorf("the console does not say whose it is: %d\n%s", page.Code, page.Body.String())
 	}
 }

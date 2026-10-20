@@ -1,11 +1,11 @@
 {{define "lease"}}{{template "head" .}}
-  <div class="brand"><img src="/static/mark.png" alt=""> gusto</div>
-  <h1>{{.Title}}</h1>
-  {{if .Notice}}<p class="error">{{.Notice}}</p>{{end}}
+  {{template "brand"}}
+  <h1 class="text-xl font-semibold">{{.Title}}</h1>
+  {{if .Notice}}<p class="text-sm text-bad">{{.Notice}}</p>{{end}}
   {{if .Left.Remaining}}<p>It removes itself in <strong>{{minutes .Left.Remaining}}</strong>, at {{clock .Left.Ends}}.</p>
   {{else}}<p>It is about to remove itself.</p>{{end}}
-  {{if .Left.CanExtend}}<form method="post" action="/lease/extend">
-    <button type="submit">Keep it for {{minutes .Step}} more</button>
-  </form>{{else}}<p class="muted">It cannot be kept any longer than this.</p>{{end}}
-  <p class="muted">Anything running is stopped when it goes, and the organizations and sign-ins on it go with it.</p>
+  {{if .Left.CanExtend}}<form class="grid gap-3" method="post" action="/lease/extend">
+    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Keep it for {{minutes .Step}} more</button>
+  </form>{{else}}<p class="text-sm text-muted">It cannot be kept any longer than this.</p>{{end}}
+  <p class="text-sm text-muted">Anything running is stopped when it goes, and the organizations and sign-ins on it go with it.</p>
 {{template "foot"}}{{end}}

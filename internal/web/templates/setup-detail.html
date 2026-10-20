@@ -1,111 +1,111 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
-{{if .Console}}<nav class="crumb" aria-label="Where this is"><a href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
-{{else}}<nav class="crumb" aria-label="Where this is"><a href="/new">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
-<div class="title-row">
-  <h1>{{.Setup.Name}}{{if .Setup.Off}} <span class="muted">off</span>{{end}}</h1>
+{{if .Console}}<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
+{{else}}<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/new">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
+<div class="mb-6 flex items-center gap-3">
+  <h1 class="flex-1">{{.Setup.Name}}{{if .Setup.Off}} <span class="{{template "ag-badge"}} align-middle">off</span>{{end}}</h1>
   {{if .Console}}
-  {{if .Setup.Off}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/enable"><button type="submit">Turn on</button></form>
-  {{else}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/disable"><button type="submit" class="quiet">Turn off</button></form>{{end}}
+  {{if .Setup.Off}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/enable"><button type="submit" class="{{template "ag-btn"}}">Turn on</button></form>
+  {{else}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/disable"><button type="submit" class="{{template "ag-btn-quiet"}}">Turn off</button></form>{{end}}
   {{end}}
 </div>
-{{if and .Console .Setup.Off}}<p class="refused">This skill set is off: it is not offered to anybody, and no agent starts with it, until you turn it on.</p>{{end}}
+{{if and .Console .Setup.Off}}<p class="mb-5 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">This skill set is off: it is not offered to anybody, and no agent starts with it, until you turn it on.</p>{{end}}
 
-<div class="run">
-<div class="run-main">
-  <section class="panel">
-    <h2>Skills <span class="muted">{{len .Setup.Skills}}</span></h2>
+<div class="{{template "ag-two-col"}}">
+<div class="{{template "ag-col"}}">
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Skills <span class="font-normal text-subtle">{{len .Setup.Skills}}</span></h2>
     {{if .Setup.Skills}}
-    <ul class="skills">
+    <ul class="divide-y divide-line">
       {{range .Setup.Skills}}
-      <li>
-        <div class="skill-head">
-          <span class="name">{{.Name}}</span>
-          {{if $.Console}}<form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="quiet">Remove</button></form>{{end}}
+      <li class="py-4 first:pt-0 last:pb-0">
+        <div class="flex items-center justify-between gap-3">
+          <span class="font-semibold">{{.Name}}</span>
+          {{if $.Console}}<form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Name}}/drop"><button type="submit" class="{{template "ag-btn-small-danger"}}">Remove</button></form>{{end}}
         </div>
-        <p class="muted">{{.Description}}</p>
-        <details><summary>Instructions</summary><div class="reply prose">{{markdown .Body}}</div></details>
+        <p class="mt-1 mb-2 text-sm text-muted">{{.Description}}</p>
+        <details class="group"><summary class="{{template "ag-summary"}}">{{template "ag-chev"}} Instructions</summary><div class="reply prose mt-3">{{markdown .Body}}</div></details>
       </li>
       {{end}}
     </ul>
     {{else}}
-    <p class="muted">No skills yet. A skill is instructions an agent reads when its description matches what it was asked.</p>
+    <p class="text-sm text-muted">No skills yet. A skill is instructions an agent reads when its description matches what it was asked.</p>
     {{end}}
   </section>
 
   {{if and .Console .Earlier}}
-  <section class="panel">
-    <h2>Earlier versions</h2>
-    <p class="muted">A skill that is changed or removed is kept as it was, ten times over. Putting one back is a change like any other.</p>
-    <table><tbody>
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Earlier versions</h2>
+    <p class="mb-3 text-sm text-muted">A skill that is changed or removed is kept as it was, ten times over. Putting one back is a change like any other.</p>
+    <table><tbody class="divide-y divide-line">
       {{range .Earlier}}
-      <tr><td><code>{{.Skill}}</code>{{if not .Present}} <span class="muted">removed</span>{{end}}</td><td class="muted">{{.Fingerprint}}</td>
-      <td><form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Skill}}/restore"><input type="hidden" name="at" value="{{.At}}"><button type="submit" class="quiet-button">Put it back</button></form></td></tr>
+      <tr><td class="py-2 pr-3"><code>{{.Skill}}</code>{{if not .Present}} <span class="text-muted">removed</span>{{end}}</td><td class="py-2 pr-3 text-muted">{{.Fingerprint}}</td>
+      <td class="py-2 text-right"><form method="post" action="{{$.Base}}/{{$.Setup.Name}}/skills/{{.Skill}}/restore"><input type="hidden" name="at" value="{{.At}}"><button type="submit" class="{{template "ag-btn-small"}}">Put it back</button></form></td></tr>
       {{end}}
     </tbody></table>
   </section>
   {{end}}
   {{if .Console}}
-  {{if .Setup.Skills}}<p class="muted"><a href="{{.Base}}/{{.Setup.Name}}/plugin.zip">Download as an Agent Plugin</a>: a plugin of these skills and no servers, which another deployment, or this one, imports as an integration.</p>{{end}}
-  <section class="panel">
-    <h2>Add a skill</h2>
-    <form class="stack" method="post" action="{{.Base}}/{{.Setup.Name}}/skills">
-      <label>Name <input name="skill" placeholder="review-a-diff" pattern="[a-z0-9][a-z0-9-]*" required></label>
-      <label><span class="line">When to use it <span class="muted">the agent decides by this</span></span>
-        <input name="description" placeholder="Use when asked to review a change before it is merged." required></label>
-      <label>Instructions <textarea name="body" rows="8" placeholder="Read the whole diff before commenting. Name the file and line of each problem." required></textarea></label>
-      <button type="submit">Add the skill</button>
+  {{if .Setup.Skills}}<p class="text-sm text-muted"><a class="font-medium text-ink" href="{{.Base}}/{{.Setup.Name}}/plugin.zip">Download as an Agent Plugin</a>: a plugin of these skills and no servers, which another deployment, or this one, imports as an integration.</p>{{end}}
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Add a skill</h2>
+    <form class="grid gap-4" method="post" action="{{.Base}}/{{.Setup.Name}}/skills">
+      <label class="{{template "ag-field"}}">Name <input class="{{template "ag-input"}}" name="skill" placeholder="review-a-diff" pattern="[a-z0-9][a-z0-9-]*" required></label>
+      <label class="{{template "ag-field"}}"><span>When to use it <span class="font-normal">the agent decides by this</span></span>
+        <input class="{{template "ag-input"}}" name="description" placeholder="Use when asked to review a change before it is merged." required></label>
+      <label class="{{template "ag-field"}}">Instructions <textarea class="{{template "ag-input"}}" name="body" rows="8" placeholder="Read the whole diff before commenting. Name the file and line of each problem." required></textarea></label>
+      <div><button type="submit" class="{{template "ag-btn"}}">Add the skill</button></div>
     </form>
   </section>
   {{end}}
 </div>
 
-<aside class="run-side" aria-label="About this skill set">
-  <section class="panel">
-    <h2>MCP servers</h2>
+<aside class="{{template "ag-col"}}" aria-label="About this skill set">
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">MCP servers</h2>
     {{if and .Offered .Console}}
-    <form class="stack" method="post" action="{{.Base}}">
+    <form class="grid gap-3" method="post" action="{{.Base}}">
       <input type="hidden" name="name" value="{{.Setup.Name}}">
       {{$chosen := .Setup.Servers}}
       {{range $name, $server := .Offered}}
-      <label class="check"><input type="checkbox" name="server" value="{{$name}}"{{range $chosen}}{{if eq . $name}} checked{{end}}{{end}}>
-        {{$name}} <span class="muted">{{if $server.URL}}{{$server.URL}}{{else}}{{$server.Command}}{{end}}</span></label>
+      <label class="{{template "ag-check"}}"><input class="accent-accent" type="checkbox" name="server" value="{{$name}}"{{range $chosen}}{{if eq . $name}} checked{{end}}{{end}}>
+        <span class="min-w-0 break-words">{{$name}} <span class="text-muted">{{if $server.URL}}{{$server.URL}}{{else}}{{$server.Command}}{{end}}</span></span></label>
       {{end}}
-      <button type="submit" class="quiet">Save</button>
+      <div><button type="submit" class="{{template "ag-btn-small"}}">Save</button></div>
     </form>
     {{else if .Offered}}
-    <p class="muted">{{if .Setup.Servers}}{{range $i, $s := .Setup.Servers}}{{if $i}}, {{end}}{{$s}}{{end}}{{else}}None chosen.{{end}} An administrator changes these.</p>
+    <p class="text-sm text-muted">{{if .Setup.Servers}}{{range $i, $s := .Setup.Servers}}{{if $i}}, {{end}}{{$s}}{{end}}{{else}}None chosen.{{end}} An administrator changes these.</p>
     {{else}}
-    <p class="muted">This deployment offers no MCP servers. Its operator declares them, because each one runs inside the box or is an address the box may reach.</p>
+    <p class="text-sm text-muted">This deployment offers no MCP servers. Its operator declares them, because each one runs inside the box or is an address the box may reach.</p>
     {{end}}
   </section>
   {{if or .Imported .Setup.Uses}}
-  <section class="panel">
-    <h2>Integrations</h2>
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Integrations</h2>
     {{if and .Imported .Console}}
-    <form class="stack" method="post" action="{{.Base}}">
+    <form class="mb-3 grid gap-3" method="post" action="{{.Base}}">
       <input type="hidden" name="name" value="{{.Setup.Name}}">
       {{range $server := .Setup.Servers}}<input type="hidden" name="server" value="{{$server}}">{{end}}
       {{$named := .Setup.Integrations}}
       {{range .Imported}}{{$n := .Name}}
-      <label class="check"><input type="checkbox" name="integration" value="{{$n}}"{{range $named}}{{if eq . $n}} checked{{end}}{{end}}> {{$n}}{{if not .On}} <span class="muted">off</span>{{end}}</label>
+      <label class="{{template "ag-check"}}"><input class="accent-accent" type="checkbox" name="integration" value="{{$n}}"{{range $named}}{{if eq . $n}} checked{{end}}{{end}}> {{$n}}{{if not .On}} <span class="text-muted">off</span>{{end}}</label>
       {{end}}
-      <button type="submit" class="quiet">Save</button>
+      <div><button type="submit" class="{{template "ag-btn-small"}}">Save</button></div>
     </form>
     {{end}}
     {{range .Setup.Uses}}
-    <p class="muted">{{.Name}}: {{if .On}}{{.Skills}} skill{{if ne .Skills 1}}s{{end}}, {{.Servers}} server{{if ne .Servers 1}}s{{end}}{{range .Held}} · not used: {{.}}{{end}}{{else}}off, so a task with this setup does not start until an administrator turns it on{{end}}</p>
+    <p class="text-sm text-muted">{{.Name}}: {{if .On}}{{.Skills}} skill{{if ne .Skills 1}}s{{end}}, {{.Servers}} server{{if ne .Servers 1}}s{{end}}{{range .Held}} · not used: {{.}}{{end}}{{else}}off, so a task with this setup does not start until an administrator turns it on{{end}}</p>
     {{end}}
   </section>
   {{end}}
   {{if not .Console}}
-  <section class="panel">
-    <h2>Start with it</h2>
-    <ul class="starts">
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Start with it</h2>
+    <ul class="grid gap-2 text-sm">
       {{range .Catalog}}{{if .Ready}}
-      <li>{{if $.Setup.Fits .Skills .MCP}}<span class="muted" title="{{$.Setup.Fits .Skills .MCP}}">{{.Name}}</span>{{else}}<a href="/instances/new?harness={{.Name}}&amp;setup={{$.Setup.Name}}">{{.Name}}</a>{{end}}</li>
+      <li>{{if $.Setup.Fits .Skills .MCP}}<span class="text-muted" title="{{$.Setup.Fits .Skills .MCP}}">{{.Name}}</span>{{else}}<a class="font-medium text-ink" href="/instances/new?harness={{.Name}}&amp;setup={{$.Setup.Name}}">{{.Name}}</a>{{end}}</li>
       {{end}}{{end}}
     </ul>
   </section>

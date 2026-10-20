@@ -1,36 +1,36 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
-{{if not .Console}}<nav class="crumb" aria-label="Where this is"><a href="/new">New agent</a><span>/</span><span>Skill sets</span></nav>{{end}}
-<div class="page-head">
+{{if not .Console}}<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/new">New agent</a><span>/</span><span>Skill sets</span></nav>{{end}}
+<div class="{{template "ag-head"}}">
   <h1>Skill sets</h1>
-  <p class="muted">Instructions and tools you can give any agent.</p>
+  <p class="{{template "ag-lede"}}">Instructions and tools you can give any agent.</p>
 </div>
 
 {{if .Keeps}}
-<section class="picks">
+<section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
   {{range .Setups}}
-  <a class="pick" href="{{$.Base}}/{{.Name}}">
-    <span class="name">{{.Name}}{{if .Off}} <span class="muted">off</span>{{end}}</span>
-    <span class="what">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
+  <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 dark:border dark:border-line" href="{{$.Base}}/{{.Name}}">
+    <span class="font-display font-semibold">{{.Name}}{{if .Off}} <span class="{{template "ag-badge"}}">off</span>{{end}}</span>
+    <span class="text-sm text-muted">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>
   {{end}}
   {{if .Console}}
-  <form class="pick new-setup" method="post" action="{{.Base}}">
-    <span class="name">New skill set</span>
-    <input name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required aria-label="Name">
+  <form class="grid content-start gap-3 rounded-md border border-dashed border-line-strong p-5" method="post" action="{{.Base}}">
+    <span class="font-display font-semibold">New skill set</span>
+    <input class="{{template "ag-input"}}" name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required aria-label="Name">
     {{with .Offered}}
-    <fieldset class="servers"><legend class="muted">Tools</legend>
-      {{range $name, $server := .}}<label class="check"><input type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
+    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-muted">Tools</legend>
+      {{range $name, $server := .}}<label class="{{template "ag-check"}}"><input class="accent-accent" type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
     </fieldset>
     {{end}}
     {{with .Imported}}
-    <fieldset class="servers"><legend class="muted">Integrations</legend>
-      {{range .}}<label class="check"><input type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="muted">off</span>{{end}}</label>{{end}}
+    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-muted">Integrations</legend>
+      {{range .}}<label class="{{template "ag-check"}}"><input class="accent-accent" type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="text-muted">off</span>{{end}}</label>{{end}}
     </fieldset>
     {{end}}
-    <span class="go"><button type="submit">Create</button></span>
+    <div><button type="submit" class="{{template "ag-btn"}}">Create</button></div>
   </form>
   {{end}}
 </section>

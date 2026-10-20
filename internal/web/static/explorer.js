@@ -14,7 +14,24 @@
     go: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
     cloud: '<svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>'
   };
-  function icon(name) { var span = document.createElement("span"); span.className = "ic"; span.setAttribute("aria-hidden", "true"); span.innerHTML = icons[name]; return span; }
+  // What the explorer is dressed in. A class a script reads by name (row, folder, file, d-summary, d-choose) stays in the list beside the utilities.
+  var look = {
+    icon: "inline-grid flex-none place-items-center [&_svg]:size-full [&_svg]:stroke-current [&_svg]:stroke-[1.5] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
+    bare: "[&_svg]:fill-none",
+    crumb: "inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 font-[inherit] text-muted hover:text-ink",
+    input: "rounded-sm border border-line-strong bg-surface px-3 text-ink placeholder:text-faint",
+    button: "inline-flex flex-none cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-surface whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash",
+    primary: "inline-flex flex-none cursor-pointer items-center justify-center gap-2 rounded-sm border-0 bg-accent whitespace-nowrap text-on-accent no-underline transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
+    place: "flex w-full cursor-pointer items-center gap-2 rounded-sm border-0 bg-transparent p-2 text-left text-sm text-muted hover:bg-hover hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1",
+    tool: "grid size-8 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink disabled:cursor-default disabled:opacity-35"
+  };
+  function icon(name, size, fill) {
+    var span = document.createElement("span");
+    span.className = look.icon + " " + (size || "size-4") + " " + (fill || look.bare);
+    span.setAttribute("aria-hidden", "true");
+    span.innerHTML = icons[name];
+    return span;
+  }
   // A title is given where the text may be cut short by the column it is in.
   function el(tag, className, text, title) {
     var node = document.createElement(tag);
@@ -36,9 +53,9 @@
     table: /\.(csv|tsv|xlsx?)$/i,
     code: /\.(js|mjs|ts|tsx|jsx|go|py|rb|rs|java|c|h|cpp|css|html?|json|ya?ml|toml|sh|sql|php)$/i
   };
-  function iconFor(name) {
-    for (var kind in kinds) { if (kinds[kind].test(name)) { return icon(kind); } }
-    return icon("file");
+  function iconFor(name, size) {
+    for (var kind in kinds) { if (kinds[kind].test(name)) { return icon(kind, size, "text-subtle " + look.bare); } }
+    return icon("file", size, "text-subtle " + look.bare);
   }
   function when(seconds) {
     if (!seconds) { return ""; }
@@ -95,13 +112,13 @@
     function draw() {
       state.refocus = state.refocus || container.contains(document.activeElement);
       container.textContent = "";
-      if (!state.here) { container.appendChild(el("div", "d-loading", state.problem || "Looking…")); return; }
+      if (!state.here) { container.appendChild(el("div", "p-8 text-center text-subtle [grid-row:1/-1]", state.problem || "Looking…")); return; }
       if (browsing) {
         container.appendChild(pageHead());
         container.appendChild(list());
       } else {
         container.appendChild(toolbar());
-        var body = el("div", "d-body");
+        var body = el("div", "grid min-h-0 grid-cols-[12.5rem_minmax(0,1fr)] @max-[40rem]:grid-cols-[minmax(0,1fr)]");
         body.appendChild(placesList());
         body.appendChild(list());
         container.appendChild(body);
@@ -110,45 +127,46 @@
     }
 
     function toolbar() {
-      var bar = el("div", "d-bar");
-      var back = button("d-tool", function () { load(state.back.pop() || "", false); }, [icon("back")], "Back");
+      var bar = el("div", "flex items-center gap-1 border-b border-line px-4 pb-3");
+      var back = button(look.tool, function () { load(state.back.pop() || "", false); }, [icon("back")], "Back");
       back.disabled = !state.back.length;
-      var up = button("d-tool", function () { load(parent(), true); }, [icon("up")], "Up one folder");
+      var up = button(look.tool, function () { load(parent(), true); }, [icon("up")], "Up one folder");
       up.disabled = !state.here.at;
       bar.appendChild(back);
       bar.appendChild(up);
-      var path = el("div", "d-path");
+      var path = el("div", "ml-2 flex h-8 min-w-0 flex-1 items-center gap-1 overflow-hidden rounded-sm bg-wash px-3 text-xs whitespace-nowrap");
       state.here.crumbs.forEach(function (crumb, i) {
-        if (i > 0) { path.appendChild(el("span", "sep", "›")); }
+        if (i > 0) { path.appendChild(el("span", "inline-flex items-center text-subtle", "›")); }
         var last = i === state.here.crumbs.length - 1;
-        path.appendChild(last ? el("span", "here", crumb.name, crumb.name) : button("crumb", function () { load(crumb.at, true); }, [crumb.name]));
+        path.appendChild(last ? el("span", "inline-flex min-h-6 items-center overflow-hidden font-semibold text-ellipsis text-ink", crumb.name, crumb.name) : button(look.crumb + " text-xs hover:underline", function () { load(crumb.at, true); }, [crumb.name]));
       });
       bar.appendChild(path);
-      var filter = el("input", "d-filter");
+      bar.appendChild(filterBox("ml-2 h-8 w-36 text-xs @max-[40rem]:hidden"));
+      return bar;
+    }
+
+    function filterBox(size) {
+      var filter = el("input", look.input + " " + size);
       filter.type = "search"; filter.placeholder = "Filter"; filter.value = state.filter; filter.setAttribute("aria-label", "Filter this folder");
       filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
-      bar.appendChild(filter);
-      return bar;
+      return filter;
     }
 
     // The Files page has no window around it: the way down is the heading itself, and what can be done here sits to its right.
     function pageHead() {
-      var head = el("div", "f-head");
-      var trail = el("h1", "f-trail");
+      var head = el("div", "mb-6 flex min-h-10 flex-wrap items-center gap-x-4 gap-y-3");
+      var trail = el("h1", "flex min-w-0 flex-[1_1_14rem] items-center gap-2");
       state.here.crumbs.forEach(function (crumb, i) {
         var name = i === 0 ? "Files" : crumb.name;
-        if (i > 0) { trail.appendChild(el("span", "sep", "/")); }
-        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "here", name, name) : button("crumb", function () { load(crumb.at, true); }, [name]));
+        if (i > 0) { trail.appendChild(el("span", "font-normal text-line-strong", "/")); }
+        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "min-w-0 truncate", name, name) : button(look.crumb + " text-[length:inherit] font-[inherit]", function () { load(crumb.at, true); }, [name]));
       });
       head.appendChild(trail);
-      var tools = el("div", "f-tools");
-      var filter = el("input", "d-filter");
-      filter.type = "search"; filter.placeholder = "Filter"; filter.value = state.filter; filter.setAttribute("aria-label", "Filter this folder");
-      filter.addEventListener("input", function () { state.filter = filter.value; drawList(); });
-      tools.appendChild(filter);
-      tools.appendChild(button("d-quiet", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [icon("plus"), state.here.at ? "New folder" : "New project"]));
+      var tools = el("div", "flex min-w-0 flex-[1_1_22rem] items-center justify-end gap-2");
+      tools.appendChild(filterBox("h-9 min-w-24 flex-[1_1_8rem] text-sm"));
+      tools.appendChild(button(look.button + " h-9 px-4 text-sm font-medium", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [icon("plus", "size-[1.125rem]"), state.here.at ? "New folder" : "New project"]));
       if (state.here.at) {
-        var chat = el("a", "d-choose", "Chat here");
+        var chat = el("a", look.primary + " d-choose h-9 px-4 text-sm font-semibold", "Chat here");
         chat.href = "/chat?at=" + encodeURIComponent(state.here.at);
         tools.appendChild(chat);
       }
@@ -157,14 +175,14 @@
     }
 
     function placesList() {
-      var side = el("nav", "d-places");
+      var side = el("nav", "flex min-h-0 flex-col gap-px overflow-y-auto border-r border-line bg-wash p-3 @max-[40rem]:hidden");
       side.setAttribute("aria-label", "Projects");
-      var top = button("place root" + (!state.here.at ? " current" : ""), function () { load("", true); }, [icon("cloud"), el("span", "t", "Your cloud workspace")]);
+      var top = button(look.place + " font-semibold text-ink", function () { load("", true); }, [icon("cloud"), el("span", "truncate", "Your cloud workspace")]);
       if (!state.here.at) { top.setAttribute("aria-current", "true"); }
       side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {
         var current = state.here.at === project.at || state.here.at.indexOf(project.at + "/") === 0;
-        var place = button("place child" + (current ? " current" : ""), function () { load(project.at, true); }, [icon("folder"), el("span", "t", project.name)], project.name);
+        var place = button(look.place + " pl-8", function () { load(project.at, true); }, [icon("folder"), el("span", "truncate", project.name)], project.name);
         if (current) { place.setAttribute("aria-current", "true"); }
         side.appendChild(place);
       });
@@ -172,17 +190,22 @@
     }
 
     function list() {
-      var box = el("div", "d-list");
-      var head = el("div", "row heads");
-      head.appendChild(el("span", "", "Name")); head.appendChild(el("span", "", "Modified")); head.appendChild(el("span", "num", "Size"));
+      var box = el("div", browsing ? "overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line" : "flex min-h-0 min-w-0 flex-col");
+      var head = el("div", rowGrid() + " " + (browsing ? "min-h-10 border-b border-line bg-wash px-5" : "min-h-8 border-b border-line px-6") + " text-xs font-medium text-muted");
+      head.appendChild(el("span", "", "Name")); head.appendChild(el("span", "@max-[40rem]:hidden", "Modified")); head.appendChild(el("span", "text-right", "Size"));
       box.appendChild(head);
-      var rows = el("div", "rows");
+      var rows = el("div", browsing ? "[&>*+*]:border-t [&>*+*]:border-line" : "min-h-0 flex-1 overflow-y-auto px-2 py-1");
       rows.id = "d-rows";
       if (!browsing) { rows.setAttribute("role", "listbox"); rows.setAttribute("aria-label", "Folders"); }
       box.appendChild(rows);
       setTimeout(drawList, 0);
       return box;
     }
+    function rowGrid() {
+      return "grid items-center " + (browsing ? "gap-4 grid-cols-[minmax(0,1fr)_8rem_5rem]" : "gap-3 grid-cols-[minmax(0,1fr)_8.5rem_4.5rem]") + " @max-[40rem]:grid-cols-[minmax(0,1fr)_4.5rem]";
+    }
+    function rowLook() { return rowGrid() + (browsing ? " min-h-12 px-5 text-base" : " min-h-9 rounded-sm px-4 text-sm") + " focus-visible:-outline-offset-2"; }
+    function nameLook() { return "flex min-w-0 items-center gap-3" + (browsing ? " font-medium" : ""); }
     function drawList() {
       var rows = container.querySelector("#d-rows");
       if (!rows) { return; }
@@ -192,14 +215,14 @@
       var shown = 0;
       state.here.folders.filter(function (f) { return f.name.toLowerCase().indexOf(needle) >= 0; }).forEach(function (folder) {
         shown++;
-        var row = el("div", "row folder" + (state.selected === folder.at ? " selected" : ""));
+        var row = el("div", "row folder " + rowLook() + " cursor-pointer text-ink hover:bg-wash aria-selected:bg-wash aria-selected:outline-1 aria-selected:-outline-offset-1 aria-selected:outline-subtle" + (state.selected === folder.at ? " selected" : ""));
         row.dataset.at = folder.at;
         row.tabIndex = -1;
         row.setAttribute("role", browsing ? "link" : "option");
         if (browsing) { row.tabIndex = 0; } else { row.setAttribute("aria-selected", String(state.selected === folder.at)); }
         row.addEventListener("keydown", function (event) { if (browsing && event.key === "Enter") { load(folder.at, true); } });
-        var name = el("span", "name"); name.appendChild(icon("folder")); name.appendChild(el("span", "t", folder.name, folder.name));
-        row.appendChild(name); row.appendChild(el("span", "dim", when(folder.modified))); row.appendChild(el("span", "go"));
+        var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted [&_svg]:fill-subtle/35")); name.appendChild(el("span", "truncate", folder.name, folder.name));
+        row.appendChild(name); row.appendChild(el("span", "text-xs whitespace-nowrap text-muted @max-[40rem]:hidden", when(folder.modified))); row.appendChild(el("span", "flex justify-end text-subtle"));
         row.lastChild.appendChild(icon("go"));
         row.addEventListener("click", function () { if (browsing) { load(folder.at, true); } else { state.selected = folder.at; mark(); } });
         row.addEventListener("dblclick", function () { load(folder.at, true); });
@@ -207,14 +230,14 @@
       });
       state.here.files.filter(function (f) { return f.name.toLowerCase().indexOf(needle) >= 0; }).forEach(function (file) {
         shown++;
-        var row = el(browsing ? "a" : "div", "row file" + (browsing ? " openable" : ""));
+        var row = el(browsing ? "a" : "div", "row file " + rowLook() + (browsing ? " cursor-pointer text-ink no-underline hover:bg-wash" : " text-subtle"));
         if (browsing) { row.href = viewer(file); } else { row.setAttribute("role", "option"); row.setAttribute("aria-disabled", "true"); }
-        var name = el("span", "name"); name.appendChild(iconFor(file.name)); name.appendChild(el("span", "t", file.name, file.name));
-        row.appendChild(name); row.appendChild(el("span", "dim", when(file.modified))); row.appendChild(el("span", "dim num", bytes(file.size)));
+        var name = el("span", nameLook()); name.appendChild(iconFor(file.name, browsing ? "size-5" : "size-4")); name.appendChild(el("span", "truncate", file.name, file.name));
+        row.appendChild(name); row.appendChild(el("span", "text-xs whitespace-nowrap text-muted @max-[40rem]:hidden", when(file.modified))); row.appendChild(el("span", "text-right text-xs whitespace-nowrap text-muted", bytes(file.size)));
         rows.appendChild(row);
       });
       if (!shown && !state.making) {
-        rows.appendChild(el("div", "d-empty", needle ? "Nothing here matches." : state.here.at ? "This folder is empty." : "No projects yet. Choose New Folder to start one."));
+        rows.appendChild(el("div", "px-4 py-12 text-center text-sm text-subtle", needle ? "Nothing here matches." : state.here.at ? "This folder is empty." : "No projects yet. Choose New Folder to start one."));
       }
       roving();
       var fresh = rows.querySelector(".making input");
@@ -247,9 +270,9 @@
     }
 
     function makingRow() {
-      var row = el("div", "row making");
-      var name = el("span", "name"); name.appendChild(icon("folder"));
-      var input = el("input", "d-new");
+      var row = el("div", "row making grid grid-cols-[minmax(0,1fr)] items-center gap-1 text-sm " + (browsing ? "min-h-12 px-5" : "min-h-9 px-4"));
+      var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted [&_svg]:fill-subtle/35"));
+      var input = el("input", "h-7 w-full rounded-xs border border-subtle bg-surface px-2 text-sm text-ink ring-3 ring-hover");
       input.type = "text"; input.maxLength = 80; input.placeholder = state.here.at ? "New folder" : "New project";
       input.setAttribute("aria-label", "Name of the new folder");
       if (state.problem) { input.setAttribute("aria-invalid", "true"); input.setAttribute("aria-describedby", "d-problem"); }
@@ -260,7 +283,7 @@
       });
       name.appendChild(input);
       row.appendChild(name);
-      if (state.problem) { var problem = el("span", "problem", state.problem); problem.id = "d-problem"; row.appendChild(problem); }
+      if (state.problem) { var problem = el("span", "mb-1 ml-8 text-xs text-bad", state.problem); problem.id = "d-problem"; row.appendChild(problem); }
       return row;
     }
     function make(name) {
@@ -277,21 +300,22 @@
     }
 
     function footer() {
-      var foot = el("div", "d-foot");
-      var left = el("div", "d-left");
-      left.appendChild(button("d-quiet", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [state.here.at ? "New Folder" : "New Project"]));
-      (options.extras || []).forEach(function (extra) { left.appendChild(button("d-quiet", extra.run, [extra.label])); });
+      var foot = el("div", "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-t border-line px-4 py-3 @max-[40rem]:grid-cols-[minmax(0,1fr)_auto]");
+      var quiet = look.button + " h-[2.125rem] px-4 text-xs font-semibold";
+      var left = el("div", "flex items-center gap-2");
+      left.appendChild(button(quiet, function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [state.here.at ? "New Folder" : "New Project"]));
+      (options.extras || []).forEach(function (extra) { left.appendChild(button(quiet, extra.run, [extra.label])); });
       foot.appendChild(left);
-      foot.appendChild(el("div", "d-summary", summaryText()));
-      var right = el("div", "d-right");
+      foot.appendChild(el("div", "d-summary overflow-hidden text-right text-xs text-ellipsis whitespace-nowrap text-muted @max-[40rem]:hidden", summaryText()));
+      var right = el("div", "flex items-center gap-2");
       if (browsing) {
-        var chat = el("a", "d-choose", "Chat here");
+        var chat = el("a", look.primary + " d-choose h-[2.125rem] px-4 text-xs font-semibold", "Chat here");
         chat.href = target() ? "/chat?at=" + encodeURIComponent(target()) : "/chat";
         if (!target()) { chat.setAttribute("aria-disabled", "true"); }
         right.appendChild(chat);
       } else {
-        right.appendChild(button("d-cancel", options.onCancel, ["Cancel"]));
-        var choose = button("d-choose", function () { options.onChoose(target()); }, ["Choose"]);
+        right.appendChild(button(quiet, options.onCancel, ["Cancel"]));
+        var choose = button(look.primary + " d-choose h-[2.125rem] px-4 text-xs font-semibold", function () { options.onChoose(target()); }, ["Choose"]);
         choose.disabled = !target();
         right.appendChild(choose);
       }

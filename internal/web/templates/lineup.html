@@ -1,44 +1,42 @@
 {{template "head" .}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/compare">Compare</a><span>/</span><span>this task</span></nav>
+<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/compare">Compare</a><span>/</span><span>this task</span></nav>
 
 {{with .Lineup}}
-<div class="page-head">
+<div class="{{template "ag-head"}}">
   <h1>{{.Brief}}</h1>
-  <p class="muted">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
+  <p class="{{template "ag-lede"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
 </div>
 {{end}}
 
-<section class="figures">
-  <div class="figure headline"><span class="value">{{.Passed}} of {{len .Sides}}</span>
-    <span class="label">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></div>
-</section>
-{{with .Reading}}<p class="verdict">{{.Headline}}</p>{{end}}
+<p class="mb-3 flex items-baseline gap-2"><span class="font-display text-2xl font-semibold tabular-nums text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
+  <span class="text-sm text-muted">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></p>
+{{with .Reading}}<p class="mb-5 text-base">{{.Headline}}</p>{{end}}
 
-<div class="list">
-  <table class="measured lineup">
-    <thead><tr><th>Agent</th><th>Result</th><th>Time</th><th>Cost</th><th>Model calls</th><th>Changed</th><th></th></tr></thead>
+<div class="{{template "ag-table-wrap"}}">
+  <table>
+    <thead><tr><th class="{{template "ag-th"}}">Agent</th><th class="{{template "ag-th"}}">Result</th><th class="{{template "ag-th"}}">Time</th><th class="{{template "ag-th"}}">Cost</th><th class="{{template "ag-th"}}">Model calls</th><th class="{{template "ag-th"}}">Changed</th><th class="{{template "ag-th"}}"></th></tr></thead>
     <tbody>
     {{range .Sides}}
-    <tr>
-      <td class="name">{{.Engine}}<span class="sub">{{.Model}}</span></td>
-      <td>{{if not .Record.State.Done}}<span class="muted">Working…</span>
-        {{else if and .Checked .Passed}}<span class="done">{{template "icon-seal"}} Tests pass</span>
-        {{else if .Checked}}<span class="missed">Tests fail</span>
-        {{else}}<span class="missed">Stopped before the tests</span>{{end}}
-        {{if .Fastest}}<span class="badge">Fastest</span>{{end}}{{if .Cheapest}}<span class="badge">Cheapest</span>{{end}}</td>
-      <td>{{with .Seconds}}{{.}} s{{end}}</td>
-      <td>{{if .Metered}}{{.Spent.Money}}{{end}}</td>
-      <td>{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
-      <td>{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="plus">+{{.Added}}</span> <span class="minus">−{{.Removed}}</span>{{end}}</td>
-      <td><a href="/jobs/{{.Record.ID}}">Details</a></td>
+    <tr class="group/row">
+      <td class="{{template "ag-td"}} font-semibold">{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></td>
+      <td class="{{template "ag-td"}}"><span class="flex flex-wrap items-center gap-2">{{if not .Record.State.Done}}<span class="text-muted">Working…</span>
+        {{else if and .Checked .Passed}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Tests pass</span>
+        {{else if .Checked}}<span class="font-medium text-bad">Tests fail</span>
+        {{else}}<span class="font-medium text-bad">Stopped before the tests</span>{{end}}
+        {{if .Fastest}}<span class="{{template "ag-badge"}}">Fastest</span>{{end}}{{if .Cheapest}}<span class="{{template "ag-badge"}}">Cheapest</span>{{end}}</span></td>
+      <td class="{{template "ag-td"}} tabular-nums">{{with .Seconds}}{{.}} s{{end}}</td>
+      <td class="{{template "ag-td"}} tabular-nums">{{if .Metered}}{{.Spent.Money}}{{end}}</td>
+      <td class="{{template "ag-td"}} tabular-nums">{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
+      <td class="{{template "ag-td"}} tabular-nums">{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="text-ok">+{{.Added}}</span> <span class="text-bad">−{{.Removed}}</span>{{end}}</td>
+      <td class="{{template "ag-td"}}"><a href="/jobs/{{.Record.ID}}">Details</a></td>
     </tr>
     {{end}}
     </tbody>
   </table>
 </div>
-{{if .Reading}}<p class="note muted">Figures within 15% of each other, or under 5 seconds or a tenth of a cent apart, are called level: one run each is one sample, and a second run could reverse them. A model call is one turn of the agent's loop, counted at the proxy.</p>{{end}}
-<p class="note muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own signed record, under Details.</p>
+{{if .Reading}}<p class="mt-4 max-w-[68ch] text-xs text-muted">Figures within 15% of each other, or under 5 seconds or a tenth of a cent apart, are called level: one run each is one sample, and a second run could reverse them. A model call is one turn of the agent's loop, counted at the proxy.</p>{{end}}
+<p class="mt-2 text-xs text-muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own signed record, under Details.</p>
 
 {{if .Running}}<script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 4000);</script>{{end}}
 

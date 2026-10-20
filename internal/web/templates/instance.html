@@ -1,119 +1,132 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
-<header class="instance-head">
+<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
+<header class="mb-6 flex items-center gap-4 @max-[56rem]:flex-wrap">
   {{template "mark" (dict "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
-  <div class="who">
+  <div class="min-w-48 flex-1">
     <h1>{{.Agent.Name}}</h1>
-    <p class="muted">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="restricted">stays in your network</span>{{end}}</p>
+    <p class="mt-1 text-sm text-muted">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="font-medium text-warn">stays in your network</span>{{end}}</p>
   </div>
-  <a class="link-quiet" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
-  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="cta">{{template "icon-add"}} New conversation</button></form>
+  <a class="{{template "ag-link-quiet"}}" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
+  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="{{template "ag-btn"}}">{{template "icon-add"}} New conversation</button></form>
 </header>
 
-<div class="run">
-<div class="run-main">
-  <section class="panel">
-    <h2 class="section-title">Conversations</h2>
-    <ol class="threads-list">
+<div class="{{template "ag-two-col"}}">
+<div class="{{template "ag-col"}}">
+  <section class="{{template "ag-panel"}}">
+    <h2 class="{{template "ag-panel-title"}}">Conversations</h2>
+    <ol class="divide-y divide-line">
       {{range .Threads}}
-      <li><a href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
-        <span class="name" title="{{.Thread.Name}}">{{.Thread.Name}}</span>
-        <span class="last"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
-        <span class="when">{{with .Latest.Queued}}{{ago .}}{{end}}</span>
+      <li><a class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 py-3 text-ink no-underline hover:bg-wash" href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
+        <span class="truncate font-medium" title="{{.Thread.Name}}">{{.Thread.Name}}</span>
+        <span class="col-start-1 row-start-2 truncate text-sm text-muted"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Nothing said yet{{end}}</span>
+        <span class="col-start-2 row-start-1 text-xs text-subtle">{{with .Latest.Queued}}{{ago .}}{{end}}</span>
       </a></li>
       {{end}}
     </ol>
   </section>
 
-  <section class="panel" id="routines">
-    <h2 class="section-title">Routines</h2>
-    <p class="muted">A question this agent is asked on a schedule, in a conversation of its own, so it remembers from one run to the next.</p>
+  <section class="{{template "ag-panel"}}" id="routines">
+    <h2 class="{{template "ag-panel-title"}}">Routines</h2>
+    <p class="mb-2 max-w-[60ch] text-sm text-muted">A question this agent is asked on a schedule, in a conversation of its own, so it remembers from one run to the next.</p>
     {{if .Routines}}
-    <ol class="threads-list">
+    <ul class="divide-y divide-line border-y border-line">
       {{range .Routines}}
-      <li class="routine">
-        <a href="/instances/{{$.Instance.ID}}/threads/{{.Thread}}"><span class="name" title="{{.Prompt}}">{{.Title}}</span><span class="last">{{.When}}{{if .Paused}} · paused{{end}} · {{.Last}}</span></a>
-        <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/{{if .Paused}}resume{{else}}pause{{end}}"><button type="submit" class="quiet">{{if .Paused}}Resume{{else}}Pause{{end}}</button></form>
-        <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/remove" data-confirm="Remove this routine? Its conversation is kept."><button type="submit" class="quiet">Remove</button></form>
+      <li class="flex items-center gap-3 py-3 @max-[56rem]:flex-wrap">
+        <div class="min-w-0 flex-1">
+          <a class="block truncate font-medium text-ink no-underline hover:underline" href="/instances/{{$.Instance.ID}}/threads/{{.Thread}}" title="{{.Prompt}}">{{.Title}}</a>
+          <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span>{{.When}}</span>
+            {{if .Paused}}<span class="{{template "ag-badge-warn"}}">Paused</span>{{end}}
+            {{if eq .Last "ran"}}<span class="{{template "ag-badge-ok"}}">Last run ok</span>
+            {{else if eq .Last "not yet"}}<span class="{{template "ag-badge"}}">Not run yet</span>
+            {{else}}<span class="{{template "ag-badge-warn"}}">Last run {{.Last}}</span>{{end}}
+          </p>
+        </div>
+        <div class="flex flex-none items-center gap-2">
+          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/{{if .Paused}}resume{{else}}pause{{end}}"><button type="submit" class="{{template "ag-btn-small"}}">{{if .Paused}}Resume{{else}}Pause{{end}}</button></form>
+          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/remove" data-confirm="Remove this routine? Its conversation is kept."><button type="submit" class="{{template "ag-btn-small-danger"}}">Remove</button></form>
+        </div>
       </li>
       {{end}}
-    </ol>
+    </ul>
     {{end}}
-    <details>
-      <summary>Add a routine</summary>
-      <form class="stack" method="post" action="/instances/{{.Instance.ID}}/routines">
-        <label>Title <input name="title" placeholder="Morning summary" required></label>
-        <label>What to ask <textarea name="prompt" placeholder="Summarize what changed in the repository since yesterday." required></textarea></label>
-        <div class="row">
-          <label>Daily at <input name="daily" placeholder="08:00"></label>
-          <label>or every <span class="muted">hours</span> <input name="every" inputmode="numeric" placeholder="6"></label>
+    <details class="group mt-4">
+      <summary class="{{template "ag-summary"}}">{{template "ag-chev"}} Add a routine</summary>
+      <form class="mt-4 grid gap-4" method="post" action="/instances/{{.Instance.ID}}/routines">
+        <div class="grid grid-cols-2 gap-4 @max-[56rem]:grid-cols-1">
+          <div class="grid content-start gap-4">
+            <label class="{{template "ag-field"}}">Title <input class="{{template "ag-input"}}" name="title" placeholder="Morning summary" required></label>
+            <label class="{{template "ag-field"}}">Daily at <input class="{{template "ag-input"}}" name="daily" placeholder="08:00"></label>
+            <label class="{{template "ag-field"}}"><span>or every <span class="font-normal">hours</span></span> <input class="{{template "ag-input"}}" name="every" inputmode="numeric" placeholder="6"></label>
+          </div>
+          <label class="{{template "ag-field"}} grid-rows-[auto_minmax(0,1fr)]">What to ask <textarea class="{{template "ag-input"}} h-full" name="prompt" placeholder="Summarize what changed in the repository since yesterday." required></textarea></label>
         </div>
-        <button type="submit">Add it</button>
+        <div><button type="submit" class="{{template "ag-btn"}}">Add it</button></div>
       </form>
     </details>
   </section>
 
   {{if .Sharing}}{{template "apps" .}}{{end}}
 
-  <section class="panel">
-    <details id="task"{{if .Tasks}} open{{end}}>
-      <summary><h2>Checked tasks</h2> <span class="muted">for developers: a task that passes only when a command succeeds</span></summary>
+  <section class="{{template "ag-panel"}}">
+    <details class="group" id="task"{{if .Tasks}} open{{end}}>
+      <summary class="{{template "ag-summary"}} flex-wrap">{{template "ag-chev"}} <h2 class="whitespace-nowrap text-sm font-semibold text-ink">Checked tasks</h2> <span class="min-w-0 flex-1 basis-60 font-normal text-subtle">for developers: a task that passes only when a command succeeds</span></summary>
       {{if .Tasks}}
-      <ol class="threads-list">
-        {{range .Tasks}}<li><a href="/jobs/{{.ID}}"><span class="name" title="{{.Brief}}">{{.Brief}}</span><span class="last"><span class="state {{.State}}">{{.State}}</span></span><span class="when">{{ago .Queued}}</span></a></li>{{end}}
+      <ol class="mt-3 divide-y divide-line">
+        {{range .Tasks}}<li><a class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 text-ink no-underline hover:bg-wash" href="/jobs/{{.ID}}"><span class="truncate font-medium" title="{{.Brief}}">{{.Brief}}</span>{{template "ag-state" .State}}<span class="text-xs text-subtle">{{ago .Queued}}</span></a></li>{{end}}
       </ol>
       {{end}}
-      <form class="stack" method="post" action="/instances/{{.Instance.ID}}/tasks">
-        <label>What to do
-          <textarea name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
+      <form class="mt-4 grid gap-4" method="post" action="/instances/{{.Instance.ID}}/tasks">
+        <label class="{{template "ag-field"}}">What to do
+          <textarea class="{{template "ag-input"}}" name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
         </label>
-        <label><span class="line">Check <span class="muted">the command that says it worked</span></span>
-          <input name="gate" placeholder="sh test.sh" required>
+        <label class="{{template "ag-field"}}"><span>Check <span class="font-normal">the command that says it worked</span></span>
+          <input class="{{template "ag-input"}}" name="gate" placeholder="sh test.sh" required>
         </label>
-        <div class="row">
-          <label>Sensitivity
-            <select name="sensitivity">
+        <div class="grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
+          <label class="{{template "ag-field"}}">Sensitivity
+            <select class="{{template "ag-input"}}" name="sensitivity">
               <option value="internal">internal</option>
               <option value="public">public</option>
               <option value="restricted">restricted: the model must be local</option>
             </select>
           </label>
-          <label><span class="line">Team <span class="muted">optional</span></span>
-            <input name="team" placeholder="platform">
+          <label class="{{template "ag-field"}}"><span>Team <span class="font-normal">optional</span></span>
+            <input class="{{template "ag-input"}}" name="team" placeholder="platform">
           </label>
-          <label><span class="line">Cap in dollars <span class="muted">optional</span></span>
-            <input name="usd" inputmode="decimal" placeholder="5.00">
+          <label class="{{template "ag-field"}}"><span>Cap in dollars <span class="font-normal">optional</span></span>
+            <input class="{{template "ag-input"}}" name="usd" inputmode="decimal" placeholder="5.00">
           </label>
         </div>
-        <button type="submit">Run it</button>
+        <div><button type="submit" class="{{template "ag-btn"}}">Run it</button></div>
       </form>
     </details>
   </section>
 </div>
 
-<aside class="run-side" aria-label="About this agent">
-  <section class="panel">
-    <dl class="facts">
-      <dt>Model</dt>
-      <dd>{{if gt (len .Models) 1}}<form method="post" action="/instances/{{.Instance.ID}}/model" class="row">
-        <select name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
-        <button type="submit" class="quiet">Use</button>
+<aside class="{{template "ag-col"}}" aria-label="About this agent">
+  <section class="{{template "ag-panel"}}">
+    <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+      <dt class="text-muted">Model</dt>
+      <dd class="min-w-0 break-words">{{if gt (len .Models) 1}}<form method="post" action="/instances/{{.Instance.ID}}/model" class="flex items-center gap-2">
+        <select class="{{template "ag-input"}} min-w-0 flex-1" name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
+        <button type="submit" class="{{template "ag-btn-small"}}">Use</button>
       </form>{{else}}{{.Agent.Brain}}{{end}}</dd>
-      <dt>Agent type</dt><dd>{{.Agent.Engine}}</dd>
-      {{with .Instance.Setup}}<dt>Skills</dt><dd><a href="/setups/{{.}}">{{.}}</a></dd>{{end}}
-      {{with .Instance.Repo}}<dt>Repository</dt><dd>{{.}}</dd>{{end}}
-      <dt>Started</dt><dd>{{when .Instance.Started}}</dd>
+      <dt class="text-muted">Agent type</dt><dd class="min-w-0 break-words">{{.Agent.Engine}}</dd>
+      {{with .Instance.Setup}}<dt class="text-muted">Skills</dt><dd class="min-w-0 break-words"><a class="font-medium text-ink" href="/setups/{{.}}">{{.}}</a></dd>{{end}}
+      {{with .Instance.Repo}}<dt class="text-muted">Repository</dt><dd class="min-w-0 break-words">{{.}}</dd>{{end}}
+      <dt class="text-muted">Started</dt><dd class="min-w-0 break-words">{{when .Instance.Started}}</dd>
     </dl>
   </section>
-  <section class="panel">
+  <section class="{{template "ag-panel"}}">
     <form method="post" action="/instances/{{.Instance.ID}}/remove"
           data-confirm="Remove this agent? Its files are kept aside and its activity stays in the log.">
-      <button type="submit" class="danger-button">Remove this agent</button>
+      <button type="submit" class="{{template "ag-btn-danger"}}">Remove this agent</button>
     </form>
-    <p class="muted small">Its files are kept aside, not deleted.</p>
+    <p class="mt-3 text-xs text-muted">Its files are kept aside, not deleted.</p>
   </section>
 </aside>
 </div>

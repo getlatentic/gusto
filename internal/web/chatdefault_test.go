@@ -76,7 +76,7 @@ func TestTheNewChatBoxSaysWhatItRunsOnAndKeepsTheChoicesBehindIt(t *testing.T) {
 			t.Errorf("the new chat lacks %q", want)
 		}
 	}
-	tools := page[strings.Index(page, `class="tools"`):strings.Index(page, `id="chat-choices"`)]
+	tools := page[strings.Index(page, `id="folder-pick"`):strings.Index(page, `id="chat-choices"`)]
 	if strings.Contains(tools, `id="harness-pick"`) || strings.Contains(tools, `id="model-pick"`) {
 		t.Error("the engine and model menus are still beside Send")
 	}
