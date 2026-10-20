@@ -19,6 +19,7 @@
   --color-subtle: var(--gu-text-subtle);
   --color-faint: var(--gu-text-nontext);
   --color-inverse: var(--gu-text-inverse);
+  --color-plate: #ffffff;
   --color-accent: var(--gu-accent);
   --color-accent-hover: var(--gu-accent-hover);
   --color-accent-press: var(--gu-accent-press);

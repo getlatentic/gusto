@@ -34,3 +34,7 @@ Programs a person may install beside gusto, which gusto runs and does not link:
   OpenShell       Apache-2.0 (github.com/NVIDIA/OpenShell)
   e2fsprogs       mke2fs, debugfs and e2fsck are GPL version 2. The release carries them as separate programs with their
                   license and the source address, built by deploy/e2fsprogs/build.sh.
+
+The agent marks under internal/web/static/agents are the logos of Claude (Anthropic), Codex (OpenAI), OpenCode, Pi, Hermes Agent (Nous Research) and DeepSeek.
+They belong to their owners, are not covered by this licence, and appear only to name the agent each one stands for. Sources: the Simple Icons set
+for Claude and OpenAI, and each project's own site or repository for the others.
