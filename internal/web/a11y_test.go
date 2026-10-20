@@ -212,7 +212,7 @@ func TestARefusedChatSaysWhyAtTheBox(t *testing.T) {
 		if n.Data == "textarea" && attr(n, "name") == "said" {
 			box = n
 		}
-		if attr(n, "class") == "refused" {
+		if attr(n, "id") == "refused" {
 			why = n
 		}
 	})

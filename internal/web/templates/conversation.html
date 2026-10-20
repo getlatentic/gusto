@@ -1,34 +1,34 @@
 {{template "head" .}}
 
-<section class="talk">
-  <header class="talk-top">
-    <h1 class="which" title="{{.Named}}">{{.Named}}</h1>
-    <div class="where">
-      <a class="project" href="/instances/{{.Instance.ID}}" title="About this project">{{template "icon-folder"}}<span>{{.Agent.Name}}</span></a>
-      {{with .Thread.Dir}}<span class="sep">/</span><span class="dir" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
+<section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
+  <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
+    <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold tracking-normal" title="{{.Named}}">{{.Named}}</h1>
+    <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
+      <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "icon-folder"}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
+      {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
-    <span class="sealed" tabindex="0" role="img" aria-label="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
-    {{range .Apps}}<a class="quiet-button" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
-    {{if .Starting}}<span class="muted small">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
-    <a class="quiet-button" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
+    <span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4 [&>svg]:opacity-100" tabindex="0" role="img" aria-label="Sealed: it works in its own sandbox. The key for the model stays with Agent Cloud and never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
+    {{range .Apps}}<a class="h-8 flex-none {{template "talk-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
+    {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
+    <a class="h-8 flex-none {{template "talk-btn-quiet"}} [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
   </header>
 
-  <div class="said-so-far" id="said" tabindex="0" role="region" aria-label="Conversation">
-    <div class="column">
+  <div class="said-so-far overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
+    <div class="mx-auto max-w-[56rem]">
       <div id="turns">{{template "turns" .}}</div>
-      <p class="sr" role="status" id="turn-news"></p>
+      <p class="sr-only" role="status" id="turn-news"></p>
       {{if .Waiting}}
-      <div class="turn-live" id="working">
-        <p class="status"><span class="spin" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="elapsed" id="elapsed"></span></p>
-        <ol class="live" id="live" aria-label="What it has done so far"></ol>
+      <div class="grid gap-3" id="working">
+        <p class="m-0 flex items-center gap-3 text-sm font-medium text-ink"><span class="size-3.5 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="ml-auto font-normal text-subtle tabular-nums" id="elapsed"></span></p>
+        <ol class="grid gap-2 pl-2 empty:hidden" id="live" aria-label="What it has done so far"></ol>
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
-      <div class="start">
-        <h2>How can I help?</h2>
+      <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
+        <h2 class="text-xl tracking-tight">How can I help?</h2>
         {{with .Starters}}
-        <div class="starters">
-          {{range .}}<button type="button" class="starter" data-said="{{.}}">{{.}}</button>{{end}}
+        <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3" id="starters">
+          {{range .}}<button type="button" class="starter cursor-pointer rounded-md border border-line bg-surface px-4 py-3 text-left text-sm text-ink hover:border-subtle" data-said="{{.}}">{{.}}</button>{{end}}
         </div>
         {{end}}
       </div>
@@ -38,33 +38,29 @@
 
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if .Waiting}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
-  <div class="composer">
-    <form class="column" method="post" action="{{.Path}}/say" id="say-form">
-      <div class="box">
-        <textarea name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
-        <div class="tools">
-          {{if not .Several}}<span class="muted small meta-left">{{.Agent.Brain}}</span>{{end}}
-          <span class="grow"></span>
-          {{if .Several}}<div class="picker" id="model-pick" data-picker data-label="Model" data-options="{{.Models}}">
-            <input type="hidden" name="model" value="{{.Instance.Model}}" form="model-form">
-            <button type="button" aria-haspopup="listbox" aria-expanded="false"><span class="label">Model</span>{{template "icon-chevron"}}</button>
-            <div class="menu" role="listbox"></div>
-          </div>{{end}}
-          <button type="submit" class="send" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr">Send</span></button>
-          {{if .Waiting}}<button type="submit" class="stop-pill" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
+  <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
+    <form class="mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
+        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
+        <div class="flex items-center gap-1">
+          {{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}
+          <span class="flex-1"></span>
+          {{if .Several}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-accent p-0 text-on-accent hover:bg-accent-hover [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          {{if .Waiting}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
     </form>
   </div>
 </section>
 
-<aside class="file-panel" id="file-panel" aria-label="Files from this chat" hidden>
-  <div class="resize" id="file-panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the files" tabindex="0"></div>
-  <div class="fp-bar">
-    <div class="fp-tabs" role="tablist" aria-label="Open files"></div>
-    <button type="button" class="fp-close" id="fp-close" aria-label="Close the files" title="Close the files">{{template "icon-x"}}</button>
+<aside class="file-panel relative flex min-h-0 min-w-0 flex-[0_0_var(--files-w,36rem)] flex-col border-l border-line bg-surface @max-[72rem]:hidden" id="file-panel" aria-label="Files from this chat" hidden>
+  <div class="resize absolute inset-y-0 -left-1 z-[6] w-2 cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-[0.1875rem] after:w-0.5 after:bg-transparent after:transition-colors after:content-[''] hover:after:bg-line-strong [.resizing_&]:after:bg-line-strong focus-visible:-outline-offset-2 focus-visible:after:bg-focus" id="file-panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the files" tabindex="0"></div>
+  <div class="flex items-center gap-2 border-b border-line px-3 py-2">
+    <div class="fp-tabs flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="Open files"></div>
+    <button type="button" class="grid size-8 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink" id="fp-close" aria-label="Close the files" title="Close the files">{{template "icon-x"}}</button>
   </div>
-  <div class="fp-bodies"></div>
+  <div class="fp-bodies min-h-0 flex-1 overflow-auto"></div>
 </aside>
 <script src="{{asset "/static/filepanel.js"}}"></script>
 
@@ -119,7 +115,7 @@
   // Everything it has said and done so far, in the order it came: its words where it said them, and each step where it took it.
   var list = document.getElementById("live");
   var doing = document.getElementById("doing");
-  var tick = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var tick = '<svg class="i size-full text-ok opacity-100" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   var look = function () {
     fetch("{{.Path}}/live", { credentials: "same-origin" }).then(function (answer) { return answer.ok ? answer.json() : null; }).then(function (live) {
       if (!live) { return; }
@@ -129,16 +125,17 @@
       live.items.forEach(function (item, i) { if (item.kind === "step") { lastStep = i; } });
       if (live.cut) {
         var cut = document.createElement("li");
-        cut.className = "cut";
+        cut.className = "block text-xs text-subtle";
         cut.textContent = "The start of a long turn is left out.";
         list.appendChild(cut);
       }
       live.items.forEach(function (item, i) {
         var row = document.createElement("li");
         if (item.kind === "said") {
-          row.className = "said-block";
-          item.text.split(/\n{2,}/).forEach(function (paragraph) {
+          row.className = "ml-2 border-l-2 border-line pl-3 text-sm leading-relaxed text-muted";
+          item.text.split(/\n{2,}/).forEach(function (paragraph, at) {
             var p = document.createElement("p");
+            p.className = "whitespace-pre-wrap wrap-anywhere" + (at ? " mt-2" : "");
             p.textContent = paragraph;
             row.appendChild(p);
           });
@@ -146,18 +143,18 @@
           return;
         }
         var last = i === lastStep && i === live.items.length - 1;
-        row.className = last ? "now" : "done";
+        row.className = "flex min-w-0 items-baseline gap-2 text-xs " + (last ? "text-ink" : "text-subtle");
         var mark = document.createElement("span");
-        mark.className = "mark-step";
+        mark.className = "grid size-3.5 flex-none place-items-center self-center" + (last ? " before:size-1.5 before:rounded-full before:bg-ink before:content-['']" : "");
         if (!last) { mark.innerHTML = tick; }
         row.appendChild(mark);
         var what = document.createElement("span");
-        what.className = "what";
+        what.className = "flex-none font-semibold";
         what.textContent = item.what;
         row.appendChild(what);
         if (item.detail) {
           var detail = document.createElement("span");
-          detail.className = "detail";
+          detail.className = "truncate font-mono text-xs text-muted";
           detail.textContent = item.detail;
           detail.title = item.detail;
           row.appendChild(detail);
@@ -200,27 +197,27 @@
 
 {{define "turns"}}
 {{range .Turns}}
-<article class="turn" id="{{.ID}}">
-  <p class="said">{{.Said}}</p>
+<article class="mb-8" id="{{.ID}}">
+  <p class="mb-4 ml-auto w-fit max-w-[34rem] rounded-lg bg-wash px-4 py-2.5 text-base whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
   {{if .State.Done}}
-  <div class="answer{{if .Stopped}} failed{{end}}">
+  <div class="grid min-w-0 gap-3">
     {{with .Steps}}
-    <details class="steps">
-      <summary>{{template "icon-chevron"}}<span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
-      {{template "steps" .}}
+    <details class="group text-xs">
+      <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-subtle hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden"><span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5 [&>svg]:opacity-100">{{template "icon-chevron"}}</span><span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
+      <div class="[&_ol]:mt-2 [&_ol]:ml-2 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-2 [&_ol]:border-l [&_ol]:border-line-strong [&_ol]:pl-4 [&_.what]:mr-2 [&_.what]:font-semibold [&_.what]:text-ink [&_.detail]:font-mono [&_.detail]:text-xs [&_.detail]:wrap-anywhere [&_.detail]:text-muted">{{template "steps" .}}</div>
     </details>
     {{end}}
-    {{if .Replied}}<div class="reply prose">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
-    {{with .Changed}}<p class="changed">{{range .}}<a href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
-    {{if .StoppedBy}}<p class="stopped">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="stopped">It stopped before it finished: <code>{{.}}</code></p>{{end}}{{end}}
-    <p class="meta">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
-      {{with .Blocked}}<a class="guard" href="/jobs/{{$.ID}}" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
-      {{if .Signed}}<a class="guard" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
-      <a href="/jobs/{{.ID}}">Record</a></p>
+    {{if .Replied}}<div class="prose">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
+    {{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+    {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
+    <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
+      {{with .Blocked}}<a class="inline-flex min-h-6 items-center gap-1 text-ok no-underline hover:underline [&>svg]:size-3.5" href="/jobs/{{$.ID}}" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}
+      {{if .Signed}}<a class="inline-flex min-h-6 items-center gap-1 text-ok no-underline hover:underline [&>svg]:size-3.5" href="/jobs/{{.ID}}#proof" title="This message's record is signed, and the signature checks">{{template "icon-seal"}} Signed</a>{{end}}
+      <a class="inline-flex min-h-6 items-center text-inherit no-underline hover:text-ink hover:underline" href="/jobs/{{.ID}}">Record</a></p>
     {{if $.Sharing}}{{range .Previews}}
-    <form class="preview" method="post" action="/instances/{{$.Instance.ID}}/apps">
+    <form class="m-0" method="post" action="/instances/{{$.Instance.ID}}/apps">
       <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
-      <button type="submit" class="quiet">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
+      <button type="submit" class="h-8 {{template "talk-btn-quiet"}}">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
     </form>
     {{end}}{{end}}
   </div>
