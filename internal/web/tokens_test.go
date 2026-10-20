@@ -222,7 +222,7 @@ func TestATokenNeedsAValidNameAndAScopeAndKeepsNoSecret(t *testing.T) {
 		"a name in use":      {"name": {"ci"}, "scope": {"submit"}},
 	} {
 		page := here.ask(t, "POST", "/admin/tokens", form).Body.String()
-		if !strings.Contains(page, `class="refused"`) || strings.Contains(page, "gusto_") {
+		if !strings.Contains(page, `role="alert"`) || strings.Contains(page, "gusto_") {
 			t.Errorf("%s was not refused, or showed a secret:\n%s", name, page)
 		}
 	}

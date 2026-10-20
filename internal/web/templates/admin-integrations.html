@@ -1,50 +1,57 @@
 {{template "head" .}}
 
-<div class="title-row">
+<div class="{{template "adm-title"}} mb-3!">
   <h1>Integrations</h1>
-  <span class="count">Skills and tools added once for the whole organization</span>
+  <span class="text-sm text-muted">Skills and tools added once for the whole organization</span>
 </div>
-<details class="how page-why"><summary>How this works</summary><p>Integrations use the open Agent Plugins format. An imported integration is off until you turn a version on, and a setup then gives it to its agents.</p></details>
+<details class="group mb-6">
+  <summary class="{{template "adm-fold-summary"}}">{{template "adm-chevron"}} How this works</summary>
+  <p class="mt-2 max-w-prose text-sm text-muted">Integrations use the open Agent Plugins format. An imported integration is off until you turn a version on, and a setup then gives it to its agents.</p>
+</details>
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<section class="panel">
-  <h2>Import from git</h2>
-  <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+<div class="grid gap-4">
+<div class="{{template "adm-panels"}}">
+<section class="{{template "adm-card"}}">
+  <h2 class="{{template "adm-card-title"}}">Import from git</h2>
+  <form class="grid gap-4" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
     <input type="hidden" name="kind" value="git">
-    <label>Git address <input name="address" placeholder="https://github.com/example/plugin.git" required></label>
-    <label>Branch, tag or commit <span class="muted">Pinned to the commit it resolves to</span> <input name="ref" placeholder="main"></label>
-    <label>Folder in the repository <span class="muted">Only if the plugin is not at the top</span> <input name="folder" placeholder="plugins/reports"></label>
-    <button type="submit">Import from git</button>
+    <label class="{{template "adm-field"}}">Git address <input class="{{template "adm-input"}}" name="address" placeholder="https://github.com/example/plugin.git" required></label>
+    <label class="{{template "adm-field"}}"><span>Branch, tag or commit <span class="font-normal text-subtle">· pinned to the commit it resolves to</span></span> <input class="{{template "adm-input"}}" name="ref" placeholder="main"></label>
+    <label class="{{template "adm-field"}}"><span>Folder in the repository <span class="font-normal text-subtle">· only if the plugin is not at the top</span></span> <input class="{{template "adm-input"}}" name="folder" placeholder="plugins/reports"></label>
+    <div><button class="{{template "adm-btn"}}" type="submit">Import from git</button></div>
   </form>
 </section>
 
-<section class="panel">
-  <h2>Import an upload</h2>
-  <form class="stack" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+<section class="{{template "adm-card"}}">
+  <h2 class="{{template "adm-card-title"}}">Import an upload</h2>
+  <form class="grid gap-4" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
     <input type="hidden" name="kind" value="upload">
-    <label>A .zip or .tar.gz of the plugin <input type="file" name="archive" accept=".zip,.gz,.tgz" required></label>
-    <button type="submit">Import the upload</button>
+    <label class="{{template "adm-field"}}">A .zip or .tar.gz of the plugin <input class="{{template "adm-input"}}" type="file" name="archive" accept=".zip,.gz,.tgz" required></label>
+    <div><button class="{{template "adm-btn"}}" type="submit">Import the upload</button></div>
   </form>
 </section>
+</div>
 
 {{if .Integrations}}
-<section class="panel">
-  <table>
-    <thead><tr><th>Name</th><th>On</th><th>Versions</th></tr></thead>
+<section class="{{template "adm-card"}} overflow-x-auto">
+  <table class="{{template "adm-table"}}">
+    <thead><tr><th>Name</th><th>On</th><th class="text-right">Versions</th></tr></thead>
     <tbody>
       {{range .Integrations}}
       <tr>
-        <td><a href="/admin/integrations/{{.Name}}">{{.Name}}</a></td>
-        <td>{{if .On}}on{{else}}<span class="muted">off</span>{{end}}</td>
-        <td>{{len .Versions}}</td>
+        <td><a class="font-medium underline-offset-2 hover:underline" href="/admin/integrations/{{.Name}}">{{.Name}}</a></td>
+        <td>{{if .On}}on{{else}}<span class="text-muted">off</span>{{end}}</td>
+        <td class="text-right tabular-nums">{{len .Versions}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
 </section>
 {{else}}
-<p class="muted">Nothing has been imported yet.</p>
+<p class="text-muted">Nothing has been imported yet.</p>
 {{end}}
+</div>
 
 {{template "foot" .}}
