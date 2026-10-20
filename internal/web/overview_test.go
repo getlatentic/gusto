@@ -32,7 +32,7 @@ func overview(t *testing.T, here *site) string {
 // figureSays is the number over a label in the figures across the top.
 func figureSays(t *testing.T, page, label string) string {
 	t.Helper()
-	found := regexp.MustCompile(`<span class="value">([^<]*)</span><span class="label">` + regexp.QuoteMeta(label) + `[^<]*</span>`).FindStringSubmatch(page)
+	found := regexp.MustCompile(`<span class="[^"]*">([^<]*)</span>\s*<span class="[^"]*">(?:<span class="[^"]*"></span>)?` + regexp.QuoteMeta(label)).FindStringSubmatch(page)
 	if found == nil {
 		t.Fatalf("no figure says %q:\n%s", label, page)
 	}
@@ -95,13 +95,13 @@ func TestTheOverviewShowsSpendByPersonTeamModelAndRepositoryAgainstTheTeamsCap(t
 			t.Errorf("the overview lacks %q:\n%s", want, page)
 		}
 	}
-	if row := limitOf(t, page, "Team platform"); !strings.Contains(row, `<span class="state failed">$6.00</span>`) || !strings.Contains(row, "$5.00") {
+	if row := limitOf(t, page, "Team platform"); !strings.Contains(row, `<span class="font-semibold text-bad">$6.00</span>`) || !strings.Contains(row, "$5.00") {
 		t.Errorf("a team over its cap is not shown so: %s", row)
 	}
-	if row := limitOf(t, page, "Team research"); strings.Contains(row, "failed") || !strings.Contains(row, "$0.0000") || !strings.Contains(row, "$50.00") {
+	if row := limitOf(t, page, "Team research"); strings.Contains(row, "text-bad") || !strings.Contains(row, "$0.0000") || !strings.Contains(row, "$50.00") {
 		t.Errorf("a team under its cap that spent nothing: %s", row)
 	}
-	if row := limitOf(t, page, "Team design"); !strings.Contains(row, `<span class="state failed">$8.00</span>`) {
+	if row := limitOf(t, page, "Team design"); !strings.Contains(row, `<span class="font-semibold text-bad">$8.00</span>`) {
 		t.Errorf("a team that has spent exactly its cap has none left: %s", row)
 	}
 	person := regexp.MustCompile(`(?s)By person.*?</section>`).FindString(page)
@@ -109,7 +109,7 @@ func TestTheOverviewShowsSpendByPersonTeamModelAndRepositoryAgainstTheTeamsCap(t
 		t.Errorf("each person's spend is not summed: %s", person)
 	}
 	for range 30 {
-		limits := regexp.MustCompile(`(?s)<h2>Limits</h2>.*?</table>`).FindString(overview(t, here))
+		limits := regexp.MustCompile(`(?s)<h2[^>]*>Limits</h2>.*?</table>`).FindString(overview(t, here))
 		design, platform, research := strings.Index(limits, "Team design"), strings.Index(limits, "Team platform"), strings.Index(limits, "Team research")
 		if !(design < platform && platform < research) {
 			t.Fatalf("the teams are not in order:\n%s", limits)
@@ -187,7 +187,7 @@ func TestALimitThatIsUsedUpIsMarkedSo(t *testing.T) {
 
 	page := overview(t, here)
 	for _, what := range []string{"Tasks started in all", "Tasks at once", "Workspaces"} {
-		if row := limitOf(t, page, what); !strings.Contains(row, `class="state failed"`) {
+		if row := limitOf(t, page, what); !strings.Contains(row, `text-bad`) {
 			t.Errorf("%s is at its limit and is not marked: %s", what, row)
 		}
 	}
@@ -248,14 +248,14 @@ func TestTheOverviewListsComputersAndAppsAndOnlyWhereTheServerKeepsThem(t *testi
 	here.server.UseApps(shared, nil)
 
 	page = overview(t, here)
-	computers := regexp.MustCompile(`(?s)<h2>Workspaces</h2>.*?</section>`).FindString(page)
-	for _, want := range []string{"ada@acme.com", `state running">running`, "3h ago", "bob@acme.com", `state failed">failed`, "the gateway said no", "never"} {
+	computers := regexp.MustCompile(`(?s)<h2[^>]*>Workspaces</h2>.*?</section>`).FindString(page)
+	for _, want := range []string{"ada@acme.com", `>running</span>`, "3h ago", "bob@acme.com", `>failed</span>`, "the gateway said no", "never"} {
 		if !strings.Contains(computers, want) {
 			t.Errorf("the computers lack %q: %s", want, computers)
 		}
 	}
-	listed := regexp.MustCompile(`(?s)<h2>Apps</h2>.*?</section>`).FindString(page)
-	for _, want := range []string{"ada@acme.com", "an agent that was removed", `state live">live`} {
+	listed := regexp.MustCompile(`(?s)<h2[^>]*>Apps</h2>.*?</section>`).FindString(page)
+	for _, want := range []string{"ada@acme.com", "an agent that was removed", `>live</span>`} {
 		if !strings.Contains(listed, want) {
 			t.Errorf("the apps lack %q: %s", want, listed)
 		}
@@ -359,7 +359,7 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 		t.Errorf("a refused budget changed the budget:\n%s", page)
 	}
 	refused := here.ask(t, "GET", "/admin?refused="+url.QueryEscape("the budget is a number"), nil).Body.String()
-	if !strings.Contains(refused, `class="refused"`) {
+	if !strings.Contains(refused, `>the budget is a number</p>`) {
 		t.Errorf("a refusal is not shown:\n%s", refused)
 	}
 	if n := len(ofKind(written(t, log), changelog.BudgetSet)); n != 1 {
@@ -380,7 +380,7 @@ func TestTheOverviewSaysWhenTheMonthsSpendingHasPassedTheBudget(t *testing.T) {
 	}
 	spentNow(t, here, "third", "ada@acme.com", 30.5)
 	page := overview(t, here)
-	alert := regexp.MustCompile(`(?s)<p class="alert" role="alert">(.*?)</p>`).FindStringSubmatch(page)
+	alert := regexp.MustCompile(`(?s)<p class="[^"]*" role="alert">(.*?)</p>`).FindStringSubmatch(page)
 	if alert == nil {
 		t.Fatalf("130.50 of 100 is passed and the page does not say:\n%s", page)
 	}
@@ -389,7 +389,7 @@ func TestTheOverviewSaysWhenTheMonthsSpendingHasPassedTheBudget(t *testing.T) {
 			t.Errorf("the alert lacks %q: %s", want, alert[1])
 		}
 	}
-	if row := limitOf(t, page, "Budget for"); !strings.Contains(row, `state failed">$130.50`) {
+	if row := limitOf(t, page, "Budget for"); !strings.Contains(row, `text-bad">$130.50`) {
 		t.Errorf("the budget's row does not say it is used up: %s", row)
 	}
 
@@ -409,7 +409,7 @@ func TestSpendingThatHasNoPriceMakesTheBudgetPassedByAtLeast(t *testing.T) {
 	spentNow(t, here, "priced", "ada@acme.com", 12)
 	spentJob(t, here.index.Root(), "unpriced", "", unmeasuredNow())
 	page := overview(t, here)
-	alert := regexp.MustCompile(`(?s)<p class="alert" role="alert">(.*?)</p>`).FindStringSubmatch(page)
+	alert := regexp.MustCompile(`(?s)<p class="[^"]*" role="alert">(.*?)</p>`).FindStringSubmatch(page)
 	if alert == nil || !strings.Contains(alert[1], "more that has no price") || !strings.Contains(alert[1], "at least") {
 		t.Errorf("what could not be priced is not said:\n%s", page)
 	}

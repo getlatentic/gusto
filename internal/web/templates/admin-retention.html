@@ -1,77 +1,79 @@
 {{template "head" .}}
 
-<div class="title-row">
+<div class="{{template "adm-title"}}">
   <h1>Retention</h1>
-  <span class="count">Finished work is removed on a schedule</span>
+  <span class="text-sm text-muted">Finished work is removed on a schedule</span>
 </div>
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<section class="figures">
-  <div class="figure"><span class="value">{{.Used}}</span><span class="label">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="figure"><span class="value">{{.Workspaces}}</span><span class="label">of it in working folders</span></div>
-  <div class="figure"><span class="value">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="label">{{with .Oldest}}oldest task kept, <a href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
+<section class="{{template "adm-figures"}}">
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Used}}</span><span class="text-xs text-muted">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Workspaces}}</span><span class="text-xs text-muted">of it in working folders</span></div>
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="text-xs text-muted">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
-<section class="panel">
-  <h2>Policy</h2>
+<div class="grid gap-4">
+<section class="{{template "adm-card"}} overflow-x-auto">
+  <h2 class="{{template "adm-card-title"}}">Policy</h2>
   {{if .Removes}}
-  <table>
+  <table class="{{template "adm-table"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
-      {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="muted">kept</span>{{end}}</td></tr>{{end}}
+      {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  <p class="muted">Days are counted from when the task ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
+  <p class="mt-3 text-sm text-muted">Days are counted from when the task ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
 </section>
 
-<div class="panels">
-<section class="panel">
-  <h2>Next sweep</h2>
+<div class="{{template "adm-panels"}}">
+<section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
+  <h2 class="text-sm font-semibold">Next sweep</h2>
   {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
-  <table>
-    <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th>Frees</th></tr></thead>
+  <table class="{{template "adm-table"}}">
+    <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
     <tbody>
-      {{range .Upcoming}}<tr><td><a href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td>{{.Days}} days ago</td><td>{{.Bytes}} bytes</td></tr>{{end}}
+      {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
     </tbody>
   </table>
   {{else}}
-  <p class="muted">Nothing is due.</p>
+  <p class="{{template "adm-note"}}">Nothing is due.</p>
   {{end}}
-  <form method="post" action="/admin/retention/sweep"><button class="quiet-button" type="submit">Sweep now</button></form>
-  {{with .Last}}<p class="muted">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
+  <form method="post" action="/admin/retention/sweep"><button class="{{template "adm-btn-quiet"}}" type="submit">Sweep now</button></form>
+  {{with .Last}}<p class="{{template "adm-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
 </section>
 
-<section class="panel">
-  <h2>Holds</h2>
-  <p class="muted">Held work is kept whole, whatever the policy says.</p>
+<section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
+  <h2 class="text-sm font-semibold">Holds</h2>
+  <p class="{{template "adm-note"}}">Held work is kept whole, whatever the policy says.</p>
   {{if or .HeldJobs .HeldPeople}}
-  <table>
+  <table class="{{template "adm-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
-      {{range $id, $h := .HeldJobs}}<tr><td>task <a href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="quiet-button">Release</button></form></td></tr>{{end}}
+      {{range $id, $h := .HeldJobs}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
+        <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="quiet-button">Release</button></form></td></tr>{{end}}
+        <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Release</button></form></td></tr>{{end}}
     </tbody>
   </table>
   {{end}}
-  <form method="post" action="/admin/retention/jobs/hold" class="inline">
-    <label>Task <input name="job" placeholder="the task's id, as in its address" required></label>
-    <label>Why <input name="why" placeholder="for the record"></label>
-    <button class="quiet-button" type="submit">Keep the task</button>
+  <form method="post" action="/admin/retention/jobs/hold" class="flex flex-wrap items-end gap-3">
+    <label class="{{template "adm-field"}} min-w-40 flex-1">Task <input class="{{template "adm-input"}}" name="job" placeholder="the task's id, as in its address" required></label>
+    <label class="{{template "adm-field"}} min-w-40 flex-1">Why <input class="{{template "adm-input"}}" name="why" placeholder="for the record"></label>
+    <button class="{{template "adm-btn-quiet"}}" type="submit">Keep the task</button>
   </form>
-  <form method="post" action="/admin/retention/holds" class="inline">
-    <label>Person <input name="who" placeholder="amy@acme.test" required></label>
-    <label>Why <input name="why" placeholder="for the record"></label>
-    <button class="quiet-button" type="submit">Keep their work</button>
+  <form method="post" action="/admin/retention/holds" class="flex flex-wrap items-end gap-3">
+    <label class="{{template "adm-field"}} min-w-40 flex-1">Person <input class="{{template "adm-input"}}" name="who" placeholder="amy@acme.test" required></label>
+    <label class="{{template "adm-field"}} min-w-40 flex-1">Why <input class="{{template "adm-input"}}" name="why" placeholder="for the record"></label>
+    <button class="{{template "adm-btn-quiet"}}" type="submit">Keep their work</button>
   </form>
 </section>
 </div>
-<p class="muted note">A task loses its working folder first, which is most of the disk and what opening a pull request and a rerun need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
+<p class="max-w-prose text-xs text-muted">A task loses its working folder first, which is most of the disk and what opening a pull request and a rerun need. Its signed record stays until the record's own time is up. Work on an agent goes when the agent does.</p>
+</div>
 
 {{template "foot" .}}
