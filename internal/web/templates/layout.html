@@ -86,7 +86,7 @@
 </head>
 <body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
 <a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
-{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)] @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
+{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
 {{template "side" .}}
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
