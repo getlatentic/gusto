@@ -85,8 +85,9 @@ func (q *Queue) Alive() int { return int(q.alive.Load()) }
 func (q *Queue) Slots() int { return q.slots }
 
 func (q *Queue) serve() {
-	defer q.alive.Add(-1)
+	// Deferred in this order so the count drops before Stop's wait ends, and a stopped queue reads as having no workers.
 	defer q.workers.Done()
+	defer q.alive.Add(-1)
 	// The tick is a backstop for a wake that was missed. It does not find work
 	// nobody told this server about: the index is read from disk once, at Open.
 	tick := time.NewTicker(5 * time.Second)
