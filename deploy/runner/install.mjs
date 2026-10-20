@@ -17,6 +17,8 @@ const pins = JSON.parse(readFileSync(pinsPath, "utf8")).packages;
 mkdirSync(join(recordPath, ".."), { recursive: true });
 appendFileSync(recordPath, "");
 const stage = mkdtempSync(join(tmpdir(), "gusto-install-"));
+// npm's cache is kept in the stage and removed with it: left in the image it is hundreds of megabytes of tarballs nothing reads again.
+const npm = { ...process.env, npm_config_cache: join(stage, "npm-cache") };
 
 for (const member of members) {
   const { name, pkg, version } = parse(member);
@@ -24,11 +26,11 @@ for (const member of members) {
   if (!pin) fail(`${pkg} is not in pins.json: run internal/harness/pin.sh ${pkg}@<version>`);
   if (version && version !== pin.Version && version !== pin.version)
     fail(`${member} asks for ${version}, and pins.json pins ${pin.version}: move the pin or drop the version`);
-  const packed = JSON.parse(execFileSync("npm", ["pack", `${pkg}@${pin.version}`, "--pack-destination", stage, "--json"], { encoding: "utf8" }));
+  const packed = JSON.parse(execFileSync("npm", ["pack", `${pkg}@${pin.version}`, "--pack-destination", stage, "--json"], { encoding: "utf8", env: npm }));
   const file = join(stage, packed[0].filename);
   const sum = "sha512-" + createHash("sha512").update(readFileSync(file)).digest("base64");
   if (sum !== pin.integrity) fail(`${pkg}@${pin.version}: the tarball's sha512 is not the pinned one\n  got  ${sum}\n  want ${pin.integrity}`);
-  execFileSync("npm", ["install", "-g", "--no-fund", "--no-audit", file], { stdio: "inherit" });
+  execFileSync("npm", ["install", "-g", "--no-fund", "--no-audit", file], { stdio: "inherit", env: npm });
   appendFileSync(recordPath, `${name ? name + "=" : ""}${pkg}@${pin.version}\n`);
   console.log(`${name || pkg}: ${pkg}@${pin.version} verified and installed`);
 }
