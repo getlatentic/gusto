@@ -8,6 +8,19 @@
   var actionClass = " sticky bottom-0 min-h-10 bg-surface shadow-[0_-0.5rem_0.5rem_-0.25rem_var(--gu-surface)]";
   var checkMark = '<svg class="i absolute top-3.5 right-3 size-3.5 opacity-100" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
+  var plateClass = "inline-grid size-5 flex-none place-items-center rounded-xs bg-plate ring-1 ring-line ring-inset";
+  function plate(src) {
+    var holder = document.createElement("span");
+    holder.className = plateClass;
+    holder.setAttribute("aria-hidden", "true");
+    var picture = document.createElement("img");
+    picture.className = "size-3/5 object-contain";
+    picture.alt = "";
+    picture.src = src;
+    holder.appendChild(picture);
+    return holder;
+  }
+
   function start(root) {
     var input = root.querySelector("input");
     var button = root.querySelector("button");
@@ -15,6 +28,7 @@
     var menu = root.querySelector(".menu");
     var options = JSON.parse(root.dataset.options || "[]");
     var locked = false;
+    var badge = null;
     menu.id = root.id + "-menu";
     menu.setAttribute("aria-label", root.dataset.label || "");
     button.setAttribute("aria-controls", menu.id);
@@ -41,6 +55,10 @@
         var name = document.createElement("span");
         name.className = "text-sm font-medium" + (option.kind === "action" ? " flex items-center gap-2" : "");
         name.textContent = option.label;
+        if (option.icon) {
+          name.className += " flex items-center gap-2";
+          name.insertBefore(plate(option.icon), name.firstChild);
+        }
         item.appendChild(name);
         if (option.detail) {
           var detail = document.createElement("span");
@@ -53,6 +71,12 @@
       });
       var current = options.find(function (option) { return !option.kind && option.value === input.value; });
       label.textContent = current ? current.label : (root.dataset.label || "");
+      if (badge) { badge.remove(); badge = null; }
+      if (current && current.icon) {
+        badge = plate(current.icon);
+        badge.classList.add("mr-1.5");
+        label.parentNode.insertBefore(badge, label);
+      }
       // The name says what is being chosen as well as what is chosen, and the whole choice is there when the label is cut.
       button.setAttribute("aria-label", current ? root.dataset.label + ": " + current.label : root.dataset.label || "");
       label.title = current ? current.label : "";

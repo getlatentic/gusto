@@ -15,7 +15,7 @@
   <p class="text-xs text-muted">On the {{.Title}} sample project, checked by running <code>{{range $i, $word := .Check}}{{if $i}} {{end}}{{$word}}{{end}}</code> after each agent.</p>
   <fieldset class="grid gap-2">
     <legend class="mb-2 text-xs font-medium text-subtle">Agents</legend>
-    {{range $.Engines}}<label class="flex cursor-pointer items-center gap-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-engine><input class="accent-accent" type="checkbox" name="harness" value="{{.Name}}" checked> {{.Title}}</label>{{end}}
+    {{range $.Engines}}<label class="flex cursor-pointer items-center gap-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-engine><input class="accent-accent" type="checkbox" name="harness" value="{{.Name}}" checked> {{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}{{.Title}}</label>{{end}}
   </fieldset>
   {{with $.Models}}<label class="{{template "ag-field"}}">Model
     <select class="{{template "ag-input"}}" name="model">{{range .}}<option>{{.}}</option>{{end}}</select>
