@@ -3,12 +3,12 @@
 <nav class="mb-4 flex flex-wrap items-baseline gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
   {{if .Agent}}<a href="/">Agents</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
   {{with .Talk}}<a href="{{$.ThreadPath}}">{{.Name}}</a>{{else}}<span>this run</span>{{end}}
-  <span>/</span><span>Record</span>
+  <span>/</span><span>Audit trail</span>
 </nav>
 
 <header class="mb-5 flex items-end justify-between gap-4 @max-[56rem]:flex-col @max-[56rem]:items-start">
   <div class="min-w-0">
-    <p class="mb-1 text-xs font-semibold text-subtle">Record{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
+    <p class="mb-1 text-xs font-semibold text-subtle">Audit trail{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
     <h1 class="text-2xl wrap-anywhere">{{.Job.Brief}}</h1>
     {{with waiting .Job.ID}}<p class="mt-1 text-muted" id="why">{{.}}</p>{{end}}
   </div>
@@ -28,7 +28,7 @@
   {{with .Build}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Build</span><span class="truncate text-sm font-semibold">{{.}}</span></div>{{end}}
   {{if not .Agent}}<div class="col-span-2 grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Came from</span><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></div>{{end}}
   <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Model</span><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></div>
-  {{with .Proof}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Record</span><span class="text-sm font-semibold">{{if not .Holds}}{{template "state" (dict "State" "failed" "Text" "does not check out")}}{{else if .Signed}}<a class="no-underline" href="#proof">{{template "state" (dict "State" "passed" "Text" "signed")}}</a>{{else}}<a class="text-inherit no-underline hover:underline" href="#proof">not signed</a>{{end}}</span></div>{{end}}
+  {{with .Proof}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Integrity</span><span class="text-sm font-semibold">{{if not .Holds}}{{template "state" (dict "State" "failed" "Text" "does not check out")}}{{else if .Signed}}<a class="no-underline" href="#proof">{{template "state" (dict "State" "passed" "Text" "verified")}}</a>{{else}}<a class="text-inherit no-underline hover:underline" href="#proof">unsigned</a>{{end}}</span></div>{{end}}
 </section>
 
 {{with .Manifest}}{{with .StoppedByCap}}<p class="mb-4 flex flex-wrap items-center gap-2 text-sm">{{template "state" (dict "State" "failed" "Text" (printf "stopped by the %s cap" .Cap))}} <span class="text-muted">{{.Reason}}</span></p>{{end}}{{end}}
@@ -121,14 +121,14 @@
 <aside class="grid min-w-0 gap-4 @min-[72rem]:sticky @min-[72rem]:top-0 @max-[72rem]:order-first" aria-label="Proof">
   {{with .Proof}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" id="proof">
-    <h2 class="mb-3 text-sm font-semibold">Proof of what ran</h2>
+    <h2 class="mb-3 text-sm font-semibold">Check this audit trail</h2>
     {{if not .Holds}}
     <p class="mb-2 flex items-start gap-2 font-medium text-bad [&_svg]:mt-0.5 [&_svg]:size-[1.125rem] [&_svg]:opacity-100">{{template "icon-shield"}} This record does not check out.</p>
     <ul class="mt-3 grid list-none gap-2 text-sm">{{range .Wrong}}<li>{{.}}</li>{{end}}</ul>
     {{else if .Unchecked}}
     <p class="mb-2 font-medium">All {{.Files}} files match; {{.Unchecked}}.</p>
     {{else if .Signed}}
-    <p class="mb-2 flex items-start gap-2 font-medium text-ok [&_svg]:mt-0.5 [&_svg]:size-[1.125rem] [&_svg]:opacity-100">{{template "icon-seal"}} Signed by {{.Signer}}. All {{.Files}} files match.</p>
+    <p class="mb-2 flex items-start gap-2 font-medium text-ok [&_svg]:mt-0.5 [&_svg]:size-[1.125rem] [&_svg]:opacity-100">{{template "icon-seal"}} Verified: signed by {{.Signer}}, and all {{.Files}} files match.</p>
     {{else}}
     <p class="mb-2 font-medium">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
     {{end}}
