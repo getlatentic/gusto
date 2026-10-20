@@ -78,11 +78,11 @@ func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
 
 	page := site.page(t, "diffed")
 	for _, want := range []string{
-		"<code>answer.txt</code>", "<code>notes.md</code>",
+		">answer.txt</code>", ">notes.md</code>",
 		`<td class="code">@@ -1,2 &#43;1,2 @@ the answer</td>`,
-		`<tr class="removed"><td class="n">1</td><td class="n"></td><td class="code">no</td></tr>`,
-		`<tr class="added"><td class="n"></td><td class="n">1</td><td class="code">yes</td></tr>`,
-		`<tr class="context"><td class="n">2</td><td class="n">2</td><td class="code">unchanged</td></tr>`,
+		`<tr class="bg-bad-wash"><td class="n">1</td><td class="n"></td><td class="code">no</td></tr>`,
+		`<tr class="bg-ok-wash"><td class="n"></td><td class="n">1</td><td class="code">yes</td></tr>`,
+		`<tr><td class="n">2</td><td class="n">2</td><td class="code">unchanged</td></tr>`,
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page is missing %s", want)
@@ -140,7 +140,7 @@ func TestABinaryFileIsNamedAndNotDrawn(t *testing.T) {
 			"Binary files /dev/null and b/logo.png differ\n",
 	}, gate: passed})
 	page := site.page(t, "binary")
-	if !strings.Contains(page, "<code>logo.png</code>") || !strings.Contains(page, "A binary file") {
+	if !strings.Contains(page, ">logo.png</code>") || !strings.Contains(page, "A binary file") {
 		t.Error("a binary file should be named and said to be binary")
 	}
 }
@@ -163,7 +163,7 @@ func TestAHugeTranscriptAndPatchAreCutAndLinked(t *testing.T) {
 		t.Error("the page drew past its limit")
 	}
 	for _, name := range []string{"transcript.log", "diff.patch"} {
-		link := `<a href="/jobs/huge/files/` + name + `">Read the whole file</a>`
+		link := `href="/jobs/huge/files/` + name + `">Read the whole file</a>`
 		if !strings.Contains(page, link) {
 			t.Errorf("a cut %s should link the whole file", name)
 		}
@@ -199,9 +199,9 @@ func TestTheGateShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 
 	page := site.page(t, "refused")
 	for _, want := range []string{
-		"<code>sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
-		`<span class="muted">exited 3</span>`,
-		`<span class="state failed">failed</span>`,
+		">sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
+		`<span class="text-muted">exited 3</span>`,
+		`bg-bad-wash text-bad">failed</span>`,
 		"What the check said", "3 tests failed",
 	} {
 		if !strings.Contains(page, want) {
@@ -237,7 +237,7 @@ func TestAGateIsWrittenSoAShellRunsTheSameArgv(t *testing.T) {
 	}
 }
 
-var shownCommand = regexp.MustCompile(`<code id="verify">([^<]*)</code>`)
+var shownCommand = regexp.MustCompile(`<code [^>]*id="verify">([^<]*)</code>`)
 
 // The command on the page is only worth showing if it works on what the page
 // hands over, so this downloads the bundle and runs the command as written,
