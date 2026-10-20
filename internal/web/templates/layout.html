@@ -129,7 +129,7 @@
 {{define "icon-add"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>{{end}}
 {{/* mark is an agent's sign in its field's color: the field's drawing,
      or its initial when it was started blank. */}}
-{{define "mark"}}<span class="mark grid flex-none place-items-center bg-wash text-muted ring-1 ring-line ring-inset [&_svg]:size-[55%] [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]{{if eq .Size "lg"}} size-16 rounded-lg{{else if eq .Size "sm"}} size-8 rounded-sm{{else}} size-10 rounded-xl{{end}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="font-display text-sm leading-none font-semibold">{{initial .Name}}</span>{{end}}</span>{{end}}
+{{define "mark"}}{{$m := .}}{{with logo .Harness}}<span class="mark grid flex-none place-items-center bg-plate ring-1 ring-line ring-inset{{if eq $m.Size "lg"}} size-16 rounded-lg{{else if eq $m.Size "sm"}} size-8 rounded-sm{{else}} size-10 rounded-xl{{end}}" aria-hidden="true"><img class="size-3/5 object-contain" src="{{.}}" alt=""></span>{{else}}<span class="mark grid flex-none place-items-center bg-wash text-muted ring-1 ring-line ring-inset [&_svg]:size-[55%] [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]{{if eq .Size "lg"}} size-16 rounded-lg{{else if eq .Size "sm"}} size-8 rounded-sm{{else}} size-10 rounded-xl{{end}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="font-display text-sm leading-none font-semibold">{{initial .Name}}</span>{{end}}</span>{{end}}{{end}}
 {{define "field-drawing"}}<svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defense"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else if eq . "Engineering"}}<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>{{else}}<path d="M12 3v18M3 12h18"/>{{end}}</svg>{{end}}
 {{define "icon-info"}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8h.01M11 12h1v5h1"/><circle cx="12" cy="12" r="9"/></svg>{{end}}
 {{define "icon-disk"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>{{end}}
@@ -165,6 +165,7 @@
 <div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
   {{range .}}
   <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/instances/new?harness={{.Name}}">
+    {{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}
     <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.What}}</span></span>
     {{template "icon-go"}}
   </a>

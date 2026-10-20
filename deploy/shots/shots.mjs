@@ -44,8 +44,8 @@ mkdirSync(join(work, "keys"));
 writeFileSync(join(work, "creds", "stub.json"), JSON.stringify({ address: "http://127.0.0.1:9000/v1", auth: "bearer", key: "stub", wires: ["chat"] }));
 writeFileSync(join(work, "spend.json"), "{}");
 const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'stub-model',messages:[{role:'user',content:'hi'}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
-writeFileSync(join(work, "agents", "demo.json"), JSON.stringify({
-  name: "demo", title: "OpenCode", what: "A canned agent for screenshots: asks the model once and writes a file.",
+writeFileSync(join(work, "agents", "opencode.json"), JSON.stringify({
+  name: "opencode", title: "OpenCode", what: "A canned agent for screenshots: asks the model once and writes a file.",
   program: "sh",
   argv: ["-c", `node -e "${ask}" && printf '# Spending policy\\n\\n- $50 a month per person\\n- Reviewed each quarter\\n\\n1. Ask first\\n2. Spend second\\n' > policy.md`],
   env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}" }, needs: "key", stream: "plain",
@@ -84,7 +84,7 @@ const call = async (method, path, form) => {
   return res;
 };
 await call("POST", "/login", { password });
-const started = await call("POST", "/instances", { harness: "demo", model: "stub/stub-model" });
+const started = await call("POST", "/instances", { harness: "opencode", model: "stub/stub-model" });
 const thread = started.headers.get("location");
 const instance = thread.split("/threads/")[0];
 const said = async (path, words) => {
@@ -93,7 +93,7 @@ const said = async (path, words) => {
 };
 const turns = [await said(thread, "What should a 40-person company decide first about AI agents?"),
   await said(thread, "Draft a spending policy with a monthly limit per person and save it as policy.md.")];
-const second = (await call("POST", "/instances", { harness: "demo", model: "stub/stub-model" })).headers.get("location");
+const second = (await call("POST", "/instances", { harness: "opencode", model: "stub/stub-model" })).headers.get("location");
 await said(second, "Summarize what changed this week.");
 const task = (await call("POST", `${instance}/tasks`, { brief: "Write the policy and check it exists.", gate: "true", team: "finance", usd: "1.00" })).headers.get("location");
 await call("POST", `${instance}/routines`, { title: "Morning summary", prompt: "Summarize what changed since yesterday.", daily: "08:00" });
@@ -109,7 +109,7 @@ await sleep(4000);
 const jobId = turns[1];
 const routes = [
   ["login", "/login", false], ["home", "/"], ["chat", "/chat"], ["new", "/new"], ["engines", "/engines"], ["jobs", "/jobs"],
-  ["spend", "/spend"], ["usage", "/usage"], ["files", "/files"], ["setups", "/setups"], ["start-agent", "/instances/new?harness=demo"],
+  ["spend", "/spend"], ["usage", "/usage"], ["files", "/files"], ["setups", "/setups"], ["start-agent", "/instances/new?harness=opencode"],
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],
   ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-activity", "/admin/activity"],
