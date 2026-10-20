@@ -11,4 +11,4 @@ if [ "${1:-}" = "--watch" ]; then
   exec tailwindcss -i app.css -o ../static/app.css --watch
 fi
 tailwindcss -i app.css -o ../static/app.css --minify
-perl -pi -e 's/(?<![\w.])(\d+)px/($1\/16)."rem"/ge' ../static/app.css
+perl -pi -e 's/(?<![\w.])(\d*\.?\d+)px/($1\/16)."rem"/ge' ../static/app.css

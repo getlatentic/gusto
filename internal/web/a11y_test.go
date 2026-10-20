@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -106,7 +107,7 @@ func TestEveryPageHasItsLandmarks(t *testing.T) {
 		if h1s > 1 {
 			t.Errorf("%s: %d h1 headings", path, h1s)
 		}
-		if first == nil || attr(first, "class") != "skip" || !ids[strings.TrimPrefix(attr(first, "href"), "#")] {
+		if first == nil || !slices.Contains(strings.Fields(attr(first, "class")), "skip") || !ids[strings.TrimPrefix(attr(first, "href"), "#")] {
 			t.Errorf("%s: the first control is not a working skip link", path)
 		}
 		each(doc, func(n *html.Node) {
@@ -184,7 +185,7 @@ func TestACutNameIsWholeInItsTitle(t *testing.T) {
 	}
 	checked := 0
 	each(doc, func(n *html.Node) {
-		cut := (n.Data == "h1" && attr(n, "class") == "which") || (n.Data == "summary" && inside(n, "aside")) || (n.Data == "a" && inside(n, "ol") && inside(n, "aside"))
+		cut := (n.Data == "h1" && inside(n, "main")) || (n.Data == "summary" && inside(n, "aside")) || (n.Data == "a" && inside(n, "ol") && inside(n, "aside"))
 		if !cut {
 			return
 		}

@@ -257,7 +257,7 @@ func TestTheConsoleHasAUsagePageNextToSpending(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
 	page := here.ask(t, "GET", "/admin/usage", nil)
 	body := page.Body.String()
-	if page.Code != http.StatusOK || !strings.Contains(body, `<a href="/admin/usage" aria-current="page">Usage</a>`) || !strings.Contains(body, `href="/admin/spending"`) || !strings.Contains(body, `href="/admin/usage/alice-session"`) {
+	if page.Code != http.StatusOK || !strings.Contains(body, `href="/admin/usage" aria-current="page">Usage</a>`) || !strings.Contains(body, `href="/admin/spending"`) || !strings.Contains(body, `href="/admin/usage/alice-session"`) {
 		t.Errorf("the console page was %d:\n%s", page.Code, body)
 	}
 	if got := here.ask(t, "GET", "/admin/usage/alice-session", nil); got.Code != http.StatusOK {
