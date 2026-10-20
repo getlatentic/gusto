@@ -11,14 +11,6 @@
 <link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
 <link rel="stylesheet" href="{{asset "/static/theme.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
-<link rel="stylesheet" href="{{asset "/static/controls.css"}}">
-<link rel="stylesheet" href="{{asset "/static/shell.css"}}">
-<link rel="stylesheet" href="{{asset "/static/record.css"}}">
-<link rel="stylesheet" href="{{asset "/static/chat.css"}}">
-<link rel="stylesheet" href="{{asset "/static/setup.css"}}">
-<link rel="stylesheet" href="{{asset "/static/viewer.css"}}">
-<link rel="stylesheet" href="{{asset "/static/prose.css"}}">
-<link rel="stylesheet" href="{{asset "/static/pages.css"}}">
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script>{{end}}
@@ -92,14 +84,14 @@
     });
   </script>
 </head>
-<body class="app">
-<a class="skip" href="#main">Skip to the page</a>
-{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell">
+<body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
+<a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
+{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)] @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
 {{template "side" .}}
-<div class="scrim"></div>
-<main class="page{{if .Chat}} chat{{end}}" id="main" tabindex="-1">
-<div class="mobile-bar"><button type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand" href="/chat"><img src="/static/mark.png" alt=""> gusto</a></div>
-<div class="wrap">{{end}}
+<div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
+<main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
+<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="btn-icon size-9 text-ink" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
+<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
 {{end}}
 
 {{/* The console is the admin's own place: its sections down the side, one way

@@ -1,0 +1,21 @@
+/* The app's stylesheet, built by build.sh into ../static/app.css. Colors, fonts, space and radius come from the gusto tokens
+   (../static/tokens.css and theme.css), which the page still loads: they are what changes with the theme and the accent. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@plugin "@tailwindcss/typography";
+
+@source "../templates";
+@source "../static/*.js";
+
+@import "./theme.css";
+@import "./base.css";
+@import "./components.css";
+@import "./prose.css";
+@import "./shell.css";
+@import "./widgets.css";
+@import "./pages/chat.css";
+@import "./pages/agents.css";
+@import "./pages/records.css";
+@import "./pages/admin.css";

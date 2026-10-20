@@ -1,45 +1,54 @@
-{{define "side"}}<aside class="side" id="side" aria-label="Menu">
-  <nav class="rail" aria-label="Places">
-    <a class="brand-mark" href="/chat" aria-label="gusto"><img src="{{asset "/static/mark.svg"}}" alt=""></a>
-    <button class="tool panel-toggle" type="button" data-panel-toggle data-tip="Conversations" aria-label="Conversations" aria-expanded="true" aria-controls="sidepanel">{{template "icon-sidebar"}}</button>
-    <a class="tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
-    <a class="tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
-    <a class="tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
-    <a class="tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
-    <a class="tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
-    <a class="tool" href="/usage" data-tip="Usage" aria-label="Usage"{{if eq .Nav "usage"}} aria-current="page"{{end}}>{{template "icon-log"}}</a>
-    {{if .Admin}}<a class="tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
-    <span class="grow"></span>
-    <button class="tool" type="button" data-look data-tip="Appearance" aria-label="Appearance" aria-expanded="false" aria-controls="look">{{template "icon-palette"}}</button>
-    <form method="post" action="/logout"><button class="tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
+{{define "side"}}<aside id="side" aria-label="Menu" class="side relative flex min-h-0 min-w-0 w-[calc(4rem+var(--panel-w,16rem))] border-r border-line panel-closed:w-16
+  @max-[56rem]:invisible @max-[56rem]:fixed @max-[56rem]:inset-y-0 @max-[56rem]:left-0 @max-[56rem]:z-20 @max-[56rem]:w-[calc(4rem+var(--panel-w,16rem))] @max-[56rem]:-translate-x-full @max-[56rem]:bg-wash @max-[56rem]:transition-[transform,visibility] @max-[56rem]:duration-[var(--gu-dur-base)]
+  side-open:@max-[56rem]:visible side-open:@max-[56rem]:translate-x-0 side-open:@max-[56rem]:shadow-3">
+  <nav class="rail flex w-16 flex-none flex-col items-center gap-2 border-r border-line-strong bg-rail py-3" aria-label="Places">
+    <a class="brand-mark mb-3 grid size-10 place-items-center" href="/chat" aria-label="gusto"><img class="size-10" src="{{asset "/static/mark.svg"}}" alt=""></a>
+    <button class="rail-tool panel-toggle @max-[56rem]:hidden" type="button" data-panel-toggle data-tip="Conversations" aria-label="Conversations" aria-expanded="true" aria-controls="sidepanel">{{template "icon-sidebar"}}</button>
+    <a class="rail-tool" href="/chat" data-tip="Chat" aria-label="Chat"{{if eq .Nav "chat"}} aria-current="page"{{end}}>{{template "icon-chat"}}</a>
+    <a class="rail-tool" href="/files" data-tip="Files" aria-label="Files"{{if eq .Nav "files"}} aria-current="page"{{end}}>{{template "icon-folder"}}</a>
+    <a class="rail-tool" href="/new" data-tip="Presets" aria-label="Presets"{{if or (eq .Nav "new") (eq .Nav "harnesses")}} aria-current="page"{{end}}>{{template "icon-harness"}}</a>
+    <a class="rail-tool" href="/jobs" data-tip="Activity" aria-label="Activity"{{if eq .Nav "jobs"}} aria-current="page"{{end}}>{{template "icon-activity"}}</a>
+    <a class="rail-tool" href="/spend" data-tip="Spending" aria-label="Spending"{{if eq .Nav "spend"}} aria-current="page"{{end}}>{{template "icon-spend"}}</a>
+    <a class="rail-tool" href="/usage" data-tip="Usage" aria-label="Usage"{{if eq .Nav "usage"}} aria-current="page"{{end}}>{{template "icon-log"}}</a>
+    {{if .Admin}}<a class="rail-tool" href="/admin" data-tip="Admin" aria-label="Admin">{{template "icon-shield"}}</a>{{end}}
+    <span class="flex-1"></span>
+    <button class="rail-tool" type="button" data-look data-tip="Appearance" aria-label="Appearance" aria-expanded="false" aria-controls="look">{{template "icon-palette"}}</button>
+    <form method="post" action="/logout"><button class="rail-tool" type="submit" data-tip="Sign out" aria-label="Sign out">{{template "icon-out"}}</button></form>
   </nav>
-  <div class="sidepanel" id="sidepanel">
-    <div class="sidepanel-head"><span class="name">{{or .Org "gusto"}}</span></div>
-    <a class="item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
-    {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats"></div>{{end}}
+  <div class="sidepanel flex min-h-0 min-w-0 flex-[0_0_var(--panel-w,16rem)] flex-col gap-3 bg-wash p-3 panel-closed:hidden @max-[56rem]:panel-closed:flex" id="sidepanel">
+    <div class="flex min-h-10 items-center px-3"><span class="font-display text-base font-semibold tracking-tight text-ink">{{or .Org "gusto"}}</span></div>
+    <a class="side-item new" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats flex-1"></div>{{end}}
   </div>
-  <div class="look" id="look" hidden role="dialog" aria-label="Appearance">
-    <div><h3>Theme</h3><div class="modes"><button class="mode" type="button" data-mode="system">System</button><button class="mode" type="button" data-mode="light">Light</button><button class="mode" type="button" data-mode="dark">Dark</button></div></div>
-    <div><h3>Text size</h3><div class="sizer"><button class="step" type="button" data-zoom="-1" aria-label="Smaller">A&minus;</button><output class="size" id="look-size" aria-live="polite">100%</output><button class="step" type="button" data-zoom="1" aria-label="Larger">A+</button></div></div>
-    <div><h3>Accent</h3><div class="swatches"><button class="swatch" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button><button class="swatch" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button><button class="swatch" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button><button class="swatch" type="button" data-accent="green" title="Green" aria-label="Green"></button><button class="swatch" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button><button class="swatch" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button></div></div>
+  <div class="look fixed bottom-3 left-[4.25rem] z-50 grid w-64 gap-4 rounded-md border border-line bg-surface p-4 shadow-3" id="look" hidden role="dialog" aria-label="Appearance">
+    <div><h3 class="mb-2 text-xs font-semibold text-muted">Theme</h3><div class="flex gap-[0.1875rem] rounded-sm bg-wash p-[0.1875rem]"><button class="look-mode" type="button" data-mode="system">System</button><button class="look-mode" type="button" data-mode="light">Light</button><button class="look-mode" type="button" data-mode="dark">Dark</button></div></div>
+    <div><h3 class="mb-2 text-xs font-semibold text-muted">Text size</h3><div class="flex items-center gap-2"><button class="look-step" type="button" data-zoom="-1" aria-label="Smaller">A&minus;</button><output class="flex-1 text-center text-xs tabular-nums text-muted" id="look-size" aria-live="polite">100%</output><button class="look-step" type="button" data-zoom="1" aria-label="Larger">A+</button></div></div>
+    <div><h3 class="mb-2 text-xs font-semibold text-muted">Accent</h3><div class="flex justify-between">
+      <button class="look-swatch bg-[#2B2B29]" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button>
+      <button class="look-swatch bg-[#FF8A1F]" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button>
+      <button class="look-swatch bg-[#3B6FE0]" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button>
+      <button class="look-swatch bg-[#23805A]" type="button" data-accent="green" title="Green" aria-label="Green"></button>
+      <button class="look-swatch bg-[#7352D4]" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button>
+      <button class="look-swatch bg-[#D23F67]" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button>
+    </div></div>
   </div>
-  <div class="resize" id="panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the conversations" tabindex="0"></div>
+  <div class="resize panel-closed:hidden @max-[56rem]:hidden" id="panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the conversations" tabindex="0"></div>
 </aside>{{end}}
 
-{{define "side-chats"}}<nav class="chats" aria-label="Conversations">
-  <div class="label">Projects</div>
+{{define "side-chats"}}<nav class="chats -mx-1 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-1" aria-label="Conversations">
+  <div class="px-3 pt-3 pb-1 text-xs font-semibold text-subtle">Projects</div>
   {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
-  {{with .Older}}<details class="older"><summary>Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
+  {{with .Older}}<details class="older"><summary class="flex h-8 cursor-pointer list-none items-center justify-between rounded-sm px-3 text-xs font-medium text-subtle hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden">Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}
 </nav>{{end}}
 
 {{define "side-groups"}}{{range .Groups}}
-  <section class="proj">
+  <section class="proj group/proj relative min-w-0">
     <details{{if .Open}} open{{end}}>
-      <summary title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="nm">{{.Name}}</span></summary>
-      <ol>
-        {{range .Chats}}<li><a href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="t">{{.Name}}</span><span class="when">{{ago .When}}</span></a></li>{{end}}
+      <summary class="proj-summary" title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="min-w-0 flex-1 truncate">{{.Name}}</span></summary>
+      <ol class="mt-0.5 mb-2 grid list-none grid-cols-[minmax(0,1fr)] gap-px p-0">
+        {{range .Chats}}<li><a class="proj-chat" href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="min-w-0 flex-1 truncate">{{.Name}}</span><span class="flex-none text-xs font-normal text-subtle">{{ago .When}}</span></a></li>{{end}}
       </ol>
     </details>
-    <a class="add" href="/chat?at={{.ID}}" title="New chat in {{.Name}}" aria-label="New chat in {{.Name}}">{{template "icon-add"}}</a>
+    <a class="add absolute top-1 right-1 grid size-6 place-items-center rounded-sm text-muted opacity-0 transition-opacity hover:bg-surface hover:text-ink hover:shadow-1 focus-visible:opacity-100 group-hover/proj:opacity-100" href="/chat?at={{.ID}}" title="New chat in {{.Name}}" aria-label="New chat in {{.Name}}">{{template "icon-add"}}</a>
   </section>
 {{end}}{{end}}

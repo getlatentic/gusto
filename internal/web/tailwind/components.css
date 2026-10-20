@@ -1,0 +1,47 @@
+/* The few things every page shares, each used by name: a button, a field, a badge, a card, a fold. Everything else is utilities in the
+   markup, or lives in the file of the page that has it. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent no-underline cursor-pointer
+      transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50;
+  }
+  .btn svg.i { @apply opacity-100; }
+  .btn-quiet {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-4 py-2 text-sm font-medium text-muted no-underline cursor-pointer
+      transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-bad/40 bg-transparent px-4 py-2 text-sm font-medium text-bad no-underline cursor-pointer
+      transition-colors hover:bg-bad-wash;
+  }
+  .btn-icon {
+    @apply grid size-8 place-items-center rounded-sm border-0 bg-transparent p-0 text-muted cursor-pointer transition-colors hover:bg-hover hover:text-ink disabled:cursor-default disabled:opacity-40;
+  }
+
+  .field { @apply grid gap-1.5 text-xs font-medium text-subtle; }
+  .input {
+    @apply w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base text-ink transition-colors;
+  }
+  .input:focus-visible { @apply border-focus outline-1 -outline-offset-1; }
+
+  .badge { @apply inline-flex items-center whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-subtle; }
+  .badge.passed, .badge.finished, .badge.signed, .badge.ok { @apply bg-ok-wash text-ok; }
+  .badge.failed, .badge.interrupted, .badge.bad { @apply bg-bad-wash text-bad; }
+  .badge.running, .badge.queued, .badge.warn { @apply bg-warn-wash text-warn; }
+
+  .panel { @apply rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line; }
+  .panel-title { @apply mb-3 text-sm font-semibold text-ink; }
+
+  /* A disclosure that does not look like a play button: a quiet chevron that turns. */
+  .fold > summary { @apply flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary::before {
+    content: ""; @apply size-3.5 flex-none bg-current transition-transform;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 3.5 4.5 4.5L6 12.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 3.5 4.5 4.5L6 12.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .fold[open] > summary::before { @apply rotate-90; }
+
+  .sr-only-label { @apply sr-only; }
+  .empty { @apply rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1; }
+}
