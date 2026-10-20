@@ -1,41 +1,41 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
-<section class="hero hue-general">
-  <div>
-    <p class="eyebrow">Your own agent</p>
-    <h1>Choose how it works</h1>
-    <p class="lede">Pick its agent type, give it a skill set if you have one, and name it.</p>
-  </div>
+<section class="mb-8 max-w-prose">
+  <p class="text-xs font-medium text-muted">Your own agent</p>
+  <h1 class="mt-1">Choose how it works</h1>
+  <p class="mt-2 text-lg text-muted">Pick its agent type, give it a skill set if you have one, and name it.</p>
 </section>
 
 {{if .Engines}}
-<form class="panel stack start-form" method="post" action="/instances">
-  <label>Name it <input name="title" placeholder="Agent" maxlength="60"></label>
-  <fieldset class="engines">
-    <legend>Agent type</legend>
+<form class="grid max-w-xl gap-4 {{template "ag-panel"}}" method="post" action="/instances">
+  <label class="{{template "ag-field"}}">Name it <input class="{{template "ag-input"}}" name="title" placeholder="Agent" maxlength="60"></label>
+  <fieldset class="grid gap-2">
+    <legend class="mb-2 text-xs font-medium text-subtle">Agent type</legend>
     {{range $i, $each := .Engines}}
-    <label class="engine">
-      <input type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
-      <span class="name">{{$each.Title}}</span>
-      <span class="what">{{$each.What}}</span>
+    <label class="grid cursor-pointer grid-cols-[auto_1fr] items-baseline gap-x-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash">
+      <input class="row-span-2 self-center accent-accent" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
+      <span class="font-semibold">{{$each.Title}}</span>
+      <span class="col-start-2 text-sm text-muted">{{$each.What}}</span>
     </label>
     {{end}}
-    <a class="link-quiet" href="/engines">How each agent type did →</a>
+    <a class="{{template "ag-link-quiet"}} mt-1" href="/engines">How each agent type did →</a>
   </fieldset>
   {{if .Setups}}
-  <label>Skill set
-    <select name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+  <label class="{{template "ag-field"}}">Skill set
+    <select class="{{template "ag-input"}}" name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
   </label>
   {{end}}
-  <label>Start from a repository <span class="sub">optional</span>
-    <input name="repo" placeholder="git@github.com:you/repo.git"></label>
-  <button type="submit" class="cta">Start</button>
+  <label class="{{template "ag-field"}}"><span>Start from a repository <span class="font-normal">optional</span></span>
+    <input class="{{template "ag-input"}}" name="repo" placeholder="git@github.com:you/repo.git"></label>
+  <div><button type="submit" class="{{template "ag-btn"}}">Start</button></div>
 </form>
 {{else}}
-<div class="callout warn"><span class="sign">{{template "icon-info"}}</span>
-  <div><strong>Nothing can start here yet</strong><p>Ask whoever runs this to add an agent.</p></div></div>
+<div class="flex max-w-xl items-start gap-3 rounded-md bg-warn-wash px-5 py-4">
+  <span class="text-warn">{{template "icon-info"}}</span>
+  <div><strong class="block">Nothing can start here yet</strong><p class="text-sm text-muted">Ask whoever runs this to add an agent.</p></div>
+</div>
 {{end}}
 
 {{template "foot" .}}

@@ -1,35 +1,35 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="refused">{{.Refused}}</p>{{end}}
+{{template "ag-flash" .}}
 
-<nav class="crumb" aria-label="Where this is"><a href="/new">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
-<header class="instance-head">
+<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/new">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
+<header class="mb-6 flex items-center gap-4">
   {{template "mark" (dict "Field" "" "Name" .Harness.Title "Size" "lg")}}
-  <div class="who">
+  <div class="min-w-0 flex-1">
     <h1>{{.Harness.Title}}</h1>
-    <p class="muted">{{.Harness.What}}</p>
+    <p class="mt-1 text-sm text-muted">{{.Harness.What}}</p>
   </div>
 </header>
 
-<form class="panel stack start-form" method="post" action="/instances">
+<form class="grid max-w-xl gap-4 {{template "ag-panel"}}" method="post" action="/instances">
   <input type="hidden" name="harness" value="{{.Harness.Name}}">
   {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
-  <label>Model
-    {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select name="model">{{range .Models}}<option value="{{.}}">{{.}}{{with costOf .}} · {{.}}{{end}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
-    {{else}}<input name="model" placeholder="the model this deployment reaches">{{end}}
+  <label class="{{template "ag-field"}}">Model
+    {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select class="{{template "ag-input"}}" name="model">{{range .Models}}<option value="{{.}}">{{.}}{{with costOf .}} · {{.}}{{end}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
+    {{else}}<input class="{{template "ag-input"}}" name="model" placeholder="the model this deployment reaches">{{end}}
   </label>
-  <label><span class="line">Repository <span class="muted">optional; without one it starts in an empty folder</span></span>
-    <input name="repo" placeholder="git@github.com:you/repo.git">
+  <label class="{{template "ag-field"}}"><span>Repository <span class="font-normal">optional; without one it starts in an empty folder</span></span>
+    <input class="{{template "ag-input"}}" name="repo" placeholder="git@github.com:you/repo.git">
   </label>
   {{if .Setups}}
-  <label><span class="line">Setup <span class="muted">skills and MCP servers to give it</span></span>
-    <select name="setup">
+  <label class="{{template "ag-field"}}"><span>Setup <span class="font-normal">skills and MCP servers to give it</span></span>
+    <select class="{{template "ag-input"}}" name="setup">
       <option value="">none</option>
       {{$chosen := .Chosen}}{{range .Setups}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Name}} · {{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}}, {{len .}} MCP{{end}}</option>{{end}}
     </select>
   </label>
   {{end}}
-  <button type="submit" class="cta">Start</button>
+  <div><button type="submit" class="{{template "ag-btn"}}">Start</button></div>
 </form>
 
 {{template "foot" .}}
