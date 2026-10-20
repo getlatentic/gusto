@@ -90,7 +90,7 @@
 {{template "side" .}}
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
-<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="btn-icon size-9 text-ink" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
+<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
 <div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
 {{end}}
 
@@ -99,10 +99,10 @@
 {{define "console-bar"}}<div class="shell grid h-full min-h-0 grid-cols-[15.5rem_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)] @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
 <nav class="flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto border-r border-line-strong bg-wash px-3 py-4 @max-[56rem]:flex-row @max-[56rem]:flex-wrap @max-[56rem]:border-r-0 @max-[56rem]:border-b" aria-label="Admin">
   <div class="flex min-h-12 items-center gap-3 px-3 @max-[56rem]:basis-full"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-shield"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold tracking-tight">Admin</strong>{{with .Org}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
-  {{range .Sections}}<a class="console-link" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+  {{range .Sections}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
   <span class="flex-1 @max-[56rem]:hidden"></span>
-  <a class="console-link font-normal" href="/">{{template "icon-back"}} Back to gusto</a>
-  <form method="post" action="/logout"><button class="console-link font-normal" type="submit">{{template "icon-out"}} Sign out</button></form>
+  <a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" href="/">{{template "icon-back"}} Back to gusto</a>
+  <form method="post" action="/logout"><button class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
 <main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1"><div class="wrap mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16">
 {{end}}
