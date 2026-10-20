@@ -60,13 +60,13 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 	os.WriteFile(filepath.Join(workspace, "main.go"), []byte("package main\n"), 0o644)
 
 	for name, want := range map[string][]string{
-		"notes.md":  {`<article class="prose">`, "<blockquote>"},
-		"data.csv":  {`<table class="grid">`, "<th>name</th>", "<td>ada</td>"},
-		"pic.png":   {`<img src="/instances/` + id + `/raw?path=pic.png"`},
-		"paper.pdf": {`<iframe class="frame" src="/instances/` + id + `/raw?path=paper.pdf"`},
+		"notes.md":  {`<article class="prose `, "<blockquote>"},
+		"data.csv":  {"<th>name</th>", "<td>ada</td>"},
+		"pic.png":   {`src="/instances/` + id + `/raw?path=pic.png"`},
+		"paper.pdf": {`<iframe class="`, `src="/instances/` + id + `/raw?path=paper.pdf"`},
 		"game.html": {`sandbox="allow-scripts"`, "View source"},
 		"blob.bin":  {"cannot be shown here", "Download it"},
-		"main.go":   {`<pre class="code" data-language="go"><code>package main`, "1 line"},
+		"main.go":   {`data-language="go"><code>package main`, "1 line"},
 	} {
 		page := viewed(t, site, id, name)
 		for _, text := range want {
@@ -75,7 +75,7 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 			}
 		}
 	}
-	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `<pre class="code" data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
+	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
 		t.Error("the source of a page is not shown as text")
 	}
 }
@@ -94,7 +94,7 @@ func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
 		"xl/worksheets/sheet1.xml": `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1"><v>Total</v></c></row><row r="2"><c r="A2" t="s"><v>1</v></c><c r="B2"><v>7</v></c></row></sheetData></worksheet>`})
 
 	doc := viewed(t, site, id, "plan.docx")
-	if !strings.Contains(doc, "<h3>The plan</h3>") || !strings.Contains(doc, "<p>First we begin.</p>") || !strings.Contains(doc, "not how it looks") {
+	if !strings.Contains(doc, ">The plan</h3>") || !strings.Contains(doc, ">First we begin.</p>") || !strings.Contains(doc, "not how it looks") {
 		t.Errorf("the document: %s", doc)
 	}
 	deck := viewed(t, site, id, "deck.pptx")

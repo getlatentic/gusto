@@ -44,11 +44,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function add(url, key) {
     var id = "fp-" + (++made);
     var tab = document.createElement("div");
-    tab.className = "fp-tab";
+    tab.className = "inline-flex h-8 max-w-56 flex-none items-center rounded-sm pl-3 text-muted has-[[aria-selected=true]]:bg-wash has-[[aria-selected=true]]:text-ink";
     tab.setAttribute("role", "presentation");
     var name = document.createElement("button");
     name.type = "button";
-    name.className = "nm";
+    name.className = "min-w-0 cursor-pointer truncate border-0 bg-transparent p-0 text-xs font-medium text-inherit";
     name.id = id + "-tab";
     name.setAttribute("role", "tab");
     name.setAttribute("aria-controls", id + "-pane");
@@ -56,14 +56,14 @@ document.addEventListener("DOMContentLoaded", function () {
     name.title = name.textContent;
     var x = document.createElement("button");
     x.type = "button";
-    x.className = "x";
+    x.className = "mx-1 grid size-6 flex-none cursor-pointer place-items-center rounded-xs border-0 bg-transparent p-0 text-inherit hover:bg-hover";
     x.setAttribute("aria-label", "Close " + name.textContent);
-    x.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    x.innerHTML = '<svg class="size-3 fill-none stroke-current stroke-2 [stroke-linecap:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
     tab.appendChild(name);
     tab.appendChild(x);
     tabs.appendChild(tab);
     var pane = document.createElement("div");
-    pane.className = "fp-pane";
+    pane.className = "px-6 py-5 focus-visible:-outline-offset-2";
     pane.id = id + "-pane";
     pane.tabIndex = 0;
     pane.setAttribute("role", "tabpanel");
