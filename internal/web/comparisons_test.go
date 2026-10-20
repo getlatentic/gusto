@@ -152,7 +152,7 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 	}
 	site.signIn(t)
 	page := site.ask(t, "GET", "/compare/two-runs", nil).Body.String()
-	for _, want := range []string{"First was the only one to pass the check.", "<th>Model calls</th>", "<td>3</td>", "$0.7500", "40 s"} {
+	for _, want := range []string{"First was the only one to pass the check.", ">Model calls</th>", ">3</td>", "$0.7500", "40 s"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("want %q on the page:\n%s", want, page)
 		}
@@ -190,7 +190,7 @@ func TestEngineChoicesDoNotWearTheCatalogCardClass(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
 	page := site.ask(t, "GET", "/compare", nil).Body.String()
-	if strings.Count(page, `<label class="engine">`) != 2 || strings.Contains(page, `<label class="pick"`) {
+	if strings.Count(page, ` data-engine>`) != 2 || strings.Contains(page, `<label class="pick"`) {
 		t.Fatalf("the engine choices are not their own control:\n%s", page)
 	}
 }
