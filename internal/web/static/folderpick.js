@@ -16,25 +16,26 @@
 
   function open() {
     backdrop = document.createElement("div");
-    backdrop.className = "dialog-backdrop";
+    backdrop.className = "fixed inset-0 z-60 grid place-items-center bg-scrim p-4";
     var dialog = document.createElement("div");
-    dialog.className = "dialog";
+    dialog.className = "grid h-[min(34rem,100%)] w-[min(48rem,100%)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg bg-surface shadow-3";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-labeledby", "d-title");
     dialog.tabIndex = -1;
     var head = document.createElement("div");
-    head.className = "d-head";
+    head.className = "flex items-center justify-between py-3 pr-4 pl-5";
     var title = document.createElement("h2");
     title.id = "d-title";
+    title.className = "text-sm";
     title.textContent = "Choose a folder";
     var shut = document.createElement("button");
-    shut.type = "button"; shut.className = "d-close"; shut.setAttribute("aria-label", "Close");
-    shut.innerHTML = '<span class="ic"><svg viewBox="0 0 16 16"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/></svg></span>';
+    shut.type = "button"; shut.className = "grid size-8 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink"; shut.setAttribute("aria-label", "Close");
+    shut.innerHTML = '<span class="inline-grid size-4 [&_svg]:size-full [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.5] [&_svg]:[stroke-linecap:round]"><svg viewBox="0 0 16 16"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/></svg></span>';
     shut.addEventListener("click", close);
     head.appendChild(title); head.appendChild(shut);
     var body = document.createElement("div");
-    body.className = "ex";
+    body.className = "grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto]";
     dialog.appendChild(head); dialog.appendChild(body);
     backdrop.appendChild(dialog);
     backdrop.addEventListener("mousedown", function (event) { if (event.target === backdrop) { close(); } });

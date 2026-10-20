@@ -71,11 +71,11 @@ func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 		t.Error("the headline should not be a sum that looks complete")
 	}
 	only := here.ask(t, "GET", "/usage?q=free-looking", nil).Body.String()
-	if !strings.Contains(only, `<span class="muted">no price</span>`) || strings.Contains(only, "$0.0000") || !strings.Contains(only, "no price set for these models") {
+	if !strings.Contains(only, `<span class="text-muted">no price</span>`) || strings.Contains(only, "$0.0000") || !strings.Contains(only, "no price set for these models") {
 		t.Errorf("an unpriced session was shown as a cost:\n%s", only)
 	}
 	calls := here.ask(t, "GET", "/usage/free-looking", nil).Body.String()
-	if !strings.Contains(calls, `<span class="muted">no price</span>`) || strings.Contains(calls, "$0") {
+	if !strings.Contains(calls, `<span class="text-muted">no price</span>`) || strings.Contains(calls, "$0") {
 		t.Errorf("an unpriced call was shown as a cost:\n%s", calls)
 	}
 	partly := here.ask(t, "GET", "/usage", nil).Body.String()
@@ -197,10 +197,10 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 		t.Errorf("by last use: %s", got)
 	}
 	body := here.ask(t, "GET", "/usage?sort=cost&q=s-", nil).Body.String()
-	if !strings.Contains(body, `aria-sort="descending" class="num"><a href="/usage?q=s-&amp;sort=cost"`) || strings.Contains(body, "this page") {
+	if !strings.Contains(body, `aria-sort="descending" class="text-right"><a class="text-inherit no-underline hover:text-ink" href="/usage?q=s-&amp;sort=cost"`) || strings.Contains(body, "this page") {
 		t.Errorf("the sorted column is not marked, or the filter is lost from its link:\n%s", body)
 	}
-	if !strings.Contains(body, `<a href="/usage?q=s-&amp;sort=tokens">Tokens</a>`) {
+	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=tokens">Tokens</a>`) {
 		t.Error("the other headings should set the sort and keep the filter")
 	}
 	api := jsonList(t, here.call("GET", "/api/usage/sessions?sort=calls&limit=2", here.secrets["finance"]), "sessions")
@@ -289,7 +289,7 @@ func TestASessionListsItsCallsLatestFirst(t *testing.T) {
 func TestTheUsagePageSaysWhenThereIsNothingYet(t *testing.T) {
 	here, _ := withUsage(t)
 	body := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(body, "No model call has been recorded yet") || strings.Contains(body, `class="list usage"`) {
+	if !strings.Contains(body, "No model call has been recorded yet") || strings.Contains(body, "<table") {
 		t.Errorf("the empty state is not shown:\n%s", body)
 	}
 	bare := open(t)
@@ -325,7 +325,7 @@ func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByAgentType(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
 	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if strings.Count(body, "<h2>By agent</h2>") != 1 || strings.Count(body, "<h2>By agent type</h2>") != 1 {
+	if strings.Count(body, ">By agent</h2>") != 1 || strings.Count(body, ">By agent type</h2>") != 1 {
 		t.Errorf("the panels are not by agent and by agent type:\n%s", body)
 	}
 }
