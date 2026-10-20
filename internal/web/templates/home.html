@@ -14,7 +14,7 @@
     <tbody>
     {{range .Instances}}
     <tr class="group/row relative hover:bg-wash">
-      <td class="{{template "ag-td"}} align-middle"><span class="flex min-w-0 items-center gap-3">{{template "mark" (dict "Field" .Field "Name" .Name "Size" "sm")}}
+      <td class="{{template "ag-td"}} align-middle"><span class="flex min-w-0 items-center gap-3">{{template "mark" (dict "Harness" .Harness "Field" .Field "Name" .Name "Size" "sm")}}
         <span class="min-w-0"><a class="block truncate font-semibold text-ink no-underline after:absolute after:inset-0 after:content-['']" href="{{.Where}}">{{.Name}}</a><span class="block truncate text-xs text-muted">{{.Runs}}</span></span></span></td>
       <td class="{{template "ag-td"}} align-middle @max-[48rem]:hidden"><span class="block truncate text-sm text-muted"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
       <td class="{{template "ag-td"}} align-middle text-muted @max-[48rem]:hidden">{{.Threads}}</td>

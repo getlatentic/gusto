@@ -57,7 +57,7 @@ type usageColumn struct {
 // usageRow is a session as a line of the table.
 type usageRow struct {
 	ID, Href, Record, Last, LastFull string
-	Person, Agent, Engine            string
+	Person, Agent, Engine, Harness   string
 	Providers, Models                string
 	Cost, Unpriced, In, Out, Cache   string
 	Calls, Refused                   int64
@@ -111,6 +111,9 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
 		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
 		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""})}
+	for i := range view.Rows {
+		view.Rows[i].Harness = s.harnessOf(view.Rows[i].Engine)
+	}
 	for _, name := range usageFields {
 		if name != "person" || person == "" {
 			view.Filtered = view.Filtered || query.Values.Get(name) != ""
@@ -142,7 +145,7 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"}, {Label: "Agent type"},
+	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"},
 		sortable("Cost", "cost"), {Label: "Provider"}, {Label: "Model"}, sortable("Tokens", "tokens"), {Label: "Cache", Num: true}, sortable("Calls", "calls"), {Label: "Record"}}
 }
 

@@ -4,7 +4,7 @@
 
 <nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/new">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
 <header class="mb-6 flex items-center gap-4">
-  {{template "mark" (dict "Field" "" "Name" .Harness.Title "Size" "lg")}}
+  {{template "mark" (dict "Harness" .Harness.Name "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="min-w-0 flex-1">
     <h1>{{.Harness.Title}}</h1>
     <p class="mt-1 text-sm text-muted">{{.Harness.What}}</p>

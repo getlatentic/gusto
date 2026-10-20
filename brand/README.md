@@ -9,7 +9,7 @@ The mark is `gusto-mark.svg`. Everything else is drawn from it by `build.sh`.
 | `gusto-lockup.svg` | The mark and the word, for a light page. |
 | `gusto-lockup-reversed.svg` | The mark and the word, for a dark page. |
 
-The word is Sora Bold, outlined from `internal/web/static/sora.woff2`.
+The word is Sora Bold, outlined from `brand/fonts/sora.woff2`.
 
 ## Colors
 

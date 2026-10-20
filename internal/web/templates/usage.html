@@ -45,8 +45,7 @@
         <td title="{{.LastFull}}">{{.Last}}</td>
         <td class="max-w-48 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{.ID}}</a></td>
         <td class="max-w-48 truncate">{{.Person}}</td>
-        <td class="max-w-48 truncate">{{or .Agent "—"}}</td>
-        <td>{{.Engine}}</td>
+        <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{.Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
         <td class="max-w-48 truncate" title="{{.Providers}}">{{.Providers}}</td>
         <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
@@ -91,6 +90,6 @@
 
 {{/* figure is one number of a row of them, with what it counts under it; the first is the one that is asked for. */}}
 {{define "figure"}}<div class="grid content-start gap-1">
-  <span class="font-display font-semibold tabular-nums {{if .Headline}}text-3xl text-accent-ink{{else if .Bad}}text-2xl text-bad{{else}}text-2xl{{end}}">{{.Value}}</span>
+  <span class="font-display font-bold tracking-[-0.02em] tabular-nums {{if .Headline}}text-3xl text-accent-ink{{else if .Bad}}text-2xl text-bad{{else}}text-2xl{{end}}">{{.Value}}</span>
   <span class="text-xs text-muted">{{.Label}}</span>
 </div>{{end}}

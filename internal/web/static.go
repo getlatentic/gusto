@@ -60,3 +60,14 @@ func Static() http.Handler { return serveStatic() }
 
 // Asset is a static file's address with its fingerprint.
 func Asset(path string) string { return asset(path) }
+
+// logo is the path of an agent's own mark, or nothing for an agent that has none.
+func logo(harness string) string {
+	for _, kind := range []string{".svg", ".webp"} {
+		path := "/static/agents/" + harness + kind
+		if _, err := fs.Stat(assets, "static"+path[len("/static"):]); err == nil {
+			return asset(path)
+		}
+	}
+	return ""
+}

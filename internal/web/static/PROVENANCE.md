@@ -8,8 +8,7 @@ somebody else can change after review.
 | --- | --- | --- | --- |
 | htmx.min.js | htmx 2.0.11, from https://cdn.jsdelivr.net/npm/htmx.org@2/dist/htmx.min.js | 52182 | d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717 |
 | tokens.css | gusto's design tokens | 4236 | ebbb19d06726a10fe86050880f75258b606fc41a8b4780e8d6469dc8e597e399 |
-| sora.woff2 | Sora, weights 400 to 700, latin subset, SIL Open Font License 1.1, from https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-xo6eeIw.woff2 (fetched 2026-09-27) | 25240 | 3902474d3ece89c8580d5ef3325cf58753e6e45a86f9957b4dacc4fce2e7fde1 |
-| noto-sans.woff2 | Noto Sans, weights 100 to 900, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/noto-sans 5.3.0 (fetched 2026-10-19) | 35820 | 51ca196f49a33e79e7870ff88ebd2829a3f627a51e7d690986618f0e7ad2b52d |
+| manrope.woff2 | Manrope, weights 200 to 800, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/manrope 5.2.5 (fetched 2026-10-20) | 24376 | 14be4114dcfde74652f19f9ffae8c9bb50707e9e88bd2b1fcd86fb50224109e7 |
 | noto-sans-mono.woff2 | Noto Sans Mono, weights 100 to 900, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/noto-sans-mono 5.3.0 (fetched 2026-10-19) | 32108 | 71f6c22d5dd256eaa9e48347bda6ac2c65f58980dd372ed5780fbdaca1186331 |
 | mark.png | gusto's mark, drawn from brand/gusto-mark.svg at 192px wide | 6622 | 1210d55ec5948a7f7c12a8eda5261e7d669bddc0498ed5829476ccd96d2883fd |
 | mark.svg | gusto's mark (brand/gusto-mark.svg) | 1353 | 162a8be4516144137fdfc650ee0b6fa3d4da1cb8b5bbe1b641cb4a8849b00c6b |
@@ -23,6 +22,6 @@ Fetched 2026-09-26. Check them:
 shasum -a 256 internal/web/static/*
 ```
 
-Sora, the display face, and Noto Sans and Noto Sans Mono, the text and code faces, are vendored, so a page looks the same on every machine.
+Manrope, the text and display face, and Noto Sans Mono, the code face, are vendored, so a page looks the same on every machine.
 
 The icons in `templates/layout.html` and `static/explorer.js` are from Lucide (https://lucide.dev, ISC license), on its 24 unit grid.

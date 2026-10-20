@@ -10,6 +10,8 @@ type option struct {
 	Value  string `json:"value"`
 	Label  string `json:"label"`
 	Detail string `json:"detail,omitempty"`
+	// Icon is the picture that stands for the choice, when it has one.
+	Icon string `json:"icon,omitempty"`
 }
 
 func (s *Server) modelOption(model string) option {
@@ -33,7 +35,7 @@ func (s *Server) agentOptions(picks []pick) string {
 		if label == "" {
 			label = each.Name
 		}
-		options = append(options, option{Value: each.Name, Label: label})
+		options = append(options, option{Value: each.Name, Label: label, Icon: logo(each.Name)})
 	}
 	return asJSON(options)
 }
