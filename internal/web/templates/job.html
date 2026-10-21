@@ -117,7 +117,7 @@
 
   {{with .Job.Repo}}<p class="text-xs text-muted">Repository: <span class="wrap-anywhere">{{.}}</span></p>{{end}}
 
-  {{with .Proof}}
+  {{with .Proof}}{{if or $.Admin (not .Holds)}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" id="proof">
     <details class="group"{{if not .Holds}} open{{end}}><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}Verify this run{{if not .Holds}} <span class="text-bad">(does not check out)</span>{{end}}</summary><div class="mt-3">
     {{if not .Holds}}
@@ -140,7 +140,7 @@
     </details>
     </div></details>
   </section>
-  {{end}}
+  {{end}}{{end}}
 </div>
 
 <script nonce="{{.Nonce}}">

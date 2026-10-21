@@ -113,7 +113,7 @@ const routes = [
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],
   ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-activity", "/admin/activity"],
-  ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-retention", "/admin/retention"], ["admin-tokens", "/admin/tokens"],
+  ["admin-verification", "/admin/verification"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-retention", "/admin/retention"], ["admin-tokens", "/admin/tokens"],
   ["admin-skill-sets", "/admin/skill-sets"],
 ].filter(([name]) => !only || name.includes(only));
 
