@@ -36,12 +36,11 @@ type bar struct {
 	Says   string
 }
 
-// share is one line of a breakdown and how much of the largest line it is.
+// share is one line of a breakdown.
 // Label and Sub are what a person reads for a line whose name is an id, and
 // Href is where the line leads.
 type share struct {
 	spend.Line
-	Width float64
 	Label string
 	Sub   string
 	Href  string
@@ -94,20 +93,20 @@ func (s *Server) viewLedger(report spend.Report, months []string, now time.Time)
 		view.Measure = "money"
 	}
 	view.Daily = daysOf(report, view.Measure, now)
-	view.Models = shares(report.Models, view.Measure)
-	view.Harnesses = shares(report.Harnesses, view.Measure)
-	view.Agents = shares(s.byAgent(report.Jobs), view.Measure)
+	view.Models = shares(report.Models)
+	view.Harnesses = shares(report.Harnesses)
+	view.Agents = shares(s.byAgent(report.Jobs))
 	// One asker is the person reading, or nobody worth a panel.
 	if askers := s.byAsker(report.Jobs); len(askers) > 1 {
-		view.Askers = shares(askers, view.Measure)
+		view.Askers = shares(askers)
 	}
-	view.Teams = anyNamed(shares(report.Teams, view.Measure))
-	view.Projects = anyNamed(shares(report.Projects, view.Measure))
+	view.Teams = anyNamed(shares(report.Teams))
+	view.Projects = anyNamed(shares(report.Projects))
 	jobs := report.Jobs
 	if len(jobs) > topJobs {
 		jobs = jobs[:topJobs]
 	}
-	view.Jobs = s.labeled(shares(jobs, view.Measure))
+	view.Jobs = s.labeled(shares(jobs))
 	return view
 }
 
@@ -147,18 +146,10 @@ func daysOf(report spend.Report, measure string, now time.Time) []bar {
 	return days
 }
 
-func shares(lines []spend.Line, measure string) []share {
-	most := 0.0
-	for _, line := range lines {
-		most = max(most, amount(line.Tally, measure))
-	}
+func shares(lines []spend.Line) []share {
 	out := make([]share, 0, len(lines))
 	for _, line := range lines {
-		width := 0.0
-		if most > 0 {
-			width = 100 * amount(line.Tally, measure) / most
-		}
-		out = append(out, share{Line: line, Width: width})
+		out = append(out, share{Line: line})
 	}
 	return out
 }

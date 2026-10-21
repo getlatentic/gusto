@@ -58,17 +58,15 @@
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
   <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">
-    <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th><th class="pl-4 text-right">Calls</th></tr></thead>
+    <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th></tr></thead>
     <tbody>
     {{range .Lines}}
     <tr>
-      <td class="w-[55%] min-w-0 pr-3">
+      <td class="w-[60%] min-w-0 pr-3">
         {{if not .Name}}<span class="text-muted">none named</span>{{else if .Href}}<a class="line-clamp-2 underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="block text-xs text-subtle">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
-        <span class="mt-1 block h-1 rounded-xs bg-wash" aria-hidden="true"><span class="block h-full rounded-xs bg-accent" style="width: {{printf "%.1f" .Width}}%"></span></span>
       </td>
       <td class="text-right tabular-nums whitespace-nowrap">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{.Money}}{{end}}</td>
       <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{tokens (add .InputTokens .OutputTokens)}}</td>
-      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{.Calls}}{{with .Refused}} <span class="text-xs text-bad" title="refused by a cap">· {{.}} refused</span>{{end}}</td>
     </tr>
     {{end}}
     </tbody>
