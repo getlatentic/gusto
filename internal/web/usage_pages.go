@@ -58,12 +58,12 @@ type usageColumn struct {
 
 // usageRow is a session as a line of the table.
 type usageRow struct {
-	ID, Href, Record, Last, LastFull string
-	Person, Agent, Engine, Harness   string
-	Providers, Models                string
-	Cost, Unpriced, In, Out, Cache   string
-	Calls, Refused                   int64
-	MoreTasks                        int
+	ID, Title, Href, Record, Last, LastFull string
+	Person, Agent, Engine, Harness          string
+	Providers, Models                       string
+	Cost, Unpriced, In, Out, Cache          string
+	Calls, Refused                          int64
+	MoreTasks                               int
 }
 
 func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
@@ -116,6 +116,9 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	people := map[string]bool{}
 	for i := range view.Rows {
 		view.Rows[i].Harness = s.harnessOf(view.Rows[i].Engine)
+		if task, found := s.index.Get(strings.TrimPrefix(view.Rows[i].Record, "/jobs/")); found {
+			view.Rows[i].Title = task.Brief
+		}
 		people[view.Rows[i].Person] = true
 	}
 	if view.ShowWho = len(people) > 1; !view.ShowWho {
@@ -152,15 +155,15 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"},
+	return []usageColumn{sortable("Last request", "last"), {Label: "Task"}, {Label: "Who"}, {Label: "Agent"},
 		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens"), sortable("Calls", "calls")}
 }
 
 func rowsOf(sessions []usage.Session, base string) []usageRow {
 	rows := make([]usageRow, 0, len(sessions))
 	for _, each := range sessions {
-		row := usageRow{ID: each.ID, Href: base + "/" + url.PathEscape(each.ID), Last: each.Last.UTC().Format("2 Jan 15:04"),
-			LastFull: each.Last.UTC().Format("2006-01-02 15:04:05 UTC"), Person: each.Person, Agent: each.Agent, Engine: each.Engine,
+		row := usageRow{ID: each.ID, Href: base + "/" + url.PathEscape(each.ID), Last: each.Last.Local().Format("2 Jan 15:04"),
+			LastFull: each.Last.Local().Format("2006-01-02 15:04:05 MST"), Person: each.Person, Agent: each.Agent, Engine: each.Engine,
 			Providers: strings.Join(each.Providers, ", "), Models: strings.Join(each.Models, ", "), Calls: each.Calls, Refused: each.Refused,
 			In: compact(each.InputTokens), Out: compact(each.OutputTokens), Cache: cacheRate(each.CachedTokens, each.InputTokens)}
 		row.Cost, row.Unpriced = costOf(each.Totals)

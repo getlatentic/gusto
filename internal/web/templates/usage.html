@@ -50,7 +50,7 @@
       {{range .Rows}}
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
-        <td class="max-w-28 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{.ID}}</a></td>
+        <td class="max-w-64 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
         {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
         <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{.Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
