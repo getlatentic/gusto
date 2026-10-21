@@ -156,7 +156,7 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		return column
 	}
 	return []usageColumn{sortable("Last request", "last"), {Label: "Task"}, {Label: "Who"}, {Label: "Agent"},
-		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens"), sortable("Calls", "calls")}
+		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens")}
 }
 
 func rowsOf(sessions []usage.Session, base string) []usageRow {
