@@ -2,7 +2,8 @@
 
 <div class="mb-6 flex items-center gap-3">
   <h1>Usage</h1>
-  {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
+  <a class="ml-auto text-sm text-muted no-underline hover:text-ink hover:underline" href="/spend">Spending</a>
+  {{with .Usage}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
 </div>
 
 {{with .Usage}}
@@ -74,7 +75,6 @@
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No model call has been recorded yet. Every call an agent makes goes through the proxy, and each one is listed here, whoever made it.</p>
 {{end}}
 
-<p class="mt-4 text-xs text-muted">Counted at the proxy from each provider's own answer. A call whose model has no price set is shown as "no price", not as free.</p>
 {{else}}
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">This server keeps no usage index.</p>
 {{end}}

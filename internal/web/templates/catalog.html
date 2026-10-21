@@ -4,10 +4,8 @@
 
 <div class="{{template "ag-head"}}">
   <h1>Presets</h1>
-  <p class="{{template "ag-lede"}}">A preset is a starting point for a chat: what it is good at, ready to use. You choose the agent and model in the chat.</p>
 </div>
 
-{{if not .Presets}}<p class="mb-6 text-xs text-subtle">Your own presets will be listed here. To make one, set up a chat, then choose Save this setup as a preset in the preset menu above its message box.</p>{{end}}
 {{if .Presets}}<section class="mb-8 grid gap-3" aria-label="Your presets">
   <h2>Your presets</h2>
   <div class="divide-y divide-line overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
