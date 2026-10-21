@@ -24,7 +24,7 @@ func (s *Server) verificationPage(w http.ResponseWriter, r *http.Request) {
 	counts := map[string]int{}
 	var rows []checked
 	for _, record := range all {
-		if len(rows) == verifiedRuns {
+		if checkedCount(counts) == verifiedRuns {
 			break
 		}
 		if !record.State.Done() {
@@ -37,7 +37,9 @@ func (s *Server) verificationPage(w http.ResponseWriter, r *http.Request) {
 		}
 		state := verdict(s.proofOf(record.ID, dir, manifest))
 		counts[state]++
-		rows = append(rows, checkedRow(record, state))
+		if state != "verified" {
+			rows = append(rows, checkedRow(record, state))
+		}
 	}
 	s.drawConsole(w, "admin-verification.html", "verification", map[string]any{
 		"Title": productName + " — verification", "Rows": rows, "Verified": counts["verified"], "Unsigned": counts["unsigned"],
@@ -61,4 +63,12 @@ func verdict(p *proof) string {
 		return "unchecked"
 	}
 	return "unsigned"
+}
+
+func checkedCount(counts map[string]int) int {
+	total := 0
+	for _, each := range counts {
+		total += each
+	}
+	return total
 }
