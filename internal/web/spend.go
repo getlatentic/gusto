@@ -69,7 +69,7 @@ func (s *Server) spendData(w http.ResponseWriter, r *http.Request, base string) 
 	report, months := reportOf(ledger, r)
 	return map[string]any{
 		"Title":  productName + " — spend",
-		"Nav":    "spend",
+		"Nav":    "usage",
 		"Base":   base,
 		"Ledger": s.viewLedger(report, months, time.Now()),
 	}, true

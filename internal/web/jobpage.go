@@ -25,7 +25,7 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 	ledger, _ := s.spending()
 	page := map[string]any{
 		"Job": record, "On": s.origin(record), "Run": s.recorded(record, ledger),
-		"Title": productName + " — " + record.Brief, "Nav": "harnesses",
+		"Title": productName + " — " + record.Brief, "Nav": "jobs",
 	}
 	spec, err := job.Read(dir)
 	if err == nil {
