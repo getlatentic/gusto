@@ -24,6 +24,8 @@ type ledgerView struct {
 	Teams    []share
 	Projects []share
 	Tops     []topBox
+	// DayLabels are the dates under the first, middle and last bar, so the axis names three days and not every one.
+	DayLabels []string
 }
 
 // bar is one day of the month.
@@ -86,6 +88,7 @@ func (s *Server) viewLedger(report spend.Report, months []string, now time.Time)
 		view.Measure = "money"
 	}
 	view.Daily = daysOf(report, view.Measure, now)
+	view.DayLabels = dayLabels(view.Daily)
 	view.Models = shares(report.Models)
 	view.Agents = shares(s.byAgent(report.Jobs))
 	view.Teams = anyNamed(shares(report.Teams))
@@ -197,4 +200,21 @@ func compact(count int64) string {
 		return fmt.Sprintf("%.1fk", float64(count)/1e3)
 	}
 	return fmt.Sprint(count)
+}
+
+func dayLabels(days []bar) []string {
+	if len(days) == 0 {
+		return nil
+	}
+	at := func(i int) string {
+		day, err := time.Parse("2006-01-02", days[i].Date)
+		if err != nil {
+			return days[i].Label
+		}
+		return day.Format("2 Jan")
+	}
+	if len(days) < 3 {
+		return []string{at(0), at(len(days) - 1)}
+	}
+	return []string{at(0), at(len(days) / 2), at(len(days) - 1)}
 }

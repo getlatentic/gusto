@@ -27,13 +27,14 @@
 </section>
 
 <section class="mb-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
-  <h2 class="mb-3 text-sm font-semibold">By day <span class="font-normal text-muted">in {{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
+  <h2 class="mb-4 flex items-baseline gap-2 text-sm font-semibold">Spend by day <span class="font-normal text-muted">{{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
   {{if .Daily}}
-  <div class="group/bars flex h-40 items-stretch gap-[0.1875rem]" role="img" aria-label="Spending on each day of {{.Month}}">
+  <div class="group/bars flex h-40 items-end gap-1.5" role="img" aria-label="Spending on each day of {{.Month}}">
     {{range .Daily}}
-    <div class="group/day grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-1" title="{{.Says}}"><span class="block min-h-px self-end rounded-t-xs bg-accent group-hover/day:bg-accent-hover" style="height: {{printf "%.1f" .Height}}%"></span><span class="text-center text-xs text-subtle @max-[56rem]:invisible">{{.Label}}</span></div>
+    <div class="group/day flex h-full min-w-0 flex-1 flex-col justify-end" title="{{.Says}}"><span class="block min-h-[0.1875rem] rounded-t-sm bg-accent group-hover/day:bg-accent-hover" style="height: {{printf "%.1f" .Height}}%"></span></div>
     {{end}}
   </div>
+  <div class="mt-2 flex justify-between text-xs text-muted">{{range .DayLabels}}<span>{{.}}</span>{{end}}</div>
   {{end}}
 </section>
 
