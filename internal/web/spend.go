@@ -54,7 +54,7 @@ func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 // consoleSpend is the same report in the console, for the whole organization.
 func (s *Server) consoleSpend(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.spendData(w, r, "/admin/spending"); ok {
-		s.drawConsole(w, "spend.html", "spending", page)
+		s.drawConsole(w, "spend.html", "usage", page)
 	}
 }
 
@@ -68,9 +68,10 @@ func (s *Server) spendData(w http.ResponseWriter, r *http.Request, base string) 
 	}
 	report, months := reportOf(ledger, r)
 	return map[string]any{
-		"Title":  productName + " — spend",
+		"Title":  productName + " — usage",
 		"Nav":    "usage",
 		"Base":   base,
+		"Tabs":   tabsFor(base != "/spend", "summary"),
 		"Ledger": s.viewLedger(report, months, time.Now()),
 	}, true
 }

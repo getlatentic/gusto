@@ -2,8 +2,8 @@
 
 <div class="mb-6 flex items-center gap-3">
   <h1>Usage</h1>
-  <a class="ml-auto {{template "ag-btn-quiet"}}" href="/spend">Spending</a>
-  {{with .Usage}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
+  {{template "usage-tabs" .Tabs}}
+  {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
 </div>
 
 {{with .Usage}}
@@ -82,6 +82,11 @@
 {{end}}
 
 {{template "foot" .}}
+
+{{define "usage-tabs"}}<nav class="flex gap-1 rounded-md bg-wash p-[0.1875rem] text-sm" aria-label="Usage views">
+  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
+  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Tasks</a>
+</nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>
   <select class="{{template "ag-ctl"}}" name="{{.Name}}" data-autosubmit>
