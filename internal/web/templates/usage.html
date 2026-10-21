@@ -56,7 +56,6 @@
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
         <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
-        <td class="text-right tabular-nums">{{.Calls}}{{with .Refused}} <span class="text-xs text-bad" title="refused by a cap">· {{.}} refused</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
