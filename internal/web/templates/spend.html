@@ -68,7 +68,7 @@
       </td>
       <td class="text-right tabular-nums whitespace-nowrap">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{.Money}}{{end}}</td>
       <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{tokens (add .InputTokens .OutputTokens)}}</td>
-      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{.Calls}}{{with .Refused}} <span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad" title="refused by a cap">+{{.}}</span>{{end}}</td>
+      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{.Calls}}{{with .Refused}} <span class="text-xs text-bad" title="refused by a cap">· {{.}} refused</span>{{end}}</td>
     </tr>
     {{end}}
     </tbody>
