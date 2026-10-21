@@ -57,7 +57,6 @@
         <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
         <td class="text-right tabular-nums">{{.Calls}}{{with .Refused}} <span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad" title="refused by a cap">+{{.}}</span>{{end}}</td>
-        <td>{{if .Record}}<a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Record}}" title="Details of the latest task in this session">Details</a>{{with .MoreTasks}} <span class="text-muted">+{{.}}</span>{{end}}{{end}}</td>
       </tr>
       {{end}}
     </tbody>

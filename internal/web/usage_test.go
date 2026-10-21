@@ -52,11 +52,14 @@ func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 	if page.Code != http.StatusOK {
 		t.Fatalf("%d %s", page.Code, page.Body)
 	}
-	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`, `href="/jobs/task-a"`, `href="/jobs/task-b"`,
+	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`,
 		"$0.7500", ">3<", "3.0k", "40%", "Notes", "Claude Code", "bedrock", "claude-sonnet"} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page does not show %q", want)
 		}
+	}
+	if body := here.ask(t, "GET", "/usage/alice-session", nil).Body.String(); !strings.Contains(body, `href="/jobs/task-a"`) {
+		t.Error("the session page does not link to its task")
 	}
 }
 
