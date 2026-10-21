@@ -35,9 +35,11 @@ const (
 	unmeasured = `{"path":"/v1/chat/completions","status":200,"atUnix":1790000000,"model":"m","inputTokens":null,"outputTokens":null,"usd":null}`
 )
 
-func TestTheSpendPageShowsTeamsProjectsAndJobs(t *testing.T) {
+// The month's page says what was spent, and names the team that spent most once there is more than one to name.
+func TestTheSpendPageNamesTheBiggestTeamWhenThereIsMoreThanOne(t *testing.T) {
 	site := open(t)
 	spentJob(t, site.index.Root(), "fix-it", "platform", priced, priced)
+	spentJob(t, site.index.Root(), "write-it", "finance", priced)
 	spentJob(t, site.index.Root(), "said-nothing", "", unmeasured)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/spend?month=2026-09", nil)
@@ -45,9 +47,14 @@ func TestTheSpendPageShowsTeamsProjectsAndJobs(t *testing.T) {
 		t.Fatalf("code %d", answer.Code)
 	}
 	page := answer.Body.String()
-	for _, want := range []string{"platform", "github.com/o/api", `href="/jobs/fix-it"`, "$0.5000", "spent this month, at least", "Other work"} {
+	for _, want := range []string{"Biggest team", ">platform<", "$0.7500", "spent this month, at least"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("want %q on the page:\n%s", want, page)
+		}
+	}
+	for _, not := range []string{"By team", "By agent", "Most expensive messages"} {
+		if strings.Contains(page, not) {
+			t.Errorf("the page still has the %q table", not)
 		}
 	}
 }
@@ -78,9 +85,8 @@ func TestTheSpendReportIsThereForAScript(t *testing.T) {
 	}
 }
 
-// What an agent spent is added up under the agent's name, and a message is
-// listed by what was asked, not by its job's id.
-func TestTheSpendPageNamesAgentsAndMessages(t *testing.T) {
+// One agent, model or team is nothing to compare, so it has no box.
+func TestTheSpendPageHasNoBoxForSomethingWithNothingToCompareItWith(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
@@ -93,12 +99,9 @@ func TestTheSpendPageNamesAgentsAndMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := site.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-	for _, want := range []string{"By agent", "Clinical documentation", ">Draft a SOAP note from the visit notes</a>", `href="/jobs/` + id + `"`} {
-		if !strings.Contains(page, want) {
-			t.Fatalf("want %q on the page:\n%s", want, page)
+	for _, not := range []string{"Most used agent", "Most used model", "Biggest team"} {
+		if strings.Contains(page, not) {
+			t.Errorf("a month with one of each should have no %q box", not)
 		}
-	}
-	if strings.Contains(page, "By team") {
-		t.Error("a month where no team was named has nothing to show by team")
 	}
 }

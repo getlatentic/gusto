@@ -324,15 +324,6 @@ func TestAnIndexStillBeingBuiltSaysHowFarItIs(t *testing.T) {
 	}
 }
 
-func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByAgentType(t *testing.T) {
-	here := open(t)
-	here.signIn(t)
-	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if strings.Count(body, ">By agent</h2>") != 1 || strings.Count(body, ">By agent type</h2>") != 1 {
-		t.Errorf("the panels are not by agent and by agent type:\n%s", body)
-	}
-}
-
 func TestUsageAndSpendingLinkToEachOther(t *testing.T) {
 	here := open(t)
 	here.signIn(t)

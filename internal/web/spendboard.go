@@ -17,15 +17,13 @@ type ledgerView struct {
 	// Measure is what the bars and shares are drawn in: money when any of the
 	// month was priced, and tokens when none was, because a chart of zeros
 	// says nothing and the tokens are still the provider's own count.
-	Measure   string
-	Daily     []bar
-	Models    []share
-	Harnesses []share
-	Agents    []share
-	Askers    []share
-	Teams     []share
-	Projects  []share
-	Jobs      []share
+	Measure  string
+	Daily    []bar
+	Models   []share
+	Agents   []share
+	Teams    []share
+	Projects []share
+	Tops     []topBox
 }
 
 // bar is one day of the month.
@@ -45,10 +43,6 @@ type share struct {
 	Sub   string
 	Href  string
 }
-
-// topJobs is how many jobs the dashboard lists. The month's whole list is in
-// the JSON report and the ledger; the page is for finding the expensive ones.
-const topJobs = 10
 
 // plainly merges a breakdown's lines under the names a person reads: two
 // credentials serving one model are one model, and a request that asked no
@@ -87,27 +81,65 @@ func modelOf(line string) string {
 
 func (s *Server) viewLedger(report spend.Report, months []string, now time.Time) ledgerView {
 	report.Models = plainly(report.Models, modelOf)
-	report.Harnesses = plainly(report.Harnesses, s.engineName)
 	view := ledgerView{Report: report, Months: months, Measure: "tokens"}
 	if report.Total.USD > 0 {
 		view.Measure = "money"
 	}
 	view.Daily = daysOf(report, view.Measure, now)
 	view.Models = shares(report.Models)
-	view.Harnesses = shares(report.Harnesses)
 	view.Agents = shares(s.byAgent(report.Jobs))
-	// One asker is the person reading, or nobody worth a panel.
-	if askers := s.byAsker(report.Jobs); len(askers) > 1 {
-		view.Askers = shares(askers)
-	}
 	view.Teams = anyNamed(shares(report.Teams))
 	view.Projects = anyNamed(shares(report.Projects))
-	jobs := report.Jobs
-	if len(jobs) > topJobs {
-		jobs = jobs[:topJobs]
-	}
-	view.Jobs = s.labeled(shares(jobs))
+	view.Tops = topsOf(view)
 	return view
+}
+
+// topBox is the biggest line of one breakdown: the answer to "which one" for somebody who does not want the table.
+type topBox struct {
+	Title, Name, Says string
+}
+
+// topsOf is the biggest agent, model and team. A breakdown with nothing to compare, fewer than two lines that spent anything, has no box.
+func topsOf(view ledgerView) []topBox {
+	var boxes []topBox
+	for _, each := range []struct {
+		title string
+		lines []share
+	}{{"Most used agent", view.Agents}, {"Most used model", view.Models}, {"Biggest team", view.Teams}} {
+		var named []share
+		for _, line := range each.lines {
+			if line.Name != "" && amount(line.Tally, view.Measure) > 0 {
+				named = append(named, line)
+			}
+		}
+		if len(named) < 2 {
+			continue
+		}
+		top := named[0]
+		for _, line := range named[1:] {
+			if amount(line.Tally, view.Measure) > amount(top.Tally, view.Measure) {
+				top = line
+			}
+		}
+		name := top.Name
+		if top.Label != "" {
+			name = top.Label
+		}
+		boxes = append(boxes, topBox{Title: each.title, Name: name, Says: topSays(top, view)})
+	}
+	return boxes
+}
+
+func topSays(top share, view ledgerView) string {
+	whole := amount(view.Total, view.Measure)
+	part := ""
+	if whole > 0 {
+		part = fmt.Sprintf(" · %d%% of the month", int(100*amount(top.Tally, view.Measure)/whole+0.5))
+	}
+	if view.Measure == "money" {
+		return top.Tally.Money() + part
+	}
+	return compact(top.Tally.InputTokens+top.Tally.OutputTokens) + " tokens" + part
 }
 
 func amount(tally spend.Tally, measure string) float64 {
