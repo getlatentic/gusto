@@ -31,14 +31,16 @@ func (s *Server) drawUsage(w http.ResponseWriter, name string, console bool, pag
 
 // usageView is the sessions page: the figures above the table, the table, and the controls that narrow it.
 type usageView struct {
-	Query        usageQuery
-	Values       url.Values
-	Everyone     bool
-	Facets       usage.Facets
-	Building     usage.Status
-	Figures      usageFigures
-	Rows         []usageRow
-	Columns      []usageColumn
+	Query    usageQuery
+	Values   url.Values
+	Everyone bool
+	Facets   usage.Facets
+	Building usage.Status
+	Figures  usageFigures
+	Rows     []usageRow
+	Columns  []usageColumn
+	// ShowWho is whether more than one person is in the table, so a column naming them says something.
+	ShowWho      bool
 	Filtered     bool
 	Newest, Next string
 	Export       string
@@ -111,8 +113,13 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
 		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
 		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""})}
+	people := map[string]bool{}
 	for i := range view.Rows {
 		view.Rows[i].Harness = s.harnessOf(view.Rows[i].Engine)
+		people[view.Rows[i].Person] = true
+	}
+	if view.ShowWho = len(people) > 1; !view.ShowWho {
+		view.Columns = slices.DeleteFunc(view.Columns, func(column usageColumn) bool { return column.Label == "Who" })
 	}
 	for _, name := range usageFields {
 		if name != "person" || person == "" {
