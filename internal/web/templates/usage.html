@@ -17,18 +17,25 @@
   {{template "figure" (dict "Value" .Figures.Refused "Label" "refused by a cap" "Bad" .Figures.Refused)}}
 </section>
 
-<form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
-  <label class="basis-full"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
-    <input class="{{template "ag-ctl"}} w-full" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
-  </label>
-  {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
-  {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
-  {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
-  {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
-  {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
-  <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="{{template "ag-ctl"}}" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="{{template "ag-ctl"}}" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
-  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Filter</button>
-  {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
+<form class="mb-4 grid gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
+  <div class="flex flex-wrap items-center gap-3">
+    <label class="min-w-56 flex-1"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
+      <input class="{{template "ag-ctl"}} w-full" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
+    </label>
+    <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="{{template "ag-ctl"}}" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="{{template "ag-ctl"}}" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
+    <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Filter</button>
+    {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
+  </div>
+  <details class="group"{{if .Filtered}} open{{end}}>
+    <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
+    <div class="mt-3 flex flex-wrap gap-3">
+      {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
+      {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
+      {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
+      {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
+      {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
+    </div>
+  </details>
 </form>
 
 {{if .Rows}}
