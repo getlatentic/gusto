@@ -16,18 +16,18 @@
   {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
   <div class="ml-auto flex flex-wrap items-center gap-3">
   {{with .Index}}
-  <label><span class="sr-only">Search</span><input class="{{template "ag-input"}} w-48" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
-  {{if .Everyone}}<label><span class="sr-only">Person</span><input class="{{template "ag-input"}} w-36" type="text" name="person" value="{{.Person}}" placeholder="Person"></label>{{end}}
+  <label><span class="sr-only">Search</span><input class="{{template "ag-ctl"}} w-48" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
+  {{if .Everyone}}<label><span class="sr-only">Person</span><input class="{{template "ag-ctl"}} w-36" type="text" name="person" value="{{.Person}}" placeholder="Person"></label>{{end}}
   {{end}}
   <label><span class="sr-only">Agent type</span>
-    <select class="{{template "ag-input"}}" name="agent_type" data-autosubmit>
+    <select class="{{template "ag-ctl"}}" name="agent_type" data-autosubmit>
       <option value="">every agent</option>
       {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
     </select>
   </label>
   {{with .Index}}
   <label><span class="sr-only">Order</span>
-    <select class="{{template "ag-input"}}" name="sort" data-autosubmit>
+    <select class="{{template "ag-ctl"}}" name="sort" data-autosubmit>
       {{$sorted := .Sort}}{{range .Sorts}}<option value="{{.Name}}"{{if or (eq .Name $sorted) (and (eq .Name "queued") (not $sorted))}} selected{{end}}>{{.Label}}</option>{{end}}
     </select>
   </label>
