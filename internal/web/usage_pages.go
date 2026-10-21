@@ -71,7 +71,7 @@ func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
 }
 
 func (s *Server) showUsage(w http.ResponseWriter, r *http.Request, base string, console bool) {
-	page := map[string]any{"Title": productName + " — usage", "Base": base}
+	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
 	if s.usage.store == nil {
 		s.drawUsage(w, "usage.html", console, page)
 		return

@@ -2,9 +2,9 @@
 {{with .Ledger}}
 
 <div class="mb-6 flex items-center gap-3">
-  <h1>Spending</h1>
-  <a class="ml-auto {{template "ag-btn-quiet"}}" href="/usage">Usage</a>
-  <form method="get" action="{{$.Base}}">
+  <h1>Usage</h1>
+  {{template "usage-tabs" $.Tabs}}
+  <form class="ml-auto" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
       <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
@@ -58,7 +58,7 @@
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
   <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">
-    <thead><tr><th>Name</th><th class="text-right">Spent</th><th class="text-right">Tokens</th><th class="text-right">Calls</th></tr></thead>
+    <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th><th class="pl-4 text-right">Calls</th></tr></thead>
     <tbody>
     {{range .Lines}}
     <tr>
