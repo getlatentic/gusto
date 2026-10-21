@@ -165,9 +165,16 @@ func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.
 		t.Errorf("the script is not served: %d", script.Code)
 	}
 
+	if !strings.Contains(page, `src="/static/guide.js`) {
+		t.Error("a demo host's pages do not carry the guided tour")
+	}
+	if script := behind.ask(t, "GET", "/static/guide.js", nil); script.Code != http.StatusOK || !strings.Contains(script.Body.String(), "gusto:demo") {
+		t.Errorf("the tour is not served, or does not wait for the demo signal: %d", script.Code)
+	}
+
 	alone := open(t)
 	alone.signIn(t)
-	if page := alone.ask(t, "GET", "/", nil).Body.String(); strings.Contains(page, "lease.js") {
+	if page := alone.ask(t, "GET", "/", nil).Body.String(); strings.Contains(page, "lease.js") || strings.Contains(page, "guide.js") {
 		t.Error("a server with no front door carries the script")
 	}
 }

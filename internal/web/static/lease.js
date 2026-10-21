@@ -72,6 +72,10 @@
       .then(function (d) {
         if (d && typeof d.seconds === "number") {
           left = d.seconds; demo = d.demo === true;
+          if (demo && !window.gustoDemo) {
+            window.gustoDemo = { book: d.book || "" };
+            document.dispatchEvent(new CustomEvent("gusto:demo", { detail: window.gustoDemo }));
+          }
           if (demo && bar === null) { build(); }
           if (demo && d.extend) { link.href = d.extend; }
           if (demo && d.book && book) { book.href = d.book; }

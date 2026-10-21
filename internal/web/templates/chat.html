@@ -155,6 +155,8 @@
   });
   var grow = function () { box.style.height = "auto"; box.style.height = box.scrollHeight + "px"; };
   box.addEventListener("input", grow);
+  var suggested = new URLSearchParams(location.search).get("prompt");
+  if (suggested) { box.value = suggested; box.dispatchEvent(new Event("input")); }
   box.addEventListener("keydown", function (event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();

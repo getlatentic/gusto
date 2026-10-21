@@ -1,0 +1,45 @@
+{{template "head" .}}
+
+<div class="{{template "adm-title"}}">
+  <h1>Verification</h1>
+  <span class="text-sm text-muted">Each run's files are checked against what was recorded when it finished</span>
+</div>
+
+{{if .Failing}}<p class="{{template "adm-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
+
+<div class="{{template "adm-figures"}}">
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Verified}}</span><span class="text-xs text-muted">verified</span></div>
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Unsigned}}</span><span class="text-xs text-muted">not signed</span></div>
+  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="text-xs text-muted">do not check out</span></div>
+</div>
+
+{{if .Rows}}
+<h2 class="mb-3 text-sm font-semibold">Needs a look</h2>
+<div class="{{template "adm-card"}} overflow-x-auto">
+  <table class="{{template "adm-table"}}">
+    <thead><tr><th class="w-32">When</th><th>Run</th><th>Who</th><th>Result</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td class="whitespace-nowrap text-muted">{{.When}}</td>
+        <td class="max-w-md truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}#proof">{{.Brief}}</a></td>
+        <td class="whitespace-nowrap">{{.Who}}</td>
+        <td>{{template "adm-state" (or (and (eq .State "does not check out") "failed") .State)}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="text-muted">{{if .Verified}}Every one of the newest {{.Verified}} finished run{{if ne .Verified 1}}s{{end}} checks out.{{else}}No run has finished yet.{{end}}</p>
+{{end}}
+<p class="mt-3 text-xs text-muted">Counts cover the newest {{.Shown}} finished runs. A run signed with a key this server does not hold shows as "unchecked".</p>
+
+<details class="group mt-6">
+  <summary class="{{template "adm-fold-summary"}}">{{template "adm-chevron"}} Check a run yourself</summary>
+  <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
+    <p>Open a run, download its record and its signing key, and run the command shown there. It needs only the <code>gusto</code> program, not this server.</p>
+  </div>
+</details>
+
+{{template "foot" .}}

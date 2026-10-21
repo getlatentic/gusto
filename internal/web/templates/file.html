@@ -2,7 +2,7 @@
 
 <div class="grid max-w-[60rem] gap-5">
   <nav class="flex flex-wrap items-center gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
-    {{if .Evidence}}<a href="/jobs">Activity</a><span>/</span><a href="/jobs/{{.Evidence}}">Record</a>
+    {{if .Evidence}}<a href="/jobs">Activity</a><span>/</span><a href="/jobs/{{.Evidence}}">Details</a>
     {{else}}<a href="/files">Files</a>
     {{range .Crumbs}}<span>/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}{{end}}
   </nav>

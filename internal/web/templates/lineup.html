@@ -36,7 +36,7 @@
   </table>
 </div>
 {{if .Reading}}<p class="mt-4 max-w-[68ch] text-xs text-muted">Figures within 15% of each other, or under 5 seconds or a tenth of a cent apart, are called level: one run each is one sample, and a second run could reverse them. A model call is one turn of the agent's loop, counted at the proxy.</p>{{end}}
-<p class="mt-2 text-xs text-muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own signed record, under Details.</p>
+<p class="mt-2 text-xs text-muted">Each agent ran in its own sealed box from the same commit. Every run keeps its own details.</p>
 
 {{if .Running}}<script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 4000);</script>{{end}}
 

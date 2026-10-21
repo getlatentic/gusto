@@ -2,7 +2,7 @@
 
 gusto is a tool that lets you run the AI agents you already use, such as Claude Code, Codex, pi, Hermes, OpenCode and more, on your computer, your server, or your company's cloud.
 
-Each task runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per task and per team, your keys stay out of the agent's reach, and every task leaves a signed record of what it changed and what it cost.
+Each task runs in the strongest sandbox your machine has: a virtual machine, a container, or the system's own sandbox. Spending is capped per task and per team, your keys stay out of the agent's reach, and every task leaves a record of what it changed and what it cost.
 
 ## Where you can run it
 
@@ -11,7 +11,7 @@ Each task runs in the strongest sandbox your machine has: a virtual machine, a c
 | **A local machine** (laptop or desktop; macOS, Linux, Windows) | Install it with one command. It starts at login and opens in your browser. |
 | **A homelab** (a spare PC or mini server at home) | Run `server.sh --no-tls` on the box (below); use it from any computer on your network. |
 | **A VPS** (a cloud machine you rent) | Run `server.sh --domain agents.example.com` (below): HTTPS, one password, ready in minutes. |
-| **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a signed record per task. See [docs/PILOT.md](docs/PILOT.md). |
+| **A large enterprise** (a team, your own cloud) | Compose or Helm, single sign-on and roles, spend caps per team, a record per task. See [docs/PILOT.md](docs/PILOT.md). |
 
 ## Try it on your computer
 

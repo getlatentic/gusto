@@ -11,7 +11,7 @@
 <section class="{{template "adm-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
   <span class="grid size-9 flex-none place-items-center rounded-full bg-ok-wash text-ok">{{template "icon-seal"}}</span>
   <div class="grid min-w-48 flex-1 gap-0.5">
-    <strong>Record intact</strong>
+    <strong>Activity log intact</strong>
     <span class="text-xs text-muted">{{.Events}} event{{if ne .Events 1}}s{{end}}{{if .Signed}}, {{.Signed}} signed{{end}}{{if .Unsigned}}, {{.Unsigned}} not signed{{end}}</span>
   </div>
   <a class="{{template "adm-btn-quiet"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>
