@@ -49,8 +49,8 @@
         <p class="mt-0.5 truncate text-xs text-muted">{{if .On.Link}}<a class="text-muted" href="{{.On.Link}}" title="{{.On.Named}}">{{or .On.Project .On.Named}}</a>{{else}}{{template "origin" .On}}{{end}}<span>{{with .Model}} · {{brain .}}{{end}}</span></p>
         {{$asked := .Asked}}{{with waiting .ID}}<span class="text-xs text-muted">Asked by {{askedBy $asked}}. {{.}}</span>{{end}}
       </div>
-      <span class="{{if eq .State "passed"}}{{template "ag-badge-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{template "ag-badge-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{template "ag-badge-warn"}}{{else}}{{template "ag-badge"}}{{end}}" title="{{when .Queued}}">{{outcome .}}</span>
-      <span class="whitespace-nowrap text-right text-xs tabular-nums text-muted @max-[48rem]:hidden"><span title="{{when .Queued}}">{{hourOf .Queued}}</span>{{$took := took .Started .Ended}}{{if $took}} · {{$took}}{{end}}{{if or .Metered .Cost}} · {{template "cost" .}}{{end}}</span>
+      {{$outcome := outcome .}}{{if or (eq $outcome "replied") (eq $outcome "check passed")}}<span></span>{{else}}<span class="{{if eq .State "passed"}}{{template "ag-badge-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{template "ag-badge-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{template "ag-badge-warn"}}{{else}}{{template "ag-badge"}}{{end}}" title="{{when .Queued}}">{{outcome .}}</span>{{end}}
+      <span class="whitespace-nowrap text-right text-xs tabular-nums text-muted @max-[48rem]:hidden"><span title="{{when .Queued}}">{{hourOf .Queued}}</span>{{if or .Metered .Cost}} · {{template "cost" .}}{{end}}</span>
     </li>
     {{end}}
   </ol>
