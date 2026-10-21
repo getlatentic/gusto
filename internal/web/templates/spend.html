@@ -37,16 +37,17 @@
   {{end}}
 </section>
 
-<div class="mb-4 grid grid-cols-2 gap-4 @max-[56rem]:grid-cols-1">
-  {{template "shares" (dict "Title" "By agent" "Lines" .Agents)}}
-  {{with .Askers}}{{template "shares" (dict "Title" "By who asked" "Lines" .)}}{{end}}
-  {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
-  {{template "shares" (dict "Title" "By agent type" "Lines" .Harnesses)}}
-  {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
-  {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
+{{with .Tops}}
+<div class="mb-4 grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
+  {{range .}}
+  <div class="grid content-start gap-1.5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <span class="text-xs text-muted">{{.Title}}</span>
+    <span class="font-display text-xl font-bold tracking-tight wrap-anywhere">{{.Name}}</span>
+    <span class="text-sm text-muted">{{.Says}}</span>
+  </div>
+  {{end}}
 </div>
-
-{{template "shares" (dict "Title" "Most expensive messages" "Lines" .Jobs)}}
+{{end}}
 
 <p class="mt-4 text-xs text-muted">Priced from this deployment's price list, not reconciled with invoices.</p>
 
