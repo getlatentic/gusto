@@ -123,12 +123,13 @@ func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 	}
 }
 
-func TestAnEmptyPatchSaysNothingChanged(t *testing.T) {
+// A run that changed nothing has no section about changes, so a page of ordinary replies is not full of empty answers.
+func TestAnEmptyPatchHasNoSection(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	site.leave(t, "idle", leftBehind{state: jobs.Failed, out: map[string]string{"diff.patch": ""}, gate: passed})
-	if page := site.page(t, "idle"); !strings.Contains(page, "No files changed") {
-		t.Error("an empty patch is an answer and should be given as one")
+	if page := site.page(t, "idle"); strings.Contains(page, "What changed") || strings.Contains(page, "No files changed") {
+		t.Error("an empty patch should add nothing to the page")
 	}
 }
 

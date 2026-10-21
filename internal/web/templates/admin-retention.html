@@ -23,7 +23,6 @@
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  <p class="mt-3 text-sm text-muted">Days are counted from when the task ended. The policy is <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
@@ -49,7 +48,6 @@
 
 <section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
   <h2 class="text-sm font-semibold">Holds</h2>
-  <p class="{{template "adm-note"}}">Held work is kept whole, whatever the policy says.</p>
   {{if or .HeldJobs .HeldPeople}}
   <table class="{{template "adm-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
@@ -73,7 +71,6 @@
   </form>
 </section>
 </div>
-<p class="max-w-prose text-xs text-muted">A task loses its working folder first, which is most of the disk and what opening a pull request and a rerun need. Its details stay until their own time is up. Work on an agent goes when the agent does.</p>
 </div>
 
 {{template "foot" .}}

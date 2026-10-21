@@ -30,7 +30,6 @@
 
   <section class="{{template "ag-panel"}}" id="routines">
     <h2 class="{{template "ag-panel-title"}}">Routines</h2>
-    <p class="mb-2 max-w-[60ch] text-sm text-muted">A question this agent is asked on a schedule, in a conversation of its own, so it remembers from one run to the next.</p>
     {{if .Routines}}
     <ul class="divide-y divide-line border-y border-line">
       {{range .Routines}}
@@ -73,7 +72,7 @@
 
   <section class="{{template "ag-panel"}}">
     <details class="group" id="task"{{if .Tasks}} open{{end}}>
-      <summary class="{{template "ag-summary"}} flex-wrap">{{template "ag-chev"}} <h2 class="whitespace-nowrap text-sm font-semibold text-ink">Checked tasks</h2> <span class="min-w-0 flex-1 basis-60 font-normal text-subtle">for developers: a task that passes only when a command succeeds</span></summary>
+      <summary class="{{template "ag-summary"}} flex-wrap">{{template "ag-chev"}} <h2 class="whitespace-nowrap text-sm font-semibold text-ink">Checked tasks</h2></summary>
       {{if .Tasks}}
       <ol class="mt-3 divide-y divide-line">
         {{range .Tasks}}<li><a class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 text-ink no-underline hover:bg-wash" href="/jobs/{{.ID}}"><span class="truncate font-medium" title="{{.Brief}}">{{.Brief}}</span>{{template "ag-state" .State}}<span class="text-xs text-subtle">{{ago .Queued}}</span></a></li>{{end}}

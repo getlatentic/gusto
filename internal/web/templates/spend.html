@@ -3,7 +3,8 @@
 
 <div class="mb-6 flex items-center gap-3">
   <h1>Spending</h1>
-  <form class="ml-auto" method="get" action="{{$.Base}}">
+  <a class="ml-auto text-sm text-muted no-underline hover:text-ink hover:underline" href="/usage">Usage</a>
+  <form method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
       <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
@@ -47,7 +48,7 @@
 
 {{template "shares" (dict "Title" "Most expensive messages" "Lines" .Jobs)}}
 
-<p class="mt-4 text-xs text-muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
+<p class="mt-4 text-xs text-muted">Priced from this deployment's price list, not reconciled with invoices.</p>
 
 {{end}}
 {{template "foot" .}}

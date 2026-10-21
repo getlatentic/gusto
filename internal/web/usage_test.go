@@ -330,12 +330,14 @@ func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByAgentType(t *testing.T) {
 	}
 }
 
-func TestUsageIsLinkedFromTheMenuNextToSpending(t *testing.T) {
+func TestUsageAndSpendingLinkToEachOther(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if !strings.Contains(body, `href="/spend"`) || !strings.Contains(body, `href="/usage"`) {
-		t.Error("the menu does not link Usage next to Spending")
+	if body := here.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(body, `href="/spend"`) {
+		t.Error("the usage page does not link to spending")
+	}
+	if body := here.ask(t, "GET", "/spend", nil).Body.String(); !strings.Contains(body, `href="/usage"`) {
+		t.Error("the spending page does not link to usage")
 	}
 }
 
