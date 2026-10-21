@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// A reply's own page is for an administrator. Somebody else asking for it is taken back to the conversation, and the reply
-// carries no link to it.
+// A reply's own page is for an administrator, who reaches it from the admin pages. Somebody else asking for it is taken back
+// to the conversation, and no reply links to it.
 func TestAReplysDetailsPageIsForAdministrators(t *testing.T) {
 	site := open(t)
 	mine := site.as(t, alice)
@@ -31,5 +31,8 @@ func TestAReplysDetailsPageIsForAdministrators(t *testing.T) {
 	site.signIn(t)
 	if page := site.ask(t, "GET", "/jobs/"+turn, nil); page.Code != http.StatusOK {
 		t.Errorf("an administrator's reply page answered %d", page.Code)
+	}
+	if body := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(body, `href="/jobs/`+turn+`"`) {
+		t.Error("the conversation links an administrator to the reply page; it is reached from the admin pages")
 	}
 }

@@ -211,8 +211,8 @@
     {{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
     <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
-      {{if $.Admin}}{{with .Blocked}}<a class="inline-flex min-h-6 items-center gap-1 text-ok no-underline hover:underline [&>svg]:size-3.5" href="/jobs/{{$.ID}}" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</a>{{end}}{{end}}
-      {{if $.Admin}}<a class="inline-flex min-h-6 items-center text-inherit no-underline hover:text-ink hover:underline" href="/jobs/{{.ID}}">Details</a>{{end}}</p>
+      {{with .Blocked}}<span class="inline-flex min-h-6 items-center gap-1 text-ok [&>svg]:size-3.5" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</span>{{end}}
+    </p>
     {{if $.Sharing}}{{range .Previews}}
     <form class="m-0" method="post" action="/instances/{{$.Instance.ID}}/apps">
       <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
