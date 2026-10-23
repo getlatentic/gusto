@@ -105,6 +105,22 @@ func (r *reported) usage() *Usage {
 	return counted
 }
 
+// partial is what was said so far as a count, with what was not yet said counted as nothing.
+func (r *reported) partial() Usage {
+	filled := *r
+	zero := int64(0)
+	if filled.Prompt == nil && filled.Input == nil {
+		filled.Input = &zero
+	}
+	if filled.Completion == nil && filled.Output == nil {
+		filled.Output = &zero
+	}
+	if counted := filled.usage(); counted != nil {
+		return *counted
+	}
+	return Usage{}
+}
+
 func deref(count *int64) int64 {
 	if count == nil {
 		return 0

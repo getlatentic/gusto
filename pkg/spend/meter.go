@@ -2,6 +2,7 @@ package spend
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 )
 
@@ -18,6 +19,10 @@ type Meter struct {
 	pending []byte
 	spilled bool
 	said    *reported
+	// text is how many bytes of generated text a streamed answer has carried, and final says the
+	// provider has given its closing count of output tokens.
+	text  int64
+	final bool
 }
 
 // meterLimit is how much of an answer the meter holds to find its usage. An
@@ -75,7 +80,56 @@ func (m *Meter) Usage() *Usage {
 	return m.said.usage()
 }
 
+// Running is what the call has used so far, for a cap that has to act before the answer ends.
+// Providers give their count of output tokens once, at the end, so until then the output is
+// estimated from the text seen at three bytes a token, which leans toward stopping early.
+func (m *Meter) Running() Usage {
+	var counted Usage
+	if m.said != nil {
+		counted = m.said.partial()
+	}
+	if !m.final {
+		counted.Output = (m.text + 2) / 3
+	}
+	return counted
+}
+
+// observe counts the text one event carries and notes a closing count of output tokens.
+func (m *Meter) observe(text []byte) {
+	var event struct {
+		Usage *struct {
+			Output     *int64 `json:"output_tokens"`
+			Completion *int64 `json:"completion_tokens"`
+		} `json:"usage"`
+		Delta *struct {
+			Text     string `json:"text"`
+			Thinking string `json:"thinking"`
+			Partial  string `json:"partial_json"`
+		} `json:"delta"`
+		Choices []struct {
+			Delta struct {
+				Content string `json:"content"`
+			} `json:"delta"`
+		} `json:"choices"`
+	}
+	if json.Unmarshal(text, &event) != nil {
+		return
+	}
+	if event.Usage != nil && (event.Usage.Output != nil || event.Usage.Completion != nil) {
+		m.final = true
+	}
+	if event.Delta != nil {
+		m.text += int64(len(event.Delta.Text) + len(event.Delta.Thinking) + len(event.Delta.Partial))
+	}
+	for _, choice := range event.Choices {
+		m.text += int64(len(choice.Delta.Content))
+	}
+}
+
 func (m *Meter) read(text []byte) {
+	if m.streamed {
+		m.observe(text)
+	}
 	found := usageIn(text)
 	if found == nil {
 		return

@@ -202,7 +202,12 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	} else {
 		copyHeaders(toHarness.Header(), answer.Header)
 		toHarness.WriteHeader(answer.StatusCode)
-		call.Bytes, _ = io.Copy(io.MultiWriter(relay{to: toHarness}, meter), answer.Body)
+		var copyErr error
+		call.Bytes, copyErr = io.Copy(io.MultiWriter(relay{to: toHarness}, meter), answer.Body)
+		if copyErr != nil {
+			// An answer that stopped before its end is a call that did not finish, whoever stopped it.
+			call.Error = copyErr.Error()
+		}
 	}
 	call.Redacted = maskedRequest
 	if masking != nil {

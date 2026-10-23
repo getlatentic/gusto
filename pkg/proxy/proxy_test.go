@@ -294,3 +294,25 @@ func TestAHostsOwnClientCarriesTheModelCall(t *testing.T) {
 		t.Fatalf("code %d, the client carried %d calls", answer.Code, carrier.calls)
 	}
 }
+
+func TestAnAnswerThatStopsBeforeItsEndIsAnErrorOnTheCall(t *testing.T) {
+	cut := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Write([]byte("data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":1}}}\n\n"))
+		w.(http.Flusher).Flush()
+		conn, _, _ := w.(http.Hijacker).Hijack()
+		conn.Close()
+	}))
+	defer cut.Close()
+	tokens := NewTokens()
+	proxy := New(tokens, Credentials{"": {Address: cut.URL, Key: "k", Name: "c", Auth: Anthropic}},
+		func(string) (string, bool) { return "", false }, spend.NewLedger(spend.Policy{}), Allowlist{})
+	token, _ := tokens.Mint("a-job", "")
+	ctx, result := WithResult(context.Background())
+	request := httptest.NewRequest("POST", "/model/"+token+"/v1/messages", strings.NewReader(`{"model":"m","stream":true}`)).WithContext(ctx)
+	proxy.Handler().ServeHTTP(httptest.NewRecorder(), request)
+	call, made := result.Call()
+	if !made || call.Error == "" {
+		t.Fatalf("made %v, error %q: a cut answer was recorded as a whole one", made, call.Error)
+	}
+}

@@ -139,3 +139,35 @@ func TestAnAnthropicStreamIsCountedAcrossItsEvents(t *testing.T) {
 		t.Fatalf("usage %+v", usage)
 	}
 }
+
+func TestARunningCountEstimatesOutputUntilTheProviderGivesItsOwn(t *testing.T) {
+	meter := NewMeter("text/event-stream")
+	meter.Write([]byte("data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":1000,\"output_tokens\":1}}}\n\n"))
+	if got := meter.Running(); got.Input != 1000 || got.Output != 0 {
+		t.Fatalf("at the start %+v", got)
+	}
+	meter.Write([]byte("data: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"" + strings.Repeat("x", 300) + "\"}}\n\n"))
+	if got := meter.Running(); got.Output != 100 {
+		t.Fatalf("after 300 bytes of text %+v", got)
+	}
+	meter.Write([]byte("data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":7}}\n\n"))
+	if got := meter.Running(); got.Output != 7 || got.Input != 1000 {
+		t.Fatalf("once the provider counted %+v", got)
+	}
+}
+
+func TestARunningCountOfAChatStreamEstimatesFromItsContent(t *testing.T) {
+	meter := NewMeter("text/event-stream")
+	meter.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"" + strings.Repeat("y", 90) + "\"}}]}\n\n"))
+	if got := meter.Running(); got.Output != 30 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestARunningCountOfAWholeAnswerIsNothingUntilItIsRead(t *testing.T) {
+	meter := NewMeter("application/json")
+	meter.Write([]byte(plainAnswer))
+	if got := meter.Running(); got != (Usage{}) {
+		t.Fatalf("%+v", got)
+	}
+}
