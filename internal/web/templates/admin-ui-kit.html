@@ -183,7 +183,7 @@
     <table class="w-full">
       <thead><tr><th class="{{template "ui-th"}} text-left">Task</th><th class="{{template "ui-th"}} text-left">Agent</th><th class="{{template "ui-th"}} text-left">State</th><th class="{{template "ui-th"}} text-right">Cost</th></tr></thead>
       <tbody>
-        <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Fix the failing parser test</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "claude-code" "Name" "Claude Code" "Size" "xs")}} Claude Code</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "passed"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.42</td></tr>
+        <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Fix the failing parser test</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "claude" "Name" "Claude Code" "Size" "xs")}} Claude Code</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "passed"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.42</td></tr>
         <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Summarise the quarter</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "codex" "Name" "Codex" "Size" "xs")}} Codex</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "running"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.08</td></tr>
         <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Rename the config keys</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "opencode" "Name" "OpenCode" "Size" "xs")}} OpenCode</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "failed"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.19</td></tr>
       </tbody>
@@ -203,7 +203,7 @@
   <div class="{{template "ui-card"}} flex flex-wrap items-end gap-6">
     {{range .Agents}}
     <div class="grid justify-items-center gap-2">
-      <div class="flex items-end gap-2">{{template "mark" (dict "Harness" . "Name" . "Size" "lg")}}{{template "mark" (dict "Harness" . "Name" . "Size" "md")}}{{template "mark" (dict "Harness" . "Name" . "Size" "sm")}}{{template "mark" (dict "Harness" . "Name" . "Size" "xs")}}</div>
+      <div class="flex items-end gap-2">{{template "mark" (dict "Harness" . "Name" . "Size" "lg")}}{{template "mark" (dict "Harness" . "Name" . "Size" "default")}}{{template "mark" (dict "Harness" . "Name" . "Size" "sm")}}{{template "mark" (dict "Harness" . "Name" . "Size" "xs")}}</div>
       <code class="text-xs">{{.}}</code>
     </div>
     {{end}}

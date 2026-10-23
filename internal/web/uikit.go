@@ -7,7 +7,7 @@ func (s *Server) uiKitPage(w http.ResponseWriter, r *http.Request) {
 	s.drawConsole(w, "admin-ui-kit.html", "ui-kit", map[string]any{
 		"Title":   productName + " — UI kit",
 		"Surface": []string{"canvas", "wash", "sunken", "surface", "rail", "hover"},
-		"Agents":  []string{"claude-code", "codex", "opencode", "hermes", "none"},
+		"Agents":  []string{"claude", "codex", "opencode", "hermes", "pi", "dsh", "none"},
 		"States":  []string{"passed", "finished", "live", "running", "queued", "failed", "interrupted", "idle"},
 	})
 }
