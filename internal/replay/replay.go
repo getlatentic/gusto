@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Prepare makes the rerun of old under parent and returns its directory. It

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {

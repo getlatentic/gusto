@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // leftBehind is a job directory as a runner leaves it, written without running

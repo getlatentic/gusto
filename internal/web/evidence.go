@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // The job page reads a finished job's evidence for the reviewer: the patch as a

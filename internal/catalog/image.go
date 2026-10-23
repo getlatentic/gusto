@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/pkg/harness"
 )
 
 // Label is where the runner image lists the agents it carries, as the

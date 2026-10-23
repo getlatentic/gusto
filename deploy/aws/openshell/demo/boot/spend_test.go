@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // The models a demo offers each have a price, so that what a demo spends is not shown as unknown.

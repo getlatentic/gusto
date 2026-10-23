@@ -17,8 +17,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 const (

@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Prepare makes a comparison of submission across agents under parent, with

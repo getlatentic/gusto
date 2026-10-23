@@ -12,8 +12,8 @@ import (
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // UseSetups hands the pages the store of setups and the MCP servers this

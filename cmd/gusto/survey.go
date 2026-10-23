@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/pkg/harness"
 )
 
 // scanCommand asks the runner image what it carries, which keeps the answer beside the image, so the

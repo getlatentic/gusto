@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/gateway"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/gateway"
+	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/schema"
 )
 

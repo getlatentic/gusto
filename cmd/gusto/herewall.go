@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/seatbelt"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // wallPolicy is what a task run here may do, whichever sandbox this computer has to hold it to that.

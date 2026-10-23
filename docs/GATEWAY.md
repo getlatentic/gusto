@@ -12,7 +12,7 @@ The agent calls the address it was given, with the task's token where its key wo
 | Messages | Claude Code | `.../messages` |
 | Responses | Codex | `.../responses` |
 
-Many providers answer Chat Completions alone, such as the Gemma models on Amazon Bedrock. The proxy translates a Messages or Responses call to Chat Completions, and translates the answer back, streamed or whole. Claude Code and Codex can then use any model a deployment connects. The code is `internal/wire`.
+Many providers answer Chat Completions alone, such as the Gemma models on Amazon Bedrock. The proxy translates a Messages or Responses call to Chat Completions, and translates the answer back, streamed or whole. Claude Code and Codex can then use any model a deployment connects. The code is `pkg/wire`.
 
 A bearer-token credential answers Chat Completions and Responses. An Anthropic-header credential answers Messages. A credential with fewer shapes says so:
 
@@ -28,11 +28,11 @@ Translation leaves out what Chat Completions cannot carry: Anthropic's thinking 
 
 A Codex free-text tool, such as a patch, becomes a function with one text argument. A mid-conversation instruction becomes a user message. A tool call the agent did not answer is answered with "(no result)". A translated call's record has `"translated": "messages"` or `"responses"`.
 
-Tests use requests recorded from Claude Code 2.1.270 and Codex 0.154.0. `go test -tags realharnesses -run RealHarnesses ./internal/proxy` runs the real `claude` and `codex` through the proxy.
+Tests use requests recorded from Claude Code 2.1.270 and Codex 0.154.0. `go test -tags realharnesses -run RealHarnesses ./pkg/proxy` runs the real `claude` and `codex` through the proxy.
 
 ## Tools
 
-A task's agent is given one MCP server, the gateway. The gateway calls the real servers (`internal/gateway`). Their addresses and credentials never enter the sandbox.
+A task's agent is given one MCP server, the gateway. The gateway calls the real servers (`pkg/gateway`). Their addresses and credentials never enter the sandbox.
 
 | What | How |
 | --- | --- |
@@ -45,7 +45,7 @@ A setup's integrations put their servers behind the gateway. Their definitions g
 
 Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `discover` (default) or `all`. `GUSTO_GATEWAY_PRIVATE=1` lets servers be on a private network.
 
-Measured on 2026-10-08 with 60 tools of about 200 tokens each: Claude Code and Codex load a tool's definition when needed, so 60 tools added about 710 and about 15 input tokens. OpenCode puts every definition in the request. The 60 tools cost it about 9,000 tokens, and the three gateway tools about 5,000, with counts that vary by thousands between calls. `GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./internal/gateway` repeats it.
+Measured on 2026-10-08 with 60 tools of about 200 tokens each: Claude Code and Codex load a tool's definition when needed, so 60 tools added about 710 and about 15 input tokens. OpenCode puts every definition in the request. The 60 tools cost it about 9,000 tokens, and the three gateway tools about 5,000, with counts that vary by thousands between calls. `GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./pkg/gateway` repeats it.
 
 ### Programs
 

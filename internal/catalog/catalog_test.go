@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/pkg/harness"
 	"os"
 	"path/filepath"
 )

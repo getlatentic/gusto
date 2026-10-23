@@ -10,7 +10,7 @@ package catalog
 import (
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/pkg/harness"
 )
 
 // Entry is one agent, as a person choosing has to see it.

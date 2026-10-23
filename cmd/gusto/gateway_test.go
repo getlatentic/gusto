@@ -13,11 +13,11 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // toolServer is an MCP server that has one tool, and keeps what it was called with and by what credential.

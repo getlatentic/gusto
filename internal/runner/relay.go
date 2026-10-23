@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // relayOut is the only way out of a sealed box. The container has no network,

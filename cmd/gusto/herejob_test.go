@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A harness run on a person's computer is given what a container gives it: a home of the job's own with each harness's

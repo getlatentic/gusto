@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // otherWork is what spent without an agent: a job sent to the API, a matrix

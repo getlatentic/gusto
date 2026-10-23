@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/notify"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // aRoutine adds a routine through the form and says which instance it is on.

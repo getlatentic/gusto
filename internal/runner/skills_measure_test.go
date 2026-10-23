@@ -19,10 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/harness"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 const skillText = "---\nname: codeword\ndescription: Use when asked for the codeword, the secret word, or the passphrase of the project. Tells where the word is kept.\n---\n\nThe codeword is kept in references/word.md next to this file. Read that file and answer with the word in it.\n"

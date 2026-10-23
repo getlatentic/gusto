@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/registry"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // registered is a console whose organization has a registry, and the models the forms offer as that registry comes to.

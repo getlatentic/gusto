@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // absent names a program no machine has, which is what a job naming a harness

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/doctor"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/web"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // usageURL is where the index of model calls is kept: empty for a SQLite file beside the tasks, or a postgres:// address.

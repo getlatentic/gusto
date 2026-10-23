@@ -15,8 +15,8 @@ import (
 	"regexp"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Report is what a check found. Wrong names every file or commit that does not

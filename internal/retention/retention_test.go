@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 var noon = time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)

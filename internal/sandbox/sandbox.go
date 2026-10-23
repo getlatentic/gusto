@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Runtime is the container command. Podman takes the same arguments and runs no

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // record is what the pull request says about the run behind it: enough for a

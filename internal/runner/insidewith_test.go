@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A job run in the server's own process is given an environment of its own: the harness and the gate see what they were given

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/spend"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/usage/usagetest"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 func recPtr[T any](v T) *T { return &v }

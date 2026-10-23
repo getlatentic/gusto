@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/ship"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 type openFlags struct {

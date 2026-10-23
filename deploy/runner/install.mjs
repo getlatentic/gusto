@@ -23,7 +23,7 @@ const npm = { ...process.env, npm_config_cache: join(stage, "npm-cache") };
 for (const member of members) {
   const { name, pkg, version } = parse(member);
   const pin = pins[pkg];
-  if (!pin) fail(`${pkg} is not in pins.json: run internal/harness/pin.sh ${pkg}@<version>`);
+  if (!pin) fail(`${pkg} is not in pins.json: run pkg/harness/pin.sh ${pkg}@<version>`);
   if (version && version !== pin.Version && version !== pin.version)
     fail(`${member} asks for ${version}, and pins.json pins ${pin.version}: move the pin or drop the version`);
   const packed = JSON.parse(execFileSync("npm", ["pack", `${pkg}@${pin.version}`, "--pack-destination", stage, "--json"], { encoding: "utf8", env: npm }));

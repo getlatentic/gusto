@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // ledgerView is a month of the ledger as a dashboard: the figures, the month

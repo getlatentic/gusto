@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // Models is what a deployment offers to think with. Every engine is offered every model: which pairs work well is for

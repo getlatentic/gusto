@@ -9,8 +9,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/audit"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/schema"
 )
 

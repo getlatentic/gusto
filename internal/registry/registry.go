@@ -18,8 +18,8 @@ import (
 	"sync"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/internal/proxy"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // Provider is where models answer and how to be let in. Its key is never kept here: Key says where it is.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // side is one engine's run as the comparison shows it: whether the check

@@ -10,16 +10,16 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/openshell"
-	"github.com/getlatentic/gusto/internal/proxy"
-	"github.com/getlatentic/gusto/internal/redact"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/redact"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // WayOut is how a container reaches a model. When a credential is configured it

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/harness"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/harness"
 )
 
 // Two engines that can both run anything.

@@ -29,7 +29,7 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 | 13 | Low | The model's redirect would be followed with the credential's headers | Fixed. A redirect is not followed |
 | 14 | Info | A spending cap is checked before a call and counted after, so calls in flight can pass it | Accepted. The excess is bounded by the calls in flight. getlatentic/planning#369 |
 | 15 | Info | `gusto pr open` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which the playbook's box has. `gusto doctor` should check: getlatentic/planning#370 |
-| 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six agent packages in the runner image, are unpinned | Fixed. Every package is pinned by version and sha512 in `internal/harness/pins.json`, and the image build refuses a tarball that differs. getlatentic/planning#361, #683 |
+| 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six agent packages in the runner image, are unpinned | Fixed. Every package is pinned by version and sha512 in `pkg/harness/pins.json`, and the image build refuses a tarball that differs. getlatentic/planning#361, #683 |
 | 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the agent can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
 
 ## Checked and sound
@@ -66,7 +66,7 @@ A task runs in a container or in an OpenShell sandbox, which is a microVM. `depl
 
 ## Reporting
 
-Report a vulnerability to the operator of the deployment. Keep the tests when you change anything above: `internal/web/security_test.go`, `internal/web/oidcflow_test.go`, `internal/repoaccess/accept_test.go`, `internal/runner/workspace_test.go`, `internal/proxy/dial_test.go`, `internal/sandbox/sandbox_test.go`.
+Report a vulnerability to the operator of the deployment. Keep the tests when you change anything above: `internal/web/security_test.go`, `internal/web/oidcflow_test.go`, `internal/repoaccess/accept_test.go`, `internal/runner/workspace_test.go`, `pkg/proxy/dial_test.go`, `internal/sandbox/sandbox_test.go`.
 
 ## Follow-ups
 

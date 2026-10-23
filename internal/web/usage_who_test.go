@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/usage"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func recordTask(t *testing.T, here *site, record jobs.Record) {

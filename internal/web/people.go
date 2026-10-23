@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/roster"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // UseRoster says where the list of the organization's people is. The front door owns

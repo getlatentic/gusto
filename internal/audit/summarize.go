@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // approvalUnseen is why an export cannot name an approver: the platform's part
