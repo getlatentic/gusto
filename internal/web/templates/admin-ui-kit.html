@@ -65,9 +65,9 @@
   <h2 class="text-base font-semibold" id="kit-type">Type, shape and depth</h2>
   <div class="{{template "ui-card"}} grid gap-5">
     <div class="grid gap-2">
-      <p class="font-display text-3xl font-extrabold tracking-tight">Display 3xl, the page title</p>
-      <p class="font-display text-2xl font-semibold tracking-tight">Display 2xl, a figure</p>
-      <p class="font-display text-base font-semibold">Display base, a section</p>
+      <p class="font-display text-[1.75rem] leading-[1.15] font-bold tracking-[-0.025em]">Page title, 28px bold</p>
+      <p class="{{template "ui-figure-value"}}">Figure, 24px bold</p>
+      <p class="font-display text-base font-semibold">Section, 17px bold</p>
       <p class="text-base">Base, running text and the lede.</p>
       <p class="text-sm">Small, controls and table rows.</p>
       <p class="text-xs text-subtle">Extra small, labels and notes.</p>
@@ -153,10 +153,10 @@
 <section class="grid gap-3" aria-labelledby="kit-surfaces">
   <h2 class="text-base font-semibold" id="kit-surfaces">Cards, figures and layout</h2>
   <div class="{{template "ui-figures"}}">
-    <div class="{{template "ui-figure"}}"><span class="font-display text-3xl font-extrabold tracking-tight text-accent-ink">$48.20</span><span class="text-sm text-muted">spent this month</span></div>
-    <div class="{{template "ui-figure"}}"><span class="font-display text-3xl font-extrabold tracking-tight">1,240</span><span class="text-sm text-muted">model calls</span></div>
-    <div class="{{template "ui-figure"}}"><span class="font-display text-3xl font-extrabold tracking-tight">9.8M</span><span class="text-sm text-muted">tokens in, 41% cached</span></div>
-    <div class="{{template "ui-figure"}}"><span class="font-display text-3xl font-extrabold tracking-tight">1.1M</span><span class="text-sm text-muted">tokens out</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}} text-accent-ink">$48.20</span><span class="{{template "ui-figure-label"}}">spent this month</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1,240</span><span class="{{template "ui-figure-label"}}">model calls</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">9.8M</span><span class="{{template "ui-figure-label"}}">tokens in, 41% cached</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1.1M</span><span class="{{template "ui-figure-label"}}">tokens out</span></div>
   </div>
   <div class="{{template "ui-head"}}"><h3 class="text-xl font-semibold">ui-head</h3><p class="{{template "ui-lede"}}">The lede says in a sentence what the page is for, and no more.</p></div>
   <div class="{{template "ui-stack"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-stack</h3><p class="{{template "ui-note"}}">Cards one under another with a gap.</p></section></div>

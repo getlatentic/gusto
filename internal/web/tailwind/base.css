@@ -6,7 +6,7 @@
     container-type: inline-size;
   }
   h1, h2, h3, h4 { @apply font-display tracking-tight text-ink; }
-  h1 { @apply text-3xl leading-[1.1] font-extrabold tracking-[-0.03em]; }
+  h1 { @apply text-[1.75rem] leading-[1.15] font-bold tracking-[-0.025em]; }
   h2 { @apply text-lg leading-snug font-bold tracking-[-0.015em]; }
   h3 { @apply text-base leading-snug font-semibold tracking-normal; }
   a { @apply text-inherit; }
