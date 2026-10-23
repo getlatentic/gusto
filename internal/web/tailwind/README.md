@@ -16,7 +16,7 @@ Rules:
 - Write utilities in the template. Reach for a component class only when five or more places repeat the same pile.
 - Use token-backed names only (`bg-surface`, `text-muted`, `border-line`). No hex, no arbitrary colours.
 - Layout adapts to the page width with container variants: `@max-[56rem]:` (phone and narrow panes), never `max-*:` viewport variants.
-- A disclosure is `<details class="fold">`. Never style the default marker.
+- A disclosure is `<details class="group">` with a `ui-summary` summary and a `ui-chev` chevron. Never style the default marker.
 - Class names and data attributes the scripts use stay in the markup: `.scrim`, `#side`, `[data-side-toggle]`, `[data-panel-toggle]`, `[data-look]`, `.picker.open`, and so on. A script that builds markup builds it with the same utilities.
 - Sizes are rem. The build rewrites `px` to `rem`; arbitrary values use rem.
 - No inline `style=""` except for a value computed at runtime.
