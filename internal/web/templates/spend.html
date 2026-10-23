@@ -6,12 +6,12 @@
   {{template "usage-tabs" $.Tabs}}
   <form class="ml-auto" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
-      <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
+      <select class="select" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>
     </label>
-    <noscript><button class="inline-flex h-9 items-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent" type="submit">Show</button></noscript>
+    <noscript><button class="inline-flex h-9 items-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid" type="submit">Show</button></noscript>
   </form>
 </div>
 
@@ -43,7 +43,7 @@
   {{range .}}
   <div class="grid content-start gap-1.5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
     <span class="text-xs text-muted">{{.Title}}</span>
-    <span class="font-display text-xl font-bold tracking-tight wrap-anywhere">{{.Name}}</span>
+    <span class="font-display text-xl font-bold wrap-anywhere">{{.Name}}</span>
     <span class="text-sm text-muted">{{.Says}}</span>
   </div>
   {{end}}

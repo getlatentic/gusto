@@ -1,35 +1,35 @@
 {{template "head" .}}
 
-<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/compare">Compare</a><span>/</span><span>this task</span></nav>
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/compare">Compare</a><span>/</span><span>this task</span></nav>
 
 {{with .Lineup}}
-<div class="{{template "ag-head"}}">
+<div class="{{template "ui-head"}}">
   <h1>{{.Brief}}</h1>
-  <p class="{{template "ag-lede"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
+  <p class="{{template "ui-lede"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
 </div>
 {{end}}
 
-<p class="mb-3 flex items-baseline gap-2"><span class="font-display text-2xl font-semibold tabular-nums text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
+<p class="mb-3 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
   <span class="text-sm text-muted">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></p>
 {{with .Reading}}<p class="mb-5 text-base">{{.Headline}}</p>{{end}}
 
-<div class="{{template "ag-table-wrap"}}">
+<div class="{{template "ui-table-wrap"}}">
   <table>
-    <thead><tr><th class="{{template "ag-th"}}">Agent</th><th class="{{template "ag-th"}}">Result</th><th class="{{template "ag-th"}}">Time</th><th class="{{template "ag-th"}}">Cost</th><th class="{{template "ag-th"}}">Model calls</th><th class="{{template "ag-th"}}">Changed</th><th class="{{template "ag-th"}}"></th></tr></thead>
+    <thead><tr><th class="{{template "ui-th"}}">Agent</th><th class="{{template "ui-th"}}">Result</th><th class="{{template "ui-th"}}">Time</th><th class="{{template "ui-th"}}">Cost</th><th class="{{template "ui-th"}}">Model calls</th><th class="{{template "ui-th"}}">Changed</th><th class="{{template "ui-th"}}"></th></tr></thead>
     <tbody>
     {{range .Sides}}
     <tr class="group/row">
-      <td class="{{template "ag-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}<span>{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></span></span></td>
-      <td class="{{template "ag-td"}}"><span class="flex flex-wrap items-center gap-2">{{if not .Record.State.Done}}<span class="text-muted">Working…</span>
+      <td class="{{template "ui-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}<span>{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></span></span></td>
+      <td class="{{template "ui-td"}}"><span class="flex flex-wrap items-center gap-2">{{if not .Record.State.Done}}<span class="text-muted">Working…</span>
         {{else if and .Checked .Passed}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Tests pass</span>
         {{else if .Checked}}<span class="font-medium text-bad">Tests fail</span>
         {{else}}<span class="font-medium text-bad">Stopped before the tests</span>{{end}}
-        {{if .Fastest}}<span class="{{template "ag-badge"}}">Fastest</span>{{end}}{{if .Cheapest}}<span class="{{template "ag-badge"}}">Cheapest</span>{{end}}</span></td>
-      <td class="{{template "ag-td"}} tabular-nums">{{with .Seconds}}{{.}} s{{end}}</td>
-      <td class="{{template "ag-td"}} tabular-nums">{{if .Metered}}{{.Spent.Money}}{{end}}</td>
-      <td class="{{template "ag-td"}} tabular-nums">{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
-      <td class="{{template "ag-td"}} tabular-nums">{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="text-ok">+{{.Added}}</span> <span class="text-bad">−{{.Removed}}</span>{{end}}</td>
-      <td class="{{template "ag-td"}}"><a href="/jobs/{{.Record.ID}}">Details</a></td>
+        {{if .Fastest}}<span class="{{template "ui-badge"}}">Fastest</span>{{end}}{{if .Cheapest}}<span class="{{template "ui-badge"}}">Cheapest</span>{{end}}</span></td>
+      <td class="{{template "ui-td"}} tabular-nums">{{with .Seconds}}{{.}} s{{end}}</td>
+      <td class="{{template "ui-td"}} tabular-nums">{{if .Metered}}{{.Spent.Money}}{{end}}</td>
+      <td class="{{template "ui-td"}} tabular-nums">{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
+      <td class="{{template "ui-td"}} tabular-nums">{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="text-ok">+{{.Added}}</span> <span class="text-bad">−{{.Removed}}</span>{{end}}</td>
+      <td class="{{template "ui-td"}}"><a href="/jobs/{{.Record.ID}}">Details</a></td>
     </tr>
     {{end}}
     </tbody>

@@ -1,23 +1,23 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>Retention</h1>
   <span class="text-sm text-muted">Finished work is removed on a schedule</span>
 </div>
 
-{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<section class="{{template "adm-figures"}}">
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Used}}</span><span class="text-xs text-muted">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Workspaces}}</span><span class="text-xs text-muted">of it in working folders</span></div>
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="text-xs text-muted">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
+<section class="{{template "ui-figures"}}">
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Used}}</span><span class="{{template "ui-figure-label"}}">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Workspaces}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="{{template "ui-figure-label"}}">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
 <div class="grid gap-4">
-<section class="{{template "adm-card"}} overflow-x-auto">
-  <h2 class="{{template "adm-card-title"}}">Policy</h2>
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <h2 class="{{template "ui-card-title"}}">Policy</h2>
   {{if .Removes}}
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
@@ -28,46 +28,46 @@
   {{end}}
 </section>
 
-<div class="{{template "adm-panels"}}">
-<section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
+<div class="{{template "ui-panels"}}">
+<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
   <h2 class="text-sm font-semibold">Next sweep</h2>
   {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
     <tbody>
       {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
     </tbody>
   </table>
   {{else}}
-  <p class="{{template "adm-note"}}">Nothing is due.</p>
+  <p class="{{template "ui-note"}}">Nothing is due.</p>
   {{end}}
-  <form method="post" action="/admin/retention/sweep"><button class="{{template "adm-btn-quiet"}}" type="submit">Sweep now</button></form>
-  {{with .Last}}<p class="{{template "adm-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
+  <form method="post" action="/admin/retention/sweep"><button class="{{template "ui-btn-sm"}}" type="submit">Sweep now</button></form>
+  {{with .Last}}<p class="{{template "ui-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
 </section>
 
-<section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
+<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
   <h2 class="text-sm font-semibold">Holds</h2>
   {{if or .HeldJobs .HeldPeople}}
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
       {{range $id, $h := .HeldJobs}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Release</button></form></td></tr>{{end}}
+        <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Release</button></form></td></tr>{{end}}
+        <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}
     </tbody>
   </table>
   {{end}}
   <form method="post" action="/admin/retention/jobs/hold" class="flex flex-wrap items-end gap-3">
-    <label class="{{template "adm-field"}} min-w-40 flex-1">Task <input class="{{template "adm-input"}}" name="job" placeholder="the task's id, as in its address" required></label>
-    <label class="{{template "adm-field"}} min-w-40 flex-1">Why <input class="{{template "adm-input"}}" name="why" placeholder="for the record"></label>
-    <button class="{{template "adm-btn-quiet"}}" type="submit">Keep the task</button>
+    <label class="{{template "ui-field"}} min-w-40 flex-1">Task <input class="input" name="job" placeholder="the task's id, as in its address" required></label>
+    <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
+    <button class="{{template "ui-btn-sm"}}" type="submit">Keep the task</button>
   </form>
   <form method="post" action="/admin/retention/holds" class="flex flex-wrap items-end gap-3">
-    <label class="{{template "adm-field"}} min-w-40 flex-1">Person <input class="{{template "adm-input"}}" name="who" placeholder="amy@acme.test" required></label>
-    <label class="{{template "adm-field"}} min-w-40 flex-1">Why <input class="{{template "adm-input"}}" name="why" placeholder="for the record"></label>
-    <button class="{{template "adm-btn-quiet"}}" type="submit">Keep their work</button>
+    <label class="{{template "ui-field"}} min-w-40 flex-1">Person <input class="input" name="who" placeholder="amy@acme.test" required></label>
+    <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
+    <button class="{{template "ui-btn-sm"}}" type="submit">Keep their work</button>
   </form>
 </section>
 </div>
