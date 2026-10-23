@@ -1,8 +1,8 @@
 {{template "head" .}}
 
-{{template "ag-flash" .}}
+{{template "ui-flash" .}}
 
-<div class="{{template "ag-head"}}">
+<div class="{{template "ui-head"}}">
   <h1>Presets</h1>
 </div>
 
@@ -15,7 +15,7 @@
         <strong>{{.Name}}</strong>
         <span class="truncate text-xs text-subtle">{{.Line}}</span>
       </span>
-      <a class="{{template "ag-btn-small"}}" href="/chat?preset={{.ID}}">New chat</a>
+      <a class="{{template "ui-btn-sm"}}" href="/chat?preset={{.ID}}">New chat</a>
       <form method="post" action="/presets/{{.ID}}/delete"><button class="grid size-8 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted transition-colors hover:bg-hover hover:text-ink" type="submit" aria-label="Remove {{.Name}}" title="Remove">{{template "icon-trash"}}</button></form>
     </div>
     {{end}}
@@ -26,7 +26,7 @@
 <div class="mb-8 flex flex-wrap items-start gap-6 @max-[56rem]:flex-col @max-[56rem]:items-stretch @max-[56rem]:gap-4" id="roles">
   <div class="grid max-w-[26rem] flex-[1_1_21rem] gap-3 @max-[56rem]:max-w-none @max-[56rem]:flex-none">
     <label class="hidden gap-2 text-xs text-muted @max-[56rem]:grid"><span>Built-in preset</span>
-      <select class="w-full max-w-[28rem] rounded-sm border border-line-strong bg-surface px-3 py-2 text-base text-ink" id="role-select" aria-label="Built-in preset">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
+      <select class="select w-full max-w-[28rem]" id="role-select" aria-label="Built-in preset">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
     </label>
     <label class="flex h-10 items-center gap-2 rounded-sm border border-line-strong bg-surface px-3 text-subtle focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus @max-[56rem]:hidden">{{template "icon-search"}}<input class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-ink outline-none" type="search" id="role-search" placeholder="Search built-in presets" aria-label="Search presets"></label>
     <div class="flex flex-wrap gap-2 @max-[56rem]:hidden" role="group" aria-label="Field of work">
@@ -54,8 +54,8 @@
           <p class="max-w-[35rem] text-base text-muted">{{$r.Summary}}</p>
         </div>
         <div class="flex flex-none items-center gap-4">
-          <a class="{{template "ag-link-quiet"}}" href="/templates/{{$r.Name}}">Details</a>
-          {{if $r.Blocked}}<span class="{{template "ag-btn"}} opacity-50" aria-disabled="true">Use in a new chat</span>{{else}}<a class="{{template "ag-btn"}}" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
+          <a class="{{template "ui-link-quiet"}}" href="/templates/{{$r.Name}}">Details</a>
+          {{if $r.Blocked}}<span class="{{template "ui-btn"}} opacity-50" aria-disabled="true">Use in a new chat</span>{{else}}<a class="{{template "ui-btn"}}" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
         </div>
       </div>
       {{if $r.Blocked}}<p class="rounded-sm bg-warn-wash px-4 py-3 text-sm">{{$r.Blocked}}</p>{{end}}
@@ -74,7 +74,7 @@
   </div>
 </div>
 
-<p class="text-sm"><a class="{{template "ag-link-quiet"}}" href="/setups">Build your own skill set</a></p>
+<p class="text-sm"><a class="{{template "ui-link-quiet"}}" href="/setups">Build your own skill set</a></p>
 
 <script src="{{asset "/static/roles.js"}}"></script>
 

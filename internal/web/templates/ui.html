@@ -1,0 +1,53 @@
+{{/* The one set of pieces every page is built from. A name that ends in a noun for a class is a pile of utilities for a class
+     attribute; the others are small fragments of markup. The text controls, selects and checkboxes are Basecoat's own classes
+     (input, select, textarea), written in the markup, so their look and keyboard behaviour come from one place. */}}
+
+{{/* Buttons: ui-btn is the one action a page offers, the quiet ones are the others, and the small ones sit in rows and tables. */}}
+{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold whitespace-nowrap text-on-accent no-underline transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-4 text-sm font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn-danger"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-bad/40 bg-transparent px-4 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
+{{define "ui-btn-sm"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-line-strong bg-transparent px-3 text-xs font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn-sm-danger"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-bad/40 bg-transparent px-3 text-xs font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
+{{define "ui-link-quiet"}}inline-flex items-center gap-1.5 text-sm text-muted no-underline hover:text-ink hover:underline{{end}}
+
+{{/* Forms. */}}
+{{define "ui-field"}}grid gap-1.5 text-xs font-medium text-subtle{{end}}
+{{define "ui-check"}}flex items-center gap-2 text-sm font-normal text-ink{{end}}
+{{define "ui-note"}}text-sm text-muted{{end}}
+{{define "ui-notice"}}mb-4 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
+{{define "ui-notice-chat"}}m-0 w-full max-w-[46rem] rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
+{{define "ui-flash"}}{{if .Refused}}<p class="mb-5 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{.Refused}}</p>{{end}}{{end}}
+
+{{/* Surfaces. */}}
+{{define "ui-card"}}rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-card-title"}}mb-3 text-sm font-semibold text-ink{{end}}
+{{define "ui-figures"}}mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-px overflow-hidden rounded-md bg-line shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-figure"}}grid content-start gap-1 bg-surface px-5 py-4 text-inherit no-underline{{end}}
+{{define "ui-panels"}}grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))] items-start gap-4{{end}}
+{{define "ui-two-col"}}grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}
+{{define "ui-col"}}grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4{{end}}
+{{define "ui-stack"}}grid gap-4{{end}}
+
+{{/* Page heads. */}}
+{{define "ui-head"}}mb-6{{end}}
+{{define "ui-title"}}mb-6 flex min-h-10 flex-wrap items-center gap-x-3 gap-y-2{{end}}
+{{define "ui-lede"}}mt-1 max-w-[68ch] text-base text-muted text-pretty{{end}}
+{{define "ui-crumb"}}mb-5 flex flex-wrap items-baseline gap-2 text-sm text-subtle{{end}}
+{{define "ui-crumb-link"}}text-muted no-underline hover:text-ink hover:underline{{end}}
+
+{{/* Tables: ui-table-wrap with ui-th and ui-td is a table of its own, ui-table sits inside a card. */}}
+{{define "ui-table-wrap"}}overflow-x-auto rounded-md bg-surface shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-th"}}px-5 py-3 text-xs font-semibold text-subtle border-b border-line{{end}}
+{{define "ui-td"}}px-5 py-3 border-b border-line group-last/row:border-b-0{{end}}
+{{define "ui-table"}}w-full [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr:last-child_td]:border-b-0 [&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0{{end}}
+
+{{/* Disclosure: the words beside a chevron that turns. */}}
+{{define "ui-summary"}}flex w-fit cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden{{end}}
+{{define "ui-chev"}}<svg class="i size-3.5 flex-none transition-transform group-open:rotate-90" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>{{end}}
+
+{{/* Badges and states. */}}
+{{define "ui-badge"}}inline-flex items-center whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-subtle{{end}}
+{{define "ui-badge-ok"}}inline-flex items-center whitespace-nowrap rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok{{end}}
+{{define "ui-badge-warn"}}inline-flex items-center whitespace-nowrap rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn{{end}}
+{{define "ui-badge-bad"}}inline-flex items-center whitespace-nowrap rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad{{end}}
+{{define "ui-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed") (eq . "live")}}{{template "ui-badge-ok"}}{{else if or (eq . "failed") (eq . "interrupted")}}{{template "ui-badge-bad"}}{{else if or (eq . "running") (eq . "queued")}}{{template "ui-badge-warn"}}{{else}}{{template "ui-badge"}}{{end}}">{{.}}</span>{{end}}

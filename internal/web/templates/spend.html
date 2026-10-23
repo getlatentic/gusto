@@ -6,7 +6,7 @@
   {{template "usage-tabs" $.Tabs}}
   <form class="ml-auto" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
-      <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
+      <select class="select" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>

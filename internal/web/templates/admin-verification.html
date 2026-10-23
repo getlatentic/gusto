@@ -1,21 +1,21 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>Verification</h1>
 </div>
 
-{{if .Failing}}<p class="{{template "adm-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
+{{if .Failing}}<p class="{{template "ui-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
 
-<div class="{{template "adm-figures"}}">
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Verified}}</span><span class="text-xs text-muted">verified</span></div>
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Unsigned}}</span><span class="text-xs text-muted">not signed</span></div>
-  <div class="{{template "adm-figure"}}"><span class="font-display text-2xl font-bold tabular-nums{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="text-xs text-muted">do not check out</span></div>
+<div class="{{template "ui-figures"}}">
+  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Verified}}</span><span class="text-xs text-muted">verified</span></div>
+  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Unsigned}}</span><span class="text-xs text-muted">not signed</span></div>
+  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="text-xs text-muted">do not check out</span></div>
 </div>
 
 {{if .Rows}}
 <h2 class="mb-3 text-sm font-semibold">Needs a look</h2>
-<div class="{{template "adm-card"}} overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th class="w-32">When</th><th>Run</th><th>Who</th><th>Result</th></tr></thead>
     <tbody>
       {{range .Rows}}
@@ -23,7 +23,7 @@
         <td class="whitespace-nowrap text-muted">{{.When}}</td>
         <td class="max-w-md truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}#proof">{{.Brief}}</a></td>
         <td class="whitespace-nowrap">{{.Who}}</td>
-        <td>{{template "adm-state" (or (and (eq .State "does not check out") "failed") .State)}}</td>
+        <td>{{template "ui-state" (or (and (eq .State "does not check out") "failed") .State)}}</td>
       </tr>
       {{end}}
     </tbody>
