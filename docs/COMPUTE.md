@@ -32,14 +32,26 @@ Each line is a method of `box.Box` (`pkg/box`).
 4. The token reaches the machine through the renter's own channel (vux file calls to `/run/vuxto/egress-token`), not through the lender's.
 5. No state outlives the lease.
 
-## How a run goes
+## Three places, chosen separately
 
-1. vuxto boots the machine and returns a box.
-2. The box starts, writes the token into the machine and copies in the workspace.
-3. `Equip` places the skills from the agent package. The package digest is the one gusto computes.
-4. `Outside` starts the agent through `Attach` and speaks to it over its standard streams.
-5. `Fetch` copies the workspace back. `Guard` returns the log. `Outside` signs the record.
-6. `Close` deletes the machine.
+A run has three places. Each is chosen on its own.
+
+| Place | Is | May be |
+| --- | --- | --- |
+| Process | The computer the agent program runs on. | Any computer that gives need 1. |
+| Working directory | The folder the agent reads and writes. | On the process's own disk, on a network mount from another computer (NFS, sshfs), or copied in and out. |
+| Credential | The model key. | Anywhere. It stays with the proxy. The agent holds only the proxy address and a token (need 3). |
+
+These placements all work:
+
+| Process | Working directory | Case |
+| --- | --- | --- |
+| A | A | The run is local. `runner.Inside` does this today. |
+| B | B | Both on a rented computer. The workspace is copied in, and the result is copied out. |
+| B | A, mounted on B | The agent runs on a rented computer and edits your folder. |
+| A | B, mounted on A | The agent runs here and edits files on another computer. |
+
+The box decides how the working directory is provided. `Start` and `Fetch` copy the folder. A box that mounts the folder makes `Start` mount it, makes `Fetch` do nothing, and returns the mount path from `Workdir`. The agent sees only a path.
 
 ## Who imports whom
 
@@ -58,4 +70,4 @@ vuxto imports `gusto/pkg/*`. gusto never imports vuxto. vuxto calls `pkg/runner.
 
 ## Done means
 
-A real Claude Code agent runs a task on a vuxto machine. The proxy sees the model calls under the lease token. The record verifies with the existing gusto check. The machine is gone afterward.
+A Claude Code agent finishes the same task in each placement in the table above. In each, the proxy sees the model calls under a token, the credential is not on the process's computer, and the record verifies with the existing gusto check. A rented machine is gone afterward.
