@@ -20,10 +20,10 @@
 <form class="mb-4 grid gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
   <div class="flex flex-wrap items-center gap-3">
     <label class="min-w-56 flex-1"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
-      <input class="{{template "ag-ctl"}} w-full" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
+      <input class="input" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
     </label>
-    <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="{{template "ag-ctl"}}" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="{{template "ag-ctl"}}" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
-    <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Filter</button>
+    <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="input w-40" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="input w-40" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
+    <button class="btn" type="submit">Filter</button>
     {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
   </div>
   <details class="group"{{if .Filtered}} open{{end}}>
@@ -89,7 +89,7 @@
 </nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>
-  <select class="{{template "ag-ctl"}}" name="{{.Name}}" data-autosubmit>
+  <select class="select" name="{{.Name}}" data-autosubmit>
     <option value="">{{.All}}</option>
     {{$chosen := .Chosen}}{{range .Options}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
   </select>

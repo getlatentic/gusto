@@ -13,3 +13,5 @@
 @import "./theme.css";
 @import "./base.css";
 @import "./prose.css";
+@import "./basecoat-theme.css";
+@import "./vendor/basecoat/basecoat.css";
