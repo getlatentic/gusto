@@ -6,6 +6,6 @@
   <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>
   <p class="text-sm text-muted">We keep your name, work email and company so that we can follow up about a call.</p>{{end}}
   {{if and .Book (not .Ending)}}<p>The next step is a call, to see how this fits your team.</p>
-  <p><a class="block rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" href="{{.Book}}">Book a call</a></p>{{end}}
+  <p><a class="block rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="{{.Book}}">Book a call</a></p>{{end}}
   {{if not .Ending}}<p class="text-center text-sm text-muted"><a class="underline" href="/demo">Start another demo</a></p>{{end}}
 {{template "foot"}}{{end}}

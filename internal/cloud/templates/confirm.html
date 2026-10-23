@@ -4,6 +4,6 @@
   {{if .Inviter}}<p class="text-sm text-muted">{{.Inviter}} invited you.</p>{{end}}
   <form class="grid gap-3" method="post" action="{{.Action}}">
     <input type="hidden" name="t" value="{{.Token}}">
-    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">{{.Button}}</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">{{.Button}}</button>
   </form>
 {{template "foot"}}{{end}}

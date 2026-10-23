@@ -18,7 +18,7 @@
   <a class="flex items-center gap-3 font-display text-lg leading-none font-semibold tracking-[-0.01em]" href="/"><img class="h-auto w-7" src="{{asset "/static/mark.png"}}" alt=""> gusto</a>
   <nav class="flex items-center gap-5 text-md">
     <a class="inline-flex items-center text-muted hover:text-ink" href="https://github.com/getlatentic/gusto" aria-label="gusto on GitHub"><svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
-    <a class="rounded-sm bg-accent px-4 py-2 font-semibold whitespace-nowrap text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
+    <a class="rounded-sm bg-solid px-4 py-2 font-semibold whitespace-nowrap text-on-solid hover:bg-solid-hover" href="/demo">Try it now</a>
   </nav>
 </header>
 
@@ -27,7 +27,7 @@
   <h1 class="max-w-[18ch] font-display text-[length:clamp(2rem,5vw,3.25rem)] leading-[1.1] font-semibold tracking-[-0.02em]">One place for every AI agent your team needs.</h1>
   <p class="max-w-2xl text-lead text-muted">Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight.</p>
   <div class="flex flex-wrap gap-3">
-    <a class="inline-block rounded-sm bg-accent px-5 py-3 font-semibold text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
+    <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="/demo">Try it now</a>
     {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="{{.Book}}">Talk to us</a>{{end}}
   </div>
   <p class="text-[0.875rem] text-muted">Free. No credit card. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.</p>
@@ -71,10 +71,10 @@
   <div class="mx-auto max-w-5xl px-5">
     <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">How it works</h2>
     <ol class="mt-12 grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 min-[44rem]:grid-cols-2 min-[64rem]:grid-cols-4">
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">1</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Pick an agent</h3><p class="leading-[1.6] text-md text-muted">Choose the one for the work.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">2</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Give it a workspace</h3><p class="leading-[1.6] text-md text-muted">Files, tools and context stay together.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">3</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Keep the same controls</h3><p class="leading-[1.6] text-md text-muted">Keys, models, network and spend stay outside the agent.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-accent text-md font-semibold text-on-accent">4</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">See what happened</h3><p class="leading-[1.6] text-md text-muted">Calls, changes, cost and results are recorded.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">1</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Pick an agent</h3><p class="leading-[1.6] text-md text-muted">Choose the one for the work.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">2</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Give it a workspace</h3><p class="leading-[1.6] text-md text-muted">Files, tools and context stay together.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">3</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Keep the same controls</h3><p class="leading-[1.6] text-md text-muted">Keys, models, network and spend stay outside the agent.</p></li>
+      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">4</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">See what happened</h3><p class="leading-[1.6] text-md text-muted">Calls, changes, cost and results are recorded.</p></li>
     </ol>
   </div>
 </section>
@@ -131,7 +131,7 @@
   <div class="mx-auto grid max-w-5xl justify-items-center gap-5 px-5">
 <h2 class="max-w-[28ch] text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use different AI agents without setting up each one from scratch.</h2>
   <div class="flex flex-wrap justify-center gap-3">
-    <a class="inline-block rounded-sm bg-accent px-5 py-3 font-semibold text-on-accent hover:bg-accent-hover" href="/demo">Try it now</a>
+    <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="/demo">Try it now</a>
     {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-surface" href="{{.Book}}">Talk to us</a>{{end}}
   </div>
   </div>
@@ -143,4 +143,4 @@
 </html>
 {{end}}
 
-{{define "tick"}}<span class="grid size-5 place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true"><svg class="size-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5.5"/></svg></span>{{end}}
+{{define "tick"}}<span class="grid size-5 place-items-center rounded-full bg-solid text-on-solid" aria-hidden="true"><svg class="size-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5.5"/></svg></span>{{end}}
