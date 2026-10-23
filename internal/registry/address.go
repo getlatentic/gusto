@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // Resolver is how a name becomes addresses; a test gives its own.

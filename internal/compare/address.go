@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Answer is the whole of `gusto compare`. A comparison's directory alone prints

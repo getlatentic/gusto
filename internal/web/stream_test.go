@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A watcher here is served over a pipe rather than a socket. A write to a pipe

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // TableVersion is the version of the table's JSON this code writes and the

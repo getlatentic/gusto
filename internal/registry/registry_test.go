@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/proxy"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 var operators = Platform{

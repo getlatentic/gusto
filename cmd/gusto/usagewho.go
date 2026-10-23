@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/harness"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/web"
+	"github.com/getlatentic/gusto/pkg/harness"
 )
 
 // attribution is who made a task's calls and who answered, for a command that runs with no server. It reads the

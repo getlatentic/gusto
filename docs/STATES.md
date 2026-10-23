@@ -47,7 +47,7 @@ Each line reaches the bind-mounted directory before the next is read, because a 
 
 The runner refuses a task before the agent starts when the agent's program is not on its PATH, a restricted task names a model that is not local, or an agent needing a local model has none answering (`internal/runner/admit.go`). A refusal writes only `out/transcript.log`, holding the reason. It leaves no check verdict and no manifest. In the box the refusal reaches the queue as exit 2. In the server's own process it reaches the queue as an error.
 
-The time budget ends an agent. It comes from `budget.seconds`, default 900 (`internal/job/job.go`). `budget.turns` defaults to 40 and nothing reads it. A money cap does not end the agent. The proxy refuses the task's next model call, and the time budget ends an agent that carries on without a model. The runner reads the refusal from `out/proxy.jsonl` and records `stoppedByCap` in the manifest (`internal/runner/capped.go`). The task's state is still the check's answer.
+The time budget ends an agent. It comes from `budget.seconds`, default 900 (`pkg/job/job.go`). `budget.turns` defaults to 40 and nothing reads it. A money cap does not end the agent. The proxy refuses the task's next model call, and the time budget ends an agent that carries on without a model. The runner reads the refusal from `out/proxy.jsonl` and records `stoppedByCap` in the manifest (`internal/runner/capped.go`). The task's state is still the check's answer.
 
 ## A server restart
 

@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/gateway"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/gateway"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Integrations is the integrations an organization has imported, which a setup may name. Only the versions an administrator has

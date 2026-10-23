@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // SignatureFile is the detached signature over manifest.json, beside it in

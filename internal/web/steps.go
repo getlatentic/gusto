@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // step is one thing an agent did during a turn, said the way a person would:

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Record is what a run writes while it happens. A container's disk does not

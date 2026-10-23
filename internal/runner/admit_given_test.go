@@ -4,8 +4,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A job run in the server's own process is given the proxy, and it is the proxy that has to answer, not the model address the

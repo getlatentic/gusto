@@ -1,10 +1,10 @@
 package matrix
 
 import (
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Way is how the benchmark starts a run, and what it writes down about where.

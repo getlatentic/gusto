@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // UseLedger hands the pages the ledger the proxy counts in and checks caps

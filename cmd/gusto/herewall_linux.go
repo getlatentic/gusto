@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/landlock"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // wrapProcess holds a task to the policy with Linux's Landlock, applied by gusto itself just before it starts the engine. A Linux

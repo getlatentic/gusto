@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/seatbelt"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // An agent that tries to read the person's secrets, write outside its folder and reach the network is held, and one that works in its

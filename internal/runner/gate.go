@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Ask runs the command that says pass or fail and writes nothing. An agent

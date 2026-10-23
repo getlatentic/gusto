@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // drawn is how much of one evidence file the job page draws. A harness can

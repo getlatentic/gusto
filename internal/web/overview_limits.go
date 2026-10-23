@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // limitRow is one limit the organization is under, what has been used of it, and

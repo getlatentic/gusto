@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/proxy"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // keyProvider is where a model key a person's shell may hold answers.

@@ -11,9 +11,9 @@ import (
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // turnBy is a turn in a conversation on an instance, asked for by a person, run by the work.

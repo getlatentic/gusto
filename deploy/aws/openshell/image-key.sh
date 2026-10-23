@@ -4,4 +4,4 @@
 # the Go sources does not make a new image. It prints the key.
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
-{ "$root/deploy/aws/openshell/harnesses.sh"; cat "$root/Dockerfile" "$root/internal/harness/pins.json" "$root/deploy/runner/install.mjs"; (cd "$root" && git ls-files -z image | xargs -0 shasum -a 256); } | shasum -a 256 | cut -c1-16
+{ "$root/deploy/aws/openshell/harnesses.sh"; cat "$root/Dockerfile" "$root/pkg/harness/pins.json" "$root/deploy/runner/install.mjs"; (cd "$root" && git ls-files -z image | xargs -0 shasum -a 256); } | shasum -a 256 | cut -c1-16

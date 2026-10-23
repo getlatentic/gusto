@@ -7,8 +7,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/matrix"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {

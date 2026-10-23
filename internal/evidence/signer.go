@@ -3,8 +3,8 @@ package evidence
 import (
 	"fmt"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // The words a record's signer is given where no keyring checked a name. They

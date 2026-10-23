@@ -12,9 +12,9 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/industry"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/rules"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // UseBoard gives the pages somewhere to keep comparisons. Without one, a

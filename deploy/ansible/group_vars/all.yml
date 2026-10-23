@@ -44,7 +44,7 @@ gusto_errors_dir: /var/www/gusto-errors
 # when its program is really on the image's PATH.
 #
 # Each runs on the proxy's per-job token and nobody's account. Versions are not
-# here: internal/harness/pins.json pins every package, and the image's build
+# here: pkg/harness/pins.json pins every package, and the image's build
 # verifies each tarball against it.
 runner_harnesses:
   - opencode=opencode-ai

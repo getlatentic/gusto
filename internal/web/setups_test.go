@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A setup is made once and started with again: every turn on an instance

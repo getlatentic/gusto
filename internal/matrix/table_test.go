@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // door stands in for the server's way out. It writes into the run's

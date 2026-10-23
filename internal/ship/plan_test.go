@@ -3,7 +3,7 @@ package ship
 import (
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func TestTheGitHubRepositoryIsReadOffTheRemote(t *testing.T) {

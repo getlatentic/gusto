@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 const (

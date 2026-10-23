@@ -24,7 +24,7 @@ Pin and mirror before the first build:
 | Agent packages | each package and its platform package at one pinned version. Measured on x64: `opencode-ai` 1.18.32 with `opencode-linux-x64` and `opencode-linux-x64-baseline`; `@openai/codex` 0.157.1 with `@openai/codex@0.157.1-linux-x64`; `@anthropic-ai/claude-code` 2.1.283 with `@anthropic-ai/claude-code-linux-x64`. arm64 and musl need their own. Seven tarballs, 958 MiB |
 | Ansible collections | `ansible.mysql`, `community.crypto`, as tarballs |
 
-Every package is pinned in `internal/harness/pins.json` (version and sha512), and `deploy/runner/install.mjs` refuses a tarball that does not match. A mirror has to serve those exact tarballs; `internal/harness/pin.sh` moves a pin.
+Every package is pinned in `pkg/harness/pins.json` (version and sha512), and `deploy/runner/install.mjs` refuses a tarball that does not match. A mirror has to serve those exact tarballs; `pkg/harness/pin.sh` moves a pin.
 
 ## Build the image
 
@@ -94,5 +94,5 @@ claude is not supported. It needs an account or an Anthropic-compatible server, 
 - Whether agents call out later in a run, on a tool call, on compaction or on exit. The stand-in answered one text turn.
 - Whether the seal holds on the box's podman.
 - Whether npm calls anything beyond the registry during the image build.
-- Whether the proxy allowlist (`internal/proxy/allowlist.go`, `host:port`) works for an internal mirror on plain HTTP on a non-standard port.
+- Whether the proxy allowlist (`pkg/proxy/allowlist.go`, `host:port`) works for an internal mirror on plain HTTP on a non-standard port.
 - Where your model server fetches weights, and whether it can serve files placed by hand.

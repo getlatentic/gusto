@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Two harnesses that are programs: one leaves the answer the gate wants, and

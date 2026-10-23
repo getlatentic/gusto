@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A turn in a conversation works on the workspace of the instance it is a turn on. In a

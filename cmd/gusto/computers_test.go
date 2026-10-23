@@ -12,10 +12,10 @@ import (
 
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // hostProcesses is the process limit this machine already has. The fake gateway runs a sandbox's commands here, where the

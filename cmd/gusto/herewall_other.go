@@ -6,7 +6,7 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func wrapProcess(job.Dir, wallPolicy) (func(*exec.Cmd), error) {
