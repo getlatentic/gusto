@@ -22,6 +22,15 @@ func TestTheUIKitShowsEveryPiece(t *testing.T) {
 			t.Errorf("the kit page does not show %s", piece[1])
 		}
 	}
+	layout, err := os.ReadFile("templates/layout.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, icon := range regexp.MustCompile(`\{\{define "(icon-[a-z0-9-]+)"`).FindAllStringSubmatch(string(layout), -1) {
+		if !strings.Contains(string(kit), `template "`+icon[1]+`"`) {
+			t.Errorf("the kit page does not show %s", icon[1])
+		}
+	}
 	h := open(t)
 	h.signIn(t)
 	if page := h.ask(t, "GET", "/admin/ui-kit", nil); page.Code != 200 {
