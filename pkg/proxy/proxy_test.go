@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -176,5 +178,84 @@ func TestAKeyThatIsNotATokenStillGetsNothing(t *testing.T) {
 	}
 	if seen.Get("X-Seen-Path") != "" {
 		t.Fatal("a request with somebody else's key reached the model")
+	}
+}
+
+// A host that signs its tokens and keeps its keys elsewhere plugs both into the proxy.
+type signedTokens map[string]Ticket
+
+func (s signedTokens) Job(token string) (Ticket, bool) { ticket, ok := s[token]; return ticket, ok }
+
+type keysByJob struct {
+	address string
+	keys    map[string]string
+	asked   []string
+}
+
+func (k *keysByJob) Credential(_ context.Context, ticket Ticket) (Credential, bool) {
+	k.asked = append(k.asked, ticket.Job)
+	key, ok := k.keys[ticket.Job]
+	if !ok {
+		return Credential{}, false
+	}
+	return Credential{Name: "asker-" + ticket.Job, Address: k.address, Key: key, Auth: Anthropic}, true
+}
+
+func TestATokenAndAKeyFromElsewhereAreUsedInPlaceOfTheHeldOnes(t *testing.T) {
+	proxy, _, _, seen := site(t, "the-held-key")
+	keys := &keysByJob{keys: map[string]string{"lease-9": "the-askers-key"}}
+	var model *httptest.Server
+	model = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*seen = r.Header.Clone()
+		w.Write([]byte(`{}`))
+	}))
+	defer model.Close()
+	keys.address = model.URL
+	proxy.UseTokens(signedTokens{"v1.signed": {Job: "lease-9"}, "v1.keyless": {Job: "lease-10"}})
+	proxy.UseCredentials(keys)
+
+	if answer := ask(t, proxy, "/model/v1.signed/v1/messages", `{"model":"x"}`); answer.Code != http.StatusOK {
+		t.Fatalf("code %d", answer.Code)
+	}
+	if got := seen.Get("x-api-key"); got != "the-askers-key" {
+		t.Fatalf("the model was sent %q, not the key the source gave", got)
+	}
+	if answer := ask(t, proxy, "/model/v1.keyless/v1/messages", `{"model":"x"}`); answer.Code != http.StatusBadGateway {
+		t.Fatalf("a ticket with no key answered %d", answer.Code)
+	}
+	if answer := ask(t, proxy, "/model/the-held-minted-token/v1/messages", `{}`); answer.Code != http.StatusForbidden {
+		t.Fatalf("a token the source does not know answered %d", answer.Code)
+	}
+	if len(keys.asked) != 2 {
+		t.Fatalf("the source was asked %v: once per call that had a ticket", keys.asked)
+	}
+}
+
+func TestTheSignedTokenAlsoOpensTheForwardProxy(t *testing.T) {
+	proxy, _, _, _ := site(t, "k")
+	proxy.UseTokens(signedTokens{"v1.signed": {Job: "lease-9"}})
+	request := httptest.NewRequest("CONNECT", "http://example.com:443", nil)
+	request.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("vuxto:v1.signed")))
+	recorder := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(recorder, request)
+	if recorder.Code == http.StatusProxyAuthRequired {
+		t.Fatal("the proxy did not take the token the source knows")
+	}
+	bad := httptest.NewRequest("CONNECT", "http://example.com:443", nil)
+	bad.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("vuxto:unknown")))
+	refused := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(refused, bad)
+	if refused.Code != http.StatusProxyAuthRequired {
+		t.Fatalf("an unknown token answered %d", refused.Code)
+	}
+}
+
+func TestUseCredentialsWithNilGoesBackToTheHeldOnes(t *testing.T) {
+	proxy, tokens, _, seen := site(t, "the-held-key")
+	proxy.UseCredentials(&keysByJob{})
+	proxy.UseCredentials(nil)
+	token, _ := tokens.Mint("a-job", "")
+	if answer := ask(t, proxy, "/model/"+token+"/v1/models", `{}`); answer.Code != http.StatusOK || seen.Get("Authorization") != "Bearer the-held-key" {
+		t.Fatalf("code %d, sent %q", answer.Code, seen.Get("Authorization"))
 	}
 }

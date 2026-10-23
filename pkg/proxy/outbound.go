@@ -16,7 +16,7 @@ import (
 // whole URL for plain HTTP. Nothing leaves unless the allowlist names the host,
 // and every request, sent or refused, is a line in the task's proxy record.
 func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
-	ticket, known := p.tokens.Job(proxyToken(r))
+	ticket, known := p.tokenSource().Job(proxyToken(r))
 	if !known {
 		w.Header().Set("Proxy-Authenticate", `Basic realm="gusto"`)
 		http.Error(w, "no", http.StatusProxyAuthRequired)

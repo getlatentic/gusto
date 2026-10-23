@@ -22,7 +22,8 @@ type Where func(job string) (string, bool)
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
 type Proxy struct {
-	tokens   *Tokens
+	tokens   atomic.Pointer[TokenSource]
+	source   atomic.Pointer[CredentialSource]
 	held     atomic.Pointer[Credentials]
 	registry atomic.Int64
 	where    Where
@@ -45,7 +46,6 @@ type Proxy struct {
 // from one place, and the hosts a task may reach besides its model.
 func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Ledger, allowed Allowlist) *Proxy {
 	p := &Proxy{
-		tokens:  tokens,
 		where:   where,
 		ledger:  ledger,
 		allowed: allowed,
@@ -60,6 +60,7 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 	}
+	p.UseTokens(tokens)
 	p.public = publicClient(p.lookup)
 	p.SetCredentials(credentials, 0)
 	return p
@@ -91,15 +92,15 @@ func (p *Proxy) Handler() http.Handler {
 		// mean rewriting that configuration per task, so the header is accepted
 		// too: the container presents the token exactly where it would have
 		// presented a credential, and the proxy trades it for the real one.
-		if _, known := p.tokens.Job(token); !known {
+		if _, known := p.tokenSource().Job(token); !known {
 			if bearer := bearerOf(r); bearer != "" {
-				if _, known := p.tokens.Job(bearer); known {
+				if _, known := p.tokenSource().Job(bearer); known {
 					rest = path.Clean("/" + strings.TrimPrefix(r.URL.Path, "/model"))
 					token = bearer
 				}
 			}
 		}
-		ticket, known := p.tokens.Job(token)
+		ticket, known := p.tokenSource().Job(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
 			// ended, so this cannot be used to learn which tasks are running.
@@ -126,7 +127,7 @@ func split(full string) (token, rest string) {
 
 func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
 	job := ticket.Job
-	credential, held := p.credentials().Get(ticket.Credential)
+	credential, held := p.credentialFor(r.Context(), ticket)
 	if !held {
 		// The task was given this credential when it started, so losing it here
 		// means the deployment changed underneath a running task.

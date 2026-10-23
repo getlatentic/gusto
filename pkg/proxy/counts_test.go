@@ -19,9 +19,10 @@ func TestTheProxyCountsCallsAndSaysWhichFailedOnTheModelsSide(t *testing.T) {
 
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "down", http.StatusBadGateway) }))
 	defer failing.Close()
-	broken := New(NewTokens(), Credentials{"": {Address: failing.URL, Key: "k", Name: "c"}},
+	brokenTokens := NewTokens()
+	broken := New(brokenTokens, Credentials{"": {Address: failing.URL, Key: "k", Name: "c"}},
 		func(string) (string, bool) { return "", false }, spend.NewLedger(spend.Policy{}), Allowlist{})
-	token, _ = broken.tokens.Mint("j", "")
+	token, _ = brokenTokens.Mint("j", "")
 	ask(t, broken, "/model/"+token+"/v1/chat/completions", `{"model":"x"}`)
 	if got := broken.Counts(); got != (Counts{Calls: 1, Errors: 1}) {
 		t.Fatalf("a 502 from the model counted as %+v", got)
