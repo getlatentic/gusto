@@ -28,6 +28,14 @@ go vet ./...
 go test ./...
 ```
 
+A pre-push hook runs these for the packages a push changes, and checks that the committed stylesheets match their sources. Turn it on once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`GUSTO_PREPUSH=all` tests every package, and `GUSTO_PREPUSH=skip` pushes without checking.
+
 On a Mac, a build that uses cgo needs `CC=/usr/bin/clang` when a different `clang` is first on your PATH.
 
 Say in the pull request what changed, what you ran to check it, and what you did not check. One concern a pull request. Reference the
