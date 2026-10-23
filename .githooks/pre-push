@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Runs on `git push`, on this computer, so that what CI does not run is run before a branch leaves it:
+# gofmt, go vet and go test for the Go packages the push changes, and a check that the committed stylesheets match their sources.
+# The pull request checks build for six systems and skip the tests, and the deploy runs on one computer, so a failure found here costs nothing queued.
+#   GUSTO_PREPUSH=all   test every package
+#   GUSTO_PREPUSH=skip  push without checking (git push --no-verify does the same)
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+[ "${GUSTO_PREPUSH:-}" = skip ] && exit 0
+[ "$(uname)" = Darwin ] && export CC="${CC:-/usr/bin/clang}"
+zero=0000000000000000000000000000000000000000
+
+changed=""
+while read -r _ local_sha _ remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    base=$(git merge-base "$local_sha" origin/main 2>/dev/null || true)
+  else
+    base=$remote_sha
+  fi
+  if [ -n "$base" ]; then
+    changed+=$'\n'$(git diff --name-only --diff-filter=ACMR "$base" "$local_sha")
+  else
+    changed+=$'\n'$(git ls-tree -r --name-only "$local_sha")
+  fi
+done
+changed=$(printf '%s\n' "$changed" | sed '/^$/d' | sort -u)
+[ -z "$changed" ] && exit 0
+
+fail() { printf 'pre-push: %s\n' "$*" >&2; exit 1; }
+
+go_files=$(printf '%s\n' "$changed" | grep -E '\.go$' || true)
+if [ -n "$go_files" ] || [ "${GUSTO_PREPUSH:-}" = all ]; then
+  unformatted=$(printf '%s\n' "$go_files" | while read -r f; do [ -f "$f" ] && gofmt -l "$f"; done)
+  [ -z "$unformatted" ] || fail "gofmt would change:"$'\n'"$unformatted"
+  if [ "${GUSTO_PREPUSH:-}" = all ]; then
+    packages=./...
+  else
+    packages=$(printf '%s\n' "$changed" | grep -E '\.(go|html|json|css|js|svg|webp|png|woff2|md)$' \
+      | xargs -n1 dirname | sort -u | while read -r d; do
+          while [ "$d" != . ] && ! ls "$d"/*.go >/dev/null 2>&1; do d=$(dirname "$d"); done
+          [ "$d" != . ] && printf './%s\n' "$d"
+        done | sort -u)
+  fi
+  if [ -n "$packages" ]; then
+    echo "pre-push: go vet and go test on $(echo "$packages" | wc -l | tr -d ' ') package(s)"
+    # shellcheck disable=SC2086
+    go vet $packages || fail "go vet failed"
+    # shellcheck disable=SC2086
+    go test $packages || fail "go test failed (GUSTO_PREPUSH=skip to push anyway)"
+  fi
+fi
+
+check_css() {
+  local build=$1 out=$2
+  if ! command -v tailwindcss >/dev/null; then
+    echo "pre-push: tailwindcss is not installed, so $out was not checked (brew install tailwindcss)"
+    return
+  fi
+  "$build" >/dev/null
+  git diff --quiet -- "$out" || fail "$out is not what its sources build; run $build and commit it"
+}
+if printf '%s\n' "$changed" | grep -qE '^internal/web/(tailwind/|templates/|static/(theme|tokens)\.css|static/.*\.js)'; then
+  check_css internal/web/tailwind/build.sh internal/web/static/app.css
+fi
+if printf '%s\n' "$changed" | grep -qE '^internal/cloud/(tailwind/|templates/)'; then
+  check_css internal/cloud/tailwind/build.sh internal/cloud/static/cloud.css
+fi
