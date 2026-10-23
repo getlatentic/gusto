@@ -94,6 +94,7 @@ var helpers = template.FuncMap{
 	"markdown": markdown,
 	"asset":    asset,
 	"logo":     logo,
+	"logoDark": logoDark,
 	"base":     filepath.Base,
 	"add":      func(a, b int64) int64 { return a + b },
 	// usd is an amount of money as a headline shows it: cents once there are
