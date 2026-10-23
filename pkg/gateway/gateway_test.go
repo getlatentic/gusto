@@ -428,3 +428,89 @@ func TestWithNoRedactorWhatAToolAnswersIsGivenAsItIs(t *testing.T) {
 		t.Errorf("the job was given %q", said)
 	}
 }
+
+func TestAServerTheTaskNamesAndMayNotCallIsSaidUnderASearchAndNotCalled(t *testing.T) {
+	_, server := reports(t)
+	h := start(t, Config{Servers: []Server{server}, Withheld: map[string]string{
+		"crm": "the person has not agreed to crm.example yet", "mail": "no credential was given for mail",
+	}})
+	found, failed := h.call("tool_search", map[string]any{"query": "report"})
+	if failed || !strings.Contains(found, "reports/get_report") {
+		t.Fatalf("search found %q", found)
+	}
+	for _, line := range []string{
+		"(the server crm is not available: the person has not agreed to crm.example yet)",
+		"(the server mail is not available: no credential was given for mail)",
+	} {
+		if !strings.Contains(found, line) {
+			t.Errorf("the search does not say %q:\n%s", line, found)
+		}
+	}
+	if strings.Index(found, "(the server crm") > strings.Index(found, "(the server mail") {
+		t.Error("withheld servers are not said in order")
+	}
+}
+
+func TestATaskMaySendAServerOnlyAsManyBytesOfArgumentsAsItIsAllowed(t *testing.T) {
+	fake, server := reports(t)
+	h := start(t, Config{Servers: []Server{server}, MaxSend: 30})
+	call := map[string]any{"name": "reports/get_report", "arguments": map[string]any{"id": "0123456789"}}
+	first, failed := h.call("tool_call", call)
+	if failed {
+		t.Fatalf("the first call was refused: %s", first)
+	}
+	second, failed := h.call("tool_call", call)
+	third, failedThird := h.call("tool_call", call)
+	if !failed || !strings.Contains(second, "as much as it may") || !failedThird || third != second {
+		t.Fatalf("after the allowance: %q %q", second, third)
+	}
+	if len(fake.calls) != 1 {
+		t.Fatalf("the server was called %d times", len(fake.calls))
+	}
+	var refused int
+	for _, entry := range h.entries() {
+		if entry.Outcome == "refused" && entry.Why == "send allowance used" {
+			refused++
+		}
+	}
+	if refused != 2 {
+		t.Fatalf("%d refusals recorded", refused)
+	}
+}
+
+func TestWithNoAllowanceSetATaskSendsAsMuchAsItLikes(t *testing.T) {
+	fake, server := reports(t)
+	h := start(t, Config{Servers: []Server{server}})
+	for i := 0; i < 5; i++ {
+		if text, failed := h.call("tool_call", map[string]any{"name": "reports/get_report", "arguments": map[string]any{"id": strings.Repeat("x", 5000)}}); failed {
+			t.Fatalf("call %d: %s", i, text)
+		}
+	}
+	if len(fake.calls) != 5 {
+		t.Fatalf("%d calls reached the server", len(fake.calls))
+	}
+}
+
+type carrier struct{ trips int }
+
+func (c *carrier) RoundTrip(r *http.Request) (*http.Response, error) {
+	c.trips++
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func TestAHostCanGiveTheClientThatCallsTheServersAndIsTold(t *testing.T) {
+	_, server := reports(t)
+	way := &carrier{}
+	var told []Entry
+	config := Config{Servers: []Server{server}, Private: false,
+		Client: &http.Client{Transport: way, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		Tell:   func(e Entry) { told = append(told, e) }}
+	h := start(t, config)
+	found, failed := h.call("tool_search", map[string]any{"query": "report"})
+	if failed || !strings.Contains(found, "reports/get_report") || way.trips == 0 {
+		t.Fatalf("the host's client carried %d requests; search found %q", way.trips, found)
+	}
+	if len(told) == 0 || told[0].Kind != "search" || told[0].Job != "20261008-1" {
+		t.Fatalf("the host was told %+v", told)
+	}
+}

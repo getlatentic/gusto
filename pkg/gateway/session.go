@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -45,6 +47,19 @@ type Config struct {
 	// Launch makes the command that runs a server that is a program. Without it a program is not run.
 	Launch Launcher
 	Record *Record
+	// Withheld are servers the task names and the gateway will not call, with the words to tell the agent: a host the person
+	// who owns the task has not agreed to, or one they gave no credential for. They are said under a search, so the agent
+	// does not take the missing tools for a fault.
+	Withheld map[string]string
+	// MaxSend, when above zero, is the most bytes of arguments the task may send any one server in all. A server somebody
+	// else runs learns nothing from the task beyond it.
+	MaxSend int64
+	// Client, when set, is what calls the servers that are addresses, in place of the default client that reaches only public
+	// addresses. A host that checks addresses itself, or trusts its own authority, gives its own. It must not follow
+	// redirects, since a server is called with credentials.
+	Client *http.Client
+	// Tell, when set, is told of each line the record would hold, as well as the record.
+	Tell func(Entry)
 }
 
 // Session is the gateway for one task: an MCP server the task's agent calls.
@@ -54,6 +69,9 @@ type Session struct {
 	now     func() time.Time
 	// recordFailed is the error that stopped a line being written, which stops the calls after it.
 	recordFailed atomic.Pointer[error]
+	// sent is how many bytes of arguments each server has been sent.
+	mu   sync.Mutex
+	sent map[string]int64
 }
 
 // New is the gateway for a task.
@@ -65,7 +83,9 @@ func New(config Config) *Session {
 	if policy == nil {
 		policy = func() Policy { return config.Policy }
 	}
-	return &Session{config: config, now: time.Now, catalog: newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record)}
+	catalog := newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record, config.Client)
+	catalog.withheld = config.Withheld
+	return &Session{config: config, now: time.Now, catalog: catalog, sent: map[string]int64{}}
 }
 
 // Close ends the sessions with the servers.
@@ -209,6 +229,9 @@ func (s *Session) shownTools() []Tool {
 
 func (s *Session) note(entry Entry) {
 	entry.Job, entry.Person = s.config.Caller.Job, s.config.Caller.Person
+	if s.config.Tell != nil {
+		s.config.Tell(entry)
+	}
 	if err := s.config.Record.Add(entry); err != nil {
 		// A record that cannot be written is not hidden: the next call is refused for it.
 		s.recordFailed.Store(&err)
@@ -265,8 +288,30 @@ func (s *Session) search(arguments json.RawMessage) Result {
 			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, oneLine(why))
 		}
 	}
+	withheld := make([]string, 0, len(s.catalog.withheld))
+	for name := range s.catalog.withheld {
+		withheld = append(withheld, name)
+	}
+	sort.Strings(withheld)
+	for _, name := range withheld {
+		fmt.Fprintf(&out, "(the server %s is not available: %s)\n", name, oneLine(s.catalog.withheld[name]))
+	}
 	s.note(Entry{Kind: "search", Outcome: "ok", Tools: len(found)})
 	return text(strings.TrimSpace(out.String()), false)
+}
+
+// reserve counts argument bytes against a server's allowance and says whether they fit. Bytes that do not fit are not counted.
+func (s *Session) reserve(server string, n int) bool {
+	if s.config.MaxSend <= 0 {
+		return true
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.sent[server]+int64(n) > s.config.MaxSend {
+		return false
+	}
+	s.sent[server] += int64(n)
+	return true
 }
 
 func (s *Session) schema(arguments json.RawMessage) Result {
@@ -301,6 +346,11 @@ func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage
 		return text(fmt.Sprintf("there is no tool %q that you may use: use tool_search to find one", name), true)
 	}
 	entry.Server, entry.Tool = found.Server, found.Tool.Name
+	if !s.reserve(found.Server, len(arguments)) {
+		entry.Outcome, entry.Why = "refused", "send allowance used"
+		s.note(entry)
+		return text("this task has sent that server as much as it may", true)
+	}
 	began := s.now()
 	result, err := s.catalog.servers[found.Server].Call(r.Context(), found.Tool.Name, arguments)
 	entry.Millis = s.now().Sub(began).Milliseconds()

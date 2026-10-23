@@ -65,6 +65,11 @@ func Dial(server Server, private bool) *Upstream {
 	}}
 }
 
+// DialWith makes the connection for a server with a client the caller chose, which decides what addresses it reaches.
+func DialWith(server Server, client *http.Client) *Upstream {
+	return &Upstream{server: server, client: client}
+}
+
 // publicOnly is a dialer that refuses an address on a private network, whatever name it was reached by.
 func publicOnly(private bool) func(ctx context.Context, network, address string) (net.Conn, error) {
 	dialer := &net.Dialer{Timeout: 10 * time.Second, Control: func(_, address string, _ syscall.RawConn) error {

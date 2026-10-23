@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"strings"
@@ -27,6 +28,8 @@ type Catalog struct {
 	policy  func() Policy
 	caller  Caller
 	record  *Record
+	// withheld are servers the task names and the gateway will not call, and why.
+	withheld map[string]string
 
 	once sync.Once
 	// entries is every tool the servers have, and what the caller may use is worked out from the policy as it is when the tool is
@@ -37,11 +40,13 @@ type Catalog struct {
 	broken  map[string]string
 }
 
-func newCatalog(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record) *Catalog {
+func newCatalog(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record, client *http.Client) *Catalog {
 	c := &Catalog{servers: map[string]Conn{}, policy: policy, caller: caller, record: record}
 	for _, server := range servers {
 		if server.IsProgram() {
 			c.servers[server.Name] = StartProgram(server, caller.Job, launch)
+		} else if client != nil {
+			c.servers[server.Name] = DialWith(server, client)
 		} else {
 			c.servers[server.Name] = Dial(server, private)
 		}
