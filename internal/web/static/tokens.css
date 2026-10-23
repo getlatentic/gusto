@@ -41,8 +41,8 @@
   --gu-border: var(--gu-neutral-200);
   --gu-border-strong: var(--gu-neutral-300);
   --gu-text: var(--gu-neutral-900);
-  --gu-text-muted: var(--gu-neutral-600);
-  --gu-text-subtle: #566A5C;
+  --gu-text-muted: var(--gu-neutral-700);
+  --gu-text-subtle: var(--gu-neutral-600);
   --gu-text-nontext: var(--gu-neutral-500); /* icons, dividers, disabled marks. Never a string. */
   --gu-text-inverse: var(--gu-neutral-50);
   --gu-accent: var(--gu-green-500);
