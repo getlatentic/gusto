@@ -141,7 +141,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	}
 	sent := time.Now()
 	if refusal := p.ledger.Allow(job, credential.Name, asked.model); refusal != nil {
-		p.refuse(w, job, spend.RefusedCall(rest, asked.model, sent.Unix(), refusal))
+		refused := spend.RefusedCall(rest, asked.model, sent.Unix(), refusal)
+		report(r.Context(), refused)
+		p.refuse(w, job, refused)
 		return
 	}
 	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the agent called in.
@@ -178,6 +180,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
+		report(r.Context(), call)
 		p.note(job, call)
 		http.Error(w, "the model did not answer", http.StatusBadGateway)
 		return
@@ -209,7 +212,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		call.RedactedAnswer = masking.counts
 	}
 	call.Status, call.Took = answer.StatusCode, since(sent)
-	p.note(job, p.priced(call, meter.Usage()))
+	priced := p.priced(call, meter.Usage())
+	report(r.Context(), priced)
+	p.note(job, priced)
 }
 
 // priced puts the provider's count and its cost on a call. Either stays null

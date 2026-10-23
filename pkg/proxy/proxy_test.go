@@ -259,3 +259,21 @@ func TestUseCredentialsWithNilGoesBackToTheHeldOnes(t *testing.T) {
 		t.Fatalf("code %d, sent %q", answer.Code, seen.Get("Authorization"))
 	}
 }
+
+func TestTheCallARequestMadeIsToldToTheResultItsContextCarries(t *testing.T) {
+	proxy, tokens, _, _ := site(t, "k")
+	token, _ := tokens.Mint("a-job", "")
+	ctx, result := WithResult(context.Background())
+	request := httptest.NewRequest("POST", "/model/"+token+"/v1/chat/completions", strings.NewReader(`{"model":"some-model"}`)).WithContext(ctx)
+	recorder := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(recorder, request)
+	call, made := result.Call()
+	if !made || call.Model != "some-model" || call.Status != http.StatusOK {
+		t.Fatalf("made %v, %+v", made, call)
+	}
+	plain := httptest.NewRecorder()
+	proxy.Handler().ServeHTTP(plain, httptest.NewRequest("POST", "/model/"+token+"/v1/chat/completions", strings.NewReader(`{"model":"x"}`)))
+	if _, made := (&Result{}).Call(); made {
+		t.Fatal("an empty result says a call was made")
+	}
+}
