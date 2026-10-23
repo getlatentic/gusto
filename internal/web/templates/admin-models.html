@@ -1,25 +1,25 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}} mb-3!">
+<div class="{{template "ui-title"}} mb-3!">
   <h1>Models</h1>
   <span class="text-sm text-muted">Which models the organization may use, and what each costs</span>
 </div>
 <details class="group mb-6">
-  <summary class="{{template "adm-fold-summary"}}">{{template "adm-chevron"}} How this works</summary>
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How this works</summary>
   <p class="mt-2 max-w-prose text-sm text-muted">A model that is not here cannot be chosen, and an agent is offered only the models its agent type can use. Registry version {{.View.Version}}: every call a task makes is written with the version it was sent under.</p>
 </details>
 
-{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="grid gap-4">
 {{range .View.Providers}}{{if not .Retired}}
-<section class="{{template "adm-card"}} grid gap-3">
+<section class="{{template "ui-card"}} grid gap-3">
   <h2>{{.Name}}{{if .Operator}} <span class="text-sm font-normal text-muted">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">off: waiting for you to turn it on</span>{{end}}</h2>
-  <p class="{{template "adm-note"}}">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
-  {{if .Problem}}<p class="{{template "adm-notice"}} mb-0!">Not in use: {{.Problem}}</p>{{end}}
+  <p class="{{template "ui-note"}}">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
+  {{if .Problem}}<p class="{{template "ui-notice"}} mb-0!">Not in use: {{.Problem}}</p>{{end}}
   {{$provider := .}}
   <div class="overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Model</th><th class="text-right">Input <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Output <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Cached input <span class="font-normal text-subtle">$ / million</span></th>{{if not .Operator}}<th class="text-right">Actions</th>{{end}}</tr></thead>
     <tbody>
       {{range .Models}}{{if not .Retired}}
@@ -34,15 +34,15 @@
           <td class="text-right text-muted" colspan="3">no price, so its cost is not counted against a cap</td>
           {{end}}
         {{else}}
-        <td class="text-right"><input class="{{template "adm-input-sm"}}" form="{{$row}}" name="input" inputmode="decimal" aria-label="Input price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></td>
-        <td class="text-right"><input class="{{template "adm-input-sm"}}" form="{{$row}}" name="output" inputmode="decimal" aria-label="Output price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></td>
-        <td class="text-right"><input class="{{template "adm-input-sm"}}" form="{{$row}}" name="cached" inputmode="decimal" aria-label="Cached input price for {{.Full}}, dollars for a million tokens" placeholder="as input" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></td>
+        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="input" inputmode="decimal" aria-label="Input price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></td>
+        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="output" inputmode="decimal" aria-label="Output price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></td>
+        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="cached" inputmode="decimal" aria-label="Cached input price for {{.Full}}, dollars for a million tokens" placeholder="as input" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></td>
         <td>
           <div class="flex items-center justify-end gap-2">
-            <form id="{{$row}}" method="post" action="/admin/models/providers/{{$provider.Name}}/price"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Set price</button></form>
-            {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn on</button></form>
-            {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn off</button></form>{{end}}
-            <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "adm-btn-danger"}}">Retire</button></form>
+            <form id="{{$row}}" method="post" action="/admin/models/providers/{{$provider.Name}}/price"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Set price</button></form>
+            {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on</button></form>
+            {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off</button></form>{{end}}
+            <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire</button></form>
           </div>
         </td>
         {{end}}
@@ -55,24 +55,24 @@
   </div>
   {{if not .Operator}}
   <form method="post" action="/admin/models/providers/{{.Name}}/models" class="flex flex-wrap items-end gap-3 border-t border-line pt-4">
-    <label class="{{template "adm-field"}} min-w-44 flex-1">Model, as {{.Name}} names it <input class="{{template "adm-input"}}" name="model" placeholder="model-name" required></label>
-    <label class="{{template "adm-field"}} w-32">Input <input class="{{template "adm-input"}}" name="input" inputmode="decimal" placeholder="$ per million"></label>
-    <label class="{{template "adm-field"}} w-32">Output <input class="{{template "adm-input"}}" name="output" inputmode="decimal" placeholder="$ per million"></label>
-    <label class="{{template "adm-field"}} w-32">Cached input <input class="{{template "adm-input"}}" name="cached" inputmode="decimal" placeholder="optional"></label>
-    <button type="submit" class="{{template "adm-btn"}}">Add model</button>
+    <label class="{{template "ui-field"}} min-w-44 flex-1">Model, as {{.Name}} names it <input class="input" name="model" placeholder="model-name" required></label>
+    <label class="{{template "ui-field"}} w-32">Input <input class="input" name="input" inputmode="decimal" placeholder="$ per million"></label>
+    <label class="{{template "ui-field"}} w-32">Output <input class="input" name="output" inputmode="decimal" placeholder="$ per million"></label>
+    <label class="{{template "ui-field"}} w-32">Cached input <input class="input" name="cached" inputmode="decimal" placeholder="optional"></label>
+    <button type="submit" class="{{template "ui-btn"}}">Add model</button>
   </form>
   <div class="flex flex-wrap items-end justify-between gap-3 border-t border-line pt-4">
     {{if eq .Key "stored"}}
     <form method="post" action="/admin/models/providers/{{.Name}}/key" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "adm-field"}}">New key <input class="{{template "adm-input"}}" type="password" name="key" autocomplete="off" required></label>
-      <button type="submit" class="{{template "adm-btn-quiet"}}">Replace key</button>
+      <label class="{{template "ui-field"}}">New key <input class="input" type="password" name="key" autocomplete="off" required></label>
+      <button type="submit" class="{{template "ui-btn-sm"}}">Replace key</button>
       <span class="py-2 text-xs text-muted">A key is never shown again.</span>
     </form>
     {{end}}
     <div class="ml-auto flex items-center gap-2">
-      {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn on {{.Name}}</button></form>
-      {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="{{template "adm-btn-quiet"}}">Turn off {{.Name}}</button></form>{{end}}
-      <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit" class="{{template "adm-btn-danger"}}">Retire {{.Name}}</button></form>
+      {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on {{.Name}}</button></form>
+      {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off {{.Name}}</button></form>{{end}}
+      <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire {{.Name}}</button></form>
     </div>
   </div>
   {{end}}
@@ -80,39 +80,39 @@
 {{end}}{{end}}
 
 {{if .View.Unnamed}}
-<p class="{{template "adm-note"}} max-w-prose">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>
+<p class="{{template "ui-note"}} max-w-prose">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>
 {{else}}
-<section class="{{template "adm-card"}} grid gap-3">
+<section class="{{template "ui-card"}} grid gap-3">
   <h2 class="text-sm font-semibold">Add a provider</h2>
-  <p class="{{template "adm-note"}}">A provider is where models answer and how to be let in.{{if not .View.Private}} It must be at a public https address.{{end}}</p>
+  <p class="{{template "ui-note"}}">A provider is where models answer and how to be let in.{{if not .View.Private}} It must be at a public https address.{{end}}</p>
   <form class="grid max-w-prose gap-4" method="post" action="/admin/models/providers">
-    <label class="{{template "adm-field"}}">Name <input class="{{template "adm-input"}}" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
-    <label class="{{template "adm-field"}}">Address <input class="{{template "adm-input"}}" name="address" placeholder="https://api.example.com" required></label>
-    <label class="{{template "adm-field"}}">Sends its key as
-      <select class="{{template "adm-input"}}" name="auth"><option value="">a bearer token (OpenAI-shaped)</option><option value="anthropic">Anthropic's header</option></select>
+    <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
+    <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com" required></label>
+    <label class="{{template "ui-field"}}">Sends its key as
+      <select class="select w-full" name="auth"><option value="">a bearer token (OpenAI-shaped)</option><option value="anthropic">Anthropic's header</option></select>
     </label>
-    <label class="{{template "adm-field"}}">Key comes from
-      <select class="{{template "adm-input"}}" name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
+    <label class="{{template "ui-field"}}">Key comes from
+      <select class="select w-full" name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
     </label>
-    <label class="{{template "adm-field"}}">Key <input class="{{template "adm-input"}}" type="password" name="key" autocomplete="off"></label>
-    <label class="{{template "adm-field"}}">Reference, when the key is not typed here <input class="{{template "adm-input"}}" name="reference" placeholder="/path, parameter name or secret id"></label>
-    <div><button type="submit" class="{{template "adm-btn"}}">Add provider</button></div>
+    <label class="{{template "ui-field"}}">Key <input class="input" type="password" name="key" autocomplete="off"></label>
+    <label class="{{template "ui-field"}}">Reference, when the key is not typed here <input class="input" name="reference" placeholder="/path, parameter name or secret id"></label>
+    <div><button type="submit" class="{{template "ui-btn"}}">Add provider</button></div>
   </form>
 </section>
 {{end}}
 
 {{if .Steps}}
-<section class="{{template "adm-card"}} grid gap-3 overflow-x-auto">
+<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
   <h2 class="text-sm font-semibold">Go back</h2>
-  <p class="{{template "adm-note"}} max-w-prose">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
-  <table class="{{template "adm-table"}}">
+  <p class="{{template "ui-note"}} max-w-prose">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
+  <table class="{{template "ui-table"}}">
     <tbody>
       {{range .Steps}}
       <tr>
         <td class="whitespace-nowrap">Version {{.Version}}</td>
         <td class="whitespace-nowrap text-muted">{{when .At}}</td>
         <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
-        <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Go back to it</button></form></td>
+        <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "ui-btn-sm"}}">Go back to it</button></form></td>
       </tr>
       {{end}}
     </tbody>
@@ -120,19 +120,19 @@
 </section>
 {{end}}
 
-<section class="{{template "adm-card"}} grid gap-3">
+<section class="{{template "ui-card"}} grid gap-3">
   <h2 class="text-sm font-semibold">Who may use which models</h2>
-  <p class="{{template "adm-note"}} max-w-prose">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
+  <p class="{{template "ui-note"}} max-w-prose">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
   {{if .View.Limits}}
   <div class="overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Person</th><th>May use</th><th></th></tr></thead>
     <tbody>
       {{range .View.Limits}}
       <tr>
         <td>{{.Email}}</td>
         <td>{{range $i, $m := .Models}}{{if $i}}, {{end}}<code>{{$m}}</code>{{end}}</td>
-        <td class="text-right"><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit" class="{{template "adm-btn-quiet"}}">Let use everything</button></form></td>
+        <td class="text-right"><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit" class="{{template "ui-btn-sm"}}">Let use everything</button></form></td>
       </tr>
       {{end}}
     </tbody>
@@ -141,30 +141,30 @@
   {{end}}
   {{if .View.Available}}
   <form class="grid max-w-prose gap-4 border-t border-line pt-4" method="post" action="/admin/models/access">
-    <label class="{{template "adm-field"}}">Person <input class="{{template "adm-input"}}" name="email" type="email" list="people" placeholder="ada@example.com" required></label>
+    <label class="{{template "ui-field"}}">Person <input class="input" name="email" type="email" list="people" placeholder="ada@example.com" required></label>
     <datalist id="people">{{range .People}}<option value="{{.}}">{{end}}</datalist>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">May use</legend>
-      {{range .View.Available}}<label class="{{template "adm-check"}}"><input type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
+      {{range .View.Available}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
     </fieldset>
-    <div><button type="submit" class="{{template "adm-btn"}}">Limit this person</button></div>
+    <div><button type="submit" class="{{template "ui-btn"}}">Limit this person</button></div>
   </form>
   {{end}}
 </section>
 
 {{if .View.Editable}}
-<section class="{{template "adm-card"}} grid gap-3">
+<section class="{{template "ui-card"}} grid gap-3">
   <h2 class="text-sm font-semibold">What providers may be</h2>
-  <p class="{{template "adm-note"}} max-w-prose">This installation is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
+  <p class="{{template "ui-note"}} max-w-prose">This installation is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
   <form class="grid max-w-prose gap-4" method="post" action="/admin/models/policy">
-    <label class="{{template "adm-check"}}"><input type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
+    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">A key may be named as a reference to</legend>
-      {{range $kind := .Sources}}<label class="{{template "adm-check"}}"><input type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
+      {{range $kind := .Sources}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
     </fieldset>
-    <div><button type="submit" class="{{template "adm-btn"}}">Save</button></div>
+    <div><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
   </form>
 </section>
 {{else}}
-<p class="{{template "adm-note"}} max-w-prose">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
+<p class="{{template "ui-note"}} max-w-prose">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
 {{end}}
 </div>
 

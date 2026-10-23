@@ -1,79 +1,79 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>Overview</h1>
 </div>
 
-{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
-{{if .Budget.Passed}}<p class="{{template "adm-notice"}}" role="alert">The budget for {{.Month}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
-{{if .Budget.Err}}<p class="{{template "adm-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.Month}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
+{{if .Budget.Err}}<p class="{{template "ui-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
 
-<section class="{{template "adm-figures"}}">
-  <a class="{{template "adm-figure"}} transition-colors hover:bg-wash" href="/admin/spending">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
-    <span class="text-xs text-muted">spent in {{.Month}}</span>
+<section class="{{template "ui-figures"}}">
+  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/admin/spending">
+    <span class="{{template "ui-figure-value"}}">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
+    <span class="{{template "ui-figure-label"}}">spent in {{.Month}}</span>
   </a>
-  <a class="{{template "adm-figure"}} transition-colors hover:bg-wash" href="/jobs?state=running">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Running}}</span>
+  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=running">
+    <span class="{{template "ui-figure-value"}}">{{.Running}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>running, up to {{.Slots}} at once</span>
   </a>
-  <a class="{{template "adm-figure"}} transition-colors hover:bg-wash" href="/jobs?state=queued">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Waiting}}</span>
+  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=queued">
+    <span class="{{template "ui-figure-value"}}">{{.Waiting}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>waiting</span>
   </a>
-  <a class="{{template "adm-figure"}} transition-colors hover:bg-wash" href="/jobs?state=failed">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Failed}}</span>
+  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=failed">
+    <span class="{{template "ui-figure-value"}}">{{.Failed}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-bad"></span>failed this week</span>
   </a>
 </section>
 
 <div class="grid gap-4">
-<div class="{{template "adm-panels"}}">
-  <section class="{{template "adm-card"}}">
-    <h2 class="{{template "adm-card-title"}}">Limits</h2>
-    {{if .LimitsUnreadable}}<p class="{{template "adm-notice"}}">The limits could not be read. {{.LimitsUnreadable}}</p>{{end}}
+<div class="{{template "ui-panels"}}">
+  <section class="{{template "ui-card"}}">
+    <h2 class="{{template "ui-card-title"}}">Limits</h2>
+    {{if .LimitsUnreadable}}<p class="{{template "ui-notice"}}">The limits could not be read. {{.LimitsUnreadable}}</p>{{end}}
     {{if .Limits}}
-    <table class="{{template "adm-table"}}">
+    <table class="{{template "ui-table"}}">
       <thead><tr><th>What</th><th class="text-right">Used</th><th class="text-right">Of</th></tr></thead>
       <tbody>
         {{range .Limits}}<tr><td>{{.What}}</td><td class="text-right tabular-nums">{{if .Over}}<span class="font-semibold text-bad">{{.Used}}</span>{{else}}{{.Used}}{{end}}</td><td class="text-right tabular-nums">{{.Of}}</td></tr>{{end}}
       </tbody>
     </table>
     {{else if not .LimitsUnreadable}}
-    <p class="{{template "adm-note"}}">Nothing limits this organization.</p>
+    <p class="{{template "ui-note"}}">Nothing limits this organization.</p>
     {{end}}
   </section>
 
   {{if .Budget.Editable}}
-  <section class="{{template "adm-card"}} grid gap-3">
+  <section class="{{template "ui-card"}} grid gap-3">
     <h2 class="text-sm font-semibold">Budget</h2>
     <p>{{if .Budget.Set}}{{usd .Budget.Limit}} a month.{{else}}No budget is set.{{end}}</p>
     <form method="post" action="/admin/budget" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "adm-field"}}">Dollars a month <input class="{{template "adm-input"}}" name="usd" type="number" min="0" step="0.01" placeholder="no budget"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
-      <button class="{{template "adm-btn"}}" type="submit">Save</button>
+      <label class="{{template "ui-field"}}">Dollars a month <input class="input" name="usd" type="number" min="0" step="0.01" placeholder="no budget"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
+      <button class="{{template "ui-btn"}}" type="submit">Save</button>
     </form>
-    <p class="{{template "adm-note"}}">When the month's spending passes it, this page says so. It stops no task. A team's cap does that.</p>
+    <p class="{{template "ui-note"}}">When the month's spending passes it, this page says so. It stops no task. A team's cap does that.</p>
   </section>
   {{end}}
 
   {{with .Defaults}}
-  <section class="{{template "adm-card"}} grid gap-3">
+  <section class="{{template "ui-card"}} grid gap-3">
     <h2 class="text-sm font-semibold">New chats</h2>
     <p>What a new chat runs on until a person chooses their own. A person's last choice comes first.</p>
     <form method="post" action="/admin/chat-default" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "adm-field"}}">Agent and model
-        <select class="{{template "adm-input"}}" name="default">
+      <label class="{{template "ui-field"}}">Agent and model
+        <select class="select w-full" name="default">
           <option value="">The first that can run</option>
           {{range .}}<option value="{{.Value}}"{{if .Chosen}} selected{{end}}>{{.Label}}</option>{{end}}
         </select>
       </label>
-      <button class="{{template "adm-btn"}}" type="submit">Save</button>
+      <button class="{{template "ui-btn"}}" type="submit">Save</button>
     </form>
   </section>
   {{end}}
 </div>
 
-<div class="{{template "adm-panels"}}">
+<div class="{{template "ui-panels"}}">
   {{template "shares" (dict "Title" "By person" "Lines" .People)}}
   {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
   {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
@@ -81,34 +81,34 @@
 </div>
 
 {{if .KeepsComputers}}
-<section class="{{template "adm-card"}} overflow-x-auto">
-  <h2 class="{{template "adm-card-title"}}">Workspaces</h2>
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <h2 class="{{template "ui-card-title"}}">Workspaces</h2>
   {{if .Computers}}
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Person</th><th>State</th><th>Last used</th></tr></thead>
     <tbody>
-      {{range .Computers}}<tr><td>{{.Person}}</td><td>{{template "adm-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{if .LastActive}}{{ago .LastActive}}{{else}}never{{end}}</td></tr>{{end}}
+      {{range .Computers}}<tr><td>{{.Person}}</td><td>{{template "ui-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{if .LastActive}}{{ago .LastActive}}{{else}}never{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  {{else}}<p class="{{template "adm-note"}}">Nobody has a workspace yet. A person's is made when they first run a task.</p>{{end}}
+  {{else}}<p class="{{template "ui-note"}}">Nobody has a workspace yet. A person's is made when they first run a task.</p>{{end}}
 </section>
 {{end}}
-{{if .ComputersUnreadable}}<p class="{{template "adm-notice"}}">The workspaces could not be read. {{.ComputersUnreadable}}</p>{{end}}
+{{if .ComputersUnreadable}}<p class="{{template "ui-notice"}}">The workspaces could not be read. {{.ComputersUnreadable}}</p>{{end}}
 
 {{if .SharesApps}}
-<section class="{{template "adm-card"}} overflow-x-auto">
-  <h2 class="{{template "adm-card-title"}}">Apps</h2>
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <h2 class="{{template "ui-card-title"}}">Apps</h2>
   {{if .Apps}}
-  <table class="{{template "adm-table"}}">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Shared by</th><th>From</th><th>State</th><th>Started</th></tr></thead>
     <tbody>
-      {{range .Apps}}<tr><td>{{.Owner}}</td><td>{{.Agent}}</td><td>{{template "adm-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{ago .Started}}</td></tr>{{end}}
+      {{range .Apps}}<tr><td>{{.Owner}}</td><td>{{.Agent}}</td><td>{{template "ui-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{ago .Started}}</td></tr>{{end}}
     </tbody>
   </table>
-  {{else}}<p class="{{template "adm-note"}}">Nobody has shared an app.</p>{{end}}
+  {{else}}<p class="{{template "ui-note"}}">Nobody has shared an app.</p>{{end}}
 </section>
 {{end}}
-{{if .AppsUnreadable}}<p class="{{template "adm-notice"}}">The apps could not be read. {{.AppsUnreadable}}</p>{{end}}
+{{if .AppsUnreadable}}<p class="{{template "ui-notice"}}">The apps could not be read. {{.AppsUnreadable}}</p>{{end}}
 </div>
 
 {{template "foot" .}}

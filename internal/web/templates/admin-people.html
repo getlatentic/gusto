@@ -1,20 +1,20 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>People</h1>
   <span class="text-sm text-muted">Roles, last sign-in and spend this month</span>
   <span class="flex-1"></span>
-  {{with .Manage}}<a class="{{template "adm-btn"}}" href="{{.}}">Invite people</a>{{end}}
+  {{with .Manage}}<a class="{{template "ui-btn"}}" href="{{.}}">Invite people</a>{{end}}
 </div>
 
 {{if .Unreadable}}
-<p class="{{template "adm-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
+<p class="{{template "ui-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
 {{else}}
 
-{{if .SpendUnreadable}}<p class="{{template "adm-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
+{{if .SpendUnreadable}}<p class="{{template "ui-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
-<div class="{{template "adm-card"}} overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Person</th><th>Role</th><th>Last signed in</th><th class="text-right">Spent in {{.Month}}</th></tr></thead>
     <tbody>
       {{range .People}}
@@ -31,7 +31,7 @@
 
 {{if .Invited}}
 <h2 class="mt-8 mb-3">Waiting to join</h2>
-<div class="{{template "adm-card"}} grid gap-3">
+<div class="{{template "ui-card"}} grid gap-3">
   {{range .Invited}}<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><span>{{.Email}}</span><span class="text-xs text-muted">Invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
 </div>
 {{end}}

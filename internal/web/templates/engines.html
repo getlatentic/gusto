@@ -1,22 +1,22 @@
 {{template "head" .}}
 
-<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/new">New agent</a><span>/</span><a class="{{template "ag-crumb-link"}}" href="/new/blank">Your own agent</a><span>/</span><span>How each agent type did</span></nav>
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/new">New agent</a><span>/</span><a class="{{template "ui-crumb-link"}}" href="/new/blank">Your own agent</a><span>/</span><span>How each agent type did</span></nav>
 
-<div class="{{template "ag-head"}}">
+<div class="{{template "ui-head"}}">
   <h1>How each agent type did</h1>
-  <p class="{{template "ag-lede"}}">Each agent type was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
+  <p class="{{template "ui-lede"}}">Each agent type was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
 </div>
 
 {{with .Measured}}
 {{if .Rows}}
-<p class="mb-5 flex items-baseline gap-2"><span class="font-display text-2xl font-semibold tabular-nums text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
-<div class="{{template "ag-table-wrap"}}">
+<p class="mb-5 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
+<div class="{{template "ui-table-wrap"}}">
   <table>
-    <thead><tr><th class="{{template "ag-th"}}">Agent type</th>{{range .Models}}<th class="{{template "ag-th"}}">{{.}}</th>{{end}}</tr></thead>
+    <thead><tr><th class="{{template "ui-th"}}">Agent type</th>{{range .Models}}<th class="{{template "ui-th"}}">{{.}}</th>{{end}}</tr></thead>
     <tbody>
     {{range .Rows}}
-    <tr class="group/row"><td class="{{template "ag-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}{{.Title}}</span></td>
-      {{range .Cells}}<td class="{{template "ag-td"}}">{{if not .Tried}}<span class="text-subtle">not tried</span>{{else if .Finished}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Finished</span><span class="block text-xs text-subtle">{{.Took}}{{with .Cost}} · {{.}}{{end}}</span>{{else}}<span class="font-medium text-bad">Did not finish</span><span class="block text-xs text-subtle">{{.Took}}</span>{{end}}</td>{{end}}
+    <tr class="group/row"><td class="{{template "ui-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}{{.Title}}</span></td>
+      {{range .Cells}}<td class="{{template "ui-td"}}">{{if not .Tried}}<span class="text-subtle">not tried</span>{{else if .Finished}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Finished</span><span class="block text-xs text-subtle">{{.Took}}{{with .Cost}} · {{.}}{{end}}</span>{{else}}<span class="font-medium text-bad">Did not finish</span><span class="block text-xs text-subtle">{{.Took}}</span>{{end}}</td>{{end}}
     </tr>
     {{end}}
     </tbody>

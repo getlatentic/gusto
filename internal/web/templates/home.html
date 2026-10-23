@@ -1,24 +1,24 @@
 {{template "head" .}}
 
-{{template "ag-flash" .}}
+{{template "ui-flash" .}}
 
 {{if .Instances}}
 <div class="mb-6 flex items-center gap-3">
   <h1 class="flex-1">Your agents</h1>
-  <a class="{{template "ag-btn-quiet"}}" href="/compare">Compare</a>
-  <a class="{{template "ag-btn"}}" href="/new">New agent</a>
+  <a class="{{template "ui-btn-quiet"}}" href="/compare">Compare</a>
+  <a class="{{template "ui-btn"}}" href="/new">New agent</a>
 </div>
-<div class="{{template "ag-table-wrap"}}">
+<div class="{{template "ui-table-wrap"}}">
   <table class="table-fixed">
-    <thead><tr><th class="{{template "ag-th"}} w-[34%] @max-[48rem]:w-auto">Agent</th><th class="{{template "ag-th"}} @max-[48rem]:hidden">Latest conversation</th><th class="{{template "ag-th"}} w-36 @max-[48rem]:hidden">Conversations</th><th class="{{template "ag-th"}} w-32 text-right">Last used</th></tr></thead>
+    <thead><tr><th class="{{template "ui-th"}} w-[34%] @max-[48rem]:w-auto">Agent</th><th class="{{template "ui-th"}} @max-[48rem]:hidden">Latest conversation</th><th class="{{template "ui-th"}} w-36 @max-[48rem]:hidden">Conversations</th><th class="{{template "ui-th"}} w-32 text-right">Last used</th></tr></thead>
     <tbody>
     {{range .Instances}}
     <tr class="group/row relative hover:bg-wash">
-      <td class="{{template "ag-td"}} align-middle"><span class="flex min-w-0 items-center gap-3">{{template "mark" (dict "Harness" .Harness "Field" .Field "Name" .Name "Size" "sm")}}
+      <td class="{{template "ui-td"}} align-middle"><span class="flex min-w-0 items-center gap-3">{{template "mark" (dict "Harness" .Harness "Field" .Field "Name" .Name "Size" "sm")}}
         <span class="min-w-0"><a class="block truncate font-semibold text-ink no-underline after:absolute after:inset-0 after:content-['']" href="{{.Where}}">{{.Name}}</a><span class="block truncate text-xs text-muted">{{.Runs}}</span></span></span></td>
-      <td class="{{template "ag-td"}} align-middle @max-[48rem]:hidden"><span class="block truncate text-sm text-muted"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
-      <td class="{{template "ag-td"}} align-middle text-muted @max-[48rem]:hidden">{{.Threads}}</td>
-      <td class="{{template "ag-td"}} align-middle text-right text-muted" title="{{when .Active}}">{{ago .Active}}</td>
+      <td class="{{template "ui-td"}} align-middle @max-[48rem]:hidden"><span class="block truncate text-sm text-muted"{{with .Latest.Brief}} title="{{.}}"{{end}}>{{if .Latest.ID}}{{.Latest.Brief}}{{else}}Not used yet{{end}}</span></td>
+      <td class="{{template "ui-td"}} align-middle text-muted @max-[48rem]:hidden">{{.Threads}}</td>
+      <td class="{{template "ui-td"}} align-middle text-right text-muted" title="{{when .Active}}">{{ago .Active}}</td>
     </tr>
     {{end}}
     </tbody>
@@ -26,8 +26,8 @@
   {{if or .Newer .Older}}
   <div class="flex items-center gap-2 px-5 py-3 text-sm text-muted">
     <span class="flex-1">{{.From}}–{{.To}} of {{.Total}}</span>
-    {{with .Newer}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Previous</a>{{end}}
-    {{with .Older}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Next</a>{{end}}
+    {{with .Newer}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Previous</a>{{end}}
+    {{with .Older}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Next</a>{{end}}
   </div>
   {{end}}
 </div>

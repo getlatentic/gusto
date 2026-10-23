@@ -7,33 +7,33 @@
   <div class="grid gap-4">
     <div class="grid gap-2">
       <label class="text-sm font-medium text-muted" for="preset">Provider</label>
-      <span class="relative block"><select class="h-10 cursor-pointer appearance-none pr-8 {{template "talk-input"}}" id="preset">
+      <select class="select w-full" id="preset">
         {{range .Presets}}<option value="{{.Address}}" data-auth="{{.Auth}}">{{.Title}}</option>{{end}}
         <option value="" data-auth="">Another provider</option>
-      </select><span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 [&>svg]:size-4">{{template "icon-chevron"}}</span></span>
+      </select>
     </div>
     <div class="grid gap-4" id="custom">
       <div class="grid gap-2">
         <label class="text-sm font-medium text-muted" for="address">Address</label>
-        <input class="h-10 {{template "talk-input"}}" name="address" id="address" required placeholder="https://api.example.com">
+        <input class="h-10 input" name="address" id="address" required placeholder="https://api.example.com">
       </div>
       <div class="grid gap-2">
         <label class="text-sm font-medium text-muted" for="auth">Answers like</label>
-        <span class="relative block"><select class="h-10 cursor-pointer appearance-none pr-8 {{template "talk-input"}}" name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select><span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 [&>svg]:size-4">{{template "icon-chevron"}}</span></span>
+        <select class="select w-full" name="auth" id="auth"><option value="">OpenAI's API</option><option value="anthropic">Anthropic's API</option></select>
       </div>
     </div>
     <div class="grid gap-2">
       <label class="text-sm font-medium text-muted" for="key">Key</label>
-      <input class="h-10 {{template "talk-input"}}" type="password" name="key" id="key" autocomplete="off">
+      <input class="h-10 input" type="password" name="key" id="key" autocomplete="off">
     </div>
     <div class="grid gap-2">
       <label class="text-sm font-medium text-muted" for="models">Models</label>
-      <div class="flex gap-2"><input class="h-10 min-w-0 flex-1 {{template "talk-input"}}" name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="h-10 flex-none px-4 {{template "talk-btn-quiet"}}">List my models</button></div>
+      <div class="flex gap-2"><input class="h-10 min-w-0 flex-1 input" name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="h-10 flex-none px-4 {{template "ui-btn-quiet"}}">List my models</button></div>
       <span class="text-xs text-subtle empty:hidden" id="list-said" role="status"></span>
     </div>
     <datalist id="found-models"></datalist>
   </div>
-  <button type="submit" class="h-10 px-6 {{template "talk-btn"}}">Add</button>
+  <button type="submit" class="h-10 px-6 {{template "ui-btn"}}">Add</button>
   {{with .Missing}}
   <div class="grid gap-2 border-t border-line pt-4">
     <span class="text-sm font-medium text-muted">Not on this computer yet</span>

@@ -1,5 +1,5 @@
 {{define "no-sandbox"}}
-<form class="grid w-full max-w-[34rem] gap-6 {{template "ag-panel"}}" method="post" action="/setup/no-sandbox">
+<form class="grid w-full max-w-[34rem] gap-6 {{template "ui-card"}}" method="post" action="/setup/no-sandbox">
   <div class="grid gap-3">
     <p>{{.Words}}</p>
     <p class="text-sm text-muted">An agent works in the folder of its conversation, and that is the only folder it is pointed at. Nothing stops it going further than that, and nothing here would undo it.</p>
@@ -10,6 +10,6 @@
     <ul class="grid list-disc gap-1 pl-5 text-sm text-muted">{{range .Missing}}<li>{{.}}.</li>{{end}}</ul>
   </div>
   {{end}}
-  <div><button type="submit" class="{{template "ag-btn"}}">I understand, start agents with no sandbox</button></div>
+  <div><button type="submit" class="{{template "ui-btn"}}">I understand, start agents with no sandbox</button></div>
 </form>
 {{end}}

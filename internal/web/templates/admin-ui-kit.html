@@ -1,0 +1,217 @@
+{{template "head" .}}
+
+<div class="{{template "ui-title"}}">
+  <h1>UI kit</h1>
+  <span class="text-sm text-muted">The shared pieces in templates/ui.html, as they look now</span>
+  <span class="flex-1"></span>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="flex gap-0.5 rounded-sm bg-wash p-0.5" role="group" aria-label="Theme">
+      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="light">Light</button>
+      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="dark">Dark</button>
+      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="system">System</button>
+    </span>
+    <span class="flex items-center gap-2" role="group" aria-label="Accent">
+      <button class="size-6 cursor-pointer rounded-full bg-[#2B2B29] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="graphite" title="Graphite" aria-label="Graphite"></button>
+      <button class="size-6 cursor-pointer rounded-full bg-[#FF8A1F] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="orange" title="Orange" aria-label="Orange"></button>
+      <button class="size-6 cursor-pointer rounded-full bg-[#3B6FE0] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="blue" title="Blue" aria-label="Blue"></button>
+      <button class="size-6 cursor-pointer rounded-full bg-[#00844A] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="green" title="Green" aria-label="Green"></button>
+      <button class="size-6 cursor-pointer rounded-full bg-[#7352D4] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="violet" title="Violet" aria-label="Violet"></button>
+      <button class="size-6 cursor-pointer rounded-full bg-[#D23F67] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="rose" title="Rose" aria-label="Rose"></button>
+    </span>
+  </div>
+</div>
+
+<div class="grid gap-10">
+
+<section class="grid gap-3" aria-labelledby="kit-colour">
+  <h2 class="text-base font-semibold" id="kit-colour">Colour</h2>
+  <p class="{{template "ui-note"}}">Every colour is a token that follows the theme and the accent. Pages name the Tailwind colour, never a value.</p>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <div>
+      <h3 class="mb-2 text-xs font-semibold text-subtle">Surfaces</h3>
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3">
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-canvas"></span><code class="text-xs">canvas</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-wash"></span><code class="text-xs">wash</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-sunken"></span><code class="text-xs">sunken</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-surface"></span><code class="text-xs">surface</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-rail"></span><code class="text-xs">rail</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-hover"></span><code class="text-xs">hover</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-line"></span><code class="text-xs">line</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-line-strong"></span><code class="text-xs">line-strong</code></div>
+      </div>
+    </div>
+    <div>
+      <h3 class="mb-2 text-xs font-semibold text-subtle">Text</h3>
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3 text-sm">
+        <span class="text-ink">ink</span><span class="text-muted">muted</span><span class="text-subtle">subtle</span><span class="text-faint">faint</span><span class="text-accent-ink">accent-ink</span>
+      </div>
+    </div>
+    <div>
+      <h3 class="mb-2 text-xs font-semibold text-subtle">Accent and meaning</h3>
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3">
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-accent text-xs font-semibold text-on-accent">Aa</span><code class="text-xs">accent</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-solid text-xs font-semibold text-on-solid">Aa</span><code class="text-xs">solid</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-accent-wash text-xs font-semibold text-accent-ink">Aa</span><code class="text-xs">accent-wash</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-ok-wash text-xs font-semibold text-ok">Aa</span><code class="text-xs">ok</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-warn-wash text-xs font-semibold text-warn">Aa</span><code class="text-xs">warn</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-bad-wash text-xs font-semibold text-bad">Aa</span><code class="text-xs">bad</code></div>
+        <div class="grid gap-1.5"><span class="grid h-12 place-items-center rounded-sm bg-info-wash text-xs font-semibold text-info">Aa</span><code class="text-xs">info</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-type">
+  <h2 class="text-base font-semibold" id="kit-type">Type, shape and depth</h2>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <div class="grid gap-2">
+      <p class="font-display text-[1.75rem] leading-[1.15] font-bold tracking-[-0.021em]">Page title, 28px bold</p>
+      <p class="{{template "ui-figure-value"}}">Figure, 24px bold</p>
+      <p class="font-display text-base font-semibold">Section, 17px bold</p>
+      <p class="text-base">Base, running text and the lede.</p>
+      <p class="text-sm">Small, controls and table rows.</p>
+      <p class="text-xs text-subtle">Extra small, labels and notes.</p>
+      <p class="text-sm"><code>Monospace, for ids and commands</code></p>
+    </div>
+    <div class="flex flex-wrap items-end gap-5">
+      <div class="grid gap-1.5"><span class="size-16 rounded-xs bg-wash ring-1 ring-line-strong"></span><code class="text-xs">rounded-xs</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-sm bg-wash ring-1 ring-line-strong"></span><code class="text-xs">rounded-sm</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-md bg-wash ring-1 ring-line-strong"></span><code class="text-xs">rounded-md</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-lg bg-wash ring-1 ring-line-strong"></span><code class="text-xs">rounded-lg</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-full bg-wash ring-1 ring-line-strong"></span><code class="text-xs">rounded-full</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-md bg-surface shadow-1"></span><code class="text-xs">shadow-1</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-md bg-surface shadow-2"></span><code class="text-xs">shadow-2</code></div>
+      <div class="grid gap-1.5"><span class="size-16 rounded-md bg-surface shadow-3"></span><code class="text-xs">shadow-3</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-buttons">
+  <h2 class="text-base font-semibold" id="kit-buttons">Buttons</h2>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <div class="grid gap-2">
+      <h3 class="text-xs font-semibold text-subtle"><code>ui-btn</code> and <code>ui-btn-quiet</code>, the page's one action and the others</h3>
+      <div class="flex flex-wrap items-center gap-3">
+        <button class="{{template "ui-btn"}}" type="button">Make token</button>
+        <button class="{{template "ui-btn"}}" type="button">{{template "icon-add"}} New token</button>
+        <button class="{{template "ui-btn"}}" type="button" disabled>Disabled</button>
+        <button class="{{template "ui-btn-quiet"}}" type="button">Cancel</button>
+        <button class="{{template "ui-btn-quiet"}}" type="button" disabled>Disabled</button>
+        <button class="{{template "ui-btn-danger"}}" type="button">Revoke</button>
+        <a class="{{template "ui-btn-quiet"}}" href="#kit-buttons">A link as a button</a>
+      </div>
+    </div>
+    <div class="grid gap-2">
+      <h3 class="text-xs font-semibold text-subtle"><code>ui-btn-sm</code> and <code>ui-btn-sm-danger</code>, in rows and tables</h3>
+      <div class="flex flex-wrap items-center gap-3">
+        <button class="{{template "ui-btn-sm"}}" type="button">Copy</button>
+        <button class="{{template "ui-btn-sm"}}" type="button" disabled>Disabled</button>
+        <button class="{{template "ui-btn-sm-danger"}}" type="button">Remove</button>
+        <a class="{{template "ui-link-quiet"}}" href="#kit-buttons">ui-link-quiet</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-forms">
+  <h2 class="text-base font-semibold" id="kit-forms">Form controls</h2>
+  <p class="{{template "ui-note"}}">Basecoat's <code>input</code>, <code>select</code> and <code>textarea</code> inside a <code>ui-field</code> label.</p>
+  <div class="{{template "ui-card"}} grid gap-6">
+    <form class="grid max-w-prose gap-4" action="#kit-forms">
+      <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="ci-nightly"></label>
+      <label class="{{template "ui-field"}}">Model
+        <select class="select w-full" name="model"><option>Claude Sonnet 5.5</option><option>Gemma 4 26B</option><option>GPT 5</option></select>
+      </label>
+      <label class="{{template "ui-field"}}">Instructions <textarea class="textarea" name="text" rows="3" placeholder="What the agent should do"></textarea></label>
+      <label class="{{template "ui-field"}}">Invalid <input class="input" value="not a name" aria-invalid="true"><span class="text-xs text-bad">Use lower case letters, digits and hyphens.</span></label>
+      <label class="{{template "ui-field"}}">Disabled <input class="input" value="Not editable" disabled></label>
+      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
+        <label class="{{template "ui-check"}}"><input class="input" type="checkbox" checked> Submit tasks</label>
+        <label class="{{template "ui-check"}}"><input class="input" type="checkbox"> Read usage</label>
+        <label class="{{template "ui-check"}}"><input class="input" type="checkbox" disabled> Not offered</label>
+      </fieldset>
+      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Keep for</legend>
+        <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep" checked> 30 days</label>
+        <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep"> 90 days</label>
+      </fieldset>
+      <div class="flex gap-3"><button class="{{template "ui-btn"}}" type="button">Save</button><button class="{{template "ui-btn-quiet"}}" type="button">Cancel</button></div>
+    </form>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-feedback">
+  <h2 class="text-base font-semibold" id="kit-feedback">Badges, notices and notes</h2>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="{{template "ui-badge"}}">ui-badge</span><span class="{{template "ui-badge-ok"}}">ok</span><span class="{{template "ui-badge-warn"}}">warn</span><span class="{{template "ui-badge-bad"}}">bad</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-2"><span class="text-xs text-subtle"><code>ui-state</code></span>{{range .States}}{{template "ui-state" .}}{{end}}</div>
+    <div>{{template "ui-flash" (dict "Refused" "ui-flash and ui-notice: what a refused request says, in plain words.")}}<p class="{{template "ui-notice"}}" role="alert">ui-notice, a refusal above a form.</p><p class="{{template "ui-note"}}">ui-note, a quiet line under a heading or a control.</p><p class="{{template "ui-notice-chat"}}" role="alert">ui-notice-chat, a refusal in the chat's column.</p></div>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-surfaces">
+  <h2 class="text-base font-semibold" id="kit-surfaces">Cards, figures and layout</h2>
+  <div class="{{template "ui-figures"}}">
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}} text-accent-ink">$48.20</span><span class="{{template "ui-figure-label"}}">spent this month</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1,240</span><span class="{{template "ui-figure-label"}}">model calls</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">9.8M</span><span class="{{template "ui-figure-label"}}">tokens in, 41% cached</span></div>
+    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1.1M</span><span class="{{template "ui-figure-label"}}">tokens out</span></div>
+  </div>
+  <div class="{{template "ui-head"}}"><h3 class="text-xl font-semibold">ui-head</h3><p class="{{template "ui-lede"}}">The lede says in a sentence what the page is for, and no more.</p></div>
+  <div class="{{template "ui-stack"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-stack</h3><p class="{{template "ui-note"}}">Cards one under another with a gap.</p></section></div>
+  <div class="{{template "ui-panels"}}">
+    <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-card</h3><p class="{{template "ui-note"}}">A surface that holds one thing, with a title.</p></section>
+    <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-panels</h3><p class="{{template "ui-note"}}">Cards in a grid that fills the width and wraps.</p></section>
+  </div>
+  <div class="{{template "ui-two-col"}}">
+    <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-two-col</h3><p class="{{template "ui-note"}}">A main column and a 20rem side column. They stack below 56rem.</p></section></div>
+    <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">Side</h3></section></div>
+  </div>
+  <nav class="{{template "ui-crumb"}}" aria-label="Breadcrumb"><a class="{{template "ui-crumb-link"}}" href="#kit-surfaces">Usage</a><span>/</span><span>ui-crumb</span></nav>
+  <div>
+    <details class="group">
+      <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} More filters (ui-summary and ui-chev)</summary>
+      <p class="{{template "ui-note"}} mt-2">The words beside a chevron that turns when the section opens.</p>
+    </details>
+  </div>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-tables">
+  <h2 class="text-base font-semibold" id="kit-tables">Tables</h2>
+  <div class="{{template "ui-table-wrap"}}">
+    <table class="w-full">
+      <thead><tr><th class="{{template "ui-th"}} text-left">Task</th><th class="{{template "ui-th"}} text-left">Agent</th><th class="{{template "ui-th"}} text-left">State</th><th class="{{template "ui-th"}} text-right">Cost</th></tr></thead>
+      <tbody>
+        <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Fix the failing parser test</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "claude" "Name" "Claude Code" "Size" "xs")}} Claude Code</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "passed"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.42</td></tr>
+        <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Summarise the quarter</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "codex" "Name" "Codex" "Size" "xs")}} Codex</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "running"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.08</td></tr>
+        <tr class="group/row"><td class="{{template "ui-td"}} font-medium">Rename the config keys</td><td class="{{template "ui-td"}}"><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "opencode" "Name" "OpenCode" "Size" "xs")}} OpenCode</span></td><td class="{{template "ui-td"}}">{{template "ui-state" "failed"}}</td><td class="{{template "ui-td"}} text-right tabular-nums">$0.19</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="{{template "ui-card"}} overflow-x-auto">
+    <table class="{{template "ui-table"}}">
+      <thead><tr><th class="text-left">Name</th><th class="text-left">Can</th><th class="text-left">Last used</th></tr></thead>
+      <tbody><tr><td class="font-medium">ci-nightly</td><td><span class="{{template "ui-badge"}}">submit</span></td><td class="text-muted">Never</td></tr><tr><td class="font-medium">reports</td><td><span class="{{template "ui-badge"}}">usage</span></td><td class="text-muted">2 days ago</td></tr></tbody>
+    </table>
+  </div>
+  <p class="{{template "ui-note"}}">The first table is <code>ui-table-wrap</code> with <code>ui-th</code> and <code>ui-td</code>, the second is <code>ui-table</code> inside a card.</p>
+</section>
+
+<section class="grid gap-3" aria-labelledby="kit-marks">
+  <h2 class="text-base font-semibold" id="kit-marks">Agent marks</h2>
+  <div class="{{template "ui-card"}} flex flex-wrap items-end gap-6">
+    {{range .Agents}}
+    <div class="grid justify-items-center gap-2">
+      <div class="flex items-end gap-2">{{template "mark" (dict "Harness" . "Name" . "Size" "lg")}}{{template "mark" (dict "Harness" . "Name" . "Size" "default")}}{{template "mark" (dict "Harness" . "Name" . "Size" "sm")}}{{template "mark" (dict "Harness" . "Name" . "Size" "xs")}}</div>
+      <code class="text-xs">{{.}}</code>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+</div>
+
+<script src="{{asset "/static/uikit.js"}}"></script>
+
+{{template "foot" .}}

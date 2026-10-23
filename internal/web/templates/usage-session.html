@@ -8,7 +8,7 @@
 
 <form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}/{{.ID}}" role="search">
   <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
-  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Search</button>
+  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid transition-colors hover:bg-solid-hover" type="submit">Search</button>
   {{if .Search}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
 </form>
 

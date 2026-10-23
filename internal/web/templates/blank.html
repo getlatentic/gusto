@@ -1,6 +1,6 @@
 {{template "head" .}}
 
-{{template "ag-flash" .}}
+{{template "ui-flash" .}}
 
 <section class="mb-8 max-w-prose">
   <p class="text-xs font-medium text-muted">Your own agent</p>
@@ -9,27 +9,27 @@
 </section>
 
 {{if .Engines}}
-<form class="grid max-w-xl gap-4 {{template "ag-panel"}}" method="post" action="/instances">
-  <label class="{{template "ag-field"}}">Name it <input class="{{template "ag-input"}}" name="title" placeholder="Agent" maxlength="60"></label>
+<form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/instances">
+  <label class="{{template "ui-field"}}">Name it <input class="input" name="title" placeholder="Agent" maxlength="60"></label>
   <fieldset class="grid gap-2">
     <legend class="mb-2 text-xs font-medium text-subtle">Agent type</legend>
     {{range $i, $each := .Engines}}
     <label class="grid cursor-pointer grid-cols-[auto_1fr] items-baseline gap-x-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash">
-      <input class="row-span-2 self-center accent-accent" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
+      <input class="input row-span-2 self-center" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
       <span class="font-semibold">{{$each.Title}}</span>
       <span class="col-start-2 text-sm text-muted">{{$each.What}}</span>
     </label>
     {{end}}
-    <a class="{{template "ag-link-quiet"}} mt-1" href="/engines">How each agent type did →</a>
+    <a class="{{template "ui-link-quiet"}} mt-1" href="/engines">How each agent type did {{template "icon-go"}}</a>
   </fieldset>
   {{if .Setups}}
-  <label class="{{template "ag-field"}}">Skill set
-    <select class="{{template "ag-input"}}" name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+  <label class="{{template "ui-field"}}">Skill set
+    <select class="select w-full" name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
   </label>
   {{end}}
-  <label class="{{template "ag-field"}}"><span>Start from a repository <span class="font-normal">optional</span></span>
-    <input class="{{template "ag-input"}}" name="repo" placeholder="git@github.com:you/repo.git"></label>
-  <div><button type="submit" class="{{template "ag-btn"}}">Start</button></div>
+  <label class="{{template "ui-field"}}"><span>Start from a repository <span class="font-normal">optional</span></span>
+    <input class="input" name="repo" placeholder="git@github.com:you/repo.git"></label>
+  <div><button type="submit" class="{{template "ui-btn"}}">Start</button></div>
 </form>
 {{else}}
 <div class="flex max-w-xl items-start gap-3 rounded-md bg-warn-wash px-5 py-4">

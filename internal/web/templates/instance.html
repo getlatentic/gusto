@@ -1,22 +1,22 @@
 {{template "head" .}}
 
-{{template "ag-flash" .}}
+{{template "ui-flash" .}}
 
-<nav class="{{template "ag-crumb"}}" aria-label="Where this is"><a class="{{template "ag-crumb-link"}}" href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
 <header class="mb-6 flex items-center gap-4 @max-[56rem]:flex-wrap">
   {{template "mark" (dict "Harness" .Agent.Harness "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
   <div class="min-w-48 flex-1">
     <h1>{{.Agent.Name}}</h1>
     <p class="mt-1 text-sm text-muted">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="font-medium text-warn">stays in your network</span>{{end}}</p>
   </div>
-  <a class="{{template "ag-link-quiet"}}" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
-  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="{{template "ag-btn"}}">{{template "icon-add"}} New conversation</button></form>
+  <a class="{{template "ui-link-quiet"}}" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
+  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="{{template "ui-btn"}}">{{template "icon-add"}} New conversation</button></form>
 </header>
 
-<div class="{{template "ag-two-col"}}">
-<div class="{{template "ag-col"}}">
-  <section class="{{template "ag-panel"}}">
-    <h2 class="{{template "ag-panel-title"}}">Conversations</h2>
+<div class="{{template "ui-two-col"}}">
+<div class="{{template "ui-col"}}">
+  <section class="{{template "ui-card"}}">
+    <h2 class="{{template "ui-card-title"}}">Conversations</h2>
     <ol class="divide-y divide-line">
       {{range .Threads}}
       <li><a class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 py-3 text-ink no-underline hover:bg-wash" href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
@@ -28,8 +28,8 @@
     </ol>
   </section>
 
-  <section class="{{template "ag-panel"}}" id="routines">
-    <h2 class="{{template "ag-panel-title"}}">Routines</h2>
+  <section class="{{template "ui-card"}}" id="routines">
+    <h2 class="{{template "ui-card-title"}}">Routines</h2>
     {{if .Routines}}
     <ul class="divide-y divide-line border-y border-line">
       {{range .Routines}}
@@ -38,81 +38,81 @@
           <a class="block truncate font-medium text-ink no-underline hover:underline" href="/instances/{{$.Instance.ID}}/threads/{{.Thread}}" title="{{.Prompt}}">{{.Title}}</a>
           <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             <span>{{.When}}</span>
-            {{if .Paused}}<span class="{{template "ag-badge-warn"}}">Paused</span>{{end}}
-            {{if eq .Last "ran"}}<span class="{{template "ag-badge-ok"}}">Last run ok</span>
-            {{else if eq .Last "not yet"}}<span class="{{template "ag-badge"}}">Not run yet</span>
-            {{else}}<span class="{{template "ag-badge-warn"}}">Last run {{.Last}}</span>{{end}}
+            {{if .Paused}}<span class="{{template "ui-badge-warn"}}">Paused</span>{{end}}
+            {{if eq .Last "ran"}}<span class="{{template "ui-badge-ok"}}">Last run ok</span>
+            {{else if eq .Last "not yet"}}<span class="{{template "ui-badge"}}">Not run yet</span>
+            {{else}}<span class="{{template "ui-badge-warn"}}">Last run {{.Last}}</span>{{end}}
           </p>
         </div>
         <div class="flex flex-none items-center gap-2">
-          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/{{if .Paused}}resume{{else}}pause{{end}}"><button type="submit" class="{{template "ag-btn-small"}}">{{if .Paused}}Resume{{else}}Pause{{end}}</button></form>
-          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/remove" data-confirm="Remove this routine? Its conversation is kept."><button type="submit" class="{{template "ag-btn-small-danger"}}">Remove</button></form>
+          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/{{if .Paused}}resume{{else}}pause{{end}}"><button type="submit" class="{{template "ui-btn-sm"}}">{{if .Paused}}Resume{{else}}Pause{{end}}</button></form>
+          <form method="post" action="/instances/{{$.Instance.ID}}/routines/{{.ID}}/remove" data-confirm="Remove this routine? Its conversation is kept."><button type="submit" class="{{template "ui-btn-sm-danger"}}">Remove</button></form>
         </div>
       </li>
       {{end}}
     </ul>
     {{end}}
     <details class="group mt-4">
-      <summary class="{{template "ag-summary"}}">{{template "ag-chev"}} Add a routine</summary>
+      <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Add a routine</summary>
       <form class="mt-4 grid gap-4" method="post" action="/instances/{{.Instance.ID}}/routines">
         <div class="grid grid-cols-2 gap-4 @max-[56rem]:grid-cols-1">
           <div class="grid content-start gap-4">
-            <label class="{{template "ag-field"}}">Title <input class="{{template "ag-input"}}" name="title" placeholder="Morning summary" required></label>
-            <label class="{{template "ag-field"}}">Daily at <input class="{{template "ag-input"}}" name="daily" placeholder="08:00"></label>
-            <label class="{{template "ag-field"}}"><span>or every <span class="font-normal">hours</span></span> <input class="{{template "ag-input"}}" name="every" inputmode="numeric" placeholder="6"></label>
+            <label class="{{template "ui-field"}}">Title <input class="input" name="title" placeholder="Morning summary" required></label>
+            <label class="{{template "ui-field"}}">Daily at <input class="input" name="daily" placeholder="08:00"></label>
+            <label class="{{template "ui-field"}}"><span>or every <span class="font-normal">hours</span></span> <input class="input" name="every" inputmode="numeric" placeholder="6"></label>
           </div>
-          <label class="{{template "ag-field"}} grid-rows-[auto_minmax(0,1fr)]">What to ask <textarea class="{{template "ag-input"}} h-full" name="prompt" placeholder="Summarize what changed in the repository since yesterday." required></textarea></label>
+          <label class="{{template "ui-field"}} grid-rows-[auto_minmax(0,1fr)]">What to ask <textarea class="textarea h-full" name="prompt" placeholder="Summarize what changed in the repository since yesterday." required></textarea></label>
         </div>
-        <div><button type="submit" class="{{template "ag-btn"}}">Add it</button></div>
+        <div><button type="submit" class="{{template "ui-btn"}}">Add it</button></div>
       </form>
     </details>
   </section>
 
   {{if .Sharing}}{{template "apps" .}}{{end}}
 
-  <section class="{{template "ag-panel"}}">
+  <section class="{{template "ui-card"}}">
     <details class="group" id="task"{{if .Tasks}} open{{end}}>
-      <summary class="{{template "ag-summary"}} flex-wrap">{{template "ag-chev"}} <h2 class="whitespace-nowrap text-sm font-semibold text-ink">Checked tasks</h2></summary>
+      <summary class="{{template "ui-summary"}} flex-wrap">{{template "ui-chev"}} <h2 class="whitespace-nowrap text-sm font-semibold text-ink">Checked tasks</h2></summary>
       {{if .Tasks}}
       <ol class="mt-3 divide-y divide-line">
-        {{range .Tasks}}<li><a class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 text-ink no-underline hover:bg-wash" href="/jobs/{{.ID}}"><span class="truncate font-medium" title="{{.Brief}}">{{.Brief}}</span>{{template "ag-state" .State}}<span class="text-xs text-subtle">{{ago .Queued}}</span></a></li>{{end}}
+        {{range .Tasks}}<li><a class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 text-ink no-underline hover:bg-wash" href="/jobs/{{.ID}}"><span class="truncate font-medium" title="{{.Brief}}">{{.Brief}}</span>{{template "ui-state" .State}}<span class="text-xs text-subtle">{{ago .Queued}}</span></a></li>{{end}}
       </ol>
       {{end}}
       <form class="mt-4 grid gap-4" method="post" action="/instances/{{.Instance.ID}}/tasks">
-        <label class="{{template "ag-field"}}">What to do
-          <textarea class="{{template "ag-input"}}" name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
+        <label class="{{template "ui-field"}}">What to do
+          <textarea class="textarea" name="brief" placeholder="Write a script that prints the ten largest files here." required></textarea>
         </label>
-        <label class="{{template "ag-field"}}"><span>Check <span class="font-normal">the command that says it worked</span></span>
-          <input class="{{template "ag-input"}}" name="gate" placeholder="sh test.sh" required>
+        <label class="{{template "ui-field"}}"><span>Check <span class="font-normal">the command that says it worked</span></span>
+          <input class="input" name="gate" placeholder="sh test.sh" required>
         </label>
         <div class="grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
-          <label class="{{template "ag-field"}}">Sensitivity
-            <select class="{{template "ag-input"}}" name="sensitivity">
+          <label class="{{template "ui-field"}}">Sensitivity
+            <select class="select w-full" name="sensitivity">
               <option value="internal">internal</option>
               <option value="public">public</option>
               <option value="restricted">restricted: the model must be local</option>
             </select>
           </label>
-          <label class="{{template "ag-field"}}"><span>Team <span class="font-normal">optional</span></span>
-            <input class="{{template "ag-input"}}" name="team" placeholder="platform">
+          <label class="{{template "ui-field"}}"><span>Team <span class="font-normal">optional</span></span>
+            <input class="input" name="team" placeholder="platform">
           </label>
-          <label class="{{template "ag-field"}}"><span>Cap in dollars <span class="font-normal">optional</span></span>
-            <input class="{{template "ag-input"}}" name="usd" inputmode="decimal" placeholder="5.00">
+          <label class="{{template "ui-field"}}"><span>Cap in dollars <span class="font-normal">optional</span></span>
+            <input class="input" name="usd" inputmode="decimal" placeholder="5.00">
           </label>
         </div>
-        <div><button type="submit" class="{{template "ag-btn"}}">Run it</button></div>
+        <div><button type="submit" class="{{template "ui-btn"}}">Run it</button></div>
       </form>
     </details>
   </section>
 </div>
 
-<aside class="{{template "ag-col"}}" aria-label="About this agent">
-  <section class="{{template "ag-panel"}}">
+<aside class="{{template "ui-col"}}" aria-label="About this agent">
+  <section class="{{template "ui-card"}}">
     <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
       <dt class="text-muted">Model</dt>
       <dd class="min-w-0 break-words">{{if gt (len .Models) 1}}<form method="post" action="/instances/{{.Instance.ID}}/model" class="flex items-center gap-2">
-        <select class="{{template "ag-input"}} min-w-0 flex-1" name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
-        <button type="submit" class="{{template "ag-btn-small"}}">Use</button>
+        <select class="select min-w-0 flex-1" name="model" aria-label="Model">{{range .Models}}<option value="{{.}}"{{if eq . $.Instance.Model}} selected{{end}}>{{modelName .}}{{with costOf .}} · {{.}}{{end}}</option>{{end}}</select>
+        <button type="submit" class="{{template "ui-btn-sm"}}">Use</button>
       </form>{{else}}{{.Agent.Brain}}{{end}}</dd>
       <dt class="text-muted">Agent type</dt><dd class="min-w-0 break-words">{{.Agent.Engine}}</dd>
       {{with .Instance.Setup}}<dt class="text-muted">Skills</dt><dd class="min-w-0 break-words"><a class="font-medium text-ink" href="/setups/{{.}}">{{.}}</a></dd>{{end}}
@@ -120,10 +120,10 @@
       <dt class="text-muted">Started</dt><dd class="min-w-0 break-words">{{when .Instance.Started}}</dd>
     </dl>
   </section>
-  <section class="{{template "ag-panel"}}">
+  <section class="{{template "ui-card"}}">
     <form method="post" action="/instances/{{.Instance.ID}}/remove"
           data-confirm="Remove this agent? Its files are kept aside and its activity stays in the log.">
-      <button type="submit" class="{{template "ag-btn-danger"}}">Remove this agent</button>
+      <button type="submit" class="{{template "ui-btn-danger"}}">Remove this agent</button>
     </form>
     <p class="mt-3 text-xs text-muted">Its files are kept aside, not deleted.</p>
   </section>
