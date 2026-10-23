@@ -13,7 +13,7 @@
     {{with waiting .Job.ID}}<p class="mt-1 text-muted" id="why">{{.}}</p>{{end}}
   </div>
   <div class="flex flex-none items-center gap-2">
-    {{with .Talk}}{{if .Before}}<a class="inline-flex items-center rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.Before}}">← Previous</a>{{end}}{{if .After}}<a class="inline-flex items-center rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.After}}">Next →</a>{{end}}{{end}}
+    {{with .Talk}}{{if .Before}}<a class="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.Before}}">{{template "icon-back"}} Previous</a>{{end}}{{if .After}}<a class="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.After}}">Next {{template "icon-go"}}</a>{{end}}{{end}}
     {{if .ThreadPath}}<a class="inline-flex items-center justify-center rounded-sm bg-solid px-4 py-2 text-sm font-semibold whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
   </div>
 </header>
