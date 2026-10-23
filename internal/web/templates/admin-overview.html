@@ -28,7 +28,7 @@
 </section>
 
 <div class="grid gap-4">
-<div class="{{template "ui-panels"}}">
+<div class="{{template "ui-masonry"}}">
   <section class="{{template "ui-card"}}">
     <h2 class="{{template "ui-card-title"}}">Limits</h2>
     {{if .LimitsUnreadable}}<p class="{{template "ui-notice"}}">The limits could not be read. {{.LimitsUnreadable}}</p>{{end}}
@@ -73,7 +73,7 @@
   {{end}}
 </div>
 
-<div class="{{template "ui-panels"}}">
+<div class="{{template "ui-masonry"}}">
   {{template "shares" (dict "Title" "By person" "Lines" .People)}}
   {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
   {{template "shares" (dict "Title" "By model" "Lines" .Models)}}

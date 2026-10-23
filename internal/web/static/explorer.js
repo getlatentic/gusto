@@ -16,7 +16,7 @@
   };
   // What the explorer is dressed in. A class a script reads by name (row, folder, file, d-summary, d-choose) stays in the list beside the utilities.
   var look = {
-    icon: "inline-grid flex-none place-items-center [&_svg]:size-full [&_svg]:stroke-current [&_svg]:stroke-[1.5] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
+    icon: "inline-grid flex-none place-items-center [&_svg]:size-full [&_svg]:stroke-current [&_svg]:stroke-[1.75px] [&_svg_*]:[vector-effect:non-scaling-stroke] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
     bare: "[&_svg]:fill-none",
     crumb: "inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 font-[inherit] text-muted hover:text-ink",
     input: "rounded-sm border border-line-strong bg-surface px-3 text-ink placeholder:text-faint",
@@ -221,7 +221,7 @@
         row.setAttribute("role", browsing ? "link" : "option");
         if (browsing) { row.tabIndex = 0; } else { row.setAttribute("aria-selected", String(state.selected === folder.at)); }
         row.addEventListener("keydown", function (event) { if (browsing && event.key === "Enter") { load(folder.at, true); } });
-        var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted [&_svg]:fill-subtle/35")); name.appendChild(el("span", "truncate", folder.name, folder.name));
+        var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted")); name.appendChild(el("span", "truncate", folder.name, folder.name));
         row.appendChild(name); row.appendChild(el("span", "text-xs whitespace-nowrap text-muted @max-[40rem]:hidden", when(folder.modified))); row.appendChild(el("span", "flex justify-end text-subtle"));
         row.lastChild.appendChild(icon("go"));
         row.addEventListener("click", function () { if (browsing) { load(folder.at, true); } else { state.selected = folder.at; mark(); } });
@@ -271,7 +271,7 @@
 
     function makingRow() {
       var row = el("div", "row making grid grid-cols-[minmax(0,1fr)] items-center gap-1 text-sm " + (browsing ? "min-h-12 px-5" : "min-h-9 px-4"));
-      var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted [&_svg]:fill-subtle/35"));
+      var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted"));
       var input = el("input", "h-7 w-full rounded-xs border border-subtle bg-surface px-2 text-sm text-ink ring-3 ring-hover");
       input.type = "text"; input.maxLength = 80; input.placeholder = state.here.at ? "New folder" : "New project";
       input.setAttribute("aria-label", "Name of the new folder");
