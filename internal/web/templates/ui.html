@@ -3,7 +3,7 @@
      (input, select, textarea), written in the markup, so their look and keyboard behaviour come from one place. */}}
 
 {{/* Buttons: ui-btn is the one action a page offers, the quiet ones are the others, and the small ones sit in rows and tables. */}}
-{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold whitespace-nowrap text-on-accent no-underline transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm bg-solid px-4 text-sm font-semibold whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-4 text-sm font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-danger"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-bad/40 bg-transparent px-4 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
 {{define "ui-btn-sm"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-line-strong bg-transparent px-3 text-xs font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}

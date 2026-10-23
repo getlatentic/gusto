@@ -52,7 +52,7 @@
       var done = state.done[step.key] === true;
       var active = current === step;
       var row = make("li", "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0");
-      var mark = make("span", "mt-0.5 grid size-5 place-items-center rounded-full text-xs font-semibold " + (done ? "bg-ok-wash text-ok" : active ? "bg-accent text-on-accent" : "bg-wash text-subtle"));
+      var mark = make("span", "mt-0.5 grid size-5 place-items-center rounded-full text-xs font-semibold " + (done ? "bg-ok-wash text-ok" : active ? "bg-solid text-on-solid" : "bg-wash text-subtle"));
       if (done) { mark.innerHTML = tick; } else { mark.textContent = String(steps.indexOf(step) + 1); }
       var body = make("div", "grid min-w-0 gap-1");
       body.appendChild(make("span", "text-sm font-semibold " + (done ? "text-muted" : "text-ink"), step.title));
@@ -61,7 +61,7 @@
       var href = step.href();
       if (step.key === "ask" && location.pathname === "/chat" && !done) { href = ""; }
       if (!done && href && (active || step.key === "talk")) {
-        var go = make("a", "mt-1 inline-flex w-fit items-center rounded-sm bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent no-underline hover:bg-accent-hover", step.label);
+        var go = make("a", "mt-1 inline-flex w-fit items-center rounded-sm bg-solid px-3 py-1.5 text-xs font-semibold text-on-solid no-underline hover:bg-solid-hover", step.label);
         go.href = href;
         if (step.external) { go.target = "_blank"; go.rel = "noopener"; go.addEventListener("click", function () { state.done.talk = true; save(); draw(); }); }
         body.appendChild(go);

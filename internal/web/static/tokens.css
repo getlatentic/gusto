@@ -51,7 +51,7 @@
   --gu-accent-text: var(--gu-green-700); /* green that reads as text on the page */
   --gu-accent-text-large: var(--gu-green-600);
   --gu-accent-surface: var(--gu-green-50);
-  --gu-on-accent: var(--gu-neutral-900); /* Carbon on Relay Green, never white */
+  --gu-on-accent: var(--gu-neutral-900); /* Carbon on Relay Green; solid fills use --gu-accent-solid with its own text */
   --gu-success: var(--gu-green-700);
   --gu-success-surface: var(--gu-green-50);
   --gu-warning: #8A5300;

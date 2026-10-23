@@ -74,3 +74,17 @@
   --gu-space-8: 2rem; --gu-space-10: 2.5rem; --gu-space-12: 3rem; --gu-space-16: 4rem; --gu-space-20: 5rem; --gu-space-24: 6rem;
   --gu-radius-xs: .25rem; --gu-radius-sm: .5rem; --gu-radius-md: .75rem; --gu-radius-lg: 1rem; --gu-radius-xl: 1.5rem; --gu-radius-2xl: 2rem;
 }
+
+/* A solid fill, a button or a checked box, with its text. It follows the chosen accent, except that Relay Green is a little darker
+   under white text on a light page, which reads at 4.9 : 1 where white on Relay Green itself is 3.1 : 1. */
+:root {
+  --gu-accent-solid: var(--gu-accent);
+  --gu-accent-solid-hover: var(--gu-accent-hover);
+  --gu-on-accent-solid: var(--gu-on-accent);
+}
+:root:not([data-accent]), :root[data-accent="green"] {
+  --gu-accent-solid: #00844A; --gu-accent-solid-hover: #00743F; --gu-on-accent-solid: #FFFFFF;
+}
+:root[data-theme="dark"]:not([data-accent]), :root[data-theme="dark"][data-accent="green"] {
+  --gu-accent-solid: #1DBF70; --gu-accent-solid-hover: #45D18B; --gu-on-accent-solid: #06130C;
+}
