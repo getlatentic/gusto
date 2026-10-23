@@ -9,7 +9,7 @@
 </div>
 {{end}}
 
-<p class="mb-3 flex items-baseline gap-2"><span class="font-display text-2xl font-semibold tabular-nums text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
+<p class="mb-3 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
   <span class="text-sm text-muted">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></p>
 {{with .Reading}}<p class="mb-5 text-base">{{.Headline}}</p>{{end}}
 

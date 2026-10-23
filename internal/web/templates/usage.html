@@ -97,6 +97,6 @@
 
 {{/* figure is one number of a row of them, with what it counts under it; the first is the one that is asked for. */}}
 {{define "figure"}}<div class="grid content-start gap-1">
-  <span class="font-display font-bold tracking-[-0.02em] tabular-nums {{if .Headline}}text-3xl text-accent-ink{{else if .Bad}}text-2xl text-bad{{else}}text-2xl{{end}}">{{.Value}}</span>
-  <span class="text-xs text-muted">{{.Label}}</span>
+  <span class="{{template "ui-figure-value"}}{{if .Headline}} text-accent-ink{{else if .Bad}} text-bad{{end}}">{{.Value}}</span>
+  <span class="{{template "ui-figure-label"}}">{{.Label}}</span>
 </div>{{end}}

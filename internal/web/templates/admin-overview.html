@@ -10,19 +10,19 @@
 
 <section class="{{template "ui-figures"}}">
   <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/admin/spending">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
-    <span class="text-xs text-muted">spent in {{.Month}}</span>
+    <span class="{{template "ui-figure-value"}}">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
+    <span class="{{template "ui-figure-label"}}">spent in {{.Month}}</span>
   </a>
   <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=running">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Running}}</span>
+    <span class="{{template "ui-figure-value"}}">{{.Running}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>running, up to {{.Slots}} at once</span>
   </a>
   <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=queued">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Waiting}}</span>
+    <span class="{{template "ui-figure-value"}}">{{.Waiting}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>waiting</span>
   </a>
   <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=failed">
-    <span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Failed}}</span>
+    <span class="{{template "ui-figure-value"}}">{{.Failed}}</span>
     <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-bad"></span>failed this week</span>
   </a>
 </section>

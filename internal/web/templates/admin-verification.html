@@ -7,9 +7,9 @@
 {{if .Failing}}<p class="{{template "ui-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
 
 <div class="{{template "ui-figures"}}">
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Verified}}</span><span class="text-xs text-muted">verified</span></div>
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums">{{.Unsigned}}</span><span class="text-xs text-muted">not signed</span></div>
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl font-bold tabular-nums{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="text-xs text-muted">do not check out</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Verified}}</span><span class="{{template "ui-figure-label"}}">verified</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Unsigned}}</span><span class="{{template "ui-figure-label"}}">not signed</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="{{template "ui-figure-label"}}">do not check out</span></div>
 </div>
 
 {{if .Rows}}
