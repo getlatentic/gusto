@@ -53,14 +53,21 @@ func ReadPolicy(file string) (Policy, error) {
 	return policy, policy.check(file)
 }
 
+// Check refuses a rule whose effect is not allow or deny, or whose pattern is not one.
+func (p Policy) Check() error { return p.check("") }
+
 func (p Policy) check(file string) error {
+	prefix := ""
+	if file != "" {
+		prefix = file + ": "
+	}
 	for i, rule := range p.Rules {
 		if rule.Effect != "allow" && rule.Effect != "deny" {
-			return fmt.Errorf("%s: rule %d has the effect %q, and it must be allow or deny", file, i+1, rule.Effect)
+			return fmt.Errorf("%srule %d has the effect %q, and it must be allow or deny", prefix, i+1, rule.Effect)
 		}
 		for _, pattern := range []string{rule.Server, rule.Tool, rule.Person, rule.Team} {
 			if _, err := path.Match(pattern, ""); err != nil {
-				return fmt.Errorf("%s: rule %d has the pattern %q, which is not one: %w", file, i+1, pattern, err)
+				return fmt.Errorf("%srule %d has the pattern %q, which is not one: %w", prefix, i+1, pattern, err)
 			}
 		}
 	}

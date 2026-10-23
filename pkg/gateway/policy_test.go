@@ -59,3 +59,17 @@ func TestAPolicyFileIsReadAndABadOneIsRefusedNamingTheRule(t *testing.T) {
 		}
 	}
 }
+
+func TestAPolicyCanBeCheckedWithoutAFile(t *testing.T) {
+	if err := (Policy{Rules: []Rule{{Server: "a*", Effect: "allow"}, {Tool: "wipe", Effect: "deny"}}}).Check(); err != nil {
+		t.Fatalf("a good policy was refused: %v", err)
+	}
+	for name, policy := range map[string]Policy{
+		"an effect that is neither": {Rules: []Rule{{Effect: "maybe"}}},
+		"a pattern that is not one": {Rules: []Rule{{Server: "[", Effect: "deny"}}},
+	} {
+		if err := policy.Check(); err == nil || strings.HasPrefix(err.Error(), ":") {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
