@@ -2,7 +2,7 @@
 
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
-    <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold tracking-normal" title="{{.Named}}">{{.Named}}</h1>
+    <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold" title="{{.Named}}">{{.Named}}</h1>
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
@@ -25,7 +25,7 @@
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
       <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
-        <h2 class="text-xl tracking-tight">How can I help?</h2>
+        <h2 class="text-xl">How can I help?</h2>
         {{with .Starters}}
         <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3" id="starters">
           {{range .}}<button type="button" class="starter cursor-pointer rounded-md border border-line bg-surface px-4 py-3 text-left text-sm text-ink hover:border-subtle" data-said="{{.}}">{{.}}</button>{{end}}

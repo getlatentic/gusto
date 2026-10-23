@@ -11,7 +11,7 @@
 
 <section class="talk fresh grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
   <div class="grid min-h-0 grid-cols-[minmax(0,1fr)] content-center justify-items-center gap-6 overflow-y-auto p-6">
-    <h1 class="text-center tracking-tighter">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
+    <h1 class="text-center">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
     {{if .Refused}}<p class="{{template "ui-notice-chat"}}" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{range .Lacking}}<p class="{{template "ui-notice-chat"}}" role="status">{{.}}</p>{{end}}
     {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="text-muted">This deployment cannot start an agent yet.</p>{{end}}
