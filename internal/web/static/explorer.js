@@ -21,7 +21,7 @@
     crumb: "inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 font-[inherit] text-muted hover:text-ink",
     input: "rounded-sm border border-line-strong bg-surface px-3 text-ink placeholder:text-faint",
     button: "inline-flex flex-none cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-surface whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash",
-    primary: "inline-flex flex-none cursor-pointer items-center justify-center gap-2 rounded-sm border-0 bg-accent whitespace-nowrap text-on-accent no-underline transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
+    primary: "inline-flex flex-none cursor-pointer items-center justify-center gap-2 rounded-sm border-0 bg-solid whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
     place: "flex w-full cursor-pointer items-center gap-2 rounded-sm border-0 bg-transparent p-2 text-left text-sm text-muted hover:bg-hover hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1",
     tool: "grid size-8 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink disabled:cursor-default disabled:opacity-35"
   };
