@@ -5,7 +5,7 @@
   {{if .Left.Remaining}}<p>It removes itself in <strong>{{minutes .Left.Remaining}}</strong>, at {{clock .Left.Ends}}.</p>
   {{else}}<p>It is about to remove itself.</p>{{end}}
   {{if .Left.CanExtend}}<form class="grid gap-3" method="post" action="/lease/extend">
-    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Keep it for {{minutes .Step}} more</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Keep it for {{minutes .Step}} more</button>
   </form>{{else}}<p class="text-sm text-muted">It cannot be kept any longer than this.</p>{{end}}
   <p class="text-sm text-muted">Anything running is stopped when it goes, and the organizations and sign-ins on it go with it.</p>
 {{template "foot"}}{{end}}
