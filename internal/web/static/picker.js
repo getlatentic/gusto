@@ -8,16 +8,27 @@
   var actionClass = " sticky bottom-0 min-h-10 bg-surface shadow-[0_-0.5rem_0.5rem_-0.25rem_var(--gu-surface)]";
   var checkMark = '<svg class="i absolute top-3.5 right-3 size-3.5 opacity-100" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
-  var plateClass = "inline-grid size-5 flex-none place-items-center rounded-xs bg-plate ring-1 ring-line ring-inset";
-  function plate(src) {
-    var holder = document.createElement("span");
-    holder.className = plateClass;
-    holder.setAttribute("aria-hidden", "true");
+  // An agent's mark is drawn as its owner gives it, with no box. Marks that are black turn white on a dark page.
+  var markClass = "size-5 flex-none object-contain";
+  var darkFiles = /\/agents\/(opencode|pi)\.svg(\?.*)?$/;
+  var invertFiles = /\/agents\/(codex|hermes)\./;
+  function mark(src, className) {
     var picture = document.createElement("img");
-    picture.className = "size-3/5 object-contain";
+    picture.className = className;
     picture.alt = "";
     picture.src = src;
-    holder.appendChild(picture);
+    return picture;
+  }
+  function plate(src) {
+    var holder = document.createElement("span");
+    holder.className = "inline-flex flex-none";
+    holder.setAttribute("aria-hidden", "true");
+    if (darkFiles.test(src)) {
+      holder.appendChild(mark(src, markClass + " dark:hidden"));
+      holder.appendChild(mark(src.replace(/\.svg(\?.*)?$/, "-dark.svg"), markClass + " hidden dark:block"));
+    } else {
+      holder.appendChild(mark(src, markClass + (invertFiles.test(src) ? " dark:invert" : "")));
+    }
     return holder;
   }
 
