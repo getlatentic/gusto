@@ -2,7 +2,6 @@
 
 <div class="{{template "adm-title"}}">
   <h1>Verification</h1>
-  <span class="text-sm text-muted">Each run's files are checked against what was recorded when it finished</span>
 </div>
 
 {{if .Failing}}<p class="{{template "adm-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
@@ -33,13 +32,4 @@
 {{else}}
 <p class="text-muted">{{if .Verified}}Every one of the newest {{.Verified}} finished run{{if ne .Verified 1}}s{{end}} checks out.{{else}}No run has finished yet.{{end}}</p>
 {{end}}
-<p class="mt-3 text-xs text-muted">Counts cover the newest {{.Shown}} finished runs. A run signed with a key this server does not hold shows as "unchecked".</p>
-
-<details class="group mt-6">
-  <summary class="{{template "adm-fold-summary"}}">{{template "adm-chevron"}} Check a run yourself</summary>
-  <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
-    <p>Open a run, download its record and its signing key, and run the command shown there. It needs only the <code>gusto</code> program, not this server.</p>
-  </div>
-</details>
-
 {{template "foot" .}}

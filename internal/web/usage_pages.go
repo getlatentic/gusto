@@ -31,14 +31,16 @@ func (s *Server) drawUsage(w http.ResponseWriter, name string, console bool, pag
 
 // usageView is the sessions page: the figures above the table, the table, and the controls that narrow it.
 type usageView struct {
-	Query        usageQuery
-	Values       url.Values
-	Everyone     bool
-	Facets       usage.Facets
-	Building     usage.Status
-	Figures      usageFigures
-	Rows         []usageRow
-	Columns      []usageColumn
+	Query    usageQuery
+	Values   url.Values
+	Everyone bool
+	Facets   usage.Facets
+	Building usage.Status
+	Figures  usageFigures
+	Rows     []usageRow
+	Columns  []usageColumn
+	// ShowWho is whether more than one person is in the table, so a column naming them says something.
+	ShowWho      bool
 	Filtered     bool
 	Newest, Next string
 	Export       string
@@ -56,12 +58,12 @@ type usageColumn struct {
 
 // usageRow is a session as a line of the table.
 type usageRow struct {
-	ID, Href, Record, Last, LastFull string
-	Person, Agent, Engine, Harness   string
-	Providers, Models                string
-	Cost, Unpriced, In, Out, Cache   string
-	Calls, Refused                   int64
-	MoreTasks                        int
+	ID, Title, Href, Record, Last, LastFull string
+	Person, Agent, Engine, Harness          string
+	Providers, Models                       string
+	Cost, Unpriced, In, Out, Cache          string
+	Calls, Refused                          int64
+	MoreTasks                               int
 }
 
 func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
@@ -69,7 +71,7 @@ func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
 }
 
 func (s *Server) showUsage(w http.ResponseWriter, r *http.Request, base string, console bool) {
-	page := map[string]any{"Title": productName + " — usage", "Base": base}
+	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
 	if s.usage.store == nil {
 		s.drawUsage(w, "usage.html", console, page)
 		return
@@ -111,8 +113,16 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
 		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
 		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""})}
+	people := map[string]bool{}
 	for i := range view.Rows {
 		view.Rows[i].Harness = s.harnessOf(view.Rows[i].Engine)
+		if task, found := s.index.Get(strings.TrimPrefix(view.Rows[i].Record, "/jobs/")); found {
+			view.Rows[i].Title = task.Brief
+		}
+		people[view.Rows[i].Person] = true
+	}
+	if view.ShowWho = len(people) > 1; !view.ShowWho {
+		view.Columns = slices.DeleteFunc(view.Columns, func(column usageColumn) bool { return column.Label == "Who" })
 	}
 	for _, name := range usageFields {
 		if name != "person" || person == "" {
@@ -145,15 +155,15 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request (UTC)", "last"), {Label: "Session"}, {Label: "Who"}, {Label: "Agent"},
-		sortable("Cost", "cost"), {Label: "Provider"}, {Label: "Model"}, sortable("Tokens", "tokens"), {Label: "Cache", Num: true}, sortable("Calls", "calls"), {Label: "Details"}}
+	return []usageColumn{sortable("Last request", "last"), {Label: "Task"}, {Label: "Who"}, {Label: "Agent"},
+		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens")}
 }
 
 func rowsOf(sessions []usage.Session, base string) []usageRow {
 	rows := make([]usageRow, 0, len(sessions))
 	for _, each := range sessions {
-		row := usageRow{ID: each.ID, Href: base + "/" + url.PathEscape(each.ID), Last: each.Last.UTC().Format("2 Jan 15:04"),
-			LastFull: each.Last.UTC().Format("2006-01-02 15:04:05 UTC"), Person: each.Person, Agent: each.Agent, Engine: each.Engine,
+		row := usageRow{ID: each.ID, Href: base + "/" + url.PathEscape(each.ID), Last: each.Last.Local().Format("2 Jan 15:04"),
+			LastFull: each.Last.Local().Format("2006-01-02 15:04:05 MST"), Person: each.Person, Agent: each.Agent, Engine: each.Engine,
 			Providers: strings.Join(each.Providers, ", "), Models: strings.Join(each.Models, ", "), Calls: each.Calls, Refused: each.Refused,
 			In: compact(each.InputTokens), Out: compact(each.OutputTokens), Cache: cacheRate(each.CachedTokens, each.InputTokens)}
 		row.Cost, row.Unpriced = costOf(each.Totals)

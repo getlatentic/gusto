@@ -13,7 +13,6 @@ type section struct {
 func (s *Server) sections() []section {
 	all := []section{
 		{"overview", "/admin", "Overview"},
-		{"spending", "/admin/spending", "Spending"},
 		{"usage", "/admin/usage", "Usage"},
 	}
 	all = append(all, section{"verification", "/admin/verification", "Verification"})

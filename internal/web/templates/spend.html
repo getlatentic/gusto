@@ -2,7 +2,8 @@
 {{with .Ledger}}
 
 <div class="mb-6 flex items-center gap-3">
-  <h1>Spending</h1>
+  <h1>Usage</h1>
+  {{template "usage-tabs" $.Tabs}}
   <form class="ml-auto" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
       <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="month" data-autosubmit>
@@ -26,28 +27,30 @@
 </section>
 
 <section class="mb-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
-  <h2 class="mb-3 text-sm font-semibold">By day <span class="font-normal text-muted">in {{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
+  <h2 class="mb-4 flex items-baseline gap-2 text-sm font-semibold">Spend by day <span class="font-normal text-muted">{{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
   {{if .Daily}}
-  <div class="group/bars flex h-40 items-stretch gap-[0.1875rem]" role="img" aria-label="Spending on each day of {{.Month}}">
+  <div class="group/bars flex h-40 items-end gap-1.5" role="img" aria-label="Spending on each day of {{.Month}}">
     {{range .Daily}}
-    <div class="group/day grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-1" title="{{.Says}}"><span class="block min-h-px self-end rounded-t-xs bg-accent group-hover/day:bg-accent-hover" style="height: {{printf "%.1f" .Height}}%"></span><span class="text-center text-xs text-subtle @max-[56rem]:invisible">{{.Label}}</span></div>
+    <div class="group/day flex h-full min-w-0 flex-1 flex-col justify-end" title="{{.Says}}"><span class="block min-h-[0.1875rem] rounded-t-sm bg-accent group-hover/day:bg-accent-hover" style="height: {{printf "%.1f" .Height}}%"></span></div>
     {{end}}
   </div>
+  <div class="mt-2 flex justify-between text-xs text-muted">{{range .DayLabels}}<span>{{.}}</span>{{end}}</div>
   {{end}}
 </section>
 
-<div class="mb-4 grid grid-cols-2 gap-4 @max-[56rem]:grid-cols-1">
-  {{template "shares" (dict "Title" "By agent" "Lines" .Agents)}}
-  {{with .Askers}}{{template "shares" (dict "Title" "By who asked" "Lines" .)}}{{end}}
-  {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
-  {{template "shares" (dict "Title" "By agent type" "Lines" .Harnesses)}}
-  {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
-  {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
+{{with .Tops}}
+<div class="mb-4 grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
+  {{range .}}
+  <div class="grid content-start gap-1.5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <span class="text-xs text-muted">{{.Title}}</span>
+    <span class="font-display text-xl font-bold tracking-tight wrap-anywhere">{{.Name}}</span>
+    <span class="text-sm text-muted">{{.Says}}</span>
+  </div>
+  {{end}}
 </div>
+{{end}}
 
-{{template "shares" (dict "Title" "Most expensive messages" "Lines" .Jobs)}}
-
-<p class="mt-4 text-xs text-muted">Counted at the proxy from each provider's own answer, and priced from this deployment's price list. It is not yet reconciled with a provider's invoice.</p>
+<p class="mt-4 text-xs text-muted">Priced from this deployment's price list, not reconciled with invoices.</p>
 
 {{end}}
 {{template "foot" .}}
@@ -57,17 +60,15 @@
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
   <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">
-    <thead><tr><th>Name</th><th class="text-right">Spent</th><th class="text-right">Tokens</th><th class="text-right">Calls</th></tr></thead>
+    <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th></tr></thead>
     <tbody>
     {{range .Lines}}
     <tr>
-      <td class="w-[55%] min-w-0 pr-3">
+      <td class="w-[60%] min-w-0 pr-3">
         {{if not .Name}}<span class="text-muted">none named</span>{{else if .Href}}<a class="line-clamp-2 underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="block text-xs text-subtle">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
-        <span class="mt-1 block h-1 rounded-xs bg-wash" aria-hidden="true"><span class="block h-full rounded-xs bg-accent" style="width: {{printf "%.1f" .Width}}%"></span></span>
       </td>
       <td class="text-right tabular-nums whitespace-nowrap">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{.Money}}{{end}}</td>
       <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{tokens (add .InputTokens .OutputTokens)}}</td>
-      <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{.Calls}}{{with .Refused}} <span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad" title="refused by a cap">+{{.}}</span>{{end}}</td>
     </tr>
     {{end}}
     </tbody>

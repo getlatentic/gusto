@@ -100,12 +100,12 @@ func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 	plain := open(t)
 	plain.signIn(t)
 	seen := sectionsOf(t, plain.ask(t, "GET", "/admin", nil).Body.String())
-	for _, want := range []string{`href="/admin"`, `href="/admin/spending"`, `href="/admin/skill-sets"`} {
+	for _, want := range []string{`href="/admin"`, `href="/admin/usage"`, `href="/admin/skill-sets"`} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("a plain server does not list %s: %s", want, seen)
 		}
 	}
-	for _, not := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/people"} {
+	for _, not := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/people", "/admin/spending"} {
 		if strings.Contains(seen, not) {
 			t.Errorf("a plain server lists %s, which it has nothing behind: %s", not, seen)
 		}
@@ -113,7 +113,7 @@ func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 
 	full := everything(t).as(t, boss)
 	seen = sectionsOf(t, full.ask(t, "GET", "/admin", nil).Body.String())
-	for _, want := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/spending", "/admin/people"} {
+	for _, want := range []string{"/admin/activity", "/admin/tokens", "/admin/retention", "/admin/skill-sets", "/admin/usage", "/admin/people"} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("a full server does not list %s: %s", want, seen)
 		}

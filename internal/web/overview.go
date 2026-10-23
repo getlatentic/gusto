@@ -25,7 +25,7 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 		"Refused":  r.URL.Query().Get("refused"),
 		"Month":    report.Month,
 		"Spent":    report.Total,
-		"People":   shares(s.byAsker(report.Jobs), view.Measure),
+		"People":   shares(s.byAsker(report.Jobs)),
 		"Teams":    view.Teams,
 		"Models":   view.Models,
 		"Projects": view.Projects,

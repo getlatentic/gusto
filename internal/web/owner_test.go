@@ -175,19 +175,27 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	shows := func(who *site, id string) bool {
-		return strings.Contains(who.ask(t, "GET", "/spend?month=2026-09", nil).Body.String(), `href="/jobs/`+id+`"`)
+	// Each run cost $0.25, so a person who sees only their own sees $0.2500 and one who sees the bill sees $0.5000.
+	spent := func(who *site) string {
+		body := who.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
+		switch {
+		case strings.Contains(body, "$0.5000"):
+			return "both"
+		case strings.Contains(body, "$0.2500"):
+			return "one"
+		}
+		return "none"
 	}
 
-	if a := here.as(t, alice); !shows(a, "alice-run") || shows(a, "bob-run") {
-		t.Error("alice should see her own run's cost and not bob's")
+	if got := spent(here.as(t, alice)); got != "one" {
+		t.Errorf("alice should see her own run's cost and not bob's, saw %s", got)
 	}
-	if c := here.as(t, "carol@example.com"); !shows(c, "alice-run") || !shows(c, "bob-run") {
-		t.Error("an admin should see every run's cost")
+	if got := spent(here.as(t, "carol@example.com")); got != "both" {
+		t.Errorf("an admin should see every run's cost, saw %s", got)
 	}
 	here.signIn(t)
-	if !shows(here, "alice-run") || !shows(here, "bob-run") {
-		t.Error("the shared sign-in should see every run's cost")
+	if got := spent(here); got != "both" {
+		t.Errorf("the shared sign-in should see every run's cost, saw %s", got)
 	}
 	script := httptest.NewRequest("GET", "/api/spend?month=2026-09", nil)
 	script.Header.Set("Authorization", "Bearer "+password)

@@ -22,10 +22,16 @@ func (s *Server) job(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if record.Thread != "" && !s.admin(r) {
+		if thread, found := s.instances.Thread(record.Instance, record.Thread); found {
+			http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+			return
+		}
+	}
 	ledger, _ := s.spending()
 	page := map[string]any{
 		"Job": record, "On": s.origin(record), "Run": s.recorded(record, ledger),
-		"Title": productName + " — " + record.Brief, "Nav": "harnesses",
+		"Title": productName + " — " + record.Brief, "Nav": "jobs",
 	}
 	spec, err := job.Read(dir)
 	if err == nil {
