@@ -17,15 +17,15 @@ type ledgerView struct {
 	// Measure is what the bars and shares are drawn in: money when any of the
 	// month was priced, and tokens when none was, because a chart of zeros
 	// says nothing and the tokens are still the provider's own count.
-	Measure   string
-	Daily     []bar
-	Models    []share
-	Harnesses []share
-	Agents    []share
-	Askers    []share
-	Teams     []share
-	Projects  []share
-	Jobs      []share
+	Measure  string
+	Daily    []bar
+	Models   []share
+	Agents   []share
+	Teams    []share
+	Projects []share
+	Tops     []topBox
+	// DayLabels are the dates under the first, middle and last bar, so the axis names three days and not every one.
+	DayLabels []string
 }
 
 // bar is one day of the month.
@@ -36,20 +36,15 @@ type bar struct {
 	Says   string
 }
 
-// share is one line of a breakdown and how much of the largest line it is.
+// share is one line of a breakdown.
 // Label and Sub are what a person reads for a line whose name is an id, and
 // Href is where the line leads.
 type share struct {
 	spend.Line
-	Width float64
 	Label string
 	Sub   string
 	Href  string
 }
-
-// topJobs is how many jobs the dashboard lists. The month's whole list is in
-// the JSON report and the ledger; the page is for finding the expensive ones.
-const topJobs = 10
 
 // plainly merges a breakdown's lines under the names a person reads: two
 // credentials serving one model are one model, and a request that asked no
@@ -88,27 +83,66 @@ func modelOf(line string) string {
 
 func (s *Server) viewLedger(report spend.Report, months []string, now time.Time) ledgerView {
 	report.Models = plainly(report.Models, modelOf)
-	report.Harnesses = plainly(report.Harnesses, s.engineName)
 	view := ledgerView{Report: report, Months: months, Measure: "tokens"}
 	if report.Total.USD > 0 {
 		view.Measure = "money"
 	}
 	view.Daily = daysOf(report, view.Measure, now)
-	view.Models = shares(report.Models, view.Measure)
-	view.Harnesses = shares(report.Harnesses, view.Measure)
-	view.Agents = shares(s.byAgent(report.Jobs), view.Measure)
-	// One asker is the person reading, or nobody worth a panel.
-	if askers := s.byAsker(report.Jobs); len(askers) > 1 {
-		view.Askers = shares(askers, view.Measure)
-	}
-	view.Teams = anyNamed(shares(report.Teams, view.Measure))
-	view.Projects = anyNamed(shares(report.Projects, view.Measure))
-	jobs := report.Jobs
-	if len(jobs) > topJobs {
-		jobs = jobs[:topJobs]
-	}
-	view.Jobs = s.labeled(shares(jobs, view.Measure))
+	view.DayLabels = dayLabels(view.Daily)
+	view.Models = shares(report.Models)
+	view.Agents = shares(s.byAgent(report.Jobs))
+	view.Teams = anyNamed(shares(report.Teams))
+	view.Projects = anyNamed(shares(report.Projects))
+	view.Tops = topsOf(view)
 	return view
+}
+
+// topBox is the biggest line of one breakdown: the answer to "which one" for somebody who does not want the table.
+type topBox struct {
+	Title, Name, Says string
+}
+
+// topsOf is the biggest agent, model and team. A breakdown with nothing to compare, fewer than two lines that spent anything, has no box.
+func topsOf(view ledgerView) []topBox {
+	var boxes []topBox
+	for _, each := range []struct {
+		title string
+		lines []share
+	}{{"Most used agent", view.Agents}, {"Most used model", view.Models}, {"Biggest team", view.Teams}} {
+		var named []share
+		for _, line := range each.lines {
+			if line.Name != "" && amount(line.Tally, view.Measure) > 0 {
+				named = append(named, line)
+			}
+		}
+		if len(named) < 2 {
+			continue
+		}
+		top := named[0]
+		for _, line := range named[1:] {
+			if amount(line.Tally, view.Measure) > amount(top.Tally, view.Measure) {
+				top = line
+			}
+		}
+		name := top.Name
+		if top.Label != "" {
+			name = top.Label
+		}
+		boxes = append(boxes, topBox{Title: each.title, Name: name, Says: topSays(top, view)})
+	}
+	return boxes
+}
+
+func topSays(top share, view ledgerView) string {
+	whole := amount(view.Total, view.Measure)
+	part := ""
+	if whole > 0 {
+		part = fmt.Sprintf(" · %d%% of the month", int(100*amount(top.Tally, view.Measure)/whole+0.5))
+	}
+	if view.Measure == "money" {
+		return top.Tally.Money() + part
+	}
+	return compact(top.Tally.InputTokens+top.Tally.OutputTokens) + " tokens" + part
 }
 
 func amount(tally spend.Tally, measure string) float64 {
@@ -147,18 +181,10 @@ func daysOf(report spend.Report, measure string, now time.Time) []bar {
 	return days
 }
 
-func shares(lines []spend.Line, measure string) []share {
-	most := 0.0
-	for _, line := range lines {
-		most = max(most, amount(line.Tally, measure))
-	}
+func shares(lines []spend.Line) []share {
 	out := make([]share, 0, len(lines))
 	for _, line := range lines {
-		width := 0.0
-		if most > 0 {
-			width = 100 * amount(line.Tally, measure) / most
-		}
-		out = append(out, share{Line: line, Width: width})
+		out = append(out, share{Line: line})
 	}
 	return out
 }
@@ -174,4 +200,21 @@ func compact(count int64) string {
 		return fmt.Sprintf("%.1fk", float64(count)/1e3)
 	}
 	return fmt.Sprint(count)
+}
+
+func dayLabels(days []bar) []string {
+	if len(days) == 0 {
+		return nil
+	}
+	at := func(i int) string {
+		day, err := time.Parse("2006-01-02", days[i].Date)
+		if err != nil {
+			return days[i].Label
+		}
+		return day.Format("2 Jan")
+	}
+	if len(days) < 3 {
+		return []string{at(0), at(len(days) - 1)}
+	}
+	return []string{at(0), at(len(days) / 2), at(len(days) - 1)}
 }

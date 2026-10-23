@@ -247,12 +247,6 @@ func TestSpendSaysWhoAskedAndTheScriptGetsTheSame(t *testing.T) {
 		}
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-	for _, want := range []string{"By who asked", "Token ci", "amy@acme.test", "Sent over the API"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the spend page lacks %q", want)
-		}
-	}
 	var report struct {
 		Askers []struct {
 			Name string  `json:"name"`

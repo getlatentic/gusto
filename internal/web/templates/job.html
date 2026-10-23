@@ -46,15 +46,14 @@
     {{with .Transcript}}
     {{if .Empty}}<p class="text-muted">It said nothing.</p>{{else}}
     <div class="prose">{{markdown .Text}}</div>
-    {{template "cut" .}}{{end}}
-    {{else}}<p class="text-muted">Nothing was recorded.</p>{{end}}
+    {{template "cut" .}}
   </section>
+  {{end}}{{end}}
   {{end}}
 
+  {{with .Patch}}{{if not .Empty}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
     <h2 class="mb-3 text-sm font-semibold">What changed</h2>
-    {{with .Patch}}
-    {{if .Empty}}<p class="text-muted">No files changed.</p>{{else}}
     <p class="mb-2 text-xs text-muted">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}.</p>
     <div class="divide-y divide-line">
     {{range .Files}}
@@ -86,17 +85,16 @@
   </section>
   {{end}}
 
+{{with .Calls}}{{with .Denied}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
     <h2 class="mb-3 text-sm font-semibold">Network</h2>
-    {{with .Calls}}{{with .Denied}}
     <p class="mb-2 text-xs text-muted">The agent asked for {{len .}} address{{if ne (len .) 1}}es{{end}} outside the model, and each was refused.</p>
     <table class="w-full text-sm [&_td]:border-b [&_td]:border-line [&_td]:py-2 [&_th]:border-b [&_th]:border-line [&_th]:py-1">
       <thead><tr><th>Site</th><th class="w-20 text-right">Times</th></tr></thead><tbody>
       {{range $.Calls.Sites}}<tr><td><code class="text-xs">{{.Host}}</code></td><td class="text-right tabular-nums">{{.Times}}</td></tr>{{end}}
     </tbody></table>
-    {{else}}<p class="text-muted">No request to another site was refused.</p>{{end}}
-    {{else}}<p class="text-muted">No requests were recorded.</p>{{end}}
   </section>
+  {{end}}{{end}}
 
   {{with .Gate}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">

@@ -52,11 +52,14 @@ func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 	if page.Code != http.StatusOK {
 		t.Fatalf("%d %s", page.Code, page.Body)
 	}
-	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`, `href="/jobs/task-a"`, `href="/jobs/task-b"`,
+	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`,
 		"$0.7500", ">3<", "3.0k", "40%", "Notes", "Claude Code", "bedrock", "claude-sonnet"} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page does not show %q", want)
 		}
+	}
+	if body := here.ask(t, "GET", "/usage/alice-session", nil).Body.String(); !strings.Contains(body, `href="/jobs/task-a"`) {
+		t.Error("the session page does not link to its task")
 	}
 }
 
@@ -321,21 +324,14 @@ func TestAnIndexStillBeingBuiltSaysHowFarItIs(t *testing.T) {
 	}
 }
 
-func TestTheSpendingPageNamesItsTwoPanelsByAgentAndByAgentType(t *testing.T) {
+func TestUsageAndSpendingLinkToEachOther(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if strings.Count(body, ">By agent</h2>") != 1 || strings.Count(body, ">By agent type</h2>") != 1 {
-		t.Errorf("the panels are not by agent and by agent type:\n%s", body)
+	if body := here.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(body, `href="/spend"`) {
+		t.Error("the usage page does not link to spending")
 	}
-}
-
-func TestUsageIsLinkedFromTheMenuNextToSpending(t *testing.T) {
-	here := open(t)
-	here.signIn(t)
-	body := here.ask(t, "GET", "/spend", nil).Body.String()
-	if !strings.Contains(body, `href="/spend"`) || !strings.Contains(body, `href="/usage"`) {
-		t.Error("the menu does not link Usage next to Spending")
+	if body := here.ask(t, "GET", "/spend", nil).Body.String(); !strings.Contains(body, `href="/usage"`) {
+		t.Error("the spending page does not link to usage")
 	}
 }
 

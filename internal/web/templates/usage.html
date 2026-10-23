@@ -2,6 +2,7 @@
 
 <div class="mb-6 flex items-center gap-3">
   <h1>Usage</h1>
+  {{template "usage-tabs" .Tabs}}
   {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
 </div>
 
@@ -16,25 +17,31 @@
   {{template "figure" (dict "Value" .Figures.Refused "Label" "refused by a cap" "Bad" .Figures.Refused)}}
 </section>
 
-<form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
-  <label class="basis-full"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
-    <input class="h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
-  </label>
-  {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
-  {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
-  {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
-  {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
-  {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
-  <label class="flex items-center gap-2 text-muted">From <input class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit></label>
-  <label class="flex items-center gap-2 text-muted">To <input class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></label>
-  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover" type="submit">Filter</button>
-  {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
+<form class="mb-4 grid gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
+  <div class="flex flex-wrap items-center gap-3">
+    <label class="min-w-56 flex-1"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
+      <input class="input" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
+    </label>
+    <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="input w-40" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="input w-40" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
+    <button class="btn" type="submit">Filter</button>
+    {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
+  </div>
+  <details class="group"{{if .Filtered}} open{{end}}>
+    <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
+    <div class="mt-3 flex flex-wrap gap-3">
+      {{if .Everyone}}{{template "usage-select" (dict "Name" "person" "Label" "Person" "All" "everyone" "Options" .Facets.People "Chosen" (.Values.Get "person"))}}{{end}}
+      {{template "usage-select" (dict "Name" "agent" "Label" "Agent" "All" "every agent" "Options" .Facets.Agents "Chosen" (.Values.Get "agent"))}}
+      {{template "usage-select" (dict "Name" "agent_type" "Label" "Agent type" "All" "every agent type" "Options" .Facets.Engines "Chosen" (.Values.Get "agent_type"))}}
+      {{template "usage-select" (dict "Name" "provider" "Label" "Provider" "All" "every provider" "Options" .Facets.Providers "Chosen" (.Values.Get "provider"))}}
+      {{template "usage-select" (dict "Name" "model" "Label" "Model" "All" "every model" "Options" .Facets.Models "Chosen" (.Values.Get "model"))}}
+    </div>
+  </details>
 </form>
 
 {{if .Rows}}
 <div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
   <div class="overflow-x-auto">
-  <table class="text-sm [&_th]:bg-wash [&_th]:px-3 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
+  <table class="text-sm [&_th]:bg-wash [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
     <thead><tr>
       {{range .Columns}}<th scope="col"{{with .Sorted}} aria-sort="{{.}}"{{end}}{{if .Num}} class="text-right"{{end}}>{{if .Href}}<a class="text-inherit no-underline hover:text-ink" href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>
       {{end}}
@@ -43,16 +50,12 @@
       {{range .Rows}}
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
-        <td class="max-w-48 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{.ID}}</a></td>
-        <td class="max-w-48 truncate">{{.Person}}</td>
+        <td class="max-w-64 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
+        {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
         <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{.Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
-        <td class="max-w-48 truncate" title="{{.Providers}}">{{.Providers}}</td>
         <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
-        <td class="text-right tabular-nums">{{.Cache}}</td>
-        <td class="text-right tabular-nums">{{.Calls}}{{with .Refused}} <span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad" title="refused by a cap">+{{.}}</span>{{end}}</td>
-        <td>{{if .Record}}<a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Record}}" title="Details of the latest task in this session">Details</a>{{with .MoreTasks}} <span class="text-muted">+{{.}}</span>{{end}}{{end}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -74,15 +77,19 @@
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No model call has been recorded yet. Every call an agent makes goes through the proxy, and each one is listed here, whoever made it.</p>
 {{end}}
 
-<p class="mt-4 text-xs text-muted">Counted at the proxy from each provider's own answer. A call whose model has no price set is shown as "no price", not as free.</p>
 {{else}}
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">This server keeps no usage index.</p>
 {{end}}
 
 {{template "foot" .}}
 
+{{define "usage-tabs"}}<nav class="flex gap-1 rounded-md bg-wash p-[0.1875rem] text-sm" aria-label="Usage views">
+  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
+  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Tasks</a>
+</nav>{{end}}
+
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>
-  <select class="h-9 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="{{.Name}}" data-autosubmit>
+  <select class="select" name="{{.Name}}" data-autosubmit>
     <option value="">{{.All}}</option>
     {{$chosen := .Chosen}}{{range .Options}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
   </select>
