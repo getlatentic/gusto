@@ -21,8 +21,8 @@
   --color-card-foreground: var(--gu-text);
   --color-popover: var(--gu-surface);
   --color-popover-foreground: var(--gu-text);
-  --color-primary: var(--gu-accent);
-  --color-primary-foreground: var(--gu-on-accent);
+  --color-primary: var(--gu-accent-solid);
+  --color-primary-foreground: var(--gu-on-accent-solid);
   --color-secondary: var(--gu-bg-subtle);
   --color-secondary-foreground: var(--gu-text);
   --color-bc-muted: var(--gu-bg-subtle);
@@ -50,8 +50,8 @@
   --card-foreground: var(--gu-text);
   --popover: var(--gu-surface);
   --popover-foreground: var(--gu-text);
-  --primary: var(--gu-accent);
-  --primary-foreground: var(--gu-on-accent);
+  --primary: var(--gu-accent-solid);
+  --primary-foreground: var(--gu-on-accent-solid);
   --secondary: var(--gu-bg-subtle);
   --secondary-foreground: var(--gu-text);
   --muted: var(--gu-bg-subtle);

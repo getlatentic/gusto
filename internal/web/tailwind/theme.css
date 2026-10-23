@@ -26,6 +26,9 @@
   --color-accent-ink: var(--gu-accent-text);
   --color-accent-wash: var(--gu-accent-surface);
   --color-on-accent: var(--gu-on-accent);
+  --color-solid: var(--gu-accent-solid);
+  --color-solid-hover: var(--gu-accent-solid-hover);
+  --color-on-solid: var(--gu-on-accent-solid);
   --color-ok: var(--gu-success);
   --color-ok-wash: var(--gu-success-surface);
   --color-warn: var(--gu-warning);

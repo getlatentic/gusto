@@ -46,7 +46,7 @@
           {{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}
           <span class="flex-1"></span>
           {{if .Several}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-accent p-0 text-on-accent hover:bg-accent-hover [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
           {{if .Waiting}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
