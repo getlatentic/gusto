@@ -21,7 +21,7 @@
 <form class="grid gap-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" method="post" action="/demos/pause">
   <p>{{if .Paused}}<strong>New demos are paused.</strong> Visitors are told to try again later. Demos that are running go on.{{else}}New demos are being accepted.{{end}}</p>
   <input type="hidden" name="paused" value="{{if .Paused}}off{{else}}on{{end}}">
-  <div><button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover">{{if .Paused}}Accept new demos{{else}}Pause new demos{{end}}</button></div>
+  <div><button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-solid px-5 py-2.5 text-sm font-semibold text-on-solid transition-colors hover:bg-solid-hover">{{if .Paused}}Accept new demos{{else}}Pause new demos{{end}}</button></div>
 </form>
 
 <h2 class="mt-4">Limits</h2>
@@ -33,7 +33,7 @@
   <label class="grid gap-1.5 text-xs font-medium text-subtle">Most one company may start in a day <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="perCompany" min="0" max="1000" value="{{.Limits.PerCompany}}" required></label>
   <label class="grid gap-1.5 text-xs font-medium text-subtle">Most running at once <input class="w-full rounded-sm border border-line-strong bg-surface px-3 py-2.5 text-base font-normal text-ink" type="number" name="maxOrgs" min="1" max="50" value="{{.Limits.MaxOrgs}}" required></label>
   <div class="flex flex-wrap gap-3">
-    <button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover">Save the limits</button>
+    <button type="submit" class="inline-flex cursor-pointer items-center justify-center rounded-sm bg-solid px-5 py-2.5 text-sm font-semibold text-on-solid transition-colors hover:bg-solid-hover">Save the limits</button>
     {{if .LimitsSet}}<button type="submit" name="reset" value="1" class="inline-flex cursor-pointer items-center justify-center rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" formnovalidate>Go back to the starting limits</button>{{end}}
   </div>
 </form>
