@@ -2,15 +2,15 @@
 @layer base {
   html { font-family: var(--gu-font-text); }
   body {
-    @apply bg-canvas text-ink font-sans text-base antialiased;
+    @apply bg-canvas text-ink font-sans text-base font-medium antialiased;
     container-type: inline-size;
   }
   h1, h2, h3, h4 { @apply font-display tracking-tight text-ink; }
-  h1 { @apply text-3xl leading-[1.1] font-bold tracking-[-0.03em]; }
-  h2 { @apply text-lg font-semibold tracking-[-0.01em]; }
-  h3 { @apply text-base font-semibold tracking-normal; }
+  h1 { @apply text-3xl leading-[1.1] font-extrabold tracking-[-0.03em]; }
+  h2 { @apply text-lg leading-snug font-bold tracking-[-0.015em]; }
+  h3 { @apply text-base leading-snug font-semibold tracking-normal; }
   a { @apply text-inherit; }
-  strong, b { @apply font-semibold; }
+  strong, b { @apply font-bold; }
   code, kbd, samp, pre { @apply font-mono; }
   pre { @apply text-xs leading-relaxed; }
   small { @apply text-xs; }

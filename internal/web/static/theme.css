@@ -15,8 +15,8 @@
   --gu-border: #DCE9DF;
   --gu-border-strong: #C6D6CA;
   --gu-text: #0E1511;
-  --gu-text-muted: #4F6055;
-  --gu-text-subtle: #566A5C;
+  --gu-text-muted: #36443B;
+  --gu-text-subtle: #4F6055;
   --gu-text-nontext: #738779;
   --gu-text-inverse: #F5FBF6;
   --gu-hover: color-mix(in srgb, var(--gu-text) 6%, transparent);
