@@ -277,3 +277,20 @@ func TestTheCallARequestMadeIsToldToTheResultItsContextCarries(t *testing.T) {
 		t.Fatal("an empty result says a call was made")
 	}
 }
+
+type countingTransport struct{ calls int }
+
+func (c *countingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	c.calls++
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func TestAHostsOwnClientCarriesTheModelCall(t *testing.T) {
+	proxy, tokens, _, _ := site(t, "k")
+	carrier := &countingTransport{}
+	proxy.UseClient(&http.Client{Transport: carrier, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }})
+	token, _ := tokens.Mint("a-job", "")
+	if answer := ask(t, proxy, "/model/"+token+"/v1/models", `{}`); answer.Code != http.StatusOK || carrier.calls != 1 {
+		t.Fatalf("code %d, the client carried %d calls", answer.Code, carrier.calls)
+	}
+}

@@ -15,7 +15,7 @@ import (
 // client every credential has had.
 func (p *Proxy) clientFor(credential Credential) *http.Client {
 	if !credential.Public {
-		return p.client
+		return p.client.Load()
 	}
 	return p.public
 }

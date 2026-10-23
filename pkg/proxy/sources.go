@@ -1,6 +1,9 @@
 package proxy
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
 // TokenSource says what a token stands for. Tokens is the one a task's runner uses: tokens it
 // minted, held in memory, dropped when the task ends. A host that signs its tokens somewhere
@@ -42,6 +45,11 @@ func (p *Proxy) UseCredentials(source CredentialSource) {
 	}
 	p.source.Store(&source)
 }
+
+// UseClient has the proxy make its model calls with client, in place of the default transport.
+// A host that guards where its providers may be reached from gives its own. A client that follows
+// redirects would carry the credential's headers to wherever it is sent, so it must not.
+func (p *Proxy) UseClient(client *http.Client) { p.client.Store(client) }
 
 func (p *Proxy) tokenSource() TokenSource { return *p.tokens.Load() }
 

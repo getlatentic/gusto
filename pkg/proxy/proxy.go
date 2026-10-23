@@ -29,7 +29,7 @@ type Proxy struct {
 	where    Where
 	ledger   *spend.Ledger
 	allowed  Allowlist
-	client   *http.Client
+	client   atomic.Pointer[http.Client]
 	public   *http.Client
 	guard    sync.Mutex
 	// lines is how many lines each task's record has, kept under guard.
@@ -49,17 +49,17 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 		where:   where,
 		ledger:  ledger,
 		allowed: allowed,
-		// A model answers slowly and streams. There is no timeout to set here
-		// that is not a guess at somebody's slowest prompt; the task's own budget
-		// is what stops a run that will not end.
-		// The model is where a credential goes, so an answer that sends the
-		// call somewhere else is not followed: it would carry the credential's
-		// headers with it.
-		client: &http.Client{
-			Transport:     http.DefaultTransport,
-			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-		},
 	}
+	// A model answers slowly and streams. There is no timeout to set here
+	// that is not a guess at somebody's slowest prompt; the task's own budget
+	// is what stops a run that will not end.
+	// The model is where a credential goes, so an answer that sends the
+	// call somewhere else is not followed: it would carry the credential's
+	// headers with it.
+	p.UseClient(&http.Client{
+		Transport:     http.DefaultTransport,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	})
 	p.UseTokens(tokens)
 	p.public = publicClient(p.lookup)
 	p.SetCredentials(credentials, 0)
