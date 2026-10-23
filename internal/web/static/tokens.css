@@ -63,8 +63,8 @@
   --gu-focus: var(--gu-signal-500);
 
   /* Type */
-  --gu-font-display: "Manrope", system-ui, sans-serif;
-  --gu-font-text: "Manrope", system-ui, sans-serif;
+  --gu-font-display: "Inter", system-ui, sans-serif;
+  --gu-font-text: "Inter", system-ui, sans-serif;
   --gu-font-mono: "Noto Sans Mono", ui-monospace, monospace;
 
   /* Space (4pt) */

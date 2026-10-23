@@ -27,7 +27,7 @@ The design tokens (tokens.css) and the mark (mark.svg and its images) in interna
 Files served from the binary (internal/web/static, see PROVENANCE.md there):
   htmx            BSD-style (htmx.org)
   highlight.js    BSD 3-Clause
-  Manrope, Noto Sans Mono (fonts)  SIL Open Font License 1.1
+  Inter, Noto Sans Mono (fonts)  SIL Open Font License 1.1
   Lucide (icons)  ISC
 
 Programs a person may install beside gusto, which gusto runs and does not link:
