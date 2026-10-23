@@ -9,7 +9,7 @@
     <label class="grid gap-1 text-sm text-muted">Company <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
     {{with .TurnstileSite}}<div class="cf-turnstile" data-size="flexible" data-sitekey="{{.}}"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
-    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Start my demo</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Start my demo</button>
   </form>
   {{if .Book}}<p class="text-center text-sm text-muted">Rather be shown? <a class="underline" href="{{.Book}}">Book a call</a></p>{{end}}
 {{template "foot"}}{{end}}

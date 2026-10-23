@@ -157,7 +157,7 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddr
 		if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/gusto"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
 			t.Errorf("%d\n%s", status, body)
 		}
-		if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".bg-accent") {
+		if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".bg-solid") {
 			t.Errorf("the page of an ended demo has no styles: %d %v", status, header)
 		}
 		if status, _, header := b.get2("/demo/wait"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
@@ -229,7 +229,7 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
 			t.Errorf("sign-up is still there: %d", status)
 		}
-		if status, css, _ := f.browser().do("GET", "/static/cloud.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".bg-accent") {
+		if status, css, _ := f.browser().do("GET", "/static/cloud.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".bg-solid") {
 			t.Errorf("its stylesheet is served: %d", status)
 		}
 		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
