@@ -235,14 +235,14 @@ func TestTheSignedTokenAlsoOpensTheForwardProxy(t *testing.T) {
 	proxy, _, _, _ := site(t, "k")
 	proxy.UseTokens(signedTokens{"v1.signed": {Job: "lease-9"}})
 	request := httptest.NewRequest("CONNECT", "http://example.com:443", nil)
-	request.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("vuxto:v1.signed")))
+	request.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("host:v1.signed")))
 	recorder := httptest.NewRecorder()
 	proxy.Handler().ServeHTTP(recorder, request)
 	if recorder.Code == http.StatusProxyAuthRequired {
 		t.Fatal("the proxy did not take the token the source knows")
 	}
 	bad := httptest.NewRequest("CONNECT", "http://example.com:443", nil)
-	bad.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("vuxto:unknown")))
+	bad.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("host:unknown")))
 	refused := httptest.NewRecorder()
 	proxy.Handler().ServeHTTP(refused, bad)
 	if refused.Code != http.StatusProxyAuthRequired {
