@@ -69,11 +69,11 @@
    scale is Tailwind's own, whose steps are the tokens' (p-1 is --gu-space-1). */
 @theme {
   --text-xs: 0.75rem;
-  --text-xs--line-height: 1.4;
-  --text-sm: 0.8125rem;
-  --text-sm--line-height: 1.5;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.55;
   --text-base: 0.9375rem;
-  --text-base--line-height: 1.5;
+  --text-base--line-height: 1.55;
   --text-lg: 1.0625rem;
   --text-lg--line-height: 1.4;
   --text-xl: 1.25rem;
