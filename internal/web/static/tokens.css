@@ -41,8 +41,8 @@
   --gu-border: var(--gu-neutral-200);
   --gu-border-strong: var(--gu-neutral-300);
   --gu-text: var(--gu-neutral-900);
-  --gu-text-muted: var(--gu-neutral-600);
-  --gu-text-subtle: #566A5C;
+  --gu-text-muted: var(--gu-neutral-700);
+  --gu-text-subtle: var(--gu-neutral-600);
   --gu-text-nontext: var(--gu-neutral-500); /* icons, dividers, disabled marks. Never a string. */
   --gu-text-inverse: var(--gu-neutral-50);
   --gu-accent: var(--gu-green-500);
@@ -51,7 +51,7 @@
   --gu-accent-text: var(--gu-green-700); /* green that reads as text on the page */
   --gu-accent-text-large: var(--gu-green-600);
   --gu-accent-surface: var(--gu-green-50);
-  --gu-on-accent: var(--gu-neutral-900); /* Carbon on Relay Green, never white */
+  --gu-on-accent: var(--gu-neutral-900); /* Carbon on Relay Green; solid fills use --gu-accent-solid with its own text */
   --gu-success: var(--gu-green-700);
   --gu-success-surface: var(--gu-green-50);
   --gu-warning: #8A5300;
@@ -63,8 +63,8 @@
   --gu-focus: var(--gu-signal-500);
 
   /* Type */
-  --gu-font-display: "Manrope", system-ui, sans-serif;
-  --gu-font-text: "Manrope", system-ui, sans-serif;
+  --gu-font-display: "Inter", system-ui, sans-serif;
+  --gu-font-text: "Inter", system-ui, sans-serif;
   --gu-font-mono: "Noto Sans Mono", ui-monospace, monospace;
 
   /* Space (4pt) */

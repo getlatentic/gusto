@@ -8,7 +8,7 @@ somebody else can change after review.
 | --- | --- | --- | --- |
 | htmx.min.js | htmx 2.0.11, from https://cdn.jsdelivr.net/npm/htmx.org@2/dist/htmx.min.js | 52182 | d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717 |
 | tokens.css | gusto's design tokens | 4236 | ebbb19d06726a10fe86050880f75258b606fc41a8b4780e8d6469dc8e597e399 |
-| manrope.woff2 | Manrope, weights 200 to 800, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/manrope 5.2.5 (fetched 2026-10-20) | 24376 | 14be4114dcfde74652f19f9ffae8c9bb50707e9e88bd2b1fcd86fb50224109e7 |
+| inter.woff2 | Inter, weights 100 to 900, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/inter 5.3.0 (fetched 2026-10-23) | 48256 | 3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62 |
 | noto-sans-mono.woff2 | Noto Sans Mono, weights 100 to 900, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/noto-sans-mono 5.3.0 (fetched 2026-10-19) | 32108 | 71f6c22d5dd256eaa9e48347bda6ac2c65f58980dd372ed5780fbdaca1186331 |
 | mark.png | gusto's mark, drawn from brand/gusto-mark.svg at 192px wide | 6622 | 1210d55ec5948a7f7c12a8eda5261e7d669bddc0498ed5829476ccd96d2883fd |
 | mark.svg | gusto's mark (brand/gusto-mark.svg) | 1353 | 162a8be4516144137fdfc650ee0b6fa3d4da1cb8b5bbe1b641cb4a8849b00c6b |
@@ -22,6 +22,6 @@ Fetched 2026-09-26. Check them:
 shasum -a 256 internal/web/static/*
 ```
 
-Manrope, the text and display face, and Noto Sans Mono, the code face, are vendored, so a page looks the same on every machine.
+Inter, the text and display face, and Noto Sans Mono, the code face, are vendored, so a page looks the same on every machine.
 
 The icons in `templates/layout.html` and `static/explorer.js` are from Lucide (https://lucide.dev, ISC license), on its 24 unit grid.

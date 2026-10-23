@@ -16,23 +16,23 @@
   {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
   <div class="ml-auto flex flex-wrap items-center gap-3">
   {{with .Index}}
-  <label><span class="sr-only">Search</span><input class="{{template "ag-ctl"}} w-48" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
-  {{if .Everyone}}<label><span class="sr-only">Person</span><input class="{{template "ag-ctl"}} w-36" type="text" name="person" value="{{.Person}}" placeholder="Person"></label>{{end}}
+  <label><span class="sr-only">Search</span><input class="input w-48" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
+  {{if .Everyone}}<label><span class="sr-only">Person</span><input class="input w-36" type="text" name="person" value="{{.Person}}" placeholder="Person"></label>{{end}}
   {{end}}
-  <noscript><button type="submit" class="{{template "ag-btn-quiet"}}">Filter</button></noscript>
+  <noscript><button type="submit" class="{{template "ui-btn-quiet"}}">Filter</button></noscript>
   </div>
   <details class="group basis-full"{{if .Harness}} open{{end}}>
     <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
     <div class="mt-3 flex flex-wrap gap-3">
   <label><span class="sr-only">Agent type</span>
-        <select class="{{template "ag-ctl"}}" name="agent_type" data-autosubmit>
+        <select class="select" name="agent_type" data-autosubmit>
           <option value="">every agent</option>
           {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
         </select>
       </label>
   {{with .Index}}
       <label><span class="sr-only">Order</span>
-        <select class="{{template "ag-ctl"}}" name="sort" data-autosubmit>
+        <select class="select" name="sort" data-autosubmit>
           {{$sorted := .Sort}}{{range .Sorts}}<option value="{{.Name}}"{{if or (eq .Name $sorted) (and (eq .Name "queued") (not $sorted))}} selected{{end}}>{{.Label}}</option>{{end}}
         </select>
       </label>
@@ -54,7 +54,7 @@
         <p class="mt-0.5 truncate text-xs text-muted">{{if .On.Link}}<a class="text-muted" href="{{.On.Link}}" title="{{.On.Named}}">{{or .On.Project .On.Named}}</a>{{else}}{{template "origin" .On}}{{end}}<span>{{with .Model}} · {{brain .}}{{end}}</span></p>
         {{$asked := .Asked}}{{with waiting .ID}}<span class="text-xs text-muted">Asked by {{askedBy $asked}}. {{.}}</span>{{end}}
       </div>
-      {{$outcome := outcome .}}{{if or (eq $outcome "replied") (eq $outcome "check passed")}}<span></span>{{else}}<span class="{{if eq .State "passed"}}{{template "ag-badge-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{template "ag-badge-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{template "ag-badge-warn"}}{{else}}{{template "ag-badge"}}{{end}}" title="{{when .Queued}}">{{outcome .}}</span>{{end}}
+      {{$outcome := outcome .}}{{if or (eq $outcome "replied") (eq $outcome "check passed")}}<span></span>{{else}}<span class="{{if eq .State "passed"}}{{template "ui-badge-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{template "ui-badge-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{template "ui-badge-warn"}}{{else}}{{template "ui-badge"}}{{end}}" title="{{when .Queued}}">{{outcome .}}</span>{{end}}
       <span class="whitespace-nowrap text-right text-xs tabular-nums text-muted @max-[48rem]:hidden"><span title="{{when .Queued}}">{{hourOf .Queued}}</span>{{if or .Metered .Cost}} · {{template "cost" .}}{{end}}</span>
     </li>
     {{end}}
@@ -62,9 +62,9 @@
 </section>
 {{end}}
 <nav class="mt-4 flex justify-end gap-2" aria-label="Pages">
-  {{with .Index}}{{with .Newest}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Newest</a>{{end}}{{end}}
-  {{with .Newer}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Newer</a>{{end}}
-  {{with .Older}}<a class="{{template "ag-btn-small"}}" href="{{.}}">Older</a>{{end}}
+  {{with .Index}}{{with .Newest}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Newest</a>{{end}}{{end}}
+  {{with .Newer}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Newer</a>{{end}}
+  {{with .Older}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Older</a>{{end}}
 </nav>
 {{else}}
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1">{{if or .State .Harness (and .Index .Index.Query) (and .Index .Index.Person)}}Nothing matches these filters.{{else if and .Index .Index.Building.Building}}Nothing is listed yet: the index is still being built.{{else}}Nothing has happened here yet. Everything an agent does shows up here: <a class="font-medium text-ink" href="/new">start one</a>.{{end}}</p>

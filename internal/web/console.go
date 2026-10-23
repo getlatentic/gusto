@@ -15,7 +15,7 @@ func (s *Server) sections() []section {
 		{"overview", "/admin", "Overview"},
 		{"usage", "/admin/usage", "Usage"},
 	}
-	all = append(all, section{"verification", "/admin/verification", "Verification"})
+	all = append(all, section{"verification", "/admin/verification", "Verification"}, section{"ui-kit", "/admin/ui-kit", "UI kit"})
 	if s.changes != nil {
 		all = append(all, section{"activity", "/admin/activity", "Activity"})
 	}
@@ -81,6 +81,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin", s.console(s.overviewPage))
 	mux.HandleFunc("GET /admin/spending", s.console(s.consoleSpend))
 	mux.HandleFunc("GET /admin/verification", s.console(s.verificationPage))
+	mux.HandleFunc("GET /admin/ui-kit", s.console(s.uiKitPage))
 
 	changes := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasChanges, next)) }
 	mux.HandleFunc("GET /admin/activity", changes(s.changesPage))

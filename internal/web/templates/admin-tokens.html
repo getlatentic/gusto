@@ -1,47 +1,47 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>API tokens</h1>
   <span class="text-sm text-muted">What programs use to call this server</span>
   <span class="flex-1"></span>
-  <button class="{{template "adm-btn"}}" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
+  <button class="{{template "ui-btn"}}" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
 </div>
 
-{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="grid gap-4">
 {{if .Secret}}
-<section class="{{template "adm-card"}} grid gap-2">
+<section class="{{template "ui-card"}} grid gap-2">
   <h2 class="text-sm">Token {{.Made}}</h2>
   <p>Copy it now. This page is the only place it is ever shown.</p>
   <p><code class="block overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-sm">{{.Secret}}</code></p>
-  <p class="{{template "adm-note"}}">Set it as <code>GUSTO_TOKEN</code> where <code>gusto submit</code> runs, or send it as <code>Authorization: Bearer</code>.</p>
+  <p class="{{template "ui-note"}}">Set it as <code>GUSTO_TOKEN</code> where <code>gusto submit</code> runs, or send it as <code>Authorization: Bearer</code>.</p>
 </section>
 {{end}}
 
-<section class="{{template "adm-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
-  <h2 class="{{template "adm-card-title"}}">Make a token</h2>
+<section class="{{template "ui-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
+  <h2 class="{{template "ui-card-title"}}">Make a token</h2>
   <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
-    <label class="{{template "adm-field"}}">Name <input class="{{template "adm-input"}}" name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
+    <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
-      {{range .Offered}}<label class="{{template "adm-check"}}"><input type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
+      {{range .Offered}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
     </fieldset>
-    <div><button class="{{template "adm-btn"}}" type="submit">Make token</button></div>
+    <div><button class="{{template "ui-btn"}}" type="submit">Make token</button></div>
   </form>
 </section>
 
 {{if .Tokens}}
-<div class="{{template "adm-card"}} overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Name</th><th>Can</th><th>Made</th><th>Last used</th><th></th></tr></thead>
     <tbody>
       {{range .Tokens}}
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
-        <td><span class="flex flex-wrap gap-1">{{range split .May ", "}}<span class="{{template "adm-badge"}}">{{.}}</span>{{end}}</span></td>
+        <td><span class="flex flex-wrap gap-1">{{range split .May ", "}}<span class="{{template "ui-badge"}}">{{.}}</span>{{end}}</span></td>
         <td class="whitespace-nowrap" title="{{.Made}}"><span>{{.MadeDay}}</span> <span class="text-xs text-muted">by {{.By}}</span></td>
         <td class="whitespace-nowrap text-muted"{{if .LastUsed}} title="{{.LastUsed}}"{{end}}>{{if .UsedAt}}{{ago .UsedAt}}{{else}}Never{{end}}</td>
-        <td class="text-right">{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button class="{{template "adm-btn-danger"}}" type="submit">Revoke</button></form>{{else}}<span class="text-muted" title="{{.Ended}}">Revoked</span>{{end}}</td>
+        <td class="text-right">{{if .Live}}<form method="post" action="/admin/tokens/{{.ID}}/revoke"><button class="{{template "ui-btn-sm-danger"}}" type="submit">Revoke</button></form>{{else}}<span class="text-muted" title="{{.Ended}}">Revoked</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
