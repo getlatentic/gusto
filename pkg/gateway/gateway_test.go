@@ -514,3 +514,19 @@ func TestAHostCanGiveTheClientThatCallsTheServersAndIsTold(t *testing.T) {
 		t.Fatalf("the host was told %+v", told)
 	}
 }
+
+func TestWhereAServerIsIsNotToldToTheAgentWhenAddressesAreHidden(t *testing.T) {
+	gone := Server{Name: "gone", URL: "http://127.0.0.1:1/mcp", Headers: map[string]string{"Authorization": "Bearer s3cret"}}
+	for _, hide := range []bool{false, true} {
+		h := start(t, Config{Servers: []Server{gone}, HideAddresses: hide})
+		found, _ := h.call("tool_search", map[string]any{})
+		called, failed := h.call("tool_call", map[string]any{"name": "gone/anything"})
+		saidWhere := strings.Contains(found, "127.0.0.1")
+		if saidWhere == hide || !strings.Contains(found, "(the server gone could not be reached") {
+			t.Errorf("hide=%v: the search said %q", hide, found)
+		}
+		if strings.Contains(called, "127.0.0.1") || !failed {
+			t.Errorf("hide=%v: the call said %q", hide, called)
+		}
+	}
+}

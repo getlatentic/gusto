@@ -60,6 +60,17 @@ type Config struct {
 	Client *http.Client
 	// Tell, when set, is told of each line the record would hold, as well as the record.
 	Tell func(Entry)
+	// HideAddresses keeps from the agent why a server could not be reached or called, since the reason names where the server is and
+	// the agent runs somewhere the servers' addresses are not to be known. The record keeps the reason.
+	HideAddresses bool
+}
+
+// explain is why a server could not be reached or called, as the agent may be told it.
+func (s *Session) explain(why string) string {
+	if s.config.HideAddresses {
+		return "it did not answer"
+	}
+	return oneLine(why)
 }
 
 // Session is the gateway for one task: an MCP server the task's agent calls.
@@ -285,7 +296,7 @@ func (s *Session) search(arguments json.RawMessage) Result {
 	}
 	for _, name := range s.catalog.order {
 		if why, down := s.catalog.broken[name]; down {
-			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, oneLine(why))
+			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, s.explain(why))
 		}
 	}
 	withheld := make([]string, 0, len(s.catalog.withheld))
@@ -357,7 +368,7 @@ func (s *Session) invoke(r *http.Request, name string, arguments json.RawMessage
 	if err != nil {
 		entry.Outcome, entry.Why = "failed", err.Error()
 		s.note(entry)
-		return text("the call could not be made: "+err.Error(), true)
+		return text("the call could not be made: "+s.explain(err.Error()), true)
 	}
 	result, entry.Redacted = s.masked(result)
 	size, _ := json.Marshal(result)
