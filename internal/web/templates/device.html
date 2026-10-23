@@ -1,6 +1,6 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="{{template "adm-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="mb-6 grid gap-1">
   <h1>Your computers</h1>
@@ -10,34 +10,34 @@
 <div class="grid max-w-prose gap-4">
 {{if .Approved}}<p class="rounded-sm bg-ok-wash px-4 py-3 text-sm text-ok">Approved <strong>{{.Approved}}</strong>. Go back to the computer: it signs in on its own.</p>{{end}}
 
-{{if .Owner}}<p class="{{template "adm-note"}}">This server has no sign-in provider, so the shared password is its one owner. A computer you approve acts as that owner.</p>{{end}}
+{{if .Owner}}<p class="{{template "ui-note"}}">This server has no sign-in provider, so the shared password is its one owner. A computer you approve acts as that owner.</p>{{end}}
 
 {{if .Shared}}
-<p class="{{template "adm-note"}}">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
+<p class="{{template "ui-note"}}">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
 {{else}}
-<form method="post" action="/device" class="{{template "adm-card"}} flex flex-wrap items-end gap-3">
-  <label class="{{template "adm-field"}} min-w-48 flex-1" for="code">The code your computer shows
-    <input class="{{template "adm-input"}} font-mono uppercase tracking-widest" id="code" name="code" value="{{.Code}}" placeholder="BCDF-GHJK" autocomplete="off" required>
+<form method="post" action="/device" class="{{template "ui-card"}} flex flex-wrap items-end gap-3">
+  <label class="{{template "ui-field"}} min-w-48 flex-1" for="code">The code your computer shows
+    <input class="input font-mono uppercase tracking-widest" id="code" name="code" value="{{.Code}}" placeholder="BCDF-GHJK" autocomplete="off" required>
   </label>
-  <button type="submit" class="{{template "adm-btn"}}">Approve</button>
+  <button type="submit" class="{{template "ui-btn"}}">Approve</button>
 </form>
 
 <h2 class="mt-4">Approved</h2>
 {{if .Tokens}}
-<div class="{{template "adm-card"}} overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th>Computer</th><th>Approved</th><th>Last used</th><th></th></tr></thead>
     <tbody>
     {{range .Tokens}}
       <tr>
         <td class="font-medium">{{.Name}}</td><td class="whitespace-nowrap text-muted">{{.Made}}</td><td class="whitespace-nowrap text-muted">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
-        <td class="text-right">{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit" class="{{template "adm-btn-danger"}}">End</button></form>{{else}}<span class="whitespace-nowrap text-muted">ended {{.Ended}}</span>{{end}}</td>
+        <td class="text-right">{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit" class="{{template "ui-btn-sm-danger"}}">End</button></form>{{else}}<span class="whitespace-nowrap text-muted">ended {{.Ended}}</span>{{end}}</td>
       </tr>
     {{end}}
     </tbody>
   </table>
 </div>
-{{else}}<p class="{{template "adm-note"}}">None yet.</p>{{end}}
+{{else}}<p class="{{template "ui-note"}}">None yet.</p>{{end}}
 {{end}}
 </div>
 

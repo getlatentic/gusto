@@ -1,21 +1,21 @@
 {{template "head" .}}
 
-<div class="{{template "adm-title"}}">
+<div class="{{template "ui-title"}}">
   <h1>Activity</h1>
 </div>
 
 {{if .Broken}}
-<p class="{{template "adm-notice"}}">This record does not hold together. {{.Broken}}</p>
+<p class="{{template "ui-notice"}}">This record does not hold together. {{.Broken}}</p>
 {{else}}
-<section class="{{template "adm-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+<section class="{{template "ui-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
   <span class="grid size-9 flex-none place-items-center rounded-full bg-ok-wash text-ok">{{template "icon-seal"}}</span>
   <div class="grid min-w-48 flex-1 gap-0.5">
     <strong>Activity log intact</strong>
     <span class="text-xs text-muted">{{.Events}} event{{if ne .Events 1}}s{{end}}{{if .Signed}}, {{.Signed}} signed{{end}}{{if .Unsigned}}, {{.Unsigned}} not signed{{end}}</span>
   </div>
-  <a class="{{template "adm-btn-quiet"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>
+  <a class="{{template "ui-btn-sm"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>
   <details class="group basis-full">
-    <summary class="{{template "adm-fold-summary"}}">{{template "adm-chevron"}} How to check it</summary>
+    <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How to check it</summary>
     <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
       <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
       {{if .Head}}<p>Keep this head to learn later whether lines were cut off the end:</p>
@@ -26,15 +26,15 @@
 {{end}}
 
 {{if .Rows}}
-<div class="{{template "adm-card"}} overflow-x-auto">
-  <table class="{{template "adm-table"}}">
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th class="w-40">When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
     <tbody>
       {{range .Rows}}
       <tr>
         <td class="whitespace-nowrap text-muted" title="{{.Full}}">{{.At}}</td>
         <td class="whitespace-nowrap">{{.Who}}</td>
-        <td>{{.Said}}{{if gt .Times 1}} <span class="{{template "adm-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
+        <td>{{.Said}}{{if gt .Times 1}} <span class="{{template "ui-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
         <td class="whitespace-nowrap font-mono text-xs text-muted">{{.From}}</td>
       </tr>
       {{end}}
