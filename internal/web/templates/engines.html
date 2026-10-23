@@ -9,7 +9,7 @@
 
 {{with .Measured}}
 {{if .Rows}}
-<p class="mb-5 flex items-baseline gap-2"><span class="font-display text-2xl font-semibold tabular-nums text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
+<p class="mb-5 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
 <div class="{{template "ui-table-wrap"}}">
   <table>
     <thead><tr><th class="{{template "ui-th"}}">Agent type</th>{{range .Models}}<th class="{{template "ui-th"}}">{{.}}</th>{{end}}</tr></thead>

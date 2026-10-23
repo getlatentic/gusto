@@ -8,9 +8,9 @@
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <section class="{{template "ui-figures"}}">
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Used}}</span><span class="text-xs text-muted">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{.Workspaces}}</span><span class="text-xs text-muted">of it in working folders</span></div>
-  <div class="{{template "ui-figure"}}"><span class="font-display text-2xl leading-none font-semibold tracking-tight text-ink tabular-nums">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="text-xs text-muted">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Used}}</span><span class="{{template "ui-figure-label"}}">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Workspaces}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="{{template "ui-figure-label"}}">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
 <div class="grid gap-4">
