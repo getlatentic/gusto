@@ -2,6 +2,7 @@
 // how the pages look can be seen on all of them at once.
 //
 //   cd <a folder with playwright installed> && node /path/to/deploy/shots/shots.mjs <out dir> [route filter]
+//   node deploy/shots/shots.mjs --serve     leaves the seeded server running to click around in, with no screenshots
 //
 // It builds ./cmd/gusto, starts a stub model and a server on 127.0.0.1:8700 whose agent is a canned one that asks the model
 // through the proxy and writes a file, makes a few conversations, a routine, a checked task and a signed record, then visits each
@@ -11,11 +12,12 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { chromium } from "playwright";
 
 const root = resolve(new URL("../..", import.meta.url).pathname);
-const out = resolve(process.argv[2] ?? "shots-out");
-const only = process.argv[3];
+const args = process.argv.slice(2).filter((a) => a !== "--serve");
+const serving = process.argv.includes("--serve");
+const out = resolve(args[0] ?? "shots-out");
+const only = args[1];
 const port = 8700, base = `http://127.0.0.1:${port}`, password = "shots";
 const work = mkdtempSync(join(tmpdir(), "gusto-shots-"));
 const children = [];
@@ -105,6 +107,11 @@ for (let i = 0; i < 90; i++) {
 }
 await sleep(4000);
 
+if (serving) {
+  console.log(`serving ${base}, sign in with the password "${password}"; stop with Ctrl-C`);
+  await new Promise(() => {});
+}
+
 // 3. the routes
 const jobId = turns[1];
 const routes = [
@@ -119,6 +126,7 @@ const routes = [
 
 // 4. the photographs
 rmSync(out, { recursive: true, force: true });
+const { chromium } = await import("playwright");
 const browser = await chromium.launch();
 const report = [];
 for (const theme of ["light", "dark"]) {
