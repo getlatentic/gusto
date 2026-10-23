@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // perPage is how many jobs one page of the record shows. The record only

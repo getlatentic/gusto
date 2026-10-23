@@ -27,11 +27,11 @@ RUN apt-get update \
 # HARNESSES is the list this image carries: each member is an adapter's name, an
 # equals sign, and the npm package that provides its program, so the name a job
 # asks for and the package that answers it are written down together. The
-# version comes from internal/harness/pins.json, and the installer refuses a
+# version comes from pkg/harness/pins.json, and the installer refuses a
 # tarball whose sha512 is not the pinned one. What it installed is written to
 # /etc/gusto/harnesses, one name=package@version a line: the record names the
 # agent's build from it, and the catalog reads the version there.
-COPY internal/harness/pins.json deploy/runner/install.mjs /opt/gusto/runner/
+COPY pkg/harness/pins.json deploy/runner/install.mjs /opt/gusto/runner/
 ARG HARNESSES="opencode=opencode-ai"
 RUN node /opt/gusto/runner/install.mjs /opt/gusto/runner/pins.json /etc/gusto/harnesses $HARNESSES
 # The image says what it carries, so `docker image inspect` and the server's
@@ -48,15 +48,15 @@ LABEL com.getlatentic.gusto.mcp="$MCP_SERVERS"
 COPY --from=build /gusto /usr/local/bin/gusto
 # A harness's own configuration is not the adapter's: the adapter has to stay
 # portable between a person's computer and a container. Each harness has a
-# directory of its own under internal/harness/config/, named after it and copied
+# directory of its own under pkg/harness/config/, named after it and copied
 # to /root/.config/<name>/, so two harnesses never share a file; on a person's
 # computer gusto puts the same files in the harness's home. What a harness
 # keeps between turns, its sessions and settings, is under /root/.local/share,
 # the instance's own state; each adapter points its harness there.
-COPY internal/harness/config/ /root/.config/
+COPY pkg/harness/config/ /root/.config/
 # The same files where a sandbox on a gateway can read them: its user has a home
 # of its own and cannot read /root, and copies these into it before a harness starts.
-COPY internal/harness/config/ /opt/gusto/harness/
+COPY pkg/harness/config/ /opt/gusto/harness/
 # The harness runs as node (uid 1000, which the base image has) and the runner
 # as root, so only the runner can write the record in /job/out. The runner
 # gives the harness its workspace and /root before starting it.

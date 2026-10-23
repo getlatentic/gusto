@@ -9,7 +9,7 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // carriedIn hashes every file in an export except the summary, which cannot

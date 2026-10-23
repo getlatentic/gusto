@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // changed is the files a turn changed, from its patch, for the chat to link to.

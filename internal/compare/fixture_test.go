@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Harnesses that are programs: one leaves the answer the gate wants, one leaves

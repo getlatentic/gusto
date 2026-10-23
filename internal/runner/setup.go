@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // serversFile is where a job's MCP server definitions wait in its setup

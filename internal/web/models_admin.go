@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/roster"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // UseRegistry gives the console a page of the models the organization may use, which its admins change, and

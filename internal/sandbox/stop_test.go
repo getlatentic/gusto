@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // runtimeThat is a container runtime that is a script: a `run` takes an interrupt as the real client hands one to its

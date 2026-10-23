@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // configuredRun runs a job carrying a configured harness whose adapter is

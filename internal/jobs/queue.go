@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Work is what a worker does with a claimed task. It is the runner, injected, so

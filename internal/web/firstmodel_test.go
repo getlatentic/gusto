@@ -12,8 +12,8 @@ import (
 
 	"errors"
 	"github.com/getlatentic/gusto/internal/isolation"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // ownComputer is gusto on a person's own computer: signed in by its own links, with a registry of the person's and no model yet.

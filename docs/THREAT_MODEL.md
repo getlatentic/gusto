@@ -39,7 +39,7 @@ It trusts the session it signed, an API token it hashed, and the identity provid
 | What is drawn | Templates escape. Model Markdown has raw HTML off and links restricted. Record files are plain text with `nosniff`. A task's record is read as files, never links, so what the agent plants in `out/` is never opened |
 | Repository source and caching | An https or ssh address. A path on the server's disk only under a directory the operator names. Never an address git could read as an option. Nothing behind the sign-in is cached, and HSTS is set over TLS |
 
-## The model proxy (`internal/proxy`)
+## The model proxy (`pkg/proxy`)
 
 It trusts the per-task token, minted for one task and dropped when it ends. It trusts nothing from the container: not its headers, destination names or DNS.
 

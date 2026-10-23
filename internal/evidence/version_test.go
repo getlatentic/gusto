@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func manifestIn(t *testing.T, text string) job.Dir {

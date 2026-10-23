@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Allows refuses a task whose code may not leave against a model endpoint that

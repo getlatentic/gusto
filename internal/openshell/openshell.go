@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Config says where the gateway is and what the sandboxes are made from.

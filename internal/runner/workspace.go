@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Fill puts the repository in workspace/, or makes an empty one when no

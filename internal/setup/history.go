@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // mostEarlier is how many earlier versions of one skill are kept to go back to.

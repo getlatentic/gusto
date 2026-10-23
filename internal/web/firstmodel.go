@@ -16,8 +16,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // A person on their own computer starts with no model, and adds the one they have a key for: where it answers, whether it

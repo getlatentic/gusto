@@ -12,7 +12,7 @@ import (
 	"path"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 //go:embed templates/*.json

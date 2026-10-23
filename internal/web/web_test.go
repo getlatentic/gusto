@@ -12,14 +12,14 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/harness"
+	"github.com/getlatentic/gusto/pkg/harness"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 const password = "a-shared-password"

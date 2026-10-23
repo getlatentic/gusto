@@ -13,9 +13,9 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // twoEngines is a server offering two harnesses that need no account.

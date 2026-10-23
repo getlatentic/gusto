@@ -9,8 +9,8 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A job in the matrix is a comparison, in the shape `gusto compare` writes and

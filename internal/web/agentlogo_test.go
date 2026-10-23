@@ -9,7 +9,7 @@ import (
 
 // An agent is known by its own mark wherever it is listed, so each one the binary ships has its file.
 func TestEveryShippedAgentHasItsOwnMark(t *testing.T) {
-	adapters, err := filepath.Glob("../harness/adapters/*.json")
+	adapters, err := filepath.Glob("../../pkg/harness/adapters/*.json")
 	if err != nil || len(adapters) == 0 {
 		t.Fatalf("no adapters found: %v", err)
 	}

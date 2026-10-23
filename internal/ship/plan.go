@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Options overrides what the task would otherwise decide. Every field may be

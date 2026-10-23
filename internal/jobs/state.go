@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 type State string

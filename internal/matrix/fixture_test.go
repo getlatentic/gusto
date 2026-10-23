@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Harnesses that are programs, so no model is asked anything. "says" writes the

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A turn names no gate, so its harness's exit is what says it failed. A turn

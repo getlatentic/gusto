@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // runTask is work done on an instance's own computer: a brief, a gate, and the

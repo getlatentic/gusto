@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Board keeps the comparisons started from the pages. Their runs are tasks in

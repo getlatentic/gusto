@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Signers is what every signed record under a directory says about its key,

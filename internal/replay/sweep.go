@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Run does the work of one prepared replay. Its error is for a run that could

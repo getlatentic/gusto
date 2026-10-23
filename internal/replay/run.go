@@ -3,10 +3,10 @@ package replay
 import (
 	"flag"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Here runs a rerun in this process, the way `gusto inside` does.

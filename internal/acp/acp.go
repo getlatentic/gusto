@@ -11,7 +11,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Turn is one message in a conversation.

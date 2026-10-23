@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A harness is a program, so a program that makes the change runs the whole

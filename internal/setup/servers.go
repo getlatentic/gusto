@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Servers is every MCP server the deployment offers, by name.

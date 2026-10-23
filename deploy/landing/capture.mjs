@@ -69,7 +69,7 @@ mkdirSync(shims);
 for (const [program, version] of [["claude-agent-acp", "0.94.0"], ["codex-acp", "2.2.2"]]) { writeFileSync(join(shims, program), `#!/bin/sh\necho ${version}\n`, { mode: 0o755 }); }
 start(bin, ["serve"], {
   GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8722", GUSTO_JOBS: join(empty, "jobs"), GUSTO_SESSIONS: join(empty, "sessions"),
-  GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(root, "internal/harness/adapters"),
+  GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(root, "pkg/harness/adapters"),
   GUSTO_PROXY_ADDR: "127.0.0.1:8723", HOME: empty, PATH: `${shims}:${process.env.PATH}`,
 }, empty);
 
@@ -82,7 +82,7 @@ writeFileSync(join(models, "creds", "gemma.json"), JSON.stringify({ address: "ht
 start(bin, ["serve"], {
   GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8724", GUSTO_JOBS: join(models, "jobs"), GUSTO_SESSIONS: join(models, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(models, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b", GUSTO_REGISTRY: join(work, "registry"),
-  GUSTO_HARNESSES: join(root, "internal/harness/adapters"), GUSTO_SPEND_POLICY: join(work, "spend.json"), GUSTO_PROXY_ADDR: "127.0.0.1:8725", HOME: models,
+  GUSTO_HARNESSES: join(root, "pkg/harness/adapters"), GUSTO_SPEND_POLICY: join(work, "spend.json"), GUSTO_PROXY_ADDR: "127.0.0.1:8725", HOME: models,
 }, models);
 
 const cookies = async () => {

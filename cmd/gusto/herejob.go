@@ -8,11 +8,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/harness"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // here runs a task in this process, which is what a person's own computer has until it has a sandbox to give a task. A turn in a

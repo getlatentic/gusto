@@ -12,11 +12,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	tools "github.com/getlatentic/gusto/internal/gateway"
-	"github.com/getlatentic/gusto/internal/job"
-	"github.com/getlatentic/gusto/internal/redact"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
+	tools "github.com/getlatentic/gusto/pkg/gateway"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/redact"
 )
 
 // gateways makes a task's gateway the first time it is asked for, from what the task was given when it started, and ends it with the

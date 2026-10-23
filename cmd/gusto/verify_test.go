@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A message in a conversation names no gate, so its record verifies on the

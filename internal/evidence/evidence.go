@@ -16,7 +16,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Verdict is the check's answer. Nothing else in a run has one to give.

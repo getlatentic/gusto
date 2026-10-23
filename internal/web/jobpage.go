@@ -9,8 +9,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/job"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // job is one run and everything it left: what it said, what it ran, what it

@@ -4,10 +4,10 @@ import (
 	"flag"
 	"os"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 type benchmarkFlags struct {

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // bundle hands the whole job back as one archive, so a person can check the run

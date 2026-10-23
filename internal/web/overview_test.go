@@ -13,10 +13,10 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // overview is the Overview as an admin reads it.

@@ -69,7 +69,7 @@ All runs used the one-line-fix task in an OpenShell sandbox on one `m8i.xlarge`.
 | `google.gemma-4-e2b` | no | yes, 33 s | no | no | no |
 | `openai.gpt-oss-120b` | not tried again | yes, 42 s | yes, 43 s | no | no |
 
-- `opencode` runs only models its configuration declares (`internal/harness/config/opencode/opencode.json`). It finishes on the 26B and 31B models. On `gemma-4-e2b` the tests still fail.
+- `opencode` runs only models its configuration declares (`pkg/harness/config/opencode/opencode.json`). It finishes on the 26B and 31B models. On `gemma-4-e2b` the tests still fail.
 - `dsh` asked `gpt-oss-120b` and `gemma-4-e2b` for 256,000 output tokens, which they do not allow. The other two models answered it with no content.
 - `codex` makes one model call and then has its requests denied, on every model here. It finished on DeepSeek Flash and Pro through DeepSeek's own API.
 - `hermes` ends without a fix on `gemma-4-e2b`.

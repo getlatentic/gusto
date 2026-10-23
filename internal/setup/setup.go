@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/gateway"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/gateway"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Setup is one configuration, as kept.

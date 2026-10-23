@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/spend"
 	"github.com/getlatentic/gusto/internal/taskindex"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // run is one line of the record: the job, what it cost, and what it ran on.

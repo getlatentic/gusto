@@ -2,8 +2,8 @@ package runner
 
 import (
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // stoppedByCap reads the proxy's record of the run that started at since for a

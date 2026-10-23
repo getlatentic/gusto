@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/acp"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // hangUp is how long a harness is given to exit once the turn is over and its

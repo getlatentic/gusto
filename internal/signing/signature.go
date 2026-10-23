@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Version is the format of a signature file this code writes and the newest

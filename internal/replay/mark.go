@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // MarkFile is what tells a rerun from an original, in the rerun's own out/.

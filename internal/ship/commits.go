@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Commits are the two a pull request rests on. Change is the patch on the

@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/seatbelt"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // wrapProcess holds a task to the policy with this Mac's Seatbelt. The profile is written beside the task.

@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // onlyBuiltIn is a site whose harnesses are the ones every gusto has, so what the

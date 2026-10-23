@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // hostKey makes a key on the host and names it as the one to sign with.

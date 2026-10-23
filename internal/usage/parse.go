@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 const (

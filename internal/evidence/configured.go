@@ -3,8 +3,8 @@ package evidence
 import (
 	"fmt"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // NoDigest is what a manifest says in place of a digest it never recorded. A

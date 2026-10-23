@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/harness"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // claudeStream is Claude Code's own JSON stream, as its adapter read it before the agent spoke ACP: a cumulative total

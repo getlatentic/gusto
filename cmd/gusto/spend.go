@@ -5,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 type spendFlags struct {

@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the

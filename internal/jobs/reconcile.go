@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/taskindex"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // ReconcileResult is what a reconcile or a rebuild found and fixed. Tasks is how many the files hold.

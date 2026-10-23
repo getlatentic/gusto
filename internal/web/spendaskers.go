@@ -3,7 +3,7 @@ package web
 import (
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // byAsker is the month's jobs added up under who asked for each, in the words

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A conversation works in one folder, turn after turn, and nothing commits

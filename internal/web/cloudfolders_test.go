@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 func foldersAt(t *testing.T, site *site, at string) (shownFolders, int) {

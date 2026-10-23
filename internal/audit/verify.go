@@ -10,8 +10,8 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Report is what Verify found. Problems empty means the export holds.

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/proxy"
 	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
 // Health is what /metrics and /readyz report on besides the index: the release

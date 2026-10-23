@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
+	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Shippable returns the manifest of a task that may become a pull request, or says why it may

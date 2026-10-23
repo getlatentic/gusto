@@ -2,8 +2,8 @@ package matrix
 
 import (
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/job"
-	"github.com/getlatentic/gusto/internal/spend"
+	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // Where a run's cost was read from.
