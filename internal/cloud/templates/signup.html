@@ -8,7 +8,7 @@
     <label class="grid gap-1 text-sm text-muted">Organization name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
     <label class="grid gap-1 text-sm text-muted">Address <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="slug" value="{{.Slug}}" maxlength="32" autocomplete="off" placeholder="made from the name"></label>
     {{end}}
-    <button class="cursor-pointer rounded-sm bg-accent p-3 text-center font-semibold text-on-accent hover:bg-accent-hover" type="submit">Create organization</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Create organization</button>
   </form>
   <p class="text-center text-sm text-muted">Already have one? <a class="underline" href="/signin">Sign in</a></p>
 {{template "foot"}}{{end}}
