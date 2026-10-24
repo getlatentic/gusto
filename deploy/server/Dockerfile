@@ -19,6 +19,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd cmd
 COPY internal internal
+COPY pkg pkg
 ARG RELEASE=
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-X main.release=${RELEASE}" -o /gusto ./cmd/gusto
 
