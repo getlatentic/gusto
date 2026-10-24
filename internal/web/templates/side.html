@@ -16,7 +16,7 @@
   </nav>
   <div class="sidepanel flex min-h-0 min-w-0 flex-[0_0_var(--panel-w,16rem)] flex-col gap-3 bg-wash p-3 panel-closed:hidden @max-[56rem]:panel-closed:flex" id="sidepanel">
     <div class="flex min-h-10 items-center px-3"><span class="font-display text-base font-semibold text-ink">{{or .Org "gusto"}}</span></div>
-    <a class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm px-3 text-left text-base text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1 [&_svg.i]:size-[1.125rem] border border-line bg-surface font-semibold text-ink hover:border-line-strong" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    <a class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm px-3 text-left text-base text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1 [&_svg.i]:size-5 border border-line bg-surface font-semibold text-ink hover:border-line-strong" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats flex-1"></div>{{end}}
   </div>
   <div class="look fixed bottom-3 left-[4.25rem] z-50 grid w-64 gap-4 rounded-md border border-line bg-surface p-4 shadow-3" id="look" hidden role="dialog" aria-label="Appearance">
@@ -43,7 +43,7 @@
 {{define "side-groups"}}{{range .Groups}}
   <section class="proj group/proj relative min-w-0">
     <details{{if .Open}} open{{end}}>
-      <summary class="flex h-8 cursor-pointer list-none items-center gap-2 rounded-sm pr-8 pl-3 text-sm font-semibold text-ink hover:bg-sunken [&::-webkit-details-marker]:hidden [&_svg.i]:size-[1.125rem] [&_svg.i]:text-subtle" title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="min-w-0 flex-1 truncate">{{.Name}}</span></summary>
+      <summary class="flex h-8 cursor-pointer list-none items-center gap-2 rounded-sm pr-8 pl-3 text-sm font-semibold text-ink hover:bg-sunken [&::-webkit-details-marker]:hidden [&_svg.i]:size-5 [&_svg.i]:text-subtle" title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="min-w-0 flex-1 truncate">{{.Name}}</span></summary>
       <ol class="mt-0.5 mb-2 grid list-none grid-cols-[minmax(0,1fr)] gap-px p-0">
         {{range .Chats}}<li><a class="flex h-[2.125rem] items-center gap-2 overflow-hidden rounded-sm pr-3 pl-9 text-sm font-normal text-muted no-underline hover:bg-sunken hover:text-ink aria-[current]:bg-surface aria-[current]:font-medium aria-[current]:text-ink aria-[current]:shadow-1 forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText]" href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="min-w-0 flex-1 truncate">{{.Name}}</span><span class="flex-none text-xs font-normal text-subtle">{{ago .When}}</span></a></li>{{end}}
       </ol>

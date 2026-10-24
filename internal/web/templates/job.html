@@ -187,4 +187,4 @@
 {{define "state"}}{{$tone := "bg-wash text-subtle"}}{{if or (eq .State "passed") (eq .State "finished")}}{{$tone = "bg-ok-wash text-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{$tone = "bg-bad-wash text-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{$tone = "bg-warn-wash text-warn"}}{{end -}}
 <span{{with .ID}} id="{{.}}"{{end}} class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap {{$tone}}">{{.Text}}</span>{{end}}
 
-{{define "chevron"}}<svg class="i size-3.5 flex-none transition-transform group-open:rotate-90" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>{{end}}
+{{define "chevron"}}<svg class="i size-4 flex-none transition-transform group-open:rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
