@@ -41,11 +41,11 @@ writeFileSync(join(work, "quota.json"), JSON.stringify({ jobs: 30, concurrent: 2
 mkdirSync(join(work, "registry"));
 writeFileSync(join(work, "creds", "gemma.json"), JSON.stringify({ address: "http://127.0.0.1:9100/v1", auth: "bearer", key: "x", wires: ["chat"] }));
 writeFileSync(join(work, "spend.json"), JSON.stringify({ prices: { "google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 } }, teams: {} }));
-const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'google.gemma-4-26b-a4b',messages:[{role:'user',content:'hi'}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
+const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'google.gemma-4-26b-a4b',messages:[{role:'user',content:process.env.GUSTO_BRIEF}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
 writeFileSync(join(work, "agents", "opencode.json"), JSON.stringify({
   name: "opencode", title: "OpenCode", what: "Open source, and points at whichever model the deployment gives it.", program: "sh",
   argv: ["-c", `node -e "${ask}" | tee out.txt; grep -q 'monthly limit' out.txt && printf '# Spending policy\\n\\n## Budget\\n\\n- $50 a month per person\\n- Unused budget does not carry over\\n\\n## Approval\\n\\n- Spend over the budget needs a manager\\n- Managers answer within two working days\\n\\n## Review\\n\\n- Every purchase is listed monthly\\n- Finance reviews the list each quarter\\n' > policy.md; rm -f out.txt`],
-  env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}" }, needs: "key", stream: "plain",
+  env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}", GUSTO_BRIEF: "{brief}" }, needs: "key", stream: "plain",
 }));
 execFileSync(bin, ["keygen", "capture", "-dir", join(work, "keys")], { stdio: "ignore" });
 start("python3", [join(root, "deploy/landing/replay.py"), join(work, "replies.json")]);
@@ -107,7 +107,8 @@ const earlier = (await call("POST", "/instances", { harness: "opencode", model }
 await say(earlier, first.say);
 const thread = (await call("POST", "/instances", { harness: "opencode", model })).headers.get("location");
 for (const turn of turns) { await say(thread, turn.say); }
-const ids = [...new Set((await (await call("GET", thread)).text()).match(/href="\/jobs\/([^"#?]+)"/g).map((m) => m.slice(12, -1)))];
+// the thread page no longer links its tasks, so they are read from the job list
+const ids = [...new Set(((await (await call("GET", "/jobs")).text()).match(/href="\/jobs\/([^"#?]+)"/g) ?? []).map((m) => m.slice(12, -1)))];
 let policyJob = ids[0];
 for (const id of ids) { if ((await (await call("GET", `/jobs/${id}`)).text()).includes("policy.md")) { policyJob = id; break; } }
 
@@ -150,9 +151,14 @@ for (const theme of ["light", "dark"]) {
   await page.goto(base + "/jobs", { waitUntil: "networkidle" });
   let box = await card(page.getByText("Today", { exact: true }).first()).boundingBox();
   await crop(page, "activity", theme, box, 420);
+  // the overview puts its cards in two columns on a wide page, which makes the limits card narrow: on a page that is one column it is as wide as it is shown
+  await context.close();
+  ({ context, page } = await open({ width: 880, height: 1000 }, 2.5, jar, base));
   await page.goto(base + "/admin", { waitUntil: "networkidle" });
   box = await card(page.getByRole("heading", { name: "Limits" })).boundingBox();
   await crop(page, "limits", theme, box);
+  await context.close();
+  ({ context, page } = await open({ width: 1000, height: 1000 }, 2.5, jar, base));
   await page.goto(base + `/jobs/${policyJob}`, { waitUntil: "networkidle" });
   box = await page.locator("section[aria-label=Summary]").boundingBox();
   await crop(page, "record", theme, box);
