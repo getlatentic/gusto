@@ -1,7 +1,7 @@
 {{template "head" .}}
 
 <nav class="mb-4 flex flex-wrap items-baseline gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
-  {{if .Agent}}<a href="/">Agents</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
+  {{if .Agent}}<a href="/files">Files</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
   {{with .Talk}}<a href="{{$.ThreadPath}}">{{.Name}}</a>{{else}}<span>this run</span>{{end}}
   <span>/</span><span>Details</span>
 </nav>

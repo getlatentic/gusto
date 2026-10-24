@@ -134,43 +134,6 @@
 {{define "icon-info"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>{{end}}
 {{define "icon-disk"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>{{end}}
 {{define "icon-lock"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{end}}
-{{/* industry is a template's mark: a line drawing for its field. */}}
-{{/* choices is a card a template, and one to start a blank agent. */}}
-{{/* kinds is the ready-made kinds of work, below the agents, for one who knows the work and not the agent. */}}
-{{define "kinds"}}
-<div class="mt-10 mb-3">
-  <h2 class="text-base font-semibold">Or start from a kind of work</h2>
-  <p class="text-sm text-muted">Each comes ready to use, with an agent and skills chosen for it.</p>
-</div>
-{{template "choices" .}}
-{{end}}
-{{define "choices"}}
-<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
-  {{range .}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/templates/{{.Name}}">
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.Summary}}</span></span>
-    <span class="flex-none text-xs text-subtle">{{.Industry}}</span>
-    {{template "icon-go"}}
-  </a>
-  {{end}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/new/blank">
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">Blank agent</strong><span class="text-[0.8125rem] text-muted">Choose the agent, a skill set and a repository yourself.</span></span>
-    {{template "icon-go"}}
-  </a>
-</div>
-{{end}}
-{{/* engine-choices is a row for each agent a person may start with, for one who knows which they want. */}}
-{{define "engine-choices"}}{{if .}}
-<h2 class="mt-10 mb-3 text-base font-semibold">Or pick an agent</h2>
-<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
-  {{range .}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/instances/new?harness={{.Name}}">
-    {{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.What}}</span></span>
-    {{template "icon-go"}}
-  </a>
-  {{end}}
-</div>{{end}}{{end}}
 {{define "icon-go"}}<svg class="i size-4 flex-none text-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
 {{define "steps"}}<ol class="mt-2 ml-2 grid list-none gap-2 border-l border-line-strong pl-4">{{range .}}<li><span class="mr-2 font-semibold text-ink">{{.What}}</span>{{with .Detail}} <span class="font-mono text-xs [overflow-wrap:anywhere] text-muted">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}

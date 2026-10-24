@@ -154,7 +154,7 @@ func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
 	if files.Code != http.StatusOK || !strings.Contains(files.Body.String(), `id="files-app"`) {
 		t.Fatalf("the files page answered %d", files.Code)
 	}
-	for _, page := range []string{"/files", "/jobs", "/spend", "/"} {
+	for _, page := range []string{"/files", "/jobs", "/spend", "/chat"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/files"`) || !strings.Contains(body, `href="/chat?at=`+id+`"`) {
 			t.Errorf("%s does not carry the side list with Files and the project", page)

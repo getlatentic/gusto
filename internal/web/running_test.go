@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
@@ -47,29 +46,4 @@ func openOver(t *testing.T, instances string) *site {
 		t.Fatal(err)
 	}
 	return &site{handler: server.Handler(), index: index}
-}
-
-// Every card under Running leads into a conversation, including one for an
-// instance that was started before starting opened one.
-func TestARunningCardWithNoThreadYetStillLeadsIntoAConversation(t *testing.T) {
-	root := t.TempDir()
-	startedTheOldWay(t, root, "20260926-1100-bare")
-	site := openOver(t, root)
-	site.signIn(t)
-
-	body := site.ask(t, "GET", "/", nil).Body.String()
-	into := `href="/instances/20260926-1100-bare/threads/1"`
-	if !strings.Contains(body, into) {
-		t.Fatalf("its card does not lead into a conversation:\n%s", body)
-	}
-	if strings.Contains(body, `href="/instances/20260926-1100-bare"`) {
-		t.Error("its card still leads to the instance's page")
-	}
-	if strings.Contains(body, "0 threads") {
-		t.Error("its card says it has no threads")
-	}
-	// And the conversation it leads into is there to be read.
-	if answer := site.ask(t, "GET", "/instances/20260926-1100-bare/threads/1", nil); answer.Code != 200 {
-		t.Errorf("the conversation it leads into gave %d", answer.Code)
-	}
 }
