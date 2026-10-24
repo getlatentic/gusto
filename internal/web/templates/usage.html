@@ -24,7 +24,7 @@
     </label>
     <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="input w-40" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="input w-40" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
     <button class="btn" type="submit">Filter</button>
-    {{if .Filtered}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear</a>{{end}}
+    {{if .Filtered}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}">Clear</a>{{end}}
   </div>
   <details class="group"{{if .Filtered}} open{{end}}>
     <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
@@ -50,7 +50,7 @@
       {{range .Rows}}
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
-        <td class="max-w-64 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
+        <td class="max-w-64 truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
         {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
         <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{.Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
