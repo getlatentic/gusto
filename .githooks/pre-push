@@ -6,6 +6,8 @@
 #   GUSTO_PREPUSH=skip  push without checking (git push --no-verify does the same)
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+# Git exports GIT_DIR and its kin into a hook. Left set, the tests' own `git init` and `git config` in temporary folders write into this repository.
+unset $(git rev-parse --local-env-vars)
 
 [ "${GUSTO_PREPUSH:-}" = skip ] && exit 0
 [ "$(uname)" = Darwin ] && export CC="${CC:-/usr/bin/clang}"
