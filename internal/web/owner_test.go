@@ -67,14 +67,19 @@ func TestSomebodyElsesAgentIsNotFoundOnAnyPage(t *testing.T) {
 	}
 }
 
-func TestTheHomePageListsOnlyYourOwnAgents(t *testing.T) {
+func TestTheSideListCarriesOnlyYourOwnProjects(t *testing.T) {
 	site := open(t)
-	hers, _ := started(t, site.as(t, alice))
-	his, _ := started(t, site.as(t, bob))
+	spoke := func(who string) string {
+		person := site.as(t, who)
+		where := startedThread(t, person)
+		person.ask(t, "POST", where+"/say", url.Values{"said": {"hello"}})
+		return strings.TrimPrefix(where[:strings.Index(where, "/threads/")], "/instances/")
+	}
+	hers, his := spoke(alice), spoke(bob)
 
-	page := site.as(t, alice).ask(t, "GET", "/", nil).Body.String()
-	if !strings.Contains(page, hers) || strings.Contains(page, his) {
-		t.Errorf("alice's home page should list %s and not %s", hers, his)
+	page := site.as(t, alice).ask(t, "GET", "/chat", nil).Body.String()
+	if !strings.Contains(page, `href="/chat?at=`+hers+`"`) || strings.Contains(page, his) {
+		t.Errorf("alice's side list should carry %s and not %s", hers, his)
 	}
 }
 

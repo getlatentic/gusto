@@ -172,7 +172,7 @@ func (s *Server) Handler() http.Handler {
 	s.desktopRoutes(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
-	mux.HandleFunc("GET /{$}", s.guard(s.home))
+	mux.HandleFunc("GET /{$}", s.guard(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/chat", http.StatusSeeOther) }))
 	mux.HandleFunc("GET /files", s.guard(s.filesPage))
 	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))

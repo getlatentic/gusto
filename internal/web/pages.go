@@ -149,6 +149,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	wrong := r.URL.Query().Get("wrong") != ""
 	s.render(w, "login.html", map[string]any{
 		"Wrong":    wrong,
+		"Local":    s.local != nil,
 		"Refused":  r.URL.Query().Get("refused"),
 		"Identity": s.identity.Configured(),
 		"Provider": s.identity.Configured(),

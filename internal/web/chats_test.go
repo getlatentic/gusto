@@ -10,18 +10,19 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// The home page is the harnesses somebody has, and starting another is one
-// click away on every page.
-func TestTheHomePageListsYourHarnessesAndOffersANewOne(t *testing.T) {
+// Chat is the home page: the address of the site lands on it, and the list of chats is the side list it carries.
+func TestTheHomePageIsChatAndItsSideListLeadsBackIntoAChat(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
-	home := site.ask(t, "GET", "/", nil).Body.String()
-	if !strings.Contains(home, `href="`+where+`"`) {
-		t.Errorf("the home page does not lead back into %s", where)
+	site.ask(t, "POST", where+"/say", url.Values{"said": {"hello"}})
+	project := strings.TrimPrefix(where[:strings.Index(where, "/threads/")], "/instances/")
+	landed := site.ask(t, "GET", "/", nil)
+	if landed.Code != http.StatusSeeOther || landed.Header().Get("Location") != "/chat" {
+		t.Fatalf("the home address answered %d to %q", landed.Code, landed.Header().Get("Location"))
 	}
-	if body := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(body, `href="/new"`) {
-		t.Error("the agents page does not offer to start a harness")
+	if body := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(body, `href="/chat?at=`+project+`"`) {
+		t.Errorf("the chat page's side list does not carry the project of %s", where)
 	}
 }
 
@@ -36,7 +37,7 @@ func TestARemovedHarnessLeavesTheListAndKeepsItsJobs(t *testing.T) {
 	if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/" {
 		t.Fatalf("removing answered %d to %q", answer.Code, answer.Header().Get("Location"))
 	}
-	if home := site.ask(t, "GET", "/", nil).Body.String(); strings.Contains(home, record.Instance) {
+	if home := site.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(home, record.Instance) {
 		t.Error("the removed harness is still listed")
 	}
 	if page := site.ask(t, "GET", "/jobs/"+id, nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "removed") {
