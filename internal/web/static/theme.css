@@ -86,5 +86,5 @@
   --gu-accent-solid: #00844A; --gu-accent-solid-hover: #00743F; --gu-on-accent-solid: #FFFFFF;
 }
 :root[data-theme="dark"]:not([data-accent]), :root[data-theme="dark"][data-accent="green"] {
-  --gu-accent-solid: #1DBF70; --gu-accent-solid-hover: #45D18B; --gu-on-accent-solid: #06130C;
+  --gu-accent-solid: #00844A; --gu-accent-solid-hover: #00935A; --gu-on-accent-solid: #FFFFFF;
 }
