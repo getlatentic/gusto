@@ -21,7 +21,7 @@
       {{range .Rows}}
       <tr>
         <td class="whitespace-nowrap text-muted">{{.When}}</td>
-        <td class="max-w-md truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Href}}#proof">{{.Brief}}</a></td>
+        <td class="max-w-md truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}#proof">{{.Brief}}</a></td>
         <td class="whitespace-nowrap">{{.Who}}</td>
         <td>{{template "ui-state" (or (and (eq .State "does not check out") "failed") .State)}}</td>
       </tr>

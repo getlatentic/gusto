@@ -2,14 +2,14 @@
 {{with .Session}}
 <div class="mb-2 flex items-center gap-3">
   <h1>Session <code class="text-xl">{{.ID}}</code></h1>
-  <a class="ml-auto text-sm text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">All usage</a>
+  <a class="ml-auto text-sm text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}">All usage</a>
 </div>
 <p class="mb-6 text-muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
 
 <form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}/{{.ID}}" role="search">
   <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
   <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid transition-colors hover:bg-solid-hover" type="submit">Search</button>
-  {{if .Search}}<a class="text-muted underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
+  {{if .Search}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
 </form>
 
 <div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
@@ -24,7 +24,7 @@
       {{range .Calls}}
       <tr>
         <td title="{{.AtFull}}">{{.At}}</td>
-        <td class="max-w-48 truncate"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Record}}" title="Details of {{.Task}}">{{.Task}}</a></td>
+        <td class="max-w-48 truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Record}}" title="Details of {{.Task}}">{{.Task}}</a></td>
         <td class="max-w-48 truncate" title="{{.Model}}">{{.Model}}</td>
         <td>{{.Provider}}</td>
         <td>{{or .Key "—"}}</td>

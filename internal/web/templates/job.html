@@ -133,7 +133,7 @@
     <div class="mb-3 flex items-center gap-2 rounded-sm bg-wash py-2 pr-2 pl-3"><code class="min-w-0 flex-1 text-xs wrap-anywhere" id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="cursor-pointer rounded-sm border border-line-strong px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink">Copy</button></div>
     <details class="group"><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}Each file and its fingerprint</summary>
       <ul class="mt-3 grid list-none gap-2 text-sm">
-        {{range $.Files}}{{if .SHA256}}<li class="grid gap-0.5"><a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a><code class="text-xs wrap-anywhere text-subtle">{{.SHA256}}</code></li>{{end}}{{end}}
+        {{range $.Files}}{{if .SHA256}}<li class="grid gap-0.5"><a class="no-underline underline-offset-4 hover:underline" href="/jobs/{{$.Job.ID}}/files/{{.Name}}">{{.Name}}</a><code class="text-xs wrap-anywhere text-subtle">{{.SHA256}}</code></li>{{end}}{{end}}
       </ul>
     </details>
     </div></details>
