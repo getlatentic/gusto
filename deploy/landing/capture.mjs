@@ -1,5 +1,5 @@
 // Retakes the landing page's screens from the current app at high pixel density, in light and dark: the hero chat and the four
-// crops below it (agents, activity, limits, record).
+// crops below it (activity, limits, keys, record).
 //
 //   cd <a folder with playwright installed> && node /path/to/deploy/landing/capture.mjs <out dir>
 //
@@ -61,19 +61,7 @@ for (let i = 0; ; i++) {
   await sleep(500);
 }
 
-// a second server with nothing on it shows what a person sees first: the agents to start with
-const empty = join(work, "empty"), shims = join(work, "shims");
-mkdirSync(empty);
-mkdirSync(shims);
-// the agents that are installed are the ones offered, and a person sees all six on a hosted server
-for (const [program, version] of [["claude-agent-acp", "0.94.0"], ["codex-acp", "2.2.2"]]) { writeFileSync(join(shims, program), `#!/bin/sh\necho ${version}\n`, { mode: 0o755 }); }
-start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8722", GUSTO_JOBS: join(empty, "jobs"), GUSTO_SESSIONS: join(empty, "sessions"),
-  GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(root, "pkg/harness/adapters"),
-  GUSTO_PROXY_ADDR: "127.0.0.1:8723", HOME: empty, PATH: `${shims}:${process.env.PATH}`,
-}, empty);
-
-// and a third whose console lists the models an operator has connected, which a server without a registry does not offer
+// a second server whose console lists the models an operator has connected, which a server without a registry does not offer
 const models = join(work, "models");
 mkdirSync(models);
 mkdirSync(join(models, "creds"));
@@ -112,8 +100,6 @@ const ids = [...new Set(((await (await call("GET", "/jobs")).text()).match(/href
 let policyJob = ids[0];
 for (const id of ids) { if ((await (await call("GET", `/jobs/${id}`)).text()).includes("policy.md")) { policyJob = id; break; } }
 
-const { jar: freshJar, call: ask2 } = await cookies();
-await ask2("http://127.0.0.1:8722", "POST", "/login", { password });
 const { jar: modelsJar, call: ask3 } = await cookies();
 await ask3("http://127.0.0.1:8724", "POST", "/login", { password });
 
@@ -170,11 +156,6 @@ for (const theme of ["light", "dark"]) {
   await crop(page, "keys", theme, box, 300);
   await context.close();
 
-  ({ context, page } = await open({ width: 1000, height: 1000 }, 2.5, freshJar, "http://127.0.0.1:8722"));
-  await page.goto("http://127.0.0.1:8722/", { waitUntil: "networkidle" });
-  box = await page.getByRole("heading", { name: "Or pick an agent" }).locator("xpath=following-sibling::div[1]").boundingBox();
-  await crop(page, "agents", theme, box);
-  await context.close();
 }
 await browser.close();
 console.log(`the screens are in ${out}`);
