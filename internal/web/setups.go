@@ -311,11 +311,31 @@ func (s *Server) unfit(wanted instance.Instance) string {
 	for _, entry := range s.engines() {
 		if entry.Name == wanted.Harness {
 			if why := held.Fits(entry.Skills, entry.MCP); why != "" {
-				return wanted.Harness + " cannot take " + held.Name + ": " + why
+				return unfitSaid(entry.Title, setupTitle(wanted, held), why)
 			}
 		}
 	}
 	return ""
+}
+
+// setupTitle is what a person calls the setup an instance starts with: the preset's title when it came from one, else the setup's name.
+func setupTitle(wanted instance.Instance, held setup.Setup) string {
+	if template, found := industry.Get(held.Name); found {
+		return template.Title
+	}
+	if wanted.Title != "" && wanted.Setup == held.Name {
+		return wanted.Title
+	}
+	return held.Name
+}
+
+// unfitSaid is why an agent cannot start with a setup, in the words of the person who chose them.
+func unfitSaid(agent, work, why string) string {
+	needs := "skills"
+	if strings.Contains(why, "MCP") {
+		needs = "tool servers"
+	}
+	return agent + " cannot run " + work + ", which needs " + needs + " " + agent + " does not take. Choose another agent."
 }
 
 // importedIntegrations is the integrations a setup may name, or none where the server keeps none.
