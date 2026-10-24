@@ -18,6 +18,7 @@
   --color-muted: var(--gu-text-muted);
   --color-subtle: var(--gu-text-subtle);
   --color-faint: var(--gu-text-nontext);
+  --color-placeholder: var(--gu-text-placeholder);
   --color-inverse: var(--gu-text-inverse);
   --color-plate: #ffffff;
   --color-accent: var(--gu-accent);

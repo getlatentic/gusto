@@ -25,7 +25,7 @@
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible { @apply outline-2 outline-offset-2 outline-focus; }
   input, select, textarea, button { font: inherit; color: inherit; }
   textarea { @apply min-h-20 resize-y; }
-  input::placeholder, textarea::placeholder { @apply text-faint; }
+  input::placeholder, textarea::placeholder { @apply text-placeholder; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   }

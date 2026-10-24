@@ -133,7 +133,7 @@
       live.items.forEach(function (item, i) {
         var row = document.createElement("li");
         if (item.kind === "said") {
-          row.className = "ml-2 border-l-2 border-line pl-3 text-sm leading-relaxed text-muted";
+          row.className = "ml-2 border-l border-line pl-3 text-sm leading-relaxed text-muted";
           item.text.split(/\n{2,}/).forEach(function (paragraph, at) {
             var p = document.createElement("p");
             p.className = "whitespace-pre-wrap wrap-anywhere" + (at ? " mt-2" : "");
