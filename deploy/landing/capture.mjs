@@ -40,7 +40,7 @@ writeFileSync(join(work, "replies.json"), JSON.stringify([first, ...turns]));
 writeFileSync(join(work, "quota.json"), JSON.stringify({ jobs: 30, concurrent: 2 }));
 mkdirSync(join(work, "registry"));
 writeFileSync(join(work, "creds", "gemma.json"), JSON.stringify({ address: "http://127.0.0.1:9100/v1", auth: "bearer", key: "x", wires: ["chat"] }));
-writeFileSync(join(work, "spend.json"), JSON.stringify({ prices: { "google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 } }, teams: {} }));
+writeFileSync(join(work, "spend.json"), JSON.stringify({ prices: { "google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 }, "gemma/google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 }, "gemma/google.gemma-4-31b": { inputPerMillion: 0.14, outputPerMillion: 0.4 } }, teams: {} }));
 const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'google.gemma-4-26b-a4b',messages:[{role:'user',content:process.env.GUSTO_BRIEF}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
 writeFileSync(join(work, "agents", "opencode.json"), JSON.stringify({
   name: "opencode", title: "OpenCode", what: "Open source, and points at whichever model the deployment gives it.", program: "sh",
