@@ -87,9 +87,15 @@
   var choices = {};
   JSON.parse(role.dataset.options).forEach(function (each) { if (each.kind !== "heading" && each.kind !== "separator") { choices[each.value] = each; } });
   var settled = role.picker.value;
+  // A built-in preset is offered the agents that can take it, and a chat with no preset or a saved one is offered them all.
+  var allAgents = JSON.parse(harness.dataset.options || "[]");
   var apply = function (value) {
     var choice = choices[value] || {};
     roleValue.value = choice.role || "";
+    var fitting = choice.fit && choice.fit.length ? allAgents.filter(function (each) { return choice.fit.indexOf(each.value) >= 0; }) : allAgents;
+    var current = harness.picker.value;
+    harness.picker.setOptions(fitting, fitting.some(function (each) { return each.value === current; }) ? current : (fitting[0] || {}).value);
+    narrow();
     if (choice.harness) {
       harness.picker.select(choice.harness);
       if (choice.model) { model.picker.select(choice.model); }

@@ -43,6 +43,8 @@ type roleChoice struct {
 	Harness string `json:"harness,omitempty"`
 	Model   string `json:"model,omitempty"`
 	Role    string `json:"role,omitempty"`
+	// Fit is the agents that can take a built-in preset, so choosing it offers those and no others.
+	Fit []string `json:"fit,omitempty"`
 }
 
 // roleChoices is what the role menu offers: no role, what the person saved, then each ready-made kind of work.
@@ -56,7 +58,15 @@ func (s *Server) roleChoices(r *http.Request) string {
 	}
 	choices = append(choices, roleChoice{Kind: "heading", Label: "Built-in presets"})
 	for _, held := range industry.All() {
-		choices = append(choices, roleChoice{Value: "r:" + held.Name, Label: held.Title, Detail: held.Industry, Role: held.Name})
+		fit := make([]string, 0)
+		for _, entry := range s.runnersOf(held) {
+			fit = append(fit, entry.Name)
+		}
+		detail := held.Industry
+		if len(fit) == 0 {
+			detail = "No agent here can take this yet"
+		}
+		choices = append(choices, roleChoice{Value: "r:" + held.Name, Label: held.Title, Detail: detail, Role: held.Name, Fit: fit})
 	}
 	if s.presets != nil {
 		choices = append(choices, roleChoice{Kind: "separator"}, roleChoice{Kind: "action", Value: "save", Label: "Save this setup as a preset…"})
