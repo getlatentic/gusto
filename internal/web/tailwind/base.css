@@ -16,8 +16,7 @@
   small { @apply text-xs; }
   hr { @apply border-line; }
   img, svg, video { @apply block max-w-full; }
-  svg.i { @apply size-4 flex-none; stroke: currentColor; fill: none; stroke-width: 1.75px; stroke-linecap: round; stroke-linejoin: round; }
-  svg.i :is(path, circle, rect, line, polyline, polygon, ellipse) { vector-effect: non-scaling-stroke; }
+  svg.i { @apply size-4 flex-none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   table { @apply w-full border-collapse text-base; }
   th { @apply text-left text-xs font-semibold text-subtle; }
   td, th { @apply align-top; }
