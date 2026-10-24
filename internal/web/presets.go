@@ -143,7 +143,7 @@ func (s *Server) deletePreset(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Redirect(w, r, "/new", http.StatusSeeOther)
+	http.Redirect(w, r, "/presets", http.StatusSeeOther)
 }
 
 // presetRow is a saved preset as the presets page says it.

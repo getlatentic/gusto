@@ -20,13 +20,13 @@ type yours struct {
 	Active int64
 }
 
-// catalogPage is where a new agent is chosen: set up for a field of work,
+// presetsPage is where a new agent is chosen: set up for a field of work,
 // or blank.
-func (s *Server) catalogPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) presetsPage(w http.ResponseWriter, r *http.Request) {
 	roles, fields := s.rolesToChoose()
 	s.render(w, "catalog.html", map[string]any{
 		"Title":   productName + " — presets",
-		"Nav":     "new",
+		"Nav":     "presets",
 		"Roles":   roles,
 		"Fields":  fields,
 		"Presets": s.presetRows(r),
@@ -80,7 +80,7 @@ func (s *Server) readyEngines() []catalog.Entry {
 func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "blank.html", map[string]any{
 		"Title":   productName + " — new agent",
-		"Nav":     "new",
+		"Nav":     "presets",
 		"Engines": s.readyEngines(),
 		"Setups":  s.setupsList(),
 		"Refused": r.URL.Query().Get("refused"),

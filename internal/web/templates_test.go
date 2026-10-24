@@ -16,7 +16,7 @@ import (
 func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	if page := site.ask(t, "GET", "/new", nil).Body.String(); !strings.Contains(page, `href="/templates/health"`) {
+	if page := site.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, `href="/templates/health"`) {
 		t.Fatal("the catalog does not offer the health template")
 	}
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
@@ -93,7 +93,7 @@ func TestARoleStartsOnTheFirstEngineThatCanTakeIt(t *testing.T) {
 func TestThePresetsPageShowsEachBuiltInPresetWhatItDoes(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/new", nil).Body.String()
+	page := site.ask(t, "GET", "/presets", nil).Body.String()
 	for _, want := range []string{`data-role="health"`, `data-for="health"`, "What it can do", "Try asking", "Use in a new chat", `id="role-search"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the presets page does not carry %q", want)

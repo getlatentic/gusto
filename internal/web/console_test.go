@@ -128,7 +128,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 	runner, admin := here.as(t, alice), here.as(t, boss)
 	oldJob(t, here.site, "seen", 1)
 	where, _ := started(t, runner)
-	pages := []string{"/chat", "/jobs", "/spend", "/new", "/compare", "/setups", "/engines", "/jobs/seen", where}
+	pages := []string{"/chat", "/jobs", "/spend", "/presets", "/compare", "/setups", "/engines", "/jobs/seen", where}
 	for _, path := range pages {
 		as := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(as, `href="/admin`); got != 1 || !strings.Contains(as, `href="/admin"`) {
@@ -152,7 +152,7 @@ func TestTheConsoleHasOneLinkBack(t *testing.T) {
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)
 		}
-		for _, employee := range []string{`href="/compare"`, `href="/jobs"`, `href="/new"`, `href="/spend"`} {
+		for _, employee := range []string{`href="/compare"`, `href="/jobs"`, `href="/presets"`, `href="/spend"`} {
 			if strings.Contains(page, employee) {
 				t.Errorf("%s carries the employee's navigation %s", path, employee)
 			}

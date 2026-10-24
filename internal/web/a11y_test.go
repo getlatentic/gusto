@@ -18,7 +18,7 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	conversation := startedThread(t, site)
 	instance := conversation[:strings.Index(conversation, "/threads/")]
 	pages := map[string]*html.Node{}
-	for _, path := range []string{"/chat", "/jobs", "/files", "/spend", "/new", "/admin", conversation, instance} {
+	for _, path := range []string{"/chat", "/jobs", "/files", "/spend", "/presets", "/admin", conversation, instance} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)

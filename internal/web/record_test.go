@@ -20,7 +20,7 @@ func TestTheRecordStartsNothingAndSaysWhereToStart(t *testing.T) {
 			t.Errorf("the record still carries %s", gone)
 		}
 	}
-	if !strings.Contains(body, `href="/new"`) {
+	if !strings.Contains(body, `href="/presets"`) {
 		t.Error("the record does not say where a harness is started")
 	}
 	if posted := site.ask(t, "POST", "/jobs", url.Values{"brief": {"x"}, "gate": {"true"}}); posted.Code != http.StatusMethodNotAllowed {

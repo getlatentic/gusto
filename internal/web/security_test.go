@@ -68,7 +68,7 @@ func TestEveryInlineScriptCarriesTheResponsesNonceAndNoElementHasAHandler(t *tes
 		t.Fatalf("starting an agent did not open a conversation: %q", where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	pages := []string{"/chat", "/jobs", "/spend", "/compare", "/new", "/setups", "/engines", instance, where}
+	pages := []string{"/chat", "/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance, where}
 	seen := map[string]bool{}
 	for _, path := range pages {
 		got := site.ask(t, "GET", path, nil)

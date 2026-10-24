@@ -175,7 +175,7 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	answer := site.ask(t, "GET", "/new", nil)
+	answer := site.ask(t, "GET", "/presets", nil)
 	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
 		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
 	}
@@ -332,7 +332,7 @@ func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
 	site.signIn(t)
 	for _, page := range []string{"/chat", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Presets") {
+		if !strings.Contains(body, `href="/presets"`) || !strings.Contains(body, "Presets") {
 			t.Errorf("%s does not offer the way to the presets", page)
 		}
 	}
@@ -460,7 +460,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/new", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
+	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
 		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
 		if strings.Contains(strings.ToLower(body), "harness") {
 			i := strings.Index(strings.ToLower(body), "harness")
@@ -472,7 +472,7 @@ func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 func TestThePresetsPageOffersPresetsAndDoesNotSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/new", nil).Body.String()
+	body := site.ask(t, "GET", "/presets", nil).Body.String()
 	if !strings.Contains(body, `href="/templates/health"`) {
 		t.Errorf("/new offers no preset to start from:\n%s", body)
 	}
