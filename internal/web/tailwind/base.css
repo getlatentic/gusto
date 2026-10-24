@@ -2,7 +2,7 @@
 @layer base {
   html { font-family: var(--gu-font-text); }
   body {
-    @apply bg-canvas text-ink font-sans text-base font-medium antialiased;
+    @apply bg-canvas text-ink font-sans text-base font-normal antialiased;
     container-type: inline-size;
   }
   h1, h2, h3, h4 { @apply font-display text-ink; }
