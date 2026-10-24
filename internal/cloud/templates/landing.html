@@ -53,15 +53,15 @@
   <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-12 px-5">
     <div class="grid content-start gap-5">
       <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use the agents your team already wants.</h2>
-      <ul class="grid grid-cols-2 gap-x-6 gap-y-2 min-[44rem]:grid-cols-3">
+      <ul class="grid max-w-2xl grid-cols-2 gap-x-8 gap-y-3 min-[44rem]:grid-cols-3">
         <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "claude" "size-6"}}Claude Code</li>
         <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "codex" "size-6"}}Codex</li>
         <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "opencode" "size-6"}}OpenCode</li>
         <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "pi" "size-6"}}Pi</li>
         <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "hermes" "size-6"}}Hermes Agent</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold text-muted"><span class="inline-grid size-6 place-items-center text-lead leading-none font-medium" aria-hidden="true">+</span>Your own</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "dsh" "size-6"}}DeepSeek Agent</li>
       </ul>
-       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking, or bring your own. No proprietary agent framework required.</p>
     </div>
   </div>
 </section>
