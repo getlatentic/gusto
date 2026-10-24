@@ -62,6 +62,7 @@ func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
 // The runner is root in the box, and a workspace's git configuration belongs to
 // the agent. Staging the workspace runs nothing the workspace's own .git names.
 func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
+	isolateGit(t)
 	// Other packages' tests stage workspaces in the shared temp directory while
 	// this one runs, so what is left behind is only looked for in a directory of its own.
 	t.Setenv("TMPDIR", t.TempDir())
@@ -107,6 +108,22 @@ func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
 					t.Errorf("%s was left behind", entry.Name())
 				}
 			}
+		}
+	}
+}
+
+// isolateGit takes the variables a git hook exports out of this test's environment. With GIT_DIR set, the git commands a test runs in a
+// temporary folder act on the repository that is being pushed, and write their configuration into it.
+func isolateGit(t *testing.T) {
+	t.Helper()
+	names, err := exec.Command("git", "rev-parse", "--local-env-vars").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range strings.Fields(string(names)) {
+		if value, set := os.LookupEnv(name); set {
+			os.Unsetenv(name)
+			t.Cleanup(func() { os.Setenv(name, value) })
 		}
 	}
 }
