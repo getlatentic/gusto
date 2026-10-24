@@ -27,7 +27,7 @@
       holder.appendChild(mark(src, markClass + " dark:hidden"));
       holder.appendChild(mark(src.replace(/\.svg(\?.*)?$/, "-dark.svg"), markClass + " hidden dark:block"));
     } else {
-      holder.appendChild(mark(src, markClass + (invertFiles.test(src) ? " dark:invert" + (/\/agents\/hermes\./.test(src) ? " dark:mix-blend-screen" : "") : "")));
+      holder.appendChild(mark(src, markClass + (invertFiles.test(src) ? " dark:invert" + (/\/agents\/hermes\./.test(src) ? " mix-blend-multiply dark:mix-blend-screen" : "") : "")));
     }
     return holder;
   }

@@ -31,15 +31,20 @@ func agentMark(name, size string) template.HTML {
 		file = "/static/agents/hermes.webp"
 	}
 	img := func(src, class string) string {
-		return fmt.Sprintf(`<img class="flex-none object-contain %s %s" src="%s" alt="" aria-hidden="true">`, size, class, web.Asset(src))
+		return fmt.Sprintf(`<img class="object-contain %s %s" src="%s" alt="" aria-hidden="true">`, size, class, web.Asset(src))
 	}
+	var drawn string
 	switch name {
 	case "opencode", "pi":
-		return template.HTML(img(file, "dark:hidden") + img("/static/agents/"+name+"-dark.svg", "hidden dark:block"))
+		drawn = img(file, "dark:hidden") + img("/static/agents/"+name+"-dark.svg", "hidden dark:block")
 	case "codex":
-		return template.HTML(img(file, "dark:invert"))
+		drawn = img(file, "dark:invert")
 	case "hermes":
-		return template.HTML(img(file, "dark:invert dark:mix-blend-screen"))
+		// its file has a white ground, which multiplies away on a light page and screens away when inverted on a dark one
+		drawn = img(file, "mix-blend-multiply dark:invert dark:mix-blend-screen")
+	default:
+		drawn = img(file, "")
 	}
-	return template.HTML(img(file, ""))
+	// every mark sits in a slot of one size, centered, so marks of different shapes line up
+	return template.HTML(`<span class="inline-grid size-7 flex-none place-items-center">` + drawn + `</span>`)
 }
