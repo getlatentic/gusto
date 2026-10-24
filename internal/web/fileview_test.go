@@ -146,8 +146,8 @@ func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
 	}
 }
 
-// The Files page is one of the few places the side list leads to, and the pages it leads from carry the side list drawn already.
-func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
+// Files is one of the places the rail leads to, and the list of chats is beside chats alone: the other pages carry the rail and not the list.
+func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	site, id, _ := viewerSite(t)
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
 	files := site.ask(t, "GET", "/files", nil)
@@ -156,8 +156,11 @@ func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
 	}
 	for _, page := range []string{"/files", "/jobs", "/spend", "/chat"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/files"`) || !strings.Contains(body, `href="/chat?at=`+id+`"`) {
-			t.Errorf("%s does not carry the side list with Files and the project", page)
+		if !strings.Contains(body, `href="/files"`) {
+			t.Errorf("%s does not carry the rail with Files in it", page)
+		}
+		if carries := strings.Contains(body, `href="/chat?at=`+id+`"`); carries != (page == "/chat") {
+			t.Errorf("%s carries the list of chats: %v", page, carries)
 		}
 		if strings.Contains(body, "hx-trigger=\"load\"") || strings.Contains(body, `href="/compare" data-tip`) {
 			t.Errorf("%s loads the side list afterwards or still has Compare in it", page)
