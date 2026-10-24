@@ -22,9 +22,9 @@
 {{define "ui-card"}}rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line{{end}}
 {{define "ui-card-title"}}mb-3 text-sm font-semibold text-ink{{end}}
 {{define "ui-figures"}}mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-px overflow-hidden rounded-md bg-line shadow-1 dark:border dark:border-line{{end}}
-{{define "ui-figure-value"}}font-display text-2xl leading-none font-bold tabular-nums{{end}}
+{{define "ui-figure-value"}}font-display text-xl leading-none font-semibold tabular-nums{{end}}
 {{define "ui-figure-label"}}text-sm text-muted{{end}}
-{{define "ui-figure"}}grid content-start gap-1 bg-surface px-5 py-4 text-inherit no-underline{{end}}
+{{define "ui-figure"}}flex flex-col-reverse justify-start gap-1.5 bg-surface px-5 py-4 text-inherit no-underline{{end}}
 {{define "ui-masonry"}}columns-2 gap-4 @max-[56rem]:columns-1 [&>*]:mb-4 [&>*]:break-inside-avoid{{end}}
 {{define "ui-panels"}}grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))] items-start gap-4{{end}}
 {{define "ui-two-col"}}grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}

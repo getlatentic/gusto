@@ -43,6 +43,7 @@
   --gu-text: var(--gu-neutral-900);
   --gu-text-muted: var(--gu-neutral-700);
   --gu-text-subtle: var(--gu-neutral-600);
+  --gu-text-placeholder: #5F7367; /* a placeholder is text: 4.5:1 on the page and on a field */
   --gu-text-nontext: var(--gu-neutral-500); /* icons, dividers, disabled marks. Never a string. */
   --gu-text-inverse: var(--gu-neutral-50);
   --gu-accent: var(--gu-green-500);
@@ -105,6 +106,7 @@
   --gu-text-muted: #9FB3A5;
   --gu-text-subtle: #9FB3A5; /* dark panels carry one muted value */
   --gu-text-nontext: #6F8576;
+  --gu-text-placeholder: #8FA395;
   --gu-text-inverse: #0E1511;
   --gu-accent: #1DBF70;
   --gu-accent-hover: #45D18B;
@@ -113,7 +115,7 @@
   --gu-accent-surface: #0F2A1D;
   --gu-on-accent: #06130C;
   --gu-accent-solid: #00844A;
-  --gu-accent-solid-hover: #00935A;
+  --gu-accent-solid-hover: #00743F;
   --gu-on-accent-solid: #FFFFFF;
   --gu-success: #5FD99A;
   --gu-success-surface: #0F2A1D;
