@@ -34,7 +34,7 @@ func TestAProjectInTheSideListStartsAChatInItsFolder(t *testing.T) {
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
-	list := site.ask(t, "GET", "/jobs", nil).Body.String()
+	list := site.ask(t, "GET", "/chat", nil).Body.String()
 	if !strings.Contains(list, `href="/chat?at=`+id+`"`) {
 		t.Errorf("the project has no button for a new chat: %s", list)
 	}
