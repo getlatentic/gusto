@@ -30,7 +30,7 @@
           </div>
           <span class="flex-1"></span>
           <div class="relative min-w-0"><button type="button" id="run-on" class="inline-flex h-8 min-w-0 max-w-[22rem] cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink aria-expanded:bg-wash aria-expanded:text-ink [&>svg]:size-3.5" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label truncate"></span>{{template "icon-chevron"}}</button></div>
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover [&>svg]:size-[1.125rem] [&>svg]:opacity-100" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
         </div>
         <div class="flex flex-wrap items-center gap-1 border-t border-line pt-2" id="chat-choices" hidden>
           {{template "picker" (dict "ID" "role-pick" "Label" "Preset" "Name" "choice" "Value" .Role "Options" .Roles "Below" true)}}
@@ -62,6 +62,7 @@
 
 {{if .Picks}}
 {{if .NeedsModel}}<script src="{{asset "/static/firstmodel.js"}}"></script>{{end}}
+<script src="{{asset "/static/composer.js"}}"></script>
 <script src="{{asset "/static/picker.js"}}"></script>
 <script src="{{asset "/static/explorer.js"}}"></script>
 <script src="{{asset "/static/folderpick.js"}}"></script>
