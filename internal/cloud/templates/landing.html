@@ -50,20 +50,19 @@
 </main>
 
 <section id="harnesses" class="bg-canvas py-20 text-ink">
-  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-12 px-5">
     <div class="grid content-start gap-5">
       <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use the agents your team already wants.</h2>
-      <ul class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3">
-        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1">{{agentMark "claude" "size-6"}}Claude Code</li>
-        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1">{{agentMark "codex" "size-6"}}Codex</li>
-        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1">{{agentMark "opencode" "size-6"}}OpenCode</li>
-        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1">{{agentMark "pi" "size-6"}}Pi</li>
-        <li class="flex items-center gap-3 rounded-lg bg-surface p-4 font-display text-copy leading-tight font-semibold shadow-1">{{agentMark "hermes" "size-6"}}Hermes Agent</li>
-        <li class="flex items-center gap-3 rounded-lg border border-dashed border-line-strong p-4 font-display text-copy leading-tight font-semibold text-muted"><span class="inline-grid size-9 place-items-center rounded-sm border border-dashed border-line-strong font-bold text-muted" aria-hidden="true">+</span>Your own</li>
+      <ul class="grid max-w-2xl grid-cols-2 gap-x-8 gap-y-3 min-[44rem]:grid-cols-3">
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "claude" "size-6"}}Claude Code</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "codex" "size-6"}}Codex</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "opencode" "size-6"}}OpenCode</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "pi" "size-6"}}Pi</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "hermes" "size-6"}}Hermes Agent</li>
+        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "dsh" "size-6"}}DeepSeek Agent</li>
       </ul>
-       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking. No proprietary agent framework required.</p>
+       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking, or bring your own. No proprietary agent framework required.</p>
     </div>
-    <figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-line [&_img]:bg-surface [&_img]:shadow-2">{{picture "agents" "The agents to choose from" 616 472}}</figure>
   </div>
 </section>
 
