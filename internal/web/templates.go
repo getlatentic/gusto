@@ -23,7 +23,7 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, "template.html", map[string]any{
 		"Title":      productName + " — " + held.Title,
-		"Nav":        "new",
+		"Nav":        "presets",
 		"Template":   held,
 		"Harnesses":  s.runnersOf(held),
 		"InBuilding": s.inBuilding.Load(),

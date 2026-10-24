@@ -180,7 +180,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("POST /presets", s.guard(s.savePreset))
 	mux.HandleFunc("POST /presets/{id}/delete", s.guard(s.deletePreset))
-	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /presets", s.guard(s.presetsPage))
+	mux.HandleFunc("GET /new", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/presets", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
 	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
 	mux.HandleFunc("GET /compare", s.guard(s.comparePage))

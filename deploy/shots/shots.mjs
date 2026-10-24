@@ -115,7 +115,7 @@ if (serving) {
 // 3. the routes
 const jobId = turns[1];
 const routes = [
-  ["login", "/login", false], ["home", "/"], ["chat", "/chat"], ["new", "/new"], ["engines", "/engines"], ["jobs", "/jobs"],
+  ["login", "/login", false], ["home", "/"], ["chat", "/chat"], ["presets", "/presets"], ["engines", "/engines"], ["jobs", "/jobs"],
   ["spend", "/spend"], ["usage", "/usage"], ["files", "/files"], ["setups", "/setups"], ["start-agent", "/instances/new?harness=opencode"],
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],

@@ -55,7 +55,7 @@ func (s *Server) setupsData(r *http.Request, base string) map[string]any {
 	}
 	return map[string]any{
 		"Title":    productName + " — skill sets",
-		"Nav":      "new",
+		"Nav":      "presets",
 		"Base":     base,
 		"Setups":   list,
 		"Offered":  s.servers,
@@ -192,7 +192,7 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 	return map[string]any{
 		"Earlier":  s.setups.Earlier(held.Name),
 		"Title":    productName + " — " + held.Name,
-		"Nav":      "new",
+		"Nav":      "presets",
 		"Base":     base,
 		"Setup":    held,
 		"Offered":  s.servers,

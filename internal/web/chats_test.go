@@ -111,3 +111,16 @@ func TestAReplyIsMarkdownThatCannotActInTheBrowser(t *testing.T) {
 		}
 	}
 }
+
+// The presets page was at /new, and an old link to it still arrives there.
+func TestTheOldAddressOfThePresetsPageLeadsToThePresetsPage(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	old := site.ask(t, "GET", "/new", nil)
+	if old.Code != http.StatusMovedPermanently || old.Header().Get("Location") != "/presets" {
+		t.Fatalf("/new answered %d to %q", old.Code, old.Header().Get("Location"))
+	}
+	if page := site.ask(t, "GET", "/presets", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Presets") {
+		t.Errorf("/presets answered %d", page.Code)
+	}
+}

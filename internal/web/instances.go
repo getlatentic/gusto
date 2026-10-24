@@ -31,7 +31,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	s.turnAway(w, r, "/new", "this deployment cannot start "+wanted)
+	s.turnAway(w, r, "/presets", "this deployment cannot start "+wanted)
 }
 
 // startInstance gives a harness a computer to work in.
@@ -73,10 +73,10 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 		wanted.Harness = s.firstReady()
 	}
 	if wanted.Harness == "" {
-		return started, "/new", "this deployment cannot start an agent yet"
+		return started, "/presets", "this deployment cannot start an agent yet"
 	}
 	if why := s.runnable(wanted.Harness); why != "" {
-		return started, "/new", why
+		return started, "/presets", why
 	}
 	if why := s.unfit(wanted); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
@@ -96,7 +96,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	}
 	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
 	if err != nil {
-		return started, "/new", err.Error()
+		return started, "/presets", err.Error()
 	}
 	return started, "", ""
 }

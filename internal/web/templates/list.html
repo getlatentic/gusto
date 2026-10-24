@@ -67,7 +67,7 @@
   {{with .Older}}<a class="{{template "ui-btn-sm"}}" href="{{.}}">Older</a>{{end}}
 </nav>
 {{else}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1">{{if or .State .Harness (and .Index .Index.Query) (and .Index .Index.Person)}}Nothing matches these filters.{{else if and .Index .Index.Building.Building}}Nothing is listed yet: the index is still being built.{{else}}Nothing has happened here yet. Everything an agent does shows up here: <a class="font-medium text-ink" href="/new">start one</a>.{{end}}</p>
+<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1">{{if or .State .Harness (and .Index .Index.Query) (and .Index .Index.Person)}}Nothing matches these filters.{{else if and .Index .Index.Building.Building}}Nothing is listed yet: the index is still being built.{{else}}Nothing has happened here yet. Everything an agent does shows up here: <a class="font-medium text-ink" href="/presets">start one</a>.{{end}}</p>
 {{end}}
 
 {{end}}
