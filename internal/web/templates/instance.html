@@ -2,7 +2,7 @@
 
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/">Your agents</a><span>/</span><span>{{.Agent.Name}}</span></nav>
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/files">Files</a><span>/</span><span>{{.Agent.Name}}</span></nav>
 <header class="mb-6 flex items-center gap-4 @max-[56rem]:flex-wrap">
   {{template "mark" (dict "Harness" .Agent.Harness "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
   <div class="min-w-48 flex-1">

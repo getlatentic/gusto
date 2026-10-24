@@ -2,8 +2,6 @@ package web
 
 import (
 	"net/http"
-	"sort"
-	"strconv"
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
@@ -20,42 +18,6 @@ type yours struct {
 	Latest  jobs.Record
 	// Active is when it was last spoken to, or started when it never was.
 	Active int64
-}
-
-// agentsPerPage is how many rows the home page shows at once.
-const agentsPerPage = 10
-
-// home is the agents somebody already has, the one used last first,
-// because a person coming back wants to carry on rather than choose again.
-func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	held := s.ownInstances(r, s.instances.List())
-	listed := make([]yours, 0, len(held))
-	for _, each := range held {
-		listed = append(listed, s.lately(each))
-	}
-	sort.SliceStable(listed, func(a, b int) bool { return listed[a].Active > listed[b].Active })
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	page = max(page, 1)
-	from := min((page-1)*agentsPerPage, len(listed))
-	to := min(from+agentsPerPage, len(listed))
-	data := map[string]any{
-		"Title":     "gusto",
-		"Nav":       "harnesses",
-		"Instances": listed[from:to],
-		"Total":     len(listed),
-		"From":      from + 1,
-		"To":        to,
-		"Templates": industry.All(),
-		"Engines":   s.readyEngines(),
-		"Refused":   r.URL.Query().Get("refused"),
-	}
-	if page > 1 {
-		data["Newer"] = "/?page=" + strconv.Itoa(page-1)
-	}
-	if to < len(listed) {
-		data["Older"] = "/?page=" + strconv.Itoa(page+1)
-	}
-	s.render(w, "home.html", data)
 }
 
 // catalogPage is where a new agent is chosen: set up for a field of work,

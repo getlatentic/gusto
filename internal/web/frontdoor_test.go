@@ -51,7 +51,7 @@ func TestAPersonWhoIsSentByTheFrontDoorIsSignedInAsWhoTheyAreWithNoPassword(t *t
 		t.Errorf("a front door's word is trusted for an hour, not %s", left)
 	}
 	s.cookie = cookie
-	if home := s.ask(t, "GET", "/", nil); home.Code != http.StatusOK {
+	if home := s.ask(t, "GET", "/chat", nil); home.Code != http.StatusOK {
 		t.Errorf("the person is in: %d", home.Code)
 	}
 	probe := httptest.NewRequest("GET", "/", nil)
@@ -157,7 +157,7 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
 	behind := behindAFrontDoor(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
-	page := behind.ask(t, "GET", "/", nil).Body.String()
+	page := behind.ask(t, "GET", "/chat", nil).Body.String()
 	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease"`) {
 		t.Errorf("the page does not warn of the end of the host:\n%s", page[:min(len(page), 900)])
 	}

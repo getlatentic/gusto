@@ -128,7 +128,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 	runner, admin := here.as(t, alice), here.as(t, boss)
 	oldJob(t, here.site, "seen", 1)
 	where, _ := started(t, runner)
-	pages := []string{"/", "/jobs", "/spend", "/new", "/compare", "/setups", "/engines", "/jobs/seen", where}
+	pages := []string{"/chat", "/jobs", "/spend", "/new", "/compare", "/setups", "/engines", "/jobs/seen", where}
 	for _, path := range pages {
 		as := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(as, `href="/admin`); got != 1 || !strings.Contains(as, `href="/admin"`) {

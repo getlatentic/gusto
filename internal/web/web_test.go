@@ -171,17 +171,10 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-// The front door is what somebody already has. With nothing yet it offers
-// the kinds of work an agent comes ready for, and a blank one.
+// The new agent page offers the kinds of work an agent comes ready for.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	home := site.ask(t, "GET", "/", nil).Body.String()
-	for _, want := range []string{"Start an agent", "Or start from a kind of work", `href="/templates/health"`, `href="/new/blank"`} {
-		if !strings.Contains(home, want) {
-			t.Errorf("an empty home page does not offer %s", want)
-		}
-	}
 	answer := site.ask(t, "GET", "/new", nil)
 	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
 		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
@@ -337,7 +330,7 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, page := range []string{"/", "/jobs", "/spend"} {
+	for _, page := range []string{"/chat", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Presets") {
 			t.Errorf("%s does not offer the way to the presets", page)
@@ -459,7 +452,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	if where := started.Header().Get("Location"); !strings.Contains(where, "/threads/") {
 		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
-	if home := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(home, "Research helper") {
+	if instances := site.ask(t, "GET", started.Header().Get("Location"), nil).Body.String(); !strings.Contains(instances, "Research helper") {
 		t.Error("the agent is not listed by the name it was given")
 	}
 }
@@ -467,7 +460,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/new", "/", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
+	for _, path := range []string{"/new", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
 		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
 		if strings.Contains(strings.ToLower(body), "harness") {
 			i := strings.Index(strings.ToLower(body), "harness")
@@ -476,19 +469,14 @@ func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	}
 }
 
-func TestThePresetsPageOffersPresetsAndTheWelcomePageAlsoOffersAgentsAndNeitherSaysHarness(t *testing.T) {
+func TestThePresetsPageOffersPresetsAndDoesNotSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/new", "/"} {
-		body := site.ask(t, "GET", path, nil).Body.String()
-		if !strings.Contains(body, `href="/templates/health"`) {
-			t.Errorf("%s offers no preset to start from:\n%s", path, body)
-		}
-		if path == "/" && !strings.Contains(body, `href="/instances/new?harness=fixture"`) {
-			t.Errorf("%s offers no agent to start with:\n%s", path, body)
-		}
-		if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
-			t.Errorf("%s says harness to a person", path)
-		}
+	body := site.ask(t, "GET", "/new", nil).Body.String()
+	if !strings.Contains(body, `href="/templates/health"`) {
+		t.Errorf("/new offers no preset to start from:\n%s", body)
+	}
+	if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
+		t.Error("/new says harness to a person")
 	}
 }
