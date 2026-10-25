@@ -182,7 +182,7 @@ func TestAMentionGoesToTheAgentNamedOnItsOwnHarness(t *testing.T) {
 		}
 	}
 	page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{bob, "@Draft write the page", ">Draft<", "Other"} {
+	for _, want := range []string{">bob<", `>@Draft</span> write the page`, ">Draft<", "does Draft"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the room does not show %q", want)
 		}
@@ -197,7 +197,7 @@ func TestBothAgentsMentionedAnswer(t *testing.T) {
 	if len(heard) != 2 {
 		t.Fatalf("the agents took %d turns, not one each", len(heard))
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); strings.Count(page, "and @Draft, and @Scout again") != 1 {
+	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); strings.Count(page, "@Scout</span> again") != 1 {
 		t.Error("the room shows one message once for each agent it mentions")
 	}
 }
@@ -258,7 +258,7 @@ func TestAnAgentHandsWorkOnByMentioningAnotherAndTheChainStops(t *testing.T) {
 	if !strings.Contains(heard[1].Brief, "@Scout says to you:\n@Draft over to you") {
 		t.Errorf("the agent handed to was not told who handed it on:\n%s", heard[1].Brief)
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "asked by @Scout") {
+	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `asked by <span class="rounded-xs bg-accent-wash px-0.5 font-medium text-accent">@Scout</span>`) {
 		t.Error("the room does not show which agent handed a turn on")
 	}
 }
@@ -287,5 +287,15 @@ func TestAnAgentKeepsItsOwnConversationInARoom(t *testing.T) {
 		if want := map[string]string{"a1": "scout-session", "a2": ""}[spec.Agent]; spec.Remembered != want {
 			t.Errorf("%s carried on %q, not %q", spec.Agent, spec.Remembered, want)
 		}
+	}
+}
+
+func TestAMessageShowsItsMentionsAndNothingElseAsMarkup(t *testing.T) {
+	shown := string(mentions(`<b>hi</b> @Scout, mail me@example.com`))
+	if strings.Contains(shown, "<b>") || !strings.Contains(shown, ">@Scout</span>,") || strings.Contains(shown, ">@example") {
+		t.Errorf("the message shows as %s", shown)
+	}
+	if got := initials("mira.ionescu@example.com"); got != "MI" {
+		t.Errorf("the initials are %q", got)
 	}
 }
