@@ -198,3 +198,57 @@
     history.replaceState(null, "", location.pathname + location.hash);
   }
 })();
+
+// The room's files panel arrives in the file panel after the page loaded, so what it does is listened for on the whole page: its
+// two lists, and adding files, after which it is fetched again to show them.
+(function () {
+  document.addEventListener("click", function (event) {
+    var tab = event.target.closest && event.target.closest("[data-files-tab]");
+    if (!tab) { return; }
+    var panel = tab.closest("[data-room-files]");
+    panel.querySelectorAll("[data-files-tab]").forEach(function (each) { each.setAttribute("aria-selected", String(each === tab)); });
+    panel.querySelectorAll("[data-files-list]").forEach(function (list) { list.hidden = list.dataset.filesList !== tab.dataset.filesTab; });
+  });
+  document.addEventListener("change", function (event) {
+    var picker = event.target.closest && event.target.closest("[data-room-upload]");
+    if (!picker || !picker.files.length) { return; }
+    var panel = picker.closest("[data-room-files]");
+    var status = panel.querySelector("[data-upload-status]");
+    var sent = new FormData();
+    [].forEach.call(picker.files, function (file) { sent.append("file", file); });
+    status.hidden = false;
+    status.classList.remove("hidden");
+    status.textContent = "Adding " + picker.files.length + (picker.files.length === 1 ? " file…" : " files…");
+    fetch(panel.dataset.roomFiles, { method: "POST", body: sent, credentials: "same-origin" })
+      .then(function (answer) { return answer.ok ? null : answer.text().then(function (why) { return Promise.reject(why); }); })
+      .then(function () { return fetch(panel.dataset.roomFiles + "?panel=1", { credentials: "same-origin" }); })
+      .then(function (answer) { return answer.text(); })
+      .then(function (html) {
+        var holder = panel.parentNode;
+        holder.innerHTML = html;
+        var fresh = holder.querySelector('[data-files-tab="people"]');
+        if (fresh) { fresh.click(); }
+      })
+      .catch(function (why) { status.textContent = "The files could not be added. " + (why || ""); });
+  });
+})();
+
+// The room's menu: it closes on a choice or a click elsewhere, copies the room's address, and asks before leaving or deleting.
+(function () {
+  var menu = document.querySelector("[data-menu]");
+  if (!menu) { return; }
+  document.addEventListener("click", function (event) { if (menu.open && !menu.contains(event.target)) { menu.open = false; } });
+  menu.addEventListener("keydown", function (event) { if (event.key === "Escape") { menu.open = false; menu.querySelector("summary").focus(); } });
+  menu.querySelectorAll("[role=menuitem]").forEach(function (item) { item.addEventListener("click", function () { menu.open = false; }); });
+  var copy = menu.querySelector("[data-copy-link]");
+  copy.addEventListener("click", function () {
+    var said = copy.querySelector("span");
+    navigator.clipboard.writeText(location.origin + location.pathname).then(function () {
+      said.textContent = "Link copied";
+      setTimeout(function () { said.textContent = "Copy link"; }, 1500);
+    });
+  });
+  document.querySelectorAll("[data-confirm]").forEach(function (button) {
+    button.addEventListener("click", function (event) { if (!window.confirm(button.dataset.confirm)) { event.preventDefault(); } });
+  });
+})();

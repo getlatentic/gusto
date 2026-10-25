@@ -1,11 +1,15 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -28,6 +32,8 @@ type roomWork struct {
 	mu      sync.Mutex
 	heard   []heardTurn
 	replies map[string]string
+	// patch is the change every turn reports making to the folder.
+	patch string
 }
 
 func (w *roomWork) do(_ context.Context, dir job.Dir) (int, error) {
@@ -48,6 +54,11 @@ func (w *roomWork) do(_ context.Context, dir job.Dir) (int, error) {
 	}
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return 1, err
+	}
+	if w.patch != "" {
+		if err := os.WriteFile(dir.OutFile("diff.patch"), []byte(w.patch), 0o644); err != nil {
+			return 1, err
+		}
 	}
 	return 0, os.WriteFile(dir.OutFile("transcript.log"), []byte(reply+"\n"), 0o644)
 }
@@ -374,5 +385,53 @@ func TestAPresetAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	}
 	if got := here.as(t, "carol@example.com").ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {"dave@example.com"}}); got.Code != http.StatusNotFound {
 		t.Errorf("somebody taken out of the room could still add to it: %d", got.Code)
+	}
+}
+
+func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.T) {
+	work := &roomWork{patch: "diff --git a/brief.md b/brief.md\nnew file mode 100644\n--- /dev/null\n+++ b/brief.md\n@@ -0,0 +1 @@\n+the brief\n"}
+	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
+	mine := here.as(t, alice)
+	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {bob}})
+	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"write the brief"}})
+	work.waitTurns(t, here, 1)
+	if err := os.WriteFile(filepath.Join(here.server.instances.Workspace(id), "brief.md"), []byte("the brief\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	upload := func(who *site, name, body string) int {
+		var sent bytes.Buffer
+		form := multipart.NewWriter(&sent)
+		part, _ := form.CreateFormFile("file", name)
+		part.Write([]byte(body))
+		form.Close()
+		request := httptest.NewRequest("POST", "/rooms/"+id+"/files", &sent)
+		request.Header.Set("Content-Type", form.FormDataContentType())
+		request.AddCookie(who.cookie)
+		answer := httptest.NewRecorder()
+		who.handler.ServeHTTP(answer, request)
+		return answer.Code
+	}
+	his := here.as(t, bob)
+	if got := upload(his, "notes.txt", "from bob"); got != http.StatusNoContent {
+		t.Fatalf("a member's upload answered %d", got)
+	}
+	if got := upload(his, "notes.txt", "again"); got != http.StatusNoContent {
+		t.Fatalf("a second upload of the same name answered %d", got)
+	}
+	if kept, _ := os.ReadFile(filepath.Join(here.server.instances.Workspace(id), "notes (2).txt")); string(kept) != "again" {
+		t.Errorf("a second file of the same name was kept as %q", kept)
+	}
+	if got := upload(here.as(t, "carol@example.com"), "x.txt", "no"); got != http.StatusNotFound {
+		t.Errorf("somebody outside the room uploaded, answered %d", got)
+	}
+
+	panel := his.ask(t, "GET", "/rooms/"+id+"/files?panel=1", nil).Body.String()
+	agents, people := between(panel, `data-files-list="agents"`, `data-files-list="people"`), panel[strings.Index(panel, `data-files-list="people"`):]
+	if !strings.Contains(agents, "brief.md") || strings.Contains(agents, "notes.txt") {
+		t.Errorf("the agents' list is wrong:\n%s", agents)
+	}
+	if !strings.Contains(people, "notes.txt") || !strings.Contains(people, "notes (2).txt") || strings.Contains(people, "brief.md") {
+		t.Errorf("the people's list is wrong:\n%s", people)
 	}
 }

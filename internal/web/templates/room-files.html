@@ -1,0 +1,29 @@
+{{define "room-files"}}<div class="grid gap-4" data-room-files="/rooms/{{.Room.ID}}/files">
+  <div class="flex items-center gap-2">
+    <div class="flex min-w-0 flex-1 gap-0.5 rounded-lg bg-sunken p-0.5" role="tablist" aria-label="Whose files">
+      <button class="h-7 min-w-0 flex-1 cursor-pointer truncate rounded-md border-0 bg-transparent px-2 text-xs font-medium text-muted aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="true" data-files-tab="agents">Made by agents <span class="text-subtle tabular-nums">{{.Agents}}</span></button>
+      <button class="h-7 min-w-0 flex-1 cursor-pointer truncate rounded-md border-0 bg-transparent px-2 text-xs font-medium text-muted aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="false" data-files-tab="people">Added by people <span class="text-subtle tabular-nums">{{.People}}</span></button>
+    </div>
+    <label class="grid size-8 flex-none cursor-pointer place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" title="Add files to the room">{{template "icon-upload"}}<span class="sr-only">Add files to the room</span><input class="sr-only" type="file" multiple data-room-upload></label>
+  </div>
+  <p class="m-0 hidden text-sm text-muted" role="status" data-upload-status></p>
+  {{template "room-file-days" (dict "Days" .ByAgents "List" "agents" "Room" .Room "From" .From "Empty" "No files made by agents in this room yet.")}}
+  {{template "room-file-days" (dict "Days" .ByPeople "List" "people" "Room" .Room "From" .From "Empty" "Nobody has added a file to this room yet." "Hidden" true)}}
+  {{if .Cut}}<p class="m-0 text-xs text-subtle">The folder holds more files than can be listed here. <a href="/instances/{{.Room.ID}}/files?from={{.From}}" data-page>Open the folder</a> to see them all.</p>{{end}}
+</div>{{end}}
+
+{{define "room-file-days"}}<div class="grid gap-4 [&[hidden]]:hidden" data-files-list="{{.List}}"{{if .Hidden}} hidden{{end}}>
+  {{range .Days}}
+  <section class="grid gap-1">
+    <h3 class="m-0 px-1 text-xs font-medium text-subtle">{{.Day}}</h3>
+    {{range .Files}}
+    <a class="flex items-center gap-3 rounded-lg px-1 py-1.5 text-ink no-underline hover:bg-sunken" href="/instances/{{$.Room.ID}}/file?path={{.Path}}&amp;from={{$.From}}" title="{{.Path}}">
+      <span class="grid size-9 flex-none place-items-center rounded-lg bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-file"}}</span>
+      <span class="grid min-w-0"><span class="truncate text-sm">{{.Name}}</span><span class="truncate text-xs text-subtle">{{size .Size}} · {{ago .Modified}}{{if ne .Folder "."}} · {{.Folder}}{{end}}</span></span>
+    </a>
+    {{end}}
+  </section>
+  {{else}}
+  <div class="grid justify-items-center gap-3 py-10 text-center text-sm text-subtle"><span class="text-faint [&>svg]:size-8" aria-hidden="true">{{template "icon-file"}}</span>{{.Empty}}</div>
+  {{end}}
+</div>{{end}}

@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
     show(left[left.length - 1], held);
   }
 
-  function add(url, key) {
+  function add(url, key, tabName) {
     var id = "fp-" + (++made);
     var tab = document.createElement("div");
     tab.className = "inline-flex h-8 max-w-56 flex-none items-center rounded-sm pl-3 text-muted has-[[aria-selected=true]]:bg-wash has-[[aria-selected=true]]:text-ink";
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
     name.id = id + "-tab";
     name.setAttribute("role", "tab");
     name.setAttribute("aria-controls", id + "-pane");
-    name.textContent = decodeURIComponent((url.searchParams.get("path") || url.pathname).split("/").pop()) || "File";
+    name.textContent = tabName || decodeURIComponent((url.searchParams.get("path") || url.pathname).split("/").pop()) || "File";
     name.title = name.textContent;
     var x = document.createElement("button");
     x.type = "button";
@@ -117,15 +117,15 @@ document.addEventListener("DOMContentLoaded", function () {
     var url = new URL(href, location.href);
     var key = url.pathname + "?" + (url.searchParams.get("path") || "");
     panel.hidden = false;
-    if (!open[key]) { add(url, key); }
+    if (!open[key]) { add(url, key, link && link.dataset.tabName); }
     show(key);
   }
 
   document.addEventListener("click", function (event) {
-    var link = event.target.closest && event.target.closest('a[href*="/file?path="], a[href*="/files/"][href*="/jobs/"]');
+    var link = event.target.closest && event.target.closest('a[href*="/file?path="], a[href*="/files/"][href*="/jobs/"], a[data-files-panel]');
     if (!link || link.hasAttribute("download") || link.hasAttribute("data-page") || event.defaultPrevented) { return; }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) { return; }
-    if (!link.closest(".said-so-far, .fp-bodies") || !roomy()) { return; }
+    if (!(link.closest(".said-so-far, .fp-bodies") || link.hasAttribute("data-files-panel")) || !roomy()) { return; }
     event.preventDefault();
     view(link.href, link);
   });
