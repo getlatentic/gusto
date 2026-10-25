@@ -80,6 +80,22 @@
     mode: "0644"
   notify: Restart the gateway
 
+# Turned on and not started: it formats a disk under the gateway's records, which is done when the host starts.
+- name: The host's own disk holds what the gateway keeps of each sandbox
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: gusto-scratch.j2, dest: /usr/local/sbin/gusto-scratch, mode: "0755" }
+    - { src: gusto-scratch.service.j2, dest: /etc/systemd/system/gusto-scratch.service, mode: "0644" }
+
+- name: The disk is set up whenever the host starts
+  ansible.builtin.systemd:
+    name: gusto-scratch
+    enabled: true
+    daemon_reload: true
+
 - name: The gateway is running
   ansible.builtin.systemd:
     name: openshell-gateway

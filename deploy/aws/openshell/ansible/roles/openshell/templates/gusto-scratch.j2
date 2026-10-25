@@ -1,0 +1,22 @@
+#!/bin/bash
+# Puts what the gateway keeps of each sandbox on the instance's own disk, which AWS blanks whenever the host stops, so nothing
+# a visitor's agents did outlives the host's run while the root disk, with the prepared images, is kept. It is formatted on
+# every start. A host without one keeps it all on the root disk.
+set -euo pipefail
+state={{ openshell_state }}/openshell
+scratch=/var/lib/gusto-scratch
+disk=$(find /dev/disk/by-id -name 'nvme-Amazon_EC2_NVMe_Instance_Storage_*' | sort | head -1)
+if [ -z "$disk" ]; then
+  echo "gusto-scratch: this host has no disk of its own, so sandboxes stay on the root disk"
+  exit 0
+fi
+mkfs.ext4 -q -F -E lazy_itable_init=1,lazy_journal_init=1 "$(readlink -f "$disk")"
+mkdir -p "$scratch"
+mount -o noatime "$disk" "$scratch"
+for dir in vm-driver/sandboxes vm-driver/rootfs-tar-staging gateway; do
+  mkdir -p "$state/$dir" "$scratch/$dir"
+  chown {{ openshell_user }}:{{ openshell_user }} "$scratch/$dir"
+  chmod 0700 "$scratch/$dir"
+  mount --bind "$scratch/$dir" "$state/$dir"
+done
+echo "gusto-scratch: sandboxes and the gateway's records are on $(readlink -f "$disk")"
