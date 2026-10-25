@@ -159,3 +159,42 @@
     });
   }, 3000);
 })();
+
+// A room's members are shown in dialogs over its conversation. A link that asks for one, as a change to the members comes back with,
+// opens it, and the address is put back so a reload does not open it again.
+(function () {
+  function open(id) {
+    var dialog = document.getElementById(id);
+    if (!dialog) { return; }
+    document.querySelectorAll("dialog[open]").forEach(function (other) { if (other !== dialog) { other.close(); } });
+    dialog.showModal();
+  }
+  document.querySelectorAll("[data-open]").forEach(function (opener) {
+    opener.addEventListener("click", function (event) { event.preventDefault(); open(opener.dataset.open); });
+  });
+  document.querySelectorAll("dialog [data-close]").forEach(function (closer) {
+    closer.addEventListener("click", function () { closer.closest("dialog").close(); });
+  });
+  document.querySelectorAll("dialog").forEach(function (dialog) {
+    dialog.addEventListener("click", function (event) { if (event.target === dialog) { dialog.close(); } });
+  });
+  document.querySelectorAll("[data-submit-on-change]").forEach(function (choice) {
+    choice.addEventListener("change", function () {
+      if (!choice.dataset.submitWhen || choice.value === choice.dataset.submitWhen) { choice.form.requestSubmit(); }
+    });
+  });
+  document.querySelectorAll("[data-filter]").forEach(function (search) {
+    var list = document.getElementById(search.dataset.filter);
+    if (!list) { return; }
+    search.addEventListener("input", function () {
+      var wanted = search.value.trim().toLowerCase();
+      list.querySelectorAll("[data-name]").forEach(function (row) { row.hidden = wanted !== "" && row.dataset.name.toLowerCase().indexOf(wanted) < 0; });
+    });
+  });
+  var asked = new URLSearchParams(location.search);
+  var wanted = asked.has("add") ? "room-add" : asked.has("members") || asked.has("refused") ? "room-members" : "";
+  if (wanted) {
+    open(wanted);
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
+})();

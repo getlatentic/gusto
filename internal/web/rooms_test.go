@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -97,8 +99,11 @@ func aRoom(t *testing.T, work *roomWork, agents ...[2]string) (*site, string, st
 	if made.Code != http.StatusSeeOther {
 		t.Fatalf("making a room gave %d: %s", made.Code, made.Body)
 	}
-	members := made.Header().Get("Location")
-	id := strings.TrimSuffix(strings.TrimPrefix(members, "/rooms/"), "/members")
+	opened := made.Header().Get("Location")
+	if !strings.HasSuffix(opened, "?add=1") {
+		t.Fatalf("a new room opens at %s, not with its add dialog", opened)
+	}
+	id := strings.TrimPrefix(opened[:strings.Index(opened, "/threads/")], "/instances/")
 	for _, agent := range agents {
 		added := mine.ask(t, "POST", "/rooms/"+id+"/agents", url.Values{"name": {agent[0]}, "harness": {agent[1]}, "job": {"does " + agent[0]}})
 		if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
@@ -333,4 +338,41 @@ func between(text, start, end string) string {
 	}
 	text = text[at+len(start):]
 	return text[:max(strings.Index(text, end), 0)]
+}
+
+func TestAPresetAndAPersonAreAddedToARoomTogether(t *testing.T) {
+	work := &roomWork{}
+	here, id, thread := aRoom(t, work)
+	saved, err := here.server.presets.Save(alice, preset.Preset{Name: "Tosin's Claude", Harness: "other", Model: "platform/test-model"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mine := here.as(t, alice)
+	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `value="`+saved.ID+`"`) {
+		t.Fatal("the add dialog does not offer the person's preset")
+	}
+	added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"preset": {saved.ID}, "who": {bob + ", carol@example.com"}})
+	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
+		t.Fatalf("adding gave %d to %s", added.Code, added.Header().Get("Location"))
+	}
+	held, _ := here.server.instances.Get(id)
+	agent, found := held.AgentCalled("TosinsClaude")
+	if !found || agent.Harness != "other" || agent.Model != "platform/test-model" {
+		t.Errorf("the preset became %+v", held.Agents)
+	}
+	if held.RoleOf(bob) != instance.RoleMember || held.RoleOf("carol@example.com") != instance.RoleMember {
+		t.Errorf("the people were not added: %+v", held.Members)
+	}
+	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"preset": {saved.ID}})
+	if held, _ := here.server.instances.Get(id); len(held.Agents) != 2 || held.Agents[1].Name != "TosinsClaude2" {
+		t.Errorf("the same preset twice gave %+v", held.Agents)
+	}
+	mine.ask(t, "POST", "/rooms/"+id+"/members/role", url.Values{"who": {bob}, "role": {"admin"}})
+	mine.ask(t, "POST", "/rooms/"+id+"/members/role", url.Values{"who": {"carol@example.com"}, "role": {"remove"}})
+	if held, _ := here.server.instances.Get(id); held.RoleOf(bob) != instance.RoleAdmin || held.RoleOf("carol@example.com") != "" {
+		t.Errorf("roles did not change: %+v", held.Members)
+	}
+	if got := here.as(t, "carol@example.com").ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {"dave@example.com"}}); got.Code != http.StatusNotFound {
+		t.Errorf("somebody taken out of the room could still add to it: %d", got.Code)
+	}
 }

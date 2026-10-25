@@ -3,9 +3,7 @@
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
     <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold" title="{{.Named}}">{{.Named}}</h1>
-    {{if .Instance.Room}}
-    <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="/rooms/{{.Instance.ID}}/members" title="People and agents in this room">{{template "icon-users"}}<span>{{len .Instance.Members}} {{if eq (len .Instance.Members) 1}}person{{else}}people{{end}}, {{len .Instance.Agents}} agent{{if ne (len .Instance.Agents) 1}}s{{end}}</span></a>
-    {{else}}
+    {{if .Instance.Room}}{{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
@@ -15,6 +13,7 @@
     {{range .Apps}}<a class="h-8 flex-none {{template "ui-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
     <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
+    {{if .Instance.Room}}<a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5 tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>{{end}}
   </header>
 
   <div class="said-so-far overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
@@ -71,6 +70,7 @@
   </div>
 </section>
 
+{{if .Instance.Room}}{{template "room-dialogs" .}}{{end}}
 <aside class="file-panel relative flex min-h-0 min-w-0 flex-[0_0_var(--files-w,36rem)] flex-col border-l border-line bg-surface @max-[72rem]:hidden" id="file-panel" aria-label="Files from this chat" hidden>
   <div class="resize absolute inset-y-0 -left-1 z-[6] w-2 cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-[0.1875rem] after:w-0.5 after:bg-transparent after:transition-colors after:content-[''] hover:after:bg-line-strong [.resizing_&]:after:bg-line-strong focus-visible:-outline-offset-2 focus-visible:after:bg-focus" id="file-panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the files" tabindex="0"></div>
   <div class="flex items-center gap-2 border-b border-line px-3 py-2">
@@ -213,6 +213,78 @@
 {{end}}
 
 {{template "foot" .}}
+
+{{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
+<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title">
+  <div class="grid gap-1 p-6 pb-5">
+    <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
+    {{if .Runs}}<button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}Add member</button>{{end}}
+    {{range .People}}
+    <div class="flex h-10 items-center gap-3 px-1">
+      <span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-3.5" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+      <span class="min-w-0 flex-1 truncate text-sm" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="text-subtle">you</span>{{end}}</span>
+      {{if $.Members.Runs}}
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/role"><input type="hidden" name="who" value="{{.Who}}">
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-submit-on-change>
+          <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option><option value="member"{{if eq .Role "member"}} selected{{end}}>Member</option><option value="remove">{{if .You}}Leave the room{{else}}Remove from room{{end}}</option>
+        </select>
+      </form>
+      {{else}}<span class="text-sm text-muted">{{if eq .Role "admin"}}Admin{{else}}Member{{end}}</span>{{if .You}}<form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/remove"><input type="hidden" name="who" value="{{.Who}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Leave</button></form>{{end}}{{end}}
+    </div>
+    {{end}}
+    {{range .Agents}}
+    <div class="flex h-10 items-center gap-3 px-1">
+      <span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+      <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}">{{or .Job .Engine}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
+      {{if $.Members.Runs}}
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove">
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-submit-on-change data-submit-when="remove">
+          <option value="">Agent</option><option value="remove">Remove from room</option>
+        </select>
+      </form>
+      {{else}}<span class="text-sm text-muted">Agent</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+</dialog>
+{{if .Runs}}
+<dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title">
+  <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">Add members</h2><p class="m-0 mt-1 text-sm text-muted">Pick agents from your presets, or add people by their email address.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search presets" aria-label="Search presets" data-filter="room-add-list" autocomplete="off"></label>
+    {{if .Presets}}
+    <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">
+      {{range .Presets}}
+      <label class="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 text-sm hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-name="{{.Name}}">
+        <input class="sr-only" type="checkbox" name="preset" value="{{.ID}}">
+        <span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>
+        <span class="flex-none font-medium">{{.Name}}</span><span class="min-w-0 truncate text-subtle">{{.Summary}}</span>
+        <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
+      </label>
+      {{end}}
+    </div>
+    {{else}}<p class="m-0 text-sm text-muted">You have no presets yet. <a href="/presets">Save one</a>, or make an agent for this room below.</p>{{end}}
+    <label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>
+    <div class="flex items-center justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></div>
+  </form>
+  <details class="group border-t border-line px-6 py-4">
+    <summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4">{{template "icon-add"}}Make a new agent for this room</summary>
+    {{if .Picks}}
+    <form class="mt-3 grid gap-3" method="post" action="/rooms/{{$room.ID}}/agents">
+      <div class="grid grid-cols-2 gap-3">
+        <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Scout" pattern="[A-Za-z][A-Za-z0-9_\-]{0,31}" maxlength="32" required></label>
+        <label class="{{template "ui-field"}}">Agent type <select class="select w-full" name="harness">{{range .Picks}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select></label>
+      </div>
+      <label class="{{template "ui-field"}}"><span>What it does <span class="font-normal">optional</span></span><input class="input" name="job" placeholder="Research agent" maxlength="200"></label>
+      {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
+      <div class="flex justify-end"><button type="submit" class="{{template "ui-btn"}} h-9">Make the agent</button></div>
+    </form>
+    {{else}}<p class="m-0 mt-2 text-sm text-muted">No agent type can run on this server yet.</p>{{end}}
+  </details>
+</dialog>
+{{end}}
+{{end}}{{end}}
 
 {{define "turns"}}
 {{if .Instance.Room}}{{template "room-turns" .}}{{else}}

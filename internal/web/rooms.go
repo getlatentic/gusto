@@ -31,6 +31,8 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
 	mux.HandleFunc("GET /rooms/{id}/members", s.guard(s.roomMembersPage))
+	mux.HandleFunc("POST /rooms/{id}/members/add", s.guard(s.addRoomMembers))
+	mux.HandleFunc("POST /rooms/{id}/members/role", s.guard(s.changeRoomRole))
 	mux.HandleFunc("POST /rooms/{id}/members", s.guard(s.setRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/members/remove", s.guard(s.removeRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/agents", s.guard(s.addRoomAgent))
@@ -53,7 +55,7 @@ func (s *Server) makeRoom(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/rooms/new", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/rooms/"+held.ID+"/members", http.StatusSeeOther)
+	http.Redirect(w, r, threadPath(thread)+"?add=1", http.StatusSeeOther)
 }
 
 // roomOf is the room the path names when the person asking is in it, or is an admin of this server.
@@ -70,54 +72,6 @@ func (s *Server) roomOf(w http.ResponseWriter, r *http.Request) (instance.Instan
 func (s *Server) runsRoom(r *http.Request, held instance.Instance) bool {
 	return s.admin(r) || held.RoleOf(s.askerName(r)) == instance.RoleAdmin
 }
-
-// roomPerson is a member as the members page lists them.
-type roomPerson struct {
-	instance.Member
-	You bool
-}
-
-// roomAgent is an agent as the members page and a conversation show it.
-type roomAgent struct {
-	instance.Agent
-	Engine string
-	Brain  string
-}
-
-func (s *Server) roomAgents(held instance.Instance) []roomAgent {
-	shown := make([]roomAgent, 0, len(held.Agents))
-	for _, agent := range held.Agents {
-		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model)})
-	}
-	return shown
-}
-
-func (s *Server) roomMembersPage(w http.ResponseWriter, r *http.Request) {
-	held, found := s.roomOf(w, r)
-	if !found {
-		return
-	}
-	you := s.askerName(r)
-	people := make([]roomPerson, 0, len(held.Members))
-	for _, member := range held.Members {
-		people = append(people, roomPerson{Member: member, You: strings.EqualFold(member.Who, you)})
-	}
-	picks := s.picksFor(r)
-	s.render(w, "room-members.html", map[string]any{
-		"Title":   productName + " — " + held.Title + " members",
-		"Nav":     "chat",
-		"Room":    held,
-		"Where":   threadPath(s.instances.Latest(held.ID)),
-		"People":  people,
-		"Agents":  s.roomAgents(held),
-		"Runs":    s.runsRoom(r, held),
-		"Picks":   picks,
-		"Models":  s.modelOptionsOf(s.offeredTo(r)),
-		"Refused": r.URL.Query().Get("refused"),
-	})
-}
-
-func (s *Server) membersPath(held instance.Instance) string { return "/rooms/" + held.ID + "/members" }
 
 func (s *Server) setRoomMember(w http.ResponseWriter, r *http.Request) {
 	held, found := s.roomOf(w, r)
