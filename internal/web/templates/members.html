@@ -146,24 +146,20 @@
     {{with .Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Atlas" maxlength="32" required autocomplete="off"></label>
     <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">helps teammates know what to ask it for</span></span><input class="input" name="specialty" placeholder="Research and synthesis" maxlength="80"></label>
-    {{if .Picks}}
     <fieldset class="m-0 grid gap-1.5 border-0 p-0">
       <legend class="mb-1 text-xs font-medium text-subtle">How it runs <span class="font-normal">chosen once; it keeps its conversations in this agent type</span></legend>
-      {{range $i, $each := .Picks}}
-      <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2.5 hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash">
-        <input class="sr-only" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
-        <span class="grid size-7 flex-none place-items-center" aria-hidden="true">{{template "mark" (dict "Harness" $each.Name "Name" $each.Title "Size" "sm")}}</span>
-        <span class="grid min-w-0"><span class="text-sm font-medium">{{$each.Title}}</span>{{with $each.What}}<span class="truncate text-xs text-muted">{{.}}</span>{{end}}</span>
+      {{range $each := .Kinds}}
+      <label class="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 {{if $each.Ready}}cursor-pointer hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash{{else}}cursor-not-allowed bg-sunken{{end}}">
+        <input class="sr-only" type="radio" name="harness" value="{{$each.Name}}"{{if eq $each.Name $.FirstReady}} checked{{end}}{{if not $each.Ready}} disabled{{end}}>
+        <span class="grid size-7 flex-none place-items-center{{if not $each.Ready}} opacity-50 grayscale{{end}}" aria-hidden="true">{{template "mark" (dict "Harness" $each.Name "Name" $each.Title "Size" "sm")}}</span>
+        <span class="grid min-w-0"><span class="text-sm font-medium{{if not $each.Ready}} text-muted{{end}}">{{$each.Title}}</span>{{if $each.Ready}}{{with $each.What}}<span class="truncate text-xs text-muted">{{.}}</span>{{end}}{{else}}<span class="truncate text-xs text-subtle" title="{{$each.Why}}">Not on this server: {{$each.Why}}</span>{{end}}</span>
         <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
       </label>
       {{end}}
     </fieldset>
-    {{else}}<p class="m-0 rounded-md bg-warn-wash px-3 py-2 text-sm">No agent type can run on this server yet. Ask whoever runs it to add one.</p>{{end}}
-    <div class="grid grid-cols-2 gap-3 @max-[40rem]:grid-cols-1">
-      {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
-      <label class="{{template "ui-field"}}">Skills <select class="select w-full" name="setup"><option value="">None</option>{{template "skill-options" (dict "Choices" .Skills "Chosen" "")}}</select></label>
-    </div>
-    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9"{{if not .Picks}} disabled{{end}}>Make the agent</button></div>
+    {{if not .FirstReady}}<p class="m-0 rounded-md bg-warn-wash px-3 py-2 text-sm">No agent type can run on this server yet. Ask whoever runs it to add one.</p>{{end}}
+    {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9"{{if not .FirstReady}} disabled{{end}}>Make the agent</button></div>
   </form>
 </dialog>
 {{end}}

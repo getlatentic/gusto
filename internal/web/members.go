@@ -113,21 +113,30 @@ func (s *Server) membersData(r *http.Request, here string) map[string]any {
 		"Title": productName + " — members",
 		"Nav":   "members",
 		// The list and whoever is open fill the window, as a chat does.
-		"Chat":     true,
-		"Here":     here,
-		"People":   s.workspacePeople(r),
-		"Agents":   agents,
-		"Picks":    s.picksFor(r),
-		"Offered":  s.modelOptionsOf(s.offeredTo(r)),
-		"Skills":   s.skillChoices(),
-		"Keeps":    s.crew != nil,
-		"Refused":  r.URL.Query().Get("refused"),
-		"MakeOpen": r.URL.Query().Has("new"),
+		"Chat":       true,
+		"Here":       here,
+		"People":     s.workspacePeople(r),
+		"Agents":     agents,
+		"Kinds":      s.engines(),
+		"FirstReady": firstReady(s.picksFor(r)),
+		"Offered":    s.modelOptionsOf(s.offeredTo(r)),
+		"Skills":     s.skillChoices(),
+		"Keeps":      s.crew != nil,
+		"Refused":    r.URL.Query().Get("refused"),
+		"MakeOpen":   r.URL.Query().Has("new"),
 	}
 }
 
 func (s *Server) membersPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "members.html", s.membersData(r, "/members"))
+}
+
+// firstReady is the agent type a new agent is offered first: the first this person can run.
+func firstReady(picks []pick) string {
+	if len(picks) == 0 {
+		return ""
+	}
+	return picks[0].Name
 }
 
 // skillChoice is a set of skills an agent can be given: one of the ready-made roles, or a skill set somebody made.

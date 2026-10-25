@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 func TestAnAgentIsMadeInMembersAndStartsPrivate(t *testing.T) {
@@ -120,5 +122,24 @@ func TestADirectRoomStillOpensAfterItsAgentIsRemoved(t *testing.T) {
 	mine.ask(t, "POST", "/members/agents/"+member.ID+"/remove", nil)
 	if got := mine.ask(t, "GET", opened, nil); got.Code != http.StatusOK {
 		t.Errorf("the direct room answered %d once its agent was removed", got.Code)
+	}
+}
+
+func TestTheNewAgentDialogShowsEveryAgentTypeAndWhyOneCannotRun(t *testing.T) {
+	kinds := append(twoHarnesses(), catalog.Entry{Name: "claude", Title: "Claude Code", Program: "claude", Ready: false, Why: "npm install -g @anthropic-ai/claude-code"})
+	site := openOffering(t, kinds)
+	mine := site.as(t, alice)
+	page := mine.ask(t, "GET", "/members", nil).Body.String()
+	dialog := between(page, `id="new-agent"`, "</dialog>")
+	for _, want := range []string{"Claude Code", "Not on this server: npm install -g @anthropic-ai/claude-code", `value="claude" disabled`} {
+		if !strings.Contains(dialog, want) {
+			t.Errorf("the new agent dialog does not show %q", want)
+		}
+	}
+	if strings.Contains(dialog, `name="setup"`) {
+		t.Error("the new agent dialog asks for skills, which belong on the agent's page")
+	}
+	if got := mine.ask(t, "POST", "/members/agents", url.Values{"name": {"Atlas"}, "harness": {"claude"}}); !strings.Contains(got.Header().Get("Location"), "refused") {
+		t.Error("an agent type the server cannot run was taken")
 	}
 }
