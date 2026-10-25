@@ -45,8 +45,12 @@ export DEBIAN_FRONTEND=noninteractive
 # A host made from the image of a cell gets the disk the image was taken from a block at a time, as each is first read, which is slow and
 # was seen to cost a first sandbox two and a half minutes: the runner image is read whole to be named, and the disk a sandbox starts from
 # is read to be copied. They are read here, in many streams, while the rest of the start-up goes on, so that the first sandbox finds them.
+# idle runs a command at idle disk priority, so the start-up's own reads of the disk go first.
+idle() {
+  if command -v ionice >/dev/null; then ionice -c3 "$@"; else "$@"; fi
+}
 warm_the_disk() {
-  python3 - <<'PY'
+  idle python3 - <<'PY'
 import concurrent.futures as futures, os, sys
 CHUNK = 8 << 20
 roots = [os.environ.get("GUSTO_WARM_DIR", "/var/lib/gusto"), os.environ.get("GUSTO_WARM_IMAGES", "/var/lib/openshell-xdg/openshell/vm-driver/images")]
@@ -82,9 +86,28 @@ with futures.ThreadPoolExecutor(max_workers=16) as pool:
     list(pool.map(read, chunks))
 PY
 }
+# A sandbox reads the whole runner image it is made from to start, about a gigabyte with the files beside it, which a host
+# that has just started has nowhere but on the disk: the first sandbox of a kept host took 14.6 s against 7.9 s for the next.
+# They are read into memory on every start, at idle priority.
+warm_the_cache() {
+  local lib=${GUSTO_WARM_DIR:-/var/lib/gusto} images=${GUSTO_WARM_IMAGES:-/var/lib/openshell-xdg/openshell/vm-driver/images}
+  idle find "$lib/runner-all-rootfs.tar.gz" "$images/overlay-templates" "$images"/sandbox-bootstrap-* "$images/../host-runtime" \
+    -type f -exec cat {} + > /dev/null
+}
 if [ -e "$baked_marker" ]; then
+  warm_the_cache > /dev/null 2>&1 &
+fi
+
+# A kept host runs this on every start and its disk was read on the first, so it is read once for each instance.
+this_instance() {
+  local token
+  token=$(curl -fsS -m 5 -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60') &&
+    curl -fsS -m 5 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/instance-id
+}
+warmed=${GUSTO_WARMED:-/var/lib/gusto}/.warmed-${GUSTO_INSTANCE:-$(this_instance 2>/dev/null || echo unknown)}
+if [ -e "$baked_marker" ] && [ ! -e "$warmed" ]; then
   echo "gusto-bootstrap: warming the disk of the image in the background"
-  warm_the_disk > /dev/null 2>&1 &
+  { warm_the_disk && touch "$warmed"; } > /dev/null 2>&1 &
 fi
 
 efs_mount=${GUSTO_EFS_MOUNT:-/mnt/efs} state=${GUSTO_STATE:-/var/lib/gusto-cloud} root=${GUSTO_ROOT:-}
@@ -110,7 +133,7 @@ configure_from_kit() {
   echo "$KIT  $kit" | sha256sum -c --quiet || return 1
   tar -xzf "$kit" -C "${root:-/}"
   systemctl daemon-reload
-  systemctl enable gusto-boot gusto-lease.timer gusto-cell
+  systemctl enable gusto-lease.timer
   systemctl restart gusto-boot
   systemctl start gusto-lease.timer gusto-cell
 }

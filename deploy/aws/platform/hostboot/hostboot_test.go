@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const script = "../user-data.sh"
@@ -64,7 +65,7 @@ func newBoot(t *testing.T) *boot {
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
 		"GUSTO_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "GUSTO_TMP="+filepath.Join(dir, "tmp"), "GUSTO_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
-		"GUSTO_BAKED="+filepath.Join(dir, "not-baked"), "GUSTO_SWAPFILE="+filepath.Join(dir, "swapfile"), "GUSTO_FSTAB="+filepath.Join(dir, "fstab"), "GUSTO_MEMINFO="+b.meminfo(8000),
+		"GUSTO_BAKED="+filepath.Join(dir, "not-baked"), "GUSTO_INSTANCE=i-0test", "GUSTO_WARMED="+dir, "GUSTO_SWAPFILE="+filepath.Join(dir, "swapfile"), "GUSTO_FSTAB="+filepath.Join(dir, "fstab"), "GUSTO_MEMINFO="+b.meminfo(8000),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
 	return b
@@ -489,8 +490,8 @@ func TestACellFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrP
 	if got, _ := os.ReadFile(filepath.Join(b.dir, "root", "usr", "local", "bin", "gusto")); string(got) != "program\n" {
 		t.Errorf("the kit was not unpacked: %q", got)
 	}
-	enable, boot, start := index(lines, "systemctl enable"), index(lines, "systemctl restart gusto-boot"), index(lines, "systemctl start gusto-lease.timer gusto-cell")
-	if enable < 0 || boot < enable || start < boot {
+	enable, boot, start := index(lines, "systemctl enable gusto-lease.timer"), index(lines, "systemctl restart gusto-boot"), index(lines, "systemctl start gusto-lease.timer gusto-cell")
+	if enable < 0 || boot < enable || start < boot || strings.Contains(strings.Join(lines, "\n"), "enable gusto-cell") {
 		t.Errorf("the services are not turned on, the start-up work run, and the cell started, in that order: %v", lines)
 	}
 }
@@ -550,5 +551,37 @@ func TestAFrontDoorThatStartsCellsMakesTheirKitAndStartsThemWithItsSum(t *testin
 	listed, _ := exec.Command("tar", "-tzf", kit).Output()
 	if !strings.Contains(string(listed), "usr/local/bin/gusto") || !strings.Contains(string(listed), "etc/gusto/demo.conf") || strings.Contains(string(listed), "/\n") {
 		t.Errorf("the kit holds the cell's files and no directories:\n%s", listed)
+	}
+}
+
+func TestAHostMadeFromTheImageWarmsItsDiskOnceForEachInstance(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	marker := filepath.Join(b.dir, "baked")
+	os.WriteFile(marker, []byte("abc123\n"), 0o644)
+	warm := []string{"GUSTO_BAKED=" + marker, "GUSTO_WARM_DIR=" + b.dir, "GUSTO_WARM_IMAGES=" + b.dir}
+	for _, c := range []struct {
+		instance string
+		warms    bool
+	}{{"i-0first", true}, {"i-0first", false}, {"i-0second", true}} {
+		os.Remove(filepath.Join(b.dir, "boot.log"))
+		if _, err := b.run(append(warm, "GUSTO_INSTANCE="+c.instance)...); err != nil {
+			t.Fatal(err)
+		}
+		log, _ := os.ReadFile(filepath.Join(b.dir, "boot.log"))
+		if strings.Contains(string(log), "warming the disk") != c.warms {
+			t.Errorf("%s warms its disk: %v, and should: %v", c.instance, !c.warms, c.warms)
+		}
+		if !c.warms {
+			continue
+		}
+		recorded := false
+		for deadline := time.Now().Add(time.Minute); !recorded && time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+			_, err := os.Stat(filepath.Join(b.dir, ".warmed-"+c.instance))
+			recorded = err == nil
+		}
+		if !recorded {
+			t.Fatalf("%s did not record that its disk was read", c.instance)
+		}
 	}
 }

@@ -84,8 +84,10 @@ run 'test -e /etc/gusto/bake-done' >/dev/null || { echo "the host was not made i
 # The file system is taken out of fstab too: a host that has it there before it has its network orders it before the network, and
 # systemd breaks the cycle by deleting the network jobs, which cost a host a minute and a half. The playbook mounts it again.
 # The start-up script is turned off: run with the settings of the host the image was made from, it held back the playbook, which
-# runs it with the new host's own and turns it on again.
-run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; systemctl disable gusto-boot 2>/dev/null; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
+# runs it with the new host's own. cloud-init is turned off too, since its Python cost a new host seconds of a disk still being
+# fetched: gusto-launch runs the host's script in its place, and the network is one for any interface, not the one cloud-init
+# wrote for this host's.
+run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; systemctl disable gusto-boot 2>/dev/null; install -m 0600 /usr/local/lib/gusto/netplan-cell.yaml /etc/netplan/10-cell.yaml && rm -f /etc/netplan/50-cloud-init.yaml && touch /etc/cloud/cloud-init.disabled; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
 aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="gusto-cell-$key-$(date -u +%Y%m%d%H%M)"

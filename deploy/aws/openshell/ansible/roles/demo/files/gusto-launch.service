@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the script this host was launched with
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Kept active once the script is done, so systemd leaves what it started in the background, the disk warmer, to finish.
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/gusto-launch
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

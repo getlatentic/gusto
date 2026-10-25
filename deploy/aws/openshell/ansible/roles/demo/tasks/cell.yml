@@ -21,3 +21,22 @@
     mode: "0644"
   when: demo_role == 'cell'
   notify: Restart the cell
+
+# The image of a cell has cloud-init turned off when it is taken, and these start it in its place.
+- name: What runs a cell's start-up script without cloud-init, and the network it is given
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ demo_root }}{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: gusto-launch, dest: /usr/local/sbin/gusto-launch, mode: "0755" }
+    - { src: gusto-launch.service, dest: /etc/systemd/system/gusto-launch.service, mode: "0644" }
+    - { src: netplan-cell.yaml, dest: /usr/local/lib/gusto/netplan-cell.yaml, mode: "0600" }
+  when: demo_role == 'cell'
+
+- name: The start-up script runs on every start
+  ansible.builtin.systemd:
+    name: gusto-launch
+    enabled: true
+    daemon_reload: true
+  when: demo_role == 'cell' and demo_root == ''
