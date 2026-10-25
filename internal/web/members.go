@@ -28,6 +28,7 @@ func (s *Server) memberRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /members/agents/{id}/access", s.guard(s.changeAgentAccess))
 	mux.HandleFunc("POST /members/agents/{id}/remove", s.guard(s.removeAgent))
 	mux.HandleFunc("POST /members/agents/{id}/message", s.guard(s.messageAgent))
+	mux.HandleFunc("POST /agents/{name}/install", s.guard(s.installAgent))
 }
 
 // listedPerson is a person as the members list shows them.

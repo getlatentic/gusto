@@ -67,7 +67,12 @@
     });
     document.addEventListener("submit", function (event) {
       var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
-      if (ask && !confirm(ask)) { event.preventDefault(); }
+      if (ask && !confirm(ask)) { event.preventDefault(); return; }
+      // A button that starts something slow says so, and is not pressed twice.
+      var busy = event.submitter;
+      if (busy && busy.dataset.busy) {
+        setTimeout(function () { busy.disabled = true; busy.textContent = busy.dataset.busy; }, 0);
+      }
     });
   </script>
 </head>

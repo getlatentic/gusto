@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/accesslog"
+	"github.com/getlatentic/gusto/internal/agentinstall"
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/catalog"
@@ -156,11 +157,25 @@ func serve(args []string) int {
 			return localNeeds()
 		})
 	}
+	// On a person's own computer gusto installs the agents it does not find into a folder of its own, which it looks in first.
+	var installer *agentinstall.Installer
+	if local && runsHere() {
+		dir, err := filepath.Abs(setting("GUSTO_AGENTS", "agents"))
+		if err != nil {
+			return fail(err)
+		}
+		installer = &agentinstall.Installer{Dir: dir}
+		os.Setenv("PATH", installer.WithBin(os.Getenv("PATH")))
+		pages.UseInstaller(installer)
+	}
 	if runsHere() {
 		// A person installs an agent on their own computer while the server runs, and looking at the PATH costs nothing.
 		pages.UseLiveCatalog(func() []catalog.Entry {
 			if local {
 				adoptRecordedPath()
+			}
+			if installer != nil {
+				os.Setenv("PATH", installer.WithBin(os.Getenv("PATH")))
 			}
 			return surveyed(harness.Names())
 		})

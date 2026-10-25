@@ -152,7 +152,8 @@
       <label class="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 {{if $each.Ready}}cursor-pointer hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash{{else}}cursor-not-allowed bg-sunken{{end}}">
         <input class="sr-only" type="radio" name="harness" value="{{$each.Name}}"{{if eq $each.Name $.FirstReady}} checked{{end}}{{if not $each.Ready}} disabled{{end}}>
         <span class="grid size-7 flex-none place-items-center{{if not $each.Ready}} opacity-50 grayscale{{end}}" aria-hidden="true">{{template "mark" (dict "Harness" $each.Name "Name" $each.Title "Size" "sm")}}</span>
-        <span class="grid min-w-0"><span class="text-sm font-medium{{if not $each.Ready}} text-muted{{end}}">{{$each.Title}}</span>{{if $each.Ready}}{{with $each.What}}<span class="truncate text-xs text-muted">{{.}}</span>{{end}}{{else}}<span class="truncate text-xs text-subtle" title="{{$each.Why}}">Not on this server: {{$each.Why}}</span>{{end}}</span>
+        <span class="grid min-w-0"><span class="text-sm font-medium{{if not $each.Ready}} text-muted{{end}}">{{$each.Title}}</span>{{if $each.Ready}}{{with $each.What}}<span class="truncate text-xs text-muted">{{.}}</span>{{end}}{{else if installable $each.Name}}<span class="truncate text-xs text-subtle">Not on this computer yet</span>{{else}}<span class="truncate text-xs text-subtle" title="{{$each.Why}}">Not on this server: {{$each.Why}}</span>{{end}}</span>
+        {{if and (not $each.Ready) (installable $each.Name)}}<button type="submit" form="install-{{$each.Name}}" class="ml-auto h-8 flex-none cursor-pointer {{template "ui-btn-quiet"}}" data-busy="Installing…">Install</button>{{end}}
         <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
       </label>
       {{end}}
@@ -161,5 +162,6 @@
     {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
     <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9"{{if not .FirstReady}} disabled{{end}}>Make the agent</button></div>
   </form>
+  {{range .Kinds}}{{if and (not .Ready) (installable .Name)}}<form class="hidden" id="install-{{.Name}}" method="post" action="/agents/{{.Name}}/install"><input type="hidden" name="back" value="/members?new=1"></form>{{end}}{{end}}
 </dialog>
 {{end}}

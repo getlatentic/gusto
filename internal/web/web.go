@@ -114,6 +114,7 @@ type Server struct {
 	setups     *setup.Store
 	presets    *preset.Store
 	crew       *crew.Store
+	installer  agentInstaller
 	servers    setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
@@ -141,6 +142,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
 		"replyIn":     s.replyIn,
+		"installable": s.installable,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err

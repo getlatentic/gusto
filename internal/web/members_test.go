@@ -1,6 +1,8 @@
 package web
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -141,5 +143,49 @@ func TestTheNewAgentDialogShowsEveryAgentTypeAndWhyOneCannotRun(t *testing.T) {
 	}
 	if got := mine.ask(t, "POST", "/members/agents", url.Values{"name": {"Atlas"}, "harness": {"claude"}}); !strings.Contains(got.Header().Get("Location"), "refused") {
 		t.Error("an agent type the server cannot run was taken")
+	}
+}
+
+// installs is an installer that knows one agent, and keeps what it was asked to install.
+type installs struct {
+	asked []string
+	fails error
+}
+
+func (i *installs) Installable(name string) bool { return name == "claude" }
+
+func (i *installs) Install(_ context.Context, name string) (string, error) {
+	i.asked = append(i.asked, name)
+	return name + "@1.0.0", i.fails
+}
+
+func TestGustoOnAPersonsOwnComputerInstallsAnAgentItLacks(t *testing.T) {
+	kinds := append(twoHarnesses(), catalog.Entry{Name: "claude", Title: "Claude Code", Program: "claude-agent-acp", Why: "npm install -g @agentclientprotocol/claude-agent-acp@1.0.0"})
+	site := openOffering(t, kinds)
+	site.signIn(t)
+	installer := &installs{}
+	site.server.UseInstaller(installer)
+	if page := site.ask(t, "GET", "/members", nil).Body.String(); strings.Contains(page, `action="/agents/claude/install"`) {
+		t.Error("a shared server offers to install an agent on itself")
+	}
+	if got := site.ask(t, "POST", "/agents/claude/install", nil); !strings.Contains(got.Header().Get("Location"), "refused") || len(installer.asked) != 0 {
+		t.Error("a shared server installed an agent")
+	}
+
+	site.server.UseLocalSignIn("a-secret", "ada")
+	page := site.ask(t, "GET", "/members", nil).Body.String()
+	if !strings.Contains(page, `action="/agents/claude/install"`) || !strings.Contains(page, "Not on this computer yet") {
+		t.Fatal("a person's own gusto does not offer to install the agent it lacks")
+	}
+	got := site.ask(t, "POST", "/agents/claude/install", url.Values{"back": {"/members?new=1"}})
+	if got.Header().Get("Location") != "/members?new=1" || len(installer.asked) != 1 {
+		t.Errorf("installing went to %s, asked %v", got.Header().Get("Location"), installer.asked)
+	}
+	installer.fails = errors.New("npm could not fetch it")
+	if got := site.ask(t, "POST", "/agents/claude/install", url.Values{"back": {"//elsewhere.example"}}); !strings.HasPrefix(got.Header().Get("Location"), "/members?new=1&refused=npm") {
+		t.Errorf("a failed install went to %s", got.Header().Get("Location"))
+	}
+	if got := site.ask(t, "POST", "/agents/opencode/install", nil); !strings.Contains(got.Header().Get("Location"), "refused") || len(installer.asked) != 2 {
+		t.Error("an agent gusto cannot install was installed")
 	}
 }
