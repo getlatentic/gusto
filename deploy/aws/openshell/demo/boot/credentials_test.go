@@ -91,3 +91,25 @@ func TestANewDemoChatStartsOnAPairTheDemoOffers(t *testing.T) {
 		t.Error("an organization's server is not given the demo's default for a new chat")
 	}
 }
+
+func TestTheCredentialsAreReadWithTheCommandAHostNames(t *testing.T) {
+	dir := t.TempDir()
+	reader := filepath.Join(dir, "read")
+	if err := os.WriteFile(reader, []byte("#!/bin/sh\necho \"key-from-$1\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script, err := filepath.Abs("../../e2e/credentials.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "creds")
+	run := exec.Command("bash", script, out)
+	run.Env = append(os.Environ(), "PATH=/usr/bin:/bin", "READ_PARAMETER="+reader, "BEDROCK_PARAMETER=/b", "DEEPSEEK_PARAMETER=/d")
+	if made, err := run.CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s", err, made)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "deepseek.json"))
+	if err != nil || !strings.Contains(string(raw), `"key-from-/d"`) {
+		t.Errorf("the key was not read with the command named: %s %v", raw, err)
+	}
+}

@@ -28,7 +28,7 @@ role=${ROLE:-all}
 export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=$PATH:/usr/local/bin:/snap/bin
 
 own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
-param() { aws ssm get-parameter --with-decryption --name "$1" --query Parameter.Value --output text; }
+param() { gusto param "$1"; }
 metadata() {
   local token
   token=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
@@ -103,7 +103,7 @@ runner_image() {
 
 credentials() {
   rm -rf "$run/creds"
-  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
+  READ_PARAMETER="gusto param" BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
   chmod 0700 "$run/creds"
   own "$run/creds"
 }

@@ -3,15 +3,17 @@
 # under two names, because Mantle serves Gemma 4 under /openai and the other models under /. Gemma answers Chat Completions
 # alone, so Claude Code's and Codex's calls to it are translated. The anthropic credential is DeepSeek's Anthropic-shaped address.
 # Every credential is offered to every engine: the person chooses which engine runs on which model.
+# READ_PARAMETER is a command that prints a parameter given its name, as "gusto param"; the AWS command reads them when it is not set.
 set -euo pipefail
 dir=${1:?the directory to write the credentials in}
 mkdir -p "$dir"
 python3 - "$BEDROCK_PARAMETER" "$DEEPSEEK_PARAMETER" "$dir" <<'PY'
-import json, os, subprocess, sys
+import json, os, shlex, subprocess, sys
+reader = shlex.split(os.environ.get("READ_PARAMETER", ""))
 def secret(name):
-    return subprocess.run(["aws", "ssm", "get-parameter", "--with-decryption", "--name", name,
-                           "--query", "Parameter.Value", "--output", "text"],
-                          check=True, capture_output=True, text=True).stdout.strip()
+    command = reader + [name] if reader else ["aws", "ssm", "get-parameter", "--with-decryption", "--name", name,
+                                              "--query", "Parameter.Value", "--output", "text"]
+    return subprocess.run(command, check=True, capture_output=True, text=True).stdout.strip()
 bedrock, deepseek = secret(sys.argv[1]), secret(sys.argv[2])
 held = {
     "platform": {"address": "https://bedrock-mantle.us-east-1.api.aws", "auth": "bearer", "key": bedrock},

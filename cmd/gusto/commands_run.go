@@ -109,6 +109,15 @@ func runCommands() []*cmdline.Command {
 			Run:     none("scan", scanCommand),
 		},
 		{
+			Name: "param", Group: groupRun, Summary: "Print a parameter from AWS Parameter Store, decrypted",
+			Usage: []string{"<name>"},
+			Description: "Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud " +
+				"reads its secrets with it while it starts.",
+			Args:     []cmdline.Param{{Name: "<name>", Text: "the parameter's name, as /gusto/poc/cell-secret"}},
+			Examples: []string{"gusto param /gusto/poc/cell-secret"},
+			Run:      paramCommand,
+		},
+		{
 			Name: "doctor", Group: groupRun, Summary: "Check this computer can run a task, before one is sent",
 			Description: "Checks everything a task needs on this computer and exits 1 when anything is missing, so a deploy can stop on it.",
 			Env:         envRuntime,
