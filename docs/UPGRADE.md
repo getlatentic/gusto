@@ -14,6 +14,7 @@ Each store has a format number in `.gusto-format` in its directory. A directory 
 | comparisons | `GUSTO_COMPARISONS` | comparisons started from the pages |
 | integrations | `GUSTO_INTEGRATIONS` | plugins an administrator imported, a folder for each version |
 | presets | `GUSTO_PRESETS` | what each person saved to start a chat again, a file each |
+| crew | `GUSTO_CREW` | the workspace's agents, which rooms add, a file each |
 | changes | the directory of `GUSTO_CHANGES` | the change record |
 | tokens | the directory of `GUSTO_API_TOKENS` | API tokens |
 | retention | `GUSTO_RETENTION` | the policy, the holds and the last sweep |

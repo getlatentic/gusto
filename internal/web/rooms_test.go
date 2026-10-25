@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -116,13 +116,24 @@ func aRoom(t *testing.T, work *roomWork, agents ...[2]string) (*site, string, st
 	}
 	id := strings.TrimPrefix(opened[:strings.Index(opened, "/threads/")], "/instances/")
 	for _, agent := range agents {
-		added := mine.ask(t, "POST", "/rooms/"+id+"/agents", url.Values{"name": {agent[0]}, "harness": {agent[1]}, "job": {"does " + agent[0]}})
+		member := aCrewAgent(t, site, alice, agent[0], agent[1])
+		added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"agent": {member.ID}})
 		if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
 			t.Fatalf("adding %s gave %d to %s", agent[0], added.Code, added.Header().Get("Location"))
 		}
 	}
 	held, _ := site.server.instances.Get(id)
 	return site, id, threadPath(site.server.instances.Latest(held.ID))
+}
+
+// aCrewAgent is a workspace agent somebody made, whose specialty is "does" and its name.
+func aCrewAgent(t *testing.T, site *site, owner, name, harness string) crew.Agent {
+	t.Helper()
+	made, err := site.server.crew.Make(crew.Agent{Name: name, Harness: harness, Specialty: "does " + name, Owner: owner})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return made
 }
 
 func TestMakingARoomListsItForItsMembersAndNobodyElse(t *testing.T) {
@@ -159,7 +170,7 @@ func TestOnlyARoomsAdminChangesWhoIsInIt(t *testing.T) {
 	}{
 		{"/rooms/" + id + "/members", url.Values{"who": {"carol@example.com"}}},
 		{"/rooms/" + id + "/members/remove", url.Values{"who": {alice}}},
-		{"/rooms/" + id + "/agents", url.Values{"name": {"Draft"}, "harness": {"fixture"}}},
+		{"/rooms/" + id + "/members/add", url.Values{"agent": {aCrewAgent(t, site, bob, "Draft", "fixture").ID}}},
 		{"/rooms/" + id + "/agents/a1/remove", nil},
 	} {
 		if got := his.ask(t, "POST", change.path, change.form); got.Code != http.StatusForbidden {
@@ -307,8 +318,14 @@ func TestAnAgentKeepsItsOwnConversationInARoom(t *testing.T) {
 }
 
 func TestAMessageShowsItsMentionsAndNothingElseAsMarkup(t *testing.T) {
-	shown := string(mentions(`<b>hi</b> @Scout, mail me@example.com`))
-	if strings.Contains(shown, "<b>") || !strings.Contains(shown, ">@Scout</span>,") || strings.Contains(shown, ">@example") {
+	names := []string{"Scout", "Ada", "Ada Lovelace", "Tosin's Claude"}
+	shown := string(mentionsIn(`<b>hi</b> @Scout, mail me@example.com, @Ada Lovelace and @tosin's claude, not @Scouting`, names))
+	for _, want := range []string{`>@Scout</span>,`, `>@Ada Lovelace</span> and`, `>@tosin&#39;s claude</span>,`} {
+		if !strings.Contains(shown, want) {
+			t.Errorf("the message does not show %s: %s", want, shown)
+		}
+	}
+	if strings.Contains(shown, "<b>") || strings.Contains(shown, ">@example") || strings.Contains(shown, ">@Scouting") || strings.Contains(shown, ">@Ada</span>") {
 		t.Errorf("the message shows as %s", shown)
 	}
 	if got := initials("mira.ionescu@example.com"); got != "MI" {
@@ -351,32 +368,31 @@ func between(text, start, end string) string {
 	return text[:max(strings.Index(text, end), 0)]
 }
 
-func TestAPresetAndAPersonAreAddedToARoomTogether(t *testing.T) {
+func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	work := &roomWork{}
 	here, id, thread := aRoom(t, work)
-	saved, err := here.server.presets.Save(alice, preset.Preset{Name: "Tosin's Claude", Harness: "other", Model: "platform/test-model"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	member := aCrewAgent(t, here, alice, "Tosin's Claude", "other")
+	theirs := aCrewAgent(t, here, bob, "Bob's Codex", "fixture")
 	mine := here.as(t, alice)
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `value="`+saved.ID+`"`) {
-		t.Fatal("the add dialog does not offer the person's preset")
+	page := mine.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, `value="`+member.ID+`"`) || strings.Contains(page, `value="`+theirs.ID+`"`) {
+		t.Fatal("the add dialog does not offer exactly the agents the person may work with")
 	}
-	added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"preset": {saved.ID}, "who": {bob + ", carol@example.com"}})
+	added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"agent": {member.ID}, "who": {bob + ", carol@example.com"}})
 	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
 		t.Fatalf("adding gave %d to %s", added.Code, added.Header().Get("Location"))
 	}
 	held, _ := here.server.instances.Get(id)
-	agent, found := held.AgentCalled("TosinsClaude")
-	if !found || agent.Harness != "other" || agent.Model != "platform/test-model" {
-		t.Errorf("the preset became %+v", held.Agents)
+	if agent, found := held.AgentCalled("Tosin's Claude"); !found || agent.Member != member.ID {
+		t.Errorf("the agent became %+v", held.Agents)
 	}
 	if held.RoleOf(bob) != instance.RoleMember || held.RoleOf("carol@example.com") != instance.RoleMember {
 		t.Errorf("the people were not added: %+v", held.Members)
 	}
-	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"preset": {saved.ID}})
-	if held, _ := here.server.instances.Get(id); len(held.Agents) != 2 || held.Agents[1].Name != "TosinsClaude2" {
-		t.Errorf("the same preset twice gave %+v", held.Agents)
+	for _, refused := range []string{member.ID, theirs.ID} {
+		if got := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"agent": {refused}}); !strings.Contains(got.Header().Get("Location"), "refused") {
+			t.Errorf("adding %s again or somebody else's agent was not refused", refused)
+		}
 	}
 	mine.ask(t, "POST", "/rooms/"+id+"/members/role", url.Values{"who": {bob}, "role": {"admin"}})
 	mine.ask(t, "POST", "/rooms/"+id+"/members/role", url.Values{"who": {"carol@example.com"}, "role": {"remove"}})
@@ -388,6 +404,28 @@ func TestAPresetAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	}
 }
 
+func TestARoomUsesItsAgentsAsTheWorkspaceHasThemNow(t *testing.T) {
+	work := &roomWork{}
+	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
+	held, _ := here.server.instances.Get(id)
+	member, _ := here.server.crew.Get(held.Agents[0].Member)
+	if _, err := here.server.crew.Change(member.ID, func(agent *crew.Agent) error {
+		agent.Name, agent.Model, agent.Persona = "Scout Prime", "platform/test-model", "You answer in one line."
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	here.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout Prime what next?"}})
+	heard := work.waitTurns(t, here, 1)
+	for _, want := range []string{"You are Scout Prime", "You answer in one line.", "@Scout Prime what next?"} {
+		if !strings.Contains(heard[0].Brief, want) {
+			t.Errorf("the agent was not told %q:\n%s", want, heard[0].Brief)
+		}
+	}
+	if page := here.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, ">@Scout Prime</span>") {
+		t.Error("the room does not show the renamed agent's mention")
+	}
+}
 func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.T) {
 	work := &roomWork{patch: "diff --git a/brief.md b/brief.md\nnew file mode 100644\n--- /dev/null\n+++ b/brief.md\n@@ -0,0 +1 @@\n+the brief\n"}
 	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})

@@ -20,6 +20,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
@@ -218,6 +219,11 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UsePresets(presets)
+	agents, err := crew.Open(setting("GUSTO_CREW", "crew"))
+	if err != nil {
+		return fail(err)
+	}
+	pages.UseCrew(agents)
 	pages.UseDesktop(os.Getenv("GUSTO_DESKTOP"))
 	// What signs people in is kept beside the sessions, so that a deploy does not sign them out.
 	if err := pages.UseSessionFile(setting("GUSTO_KEEPER", filepath.Join(setting("GUSTO_SESSIONS", "sessions"), ".keeper.json"))); err != nil {

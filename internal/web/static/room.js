@@ -6,8 +6,12 @@
   if (!menu || !box) { return; }
   var everyone = JSON.parse(menu.dataset.people);
   var marks = document.getElementById("composer-marks");
-  var mention = /(^|[^\w@])(@[A-Za-z](?:[A-Za-z0-9_.-]*[A-Za-z0-9_-])?)/g;
-  var asking = /(^|[^\w@])@([A-Za-z0-9_.-]*)$/;
+  // A mention is an @ and the whole name of somebody in the room, which can hold spaces; the longest name wins where two begin alike.
+  var names = everyone.map(function (each) { return each.name; }).sort(function (a, b) { return b.length - a.length; });
+  var mention = names.length ? new RegExp("(^|[^\\p{L}\\p{N}_@])(@(?:" + names.map(function (name) {
+    return name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }).join("|") + "))(?![\\p{L}\\p{N}_])", "giu") : /$^/g;
+  var asking = /(^|[^\w@])@([^@\n]{0,32})$/;
   var shown = [], active = 0, at = -1;
 
   function escape(text) {
@@ -100,7 +104,7 @@
     if (!found) { close(); return; }
     var typed = found[2].toLowerCase();
     at = before.length - typed.length - 1;
-    shown = everyone.filter(function (each) { return each.name.toLowerCase().indexOf(typed) === 0; });
+    shown = everyone.filter(function (each) { return each.name.toLowerCase().indexOf(typed) === 0 && each.name.toLowerCase() !== typed.trimEnd(); });
     if (!shown.length) { close(); return; }
     active = 0;
     render();
@@ -158,40 +162,6 @@
       if (nearEnd) { said.scrollTop = said.scrollHeight; }
     });
   }, 3000);
-})();
-
-// A room's members are shown in dialogs over its conversation. A link that asks for one, as a change to the members comes back with,
-// opens it, and the address is put back so a reload does not open it again.
-(function () {
-  function open(id) {
-    var dialog = document.getElementById(id);
-    if (!dialog) { return; }
-    document.querySelectorAll("dialog[open]").forEach(function (other) { if (other !== dialog) { other.close(); } });
-    dialog.showModal();
-  }
-  document.querySelectorAll("[data-open]").forEach(function (opener) {
-    opener.addEventListener("click", function (event) { event.preventDefault(); open(opener.dataset.open); });
-  });
-  document.querySelectorAll("dialog [data-close]").forEach(function (closer) {
-    closer.addEventListener("click", function () { closer.closest("dialog").close(); });
-  });
-  document.querySelectorAll("dialog").forEach(function (dialog) {
-    dialog.addEventListener("click", function (event) { if (event.target === dialog) { dialog.close(); } });
-  });
-  document.querySelectorAll("[data-filter]").forEach(function (search) {
-    var list = document.getElementById(search.dataset.filter);
-    if (!list) { return; }
-    search.addEventListener("input", function () {
-      var wanted = search.value.trim().toLowerCase();
-      list.querySelectorAll("[data-name]").forEach(function (row) { row.hidden = wanted !== "" && row.dataset.name.toLowerCase().indexOf(wanted) < 0; });
-    });
-  });
-  var asked = new URLSearchParams(location.search);
-  var wanted = asked.has("add") ? "room-add" : asked.has("members") || asked.has("refused") ? "room-members" : "";
-  if (wanted) {
-    open(wanted);
-    history.replaceState(null, "", location.pathname + location.hash);
-  }
 })();
 
 // The room's files panel arrives in the file panel after the page loaded, so what it does is listened for on the whole page: its

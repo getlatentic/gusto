@@ -60,6 +60,7 @@ services:
       GUSTO_SETUPS: ${GUSTO_DATA:-/var/lib/gusto}/setups
       GUSTO_INTEGRATIONS: ${GUSTO_DATA:-/var/lib/gusto}/integrations
       GUSTO_PRESETS: ${GUSTO_DATA:-/var/lib/gusto}/presets
+      GUSTO_CREW: ${GUSTO_DATA:-/var/lib/gusto}/crew
       GUSTO_CHANGES: ${GUSTO_DATA:-/var/lib/gusto}/changes/changes.jsonl
       GUSTO_RETENTION: ${GUSTO_DATA:-/var/lib/gusto}/retention
       # The one place on the volume a job may clone from disk: deploy/smoke.sh's

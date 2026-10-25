@@ -24,7 +24,7 @@ console, and those changes were already live. The registry decides them, and the
 
 A change to these needs a restart, and the change record notes it at the next start:
 
-- where things are kept: `GUSTO_ADDR`, `GUSTO_JOBS`, `GUSTO_SESSIONS`, `GUSTO_SETUPS`, `GUSTO_INTEGRATIONS`, `GUSTO_PRESETS`, `GUSTO_CHANGES`, `GUSTO_RETENTION`
+- where things are kept: `GUSTO_ADDR`, `GUSTO_JOBS`, `GUSTO_SESSIONS`, `GUSTO_SETUPS`, `GUSTO_INTEGRATIONS`, `GUSTO_PRESETS`, `GUSTO_CREW`, `GUSTO_CHANGES`, `GUSTO_RETENTION`
 - who may sign in and who is an administrator: `GUSTO_ALLOWED`, `GUSTO_ADMINS`, the groups and the identity provider's settings
 - how tasks run: `GUSTO_SANDBOX`, `GUSTO_JOB_NETWORK`, `GUSTO_CONTAINER`, `GUSTO_JOB_CONCURRENCY`, `GUSTO_ALLOWED_HOSTS`
 - the tool servers an operator offers (`GUSTO_MCP`) and the gateway's mode and network rule

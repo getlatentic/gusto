@@ -3,17 +3,15 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
-	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/preset"
 )
 
 // A room's members are shown and changed in two dialogs over its conversation, as Kylon does: who is in it, and adding people and
-// agents. An agent added from one of the person's presets keeps that preset's agent type, model and role.
+// the workspace's agents.
 
 // roomPerson is a member as the members dialog lists them.
 type roomPerson struct {
@@ -26,12 +24,6 @@ type roomAgent struct {
 	instance.Agent
 	Engine string
 	Brain  string
-}
-
-// roomPreset is one of the person's presets as the add dialog offers it.
-type roomPreset struct {
-	preset.Preset
-	Summary string
 }
 
 func (s *Server) roomAgents(held instance.Instance) []roomAgent {
@@ -49,17 +41,17 @@ func (s *Server) roomMembers(r *http.Request, held instance.Instance) map[string
 	for _, member := range held.Members {
 		people = append(people, roomPerson{Member: member, You: strings.EqualFold(member.Who, you)})
 	}
-	var presets []roomPreset
-	for _, saved := range s.savedBy(r) {
-		presets = append(presets, roomPreset{Preset: saved, Summary: s.presetSummary(saved)})
+	var addable []listedAgent
+	for _, member := range s.crewFor(you) {
+		if !slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID }) {
+			addable = append(addable, s.listedAgent(r, member))
+		}
 	}
 	return map[string]any{
 		"People":  people,
 		"Agents":  s.roomAgents(held),
 		"Runs":    s.runsRoom(r, held),
-		"Presets": presets,
-		"Picks":   s.picksFor(r),
-		"Offered": s.modelOptionsOf(s.offeredTo(r)),
+		"Addable": addable,
 	}
 }
 
@@ -101,8 +93,8 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	for _, id := range r.Form["preset"] {
-		if err := s.addPresetAgent(r, held.ID, id); err != nil {
+	for _, id := range r.Form["agent"] {
+		if err := s.addCrewAgent(r, held.ID, id); err != nil {
 			s.turnAway(w, r, s.membersPath(held), err.Error())
 			return
 		}
@@ -110,55 +102,17 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
 }
 
-func (s *Server) addPresetAgent(r *http.Request, id, presetID string) error {
-	if s.presets == nil {
-		return fmt.Errorf("presets are not kept here")
+// addCrewAgent puts a workspace agent the person may work with into a room.
+func (s *Server) addCrewAgent(r *http.Request, id, memberID string) error {
+	if s.crew == nil {
+		return fmt.Errorf("this server keeps no agents")
 	}
-	saved, found := s.presets.Get(s.keeper.who(r), presetID)
-	if !found {
-		return fmt.Errorf("that preset is not one of yours")
+	member, found := s.crew.Get(memberID)
+	if !found || !member.MayUse(s.askerName(r)) {
+		return fmt.Errorf("that agent is not one you may work with")
 	}
-	held, _ := s.instances.Get(id)
-	job := ""
-	if role, found := industry.Get(saved.Role); found {
-		job = role.Title
-	}
-	agent := instance.Agent{Name: freeName(held, mentionName(saved.Name)), Harness: saved.Harness, Model: saved.Model, Job: job}
-	_, err := s.instances.AddAgent(id, agent)
+	_, err := s.instances.AddAgent(id, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
 	return err
-}
-
-// unmentionable is what cannot be part of a name somebody types after an @.
-var unmentionable = regexp.MustCompile(`[^A-Za-z0-9_-]+`)
-
-// mentionName is a preset's name as an agent can be mentioned by: its words run together, starting with a letter.
-func mentionName(name string) string {
-	var joined strings.Builder
-	for _, word := range strings.Fields(name) {
-		word = unmentionable.ReplaceAllString(word, "")
-		if word == "" {
-			continue
-		}
-		joined.WriteString(strings.ToUpper(word[:1]) + word[1:])
-	}
-	made := joined.String()
-	if made == "" || !unicode.IsLetter(rune(made[0])) {
-		made = "Agent" + made
-	}
-	return made[:min(len(made), 28)]
-}
-
-// freeName is a name no agent in the room has yet, numbering it when it is taken.
-func freeName(held instance.Instance, name string) string {
-	taken := func(each string) bool { _, found := held.AgentCalled(each); return found }
-	if !taken(name) {
-		return name
-	}
-	for n := 2; ; n++ {
-		if numbered := fmt.Sprintf("%s%d", name, n); !taken(numbered) {
-			return numbered
-		}
-	}
 }
 
 // changeRoomRole makes a member an admin or a member, or takes them out of the room.

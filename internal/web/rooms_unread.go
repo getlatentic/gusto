@@ -49,18 +49,12 @@ func (s *Server) unreadIn(thread instance.Thread, who string) unread {
 
 // mentionsPerson says whether a message mentions a person by the name a room calls them.
 func mentionsPerson(text, who string) bool {
-	name := "@" + strings.ToLower(personName(who))
-	for _, found := range mentionMark.FindAllStringSubmatch(text, -1) {
-		if strings.ToLower(found[2]) == name {
-			return true
-		}
-	}
-	return false
+	return len(mentionSpans(text, []string{personName(who)})) > 0
 }
 
 // latest is every conversation in the side list, rooms and projects together, the newest first, as its Recent tab lists them.
 func latest(list railList) []railChat {
-	all := slices.Clone(list.Rooms)
+	all := slices.Concat(list.Direct, list.Rooms)
 	for _, group := range slices.Concat(list.Recent, list.Older) {
 		all = append(all, group.Chats...)
 	}

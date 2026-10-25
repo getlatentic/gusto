@@ -51,7 +51,9 @@ type Instance struct {
 	Started     int64  `json:"startedAt"`
 	// A room is an instance its people share, and its agents work in together. An instance that is not one has its owner and
 	// the one agent Harness names.
-	Room    bool     `json:"room,omitempty"`
+	Room bool `json:"room,omitempty"`
+	// Direct says the room is one person's own conversation with one agent, which lists apart from the rooms.
+	Direct  bool     `json:"direct,omitempty"`
 	Members []Member `json:"members,omitempty"`
 	Agents  []Agent  `json:"agents,omitempty"`
 }

@@ -18,6 +18,9 @@ func (s *Server) roomBrief(held instance.Instance, thread instance.Thread, agent
 		role = ", for " + agent.Job
 	}
 	fmt.Fprintf(&brief, "You are %s%s, an agent in the room %q. People and agents share this room and its folder.\n", agent.Name, role, held.Title)
+	if persona := strings.TrimSpace(agent.Persona); persona != "" {
+		brief.WriteString("\nHow you work, as your team set it:\n" + persona + "\n\n")
+	}
 	brief.WriteString("People here:")
 	for _, member := range held.Members {
 		fmt.Fprintf(&brief, " %s (%s);", member.Who, member.Role)

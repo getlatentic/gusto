@@ -21,6 +21,7 @@ func dataDirs() map[datadir.Store]string {
 		datadir.Comparisons:  setting("GUSTO_COMPARISONS", "comparisons"),
 		datadir.Integrations: setting("GUSTO_INTEGRATIONS", "integrations"),
 		datadir.Presets:      setting("GUSTO_PRESETS", "presets"),
+		datadir.Crew:         setting("GUSTO_CREW", "crew"),
 		datadir.Changes:      filepath.Dir(setting("GUSTO_CHANGES", filepath.Join("changes", "changes.jsonl"))),
 	}
 	if path := os.Getenv("GUSTO_API_TOKENS"); path != "" {

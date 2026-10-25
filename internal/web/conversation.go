@@ -57,6 +57,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if !found {
 		return nil, false
 	}
+	held = s.liveRoom(held)
 	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))
 	if !found {
 		return nil, false
@@ -118,6 +119,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Owns":      owns,
 		"Me":        s.askerName(r),
 		"Mentions":  asJSON(s.mentionables(held)),
+		"Names":     roomNames(held),
 		"Members":   s.roomMembersOf(r, held),
 		"Headcount": len(held.Members) + len(held.Agents),
 		"Refused":   r.URL.Query().Get("refused"),

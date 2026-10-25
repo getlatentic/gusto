@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -24,9 +23,6 @@ const (
 	heard = 1500
 )
 
-// mention is an @ and a name, which is how an agent is asked to act.
-var mention = regexp.MustCompile(`(?:^|[^\w@])@([A-Za-z][A-Za-z0-9_-]{0,31})`)
-
 func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
@@ -37,7 +33,6 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/members/role", s.guard(s.changeRoomRole))
 	mux.HandleFunc("POST /rooms/{id}/members", s.guard(s.setRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/members/remove", s.guard(s.removeRoomMember))
-	mux.HandleFunc("POST /rooms/{id}/agents", s.guard(s.addRoomAgent))
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/remove", s.guard(s.removeRoomAgent))
 }
 
@@ -117,33 +112,6 @@ func (s *Server) removeRoomMember(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
 }
 
-func (s *Server) addRoomAgent(w http.ResponseWriter, r *http.Request) {
-	held, found := s.roomOf(w, r)
-	if !found {
-		return
-	}
-	if !s.runsRoom(r, held) {
-		http.Error(w, "only a room's admin adds agents to it", http.StatusForbidden)
-		return
-	}
-	harness := r.FormValue("harness")
-	if !slices.ContainsFunc(s.picksFor(r), func(each pick) bool { return each.Name == harness }) {
-		s.turnAway(w, r, s.membersPath(held), "that agent cannot run on this server")
-		return
-	}
-	model := r.FormValue("model")
-	if model != "" && !s.offeredTo(r).Offers(model) {
-		s.turnAway(w, r, s.membersPath(held), "that model is not one you may use")
-		return
-	}
-	agent := instance.Agent{Name: r.FormValue("name"), Harness: harness, Model: model, Job: strings.TrimSpace(r.FormValue("job"))}
-	if _, err := s.instances.AddAgent(held.ID, agent); err != nil {
-		s.turnAway(w, r, s.membersPath(held), err.Error())
-		return
-	}
-	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
-}
-
 func (s *Server) removeRoomAgent(w http.ResponseWriter, r *http.Request) {
 	held, found := s.roomOf(w, r)
 	if !found {
@@ -162,9 +130,13 @@ func (s *Server) removeRoomAgent(w http.ResponseWriter, r *http.Request) {
 
 // mentioned is each of a room's agents that the text mentions, in the order they are first mentioned.
 func mentioned(held instance.Instance, text string) []instance.Agent {
+	names := make([]string, 0, len(held.Agents))
+	for _, agent := range held.Agents {
+		names = append(names, agent.Name)
+	}
 	var named []instance.Agent
-	for _, found := range mention.FindAllStringSubmatch(text, -1) {
-		agent, in := held.AgentCalled(found[1])
+	for _, found := range mentionSpans(text, names) {
+		agent, in := held.AgentCalled(found.name)
 		if in && !slices.ContainsFunc(named, func(each instance.Agent) bool { return each.ID == agent.ID }) {
 			named = append(named, agent)
 		}
@@ -175,6 +147,7 @@ func mentioned(held instance.Instance, text string) []instance.Agent {
 // roomSay is somebody saying something in a room: a turn for each agent it mentions, for the only agent when there is one and
 // none is mentioned, and otherwise something the room reads and no agent answers.
 func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread, said string) {
+	held = s.liveRoom(held)
 	agents := mentioned(held, said)
 	if len(agents) == 0 && len(held.Agents) == 1 {
 		agents = held.Agents
@@ -229,6 +202,9 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		Setup:       setupOf(held),
 		Sensitivity: sensitivityOf(held),
 	}
+	if agent.Setup != "" {
+		spec.Setup = &job.Setup{Name: agent.Setup}
+	}
 	id, err := s.index.Reserve(said, time.Now())
 	if err != nil {
 		return jobs.Record{}, err
@@ -259,6 +235,7 @@ func (s *Server) handOff(record jobs.Record) {
 	if !found || !held.Room {
 		return
 	}
+	held = s.liveRoom(held)
 	thread, found := s.instances.Thread(held.ID, record.Thread)
 	if !found {
 		return

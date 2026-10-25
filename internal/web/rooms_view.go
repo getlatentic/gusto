@@ -2,9 +2,7 @@ package web
 
 import (
 	"cmp"
-	"html/template"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -100,7 +98,12 @@ func (s *Server) roomsFor(r *http.Request) []railChat {
 			continue
 		}
 		thread := s.instances.Latest(held.ID)
-		rooms = append(rooms, railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, Unread: s.unreadIn(thread, who)})
+		room := railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, Unread: s.unreadIn(thread, who), ID: held.ID}
+		if held.Direct && len(held.Agents) == 1 {
+			live := s.liveRoom(held).Agents[0]
+			room.Name, room.Harness = live.Name, live.Harness
+		}
+		rooms = append(rooms, room)
 	}
 	slices.SortStableFunc(rooms, func(a, b railChat) int { return cmp.Compare(b.When, a.When) })
 	return rooms
@@ -151,14 +154,6 @@ func dividerAt(at, now time.Time) string {
 
 // clock is the time of day something was said.
 func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
-
-// mentionMark is an @name in a message, which a room shows set apart.
-var mentionMark = regexp.MustCompile(`(^|[^\w@])(@[A-Za-z](?:[A-Za-z0-9_.-]*[A-Za-z0-9_-])?)`)
-
-// mentions is a message as a room shows it, each @name set apart.
-func mentions(text string) template.HTML {
-	return template.HTML(mentionMark.ReplaceAllString(template.HTMLEscapeString(text), `$1<span class="text-accent">$2</span>`))
-}
 
 // personName is what a room calls a person: the part of their address before the @, or Owner for the server's shared sign-in.
 func personName(who string) string {

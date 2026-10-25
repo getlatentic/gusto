@@ -2,7 +2,7 @@
 
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
-    <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold" title="{{.Named}}">{{.Named}}</h1>
+    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
     {{if .Instance.Room}}{{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
@@ -39,8 +39,8 @@
       {{if not .Turns}}{{if not .Waiting}}
       <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
         {{if .Instance.Room}}
-        <h2 class="text-xl">{{.Instance.Title}}</h2>
-        <p class="m-0 max-w-[32rem] text-sm text-muted">{{if .Instance.Agents}}Mention an agent with @ and its name to ask it something. Everybody in the room sees what it says.{{else}}This room has no agents yet. <a href="/rooms/{{.Instance.ID}}/members">Add one</a> to ask it things.{{end}}</p>
+        <h2 class="text-xl">{{if and .Instance.Direct .Instance.Agents}}{{(index .Instance.Agents 0).Name}}{{else}}{{.Instance.Title}}{{end}}</h2>
+        <p class="m-0 max-w-[32rem] text-sm text-muted">{{if and .Instance.Direct .Instance.Agents}}Your own conversation with {{(index .Instance.Agents 0).Name}}. It answers everything you say here.{{else if .Instance.Agents}}Mention an agent with @ and its name to ask it something. Everybody in the room sees what it says.{{else}}This room has no agents yet. <a href="/rooms/{{.Instance.ID}}/members">Add one</a> to ask it things.{{end}}</p>
         {{else}}
         <h2 class="text-xl">How can I help?</h2>
         {{end}}
@@ -91,7 +91,7 @@
 </aside>
 <script src="{{asset "/static/filepanel.js"}}"></script>
 <script src="{{asset "/static/composer.js"}}"></script>
-{{if .Instance.Room}}<script src="{{asset "/static/room.js"}}"></script>{{end}}
+{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script><script src="{{asset "/static/room.js"}}"></script>{{end}}
 
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
 <script nonce="{{.Nonce}}">
@@ -225,7 +225,7 @@
 {{template "foot" .}}
 
 {{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
-<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title">
+<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members refused">
   <div class="grid gap-1 p-6 pb-5">
     <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
@@ -259,39 +259,25 @@
   </div>
 </dialog>
 {{if .Runs}}
-<dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title">
+<dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title" data-asked="add">
   <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
-    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">Add members</h2><p class="m-0 mt-1 text-sm text-muted">Pick agents from your presets, or add people by their email address.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
-    <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search presets" aria-label="Search presets" data-filter="room-add-list" autocomplete="off"></label>
-    {{if .Presets}}
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">Add members</h2><p class="m-0 mt-1 text-sm text-muted">Pick the agents you work with, or add people by their email address.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{if .Addable}}
+    <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
     <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">
-      {{range .Presets}}
+      {{range .Addable}}
       <label class="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 text-sm hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-name="{{.Name}}">
-        <input class="sr-only" type="checkbox" name="preset" value="{{.ID}}">
-        <span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>
-        <span class="flex-none font-medium">{{.Name}}</span><span class="min-w-0 truncate text-subtle">{{.Summary}}</span>
+        <input class="sr-only" type="checkbox" name="agent" value="{{.ID}}">
+        <span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+        <span class="flex-none font-medium">{{.Name}}</span><span class="min-w-0 truncate text-subtle">{{or .Specialty .Engine}}</span>
         <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
       </label>
       {{end}}
     </div>
-    {{else}}<p class="m-0 text-sm text-muted">You have no presets yet. <a href="/presets">Save one</a>, or make an agent for this room below.</p>{{end}}
+    {{else}}<p class="m-0 text-sm text-muted">Every agent you work with is in this room already.</p>{{end}}
     <label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>
-    <div class="flex items-center justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></div>
+    <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></div>
   </form>
-  <details class="group border-t border-line px-6 py-4">
-    <summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4">{{template "icon-add"}}Make a new agent for this room</summary>
-    {{if .Picks}}
-    <form class="mt-3 grid gap-3" method="post" action="/rooms/{{$room.ID}}/agents">
-      <div class="grid grid-cols-2 gap-3">
-        <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Scout" pattern="[A-Za-z][A-Za-z0-9_\-]{0,31}" maxlength="32" required></label>
-        <label class="{{template "ui-field"}}">Agent type <select class="select w-full" name="harness">{{range .Picks}}<option value="{{.Name}}">{{.Title}}</option>{{end}}</select></label>
-      </div>
-      <label class="{{template "ui-field"}}"><span>What it does <span class="font-normal">optional</span></span><input class="input" name="job" placeholder="Research agent" maxlength="200"></label>
-      {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
-      <div class="flex justify-end"><button type="submit" class="{{template "ui-btn"}} h-9">Make the agent</button></div>
-    </form>
-    {{else}}<p class="m-0 mt-2 text-sm text-muted">No agent type can run on this server yet.</p>{{end}}
-  </details>
 </dialog>
 {{end}}
 {{end}}{{end}}
@@ -340,14 +326,14 @@
     <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <p class="m-0 flex h-5 items-center gap-2 text-sm"><span class="font-medium text-ink">{{personName .Who}}</span><time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
-    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentions .Said}}</p>
+    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.Names}}</p>
   </div>
   {{end}}
   {{if not .Note}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .ReplyJoins}}
     <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
-    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentions (print "@" .)}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
     <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
       {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted"><span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}

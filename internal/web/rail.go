@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -29,12 +30,17 @@ type railChat struct {
 	// Room says the conversation is a room, and Unread what its person has not read there.
 	Room   bool
 	Unread unread
+	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent.
+	ID      string
+	Harness string
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
 // the one open.
 type railList struct {
-	Rooms []railChat
+	// Direct is the person's own rooms with one agent each, and Rooms the rooms they share.
+	Direct []railChat
+	Rooms  []railChat
 	// Latest is every conversation newest first, and Unread and ForYou how many rooms hold something unread, and something that
 	// mentions the person, for the side list's tabs.
 	Latest []railChat
@@ -48,7 +54,14 @@ type railList struct {
 // railFor is every project the person has that holds a conversation, the one used last first, each with its conversations newest first.
 // The chat page and every conversation show the same list, so moving between them does not change what is beside you.
 func (s *Server) railFor(r *http.Request, here string) railList {
-	list := railList{Here: here, Rooms: s.roomsFor(r)}
+	list := railList{Here: here}
+	for _, room := range s.roomsFor(r) {
+		if room.Harness != "" {
+			list.Direct = append(list.Direct, room)
+		} else {
+			list.Rooms = append(list.Rooms, room)
+		}
+	}
 	used := s.lastUsed(r)
 	names := projectNames(used)
 	var groups []railGroup
@@ -65,7 +78,7 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
 	list.Latest = latest(list)
-	for _, room := range list.Rooms {
+	for _, room := range slices.Concat(list.Direct, list.Rooms) {
 		list.Unread += min(room.Unread.Count, 1)
 		list.ForYou += min(room.Unread.ForYou, 1)
 	}

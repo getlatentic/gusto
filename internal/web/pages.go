@@ -20,7 +20,7 @@ import (
 
 var helpers = template.FuncMap{
 	"modelName":  modelName,
-	"mentions":   mentions,
+	"mentionsIn": mentionsIn,
 	"personName": personName,
 	"initials":   initials,
 	// dict passes more than one value to a template defined in another, which

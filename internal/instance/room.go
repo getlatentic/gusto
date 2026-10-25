@@ -26,6 +26,11 @@ type Agent struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Job     string `json:"job,omitempty"`
+	// Member is the workspace agent this is, whose name, agent type, model, skills and persona the room uses as they are now.
+	Member string `json:"member,omitempty"`
+	// Setup and Persona are the skills it is given and how it works, which come from the workspace agent.
+	Setup   string `json:"-"`
+	Persona string `json:"-"`
 }
 
 // Note is something a person said in a room that no agent was asked to answer.
@@ -38,8 +43,8 @@ type Note struct {
 	After int `json:"after"`
 }
 
-// agentName is what an agent may be called: a mention is an @ and the name, so the name is one word.
-var agentName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]{0,31}$`)
+// agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
+var agentName = regexp.MustCompile(`^[\p{L}][\p{L}\p{N} '’._-]{0,31}$`)
 
 // StartRoom makes a room whose first member, its admin, is the person who made it.
 func (s *Store) StartRoom(name, who string) (Instance, error) {
@@ -130,7 +135,7 @@ func (s *Store) RemoveMember(id, who string) error {
 func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
 	agent.Name = strings.TrimSpace(agent.Name)
 	if !agentName.MatchString(agent.Name) {
-		return Agent{}, fmt.Errorf("an agent's name is one word of letters, digits, - and _, up to 32 long, starting with a letter")
+		return Agent{}, fmt.Errorf("%q cannot name an agent: start with a letter, and use up to 32 letters, digits and spaces", agent.Name)
 	}
 	if agent.Harness == "" {
 		return Agent{}, fmt.Errorf("an agent needs a harness")
@@ -138,6 +143,11 @@ func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
 	err := s.changeRoom(id, func(held *Instance) error {
 		if _, taken := held.AgentCalled(agent.Name); taken {
 			return fmt.Errorf("this room already has an agent called %s", agent.Name)
+		}
+		for _, other := range held.Agents {
+			if agent.Member != "" && other.Member == agent.Member {
+				return fmt.Errorf("%s is already in this room", agent.Name)
+			}
 		}
 		agent.ID = fmt.Sprintf("a%d", len(held.Agents)+1)
 		for {
@@ -223,6 +233,14 @@ func (s *Store) Saw(id, thread, who string, at int64) error {
 	held.Seen[who] = at
 	s.threads[id][held.ID] = held
 	return s.writeThread(held)
+}
+
+// Direct marks a room as one person's own with one agent, or as a room again.
+func (s *Store) Direct(id string, direct bool) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		held.Direct = direct
+		return nil
+	})
 }
 
 // changeRoom changes a room under the store's guard and writes it.
