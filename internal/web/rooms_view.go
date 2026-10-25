@@ -126,14 +126,20 @@ func mentions(text string) template.HTML {
 	return template.HTML(mentionMark.ReplaceAllString(template.HTMLEscapeString(text), `$1<span class="rounded-xs bg-accent-wash px-0.5 font-medium text-accent">$2</span>`))
 }
 
-// personName is what a room calls a person: the part of their address before the @.
+// personName is what a room calls a person: the part of their address before the @, or Owner for the server's shared sign-in.
 func personName(who string) string {
+	if who == sharedSignIn {
+		return "Owner"
+	}
 	name, _, _ := strings.Cut(who, "@")
 	return name
 }
 
-// initials stand for a person where a room has no picture of them.
+// initials stand for a person where a room has no picture of them. The shared sign-in is nobody in particular, so it has none.
 func initials(who string) string {
+	if who == sharedSignIn {
+		return ""
+	}
 	words := strings.FieldsFunc(personName(who), func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
 	letters := ""
 	for _, word := range words[:min(len(words), 2)] {

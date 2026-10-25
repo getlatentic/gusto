@@ -14,7 +14,7 @@
     <ul class="grid list-none gap-px p-0">
       {{range .People}}
       <li class="flex items-center gap-3 rounded-sm px-3 py-2 hover:bg-sunken">
-        <span class="min-w-0 flex-1 truncate font-medium">{{.Who}}{{if .You}} <span class="font-normal text-subtle">you</span>{{end}}</span>
+        <span class="min-w-0 flex-1 truncate font-medium" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="font-normal text-subtle">you</span>{{end}}</span>
         <span class="{{template "ui-badge"}}">{{if eq .Role "admin"}}Admin{{else}}Member{{end}}</span>
         {{if or $.Runs .You}}
         <form class="m-0" method="post" action="/rooms/{{$.Room.ID}}/members/remove"><input type="hidden" name="who" value="{{.Who}}"><button type="submit" class="{{template "ui-btn-sm"}}">{{if .You}}Leave{{else}}Remove{{end}}</button></form>
