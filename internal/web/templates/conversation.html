@@ -28,7 +28,7 @@
 
   <div class="said-so-far overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="mx-auto max-w-[56rem]">
-      <div id="turns">{{template "turns" .}}</div>
+      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}>{{template "turns" .}}</div>
       <p class="sr-only" role="status" id="turn-news"></p>
       {{if and .Waiting (not .Instance.Room)}}
       <div class="grid gap-3" id="working">

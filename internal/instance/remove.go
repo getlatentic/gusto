@@ -30,8 +30,7 @@ func (s *Store) Remove(id string) error {
 	if err := os.Rename(s.Dir(id), to); err != nil {
 		return err
 	}
-	delete(s.held, id)
-	delete(s.threads, id)
+	s.drop(id)
 	return nil
 }
 

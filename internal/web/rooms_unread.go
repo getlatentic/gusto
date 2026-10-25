@@ -34,8 +34,8 @@ func (s *Server) unreadIn(thread instance.Thread, who string) unread {
 			count(record.Brief)
 		}
 		if record.State.Done() && record.Ended > seen {
-			if reply := said(record.Dir(s.index.Root())); strings.TrimSpace(reply) != "" {
-				count(reply)
+			if note := s.replies.of(s, record); note.said {
+				count(note.mentions)
 			}
 		}
 	}

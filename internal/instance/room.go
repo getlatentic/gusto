@@ -56,7 +56,7 @@ func (s *Store) StartRoom(name, who string) (Instance, error) {
 	return s.Start(slug(name), Instance{Title: name, Who: who, Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
 }
 
-// RoleOf is the role a person holds in a room, or nothing when they are not in it. A room's maker is its admin.
+// RoleOf is the role a person holds in a room, or nothing when they are not in it.
 func (held Instance) RoleOf(who string) string {
 	who = strings.ToLower(strings.TrimSpace(who))
 	if who == "" {
@@ -66,9 +66,6 @@ func (held Instance) RoleOf(who string) string {
 		if strings.EqualFold(member.Who, who) {
 			return member.Role
 		}
-	}
-	if strings.EqualFold(held.Who, who) {
-		return RoleAdmin
 	}
 	return ""
 }
@@ -259,7 +256,7 @@ func (s *Store) changeRoom(id string, change func(*Instance) error) error {
 	if err := s.write(held); err != nil {
 		return err
 	}
-	s.held[id] = held
+	s.put(held)
 	return nil
 }
 

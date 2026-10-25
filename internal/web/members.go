@@ -80,11 +80,9 @@ func (s *Server) workspacePeople(r *http.Request) []listedPerson {
 	}
 	me := s.askerName(r)
 	add(me, map[bool]string{true: "Owner", false: "Member"}[me == sharedSignIn])
-	for _, held := range s.instances.List() {
-		if held.Room && held.RoleOf(me) != "" {
-			for _, member := range held.Members {
-				add(member.Who, "Member")
-			}
+	for _, held := range s.instances.RoomsOf(me) {
+		for _, member := range held.Members {
+			add(member.Who, "Member")
 		}
 	}
 	people := make([]listedPerson, 0, len(seen))

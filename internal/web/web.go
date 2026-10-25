@@ -115,6 +115,7 @@ type Server struct {
 	presets    *preset.Store
 	crew       *crew.Store
 	installer  agentInstaller
+	replies    replyNotes
 	servers    setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store

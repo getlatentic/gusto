@@ -64,6 +64,8 @@ type Store struct {
 	guard   sync.Mutex
 	held    map[string]Instance
 	threads map[string]map[string]Thread
+	// rooms is each person's rooms, by address in lower case, kept by put and drop.
+	rooms map[string]map[string]struct{}
 }
 
 func Open(root string) (*Store, error) {
@@ -74,6 +76,7 @@ func Open(root string) (*Store, error) {
 		root:    root,
 		held:    map[string]Instance{},
 		threads: map[string]map[string]Thread{},
+		rooms:   map[string]map[string]struct{}{},
 	}
 	listing, err := os.ReadDir(root)
 	if err != nil {
@@ -133,7 +136,7 @@ func (s *Store) Start(proposed string, wanted Instance) (Instance, error) {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	s.held[id] = wanted
+	s.put(wanted)
 	s.threads[id] = map[string]Thread{}
 	if err := s.write(wanted); err != nil {
 		return Instance{}, err
@@ -191,7 +194,7 @@ func (s *Store) SetModel(id, model string) error {
 	if err := s.write(held); err != nil {
 		return err
 	}
-	s.held[id] = held
+	s.put(held)
 	return nil
 }
 
@@ -213,7 +216,7 @@ func (s *Store) SetHarness(id, harness string) error {
 	if err := s.write(held); err != nil {
 		return err
 	}
-	s.held[id] = held
+	s.put(held)
 	return nil
 }
 
@@ -240,7 +243,7 @@ func (s *Store) load(dir string) error {
 	if err := repair(filepath.Join(dir, "workspace")); err != nil {
 		return err
 	}
-	s.held[held.ID] = held
+	s.put(held)
 	s.threads[held.ID] = threads
 	s.mend(held.ID)
 	return nil

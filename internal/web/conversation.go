@@ -88,9 +88,12 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
+	roomVersion := ""
 	if held.Room {
-		// Whoever has the room open has read what it shows, so their unread count starts again from here.
-		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), time.Now().Unix())
+		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.
+		newest, version := s.roomActivity(thread)
+		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
+		roomVersion = version
 		turns = s.roomTimeline(held, thread, turns)
 		running = roomWaiting(turns)
 	}
@@ -120,6 +123,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Me":        s.askerName(r),
 		"Mentions":  asJSON(s.mentionables(held)),
 		"Names":     roomNames(held),
+		"Version":   roomVersion,
 		"Members":   s.roomMembersOf(r, held),
 		"Headcount": len(held.Members) + len(held.Agents),
 		"Refused":   r.URL.Query().Get("refused"),

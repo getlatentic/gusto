@@ -146,22 +146,33 @@
   box.form.addEventListener("reset", function () { setTimeout(paint, 0); });
   paint();
 
-  // Others talk in a room too, and several agents can be working at once, so the room looks again every few seconds and puts in
-  // what changed, keeping the reader at the end when they were there.
+  // Others talk in a room too, and several agents can be working at once, so every few seconds the room asks whether anything
+  // changed, which costs the server nothing, and fetches the turns only when something did, keeping the reader at the end when
+  // they were there.
   var turns = document.getElementById("turns");
   var said = document.getElementById("said");
   var path = box.form.getAttribute("action").replace(/\/say$/, "");
-  var last = turns.innerHTML;
-  setInterval(function () {
-    if (document.hidden) { return; }
-    fetch(path + "/turns", { credentials: "same-origin" }).then(function (answer) { return answer.ok ? answer.text() : null; }).then(function (html) {
-      if (html === null || html === last) { return; }
-      var nearEnd = said.scrollHeight - said.scrollTop - said.clientHeight < 96;
-      last = html;
-      turns.innerHTML = html;
-      if (nearEnd) { said.scrollTop = said.scrollHeight; }
-    });
-  }, 3000);
+  var version = turns.dataset.version;
+  var asking = false;
+  function look() {
+    if (document.hidden || asking) { return; }
+    asking = true;
+    fetch(path + "/version", { credentials: "same-origin" })
+      .then(function (answer) { return answer.ok ? answer.text() : null; })
+      .then(function (now) {
+        if (now === null || now === version) { return; }
+        return fetch(path + "/turns", { credentials: "same-origin" }).then(function (answer) { return answer.ok ? answer.text() : null; }).then(function (html) {
+          if (html === null) { return; }
+          var nearEnd = said.scrollHeight - said.scrollTop - said.clientHeight < 96;
+          version = now;
+          turns.innerHTML = html;
+          if (nearEnd) { said.scrollTop = said.scrollHeight; }
+        });
+      })
+      .catch(function () {})
+      .then(function () { asking = false; });
+  }
+  setInterval(look, 3000);
 })();
 
 // The room's files panel arrives in the file panel after the page loaded, so what it does is listened for on the whole page: its

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -471,5 +472,60 @@ func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.
 	}
 	if !strings.Contains(people, "notes.txt") || !strings.Contains(people, "notes (2).txt") || strings.Contains(people, "brief.md") {
 		t.Errorf("the people's list is wrong:\n%s", people)
+	}
+}
+
+func TestARoomSaysWhetherItChangedAndIsWrittenOnlyWhenItDid(t *testing.T) {
+	work := &roomWork{replies: map[string]string{"a1": "done, @bob have a look"}}
+	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
+	mine, his := here.as(t, alice), here.as(t, bob)
+	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {bob}})
+	version := func() string { return his.ask(t, "GET", thread+"/version", nil).Body.String() }
+
+	before := version()
+	if again := version(); again != before {
+		t.Errorf("the version moved with nothing said: %s then %s", before, again)
+	}
+	his.ask(t, "GET", thread, nil)
+	file := filepath.Join(here.server.instances.Dir(id), "threads")
+	stamp := func() map[string]int64 {
+		stamps := map[string]int64{}
+		entries, _ := os.ReadDir(file)
+		for _, entry := range entries {
+			info, _ := entry.Info()
+			stamps[entry.Name()] = info.ModTime().UnixNano()
+		}
+		return stamps
+	}
+	looked := stamp()
+	// Seen times are whole seconds, so the looks are a second apart, as they would be when a room's page asks again.
+	time.Sleep(1100 * time.Millisecond)
+	his.ask(t, "GET", thread+"/turns", nil)
+	his.ask(t, "GET", thread, nil)
+	if after := stamp(); fmt.Sprint(after) != fmt.Sprint(looked) {
+		t.Error("looking at a room that had not changed wrote it")
+	}
+
+	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"check the numbers"}})
+	work.waitTurns(t, here, 1)
+	if version() == before {
+		t.Error("the version did not move when a turn was said and answered")
+	}
+	unreadTab := between(his.ask(t, "GET", "/chat", nil).Body.String(), `data-side-tab="me">@me`, "</button>")
+	if !strings.Contains(unreadTab, ">1<") {
+		t.Errorf("a reply that mentions bob is not counted for him: %q", unreadTab)
+	}
+	if got := here.as(t, "carol@example.com").ask(t, "GET", thread+"/version", nil); got.Code != http.StatusNotFound {
+		t.Errorf("somebody outside the room read its version: %d", got.Code)
+	}
+}
+
+func TestOnlyTheTextAfterAMentionIsKeptOfAReply(t *testing.T) {
+	kept := mentionsOf("mail me@example.com, then @Ada Lovelace " + strings.Repeat("x", 500) + " and @bob")
+	if strings.Contains(kept, "@example") || !strings.HasPrefix(kept, "@Ada Lovelace") || !strings.Contains(kept, "\n@bob\n") || len(kept) > 2*mentionReach {
+		t.Errorf("kept %q", kept)
+	}
+	if !mentionsPerson(kept, "bob@example.com") || mentionsPerson(kept, "carol@example.com") {
+		t.Error("the kept text does not answer who is mentioned")
 	}
 }

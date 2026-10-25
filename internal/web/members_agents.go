@@ -205,8 +205,8 @@ func (s *Server) messageAgent(w http.ResponseWriter, r *http.Request) {
 
 // directRoom is the room of two a person keeps with an agent, when there is one.
 func (s *Server) directRoom(who, member string) (instance.Instance, bool) {
-	for _, held := range s.instances.List() {
-		if held.Direct && len(held.Members) == 1 && strings.EqualFold(held.Members[0].Who, who) && len(held.Agents) == 1 && held.Agents[0].Member == member {
+	for _, held := range s.instances.RoomsOf(who) {
+		if held.Direct && len(held.Members) == 1 && len(held.Agents) == 1 && held.Agents[0].Member == member {
 			return held, true
 		}
 	}
