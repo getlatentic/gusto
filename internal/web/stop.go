@@ -14,7 +14,7 @@ import (
 // record the run leaves can say. It gives the job as it stands, whether it was running, and the status to answer with.
 func (s *Server) stopTurn(r *http.Request, by string) (jobs.Record, bool, int) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
+	if !found || !s.mayUseRecord(r, record) {
 		return jobs.Record{}, false, http.StatusNotFound
 	}
 	if record.State.Done() {

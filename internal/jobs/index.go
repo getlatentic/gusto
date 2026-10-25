@@ -31,6 +31,16 @@ type Index struct {
 	lastStarted, lastFinished int64
 	// pump copies each change to a Mirror, when there is one.
 	pump *pump
+	// finishers are told of each task that ends, after its record is written.
+	finishers []func(Record)
+}
+
+// OnFinish has finish told of every task that ends, once its record is written. It is called outside the index's lock, so it
+// may add a task.
+func (i *Index) OnFinish(finish func(Record)) {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	i.finishers = append(i.finishers, finish)
 }
 
 // Open reads what is on disk, and lets the record decide.
@@ -225,25 +235,39 @@ func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) 
 	return record, wasRunning, nil
 }
 
-// Finish records how a task ended.
+// Finish records how a task ended, then tells whoever asked to know.
 func (i *Index) Finish(id string, state State, exit int) error {
+	record, err := i.finish(id, state, exit)
+	if err != nil {
+		return err
+	}
+	i.guard.Lock()
+	finishers := append([]func(Record){}, i.finishers...)
+	i.guard.Unlock()
+	for _, finish := range finishers {
+		finish(record)
+	}
+	return nil
+}
+
+func (i *Index) finish(id string, state State, exit int) (Record, error) {
 	i.guard.Lock()
 	defer i.guard.Unlock()
 	record, found := i.records[id]
 	if !found {
-		return fmt.Errorf("no task called %s", id)
+		return Record{}, fmt.Errorf("no task called %s", id)
 	}
 	record.State = state
 	record.Exit = exit
 	record.Ended = Now()
 	if err := write(record.Dir(i.root), record); err != nil {
-		return err
+		return Record{}, err
 	}
 	i.records[id] = record
 	i.mirrored(record)
 	i.finished[state]++
 	i.lastFinished = record.Ended
-	return nil
+	return record, nil
 }
 
 // ended asks the job directory how a run that nobody was watching turned out.

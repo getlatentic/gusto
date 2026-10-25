@@ -143,6 +143,10 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	if err != nil {
 		return nil, err
 	}
+	// A server made only to read who is who has no jobs, so nothing to hand on.
+	if index != nil {
+		index.OnFinish(s.handOff)
+	}
 	return s, nil
 }
 
@@ -213,6 +217,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
+	s.roomRoutes(mux)
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))

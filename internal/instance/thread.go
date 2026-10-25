@@ -26,6 +26,10 @@ type Thread struct {
 	Dir     string   `json:"dir,omitempty"`
 	Turns   []string `json:"turns"`
 	Started int64    `json:"startedAt"`
+	// Sessions is each room agent's own name for this conversation: in a room every agent keeps a conversation of its own.
+	Sessions map[string]string `json:"sessions,omitempty"`
+	// Notes are what people said in a room that woke no agent.
+	Notes []Note `json:"notes,omitempty"`
 }
 
 // NewThread opens a conversation on an instance. Threads are numbered in the

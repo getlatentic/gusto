@@ -31,6 +31,7 @@ type railChat struct {
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
 // the one open.
 type railList struct {
+	Rooms  []railChat
 	Recent []railGroup
 	Older  []railGroup
 	Here   string
@@ -39,7 +40,7 @@ type railList struct {
 // railFor is every project the person has that holds a conversation, the one used last first, each with its conversations newest first.
 // The chat page and every conversation show the same list, so moving between them does not change what is beside you.
 func (s *Server) railFor(r *http.Request, here string) railList {
-	list := railList{Here: here}
+	list := railList{Here: here, Rooms: s.roomsFor(r)}
 	used := s.lastUsed(r)
 	names := projectNames(used)
 	var groups []railGroup

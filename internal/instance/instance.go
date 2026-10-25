@@ -49,6 +49,11 @@ type Instance struct {
 	Sensitivity string `json:"sensitivity,omitempty"`
 	Who         string `json:"who,omitempty"`
 	Started     int64  `json:"startedAt"`
+	// A room is an instance its people share, and its agents work in together. An instance that is not one has its owner and
+	// the one agent Harness names.
+	Room    bool     `json:"room,omitempty"`
+	Members []Member `json:"members,omitempty"`
+	Agents  []Agent  `json:"agents,omitempty"`
 }
 
 // Store is every instance under one directory.

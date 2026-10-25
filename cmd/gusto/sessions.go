@@ -41,6 +41,6 @@ func afterTurn(instances *instance.Store, spec job.Spec, dir job.Dir) error {
 // learnConversation keeps what the agent calls a conversation, in the thread it belongs to.
 func learnConversation(instances *instance.Store, spec job.Spec, remembered string) {
 	if spec.Session != "" && spec.Thread != "" {
-		_ = instances.Said(spec.Session, spec.Thread, "", remembered)
+		_ = instances.Learned(spec.Session, spec.Thread, spec.Agent, remembered)
 	}
 }

@@ -3,10 +3,14 @@
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
     <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold" title="{{.Named}}">{{.Named}}</h1>
+    {{if .Instance.Room}}
+    <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="/rooms/{{.Instance.ID}}/members" title="People and agents in this room">{{template "icon-users"}}<span>{{len .Instance.Members}} {{if eq (len .Instance.Members) 1}}person{{else}}people{{end}}, {{len .Instance.Agents}} agent{{if ne (len .Instance.Agents) 1}}s{{end}}</span></a>
+    {{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
+    {{end}}
     <span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4 [&>svg]:opacity-100" tabindex="0" role="img" aria-label="Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
     {{range .Apps}}<a class="h-8 flex-none {{template "ui-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
@@ -25,7 +29,12 @@
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
       <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
+        {{if .Instance.Room}}
+        <h2 class="text-xl">{{.Instance.Title}}</h2>
+        <p class="m-0 max-w-[32rem] text-sm text-muted">{{if .Instance.Agents}}Mention an agent with @ and its name to ask it something. Everybody in the room sees what it says.{{else}}This room has no agents yet. <a href="/rooms/{{.Instance.ID}}/members">Add one</a> to ask it things.{{end}}</p>
+        {{else}}
         <h2 class="text-xl">How can I help?</h2>
+        {{end}}
         {{with .Starters}}
         <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3" id="starters">
           {{range .}}<button type="button" class="starter cursor-pointer rounded-md border border-line bg-surface px-4 py-3 text-left text-sm text-ink hover:border-subtle" data-said="{{.}}">{{.}}</button>{{end}}
@@ -41,12 +50,12 @@
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
     <form class="mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
-        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
+        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="{{if .Instance.Room}}{{.Hint}}{{else}}Message{{end}}" aria-label="{{if .Instance.Room}}Message the room{{else}}Message {{.Agent.Name}}{{end}}" autofocus required></textarea>
         <div class="flex items-center gap-1">
-          {{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}
+          {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
-          {{if .Several}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
           {{if .Waiting}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
@@ -199,8 +208,13 @@
 {{define "turns"}}
 {{range .Turns}}
 <article class="mb-8" id="{{.ID}}">
+  {{if $.Instance.Room}}
+  {{if not (or .From .Echo)}}<div class="mb-4 ml-auto grid w-fit max-w-[34rem] justify-items-end gap-1"><span class="text-xs text-subtle">{{.Who}}</span><p class="m-0 rounded-lg bg-wash px-4 py-2.5 text-base whitespace-pre-wrap wrap-anywhere">{{.Said}}</p></div>{{end}}
+  {{if not .Note}}<p class="mb-2 flex items-center gap-2 text-xs text-subtle">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}<span class="font-semibold text-ink">{{.By}}</span><span>{{.Engine}}</span>{{with .From}}<span>· asked by @{{.}}</span>{{end}}</p>{{end}}
+  {{else}}
   <p class="mb-4 ml-auto w-fit max-w-[34rem] rounded-lg bg-wash px-4 py-2.5 text-base whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
-  {{if .State.Done}}
+  {{end}}
+  {{if .Note}}{{else if .State.Done}}
   <div class="grid min-w-0 gap-3">
     {{with .Steps}}
     <details class="group text-xs">

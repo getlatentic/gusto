@@ -273,7 +273,7 @@ func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record job
 
 func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
+	if !found || !s.mayUseRecord(r, record) {
 		return jobs.Record{}, "", false
 	}
 	return record, record.Dir(s.index.Root()), true

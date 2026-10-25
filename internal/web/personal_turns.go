@@ -86,7 +86,7 @@ type turnJSON struct {
 // ownJob is the job the path names, when the person asking may read it.
 func (s *Server) ownJob(r *http.Request) (jobs.Record, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
+	if !found || !s.mayUseRecord(r, record) {
 		return jobs.Record{}, false
 	}
 	return record, true
