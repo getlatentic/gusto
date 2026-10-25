@@ -3,7 +3,7 @@
   <h1 class="text-xl font-semibold">Try gusto free for {{minutes .DemoLeft}}</h1>
   <p class="text-sm text-muted">Try gusto, an AI agent cloud for your organization. Run ready-to-use agents like Claude Code and Codex, and see how gusto lets companies give every employee a private cloud computer where their agents work, with built-in controls for models, spending, and security.</p>
   {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
-  <form class="grid gap-3" method="post" action="/demo">
+  <form class="grid gap-3" method="post" action="/demo" data-warm="/demo/warm">
     <label class="grid gap-1 text-sm text-muted">Your name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="name" value="{{.Name}}" maxlength="80" autocomplete="name" autofocus required></label>
     <label class="grid gap-1 text-sm text-muted">Work email <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" required></label>
     <label class="grid gap-1 text-sm text-muted">Company <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
@@ -12,4 +12,5 @@
     <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Start my demo</button>
   </form>
   {{if .Book}}<p class="text-center text-sm text-muted">Rather be shown? <a class="underline" href="{{.Book}}">Book a call</a></p>{{end}}
+<script src="{{own "/static/demo-warm.js"}}" defer></script>
 {{template "foot"}}{{end}}

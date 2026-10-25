@@ -46,6 +46,8 @@ demo_cell_userdata: /usr/local/lib/gusto/user-data.sh
 demo_cell_template: gusto-poc-demo-host-cell-live
 demo_cell_max: 3
 demo_cell_idle_minutes: 10
+# The most cells a day started for visitors who began the demo form, before they sent it.
+demo_cell_prewarms: 20
 demo_cell_max_hours: 12
 demo_project: gusto-live
 demo_visitor_minutes: 0

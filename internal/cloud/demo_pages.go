@@ -22,6 +22,20 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working in workspaces of their own, and nothing to sign up for."))
 }
 
+// warmDemo starts a cell for a visitor who has begun the form, which the form's script asks for on their first keystroke. A
+// page load that types nothing asks for nothing. It answers the same whether or not a cell was started, so it says nothing
+// about the demos to whoever asks.
+func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
+	if !s.demoOffered() {
+		http.NotFound(w, r)
+		return
+	}
+	if s.Prewarm != nil && !s.Store.DemosPaused() && s.signups.Allow("warm:"+s.source(r)) {
+		s.Prewarm()
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
 // frame its answer, from Cloudflare and from nowhere else.
 func (s *Server) drawDemoForm(w http.ResponseWriter, status int, page view) {
