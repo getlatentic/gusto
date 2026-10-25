@@ -2,13 +2,13 @@
 - name: The script that builds the model credentials from Parameter Store
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../e2e/credentials.sh"
-    dest: /usr/local/lib/gusto/credentials.sh
+    dest: "{{ demo_root }}/usr/local/lib/gusto/credentials.sh"
     mode: "0755"
 
 - name: What the agent of a host is started with, and what the servers it starts are
   ansible.builtin.template:
     src: "{{ item }}.j2"
-    dest: "/etc/gusto/{{ item }}"
+    dest: "{{ demo_root }}/etc/gusto/{{ item }}"
     mode: "0644"
   loop: [cell.env, org.env]
   when: demo_role == 'cell'
@@ -17,7 +17,7 @@
 - name: The host's service
   ansible.builtin.template:
     src: gusto-cell.service.j2
-    dest: /etc/systemd/system/gusto-cell.service
+    dest: "{{ demo_root }}/etc/systemd/system/gusto-cell.service"
     mode: "0644"
   when: demo_role == 'cell'
   notify: Restart the cell

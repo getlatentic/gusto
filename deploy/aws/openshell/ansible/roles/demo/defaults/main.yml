@@ -63,6 +63,15 @@ demo_video_url: ""
 # Mailed when a visitor starts a demo. Nothing is sent when it is empty.
 demo_notify: ""
 
+# Where the files of a host are written: the host's own root, or a directory a cell's kit is made from.
+demo_root: ""
+# The SHA-256 of the kit a front door makes for its cells, and the key of the image it is made for. A cell from that image
+# configures itself from the kit; without one it runs the playbook.
+demo_cell_kit: ""
+demo_cell_kit_file: /usr/local/lib/gusto/cell-kit.tgz
+demo_bake_key: ""
+demo_cell_lease_minutes: 30
+
 # Whether this host is made to have an image taken of it, and so is not started as a cell.
 demo_bake: false
 

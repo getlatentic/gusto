@@ -1,0 +1,31 @@
+---
+# Writes the files a cell of this release is configured with under demo_root, from the tasks and templates a cell runs, with
+# the settings a front door starts its cells with. A front door makes it once a release, so that a cell made from the image
+# unpacks it and starts rather than running the playbook.
+- name: The kit a cell configures itself from
+  hosts: spike
+  become: true
+  gather_facts: false
+  vars_files:
+    - roles/openshell/defaults/main.yml
+  vars:
+    demo_role: cell
+    demo_live: false
+    demo_baked: true
+    demo_lease_minutes: "{{ demo_cell_lease_minutes }}"
+    demo_max_hours: "{{ demo_cell_max_hours }}"
+  tasks:
+    - name: Where the kit's files go
+      ansible.builtin.file:
+        path: "{{ demo_root }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [etc/gusto, etc/systemd/system, usr/local/bin, usr/local/lib/gusto]
+    - name: What every host has
+      ansible.builtin.include_role:
+        name: demo
+        tasks_from: common.yml
+    - name: What a cell has
+      ansible.builtin.include_role:
+        name: demo
+        tasks_from: cell.yml

@@ -33,7 +33,15 @@ echo "swapon $*" >> "$FAKE_LOG"`,
 exec shasum -a 256 "$@"`,
 	"ansible-playbook": `#!/bin/bash
 echo "ansible-playbook $*" >> "$FAKE_LOG"
-[ -z "${FAKE_ANSIBLE_FAILS:-}" ] || exit 2`,
+[ -z "${FAKE_ANSIBLE_FAILS:-}" ] || exit 2
+for arg in "$@"; do case "$arg" in demo_root=*) root=${arg#demo_root=};; esac; done
+if [ -n "${root:-}" ]; then mkdir -p "$root/usr/local/bin" "$root/etc/gusto"; echo program > "$root/usr/local/bin/gusto"; echo ROLE=cell > "$root/etc/gusto/demo.conf"; fi`,
+	"mount": `#!/bin/bash
+echo "mount $*" >> "$FAKE_LOG"
+[ -z "${FAKE_MOUNT_FAILS:-}" ] || exit 32
+if [ "$1" = --bind ]; then rmdir "$3" && ln -s "$2" "$3"; fi`,
+	"systemctl": `#!/bin/bash
+echo "systemctl $*" >> "$FAKE_LOG"`,
 }
 
 type boot struct {
@@ -435,5 +443,112 @@ func TestAHostMadeFromTheImageOfACellWarmsItsDiskAndAnOrdinaryHostDoesNot(t *tes
 	}
 	if log, _ := os.ReadFile(filepath.Join(ordinary.dir, "boot.log")); strings.Contains(string(log), "warming the disk") {
 		t.Errorf("an ordinary host warmed a disk it does not have:\n%s", log)
+	}
+}
+
+// kitted is a cell made from the image of key abc123, whose front door has put a kit on the shared file system.
+func kitted(t *testing.T) (b *boot, sum string, extra []string) {
+	t.Helper()
+	b = newBoot(t)
+	b.release(false)
+	marker := filepath.Join(b.dir, "baked")
+	os.WriteFile(marker, []byte("abc123\n"), 0o644)
+	src := filepath.Join(b.dir, "kit-src")
+	os.MkdirAll(filepath.Join(src, "usr", "local", "bin"), 0o755)
+	os.WriteFile(filepath.Join(src, "usr", "local", "bin", "gusto"), []byte("program\n"), 0o755)
+	efs := filepath.Join(b.dir, "efs")
+	kits := filepath.Join(efs, "runs", "live", "kits")
+	os.MkdirAll(kits, 0o755)
+	kit := filepath.Join(b.dir, "kit.tgz")
+	if out, err := exec.Command("tar", "-czf", kit, "-C", src, ".").CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	raw, _ := exec.Command("shasum", "-a", "256", kit).Output()
+	sum = strings.Fields(string(raw))[0]
+	os.Rename(kit, filepath.Join(kits, sum+".tgz"))
+	os.MkdirAll(filepath.Join(b.dir, "root"), 0o755)
+	extra = []string{"GUSTO_BAKED=" + marker, "ROLE=cell", "RUN=live", "EFS=fs-0123", "BAKE_KEY=abc123", "KIT=" + sum,
+		"GUSTO_EFS_MOUNT=" + efs, "GUSTO_STATE=" + filepath.Join(b.dir, "state"), "GUSTO_ROOT=" + filepath.Join(b.dir, "root")}
+	return b, sum, extra
+}
+
+func TestACellFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrPlayed(t *testing.T) {
+	b, _, extra := kitted(t)
+	lines, err := b.run(extra...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, never := range []string{"aws ", "ansible-playbook ", "apt-get "} {
+		if index(lines, never) >= 0 {
+			t.Errorf("a cell with its kit ran %q: %v", never, lines)
+		}
+	}
+	if index(lines, "mount -t nfs4") < 0 || index(lines, "mount --bind") < 0 {
+		t.Errorf("the shared file system was not mounted: %v", lines)
+	}
+	if got, _ := os.ReadFile(filepath.Join(b.dir, "root", "usr", "local", "bin", "gusto")); string(got) != "program\n" {
+		t.Errorf("the kit was not unpacked: %q", got)
+	}
+	enable, boot, start := index(lines, "systemctl enable"), index(lines, "systemctl restart gusto-boot"), index(lines, "systemctl start gusto-lease.timer gusto-cell")
+	if enable < 0 || boot < enable || start < boot {
+		t.Errorf("the services are not turned on, the start-up work run, and the cell started, in that order: %v", lines)
+	}
+}
+
+func TestACellWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *testing.T) {
+	for name, change := range map[string]func(sum string) []string{
+		"another sum":   func(string) []string { return []string{"KIT=" + strings.Repeat("0", 64)} },
+		"another image": func(string) []string { return []string{"BAKE_KEY=def456"} },
+		"no kit":        func(string) []string { return []string{"KIT=@KIT@"} },
+	} {
+		b, sum, extra := kitted(t)
+		lines, err := b.run(append(extra, change(sum)...)...)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if index(lines, "ansible-playbook ") < 0 || index(lines, "systemctl ") >= 0 {
+			t.Errorf("%s: the cell did not fall back to the playbook: %v", name, lines)
+		}
+		if _, err := os.Stat(filepath.Join(b.dir, "root", "usr", "local", "bin", "gusto")); err == nil {
+			t.Errorf("%s: a kit that is not the one asked for was unpacked", name)
+		}
+	}
+}
+
+func TestAFrontDoorThatStartsCellsMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	src := filepath.Join(b.dir, "src")
+	os.WriteFile(filepath.Join(src, "bake.key"), []byte("abc123\n"), 0o644)
+	release := filepath.Join(b.store, "releases", "abc123")
+	if out, err := exec.Command("tar", "-czf", filepath.Join(release, "bundle.tgz"), "-C", src, ".").CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	raw, _ := exec.Command("shasum", "-a", "256", filepath.Join(release, "bundle.tgz")).Output()
+	os.WriteFile(filepath.Join(release, "bundle.tgz.sha256"), []byte(strings.Fields(string(raw))[0]+"  bundle.tgz\n"), 0o644)
+	kit := filepath.Join(b.dir, "cell-kit.tgz")
+	lines, err := b.run("ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "GUSTO_LIVE_ENV="+filepath.Join(b.dir, "live.env"), "GUSTO_KIT_FILE="+kit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	made, played := index(lines, "ansible-playbook "), -1
+	for i, line := range lines {
+		if strings.HasPrefix(line, "ansible-playbook ") && strings.HasSuffix(line, "demo.yml") {
+			played = i
+		}
+	}
+	if made < 0 || !strings.HasSuffix(lines[made], "cell-kit.yml") || played < made {
+		t.Fatalf("the kit is made before the front door is configured: %v", lines)
+	}
+	raw, _ = exec.Command("shasum", "-a", "256", kit).Output()
+	sum := strings.Fields(string(raw))[0]
+	for _, want := range []string{"demo_cell_kit=" + sum, "demo_cell_kit_file=" + kit, "demo_bake_key=abc123"} {
+		if !strings.Contains(lines[played], want) {
+			t.Errorf("%q is not in %s", want, lines[played])
+		}
+	}
+	listed, _ := exec.Command("tar", "-tzf", kit).Output()
+	if !strings.Contains(string(listed), "usr/local/bin/gusto") || !strings.Contains(string(listed), "etc/gusto/demo.conf") || strings.Contains(string(listed), "/\n") {
+		t.Errorf("the kit holds the cell's files and no directories:\n%s", listed)
 	}
 }

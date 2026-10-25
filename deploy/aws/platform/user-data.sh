@@ -7,6 +7,8 @@
 # BAKE is on for the host an image of a cell is made from: it is made as a cell is, its runner image is prepared for the gateway,
 # and it is not started as a cell, so that the image holds everything a cell has to wait for and nothing that is its own. A host made
 # from that image has /etc/gusto/baked and goes straight to configuring itself.
+# KIT is the SHA-256 of the kit a front door made for its cells on the shared file system, and BAKE_KEY the image it was made
+# for: a cell made from that image unpacks the kit and starts, with no playbook and nothing fetched.
 # LIVE is on for the front door that stays up: it has no lease and no limit on how long it runs, keeps what
 # is on the file system, starts hosts for cells when organizations need one, and is brought up to a newer
 # release by running this again (GUSTO_LIVE_ENV names the file that keeps what it was started with).
@@ -14,6 +16,10 @@ set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
 LEASE_MINUTES=${LEASE_MINUTES:-@LEASE_MINUTES@} MAX_HOURS=${MAX_HOURS:-@MAX_HOURS@}
 ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@} BAKE=${BAKE:-off}
+KIT=${KIT:-@KIT@} BAKE_KEY=${BAKE_KEY:-@BAKE_KEY@}
+# A host started by hand, and not by a front door, has no kit.
+[[ $KIT != @* ]] || KIT=""
+[[ $BAKE_KEY != @* ]] || BAKE_KEY=""
 baked_marker=${GUSTO_BAKED:-/etc/gusto/baked}
 live_env=${GUSTO_LIVE_ENV:-/etc/gusto/live.env}
 dir=${GUSTO_BUNDLE_DIR:-/opt/gusto-bundle} tmp=${GUSTO_TMP:-/tmp}
@@ -81,6 +87,44 @@ if [ -e "$baked_marker" ]; then
   warm_the_disk > /dev/null 2>&1 &
 fi
 
+efs_mount=${GUSTO_EFS_MOUNT:-/mnt/efs} state=${GUSTO_STATE:-/var/lib/gusto-cloud} root=${GUSTO_ROOT:-}
+
+# The shared file system, and this demo's directory of it where the organizations' data is, mounted as the playbook mounts them.
+# A mount target answers a little after it is made.
+mount_the_run() {
+  mkdir -p "$efs_mount" "$state"
+  for attempt in $(seq 1 30); do
+    mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport "$EFS.efs.$REGION.amazonaws.com:/" "$efs_mount" && break
+    [ "$attempt" -lt 30 ] || return 1
+    sleep 2
+  done
+  mkdir -p "$efs_mount/runs/$RUN"
+  chown ubuntu:ubuntu "$efs_mount/runs/$RUN" 2>/dev/null || true
+  mount --bind "$efs_mount/runs/$RUN" "$state"
+}
+
+# A cell takes the kit only when its sum is the one its front door started it with, since every cell can write the file system.
+configure_from_kit() {
+  local kit="$tmp/cell-kit.tgz"
+  cp "$state/kits/$KIT.tgz" "$kit" || return 1
+  echo "$KIT  $kit" | sha256sum -c --quiet || return 1
+  tar -xzf "$kit" -C "${root:-/}"
+  systemctl daemon-reload
+  systemctl enable gusto-boot gusto-lease.timer gusto-cell
+  systemctl restart gusto-boot
+  systemctl start gusto-lease.timer gusto-cell
+}
+
+if [ "$ROLE" = cell ] && [ -n "$KIT" ] && [ -e "$baked_marker" ] && [ "$(cat "$baked_marker")" = "$BAKE_KEY" ]; then
+  mount_the_run
+  if configure_from_kit; then
+    echo "gusto-bootstrap: configured from the kit $KIT"
+    echo "gusto-bootstrap: done"
+    exit 0
+  fi
+  echo "gusto-bootstrap: the kit $KIT is not there or not the one asked for, so the playbook configures the host"
+fi
+
 # A host made from the image of a cell has these, and the packages are not fetched again.
 if [ ! -e "$baked_marker" ]; then
   apt-get update -qq
@@ -120,6 +164,19 @@ playbooks=("$dir/ansible/site.yml" "$dir/ansible/demo.yml")
 { [ "$ROLE" = orchestrator ] || [ "$demo_baked" = true ]; } && playbooks=("$dir/ansible/demo.yml")
 shared=()
 [ "$ROLE" = all ] || shared=(-e "demo_efs=$EFS.efs.$REGION.amazonaws.com" -e "demo_run=$RUN")
+
+# The front door that starts cells writes the files of its cells once, here, and starts each with the kit's sum.
+if [ "$ROLE" = orchestrator ] && [ "$LIVE" = on ] && [ -f "$dir/bake.key" ]; then
+  kit_root=$(mktemp -d "$tmp/cell-kit.XXXXXX")
+  ansible-playbook -c local -i 'spike,' \
+    -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
+    -e "demo_release=$RELEASE" -e "demo_root=$kit_root" ${shared[@]+"${shared[@]}"} "$dir/ansible/cell-kit.yml"
+  kit_file=${GUSTO_KIT_FILE:-/usr/local/lib/gusto/cell-kit.tgz}
+  mkdir -p "$(dirname "$kit_file")"
+  (cd "$kit_root" && find . -type f -print0 | tar --null --owner=0 --group=0 -czf "$kit_file" -T -)
+  rm -rf "$kit_root"
+  shared+=(-e "demo_cell_kit=$(sha256sum "$kit_file" | cut -d' ' -f1)" -e "demo_cell_kit_file=$kit_file" -e "demo_bake_key=$(cat "$dir/bake.key")")
+fi
 
 ansible-playbook -c local -i 'spike,' \
   -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
