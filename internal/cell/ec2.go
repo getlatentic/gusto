@@ -1,6 +1,8 @@
 package cell
 
 import (
+	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -27,6 +29,13 @@ type EC2 struct {
 
 var instanceID = regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
 
+// keptDisk is the root disk of a kept host. The template's disk has throughput above the baseline for reading a new disk from its
+// snapshot, which is billed while a host is stopped too; a kept host's disk has been read, and costs only its size while it waits.
+const keptDisk = "DeviceName=/dev/sda1,Ebs={VolumeSize=40,VolumeType=gp3,Iops=3000,Throughput=125,DeleteOnTermination=true}"
+
+// awsCall bounds one AWS command, so a front door whose network to AWS hangs still decides again.
+const awsCall = 2 * time.Minute
+
 func (e *EC2) project() string {
 	if e.Project != "" {
 		return e.Project
@@ -38,7 +47,9 @@ func (e *EC2) run(args ...string) ([]byte, error) {
 	if e.Run != nil {
 		return e.Run(args...)
 	}
-	out, err := exec.Command("aws", args...).Output()
+	ctx, cancel := context.WithTimeout(context.Background(), awsCall)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "aws", args...).Output()
 	var failed *exec.ExitError
 	if errors.As(err, &failed) {
 		return out, fmt.Errorf("aws %s: %s", args[1], strings.TrimSpace(string(failed.Stderr)))
@@ -62,26 +73,47 @@ func (e *EC2) script() (string, error) {
 	return out, nil
 }
 
-func (e *EC2) Launch() (string, error) {
+// scriptFile writes the start-up script to a file the AWS command reads, and says how to remove it.
+func (e *EC2) scriptFile(encode bool) (string, func(), error) {
 	script, err := e.script()
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+	if encode {
+		script = base64.StdEncoding.EncodeToString([]byte(script))
 	}
 	file, err := os.CreateTemp("", "gusto-cell-userdata-")
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	defer os.Remove(file.Name())
+	remove := func() { os.Remove(file.Name()) }
 	if _, err := file.WriteString(script); err != nil {
 		file.Close()
+		remove()
+		return "", nil, err
+	}
+	if err := file.Close(); err != nil {
+		remove()
+		return "", nil, err
+	}
+	return file.Name(), remove, nil
+}
+
+// Launch starts a new host. A kept one is stopped rather than removed when it is idle, and started again when a host is needed.
+func (e *EC2) Launch(kept bool) (string, error) {
+	path, remove, err := e.scriptFile(false)
+	if err != nil {
 		return "", err
 	}
-	file.Close()
-	out, err := e.run("ec2", "run-instances",
-		"--launch-template", "LaunchTemplateName="+e.Template+",Version=$Latest",
-		"--user-data", "file://"+file.Name(),
-		"--tag-specifications", "ResourceType=instance,Tags=[{Key=project,Value="+e.project()+"},{Key=name,Value=demo-cell},{Key=scaler,Value=on}]",
-		"--query", "Instances[0].InstanceId", "--output", "text")
+	defer remove()
+	tags := "{Key=project,Value=" + e.project() + "},{Key=name,Value=demo-cell},{Key=scaler,Value=on}"
+	args := []string{"ec2", "run-instances", "--launch-template", "LaunchTemplateName=" + e.Template + ",Version=$Latest", "--user-data", "file://" + path}
+	if kept {
+		tags += ",{Key=kept,Value=on}"
+		args = append(args, "--block-device-mappings", keptDisk)
+	}
+	args = append(args, "--tag-specifications", "ResourceType=instance,Tags=["+tags+"]", "--query", "Instances[0].InstanceId", "--output", "text")
+	out, err := e.run(args...)
 	if err != nil {
 		return "", err
 	}
@@ -92,6 +124,34 @@ func (e *EC2) Launch() (string, error) {
 	return id, nil
 }
 
+// Start starts a stopped kept host with today's start-up script, which it runs on every start, so it comes up as this front
+// door's release.
+func (e *EC2) Start(id string) error {
+	if !instanceID.MatchString(id) {
+		return fmt.Errorf("%q is not a host", id)
+	}
+	// The AWS command does not encode the value of modify-instance-attribute, and EC2 wants it encoded.
+	path, remove, err := e.scriptFile(true)
+	if err != nil {
+		return err
+	}
+	defer remove()
+	if _, err := e.run("ec2", "modify-instance-attribute", "--instance-id", id, "--attribute", "userData", "--value", "file://"+path); err != nil {
+		return err
+	}
+	_, err = e.run("ec2", "start-instances", "--instance-ids", id)
+	return err
+}
+
+// Stop stops a kept host. Its own disk, where its sandboxes were, is blanked by AWS; its root disk is kept.
+func (e *EC2) Stop(id string) error {
+	if !instanceID.MatchString(id) {
+		return fmt.Errorf("%q is not a host", id)
+	}
+	_, err := e.run("ec2", "stop-instances", "--instance-ids", id)
+	return err
+}
+
 func (e *EC2) Terminate(id string) error {
 	if !instanceID.MatchString(id) {
 		return fmt.Errorf("%q is not a host", id)
@@ -100,24 +160,30 @@ func (e *EC2) Terminate(id string) error {
 	return err
 }
 
-func (e *EC2) Running() ([]Instance, error) {
+// Running is the scaler's hosts that are starting or up. A started host's launch time is when it was last started.
+func (e *EC2) Running() ([]Instance, error) { return e.listed("pending,running") }
+
+// Stopped is the scaler's hosts that are stopping or stopped, which only kept hosts are.
+func (e *EC2) Stopped() ([]Instance, error) { return e.listed("stopping,stopped") }
+
+func (e *EC2) listed(states string) ([]Instance, error) {
 	out, err := e.run("ec2", "describe-instances",
-		"--filters", "Name=tag:scaler,Values=on", "Name=tag:project,Values="+e.project(), "Name=instance-state-name,Values=pending,running",
-		"--query", "Reservations[].Instances[].[InstanceId,LaunchTime]", "--output", "text")
+		"--filters", "Name=tag:scaler,Values=on", "Name=tag:project,Values="+e.project(), "Name=instance-state-name,Values="+states,
+		"--query", "Reservations[].Instances[].[InstanceId,LaunchTime,State.Name,Tags[?Key=='kept']|[0].Value]", "--output", "text")
 	if err != nil {
 		return nil, err
 	}
 	var hosts []Instance
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 2 || !instanceID.MatchString(fields[0]) {
+		if len(fields) != 4 || !instanceID.MatchString(fields[0]) {
 			continue
 		}
 		launched, err := time.Parse(time.RFC3339, fields[1])
 		if err != nil {
 			continue
 		}
-		hosts = append(hosts, Instance{ID: fields[0], Launched: launched})
+		hosts = append(hosts, Instance{ID: fields[0], Launched: launched, Stopped: fields[2] == "stopped", Kept: fields[3] == "on"})
 	}
 	return hosts, nil
 }

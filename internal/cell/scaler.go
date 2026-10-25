@@ -8,19 +8,26 @@ import (
 	"time"
 )
 
-// Instance is a host that was started to be a host, and when.
+// Instance is a host that was started to be a host, and when it was last started. A kept host is stopped rather than removed
+// when it is idle; Stopped says it is stopped now, and not still stopping.
 type Instance struct {
 	ID       string
 	Launched time.Time
+	Kept     bool
+	Stopped  bool
 }
 
 // Launcher starts and stops the machines hosts run on.
 type Launcher interface {
-	// Launch starts a host, which registers as a cell when it is ready.
-	Launch() (id string, err error)
+	// Launch makes a host, which registers as a cell when it is ready.
+	Launch(kept bool) (id string, err error)
 	Terminate(id string) error
-	// Running is the hosts started for cells that are not gone.
+	// Running is the hosts started for cells that are not gone or stopped.
 	Running() ([]Instance, error)
+	// Stopped is the kept hosts that are stopping or stopped; Start starts one, and Stop stops a kept host that is running.
+	Stopped() ([]Instance, error)
+	Start(id string) error
+	Stop(id string) error
 }
 
 // Scaler keeps as many hosts as the organizations need: one is started when an organization waits for room and none is
@@ -42,6 +49,9 @@ type Scaler struct {
 	// Settle is how long a host that has just registered is given to take the organizations that wait, which are placed
 	// on it when the controller next looks. A host is not started for them in that time, since they are about to have room.
 	Settle time.Duration
+	// Keep is how many hosts are kept: stopped when idle and started again when a host is needed, which a stopped host's
+	// disk, already read, makes faster than a new one. Zero keeps none.
+	Keep int
 	// Prewarms is the most hosts a day started because a visitor began asking for a demo, before anybody waits. It
 	// bounds what visitors who never send the form can cost. Zero is none.
 	Prewarms int
@@ -172,7 +182,7 @@ func (s *Scaler) Tick() {
 		}
 		why = "a visitor is asking for a demo"
 	}
-	id, err := s.Launcher.Launch()
+	id, err := s.bringUp(hosts)
 	if err != nil {
 		s.retryAt = s.clock().Add(orDefault(s.Backoff, time.Minute))
 		slog.Error("a host could not be started", "error", err)
@@ -227,9 +237,9 @@ func (s *Scaler) retire(hosts []Instance, alive map[string]Registration, waiting
 	if s.idleSince == nil {
 		s.idleSince = map[string]time.Time{}
 	}
-	onHost := map[string]bool{}
+	onHost, kept := map[string]bool{}, map[string]bool{}
 	for _, host := range hosts {
-		onHost[host.ID] = true
+		onHost[host.ID], kept[host.ID] = true, host.Kept
 	}
 	for id, registration := range alive {
 		if !onHost[id] {
@@ -246,8 +256,8 @@ func (s *Scaler) retire(hosts []Instance, alive map[string]Registration, waiting
 			continue
 		}
 		if s.clock().Sub(since) >= orDefault(s.Idle, 10*time.Minute) {
-			slog.Info("a host has had nothing on it, so it is stopped", "host", id)
-			if err := s.Launcher.Terminate(id); err != nil {
+			slog.Info("a host has had nothing on it, so it is stopped", "host", id, "kept", kept[id])
+			if err := s.putAway(id, kept[id]); err != nil {
 				slog.Error("a host could not be stopped", "host", id, "error", err)
 				continue
 			}

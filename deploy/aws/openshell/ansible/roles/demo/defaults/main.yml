@@ -48,6 +48,9 @@ demo_cell_max: 3
 demo_cell_idle_minutes: 10
 # The most cells a day started for visitors who began the demo form, before they sent it.
 demo_cell_prewarms: 20
+# How many cells are stopped when idle, and started again when one is needed, rather than removed: a stopped cell costs its root
+# disk, about 3.20 dollars a month, and starts in about 11 seconds where a new one takes about 17.
+demo_cell_keep: 1
 demo_cell_max_hours: 12
 demo_project: gusto-live
 demo_visitor_minutes: 0

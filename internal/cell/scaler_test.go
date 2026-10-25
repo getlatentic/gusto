@@ -15,19 +15,47 @@ import (
 
 type fakeHosts struct {
 	hosts      []Instance
+	stopped    []Instance
 	launched   int
+	started    int
 	terminated []string
 	failLaunch error
 	next       string
 }
 
-func (f *fakeHosts) Launch() (string, error) {
+func (f *fakeHosts) Launch(kept bool) (string, error) {
 	if f.failLaunch != nil {
 		return "", f.failLaunch
 	}
 	f.launched++
-	f.hosts = append(f.hosts, Instance{ID: f.next, Launched: clockNow})
+	f.hosts = append(f.hosts, Instance{ID: f.next, Launched: clockNow, Kept: kept})
 	return f.next, nil
+}
+
+func (f *fakeHosts) Stopped() ([]Instance, error) { return append([]Instance(nil), f.stopped...), nil }
+
+func (f *fakeHosts) Start(id string) error {
+	for i, host := range f.stopped {
+		if host.ID == id && host.Stopped {
+			f.started++
+			f.stopped = append(f.stopped[:i], f.stopped[i+1:]...)
+			f.hosts = append(f.hosts, Instance{ID: id, Launched: clockNow, Kept: true})
+			return nil
+		}
+	}
+	return errors.New("not a stopped host")
+}
+
+func (f *fakeHosts) Stop(id string) error {
+	for i, host := range f.hosts {
+		if host.ID == id {
+			f.hosts = append(f.hosts[:i], f.hosts[i+1:]...)
+			host.Stopped = true
+			f.stopped = append(f.stopped, host)
+			return nil
+		}
+	}
+	return errors.New("not a running host")
 }
 
 func (f *fakeHosts) Terminate(id string) error {
@@ -237,11 +265,11 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 				}
 			}
 			if args[1] == "describe-instances" {
-				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\ni-0bbb2222\t2026-10-01T09:05:00.000Z\nnot a line\n"), nil
+				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\trunning\tNone\ni-0bbb2222\t2026-10-01T09:05:00.000Z\tpending\ton\nnot a line\n"), nil
 			}
 			return []byte("i-0aaa1111\n"), nil
 		}}
-	id, err := e.Launch()
+	id, err := e.Launch(false)
 	if err != nil || id != "i-0aaa1111" || seen != "ROLE=cell RUN=live RELEASE=abc123\n" {
 		t.Fatalf("%q %v %q", id, err, seen)
 	}
@@ -267,12 +295,12 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 		t.Error(err)
 	}
 	os.WriteFile(script, []byte("ROLE=@ROLE@ MORE=@NOBODY_SAID@\n"), 0o644)
-	if _, err := e.Launch(); err == nil || !strings.Contains(err.Error(), "@NOBODY_SAID@") {
+	if _, err := e.Launch(false); err == nil || !strings.Contains(err.Error(), "@NOBODY_SAID@") {
 		t.Errorf("a script with a blank in it was launched: %v", err)
 	}
 	e.Run = func(...string) ([]byte, error) { return []byte("garbage\n"), nil }
 	os.WriteFile(script, []byte("x\n"), 0o644)
-	if _, err := e.Launch(); err == nil {
+	if _, err := e.Launch(false); err == nil {
 		t.Error("an answer that is not a host was taken for one")
 	}
 }
@@ -291,9 +319,12 @@ func freePort(t *testing.T) int {
 // launches is a launcher that says on a channel when it starts a host.
 type launches struct{ started chan string }
 
-func (l launches) Launch() (string, error)      { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
+func (l launches) Launch(bool) (string, error)  { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
 func (l launches) Terminate(string) error       { return nil }
 func (l launches) Running() ([]Instance, error) { return nil, nil }
+func (l launches) Stopped() ([]Instance, error) { return nil, nil }
+func (l launches) Start(string) error           { return nil }
+func (l launches) Stop(string) error            { return nil }
 
 func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
 	var waiting atomic.Int32
