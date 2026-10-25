@@ -88,6 +88,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		running = turns[len(turns)-1].ID
 	}
 	if held.Room {
+		// Whoever has the room open has read what it shows, so their unread count starts again from here.
+		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), time.Now().Unix())
 		turns = s.roomTimeline(held, thread, turns)
 		running = roomWaiting(turns)
 	}
@@ -114,6 +116,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Turns":    turns,
 		"Sharing":  s.apps != nil && owns,
 		"Owns":     owns,
+		"Me":       s.askerName(r),
+		"Mentions": asJSON(s.mentionables(held)),
 		"Hint":     composerHint(held),
 		"Apps":     liveApps,
 		"Starting": appsStarting,

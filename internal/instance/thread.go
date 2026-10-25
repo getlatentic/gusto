@@ -30,6 +30,8 @@ type Thread struct {
 	Sessions map[string]string `json:"sessions,omitempty"`
 	// Notes are what people said in a room that woke no agent.
 	Notes []Note `json:"notes,omitempty"`
+	// Seen is when each person last looked at this conversation, so a room can say what they have not read.
+	Seen map[string]int64 `json:"seen,omitempty"`
 }
 
 // NewThread opens a conversation on an instance. Threads are numbered in the

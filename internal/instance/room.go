@@ -205,6 +205,26 @@ func (s *Store) Learned(id, thread, agent, remembered string) error {
 	return s.writeThread(held)
 }
 
+// Saw keeps that a person looked at a conversation at a time. It writes only when that is later than they last looked.
+func (s *Store) Saw(id, thread, who string, at int64) error {
+	who = strings.ToLower(strings.TrimSpace(who))
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	held, found := s.threads[id][thread]
+	if !found {
+		return fmt.Errorf("no thread %s on %s", thread, id)
+	}
+	if who == "" || held.Seen[who] >= at {
+		return nil
+	}
+	if held.Seen == nil {
+		held.Seen = map[string]int64{}
+	}
+	held.Seen[who] = at
+	s.threads[id][held.ID] = held
+	return s.writeThread(held)
+}
+
 // changeRoom changes a room under the store's guard and writes it.
 func (s *Store) changeRoom(id string, change func(*Instance) error) error {
 	s.guard.Lock()

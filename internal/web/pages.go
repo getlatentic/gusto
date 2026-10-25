@@ -105,6 +105,7 @@ var helpers = template.FuncMap{
 	"usd": headlineUSD,
 	// ago is how long ago something happened, as a list read at a glance says
 	// it, with the date itself once it is more than a day old.
+	"clock": clock,
 	"ago": func(unix int64) string {
 		if unix == 0 {
 			return ""

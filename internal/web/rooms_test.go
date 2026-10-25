@@ -258,7 +258,7 @@ func TestAnAgentHandsWorkOnByMentioningAnotherAndTheChainStops(t *testing.T) {
 	if !strings.Contains(heard[1].Brief, "@Scout says to you:\n@Draft over to you") {
 		t.Errorf("the agent handed to was not told who handed it on:\n%s", heard[1].Brief)
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `asked by <span class="rounded-xs bg-accent-wash px-0.5 font-medium text-accent">@Scout</span>`) {
+	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `asked by <span class="text-accent">@Scout</span>`) {
 		t.Error("the room does not show which agent handed a turn on")
 	}
 }
@@ -298,4 +298,39 @@ func TestAMessageShowsItsMentionsAndNothingElseAsMarkup(t *testing.T) {
 	if got := initials("mira.ionescu@example.com"); got != "MI" {
 		t.Errorf("the initials are %q", got)
 	}
+}
+
+func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
+	work := &roomWork{}
+	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"}, [2]string{"Draft", "other"})
+	mine, his := here.as(t, alice), here.as(t, bob)
+	mine.ask(t, "POST", "/rooms/"+id+"/members", url.Values{"who": {bob}})
+	his.ask(t, "GET", thread, nil)
+	time.Sleep(1100 * time.Millisecond)
+	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@bob can you look?"}})
+	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"and lunch at noon"}})
+
+	tabs := func(who *site) (unread, forYou string) {
+		page := who.ask(t, "GET", "/chat", nil).Body.String()
+		return between(page, `data-side-tab="unread">Unread`, "</button>"), between(page, `data-side-tab="me">@me`, "</button>")
+	}
+	if unread, forYou := tabs(his); !strings.Contains(unread, ">1<") || !strings.Contains(forYou, ">1<") {
+		t.Errorf("bob's tabs read %q and %q, not one room unread that mentions him", unread, forYou)
+	}
+	if unread, _ := tabs(mine); strings.Contains(unread, "<span") {
+		t.Errorf("what alice said herself counts as unread for her: %q", unread)
+	}
+	his.ask(t, "GET", thread, nil)
+	if unread, forYou := tabs(his); strings.Contains(unread, "<span") || strings.Contains(forYou, "<span") {
+		t.Errorf("after bob looked his tabs still read %q and %q", unread, forYou)
+	}
+}
+
+func between(text, start, end string) string {
+	at := strings.Index(text, start)
+	if at < 0 {
+		return ""
+	}
+	text = text[at+len(start):]
+	return text[:max(strings.Index(text, end), 0)]
 }

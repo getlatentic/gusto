@@ -26,12 +26,20 @@ type railChat struct {
 	Name  string
 	Where string
 	When  int64
+	// Room says the conversation is a room, and Unread what its person has not read there.
+	Room   bool
+	Unread unread
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
 // the one open.
 type railList struct {
-	Rooms  []railChat
+	Rooms []railChat
+	// Latest is every conversation newest first, and Unread and ForYou how many rooms hold something unread, and something that
+	// mentions the person, for the side list's tabs.
+	Latest []railChat
+	Unread int
+	ForYou int
 	Recent []railGroup
 	Older  []railGroup
 	Here   string
@@ -56,6 +64,11 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 	}
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
+	list.Latest = latest(list)
+	for _, room := range list.Rooms {
+		list.Unread += min(room.Unread.Count, 1)
+		list.ForYou += min(room.Unread.ForYou, 1)
+	}
 	return list
 }
 
