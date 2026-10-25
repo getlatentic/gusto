@@ -178,11 +178,6 @@
   document.querySelectorAll("dialog").forEach(function (dialog) {
     dialog.addEventListener("click", function (event) { if (event.target === dialog) { dialog.close(); } });
   });
-  document.querySelectorAll("[data-submit-on-change]").forEach(function (choice) {
-    choice.addEventListener("change", function () {
-      if (!choice.dataset.submitWhen || choice.value === choice.dataset.submitWhen) { choice.form.requestSubmit(); }
-    });
-  });
   document.querySelectorAll("[data-filter]").forEach(function (search) {
     var list = document.getElementById(search.dataset.filter);
     if (!list) { return; }
@@ -233,7 +228,7 @@
   });
 })();
 
-// The room's menu: it closes on a choice or a click elsewhere, copies the room's address, and asks before leaving or deleting.
+// The room's menu: it closes on a choice or a click elsewhere, and copies the room's address.
 (function () {
   var menu = document.querySelector("[data-menu]");
   if (!menu) { return; }
@@ -247,8 +242,5 @@
       said.textContent = "Link copied";
       setTimeout(function () { said.textContent = "Copy link"; }, 1500);
     });
-  });
-  document.querySelectorAll("[data-confirm]").forEach(function (button) {
-    button.addEventListener("click", function (event) { if (!window.confirm(button.dataset.confirm)) { event.preventDefault(); } });
   });
 })();

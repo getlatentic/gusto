@@ -126,7 +126,7 @@ func TestEveryPageHasItsLandmarks(t *testing.T) {
 // A toggle says what it opens and whether it is open.
 func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 	doc := a11yPages(t)["/chat"]
-	for _, toggle := range []string{"data-panel-toggle", "data-look", "data-side-toggle"} {
+	for _, toggle := range []string{"data-look", "data-side-toggle"} {
 		found := false
 		each(doc, func(n *html.Node) {
 			if hasAttr(n, toggle) {

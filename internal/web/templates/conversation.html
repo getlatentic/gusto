@@ -20,8 +20,8 @@
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-members">{{template "icon-users"}}<span>Room members</span></button>
         <span class="my-1 h-px bg-line" role="separator"></span>
-        <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove"><input type="hidden" name="who" value="{{.Me}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin.">{{template "icon-out"}}<span>Leave room</span></button></form>
-        {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-bad hover:bg-bad-wash [&>svg]:size-4" type="submit" role="menuitem" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone.">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
+        <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin."><input type="hidden" name="who" value="{{.Me}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem">{{template "icon-out"}}<span>Leave room</span></button></form>
+        {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone."><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-bad hover:bg-bad-wash [&>svg]:size-4" type="submit" role="menuitem">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
       </div>
     </details>{{end}}
   </header>
@@ -236,7 +236,7 @@
       <span class="min-w-0 flex-1 truncate text-sm" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="text-subtle">you</span>{{end}}</span>
       {{if $.Members.Runs}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/role"><input type="hidden" name="who" value="{{.Who}}">
-        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-submit-on-change>
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
           <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option><option value="member"{{if eq .Role "member"}} selected{{end}}>Member</option><option value="remove">{{if .You}}Leave the room{{else}}Remove from room{{end}}</option>
         </select>
       </form>
@@ -249,7 +249,7 @@
       <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}">{{or .Job .Engine}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
       {{if $.Members.Runs}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove">
-        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-submit-on-change data-submit-when="remove">
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-autosubmit>
           <option value="">Agent</option><option value="remove">Remove from room</option>
         </select>
       </form>
