@@ -30,6 +30,10 @@
     state: reloaded
   when: demo_role != 'cell'
 
+# A changed setting restarts the cell, which is done before it is started here, so that it is not started and then stopped mid-scan.
+- name: The changes are applied
+  ansible.builtin.meta: flush_handlers
+
 # A host an image is made from is not started as a cell, which would register it and give it organizations.
 - name: The host is running
   ansible.builtin.systemd:

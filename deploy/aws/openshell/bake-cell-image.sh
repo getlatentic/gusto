@@ -83,7 +83,9 @@ run 'test -e /etc/gusto/bake-done' >/dev/null || { echo "the host was not made i
 # What is the host's own is taken out, so that a host made from the image is a new one: it fetches its own secrets and takes its own name.
 # The file system is taken out of fstab too: a host that has it there before it has its network orders it before the network, and
 # systemd breaks the cycle by deleting the network jobs, which cost a host a minute and a half. The playbook mounts it again.
-run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
+# The start-up script is turned off: run with the settings of the host the image was made from, it held back the playbook, which
+# runs it with the new host's own and turns it on again.
+run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; systemctl disable gusto-boot 2>/dev/null; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
 aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="gusto-cell-$key-$(date -u +%Y%m%d%H%M)"

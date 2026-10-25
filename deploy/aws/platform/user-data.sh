@@ -92,14 +92,16 @@ fi
 [ "$RELEASE" != latest ] || RELEASE=$(aws s3 cp "s3://$BUCKET/releases/latest" -)
 
 mkdir -p "$dir"
-aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" "$tmp/bundle.tgz" --only-show-errors
-aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256" --only-show-errors
-# Nothing of the bundle is run until it is the one CI made.
-(cd "$tmp" && sha256sum -c bundle.tgz.sha256)
-tar -xzf "$tmp/bundle.tgz" -C "$dir"
+# Each AWS command takes seconds to start on a cold disk, so the three are run at once.
+aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" "$tmp/bundle.tgz" --only-show-errors & bundle=$!
+aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256" --only-show-errors & sum=$!
 # The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
 # into a variable.
 demo_vars=$(aws ssm get-parameter --name /gusto/poc/demo-config --query Parameter.Value --output text)
+wait "$bundle"; wait "$sum"
+# Nothing of the bundle is run until it is the one CI made.
+(cd "$tmp" && sha256sum -c bundle.tgz.sha256)
+tar -xzf "$tmp/bundle.tgz" -C "$dir"
 printf '%s\n' "$demo_vars" > "$dir/demo-vars.json"
 
 if [ "$LIVE" = on ]; then
