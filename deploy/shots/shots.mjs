@@ -67,6 +67,8 @@ const server = start(bin, ["serve"], {
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "stub/stub-model", GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "shots.key"), GUSTO_KEYRING: join(work, "keys"), GUSTO_NOTIFY_WEBHOOK: "", HOME: work,
   GUSTO_RETENTION: join(work, "retention"), GUSTO_API_TOKENS: join(work, "tokens.json"), GUSTO_MEMBERS: join(work, "members.json"),
+  GUSTO_SETUPS: join(work, "setups"), GUSTO_COMPARISONS: join(work, "comparisons"), GUSTO_CHANGES: join(work, "changes", "changes.jsonl"),
+  GUSTO_INTEGRATIONS: join(work, "integrations"), GUSTO_PRESETS: join(work, "presets"), GUSTO_CREW: join(work, "crew"),
 });
 for (let i = 0; ; i++) {
   try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {}
