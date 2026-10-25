@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -63,5 +64,39 @@ func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 		if runtime, _ := s.Runtime(org.Slug); runtime.Restarts != 0 {
 			t.Errorf("%+v", runtime)
 		}
+	})
+}
+
+func TestAnOrganizationThatStartsWaitingAsksForACellAtOnceAndIsPlacedWithoutATick(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		c := controlled(t, s)
+		cells := &lateCells{local: &LocalCell{}}
+		var asked atomic.Int32
+		c.Cells, c.WaitEvery, c.OnWaiting = cells, 20*time.Millisecond, func() { asked.Add(1) }
+		org := made(t, s, "ada@acme.com", "Acme")
+		if err := c.Provision(org.Slug); err == nil {
+			t.Fatal("an organization with nowhere to go was provisioned")
+		}
+		if asked.Load() != 1 {
+			t.Fatalf("starting to wait asked for a cell %d times", asked.Load())
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		ran := make(chan struct{})
+		go func() { c.Run(ctx, time.Hour); close(ran) }()
+		cells.open.Store(true)
+		deadline := time.Now().Add(15 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, state := c.Route(org.Slug); state == Ready {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if _, state := c.Route(org.Slug); state != Ready {
+			t.Errorf("with an hour between ticks, a waiting organization was not placed once there was room: %q", state)
+		}
+		cancel()
+		<-ran
 	})
 }

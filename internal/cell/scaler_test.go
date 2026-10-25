@@ -1,12 +1,14 @@
 package cell
 
 import (
+	"context"
 	"errors"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -284,4 +286,83 @@ func freePort(t *testing.T) int {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
+}
+
+// launches is a launcher that says on a channel when it starts a host.
+type launches struct{ started chan string }
+
+func (l launches) Launch() (string, error)      { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
+func (l launches) Terminate(string) error       { return nil }
+func (l launches) Running() ([]Instance, error) { return nil, nil }
+
+func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
+	var waiting atomic.Int32
+	hosts := launches{started: make(chan string, 4)}
+	scaler := &Scaler{Pool: &Pool{Dir: filepath.Join(t.TempDir(), "cells"), Secret: secret, MaxAge: time.Hour}, Launcher: hosts,
+		Waiting: func() int { return int(waiting.Load()) }, Max: 2, Idle: time.Minute, Boot: time.Minute}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go scaler.Run(ctx, time.Hour)
+	time.Sleep(50 * time.Millisecond)
+	waiting.Store(1)
+	scaler.Wake()
+	scaler.Wake()
+	select {
+	case <-hosts.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a woken scaler did not start a host")
+	}
+}
+
+func TestAHostIsStartedForAVisitorAboutToWaitOnceAndOnlyWhileTheyAreExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 2
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.tick(30 * time.Second)
+	if r.hosts.launched != 1 {
+		t.Fatalf("a visitor who began asking for a demo had %d hosts started for them", r.hosts.launched)
+	}
+	// The host is up, so a second visitor starts nothing more: whoever sends the form first takes it.
+	r.cell("i-0aaa1111", false)
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("a host was started beside one that is up and empty: %d", r.hosts.launched)
+	}
+}
+
+func TestAVisitorWhoNeverSendsTheFormStartsNothingAfterTheyAreNoLongerExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 5
+	r.scaler.Prewarm()
+	r.tick(3 * time.Minute)
+	if r.hosts.launched != 0 {
+		t.Errorf("a visitor who stopped typing minutes ago had a host started: %d", r.hosts.launched)
+	}
+}
+
+func TestVisitorsStartNoMoreHostsInADayThanThePrewarmsAllowed(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 1
+	r.scaler.Max = 5
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.hosts.terminated, r.hosts.hosts = nil, nil
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("the day's one prewarm started %d hosts", r.hosts.launched)
+	}
+	r.now = r.now.Add(24 * time.Hour)
+	r.scaler.Prewarm()
+	r.tick(0)
+	if r.hosts.launched != 2 {
+		t.Errorf("a new day allows a prewarm again: %d", r.hosts.launched)
+	}
+	r.waiting = 1
+	r.tick(time.Hour)
+	if r.hosts.launched != 3 {
+		t.Errorf("whoever waits is never held back by the prewarm count: %d", r.hosts.launched)
+	}
 }

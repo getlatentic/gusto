@@ -63,6 +63,8 @@ func cloudCommand() int {
 		return fail(err)
 	}
 	if scaler != nil {
+		controller.OnWaiting = scaler.Wake
+		front.Prewarm = scaler.Prewarm
 		go scaler.Run(ctx, 10*time.Second)
 	}
 	controlled := make(chan struct{})
