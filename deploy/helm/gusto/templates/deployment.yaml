@@ -1,4 +1,4 @@
-{{- $reserved := list "GUSTO_ADDR" "GUSTO_JOBS" "GUSTO_SESSIONS" "GUSTO_SETUPS" "GUSTO_INTEGRATIONS" "GUSTO_CHANGES" "GUSTO_LOCAL_REPOS" "GUSTO_RETENTION" "GUSTO_API_TOKENS" "GUSTO_COMPARISONS" "GUSTO_IMAGE" "GUSTO_CONTAINER" "GUSTO_PROXY_SOCKET" -}}
+{{- $reserved := list "GUSTO_ADDR" "GUSTO_JOBS" "GUSTO_SESSIONS" "GUSTO_SETUPS" "GUSTO_INTEGRATIONS" "GUSTO_PRESETS" "GUSTO_CREW" "GUSTO_CHANGES" "GUSTO_LOCAL_REPOS" "GUSTO_RETENTION" "GUSTO_API_TOKENS" "GUSTO_COMPARISONS" "GUSTO_IMAGE" "GUSTO_CONTAINER" "GUSTO_PROXY_SOCKET" -}}
 {{- range $name, $_ := .Values.env }}
 {{- if has $name $reserved }}
 {{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
@@ -103,6 +103,8 @@ spec:
             - { name: GUSTO_SESSIONS, value: /var/lib/gusto/sessions }
             - { name: GUSTO_SETUPS, value: /var/lib/gusto/setups }
             - { name: GUSTO_INTEGRATIONS, value: /var/lib/gusto/integrations }
+            - { name: GUSTO_PRESETS, value: /var/lib/gusto/presets }
+            - { name: GUSTO_CREW, value: /var/lib/gusto/crew }
             - { name: GUSTO_CHANGES, value: /var/lib/gusto/changes/changes.jsonl }
             - { name: GUSTO_RETENTION, value: /var/lib/gusto/retention }
             - { name: GUSTO_LOCAL_REPOS, value: /var/lib/gusto/smoke }

@@ -1,7 +1,6 @@
 /* The names the utilities use, each one a gusto token. `inline` makes a utility read the variable when it is used, so it follows the
    theme and the accent the person chose and nothing here is a color of its own. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-@custom-variant panel-closed (html.panel-closed &);
 @custom-variant side-open (body.side-open &);
 @custom-variant open (&:where([open], .open, .open *));
 

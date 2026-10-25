@@ -47,15 +47,17 @@ type turn struct {
 	// the work is rather than a page away.
 	Blocked int
 	Signed  bool
+	roomTurn
 }
 
 // conversationPage is what both the whole page and the fragment need, so a
 // swapped-in turn cannot disagree with the page it lands in.
 func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
-	held, found := s.owned(r)
+	held, found := s.shared(r)
 	if !found {
 		return nil, false
 	}
+	held = s.liveRoom(held)
 	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))
 	if !found {
 		return nil, false
@@ -86,6 +88,16 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
+	roomVersion := ""
+	if held.Room {
+		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.
+		newest, version := s.roomActivity(thread)
+		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
+		roomVersion = version
+		turns = s.roomTimeline(held, thread, turns)
+		running = roomWaiting(turns)
+	}
+	_, owns := s.owned(r)
 	return map[string]any{
 		// Every conversation on this instance, because one instance holds as
 		// many as somebody wants and the page you are on is the one place you
@@ -99,16 +111,25 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Rail":     s.railFor(r, threadPath(thread)),
 		"Here":     threadPath(thread),
 		// A chat fills the window rather than sitting in a document.
-		"Chat":     true,
-		"Title":    productName + " — " + s.nameOf(thread),
-		"Nav":      "chat",
-		"Instance": held,
-		"Thread":   thread,
-		"Path":     threadPath(thread),
-		"Turns":    turns,
-		"Sharing":  s.apps != nil,
-		"Apps":     liveApps,
-		"Starting": appsStarting,
+		"Chat":      true,
+		"Title":     productName + " — " + s.nameOf(thread),
+		"Nav":       "chat",
+		"Instance":  held,
+		"Thread":    thread,
+		"Path":      threadPath(thread),
+		"Turns":     turns,
+		"Sharing":   s.apps != nil && owns,
+		"Owns":      owns,
+		"Me":        s.askerName(r),
+		"Mentions":  asJSON(s.mentionables(held)),
+		"Names":     roomNames(held),
+		"Version":   roomVersion,
+		"Members":   s.roomMembersOf(r, held),
+		"Headcount": len(held.Members) + len(held.Agents),
+		"Refused":   r.URL.Query().Get("refused"),
+		"Hint":      composerHint(held),
+		"Apps":      liveApps,
+		"Starting":  appsStarting,
 		// While a preview starts the page looks again, so its link appears without being asked for.
 		"Refresh": appsStarting,
 		"Waiting": running != "",
@@ -148,7 +169,7 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 // thread, so the queue knows not to run it beside another turn of the same
 // workspace.
 func (s *Server) say(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -160,6 +181,10 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	brief := strings.TrimSpace(r.FormValue("said"))
 	if brief == "" {
 		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
+		return
+	}
+	if held.Room {
+		s.roomSay(w, r, held, thread, brief)
 		return
 	}
 	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")

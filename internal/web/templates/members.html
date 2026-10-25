@@ -1,0 +1,167 @@
+{{template "head" .}}
+
+<section class="flex min-h-0 w-0 min-w-0 flex-1">
+  <nav class="flex w-80 flex-none flex-col gap-3 border-r border-line p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full @max-[56rem]:border-r-0{{end}}" aria-label="Members">
+    <div class="flex min-h-10 items-center justify-between px-2"><h1 class="m-0 text-base font-semibold">Members</h1>
+      {{if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
+    </div>
+    <div class="flex gap-0.5 px-1" role="tablist" aria-label="Which members">
+      <button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="true" data-member-tab="all">All</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="people">People</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="agents">Agents</button>
+    </div>
+    <div class="-mx-1 grid min-h-0 flex-1 content-start gap-px overflow-y-auto px-1">
+      {{range .People}}
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+        <span class="grid size-9 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+        <span class="grid min-w-0"><span class="truncate text-sm font-medium">{{.Name}}</span><span class="truncate text-xs text-subtle">{{.Role}}</span></span>
+      </a>
+      {{end}}
+      {{range .Agents}}
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="agents"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+        <span class="grid size-9 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+        <span class="grid min-w-0"><span class="flex min-w-0 items-center gap-1.5 text-sm font-medium"><span class="truncate">{{.Name}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span><span class="truncate text-xs text-subtle">{{or .Specialty .Engine}}</span></span>
+      </a>
+      {{end}}
+    </div>
+    <a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted no-underline hover:bg-sunken hover:text-ink [&>svg]:size-4" href="/presets">{{template "icon-compose"}} Ready-made roles and presets</a>
+  </nav>
+
+  <div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+    {{with .Agent}}{{template "member-agent" (dict "A" . "P" $)}}
+    {{else}}{{with .Person}}{{template "member-person" (dict "M" . "P" $)}}
+    {{else}}
+    <div class="grid h-full place-items-center p-8 text-center @max-[56rem]:hidden"><div class="grid max-w-sm justify-items-center gap-3"><span class="text-faint [&>svg]:size-10" aria-hidden="true">{{template "icon-users"}}</span><p class="m-0 text-sm text-muted">Everybody in this workspace, people and agents. Open one to see who they are and what they can do.</p>{{if $.Keeps}}<button type="button" class="{{template "ui-btn"}} h-9" data-open="new-agent">New agent</button>{{end}}</div></div>
+    {{end}}{{end}}
+  </div>
+</section>
+
+{{if .Keeps}}{{template "new-agent" .}}{{end}}
+<script src="{{asset "/static/dialogs.js"}}"></script>
+<script src="{{asset "/static/members.js"}}"></script>
+
+{{template "foot" .}}
+
+{{define "member-agent"}}{{$a := .A}}{{$p := .P}}
+<article class="mx-auto grid max-w-3xl gap-5 px-8 py-8 @max-[56rem]:px-4">
+  <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
+  {{template "ui-flash" $p}}
+  <header class="flex items-center gap-4">
+    <span class="grid size-14 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-8" aria-hidden="true">{{template "mark" (dict "Harness" $a.Harness "Name" $a.Engine "Size" "lg")}}</span>
+    <div class="grid min-w-0 flex-1"><h2 class="m-0 flex items-center gap-2 text-lg font-semibold"><span class="truncate">{{$a.Name}}</span><span class="flex-none text-subtle [&>svg]:size-4" title="Agent">{{template "icon-bot"}}</span></h2><p class="m-0 truncate text-sm text-muted">{{$a.Engine}}{{with $a.Brain}} · {{.}}{{end}}</p></div>
+    {{if $a.Usable}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/message"><button type="submit" class="{{template "ui-btn-quiet"}} h-9 [&>svg]:size-4">{{template "icon-chat"}}<span>Message</span></button></form>{{end}}
+    {{if $a.Mine}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/remove" data-confirm="Remove {{$a.Name}}? It leaves every room it is in, and what it said there stays."><button type="submit" class="grid size-9 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-bad-wash hover:text-bad [&>svg]:size-4" title="Remove {{$a.Name}}" aria-label="Remove {{$a.Name}}">{{template "icon-trash"}}</button></form>{{end}}
+  </header>
+  <nav class="flex gap-0.5" aria-label="About {{$a.Name}}">
+    <a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=profile"{{if eq "profile" $p.Tab}} aria-current="page"{{end}}>Profile</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=access"{{if eq "access" $p.Tab}} aria-current="page"{{end}}>Access</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=skills"{{if eq "skills" $p.Tab}} aria-current="page"{{end}}>Skills</a>
+  </nav>
+
+  {{if eq $p.Tab "profile"}}
+  <form class="grid gap-5" method="post" action="/members/agents/{{$a.ID}}"><input type="hidden" name="tab" value="profile">
+    <section class="grid gap-3 rounded-xl border border-line p-5">
+      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Profile</h3>
+      {{if $a.Mine}}
+      <label class="{{template "ui-field"}}">Name <input class="input" name="name" value="{{$a.Name}}" maxlength="32" required></label>
+      <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">what teammates should ask it for</span></span><input class="input" name="specialty" value="{{$a.Specialty}}" placeholder="Research and synthesis" maxlength="80"></label>
+      {{else}}
+      <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Specialty</dt><dd class="m-0">{{or $a.Specialty "Not set"}}</dd></dl>
+      {{end}}
+      <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Made by</dt><dd class="m-0">{{personName $a.Owner}}</dd><dt class="text-muted">Made</dt><dd class="m-0">{{ago $a.Created}}</dd></dl>
+    </section>
+    <section class="grid gap-3 rounded-xl border border-line p-5">
+      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">How it runs</h3>
+      <dl class="m-0 grid grid-cols-[9rem_1fr] items-center gap-y-2 text-sm">
+        <dt class="text-muted">Agent type</dt><dd class="m-0 flex items-center gap-2">{{template "mark" (dict "Harness" $a.Harness "Name" $a.Engine "Size" "xs")}}{{$a.Engine}}</dd>
+        <dt class="text-muted">Where</dt><dd class="m-0">In a sandbox on this server. The model's key never reaches it, and what it asks of other sites is checked.</dd>
+        <dt class="text-muted">Model</dt><dd class="m-0">{{if $a.Mine}}<select class="select" name="model"><option value="">Default</option>{{range $p.Offered}}<option value="{{.Value}}"{{if eq .Value $a.Model}} selected{{end}}>{{.Label}}</option>{{end}}</select>{{else}}{{or $a.Brain "Default"}}{{end}}</dd>
+      </dl>
+    </section>
+    <section class="grid gap-3 rounded-xl border border-line p-5">
+      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Persona</h3>
+      <p class="m-0 text-sm text-muted">How it works and talks. It is told this at the start of every turn, in every room.</p>
+      {{if $a.Mine}}<textarea class="textarea min-h-40" name="persona" placeholder="You are careful and direct. You say what you checked and what you did not.">{{$a.Persona}}</textarea>
+      {{else}}{{with $a.Persona}}<p class="m-0 text-sm whitespace-pre-wrap">{{.}}</p>{{else}}<p class="m-0 text-sm text-subtle">None set.</p>{{end}}{{end}}
+    </section>
+    {{if $a.Mine}}<div><button type="submit" class="{{template "ui-btn"}} h-9">Save</button></div>{{end}}
+  </form>
+  {{with $p.Rooms}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">In your rooms</h3>{{range .}}<a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</section>{{end}}
+
+  {{else if eq $p.Tab "access"}}
+  <section class="grid gap-3">
+    <p class="m-0 text-sm text-muted">Only the people listed here can work with {{$a.Name}}: message it, and add it to their rooms.</p>
+    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
+      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-3.5" aria-hidden="true">{{with initials $a.Owner}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span><span class="min-w-0 flex-1 truncate text-sm">{{personName $a.Owner}}</span><span class="text-sm text-muted">Made it</span></li>
+      {{range $a.Access}}
+      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true">{{initials .}}</span><span class="min-w-0 flex-1 truncate text-sm" title="{{.}}">{{personName .}}</span>
+        {{if $a.Mine}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/access"><input type="hidden" name="who" value="{{.}}"><input type="hidden" name="action" value="remove"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Remove</button></form>{{else}}<span class="text-sm text-muted">Can work with it</span>{{end}}
+      </li>
+      {{end}}
+    </ul>
+    {{if $a.Mine}}<form class="flex items-end gap-2" method="post" action="/members/agents/{{$a.ID}}/access"><label class="{{template "ui-field"}} flex-1">Let somebody work with it <input class="input" type="email" name="who" placeholder="name@example.com" required></label><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></form>{{end}}
+  </section>
+
+  {{else}}
+  <section class="grid gap-3">
+    <p class="m-0 text-sm text-muted">The skills {{$a.Name}} is given in every turn: one of the ready-made roles, or a skill set made for this workspace.</p>
+    {{if $a.Mine}}
+    <form class="flex items-end gap-2" method="post" action="/members/agents/{{$a.ID}}"><input type="hidden" name="tab" value="skills">
+      <label class="{{template "ui-field"}} flex-1">Skills
+        <select class="select w-full" name="setup" data-autosubmit><option value="">None</option>{{template "skill-options" (dict "Choices" $p.Skills "Chosen" $a.Setup)}}</select>
+      </label>
+    </form>
+    {{end}}
+    {{if $p.HasSkills}}
+    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
+      {{range $p.SkillSet.Skills}}<li class="grid gap-0.5 px-3 py-2.5"><span class="text-sm font-medium">{{.Name}}</span>{{with .Description}}<span class="text-sm text-muted">{{.}}</span>{{end}}</li>{{else}}<li class="px-3 py-2.5 text-sm text-subtle">{{$p.SkillTitle}} holds no skills yet.</li>{{end}}
+    </ul>
+    {{else}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No skills given. {{$a.Name}} works with what its agent type knows.</p>{{end}}
+  </section>
+  {{end}}
+</article>
+{{end}}
+
+{{define "member-person"}}{{$m := .M}}{{$p := .P}}
+<article class="mx-auto grid max-w-3xl gap-5 px-8 py-8 @max-[56rem]:px-4">
+  <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
+  <header class="flex items-center gap-4">
+    <span class="grid size-14 flex-none place-items-center rounded-full bg-accent-wash text-base font-medium text-accent-ink [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <div class="grid min-w-0"><h2 class="m-0 truncate text-lg font-semibold">{{$m.Name}}</h2><p class="m-0 truncate text-sm text-muted">{{$m.Role}}</p></div>
+  </header>
+  <section class="grid gap-3 rounded-xl border border-line p-5">
+    <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Profile</h3>
+    <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Email</dt><dd class="m-0">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</dd><dt class="text-muted">Role</dt><dd class="m-0">{{$m.Role}}</dd></dl>
+  </section>
+  {{with $p.Rooms}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Rooms you share</h3>{{range .}}<a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</section>{{end}}
+  {{with $p.Made}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Agents they made</h3>{{range .}}<a class="flex h-10 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken" href="/members/agents/{{.ID}}"><span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>{{.Name}}{{with .Specialty}}<span class="text-subtle">{{.}}</span>{{end}}</a>{{end}}</section>{{end}}
+</article>
+{{end}}
+
+{{define "skill-options"}}{{$chosen := .Chosen}}
+<optgroup label="Ready-made roles">{{range .Choices}}{{if .Role}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Title}}</option>{{end}}{{end}}</optgroup>
+<optgroup label="Skill sets">{{range .Choices}}{{if not .Role}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Title}}</option>{{end}}{{end}}</optgroup>
+{{end}}
+
+{{define "new-agent"}}
+<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="new-agent" aria-labelledby="new-agent-title" data-asked="new">
+  <form class="grid max-h-[calc(100vh-4rem)] gap-5 overflow-y-auto p-6" method="post" action="/members/agents">
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="new-agent-title">New agent</h2><p class="m-0 mt-1 text-sm text-muted">It starts private: only you can work with it until you share it, and it is in no room until you add it to one.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{with .Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
+    <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Atlas" maxlength="32" required autocomplete="off"></label>
+    <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">helps teammates know what to ask it for</span></span><input class="input" name="specialty" placeholder="Research and synthesis" maxlength="80"></label>
+    <fieldset class="m-0 grid gap-1.5 border-0 p-0">
+      <legend class="mb-1 text-xs font-medium text-subtle">How it runs <span class="font-normal">chosen once; it keeps its conversations in this agent type</span></legend>
+      {{range $each := .Kinds}}
+      <label class="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 {{if $each.Ready}}cursor-pointer hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash{{else}}cursor-not-allowed bg-sunken{{end}}">
+        <input class="sr-only" type="radio" name="harness" value="{{$each.Name}}"{{if eq $each.Name $.FirstReady}} checked{{end}}{{if not $each.Ready}} disabled{{end}}>
+        <span class="grid size-7 flex-none place-items-center{{if not $each.Ready}} opacity-50 grayscale{{end}}" aria-hidden="true">{{template "mark" (dict "Harness" $each.Name "Name" $each.Title "Size" "sm")}}</span>
+        <span class="grid min-w-0"><span class="text-sm font-medium{{if not $each.Ready}} text-muted{{end}}">{{$each.Title}}</span>{{if $each.Ready}}{{with $each.What}}<span class="truncate text-xs text-muted">{{.}}</span>{{end}}{{else if installable $each.Name}}<span class="truncate text-xs text-subtle">Not on this computer yet</span>{{else}}<span class="truncate text-xs text-subtle" title="{{$each.Why}}">Not on this server: {{$each.Why}}</span>{{end}}</span>
+        {{if and (not $each.Ready) (installable $each.Name)}}<button type="submit" form="install-{{$each.Name}}" class="ml-auto h-8 flex-none cursor-pointer {{template "ui-btn-quiet"}}" data-busy="Installing…">Install</button>{{end}}
+        <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
+      </label>
+      {{end}}
+    </fieldset>
+    {{if not .FirstReady}}<p class="m-0 rounded-md bg-warn-wash px-3 py-2 text-sm">No agent type can run on this server yet. Ask whoever runs it to add one.</p>{{end}}
+    {{if .Offered}}<label class="{{template "ui-field"}}">Model <select class="select w-full" name="model"><option value="">Default</option>{{range .Offered}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>{{end}}
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9"{{if not .FirstReady}} disabled{{end}}>Make the agent</button></div>
+  </form>
+  {{range .Kinds}}{{if and (not .Ready) (installable .Name)}}<form class="hidden" id="install-{{.Name}}" method="post" action="/agents/{{.Name}}/install"><input type="hidden" name="back" value="/members?new=1"></form>{{end}}{{end}}
+</dialog>
+{{end}}

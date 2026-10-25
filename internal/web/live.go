@@ -32,7 +32,7 @@ const liveRead = 128 * 1024
 
 // turnLive answers what the thread's running turn has done so far.
 func (s *Server) turnLive(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}

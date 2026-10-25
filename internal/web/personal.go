@@ -109,7 +109,12 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	files, cut := workspaceFiles(s.instances.Workspace(held.ID))
+	answerJSON(w, http.StatusOK, map[string]any{"files": files, "cut": cut})
+}
+
+// workspaceFiles is every file in a folder by path, leaving out git's own, and whether the listing stopped at mostFiles.
+func workspaceFiles(root string) ([]workspaceFile, bool) {
 	files, cut := []workspaceFile{}, false
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		switch {
@@ -135,7 +140,7 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	answerJSON(w, http.StatusOK, map[string]any{"files": files, "cut": cut})
+	return files, cut
 }
 
 // fileBytes gives one file of an agent's folder whole, with ranges, resolved inside the folder as the viewer does.

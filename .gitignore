@@ -15,3 +15,16 @@ CLAUDE.md
 
 # Working notes that stay on this machine
 /.internal/
+
+# What `gusto serve` keeps when it is run from the repository with no GUSTO_ paths set
+/jobs/
+/sessions/
+/setups/
+/comparisons/
+/changes/
+/tokens/
+/retention/
+/integrations/
+/presets/
+/crew/
+/agents/

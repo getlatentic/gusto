@@ -115,7 +115,7 @@ func (h *hashes) forget(key string) {
 // hashesJSON gives the hash of each file asked about, leaving out one that is not there or is not a plain file. The listing
 // gives names and sizes cheaply, and this is how a helper learns what a file is only for those that changed.
 func (s *Server) hashesJSON(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -166,7 +166,7 @@ func (s *Server) stillWhatTheWriterSaw(id, name, full string, saw string) (curre
 // writeFile puts a file in the folder whole, or not at all: it is written beside its place and moved into it. It is refused,
 // naming the file's present hash, when the writer says the file is something other than what it is.
 func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -238,7 +238,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 // removeFile deletes a file of the folder, when it is what the writer saw. A file that is not there, and the writer saw not
 // there, is as deleted as it gets.
 func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}

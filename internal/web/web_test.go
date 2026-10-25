@@ -12,6 +12,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/pkg/harness"
 
 	"github.com/getlatentic/gusto/internal/instance"
@@ -101,6 +102,11 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 		t.Fatal(err)
 	}
 	server.UsePresets(presets)
+	agents, err := crew.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.UseCrew(agents)
 	setups, err := setup.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -326,15 +332,19 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 }
 
-// Chat is the front door and the roles are what a chat can be given, so every page has to name the way to them.
-func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
+// The roles are what an agent can be given, and the workspace's agents are its members, so every page names the way to the members,
+// and the members to the roles and presets.
+func TestEveryPageOffersTheWayToTheMembersAndTheRoles(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	for _, page := range []string{"/chat", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/presets"`) || !strings.Contains(body, "Presets") {
-			t.Errorf("%s does not offer the way to the presets", page)
+		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
+			t.Errorf("%s does not offer the way to the members", page)
 		}
+	}
+	if body := site.ask(t, "GET", "/members", nil).Body.String(); !strings.Contains(body, `href="/presets"`) {
+		t.Error("the members do not offer the way to the roles and presets")
 	}
 }
 

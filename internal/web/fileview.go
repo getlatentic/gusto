@@ -80,7 +80,7 @@ const tableRows = 300
 // picture, a PDF in the page, a web page running in a sealed frame, a document, slide deck or sheet as the words it says, a table as a
 // table. The path is resolved inside the folder and refused if it leaves it, a link included, so nothing else on the machine can be asked for.
 func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -172,7 +172,7 @@ func (s *Server) fileCrumbs(id, agent, path string) []crumb {
 // keep. What the agent wrote is not trusted: a page it made runs in a frame that gives it nothing of this site and no way to send anything
 // out, and anything the browser does not know how to show is handed over to be saved.
 func (s *Server) folderRaw(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}

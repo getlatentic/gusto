@@ -23,6 +23,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/jobs"
@@ -112,6 +113,9 @@ type Server struct {
 	lineups    *compare.Board
 	setups     *setup.Store
 	presets    *preset.Store
+	crew       *crew.Store
+	installer  agentInstaller
+	replies    replyNotes
 	servers    setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
@@ -139,9 +143,14 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
 		"replyIn":     s.replyIn,
+		"installable": s.installable,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
+	}
+	// A server made only to read who is who has no jobs, so nothing to hand on.
+	if index != nil {
+		index.OnFinish(s.handOff)
 	}
 	return s, nil
 }
@@ -213,6 +222,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
+	s.roomRoutes(mux)
+	s.memberRoutes(mux)
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))

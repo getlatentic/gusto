@@ -29,7 +29,7 @@ data="$work/data"
 echo "copying $source_dir to a scratch directory"
 cp -R "$source_dir" "$data"
 
-export GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" \
+export GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
   GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl"
 [ -z "${GUSTO_KEYRING:-}" ] && [ -d "$data/keys" ] && export GUSTO_KEYRING="$data/keys"
 

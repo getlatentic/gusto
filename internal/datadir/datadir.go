@@ -37,14 +37,16 @@ const (
 	Integrations Store = "integrations"
 	// Presets is what each person saved to start a chat the same way again. A release before it never reads the directory.
 	Presets Store = "presets"
+	// Crew is the workspace's agents, which rooms add. A release before it never reads the directory.
+	Crew Store = "crew"
 )
 
 // Stores is every kind, in the order they are listed.
-var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets}
+var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets, Crew}
 
 // Current is the format each store has in this release.
 var Current = map[Store]int{
-	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1,
+	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
 }
 
 // Stamp is what a directory says about itself.

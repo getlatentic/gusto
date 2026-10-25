@@ -73,7 +73,7 @@ const mostListed = 500
 // folderPage lists what is in an agent's folder, the most recently changed
 // first, because that is what a conversation has been working on.
 func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
-	agentHeld, found := s.mine(w, r)
+	agentHeld, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}

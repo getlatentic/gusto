@@ -47,7 +47,14 @@ type Record struct {
 	// two of its turns must never run at once.
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
-	Asked    string `json:"asked"`
+	// Agent is the room agent that took this turn, HandedBy the agent whose reply asked for it, and Hops how many agents handed
+	// it on before it: a turn somebody asked for is 0.
+	Agent    string `json:"agent,omitempty"`
+	HandedBy string `json:"handedBy,omitempty"`
+	// Answers is the first turn of the message this turn also answers, when one message mentioned several agents.
+	Answers string `json:"answers,omitempty"`
+	Hops    int    `json:"hops,omitempty"`
+	Asked   string `json:"asked"`
 	// Key is the request id the sender gave, so that the same send made twice is one task. It belongs to the asker.
 	Key string `json:"requestId,omitempty"`
 	// StoppedBy is who asked for the task to be stopped. A task with it ends interrupted, whatever its agent said on the way out.

@@ -73,8 +73,10 @@ type Spec struct {
 	Thread  string `json:"thread,omitempty"`
 	// Dir is the folder of the workspace the agent works in, from the workspace's root: a turn that was asked to work in one folder
 	// of the agent's computer starts there. It is empty for the root.
-	Dir         string      `json:"dir,omitempty"`
-	Remembered  string      `json:"remembered,omitempty"`
+	Dir        string `json:"dir,omitempty"`
+	Remembered string `json:"remembered,omitempty"`
+	// Agent is the room agent this turn is for, so what it calls the conversation is kept as its own.
+	Agent       string      `json:"agent,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
 	// Team is who a task's spend counts against. It is a label the person

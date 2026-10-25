@@ -54,13 +54,45 @@ func (s *Server) mayUse(r *http.Request, owner string) bool {
 	return owner != "" && (owner != sharedSignIn || s.soleOwner()) && strings.EqualFold(owner, s.askerName(r))
 }
 
-// owned is the instance the path names when the person asking may use it.
+// owned is the instance the path names when the person asking may use it: its owner, or anybody in it when it is a room.
 func (s *Server) owned(r *http.Request) (instance.Instance, bool) {
 	held, found := s.instances.Get(r.PathValue("id"))
 	if !found || !s.mayUse(r, held.Who) {
 		return instance.Instance{}, false
 	}
 	return held, true
+}
+
+// shared is the instance the path names when the person asking owns it or is in it as a room: what they may read, say
+// something in, and keep files in. Changing the instance itself stays with its owner.
+func (s *Server) shared(r *http.Request) (instance.Instance, bool) {
+	held, found := s.instances.Get(r.PathValue("id"))
+	if !found || !(s.mayUse(r, held.Who) || s.inRoom(r, held)) {
+		return instance.Instance{}, false
+	}
+	return held, true
+}
+
+func (s *Server) sharedOr404(w http.ResponseWriter, r *http.Request) (instance.Instance, bool) {
+	held, found := s.shared(r)
+	if !found {
+		http.NotFound(w, r)
+	}
+	return held, found
+}
+
+// inRoom says whether the person asking is in a room.
+func (s *Server) inRoom(r *http.Request, held instance.Instance) bool {
+	return held.Room && held.RoleOf(s.askerName(r)) != ""
+}
+
+// mayUseRecord says whether the person asking may see a task: their own, or a turn in a room they are in.
+func (s *Server) mayUseRecord(r *http.Request, record jobs.Record) bool {
+	if s.mayUse(r, record.Asked) {
+		return true
+	}
+	held, found := s.instances.Get(record.Instance)
+	return found && s.inRoom(r, held)
 }
 
 // mine is owned that answers 404 itself. Somebody else's agent gets the answer a
@@ -76,7 +108,8 @@ func (s *Server) mine(w http.ResponseWriter, r *http.Request) (instance.Instance
 func (s *Server) ownInstances(r *http.Request, all []instance.Instance) []instance.Instance {
 	var kept []instance.Instance
 	for _, each := range all {
-		if s.mayUse(r, each.Who) {
+		// A room is listed among rooms, not among a person's own projects.
+		if !each.Room && s.mayUse(r, each.Who) {
 			kept = append(kept, each)
 		}
 	}

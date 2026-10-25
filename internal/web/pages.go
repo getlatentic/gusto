@@ -19,7 +19,10 @@ import (
 )
 
 var helpers = template.FuncMap{
-	"modelName": modelName,
+	"modelName":  modelName,
+	"mentionsIn": mentionsIn,
+	"personName": personName,
+	"initials":   initials,
 	// dict passes more than one value to a template defined in another, which
 	// html/template has no literal for.
 	"dict": func(pairs ...any) map[string]any {
@@ -102,6 +105,7 @@ var helpers = template.FuncMap{
 	"usd": headlineUSD,
 	// ago is how long ago something happened, as a list read at a glance says
 	// it, with the date itself once it is more than a day old.
+	"clock": clock,
 	"ago": func(unix int64) string {
 		if unix == 0 {
 			return ""
@@ -273,7 +277,7 @@ func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record job
 
 func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
+	if !found || !s.mayUseRecord(r, record) {
 		return jobs.Record{}, "", false
 	}
 	return record, record.Dir(s.index.Root()), true

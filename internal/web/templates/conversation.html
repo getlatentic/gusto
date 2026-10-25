@@ -2,22 +2,35 @@
 
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
-    <h1 class="min-w-0 flex-1 truncate font-sans text-base font-semibold" title="{{.Named}}">{{.Named}}</h1>
+    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
+    {{if .Instance.Room}}{{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
+    {{end}}
     <span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4 [&>svg]:opacity-100" tabindex="0" role="img" aria-label="Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>
     {{range .Apps}}<a class="h-8 flex-none {{template "ui-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
-    <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}/files?from={{.Path}}">{{template "icon-file"}}<span>Files</span></a>
+    <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
+    {{if .Instance.Room}}<a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5 tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
+    <details class="relative flex-none" data-menu>
+      <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
+      <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" role="menu">
+        <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
+        <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-members">{{template "icon-users"}}<span>Room members</span></button>
+        <span class="my-1 h-px bg-line" role="separator"></span>
+        <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin."><input type="hidden" name="who" value="{{.Me}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem">{{template "icon-out"}}<span>Leave room</span></button></form>
+        {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone."><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-bad hover:bg-bad-wash [&>svg]:size-4" type="submit" role="menuitem">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
+      </div>
+    </details>{{end}}
   </header>
 
   <div class="said-so-far overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="mx-auto max-w-[56rem]">
-      <div id="turns">{{template "turns" .}}</div>
+      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}>{{template "turns" .}}</div>
       <p class="sr-only" role="status" id="turn-news"></p>
-      {{if .Waiting}}
+      {{if and .Waiting (not .Instance.Room)}}
       <div class="grid gap-3" id="working">
         <p class="m-0 flex items-center gap-3 text-sm font-medium text-ink"><span class="size-3.5 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="ml-auto font-normal text-subtle tabular-nums" id="elapsed"></span></p>
         <ol class="grid gap-2 pl-2 empty:hidden" id="live" aria-label="What it has done so far"></ol>
@@ -25,7 +38,12 @@
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
       <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
+        {{if .Instance.Room}}
+        <h2 class="text-xl">{{if and .Instance.Direct .Instance.Agents}}{{(index .Instance.Agents 0).Name}}{{else}}{{.Instance.Title}}{{end}}</h2>
+        <p class="m-0 max-w-[32rem] text-sm text-muted">{{if and .Instance.Direct .Instance.Agents}}Your own conversation with {{(index .Instance.Agents 0).Name}}. It answers everything you say here.{{else if .Instance.Agents}}Mention an agent with @ and its name to ask it something. Everybody in the room sees what it says.{{else}}This room has no agents yet. <a href="/rooms/{{.Instance.ID}}/members">Add one</a> to ask it things.{{end}}</p>
+        {{else}}
         <h2 class="text-xl">How can I help?</h2>
+        {{end}}
         {{with .Starters}}
         <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3" id="starters">
           {{range .}}<button type="button" class="starter cursor-pointer rounded-md border border-line bg-surface px-4 py-3 text-left text-sm text-ink hover:border-subtle" data-said="{{.}}">{{.}}</button>{{end}}
@@ -37,23 +55,32 @@
   </div>
 
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
-  {{if .Waiting}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
+  {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    <form class="mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
+    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
+      {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
+        {{if .Instance.Room}}
+        <div class="relative">
+          <div class="pointer-events-none absolute inset-0 overflow-hidden leading-relaxed whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
+          <textarea class="relative block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" autofocus required></textarea>
+        </div>
+        {{else}}
         <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
+        {{end}}
         <div class="flex items-center gap-1">
-          {{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}
+          {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
-          {{if .Several}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if .Waiting}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
-          {{if .Waiting}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
+          {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
     </form>
   </div>
 </section>
 
+{{if .Instance.Room}}{{template "room-dialogs" .}}{{end}}
 <aside class="file-panel relative flex min-h-0 min-w-0 flex-[0_0_var(--files-w,36rem)] flex-col border-l border-line bg-surface @max-[72rem]:hidden" id="file-panel" aria-label="Files from this chat" hidden>
   <div class="resize absolute inset-y-0 -left-1 z-[6] w-2 cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-[0.1875rem] after:w-0.5 after:bg-transparent after:transition-colors after:content-[''] hover:after:bg-line-strong [.resizing_&]:after:bg-line-strong focus-visible:-outline-offset-2 focus-visible:after:bg-focus" id="file-panel-resize" role="separator" aria-orientation="vertical" aria-label="Resize the files" tabindex="0"></div>
   <div class="flex items-center gap-2 border-b border-line px-3 py-2">
@@ -64,6 +91,7 @@
 </aside>
 <script src="{{asset "/static/filepanel.js"}}"></script>
 <script src="{{asset "/static/composer.js"}}"></script>
+{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script><script src="{{asset "/static/room.js"}}"></script>{{end}}
 
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
 <script nonce="{{.Nonce}}">
@@ -102,7 +130,7 @@
 })();
 </script>
 
-{{if .Waiting}}
+{{if and .Waiting (not .Instance.Room)}}
 <script nonce="{{.Nonce}}">
 (function () {
   var said = document.getElementById("said");
@@ -196,11 +224,76 @@
 
 {{template "foot" .}}
 
+{{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
+<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members refused">
+  <div class="grid gap-1 p-6 pb-5">
+    <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
+    {{if .Runs}}<button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}Add member</button>{{end}}
+    {{range .People}}
+    <div class="flex h-10 items-center gap-3 px-1">
+      <span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-3.5" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+      <span class="min-w-0 flex-1 truncate text-sm" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="text-subtle">you</span>{{end}}</span>
+      {{if $.Members.Runs}}
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/role"><input type="hidden" name="who" value="{{.Who}}">
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
+          <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option><option value="member"{{if eq .Role "member"}} selected{{end}}>Member</option><option value="remove">{{if .You}}Leave the room{{else}}Remove from room{{end}}</option>
+        </select>
+      </form>
+      {{else}}<span class="text-sm text-muted">{{if eq .Role "admin"}}Admin{{else}}Member{{end}}</span>{{if .You}}<form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/remove"><input type="hidden" name="who" value="{{.Who}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Leave</button></form>{{end}}{{end}}
+    </div>
+    {{end}}
+    {{range .Agents}}
+    <div class="flex h-10 items-center gap-3 px-1">
+      <span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+      <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}">{{or .Job .Engine}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
+      {{if $.Members.Runs}}
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove">
+        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-autosubmit>
+          <option value="">Agent</option><option value="remove">Remove from room</option>
+        </select>
+      </form>
+      {{else}}<span class="text-sm text-muted">Agent</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+</dialog>
+{{if .Runs}}
+<dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title" data-asked="add">
+  <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">Add members</h2><p class="m-0 mt-1 text-sm text-muted">Pick the agents you work with, or add people by their email address.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{if .Addable}}
+    <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
+    <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">
+      {{range .Addable}}
+      <label class="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 text-sm hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-name="{{.Name}}">
+        <input class="sr-only" type="checkbox" name="agent" value="{{.ID}}">
+        <span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+        <span class="flex-none font-medium">{{.Name}}</span><span class="min-w-0 truncate text-subtle">{{or .Specialty .Engine}}</span>
+        <span class="ml-auto hidden flex-none text-accent [&>svg]:size-4 [:checked~&]:block">{{template "icon-check"}}</span>
+      </label>
+      {{end}}
+    </div>
+    {{else}}<p class="m-0 text-sm text-muted">Every agent you work with is in this room already.</p>{{end}}
+    <label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>
+    <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></div>
+  </form>
+</dialog>
+{{end}}
+{{end}}{{end}}
+
 {{define "turns"}}
+{{if .Instance.Room}}{{template "room-turns" .}}{{else}}
 {{range .Turns}}
 <article class="mb-8" id="{{.ID}}">
   <p class="mb-4 ml-auto w-fit max-w-[34rem] rounded-lg bg-wash px-4 py-2.5 text-base whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
-  {{if .State.Done}}
+  {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $)}}{{end}}
+</article>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "turn-result"}}{{with .T}}
   <div class="grid min-w-0 gap-3">
     {{with .Steps}}
     <details class="group text-xs">
@@ -208,18 +301,43 @@
       <div class="[&_ol]:mt-2 [&_ol]:ml-2 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-2 [&_ol]:border-l [&_ol]:border-line-strong [&_ol]:pl-4 [&_.what]:mr-2 [&_.what]:font-semibold [&_.what]:text-ink [&_.detail]:font-mono [&_.detail]:text-xs [&_.detail]:wrap-anywhere [&_.detail]:text-muted">{{template "steps" .}}</div>
     </details>
     {{end}}
-    {{if .Replied}}<div class="prose">{{replyIn .Replied $.Instance.ID $.Thread.Dir $.Path}}</div>{{end}}
-    {{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.Instance.ID}}/file?path={{.}}&amp;from={{$.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+    {{if .Replied}}<div class="prose">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
+    {{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
     <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
       {{with .Blocked}}<span class="inline-flex min-h-6 items-center gap-1 text-ok [&>svg]:size-3.5" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</span>{{end}}
     </p>
-    {{if $.Sharing}}{{range .Previews}}
-    <form class="m-0" method="post" action="/instances/{{$.Instance.ID}}/apps">
-      <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.Path}}">
+    {{if $.P.Sharing}}{{range .Previews}}
+    <form class="m-0" method="post" action="/instances/{{$.P.Instance.ID}}/apps">
+      <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.P.Path}}">
       <button type="submit" class="h-8 {{template "ui-btn-quiet"}}">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
     </form>
     {{end}}{{end}}
+  </div>
+{{end}}{{end}}
+
+{{define "room-turns"}}
+{{range .Turns}}
+<article id="{{.ID}}">
+  {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
+  {{if not (or .From .Echo)}}
+  <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
+    {{if not .SaidJoins}}
+    <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <p class="m-0 flex h-5 items-center gap-2 text-sm"><span class="font-medium text-ink">{{personName .Who}}</span><time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    {{end}}
+    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.Names}}</p>
+  </div>
+  {{end}}
+  {{if not .Note}}
+  <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-5{{end}}">
+    {{if not .ReplyJoins}}
+    <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    {{end}}
+    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
+      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted"><span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
+    </div>
   </div>
   {{end}}
 </article>
