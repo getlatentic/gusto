@@ -56,7 +56,13 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if w.proxy == nil {
 		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
-	held, _, err := registry.Ensure(person, setting("GUSTO_CELL", "local"))
+	configured, err := harness.Open(dir, spec.Harness)
+	if err != nil {
+		return 0, err
+	}
+	port := w.proxyPort()
+	modelURL := "http://" + cfg.Host + ":" + port + "/model/v1"
+	held, _, err := registry.EnsureFrom(person, setting("GUSTO_CELL", "local"), w.spares.offerFor(cfg, modelURL, configured.Adapter))
 	if err != nil {
 		return 0, runner.Refuse(dir, err)
 	}
@@ -64,13 +70,8 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
-	configured, err := harness.Open(dir, spec.Harness)
-	if err != nil {
-		return 0, err
-	}
-	port := w.proxyPort()
 	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), spec.Session, configured.Adapter,
-		"http://"+cfg.Host+":"+port+"/model/v1", "http://127.0.0.1:"+port+"/model/v1", token)
+		modelURL, "http://127.0.0.1:"+port+"/model/v1", token)
 	if err != nil {
 		return 0, err
 	}
