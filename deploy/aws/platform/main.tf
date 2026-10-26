@@ -268,7 +268,7 @@ resource "aws_iam_role_policy" "live" {
       },
       { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
       { Sid = "GiveACellItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
-      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"], Resource = "*" },
+      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeVolumes"], Resource = "*" },
       {
         Sid       = "StopOnlyWhatItStarted"
         Effect    = "Allow"
@@ -283,6 +283,14 @@ resource "aws_iam_role_policy" "live" {
         Action    = ["ec2:StartInstances", "ec2:StopInstances", "ec2:ModifyInstanceAttribute"]
         Resource  = "${local.ec2_arn}:instance/*"
         Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
+      },
+      {
+        # A kept cell's root disk is taken down to the baseline throughput when it is first stopped.
+        Sid       = "LowerOnlyTheDisksOfItsCells"
+        Effect    = "Allow"
+        Action    = "ec2:ModifyVolume"
+        Resource  = "${local.ec2_arn}:volume/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag } }
       },
     ]
   })

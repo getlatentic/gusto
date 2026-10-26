@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -29,9 +31,15 @@ type EC2 struct {
 
 var instanceID = regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
 
-// keptDisk is the root disk of a kept host. The template's disk has throughput above the baseline for reading a new disk from its
-// snapshot, which is billed while a host is stopped too; a kept host's disk has been read, and costs only its size while it waits.
-const keptDisk = "DeviceName=/dev/sda1,Ebs={VolumeSize=40,VolumeType=gp3,Iops=3000,Throughput=125,DeleteOnTermination=true}"
+// A new host's disk is read from the image's snapshot a block at a time, and the template gives it throughput to be read in many
+// streams: a start-up on the baseline took 41 s, with the first read of a parameter timing out, against 8.5 s. That is billed while a
+// host is stopped too, so a kept host's disk, once it has been read, is lowered to the baseline when the host is first stopped.
+const (
+	baselineIOPS       = "3000"
+	baselineThroughput = 125
+)
+
+var volumeID = regexp.MustCompile(`^vol-[0-9a-f]{8,17}$`)
 
 // awsCall bounds one AWS command, so a front door whose network to AWS hangs still decides again.
 const awsCall = 2 * time.Minute
@@ -110,7 +118,6 @@ func (e *EC2) Launch(kept bool) (string, error) {
 	args := []string{"ec2", "run-instances", "--launch-template", "LaunchTemplateName=" + e.Template + ",Version=$Latest", "--user-data", "file://" + path}
 	if kept {
 		tags += ",{Key=kept,Value=on}"
-		args = append(args, "--block-device-mappings", keptDisk)
 	}
 	args = append(args, "--tag-specifications", "ResourceType=instance,Tags=["+tags+"]", "--query", "Instances[0].InstanceId", "--output", "text")
 	out, err := e.run(args...)
@@ -143,12 +150,41 @@ func (e *EC2) Start(id string) error {
 	return err
 }
 
-// Stop stops a kept host. Its own disk, where its sandboxes were, is blanked by AWS; its root disk is kept.
+// Stop stops a kept host and lowers its root disk to the baseline. Its own disk, where its sandboxes were, is blanked by AWS; its root
+// disk is kept. A disk that cannot be lowered now is lowered at a later stop, so that does not fail the stop.
 func (e *EC2) Stop(id string) error {
 	if !instanceID.MatchString(id) {
 		return fmt.Errorf("%q is not a host", id)
 	}
-	_, err := e.run("ec2", "stop-instances", "--instance-ids", id)
+	if _, err := e.run("ec2", "stop-instances", "--instance-ids", id); err != nil {
+		return err
+	}
+	if err := e.lowerDisk(id); err != nil {
+		slog.Warn("a stopped host's disk could not be lowered to the baseline", "host", id, "error", err)
+	}
+	return nil
+}
+
+// lowerDisk takes a host's root disk down to the baseline, once: a disk already there is left alone, since a disk may be changed only
+// every six hours.
+func (e *EC2) lowerDisk(id string) error {
+	out, err := e.run("ec2", "describe-instances", "--instance-ids", id,
+		"--query", "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId", "--output", "text")
+	if err != nil {
+		return err
+	}
+	volume := strings.TrimSpace(string(out))
+	if !volumeID.MatchString(volume) {
+		return fmt.Errorf("AWS did not give a disk: %q", volume)
+	}
+	out, err = e.run("ec2", "describe-volumes", "--volume-ids", volume, "--query", "Volumes[0].Throughput", "--output", "text")
+	if err != nil {
+		return err
+	}
+	if have, err := strconv.Atoi(strings.TrimSpace(string(out))); err == nil && have <= baselineThroughput {
+		return nil
+	}
+	_, err = e.run("ec2", "modify-volume", "--volume-id", volume, "--iops", baselineIOPS, "--throughput", strconv.Itoa(baselineThroughput))
 	return err
 }
 
