@@ -8,6 +8,9 @@ import "context"
 //
 // Merge is for a turn that passed. A turn that failed or was stopped is closed without it.
 func (t *Turn) Merge(ctx context.Context) (Outcome, error) {
+	if t.closed.Load() {
+		return Outcome{}, ErrClosed
+	}
 	now, err := scan(t.dest)
 	if err != nil {
 		return Outcome{}, err

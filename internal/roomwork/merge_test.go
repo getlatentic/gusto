@@ -279,6 +279,19 @@ func TestAMergeThatIsStoppedBeforeItStartsChangesNothing(t *testing.T) {
 	}
 }
 
+// A closed turn's copy is empty, which would read as every file deleted.
+func TestAClosedTurnCannotMerge(t *testing.T) {
+	hub, in := aRoom(t, map[string]string{"a.md": "v1", "b.md": "v1"})
+	ada := begin(t, hub, in, "Ada")
+	ada.Close()
+	if _, err := ada.Merge(context.Background()); !errors.Is(err, ErrClosed) {
+		t.Fatalf("Merge gave %v", err)
+	}
+	if got := listing(t, in.Folder); got != "a.md=v1\nb.md=v1" {
+		t.Fatalf("the folder holds %s", got)
+	}
+}
+
 func TestATurnThatIsClosedWithoutMergingLeavesTheFolderAlone(t *testing.T) {
 	hub, in := aRoom(t, map[string]string{"a.md": "v1"})
 	ada := begin(t, hub, in, "Ada")

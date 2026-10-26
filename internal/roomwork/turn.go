@@ -2,9 +2,11 @@ package roomwork
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -21,7 +23,12 @@ type Turn struct {
 	shared tree
 	copied tree
 	once   sync.Once
+	closed atomic.Bool
 }
+
+// ErrClosed is the answer to merging a turn that has been closed: its copy is gone, and an empty copy would read as every file
+// deleted.
+var ErrClosed = errors.New("the turn is closed")
 
 // Begin copies the room's folder to dest, which exists and is empty, for a turn of the named agent. The copy is made without
 // stopping other turns, and a file another turn merges while it is made is either in the copy as it was or as it became, never
@@ -44,15 +51,10 @@ func (h *Hub) Begin(ctx context.Context, in Room, dest, agent string) (*Turn, er
 }
 
 func (t *Turn) start(ctx context.Context) error {
-	release, err := t.hub.hold(ctx, t.room)
-	if err != nil {
+	if err := t.hub.heal(ctx, t.room); err != nil {
 		return err
 	}
-	err = t.hub.heal(t.room)
-	release()
-	if err != nil {
-		return err
-	}
+	var err error
 	if t.shared, err = clone(ctx, t.room.Folder, t.dest, t.hub.limits); err != nil {
 		return err
 	}
@@ -75,6 +77,7 @@ const timestampGrain = 12 * time.Millisecond
 // changed nothing in the room's folder.
 func (t *Turn) Close() {
 	t.once.Do(func() {
+		t.closed.Store(true)
 		_ = os.RemoveAll(t.dest)
 		_ = os.MkdirAll(t.dest, 0o755)
 		t.hub.leave(t.room, t)

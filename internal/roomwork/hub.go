@@ -103,13 +103,18 @@ func (h *Hub) hold(ctx context.Context, in Room) (release func(), err error) {
 	}
 }
 
-// heal undoes a merge that a crash cut off, once for each time a room becomes busy. It runs under the guard.
-func (h *Hub) heal(in Room) error {
-	h.mu.Lock()
-	state := h.rooms[in.Folder]
-	done := state.healed
-	h.mu.Unlock()
-	if done {
+// heal undoes a merge that a crash cut off, the first time a room becomes busy. A turn that finds the room healed does not wait
+// for the guard.
+func (h *Hub) heal(ctx context.Context, in Room) error {
+	if h.healed(in) {
+		return nil
+	}
+	release, err := h.hold(ctx, in)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if h.healed(in) {
 		return nil
 	}
 	if err := recoverMerge(in); err != nil {
@@ -118,7 +123,13 @@ func (h *Hub) heal(in Room) error {
 	// No turn is working from before this, so no version a merge kept is needed.
 	_ = os.RemoveAll(priorDir(in))
 	h.mu.Lock()
-	state.healed = true
+	h.rooms[in.Folder].healed = true
 	h.mu.Unlock()
 	return nil
+}
+
+func (h *Hub) healed(in Room) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.rooms[in.Folder].healed
 }
