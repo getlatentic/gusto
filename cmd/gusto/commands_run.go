@@ -112,7 +112,8 @@ func runCommands() []*cmdline.Command {
 			Name: "param", Group: groupRun, Summary: "Print a parameter from AWS Parameter Store, decrypted",
 			Usage: []string{"<name>"},
 			Description: "Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud " +
-				"reads its secrets with it while it starts.",
+				"reads its secrets with it while it starts. A read that fails or is slow is tried again, up to three times, and a parameter that is not " +
+				"there, or that this host may not read, is answered at once.",
 			Args:     []cmdline.Param{{Name: "<name>", Text: "the parameter's name, as /gusto/poc/cell-secret"}},
 			Examples: []string{"gusto param /gusto/poc/cell-secret"},
 			Run:      paramCommand,
