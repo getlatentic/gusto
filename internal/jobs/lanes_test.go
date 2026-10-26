@@ -141,3 +141,35 @@ func TestWorkersNeverPutOneAgentOnTwoTurns(t *testing.T) {
 	}
 	done.Wait()
 }
+
+// The limit on how many turns one person runs at once keeps a person's own conversations, which share their computer's files, apart.
+// A room's agents work on copies, so a person who mentions two of them has both run.
+func TestTwoAgentsOfOneRoomRunTogetherWhereOnePersonMayRunOne(t *testing.T) {
+	index := at(t)
+	index.SetLimits(Limits{Person: 1})
+	agentTurn(t, index, "room-launch", "a1", "scout, do this")
+	agentTurn(t, index, "room-launch", "a2", "draft, do this")
+	for turn := range 2 {
+		if _, found, err := index.Claim(); err != nil || !found {
+			t.Fatalf("turn %d of the room was held by the person's limit: %v %v", turn, found, err)
+		}
+	}
+}
+
+func TestARoomsTurnsDoNotCountAgainstAPersonsOwnConversation(t *testing.T) {
+	index := at(t)
+	index.SetLimits(Limits{Person: 1})
+	agentTurn(t, index, "room-launch", "a1", "in the room")
+	own := Record{ID: reserved(t, index, "own"), State: Queued, Brief: "own", Harness: "fixture", Asked: "a-test", Queued: Now(), Instance: "own-agent", Thread: "1"}
+	if err := os.MkdirAll(own.Dir(index.Root()).Path(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := index.Add(own); err != nil {
+		t.Fatal(err)
+	}
+	for turn := range 2 {
+		if _, found, err := index.Claim(); err != nil || !found {
+			t.Fatalf("turn %d was held by the other's count: %v %v", turn, found, err)
+		}
+	}
+}

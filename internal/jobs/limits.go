@@ -81,7 +81,9 @@ func (i *Index) running() running {
 		if lane := record.Lane(); lane != "" {
 			now.lanes[lane] = true
 		}
-		now.byPerson[record.Asked]++
+		if !record.InRoom() {
+			now.byPerson[record.Asked]++
+		}
 		if record.Team != "" {
 			now.byTeam[record.Team]++
 		}
@@ -95,7 +97,7 @@ func (i *Index) hold(record Record, now running) (Wait, bool) {
 	switch {
 	case record.Lane() != "" && now.lanes[record.Lane()]:
 		return Wait{Reason: AgentBusy}, true
-	case i.limits.Person > 0 && record.Asked != "" && now.byPerson[record.Asked] >= i.limits.Person:
+	case i.limits.Person > 0 && !record.InRoom() && record.Asked != "" && now.byPerson[record.Asked] >= i.limits.Person:
 		return Wait{Reason: PersonAtLimit, Running: now.byPerson[record.Asked], Limit: i.limits.Person, Who: record.Asked}, true
 	case i.limits.Team > 0 && record.Team != "" && now.byTeam[record.Team] >= i.limits.Team:
 		return Wait{Reason: TeamAtLimit, Running: now.byTeam[record.Team], Limit: i.limits.Team, Who: record.Team}, true

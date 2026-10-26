@@ -235,8 +235,8 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
 		"GUSTO_APPS":         filepath.Join(data, "apps"),
 		"GUSTO_CELL":         cell.Name(),
-		// A person's harnesses share their computer's files and their own state, so they
-		// take turns.
+		// A person's own conversations share their computer's files and their own state, so they
+		// take turns. A room's agents each work on a copy, so they do not wait for each other.
 		"GUSTO_LIMIT_PERSON":    "1",
 		"GUSTO_JOB_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
 		// Nobody knows this: a server behind the front door has no password to type.
