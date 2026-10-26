@@ -15,6 +15,8 @@ type side struct {
 	Harness string
 	Model   string
 	Record  jobs.Record
+	// Holding is what a run that has not started waits for.
+	Holding string
 	Checked bool
 	Passed  bool
 	Spent   spend.Tally
@@ -76,7 +78,7 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 }
 
 func (s *Server) sideOf(entry compare.Entry, record jobs.Record, ledger *spend.Ledger) side {
-	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record}
+	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record, Holding: s.waiting(record.ID)}
 	dir := record.Dir(s.index.Root())
 	if manifest := readManifest(dir); manifest != nil && manifest.Gate != nil {
 		shown.Checked, shown.Passed = true, manifest.Gate.Passed

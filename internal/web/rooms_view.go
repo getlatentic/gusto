@@ -22,6 +22,10 @@ type roomTurn struct {
 	// Role is what the agent does, or its harness when nobody said.
 	Role string
 	From string
+	// Holding is what a turn that has not started waits for, empty once it has.
+	Holding string
+	// Notice is a note the room made of itself, such as that two agents changed one file.
+	Notice bool
 	// Note is something said that no agent was asked to answer, and Echo a turn whose message the turn before it already shows.
 	Note bool
 	Echo bool
@@ -40,7 +44,7 @@ func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, tu
 	}
 	// Notes go in last first, so each lands after the turns it followed without moving the places of the ones before it.
 	for _, note := range slices.Backward(thread.Notes) {
-		shown := turn{Record: jobs.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true}}
+		shown := turn{Record: jobs.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice}}
 		turns = slices.Insert(turns, min(note.After, len(turns)), shown)
 	}
 	groupBySender(turns)
@@ -51,6 +55,7 @@ func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, tu
 func (s *Server) roomTurnOf(held instance.Instance, record jobs.Record) roomTurn {
 	shown := roomTurn{Who: record.Asked, By: record.Agent, Engine: s.engineName(record.Harness), Echo: record.Answers != ""}
 	shown.Role = shown.Engine
+	shown.Holding = s.holdingOf(held, record)
 	if agent, found := held.AgentByID(record.Agent); found {
 		shown.By = agent.Name
 		shown.Role = firstOf(agent.Job, shown.Engine)
@@ -111,6 +116,10 @@ func groupBySender(turns []turn) {
 	last := ""
 	for i := range turns {
 		each := &turns[i].roomTurn
+		if each.Notice {
+			last = "notice:"
+			continue
+		}
 		if each.From == "" && !each.Echo {
 			each.SaidJoins = last == "person:"+each.Who
 			last = "person:" + each.Who

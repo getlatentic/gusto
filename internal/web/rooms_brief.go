@@ -78,7 +78,7 @@ func (s *Server) sinceLastSpoke(held instance.Instance, thread instance.Thread, 
 		}
 	}
 	for _, note := range thread.Notes {
-		lines = append(lines, line{note.At, note.Who + ": " + clip(note.Text)})
+		lines = append(lines, line{note.At, saidBy(note) + clip(note.Text)})
 	}
 	lines = slices.DeleteFunc(lines, func(each line) bool { return each.at < last })
 	slices.SortStableFunc(lines, func(a, b line) int { return int(a.at - b.at) })
@@ -90,6 +90,14 @@ func (s *Server) sinceLastSpoke(held instance.Instance, thread instance.Thread, 
 		out = append(out, each.text)
 	}
 	return out
+}
+
+// saidBy is what goes before a note in the lines an agent is told: who said it, or that the room did.
+func saidBy(note instance.Note) string {
+	if note.Notice {
+		return "The room says: "
+	}
+	return note.Who + ": "
 }
 
 // clip is a message cut to what an agent is told of it.
