@@ -1,10 +1,10 @@
 // A short guided tour for a demo host. It does nothing anywhere else: the lease script says when
 // this is a demo, and the tour opens then. Each step ticks itself off as the visitor does it, and
-// what has been done is kept in this browser so a reload does not start over.
+// what has been done is kept in this browser so a reload does not start over. A visitor who closes it does not see it again here.
 (function () {
   var KEY = "gusto-guide";
   var PROMPT = "Draft a one-page policy for how our 40-person company should use AI agents, and save it as policy.md.";
-  var state = { done: {}, closed: false };
+  var state = { done: {}, closed: false, dismissed: false };
   var panel = null, list = null, toggle = null, book = "";
 
   try { state = Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
@@ -85,23 +85,36 @@
     draw();
   }
 
+  function dismiss() {
+    state.dismissed = true;
+    save();
+    panel.remove();
+  }
+
   function build() {
     panel = make("aside", docked);
     panel.setAttribute("aria-label", "Demo guide");
-    toggle = make("button", "flex w-full cursor-pointer items-center justify-between gap-3 text-left");
+    var header = make("div", "flex items-center gap-1");
+    toggle = make("button", "flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left");
     toggle.type = "button";
     toggle.setAttribute("aria-controls", "demo-guide-steps");
     toggle.innerHTML = '<span class="text-sm font-semibold text-ink">Take the tour</span><span class="count rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-muted"></span>';
     toggle.addEventListener("click", function () { state.closed = !state.closed; state.chose = true; save(); draw(); });
+    var shut = make("button", "grid size-8 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-wash hover:text-ink");
+    shut.type = "button";
+    shut.setAttribute("aria-label", "Close the tour");
+    shut.innerHTML = '<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    shut.addEventListener("click", dismiss);
+    header.append(toggle, shut);
     list = make("ol", "m-0 grid list-none divide-y divide-line p-0");
     list.id = "demo-guide-steps";
-    panel.append(toggle, list);
+    panel.append(header, list);
     var resizing = null;
     window.addEventListener("resize", function () { clearTimeout(resizing); resizing = setTimeout(mount, 150); });
   }
 
   function start(detail) {
-    if (panel) { return; }
+    if (panel || state.dismissed) { return; }
     book = (detail && detail.book) || "";
     observe();
     save();
