@@ -16,6 +16,8 @@ demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/dee
 demo_chat_default: claude=gemma/google.gemma-4-26b-a4b
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
+# How many turns an organization's server runs at once: two agents mentioned together in a room need two.
+demo_job_concurrency: 2
 demo_dns_token_parameter: /gusto/poc/cloudflare-dns-token
 demo_mail_token_parameter: /gusto/poc/cloudflare-mail-token
 demo_model_parameter: /gusto/poc/model-key
