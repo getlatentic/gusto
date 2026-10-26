@@ -121,7 +121,7 @@ func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL,
 	if adapter.Keeps != "" {
 		s.keeps = append(s.keeps, harness.Rehome(adapter.Keeps, Home))
 	}
-	policy, err := Policy(cfg, modelURL, s.keeps)
+	policy, err := ComputerPolicy(cfg, modelURL, adapter)
 	if err != nil {
 		return nil, err
 	}

@@ -50,6 +50,12 @@ func (r *Registry) file(id string) string { return filepath.Join(r.dir, id+".jso
 // an organization, so asking again finds it. Making a new one counts against the
 // organization's quota, and a workspace that was deleted is made anew.
 func (r *Registry) Ensure(user, host string) (computer Computer, made bool, err error) {
+	return r.EnsureFrom(user, host, nil)
+}
+
+// EnsureFrom is Ensure that names a new computer's sandbox after a spare one, when spares has one to give. The spare is taken
+// and the record written under one lock, so a person's second request finds the record and not a sandbox made for it twice.
+func (r *Registry) EnsureFrom(user, host string, spares Spares) (computer Computer, made bool, err error) {
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
 		return Computer{}, false, errors.New("a workspace is a person's, and no person was named")
@@ -72,7 +78,17 @@ func (r *Registry) Ensure(user, host string) (computer Computer, made bool, err 
 	}
 	now := r.now().UTC().Truncate(time.Second)
 	computer = Computer{ID: id, Org: r.org, User: user, Sandbox: Name(r.org, user), Host: host, State: Creating, Created: now}
-	return computer, true, r.write(computer)
+	spare, spared := takeFrom(spares)
+	if spared {
+		computer.Sandbox = spare
+	}
+	if err := r.write(computer); err != nil {
+		if spared {
+			spares.Return(spare)
+		}
+		return Computer{}, false, err
+	}
+	return computer, true, nil
 }
 
 // underLimit is a refusal when one more computer would pass the quota.

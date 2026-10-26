@@ -113,6 +113,10 @@ func serve(args []string) int {
 		defer stopTending()
 		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) || sharing.serving(person) },
 			30*time.Second, time.Duration(number("GUSTO_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
+		if way.spares, err = openSpareComputers(tending, cfg, os.Getenv("GUSTO_ORG"), "http://"+cfg.Host+":"+way.proxyPort()+"/model/v1"); err != nil {
+			return fail(err)
+		}
+		defer way.spares.close()
 	}
 	queue := jobs.StartStoppable(index, work, number("GUSTO_JOB_CONCURRENCY", 1))
 	defer queue.Stop()

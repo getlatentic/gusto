@@ -30,6 +30,7 @@ A server with `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` refuses to s
 | `GUSTO_OPENSHELL_IMAGE` | an image reference the gateway can pull, or the path of a root file system archive on the gateway's machine. It must carry the agent programs. Unset is the gateway's own image, which carries none |
 | `GUSTO_OPENSHELL_HOST` | the name a sandbox gives the gateway's machine, `host.openshell.internal` by default |
 | `GUSTO_OPENSHELL_CPU`, `GUSTO_OPENSHELL_MEMORY` | limits for one sandbox, `1` and `3Gi` by default |
+| `GUSTO_SPARE_COMPUTER` | `on` keeps one blank computer made in the background, so the first task of a person with no computer yet starts without waiting for the gateway to make one (about eight seconds). It holds the memory and CPU of one sandbox while it waits, is made with the same image, limits and policy as a person's, and is removed when the server stops. Off by default |
 | `GUSTO_OPENSHELL_PROCESSES` | the most processes an agent's user may have, `512` by default. The VM driver sets no limit, so the start command sets one with `ulimit`. A sandbox where it cannot be set runs nothing |
 | `GUSTO_ALLOWED_HOSTS` | hosts a task may reach besides its model, as for containers. Each becomes a network rule |
 | `GUSTO_PROXY_ADDR` | the proxy address. In this mode the proxy listens on `127.0.0.1:8041` |

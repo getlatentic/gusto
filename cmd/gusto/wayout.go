@@ -43,6 +43,8 @@ type WayOut struct {
 	address string
 	// gateways is the tool servers a task reaches through the proxy.
 	gateways *gateways
+	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
+	spares *spareComputers
 }
 
 // openWayOut reads what is configured. GUSTO_MODEL_UPSTREAM is the model's root,
