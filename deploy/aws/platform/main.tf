@@ -460,7 +460,8 @@ resource "aws_iam_role_policy" "ci_bake" {
       {
         Sid    = "ReadTheUbuntuImageAndTheCellImage"
         Effect = "Allow"
-        Action = "ssm:GetParameter"
+        # A launch template that names its image by parameter is read with GetParameters when a host is launched from it.
+        Action = ["ssm:GetParameter", "ssm:GetParameters"]
         Resource = [
           "arn:aws:ssm:${var.region}::parameter/aws/service/canonical/ubuntu/*",
           local.ssm_path,
