@@ -30,7 +30,8 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        # Pages that stream a running job are held open.
+        # Pages that stream a running job are held open, and a room's page holds a WebSocket at /live, which the upgrade headers above
+        # pass and which the server pings every 30 seconds.
         proxy_buffering off;
         proxy_read_timeout 3600s;
     }
