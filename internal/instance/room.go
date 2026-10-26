@@ -33,12 +33,14 @@ type Agent struct {
 	Persona string `json:"-"`
 }
 
-// Note is something a person said in a room that no agent was asked to answer.
+// Note is something a person said in a room that no agent was asked to answer, or something the room said of itself.
 type Note struct {
 	ID   string `json:"id"`
 	Who  string `json:"who"`
 	Text string `json:"text"`
 	At   int64  `json:"at"`
+	// Notice marks what the room said of itself: nobody in it said it.
+	Notice bool `json:"notice,omitempty"`
 	// After is how many turns the thread held when it was said, which places it among them.
 	After int `json:"after"`
 }
@@ -178,13 +180,22 @@ func (s *Store) RemoveAgent(id, agent string) error {
 
 // Note keeps something a person said in a room that no agent answers.
 func (s *Store) Note(id, thread, who, text string) (Note, error) {
+	return s.addNote(id, thread, Note{Who: strings.ToLower(who), Text: text})
+}
+
+// Notice keeps something the room says to itself, such as that two agents changed the same file.
+func (s *Store) Notice(id, thread, text string) (Note, error) {
+	return s.addNote(id, thread, Note{Text: text, Notice: true})
+}
+
+func (s *Store) addNote(id, thread string, note Note) (Note, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
 	held, found := s.threads[id][thread]
 	if !found {
 		return Note{}, fmt.Errorf("no thread %s on %s", thread, id)
 	}
-	note := Note{ID: fmt.Sprintf("n%d", len(held.Notes)+1), Who: strings.ToLower(who), Text: text, At: time.Now().Unix(), After: len(held.Turns)}
+	note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
 	held.Notes = append(held.Notes, note)
 	s.threads[id][held.ID] = held
 	return note, s.writeThread(held)

@@ -87,6 +87,9 @@ func (s *Server) roomActivity(thread instance.Thread) (int64, string) {
 		}
 		newest = max(newest, record.Queued, record.Ended)
 		states.Write([]byte(record.State))
+		if wait, queued := s.index.WaitOf(id); queued {
+			fmt.Fprintf(states, "/%d/%d/%d", wait.Reason, wait.Position, wait.Running)
+		}
 	}
 	for _, note := range thread.Notes {
 		newest = max(newest, note.At)

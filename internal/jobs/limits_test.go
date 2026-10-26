@@ -189,7 +189,8 @@ func TestTheQueueNeverRunsAPersonsJobsAtOnce(t *testing.T) {
 		widest[who] = max(widest[who], running[who])
 		overlapped = overlapped || (who == "bo" && running["amy"] > 0)
 		mu.Unlock()
-		time.Sleep(60 * time.Millisecond)
+		// Long enough that a worker slow to wake on a loaded machine still finds amy running when it takes bo.
+		time.Sleep(300 * time.Millisecond)
 		mu.Lock()
 		running[who]--
 		mu.Unlock()

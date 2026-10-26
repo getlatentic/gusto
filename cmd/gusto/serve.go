@@ -356,6 +356,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		}
 		return inSandbox(way, cfg, index, registry, instances), nil
 	}
+	rooms := newRoomRuns(instances)
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -367,7 +368,9 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 			return 0, err
 		}
 		defer way.Done(dir)
-		exit, err := way.RunContext(ctx, dir, spec, staying(instances, spec)...)
+		exit, err := rooms.around(ctx, spec, dir, func() (int, error) {
+			return way.RunContext(ctx, dir, spec, staying(instances, spec)...)
+		})
 		// A turn learns what the agent calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.
 		if manifest, read := evidence.Read(dir); read == nil {
@@ -380,6 +383,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 // inSandbox runs each task's agent in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
 func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.StoppableWork {
+	rooms := newRoomRuns(instances)
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -392,11 +396,13 @@ func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *c
 		if err := beforeTurn(instances, spec, dir); err != nil {
 			return 0, err
 		}
-		exit, err := ranInSandbox(ctx, way, cfg, index, registry, dir, spec)
-		if afterErr := afterTurn(instances, spec, dir); afterErr != nil && err == nil {
-			err = afterErr
-		}
-		return exit, err
+		return rooms.around(ctx, spec, dir, func() (int, error) {
+			exit, err := ranInSandbox(ctx, way, cfg, index, registry, dir, spec)
+			if afterErr := afterTurn(instances, spec, dir); afterErr != nil && err == nil {
+				err = afterErr
+			}
+			return exit, err
+		})
 	}
 }
 
@@ -447,20 +453,6 @@ func pointAt(workspace string, dir job.Dir) error {
 		return err
 	}
 	return linkDir(target, dir.Workspace())
-}
-
-// staying is what a turn needs that outlives its container: the conversation's
-// working directory, and the memory the agent keeps of the conversation.
-// An agent stores that memory in its own data directory rather than beside the
-// files it edits, which is why there are two.
-func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
-	if spec.Session == "" {
-		return nil
-	}
-	return []sandbox.Mount{
-		{From: instances.Workspace(spec.Session), To: "/job/workspace"},
-		{From: instances.State(spec.Session), To: "/root/.local/share"},
-	}
 }
 
 // surveyed is the agents this deployment can run. In a container that is asked

@@ -36,6 +36,9 @@ type site struct {
 // testWork replaces what the test server's queue does with a job, for the test that sets it.
 var testWork jobs.StoppableWork
 
+// testWorkers is how many tasks the test server runs at once, for the test that sets it; zero is one.
+var testWorkers int
+
 func open(t *testing.T) *site {
 	t.Helper()
 	return openAt(t, t.TempDir())
@@ -86,7 +89,7 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 	if testWork != nil {
 		work = testWork
 	}
-	queue := jobs.StartStoppable(index, work, 1)
+	queue := jobs.StartStoppable(index, work, max(testWorkers, 1))
 	t.Cleanup(queue.Stop)
 	instances, err := instance.Open(t.TempDir())
 	if err != nil {

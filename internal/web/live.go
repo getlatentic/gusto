@@ -25,6 +25,8 @@ type liveTurn struct {
 	Steps int        `json:"steps"`
 	// Cut is whether the start of a very long turn is left out.
 	Cut bool `json:"cut,omitempty"`
+	// Holding is what a turn that has not started waits for.
+	Holding string `json:"holding,omitempty"`
 }
 
 // liveRead is the most of the transcript a page is given; a turn is not the place to read a megabyte.
@@ -46,7 +48,9 @@ func (s *Server) turnLive(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	answerJSON(w, http.StatusOK, timelineOf(record.Dir(s.index.Root())))
+	live := timelineOf(record.Dir(s.index.Root()))
+	live.Holding = s.waiting(record.ID)
+	answerJSON(w, http.StatusOK, live)
 }
 
 // timelineOf reads what a turn said and ran into one list in the order it happened. A step says how much had been said when it ran;

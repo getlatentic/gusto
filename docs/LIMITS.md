@@ -26,7 +26,8 @@ The task's page and its Activity line say what holds it, and where it stands in 
 | Amy already has 1 running, the most one person may run at once | the person limit |
 | The team platform already has 2 running, the most a team may run at once | the team limit |
 | Every runner is busy: 2 of 2 | every worker is on a task |
-| Waiting for this agent to finish its last message | a turn of the same agent is running |
+| Waiting for this agent to finish its last message | a turn of the same conversation is running |
+| Waiting for Ada to finish the message before this one | a turn of the same agent in a room is running. The room's other agents run beside it ([ROOM-WORK.md](ROOM-WORK.md)) |
 
 ## A quota for the whole server
 

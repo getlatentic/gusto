@@ -134,6 +134,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Refresh": appsStarting,
 		"Waiting": running != "",
 		"Latest":  running,
+		"Holding": s.holdingOfLatest(held, running),
 	}, true
 }
 
