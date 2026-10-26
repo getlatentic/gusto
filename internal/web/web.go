@@ -31,6 +31,7 @@ import (
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -102,8 +103,11 @@ type Server struct {
 	locks     map[string]*sync.Mutex
 	writers   sync.Mutex
 	retention *retained
-	health    Health
-	wrong     attempts
+	// sockets is what keeps a room's page up to date, and announce is what turns a job's changes into its room's events.
+	sockets  *roomlive.Server
+	announce *announcer
+	health   Health
+	wrong    attempts
 	// localRepos are the directories a repository may be cloned from on this
 	// server's own disk, which is none unless the operator names them.
 	localRepos []string
@@ -223,6 +227,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
 	s.roomRoutes(mux)
+	if s.sockets != nil {
+		mux.Handle("GET "+livePath, s.sockets.Handler())
+	}
 	s.memberRoutes(mux)
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)

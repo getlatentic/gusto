@@ -58,6 +58,9 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		return nil, false
 	}
 	held = s.liveRoom(held)
+	// The room's place in its event stream is read before its conversation, so everything the page shows is at least as new as
+	// the position it follows from.
+	stream := s.streamOf(held)
 	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))
 	if !found {
 		return nil, false
@@ -69,18 +72,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if !found {
 			continue
 		}
-		dir := record.Dir(s.index.Root())
-		shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir), Changed: changed(dir)}
-		shown.Previews = previewsOf(shown.Changed)
-		shown.Spent, shown.Metered = spentBy(ledger, record.ID)
-		if record.State == jobs.Failed || record.State == jobs.Interrupted {
-			shown.Stopped = stopped(dir)
-		}
-		if calls := callsOf(dir); calls != nil {
-			shown.Blocked = len(calls.Denied)
-		}
-		attested, err := evidence.Attest(dir, s.keyring)
-		shown.Signed = err == nil && attested.Signed
+		shown := s.fullTurn(record, ledger)
 		turns = append(turns, shown)
 	}
 	liveApps, appsStarting := previewing(s.appsOf(held.ID))
@@ -124,6 +116,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Mentions":  asJSON(s.mentionables(held)),
 		"Names":     roomNames(held),
 		"Version":   roomVersion,
+		"Stream":    stream,
 		"Members":   s.roomMembersOf(r, held),
 		"Headcount": len(held.Members) + len(held.Agents),
 		"Refused":   r.URL.Query().Get("refused"),
@@ -135,6 +128,23 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Waiting": running != "",
 		"Latest":  running,
 	}, true
+}
+
+// fullTurn is a turn as the page shows it, read from the turn's own directory.
+func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
+	dir := record.Dir(s.index.Root())
+	shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir), Changed: changed(dir)}
+	shown.Previews = previewsOf(shown.Changed)
+	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
+	if record.State == jobs.Failed || record.State == jobs.Interrupted {
+		shown.Stopped = stopped(dir)
+	}
+	if calls := callsOf(dir); calls != nil {
+		shown.Blocked = len(calls.Denied)
+	}
+	attested, err := evidence.Attest(dir, s.keyring)
+	shown.Signed = err == nil && attested.Signed
+	return shown
 }
 
 // said is what the harness replied, read from the turn's own transcript. It is

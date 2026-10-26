@@ -3,6 +3,7 @@
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
     <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
+    {{if .Stream}}<span class="flex flex-none items-center -space-x-1.5" id="here" aria-label="In this room now" hidden></span>{{end}}
     {{if .Instance.Room}}{{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
@@ -28,7 +29,9 @@
 
   <div class="said-so-far overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="mx-auto max-w-[56rem]">
-      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}>{{template "turns" .}}</div>
+      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}{{with .Stream}} data-live="{{.Path}}" data-seq="{{.Seq}}" data-epoch="{{.Epoch}}" data-room="{{$.Instance.ID}}" data-thread="{{$.Thread.ID}}" data-me="{{$.Me}}"{{if $.Sharing}} data-sharing{{end}}{{end}}>{{template "turns" .}}</div>
+      <p class="sr-only" role="status" id="typing-news"></p>
+      {{if .Stream}}<p class="m-0 mt-2 h-5 text-xs text-subtle" id="typing" aria-hidden="true"></p>{{end}}
       <p class="sr-only" role="status" id="turn-news"></p>
       {{if and .Waiting (not .Instance.Room)}}
       <div class="grid gap-3" id="working">
@@ -37,7 +40,7 @@
       </div>
       {{end}}
       {{if not .Turns}}{{if not .Waiting}}
-      <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center">
+      <div class="grid justify-items-center gap-6 pt-16 pb-8 text-center" id="empty">
         {{if .Instance.Room}}
         <h2 class="text-xl">{{if and .Instance.Direct .Instance.Agents}}{{(index .Instance.Agents 0).Name}}{{else}}{{.Instance.Title}}{{end}}</h2>
         <p class="m-0 max-w-[32rem] text-sm text-muted">{{if and .Instance.Direct .Instance.Agents}}Your own conversation with {{(index .Instance.Agents 0).Name}}. It answers everything you say here.{{else if .Instance.Agents}}Mention an agent with @ and its name to ask it something. Everybody in the room sees what it says.{{else}}This room has no agents yet. <a href="/rooms/{{.Instance.ID}}/members">Add one</a> to ask it things.{{end}}</p>
@@ -91,7 +94,7 @@
 </aside>
 <script src="{{asset "/static/filepanel.js"}}"></script>
 <script src="{{asset "/static/composer.js"}}"></script>
-{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script><script src="{{asset "/static/room.js"}}"></script>{{end}}
+{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script>{{if .Stream}}<script src="{{asset "/static/centrifuge.js"}}"></script><script src="{{asset "/static/live.js"}}"></script>{{end}}<script src="{{asset "/static/room.js"}}"></script>{{end}}
 
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
 <script nonce="{{.Nonce}}">
@@ -307,8 +310,8 @@
     <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
       {{with .Blocked}}<span class="inline-flex min-h-6 items-center gap-1 text-ok [&>svg]:size-3.5" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</span>{{end}}
     </p>
-    {{if $.P.Sharing}}{{range .Previews}}
-    <form class="m-0" method="post" action="/instances/{{$.P.Instance.ID}}/apps">
+    {{if or $.P.Sharing $.P.ShareHidden}}{{range .Previews}}
+    <form class="m-0" method="post" action="/instances/{{$.P.Instance.ID}}/apps"{{if not $.P.Sharing}} data-owner-only hidden{{end}}>
       <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.P.Path}}">
       <button type="submit" class="h-8 {{template "ui-btn-quiet"}}">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
     </form>
@@ -317,29 +320,33 @@
 {{end}}{{end}}
 
 {{define "room-turns"}}
-{{range .Turns}}
+{{range .Turns}}{{template "room-turn" (dict "T" . "P" $)}}{{end}}
+{{end}}
+
+{{/* One turn or note of a room, drawn alone for a live update as well as in the page. A live update is drawn once for everyone,
+so the one thing that is a viewer's own, which bubbles are theirs, is marked on the element for the browser to apply. */}}
+{{define "room-turn"}}{{with .T}}
 <article id="{{.ID}}">
   {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
   {{if not (or .From .Echo)}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .SaidJoins}}
-    <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.P.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" data-who="{{.Who}}" data-ours="bg-accent-wash text-accent-ink" data-theirs="bg-sunken text-muted" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <p class="m-0 flex h-5 items-center gap-2 text-sm"><span class="font-medium text-ink">{{personName .Who}}</span><time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
-    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.Names}}</p>
+    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.P.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere" data-who="{{.Who}}" data-ours="bg-accent-wash" data-theirs="bg-sunken">{{mentionsIn .Said $.P.Names}}</p>
   </div>
   {{end}}
   {{if not .Note}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .ReplyJoins}}
     <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
-    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
     <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
-      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted"><span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
+      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted"><span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
   </div>
   {{end}}
 </article>
-{{end}}
-{{end}}
+{{end}}{{end}}

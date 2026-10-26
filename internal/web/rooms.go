@@ -145,32 +145,12 @@ func mentioned(held instance.Instance, text string) []instance.Agent {
 	return named
 }
 
-// roomSay is somebody saying something in a room: a turn for each agent it mentions, for the only agent when there is one and
-// none is mentioned, and otherwise something the room reads and no agent answers.
+// roomSay is somebody saying something in a room, by the page's form.
 func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread, said string) {
-	held = s.liveRoom(held)
-	agents := mentioned(held, said)
-	if len(agents) == 0 && len(held.Agents) == 1 {
-		agents = held.Agents
-	}
-	asked := s.keeper.who(r)
-	if len(agents) == 0 {
-		note, err := s.instances.Note(held.ID, thread.ID, asked, said)
-		if err != nil {
-			s.turnAway(w, r, threadPath(thread), err.Error())
-			return
-		}
-		http.Redirect(w, r, threadPath(thread)+"#"+note.ID, http.StatusSeeOther)
+	first, err := s.speak(s.keeper.who(r), held, thread, said, "", false)
+	if err != nil {
+		s.turnAway(w, r, threadPath(thread), err.Error())
 		return
-	}
-	first := ""
-	for _, agent := range agents {
-		record, err := s.startRoomTurn(asked, held, thread, said, agent, roomAsk{answers: first})
-		if err != nil {
-			s.turnAway(w, r, threadPath(thread), err.Error())
-			return
-		}
-		first = firstOf(first, record.ID)
 	}
 	http.Redirect(w, r, threadPath(thread)+"#"+first, http.StatusSeeOther)
 }
@@ -181,6 +161,8 @@ type roomAsk struct {
 	from    string
 	hops    int
 	answers string
+	// key is the sender's own name for the request, which finds the turn again if the request is sent twice.
+	key string
 }
 
 // startRoomTurn queues a turn for one of a room's agents. The record keeps what was said as the room shows it; the agent is
@@ -214,7 +196,7 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		ID: id, State: jobs.Queued,
 		Brief: said, Repo: held.Repo, Harness: agent.Harness, Model: agent.Model,
 		Instance: held.ID, Thread: thread.ID, Agent: agent.ID, HandedBy: how.from, Answers: how.answers, Hops: how.hops,
-		Asked: asked, Queued: jobs.Now(),
+		Asked: asked, Key: how.key, Queued: jobs.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		return jobs.Record{}, err
