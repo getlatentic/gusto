@@ -62,6 +62,8 @@ type Scaler struct {
 	now       func() time.Time
 	idleSince map[string]time.Time
 	firstSeen map[string]time.Time
+	// lastAlive is when each host was last seen registered as a cell.
+	lastAlive map[string]time.Time
 	retryAt   time.Time
 	// lowered is the stopped kept hosts whose disk is known to be at the baseline.
 	lowered map[string]bool
@@ -219,20 +221,39 @@ func (s *Scaler) settling(alive map[string]Registration) bool {
 	return settling
 }
 
-// reap stops a host that was started and has not registered in the time it has, and says how many are still starting.
+// reap removes a host that has not been a registered cell for as long as a host has to become one, counted from when it was started
+// or was last seen registered, whichever is later: a host that registered a moment ago and went quiet is a cell that is shutting
+// down, as a host does when it powers itself off, and is left for AWS to stop. It says how many are still starting.
 func (s *Scaler) reap(hosts []Instance, alive map[string]Registration) int {
-	starting := 0
+	if s.lastAlive == nil {
+		s.lastAlive = map[string]time.Time{}
+	}
+	now, starting := s.clock(), 0
 	for _, host := range hosts {
 		if _, registered := alive[host.ID]; registered {
+			s.lastAlive[host.ID] = now
 			continue
 		}
-		if s.clock().Sub(host.Launched) <= orDefault(s.Boot, 10*time.Minute) {
+		since := host.Launched
+		if seen := s.lastAlive[host.ID]; seen.After(since) {
+			since = seen
+		}
+		if now.Sub(since) <= orDefault(s.Boot, 10*time.Minute) {
 			starting++
 			continue
 		}
 		slog.Warn("a host did not come up in time, so it is stopped", "host", host.ID)
 		if err := s.Launcher.Terminate(host.ID); err != nil {
 			slog.Error("a host could not be stopped", "host", host.ID, "error", err)
+		}
+	}
+	listed := map[string]bool{}
+	for _, host := range hosts {
+		listed[host.ID] = true
+	}
+	for id := range s.lastAlive {
+		if !listed[id] {
+			delete(s.lastAlive, id)
 		}
 	}
 	return starting

@@ -405,3 +405,21 @@ func TestVisitorsStartNoMoreHostsInADayThanThePrewarmsAllowed(t *testing.T) {
 		t.Errorf("whoever waits is never held back by the prewarm count: %d", r.hosts.launched)
 	}
 }
+
+// A kept cell that powers itself off at its twelfth hour goes quiet while EC2 still lists it as running, and was started long ago.
+func TestACellThatWasRegisteredAMomentAgoAndWentQuietIsLeftToShutDownAndOneQuietForLongIsRemoved(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Pool.MaxAge = 30 * time.Second
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
+	r.now = r.now.Add(20 * time.Minute)
+	r.cell("i-0aaa1111", false)
+	r.tick(0)
+	r.tick(40 * time.Second)
+	if len(r.hosts.terminated) != 0 {
+		t.Fatalf("a cell that went quiet a moment after it was heard from was removed: %v", r.hosts.terminated)
+	}
+	r.tick(11 * time.Minute)
+	if len(r.hosts.terminated) != 1 || r.hosts.terminated[0] != "i-0aaa1111" {
+		t.Errorf("a host that stayed quiet was not removed: %v", r.hosts.terminated)
+	}
+}
