@@ -3,7 +3,7 @@
      It takes ID, Label, Name and Value for the hidden input, Options (JSON, optional), Below to open downward, and Form (optional). */}}
 {{define "picker"}}<div class="picker relative [&.locked>button]:cursor-default [&.locked>button]:opacity-75" id="{{.ID}}" data-picker{{with .Options}} data-options="{{.}}"{{end}} data-label="{{.Label}}">
   <input type="hidden" name="{{.Name}}" value="{{.Value}}"{{with .Form}} form="{{.}}"{{end}}>
-  <button type="button" class="inline-flex h-8 max-w-60 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink open:bg-wash open:text-ink [&>svg]:size-3.5" aria-haspopup="listbox" aria-expanded="false"><span class="label truncate">{{.Label}}</span>{{template "icon-chevron"}}</button>
+  <button type="button" class="inline-flex h-8 max-w-60 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink open:bg-wash open:text-ink [&>svg]:size-3.5" aria-haspopup="listbox" aria-expanded="false"><span class="label block truncate">{{.Label}}</span>{{template "icon-chevron"}}</button>
   <div class="menu absolute z-30 hidden max-h-[min(30rem,70dvh)] min-w-72 max-w-96 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-3 open:grid open:gap-px {{if .Below}}top-[calc(100%+0.25rem)] left-0{{else}}right-0 bottom-[calc(100%+0.5rem)]{{end}}" role="listbox"></div>
 </div>{{end}}
 
@@ -25,11 +25,11 @@
             <input type="hidden" name="at">
             <input type="hidden" name="folder">
             <input type="hidden" name="folder_name">
-            <button type="button" class="chip inline-flex h-8 min-w-0 cursor-pointer items-center gap-2 rounded-full border-0 bg-wash px-3 text-xs font-medium text-muted hover:bg-sunken hover:text-ink aria-expanded:bg-sunken aria-expanded:text-ink [&>svg]:size-3.5" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label max-w-56 truncate @max-[56rem]:max-w-24 @max-[30rem]:sr-only">Choose a folder</span></button>
+            <button type="button" class="chip inline-flex h-8 min-w-0 cursor-pointer items-center gap-2 rounded-full border-0 bg-wash px-3 text-xs font-medium text-muted hover:bg-sunken hover:text-ink aria-expanded:bg-sunken aria-expanded:text-ink [&>svg]:size-3.5" aria-haspopup="dialog" aria-expanded="false">{{template "icon-folder"}}<span class="label block max-w-56 truncate @max-[56rem]:max-w-24 @max-[30rem]:sr-only">Choose a folder</span></button>
             <button type="button" class="clear grid size-6 cursor-pointer place-items-center rounded-full border-0 bg-transparent p-0 text-subtle hover:bg-wash hover:text-ink [&>svg]:size-3.5" hidden aria-label="Do not use a folder">{{template "icon-x"}}</button>
           </div>
           <span class="flex-1"></span>
-          <div class="relative flex min-w-0"><button type="button" id="run-on" class="inline-flex h-8 min-w-0 max-w-[min(22rem,100%)] cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink aria-expanded:bg-wash aria-expanded:text-ink [&>svg]:size-3.5" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label truncate"></span>{{template "icon-chevron"}}</button></div>
+          <div class="relative flex min-w-0"><button type="button" id="run-on" class="inline-flex h-8 min-w-0 max-w-[min(22rem,100%)] cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink aria-expanded:bg-wash aria-expanded:text-ink [&>svg]:size-3.5" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label block truncate"></span>{{template "icon-chevron"}}</button></div>
           <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
         </div>
         <div class="flex flex-wrap items-center gap-1 border-t border-line pt-2" id="chat-choices" hidden>
@@ -41,9 +41,9 @@
       </div>
     </form>
     <div class="mx-auto mt-6 flex max-w-[45rem] flex-wrap justify-center gap-2" id="chat-starters">
-      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Fix the failing tests">Fix the failing tests</button>
+      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Draft a one-page policy for how we use AI at work">Draft a policy for using AI at work</button>
       <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
-      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Add tests for what changed">Add tests for what changed</button>
+      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Research three competitors and write me a short brief">Research competitors and write a brief</button>
     </div>
     <form class="mt-3 flex items-center gap-2 rounded-md border border-line-strong bg-surface p-3 shadow-1" id="save-preset" method="post" action="/presets" hidden>
       <input class="h-9 min-w-0 flex-1 input" name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
@@ -118,15 +118,24 @@
   var runOn = document.getElementById("run-on");
   var panel = document.getElementById("chat-choices");
   var labelOf = function (picker) { return picker.querySelector("button .label").textContent.trim(); };
+  // The agent is shown as its mark and the model by name, which takes about half the room of both in words; an agent with no mark is
+  // named. The whole choice is the button's title and its name for a screen reader.
+  var mark = null;
   var summarize = function () {
-    var parts = [labelOf(harness), labelOf(model)];
-    if (roleValue.value || (role.picker.value && role.picker.value !== "")) {
-      var named = labelOf(role);
-      if (named && named !== "No preset" && named !== "Preset") { parts.unshift(named); }
+    var named = labelOf(role);
+    var preset = (roleValue.value || role.picker.value) && named !== "No preset" && named !== "Preset" ? named : "";
+    var whole = [preset, labelOf(harness), labelOf(model)].filter(Boolean).join(" · ");
+    var badge = harness.querySelector("button > [aria-hidden=true]");
+    if (mark) { mark.remove(); mark = null; }
+    var parts = [preset, badge ? "" : labelOf(harness), labelOf(model)];
+    if (badge) {
+      mark = badge.cloneNode(true);
+      mark.classList.add("mr-1.5");
+      runOn.insertBefore(mark, runOn.firstChild);
     }
-    var text = parts.filter(Boolean).join(" · ");
-    runOn.querySelector(".label").textContent = text;
-    runOn.setAttribute("aria-label", "Runs on " + text + ". Change");
+    runOn.querySelector(".label").textContent = parts.filter(Boolean).join(" · ");
+    runOn.title = "Runs on " + whole + ". Change";
+    runOn.setAttribute("aria-label", "Runs on " + whole + ". Change");
   };
   runOn.addEventListener("click", function () {
     panel.hidden = !panel.hidden;
