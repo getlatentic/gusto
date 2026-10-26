@@ -82,6 +82,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	out.gauge("gusto_last_job_finished_timestamp_seconds", "When a job last ended, since this server started.", float64(stats.LastFinished))
 
 	s.diskMetrics(out)
+	s.liveMetrics(out)
 	if s.health.Proxy != nil {
 		counts := s.health.Proxy()
 		out.counter("gusto_proxy_calls_total", "Calls the model proxy has handled since it started.", float64(counts.Calls))

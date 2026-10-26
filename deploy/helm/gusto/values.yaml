@@ -122,8 +122,9 @@ service:
   type: ClusterIP
   port: 80
 
-# The pages hold a job's output open for as long as it runs, so whatever
-# ingress controller is used must not buffer it or time it out early. The
+# The pages hold a job's output open for as long as it runs, and a room's page
+# holds a WebSocket open at /live, so whatever ingress controller is used must
+# pass the upgrade, and must not buffer or time either out early. The
 # annotations are the controller's own; README.md has ingress-nginx's.
 ingress:
   enabled: false

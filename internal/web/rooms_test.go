@@ -35,9 +35,18 @@ type roomWork struct {
 	replies map[string]string
 	// patch is the change every turn reports making to the folder.
 	patch string
+	// hold, when set, keeps every turn running until it is closed or the turn is stopped.
+	hold chan struct{}
 }
 
-func (w *roomWork) do(_ context.Context, dir job.Dir) (int, error) {
+func (w *roomWork) do(ctx context.Context, dir job.Dir) (int, error) {
+	if w.hold != nil {
+		select {
+		case <-w.hold:
+		case <-ctx.Done():
+			return 1, ctx.Err()
+		}
+	}
 	text, err := os.ReadFile(dir.Spec())
 	if err != nil {
 		return 1, err

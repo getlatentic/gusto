@@ -3,6 +3,8 @@ package cloud
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -236,3 +238,49 @@ func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *test
 }
 
 func (b *browser) get3(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
+
+// A room's page holds a WebSocket open through the front door to its organization's server. The upgrade passes, the host the
+// browser used reaches the server as it was (the server checks the Origin against it), the cookie that is the server's passes
+// and the front door's does not, and what is sent is answered at once, with nothing held back to fill a buffer.
+func TestAWebSocketPassesThroughTheFrontDoorToTheOrganizationsServer(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := withServers(t)
+		f.signedUp("ada@acme.com")
+		conn, err := net.Dial("tcp", strings.TrimPrefix(f.http.URL, "http://"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
+		fmt.Fprint(conn, "GET /ws HTTP/1.1\r\nHost: acme-com.cloud.test\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"+
+			"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nOrigin: http://acme-com.cloud.test\r\n"+
+			"Cookie: gusto_cloud=front; gusto=session\r\n\r\n")
+		reader := bufio.NewReader(conn)
+		response, err := http.ReadResponse(reader, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusSwitchingProtocols {
+			t.Fatalf("the upgrade answered %s", response.Status)
+		}
+		if got := response.Header.Get("X-Seen-Host"); got != "acme-com.cloud.test" {
+			t.Errorf("the server saw the host %q, so its origin check would fail", got)
+		}
+		if got := response.Header.Get("X-Seen-Origin"); got != "http://acme-com.cloud.test" {
+			t.Errorf("the server saw the origin %q", got)
+		}
+		if got := response.Header.Get("X-Seen-Cookie"); got != "gusto=session" {
+			t.Errorf("the server saw the cookie %q: the front door's own must not go", got)
+		}
+		for i := range 3 {
+			began := time.Now()
+			fmt.Fprintf(conn, "hello %d\n", i)
+			line, err := reader.ReadString('\n')
+			if err != nil || line != fmt.Sprintf("echo hello %d\n", i) {
+				t.Fatalf("the echo was %q, %v", line, err)
+			}
+			if took := time.Since(began); took > 250*time.Millisecond {
+				t.Errorf("a line took %s to come back: the connection is being buffered", took)
+			}
+		}
+	})
+}

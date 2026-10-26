@@ -33,6 +33,25 @@ type Index struct {
 	pump *pump
 	// finishers are told of each task that ends, after its record is written.
 	finishers []func(Record)
+	// changers are told of every change to a record, as it is made.
+	changers []func(Record)
+	// recovered are the records Open found running, with nobody running them, and ended as interrupted.
+	recovered []Record
+}
+
+// OnChange has watch told of every change to a record, in the order the changes were made: a task added, started, stopped or
+// finished. It is called with the index's lock held, so it must only note the change and return.
+func (i *Index) OnChange(watch func(Record)) {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	i.changers = append(i.changers, watch)
+}
+
+// Recovered is the tasks that were running when the server before this one stopped, which Open ended as interrupted.
+func (i *Index) Recovered() []Record {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	return append([]Record(nil), i.recovered...)
 }
 
 // OnFinish has finish told of every task that ends, once its record is written. It is called outside the index's lock, so it
@@ -65,6 +84,7 @@ func Open(root string) (*Index, error) {
 			if err := write(record.Dir(root), record); err != nil {
 				return nil, err
 			}
+			index.recovered = append(index.recovered, record)
 		}
 		index.records[record.ID] = record
 	}

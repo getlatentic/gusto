@@ -22,11 +22,23 @@ builds with CGO_ENABLED=0 (checked 19 October 2026 by reading each module's lice
   github.com/google/uuid, remyoudompheng/bigfft, golang.org/x/sync
                   BSD-3-Clause
 
+The live room layer (internal/roomlive) is built on Centrifuge, and with it the program links the modules below (checked 26 October 2026
+by reading each module's license file). None is GPL, LGPL, AGPL or MPL:
+  github.com/centrifugal/centrifuge, centrifugal/protocol, beorn7/perks, cespare/xxhash/v2
+                  MIT
+  github.com/centrifugal/fdelta
+                  BSD-2-Clause
+  github.com/maypok86/otter/v2, prometheus/client_golang, client_model, common, redis/rueidis
+                  Apache-2.0
+  github.com/munnerz/goautoneg, quagmt/udecimal, google.golang.org/protobuf, golang.org/x/sync
+                  BSD-3-Clause
+
 The design tokens (tokens.css) and the mark (mark.svg and its images) in internal/web/static are Latentic's own.
 
 Files served from the binary (internal/web/static, see PROVENANCE.md there):
   htmx            BSD-style (htmx.org)
   highlight.js    BSD 3-Clause
+  centrifuge-js   MIT (Centrifugal Labs LTD; the license is served beside it as centrifuge.LICENSE)
   Inter, Noto Sans Mono (fonts)  SIL Open Font License 1.1
   Lucide (icons)  ISC
 

@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -59,6 +61,26 @@ func fakeOrgServer() {
 		})
 	})
 	mux.HandleFunc("/die", func(http.ResponseWriter, *http.Request) { os.Exit(3) })
+	// A WebSocket's upgrade, answered with the host and origin it was given, and then a line echoed for each line sent.
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		if !strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+			http.Error(w, "that is not an upgrade", http.StatusBadRequest)
+			return
+		}
+		conn, buffered, err := http.NewResponseController(w).Hijack()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		fmt.Fprintf(buffered, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nX-Seen-Host: %s\r\nX-Seen-Origin: %s\r\nX-Seen-Cookie: %s\r\n\r\n",
+			r.Host, r.Header.Get("Origin"), r.Header.Get("Cookie"))
+		buffered.Flush()
+		lines := bufio.NewScanner(buffered)
+		for lines.Scan() {
+			fmt.Fprintf(buffered, "echo %s\n", lines.Text())
+			buffered.Flush()
+		}
+	})
 	mux.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 		flusher := w.(http.Flusher)
 		for i := range 3 {

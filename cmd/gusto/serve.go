@@ -31,6 +31,7 @@ import (
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
@@ -310,6 +311,10 @@ func serve(args []string) int {
 		go pages.RunInbox(background, 2*time.Second)
 	}
 	pages.UseSettings(governing())
+	// A room's page follows the room over a WebSocket, and falls back to asking every few seconds when it has none.
+	if err := pages.UseLive(roomlive.Options{MaxConnections: number("GUSTO_LIVE_CONNECTIONS", 10000)}); err != nil {
+		return fail(err)
+	}
 	front, err := frontDoorFromEnv()
 	if err != nil {
 		return fail(err)
@@ -331,6 +336,10 @@ func serve(args []string) int {
 		<-stopping
 		context, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		// A hijacked connection is not the HTTP server's to wait for, so the sockets are closed, and waited for, first.
+		if err := pages.CloseLive(context); err != nil {
+			fmt.Fprintln(os.Stderr, "gusto: the live connections did not all close in time:", err)
+		}
 		_ = server.Shutdown(context)
 	}()
 	fmt.Printf("gusto is listening on %s, with %d task(s) at a time\n", address, number("GUSTO_JOB_CONCURRENCY", 1))

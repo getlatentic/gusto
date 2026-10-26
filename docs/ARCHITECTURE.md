@@ -93,6 +93,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | Check | A command run at the end. Its exit code is the verdict | Inside the sandbox |
 | Spend limit | A cap that the proxy counts against and enforces | The model proxy |
 | Record | Hashed files, the check result and a signature | The task directory. `gusto verify` re-checks it anywhere |
+| Room, live | An event log in the room's own directory, which the room's page follows over one WebSocket (Centrifuge): the sequence is the log's, so a page that reconnects is replayed exactly what it missed | The organization's server: `internal/roomlog`, `internal/roomlive` |
 
 ## Where it runs
 

@@ -95,6 +95,10 @@ func (s *Server) routeApp(w http.ResponseWriter, r *http.Request, slug, id strin
 	s.forward(w, r, slug, id)
 }
 
+// upstream carries every request to an organization's server, a room's WebSocket among them: the proxy passes an upgrade through
+// and then copies bytes both ways, with no timeout of its own. It is shared, so the connections it keeps are reused.
+var upstream = &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * time.Second, MaxIdleConnsPerHost: 8}
+
 // forward sends a request to the organization's server, for one of its apps when an app is named.
 func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app string) {
 	address, state := s.Controller.Route(slug)
@@ -117,7 +121,7 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 	(&httputil.ReverseProxy{
 		Rewrite:       s.rewrite(address, s.appSignature(slug, app)),
 		FlushInterval: -1,
-		Transport:     &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * time.Second, MaxIdleConnsPerHost: 8},
+		Transport:     upstream,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			slog.Warn("an organization's server did not answer", "org", slug, "error", err)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")

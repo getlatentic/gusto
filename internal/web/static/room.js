@@ -146,16 +146,16 @@
   box.form.addEventListener("reset", function () { setTimeout(paint, 0); });
   paint();
 
-  // Others talk in a room too, and several agents can be working at once, so every few seconds the room asks whether anything
-  // changed, which costs the server nothing, and fetches the turns only when something did, keeping the reader at the end when
-  // they were there.
+  // Others talk in a room too, and several agents can be working at once. While live.js holds the room's socket the page is told as
+  // it happens. Otherwise, every few seconds the room asks whether anything changed, which costs the server nothing, and fetches
+  // the turns only when something did, keeping the reader at the end when they were there.
   var turns = document.getElementById("turns");
   var said = document.getElementById("said");
   var path = box.form.getAttribute("action").replace(/\/say$/, "");
   var version = turns.dataset.version;
   var asking = false;
   function look() {
-    if (document.hidden || asking) { return; }
+    if (document.hidden || asking || (window.gustoLive && window.gustoLive.online)) { return; }
     asking = true;
     fetch(path + "/version", { credentials: "same-origin" })
       .then(function (answer) { return answer.ok ? answer.text() : null; })
