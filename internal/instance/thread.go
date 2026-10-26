@@ -158,7 +158,11 @@ func (s *Store) Said(id, thread, job, remembered string) error {
 		held.Remembered = remembered
 	}
 	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	err := s.writeThread(held)
+	if job != "" {
+		s.record(id, held.ID, KindTurn, job)
+	}
+	return err
 }
 
 // Name gives a thread a title when it has none. Somebody who named a thread

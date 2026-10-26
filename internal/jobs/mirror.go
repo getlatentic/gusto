@@ -286,10 +286,13 @@ func (i *Index) MirrorTrouble() <-chan struct{} {
 	return i.pump.trouble
 }
 
-// mirrored copies a record that has just been written. The caller holds the guard, which is what keeps the
-// copies in the order of the changes.
+// mirrored copies a record that has just been written, and tells whoever watches changes. The caller holds the guard, which is
+// what keeps the copies in the order of the changes.
 func (i *Index) mirrored(record Record) {
 	if i.pump != nil {
 		i.pump.push(op{row: RowOf(record)})
+	}
+	for _, watch := range i.changers {
+		watch(record)
 	}
 }

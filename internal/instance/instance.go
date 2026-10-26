@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/roomlog"
 )
 
 // Instance is the workspace: what an agent runs under and works in.
@@ -66,6 +67,9 @@ type Store struct {
 	threads map[string]map[string]Thread
 	// rooms is each person's rooms, by address in lower case, kept by put and drop.
 	rooms map[string]map[string]struct{}
+	// events is each room's log of what happened in it, and watchers are told when one is added.
+	events   *roomlog.Set
+	watchers []func(room string)
 }
 
 func Open(root string) (*Store, error) {
@@ -78,6 +82,7 @@ func Open(root string) (*Store, error) {
 		threads: map[string]map[string]Thread{},
 		rooms:   map[string]map[string]struct{}{},
 	}
+	store.events = roomlog.NewSet(func(id string) string { return filepath.Join(store.Dir(id), eventsFile) }, roomlog.Options{})
 	listing, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err

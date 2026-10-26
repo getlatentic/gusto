@@ -31,6 +31,7 @@ func (s *Store) Remove(id string) error {
 		return err
 	}
 	s.drop(id)
+	s.wake(id)
 	return nil
 }
 

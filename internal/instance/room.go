@@ -41,6 +41,8 @@ type Note struct {
 	At   int64  `json:"at"`
 	// After is how many turns the thread held when it was said, which places it among them.
 	After int `json:"after"`
+	// Key is the sender's own name for saying it, so that saying it twice keeps one note.
+	Key string `json:"key,omitempty"`
 }
 
 // agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
@@ -178,16 +180,32 @@ func (s *Store) RemoveAgent(id, agent string) error {
 
 // Note keeps something a person said in a room that no agent answers.
 func (s *Store) Note(id, thread, who, text string) (Note, error) {
+	return s.NoteKeyed(id, thread, who, text, "")
+}
+
+// NoteKeyed is Note for a request that has a key. The key is the sender's own name for the request, and a person who sends the
+// same key again gets the note that was kept, not a second one.
+func (s *Store) NoteKeyed(id, thread, who, text, key string) (Note, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
 	held, found := s.threads[id][thread]
 	if !found {
 		return Note{}, fmt.Errorf("no thread %s on %s", thread, id)
 	}
-	note := Note{ID: fmt.Sprintf("n%d", len(held.Notes)+1), Who: strings.ToLower(who), Text: text, At: time.Now().Unix(), After: len(held.Turns)}
+	who = strings.ToLower(who)
+	if key != "" {
+		for _, kept := range held.Notes {
+			if kept.Key == key && kept.Who == who {
+				return kept, nil
+			}
+		}
+	}
+	note := Note{ID: fmt.Sprintf("n%d", len(held.Notes)+1), Who: who, Text: text, At: time.Now().Unix(), After: len(held.Turns), Key: key}
 	held.Notes = append(held.Notes, note)
 	s.threads[id][held.ID] = held
-	return note, s.writeThread(held)
+	err := s.writeThread(held)
+	s.record(id, held.ID, KindNote, note.ID)
+	return note, err
 }
 
 // Learned keeps what an agent calls a conversation, so its next turn resumes it. A room's agents each keep their own.
@@ -257,6 +275,7 @@ func (s *Store) changeRoom(id string, change func(*Instance) error) error {
 		return err
 	}
 	s.put(held)
+	s.record(id, "", KindPeople, "")
 	return nil
 }
 
