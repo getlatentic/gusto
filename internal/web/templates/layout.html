@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
+<script src="{{asset "/static/keyboard.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script><script src="{{asset "/static/guide.js"}}" defer></script>{{end}}
   <script nonce="{{.Nonce}}">
     // The theme and the accent are the person's, kept on this device and set before the page is drawn so that it does not flash.
