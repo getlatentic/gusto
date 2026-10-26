@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -128,10 +127,9 @@ func (s *Sandbox) endJob() error {
 
 // Delete removes a sandbox by its name, and a sandbox that is not there is removed.
 func Delete(cfg Config, name string) error {
-	if _, err := output((&Sandbox{cfg: cfg}).run(context.Background(), "sandbox", "delete", name)); err != nil && !strings.Contains(err.Error(), "not found") {
-		return err
-	}
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), removeWithin)
+	defer cancel()
+	return Remove(ctx, cfg, name)
 }
 
 // Stop stops a sandbox and keeps what is in it.
