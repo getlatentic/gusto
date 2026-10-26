@@ -1,31 +1,61 @@
 package cell
 
 import (
+	"context"
 	"errors"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 type fakeHosts struct {
 	hosts      []Instance
+	stopped    []Instance
 	launched   int
+	started    int
 	terminated []string
 	failLaunch error
 	next       string
 }
 
-func (f *fakeHosts) Launch() (string, error) {
+func (f *fakeHosts) Launch(kept bool) (string, error) {
 	if f.failLaunch != nil {
 		return "", f.failLaunch
 	}
 	f.launched++
-	f.hosts = append(f.hosts, Instance{ID: f.next, Launched: clockNow})
+	f.hosts = append(f.hosts, Instance{ID: f.next, Launched: clockNow, Kept: kept})
 	return f.next, nil
+}
+
+func (f *fakeHosts) Stopped() ([]Instance, error) { return append([]Instance(nil), f.stopped...), nil }
+
+func (f *fakeHosts) Start(id string) error {
+	for i, host := range f.stopped {
+		if host.ID == id && host.Stopped {
+			f.started++
+			f.stopped = append(f.stopped[:i], f.stopped[i+1:]...)
+			f.hosts = append(f.hosts, Instance{ID: id, Launched: clockNow, Kept: true})
+			return nil
+		}
+	}
+	return errors.New("not a stopped host")
+}
+
+func (f *fakeHosts) Stop(id string) error {
+	for i, host := range f.hosts {
+		if host.ID == id {
+			f.hosts = append(f.hosts[:i], f.hosts[i+1:]...)
+			host.Stopped = true
+			f.stopped = append(f.stopped, host)
+			return nil
+		}
+	}
+	return errors.New("not a running host")
 }
 
 func (f *fakeHosts) Terminate(id string) error {
@@ -235,11 +265,11 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 				}
 			}
 			if args[1] == "describe-instances" {
-				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\ni-0bbb2222\t2026-10-01T09:05:00.000Z\nnot a line\n"), nil
+				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\trunning\tNone\ni-0bbb2222\t2026-10-01T09:05:00.000Z\tpending\ton\nnot a line\n"), nil
 			}
 			return []byte("i-0aaa1111\n"), nil
 		}}
-	id, err := e.Launch()
+	id, err := e.Launch(false)
 	if err != nil || id != "i-0aaa1111" || seen != "ROLE=cell RUN=live RELEASE=abc123\n" {
 		t.Fatalf("%q %v %q", id, err, seen)
 	}
@@ -265,12 +295,12 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 		t.Error(err)
 	}
 	os.WriteFile(script, []byte("ROLE=@ROLE@ MORE=@NOBODY_SAID@\n"), 0o644)
-	if _, err := e.Launch(); err == nil || !strings.Contains(err.Error(), "@NOBODY_SAID@") {
+	if _, err := e.Launch(false); err == nil || !strings.Contains(err.Error(), "@NOBODY_SAID@") {
 		t.Errorf("a script with a blank in it was launched: %v", err)
 	}
 	e.Run = func(...string) ([]byte, error) { return []byte("garbage\n"), nil }
 	os.WriteFile(script, []byte("x\n"), 0o644)
-	if _, err := e.Launch(); err == nil {
+	if _, err := e.Launch(false); err == nil {
 		t.Error("an answer that is not a host was taken for one")
 	}
 }
@@ -284,4 +314,86 @@ func freePort(t *testing.T) int {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
+}
+
+// launches is a launcher that says on a channel when it starts a host.
+type launches struct{ started chan string }
+
+func (l launches) Launch(bool) (string, error)  { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
+func (l launches) Terminate(string) error       { return nil }
+func (l launches) Running() ([]Instance, error) { return nil, nil }
+func (l launches) Stopped() ([]Instance, error) { return nil, nil }
+func (l launches) Start(string) error           { return nil }
+func (l launches) Stop(string) error            { return nil }
+
+func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
+	var waiting atomic.Int32
+	hosts := launches{started: make(chan string, 4)}
+	scaler := &Scaler{Pool: &Pool{Dir: filepath.Join(t.TempDir(), "cells"), Secret: secret, MaxAge: time.Hour}, Launcher: hosts,
+		Waiting: func() int { return int(waiting.Load()) }, Max: 2, Idle: time.Minute, Boot: time.Minute}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go scaler.Run(ctx, time.Hour)
+	time.Sleep(50 * time.Millisecond)
+	waiting.Store(1)
+	scaler.Wake()
+	scaler.Wake()
+	select {
+	case <-hosts.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a woken scaler did not start a host")
+	}
+}
+
+func TestAHostIsStartedForAVisitorAboutToWaitOnceAndOnlyWhileTheyAreExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 2
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.tick(30 * time.Second)
+	if r.hosts.launched != 1 {
+		t.Fatalf("a visitor who began asking for a demo had %d hosts started for them", r.hosts.launched)
+	}
+	// The host is up, so a second visitor starts nothing more: whoever sends the form first takes it.
+	r.cell("i-0aaa1111", false)
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("a host was started beside one that is up and empty: %d", r.hosts.launched)
+	}
+}
+
+func TestAVisitorWhoNeverSendsTheFormStartsNothingAfterTheyAreNoLongerExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 5
+	r.scaler.Prewarm()
+	r.tick(3 * time.Minute)
+	if r.hosts.launched != 0 {
+		t.Errorf("a visitor who stopped typing minutes ago had a host started: %d", r.hosts.launched)
+	}
+}
+
+func TestVisitorsStartNoMoreHostsInADayThanThePrewarmsAllowed(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 1
+	r.scaler.Max = 5
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.hosts.terminated, r.hosts.hosts = nil, nil
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("the day's one prewarm started %d hosts", r.hosts.launched)
+	}
+	r.now = r.now.Add(24 * time.Hour)
+	r.scaler.Prewarm()
+	r.tick(0)
+	if r.hosts.launched != 2 {
+		t.Errorf("a new day allows a prewarm again: %d", r.hosts.launched)
+	}
+	r.waiting = 1
+	r.tick(time.Hour)
+	if r.hosts.launched != 3 {
+		t.Errorf("whoever waits is never held back by the prewarm count: %d", r.hosts.launched)
+	}
 }

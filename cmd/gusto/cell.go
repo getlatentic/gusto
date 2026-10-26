@@ -137,5 +137,9 @@ func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
 		Max:  number("GUSTO_CLOUD_CELL_MAX", 3),
 		Idle: time.Duration(number("GUSTO_CLOUD_CELL_IDLE_MINUTES", 10)) * time.Minute,
 		Boot: time.Duration(number("GUSTO_CLOUD_CELL_BOOT_MINUTES", 10)) * time.Minute,
+		// A visitor who types in the demo form and never sends it costs a cell until it is idle; this many a day.
+		Prewarms: number("GUSTO_CLOUD_CELL_PREWARMS", 20),
+		// A kept host is stopped when idle and started again, which is faster than a new one; its disk costs while it waits.
+		Keep: number("GUSTO_CLOUD_CELL_KEEP", 0),
 	}, nil
 }

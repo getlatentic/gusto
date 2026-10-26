@@ -48,8 +48,13 @@ type Controller struct {
 	// IndexDir is where organizations' indexes are kept, in a directory for each, on the local disk of the host a server
 	// runs on. It is the index directory under the store's root when not set.
 	IndexDir string
-	// WaitEvery is how often an organization waiting for a cell is tried again. It is five seconds when not set.
+	// WaitEvery is how often an organization waiting for a cell is tried again. It is half a second when not set: a cell
+	// says it is ready by writing to the shared file system, which cannot tell a reader it changed, and a visitor waits
+	// on the organization.
 	WaitEvery time.Duration
+	// OnWaiting is told when an organization starts waiting for a cell with room, so a cell can be started for it at
+	// once. It is called outside the controller's lock and must not block.
+	OnWaiting func()
 
 	// mu guards the two maps below and is held only to read or change them, so
 	// routing never waits on a server that is starting. Each organization is
@@ -325,6 +330,9 @@ func (c *Controller) wait(slug string, runtime Runtime, err error) error {
 	}
 	c.retry[slug] = time.Now().Add(c.waitEvery())
 	c.mu.Unlock()
+	if c.OnWaiting != nil {
+		c.OnWaiting()
+	}
 	return err
 }
 
@@ -332,7 +340,7 @@ func (c *Controller) waitEvery() time.Duration {
 	if c.WaitEvery > 0 {
 		return c.WaitEvery
 	}
-	return 5 * time.Second
+	return 500 * time.Millisecond
 }
 
 // Waiting is how many organizations are waiting for a cell with room, which is what makes another start.
@@ -392,14 +400,19 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	for _, org := range orgs {
 		go c.Provision(org.Slug)
 	}
-	tick := time.NewTicker(every)
-	defer tick.Stop()
 	for {
+		// An organization that waits for a cell is looked at often, since a visitor waits on it; otherwise every so often.
+		next := every
+		if c.Waiting() > 0 {
+			next = min(every, c.waitEvery())
+		}
+		timer := time.NewTimer(next)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			c.stopAll()
 			return
-		case <-tick.C:
+		case <-timer.C:
 			c.supervise()
 		}
 	}

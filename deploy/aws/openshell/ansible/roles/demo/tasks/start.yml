@@ -1,9 +1,10 @@
 ---
+# A cell's start-up script starts these, after it has mounted the shared file system, so they are not started with the host.
 - name: The host's start-up work runs now, which gets the certificate or the image and points the name here
   ansible.builtin.systemd:
     name: gusto-boot
     state: restarted
-    enabled: true
+    enabled: "{{ demo_role != 'cell' }}"
     daemon_reload: true
 
 - name: The lease is watched
@@ -30,12 +31,16 @@
     state: reloaded
   when: demo_role != 'cell'
 
+# A changed setting restarts the cell, which is done before it is started here, so that it is not started and then stopped mid-scan.
+- name: The changes are applied
+  ansible.builtin.meta: flush_handlers
+
 # A host an image is made from is not started as a cell, which would register it and give it organizations.
 - name: The host is running
   ansible.builtin.systemd:
     name: gusto-cell
     state: started
-    enabled: true
+    enabled: false
   when: demo_role == 'cell' and not (demo_bake | bool)
 
 - name: The name resolves from here, and the web server answers for it with a certificate that holds

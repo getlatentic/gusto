@@ -52,6 +52,28 @@
     - { dest: /etc/nginx/sites-enabled/default, state: absent }
   notify: Reload nginx
 
+# Cells read the kit from the shared file system, and take it only when its sum is the one this host starts them with.
+- name: Where the kits are
+  ansible.builtin.file:
+    path: "{{ demo_state }}/kits"
+    state: directory
+    mode: "0755"
+  when: demo_cell_kit != ''
+
+- name: The kit a cell configures itself from, where cells can read it
+  ansible.builtin.copy:
+    src: "{{ demo_cell_kit_file }}"
+    dest: "{{ demo_state }}/kits/{{ demo_cell_kit }}.tgz"
+    remote_src: true
+    mode: "0644"
+  when: demo_cell_kit != ''
+
+# A cell started with an earlier kit that is gone runs the playbook, which is slower and right.
+- name: The kits of earlier releases are removed
+  ansible.builtin.command: find "{{ demo_state }}/kits" -name '*.tgz' -not -name "{{ demo_cell_kit }}.tgz" -delete
+  changed_when: false
+  when: demo_cell_kit != ''
+
 - name: The script a host is started with, where gusto cloud may read it
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../user-data.sh"

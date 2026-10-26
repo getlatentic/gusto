@@ -32,6 +32,7 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto host`](#gusto-host): Run a host for organizations' servers, for a gusto cloud
 - [`gusto operator`](#gusto-operator): Serve the operator's page for a gusto cloud, on loopback
 - [`gusto scan`](#gusto-scan): Ask the runner image which agents it carries
+- [`gusto param`](#gusto-param): Print a parameter from AWS Parameter Store, decrypted
 - [`gusto doctor`](#gusto-doctor): Check this computer can run a task, before one is sent
 
 **Account**
@@ -935,6 +936,30 @@ Environment:
 - `GUSTO_IMAGE`: the runner image tasks run in
 
 See also: `gusto agents`, `gusto doctor`
+
+## `gusto param`
+
+Print a parameter from AWS Parameter Store, decrypted
+
+```text
+gusto param <name>
+```
+
+Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud reads its secrets with it while it starts.
+
+Arguments:
+
+- `<name>`: the parameter's name, as /gusto/poc/cell-secret
+
+Flags:
+
+- `-h, --help`: show this help
+
+Examples:
+
+```sh
+gusto param /gusto/poc/cell-secret
+```
 
 ## `gusto doctor`
 

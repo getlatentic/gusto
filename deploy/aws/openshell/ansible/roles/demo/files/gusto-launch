@@ -1,0 +1,11 @@
+#!/bin/bash
+# Runs the script this host was launched with, on every start, as cloud-init would on the first: the image of a cell has
+# cloud-init turned off, whose Python cost a host seconds of a disk still being fetched. A kept host is given today's script
+# before it is started again. A host that still runs cloud-init leaves it to cloud-init.
+set -euo pipefail
+[ -e /etc/cloud/cloud-init.disabled ] || exit 0
+imds=http://169.254.169.254/latest
+token=$(curl -fsS -m 5 --retry 5 -X PUT "$imds/api/token" -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
+script=$(mktemp /run/gusto-launch.XXXXXX)
+curl -fsS -m 10 --retry 5 -H "X-aws-ec2-metadata-token: $token" "$imds/user-data" -o "$script"
+exec bash "$script"

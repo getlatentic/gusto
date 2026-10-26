@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/landing-theme.js static/og.png
+//go:embed templates/*.html static/cloud.css static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/landing-theme.js static/demo-warm.js static/og.png
 var files embed.FS
 
 // Config is what a front door is made from.
@@ -45,6 +45,9 @@ type Config struct {
 	Notify string
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
+	// Prewarm, when it is set, starts a cell for a visitor who has begun the demo form, so it is up by the time they send it.
+	// It must not block, and must bound what it starts itself.
+	Prewarm func()
 }
 
 // Server is the front door's pages.
@@ -152,6 +155,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /demo", s.demoForm)
 	mux.HandleFunc("POST /demo", s.startDemo)
+	mux.HandleFunc("POST /demo/warm", s.warmDemo)
 	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
 	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))
 	mux.HandleFunc("GET /demo/end", s.guard(s.stopDemoPage))
@@ -166,6 +170,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/landing-theme.js", cached(http.FileServerFS(files)))
+	mux.Handle("GET /static/demo-warm.js", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)

@@ -144,7 +144,7 @@ locals {
     cell         = { type = var.cell_instance_type, nested = true, project = "gusto-poc" }
     # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a demo's
     # hosts never reach them, and it never reaches theirs.
-    cell-live = { type = var.cell_instance_type, nested = true, project = "gusto-live" }
+    cell-live = { type = var.cell_live_instance_type, nested = true, project = "gusto-live" }
   }
 }
 
@@ -273,6 +273,14 @@ resource "aws_iam_role_policy" "live" {
         Sid       = "StopOnlyWhatItStarted"
         Effect    = "Allow"
         Action    = "ec2:TerminateInstances"
+        Resource  = "${local.ec2_arn}:instance/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
+      },
+      {
+        # A kept cell is stopped when idle, and given today's start-up script before it is started again.
+        Sid       = "KeepOnlyWhatItStarted"
+        Effect    = "Allow"
+        Action    = ["ec2:StartInstances", "ec2:StopInstances", "ec2:ModifyInstanceAttribute"]
         Resource  = "${local.ec2_arn}:instance/*"
         Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
       },

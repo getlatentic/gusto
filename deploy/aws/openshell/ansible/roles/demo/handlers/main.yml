@@ -21,4 +21,4 @@
     name: gusto-cell
     state: restarted
     daemon_reload: true
-  when: not (demo_bake | bool)
+  when: not (demo_bake | bool) and demo_root == ''
