@@ -20,7 +20,7 @@
         path: "{{ demo_root }}/{{ item }}"
         state: directory
         mode: "0755"
-      loop: [etc/gusto, etc/systemd/system, usr/local/bin, usr/local/lib/gusto]
+      loop: [etc/gusto, etc/systemd/system, usr/local/bin, usr/local/sbin, usr/local/lib/gusto]
     - name: What every host has
       ansible.builtin.include_role:
         name: demo
