@@ -34,7 +34,7 @@
 </aside>{{end}}
 
 {{define "side-chats"}}<div class="flex min-h-0 flex-1 flex-col gap-2">
-  <div class="flex gap-0.5" role="tablist" aria-label="Which conversations" data-side-tabs>
+  <div class="-mx-1 flex gap-0.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Which conversations" data-side-tabs>
     {{template "side-tab" (dict "Tab" "home" "Name" "Home")}}{{template "side-tab" (dict "Tab" "recent" "Name" "Recent")}}{{template "side-tab" (dict "Tab" "unread" "Name" "Unread" "Count" .Unread)}}{{template "side-tab" (dict "Tab" "me" "Name" "@me" "Count" .ForYou)}}
   </div>
   <nav class="chats -mx-1 grid [&[hidden]]:hidden min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto px-1" aria-label="Conversations" role="tabpanel" data-side-panel="home">
@@ -61,14 +61,14 @@
   </nav>
 </div>{{end}}
 
-{{define "side-tab"}}<button class="flex h-7 cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-2 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="{{if eq .Tab "home"}}true{{else}}false{{end}}" data-side-tab="{{.Tab}}">{{.Name}}{{with .Count}}<span class="text-xs text-subtle tabular-nums">{{.}}</span>{{end}}</button>{{end}}
+{{define "side-tab"}}<button class="flex h-7 flex-none cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-2 @max-[56rem]:px-1.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="{{if eq .Tab "home"}}true{{else}}false{{end}}" data-side-tab="{{.Tab}}">{{.Name}}{{with .Count}}<span class="text-xs text-subtle tabular-nums">{{.}}</span>{{end}}</button>{{end}}
 
 {{define "side-row"}}{{with .Chat}}<a class="flex h-[2.125rem] items-center gap-2 overflow-hidden rounded-sm px-3 text-sm font-normal text-muted no-underline hover:bg-sunken hover:text-ink aria-[current]:bg-surface aria-[current]:font-medium aria-[current]:text-ink aria-[current]:shadow-1 [&_svg.i]:size-5 [&_svg.i]:text-subtle" href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}">{{if .Harness}}<span class="grid size-5 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-3.5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "xs")}}</span>{{else if .Room}}{{template "icon-users"}}{{else}}{{template "icon-chat"}}{{end}}<span class="min-w-0 flex-1 truncate{{if .Unread.Count}} font-medium text-ink{{end}}">{{.Name}}</span>{{if .Unread.Count}}<span class="grid h-4 min-w-4 flex-none place-items-center rounded-full bg-solid px-1 text-[0.625rem] font-semibold text-on-solid tabular-nums">{{.Unread.Count}}</span>{{else}}<span class="flex-none text-xs text-subtle">{{ago .When}}</span>{{end}}</a>{{end}}{{end}}
 
 {{define "side-groups"}}{{range .Groups}}
   <section class="proj group/proj relative min-w-0">
     <details{{if .Open}} open{{end}}>
-      <summary class="flex h-8 cursor-pointer list-none items-center gap-2 rounded-sm pr-8 pl-3 text-sm font-medium text-ink hover:bg-sunken [&::-webkit-details-marker]:hidden [&_svg.i]:size-5 [&_svg.i]:text-subtle" title="{{.Name}} ({{.Runs}})">{{template "icon-folder"}}<span class="min-w-0 flex-1 truncate">{{.Name}}</span></summary>
+      <summary class="flex min-h-8 cursor-pointer list-none items-center gap-2 rounded-sm py-1 pr-8 pl-3 text-sm font-medium text-ink hover:bg-sunken [&::-webkit-details-marker]:hidden [&_svg.i]:size-5 [&_svg.i]:flex-none [&_svg.i]:text-subtle" title="{{.Name}}{{with .Detail}} · {{.}}{{end}} ({{.Runs}})">{{template "icon-folder"}}<span class="grid min-w-0 flex-1"><span class="truncate">{{.Name}}</span>{{with .Detail}}<span class="truncate text-xs leading-tight font-normal text-subtle">{{.}}</span>{{end}}</span></summary>
       <ol class="mt-0.5 mb-2 grid list-none grid-cols-[minmax(0,1fr)] gap-px p-0">
         {{range .Chats}}<li><a class="flex h-[2.125rem] items-center gap-2 overflow-hidden rounded-sm pr-3 pl-9 text-sm font-normal text-muted no-underline hover:bg-sunken hover:text-ink aria-[current]:bg-surface aria-[current]:font-medium aria-[current]:text-ink aria-[current]:shadow-1 forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText]" href="{{.Where}}"{{if eq .Where $.Here}} aria-current="page"{{end}} title="{{.Name}}"><span class="min-w-0 flex-1 truncate">{{.Name}}</span><span class="flex-none text-xs font-normal text-subtle">{{ago .When}}</span></a></li>{{end}}
       </ol>

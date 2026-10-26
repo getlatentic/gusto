@@ -10,16 +10,16 @@
 {{template "head" .}}
 
 <section class="talk fresh grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
-  <div class="grid min-h-0 grid-cols-[minmax(0,1fr)] content-center justify-items-center gap-6 overflow-y-auto p-6">
-    <h1 class="text-center">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
+  <div class="grid min-h-0 grid-cols-[minmax(0,1fr)] content-center justify-items-center gap-6 overflow-y-auto p-6 @max-[40rem]:flex @max-[40rem]:flex-col @max-[40rem]:items-center @max-[40rem]:gap-3 @max-[40rem]:p-3 @max-[40rem]:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <h1 class="text-center @max-[40rem]:my-auto">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
     {{if .Refused}}<p class="{{template "ui-notice-chat"}}" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{range .Lacking}}<p class="{{template "ui-notice-chat"}}" role="status">{{.}}</p>{{end}}
     {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="text-muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
-    <div class="composer w-full max-w-[46rem]">
-    <form method="post" action="/chat">
+    <div class="composer flex w-full max-w-[46rem] flex-col">
+    <form class="order-2" method="post" action="/chat">
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
-        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
+        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none @max-[40rem]:text-[1rem]" name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
         <div class="tools flex items-center gap-1">
           <div class="folderpick relative flex min-w-0 items-center" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
             <input type="hidden" name="at">
@@ -40,18 +40,18 @@
         </div>
       </div>
     </form>
-    <div class="mx-auto mt-6 flex max-w-[45rem] flex-wrap justify-center gap-2" id="chat-starters">
-      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Draft a one-page policy for how we use AI at work">Draft a policy for using AI at work</button>
-      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
-      <button type="button" class="starter h-9 cursor-pointer rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Research three competitors and write me a short brief">Research competitors and write a brief</button>
+    <div class="order-3 mx-auto mt-6 flex max-w-[45rem] flex-wrap justify-center gap-2 @max-[40rem]:order-1 @max-[40rem]:mx-0 @max-[40rem]:mt-0 @max-[40rem]:mb-3 @max-[40rem]:w-full @max-[40rem]:flex-nowrap @max-[40rem]:justify-start @max-[40rem]:overflow-x-auto @max-[40rem]:[scrollbar-width:none] @max-[40rem]:[&::-webkit-scrollbar]:hidden" id="chat-starters">
+      <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Draft a one-page policy for how we use AI at work">Draft a policy for using AI at work</button>
+      <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
+      <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Research three competitors and write me a short brief">Research competitors and write a brief</button>
     </div>
-    <form class="mt-3 flex items-center gap-2 rounded-md border border-line-strong bg-surface p-3 shadow-1" id="save-preset" method="post" action="/presets" hidden>
+    <form class="order-4 mt-3 flex items-center gap-2 rounded-md border border-line-strong bg-surface p-3 shadow-1" id="save-preset" method="post" action="/presets" hidden>
       <input class="h-9 min-w-0 flex-1 input" name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
       <input type="hidden" name="harness"><input type="hidden" name="model"><input type="hidden" name="role">
       <button type="submit" class="h-9 {{template "ui-btn"}}">Save preset</button>
       <button type="button" class="h-9 {{template "ui-btn-quiet"}}" data-cancel>Cancel</button>
     </form>
-    {{with .Wall}}<div class="mx-auto mt-3 max-w-[46rem] text-center text-xs text-muted" title="{{.Words}}">
+    {{with .Wall}}<div class="order-5 mx-auto mt-3 max-w-[46rem] text-center text-xs text-muted" title="{{.Words}}">
       <span>Agents run in {{.Short}}.</span>
       {{if .Missing}}<details class="group mt-2"><summary class="inline-flex cursor-pointer list-none items-center gap-1 hover:text-ink [&::-webkit-details-marker]:hidden">Why not stronger?<span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5">{{template "icon-chevron"}}</span></summary>{{range .Missing}}<p class="mt-2">{{.}}.</p>{{end}}</details>{{end}}
     </div>{{end}}

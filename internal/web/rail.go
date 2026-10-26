@@ -15,11 +15,13 @@ const (
 
 // railGroup is one project in the side list: an agent's folder, with its latest conversations under it.
 type railGroup struct {
-	ID    string
-	Name  string
-	Runs  string
-	Chats []railChat
-	Open  bool
+	ID   string
+	Name string
+	// Detail is the day and time the project was started, when another project has its name, so the two can be told apart.
+	Detail string
+	Runs   string
+	Chats  []railChat
+	Open   bool
 }
 
 // railChat is one conversation in the side list.
@@ -63,14 +65,14 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 		}
 	}
 	used := s.lastUsed(r)
-	names := projectNames(used)
+	started := startedWhereNamedAlike(used)
 	var groups []railGroup
 	for _, each := range used {
 		chats := s.railChats(each.ID)
 		if len(chats) == 0 {
 			continue
 		}
-		groups = append(groups, railGroup{ID: each.ID, Name: names[each.ID], Runs: each.Runs(), Chats: chats})
+		groups = append(groups, railGroup{ID: each.ID, Name: each.Name, Detail: started[each.ID], Runs: each.Runs(), Chats: chats})
 	}
 	for i := range groups {
 		groups[i].Open = i == 0 || holds(groups[i], here)
@@ -95,18 +97,29 @@ func holds(group railGroup, here string) bool {
 	return false
 }
 
-// projectNames is what each project is called where there are several: a name that two projects share is followed by the day each was
-// started, so they can be told apart.
-func projectNames(used []yours) map[string]string {
+// startedWhereNamedAlike is when each project was started, for the projects that share a name with another and so need telling apart.
+func startedWhereNamedAlike(used []yours) map[string]string {
 	count := map[string]int{}
 	for _, each := range used {
 		count[each.Name]++
 	}
+	started := map[string]string{}
+	for _, each := range used {
+		if count[each.Name] > 1 {
+			started[each.ID] = time.Unix(each.Started, 0).Format("2 Jan 15:04")
+		}
+	}
+	return started
+}
+
+// projectNames is what each project is called in one line: a name that two projects share is followed by when each was started.
+func projectNames(used []yours) map[string]string {
+	started := startedWhereNamedAlike(used)
 	names := make(map[string]string, len(used))
 	for _, each := range used {
 		names[each.ID] = each.Name
-		if count[each.Name] > 1 {
-			names[each.ID] += " · " + time.Unix(each.Started, 0).Format("2 Jan 15:04")
+		if when := started[each.ID]; when != "" {
+			names[each.ID] += " · " + when
 		}
 	}
 	return names
