@@ -13,6 +13,8 @@ fi
 mkfs.ext4 -q -F -E lazy_itable_init=1,lazy_journal_init=1 "$(readlink -f "$disk")"
 mkdir -p "$scratch"
 mount -o noatime "$disk" "$scratch"
+# The gateway writes beside what is mounted here, so the folder that holds it is the gateway's user's, as it is when the gateway made it.
+install -d -o {{ openshell_user }} -g {{ openshell_user }} -m 0755 "$state" "$state/vm-driver"
 for dir in vm-driver/sandboxes vm-driver/rootfs-tar-staging gateway; do
   mkdir -p "$state/$dir" "$scratch/$dir"
   chown {{ openshell_user }}:{{ openshell_user }} "$scratch/$dir"
