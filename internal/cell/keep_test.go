@@ -102,10 +102,16 @@ func TestAKeptHostIsTaggedStartedWithTodaysScriptEncodedAndStopped(t *testing.T)
 			}
 			return nil, nil
 		}}
-	if _, err := e.Launch(true); err != nil || !strings.Contains(ran[0], "{Key=kept,Value=on}") || strings.Contains(ran[0], "block-device-mappings") {
+	if _, err := e.Launch(false); err != nil || strings.Contains(ran[0], "shutdown-behavior") {
+		t.Errorf("a host that is not kept is left to the template, which removes it when it powers off: %s %v", ran[0], err)
+	}
+	ran = nil
+	if _, err := e.Launch(true); err != nil || !strings.Contains(ran[0], "{Key=kept,Value=on}") || strings.Contains(ran[0], "block-device-mappings") ||
+		!strings.Contains(ran[0], "--instance-initiated-shutdown-behavior stop") {
 		t.Errorf("a kept host is tagged so and is given the template's disk, which a new disk needs to be read quickly: %s %v", ran[0], err)
 	}
-	if err := e.Start("i-0aaa1111"); err != nil || value != "S0lUPWFiYwo=" || !strings.HasPrefix(ran[2], "ec2 start-instances --instance-ids i-0aaa1111") {
+	if err := e.Start("i-0aaa1111"); err != nil || value != "S0lUPWFiYwo=" || !strings.HasPrefix(ran[3], "ec2 start-instances --instance-ids i-0aaa1111") ||
+		!strings.Contains(ran[2], "--instance-id i-0aaa1111 --instance-initiated-shutdown-behavior stop") {
 		t.Errorf("the script is not put in encoded before the host starts: %q %v %v", value, ran, err)
 	}
 	ran = nil
@@ -151,5 +157,76 @@ func TestADiskAlreadyAtTheBaselineIsLeftAloneAndADiskThatCannotBeLoweredDoesNotF
 	throughput, modify, ran = "500", errors.New("a disk may be changed once every six hours"), nil
 	if err := e.Stop("i-0aaa1111"); err != nil || !slices.Contains(ran, "modify-volume") {
 		t.Errorf("a stop that could not lower the disk still stops the host: %v %v", ran, err)
+	}
+}
+
+func TestAStoppedHostThatIsNotKeptIsRemovedAndNeverStartedAsTheKeptOne(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.stopped = []Instance{{ID: "i-0aaa1111", Stopped: true}, {ID: "i-0bbb2222", Kept: true, Stopped: true}}
+	r.waiting = 1
+	r.tick(0)
+	if !slices.Equal(r.hosts.terminated, []string{"i-0aaa1111"}) {
+		t.Errorf("the stopped host that is not kept is removed: %v", r.hosts.terminated)
+	}
+	if r.hosts.started != 1 || r.hosts.launched != 0 || r.hosts.hosts[0].ID != "i-0bbb2222" {
+		t.Errorf("the kept host is the one started: started %d, launched %d, %+v", r.hosts.started, r.hosts.launched, r.hosts.hosts)
+	}
+}
+
+func TestAHostThatIsNotKeptIsNotStartedWhenNoKeptHostIsStopped(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.stopped = []Instance{{ID: "i-0ccc3333", Stopped: true}}
+	r.waiting = 1
+	r.tick(0)
+	if r.hosts.started != 0 || r.hosts.launched != 1 || !r.hosts.hosts[0].Kept {
+		t.Errorf("a new kept host is made and nothing not kept is started: started %d, %+v", r.hosts.started, r.hosts.hosts)
+	}
+}
+
+func TestKeptHostsBeyondKeepAreRemovedAndTheOneKeptIsLoweredOnceAfterItStoppedItself(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.stopped = []Instance{{ID: "i-0bbb2222", Kept: true, Stopped: true}, {ID: "i-0aaa1111", Kept: true, Stopped: true}}
+	r.tick(0)
+	r.tick(time.Minute)
+	if !slices.Equal(r.hosts.terminated, []string{"i-0bbb2222"}) || !slices.Equal(r.hosts.lowered, []string{"i-0aaa1111"}) {
+		t.Errorf("one is kept and lowered once, the other removed: terminated %v, lowered %v", r.hosts.terminated, r.hosts.lowered)
+	}
+}
+
+func TestAKeptHostStillStoppingIsLeftAloneByTheSweep(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 0
+	r.hosts.stopped = []Instance{{ID: "i-0ccc3333", Kept: true, Stopped: false}}
+	r.tick(0)
+	if len(r.hosts.terminated) != 0 || len(r.hosts.lowered) != 0 {
+		t.Errorf("%v %v", r.hosts.terminated, r.hosts.lowered)
+	}
+}
+
+func TestARunningKeptHostTakesTheKeptPlaceSoAStoppedKeptOneIsRemoved(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
+	r.hosts.stopped = []Instance{{ID: "i-0bbb2222", Kept: true, Stopped: true}}
+	r.tick(0)
+	if !slices.Equal(r.hosts.terminated, []string{"i-0bbb2222"}) {
+		t.Errorf("%v", r.hosts.terminated)
+	}
+}
+
+func TestAKeptHostThatWasJustStoppedIsNotSweptAway(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
+	r.cell("i-0aaa1111", false)
+	r.tick(time.Minute)
+	r.tick(11 * time.Minute)
+	r.tick(time.Minute)
+	r.tick(time.Minute)
+	if len(r.hosts.terminated) != 0 || len(r.hosts.stopped) != 1 {
+		t.Errorf("the kept host stays stopped: terminated %v, stopped %+v", r.hosts.terminated, r.hosts.stopped)
 	}
 }
