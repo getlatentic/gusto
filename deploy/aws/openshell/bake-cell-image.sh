@@ -39,7 +39,8 @@ if [ "$existing" != None ] && [ -z "${FORCE:-}" ]; then
   exit 0
 fi
 
-bucket="$(./demo-store.sh)"
+# CI names the bucket; making it and closing it to the public is for whoever sets the cloud up, which CI is not.
+bucket="${BUCKET:-$(./demo-store.sh)}"
 [[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 efs="$(aws efs describe-file-systems --query 'FileSystems[0].FileSystemId' --output text)"
 base="$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query Parameter.Value --output text)"
@@ -58,7 +59,7 @@ trap cleanup EXIT
 started="$(date +%s)"
 host="$(aws ec2 run-instances --launch-template LaunchTemplateName=gusto-poc-demo-host-cell-live,Version='$Latest' --image-id "$base" \
   --user-data "file://$userdata" \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" "ResourceType=volume,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" \
   --query 'Instances[0].InstanceId' --output text)"
 echo "the host to make the image from is $host"
 

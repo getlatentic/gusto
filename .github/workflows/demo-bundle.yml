@@ -34,7 +34,8 @@ env:
 jobs:
   bundle:
     runs-on: [self-hosted, gusto]
-    timeout-minutes: 60
+    # Making the cell image takes up to half an hour, and upgrading the front door up to a quarter.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -72,6 +73,13 @@ jobs:
           aws s3 cp out/bundle.tgz.sha256 "$prefix/bundle.tgz.sha256" --only-show-errors
           printf '%s' "$GITHUB_SHA" | aws s3 cp - "s3://$BUCKET/releases/latest" --only-show-errors
           echo "release $GITHUB_SHA is the latest"
+      - name: The cell image, when what it is made from changed
+        # A cell starts from an image with the runner image already prepared, named by the key of what went into it. When the key
+        # moved, a cell still starts, from a full install, and a visitor waits minutes for their demo, so the image is made here.
+        # The script does nothing when an image of this key is there.
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+        run: deploy/aws/openshell/bake-cell-image.sh
       - name: gusto cloud, which stays up, brought to this release
         run: |
           id="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto-live Name=tag:name,Values=front-door Name=instance-state-name,Values=running \

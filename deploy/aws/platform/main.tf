@@ -416,6 +416,61 @@ resource "aws_iam_role" "ci" {
   })
 }
 
+# Making a cell's image when what it is made from changes, as bake-cell-image.sh does: a host from the live cell template, an image of
+# it once it is stopped, the parameter the template reads pointed at the image, and the image before last removed. Each action is
+# held to what is tagged for the project, and the parameter to the one the cell template reads.
+resource "aws_iam_role_policy" "ci_bake" {
+  name = "${local.ci}-makes-the-cell-image"
+  role = aws_iam_role.ci.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "StartABakeHostFromTheLiveCellTemplate"
+        Effect = "Allow"
+        Action = "ec2:RunInstances"
+        Resource = [
+          "arn:aws:ec2:${var.region}:${local.account}:launch-template/${local.cell_live.id}",
+          "arn:aws:ec2:${var.region}:${local.account}:snapshot/*",
+          "arn:aws:ec2:${var.region}::snapshot/*",
+        ]
+      },
+      {
+        Sid       = "StopAndImageOnlyTaggedHosts"
+        Effect    = "Allow"
+        Action    = ["ec2:StopInstances", "ec2:CreateImage"]
+        Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+      },
+      {
+        Sid      = "TheImageAndItsSnapshot"
+        Effect   = "Allow"
+        Action   = "ec2:CreateImage"
+        Resource = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
+      },
+      { Sid = "TagTheImage", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "CreateImage" } } },
+      {
+        Sid       = "RemoveOnlyTaggedImages"
+        Effect    = "Allow"
+        Action    = ["ec2:DeregisterImage", "ec2:DeleteSnapshot"]
+        Resource  = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+      },
+      { Sid = "LookAtImagesAndTheFileSystem", Effect = "Allow", Action = ["ec2:DescribeImages", "elasticfilesystem:DescribeFileSystems"], Resource = "*" },
+      {
+        Sid    = "ReadTheUbuntuImageAndTheCellImage"
+        Effect = "Allow"
+        Action = "ssm:GetParameter"
+        Resource = [
+          "arn:aws:ssm:${var.region}::parameter/aws/service/canonical/ubuntu/*",
+          local.ssm_path,
+        ]
+      },
+      { Sid = "PointTheCellTemplateAtTheImage", Effect = "Allow", Action = "ssm:PutParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/poc/cell-ami" },
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "ci" {
   name = "${local.ci}-launches-and-removes-demo-hosts"
   role = aws_iam_role.ci.id
