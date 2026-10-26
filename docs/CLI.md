@@ -945,7 +945,7 @@ Print a parameter from AWS Parameter Store, decrypted
 gusto param <name>
 ```
 
-Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud reads its secrets with it while it starts.
+Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud reads its secrets with it while it starts. A read that fails or is slow is tried again, up to three times, and a parameter that is not there, or that this host may not read, is answered at once.
 
 Arguments:
 
