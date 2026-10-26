@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -583,5 +584,30 @@ func TestAHostMadeFromTheImageWarmsItsDiskOnceForEachInstance(t *testing.T) {
 		if !recorded {
 			t.Fatalf("%s did not record that its disk was read", c.instance)
 		}
+	}
+}
+
+// EC2 refuses user-data over 16,384 bytes, before it is encoded, and a host that is launched with more is not launched at all. The
+// script is filled in with the longest each setting can be, and must leave room under the limit for what is added to it.
+func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *testing.T) {
+	const limit, room = 16384, 2048
+	text, err := os.ReadFile(script)
+	if err != nil {
+		t.Fatal(err)
+	}
+	longest := map[string]string{
+		"RELEASE": strings.Repeat("a", 40), "BUCKET": strings.Repeat("b", 63), "REGION": "ap-southeast-2", "LEASE_MINUTES": "1440",
+		"MAX_HOURS": "168", "ROLE": "orchestrator", "RUN": strings.Repeat("r", 63), "EFS": "fs-" + strings.Repeat("0", 17), "LIVE": "off",
+		"KIT": strings.Repeat("c", 64), "BAKE_KEY": strings.Repeat("d", 16),
+	}
+	filled := string(text)
+	for name, value := range longest {
+		filled = strings.ReplaceAll(filled, "@"+name+"@", value)
+	}
+	if blank := regexp.MustCompile(`@[A-Z_]+@`).FindString(filled); blank != "" {
+		t.Fatalf("the script has %s, which this test does not know the longest of", blank)
+	}
+	if len(filled) > limit-room {
+		t.Errorf("the script is %d bytes filled in, and EC2's limit is %d with %d left for what is added: move something into the bundle", len(filled), limit, room)
 	}
 }
