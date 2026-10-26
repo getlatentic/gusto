@@ -112,6 +112,15 @@ func (s *Store) Workspace(id string) string { return filepath.Join(s.Dir(id), "w
 // agent tells them apart by the name each thread remembers.
 func (s *Store) State(id string) string { return filepath.Join(s.Dir(id), "state") }
 
+// AgentState is where one of a room's agents keeps its own memory. A room's agents run at the same time, so each has a folder
+// of its own, and only that agent's turns, which go one at a time, write to it.
+func (s *Store) AgentState(id, agent string) string {
+	return filepath.Join(s.Dir(id), "agents", agent, "state")
+}
+
+// Merges is where a room keeps the files it is merging into its workspace, on the same file system as the workspace.
+func (s *Store) Merges(id string) string { return filepath.Join(s.Dir(id), "merge") }
+
 func (s *Store) threadsDir(id string) string { return filepath.Join(s.Dir(id), "threads") }
 
 // Start makes an instance, and fills its workspace from a repository when one

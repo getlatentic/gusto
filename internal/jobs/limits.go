@@ -38,7 +38,7 @@ type Reason int
 const (
 	// Starting is a task nothing holds back: a free worker takes it next.
 	Starting Reason = iota
-	// AgentBusy is a task for an agent that is still on another message.
+	// AgentBusy is a task for an agent, or a conversation, that is still on another message.
 	AgentBusy
 	// PersonAtLimit is a task whose person already runs as many as they may.
 	PersonAtLimit
@@ -66,20 +66,20 @@ type Wait struct {
 // running is what is running now, counted for the limits.
 type running struct {
 	total    int
-	agents   map[string]bool
+	lanes    map[string]bool
 	byPerson map[string]int
 	byTeam   map[string]int
 }
 
 func (i *Index) running() running {
-	now := running{agents: map[string]bool{}, byPerson: map[string]int{}, byTeam: map[string]int{}}
+	now := running{lanes: map[string]bool{}, byPerson: map[string]int{}, byTeam: map[string]int{}}
 	for _, record := range i.records {
 		if record.State != Running {
 			continue
 		}
 		now.total++
-		if record.Instance != "" {
-			now.agents[record.Instance] = true
+		if lane := record.Lane(); lane != "" {
+			now.lanes[lane] = true
 		}
 		now.byPerson[record.Asked]++
 		if record.Team != "" {
@@ -89,12 +89,11 @@ func (i *Index) running() running {
 	return now
 }
 
-// hold is why the record cannot start now, and whether anything does. An
-// agent's threads share one workspace, so a turn waits while another turn of
-// the same agent runs; a job that is not a turn has no agent and waits for none.
+// hold is why the record cannot start now, and whether anything does. A turn waits while another turn of its lane runs; a job
+// that is not a turn has no lane and waits for none.
 func (i *Index) hold(record Record, now running) (Wait, bool) {
 	switch {
-	case record.Instance != "" && now.agents[record.Instance]:
+	case record.Lane() != "" && now.lanes[record.Lane()]:
 		return Wait{Reason: AgentBusy}, true
 	case i.limits.Person > 0 && record.Asked != "" && now.byPerson[record.Asked] >= i.limits.Person:
 		return Wait{Reason: PersonAtLimit, Running: now.byPerson[record.Asked], Limit: i.limits.Person, Who: record.Asked}, true

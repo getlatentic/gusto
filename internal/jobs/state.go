@@ -42,9 +42,7 @@ type Record struct {
 	Repo    string `json:"repo"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
-	// Instance and Thread are set when this task is a turn in a conversation.
-	// The instance is what serializes them: its threads share one workspace, so
-	// two of its turns must never run at once.
+	// Instance and Thread are set when this task is a turn in a conversation. See Lane for which turns wait for each other.
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	// Agent is the room agent that took this turn, HandedBy the agent whose reply asked for it, and Hops how many agents handed
@@ -69,6 +67,19 @@ type Record struct {
 	Queued  int64 `json:"queuedAt"`
 	Started int64 `json:"startedAt,omitempty"`
 	Ended   int64 `json:"endedAt,omitempty"`
+}
+
+// Lane is what keeps two turns from running at once. A room's agent keeps one conversation and one state, so its own turns go
+// one at a time while the room's other agents run beside it, each on a working copy of the room's folder. A turn in any other
+// conversation shares its instance's one workspace, so the instance is its lane. A job that is not a turn has none.
+func (r Record) Lane() string {
+	switch {
+	case r.Instance == "":
+		return ""
+	case r.Agent != "":
+		return r.Instance + "/" + r.Agent
+	}
+	return r.Instance
 }
 
 func (r Record) Dir(root string) job.Dir { return job.Dir(root + "/" + r.ID) }

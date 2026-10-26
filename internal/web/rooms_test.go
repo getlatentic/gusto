@@ -112,7 +112,9 @@ func twoHarnesses() []catalog.Entry {
 // aRoom is a room alice made, with the agents named, each on the harness after its name.
 func aRoom(t *testing.T, work *roomWork, agents ...[2]string) (*site, string, string) {
 	t.Helper()
-	testWork = work.do
+	if testWork == nil {
+		testWork = work.do
+	}
 	t.Cleanup(func() { testWork = nil })
 	site := openOffering(t, twoHarnesses())
 	mine := site.as(t, alice)

@@ -51,6 +51,9 @@ func (s *Server) UseLive(opts roomlive.Options) error {
 	for _, record := range s.index.Recovered() {
 		s.announce.note(record)
 	}
+	for _, queued := range s.index.Waiting() {
+		s.announce.note(queued.Record)
+	}
 	return nil
 }
 
@@ -91,6 +94,8 @@ type announcer struct {
 	stopped bool
 	pending []pendingTurn
 	queued  map[pendingTurn]struct{}
+	// waiting is each room's turns that have not started.
+	waiting map[string][]pendingTurn
 }
 
 type pendingTurn struct{ room, thread, turn string }
@@ -98,29 +103,61 @@ type pendingTurn struct{ room, thread, turn string }
 func newAnnouncer(instances *instance.Store) *announcer {
 	a := &announcer{
 		instances: instances, wake: make(chan struct{}, 1), done: make(chan struct{}), ended: make(chan struct{}),
-		queued: map[pendingTurn]struct{}{},
+		queued: map[pendingTurn]struct{}{}, waiting: map[string][]pendingTurn{},
 	}
 	go a.run()
 	return a
 }
 
 // note queues the change of a job that is a turn in a conversation. A job that is only queued is announced by the store when it
-// is added to the conversation.
+// is added to the conversation, but is remembered, since the turns queued behind a job that starts or ends have a place in line
+// that changes, and are announced again.
 func (a *announcer) note(record jobs.Record) {
-	if record.Instance == "" || record.Thread == "" || record.State == jobs.Queued {
+	if record.Instance == "" || record.Thread == "" {
 		return
 	}
 	turn := pendingTurn{record.Instance, record.Thread, record.ID}
 	a.mu.Lock()
-	if _, waiting := a.queued[turn]; !waiting && !a.stopped {
-		a.queued[turn] = struct{}{}
-		a.pending = append(a.pending, turn)
+	defer a.mu.Unlock()
+	if a.stopped {
+		return
 	}
-	a.mu.Unlock()
+	if record.State == jobs.Queued {
+		a.waiting[turn.room] = append(a.waiting[turn.room], turn)
+		return
+	}
+	a.forget(turn)
+	a.push(turn)
+	for _, behind := range a.waiting[turn.room] {
+		a.push(behind)
+	}
 	select {
 	case a.wake <- struct{}{}:
 	default:
 	}
+}
+
+// push queues a turn's event unless one is already waiting. The lock is held.
+func (a *announcer) push(turn pendingTurn) {
+	if _, waiting := a.queued[turn]; !waiting {
+		a.queued[turn] = struct{}{}
+		a.pending = append(a.pending, turn)
+	}
+}
+
+// forget takes a turn out of those waiting to start. The lock is held.
+func (a *announcer) forget(turn pendingTurn) {
+	kept := a.waiting[turn.room][:0]
+	for _, each := range a.waiting[turn.room] {
+		if each != turn {
+			kept = append(kept, each)
+		}
+	}
+	if len(kept) == 0 {
+		delete(a.waiting, turn.room)
+		return
+	}
+	a.waiting[turn.room] = kept
 }
 
 func (a *announcer) run() {

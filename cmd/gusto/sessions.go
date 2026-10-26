@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -12,10 +13,29 @@ import (
 // it. It is copied back only when the turn got as far as writing its record, which is
 // after its workspace came out of the sandbox, so a turn that failed on the way leaves
 // the instance as it was.
+//
+// A room's agents run at the same time, so a turn of one works on a copy of the room's folder
+// that roomRuns makes and merges, and none of this applies to its workspace.
+
+// staying is what a turn needs that outlives its container: the conversation's
+// working directory, and the memory the agent keeps of the conversation.
+// An agent stores that memory in its own data directory rather than beside the
+// files it edits, which is why there are two. A room's agent works on a copy of
+// the room's folder that is in its task directory already, so only the memory is mounted.
+func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
+	if spec.Session == "" {
+		return nil
+	}
+	memory := sandbox.Mount{From: stateDir(instances, spec), To: "/root/.local/share"}
+	if isRoomTurn(spec) {
+		return []sandbox.Mount{memory}
+	}
+	return []sandbox.Mount{{From: instances.Workspace(spec.Session), To: "/job/workspace"}, memory}
+}
 
 // beforeTurn puts the instance's workspace where the task's is.
 func beforeTurn(instances *instance.Store, spec job.Spec, dir job.Dir) error {
-	if spec.Session == "" {
+	if spec.Session == "" || isRoomTurn(spec) {
 		return nil
 	}
 	return replaceTree(instances.Workspace(spec.Session), dir.Workspace())
@@ -31,8 +51,10 @@ func afterTurn(instances *instance.Store, spec job.Spec, dir job.Dir) error {
 	if err != nil {
 		return nil
 	}
-	if err := replaceTree(dir.Workspace(), instances.Workspace(spec.Session)); err != nil {
-		return err
+	if !isRoomTurn(spec) {
+		if err := replaceTree(dir.Workspace(), instances.Workspace(spec.Session)); err != nil {
+			return err
+		}
 	}
 	learnConversation(instances, spec, manifest.Session)
 	return nil

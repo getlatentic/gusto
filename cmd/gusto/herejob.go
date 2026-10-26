@@ -20,34 +20,40 @@ import (
 // instance's, and the agent is given a home of the task's own with the instance's state as its data, so a conversation works
 // the same way in both places.
 func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
+	rooms := newRoomRuns(instances)
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
 			return 0, err
 		}
-		if spec.Session != "" {
+		if spec.Session != "" && !isRoomTurn(spec) {
 			if err := pointAt(instances.Workspace(spec.Session), dir); err != nil {
 				return 0, err
 			}
 		}
-		home, data, err := jobHome(dir, instances, spec)
-		if err != nil {
-			return 0, err
-		}
-		env, err := way.hereEnv(dir, spec)
-		if err != nil {
-			return 0, err
-		}
-		env.Home, env.Data = home, data
-		env.Base = homedEnv(env.Base, home, data, sharedCache())
-		if os.Getenv("GUSTO_SANDBOX") == "process" {
-			if env.Wrap, err = behindProcessWall(dir, spec, home, data, way.proxyPort()); err != nil {
-				return 0, err
-			}
-		}
-		defer way.Done(dir)
-		return runner.InsideWith(ctx, dir, env)
+		return rooms.around(ctx, spec, dir, func() (int, error) { return runHere(ctx, way, instances, dir, spec) })
 	}
+}
+
+// runHere runs the agent of a task in this process, in its home and with its data.
+func runHere(ctx context.Context, way *WayOut, instances *instance.Store, dir job.Dir, spec job.Spec) (int, error) {
+	home, data, err := jobHome(dir, instances, spec)
+	if err != nil {
+		return 0, err
+	}
+	env, err := way.hereEnv(dir, spec)
+	if err != nil {
+		return 0, err
+	}
+	env.Home, env.Data = home, data
+	env.Base = homedEnv(env.Base, home, data, sharedCache())
+	if os.Getenv("GUSTO_SANDBOX") == "process" {
+		if env.Wrap, err = behindProcessWall(dir, spec, home, data, way.proxyPort()); err != nil {
+			return 0, err
+		}
+	}
+	defer way.Done(dir)
+	return runner.InsideWith(ctx, dir, env)
 }
 
 // jobHome is the home an agent run here is given, as a container's /root is: a folder of the task's own, holding each agent's
@@ -58,7 +64,7 @@ func jobHome(dir job.Dir, instances *instance.Store, spec job.Spec) (home, data 
 	}
 	data = filepath.Join(home, ".local", "share")
 	if spec.Session != "" {
-		if data, err = filepath.Abs(instances.State(spec.Session)); err != nil {
+		if data, err = filepath.Abs(stateDir(instances, spec)); err != nil {
 			return "", "", err
 		}
 	}

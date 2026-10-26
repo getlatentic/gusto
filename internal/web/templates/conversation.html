@@ -35,7 +35,7 @@
       <p class="sr-only" role="status" id="turn-news"></p>
       {{if and .Waiting (not .Instance.Room)}}
       <div class="grid gap-3" id="working">
-        <p class="m-0 flex items-center gap-3 text-sm font-medium text-ink"><span class="size-3.5 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span id="doing" role="status">Working</span><span class="ml-auto font-normal text-subtle tabular-nums" id="elapsed"></span></p>
+        <p class="m-0 flex items-center gap-3 text-sm font-medium text-ink"><span class="size-3.5 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span id="doing" role="status">{{with .Holding}}{{.}}{{else}}Working{{end}}</span><span class="ml-auto font-normal text-subtle tabular-nums" id="elapsed"></span></p>
         <ol class="grid gap-2 pl-2 empty:hidden" id="live" aria-label="What it has done so far"></ol>
       </div>
       {{end}}
@@ -195,7 +195,7 @@
       });
       var latest = lastStep >= 0 ? live.items[lastStep] : null;
       // The status is a live region, so it is written only when it says something new.
-      var now = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : "Working";
+      var now = latest ? latest.what + (live.steps > 1 ? " · step " + live.steps : "") : (live.holding || "Working");
       if (doing.textContent !== now) { doing.textContent = now; }
       if (nearEnd) { said.scrollTop = said.scrollHeight; }
     });
@@ -328,7 +328,9 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
 {{define "room-turn"}}{{with .T}}
 <article id="{{.ID}}">
   {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
-  {{if not (or .From .Echo)}}
+  {{if .Notice}}
+  <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}</span></p>
+  {{else if not (or .From .Echo)}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .SaidJoins}}
     <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.P.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" data-who="{{.Who}}" data-ours="bg-accent-wash text-accent-ink" data-theirs="bg-sunken text-muted" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
@@ -344,7 +346,7 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
     <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
     <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
-      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted"><span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
+      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working{{end}}<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
   </div>
   {{end}}

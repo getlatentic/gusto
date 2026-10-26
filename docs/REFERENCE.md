@@ -254,8 +254,9 @@ docker build -t gusto:dev \
 | `GUSTO_IMAGE` | the runner image `gusto run` starts |
 | `GUSTO_CONTAINER` | the container command: `docker` by default, `podman` for no daemon |
 | `GUSTO_JOB_MEMORY`, `GUSTO_JOB_CPUS` | memory and CPU for one task, `3g` and `1` by default |
-| `GUSTO_JOB_CONCURRENCY` | how many tasks run at once |
+| `GUSTO_JOB_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
 | `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
+| `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
 | `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person or team runs at once. A task over its limit waits. 0 or unset is no limit. [LIMITS.md](LIMITS.md) |
 | `GUSTO_SANDBOX` | how a task runs: unset is a container, `here` is this process, `openshell` is an OpenShell sandbox. [OPENSHELL.md](OPENSHELL.md) lists the `GUSTO_OPENSHELL*` settings |
 | `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway is on another machine. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` |
