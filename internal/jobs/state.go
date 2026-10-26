@@ -82,6 +82,10 @@ func (r Record) Lane() string {
 	return r.Instance
 }
 
+// InRoom says the turn is one of a room's agents. It works on a copy of the room's folder and keeps its own state, so it shares nothing
+// with the person's other turns, which is what the limit on how many one person runs at once is there to keep apart.
+func (r Record) InRoom() bool { return r.Agent != "" }
+
 func (r Record) Dir(root string) job.Dir { return job.Dir(root + "/" + r.ID) }
 
 func Now() int64 { return time.Now().Unix() }
