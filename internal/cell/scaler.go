@@ -24,10 +24,13 @@ type Launcher interface {
 	Terminate(id string) error
 	// Running is the hosts started for cells that are not gone or stopped.
 	Running() ([]Instance, error)
-	// Stopped is the kept hosts that are stopping or stopped; Start starts one, and Stop stops a kept host that is running.
+	// Stopped is the hosts that are stopping or stopped, whether kept or not; Start starts one, and Stop stops a kept host that is running.
 	Stopped() ([]Instance, error)
 	Start(id string) error
 	Stop(id string) error
+	// LowerDisk takes a stopped host's disk down to the baseline throughput, which is billed while it is stopped; it does nothing
+	// to a disk already there.
+	LowerDisk(id string) error
 }
 
 // Scaler keeps as many hosts as the organizations need: one is started when an organization waits for room and none is
@@ -60,6 +63,8 @@ type Scaler struct {
 	idleSince map[string]time.Time
 	firstSeen map[string]time.Time
 	retryAt   time.Time
+	// lowered is the stopped kept hosts whose disk is known to be at the baseline.
+	lowered map[string]bool
 
 	wakeOnce sync.Once
 	woken    chan struct{}
@@ -160,6 +165,7 @@ func (s *Scaler) Tick() {
 		slog.Error("the hosts could not be listed", "error", err)
 		return
 	}
+	s.sweep(hosts)
 	registered, err := Fresh(s.Pool.Dir, s.clock(), s.Pool.maxAge())
 	if err != nil {
 		slog.Error("the hosts could not be listed", "error", err)

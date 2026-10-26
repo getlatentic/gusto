@@ -19,6 +19,7 @@ type fakeHosts struct {
 	launched   int
 	started    int
 	terminated []string
+	lowered    []string
 	failLaunch error
 	next       string
 }
@@ -58,8 +59,14 @@ func (f *fakeHosts) Stop(id string) error {
 	return errors.New("not a running host")
 }
 
+func (f *fakeHosts) LowerDisk(id string) error {
+	f.lowered = append(f.lowered, id)
+	return nil
+}
+
 func (f *fakeHosts) Terminate(id string) error {
 	f.terminated = append(f.terminated, id)
+	f.stopped = slices.DeleteFunc(f.stopped, func(host Instance) bool { return host.ID == id })
 	for i, host := range f.hosts {
 		if host.ID == id {
 			f.hosts = append(f.hosts[:i], f.hosts[i+1:]...)
@@ -325,6 +332,7 @@ func (l launches) Running() ([]Instance, error) { return nil, nil }
 func (l launches) Stopped() ([]Instance, error) { return nil, nil }
 func (l launches) Start(string) error           { return nil }
 func (l launches) Stop(string) error            { return nil }
+func (l launches) LowerDisk(string) error       { return nil }
 
 func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
 	var waiting atomic.Int32

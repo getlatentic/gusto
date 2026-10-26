@@ -107,7 +107,9 @@ func (e *EC2) scriptFile(encode bool) (string, func(), error) {
 	return file.Name(), remove, nil
 }
 
-// Launch starts a new host. A kept one is stopped rather than removed when it is idle, and started again when a host is needed.
+// Launch starts a new host. A kept one is stopped rather than removed when it is idle, and started again when a host is needed. It
+// is stopped, and not removed, when it powers itself off too, which the launch template would have removed it for: only a kept
+// host is asked to stop, so the others are removed when they power off.
 func (e *EC2) Launch(kept bool) (string, error) {
 	path, remove, err := e.scriptFile(false)
 	if err != nil {
@@ -118,6 +120,7 @@ func (e *EC2) Launch(kept bool) (string, error) {
 	args := []string{"ec2", "run-instances", "--launch-template", "LaunchTemplateName=" + e.Template + ",Version=$Latest", "--user-data", "file://" + path}
 	if kept {
 		tags += ",{Key=kept,Value=on}"
+		args = append(args, "--instance-initiated-shutdown-behavior", "stop")
 	}
 	args = append(args, "--tag-specifications", "ResourceType=instance,Tags=["+tags+"]", "--query", "Instances[0].InstanceId", "--output", "text")
 	out, err := e.run(args...)
@@ -146,6 +149,10 @@ func (e *EC2) Start(id string) error {
 	if _, err := e.run("ec2", "modify-instance-attribute", "--instance-id", id, "--attribute", "userData", "--value", "file://"+path); err != nil {
 		return err
 	}
+	// A kept host made before hosts were asked to stop when they power off is removed by it unless this is set.
+	if _, err := e.run("ec2", "modify-instance-attribute", "--instance-id", id, "--instance-initiated-shutdown-behavior", "stop"); err != nil {
+		return err
+	}
 	_, err = e.run("ec2", "start-instances", "--instance-ids", id)
 	return err
 }
@@ -159,15 +166,18 @@ func (e *EC2) Stop(id string) error {
 	if _, err := e.run("ec2", "stop-instances", "--instance-ids", id); err != nil {
 		return err
 	}
-	if err := e.lowerDisk(id); err != nil {
+	if err := e.LowerDisk(id); err != nil {
 		slog.Warn("a stopped host's disk could not be lowered to the baseline", "host", id, "error", err)
 	}
 	return nil
 }
 
-// lowerDisk takes a host's root disk down to the baseline, once: a disk already there is left alone, since a disk may be changed only
+// LowerDisk takes a host's root disk down to the baseline, once: a disk already there is left alone, since a disk may be changed only
 // every six hours.
-func (e *EC2) lowerDisk(id string) error {
+func (e *EC2) LowerDisk(id string) error {
+	if !instanceID.MatchString(id) {
+		return fmt.Errorf("%q is not a host", id)
+	}
 	out, err := e.run("ec2", "describe-instances", "--instance-ids", id,
 		"--query", "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId", "--output", "text")
 	if err != nil {
@@ -199,7 +209,8 @@ func (e *EC2) Terminate(id string) error {
 // Running is the scaler's hosts that are starting or up. A started host's launch time is when it was last started.
 func (e *EC2) Running() ([]Instance, error) { return e.listed("pending,running") }
 
-// Stopped is the scaler's hosts that are stopping or stopped, which only kept hosts are.
+// Stopped is the scaler's hosts that are stopping or stopped. A kept host is stopped when idle; a host that is not kept is stopped
+// only when it powered itself off.
 func (e *EC2) Stopped() ([]Instance, error) { return e.listed("stopping,stopped") }
 
 func (e *EC2) listed(states string) ([]Instance, error) {
