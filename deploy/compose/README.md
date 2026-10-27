@@ -60,7 +60,15 @@ If the machine already runs nginx or Apache, run `deploy/install/server.sh --beh
 | Stream a turn | `proxy_buffering off;` and `proxy_read_timeout 1h;` | `flushpackets=on timeout=3600` on `ProxyPass` |
 | Pass a room's WebSocket (`/live`) | `proxy_set_header Upgrade $http_upgrade;` and `proxy_set_header Connection "upgrade";` with the 1 hour timeout above | `a2enmod proxy_wstunnel`, and `ProxyPass /live ws://127.0.0.1:8040/live` before the `ProxyPass /` |
 
+Put gusto's directives in a server block of its own, with its own `server_name`. The WebSocket and timeout settings then apply to gusto's name only, and the other sites on the same nginx or Apache keep theirs. gusto needs a port nothing else uses: `GUSTO_PUBLISH` sets it. A request for a name no server block claims goes to the first block, or to the one marked `default_server`, which is not gusto's unless you make it so.
+
 Any other TLS front (Cloudflare, a load balancer, Tailscale Serve) works the same way: send to `http://127.0.0.1:8040`, do not buffer, and pass the scheme and the client's address.
+
+When more than one proxy sits between the browser and gusto, each one must do these three things, or a room's page falls back to asking every few seconds:
+
+- Forward the `Upgrade` and `Connection: upgrade` headers on `/live`.
+- Keep a quiet connection open for longer than 30 seconds, the server's ping interval. A default of 60 seconds is enough; a shorter one is not.
+- Pass `Host` as the browser sent it. The server compares the `Origin` the browser sends with `Host` and refuses the socket when they differ.
 
 ## Give it a model
 
