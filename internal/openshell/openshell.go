@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/runtoken"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -29,8 +31,8 @@ import (
 type Config struct {
 	// Binary is the openshell command.
 	Binary string
-	// Confiner is the gusto in the sandbox that holds a confined task to its Landlock policy, the image's when empty.
-	Confiner string
+	// Gusto is the gusto in the sandbox that starts an agent with its forwarder and its Landlock policy, the image's when empty.
+	Gusto string
 	// Gateway is the registered gateway to use, or empty for the selected one.
 	Gateway string
 	// Image is what a sandbox is made from: an image reference the gateway can
@@ -103,6 +105,8 @@ type Sandbox struct {
 	home     string
 	temp     string
 	confined bool
+	// bound is a task that reaches its model through a forwarder of its own; see Bind.
+	bound bool
 	// sshConfig is the file that says how to reach the sandbox with ssh, and
 	// sshHost the name it gives it. Both are made when a conversation needs them.
 	sshConfig, sshHost string
@@ -270,13 +274,39 @@ func Name(id string) string { return nameOf(id) }
 // the token that stands in for a credential. Nothing of this process's
 // environment goes in.
 func (s *Sandbox) Env() harness.Env {
+	model := s.model
+	if s.bound {
+		// The agent is told its forwarder's address, which has no port until the forwarder starts; gusto boxed puts it in.
+		model = runtoken.Place + s.modelPath()
+	}
 	return harness.Env{
 		Boxed: true,
 		// The two variables a container is started with, so an agent that reads
 		// them finds them where it does there.
-		Base:     []string{"GUSTO_MODEL_URL=" + s.model, "GUSTO_MODEL_TOKEN=" + s.token},
-		ModelURL: s.model, ModelToken: s.token,
+		Base:     []string{"GUSTO_MODEL_URL=" + model, "GUSTO_MODEL_TOKEN=" + s.token},
+		ModelURL: model, ModelToken: s.token,
 	}
+}
+
+// Bind has the task reach its model through a forwarder of its own in the sandbox, which trades the task's secret for a run
+// token bound to a key it makes there (internal/runtoken). The task is given a secret by WayOut.admitBound for this.
+func (s *Sandbox) Bind() { s.bound = true }
+
+// modelPath is the path of the proxy's model address, /model/v1.
+func (s *Sandbox) modelPath() string {
+	if at, err := url.Parse(s.model); err == nil {
+		return at.Path
+	}
+	return "/model/v1"
+}
+
+// proxyRoot is where the forwarder finds the proxy: the model address with no path.
+func (s *Sandbox) proxyRoot() string {
+	at, err := url.Parse(s.model)
+	if err != nil {
+		return s.model
+	}
+	return at.Scheme + "://" + at.Host
 }
 
 func (s *Sandbox) Workdir() string {

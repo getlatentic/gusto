@@ -97,6 +97,12 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	rooms := newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) })
+	way.UseAskers(func(id string) string {
+		if record, found := index.Get(id); found {
+			return record.Asked
+		}
+		return ""
+	})
 	work, err := chosenWork(way, instances, index, computers, rooms)
 	if err != nil {
 		return fail(err)

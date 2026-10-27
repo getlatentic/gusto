@@ -180,6 +180,30 @@ func roomTurnBy(t *testing.T, work jobs.Work, index *jobs.Index, held instance.I
 	return dir
 }
 
+// An agent in a person's computer is told its forwarder's address and no secret, and its call reaches past the proxy: the model
+// behind it is not there in a test, and the proxy says so rather than refusing the call.
+func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) {
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	harnesses := t.TempDir()
+	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
+	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; curl -s -X POST \"$GUSTO_MODEL_URL/chat/completions\" -d '{}' > answer.txt; echo done"],
+	  "needs":"nothing","stream":"plain"}`), 0o644)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "call the model")
+
+	given, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "given.txt"))
+	parts := strings.Fields(string(given))
+	if len(parts) != 2 || !strings.HasPrefix(parts[0], "http://127.0.0.1:") || !strings.HasSuffix(parts[0], "/model/v1") ||
+		strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] != "dpop" {
+		t.Fatalf("the agent was given %q", given)
+	}
+	answer, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "answer.txt"))
+	if !strings.Contains(string(answer), "the model did not answer") {
+		t.Errorf("the agent's call came back %q", answer)
+	}
+}
+
 // A room's agent runs on its owner's computer, whoever asked: ada's agent, asked by bob, runs in ada's computer, and bob gets none.
 func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})

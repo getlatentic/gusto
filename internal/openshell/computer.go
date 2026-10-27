@@ -8,9 +8,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/landlock"
+	"github.com/getlatentic/gusto/internal/runtoken"
 )
 
 // startInComputer has the workspace there, and puts this task's workspace in a directory of
@@ -159,8 +161,8 @@ func Wake(ctx context.Context, cfg Config, name string) error {
 	return s.answering(ctx)
 }
 
-// confineProgram is gusto in the runner image, which holds a command to a Landlock policy before it starts it.
-const confineProgram = "/usr/local/bin/gusto"
+// gustoInImage is gusto in the runner image, which starts an agent with its forwarder and its Landlock policy.
+const gustoInImage = "/usr/local/bin/gusto"
 
 // Confine holds every command of the task to folders of its own in the person's computer: the workspace it is given, and a
 // home and a temporary folder kept for key under /sandbox/rooms, so what the agent remembers carries to its next turn. The rest
@@ -171,26 +173,46 @@ func (s *Sandbox) Confine(key string) {
 	s.home, s.temp, s.confined = kept+"/home", kept+"/tmp", true
 }
 
-// held is the command as the sandbox runs it: behind the task's Landlock policy, with its own home and temporary folder, when
-// the task is confined, and as it is otherwise.
+// held is the command as the sandbox runs it: through gusto boxed, which starts the run's forwarder, when the task is bound;
+// behind the task's Landlock policy, with its own home and temporary folder, when it is confined; and as it is otherwise.
 func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
-	if !s.confined {
+	// Only the agent is told the model's address. The gate and the checks of the image are not, and do not spend the run's secret.
+	forwarded := s.bound && mentions(command, runtoken.Place)
+	if !s.confined && !forwarded {
 		return command, nil
 	}
-	policy, err := landlock.Policy{Write: []string{jobsDir + "/" + s.job, s.home}, Temp: s.temp}.JSON()
-	if err != nil {
-		return nil, err
-	}
 	held := *command
-	held.Args = append([]string{s.program(), "sandbox-run", policy, "--"}, command.Args...)
-	held.Env = append(slices.Clone(command.Env), "HOME="+s.home, "TMPDIR="+s.temp)
+	var front []string
+	if forwarded {
+		front = []string{s.program(), "boxed", "--model", s.proxyRoot()}
+	} else {
+		front = []string{s.program(), "sandbox-run"}
+	}
+	if s.confined {
+		policy, err := landlock.Policy{Write: []string{jobsDir + "/" + s.job, s.home}, Temp: s.temp}.JSON()
+		if err != nil {
+			return nil, err
+		}
+		if forwarded {
+			front = append(front, "--policy")
+		}
+		front = append(front, policy)
+		held.Env = append(slices.Clone(command.Env), "HOME="+s.home, "TMPDIR="+s.temp)
+	}
+	held.Args = append(append(front, "--"), command.Args...)
 	return &held, nil
 }
 
-// program is the gusto that holds a confined command: the image's, unless the configuration names another, which a test does.
+// mentions says whether a command's arguments or environment name text.
+func mentions(command *exec.Cmd, text string) bool {
+	return slices.ContainsFunc(command.Args, func(each string) bool { return strings.Contains(each, text) }) ||
+		slices.ContainsFunc(command.Env, func(each string) bool { return strings.Contains(each, text) })
+}
+
+// program is the gusto that starts an agent in the sandbox: the image's, unless the configuration names another, which a test does.
 func (s *Sandbox) program() string {
-	if s.cfg.Confiner != "" {
-		return s.cfg.Confiner
+	if s.cfg.Gusto != "" {
+		return s.cfg.Gusto
 	}
-	return confineProgram
+	return gustoInImage
 }
