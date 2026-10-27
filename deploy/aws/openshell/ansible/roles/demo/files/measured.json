@@ -1,0 +1,169 @@
+{
+ "version": 1,
+ "matrix": "docs/MATRIX.md",
+ "simplest": "one-line-fix",
+ "rows": [
+  {
+   "job": "one-line-fix",
+   "harness": "pi",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 27,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "hermes",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 41,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "dsh",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": false,
+   "wallSeconds": null,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "pi",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 29,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "hermes",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 41,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "dsh",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": false,
+   "wallSeconds": null,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "opencode",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 166,
+   "run": "2026-10-01 gemma4"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "claude",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 33,
+   "run": "2026-10-05 gemma-translated"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "claude",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 40,
+   "run": "2026-10-05 gemma-translated"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "codex",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 73,
+   "run": "2026-10-05 gemma-translated"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "codex",
+   "model": "gemma/google.gemma-4-31b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 35,
+   "run": "2026-10-05 gemma-translated"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "opencode",
+   "model": "gemma/google.gemma-4-26b-a4b",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 38,
+   "run": "2026-10-05 gemma-translated"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "pi",
+   "model": "deepseek/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 27,
+   "run": "2026-10-20 flash"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "codex",
+   "model": "deepseek/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 35,
+   "run": "2026-10-20 flash"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "hermes",
+   "model": "deepseek/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 37,
+   "run": "2026-10-20 flash"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "dsh",
+   "model": "deepseek/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 36,
+   "run": "2026-10-20 flash"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "opencode",
+   "model": "deepseek/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 173,
+   "run": "2026-10-20 flash"
+  },
+  {
+   "job": "one-line-fix",
+   "harness": "claude",
+   "model": "anthropic/deepseek-flash",
+   "environment": "OpenShell sandbox on one m8i.xlarge",
+   "finished": true,
+   "wallSeconds": 32,
+   "run": "2026-10-20 flash"
+  }
+ ]
+}

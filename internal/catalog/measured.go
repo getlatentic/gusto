@@ -55,6 +55,16 @@ func (e Entry) CannotFinish(model string) (string, bool) {
 		e.Name, modelName(model), first.Job, first.Environment, first.Run), true
 }
 
+// Finished is a run in which the agent finished the simplest task with this model, when the benchmark has one.
+func (e Entry) Finished(model string) (Measured, bool) {
+	for _, run := range e.Measured {
+		if run.Model == model && run.Finished {
+			return run, true
+		}
+	}
+	return Measured{}, false
+}
+
 // Unfinished is every model this agent was measured failing the simplest task
 // with, in the order the benchmark ran them.
 func (e Entry) Unfinished() []string {
