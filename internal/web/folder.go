@@ -13,18 +13,26 @@ import (
 
 // changed is the files a turn changed, from its patch, for the chat to link to.
 func changed(dir job.Dir) []string {
+	names, _ := changes(dir)
+	return names
+}
+
+// changes is every file a turn left different, and of those the ones it deleted.
+func changes(dir job.Dir) (names, deleted []string) {
 	if !dir.PlainOut("diff.patch") {
-		return nil
+		return nil, nil
 	}
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	var names []string
 	for _, file := range parseDiff(string(patch)) {
 		names = append(names, file.Name)
+		if file.Deleted {
+			deleted = append(deleted, file.Name)
+		}
 	}
-	return names
+	return names, deleted
 }
 
 // mostShown is how much of a file the viewer draws. A folder can hold

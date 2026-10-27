@@ -20,6 +20,7 @@ type diffFile struct {
 	Name    string
 	Meta    []string
 	Binary  bool
+	Deleted bool
 	Hunks   []hunk
 	Added   int
 	Removed int
@@ -127,6 +128,9 @@ func (r *diffReader) metaLine(line string) {
 		file.rename(line[4:])
 	case strings.HasPrefix(line, "Binary files "):
 		file.Binary = true
+		file.Meta = append(file.Meta, line)
+	case strings.HasPrefix(line, "deleted file mode "):
+		file.Deleted = true
 		file.Meta = append(file.Meta, line)
 	default:
 		file.Meta = append(file.Meta, line)
