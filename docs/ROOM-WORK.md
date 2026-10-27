@@ -141,12 +141,28 @@ An agent keeps what it remembers of a conversation in its own state folder, `age
 - A merge that finds a link or a file where a folder of the turn's goes saves the turn's file at the top of the folder, never through the link.
 - A person's upload, edit or deletion waits for a merge in progress, two minutes at most.
 
+## Whose an agent is
+
+An agent belongs to the person who made it. The room keeps its own record of each agent in it: who put it there, whether an admin of the room accepted it, and its allowance.
+
+| Who | What they may do |
+| --- | --- |
+| A room's admin | Add an agent they may work with. It joins at once. Accept or decline an agent a member proposed. Take any agent out |
+| A member | Propose an agent of their own. It waits, is not mentioned, and runs nothing until an admin accepts it. Take their own agent out |
+| An agent's owner | Must be in the room. When they leave it, or are taken out, their agents leave with them |
+
+- Taking an agent out stops its queued and running turns in the room, so nothing it was doing is merged afterwards.
+- Mentioning an agent that waits for an admin asks nobody, and the room says so.
+- An allowance is the dollars an agent may spend in the room in a calendar month, across all its turns, set when it is added or proposed. The proxy refuses a call past it, and a mention past it is not started. The room says why. No allowance is no limit.
+- A turn still runs on the computer of the person who asked, and counts against their spending. Running it on the owner's computer and budget waits for the run token in getlatentic/planning#731.
+
 ## Where it is
 
 | Part | Where |
 | --- | --- |
 | The copy, the merge, the journal | `internal/roomwork` |
 | Joining two changes line by line | `internal/roomwork/lines.go` and `join.go` |
+| Proposing, accepting and taking out an agent; its allowance | `internal/web/rooms_installs.go`, `ByAllowance` in `pkg/spend/ledger.go` |
 | A person's change while turns work | `Hub.Hold` in `internal/roomwork/change.go`, used by `internal/web/workspace_write.go` and `rooms_files.go` |
 | The lane | `Record.Lane` in `internal/jobs/state.go` |
 | Running a turn on a copy, in a container, a sandbox or this process | `cmd/gusto/roomturn.go` |

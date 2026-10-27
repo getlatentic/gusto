@@ -35,6 +35,7 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/members", s.guard(s.setRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/members/remove", s.guard(s.removeRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/remove", s.guard(s.removeRoomAgent))
+	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/accept", s.guard(s.acceptRoomAgent))
 }
 
 func (s *Server) newRoomPage(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +107,7 @@ func (s *Server) removeRoomMember(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, s.membersPath(held), err.Error())
 		return
 	}
+	s.takeOutAgentsOf(held.ID, who, s.askerName(r))
 	if strings.EqualFold(who, s.askerName(r)) && !s.admin(r) {
 		http.Redirect(w, r, "/chat", http.StatusSeeOther)
 		return
@@ -113,36 +115,36 @@ func (s *Server) removeRoomMember(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
 }
 
-func (s *Server) removeRoomAgent(w http.ResponseWriter, r *http.Request) {
-	held, found := s.roomOf(w, r)
-	if !found {
-		return
-	}
-	if !s.runsRoom(r, held) {
-		http.Error(w, "only a room's admin takes agents out of it", http.StatusForbidden)
-		return
-	}
-	if err := s.instances.RemoveAgent(held.ID, r.PathValue("agent")); err != nil {
-		s.turnAway(w, r, s.membersPath(held), err.Error())
-		return
-	}
-	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
-}
-
 // mentioned is each of a room's agents that the text mentions, in the order they are first mentioned.
 func mentioned(held instance.Instance, text string) []instance.Agent {
-	names := make([]string, 0, len(held.Agents))
-	for _, agent := range held.Agents {
+	working := held.Working()
+	names := make([]string, 0, len(working))
+	for _, agent := range working {
 		names = append(names, agent.Name)
 	}
 	var named []instance.Agent
 	for _, found := range mentionSpans(text, names) {
 		agent, in := held.AgentCalled(found.name)
-		if in && !slices.ContainsFunc(named, func(each instance.Agent) bool { return each.ID == agent.ID }) {
+		if in && !agent.Pending && !slices.ContainsFunc(named, func(each instance.Agent) bool { return each.ID == agent.ID }) {
 			named = append(named, agent)
 		}
 	}
 	return named
+}
+
+// mentionedWaiting is each agent the text mentions that a member proposed and no admin of the room has accepted yet.
+func mentionedWaiting(held instance.Instance, text string) []instance.Agent {
+	var waiting []instance.Agent
+	names := make([]string, 0, len(held.Agents))
+	for _, agent := range held.Agents {
+		names = append(names, agent.Name)
+	}
+	for _, found := range mentionSpans(text, names) {
+		if agent, in := held.AgentCalled(found.name); in && agent.Pending && !slices.ContainsFunc(waiting, func(each instance.Agent) bool { return each.ID == agent.ID }) {
+			waiting = append(waiting, agent)
+		}
+	}
+	return waiting
 }
 
 // roomSay is somebody saying something in a room, by the page's form.
@@ -182,6 +184,7 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		Remembered:  thread.Sessions[agent.ID],
 		Agent:       agent.ID,
 		Repo:        held.Repo,
+		Budget:      job.Budget{MonthUSD: agent.AllowanceUSD},
 		Setup:       setupOf(held),
 		Sensitivity: sensitivityOf(held),
 	}
@@ -227,6 +230,10 @@ func (s *Server) handOff(record jobs.Record) {
 	first := ""
 	for _, next := range mentioned(held, reply) {
 		if next.ID == record.Agent {
+			continue
+		}
+		if over := s.overAllowance(held, next); over != "" {
+			_, _ = s.instances.Notice(held.ID, thread.ID, over)
 			continue
 		}
 		handed, err := s.startRoomTurn(record.Asked, held, thread, reply, next, roomAsk{from: record.Agent, hops: record.Hops + 1, answers: first})

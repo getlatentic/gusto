@@ -19,12 +19,16 @@ import (
 func (s *Server) speak(asked string, held instance.Instance, thread instance.Thread, said, key string, resend bool) (string, error) {
 	held = s.liveRoom(held)
 	agents := mentioned(held, said)
-	if len(agents) == 0 && len(held.Agents) == 1 {
-		agents = held.Agents
+	waiting := mentionedWaiting(held, said)
+	if working := held.Working(); len(agents) == 0 && len(waiting) == 0 && len(working) == 1 {
+		agents = working
 	}
 	if len(agents) == 0 {
 		note, err := s.instances.NoteKeyed(held.ID, thread.ID, asked, said, key)
-		return note.ID, err
+		if err != nil {
+			return "", err
+		}
+		return note.ID, s.sayWaiting(held, thread, waiting)
 	}
 	if resend && key != "" {
 		s.keyed.Lock()
@@ -42,13 +46,31 @@ func (s *Server) speak(asked string, held instance.Instance, thread instance.Thr
 				continue
 			}
 		}
+		if over := s.overAllowance(held, agent); over != "" {
+			note, err := s.instances.Notice(held.ID, thread.ID, over)
+			if err != nil {
+				return "", err
+			}
+			first = firstOf(first, note.ID)
+			continue
+		}
 		record, err := s.startRoomTurn(asked, held, thread, said, agent, roomAsk{answers: first, key: turnKey})
 		if err != nil {
 			return "", err
 		}
 		first = firstOf(first, record.ID)
 	}
-	return first, nil
+	return first, s.sayWaiting(held, thread, waiting)
+}
+
+// sayWaiting tells the room that the agents a message mentioned that no admin has accepted were not asked.
+func (s *Server) sayWaiting(held instance.Instance, thread instance.Thread, waiting []instance.Agent) error {
+	for _, agent := range waiting {
+		if _, err := s.instances.Notice(held.ID, thread.ID, agent.Name+" is waiting for an admin of the room to accept it, so it was not asked."); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // liveSay is the say command: the page's form, sent over the socket.

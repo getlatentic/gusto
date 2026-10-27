@@ -15,6 +15,8 @@ type Report struct {
 	Harnesses []Line `json:"harnesses"`
 	Models    []Line `json:"models"`
 	Jobs      []Line `json:"jobs"`
+	// Allowances are rooms' agents in their rooms, as "<room>/<agent>".
+	Allowances []Line `json:"allowances,omitempty"`
 	// Days are in date order rather than ranked, because they are read as a
 	// line across the month.
 	Days []Line `json:"days"`
@@ -34,7 +36,7 @@ func (l *Ledger) Report(month string) Report {
 	report := Report{Month: month}
 	into := map[string]*[]Line{
 		ByTeam: &report.Teams, ByProject: &report.Projects, ByJob: &report.Jobs,
-		ByHarness: &report.Harnesses, ByModel: &report.Models, ByDay: &report.Days,
+		ByHarness: &report.Harnesses, ByModel: &report.Models, ByDay: &report.Days, ByAllowance: &report.Allowances,
 	}
 	for key, tally := range l.months {
 		if key.month != month {

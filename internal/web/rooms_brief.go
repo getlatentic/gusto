@@ -26,7 +26,7 @@ func (s *Server) roomBrief(held instance.Instance, thread instance.Thread, agent
 		fmt.Fprintf(&brief, " %s (%s);", member.Who, member.Role)
 	}
 	brief.WriteString("\nAgents here:")
-	for _, each := range held.Agents {
+	for _, each := range held.Working() {
 		if each.ID == agent.ID {
 			continue
 		}

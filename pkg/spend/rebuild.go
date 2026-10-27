@@ -90,8 +90,15 @@ func dated(path string) ([]Call, error) {
 // A task's project is the repository it worked in: the one thing every task
 // already names that a platform lead would group spend by.
 func TermsOf(spec job.Spec) Terms {
-	return Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
+	terms := Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
+	if spec.Session != "" && spec.Agent != "" {
+		terms.Allowance, terms.AllowanceUSD = AllowanceOf(spec.Session, spec.Agent), spec.Budget.MonthUSD
+	}
+	return terms
 }
+
+// AllowanceOf is the name a room's agent's spending in the room is counted under.
+func AllowanceOf(room, agent string) string { return room + "/" + agent }
 
 // ReadCalls is every call a task's proxy record holds. A missing file is a task
 // that never reached the proxy. A line that is not a call is passed over and

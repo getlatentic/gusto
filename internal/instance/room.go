@@ -31,6 +31,12 @@ type Agent struct {
 	// Setup and Persona are the skills it is given and how it works, which come from the workspace agent.
 	Setup   string `json:"-"`
 	Persona string `json:"-"`
+	// Pending is an agent a member proposed that no admin of the room has accepted. It is not mentioned and runs nothing.
+	Pending bool `json:"pending,omitempty"`
+	// ProposedBy is who put the agent in the room.
+	ProposedBy string `json:"proposedBy,omitempty"`
+	// AllowanceUSD is the most the agent may spend in this room in a calendar month, set by its owner; none is no limit.
+	AllowanceUSD *float64 `json:"allowanceUsd,omitempty"`
 }
 
 // Note is something a person said in a room that no agent was asked to answer, or something the room said of itself.
@@ -82,6 +88,17 @@ func (held Instance) AgentCalled(name string) (Agent, bool) {
 		}
 	}
 	return Agent{}, false
+}
+
+// Working is the room's agents an admin of it accepted, which are the ones that are mentioned and run.
+func (held Instance) Working() []Agent {
+	var working []Agent
+	for _, agent := range held.Agents {
+		if !agent.Pending {
+			working = append(working, agent)
+		}
+	}
+	return working
 }
 
 // AgentByID is the room's agent with that id.
@@ -161,6 +178,19 @@ func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
 		return nil
 	})
 	return agent, err
+}
+
+// AcceptAgent lets an agent a member proposed work in the room.
+func (s *Store) AcceptAgent(id, agent string) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		for i := range held.Agents {
+			if held.Agents[i].ID == agent {
+				held.Agents[i].Pending = false
+				return nil
+			}
+		}
+		return fmt.Errorf("no agent %s in this room", agent)
+	})
 }
 
 // RemoveAgent takes an agent out of a room. What it did stays in the conversation.
