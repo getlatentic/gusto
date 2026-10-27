@@ -16,7 +16,6 @@ import (
 
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/runtoken"
-	"golang.org/x/sys/unix"
 )
 
 // An agent in a sandbox reaches its model through a forwarder of the run's own, and is held to a Landlock policy when its task
@@ -124,7 +123,7 @@ func startForwarder(model, secret string) (string, error) {
 		return "", err
 	}
 	// The agent keeps the pipe open from here: made inheritable only now, so the forwarder does not hold its own end of it.
-	if _, err := unix.FcntlInt(keep.Fd(), unix.F_SETFD, 0); err != nil {
+	if err := inheritable(keep); err != nil {
 		child.Process.Kill()
 		return "", err
 	}
