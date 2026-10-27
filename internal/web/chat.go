@@ -70,6 +70,18 @@ func (s *Server) startIn(r *http.Request) startFolder {
 	return startFolder{At: path.Join(id, dir), Name: name, Harness: s.engineOf(id, held.Harness)}
 }
 
+// home is where a person lands: in the room they were last in when they have no conversation of their own yet, which is how a
+// colleague who was added to a room first sees the product, and on the empty chat otherwise.
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	if len(s.lastUsed(r)) == 0 {
+		if rooms := s.roomsFor(r); len(rooms) > 0 {
+			http.Redirect(w, r, rooms[0].Where, http.StatusSeeOther)
+			return
+		}
+	}
+	http.Redirect(w, r, "/chat", http.StatusSeeOther)
+}
+
 // picksFor is each harness this deployment can run for this person, with the models it may use.
 func (s *Server) picksFor(r *http.Request) []pick {
 	if s.limitedAway(r) {
