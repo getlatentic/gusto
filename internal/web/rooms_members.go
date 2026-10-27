@@ -25,13 +25,24 @@ type roomAgent struct {
 	Engine string
 	Brain  string
 	Owner  string
+	// Yours says the person looking owns it, and may take it out of the room.
+	Yours bool
+}
+
+// Allowance is what the agent may spend in the room a month, in words, or nothing for no limit.
+func (a roomAgent) Allowance() string {
+	if a.AllowanceUSD == nil {
+		return ""
+	}
+	return fmt.Sprintf("$%.2f a month here", *a.AllowanceUSD)
 }
 
 func (s *Server) roomAgents(held instance.Instance, you string) []roomAgent {
 	shown := make([]roomAgent, 0, len(held.Agents))
 	for _, agent := range held.Agents {
-		owner := ownerLabel(s.ownerOf(agent), you)
-		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model), Owner: owner})
+		owner := s.ownerOf(agent)
+		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model),
+			Owner: ownerLabel(owner, you), Yours: owner != "" && strings.EqualFold(owner, you)})
 	}
 	return shown
 }
@@ -43,16 +54,19 @@ func (s *Server) roomMembers(r *http.Request, held instance.Instance) map[string
 	for _, member := range held.Members {
 		people = append(people, roomPerson{Member: member, You: strings.EqualFold(member.Who, you)})
 	}
+	runs := s.runsRoom(r, held)
 	var addable []listedAgent
 	for _, member := range s.crewFor(you) {
-		if !slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID }) {
+		in := slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
+		// A member proposes only an agent of their own.
+		if !in && (runs || strings.EqualFold(member.Owner, you)) {
 			addable = append(addable, s.listedAgent(r, member))
 		}
 	}
 	return map[string]any{
 		"People":  people,
 		"Agents":  s.roomAgents(held, you),
-		"Runs":    s.runsRoom(r, held),
+		"Runs":    runs,
 		"Addable": addable,
 	}
 }
@@ -85,36 +99,24 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	if !s.runsRoom(r, held) {
-		http.Error(w, "only a room's admin adds to it", http.StatusForbidden)
+	people := strings.FieldsFunc(r.FormValue("who"), func(c rune) bool { return c == ',' || unicode.IsSpace(c) })
+	if len(people) > 0 && !s.runsRoom(r, held) {
+		http.Error(w, "only a room's admin adds people to it", http.StatusForbidden)
 		return
 	}
-	for _, who := range strings.FieldsFunc(r.FormValue("who"), func(c rune) bool { return c == ',' || unicode.IsSpace(c) }) {
+	for _, who := range people {
 		if err := s.instances.SetMember(held.ID, who, instance.RoleMember); err != nil {
 			s.turnAway(w, r, s.membersPath(held), err.Error())
 			return
 		}
 	}
 	for _, id := range r.Form["agent"] {
-		if err := s.addCrewAgent(r, held.ID, id); err != nil {
+		if err := s.addCrewAgent(r, held, id); err != nil {
 			s.turnAway(w, r, s.membersPath(held), err.Error())
 			return
 		}
 	}
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
-}
-
-// addCrewAgent puts a workspace agent the person may work with into a room.
-func (s *Server) addCrewAgent(r *http.Request, id, memberID string) error {
-	if s.crew == nil {
-		return fmt.Errorf("this server keeps no agents")
-	}
-	member, found := s.crew.Get(memberID)
-	if !found || !member.MayUse(s.askerName(r)) {
-		return fmt.Errorf("that agent is not one you may work with")
-	}
-	_, err := s.instances.AddAgent(id, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
-	return err
 }
 
 // changeRoomRole makes a member an admin or a member, or takes them out of the room.
@@ -130,7 +132,9 @@ func (s *Server) changeRoomRole(w http.ResponseWriter, r *http.Request) {
 	who, role := r.FormValue("who"), r.FormValue("role")
 	var err error
 	if role == "remove" {
-		err = s.instances.RemoveMember(held.ID, who)
+		if err = s.instances.RemoveMember(held.ID, who); err == nil {
+			s.takeOutAgentsOf(held.ID, who, s.askerName(r))
+		}
 	} else {
 		err = s.instances.SetMember(held.ID, who, role)
 	}

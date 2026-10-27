@@ -60,6 +60,10 @@ type Terms struct {
 	Project string
 	Harness string
 	CapUSD  *float64
+	// Allowance names what a room's agent spends in its room, counted by the month across its turns, and AllowanceUSD is the
+	// most it may spend there in one.
+	Allowance    string
+	AllowanceUSD *float64
 }
 
 // account is one task's terms and what it has spent against them. Blind counts
@@ -81,6 +85,8 @@ const (
 	ByHarness = "harness"
 	ByModel   = "model"
 	ByDay     = "day"
+	// ByAllowance is a room's agent in its room, as "<room>/<agent>".
+	ByAllowance = "allowance"
 )
 
 // monthly names one tally: a task, a project or a team, in one calendar month.
@@ -154,6 +160,9 @@ func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	if refusal := l.teamSpent(held); refusal != nil {
 		return refusal
 	}
+	if refusal := l.allowanceSpent(held); refusal != nil {
+		return refusal
+	}
 	if refusal := l.organizationSpent(); refusal != nil {
 		return refusal
 	}
@@ -177,8 +186,11 @@ func (l *Ledger) Count(job string, call Call) {
 	month := monthOf(sent)
 	for scope, name := range map[string]string{
 		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
-		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"),
+		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"), ByAllowance: held.terms.Allowance,
 	} {
+		if scope == ByAllowance && name == "" {
+			continue
+		}
 		l.tally(scope, name, month).add(call)
 	}
 }
@@ -229,6 +241,32 @@ func (l *Ledger) teamSpent(held *account) *Refusal {
 		Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent,
 		Reason: fmt.Sprintf("team %s has spent $%.4f of its $%.4f cap for %s", held.terms.Team, spent, limit, month),
 	}
+}
+
+func (l *Ledger) allowanceSpent(held *account) *Refusal {
+	limit := held.terms.AllowanceUSD
+	if limit == nil || held.terms.Allowance == "" {
+		return nil
+	}
+	month := monthOf(l.now())
+	spent := l.tally(ByAllowance, held.terms.Allowance, month).USD
+	if spent < *limit {
+		return nil
+	}
+	return &Refusal{
+		Cap: "allowance", LimitUSD: *limit, SpentUSD: spent,
+		Reason: fmt.Sprintf("this agent has spent $%.4f of its $%.4f allowance in this room for %s", spent, *limit, month),
+	}
+}
+
+// SpentThisMonth is what one scope's name has spent in the current month, such as an agent in its room under ByAllowance.
+func (l *Ledger) SpentThisMonth(scope, name string) float64 {
+	l.guard.Lock()
+	defer l.guard.Unlock()
+	if tally, found := l.months[monthly{scope: scope, name: name, month: monthOf(l.now())}]; found {
+		return tally.USD
+	}
+	return 0
 }
 
 // organizationSpent is what every task has spent this month, against the cap on the whole server. It is summed from the tasks,

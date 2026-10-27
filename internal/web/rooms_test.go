@@ -182,7 +182,7 @@ func TestOnlyARoomsAdminChangesWhoIsInIt(t *testing.T) {
 	}{
 		{"/rooms/" + id + "/members", url.Values{"who": {"carol@example.com"}}},
 		{"/rooms/" + id + "/members/remove", url.Values{"who": {alice}}},
-		{"/rooms/" + id + "/members/add", url.Values{"agent": {aCrewAgent(t, site, bob, "Draft", "fixture").ID}}},
+		{"/rooms/" + id + "/members/add", url.Values{"who": {"carol@example.com"}}},
 		{"/rooms/" + id + "/agents/a1/remove", nil},
 	} {
 		if got := his.ask(t, "POST", change.path, change.form); got.Code != http.StatusForbidden {

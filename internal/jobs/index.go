@@ -182,6 +182,19 @@ func (i *Index) List() []Record {
 	return all
 }
 
+// Unfinished is every task of one lane that is queued or running, such as one room agent's turns.
+func (i *Index) Unfinished(lane string) []Record {
+	i.guard.Lock()
+	defer i.guard.Unlock()
+	var found []Record
+	for _, record := range i.records {
+		if !record.State.Done() && record.Lane() == lane {
+			found = append(found, record)
+		}
+	}
+	return found
+}
+
 // Claim takes the oldest queued task and marks it running, so two workers cannot
 // take the same one.
 func (i *Index) Claim() (Record, bool, error) {

@@ -232,7 +232,7 @@
   <div class="grid gap-1 p-6 pb-5">
     <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
-    {{if .Runs}}<button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}Add member</button>{{end}}
+    <button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}{{if .Runs}}Add member{{else}}Propose an agent{{end}}</button>
     {{range .People}}
     <div class="flex h-10 items-center gap-3 px-1">
       <span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-3.5" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
@@ -249,22 +249,24 @@
     {{range .Agents}}
     <div class="flex h-10 items-center gap-3 px-1">
       <span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
-      <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}">{{or .Job .Engine}}</span>{{with .Owner}}<span class="flex-none text-subtle">· {{.}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
-      {{if $.Members.Runs}}
+      <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}{{with .Allowance}} · {{.}}{{end}}">{{or .Job .Engine}}</span>{{with .Owner}}<span class="flex-none text-subtle">· {{.}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
+      {{if and .Pending $.Members.Runs}}
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/accept"><button type="submit" class="{{template "ui-btn-sm"}}">Accept</button></form>
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Decline</button></form>
+      {{else if or $.Members.Runs .Yours}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove">
         <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-autosubmit>
-          <option value="">Agent</option><option value="remove">Remove from room</option>
+          <option value="">{{if .Pending}}Waiting for an admin{{else}}Agent{{end}}</option><option value="remove">{{if .Pending}}Withdraw{{else}}Remove from room{{end}}</option>
         </select>
       </form>
-      {{else}}<span class="text-sm text-muted">Agent</span>{{end}}
+      {{else}}<span class="text-sm text-muted">{{if .Pending}}Waiting for an admin{{else}}Agent{{end}}</span>{{end}}
     </div>
     {{end}}
   </div>
 </dialog>
-{{if .Runs}}
 <dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title" data-asked="add">
   <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
-    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">Add members</h2><p class="m-0 mt-1 text-sm text-muted">Pick the agents you work with, or add people by their email address.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">{{if .Runs}}Add members{{else}}Propose an agent{{end}}</h2><p class="m-0 mt-1 text-sm text-muted">{{if .Runs}}Pick the agents you work with, or add people by their email address.{{else}}Pick an agent of yours. It joins when an admin of the room accepts it.{{end}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{if .Addable}}
     <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
     <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">
@@ -277,12 +279,12 @@
       </label>
       {{end}}
     </div>
-    {{else}}<p class="m-0 text-sm text-muted">Every agent you work with is in this room already.</p>{{end}}
-    <label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>
-    <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></div>
+    <label class="{{template "ui-field"}}"><span>Allowance <span class="font-normal">dollars each agent may spend in this room a month; empty for no limit</span></span><input class="input" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off"></label>
+    {{else}}<p class="m-0 text-sm text-muted">{{if .Runs}}Every agent you work with is in this room already.{{else}}Every agent of yours is in this room already.{{end}}</p>{{end}}
+    {{if .Runs}}<label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>{{end}}
+    <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">{{if .Runs}}Add{{else}}Propose{{end}}</button></div>
   </form>
 </dialog>
-{{end}}
 {{end}}{{end}}
 
 {{define "turns"}}

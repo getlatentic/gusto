@@ -199,7 +199,7 @@ type mentionable struct {
 
 func (s *Server) mentionables(held instance.Instance, you string) []mentionable {
 	offered := make([]mentionable, 0, len(held.Agents)+len(held.Members))
-	for _, agent := range held.Agents {
+	for _, agent := range held.Working() {
 		role, owner := firstOf(agent.Job, s.engineName(agent.Harness)), ownerLabel(s.ownerOf(agent), you)
 		offered = append(offered, mentionable{Name: agent.Name, Role: role, Owner: owner, Agent: true, Icon: logo(agent.Harness)})
 	}

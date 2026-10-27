@@ -50,6 +50,9 @@ type Budget struct {
 	Turns   int      `json:"turns"`
 	Seconds int      `json:"seconds"`
 	USD     *float64 `json:"usd,omitempty"`
+	// MonthUSD is what a room's agent may spend in that room in a calendar month, all its turns together: the allowance its
+	// owner gave the room.
+	MonthUSD *float64 `json:"monthUsd,omitempty"`
 }
 
 // Spec carries a brief, not a prompt. The brief is input to an agent, and a
