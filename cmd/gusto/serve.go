@@ -488,7 +488,7 @@ func surveyed(names []string) []catalog.Entry {
 // ranInSandbox runs a task in the computer of the person who asked for it, and one asked
 // for by a script or a token, which is nobody's, in a sandbox of its own.
 func ranInSandbox(ctx context.Context, way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
-	if person := personWhoAsked(index, dir); registry != nil && person != "" {
+	if person := personWhoPays(index, dir); registry != nil && person != "" {
 		return way.RunInComputer(ctx, dir, spec, cfg, registry, person)
 	}
 	return way.RunInSandboxContext(ctx, dir, spec, cfg)

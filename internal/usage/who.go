@@ -7,7 +7,7 @@ import "github.com/getlatentic/gusto/internal/jobs"
 // person reads for an agent type, and agent the name of the agent a person set up, for an instance.
 // The server and the commands that run without one both find who made a call here.
 func WhoOfTask(record jobs.Record, engine func(harness string) string, agent func(instance string) (string, bool)) Who {
-	who := Who{Session: record.ID, Person: record.Asked, Team: record.Team, Project: record.Repo, Engine: engine(record.Harness)}
+	who := Who{Session: record.ID, Person: record.Payer(), Team: record.Team, Project: record.Repo, Engine: engine(record.Harness)}
 	if record.Instance == "" {
 		return who
 	}

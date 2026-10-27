@@ -199,7 +199,7 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		ID: id, State: jobs.Queued,
 		Brief: said, Repo: held.Repo, Harness: agent.Harness, Model: agent.Model,
 		Instance: held.ID, Thread: thread.ID, Agent: agent.ID, HandedBy: how.from, Answers: how.answers, Hops: how.hops,
-		Asked: asked, Key: how.key, Queued: jobs.Now(),
+		Asked: asked, PaidBy: s.ownerOf(agent), Key: how.key, Queued: jobs.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		return jobs.Record{}, err
