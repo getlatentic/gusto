@@ -180,6 +180,20 @@ func otherCommands() []*cmdline.Command {
 				"kernel's version of it. Gusto runs this itself.",
 			Run: sandboxRun,
 		},
+		{
+			Name: "boxed", Hidden: true, Summary: "Start an agent in a sandbox with its run's own way to its model",
+			Usage: []string{"--model <proxy> [--policy <json>] -- <command> [<args>...]"},
+			Description: "What a sandbox runs in place of an agent: it starts the run's forwarder, which trades the run's secret for a " +
+				"token bound to a key of its own, points the agent at it, holds itself to the Landlock policy when one is given, and " +
+				"becomes the agent. Gusto runs this itself.",
+			Run: boxed,
+		},
+		{
+			Name: "boxed-forward", Hidden: true, Summary: "The forwarder gusto boxed starts",
+			Usage:       []string{"<proxy>"},
+			Description: "Passes the agent's calls to the proxy with the run's token and a proof made for each. Gusto runs this itself.",
+			Run:         boxedForward,
+		},
 	}
 }
 

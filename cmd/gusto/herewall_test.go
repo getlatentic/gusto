@@ -112,8 +112,15 @@ func mustRead(t *testing.T, path string) []byte {
 
 // TestMain lets the test binary stand in for gusto where a job's wrapper runs it as `gusto sandbox-run`.
 func TestMain(m *testing.M) {
-	if len(os.Args) > 1 && os.Args[1] == "sandbox-run" {
-		os.Exit(sandboxRun(os.Args[2:]))
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "sandbox-run":
+			os.Exit(sandboxRun(os.Args[2:]))
+		case "boxed":
+			os.Exit(boxed(os.Args[2:]))
+		case "boxed-forward":
+			os.Exit(boxedForward(os.Args[2:]))
+		}
 	}
 	os.Exit(m.Run())
 }

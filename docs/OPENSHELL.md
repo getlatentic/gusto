@@ -54,6 +54,26 @@ The runner writes a policy for each task. Everything not named is denied.
 
 File rules need Landlock. A sandbox that cannot enforce them does not start. A `GUSTO_ALLOWED_HOSTS` entry that cannot be written as a rule is refused.
 
+### A run's credential
+
+An agent in a sandbox holds nothing it could use anywhere else. It is told `http://127.0.0.1:<port>/model/v1`, the address of a forwarder of its run's own, and the word `dpop` where a key would go.
+
+1. The server gives the run a secret (`WayOut.admitBound`). The proxy never accepts the secret as a token.
+2. The sandbox runs `gusto boxed --model <proxy> -- agent ...`. It starts `gusto boxed-forward`, which makes an Ed25519 key that never leaves its process. The forwarder's memory is closed to other processes (`PR_SET_DUMPABLE`), the agent among them.
+3. The forwarder trades the secret, once, at `POST /model/token`. This is an OAuth token exchange (RFC 8693) with a DPoP proof (RFC 9449). It gets back a run token: a JWT the server signs (RFC 9068 in shape), good for 15 minutes and bound to the key's thumbprint.
+4. Every call goes out with `Authorization: DPoP <token>` and a fresh proof, made for that method, address and token. The proxy refuses a proof it has seen, or one more than a minute from now. The forwarder trades the token for a new one before it expires.
+5. When the run ends, its token is refused even before it expires. The forwarder ends with the agent: by a pipe the agent holds open, and on Linux by `PR_SET_PDEATHSIG`.
+
+| A run token's claim | What it is |
+| --- | --- |
+| `sub` | the person the run acts for, who asked |
+| `client_id` | the room's agent, or the agent type |
+| `run` | the task |
+| `authorization_details` | `gusto_run`: the room and `model`, `tools` (RFC 9396) |
+| `cnf.jkt` | the thumbprint of the run's key |
+
+Only the agent's command starts a forwarder. The gate and the checks of the image are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
+
 ### A room's turn in a person's computer
 
 A person's computer is one sandbox that holds all their conversations and their copies of rooms. The sandbox's policy cannot tell those apart, so a room's turn is held further, inside it:
@@ -67,7 +87,7 @@ A person's computer is one sandbox that holds all their conversations and their 
 
 It cannot read or write the rest of `/sandbox`, the person's other conversations and rooms among it, nor the shared `/tmp`.
 
-- The runner starts the agent as `gusto sandbox-run '<policy>' -- agent ...`. The gusto in the image applies the policy with Landlock, on top of the sandbox's own, before it starts the agent.
+- The runner starts the agent as `gusto boxed --model <proxy> --policy '<policy>' -- agent ...`, and the turn's other commands as `gusto sandbox-run '<policy>' -- ...`. The gusto in the image applies the policy with Landlock, on top of the sandbox's own, before it starts the command.
 - The policy is passed whole, not as a file, so the agent cannot change its next turn's rules.
 - A kernel without Landlock refuses the turn rather than running it unconfined.
 - `sandbox-run` is part of the image, so a change to it, or to `internal/landlock`, makes a new runner-image key (`deploy/aws/openshell/image-key.sh`).

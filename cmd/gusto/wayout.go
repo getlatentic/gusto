@@ -14,6 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/runtoken"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
@@ -45,6 +46,18 @@ type WayOut struct {
 	gateways *gateways
 	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
 	spares *spareComputers
+	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
+	asker atomic.Pointer[func(id string) string]
+}
+
+// UseAskers says how to find the person a task acts for, which the server's index knows.
+func (w *WayOut) UseAskers(asker func(id string) string) { w.asker.Store(&asker) }
+
+func (w *WayOut) askerOf(id string) string {
+	if asker := w.asker.Load(); asker != nil {
+		return (*asker)(id)
+	}
+	return ""
 }
 
 // openWayOut reads what is configured. GUSTO_MODEL_UPSTREAM is the model's root,
@@ -90,6 +103,11 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		address:  setting("GUSTO_PROXY_ADDR", proxyAddress()),
 	}
 	way.held.Store(&credentials)
+	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return way.runOf(jobsRoot, id) })
+	if err != nil {
+		return nil, err
+	}
+	way.proxy.UseRunTokens(issuer)
 	way.gateways, err = openGateways(jobsRoot)
 	if err != nil {
 		return nil, err
@@ -209,11 +227,30 @@ func needsModel(dir job.Dir, spec job.Spec) bool {
 // rather than as a model call that fails somewhere inside a run somebody has
 // to go and read.
 func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
+	id, named, err := w.mayReach(dir, spec)
+	if err != nil {
+		return "", err
+	}
+	return w.tokens.Mint(id, named)
+}
+
+// admitBound is admit for a task in a sandbox, which holds a key of its own: it is given a secret that its forwarder trades,
+// once, for a run token bound to that key (internal/runtoken).
+func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
+	id, named, err := w.mayReach(dir, spec)
+	if err != nil {
+		return "", err
+	}
+	return w.tokens.MintBound(id, named)
+}
+
+// mayReach checks that a task may reach its model, and says the task and the credential it spends.
+func (w *WayOut) mayReach(dir job.Dir, spec job.Spec) (string, string, error) {
 	id := filepath.Base(dir.Path())
 	named, _ := proxy.Named(spec.Model)
 	credential, held := w.credentials().Get(named)
 	if !held {
-		return "", fmt.Errorf("no credential called %q here; this deployment holds %s",
+		return "", "", fmt.Errorf("no credential called %q here; this deployment holds %s",
 			named, strings.Join(w.credentials().Names(), ", "))
 	}
 	// Every call a sealed box makes to a model leaves through this credential,
@@ -222,11 +259,25 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 	// read a restricted task as staying in the building when it does not.
 	for _, address := range credential.Addresses() {
 		if err := rules.Allows(spec, address); err != nil {
-			return "", runner.Refuse(dir, err)
+			return "", "", runner.Refuse(dir, err)
 		}
 	}
 	w.ledger.Begin(id, spend.TermsOf(spec))
-	return w.tokens.Mint(id, named)
+	return id, named, nil
+}
+
+// runOf is what a run's token says of it, from the task's own record: the agent and the room of a room's turn, and the person
+// who asked, whom the run acts for. A task the server's index does not hold names nobody.
+func (w *WayOut) runOf(jobsRoot, id string) runtoken.Run {
+	spec, err := job.Read(job.Dir(filepath.Join(jobsRoot, id)))
+	if err != nil {
+		return runtoken.Run{Person: w.askerOf(id)}
+	}
+	agent := spec.Agent
+	if agent == "" {
+		agent = spec.Harness
+	}
+	return runtoken.Run{Agent: agent, Room: spec.Session, Person: w.askerOf(id)}
 }
 
 // RunInSandbox runs a task's agent in an OpenShell sandbox. The proxy is
@@ -241,7 +292,7 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	if w.proxy == nil {
 		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
-	token, err := w.admit(dir, spec)
+	token, err := w.admitBound(dir, spec)
 	if err != nil {
 		return 0, err
 	}
@@ -255,6 +306,7 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	if err != nil {
 		return 0, err
 	}
+	box.Bind()
 	return runner.OutsideContext(ctx, dir, box)
 }
 

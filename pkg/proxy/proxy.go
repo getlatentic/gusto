@@ -22,16 +22,18 @@ type Where func(job string) (string, bool)
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
 type Proxy struct {
-	tokens   atomic.Pointer[TokenSource]
-	source   atomic.Pointer[CredentialSource]
-	held     atomic.Pointer[Credentials]
-	registry atomic.Int64
-	where    Where
-	ledger   *spend.Ledger
-	allowed  Allowlist
-	client   atomic.Pointer[http.Client]
-	public   *http.Client
-	guard    sync.Mutex
+	tokens atomic.Pointer[TokenSource]
+	// runTokens lets in tasks whose sandbox holds a key of its own; see UseRunTokens.
+	runTokens atomic.Pointer[RunTokens]
+	source    atomic.Pointer[CredentialSource]
+	held      atomic.Pointer[Credentials]
+	registry  atomic.Int64
+	where     Where
+	ledger    *spend.Ledger
+	allowed   Allowlist
+	client    atomic.Pointer[http.Client]
+	public    *http.Client
+	guard     sync.Mutex
 	// lines is how many lines each task's record has, kept under guard.
 	lines    map[string]int
 	recorder atomic.Pointer[Recorder]
@@ -86,6 +88,14 @@ func (p *Proxy) Handler() http.Handler {
 			p.outbound(w, r)
 			return
 		}
+		if r.URL.Path == exchangePath {
+			p.exchange(w, r)
+			return
+		}
+		if ticket, rest, ok := p.runTicket(r); ok {
+			p.answer(w, r, ticket, rest)
+			return
+		}
 		token, rest := split(r.URL.Path)
 		// An OpenAI-compatible client puts its key in the Authorization header
 		// and its base URL in static configuration. A token in the path would
@@ -107,12 +117,17 @@ func (p *Proxy) Handler() http.Handler {
 			http.Error(w, "no", http.StatusForbidden)
 			return
 		}
-		if toolsPath(rest) {
-			p.tools(w, r, ticket)
-			return
-		}
-		p.pass(w, r, ticket, rest)
+		p.answer(w, r, ticket, rest)
 	})
+}
+
+// answer is a call a task's token let in: to the tools behind the gateway, or to the model.
+func (p *Proxy) answer(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
+	if toolsPath(rest) {
+		p.tools(w, r, ticket)
+		return
+	}
+	p.pass(w, r, ticket, rest)
 }
 
 // split takes the token off the front of /model/{token}/v1/chat/completions.

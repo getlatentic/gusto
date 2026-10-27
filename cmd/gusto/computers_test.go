@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,16 +63,39 @@ case "$cmd $sub" in
 esac
 `
 
-// confinerShim stands in for gusto sandbox-run in the fake gateway, which runs commands on this machine: it writes down the policy
-// and the home it was given, and runs the command unconfined.
-func confinerShim(t *testing.T, root string) string {
+// gustoShim stands in for gusto in the fake gateway's sandbox, which runs commands on this machine: it writes down the Landlock
+// policy and the home it was given, and runs the real gusto boxed, the test binary, without the policy, which Linux alone applies.
+func gustoShim(t *testing.T, root string) string {
 	t.Helper()
-	shim := filepath.Join(t.TempDir(), "confine")
-	script := "#!/bin/sh\n[ \"$1\" = sandbox-run ] || exit 9\nprintf '%s\\n%s\\n' \"$2\" \"$HOME\" > " + root + "/confined-$$\nshift 3\nexec \"$@\"\n"
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	shim := filepath.Join(t.TempDir(), "gusto")
+	script := `#!/bin/sh
+if [ "$1" = sandbox-run ]; then printf '%s\n%s\n' "$2" "$HOME" > ` + root + `/confined-$$; shift 3; exec "$@"; fi
+[ "$1" = boxed ] || exit 9; shift
+model=""; policy=""
+while [ "$1" != "--" ]; do case "$1" in --model) model=$2; shift 2;; --policy) policy=$2; shift 2;; *) exit 9;; esac; done
+shift
+[ -z "$policy" ] || printf '%s\n%s\n' "$policy" "$HOME" > ` + root + `/confined-$$
+exec ` + self + ` boxed --model "$model" -- "$@"
+`
 	if err := os.WriteFile(shim, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return shim
+}
+
+// freeAddress is an address on this machine's loopback that nothing listens on.
+func freeAddress(t *testing.T) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	return listener.Addr().String()
 }
 
 func withGateway(t *testing.T) string {
@@ -101,7 +125,7 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	t.Setenv("GUSTO_SANDBOX", "openshell")
 	t.Setenv("GUSTO_MODEL_UPSTREAM", "http://127.0.0.1:9")
 	t.Setenv("GUSTO_MODEL_KEY", "not-a-key")
-	t.Setenv("GUSTO_PROXY_ADDR", "127.0.0.1:0")
+	t.Setenv("GUSTO_PROXY_ADDR", freeAddress(t))
 	t.Setenv("GUSTO_CREDENTIALS", "")
 	index, err := jobs.Open(filepath.Join(t.TempDir(), "jobs"))
 	if err != nil {
@@ -111,6 +135,12 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	if err != nil {
 		t.Fatal(err)
 	}
+	// An agent in a sandbox reaches its model through its forwarder, which trades its secret at the proxy before it starts.
+	stopProxy, err := way.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stopProxy)
 	registry, err := computer.Open(filepath.Join(t.TempDir(), "computers"), "acme-com")
 	if err != nil {
 		t.Fatal(err)
@@ -118,8 +148,8 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	limit := filepath.Join(t.TempDir(), "quota.json")
 	quota.Write(limit, quotaOf)
 	registry.UseQuota(quota.Open(limit))
-	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi", Processes: hostProcesses(t),
-		Confiner: confinerShim(t, root)}
+	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "127.0.0.1", CPU: "1", Memory: "1Gi", Processes: hostProcesses(t),
+		Gusto: gustoShim(t, root)}
 	instances, err := instance.Open(filepath.Join(t.TempDir(), "sessions"))
 	if err != nil {
 		t.Fatal(err)
