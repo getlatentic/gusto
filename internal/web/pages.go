@@ -204,7 +204,8 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 	if err := dir.Make(); err != nil {
 		return err
 	}
-	if err := s.equip(&spec, dir, record.Asked); err != nil {
+	// A room's agent works with its owner's tools, which the room's admin accepted with it.
+	if err := s.equip(&spec, dir, record.Payer()); err != nil {
 		return err
 	}
 	if err := spec.Write(dir); err != nil {

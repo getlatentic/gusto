@@ -53,6 +53,9 @@ type Record struct {
 	Answers string `json:"answers,omitempty"`
 	Hops    int    `json:"hops,omitempty"`
 	Asked   string `json:"asked"`
+	// PaidBy is the person whose computer runs the task and whose spending it counts against, when that is not the person who
+	// asked: a room's agent runs on its owner's computer and spending, whoever mentions it.
+	PaidBy string `json:"paidBy,omitempty"`
 	// Key is the request id the sender gave, so that the same send made twice is one task. It belongs to the asker.
 	Key string `json:"requestId,omitempty"`
 	// StoppedBy is who asked for the task to be stopped. A task with it ends interrupted, whatever its agent said on the way out.
@@ -67,6 +70,14 @@ type Record struct {
 	Queued  int64 `json:"queuedAt"`
 	Started int64 `json:"startedAt,omitempty"`
 	Ended   int64 `json:"endedAt,omitempty"`
+}
+
+// Payer is the person whose computer runs the task and whose spending it counts against.
+func (r Record) Payer() string {
+	if r.PaidBy != "" {
+		return r.PaidBy
+	}
+	return r.Asked
 }
 
 // Lane is what keeps two turns from running at once. A room's agent keeps one conversation and one state, so its own turns go

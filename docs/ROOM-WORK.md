@@ -154,7 +154,7 @@ An agent belongs to the person who made it. The room keeps its own record of eac
 - Taking an agent out stops its queued and running turns in the room, so nothing it was doing is merged afterwards.
 - Mentioning an agent that waits for an admin asks nobody, and the room says so.
 - An allowance is the dollars an agent may spend in the room in a calendar month, across all its turns, set when it is added or proposed. The proxy refuses a call past it, and a mention past it is not started. The room says why. No allowance is no limit.
-- A turn still runs on the computer of the person who asked, and counts against their spending. Running it on the owner's computer and budget waits for the run token in getlatentic/planning#731.
+- A turn runs on the computer of the agent's owner and counts against the owner's spending, whoever mentioned the agent. The job's record keeps both: `asked` is who mentioned it and `paidBy` is the owner. It uses the owner's tools, which the room's admin accepted with the agent. An agent with no owner, kept from before agents had owners, runs for the person who asked.
 - In a person's computer, a room's turn can read and write only its copy of the room, its agent's home and its own temporary folder. Landlock enforces this, not the agent's instructions; see [OPENSHELL.md](OPENSHELL.md).
 
 ## Where it is
