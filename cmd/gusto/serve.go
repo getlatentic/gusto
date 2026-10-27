@@ -39,6 +39,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 func serve(args []string) int {
@@ -208,6 +209,11 @@ func serve(args []string) int {
 		pages.UseRegistry(reg, offeredNow)
 	}
 	pages.UseLedger(way.ledger)
+	if way.proxy != nil {
+		pages.UseReach(func(model string, shape wire.Shape) (bool, bool) {
+			return way.proxy.Reaches(context.Background(), model, shape)
+		})
+	}
 	liveCtx, stopLive := context.WithCancel(context.Background())
 	defer stopLive()
 	if _, err := startLive(liveCtx, way, index, pages, reg != nil); err != nil {
