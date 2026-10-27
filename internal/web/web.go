@@ -35,6 +35,7 @@ import (
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 //go:embed templates/*.html
@@ -118,9 +119,11 @@ type Server struct {
 	setups     *setup.Store
 	presets    *preset.Store
 	crew       *crew.Store
-	installer  agentInstaller
-	replies    replyNotes
-	servers    setup.Servers
+	// reaches says whether an agent calling in a shape can use a model, and whether natively; nil offers every model to every agent.
+	reaches   func(model string, shape wire.Shape) (native, ok bool)
+	installer agentInstaller
+	replies   replyNotes
+	servers   setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
 	// desktop is the folder of the desktop app's releases, which the server hands out so that an app updates from the server it is connected to.

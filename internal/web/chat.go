@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 // pick is one harness in the chat's chooser with the models it may be pointed at.
@@ -90,9 +91,37 @@ func (s *Server) picksFor(r *http.Request) []pick {
 	offered := s.offeredTo(r)
 	var picks []pick
 	for _, entry := range s.readyEngines() {
-		picks = append(picks, pick{Entry: entry, Models: offered})
+		picks = append(picks, pick{Entry: entry, Models: s.usableBy(entry.Shape, offered)})
 	}
 	return picks
+}
+
+// usableBy is the models an agent that calls in this shape can use. A model reached through a credential that neither answers
+// nor translates the shape is left out, since every call would fail. Where two credentials reach the same model, the agent is
+// offered it once, through the one that answers its shape as it is.
+func (s *Server) usableBy(shape wire.Shape, offered []string) []string {
+	if s.reaches == nil {
+		return offered
+	}
+	usable := make([]string, 0, len(offered))
+	native := map[string]bool{}
+	at := map[string]int{}
+	for _, model := range offered {
+		isNative, ok := s.reaches(model, shape)
+		if !ok {
+			continue
+		}
+		name := modelName(model)
+		if i, seen := at[name]; seen {
+			if isNative && !native[name] {
+				usable[i], native[name] = model, true
+			}
+			continue
+		}
+		at[name], native[name] = len(usable), isNative
+		usable = append(usable, model)
+	}
+	return usable
 }
 
 // defaultPick is the harness and model last used that can still be used, else the organization's default when it can run, else the
