@@ -56,6 +56,8 @@ File rules need Landlock. A sandbox that cannot enforce them does not start. A `
 
 ### A run's credential
 
+Bound run tokens are off unless the server is started with `GUSTO_RUN_TOKENS=bound`. In an OpenShell sandbox the forwarder, a static Go program, is refused every connection that `node` in the same sandbox is allowed, by its own dialler and by raw sockets alike, so no agent could start. Until that is resolved, a sandbox run gets a plain token for the run, which the proxy drops when the run ends (getlatentic/planning#731).
+
 An agent in a sandbox holds nothing it could use anywhere else. It is told `http://127.0.0.1:<port>/model/v1`, the address of a forwarder of its run's own, and the word `dpop` where a key would go.
 
 1. The server gives the run a secret (`WayOut.admitBound`). The proxy never accepts the secret as a token.

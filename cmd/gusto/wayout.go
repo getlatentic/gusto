@@ -46,6 +46,10 @@ type WayOut struct {
 	gateways *gateways
 	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
 	spares *spareComputers
+	// bindRuns gives a run in a sandbox a secret its forwarder trades for a run token bound to a key it holds, in place of a
+	// plain token: GUSTO_RUN_TOKENS=bound. It is off unless set: in an OpenShell sandbox the forwarder, a static Go program,
+	// is refused the network that the agents reach (getlatentic/planning#731).
+	bindRuns bool
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
 }
@@ -103,6 +107,7 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		address:  setting("GUSTO_PROXY_ADDR", proxyAddress()),
 	}
 	way.held.Store(&credentials)
+	way.bindRuns = os.Getenv("GUSTO_RUN_TOKENS") == "bound"
 	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return way.runOf(jobsRoot, id) })
 	if err != nil {
 		return nil, err
@@ -244,6 +249,17 @@ func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
 	return w.tokens.MintBound(id, named)
 }
 
+// admitSandbox is admit for a task in a sandbox: with a secret for its forwarder when runs are bound, and a plain token
+// otherwise. It says which.
+func (w *WayOut) admitSandbox(dir job.Dir, spec job.Spec) (token string, bound bool, err error) {
+	if w.bindRuns {
+		token, err = w.admitBound(dir, spec)
+		return token, true, err
+	}
+	token, err = w.admit(dir, spec)
+	return token, false, err
+}
+
 // mayReach checks that a task may reach its model, and says the task and the credential it spends.
 func (w *WayOut) mayReach(dir job.Dir, spec job.Spec) (string, string, error) {
 	id := filepath.Base(dir.Path())
@@ -292,7 +308,7 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	if w.proxy == nil {
 		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
-	token, err := w.admitBound(dir, spec)
+	token, bound, err := w.admitSandbox(dir, spec)
 	if err != nil {
 		return 0, err
 	}
@@ -306,7 +322,9 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	if err != nil {
 		return 0, err
 	}
-	box.Bind()
+	if bound {
+		box.Bind()
+	}
 	return runner.OutsideContext(ctx, dir, box)
 }
 
