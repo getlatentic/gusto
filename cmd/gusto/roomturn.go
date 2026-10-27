@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
@@ -63,7 +64,7 @@ func (r *roomRuns) around(ctx context.Context, spec job.Spec, dir job.Dir, run f
 	if err != nil || exit != 0 || ctx.Err() != nil {
 		return exit, err
 	}
-	return exit, r.bring(ctx, turn, spec, r.askedBy(dir))
+	return exit, r.bring(ctx, turn, spec, dir)
 }
 
 // begin makes the turn's copy of the room's folder and its agent's own state. A turn that cannot is refused with the reason in
@@ -86,17 +87,19 @@ func (r *roomRuns) copy(ctx context.Context, spec job.Spec, dir job.Dir) (*roomw
 
 // bring merges a passed turn into the room's folder, and tells the room of the files two agents changed. What may write to the
 // room is checked again first, since a turn runs for minutes: a turn whose agent was taken out, or whose asker left, writes nothing.
-func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec, asker string) error {
-	if why := r.mayNotWrite(spec, asker); why != "" {
+func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec, dir job.Dir) error {
+	if why := r.mayNotWrite(spec, r.askedBy(dir)); why != "" {
 		if _, err := r.instances.Notice(spec.Session, spec.Thread, why); err != nil {
 			slog.Error("could not tell the room a turn wrote nothing", "room", spec.Session, "error", err)
 		}
+		decided(dir, evidence.Decision{Refused: why})
 		return nil
 	}
 	outcome, err := turn.Merge(ctx)
 	if err != nil {
 		return err
 	}
+	decided(dir, decisionOf(outcome))
 	if words := outcome.Words(); words != "" {
 		if _, err := r.instances.Notice(spec.Session, spec.Thread, words); err != nil {
 			slog.Error("could not tell the room about a conflict", "room", spec.Session, "error", err)
@@ -149,4 +152,24 @@ func (r *roomRuns) seedState(ctx context.Context, spec job.Spec) error {
 		return err
 	}
 	return os.Rename(next, filepath.Clean(own))
+}
+
+// decisionOf is what a merge did, as a turn's record keeps it.
+func decisionOf(outcome roomwork.Outcome) evidence.Decision {
+	decision := evidence.Decision{Kept: true, Changed: outcome.Changed}
+	for _, each := range outcome.Joined {
+		decision.Joined = append(decision.Joined, each.Path)
+	}
+	for _, each := range outcome.Conflicts {
+		decision.Conflicts = append(decision.Conflicts, each.Path)
+	}
+	return decision
+}
+
+// decided puts what was done with a turn's changes in its signed record. A record that cannot take it is said, and the room's
+// folder is as the decision left it either way.
+func decided(dir job.Dir, decision evidence.Decision) {
+	if err := evidence.Decide(dir, decision); err != nil {
+		slog.Error("a turn's record does not say what was done with its changes", "job", filepath.Base(dir.Path()), "error", err)
+	}
 }

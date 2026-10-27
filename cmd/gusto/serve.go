@@ -97,6 +97,7 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	rooms := newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) })
+	way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
 	way.UseAskers(func(id string) string {
 		if record, found := index.Get(id); found {
 			return record.Asked

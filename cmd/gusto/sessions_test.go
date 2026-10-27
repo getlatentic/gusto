@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -210,6 +211,7 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	conversational(t)
 	held, _ := instances.StartRoom("Launch", "ada@acme.com")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
+	instances.SetMember(held.ID, "bob@acme.com", instance.RoleMember)
 	held, _ = instances.Get(held.ID)
 	id, err := index.Reserve("go", time.Now())
 	if err != nil {
@@ -229,6 +231,25 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	}
 	if got, err := registry.Of("bob@acme.com"); err == nil {
 		t.Errorf("the person who asked was given a computer: %+v", got)
+	}
+	ada, _ := registry.Of("ada@acme.com")
+	var run evidence.Run
+	var decision evidence.Decision
+	readJSON(t, dir.OutFile(evidence.RunFile), &run)
+	readJSON(t, dir.OutFile(evidence.DecisionFile), &decision)
+	if run.Asked != "bob@acme.com" || run.PaidBy != "ada@acme.com" || run.Agent != "a1" || run.AgentName != "Scout" ||
+		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" {
+		t.Errorf("the record says the run was %+v", run)
+	}
+	if !decision.Kept || decision.Refused != "" {
+		t.Errorf("the record says %+v was done with what it changed", decision)
+	}
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(manifest.Files, func(e evidence.Entry) bool { return e.Name == evidence.DecisionFile }) {
+		t.Error("the signed manifest does not cover the decision")
 	}
 }
 
@@ -326,5 +347,16 @@ func TestACopyThatFailsLeavesWhatWasThere(t *testing.T) {
 	}
 	if _, err := os.Stat(to + ".next"); err == nil {
 		t.Error("a half-made copy was left behind")
+	}
+}
+
+func readJSON(t *testing.T, path string, into any) {
+	t.Helper()
+	text, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(text, into); err != nil {
+		t.Fatal(err)
 	}
 }

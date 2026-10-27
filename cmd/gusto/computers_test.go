@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/openshell"
@@ -154,6 +155,7 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	if err != nil {
 		t.Fatal(err)
 	}
+	way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
 	work := inSandbox(way, cfg, index, registry, instances, newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) }))
 	return func(dir job.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
 }
