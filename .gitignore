@@ -28,3 +28,7 @@ CLAUDE.md
 /presets/
 /crew/
 /agents/
+
+# Photographs of the app, made by deploy/shots/shots.mjs.
+/screenshots/
+/shots-out/

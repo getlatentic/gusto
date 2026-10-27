@@ -11,7 +11,9 @@
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = resolve(new URL("../..", import.meta.url).pathname);
 // The person's own PATH, as their login shell sets it, so the agents installed on this computer are found as gusto on it finds
@@ -107,6 +109,14 @@ const turns = [await said(thread, "What should a 40-person company decide first 
   await said(thread, "Draft a spending policy with a monthly limit per person and save it as policy.md.")];
 const second = (await call("POST", "/instances", { harness: "opencode", model: "stub/stub-model" })).headers.get("location");
 await said(second, "Summarize what changed this week.");
+// An agent of the workspace, and a room with that agent in it, and something said there.
+const scout = (await call("POST", "/members/agents", { name: "Scout", specialty: "Research and first drafts", harness: "opencode", model: "stub/stub-model" })).headers.get("location");
+const roomThread = ((await call("POST", "/rooms", { name: "Launch plan" })).headers.get("location") ?? "").split("?")[0];
+const room = roomThread.split("/threads/")[0];
+const roomId = room.split("/").pop();
+await call("POST", `/rooms/${roomId}/members/add`, { agent: scout.split("/").pop() });
+await call("POST", `/rooms/${roomId}/members/add`, { who: "grace@example.com" });
+await said(roomThread, "@Scout list what has to be ready before we launch.");
 const task = (await call("POST", `${instance}/tasks`, { brief: "Write the policy and check it exists.", gate: "true", team: "finance", usd: "1.00" })).headers.get("location");
 await call("POST", `${instance}/routines`, { title: "Morning summary", prompt: "Summarize what changed since yesterday.", daily: "08:00" });
 await call("POST", `${instance}/routines`, { title: "Spend check", prompt: "How much did the team spend this week?", every: "6" });
@@ -129,6 +139,7 @@ const routes = [
   ["spend", "/spend"], ["usage", "/usage"], ["files", "/files"], ["setups", "/setups"], ["start-agent", "/instances/new?harness=opencode"],
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],
+  ["members", "/members"], ["member-agent", scout], ["room-new", "/rooms/new"], ["room", roomThread], ["room-members", `${roomThread}?members=1`],
   ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-activity", "/admin/activity"],
   ["admin-verification", "/admin/verification"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-retention", "/admin/retention"], ["admin-tokens", "/admin/tokens"],
   ["admin-skill-sets", "/admin/skill-sets"],
@@ -136,7 +147,8 @@ const routes = [
 
 // 4. the photographs
 rmSync(out, { recursive: true, force: true });
-const { chromium } = await import("playwright");
+const playwright = await import(pathToFileURL(createRequire(join(process.cwd(), "x.js")).resolve("playwright")).href);
+const { chromium } = playwright.default ?? playwright;
 const browser = await chromium.launch();
 const report = [];
 for (const theme of ["light", "dark"]) {
