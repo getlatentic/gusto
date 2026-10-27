@@ -56,6 +56,8 @@ const (
 	ProviderAdded    = "provider.added"
 	ProviderRetired  = "provider.retired"
 	KeyReplaced      = "provider.key"
+	AddressAdded     = "provider.address.added"
+	AddressRemoved   = "provider.address.removed"
 	ModelAdded       = "model.added"
 	ModelRetired     = "model.retired"
 	PriceSet         = "model.price"

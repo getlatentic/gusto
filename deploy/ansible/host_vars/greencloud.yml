@@ -38,30 +38,29 @@ credentials:
     key_var: model_key
   # Measured on 2026-09-26: serves deepseek-flash and deepseek-v4-pro, and
   # implements the responses API, which is the only wire codex still speaks.
+  # Its second address is Anthropic's shape, the only wire Claude Code speaks.
+  # Measured on 2026-09-27: /anthropic/v1/messages answers with a real
+  # Anthropic-shaped message. bedrock-mantle serves that path too and refuses
+  # its anthropic.* models as unlicensed for this account.
   - name: deepseek
     address: "https://api.deepseek.com"
     auth: bearer
     key_var: deepseek_key
-  # The same provider, in Anthropic's shape, which is the only wire Claude Code
-  # speaks. Measured on 2026-09-27: /anthropic/v1/messages answers with a real
-  # Anthropic-shaped message. bedrock-mantle serves that path too and refuses
-  # its anthropic.* models as unlicensed for this account.
-  - name: anthropic
-    address: "https://api.deepseek.com/anthropic"
-    auth: anthropic
-    key_var: deepseek_key
+    endpoints:
+      - address: "https://api.deepseek.com/anthropic"
+        auth: anthropic
 
 # Every engine is offered every model, and the first is the one an agent is
 # started on when nobody chose, so the order is the choice: DeepSeek Flash finished every conversation measured on
 # 2026-09-27, and Qwen 3 VL, a vision model, answered opencode's first
 # message with "Please try again".
-models: "deepseek/deepseek-flash,anthropic/deepseek-flash,deepseek/deepseek-v4-pro,anthropic/deepseek-v4-pro,platform/qwen.qwen3-vl-235b-a22b-instruct"
+models: "deepseek/deepseek-flash,deepseek/deepseek-v4-pro,platform/qwen.qwen3-vl-235b-a22b-instruct"
 
 # DeepSeek's published prices, read from api-docs.deepseek.com/quick_start/pricing
 # on 2026-09-27: US dollars a million tokens at the off-peak rate, doubled on
 # weekdays from 01:00 to 04:00 and 06:00 to 10:00 UTC except on Chinese public
-# holidays, which go in `except` as DeepSeek announces them. Both credentials
-# reach the same account, so a price named by the model alone covers both. The
+# holidays, which go in `except` as DeepSeek announces them. Both of the
+# deepseek credential's addresses reach the same account, at one price. The
 # qwen model on the platform credential has no price here: its tokens are
 # counted and its cost is shown as unknown.
 deepseek_peak: &deepseek_peak

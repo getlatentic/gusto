@@ -328,6 +328,10 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("added the model provider %s at %s, with its key %s", w["provider"], w["address"], or(w["key"], "kept"))
 	case changelog.ProviderRetired:
 		return fmt.Sprintf("retired the model provider %s", w["provider"])
+	case changelog.AddressAdded:
+		return fmt.Sprintf("gave the model provider %s the %s address %s", w["provider"], w["kind"], w["address"])
+	case changelog.AddressRemoved:
+		return fmt.Sprintf("took the address %s away from the model provider %s", w["address"], w["provider"])
 	case changelog.KeyReplaced:
 		return fmt.Sprintf("gave the model provider %s another key", w["provider"])
 	case changelog.ModelAdded:

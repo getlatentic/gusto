@@ -2,6 +2,7 @@ package registry
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -27,9 +28,9 @@ type View struct {
 
 // ProviderView is one provider.
 type ProviderView struct {
-	Name    string
-	Address string
-	Auth    string
+	Name string
+	// Addresses are where the provider answers, the first being the one it was added with.
+	Addresses []AddressView
 	// Operator says the deployment's own configuration made it, which is not changed here.
 	Operator bool
 	Retired  bool
@@ -40,6 +41,14 @@ type ProviderView struct {
 	// Problem is why a provider of the organization's is not in use.
 	Problem string
 	Models  []ModelView
+}
+
+// AddressView is one of a provider's addresses and the kind of API it answers there.
+type AddressView struct {
+	Address string
+	Kind    string
+	// Extra says it was added beside the provider's first address, and can be taken away.
+	Extra bool
 }
 
 // ModelView is one model of a provider.
@@ -69,7 +78,7 @@ func (r *Registry) View() View {
 	}
 	for _, provider := range document.Providers {
 		row := ProviderView{
-			Name: provider.Name, Address: provider.Address, Auth: authWords(provider.Auth),
+			Name: provider.Name, Addresses: addressesOf(provider.Address, provider.Auth, provider.Wires, provider.Endpoints),
 			Retired: provider.Retired, Pending: provider.Pending, Key: provider.Key, Problem: effective.Problems[provider.Name],
 		}
 		for _, model := range document.Models {
@@ -84,7 +93,7 @@ func (r *Registry) View() View {
 
 func (r *Registry) operators(name string, effective Effective) ProviderView {
 	held := r.platform.Credentials[name]
-	row := ProviderView{Name: name, Address: held.Address, Auth: authWords(held.Auth), Operator: true, Key: "the operator's"}
+	row := ProviderView{Name: name, Addresses: addressesOf(held.Address, held.Auth, held.Wires, held.Endpoints), Operator: true, Key: "the operator's"}
 	for _, full := range r.platform.Models {
 		if credential, model := proxy.Named(full); credential == name {
 			entry := ModelView{Name: model, Full: full}
@@ -98,9 +107,26 @@ func (r *Registry) operators(name string, effective Effective) ProviderView {
 	return row
 }
 
-func authWords(auth proxy.Auth) string {
-	if auth == proxy.Anthropic {
-		return "Anthropic's header"
+func addressesOf(address string, auth proxy.Auth, wires []string, others []proxy.Endpoint) []AddressView {
+	all := []AddressView{{Address: address, Kind: KindOf(auth, wires)}}
+	for _, at := range others {
+		all = append(all, AddressView{Address: at.Address, Kind: KindOf(at.Auth, at.Wires), Extra: true})
 	}
-	return "bearer token"
+	return all
+}
+
+// KindOf is the kind of API an address answers, in the words the admin chose it by: OpenAI-compatible and
+// Anthropic-compatible are the two that name no shapes, and anything else is custom.
+func KindOf(auth proxy.Auth, wires []string) string {
+	switch {
+	case len(wires) == 0 && auth == proxy.Anthropic:
+		return "Anthropic-compatible"
+	case len(wires) == 0:
+		return "OpenAI-compatible"
+	}
+	header := "bearer token"
+	if auth == proxy.Anthropic {
+		header = "Anthropic's header"
+	}
+	return "custom: " + strings.Join(wires, ", ") + ", " + header
 }

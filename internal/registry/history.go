@@ -122,7 +122,7 @@ func Describe(was, now Document) []string {
 			lines = append(lines, "turned off provider "+provider.Name)
 		case before.Pending != provider.Pending:
 			lines = append(lines, "turned on provider "+provider.Name)
-		case before.Address != provider.Address || before.Key != provider.Key || before.Auth != provider.Auth:
+		case before.Address != provider.Address || before.Key != provider.Key || before.Auth != provider.Auth || !sameJSON(before.Endpoints, provider.Endpoints):
 			lines = append(lines, "changed provider "+provider.Name)
 		}
 		delete(providers, provider.Name)

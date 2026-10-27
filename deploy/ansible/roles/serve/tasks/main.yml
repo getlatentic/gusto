@@ -30,6 +30,7 @@
     content: |
       {{ {'address': item.address,
           'auth': item.auth | default('bearer'),
+          'endpoints': item.endpoints | default([]),
           'key': lookup('vars', item.key_var)} | to_nice_json }}
     owner: "{{ app_user }}"
     group: "{{ app_user }}"

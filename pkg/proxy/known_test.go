@@ -39,8 +39,10 @@ func TestTheKnownProvidersAreTheOnesTheDeploymentWrites(t *testing.T) {
 	}
 	for _, name := range KnownNames() {
 		credential, _ := Known(name)
-		if !strings.Contains(string(script), `"`+name+`": {"address": "`+credential.Address+`"`) {
-			t.Errorf("%s at %s is not what e2e/credentials.sh writes", name, credential.Address)
+		for _, address := range credential.Addresses() {
+			if !strings.Contains(string(script), `"address": "`+address+`"`) {
+				t.Errorf("%s at %s is not what e2e/credentials.sh writes", name, address)
+			}
 		}
 	}
 }

@@ -220,8 +220,10 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 	// so its address is where the code goes. The runner inside checks the
 	// address it was handed, which is the proxy on its own loopback, and would
 	// read a restricted task as staying in the building when it does not.
-	if err := rules.Allows(spec, credential.Address); err != nil {
-		return "", runner.Refuse(dir, err)
+	for _, address := range credential.Addresses() {
+		if err := rules.Allows(spec, address); err != nil {
+			return "", runner.Refuse(dir, err)
+		}
 	}
 	w.ledger.Begin(id, spend.TermsOf(spec))
 	return w.tokens.Mint(id, named)
@@ -302,11 +304,20 @@ func (w *WayOut) InBuilding() bool {
 	}
 	held := w.credentials()
 	for _, name := range held.Names() {
-		if credential, found := held.Get(name); found && rules.Local(credential.Address) {
+		if credential, found := held.Get(name); found && allLocal(credential.Addresses()) {
 			return true
 		}
 	}
 	return false
+}
+
+func allLocal(addresses []string) bool {
+	for _, address := range addresses {
+		if !rules.Local(address) {
+			return false
+		}
+	}
+	return true
 }
 
 // proxyAddress is where the proxy listens unless it is told. A container reaches

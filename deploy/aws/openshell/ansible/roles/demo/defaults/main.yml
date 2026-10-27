@@ -10,9 +10,9 @@ demo_cert_email: ""
 demo_free_mail: allow
 demo_image_key: ""
 # Every model is offered to every engine, and the person chooses: gusto does not decide which pairs may be tried. A new chat starts on
-# demo_chat_default, a pair measured to finish (docs/MATRIX.md), as engine=model. Claude Code reaches DeepSeek Flash through the
-# anthropic credential.
-demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/deepseek-flash,deepseek/deepseek-flash
+# demo_chat_default, a pair measured to finish (docs/MATRIX.md), as engine=model. Claude Code reaches DeepSeek Flash at the
+# deepseek credential's Anthropic address.
+demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash
 demo_chat_default: claude=gemma/google.gemma-4-26b-a4b
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"

@@ -11,7 +11,8 @@ var known = map[string]Credential{
 	// The rest of Mantle's models, which answer what a bearer token says.
 	"platform": {Address: "https://bedrock-mantle.us-east-1.api.aws", Auth: Bearer},
 	// DeepSeek answers Chat Completions and Responses at its root, and Messages at /anthropic.
-	"deepseek":  {Address: "https://api.deepseek.com", Auth: Bearer},
+	"deepseek": {Address: "https://api.deepseek.com", Auth: Bearer, Endpoints: []Endpoint{{Address: "https://api.deepseek.com/anthropic", Auth: Anthropic}}},
+	// DeepSeek's Anthropic address alone, for a program that calls it by this name.
 	"anthropic": {Address: "https://api.deepseek.com/anthropic", Auth: Anthropic},
 }
 
@@ -23,6 +24,7 @@ func Known(name string) (Credential, bool) {
 	}
 	credential.Name = name
 	credential.Wires = append([]string(nil), credential.Wires...)
+	credential.Endpoints = append([]Endpoint(nil), credential.Endpoints...)
 	return credential, true
 }
 

@@ -15,6 +15,10 @@ type heldCredential struct {
 	Address   string   `json:"address"`
 	Harnesses []string `json:"harnesses"`
 	Wires     []string `json:"wires"`
+	Endpoints []struct {
+		Address string `json:"address"`
+		Auth    string `json:"auth"`
+	} `json:"endpoints"`
 }
 
 // credentials runs the script that builds the proxy's credentials, with an aws that answers every parameter with a key.
@@ -57,7 +61,7 @@ func credentials(t *testing.T) map[string]heldCredential {
 // The person chooses which engine runs on which model, so no credential names the engines it is for.
 func TestTheDemoOffersEveryModelToEveryEngine(t *testing.T) {
 	held := credentials(t)
-	if len(held) != 4 {
+	if len(held) != 3 {
 		t.Fatalf("the script wrote %d credentials", len(held))
 	}
 	for name, credential := range held {
@@ -67,6 +71,9 @@ func TestTheDemoOffersEveryModelToEveryEngine(t *testing.T) {
 	}
 	if got := held["gemma"].Wires; !slices.Equal(got, []string{"chat"}) {
 		t.Errorf("the gemma credential says its provider answers %v, so Claude Code's and Codex's calls are not translated", got)
+	}
+	if got := held["deepseek"].Endpoints; len(got) != 1 || got[0].Address != "https://api.deepseek.com/anthropic" || got[0].Auth != "anthropic" {
+		t.Errorf("the deepseek credential has no Anthropic address for Claude Code: %+v", got)
 	}
 }
 
