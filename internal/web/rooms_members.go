@@ -24,12 +24,14 @@ type roomAgent struct {
 	instance.Agent
 	Engine string
 	Brain  string
+	Owner  string
 }
 
-func (s *Server) roomAgents(held instance.Instance) []roomAgent {
+func (s *Server) roomAgents(held instance.Instance, you string) []roomAgent {
 	shown := make([]roomAgent, 0, len(held.Agents))
 	for _, agent := range held.Agents {
-		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model)})
+		owner := ownerLabel(s.ownerOf(agent), you)
+		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model), Owner: owner})
 	}
 	return shown
 }
@@ -49,7 +51,7 @@ func (s *Server) roomMembers(r *http.Request, held instance.Instance) map[string
 	}
 	return map[string]any{
 		"People":  people,
-		"Agents":  s.roomAgents(held),
+		"Agents":  s.roomAgents(held, you),
 		"Runs":    s.runsRoom(r, held),
 		"Addable": addable,
 	}

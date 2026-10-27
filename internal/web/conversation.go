@@ -113,7 +113,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Sharing":   s.apps != nil && owns,
 		"Owns":      owns,
 		"Me":        s.askerName(r),
-		"Mentions":  asJSON(s.mentionables(held)),
+		"Mentions":  asJSON(s.mentionables(held, s.askerName(r))),
 		"Names":     roomNames(held),
 		"Version":   roomVersion,
 		"Stream":    stream,

@@ -35,6 +35,27 @@ func liveAgent(agent instance.Agent, member crew.Agent) instance.Agent {
 	return agent
 }
 
+// ownerOf is who made a room's agent, as the workspace has it now, or nobody for an agent the workspace no longer keeps or one
+// kept from before agents had owners.
+func (s *Server) ownerOf(agent instance.Agent) string {
+	if s.crew == nil {
+		return ""
+	}
+	member, _ := s.crew.Get(agent.Member)
+	return member.Owner
+}
+
+// ownerLabel is whose an agent is, as the person looking reads it.
+func ownerLabel(owner, you string) string {
+	if owner == "" {
+		return ""
+	}
+	if strings.EqualFold(owner, you) {
+		return "your agent"
+	}
+	return personName(owner) + "'s agent"
+}
+
 // crewFor is every workspace agent the person asking may work with.
 func (s *Server) crewFor(who string) []crew.Agent {
 	if s.crew == nil {

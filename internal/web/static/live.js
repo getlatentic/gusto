@@ -41,6 +41,10 @@
       each.classList.remove.apply(each.classList, (own ? each.dataset.theirs : each.dataset.ours).split(" "));
       each.classList.add.apply(each.classList, (own ? each.dataset.ours : each.dataset.theirs).split(" "));
     });
+    root.querySelectorAll("[data-agent-owner]").forEach(function (each) {
+      var yours = each.dataset.agentOwner.toLowerCase() === (me || "").toLowerCase();
+      each.textContent = yours ? each.dataset.yours : each.dataset.theirs;
+    });
     if (owner) {
       root.querySelectorAll("[data-owner-only]").forEach(function (each) { each.hidden = false; });
     }
