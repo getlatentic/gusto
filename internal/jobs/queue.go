@@ -152,8 +152,10 @@ func (q *Queue) one() bool {
 		slog.Error("the task could not run", "job", record.ID, "error", err)
 		state = Failed
 		exit = -1
+		explainFailure(record.Dir(q.index.Root()), exit, err)
 	case exit != 0:
 		state = Failed
+		explainFailure(record.Dir(q.index.Root()), exit, nil)
 	}
 	if err := q.index.Finish(record.ID, state, exit); err != nil {
 		slog.Error("could not record how a task ended", "job", record.ID, "error", err)
