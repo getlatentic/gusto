@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// shownConflicts is how many conflicts a note names before it counts the rest.
-const shownConflicts = 5
+// shownFiles is how many files a note names before it counts the rest.
+const shownFiles = 5
 
 // sideName is the name a turn's version of a conflicting file is saved under: the agent's name goes before the extension, so
 // report.md becomes report.bea.md. A second name for the same file gets a number.
@@ -44,17 +44,27 @@ func slug(name string) string {
 	return "agent"
 }
 
-// Words says what the conflicts were in the plain sentences a room shows, or nothing when there were none.
+// Words says, in the plain sentences a room shows, which files were joined with another change and which conflicted, or nothing
+// when none were.
 func (o Outcome) Words() string {
 	var lines []string
-	for i, each := range o.Conflicts {
-		if i == shownConflicts {
-			lines = append(lines, fmt.Sprintf("%d more files had the same trouble.", len(o.Conflicts)-shownConflicts))
-			break
-		}
+	for _, each := range o.Joined {
 		lines = append(lines, each.words())
 	}
+	for _, each := range o.Conflicts {
+		lines = append(lines, each.words())
+	}
+	if len(lines) > shownFiles {
+		lines = append(lines[:shownFiles], fmt.Sprintf("%d more files were changed by two at once.", len(lines)-shownFiles))
+	}
 	return strings.Join(lines, " ")
+}
+
+func (j Joined) words() string {
+	if j.Other != "" {
+		return fmt.Sprintf("%s and %s both changed %s, in different places, and it holds both changes.", j.Other, j.Agent, j.Path)
+	}
+	return fmt.Sprintf("%s changed %s while somebody else did, in different places, and it holds both changes.", j.Agent, j.Path)
 }
 
 func (c Conflict) words() string {

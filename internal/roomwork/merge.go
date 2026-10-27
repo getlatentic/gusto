@@ -27,7 +27,8 @@ func (t *Turn) Merge(ctx context.Context) (Outcome, error) {
 	if err := ctx.Err(); err != nil {
 		return Outcome{}, err
 	}
-	actions, conflicts := t.plan(changes, now)
+	plan := t.plan(changes, now)
+	actions := plan.actions
 	steps, err := commit(t.room, actions)
 	if err != nil {
 		return Outcome{}, err
@@ -40,10 +41,10 @@ func (t *Turn) Merge(ctx context.Context) (Outcome, error) {
 	t.hub.merged(t.room, t, paths, steps)
 	forget(t.room)
 	saved := 0
-	for _, each := range conflicts {
+	for _, each := range plan.conflicts {
 		if each.Side != "" {
 			saved++
 		}
 	}
-	return Outcome{Changed: len(actions) - saved, Conflicts: conflicts}, nil
+	return Outcome{Changed: len(actions) - saved, Conflicts: plan.conflicts, Joined: plan.joined}, nil
 }

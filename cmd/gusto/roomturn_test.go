@@ -150,6 +150,46 @@ func TestTwoAgentsThatChangedOneFileLeaveBothVersionsAndANoteInTheRoom(t *testin
 	}
 }
 
+// The demo's case: Scout and Draft both write summary.md, in different sections, and the room keeps one file with both.
+func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *testing.T) {
+	const summary = "# Summary\n\n## Market\ntbd\n\n## Plan\ntbd\n"
+	rooms, held := aRoomWithTwoAgents(t, map[string]string{"summary.md": summary})
+	folder := rooms.instances.Workspace(held.ID)
+	var inside, all sync.WaitGroup
+	inside.Add(2)
+	proceed := make(chan struct{})
+	for _, each := range []struct{ agent, section string }{{"a1", "## Market\ntbd"}, {"a2", "## Plan\ntbd"}} {
+		dir, spec := turnOf(t, rooms, held, each.agent)
+		all.Add(1)
+		go func() {
+			defer all.Done()
+			if _, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
+				inside.Done()
+				<-proceed
+				written := strings.Replace(summary, each.section, strings.TrimSuffix(each.section, "tbd")+"by "+each.agent, 1)
+				return 0, os.WriteFile(filepath.Join(dir.Workspace(), "summary.md"), []byte(written), 0o644)
+			}); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	inside.Wait()
+	close(proceed)
+	all.Wait()
+
+	if got, want := file(t, folder, "summary.md"), "# Summary\n\n## Market\nby a1\n\n## Plan\nby a2\n"; got != want {
+		t.Fatalf("summary.md holds\n%s", got)
+	}
+	for _, side := range []string{"summary.ada.md", "summary.bea.md"} {
+		if text := file(t, folder, side); !strings.HasPrefix(text, "(") {
+			t.Errorf("%s was saved beside: %q", side, text)
+		}
+	}
+	if said := sayings(rooms, held); len(said) != 1 || !strings.Contains(said[0], "in different places, and it holds both changes") {
+		t.Fatalf("the room was told %q", said)
+	}
+}
+
 func TestATurnThatFailedOrWasStoppedChangesNothingInTheRoomsFolder(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"a.md": "v1"})
 	folder := rooms.instances.Workspace(held.ID)

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -179,6 +180,13 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 	}
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
+	done, err := s.holdFolder(r, root, full)
+	if err != nil {
+		answerJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "the folder is busy: " + err.Error()})
+		return
+	}
+	placed := false
+	defer func() { done(placed) }()
 	current, ok, err := s.stillWhatTheWriterSaw(held.ID, name, full, r.Header.Get("X-If-Hash"))
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -229,6 +237,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be put in place"})
 		return
 	}
+	placed = true
 	if info, err := os.Lstat(full); err == nil {
 		s.known.remember(held.ID+"\x00"+name, info, hex.EncodeToString(digest.Sum(nil)))
 	}
@@ -243,13 +252,21 @@ func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := r.URL.Query().Get("path")
-	full, err := folderPath(s.instances.Workspace(held.ID), name)
+	root := s.instances.Workspace(held.ID)
+	full, err := folderPath(root, name)
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
+	done, err := s.holdFolder(r, root, full)
+	if err != nil {
+		answerJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "the folder is busy: " + err.Error()})
+		return
+	}
+	removed := false
+	defer func() { done(removed) }()
 	current, ok, err := s.stillWhatTheWriterSaw(held.ID, name, full, r.Header.Get("X-If-Hash"))
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -264,6 +281,7 @@ func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
 			answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be removed"})
 			return
 		}
+		removed = true
 		s.known.forget(held.ID + "\x00" + name)
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -281,4 +299,26 @@ func (s *Server) writing(id string) *sync.Mutex {
 		s.locks[id] = &sync.Mutex{}
 	}
 	return s.locks[id]
+}
+
+// UseRoomHold gives the server what keeps the merges of a room's turns out of its folder while a person changes it, and keeps
+// what the person replaced for the turns working there, so a merge neither replaces the person's file nor loses their change.
+func (s *Server) UseRoomHold(hold func(ctx context.Context, folder string, paths []string) (func(changed bool), error)) {
+	s.roomHold = hold
+}
+
+// holdFolder keeps merges out of root while a request changes the files at fulls, which are under root. done says whether it did.
+func (s *Server) holdFolder(r *http.Request, root string, fulls ...string) (done func(changed bool), err error) {
+	if s.roomHold == nil {
+		return func(bool) {}, nil
+	}
+	var paths []string
+	for _, full := range fulls {
+		relative, err := filepath.Rel(root, full)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, filepath.ToSlash(relative))
+	}
+	return s.roomHold(r.Context(), root, paths)
 }

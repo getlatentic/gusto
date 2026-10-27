@@ -32,6 +32,8 @@ type roomState struct {
 	// doing that to one file at once would lose one of them, so this is a lock around file system work, held for the files the
 	// turn changed and no more. It is a channel so that a stopped turn does not wait for it.
 	guard chan struct{}
+	// meta is the room's Meta, where a change that is not a turn's keeps what it replaces.
+	meta string
 	// The rest is guarded by Hub.mu.
 	live    map[*Turn]struct{}
 	seq     uint64
@@ -54,7 +56,7 @@ func (h *Hub) join(in Room, turn *Turn) {
 	defer h.mu.Unlock()
 	state := h.rooms[in.Folder]
 	if state == nil {
-		state = &roomState{guard: make(chan struct{}, 1), live: map[*Turn]struct{}{}, history: newHistory()}
+		state = &roomState{guard: make(chan struct{}, 1), meta: in.Meta, live: map[*Turn]struct{}{}, history: newHistory()}
 		h.rooms[in.Folder] = state
 	}
 	turn.begin = state.seq
@@ -88,11 +90,15 @@ func (h *Hub) leave(in Room, turn *Turn) {
 	}
 }
 
-// hold takes the room's merge guard, or gives up when the context ends or the wait does.
+// hold takes the room's merge guard, or gives up when the context ends or the wait does. The room has a working turn.
 func (h *Hub) hold(ctx context.Context, in Room) (release func(), err error) {
 	h.mu.Lock()
 	state := h.rooms[in.Folder]
 	h.mu.Unlock()
+	return guard(ctx, state)
+}
+
+func guard(ctx context.Context, state *roomState) (release func(), err error) {
 	ctx, stop := context.WithTimeout(ctx, guardWait)
 	defer stop()
 	select {

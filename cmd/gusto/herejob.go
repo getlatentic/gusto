@@ -19,8 +19,7 @@ import (
 // container gets the instance's workspace and state mounted over its own; here the task's workspace is made a link to the
 // instance's, and the agent is given a home of the task's own with the instance's state as its data, so a conversation works
 // the same way in both places.
-func here(way *WayOut, instances *instance.Store) jobs.StoppableWork {
-	rooms := newRoomRuns(instances)
+func here(way *WayOut, instances *instance.Store, rooms *roomRuns) jobs.StoppableWork {
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {

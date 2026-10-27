@@ -7,6 +7,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"html/template"
 	"log/slog"
@@ -100,8 +101,10 @@ type Server struct {
 	// keyed serializes the sends that carry a request id, so that two arriving together are one.
 	keyed sync.Mutex
 	// known remembers the hash of files in agents' folders; locks, with writers, make one writer at a time of each folder.
-	known     hashes
-	locks     map[string]*sync.Mutex
+	known hashes
+	locks map[string]*sync.Mutex
+	// roomHold keeps a room's merges out while a person changes its folder; see UseRoomHold.
+	roomHold  func(ctx context.Context, folder string, paths []string) (func(changed bool), error)
 	writers   sync.Mutex
 	retention *retained
 	// sockets is what keeps a room's page up to date, and announce is what turns a job's changes into its room's events.
