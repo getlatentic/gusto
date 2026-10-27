@@ -88,16 +88,11 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	if err != nil {
 		return Provider{}, err
 	}
-	if give.Auth != "" && give.Auth != proxy.Bearer && give.Auth != proxy.Anthropic {
-		return Provider{}, errors.New("a provider takes a bearer token or Anthropic's header")
+	if err := checkWay(give.Auth, give.Wires); err != nil {
+		return Provider{}, err
 	}
 	if err := Check(give.Reference, r.Rules().KeySources); err != nil {
 		return Provider{}, err
-	}
-	for _, wire := range give.Wires {
-		if wire != "chat" && wire != "messages" && wire != "responses" {
-			return Provider{}, fmt.Errorf("%s is not a shape of API: chat, messages or responses", wire)
-		}
 	}
 	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Wires: give.Wires, Pending: true}, nil
 }

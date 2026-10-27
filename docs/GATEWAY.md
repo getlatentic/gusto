@@ -24,6 +24,17 @@ A bearer-token credential answers Chat Completions and Responses. An Anthropic-h
 - `wires` lists the shapes the provider answers: `chat`, `messages`, `responses`. A call in another shape is translated when `chat` is one of them.
 - `maxOutput` is the most the provider lets a model write in one answer. A translated call that asks for more is held to it.
 
+A provider that answers different shapes at different addresses, under one key, is one credential with `endpoints`. DeepSeek answers Chat Completions and Responses at its root and Messages under `/anthropic`:
+
+```json
+{"address": "https://api.deepseek.com", "auth": "bearer", "key": "...",
+ "endpoints": [{"address": "https://api.deepseek.com/anthropic", "auth": "anthropic"}]}
+```
+
+- A call goes to the first address that answers its shape. When none does, it is translated at the first address that answers `chat`.
+- Each endpoint takes `address`, `auth` and `wires`, as the credential does. The key is the credential's.
+- The model is then one name, such as `deepseek/deepseek-flash`, for every engine. On the Models page an admin adds an address as OpenAI-compatible, Anthropic-compatible or custom.
+
 Translation leaves out what Chat Completions cannot carry: Anthropic's thinking blocks, cache hints, context management and effort; Codex's reasoning, encrypted history, tool namespace and tools OpenAI runs itself, such as web search; and a picture in a tool's result, which says an image was left out.
 
 A Codex free-text tool, such as a patch, becomes a function with one text argument. A mid-conversation instruction becomes a user message. A tool call the agent did not answer is answered with "(no result)". A translated call's record has `"translated": "messages"` or `"responses"`.

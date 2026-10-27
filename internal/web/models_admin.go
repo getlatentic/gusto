@@ -11,7 +11,6 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/roster"
-	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -74,6 +73,8 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/models", guard(s.modelsPage))
 	mux.HandleFunc("POST /admin/models/providers", guard(s.registryAction(changelog.ProviderAdded, s.addProvider)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/key", guard(s.registryAction(changelog.KeyReplaced, s.replaceKey)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/addresses", guard(s.registryAction(changelog.AddressAdded, s.addAddress)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/addresses/remove", guard(s.registryAction(changelog.AddressRemoved, s.removeAddress)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/retire", guard(s.registryAction(changelog.ProviderRetired, s.retireProvider)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/models", guard(s.registryAction(changelog.ModelAdded, s.addModel)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/price", guard(s.registryAction(changelog.PriceSet, s.setPrice)))
@@ -133,8 +134,12 @@ func (s *Server) addProvider(r *http.Request) (map[string]string, error) {
 	if kind := r.FormValue("source"); kind != "" && kind != "stored" {
 		reference = kind + ":" + strings.TrimSpace(r.FormValue("reference"))
 	}
+	way, err := wayOf(r)
+	if err != nil {
+		return nil, err
+	}
 	give := registry.Give{
-		Name: r.FormValue("name"), Address: r.FormValue("address"), Auth: proxy.Auth(r.FormValue("auth")),
+		Name: r.FormValue("name"), Address: r.FormValue("address"), Auth: way.Auth, Wires: way.Wires,
 		Reference: reference, Key: r.FormValue("key"),
 	}
 	if err := s.registry.AddProvider(give); err != nil {

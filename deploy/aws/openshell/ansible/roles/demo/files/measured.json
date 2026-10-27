@@ -159,7 +159,7 @@
   {
    "job": "one-line-fix",
    "harness": "claude",
-   "model": "anthropic/deepseek-flash",
+   "model": "deepseek/deepseek-flash",
    "environment": "OpenShell sandbox on one m8i.xlarge",
    "finished": true,
    "wallSeconds": 32,

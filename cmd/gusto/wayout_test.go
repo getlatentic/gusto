@@ -37,6 +37,30 @@ func TestRestrictedCodeIsRefusedACredentialOutsideTheBuilding(t *testing.T) {
 	}
 }
 
+// A credential whose first address is inside the building and whose second is not still sends restricted code outside it,
+// since which address a call goes to is the agent's choice of API.
+func TestRestrictedCodeIsRefusedACredentialWithAnyAddressOutsideTheBuilding(t *testing.T) {
+	credentials := t.TempDir()
+	os.WriteFile(filepath.Join(credentials, "inside.json"), []byte(`{"address": "http://127.0.0.1:9", "key": "k",
+		"endpoints": [{"address": "https://api.deepseek.com/anthropic", "auth": "anthropic"}]}`), 0o600)
+	t.Setenv("GUSTO_CREDENTIALS", credentials)
+	way, err := openWayOut(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if way.InBuilding() {
+		t.Error("a credential with an address outside was said to be inside the building")
+	}
+	dir := job.Dir(t.TempDir())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	spec := job.Spec{Brief: "b", Harness: "claude", Model: "inside/model", Sensitivity: job.Restricted}
+	if _, err := way.Run(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
+		t.Fatalf("restricted code was not refused the second address: %v", err)
+	}
+}
+
 // A harness that needs no model has no credential to name, and a deployment that holds credentials still runs it, as
 // the install check's first job does. A harness that does need one is still asked to name it.
 func TestAHarnessThatNeedsNoModelIsNotRefusedForWantOfACredential(t *testing.T) {

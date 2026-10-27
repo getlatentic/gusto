@@ -134,6 +134,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		http.Error(w, "this task's credential is no longer held here", http.StatusBadGateway)
 		return
 	}
+	credential = credential.For(wire.Of(rest))
 	asked, err := readQuestion(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)

@@ -30,8 +30,10 @@ type Provider struct {
 	Key     string     `json:"key"`
 	// Wires is the shapes of API the provider answers in, as a credential's are: a call in another shape is translated into
 	// Chat Completions when it answers that. Naming none is a provider that answers what its authentication says.
-	Wires   []string `json:"wires,omitempty"`
-	Retired bool     `json:"retired,omitempty"`
+	Wires []string `json:"wires,omitempty"`
+	// Endpoints are the provider's other addresses, under the same key, each with its own way of being spoken to.
+	Endpoints []proxy.Endpoint `json:"endpoints,omitempty"`
+	Retired   bool             `json:"retired,omitempty"`
 	// Pending says an administrator has added the provider and not yet turned it on. Nothing is sent to a provider that is
 	// pending. It is the flag that is kept, and not "enabled", so that a registry written before there was one has every provider on.
 	Pending bool `json:"pending,omitempty"`

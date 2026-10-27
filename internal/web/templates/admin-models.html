@@ -15,9 +15,16 @@
 {{range .View.Providers}}{{if not .Retired}}
 <section class="{{template "ui-card"}} grid gap-3">
   <h2>{{.Name}}{{if .Operator}} <span class="text-sm font-normal text-muted">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">off: waiting for you to turn it on</span>{{end}}</h2>
-  <p class="{{template "ui-note"}}">{{.Address}} · {{.Auth}} · key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}</p>
-  {{if .Problem}}<p class="{{template "ui-notice"}} mb-0!">Not in use: {{.Problem}}</p>{{end}}
   {{$provider := .}}
+  <ul class="grid gap-1 text-sm">
+    {{range .Addresses}}
+    <li class="flex flex-wrap items-center gap-2"><code>{{.Address}}</code> <span class="text-muted">{{.Kind}}</span>
+      {{if and .Extra (not $provider.Operator)}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/addresses/remove"><input type="hidden" name="address" value="{{.Address}}"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Remove</button></form>{{end}}
+    </li>
+    {{end}}
+  </ul>
+  <p class="{{template "ui-note"}}">Key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}{{if gt (len .Addresses) 1}}, the same at each address. A call goes to the address that answers the agent's kind of API.{{end}}</p>
+  {{if .Problem}}<p class="{{template "ui-notice"}} mb-0!">Not in use: {{.Problem}}</p>{{end}}
   <div class="overflow-x-auto">
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Model</th><th class="text-right">Input <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Output <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Cached input <span class="font-normal text-subtle">$ / million</span></th>{{if not .Operator}}<th class="text-right">Actions</th>{{end}}</tr></thead>
@@ -61,6 +68,11 @@
     <label class="{{template "ui-field"}} w-32">Cached input <input class="input" name="cached" inputmode="decimal" placeholder="optional"></label>
     <button type="submit" class="{{template "ui-btn"}}">Add model</button>
   </form>
+  <form method="post" action="/admin/models/providers/{{.Name}}/addresses" class="flex flex-wrap items-end gap-3 border-t border-line pt-4">
+    <label class="{{template "ui-field"}} min-w-56 flex-1">Another address of {{.Name}}, under the same key <input class="input" name="address" placeholder="https://api.example.com/anthropic" required></label>
+    {{template "address-kind"}}
+    <button type="submit" class="{{template "ui-btn"}}">Add address</button>
+  </form>
   <div class="flex flex-wrap items-end justify-between gap-3 border-t border-line pt-4">
     {{if eq .Key "stored"}}
     <form method="post" action="/admin/models/providers/{{.Name}}/key" class="flex flex-wrap items-end gap-3">
@@ -88,9 +100,7 @@
   <form class="grid max-w-prose gap-4" method="post" action="/admin/models/providers">
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
     <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com" required></label>
-    <label class="{{template "ui-field"}}">Sends its key as
-      <select class="select w-full" name="auth"><option value="">a bearer token (OpenAI-shaped)</option><option value="anthropic">Anthropic's header</option></select>
-    </label>
+    {{template "address-kind"}}
     <label class="{{template "ui-field"}}">Key comes from
       <select class="select w-full" name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
     </label>
@@ -169,3 +179,20 @@
 </div>
 
 {{template "foot" .}}
+
+{{define "address-kind"}}
+<label class="{{template "ui-field"}}">Kind of API
+  <select class="select w-full" name="kind"><option value="openai">OpenAI-compatible</option><option value="anthropic">Anthropic-compatible</option><option value="custom">Custom</option></select>
+</label>
+<details class="w-full">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Custom: the key's header and the shapes it answers</summary>
+  <div class="mt-2 flex flex-wrap gap-4">
+    <label class="{{template "ui-field"}}">Sends its key as
+      <select class="select" name="auth"><option value="bearer">a bearer token</option><option value="anthropic">Anthropic's header</option></select>
+    </label>
+    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="wires" value="chat"> Chat Completions</label>
+    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="wires" value="responses"> Responses</label>
+    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="wires" value="messages"> Messages</label>
+  </div>
+</details>
+{{end}}

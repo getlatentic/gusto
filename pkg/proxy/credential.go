@@ -48,15 +48,34 @@ type Credential struct {
 	// MaxOutput is the most the provider lets a model write in one answer. A translated call that asks for more is
 	// held to it, since an agent asks for what its own provider allows. Zero holds no call to anything.
 	MaxOutput int `json:"maxOutput,omitempty"`
+	// Endpoints are the provider's other addresses, under the same key, each answering its own shapes: DeepSeek answers
+	// OpenAI's shapes at one address and Anthropic's at another. A call goes to the first address that answers its shape.
+	Endpoints []Endpoint `json:"endpoints,omitempty"`
 	// Public marks a credential an organization added for itself. Its address is reached only at a public
 	// address, since the organization chose it and this machine is on a network that others are on too.
 	Public bool `json:"-"`
 }
 
-// Answers says whether the provider takes a call in that shape as it is. One that names its wires answers those; one
-// that does not answers Anthropic's Messages when it is authenticated the Anthropic way, and OpenAI's two shapes
-// otherwise.
+// Endpoint is one more address of a credential's provider, and the way it is spoken to there.
+type Endpoint struct {
+	Address string   `json:"address"`
+	Auth    Auth     `json:"auth,omitempty"`
+	Wires   []string `json:"wires,omitempty"`
+}
+
+// Answers says whether the provider takes a call in that shape as it is, at any of its addresses.
 func (c Credential) Answers(shape wire.Shape) bool {
+	for _, at := range c.addresses() {
+		if at.answersHere(shape) {
+			return true
+		}
+	}
+	return false
+}
+
+// answersHere is Answers at the credential's own address. One that names its wires answers those; one that does not
+// answers Anthropic's Messages when it is authenticated the Anthropic way, and OpenAI's two shapes otherwise.
+func (c Credential) answersHere(shape wire.Shape) bool {
 	if len(c.Wires) > 0 {
 		return slices.Contains(c.Wires, string(shape))
 	}
@@ -64,6 +83,42 @@ func (c Credential) Answers(shape wire.Shape) bool {
 		return shape == wire.Messages
 	}
 	return shape == wire.Chat || shape == wire.Responses
+}
+
+// For is the credential at the address a call in that shape goes to: the first that answers it, else the first that
+// answers Chat Completions, which the call is translated into, else the credential's own.
+func (c Credential) For(shape wire.Shape) Credential {
+	addresses := c.addresses()
+	for _, want := range []wire.Shape{shape, wire.Chat} {
+		for _, at := range addresses {
+			if at.answersHere(want) {
+				return at
+			}
+		}
+	}
+	return addresses[0]
+}
+
+// Addresses is every address a call through this credential may go to, its own first.
+func (c Credential) Addresses() []string {
+	all := []string{c.Address}
+	for _, at := range c.Endpoints {
+		all = append(all, at.Address)
+	}
+	return all
+}
+
+// addresses is the credential at each of its addresses, its own first, each with no further endpoints.
+func (c Credential) addresses() []Credential {
+	own := c
+	own.Endpoints = nil
+	all := []Credential{own}
+	for _, at := range c.Endpoints {
+		other := own
+		other.Address, other.Auth, other.Wires = at.Address, at.Auth, at.Wires
+		all = append(all, other)
+	}
+	return all
 }
 
 // Translates says whether a call in that shape is translated into Chat Completions for this provider: one that answers
@@ -152,6 +207,11 @@ func OpenCredentials(dir string) (Credentials, error) {
 		credential.Name = strings.TrimSuffix(filepath.Base(path), ".json")
 		if credential.Address == "" {
 			return nil, fmt.Errorf("%s: a credential needs the address its model answers at", credential.Name)
+		}
+		for _, at := range credential.Endpoints {
+			if at.Address == "" {
+				return nil, fmt.Errorf("%s: each of a credential's endpoints needs its address", credential.Name)
+			}
 		}
 		held[credential.Name] = credential
 	}

@@ -30,7 +30,7 @@ const (
 
 // turns is what each harness is asked, on the model that serves it.
 var turns = []struct{ harness, model, brief string }{
-	{"claude", "anthropic/deepseek-flash", "Add server.js to this project: a Node web server that uses only the built-in http module and listens on the port in the PORT environment variable, or 8080, on 0.0.0.0 (this machine has no IPv6 dual-stack, so bind IPv4 explicitly, and do not use the name localhost). GET / answers an HTML page titled Invoice total that shows the total of the lines [{price:10,quantity:2},{price:5,quantity:1}], worked out by total() from invoice.js. Install no packages and change no other file."},
+	{"claude", "deepseek/deepseek-flash", "Add server.js to this project: a Node web server that uses only the built-in http module and listens on the port in the PORT environment variable, or 8080, on 0.0.0.0 (this machine has no IPv6 dual-stack, so bind IPv4 explicitly, and do not use the name localhost). GET / answers an HTML page titled Invoice total that shows the total of the lines [{price:10,quantity:2},{price:5,quantity:1}], worked out by total() from invoice.js. Install no packages and change no other file."},
 	{"codex", "deepseek/deepseek-flash", "Two changes, and nothing else. The discount in invoice.js is a hundred times too large: fix it so the tests in this project pass. Then add a GET /health route to server.js that answers ok."},
 }
 

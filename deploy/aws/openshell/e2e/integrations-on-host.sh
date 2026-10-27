@@ -32,7 +32,7 @@ PY
 
 cd "$R"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-all-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
-  GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 GUSTO_CREDENTIALS="$R/creds" GUSTO_MODELS="anthropic/deepseek-flash,deepseek/deepseek-flash" \
+  GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 GUSTO_CREDENTIALS="$R/creds" GUSTO_MODELS="deepseek/deepseek-flash" \
   GUSTO_GATEWAY_PRIVATE=1 GUSTO_INTEGRATIONS_PRIVATE=1 GUSTO_ADMINS="" GUSTO_LOCAL_REPOS="$R/sample" GUSTO_JOB_CONCURRENCY=1 \
   GUSTO_SIGNING_KEY="$R/keys/e2e.key" GUSTO_KEYRING="$R/keys" GUSTO_SIGNER=e2e \
   GUSTO_JOBS="$R/data/jobs" GUSTO_SESSIONS="$R/data/sessions" GUSTO_SETUPS="$R/data/setups" GUSTO_INTEGRATIONS="$R/data/integrations" \
@@ -58,7 +58,7 @@ PY
 loc -d name=customers -d integration=customers "$H/admin/skill-sets" >/dev/null
 loc "$H/admin/skill-sets/customers/enable" -X POST >/dev/null
 # While the integration is off, an agent started with the set is refused when it starts a turn.
-off=$(loc -d harness=claude -d model=anthropic/deepseek-flash -d setup=customers "$H/instances")
+off=$(loc -d harness=claude -d model=deepseek/deepseek-flash -d setup=customers "$H/instances")
 echo "an instance started while it is off: $off"
 loc -d version="$version" "$H/admin/integrations/customers/enable" >/dev/null
 python3 - "$R/data/integrations/customers/integration.json" "$version" <<'PY' ; ok $? "turning the version on is what makes it on"
@@ -89,7 +89,7 @@ run() {
   ! grep -rq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the key is nowhere in the job's evidence"
   GUSTO_KEYRING="$R/keys" "$E/gusto" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
 }
-run claude anthropic/deepseek-flash
+run claude deepseek/deepseek-flash
 run codex deepseek/deepseek-flash
 
 echo; echo "== the customer system's own log: every request was keyed, and came from the gateway on this machine"
