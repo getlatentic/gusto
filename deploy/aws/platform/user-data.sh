@@ -94,8 +94,12 @@ warm_the_cache() {
   idle find "$lib/runner-all-rootfs.tar.gz" "$images/overlay-templates" "$images"/sandbox-bootstrap-* "$images/../host-runtime" \
     -type f -exec cat {} + > /dev/null
 }
+# GUSTO_WARM_WAIT=on reads in the foreground, so that nothing is still writing when the script returns, which a test needs.
+in_background() {
+  if [ "${GUSTO_WARM_WAIT:-}" = on ]; then "$@" > /dev/null 2>&1 || true; else "$@" > /dev/null 2>&1 & fi
+}
 if [ -e "$baked_marker" ]; then
-  warm_the_cache > /dev/null 2>&1 &
+  in_background warm_the_cache
 fi
 
 # A kept host runs this on every start and its disk was read on the first, so it is read once for each instance.
@@ -107,7 +111,8 @@ this_instance() {
 warmed=${GUSTO_WARMED:-/var/lib/gusto}/.warmed-${GUSTO_INSTANCE:-$(this_instance 2>/dev/null || echo unknown)}
 if [ -e "$baked_marker" ] && [ ! -e "$warmed" ]; then
   echo "gusto-bootstrap: warming the disk of the image in the background"
-  { warm_the_disk && touch "$warmed"; } > /dev/null 2>&1 &
+  warm_and_mark() { warm_the_disk && touch "$warmed"; }
+  in_background warm_and_mark
 fi
 
 efs_mount=${GUSTO_EFS_MOUNT:-/mnt/efs} state=${GUSTO_STATE:-/var/lib/gusto-cloud} root=${GUSTO_ROOT:-}
