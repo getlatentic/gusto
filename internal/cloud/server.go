@@ -158,6 +158,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /demo/warm", s.warmDemo)
 	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
 	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))
+	mux.HandleFunc("GET /demo/colleague", s.guard(s.colleaguePage))
+	mux.HandleFunc("POST /demo/colleague", s.guard(s.inviteColleague))
 	mux.HandleFunc("GET /demo/end", s.guard(s.stopDemoPage))
 	mux.HandleFunc("POST /demo/end", s.guard(s.stopDemo))
 	mux.HandleFunc("GET /demo/ended/{slug}", s.demoEndedPage)

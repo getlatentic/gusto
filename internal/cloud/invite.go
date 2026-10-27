@@ -91,7 +91,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		http.Redirect(w, r, s.afterJoining(person), http.StatusSeeOther)
 	case errors.Is(err, ErrLink), errors.Is(err, ErrFull), errors.Is(err, ErrEmailTaken):
 		text := sentence(err)
 		if errors.Is(err, ErrEmailTaken) {

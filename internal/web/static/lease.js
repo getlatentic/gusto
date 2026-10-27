@@ -4,7 +4,7 @@
 // counts down the demo, links to more time and to booking a call, and says when it has ended.
 (function () {
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");
-  var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, demo = false, strip = "2rem";
+  var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, invite = null, demo = false, strip = "2rem";
 
   var action = "font-semibold underline underline-offset-2";
 
@@ -28,7 +28,9 @@
     book.hidden = true;
     stop = anchor("End demo", "opacity-70 hover:opacity-100");
     stop.hidden = true;
-    bar.append(text, link, book, stop);
+    invite = anchor("Invite a colleague", action);
+    invite.hidden = true;
+    bar.append(text, link, invite, book, stop);
     document.body.appendChild(bar);
   }
 
@@ -46,12 +48,14 @@
         text.textContent = "Your demo has ended.";
         link.hidden = true;
         stop.hidden = true;
+        invite.hidden = true;
       } else {
         var dm = Math.floor(left / 60), ds = left % 60;
         text.textContent = "Demo ends in " + dm + ":" + (ds < 10 ? "0" : "") + ds + ".";
         link.textContent = "More time";
         link.hidden = left > warnAt;
         stop.hidden = !stop.href;
+        invite.hidden = !invite.href;
       }
       book.hidden = !book.href;
       return;
@@ -80,6 +84,7 @@
           if (demo && d.extend) { link.href = d.extend; }
           if (demo && d.book && book) { book.href = d.book; }
           if (demo && d.end && stop) { stop.href = d.end; }
+          if (demo && d.invite && invite) { invite.href = d.invite; }
           draw();
         } else { left = null; }
       })

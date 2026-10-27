@@ -32,7 +32,7 @@ func TestAVisitorStartsADemoOrganizationOnTheDemoQuotaAndIsKeptAsALead(t *testin
 		if !strings.HasPrefix(org.Slug, "demo-acme-research-") || ValidSlug(org.Slug) != nil {
 			t.Errorf("an address for a demo: %q", org.Slug)
 		}
-		if got, _ := s.Quota(org.Slug); got.Computers != 1 || got.Members != 1 || got.Jobs == 0 {
+		if got, _ := s.Quota(org.Slug); got.Computers != 1 || got.Members != 2 || !got.Invites || got.Jobs == 0 {
 			t.Errorf("a demo runs what a demo may: %+v", got)
 		}
 		lead, found := s.LeadOf(org.Slug)

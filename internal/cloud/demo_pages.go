@@ -154,6 +154,7 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 		if _, err := s.Store.DemoReady(person.Org); err != nil {
 			log.Printf("cloud: a demo's time was not started: %v", err)
 		}
+		s.seedDemoRoom(person)
 		http.Redirect(w, r, "/open", http.StatusSeeOther)
 		return
 	}
@@ -242,7 +243,7 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"end":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.URL.JoinPath("/demo/end").String(), s.Store.set.Demo.BookURL)
+	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"end":%q,"invite":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.URL.JoinPath("/demo/end").String(), s.URL.JoinPath("/demo/colleague").String(), s.Store.set.Demo.BookURL)
 	return true
 }
 
