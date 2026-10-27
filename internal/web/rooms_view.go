@@ -21,7 +21,9 @@ type roomTurn struct {
 	Engine string
 	// Role is what the agent does, or its harness when nobody said.
 	Role string
-	From string
+	// Owner is who made the agent that answered, so each viewer's page can say whose it is.
+	Owner string
+	From  string
 	// Holding is what a turn that has not started waits for, empty once it has.
 	Holding string
 	// Notice is a note the room made of itself, such as that two agents changed one file.
@@ -59,6 +61,7 @@ func (s *Server) roomTurnOf(held instance.Instance, record jobs.Record) roomTurn
 	if agent, found := held.AgentByID(record.Agent); found {
 		shown.By = agent.Name
 		shown.Role = firstOf(agent.Job, shown.Engine)
+		shown.Owner = s.ownerOf(agent)
 	}
 	if record.HandedBy != "" {
 		shown.From = record.HandedBy
@@ -188,15 +191,17 @@ func initials(who string) string {
 type mentionable struct {
 	Name  string `json:"name"`
 	Role  string `json:"role,omitempty"`
+	Owner string `json:"owner,omitempty"`
 	Agent bool   `json:"agent,omitempty"`
 	Icon  string `json:"icon,omitempty"`
 	Short string `json:"short,omitempty"`
 }
 
-func (s *Server) mentionables(held instance.Instance) []mentionable {
+func (s *Server) mentionables(held instance.Instance, you string) []mentionable {
 	offered := make([]mentionable, 0, len(held.Agents)+len(held.Members))
 	for _, agent := range held.Agents {
-		offered = append(offered, mentionable{Name: agent.Name, Role: firstOf(agent.Job, s.engineName(agent.Harness)), Agent: true, Icon: logo(agent.Harness)})
+		role, owner := firstOf(agent.Job, s.engineName(agent.Harness)), ownerLabel(s.ownerOf(agent), you)
+		offered = append(offered, mentionable{Name: agent.Name, Role: role, Owner: owner, Agent: true, Icon: logo(agent.Harness)})
 	}
 	for _, member := range held.Members {
 		offered = append(offered, mentionable{Name: personName(member.Who), Short: initials(member.Who)})

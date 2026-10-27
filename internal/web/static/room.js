@@ -58,6 +58,12 @@
       role.textContent = person.role;
       item.appendChild(role);
     }
+    if (person.owner) {
+      var owner = document.createElement("span");
+      owner.className = "flex-none text-subtle";
+      owner.textContent = "· " + person.owner;
+      item.appendChild(owner);
+    }
     if (person.agent) {
       var badge = document.createElement("span");
       badge.className = "ml-auto flex-none rounded-full bg-accent-wash px-1.5 text-xs leading-5 text-accent-ink";

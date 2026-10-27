@@ -22,6 +22,7 @@ var helpers = template.FuncMap{
 	"modelName":  modelName,
 	"mentionsIn": mentionsIn,
 	"personName": personName,
+	"ownerLabel": ownerLabel,
 	"initials":   initials,
 	// dict passes more than one value to a template defined in another, which
 	// html/template has no literal for.
