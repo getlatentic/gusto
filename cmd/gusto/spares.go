@@ -36,7 +36,9 @@ func openSpareComputers(ctx context.Context, cfg openshell.Config, org, modelURL
 		Name:   func() string { return computer.SpareName(org) },
 		Make:   func(ctx context.Context, name string) error { return openshell.MakeBlank(ctx, cfg, name, modelURL) },
 		Remove: func(ctx context.Context, name string) error { return openshell.Remove(ctx, cfg, name) },
-		Stale:  func(ctx context.Context) ([]string, error) { return openshell.Named(ctx, cfg, computer.SparePrefix(org)) },
+		Stale: func(ctx context.Context) ([]string, error) {
+			return openshell.Named(ctx, cfg, computer.SparePrefix(org))
+		},
 	}
 	return &spareComputers{pool: spare.Open(ctx, key, maker, sparePolicy), key: key}, nil
 }

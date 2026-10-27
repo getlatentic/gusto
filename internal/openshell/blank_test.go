@@ -126,10 +126,14 @@ func spares(t *testing.T) *spare.Pool {
 		t.Fatal(err)
 	}
 	maker := spare.Maker{
-		Name:   func() string { return computer.SpareName(org) },
-		Make:   func(ctx context.Context, name string) error { return openshell.MakeBlank(ctx, blankConfig, name, model) },
+		Name: func() string { return computer.SpareName(org) },
+		Make: func(ctx context.Context, name string) error {
+			return openshell.MakeBlank(ctx, blankConfig, name, model)
+		},
 		Remove: func(ctx context.Context, name string) error { return openshell.Remove(ctx, blankConfig, name) },
-		Stale:  func(ctx context.Context) ([]string, error) { return openshell.Named(ctx, blankConfig, computer.SparePrefix(org)) },
+		Stale: func(ctx context.Context) ([]string, error) {
+			return openshell.Named(ctx, blankConfig, computer.SparePrefix(org))
+		},
 	}
 	pool := spare.Open(context.Background(), key, maker, spare.Timing{MakeWithin: 30 * time.Second, RemoveWithin: 30 * time.Second, RetryFirst: 10 * time.Millisecond, RetryMost: 50 * time.Millisecond})
 	t.Cleanup(func() { pool.Close(10 * time.Second) })
