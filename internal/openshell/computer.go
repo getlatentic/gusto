@@ -5,8 +5,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/landlock"
 )
 
 // startInComputer has the workspace there, and puts this task's workspace in a directory of
@@ -36,7 +40,12 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 	here := jobsDir + "/" + s.job
 	// What a turn of a conversation left there is the last turn's, and the workspace it is
 	// given now is the whole of what it works on.
-	for _, command := range [][]string{{"rm", "-rf", here}, {"mkdir", "-p", here}} {
+	steps := [][]string{{"rm", "-rf", here}, {"mkdir", "-p", here}}
+	if s.confined {
+		// The home and the temporary folder outlive the turn, and Landlock allows only a folder that exists.
+		steps = append(steps, []string{"mkdir", "-p", s.home, s.temp})
+	}
+	for _, command := range steps {
 		if _, err := output(s.run(ctx, append([]string{"sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--"}, command...)...)); err != nil {
 			return err
 		}
@@ -148,4 +157,40 @@ func Wake(ctx context.Context, cfg Config, name string) error {
 		}
 	}
 	return s.answering(ctx)
+}
+
+// confineProgram is gusto in the runner image, which holds a command to a Landlock policy before it starts it.
+const confineProgram = "/usr/local/bin/gusto"
+
+// Confine holds every command of the task to folders of its own in the person's computer: the workspace it is given, and a
+// home and a temporary folder kept for key under /sandbox/rooms, so what the agent remembers carries to its next turn. The rest
+// of the computer, the person's other conversations and rooms among it, cannot be read or written. The rules are the kernel's,
+// Landlock, applied by gusto in the sandbox on top of the sandbox's own; what the agent is told plays no part.
+func (s *Sandbox) Confine(key string) {
+	kept := Home + "/rooms/" + dirName(key)
+	s.home, s.temp, s.confined = kept+"/home", kept+"/tmp", true
+}
+
+// held is the command as the sandbox runs it: behind the task's Landlock policy, with its own home and temporary folder, when
+// the task is confined, and as it is otherwise.
+func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
+	if !s.confined {
+		return command, nil
+	}
+	policy, err := landlock.Policy{Write: []string{jobsDir + "/" + s.job, s.home}, Temp: s.temp}.JSON()
+	if err != nil {
+		return nil, err
+	}
+	held := *command
+	held.Args = append([]string{s.program(), "sandbox-run", policy, "--"}, command.Args...)
+	held.Env = append(slices.Clone(command.Env), "HOME="+s.home, "TMPDIR="+s.temp)
+	return &held, nil
+}
+
+// program is the gusto that holds a confined command: the image's, unless the configuration names another, which a test does.
+func (s *Sandbox) program() string {
+	if s.cfg.Confiner != "" {
+		return s.cfg.Confiner
+	}
+	return confineProgram
 }

@@ -29,6 +29,8 @@ import (
 type Config struct {
 	// Binary is the openshell command.
 	Binary string
+	// Confiner is the gusto in the sandbox that holds a confined task to its Landlock policy, the image's when empty.
+	Confiner string
 	// Gateway is the registered gateway to use, or empty for the selected one.
 	Gateway string
 	// Image is what a sandbox is made from: an image reference the gateway can
@@ -97,7 +99,10 @@ type Sandbox struct {
 	hostModel string
 	token     string
 	policy    []byte
-	keeps     []string
+	// home is the agent's home, and temp and confined say that every command of the task is held to its own folders; see Confine.
+	home     string
+	temp     string
+	confined bool
 	// sshConfig is the file that says how to reach the sandbox with ssh, and
 	// sshHost the name it gives it. Both are made when a conversation needs them.
 	sshConfig, sshHost string
@@ -117,10 +122,7 @@ type Sandbox struct {
 // gusto proxy, on the name the sandbox gives the gateway's machine, and token
 // stands in for the credential the proxy holds.
 func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
-	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token}
-	if adapter.Keeps != "" {
-		s.keeps = append(s.keeps, harness.Rehome(adapter.Keeps, Home))
-	}
+	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token, home: Home}
 	policy, err := ComputerPolicy(cfg, modelURL, adapter)
 	if err != nil {
 		return nil, err
@@ -195,7 +197,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// where the sandbox user can read it, and belongs in the home the agent will
 	// look in. An image without it has nothing to copy, and that is not an error.
 	place := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", placeConfig("/opt/gusto/harness", Home))
+		"sh", "-c", placeConfig("/opt/gusto/harness", s.home))
 	if _, err := output(place); err != nil {
 		return err
 	}
@@ -203,7 +205,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// container: codex refuses a home that does not exist.
 	if adapter.Keeps != "" {
 		keep := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-			"sh", "-c", `mkdir -p "$1"`, "sh", harness.Rehome(adapter.Keeps, Home))
+			"sh", "-c", `mkdir -p "$1"`, "sh", harness.Rehome(adapter.Keeps, s.home))
 		if _, err := output(keep); err != nil {
 			return err
 		}
@@ -211,7 +213,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// What an earlier task in a workspace put where the agent looks for skills is not
 	// this task's.
 	if s.persistent && adapter.Skills != "" {
-		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, Home))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, s.home))); err != nil {
 			return err
 		}
 	}
@@ -219,7 +221,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		return nil
 	}
 	if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", equipGuidance, "sh", harness.Rehome(adapter.Skills, Home), networkGuidance)); err != nil {
+		"sh", "-c", equipGuidance, "sh", harness.Rehome(adapter.Skills, s.home), networkGuidance)); err != nil {
 		return err
 	}
 	if spec.Setup == nil {
@@ -233,7 +235,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		if err != nil {
 			return err
 		}
-		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, harness.Rehome(adapter.Skills, Home))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, harness.Rehome(adapter.Skills, s.home))); err != nil {
 			return err
 		}
 	}
@@ -444,7 +446,7 @@ func (s *Sandbox) limit() string {
 }
 
 // carried is the command's environment as the lines launcher reads, followed by what the command itself is given.
-func carried(env []string, rest io.Reader) (io.Reader, error) {
+func carried(env []string, home string, rest io.Reader) (io.Reader, error) {
 	var lines strings.Builder
 	for _, entry := range env {
 		name, _, found := strings.Cut(entry, "=")
@@ -454,7 +456,7 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 		if strings.ContainsAny(entry, "\n\r") {
 			return nil, fmt.Errorf("the environment variable %s holds a line break, which cannot be carried into the sandbox", name)
 		}
-		lines.WriteString(harness.Rehome(entry, Home) + "\n")
+		lines.WriteString(harness.Rehome(entry, home) + "\n")
 	}
 	lines.WriteString("\n")
 	if rest == nil {
@@ -467,11 +469,17 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 // command's own (see launcher), so it is never an argument on the host. --env would put it in the arguments.
 func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", s.launcher(), "sh"}
+	command, err := s.held(command)
+	if err != nil {
+		failed := s.run(ctx)
+		failed.Err = err
+		return failed
+	}
 	for _, argument := range command.Args {
-		args = append(args, harness.Rehome(argument, Home))
+		args = append(args, harness.Rehome(argument, s.home))
 	}
 	wrapped := s.run(ctx, args...)
-	wrapped.Stdin, wrapped.Err = carried(command.Env, command.Stdin)
+	wrapped.Stdin, wrapped.Err = carried(command.Env, s.home, command.Stdin)
 	return wrapped
 }
 
@@ -480,6 +488,10 @@ func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 // to as it works would never hear the first message.
 func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error) {
 	if err := s.reachable(ctx); err != nil {
+		return nil, err
+	}
+	command, err := s.held(command)
+	if err != nil {
 		return nil, err
 	}
 	// The file is read and removed first, so it is not left when anything after it fails.
@@ -493,7 +505,7 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	}
 	words = append(words, "cd "+quoted(s.Workdir())+" || exit 1;", s.limit(), "exec")
 	for _, argument := range command.Args {
-		words = append(words, quoted(harness.Rehome(argument, Home)))
+		words = append(words, quoted(harness.Rehome(argument, s.home)))
 	}
 	attached := exec.CommandContext(ctx, "ssh", "-F", s.sshConfig, "-T", "-o", "BatchMode=yes", s.sshHost, strings.Join(words, " "))
 	attached.Env = cleanEnv()
@@ -512,7 +524,7 @@ func (s *Sandbox) leaveEnv(ctx context.Context, env []string) (string, error) {
 	var lines strings.Builder
 	for _, entry := range env {
 		if strings.Contains(entry, "=") {
-			lines.WriteString("export " + quoted(harness.Rehome(entry, Home)) + "\n")
+			lines.WriteString("export " + quoted(harness.Rehome(entry, s.home)) + "\n")
 		}
 	}
 	write := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "sh", "-c", `umask 077 && cat > "$1"`, "sh", file)

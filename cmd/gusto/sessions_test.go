@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -112,6 +114,45 @@ func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(
 	}
 	if wheres["a1"] == wheres["a2"] || !strings.HasSuffix(wheres["a1"], "-a1/workspace") || !strings.HasSuffix(wheres["a2"], "-a2/workspace") {
 		t.Fatalf("the agents worked in %v", wheres)
+	}
+}
+
+// A room's turn runs behind a Landlock policy that lets it write its own folder, home and temporary folder and nothing else of
+// the person's computer, with that home as HOME. The policy itself is the landlock package's to enforce, and is tested there.
+func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
+	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	conversational(t)
+	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
+	held, _ = instances.Get(held.ID)
+	roomTurnBy(t, work, index, held, instances.Latest(held.ID).ID, "a1", "ada@acme.com")
+
+	records, _ := filepath.Glob(filepath.Join(root, "confined-*"))
+	if len(records) == 0 {
+		t.Fatal("the room's turn was not run behind the confiner")
+	}
+	said, _ := os.ReadFile(records[0])
+	lines := strings.SplitN(strings.TrimSpace(string(said)), "\n", 2)
+	policy, err := landlock.Load(lines[0])
+	if err != nil {
+		t.Fatalf("the confiner was given %q: %v", lines[0], err)
+	}
+	own := "/sandbox/rooms/" + held.ID + "-a1"
+	if !slices.Contains(policy.Write, own+"/home") || policy.Temp != own+"/tmp" || len(policy.Write) != 2 ||
+		!strings.HasPrefix(policy.Write[0], "/sandbox/jobs/instance-") || strings.HasSuffix(policy.Write[0], "/sandbox") {
+		t.Errorf("the policy is %+v", policy)
+	}
+	if len(lines) < 2 || lines[1] != own+"/home" {
+		t.Errorf("the agent's home is %q", said)
+	}
+
+	plain, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	for _, record := range records {
+		os.Remove(record)
+	}
+	turnBy(t, work, index, instances, plain, instances.Latest(plain.ID).ID, "ada@acme.com", "a turn of a person's own")
+	if more, _ := filepath.Glob(filepath.Join(root, "confined-*")); len(more) != 0 {
+		t.Error("a person's own conversation was confined like a room's")
 	}
 }
 
