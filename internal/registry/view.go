@@ -97,7 +97,7 @@ func (r *Registry) operators(name string, effective Effective) ProviderView {
 	for _, full := range r.platform.Models {
 		if credential, model := proxy.Named(full); credential == name {
 			entry := ModelView{Name: model, Full: full}
-			if price, priced := effective.Prices[full]; priced {
+			if price, priced := (spend.Policy{Prices: effective.Prices}).PriceOf(credential, model); priced {
 				entry.Price = &price
 			}
 			row.Models = append(row.Models, entry)
