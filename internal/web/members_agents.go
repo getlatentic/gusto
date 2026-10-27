@@ -60,6 +60,9 @@ func (s *Server) agentFromForm(r *http.Request, held crew.Agent) (crew.Agent, er
 			return held, errors.New("that model is not one you may use")
 		}
 	}
+	if held.ID == "" && held.Model == "" {
+		held.Model = s.modelToStartOn(r, held.Harness)
+	}
 	if r.Form.Has("setup") {
 		if err := s.giveSkills(&held, r.FormValue("setup")); err != nil {
 			return held, err
@@ -211,4 +214,20 @@ func (s *Server) directRoom(who, member string) (instance.Instance, bool) {
 		}
 	}
 	return instance.Instance{}, false
+}
+
+// modelToStartOn is the model a new agent runs on when nobody chose one. Where the server offers models, an agent type left to its
+// own default would ask for a model nobody here provides and fail, so the organization's default is used when this agent type can run
+// it, else the first model offered. Where the server offers none, the agent type's own default is right.
+func (s *Server) modelToStartOn(r *http.Request, harness string) string {
+	for _, each := range s.picksFor(r) {
+		if each.Name != harness {
+			continue
+		}
+		if org := s.orgDefault(); org.Harness == harness && slices.Contains(each.Models, org.Model) {
+			return org.Model
+		}
+		return first(each.Models)
+	}
+	return ""
 }
