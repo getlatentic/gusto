@@ -96,7 +96,8 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	work, err := chosenWork(way, instances, index, computers)
+	rooms := newRoomRuns(instances)
+	work, err := chosenWork(way, instances, index, computers, rooms)
 	if err != nil {
 		return fail(err)
 	}
@@ -153,6 +154,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	pages.UseRoomHold(rooms.hub.Hold)
 	if wall != nil {
 		pages.UseWall(theWall())
 	}
@@ -357,10 +359,10 @@ func serve(args []string) int {
 
 // chosenWork decides where a task runs. A container is the product; running a
 // task in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry) (jobs.StoppableWork, error) {
+func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry, rooms *roomRuns) (jobs.StoppableWork, error) {
 	switch os.Getenv("GUSTO_SANDBOX") {
 	case "here", "process":
-		return here(way, instances), nil
+		return here(way, instances, rooms), nil
 	case "openshell":
 		if err := openshell.HostCannotMakeVMs(); err != nil {
 			return nil, err
@@ -369,9 +371,8 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		if err != nil {
 			return nil, err
 		}
-		return inSandbox(way, cfg, index, registry, instances), nil
+		return inSandbox(way, cfg, index, registry, instances, rooms), nil
 	}
-	rooms := newRoomRuns(instances)
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {
@@ -397,8 +398,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 
 // inSandbox runs each task's agent in an OpenShell sandbox. The checkout
 // happens here, outside the sandbox, as it does for a container.
-func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store) jobs.StoppableWork {
-	rooms := newRoomRuns(instances)
+func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store, rooms *roomRuns) jobs.StoppableWork {
 	return func(ctx context.Context, dir job.Dir) (int, error) {
 		spec, err := job.Read(dir)
 		if err != nil {

@@ -52,7 +52,7 @@ func TestAMergeThatWasCutOffIsUndoneBeforeTheNextTurnBegins(t *testing.T) {
 	before := listing(t, in.Folder)
 
 	now, _ := scan(ada.dest)
-	actions, _ := ada.plan(ada.changes(now), now)
+	actions := ada.plan(ada.changes(now), now).actions
 	for _, dir := range []string{stageDir(in), backupDir(in)} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)

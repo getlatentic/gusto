@@ -23,11 +23,27 @@ type Conflict struct {
 	Deleted bool
 }
 
+// Joined is a text file the turn and something else both changed, in different places, which now holds both changes.
+type Joined struct {
+	Path  string
+	Agent string
+	// Other is the agent whose change the turn's was joined with, empty when it was not an agent's, such as a person's edit.
+	Other string
+}
+
 // Outcome is what a merge did.
 type Outcome struct {
-	// Changed is how many files the turn's merge added, changed or removed in the folder.
+	// Changed is how many files the turn's merge added, changed or removed in the folder, the joined ones among them.
 	Changed   int
 	Conflicts []Conflict
+	Joined    []Joined
+}
+
+// planned is what a merge is to do: the actions, and the files among them that conflicted or were joined.
+type planned struct {
+	actions   []action
+	conflicts []Conflict
+	joined    []Joined
 }
 
 // change is one file the turn's copy differs on from how it was made.
@@ -63,11 +79,13 @@ func (t *Turn) changes(now tree) []change {
 	return found
 }
 
-// plan decides, for each file the turn changed, whether it goes into the folder as it is, is already there, or conflicts with
-// what another turn or a person put there since the copy was made. It reads the folder and writes nothing.
-func (t *Turn) plan(changes []change, now tree) ([]action, []Conflict) {
+// plan decides, for each file the turn changed, whether it goes into the folder as it is, is already there, is joined line by
+// line with what another turn or a person put there since the copy was made, or conflicts with it. It writes nothing to the
+// folder; a joined file is written over the turn's own copy of it.
+func (t *Turn) plan(changes []change, now tree) planned {
 	var actions []action
 	var conflicts []Conflict
+	var joined []Joined
 	taken := map[string]bool{}
 	for _, each := range changes {
 		there, has := lookup(t.room.Folder, each.path)
@@ -84,13 +102,17 @@ func (t *Turn) plan(changes []change, now tree) ([]action, []Conflict) {
 		case moved && t.rewroteAsItWas(each.path, mine, now[each.path]):
 		case !moved && !t.blocked(each.path):
 			actions = append(actions, action{dest: each.path, source: mine})
+		case had && has && t.joinLines(each.path, mine, now[each.path], there):
+			actions = append(actions, action{dest: each.path, source: mine})
+			other, _ := t.hub.writer(t.room, t, each.path)
+			joined = append(joined, Joined{Path: each.path, Agent: t.agent, Other: other})
 		default:
 			side := t.sideFor(each.path, taken)
 			actions = append(actions, action{dest: side, source: mine})
 			conflicts = append(conflicts, t.conflict(each.path, side, false))
 		}
 	}
-	return actions, conflicts
+	return planned{actions, conflicts, joined}
 }
 
 // rewroteAsItWas says whether the turn's file holds what the folder's file held when the turn began, which a merge since has

@@ -111,7 +111,7 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	if err != nil {
 		t.Fatal(err)
 	}
-	work := inSandbox(way, cfg, index, registry, instances)
+	work := inSandbox(way, cfg, index, registry, instances, newRoomRuns(instances))
 	return func(dir job.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
 }
 

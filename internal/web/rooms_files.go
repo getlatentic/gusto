@@ -113,6 +113,13 @@ func (s *Server) uploadToRoom(w http.ResponseWriter, r *http.Request) {
 	root := s.instances.Workspace(held.ID)
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
+	// An upload never replaces a file, so it keeps no version for the turns; it waits only so a merge cannot put a file over it.
+	done, err := s.holdFolder(r, root)
+	if err != nil {
+		http.Error(w, "the room's folder is busy: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	defer done(true)
 	for _, each := range sent {
 		if each.Size > mostFileBytes {
 			http.Error(w, each.Filename+" is too big", http.StatusRequestEntityTooLarge)

@@ -12,7 +12,7 @@ A room's agents share one folder. Two ways to let them write to it at once were 
 | A git worktree for each turn | `git worktree add` for the turn, merge with git | Not used. The room's folder is not kept committed, so a worktree holds only the committed files and loses what people and agents wrote since. The folder's `.git` is the agent's to write, and git runs the programs its configuration names. Two agents that change one file give a text conflict that nobody is there to resolve |
 | A plain copy for each turn, merged back | Copy the folder, run the turn on the copy, put the changed files back | Chosen |
 
-A copy keeps every file the room has, committed or not. The agent runs against an ordinary folder, in a container, in a sandbox or in this process. The merge compares files and runs no program from the folder.
+A copy keeps every file the room has, committed or not. The agent runs against an ordinary folder, in a container, in a sandbox or in this process. The merge compares files, and text files line by line, in Go. It runs no program from the folder.
 
 ## What the spike measured
 
@@ -63,13 +63,38 @@ The merge compares three things for each file the turn changed: the file as the 
 | --- | --- | --- |
 | Changed it | Not changed since the turn began | The turn's file is put there |
 | Changed it | Changed since, to the same content | Nothing |
-| Changed it | Changed since, to other content | A conflict |
+| Changed it | Changed since, in other lines of a text file | The two are joined into one file, and the room says so |
+| Changed it | Changed since, in the same lines, or not a text file | A conflict |
 | Wrote it again with the same content | Changed since | Nothing. A formatter that rewrites every file does not conflict with another agent's change |
 | Deleted it | Not changed since | It is deleted, and a folder the deletion empties is removed |
 | Deleted it | Changed since | It stays, and the room says so |
 | Made it | Made since, with other content | A conflict |
 
-A person's upload counts as a change since the turn began, as another agent's merge does.
+A person's upload, edit or deletion counts as a change since the turn began, as another agent's merge does.
+
+### Joining two changes to one file
+
+Two changes to one text file are joined the way `diff3` joins them. Each is compared with the version both began from, line by line, and the lines each changed are taken from it. Lines both changed the same way are taken once.
+
+- A file is text when it is UTF-8, has no zero byte, and is 1 MiB or less.
+- Changes to the same line, or to lines next to each other, are a conflict.
+- Two versions that differ by more than 1,000 lines are not compared, and are a conflict.
+- The version both began from is the one a merge or a person's change replaced while the turn worked. A file that changed some other way is a conflict.
+
+The room shows a note:
+
+> Scout and Draft both changed summary.md, in different places, and it holds both changes.
+
+Measured with `go test ./internal/roomwork -run '^$' -bench MergeLines -benchtime 5x` on the same machine:
+
+| A 1 MiB file of 20,000 lines | Time | Memory |
+| --- | --- | --- |
+| One change on each side | 2.7 ms | 11 MB |
+| About 200 changes on each side | 4.6 ms | 17 MB |
+
+### A person's change
+
+An upload, an edit through the file API and a deletion take the room's merge guard, so a merge does not run while a person changes the folder. A merge cannot put its file over one a person just wrote. When a turn is working, the change keeps the file it replaces, so a turn that changed other lines of it is joined with the person's change.
 
 ### A conflict
 
@@ -111,16 +136,18 @@ An agent keeps what it remembers of a conversation in its own state folder, `age
 
 - Every turn of a room copies the folder. Over `GUSTO_ROOM_COPY_MB` (4096 by default) or `GUSTO_ROOM_COPY_FILES` (200,000) a turn is refused, and its record says so. Take files out of the room, or raise the limits.
 - Each running turn holds a copy. Where the file system cannot share blocks, that is the folder's size on disk for each turn that runs.
-- A file two agents changed needs a person to pick one.
+- A file two agents changed in the same lines needs a person to pick one.
 - A commit a turn made is not in the room's `.git`.
 - A merge that finds a link or a file where a folder of the turn's goes saves the turn's file at the top of the folder, never through the link.
-- A person's upload that lands in the instant a merge replaces the same file can be replaced. The merge keeps the file it replaced until the merge ends, and the room's folder is not locked against uploads.
+- A person's upload, edit or deletion waits for a merge in progress, two minutes at most.
 
 ## Where it is
 
 | Part | Where |
 | --- | --- |
 | The copy, the merge, the journal | `internal/roomwork` |
+| Joining two changes line by line | `internal/roomwork/lines.go` and `join.go` |
+| A person's change while turns work | `Hub.Hold` in `internal/roomwork/change.go`, used by `internal/web/workspace_write.go` and `rooms_files.go` |
 | The lane | `Record.Lane` in `internal/jobs/state.go` |
 | Running a turn on a copy, in a container, a sandbox or this process | `cmd/gusto/roomturn.go` |
 | The note | `Store.Notice` in `internal/instance/room.go`, shown by `internal/web/templates/conversation.html` |
