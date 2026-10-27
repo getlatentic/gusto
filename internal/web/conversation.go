@@ -34,6 +34,9 @@ type turn struct {
 	// files it left different.
 	Steps   []step
 	Changed []string
+	Deleted []string
+	// Files is how a room draws Changed: a card for each file, read from the room's folder.
+	Files *turnFiles
 	// Previews are the folders among Changed that hold a page, which can be looked at.
 	Previews []string
 	// Spent is the proxy's count of what the turn's calls cost.
@@ -86,6 +89,9 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		newest, version := s.roomActivity(thread)
 		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
 		roomVersion = version
+		for i := range turns {
+			turns[i].Files = s.fileCards(held.ID, turns[i].Changed, turns[i].Deleted)
+		}
 		turns = s.roomTimeline(held, thread, turns)
 		running = roomWaiting(turns)
 	}
@@ -134,7 +140,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 // fullTurn is a turn as the page shows it, read from the turn's own directory.
 func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	dir := record.Dir(s.index.Root())
-	shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir), Changed: changed(dir)}
+	shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir)}
+	shown.Changed, shown.Deleted = changes(dir)
 	shown.Previews = previewsOf(shown.Changed)
 	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 	if record.State == jobs.Failed || record.State == jobs.Interrupted {

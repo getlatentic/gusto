@@ -307,7 +307,7 @@
     </details>
     {{end}}
     {{if .Replied}}<div class="prose">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
-    {{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}
+    {{if not .Files}}{{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
     <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
       {{with .Blocked}}<span class="inline-flex min-h-6 items-center gap-1 text-ok [&>svg]:size-3.5" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</span>{{end}}
@@ -350,7 +350,47 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
     <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
       {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working{{end}}<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
+    {{if .State.Done}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}{{end}}
   </div>
   {{end}}
 </article>
+{{end}}{{end}}
+
+{{/* The files a reply produced, each a card that opens the file, past the first few folded away. A file that is no longer there
+is a line saying so. */}}
+{{define "file-cards"}}{{with .F}}
+<div class="col-start-2 mt-2 grid w-full max-w-[44rem] min-w-0 gap-2">
+  {{range .Cards}}{{template "file-card" (dict "C" . "P" $.P)}}{{end}}
+  {{with .More}}
+  <details class="group grid gap-2">
+    <summary class="{{template "ui-summary"}} text-xs">{{template "ui-chev"}}<span>Show {{len .}} more file{{if ne (len .) 1}}s{{end}}</span></summary>
+    <div class="mt-2 grid gap-2">{{range .}}{{template "file-card" (dict "C" . "P" $.P)}}{{end}}</div>
+  </details>
+  {{end}}
+  {{range .Removed}}<p class="m-0 text-xs text-subtle"><span class="font-mono wrap-anywhere">{{.Path}}</span> {{.Gone}}</p>{{end}}
+</div>
+{{end}}{{end}}
+
+{{/* One file as a card. The name's link covers the card, so the card opens the file as the name does; the preview takes no
+clicks or focus of its own. A web page is previewed in a frame with every permission taken away, from the file's own address. */}}
+{{define "file-card"}}{{with .C}}
+<div class="relative min-w-0 overflow-hidden rounded-md border border-line bg-surface transition-colors hover:border-line-strong" data-file-card="{{.Kind}}">
+  <div class="flex items-center gap-3 px-3 py-2.5">
+    <span class="grid size-8 flex-none place-items-center rounded-sm bg-sunken text-muted [&>svg]:size-4">{{if eq .Look "image"}}{{template "icon-file-image"}}{{else if eq .Look "code"}}{{template "icon-file-code"}}{{else if eq .Look "blank"}}{{template "icon-file-blank"}}{{else}}{{template "icon-file"}}{{end}}</span>
+    <div class="min-w-0 flex-1">
+      <a class="block truncate text-sm font-medium text-ink no-underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:rounded-md focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus" href="/instances/{{$.P.Instance.ID}}/file?path={{.Path}}&amp;from={{$.P.Path}}" title="{{.Path}}">{{.Name}}</a>
+      <p class="m-0 text-xs text-subtle tabular-nums">{{.Size}}</p>
+    </div>
+    <a class="relative z-[1] grid size-8 flex-none place-items-center rounded-sm border border-line-strong text-muted transition-colors hover:bg-wash hover:text-ink" href="{{.Download}}" download aria-label="Download {{.Name}}" title="Download">{{template "icon-download"}}</a>
+  </div>
+  {{if eq .Kind "markdown"}}
+  <div class="prose pointer-events-none max-h-56 overflow-hidden border-t border-line px-4 py-3 text-sm" inert data-preview="markdown">{{.Page}}</div>
+  {{else if eq .Kind "html"}}
+  <div class="pointer-events-none border-t border-line" inert data-preview="html"><iframe class="block h-56 w-full border-0 bg-white [color-scheme:light]" sandbox="" src="{{.Raw}}" loading="lazy" tabindex="-1" title="{{.Name}}"></iframe></div>
+  {{else if eq .Kind "image"}}
+  <div class="pointer-events-none grid h-56 place-items-center border-t border-line bg-wash p-2" inert data-preview="image"><img class="max-h-full max-w-full rounded-sm object-contain" src="{{.Raw}}" alt="" loading="lazy"></div>
+  {{else if .Text}}
+  <pre class="pointer-events-none m-0 max-h-56 overflow-hidden border-t border-line bg-wash px-4 py-3 font-mono text-xs leading-5 whitespace-pre text-muted" inert data-preview="text">{{.Text}}</pre>
+  {{end}}
+</div>
 {{end}}{{end}}
