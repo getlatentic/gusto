@@ -43,13 +43,30 @@ func computersFromEnv() (*computer.Registry, error) {
 // it was asked by a token or a script, which have no computer of their own.
 func personWhoAsked(index *jobs.Index, dir job.Dir) string {
 	record, found := index.Get(filepath.Base(dir.Path()))
-	if !found || !strings.Contains(record.Asked, "@") || strings.HasPrefix(record.Asked, "token:") {
+	if !found {
 		return ""
 	}
-	return strings.ToLower(record.Asked)
+	return aPerson(record.Asked)
 }
 
-// RunInComputer runs a task in the computer of the person who asked for it, making it
+// personWhoPays is the person whose computer runs a task: a room's agent's owner, else the person who asked.
+func personWhoPays(index *jobs.Index, dir job.Dir) string {
+	record, found := index.Get(filepath.Base(dir.Path()))
+	if !found {
+		return ""
+	}
+	return aPerson(record.Payer())
+}
+
+// aPerson is an address as a person's, or nothing for a token or a script.
+func aPerson(who string) string {
+	if !strings.Contains(who, "@") || strings.HasPrefix(who, "token:") {
+		return ""
+	}
+	return strings.ToLower(who)
+}
+
+// RunInComputer runs a task in the computer of the person it counts against, making it
 // when they have none. What is refused, a computer past the organization's quota
 // among it, is said in the task's record like any other refusal.
 func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, cfg openshell.Config, registry *computer.Registry, person string) (int, error) {

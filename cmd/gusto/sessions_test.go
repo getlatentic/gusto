@@ -204,6 +204,34 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 	}
 }
 
+// A room's agent runs on its owner's computer, whoever asked: ada's agent, asked by bob, runs in ada's computer, and bob gets none.
+func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	conversational(t)
+	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
+	held, _ = instances.Get(held.ID)
+	id, err := index.Reserve("go", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := jobs.Record{ID: id, State: jobs.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
+		Instance: held.ID, Thread: instances.Latest(held.ID).ID, Agent: "a1", Queued: jobs.Now()}
+	dir := record.Dir(index.Root())
+	dir.Make()
+	(job.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: record.Thread, Agent: "a1"}).Write(dir)
+	index.Add(record)
+	if _, err := work(dir); err != nil {
+		t.Logf("%v", err)
+	}
+	if _, err := registry.Of("ada@acme.com"); err != nil {
+		t.Errorf("the owner's computer was not used: %v", err)
+	}
+	if got, err := registry.Of("bob@acme.com"); err == nil {
+		t.Errorf("the person who asked was given a computer: %+v", got)
+	}
+}
+
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {

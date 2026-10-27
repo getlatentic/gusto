@@ -39,7 +39,7 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 		}
 	}
 	held, _ = instances.Get(held.ID)
-	return newRoomRuns(instances), held
+	return newRoomRuns(instances, nil), held
 }
 
 // turnOf is the task directory and spec of a turn of one of the room's agents.
@@ -252,5 +252,44 @@ func TestAnythingButARoomsTurnIsRunAsItIs(t *testing.T) {
 	}
 	if got := stateDir(rooms.instances, job.Spec{Session: held.ID}); got != rooms.instances.State(held.ID) {
 		t.Errorf("a conversation's memory is %s", got)
+	}
+}
+
+func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testing.T) {
+	for _, each := range []struct {
+		name  string
+		leave func(rooms *roomRuns, held instance.Instance) error
+		said  string
+	}{
+		{"asker left", func(rooms *roomRuns, held instance.Instance) error {
+			return rooms.instances.RemoveMember(held.ID, "bea@acme.com")
+		}, "bea@acme.com left the room while Ada worked for them"},
+		{"agent taken out", func(rooms *roomRuns, held instance.Instance) error {
+			return rooms.instances.RemoveAgent(held.ID, "a1")
+		}, "was taken out of the room while it worked"},
+	} {
+		t.Run(each.name, func(t *testing.T) {
+			rooms, held := aRoomWithTwoAgents(t, map[string]string{"plan.md": "v1"})
+			if err := rooms.instances.SetMember(held.ID, "bea@acme.com", instance.RoleMember); err != nil {
+				t.Fatal(err)
+			}
+			rooms.askedBy = func(job.Dir) string { return "bea@acme.com" }
+			dir, spec := turnOf(t, rooms, held, "a1")
+			exit, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
+				if err := os.WriteFile(filepath.Join(dir.Workspace(), "plan.md"), []byte("v2"), 0o644); err != nil {
+					return 1, err
+				}
+				return 0, each.leave(rooms, held)
+			})
+			if exit != 0 || err != nil {
+				t.Fatalf("exit %d, %v", exit, err)
+			}
+			if got := file(t, rooms.instances.Workspace(held.ID), "plan.md"); got != "v1" {
+				t.Errorf("the room's file became %q", got)
+			}
+			if said := sayings(rooms, held); len(said) != 1 || !strings.Contains(said[0], each.said) {
+				t.Errorf("the room was told %q", said)
+			}
+		})
 	}
 }
