@@ -22,10 +22,15 @@ var agentStateLimits = roomwork.Limits{Bytes: 8 << 30, Files: 1 << 20}
 type roomRuns struct {
 	instances *instance.Store
 	hub       *roomwork.Hub
+	// askedBy is the person a turn was asked for by, or nothing for a token or a script.
+	askedBy func(job.Dir) string
 }
 
-func newRoomRuns(instances *instance.Store) *roomRuns {
-	return &roomRuns{instances: instances, hub: roomwork.NewHub(roomwork.Limits{
+func newRoomRuns(instances *instance.Store, askedBy func(job.Dir) string) *roomRuns {
+	if askedBy == nil {
+		askedBy = func(job.Dir) string { return "" }
+	}
+	return &roomRuns{instances: instances, askedBy: askedBy, hub: roomwork.NewHub(roomwork.Limits{
 		Bytes: int64(number("GUSTO_ROOM_COPY_MB", 4096)) << 20,
 		Files: number("GUSTO_ROOM_COPY_FILES", 200000),
 	})}
@@ -58,7 +63,7 @@ func (r *roomRuns) around(ctx context.Context, spec job.Spec, dir job.Dir, run f
 	if err != nil || exit != 0 || ctx.Err() != nil {
 		return exit, err
 	}
-	return exit, r.bring(ctx, turn, spec)
+	return exit, r.bring(ctx, turn, spec, r.askedBy(dir))
 }
 
 // begin makes the turn's copy of the room's folder and its agent's own state. A turn that cannot is refused with the reason in
@@ -79,8 +84,15 @@ func (r *roomRuns) copy(ctx context.Context, spec job.Spec, dir job.Dir) (*roomw
 		dir.Workspace(), r.nameOf(spec))
 }
 
-// bring merges a passed turn into the room's folder, and tells the room of the files two agents changed.
-func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec) error {
+// bring merges a passed turn into the room's folder, and tells the room of the files two agents changed. What may write to the
+// room is checked again first, since a turn runs for minutes: a turn whose agent was taken out, or whose asker left, writes nothing.
+func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec, asker string) error {
+	if why := r.mayNotWrite(spec, asker); why != "" {
+		if _, err := r.instances.Notice(spec.Session, spec.Thread, why); err != nil {
+			slog.Error("could not tell the room a turn wrote nothing", "room", spec.Session, "error", err)
+		}
+		return nil
+	}
 	outcome, err := turn.Merge(ctx)
 	if err != nil {
 		return err
@@ -91,6 +103,22 @@ func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec
 		}
 	}
 	return nil
+}
+
+// mayNotWrite is why a finished turn may not change the room's folder now, or nothing when it may.
+func (r *roomRuns) mayNotWrite(spec job.Spec, asker string) string {
+	held, found := r.instances.Get(spec.Session)
+	if !found {
+		return "the room is gone"
+	}
+	agent, in := held.AgentByID(spec.Agent)
+	switch {
+	case !in || agent.Pending:
+		return r.nameOf(spec) + " was taken out of the room while it worked, so what it changed was not kept."
+	case asker != "" && held.RoleOf(asker) == "":
+		return asker + " left the room while " + agent.Name + " worked for them, so what it changed was not kept."
+	}
+	return ""
 }
 
 // nameOf is what the room calls the turn's agent.

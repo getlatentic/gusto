@@ -96,7 +96,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	rooms := newRoomRuns(instances)
+	rooms := newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) })
 	work, err := chosenWork(way, instances, index, computers, rooms)
 	if err != nil {
 		return fail(err)
