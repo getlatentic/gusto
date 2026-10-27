@@ -38,6 +38,12 @@
     dest: "{{ demo_root }}/etc/gusto/spend-policy.json"
     mode: "0644"
 
+- name: What the benchmark measured each agent doing with each demo model, which the model pickers show (docs/MATRIX.md)
+  ansible.builtin.copy:
+    src: measured.json
+    dest: "{{ demo_root }}/etc/gusto/measured.json"
+    mode: "0644"
+
 - name: The script that powers the host off when its lease ends, or gusto cloud is gone
   ansible.builtin.copy:
     src: gusto-lease-reaper
