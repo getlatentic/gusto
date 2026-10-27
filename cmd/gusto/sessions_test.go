@@ -232,6 +232,26 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	}
 }
 
+// Without GUSTO_RUN_TOKENS=bound, an agent in a person's computer reaches the proxy itself with a plain token for its run, as it
+// did before runs were bound, and starts without a forwarder.
+func TestRunsInAComputerAreNotBoundUnlessTheServerSaysSo(t *testing.T) {
+	t.Setenv("GUSTO_RUN_TOKENS", "off")
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	harnesses := t.TempDir()
+	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
+	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; echo done"],
+	  "needs":"nothing","stream":"plain"}`), 0o644)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "say what you were given")
+
+	given, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "given.txt"))
+	parts := strings.Fields(string(given))
+	if len(parts) != 2 || !strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] == "dpop" || parts[1] == "" {
+		t.Fatalf("the agent was given %q", given)
+	}
+}
+
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
