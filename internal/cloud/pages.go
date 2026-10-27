@@ -66,6 +66,8 @@ type view struct {
 	// Computers of each member by address, for the people who have one.
 	ComputerOf map[string]string
 	Inviter    string
+	// Link is an invitation's address, shown to the person who made it when mail is not the only way it travels.
+	Link string
 	// A demo: the time it has, the state of its server in words, where a call is booked, and whether it may be extended.
 	DemoLeft   time.Duration
 	DemoWords  string

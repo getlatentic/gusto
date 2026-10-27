@@ -1,0 +1,23 @@
+{{define "demo-colleague"}}{{template "head" .}}
+<div class="grid gap-5">
+  {{template "brand"}}
+  <h1 class="text-xl font-semibold">Bring a colleague</h1>
+  {{if .Link}}
+  <p role="status">{{.Email}} is in the demo's room. Send them this link. It works once.</p>
+  <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" value="{{.Link}}" readonly aria-label="Invitation link" onfocus="this.select()">
+  <p class="text-sm text-muted">We also mailed it to them. Both of you can then work in the room at once, and see each other's messages as they are sent.</p>
+  <p class="text-center"><a class="block rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="/open">Back to the demo</a></p>
+  {{else if .IsAdmin}}
+  <p>Your colleague joins this demo for the {{minutes .DemoLeft}} it has left, and lands in its room with you and the agents. Everything is deleted when the demo ends.</p>
+  {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="/demo/colleague" class="grid grid-cols-[1fr_auto] items-center gap-3">
+    <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" placeholder="Their email address" autocomplete="off" required>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Invite</button>
+  </form>
+  <p class="text-center text-sm text-muted"><a class="underline" href="/open">Back to the demo</a></p>
+  {{else}}
+  <p>Only the person who started this demo can bring a colleague in.</p>
+  <p class="text-center text-sm text-muted"><a class="underline" href="/open">Back to the demo</a></p>
+  {{end}}
+</div>
+{{template "foot"}}{{end}}
