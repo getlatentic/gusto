@@ -70,12 +70,22 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
-	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), spec.Session, configured.Adapter,
+	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), folderInComputer(spec), configured.Adapter,
 		modelURL, "http://127.0.0.1:"+port+"/model/v1", token)
 	if err != nil {
 		return 0, err
 	}
 	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: registry, id: held.ID})
+}
+
+// folderInComputer names the folder a turn works in in the person's computer. A room's agents run at the same time, each on
+// its own copy of the room's folder, and two of them asked by one person run in that person's one computer, so each agent of a
+// room has a folder of its own there; its own turns go one at a time. Any other conversation has its instance's.
+func folderInComputer(spec job.Spec) string {
+	if isRoomTurn(spec) {
+		return spec.Session + "-" + spec.Agent
+	}
+	return spec.Session
 }
 
 // computerBox is a computer for a task that says in the record what became of it.
