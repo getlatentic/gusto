@@ -88,6 +88,57 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 	}
 }
 
+// Two agents of a room asked by one person run at the same time in that person's one computer, each in a folder of its own, so
+// neither empties or overwrites the other's working copy there.
+func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(t *testing.T) {
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	conversational(t)
+	held, err := instances.StartRoom("Launch", "ada@acme.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Scout", "Draft"} {
+		if _, err := instances.AddAgent(held.ID, instance.Agent{Name: name, Harness: "fixture"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	held, _ = instances.Get(held.ID)
+	thread := instances.Latest(held.ID)
+	wheres := map[string]string{}
+	for _, agent := range held.Agents {
+		roomTurnBy(t, work, index, held, thread.ID, agent.ID, "ada@acme.com")
+		where, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "where.txt"))
+		wheres[agent.ID] = strings.TrimSpace(string(where))
+	}
+	if wheres["a1"] == wheres["a2"] || !strings.HasSuffix(wheres["a1"], "-a1/workspace") || !strings.HasSuffix(wheres["a2"], "-a2/workspace") {
+		t.Fatalf("the agents worked in %v", wheres)
+	}
+}
+
+// roomTurnBy is a turn of a room's agent asked for by a person, run by the work.
+func roomTurnBy(t *testing.T, work jobs.Work, index *jobs.Index, held instance.Instance, threadID, agent, who string) job.Dir {
+	t.Helper()
+	id, err := index.Reserve("go "+agent, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := jobs.Record{ID: id, State: jobs.Running, Brief: "go", Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Agent: agent, Queued: jobs.Now()}
+	dir := record.Dir(index.Root())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	if err := (job.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: threadID, Agent: agent}).Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := index.Add(record); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := work(dir); err != nil {
+		t.Logf("%s: %v", agent, err)
+	}
+	return dir
+}
+
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
