@@ -54,6 +54,24 @@ The runner writes a policy for each task. Everything not named is denied.
 
 File rules need Landlock. A sandbox that cannot enforce them does not start. A `GUSTO_ALLOWED_HOSTS` entry that cannot be written as a rule is refused.
 
+### A room's turn in a person's computer
+
+A person's computer is one sandbox that holds all their conversations and their copies of rooms. The sandbox's policy cannot tell those apart, so a room's turn is held further, inside it:
+
+| A room's turn may | Path |
+| --- | --- |
+| read and write its copy of the room | `/sandbox/jobs/instance-<room>-<agent>` |
+| read and write its agent's home, which keeps what the agent remembers between turns | `/sandbox/rooms/<room>-<agent>/home`, its `HOME` |
+| read and write its own temporary folder | `/sandbox/rooms/<room>-<agent>/tmp`, its `TMPDIR` |
+| read the system folders | `landlock.System` |
+
+It cannot read or write the rest of `/sandbox`, the person's other conversations and rooms among it, nor the shared `/tmp`.
+
+- The runner starts the agent as `gusto sandbox-run '<policy>' -- agent ...`. The gusto in the image applies the policy with Landlock, on top of the sandbox's own, before it starts the agent.
+- The policy is passed whole, not as a file, so the agent cannot change its next turn's rules.
+- A kernel without Landlock refuses the turn rather than running it unconfined.
+- `sandbox-run` is part of the image, so a change to it, or to `internal/landlock`, makes a new runner-image key (`deploy/aws/openshell/image-key.sh`).
+
 Export the container runner's image as a root file system (`podman export`) and set `GUSTO_OPENSHELL_IMAGE` to it. The backend copies each agent's configuration from `/opt/gusto/harness` into `/sandbox`, and rewrites `/root` to `/sandbox` in the agent's arguments and configuration files. It creates the agent's state folder before the agent starts. It applies an adapter's `whenBoxed` changes: codex gets `danger-full-access` instead of `workspace-write`, because its own namespace sandbox fails inside a sandbox. The gateway's policy is the boundary. The image carries `ripgrep`, because opencode's `glob` and `grep` cannot download it without a network.
 
 ## Measured

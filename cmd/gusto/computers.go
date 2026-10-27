@@ -75,6 +75,11 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
+	// A room's turn sees only the room: its copy of the folder and its agent's own memory, not the rest of the person's
+	// computer (getlatentic/planning#731).
+	if isRoomTurn(spec) {
+		box.Confine(folderInComputer(spec))
+	}
 	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: registry, id: held.ID})
 }
 

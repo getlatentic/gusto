@@ -62,6 +62,18 @@ case "$cmd $sub" in
 esac
 `
 
+// confinerShim stands in for gusto sandbox-run in the fake gateway, which runs commands on this machine: it writes down the policy
+// and the home it was given, and runs the command unconfined.
+func confinerShim(t *testing.T, root string) string {
+	t.Helper()
+	shim := filepath.Join(t.TempDir(), "confine")
+	script := "#!/bin/sh\n[ \"$1\" = sandbox-run ] || exit 9\nprintf '%s\\n%s\\n' \"$2\" \"$HOME\" > " + root + "/confined-$$\nshift 3\nexec \"$@\"\n"
+	if err := os.WriteFile(shim, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return shim
+}
+
 func withGateway(t *testing.T) string {
 	t.Helper()
 	bin, root := t.TempDir(), t.TempDir()
@@ -106,7 +118,8 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	limit := filepath.Join(t.TempDir(), "quota.json")
 	quota.Write(limit, quotaOf)
 	registry.UseQuota(quota.Open(limit))
-	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi", Processes: hostProcesses(t)}
+	cfg := openshell.Config{Binary: "openshell", Image: "runner.tar", Host: "host.openshell.internal", CPU: "1", Memory: "1Gi", Processes: hostProcesses(t),
+		Confiner: confinerShim(t, root)}
 	instances, err := instance.Open(filepath.Join(t.TempDir(), "sessions"))
 	if err != nil {
 		t.Fatal(err)
