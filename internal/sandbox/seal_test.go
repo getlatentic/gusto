@@ -36,7 +36,7 @@ func hostKey(t *testing.T) (string, signing.Keyring) {
 func TestTheSigningKeyNeverEntersTheContainer(t *testing.T) {
 	path, keyring := hostKey(t)
 	t.Setenv("GUSTO_SIGNER", "")
-	args, err := argv("/abs/job", nil, nil)
+	args, err := argv("/abs/job", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestTheSigningKeyNeverEntersTheContainer(t *testing.T) {
 
 func TestAHostKeyThatCannotBeReadStopsTheRunBeforeTheBox(t *testing.T) {
 	t.Setenv(signing.KeyEnv, filepath.Join(t.TempDir(), "absent.key"))
-	if _, err := argv("/abs/job", nil, nil); err == nil || !strings.Contains(err.Error(), "absent.key") {
+	if _, err := argv("/abs/job", nil, Owner{}, nil); err == nil || !strings.Contains(err.Error(), "absent.key") {
 		t.Fatalf("want the key named, got %v", err)
 	}
 }

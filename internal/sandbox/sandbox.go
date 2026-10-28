@@ -51,11 +51,11 @@ type Mount struct {
 // a model on the host and no credential to keep out. A task with a proxy runs
 // Sealed instead.
 func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
-	return RunContext(context.Background(), dir, model, token, mounts...)
+	return RunContext(context.Background(), dir, model, token, Owner{}, mounts...)
 }
 
 // RunContext is Run that stops the container when its context ends.
-func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ...Mount) (int, error) {
+func RunContext(ctx context.Context, dir job.Dir, model, token string, owner Owner, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -73,7 +73,7 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 	if alias {
 		network = append(network, "--add-host=host.docker.internal:host-gateway")
 	}
-	args, err := argv(absolute, network, mounts)
+	args, err := argv(absolute, network, owner, mounts)
 	if err != nil {
 		return 0, err
 	}
@@ -116,9 +116,9 @@ func containerName(dir job.Dir) string {
 	return "gusto-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 
-// argv is the container's command line: the task directory, what reaches the
+// argv is the container's command line: the task directory, whose it is, what reaches the
 // network, the mounts, and what one task may take of the machine.
-func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
+func argv(absolute string, network []string, owner Owner, mounts []Mount) ([]string, error) {
 	signer, err := signerName()
 	if err != nil {
 		return nil, err
@@ -127,6 +127,7 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 		"-v", absolute + ":/job",
 		"-e", "GUSTO_SIGNER=" + signer,
 	}
+	args = append(args, owner.labels(filepath.Base(absolute))...)
 	args = append(args, network...)
 	for _, mount := range mounts {
 		absolute, err := filepath.Abs(mount.From)

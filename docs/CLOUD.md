@@ -131,6 +131,7 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 - Pause new demos on the operator's page. Resume there. Running demos continue.
 - Each visitor is kept as a lead in the database, which stays after the demo ends.
 - A visitor's agent runs each turn in a Docker container on the cell (`demo_sandbox: container` in `deploy/aws/openshell/ansible/roles/demo/defaults/main.yml`). The container has no network (`--network=none`): the proxy's socket, mounted in, is its only way out. It has a cap on CPU, memory and processes, and only five capabilities. Containers share the cell's kernel, so a flaw in the kernel could let one visitor's agent reach another's on the same cell. An organization that pays runs its agents in OpenShell microVMs (`demo_sandbox: openshell`).
+- Each container is labelled `com.getlatentic.gusto.org`, `.person`, `.instance` and `.job`. The person is an opaque id, the same as their computer's, never their address. `docker ps --filter label=com.getlatentic.gusto.org=<slug>` lists one organization's running agents. When an organization's server stops, or starts again, the cell removes its containers that are left.
 - A demo is capped as a whole organization at 0.50 dollars (`organization` in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`). The proxy then refuses the next call, and refuses a model with no price. Calls in flight can pass the cap by a few cents.
 
 ## The operator's page

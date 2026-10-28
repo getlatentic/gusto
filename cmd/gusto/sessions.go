@@ -1,8 +1,12 @@
 package main
 
 import (
+	"os"
+
+	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -31,6 +35,16 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 		return []sandbox.Mount{memory}
 	}
 	return []sandbox.Mount{{From: instances.Workspace(spec.Session), To: "/job/workspace"}, memory}
+}
+
+// ownerOf is whose a task's container is: this server's organization, the person who pays for the task as the same opaque id
+// their computer has, and the agent's instance.
+func ownerOf(index *jobs.Index, dir job.Dir, spec job.Spec) sandbox.Owner {
+	owner := sandbox.Owner{Org: os.Getenv("GUSTO_ORG"), Instance: spec.Session}
+	if person := personWhoPays(index, dir); person != "" {
+		owner.Person = computer.ID(owner.Org, person)
+	}
+	return owner
 }
 
 // beforeTurn puts the instance's workspace where the task's is.

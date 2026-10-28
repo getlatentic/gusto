@@ -9,7 +9,7 @@ import (
 // Whether this holds on podman and docker has to be measured on the box. What
 // can be held here is that the command asks for it.
 func TestASealedContainerHasNoNetworkButTheProxysSocket(t *testing.T) {
-	args, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "a-token", nil)
+	args, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "a-token", Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestASealedContainerHasNoNetworkButTheProxysSocket(t *testing.T) {
 }
 
 func TestAContainerWithoutAProxyKeepsTheRuntimesNetwork(t *testing.T) {
-	args, err := argv("/jobs/a", []string{"-e", "GUSTO_MODEL_URL=http://host.docker.internal:11434/v1"}, nil)
+	args, err := argv("/jobs/a", []string{"-e", "GUSTO_MODEL_URL=http://host.docker.internal:11434/v1"}, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
