@@ -41,6 +41,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          # The runner is a machine of ours whose Go caches stay between runs. Restoring and saving GitHub's copy of them has
+          # hung for an hour on a stalled download or upload, holding the deploy.
+          cache: false
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
