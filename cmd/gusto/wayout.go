@@ -217,26 +217,26 @@ func (w *WayOut) Listen() (func(), error) {
 // configuration stays the same from one task to the next, and what this task
 // spends is attributed to it and counted against its caps.
 func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
-	return w.RunContext(context.Background(), dir, spec, mounts...)
+	return w.RunContext(context.Background(), dir, spec, sandbox.Owner{}, mounts...)
 }
 
-// RunContext is Run that stops the container when its context ends.
-func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
+// RunContext is Run that stops the container when its context ends, and labels it with its owner.
+func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, owner sandbox.Owner, mounts ...sandbox.Mount) (int, error) {
 	if w.proxy == nil {
-		return sandbox.RunContext(ctx, dir, w.direct, "", mounts...)
+		return sandbox.RunContext(ctx, dir, w.direct, "", owner, mounts...)
 	}
 	token, err := w.tokenFor(dir, spec)
 	if err != nil {
 		return 0, err
 	}
 	if w.sealed {
-		return sandbox.SealedContext(ctx, dir, w.socket, token, mounts...)
+		return sandbox.SealedContext(ctx, dir, w.socket, token, owner, mounts...)
 	}
 	_, port, err := net.SplitHostPort(w.address)
 	if err != nil {
 		port = "8041"
 	}
-	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, mounts...)
+	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, owner, mounts...)
 }
 
 // tokenFor is the token a task's box is given, or none when it needs neither a model nor the gateway. A task that needs no model but

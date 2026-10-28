@@ -399,7 +399,7 @@ func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, regis
 		}
 		defer way.Done(dir)
 		exit, err := rooms.around(ctx, spec, dir, func() (int, error) {
-			return way.RunContext(ctx, dir, spec, staying(instances, spec)...)
+			return way.RunContext(ctx, dir, spec, ownerOf(index, dir, spec), staying(instances, spec)...)
 		})
 		// A turn learns what the agent calls the conversation, and the next
 		// turn is handed it back. Without this every turn starts again.

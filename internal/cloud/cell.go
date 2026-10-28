@@ -3,12 +3,16 @@ package cloud
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // ServerSpec is how to run one organization's server: the command, the whole of its
@@ -58,6 +62,7 @@ type LocalCell struct {
 
 type child struct {
 	command *exec.Cmd
+	env     []string
 	done    chan struct{}
 }
 
@@ -79,6 +84,11 @@ func (l *LocalCell) Ports(from int, taken map[int]bool) (server, proxy int, err 
 }
 
 func (l *LocalCell) Start(spec ServerSpec) error {
+	if l.Alive(spec.Slug) {
+		return nil
+	}
+	// What a server that ended uncleanly left running would keep spending, and now has no server to stop it.
+	removeLeftovers(spec.Slug, spec.Env)
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.children == nil {
@@ -102,7 +112,7 @@ func (l *LocalCell) Start(spec ServerSpec) error {
 		log.Close()
 		return err
 	}
-	held := &child{command: command, done: make(chan struct{})}
+	held := &child{command: command, env: spec.Env, done: make(chan struct{})}
 	l.children[spec.Slug] = held
 	go func() {
 		command.Wait()
@@ -156,7 +166,34 @@ func (l *LocalCell) Stop(slug string, grace time.Duration) error {
 		held.command.Process.Kill()
 		<-held.done
 	}
+	removeLeftovers(slug, held.env)
 	return nil
+}
+
+// removeLeftovers removes the containers of an organization's tasks when its server runs them in containers. It is done when the
+// server has ended, and before one starts: a container whose client was killed with its server runs on with nobody to stop it.
+func removeLeftovers(slug string, env []string) {
+	if valueOf(env, "GUSTO_SANDBOX") != "container" {
+		return
+	}
+	runtime := valueOf(env, "GUSTO_CONTAINER")
+	if runtime == "" {
+		runtime = "docker"
+	}
+	if err := sandbox.RemoveOrg(runtime, slug); err != nil {
+		slog.Error("an organization's containers could not be removed", "org", slug, "error", err)
+	}
+}
+
+// valueOf is the value an environment gives a name: the last when it is given twice, which is the one the server is started with.
+func valueOf(env []string, name string) string {
+	value := ""
+	for _, each := range env {
+		if found, ok := strings.CutPrefix(each, name+"="); ok {
+			value = found
+		}
+	}
+	return value
 }
 
 // ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.

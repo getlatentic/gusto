@@ -86,7 +86,7 @@ func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing
 }
 
 func TestEveryJobsContainerHasAnAddressableName(t *testing.T) {
-	args, err := argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, nil)
+	args, err := argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -60,11 +60,11 @@ func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
 // or not, is asked for the same restrictions and no more capabilities than the
 // runner needs.
 func TestEveryContainerDropsEveryCapabilityButWhatTheRunnerNeeds(t *testing.T) {
-	sealed, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "t", nil)
+	sealed, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "t", Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	open, err := argv("/jobs/a", nil, nil)
+	open, err := argv("/jobs/a", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
