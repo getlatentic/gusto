@@ -120,6 +120,8 @@ func TestMain(m *testing.M) {
 			os.Exit(boxed(os.Args[2:]))
 		case "boxed-forward":
 			os.Exit(boxedForward(os.Args[2:]))
+		case "boxed-sign":
+			os.Exit(boxedSign(os.Args[2:]))
 		}
 	}
 	os.Exit(m.Run())

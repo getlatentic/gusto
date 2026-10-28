@@ -114,6 +114,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 	mux.HandleFunc("POST /admin/chat-default", s.console(offering(s.hasOrgSettings, s.setChatDefault)))
+	mux.HandleFunc("POST /admin/run-tokens", s.console(offering(s.hasOrgSettings, s.setRunTokens)))
 
 	s.integrationRoutes(mux)
 	s.modelRoutes(mux)

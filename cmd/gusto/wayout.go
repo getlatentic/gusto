@@ -47,10 +47,9 @@ type WayOut struct {
 	gateways *gateways
 	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
 	spares *spareComputers
-	// bindRuns gives a run in a sandbox a secret its forwarder trades for a run token bound to a key it holds, in place of a
-	// plain token: GUSTO_RUN_TOKENS=bound. It is off unless set: in an OpenShell sandbox the forwarder, a static Go program,
-	// is refused the network that the agents reach (getlatentic/planning#731).
-	bindRuns bool
+	// plainRuns says whether a run in a sandbox gets a plain token in place of a secret its forwarder trades for a run token
+	// bound to a key its sandbox holds; see UseRunTokens. Unset, every run is bound.
+	plainRuns atomic.Pointer[func() bool]
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
 	// describe says who and what a run is for, for its record; see UseRunRecords.
@@ -71,6 +70,17 @@ func (w *WayOut) recordRun(dir job.Dir, spec job.Spec, sandbox string) error {
 	}
 	run.Sandbox = sandbox
 	return evidence.WriteRun(dir, run)
+}
+
+// UseRunTokens says how to find whether the organization's admins chose plain tokens for runs in sandboxes, which is asked as
+// each run starts.
+func (w *WayOut) UseRunTokens(plain func() bool) { w.plainRuns.Store(&plain) }
+
+func (w *WayOut) bindsRuns() bool {
+	if plain := w.plainRuns.Load(); plain != nil {
+		return !(*plain)()
+	}
+	return true
 }
 
 // UseAskers says how to find the person a task acts for, which the server's index knows.
@@ -126,7 +136,6 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		address:  setting("GUSTO_PROXY_ADDR", proxyAddress()),
 	}
 	way.held.Store(&credentials)
-	way.bindRuns = os.Getenv("GUSTO_RUN_TOKENS") == "bound"
 	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return way.runOf(jobsRoot, id) })
 	if err != nil {
 		return nil, err
@@ -271,7 +280,7 @@ func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
 // admitSandbox is admit for a task in a sandbox: with a secret for its forwarder when runs are bound, and a plain token
 // otherwise. It says which.
 func (w *WayOut) admitSandbox(dir job.Dir, spec job.Spec) (token string, bound bool, err error) {
-	if w.bindRuns {
+	if w.bindsRuns() {
 		token, err = w.admitBound(dir, spec)
 		return token, true, err
 	}

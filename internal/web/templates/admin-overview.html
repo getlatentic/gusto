@@ -71,6 +71,19 @@
     </form>
   </section>
   {{end}}
+
+  {{with .RunTokens}}
+  <section class="{{template "ui-card"}} grid gap-3">
+    <h2 class="text-sm font-semibold">Model access in sandboxes</h2>
+    {{if .Err}}<p>The setting could not be read, so runs are bound. {{.Err}}</p>{{end}}
+    <p>{{if .Bound}}Each run's model access is bound to its sandbox. What an agent could copy out is no use anywhere else.{{else}}Each run gets a plain token for its model, which works from anywhere until the run ends.{{end}}</p>
+    <form method="post" action="/admin/run-tokens">
+      <input type="hidden" name="bound" value="{{if .Bound}}no{{else}}yes{{end}}">
+      <button class="{{template "ui-btn"}}" type="submit">{{if .Bound}}Use plain tokens{{else}}Bind to the sandbox{{end}}</button>
+    </form>
+    <p class="{{template "ui-note"}}">Binding takes effect on the next run.</p>
+  </section>
+  {{end}}
 </div>
 
 <div class="{{template "ui-masonry"}}">

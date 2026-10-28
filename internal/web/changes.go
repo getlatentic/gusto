@@ -322,6 +322,8 @@ func saidOf(e changelog.Event) string {
 		return "confirmed that agents run with no sandbox between them and their files"
 	case changelog.ChatDefaultSet:
 		return fmt.Sprintf("changed what a new chat runs on from %s to %s", or(w["was"], "the first that can run"), or(w["now"], "the first that can run"))
+	case changelog.RunTokensSet:
+		return fmt.Sprintf("changed the model tokens of runs in sandboxes from %s to %s", w["was"], w["now"])
 	case changelog.BudgetSet:
 		return fmt.Sprintf("changed the monthly budget from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
 	case changelog.ProviderAdded:

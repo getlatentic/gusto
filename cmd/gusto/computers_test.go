@@ -119,6 +119,12 @@ func organizationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Ind
 
 func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
 	t.Helper()
+	return organizationWithWayOut(t, quotaOf, func(*WayOut) {})
+}
+
+// organizationWithWayOut is organizationWithInstances with the server's way out set up by configure before any task runs.
+func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*WayOut)) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
+	t.Helper()
 	root := withGateway(t)
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c","printf yes > answer.txt; echo ran in $(pwd | sed 's|.*/sandbox||')"],"needs":"nothing","stream":"plain"}`), 0o644)
@@ -127,9 +133,6 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	t.Setenv("GUSTO_MODEL_UPSTREAM", "http://127.0.0.1:9")
 	t.Setenv("GUSTO_MODEL_KEY", "not-a-key")
 	t.Setenv("GUSTO_PROXY_ADDR", freeAddress(t))
-	if os.Getenv("GUSTO_RUN_TOKENS") == "" {
-		t.Setenv("GUSTO_RUN_TOKENS", "bound")
-	}
 	t.Setenv("GUSTO_CREDENTIALS", "")
 	index, err := jobs.Open(filepath.Join(t.TempDir(), "jobs"))
 	if err != nil {
@@ -139,6 +142,7 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	if err != nil {
 		t.Fatal(err)
 	}
+	configure(way)
 	// An agent in a sandbox reaches its model through its forwarder, which trades its secret at the proxy before it starts.
 	stopProxy, err := way.Listen()
 	if err != nil {

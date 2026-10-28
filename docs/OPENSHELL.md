@@ -56,15 +56,15 @@ File rules need Landlock. A sandbox that cannot enforce them does not start. A `
 
 ### A run's credential
 
-Bound run tokens are off unless the server is started with `GUSTO_RUN_TOKENS=bound`. In an OpenShell sandbox the forwarder, a static Go program, is refused every connection that `node` in the same sandbox is allowed, by its own dialler and by raw sockets alike, so no agent could start. Until that is resolved, a sandbox run gets a plain token for the run, which the proxy drops when the run ends (getlatentic/planning#731).
+Runs are bound unless an admin chooses plain tokens under **Model access in sandboxes** on the admin overview (`plainRunTokens` in the organization's settings). A plain token works from anywhere until the run ends. Settings that cannot be read leave runs bound. The choice is read as each run starts.
 
 An agent in a sandbox holds nothing it could use anywhere else. It is told `http://127.0.0.1:<port>/model/v1`, the address of a forwarder of its run's own, and the word `dpop` where a key would go.
 
 1. The server gives the run a secret (`WayOut.admitBound`). The proxy never accepts the secret as a token.
-2. The sandbox runs `gusto boxed --model <proxy> -- agent ...`. It starts `gusto boxed-forward`, which makes an Ed25519 key that never leaves its process. The forwarder's memory is closed to other processes (`PR_SET_DUMPABLE`), the agent among them.
+2. The sandbox runs `gusto boxed --model <proxy> -- agent ...`. It starts `gusto boxed-forward`, which starts `gusto boxed-sign`. The signer makes an Ed25519 key that never leaves its process, and answers the forwarder's requests for proofs over a pipe. The signer's memory is closed to every other process (`PR_SET_DUMPABLE`), the agent among them. The forwarder's is not, because OpenShell reads a process's memory to decide each connection it makes, and refuses one it cannot read. So the signer makes no network calls, and the forwarder holds only the token, which is no use without a proof.
 3. The forwarder trades the secret, once, at `POST /model/token`. This is an OAuth token exchange (RFC 8693) with a DPoP proof (RFC 9449). It gets back a run token: a JWT the server signs (RFC 9068 in shape), good for 15 minutes and bound to the key's thumbprint.
 4. Every call goes out with `Authorization: DPoP <token>` and a fresh proof, made for that method, address and token. The proxy refuses a proof it has seen, or one more than a minute from now. The forwarder trades the token for a new one before it expires.
-5. When the run ends, its token is refused even before it expires. The forwarder ends with the agent: by a pipe the agent holds open, and on Linux by `PR_SET_PDEATHSIG`.
+5. When the run ends, its token is refused even before it expires. The forwarder ends with the agent: by a pipe the agent holds open, and on Linux by `PR_SET_PDEATHSIG`. The signer ends with the forwarder, which holds its input.
 
 | A run token's claim | What it is |
 | --- | --- |

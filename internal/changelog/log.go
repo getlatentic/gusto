@@ -52,6 +52,7 @@ const (
 	MemberRemoved    = "member.removed"
 	BudgetSet        = "budget.set"
 	ChatDefaultSet   = "chat.default"
+	RunTokensSet     = "runs.tokens"
 	SandboxConfirmed = "sandbox.confirmed"
 	ProviderAdded    = "provider.added"
 	ProviderRetired  = "provider.retired"
