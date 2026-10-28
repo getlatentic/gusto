@@ -6,7 +6,7 @@
 
 Each organization runs its own `gusto serve` process with its own data directory, signing key, credentials, spend ledger, change log and task queue. gusto cloud holds accounts and routes requests by host name (browser, gusto cloud, the organization's server). It runs no tasks.
 
-Tasks run in OpenShell sandboxes on gateway hosts. A sandbox belongs to one task, is deleted when the task ends, and is never reused for another organization. Each sandbox is a microVM with its own kernel.
+A paying organization's tasks run in OpenShell sandboxes on gateway hosts. A sandbox belongs to one task, is deleted when the task ends, and is never reused for another organization. Each sandbox is a microVM with its own kernel. A demo's tasks run in Docker containers on the cell, one for each turn, which share the cell's kernel ([Demos](#demos)).
 
 ## Where it runs
 
