@@ -83,7 +83,7 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if err != nil {
 		return 0, runner.Refuse(dir, err)
 	}
-	token, err := w.admitBound(dir, spec)
+	token, bound, err := w.admitSandbox(dir, spec)
 	if err != nil {
 		return 0, err
 	}
@@ -92,7 +92,9 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	if err != nil {
 		return 0, err
 	}
-	box.Bind()
+	if bound {
+		box.Bind()
+	}
 	if err := w.recordRun(dir, spec, held.Sandbox); err != nil {
 		return 0, err
 	}

@@ -127,6 +127,9 @@ func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *j
 	t.Setenv("GUSTO_MODEL_UPSTREAM", "http://127.0.0.1:9")
 	t.Setenv("GUSTO_MODEL_KEY", "not-a-key")
 	t.Setenv("GUSTO_PROXY_ADDR", freeAddress(t))
+	if os.Getenv("GUSTO_RUN_TOKENS") == "" {
+		t.Setenv("GUSTO_RUN_TOKENS", "bound")
+	}
 	t.Setenv("GUSTO_CREDENTIALS", "")
 	index, err := jobs.Open(filepath.Join(t.TempDir(), "jobs"))
 	if err != nil {
