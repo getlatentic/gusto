@@ -118,7 +118,7 @@ func TestAnAdminChangesRolesAndAnOrganizationKeepsAnAdmin(t *testing.T) {
 		return status
 	}
 	roleOf := func(email string) Role {
-		person, _, _ := f.store.Person(email)
+		person, _, _ := f.store.only(email)
 		return person.Role
 	}
 

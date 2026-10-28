@@ -144,6 +144,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /verify", s.useLink(Verify))
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
+	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))

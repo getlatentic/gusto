@@ -1,0 +1,11 @@
+{{define "orgs"}}{{template "head" .}}
+  <header class="flex items-center justify-between">
+    {{template "brand"}}
+    <form method="post" action="/signout"><button class="rounded-sm border border-line-strong px-3 py-2 text-center text-muted hover:bg-wash hover:text-ink" type="submit">Sign out</button></form>
+  </header>
+  <h1 class="text-xl font-semibold">Choose an organization</h1>
+  <p class="text-muted">{{.Email}} is in {{len .Orgs}} organizations.</p>
+  <ul class="grid gap-2">
+    {{range .Orgs}}<li><a class="flex items-center gap-3 rounded-sm border border-line-strong p-3 no-underline hover:bg-wash" href="/org?org={{.Slug}}"><span class="flex-1 font-semibold text-ink wrap-anywhere">{{.Name}}</span><span class="text-sm text-muted">{{.Slug}}.{{$.Address}}</span></a></li>{{end}}
+  </ul>
+{{template "foot"}}{{end}}

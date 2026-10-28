@@ -95,7 +95,7 @@ func TestATokenThatIsUsedOldForAnotherOrganizationOrMadeWithAnotherKeyIsRefusedW
 		"no token at all": "",
 	} {
 		answer := s.enterWith(t, token)
-		if answer.Code != http.StatusForbidden || answer.Header().Get("Location") != "" || !strings.Contains(answer.Body.String(), "https://cloud.test/org") {
+		if answer.Code != http.StatusForbidden || answer.Header().Get("Location") != "" || !strings.Contains(answer.Body.String(), "https://cloud.test/org?org=acme-com") {
 			t.Errorf("%s: %d %v\n%s", name, answer.Code, answer.Header(), answer.Body)
 		}
 		for _, each := range answer.Result().Cookies() {
@@ -108,7 +108,7 @@ func TestATokenThatIsUsedOldForAnotherOrganizationOrMadeWithAnotherKeyIsRefusedW
 
 func TestBehindAFrontDoorThereIsNoPasswordOrProviderToSignInWith(t *testing.T) {
 	s := behindAFrontDoor(t)
-	if login := s.ask(t, "GET", "/login", nil); login.Code != http.StatusSeeOther || login.Header().Get("Location") != "https://cloud.test/open" {
+	if login := s.ask(t, "GET", "/login", nil); login.Code != http.StatusSeeOther || login.Header().Get("Location") != "https://cloud.test/open?org=acme-com" {
 		t.Errorf("a stranger is sent to the front door: %d %v", login.Code, login.Header())
 	}
 	if got := s.ask(t, "POST", "/login", url.Values{"password": {password}}); got.Code == http.StatusSeeOther && got.Header().Get("Location") == "/" {
@@ -126,7 +126,7 @@ func TestSigningOutGoesBackToTheFrontDoor(t *testing.T) {
 	s := behindAFrontDoor(t)
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	out := s.ask(t, "POST", "/logout", url.Values{})
-	if out.Code != http.StatusSeeOther || out.Header().Get("Location") != "https://cloud.test/org" {
+	if out.Code != http.StatusSeeOther || out.Header().Get("Location") != "https://cloud.test/org?org=acme-com" {
 		t.Errorf("%d %v", out.Code, out.Header())
 	}
 }
@@ -152,13 +152,22 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 	return nil
 }
 
+// A person may be in several organizations, and the menu leads back to the front door's choice of them.
+func TestBehindAFrontDoorTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
+	behind := behindAFrontDoor(t)
+	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
+	if page := behind.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="https://cloud.test/orgs"`) {
+		t.Errorf("the menu does not lead to the person's organizations:\n%s", page[:min(len(page), 900)])
+	}
+}
+
 // A host that removes itself warns on every page, and the warning links to where it is extended, which
 // is the front door. A server that is not behind one has nowhere to send a person, and carries no script.
 func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
 	behind := behindAFrontDoor(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := behind.ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease"`) {
+	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease?org=acme-com"`) {
 		t.Errorf("the page does not warn of the end of the host:\n%s", page[:min(len(page), 900)])
 	}
 	if script := behind.ask(t, "GET", "/static/lease.js", nil); script.Code != http.StatusOK || !strings.Contains(script.Body.String(), "/.gusto/lease") {

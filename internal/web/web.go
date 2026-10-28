@@ -285,6 +285,7 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 		fields["Admin"] = marks.admin
 		if s.front != nil && s.front.Org != "" {
 			fields["Org"] = s.front.Org
+			fields["Organizations"] = s.front.URL + "/orgs"
 		}
 		// Every page of the app carries the side list drawn with it, so that moving between pages does not redraw it.
 		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {

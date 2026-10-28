@@ -72,11 +72,13 @@ The counts are kept in the database, so front doors that share it share the limi
 3. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
 4. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
 
+One address is one sign-in, and a person can be in several organizations, with a role in each. A person in more than one chooses at `/orgs` after signing in, and the choice is remembered. `/org?org=<slug>` and `/open?org=<slug>` choose one of theirs; a name of an organization they are not in chooses nothing. Each organization's server sends people back with its own name, and its menu leads to `/orgs`. A server knows only its own members.
+
 ## People
 
-An admin with a confirmed address invites people from the organization's page. An invitation counts against `GUSTO_CLOUD_MEMBERS`. The link opens a page that asks the person to press a button, so a mail program that opens every link does not answer it. The person joins as a runner.
+An admin with a confirmed address invites people from the organization's page. An invitation counts against `GUSTO_CLOUD_MEMBERS`. The link opens a page that asks the person to press a button, so a mail program that opens every link does not answer it. The person joins as a runner. An address that is already in another organization is invited the same way and keeps that organization.
 
-An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person is signed out of gusto cloud at once. Their organization server stops trusting them, and a changed role takes effect, within the hour.
+An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server stops trusting them, and a changed role takes effect, within the hour.
 
 gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
 
@@ -124,7 +126,7 @@ Admins choose the models their people may use at `/admin/models`. A provider is 
 
 ## Demos
 
-With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one workspace, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its workspaces, waits up to ninety seconds, stops the server and deletes the organization, its people and its data. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way.
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one workspace, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its workspaces, waits up to ninety seconds, stops the server and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way.
 
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
 - At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.

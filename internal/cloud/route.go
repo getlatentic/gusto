@@ -155,7 +155,7 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 		}
 		pr.Out.Header.Del("Cookie")
 		for _, cookie := range pr.In.Cookies() {
-			if cookie.Name != "gusto_cloud" && cookie.Name != "__Host-gusto_cloud" {
+			if !ownCookie(cookie.Name) {
 				pr.Out.AddCookie(cookie)
 			}
 		}
@@ -207,7 +207,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 		return
 	}
-	if err := s.Store.RecordSignIn(person.Email); err != nil {
+	if err := s.Store.RecordSignIn(person.Email, person.Org); err != nil {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)

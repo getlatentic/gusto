@@ -50,7 +50,8 @@ func (s *Store) insertLegacy(ctx context.Context, tx dbkit.Tx, old legacy) (map[
 		rows [][]any
 	}{
 		{"organisations", insertOrg, mapRows(old.orgs, s.orgArgs)},
-		{"people", insertPerson, mapRows(old.people, s.personArgs)},
+		{"people", insertAccount, mapRows(old.people, s.accountArgs)},
+		{"memberships", insertMembership, mapRows(old.people, s.membershipArgs)},
 		{"invitations", dbkit.Upsert{Table: "invitations", Columns: invitationFields, Conflict: []string{"org", "email"}}, mapRows(old.invitations, s.legacyInvitationArgs)},
 		{"leads", insertLead, mapRows(old.leads, s.leadArgs)},
 		{"links", insertLink, mapRows(old.links, func(l legacyLink) []any { return s.linkArgs(l.hash, l.link) })},

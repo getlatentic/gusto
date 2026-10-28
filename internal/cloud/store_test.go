@@ -25,7 +25,7 @@ func TestASignUpMakesAPersonAnOrganizationAndItsDirectoryOnTheTrial(t *testing.T
 		if org.Slug != "acme-com" || org.Name != "Acme Research" || org.Admin != "ada@acme.com" || org.Domain != "acme.com" {
 			t.Errorf("%+v", org)
 		}
-		got, found, err := s.Person("ADA@acme.com")
+		got, found, err := s.only("ADA@acme.com")
 		if err != nil || !found || got.Org != org.Slug {
 			t.Errorf("the person should be found by any spelling: %+v %v %v", got, found, err)
 		}
@@ -45,18 +45,20 @@ func TestVerifyingLiftsTheQuotaOfTheOrganizationTheirAdminMade(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
-		person, err := s.Verify("ada@acme.com")
+		err := s.Verify("ada@acme.com")
+		person, _, _ := s.Person("ada@acme.com", org.Slug)
 		if err != nil || person.Trial() {
 			t.Fatalf("%+v %v", person, err)
 		}
 		if quota, _ := s.Quota(org.Slug); quota != DefaultLimits().Verified {
 			t.Errorf("a verified organization has the larger quota: %+v", quota)
 		}
-		again, err := s.Verify("ada@acme.com")
+		err = s.Verify("ada@acme.com")
+		again, _, _ := s.Person("ada@acme.com", org.Slug)
 		if err != nil || !again.Verified.Equal(person.Verified) {
 			t.Errorf("verifying twice changes nothing: %+v %v", again, err)
 		}
-		if _, err := s.Verify("nobody@acme.com"); err == nil {
+		if err := s.Verify("nobody@acme.com"); err == nil {
 			t.Error("an address with no account cannot be verified")
 		}
 	})
@@ -273,7 +275,7 @@ func TestAFreeMailAddressHasNoCompanyToNameItAndClaimsNoDomain(t *testing.T) {
 		if err != nil || org.Domain != "" {
 			t.Fatalf("%+v %v", org, err)
 		}
-		if _, err := s.Verify("ada@gmail.com"); err != nil {
+		if err := s.Verify("ada@gmail.com"); err != nil {
 			t.Fatal(err)
 		}
 		// Nor is a second person at the same provider held off by the first.
@@ -363,7 +365,7 @@ func TestOnlyOrganizationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T
 		if _, _, err := s.SignUp(Signup{Email: "c@acme.com", OrgName: "Gamma"}); !errors.Is(err, ErrDomainFull) {
 			t.Fatalf("a third that nobody has confirmed: %v", err)
 		}
-		if _, err := s.Verify("a@acme.com"); err != nil {
+		if err := s.Verify("a@acme.com"); err != nil {
 			t.Fatal(err)
 		}
 		if _, _, err := s.SignUp(Signup{Email: "c@acme.com", OrgName: "Gamma"}); err != nil {

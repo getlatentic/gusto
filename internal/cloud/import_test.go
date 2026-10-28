@@ -18,7 +18,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 		before := digests(t, root)
 		s, record := importedAt(t, freshDatabase(t), root, fixtureNow.Add(10*time.Minute))
 
-		want := map[string]int{"organisations": 5, "people": 6, "invitations": 1, "leads": 4, "links": 3, "runtime": 1, "settings": 3}
+		want := map[string]int{"organisations": 5, "people": 6, "memberships": 6, "invitations": 1, "leads": 4, "links": 3, "runtime": 1, "settings": 3}
 		if !maps.Equal(record.Imported, want) {
 			t.Errorf("imported %v, want %v", record.Imported, want)
 		}
@@ -30,14 +30,14 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 			t.Error("the import changed, added or removed a file")
 		}
 
-		ada, found, _ := s.Person("ada@acme.com")
+		ada, found, _ := s.only("ada@acme.com")
 		if !found || ada.Role != Admin || ada.Verified.IsZero() || ada.LastSignIn.IsZero() || ada.Org != "acme-com" {
 			t.Errorf("%+v", ada)
 		}
-		if bob, _, _ := s.Person("bob@acme.com"); bob.Role != Runner || bob.By != "ada@acme.com" {
+		if bob, _, _ := s.only("bob@acme.com"); bob.Role != Runner || bob.By != "ada@acme.com" {
 			t.Errorf("%+v", bob)
 		}
-		if eve, _, _ := s.Person("eve@globex.com"); !eve.Trial() {
+		if eve, _, _ := s.only("eve@globex.com"); !eve.Trial() {
 			t.Errorf("an address not yet confirmed is still not: %+v", eve)
 		}
 		acme, _, _ := s.Org("acme-com")
@@ -179,10 +179,10 @@ func TestAHalfWrittenFileIsLeftOutAndTheRestAreLoaded(t *testing.T) {
 				t.Errorf("%q: %v", reason, record.Skipped)
 			}
 		}
-		if _, found, _ := s.Person("half@acme.com"); found {
+		if _, found, _ := s.only("half@acme.com"); found {
 			t.Error("half a record was loaded")
 		}
-		if _, found, _ := s.Person("lost@nowhere.com"); found {
+		if _, found, _ := s.only("lost@nowhere.com"); found {
 			t.Error("a person of no organization was loaded")
 		}
 	})

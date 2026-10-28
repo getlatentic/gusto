@@ -29,7 +29,7 @@ func TestTheStoreAtScale(t *testing.T) {
 		s := open(t, set)
 		seed(t, s)
 		measure(t, "sign-in lookup (Person by address)", 2000, func(i int) error {
-			_, found, err := s.Person(fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
+			_, found, err := s.only(fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
 			if err == nil && !found {
 				err = fmt.Errorf("not found")
 			}
@@ -65,9 +65,10 @@ func measureInvitations(t *testing.T, s *Store) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if admin, err = s.Verify(admin.Email); err != nil {
+		if err = s.Verify(admin.Email); err != nil {
 			t.Fatal(err)
 		}
+		admin, _, _ = s.Person(admin.Email, org.Slug)
 		if secrets[i], err = s.Invite(org.Slug, admin, fmt.Sprintf("guest%d@inv%d.com", i, i)); err != nil {
 			t.Fatal(err)
 		}
@@ -111,12 +112,16 @@ func seed(t *testing.T, s *Store) {
 		if _, err := insertRows(ctx, tx, insertOrg, orgs); err != nil {
 			return err
 		}
-		people := make([][]any, scalePeople)
+		people, memberships := make([][]any, scalePeople), make([][]any, scalePeople)
 		for i := range people {
 			org := i % scaleOrgs
-			people[i] = s.personArgs(Person{Email: fmt.Sprintf("u%d@c%d.com", i, org), Org: fmt.Sprintf("org-%d", org), Role: Runner, Created: now.Add(time.Duration(i) * time.Second), Verified: now})
+			person := Person{Email: fmt.Sprintf("u%d@c%d.com", i, org), Org: fmt.Sprintf("org-%d", org), Role: Runner, Created: now.Add(time.Duration(i) * time.Second), Verified: now}
+			people[i], memberships[i] = s.accountArgs(person), s.membershipArgs(person)
 		}
-		if _, err := insertRows(ctx, tx, insertPerson, people); err != nil {
+		if _, err := insertRows(ctx, tx, insertAccount, people); err != nil {
+			return err
+		}
+		if _, err := insertRows(ctx, tx, insertMembership, memberships); err != nil {
 			return err
 		}
 		leads := make([][]any, scaleLeads)

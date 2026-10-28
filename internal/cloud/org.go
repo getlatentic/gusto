@@ -3,34 +3,70 @@ package cloud
 import (
 	"log"
 	"net/http"
+	"slices"
 )
 
-// person is who a request is signed in as, if their account is still there.
-func (s *Server) person(r *http.Request) (Person, bool) {
+// memberships is the person a request is signed in as in each organization they are in, and false when nobody is
+// signed in or their account is gone.
+func (s *Server) memberships(r *http.Request) ([]Person, bool) {
 	email, ok := s.Sessions.Who(r)
+	if !ok {
+		return nil, false
+	}
+	all, err := s.Store.Memberships(email)
+	if err != nil || len(all) == 0 {
+		return nil, false
+	}
+	return all, true
+}
+
+// chosen is the membership a request is for: the organization its address names with ?org=, then the one the
+// person chose last, then their only one. A person in several who has chosen none has none.
+func (s *Server) chosen(r *http.Request, all []Person) (Person, bool) {
+	for _, want := range []string{r.URL.Query().Get("org"), s.Sessions.Chosen(r)} {
+		if at := slices.IndexFunc(all, func(p Person) bool { return p.Org == want }); want != "" && at >= 0 {
+			return all[at], true
+		}
+	}
+	if len(all) == 1 {
+		return all[0], true
+	}
+	return Person{}, false
+}
+
+// person is who a request is signed in as, in the organization it is for.
+func (s *Server) person(r *http.Request) (Person, bool) {
+	all, ok := s.memberships(r)
 	if !ok {
 		return Person{}, false
 	}
-	person, found, err := s.Store.Person(email)
-	if err != nil || !found {
-		return Person{}, false
-	}
-	return person, true
+	return s.chosen(r, all)
 }
 
+// guard lets a page through for a person signed in to one of their organizations. Somebody signed out goes to sign
+// in, and a person in several organizations who has not said which goes to choose one. An organization named with
+// ?org= is remembered, so a link to one organization's page switches to it.
 func (s *Server) guard(next func(http.ResponseWriter, *http.Request, Person)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		person, ok := s.person(r)
+		all, ok := s.memberships(r)
 		if !ok {
 			http.Redirect(w, r, "/signin", http.StatusSeeOther)
 			return
+		}
+		person, ok := s.chosen(r, all)
+		if !ok {
+			http.Redirect(w, r, "/orgs", http.StatusSeeOther)
+			return
+		}
+		if person.Org != s.Sessions.Chosen(r) {
+			s.Sessions.Choose(w, person.Org)
 		}
 		next(w, r, person)
 	}
 }
 
-// org is the organization a person belongs to, and only that one: the page
-// reads the person's own record to find it, and takes no name from the request.
+// org is the organization a person is in. It is one the store says they belong
+// to: a name the request gives only chooses among those.
 func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 	notice := ""
 	if r.URL.Query().Get("sent") != "" {
@@ -76,9 +112,10 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	}
 
 	invited, _ := s.Store.Invitations(org.Slug)
+	all, _ := s.Store.Memberships(person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
-		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice}
+		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1}
 	s.render(w, status, "org", v)
 }
 

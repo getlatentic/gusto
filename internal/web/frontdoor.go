@@ -3,6 +3,7 @@ package web
 import (
 	"html"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/entry"
@@ -36,13 +37,23 @@ func (s *Server) UseFrontDoor(f FrontDoor) {
 	s.keeper.life = sessionLife
 }
 
+// page is the address of a page of the front door, for this organization: a person who is in several
+// organizations comes back to the one they left.
+func (f *frontDoor) page(path string, query url.Values) string {
+	if query == nil {
+		query = url.Values{}
+	}
+	query.Set("org", f.Org)
+	return f.URL + path + "?" + query.Encode()
+}
+
 // toFrontDoor sends somebody to be signed in where people are.
 func (s *Server) toFrontDoor(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("desktop") {
 		s.render(w, "login.html", map[string]any{"Desktop": true, "Provider": true, "Refused": r.URL.Query().Get("refused")})
 		return
 	}
-	http.Redirect(w, r, s.front.URL+"/open", http.StatusSeeOther)
+	http.Redirect(w, r, s.front.page("/open", nil), http.StatusSeeOther)
 }
 
 // enter signs a person in with a token the front door made for them. A token that
@@ -57,7 +68,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>gusto</title><p>That sign-in link has expired or was used already. <a href="` +
-			html.EscapeString(s.front.URL) + `/org">Open your organization again.</a></p>`))
+			html.EscapeString(s.front.page("/org", nil)) + `">Open your organization again.</a></p>`))
 		return
 	}
 	role := Runner
@@ -76,5 +87,5 @@ func (s *Server) leaseExtend() string {
 	if s.front == nil {
 		return ""
 	}
-	return s.front.URL + "/lease"
+	return s.front.page("/lease", nil)
 }

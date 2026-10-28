@@ -14,7 +14,8 @@ import (
 	"time"
 )
 
-// Sessions are signed cookies that hold an address and a time, and nothing else.
+// Sessions are signed cookies that hold an address and a time, and nothing else, and beside them
+// the organization a person chose when they are in several.
 // What a person may do is read from the store on each request, so removing them
 // takes effect at once. The key is kept in the database, so a restart signs nobody out.
 type Sessions struct {
@@ -113,7 +114,42 @@ func (s *Sessions) Who(r *http.Request) (string, bool) {
 	return email, true
 }
 
-// Clear signs a person out.
+// Clear signs a person out, and forgets which of their organizations they were in.
 func (s *Sessions) Clear(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: s.name(), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+	for _, name := range []string{s.name(), s.orgName()} {
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+	}
+}
+
+// orgName is the cookie that names which of their organizations a person is in. It is not signed: it is
+// only a choice, and the store says on every request whether the person is in the organization it names.
+func (s *Sessions) orgName() string {
+	if s.secure {
+		return "__Host-gusto_org"
+	}
+	return "gusto_org"
+}
+
+// Choose remembers the organization a person is in, until they choose another.
+func (s *Sessions) Choose(w http.ResponseWriter, org string) {
+	http.SetCookie(w, &http.Cookie{Name: s.orgName(), Value: org, Path: "/",
+		Expires: s.now().Add(s.life), HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// Chosen is the organization a request says its person is in, which may be none.
+func (s *Sessions) Chosen(r *http.Request) string {
+	cookie, err := r.Cookie(s.orgName())
+	if err != nil {
+		return ""
+	}
+	return cookie.Value
+}
+
+// ownCookie says whether a cookie is the front door's, over https or not, which no organization's server is sent.
+func ownCookie(name string) bool {
+	switch name {
+	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org":
+		return true
+	}
+	return false
 }

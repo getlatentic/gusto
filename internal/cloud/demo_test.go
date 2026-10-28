@@ -175,7 +175,7 @@ func TestEndingADemoDeletesItsOrganizationAndPeopleKeepsTheLeadAndFreesTheAddres
 		if _, err := os.Stat(s.OrgDir(org.Slug)); err == nil {
 			t.Error("its directory is still there")
 		}
-		if _, found, _ := s.Person(person.Email); found {
+		if _, found, _ := s.only(person.Email); found {
 			t.Error("the person is still there")
 		}
 		lead, found := s.LeadOf(org.Slug)
@@ -198,7 +198,7 @@ func TestEndingAnOrganizationThatIsNotADemoIsRefusedAndDeletesNothing(t *testing
 		if _, found, _ := s.Org(org.Slug); !found {
 			t.Error("the organization was deleted")
 		}
-		if _, found, _ := s.Person(person.Email); !found {
+		if _, found, _ := s.only(person.Email); !found {
 			t.Error("the person was deleted")
 		}
 		if err := s.EndDemo("nobody", "x"); err == nil {

@@ -48,6 +48,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	s.mailVerification(person, org)
 	s.provision(org.Slug)
 	s.Sessions.Issue(w, person.Email)
+	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
@@ -120,7 +121,7 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if normal, err := NormalEmail(email); err == nil && s.mails.Allow(normal) {
-		if _, found, err := s.Store.Person(normal); err == nil && found {
+		if found, err := s.Store.HasAccount(normal); err == nil && found {
 			s.mailSignIn(normal)
 		}
 	}
@@ -158,7 +159,7 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 			return
 		}
 		if purpose == Verify {
-			if _, err := s.Store.Verify(email); err != nil {
+			if err := s.Store.Verify(email); err != nil {
 				log.Printf("cloud: an address was not verified: %v", err)
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return

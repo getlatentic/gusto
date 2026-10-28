@@ -368,7 +368,7 @@ func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *te
 	id := sharedApp(t, site, startedInstance(t, site))
 
 	stranger := site.appRequest(t, id, "GET", "/")
-	if stranger.Code != http.StatusSeeOther || stranger.Header().Get("Location") != "https://cloud.test/open?app="+id {
+	if stranger.Code != http.StatusSeeOther || stranger.Header().Get("Location") != "https://cloud.test/open?app="+id+"&org=acme-com" {
 		t.Errorf("a stranger is sent to be signed in where people are: %d %q", stranger.Code, stranger.Header().Get("Location"))
 	}
 	cookie := site.signedInTo(t, id)

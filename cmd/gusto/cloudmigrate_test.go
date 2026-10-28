@@ -36,7 +36,7 @@ func TestCloudMigrateReportsWithoutChangingAnythingAndImportsOnRequest(t *testin
 	}
 
 	out, _, code = clitest.Capture(t, func() int { return run([]string{"cloud", "migrate", "-import"}) })
-	if code != 0 || !strings.Contains(out, "imported into the database") || !strings.Contains(out, "people         6") || !strings.Contains(out, "schema version     1 (this release reads 1)") {
+	if code != 0 || !strings.Contains(out, "imported into the database") || !strings.Contains(out, "people         6") || !strings.Contains(out, "schema version     2 (this release reads 2)") {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
 	out, _, code = clitest.Capture(t, func() int { return run([]string{"cloud", "migrate", "-import"}) })
@@ -64,7 +64,7 @@ func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOl
 	if _, err := os.Stat(filepath.Join(root, "cloud.db")); err == nil {
 		t.Error("the default database was made as well")
 	}
-	if _, found, _ := front.Store.Person("ada@acme.com"); !found {
+	if found, _ := front.Store.HasAccount("ada@acme.com"); !found {
 		t.Error("the front door started on the old files without taking them in")
 	}
 }

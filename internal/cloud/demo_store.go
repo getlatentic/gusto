@@ -6,17 +6,30 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
-// endStatements take away what an ended demo had, the organization's record last.
+// endStatements take away what an ended demo had, the organization's record last, and each ? in them is the demo's
+// slug. A person in the demo who is in another organization too keeps their account; one who was only in the demo
+// goes with it.
 var endStatements = []string{
 	`DELETE FROM invitations WHERE org = ?`,
-	`DELETE FROM people WHERE org = ?`,
+	`DELETE FROM people WHERE email IN (SELECT m.email FROM memberships m WHERE m.org = ?
+		AND NOT EXISTS (SELECT 1 FROM memberships o WHERE o.email = m.email AND o.org <> ?))`,
+	`DELETE FROM memberships WHERE org = ?`,
 	`DELETE FROM runtime WHERE slug = ?`,
 	`DELETE FROM orgs WHERE slug = ?`,
+}
+
+func slugs(statement, slug string) []any {
+	args := make([]any, strings.Count(statement, "?"))
+	for i := range args {
+		args[i] = slug
+	}
+	return args
 }
 
 var errNoOrg = fmt.Errorf("there is no such organization: %w", fs.ErrNotExist)
@@ -158,7 +171,7 @@ func (s *Store) EndDemo(slug, reason string) error {
 			return err
 		}
 		for _, statement := range endStatements {
-			if _, err := tx.ExecContext(ctx, statement, slug); err != nil {
+			if _, err := tx.ExecContext(ctx, statement, slugs(statement, slug)...); err != nil {
 				return err
 			}
 		}

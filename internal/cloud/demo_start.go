@@ -56,7 +56,7 @@ func (s *Store) startDemoIn(ctx context.Context, tx dbkit.Tx, name, address, tit
 	if err := s.lock(ctx, tx, "demos"); err != nil {
 		return Person{}, Org{}, err
 	}
-	if _, found, err := fetchPerson(ctx, tx, address); err != nil || found {
+	if found, err := hasAccount(ctx, tx, address); err != nil || found {
 		if err == nil {
 			err = ErrEmailTaken
 		}

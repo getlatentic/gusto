@@ -22,7 +22,7 @@ type Report struct {
 
 // countedTables are the tables whose rows the report counts, under the words people read.
 var countedTables = []struct{ name, table string }{
-	{"organisations", "orgs"}, {"people", "people"}, {"invitations", "invitations"}, {"links", "links"},
+	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"invitations", "invitations"}, {"links", "links"},
 	{"leads", "leads"}, {"runtime", "runtime"},
 }
 
@@ -63,7 +63,7 @@ func fillReport(ctx context.Context, db *dbkit.DB, report *Report) error {
 
 func oldRecords(root string, now time.Time) map[string]int {
 	old := readLegacy(root, now)
-	return map[string]int{"organisations": len(old.orgs), "people": len(old.people), "invitations": len(old.invitations),
+	return map[string]int{"organisations": len(old.orgs), "people": len(old.people), "memberships": len(old.people), "invitations": len(old.invitations),
 		"links": len(old.links), "leads": len(old.leads), "runtime": len(old.runtimes)}
 }
 

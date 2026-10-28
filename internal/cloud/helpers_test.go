@@ -44,3 +44,12 @@ func open(t testing.TB, set Settings) *Store {
 	}
 	return s
 }
+
+// only is the membership of an address that is in one organization, which is what most tests make.
+func (s *Store) only(email string) (Person, bool, error) {
+	all, err := s.Memberships(email)
+	if err != nil || len(all) != 1 {
+		return Person{}, false, err
+	}
+	return all[0], true, nil
+}

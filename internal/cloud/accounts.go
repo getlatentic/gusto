@@ -41,7 +41,7 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 }
 
 func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, domain string) (Person, Org, error) {
-	if _, found, err := fetchPerson(ctx, tx, email); err != nil || found {
+	if found, err := hasAccount(ctx, tx, email); err != nil || found {
 		if err == nil {
 			err = ErrEmailTaken
 		}

@@ -19,9 +19,10 @@ func verifiedOrg(t *testing.T, s *Store, email, name string) (Person, Org) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if person, err = s.Verify(email); err != nil {
+	if err = s.Verify(email); err != nil {
 		t.Fatal(err)
 	}
+	person, _, _ = s.Person(email, org.Slug)
 	return person, org
 }
 
@@ -53,7 +54,7 @@ func TestOnlyAnAdminOfAnOrganizationMayChangeARoleInIt(t *testing.T) {
 		if was, err := s.SetRole(org.Slug, ada, "BOB@acme.com", Admin); err != nil || was != Runner {
 			t.Errorf("an admin can, at an address written in any case: %v %v", was, err)
 		}
-		if got, _, _ := s.Person("bob@acme.com"); got.Role != Admin {
+		if got, _, _ := s.only("bob@acme.com"); got.Role != Admin {
 			t.Errorf("%+v", got)
 		}
 	})
@@ -66,7 +67,8 @@ func TestOnlyAnAdminOfAnOrganizationWhoseAddressIsConfirmedMayInvite(t *testing.
 		if _, err := s.Invite(org.Slug, ada, "bob@acme.com"); !errors.Is(err, ErrNoInvites) {
 			t.Fatalf("an organization on the trial cannot invite: %v", err)
 		}
-		admin, _ := s.Verify("ada@acme.com")
+		s.Verify("ada@acme.com")
+		admin, _, _ := s.Person("ada@acme.com", org.Slug)
 		secret, err := s.Invite(org.Slug, admin, "Bob@Acme.com")
 		if err != nil || secret == "" {
 			t.Fatalf("%v", err)
@@ -125,22 +127,15 @@ func TestAnInvitedPersonJoinsAsAVerifiedRunnerAndTheirInvitationIsSpent(t *testi
 	})
 }
 
-func TestAnAddressThatHasAnAccountCannotBeInvitedAndTheAnswerIsTheSameWhoseItIs(t *testing.T) {
+func TestOnlyAnAddressAlreadyInTheOrganizationCannotBeInvited(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		admin, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
-		verifiedOrg(t, s, "eve@globex.com", "Globex")
-		s.SignUp(Signup{Email: "ned@initech.com", OrgName: "Initech"})
-		for _, taken := range []string{"eve@globex.com", "ned@initech.com", "ada@acme.com"} {
-			if _, err := s.Invite(org.Slug, admin, taken); !errors.Is(err, ErrCannotInvite) {
-				t.Errorf("%s: %v", taken, err)
+		bob := joined(t, s, org, admin, "bob@acme.com")
+		for _, in := range []string{admin.Email, bob.Email} {
+			if _, err := s.Invite(org.Slug, admin, in); !errors.Is(err, ErrCannotInvite) {
+				t.Errorf("%s: %v", in, err)
 			}
-		}
-		// Somebody who signed up between the invitation and its answer is refused at the answer.
-		secret, _ := s.Invite(org.Slug, admin, "late@acme.com")
-		s.SignUp(Signup{Email: "late@acme.com", OrgName: "Late Ltd", Slug: "late-ltd"})
-		if _, _, err := s.Accept(secret); !errors.Is(err, ErrEmailTaken) {
-			t.Errorf("%v", err)
 		}
 	})
 }
@@ -181,7 +176,7 @@ func TestAnInvitationIsRefusedWhenTheOrganizationHasFilledSinceItWasSent(t *test
 		if _, _, err := s.Accept(secret); !errors.Is(err, ErrFull) {
 			t.Errorf("%v", err)
 		}
-		if _, found, _ := s.Person("bob@acme.com"); found {
+		if _, found, _ := s.only("bob@acme.com"); found {
 			t.Error("a person was made of a refused invitation")
 		}
 	})
@@ -282,7 +277,7 @@ func TestAnAdminRemovesPeopleButNotThemselvesOrTheLastAdmin(t *testing.T) {
 		if err := s.Remove(org.Slug, admin, "Bob@Acme.com"); err != nil {
 			t.Fatal(err)
 		}
-		if _, found, _ := s.Person("bob@acme.com"); found {
+		if _, found, _ := s.only("bob@acme.com"); found {
 			t.Error("a removed person still has an account")
 		}
 		if members, _ := s.Members(org.Slug); len(members) != 1 {
@@ -291,7 +286,7 @@ func TestAnAdminRemovesPeopleButNotThemselvesOrTheLastAdmin(t *testing.T) {
 		// A second admin can be removed by the first, and cannot remove the first once they are alone.
 		secret, _ := s.Invite(org.Slug, admin, "cy@acme.com")
 		cy, _, _ := s.Accept(secret)
-		if _, err := s.db.ExecContext(context.Background(), `UPDATE people SET role = ? WHERE email = ?`, string(Admin), cy.Email); err != nil {
+		if _, err := s.db.ExecContext(context.Background(), `UPDATE memberships SET role = ? WHERE email = ? AND org = ?`, string(Admin), cy.Email, org.Slug); err != nil {
 			t.Fatal(err)
 		}
 		cy.Role = Admin
