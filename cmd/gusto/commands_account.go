@@ -194,6 +194,11 @@ func otherCommands() []*cmdline.Command {
 			Description: "Passes the agent's calls to the proxy with the run's token and a proof made for each. Gusto runs this itself.",
 			Run:         boxedForward,
 		},
+		{
+			Name: "boxed-sign", Hidden: true, Summary: "The signer the forwarder starts",
+			Description: "Holds the run's key, where no other process can read it, and makes the forwarder's proofs. Gusto runs this itself.",
+			Run:         boxedSign,
+		},
 	}
 }
 

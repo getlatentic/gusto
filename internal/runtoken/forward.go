@@ -1,8 +1,6 @@
 package runtoken
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,11 +13,12 @@ import (
 	"time"
 )
 
-// Forwarder is a run's end of the proxy, in its sandbox. It makes the run's key, trades the run's secret for a token bound to
-// it, and passes each call of the agent's on to the proxy with the token and a proof made for that call. The agent is given the
-// forwarder's address and nothing it could use anywhere else.
+// Forwarder is a run's end of the proxy, in its sandbox. It trades the run's secret for a token bound to the run's key, and
+// passes each call of the agent's on to the proxy with the token and a proof made for that call. The key is its prover's, so
+// the forwarder holds only the token, which is no use without a proof. The agent is given the forwarder's address and nothing
+// it could use anywhere else.
 type Forwarder struct {
-	key      ed25519.PrivateKey
+	prove    Prover
 	upstream *url.URL
 	client   *http.Client
 	now      func() time.Time
@@ -37,17 +36,13 @@ const Place = "http://gusto-run.local"
 // exchangeTimeout bounds one trade of a secret or a token, which is one small request to a proxy on the same network.
 const exchangeTimeout = 15 * time.Second
 
-// NewForwarder makes the run's key and trades secret for its first token at the proxy whose root is upstream.
-func NewForwarder(upstream, secret string) (*Forwarder, error) {
+// NewForwarder trades secret for the run's first token at the proxy whose root is upstream, with proofs from prove.
+func NewForwarder(upstream, secret string, prove Prover) (*Forwarder, error) {
 	root, err := url.Parse(strings.TrimRight(upstream, "/"))
 	if err != nil || root.Scheme != "http" || root.Host == "" {
 		return nil, fmt.Errorf("%q is not the proxy's address", upstream)
 	}
-	_, key, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-	f := &Forwarder{key: key, upstream: root, client: &http.Client{Timeout: exchangeTimeout}, now: time.Now}
+	f := &Forwarder{prove: prove, upstream: root, client: &http.Client{Timeout: exchangeTimeout}, now: time.Now}
 	f.proxy = &httputil.ReverseProxy{Rewrite: f.rewrite, FlushInterval: -1}
 	if err := f.exchange(secret); err != nil {
 		return nil, err
@@ -62,7 +57,7 @@ func (f *Forwarder) exchange(subject string) error {
 	if strings.Count(subject, ".") == 2 {
 		shown = subject
 	}
-	proof, err := Prove(f.key, http.MethodPost, target, shown, f.now())
+	proof, err := f.prove(http.MethodPost, target, shown, f.now())
 	if err != nil {
 		return err
 	}
@@ -145,7 +140,7 @@ func (f *Forwarder) rewrite(out *httputil.ProxyRequest) {
 	header.Del("x-api-key")
 	header.Del("Proxy-Authorization")
 	token := f.current()
-	proof, err := Prove(f.key, out.In.Method, f.upstream.Scheme+"://"+f.upstream.Host+out.In.URL.Path, token, f.now())
+	proof, err := f.prove(out.In.Method, f.upstream.Scheme+"://"+f.upstream.Host+out.In.URL.Path, token, f.now())
 	if err != nil {
 		return
 	}

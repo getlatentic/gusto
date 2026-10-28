@@ -22,6 +22,9 @@ type Settings struct {
 	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
 	DefaultHarness string `json:"defaultHarness,omitempty"`
 	DefaultModel   string `json:"defaultModel,omitempty"`
+	// PlainRunTokens gives an agent in a sandbox a token for its run in place of one bound to a key only its sandbox holds.
+	// Unset is bound.
+	PlainRunTokens bool `json:"plainRunTokens,omitempty"`
 }
 
 // File is the organization's settings kept in a file.

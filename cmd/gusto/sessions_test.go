@@ -253,11 +253,11 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	}
 }
 
-// Without GUSTO_RUN_TOKENS=bound, an agent in a person's computer reaches the proxy itself with a plain token for its run, as it
-// did before runs were bound, and starts without a forwarder.
-func TestRunsInAComputerAreNotBoundUnlessTheServerSaysSo(t *testing.T) {
-	t.Setenv("GUSTO_RUN_TOKENS", "off")
-	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+// When the organization's admins chose plain tokens, an agent in a person's computer reaches the proxy itself with a plain token
+// for its run, and starts without a forwarder.
+func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
+	plain := func(way *WayOut) { way.UseRunTokens(func() bool { return true }) }
+	work, index, _, _, _, instances := organizationWithWayOut(t, quota.Quota{Computers: 4, Jobs: 100}, plain)
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
 	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; echo done"],

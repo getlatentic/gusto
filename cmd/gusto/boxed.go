@@ -21,7 +21,8 @@ import (
 // An agent in a sandbox reaches its model through a forwarder of the run's own, and is held to a Landlock policy when its task
 // says so. gusto boxed is what the sandbox runs in place of the agent: it starts the forwarder, which makes the run's key and
 // trades the run's secret for a token bound to it, points the agent at the forwarder, holds itself to the policy, and becomes
-// the agent. The forwarder is a process of its own, so the key is never in the agent's memory, and it ends with the agent.
+// the agent. The key is in a signer process of its own, whose memory no other process of the user can read; the forwarder,
+// whose connections the sandbox decides by reading its memory, holds only the token. Both end with the agent.
 
 // forwarderStart bounds starting the forwarder, which is one exchange with a proxy on the same network.
 const forwarderStart = 30 * time.Second
@@ -149,9 +150,9 @@ func firstLine(from io.Reader, within time.Duration) (string, error) {
 	}
 }
 
-// boxedForward is the forwarder: the socket is file 3 and the pipe it lives by is file 4.
+// boxedForward is the forwarder: the socket is file 3 and the pipe it lives by is file 4. Its calls are its own, where the
+// sandbox can see them; the key is its signer's.
 func boxedForward(args []string) int {
-	hideMemory()
 	if len(args) != 1 {
 		return usageError("boxed-forward", "needs the proxy's address")
 	}
@@ -160,7 +161,13 @@ func boxedForward(args []string) int {
 		fmt.Println("no secret")
 		return 1
 	}
-	forwarder, err := runtoken.NewForwarder(args[0], strings.TrimSpace(secret))
+	runtime.LockOSThread()
+	prove, err := startSigner()
+	if err != nil {
+		fmt.Println(err.Error())
+		return 1
+	}
+	forwarder, err := runtoken.NewForwarder(args[0], strings.TrimSpace(secret), prove)
 	if err != nil {
 		fmt.Println(err.Error())
 		return 1
@@ -177,4 +184,37 @@ func boxedForward(args []string) int {
 	fmt.Println("ok")
 	server := &http.Server{Handler: forwarder, ReadHeaderTimeout: 30 * time.Second}
 	return fail(server.Serve(listener))
+}
+
+// startSigner starts the process that holds the run's key. It ends when the forwarder does, which closes its input.
+func startSigner() (runtoken.Prover, error) {
+	self, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	signer := exec.Command(self, "boxed-sign")
+	signer.Env = []string{}
+	signer.SysProcAttr = endsWithParent()
+	asks, err := signer.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	answers, err := signer.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := signer.Start(); err != nil {
+		return nil, err
+	}
+	return runtoken.SignerProver(asks, answers), nil
+}
+
+// boxedSign holds the run's key and answers the forwarder's requests for proofs. It hides its memory from every other process
+// of the user, the agent's among them. It makes no network calls, so the sandbox never needs to read that memory.
+func boxedSign(args []string) int {
+	if len(args) != 0 {
+		return usageError("boxed-sign", "takes nothing")
+	}
+	hideMemory()
+	return fail(runtoken.ServeSigner(os.Stdin, os.Stdout))
 }

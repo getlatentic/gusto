@@ -455,3 +455,37 @@ func TestThereIsNoBudgetWhereTheServerKeepsNoSettings(t *testing.T) {
 		t.Errorf("setting a budget where none is kept: %d", got.StatusCode)
 	}
 }
+
+func setRunTokens(t *testing.T, here *site, bound string) *http.Response {
+	t.Helper()
+	return here.ask(t, "POST", "/admin/run-tokens", url.Values{"bound": {bound}}).Result()
+}
+
+func TestRunsAreBoundUntilAnAdminChoosesPlainTokensAndEachChangeIsRecorded(t *testing.T) {
+	here, log, _ := budgeted(t)
+	page := overview(t, here)
+	if !strings.Contains(page, "bound to its sandbox") || !strings.Contains(page, "Use plain tokens") {
+		t.Fatal("an organization's runs are not shown bound before anyone chose")
+	}
+	if got := setRunTokens(t, here, "no"); got.StatusCode != http.StatusSeeOther {
+		t.Fatalf("choosing plain tokens gave %d", got.StatusCode)
+	}
+	if kept, err := here.server.orgSettings.Read(); err != nil || !kept.PlainRunTokens {
+		t.Fatalf("plain tokens were not kept: %+v %v", kept, err)
+	}
+	if page := overview(t, here); !strings.Contains(page, "Bind to the sandbox") {
+		t.Error("the overview does not offer to bind runs again")
+	}
+	setRunTokens(t, here, "no")
+	setRunTokens(t, here, "yes")
+	if got := setRunTokens(t, here, "maybe"); got.Header.Get("Location") == "/admin" {
+		t.Error("a choice that is neither yes nor no was taken")
+	}
+	var said []string
+	for _, event := range ofKind(written(t, log), changelog.RunTokensSet) {
+		said = append(said, event.What["was"]+">"+event.What["now"])
+	}
+	if strings.Join(said, " ") != "bound>plain plain>bound" {
+		t.Errorf("the activity says %v", said)
+	}
+}

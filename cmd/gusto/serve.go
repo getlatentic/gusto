@@ -28,6 +28,7 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/retention"
@@ -206,6 +207,12 @@ func serve(args []string) int {
 	}
 	if path := os.Getenv("GUSTO_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)
+		settings := orgsettings.Open(path)
+		// Settings that cannot be read leave runs bound, the safer way.
+		way.UseRunTokens(func() bool {
+			chosen, err := settings.Read()
+			return err == nil && chosen.PlainRunTokens
+		})
 	}
 	if harness, model, found := strings.Cut(os.Getenv("GUSTO_CHAT_DEFAULT"), "="); found {
 		pages.UseChatDefault(strings.TrimSpace(harness), strings.TrimSpace(model))

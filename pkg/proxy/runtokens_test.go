@@ -55,12 +55,27 @@ func post(t *testing.T, url string, header map[string]string) int {
 	return answer.StatusCode
 }
 
+// aSigner is a signer the forwarder reaches over pipes, as it reaches the signer process in a sandbox.
+func aSigner(t *testing.T) runtoken.Prover {
+	asks, asked := io.Pipe()
+	answered, answers := io.Pipe()
+	served := make(chan error, 1)
+	go func() { served <- runtoken.ServeSigner(asks, answers) }()
+	t.Cleanup(func() {
+		asked.Close()
+		if err := <-served; err != nil {
+			t.Errorf("the signer ended with %v", err)
+		}
+	})
+	return runtoken.SignerProver(asked, answered)
+}
+
 func TestAnAgentReachesItsModelThroughItsForwarderAndNothingItHoldsWorksElsewhere(t *testing.T) {
 	proxy, tokens, secret, seen := aBoundRun(t)
 	if code := post(t, proxy.URL+"/model/v1/chat/completions", map[string]string{"Authorization": "Bearer " + secret}); code != http.StatusForbidden {
 		t.Fatalf("the secret worked as a token: %d", code)
 	}
-	forwarder, err := runtoken.NewForwarder(proxy.URL, secret)
+	forwarder, err := runtoken.NewForwarder(proxy.URL, secret, aSigner(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +87,7 @@ func TestAnAgentReachesItsModelThroughItsForwarderAndNothingItHoldsWorksElsewher
 	if *seen != "Bearer the-real-key" {
 		t.Errorf("the model was sent %q", *seen)
 	}
-	if _, err := runtoken.NewForwarder(proxy.URL, secret); err == nil {
+	if _, err := runtoken.NewForwarder(proxy.URL, secret, aSigner(t)); err == nil {
 		t.Error("the secret was traded a second time")
 	}
 	tokens.Drop("a-job")
@@ -91,7 +106,7 @@ func TestACallCopiedFromTheWireIsRefusedTheSecondTime(t *testing.T) {
 		relay.ServeHTTP(w, r)
 	}))
 	defer tap.Close()
-	forwarder, err := runtoken.NewForwarder(tap.URL, secret)
+	forwarder, err := runtoken.NewForwarder(tap.URL, secret, aSigner(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +127,7 @@ func TestACallCopiedFromTheWireIsRefusedTheSecondTime(t *testing.T) {
 	if answer.StatusCode != http.StatusForbidden {
 		t.Errorf("the same call sent again gave %d", answer.StatusCode)
 	}
-	if _, err := runtoken.NewForwarder(proxy.URL, "never-given"); err == nil {
+	if _, err := runtoken.NewForwarder(proxy.URL, "never-given", aSigner(t)); err == nil {
 		t.Error("a secret nobody gave was traded")
 	}
 }
