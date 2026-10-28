@@ -30,7 +30,15 @@ type Run struct {
 	Sandbox string `json:"sandbox,omitempty"`
 	// AllowanceUSD is what the agent may spend in the room in a month, when its owner set it.
 	AllowanceUSD *float64 `json:"allowanceUsd,omitempty"`
+	// ModelToken is how the run was given its token for the model: TokenBound or TokenPlain.
+	ModelToken string `json:"modelToken,omitempty"`
 }
+
+// A bound token works only with proofs from a key held in the run's sandbox; a plain token works for whoever holds it.
+const (
+	TokenBound = "bound"
+	TokenPlain = "plain"
+)
 
 // Decision is what was done with what a room's turn changed, once it finished.
 type Decision struct {

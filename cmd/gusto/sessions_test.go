@@ -238,7 +238,7 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	readJSON(t, dir.OutFile(evidence.RunFile), &run)
 	readJSON(t, dir.OutFile(evidence.DecisionFile), &decision)
 	if run.Asked != "bob@acme.com" || run.PaidBy != "ada@acme.com" || run.Agent != "a1" || run.AgentName != "Scout" ||
-		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" {
+		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" || run.ModelToken != evidence.TokenBound {
 		t.Errorf("the record says the run was %+v", run)
 	}
 	if !decision.Kept || decision.Refused != "" {
@@ -264,12 +264,17 @@ func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
 	  "needs":"nothing","stream":"plain"}`), 0o644)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
 	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
-	turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "say what you were given")
+	dir := turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "say what you were given")
 
 	given, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "given.txt"))
 	parts := strings.Fields(string(given))
 	if len(parts) != 2 || !strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] == "dpop" || parts[1] == "" {
 		t.Fatalf("the agent was given %q", given)
+	}
+	var run evidence.Run
+	readJSON(t, dir.OutFile(evidence.RunFile), &run)
+	if run.ModelToken != evidence.TokenPlain {
+		t.Errorf("the record says the run's token was %q", run.ModelToken)
 	}
 }
 
