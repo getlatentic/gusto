@@ -212,8 +212,10 @@ ansible-playbook -c local -i 'spike,' \
   "${playbooks[@]}"
 if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
-  # cold start. It is asked here, as the cell asks it, and the disk is kept in the image.
-  systemd-run --wait --collect --unit=gusto-bake-survey -p User=ubuntu -p SupplementaryGroups=kvm -p WorkingDirectory=/var/lib/gusto \
+  # cold start. It is asked here, as the cell asks it, and the disk is kept in the image. Containers need Docker's group instead.
+  group=kvm
+  grep -qx SANDBOX=container /etc/gusto/demo.conf && group=docker
+  systemd-run --wait --collect --unit=gusto-bake-survey -p User=ubuntu -p SupplementaryGroups=$group -p WorkingDirectory=/var/lib/gusto \
     -p EnvironmentFile=/etc/gusto/org.env -p EnvironmentFile=/etc/gusto/cell.env -p EnvironmentFile=/run/gusto/cell.env /usr/local/bin/gusto scan
   touch "${GUSTO_BAKE_DONE:-/etc/gusto/bake-done}"
 fi

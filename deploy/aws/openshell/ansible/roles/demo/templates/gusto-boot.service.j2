@@ -1,6 +1,6 @@
 [Unit]
 Description=Certificate, image, credentials and DNS for a gusto demo host
-After=network-online.target{{ ' openshell-gateway.service' if demo_role != 'orchestrator' else '' }}
+After=network-online.target{{ (' docker.service' if demo_sandbox == 'container' else ' openshell-gateway.service') if demo_role != 'orchestrator' else '' }}
 Wants=network-online.target
 Before=nginx.service gusto-cloud.service gusto-cell.service
 

@@ -1,12 +1,12 @@
 [Unit]
 Description=gusto public cloud: gusto cloud and each organization's server
-After=gusto-boot.service{{ ' openshell-gateway.service' if demo_role != 'orchestrator' else '' }}
+After=gusto-boot.service{{ (' docker.service' if demo_sandbox == 'container' else ' openshell-gateway.service') if demo_role != 'orchestrator' else '' }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}
 
 [Service]
 User={{ demo_user }}
-SupplementaryGroups=kvm
+SupplementaryGroups={{ 'docker' if demo_sandbox == 'container' else 'kvm' }}
 WorkingDirectory={{ demo_state }}
 # The AWS command is a snap, which the default path does not have.
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin

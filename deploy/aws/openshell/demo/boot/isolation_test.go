@@ -30,11 +30,33 @@ exec)
 esac
 `
 
+// fakeDocker answers what the check asks of a container: the running one, its network (NETWORK) and mounts (MOUNTS), and the same
+// probes as fakeOpenshell. A made-up name has no answer unless ANSWER gives one.
+const fakeDocker = `#!/bin/bash
+case "$1" in
+ps) [ -n "${NO_CONTAINER:-}" ] || echo gusto-20261028-0101-abcd;;
+inspect) case "$3" in *NetworkMode*) echo "${NETWORK:-none}";; *) printf '%s\n' /var/lib/gusto-cloud/job ${MOUNTS:-};; esac;;
+exec)
+  shift 2
+  case "$1" in
+  getent) [ -z "${ANSWER:-}" ] || echo "$ANSWER $3";;
+  bash) shift 3; for t in "$@"; do case " $OPEN " in *" $t "*) echo "OPEN $t";; *) echo "closed $t";; esac; done;;
+  esac;;
+esac
+`
+
 func runCheck(t *testing.T, env ...string) (string, error) {
 	t.Helper()
+	return runCheckWith(t, map[string]string{"openshell": fakeOpenshell, "docker": fakeDocker}, env...)
+}
+
+func runCheckWith(t *testing.T, fakes map[string]string, env ...string) (string, error) {
+	t.Helper()
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "openshell"), []byte(fakeOpenshell), 0o755); err != nil {
-		t.Fatal(err)
+	for name, text := range fakes {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
 	command := exec.Command("bash", "../../e2e/isolation-on-host.sh")
 	command.Env = append(os.Environ(), "PATH="+dir+string(os.PathListSeparator)+os.Getenv("PATH"),
@@ -90,8 +112,39 @@ func TestTheIsolationCheckFailsWhenThePolicyAllowsMoreThanTheModelProxyOrNamesLe
 }
 
 func TestTheIsolationCheckSaysSoWhenNoSandboxIsRunning(t *testing.T) {
-	out, err := runCheck(t, "NO_SANDBOX=1")
+	out, err := runCheck(t, "NO_SANDBOX=1", "NO_CONTAINER=1")
 	if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 2 || !strings.Contains(out, "no sandbox is running") {
 		t.Errorf("%v\n%s", err, out)
+	}
+}
+
+func runContainerCheck(t *testing.T, env ...string) (string, error) {
+	t.Helper()
+	return runCheckWith(t, map[string]string{"docker": fakeDocker, "openshell": "#!/bin/bash\necho NAME CREATED PHASE\n"}, env...)
+}
+
+func TestTheIsolationCheckPassesForAContainerWhoseOnlyWayOutIsTheRelayToTheProxy(t *testing.T) {
+	out, err := runContainerCheck(t, "OPEN=127.0.0.1:8041")
+	if err != nil || !strings.Contains(out, "PASS: from inside a container only the model proxy (127.0.0.1:8041) is open") {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	for _, tried := range []string{"169.254.169.254:80", "10.0.0.5:8060", "10.0.0.9:2049", "10.0.0.2:53", "10.0.0.7:8050", "1.1.1.1:443"} {
+		if !strings.Contains(out, "closed "+tried) {
+			t.Errorf("%s was not tried:\n%s", tried, out)
+		}
+	}
+}
+
+func TestTheIsolationCheckFailsAContainerWithANetworkDockersSocketOrALookup(t *testing.T) {
+	open := "OPEN=127.0.0.1:8041"
+	for name, env := range map[string][]string{
+		"a network":         {open, "NETWORK=bridge"},
+		"Docker's socket":   {open, "MOUNTS=/var/run/docker.sock"},
+		"a lookup":          {open, "ANSWER=93.184.216.34"},
+		"the metadata host": {"OPEN=127.0.0.1:8041 169.254.169.254:80"},
+	} {
+		if out, err := runContainerCheck(t, env...); err == nil || !strings.Contains(out, "FAIL") {
+			t.Errorf("%s was not refused: %v\n%s", name, err, out)
+		}
 	}
 }

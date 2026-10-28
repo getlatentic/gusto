@@ -14,6 +14,9 @@ demo_image_key: ""
 # deepseek credential's Anthropic address.
 demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash
 demo_chat_default: claude=gemma/google.gemma-4-26b-a4b
+# What an organization's agents run in: container, a Docker container on the cell's kernel, or openshell, a microVM of its own. A
+# visitor's demo runs in containers; an organization that pays is given microVMs.
+demo_sandbox: container
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
 demo_dns_token_parameter: /gusto/poc/cloudflare-dns-token

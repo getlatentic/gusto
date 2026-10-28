@@ -40,6 +40,18 @@ mkdir -p "$GUSTO_LE/live/$name"; echo "VALID issued" > "$GUSTO_LE/live/$name/ful
 echo "gusto-dns $*" >> "$FAKE_LOG"`,
 	"curl": `#!/bin/bash
 case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *local-ipv4*) echo 10.0.7.21;; *instance-id*) echo i-0abc123def4567890;; *) exit 22;; esac`,
+	// Docker's images are files named by tag in a directory beside the store.
+	"docker": `#!/bin/bash
+echo "docker $*" >> "$FAKE_LOG"
+tags=$FAKE_STORE/../docker; mkdir -p "$tags"
+case "$1" in
+image) [ -e "$tags/${3#gusto-runner:}" ];;
+load) [ -f "$4" ] && touch "$tags/latest";;
+tag) touch "$tags/${3#gusto-runner:}";;
+images) ls "$tags";;
+rmi) rm "$tags/${2#gusto-runner:}";;
+*) echo "unexpected: $*" >&2; exit 2;;
+esac`,
 	"credentials.sh": `#!/bin/bash
 echo "credentials $BEDROCK_PARAMETER $DEEPSEEK_PARAMETER $READ_PARAMETER $1" >> "$FAKE_LOG"
 mkdir -p "$1"; echo '{}' > "$1/platform.json"`,

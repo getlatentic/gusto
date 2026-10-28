@@ -72,6 +72,37 @@ func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 	}
 }
 
+func TestACellWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOX=container\n"), 0o644)
+	os.MkdirAll(filepath.Join(h.dir, "docker"), 0o755)
+	os.WriteFile(filepath.Join(h.dir, "docker", "key0"), nil, 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || h.has("docker/key0") || h.has("docker/latest") {
+		t.Errorf("the image is loaded once, tagged with its key, and an older one removed: %v", done)
+	}
+	if h.has("lib/runner-all-rootfs.tar.gz") || h.has("lib/runner.docker.tar.gz.part") {
+		t.Errorf("no root file system, and no archive left on the disk: %v", done)
+	}
+	if again, err := h.boot(); err != nil || count(again, "aws ") != 0 || count(again, "docker load ") != 0 {
+		t.Errorf("a restart loads nothing it has: %v %v", again, err)
+	}
+}
+
+func TestAHostOfAnotherSandboxIsRefused(t *testing.T) {
+	h := newHost(t)
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOX=chroot\n"), 0o644)
+	if _, err := h.boot(); err == nil {
+		t.Fatal("a sandbox the boot does not know must stop it")
+	}
+}
+
 func TestACellWithNoSecretDoesNotStart(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")

@@ -53,7 +53,8 @@ jobs:
           BUCKET: ${{ vars.GUSTO_BUCKET }}
         run: |
           key="$(deploy/aws/openshell/image-key.sh)"
-          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1; then
+          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1 \
+            && aws s3api head-object --bucket "$BUCKET" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then
             echo "the image $key is in the bucket"
             exit 0
           fi
@@ -65,6 +66,8 @@ jobs:
           container="$(docker create gusto-runner true)"
           docker export "$container" | gzip -1 > image.tar.gz
           aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
+          docker save gusto-runner | gzip -1 > image.docker.tar.gz
+          aws s3 cp image.docker.tar.gz "s3://$BUCKET/image/$key.docker.tar.gz" --only-show-errors
           echo "made the image $key: $(du -h image.tar.gz | cut -f1)"
       - name: The bundle
         env:

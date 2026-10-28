@@ -1,12 +1,12 @@
 [Unit]
 Description=gusto host: starts and stops organizations' servers for gusto cloud
-After=gusto-boot.service openshell-gateway.service
+After=gusto-boot.service {{ 'docker.service' if demo_sandbox == 'container' else 'openshell-gateway.service' }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}
 
 [Service]
 User={{ demo_user }}
-SupplementaryGroups=kvm
+SupplementaryGroups={{ 'docker' if demo_sandbox == 'container' else 'kvm' }}
 WorkingDirectory={{ demo_lib }}
 EnvironmentFile=/etc/gusto/org.env
 EnvironmentFile=/etc/gusto/cell.env
