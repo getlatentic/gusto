@@ -31,9 +31,9 @@ func (h host) jobsAskedBy(slug, email string) []jobOf {
 	return found
 }
 
-// host is the machine everything runs on: where the front door keeps what it keeps, and
-// the programs that say what the gateway holds.
-type host struct{ root, gusto, gateway string }
+// host is the machine everything runs on: where the front door keeps what it keeps, the programs that say what the gateway
+// holds, what the agents run in, and the isolation check for a container.
+type host struct{ root, gusto, gateway, sandbox, probe string }
 
 func (h host) data(slug string) string { return filepath.Join(h.root, "orgs", slug, "data") }
 

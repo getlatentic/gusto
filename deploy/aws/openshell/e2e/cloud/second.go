@@ -33,6 +33,12 @@ var computerName = regexp.MustCompile(`c-[0-9a-f]{8}-[0-9a-f]{8}`)
 // observe checks what the host holds against who asked: one computer for each person, all
 // of them the organization's, and nothing else left in the gateway.
 func (r run) observe(slug string, threads []*thread) {
+	if r.host.sandbox == "container" {
+		left, err := r.host.containers()
+		must(err, "Docker's containers")
+		check(len(left) == 0, "every turn's container is gone once it is over: %v", left)
+		return
+	}
 	listed, err := r.host.computers()
 	must(err, "gusto cloud workspaces")
 	fmt.Println(listed)
@@ -76,6 +82,9 @@ func (r run) isolation(slug string, threads []*thread) {
 	to, err := bob.person.where(r.orgAt(second) + "/")
 	must(err, "another organization")
 	check(strings.Contains(to, "/login"), "%s is not signed in to %s: sent to %s", bob.person.email, second, to)
+	if r.host.sandbox == "container" {
+		return
+	}
 
 	listed, err := r.host.computers()
 	must(err, "gusto cloud workspaces")

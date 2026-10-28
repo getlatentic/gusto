@@ -1,4 +1,17 @@
 ---
+- name: Docker, which an organization's agents run in when they run in containers
+  ansible.builtin.apt:
+    name: docker.io
+    state: present
+  when: demo_sandbox == 'container' and demo_root == ''
+
+- name: Docker is running and starts with the host
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+  when: demo_sandbox == 'container' and demo_root == ''
+
 - name: The script that builds the model credentials from Parameter Store
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../e2e/credentials.sh"

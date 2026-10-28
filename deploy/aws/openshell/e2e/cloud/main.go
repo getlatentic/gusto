@@ -1,7 +1,8 @@
 // Drives the public cloud as people would, on the machine that runs it: an admin signs up
 // and confirms their address, invites three people, each opens the organization and asks
 // an agent for something, and what the host holds afterwards is checked against what was
-// asked. A second organization is made to see that the first cannot be reached from it.
+// asked. A second organization is made to see that the first cannot be reached from it. With -sandbox container the agents
+// run in Docker containers, and the network is probed from inside one while it works.
 package main
 
 import (
@@ -51,6 +52,8 @@ func main() {
 	flag.StringVar(&r.host.root, "root", "cloud", "the front door's GUSTO_CLOUD_ROOT")
 	flag.StringVar(&r.host.gusto, "gusto", "gusto", "the gusto program")
 	flag.StringVar(&r.host.gateway, "gateway", "spike", "the OpenShell gateway")
+	flag.StringVar(&r.host.sandbox, "sandbox", "openshell", "what the agents run in: openshell or container")
+	flag.StringVar(&r.host.probe, "probe", "", "with -sandbox container, the isolation check run inside the first agent's container")
 	flag.StringVar(&r.door, "door", "127.0.0.1:8050", "where the front door listens")
 	flag.StringVar(&r.domain, "domain", "gusto.test", "GUSTO_CLOUD_DOMAIN")
 	flag.StringVar(&r.model, "model", "", "the model the agents are given")
@@ -63,7 +66,13 @@ func main() {
 	admin, invited := emails[0], emails[1:]
 	slug := r.signUp(admin, "Acme Research")
 	people := r.onboard(slug, admin, invited)
+	probed := r.host.probeFirstContainer(r.within)
 	threads := r.firstTurns(slug, people)
+	if probed != nil {
+		result := <-probed
+		fmt.Println(result.output)
+		check(result.err == nil, "from inside a working agent's container only the model proxy is reachable: %v", result.err)
+	}
 	r.secondTurns(slug, threads)
 	r.observe(slug, threads)
 	r.isolation(slug, threads)

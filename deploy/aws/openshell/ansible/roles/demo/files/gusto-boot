@@ -101,6 +101,29 @@ runner_image() {
   fi
 }
 
+# A host whose organizations run their agents in containers has the runner image in Docker, tagged with its key, and no other runner
+# image: a kept host would otherwise keep every image it was ever given.
+container_image() {
+  local archive=$lib/runner.docker.tar.gz stale
+  if ! docker image inspect "gusto-runner:$IMAGE_KEY" >/dev/null 2>&1; then
+    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
+    docker load -q -i "$archive.part" >/dev/null
+    rm -f "$archive.part"
+    docker tag gusto-runner:latest "gusto-runner:$IMAGE_KEY"
+  fi
+  stale=$(docker images gusto-runner --format '{{.Tag}}' | grep -vx "$IMAGE_KEY" || true)
+  for tag in $stale; do docker rmi "gusto-runner:$tag" >/dev/null; done
+}
+
+# The image an organization's agents run in: a container's, or the root file system an OpenShell sandbox is made from.
+image() {
+  case "${SANDBOX:-openshell}" in
+  container) container_image ;;
+  openshell) runner_image ;;
+  *) echo "gusto-boot: SANDBOX is container or openshell, not $SANDBOX" >&2; exit 2 ;;
+  esac
+}
+
 credentials() {
   rm -rf "$run/creds"
   READ_PARAMETER="gusto param" BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
@@ -146,11 +169,11 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; certificate; runner_image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; certificate; image; credentials; lease; point_the_name_here ;;
 orchestrator)
   tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
-  cell_secret; runner_image; credentials; cell_identity
+  cell_secret; image; credentials; cell_identity
   echo "gusto-boot: this host is a host of gusto cloud" ;;
 *)
   echo "gusto-boot: ROLE is all, orchestrator or cell, not $role" >&2; exit 2 ;;
