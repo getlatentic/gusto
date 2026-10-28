@@ -5,7 +5,10 @@
 set -euo pipefail
 [ -e /etc/cloud/cloud-init.disabled ] || exit 0
 imds=http://169.254.169.254/latest
-token=$(curl -fsS -m 5 --retry 5 -X PUT "$imds/api/token" -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
+# A host that has just started can be past network-online and still not reach the metadata service, and curl's --retry alone
+# does not try again after a refused or failed connection: one start gave up at once that way. Every error is tried again.
+retry=(--retry 30 --retry-all-errors --retry-delay 1)
+token=$(curl -fsS -m 5 "${retry[@]}" -X PUT "$imds/api/token" -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
 script=$(mktemp /run/gusto-launch.XXXXXX)
-curl -fsS -m 10 --retry 5 -H "X-aws-ec2-metadata-token: $token" "$imds/user-data" -o "$script"
+curl -fsS -m 10 "${retry[@]}" -H "X-aws-ec2-metadata-token: $token" "$imds/user-data" -o "$script"
 exec bash "$script"
