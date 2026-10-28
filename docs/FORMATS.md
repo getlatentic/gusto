@@ -55,6 +55,7 @@ Two files in `out/` name a run's parties and decisions. The manifest hashes them
 | `room` | The room it worked in |
 | `sandbox` | The sandbox it ran in, as the gateway names it |
 | `allowanceUsd` | What the agent may spend in the room in a month, when its owner set it |
+| `modelToken` | How the run was given its token for the model: `bound` to a key in the sandbox, or `plain`, as the organization's admins chose (see [OPENSHELL.md](OPENSHELL.md#a-runs-credential)) |
 
 `out/decision.json` is written once a room's turn is finished:
 

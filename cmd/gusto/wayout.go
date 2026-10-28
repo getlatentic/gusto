@@ -62,13 +62,16 @@ func (w *WayOut) UseRunRecords(describe func(job.Dir, job.Spec) evidence.Run) {
 	w.describe.Store(&describe)
 }
 
-// recordRun keeps, in the run's record, who and what it is for and the sandbox it runs in.
-func (w *WayOut) recordRun(dir job.Dir, spec job.Spec, sandbox string) error {
+// recordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it was given its model token.
+func (w *WayOut) recordRun(dir job.Dir, spec job.Spec, sandbox string, bound bool) error {
 	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
 	if describe := w.describe.Load(); describe != nil {
 		run = (*describe)(dir, spec)
 	}
-	run.Sandbox = sandbox
+	run.Sandbox, run.ModelToken = sandbox, evidence.TokenPlain
+	if bound {
+		run.ModelToken = evidence.TokenBound
+	}
 	return evidence.WriteRun(dir, run)
 }
 
@@ -353,7 +356,7 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	if bound {
 		box.Bind()
 	}
-	if err := w.recordRun(dir, spec, openshell.Name(filepath.Base(dir.Path()))); err != nil {
+	if err := w.recordRun(dir, spec, openshell.Name(filepath.Base(dir.Path())), bound); err != nil {
 		return 0, err
 	}
 	return runner.OutsideContext(ctx, dir, box)
