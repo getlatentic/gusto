@@ -76,6 +76,7 @@ After a hard kill the file still says `running`. The next start decides from the
 | The agent, at the time budget | `harnessExit` -1, `stoppedAtBudget` true | The check decides |
 | The agent, because a person stopped the task | `harnessExit` -1, `stoppedBy` the person (`a signal` when nobody is named) | `interrupted`, whatever the check would say |
 | The agent, with its model refused at a spending cap | Whatever it exits with, and `stoppedByCap` | The check decides |
+| The agent's model, which never answered: every call to a model failed in `out/proxy.jsonl` (`internal/runner/capped.go`) | Whatever it exits with, and `modelUnanswered` with the proxy's reason | The check decides. A turn with no check fails |
 | A process the agent started | `harnessExit` is what the agent reports for it | The check decides |
 | The runner, PID 1 in the box | No manifest | `failed`, with the container's exit |
 | The container never starts | No manifest, `out/` empty | `failed`, `exit` 125 |

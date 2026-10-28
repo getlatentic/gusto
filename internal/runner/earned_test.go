@@ -7,21 +7,24 @@ import (
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// A turn names no gate, so its harness's exit is what says it failed. A turn
-// whose harness never answered must not be recorded as passed.
-func TestATurnWithNoGateFailsWhenItsHarnessDid(t *testing.T) {
+// A turn names no gate, so its harness's exit and the proxy's word on its model are what say it failed. A turn whose harness or
+// model never answered must not be recorded as passed. A gate, when there is one, decides.
+func TestATurnWithNoGateFailsWhenItsHarnessOrItsModelDid(t *testing.T) {
 	for _, tc := range []struct {
 		verdict *evidence.Verdict
 		exit    int
+		silent  bool
 		want    int
 	}{
-		{nil, 0, 0},
-		{nil, 1, 1},
-		{&evidence.Verdict{Passed: true}, 1, 0},
-		{&evidence.Verdict{Passed: false}, 0, 1},
+		{nil, 0, false, 0},
+		{nil, 1, false, 1},
+		{nil, 0, true, 1},
+		{&evidence.Verdict{Passed: true}, 1, false, 0},
+		{&evidence.Verdict{Passed: true}, 0, true, 0},
+		{&evidence.Verdict{Passed: false}, 0, false, 1},
 	} {
-		if got := earned(tc.verdict, tc.exit); got != tc.want {
-			t.Errorf("verdict %+v, harness exit %d: earned %d, want %d", tc.verdict, tc.exit, got, tc.want)
+		if got := earned(tc.verdict, tc.exit, tc.silent); got != tc.want {
+			t.Errorf("verdict %+v, harness exit %d, model silent %t: earned %d, want %d", tc.verdict, tc.exit, tc.silent, got, tc.want)
 		}
 	}
 }

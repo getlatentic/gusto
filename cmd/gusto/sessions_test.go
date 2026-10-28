@@ -191,7 +191,7 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 	  "needs":"nothing","stream":"plain"}`), 0o644)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
 	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
-	turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "call the model")
+	dir := turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "call the model")
 
 	given, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "given.txt"))
 	parts := strings.Fields(string(given))
@@ -202,6 +202,15 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 	answer, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "answer.txt"))
 	if !strings.Contains(string(answer), "the model did not answer") {
 		t.Errorf("the agent's call came back %q", answer)
+	}
+	// The agent said "done" and exited 0, and the proxy saw its only call to the model go unanswered: the record says so, and
+	// the turn failed (getlatentic/planning#676).
+	manifest, err := evidence.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.HarnessExit != 0 || manifest.ModelUnanswered == nil || manifest.ModelUnanswered.Calls != 1 {
+		t.Errorf("the record says the agent exited %d and the model was unanswered: %+v", manifest.HarnessExit, manifest.ModelUnanswered)
 	}
 }
 

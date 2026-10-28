@@ -124,6 +124,10 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	silent, err := unanswered(dir, started)
+	if err != nil {
+		return 0, err
+	}
 	spent, files, err := evidence.Of(dir)
 	if err != nil {
 		return 0, err
@@ -140,6 +144,7 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
 		StoppedBy:       stoppedBy(ctx, dir),
 		StoppedByCap:    capped,
+		ModelUnanswered: silent,
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,
 		CostUSD:         cost,
@@ -153,7 +158,7 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 			return 0, err
 		}
 	}
-	return earned(verdict, exit), nil
+	return earned(verdict, exit, silent != nil), nil
 }
 
 // gateIn asks the gate in the box, where the repository's own code runs, and
