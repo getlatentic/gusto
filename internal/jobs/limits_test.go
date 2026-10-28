@@ -180,19 +180,36 @@ func TestTheQueueNeverRunsAPersonsJobsAtOnce(t *testing.T) {
 	var mu sync.Mutex
 	running := map[string]int{}
 	widest := map[string]int{}
+	amyDone := 0
+	// overlapped says bo started before amy's jobs were all done: bo did not wait behind them.
 	overlapped := false
 	finished := make(chan struct{}, 4)
+	// amy's first job holds until bo's has started, so bo starts while amy runs however slowly a worker wakes; a queue that
+	// made bo wait behind amy would leave both waiting until the hold gives up.
+	boStarted := make(chan struct{})
 	queue := Start(index, func(dir job.Dir) (int, error) {
 		who := jobs[dir.Path()]
 		mu.Lock()
 		running[who]++
 		widest[who] = max(widest[who], running[who])
-		overlapped = overlapped || (who == "bo" && running["amy"] > 0)
+		first := who == "amy" && widest["amy"] == 1 && !overlapped
+		if who == "bo" {
+			overlapped = amyDone < 3
+			close(boStarted)
+		}
 		mu.Unlock()
-		// Long enough that a worker slow to wake on a loaded machine still finds amy running when it takes bo.
-		time.Sleep(300 * time.Millisecond)
+		if first {
+			select {
+			case <-boStarted:
+			case <-time.After(5 * time.Second):
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
 		mu.Lock()
 		running[who]--
+		if who == "amy" {
+			amyDone++
+		}
 		mu.Unlock()
 		finished <- struct{}{}
 		return 0, nil
