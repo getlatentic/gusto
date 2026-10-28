@@ -38,6 +38,13 @@ type CapStop struct {
 	Reason   string  `json:"reason"`
 }
 
+// Unanswered says a run asked its model and was never answered: the proxy saw every call to the model refused or broken.
+// Reason is what went wrong with the last call.
+type Unanswered struct {
+	Calls  int    `json:"calls"`
+	Reason string `json:"reason"`
+}
+
 // Entry is one file and its hash.
 type Entry struct {
 	Name   string `json:"name"`
@@ -72,10 +79,12 @@ type Manifest struct {
 	// StoppedBy is absent unless the run was told to stop: by the person who stopped it, or by "a signal".
 	StoppedBy string `json:"stoppedBy,omitempty"`
 	// StoppedByCap is absent unless a spending cap refused the run a call.
-	StoppedByCap  *CapStop `json:"stoppedByCap,omitempty"`
-	ModelEndpoint string   `json:"modelEndpoint"`
-	Tokens        *int64   `json:"tokens"`
-	CostUSD       *float64 `json:"costUsd"`
+	StoppedByCap *CapStop `json:"stoppedByCap,omitempty"`
+	// ModelUnanswered is absent unless the run asked its model and the proxy saw no call answered.
+	ModelUnanswered *Unanswered `json:"modelUnanswered,omitempty"`
+	ModelEndpoint   string      `json:"modelEndpoint"`
+	Tokens          *int64      `json:"tokens"`
+	CostUSD         *float64    `json:"costUsd"`
 	// Signer is who the runner says stands behind this run. It is a claim; the
 	// signer a verifier names comes from its keyring, through Attest.
 	Signer string `json:"signer"`

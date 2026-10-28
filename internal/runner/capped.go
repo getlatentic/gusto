@@ -24,3 +24,13 @@ func stoppedByCap(dir job.Dir, since int64) (*evidence.CapStop, error) {
 		Reason:   refusal.Reason,
 	}, nil
 }
+
+// unanswered reads the proxy's record of the run that started at since for a model that never answered it, from the same
+// file stoppedByCap reads, so whether the model answered is the proxy's word and not the agent's.
+func unanswered(dir job.Dir, since int64) (*evidence.Unanswered, error) {
+	silence, err := spend.Unanswered(dir.OutFile("proxy.jsonl"), since)
+	if err != nil || silence == nil {
+		return nil, err
+	}
+	return &evidence.Unanswered{Calls: silence.Calls, Reason: silence.Reason}, nil
+}

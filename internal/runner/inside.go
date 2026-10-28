@@ -157,6 +157,10 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 	if err != nil {
 		return 0, err
 	}
+	silent, err := unanswered(dir, started)
+	if err != nil {
+		return 0, err
+	}
 	spent, files, err := evidence.Of(dir)
 	if err != nil {
 		return 0, err
@@ -173,6 +177,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
 		StoppedBy:       stoppedBy(ctx, dir),
 		StoppedByCap:    capped,
+		ModelUnanswered: silent,
 		ModelEndpoint:   endpoint,
 		Tokens:          tokens,
 		CostUSD:         cost,
@@ -186,20 +191,20 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 			return 0, err
 		}
 	}
-	return earned(verdict, exit), nil
+	return earned(verdict, exit, silent != nil), nil
 }
 
 // earned is the exit code a run earned. A gate decides when there is one. A
-// turn in a conversation has none, and then the harness's own exit is the only
-// word on whether it did what it was asked: a harness that failed made a turn
-// that failed, whatever it managed to say first.
-func earned(verdict *evidence.Verdict, harnessExit int) int {
+// turn in a conversation has none, and then it failed when the harness failed,
+// whatever it managed to say first, or when the proxy saw its model never
+// answer, whatever the harness's exit says.
+func earned(verdict *evidence.Verdict, harnessExit int, modelSilent bool) int {
 	switch {
 	case verdict != nil && verdict.Passed:
 		return 0
 	case verdict != nil:
 		return 1
-	case harnessExit != 0:
+	case harnessExit != 0, modelSilent:
 		return 1
 	}
 	return 0

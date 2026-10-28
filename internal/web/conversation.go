@@ -9,7 +9,6 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
@@ -257,15 +256,6 @@ func (s *Server) startTurn(asked string, held instance.Instance, thread instance
 	}
 	s.queue.Wake()
 	return record, false, nil
-}
-
-// stopped is the last thing the harness or the runner said on its way out.
-func stopped(dir job.Dir) string {
-	last := strings.TrimSpace(runner.Tail(dir.OutFile("stderr.log"), 1))
-	if last == "" {
-		last = strings.TrimSpace(runner.Tail(dir.OutFile("transcript.log"), 1))
-	}
-	return last
 }
 
 // named is a conversation as a list shows it: its title, or the start of what

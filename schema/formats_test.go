@@ -111,6 +111,19 @@ func TestAManifestIsValidWithAndWithoutTheHarnessDigest(t *testing.T) {
 	}
 }
 
+// A run whose model never answered says so in the manifest the runner writes, and the schema describes it.
+func TestAManifestSaysWhenTheModelNeverAnswered(t *testing.T) {
+	manifest := evidence.Manifest{Version: evidence.Version, Job: "j", Files: []evidence.Entry{}, Harness: "pi", Signer: "unsigned", AtUnix: 1,
+		ModelUnanswered: &evidence.Unanswered{Calls: 2, Reason: "connection refused"}}
+	document, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := schema.Validate(schema.Manifest(), document); err != nil {
+		t.Errorf("%v\n%s", err, document)
+	}
+}
+
 // A turn in a conversation is a job too, and the one written most often. Its
 // job.json names the instance, the thread and the setup, and names no gate.
 func TestATurnInAConversationMatchesTheSchema(t *testing.T) {
