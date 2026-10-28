@@ -41,6 +41,31 @@ openssl pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfi
 - A record without `manifest.sig` is unsigned. `gusto verify` says so and passes it, unless `-signed` is given. A signature from a key the keyring does not hold is refused by the key's id.
 - The signature adds a file and changes no manifest field, so the manifest stays at version 1. `files` leaves out `manifest.sig` because the signature is made after the manifest is written. An older reader hashes `out/` and reports `manifest.sig is not in the manifest`. Remove the signature and it verifies the record as unsigned.
 
+## Who a run was for, and what became of it
+
+Two files in `out/` name a run's parties and decisions. The manifest hashes them, so the signature covers them (getlatentic/planning#731).
+
+`out/run.json` is written before a sandbox run starts:
+
+| Field | Holds |
+| --- | --- |
+| `asked` | The person the run acts for, the run token's `sub` |
+| `paidBy` | The person whose computer ran it and whose spending it counts against: a room agent's owner |
+| `agent`, `agentName` | The room's agent, by its id in the room and its name |
+| `room` | The room it worked in |
+| `sandbox` | The sandbox it ran in, as the gateway names it |
+| `allowanceUsd` | What the agent may spend in the room in a month, when its owner set it |
+
+`out/decision.json` is written once a room's turn is finished:
+
+| Field | Holds |
+| --- | --- |
+| `kept` | Whether what it changed reached the room's folder |
+| `refused` | Why it did not: the agent was taken out, or the person who asked left the room |
+| `changed`, `joined`, `conflicts` | How many files it changed, and the files it shared with another change |
+
+The decision comes after the run's manifest is signed. `evidence.Decide` writes it, then writes the manifest again over `out/` as it now is and signs it again with the same configured key. The record checks clean afterwards. A manifest signed before the decision is replaced, not kept beside it.
+
 ## The configured agent digest
 
 `harnessDigest` in `out/manifest.json` names the configured agent that ran (see [TERMS.md](TERMS.md#configured-agent)). It is `sha256:` and 64 lowercase hex digits, computed from the agent's files alone. A clone and a tarball give the same string. The code is `pkg/harness/digest.go`.

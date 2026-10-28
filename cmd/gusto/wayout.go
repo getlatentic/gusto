@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/evidence"
 	"net"
 	"os"
 	"path/filepath"
@@ -52,6 +53,24 @@ type WayOut struct {
 	bindRuns bool
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
+	// describe says who and what a run is for, for its record; see UseRunRecords.
+	describe atomic.Pointer[func(job.Dir, job.Spec) evidence.Run]
+}
+
+// UseRunRecords says how to describe a run for its signed record: who asked, who pays, and the room's agent, which the server's
+// index and rooms know.
+func (w *WayOut) UseRunRecords(describe func(job.Dir, job.Spec) evidence.Run) {
+	w.describe.Store(&describe)
+}
+
+// recordRun keeps, in the run's record, who and what it is for and the sandbox it runs in.
+func (w *WayOut) recordRun(dir job.Dir, spec job.Spec, sandbox string) error {
+	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
+	if describe := w.describe.Load(); describe != nil {
+		run = (*describe)(dir, spec)
+	}
+	run.Sandbox = sandbox
+	return evidence.WriteRun(dir, run)
 }
 
 // UseAskers says how to find the person a task acts for, which the server's index knows.
@@ -324,6 +343,9 @@ func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.
 	}
 	if bound {
 		box.Bind()
+	}
+	if err := w.recordRun(dir, spec, openshell.Name(filepath.Base(dir.Path()))); err != nil {
+		return 0, err
 	}
 	return runner.OutsideContext(ctx, dir, box)
 }
