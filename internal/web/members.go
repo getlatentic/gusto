@@ -116,7 +116,7 @@ func (s *Server) membersData(r *http.Request, here string) map[string]any {
 		"Here":       here,
 		"People":     s.workspacePeople(r),
 		"Agents":     agents,
-		"Kinds":      s.engines(),
+		"Kinds":      kindsFor(s.engines(), s.offeredTo(r)),
 		"FirstReady": firstReady(s.picksFor(r)),
 		"Offered":    s.modelOptionsOf(s.offeredTo(r)),
 		"Skills":     s.skillChoices(),
