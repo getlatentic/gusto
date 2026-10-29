@@ -348,3 +348,14 @@ func secondsLeftNearAFullDemo(body string) bool {
 	}
 	return json.Unmarshal([]byte(body), &lease) == nil && lease.Seconds > 1740 && lease.Seconds <= 1800
 }
+
+// A demo's visitor cannot confirm an address, so its organization page sends them to the demo page and asks for nothing.
+func TestADemosOrganizationPageAsksNoOneToConfirmAnAddress(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		b := startDemoAs(t, demoFront(t), "Ada", "ada@acme.com", "Acme")
+		status, page := b.get("/org")
+		if status != http.StatusOK || strings.Contains(page, "Confirm your email address") || strings.Contains(page, "Not verified") || !strings.Contains(page, `href="/demo/wait"`) {
+			t.Errorf("%d %s", status, page)
+		}
+	})
+}
