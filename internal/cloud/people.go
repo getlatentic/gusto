@@ -51,12 +51,16 @@ type Limits struct {
 	Trial, Verified, Paid quota.Quota
 }
 
+// StartingCredit is what a new organization may spend on the models gusto provides, once. After it, an organization adds its own
+// model key.
+const StartingCredit = 5.0
+
 // DefaultLimits are what a sign-up may run before and after it is verified, and once it pays.
 func DefaultLimits() Limits {
 	return Limits{
-		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit."},
-		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4},
-		Paid:     quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50},
+		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit.", CreditUSD: StartingCredit},
+		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4, CreditUSD: StartingCredit},
+		Paid:     quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50, CreditUSD: StartingCredit},
 	}
 }
 

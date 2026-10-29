@@ -29,6 +29,10 @@ type Quota struct {
 	Computers int  `json:"computers"`
 	// Note is a sentence added to a refusal: how the limit is lifted.
 	Note string `json:"note,omitempty"`
+	// CreditUSD is what the organization may spend, over its whole life, on the models its server provides with the operator's
+	// keys. Unlike the counts above, zero is no such limit: a server whose operator gives no credit holds nothing to one. Calls on
+	// a key the organization added are never held to it.
+	CreditUSD float64 `json:"creditUsd,omitempty"`
 }
 
 // ErrExceeded is what a refusal is: it wraps to this, so a caller can answer

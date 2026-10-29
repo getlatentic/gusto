@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -391,4 +393,45 @@ func TestSeatWords(t *testing.T) {
 			t.Errorf("%d: %s", seats, got)
 		}
 	}
+}
+
+// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a front door that starts
+// writes every quota again so organizations made before a change in the limits have it too.
+func TestEveryOrganizationHasACreditAndAStartWritesEveryQuotaAgain(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s, _ := clocked(t, demoSet)
+		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, demo, _ := s.StartDemo("Bo", "bo@globex.com", "Globex")
+		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
+			t.Errorf("%+v", q)
+		}
+		if q, _ := s.Quota(demo.Slug); q.CreditUSD != 0.5 {
+			t.Errorf("%+v", q)
+		}
+		old := DefaultLimits().Trial
+		old.CreditUSD = 0
+		if err := s.setQuota(org.Slug, old); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.ApplyQuotas(); err != nil {
+			t.Fatal(err)
+		}
+		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
+			t.Errorf("a quota written before the credit was not written again: %+v", q)
+		}
+	})
+}
+
+func TestTheOrganizationPageSaysWhatIsLeftOfTheCredit(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := newFront(t, Settings{}, nil)
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		if _, page := admin.get("/org"); !strings.Contains(page, "$5.00 of $5.00 left on gusto's models, then add your own key in Admin, Models") {
+			t.Errorf("a new organization's credit:\n%s", page)
+		}
+		os.WriteFile(filepath.Join(f.store.DataDir("acme-com"), "credit-used.json"), []byte(`{"usd":1.8}`), 0o600)
+		if _, page := admin.get("/org"); !strings.Contains(page, "$3.20 of $5.00 left") {
+			t.Errorf("after the server used some:\n%s", page)
+		}
+	})
 }

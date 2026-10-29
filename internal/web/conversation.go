@@ -44,6 +44,8 @@ type turn struct {
 	// Stopped is the harness's last words when the turn failed, which is the
 	// reason as near as the record has one.
 	Stopped string
+	// Capped is the spending limit that refused the turn's model, in the proxy's own words, when one did.
+	Capped *spend.Refusal
 	// Blocked is how many requests to other sites the proxy refused, and
 	// Signed whether the turn's record is signed: the guarantees, shown where
 	// the work is rather than a page away.
@@ -145,6 +147,9 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 	if record.State == jobs.Failed || record.State == jobs.Interrupted {
 		shown.Stopped = stopped(dir)
+	}
+	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), record.Started); err == nil {
+		shown.Capped = refusal
 	}
 	if calls := callsOf(dir); calls != nil {
 		shown.Blocked = len(calls.Denied)

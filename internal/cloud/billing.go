@@ -2,7 +2,11 @@ package cloud
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
@@ -114,6 +118,21 @@ func (s *Store) ApplyQuota(slug string) error {
 	return s.setQuota(slug, q)
 }
 
+// ApplyQuotas writes every organization's quota again, so a change to the limits a release or the operator sets reaches the
+// organizations made before it. One that cannot be written is logged and the rest are written.
+func (s *Store) ApplyQuotas() error {
+	orgs, err := s.Orgs()
+	if err != nil {
+		return err
+	}
+	for _, org := range orgs {
+		if err := s.ApplyQuota(org.Slug); err != nil {
+			slog.Error("an organization's quota was not written again", "org", org.Slug, "error", err)
+		}
+	}
+	return nil
+}
+
 func (s *Store) quotaOf(ctx context.Context, org Org) (quota.Quota, error) {
 	if org.Demo != nil {
 		return s.set.Demo.Limits, nil
@@ -187,4 +206,19 @@ func (s *Store) SeatsBilled(slug string, seats int) error {
 		return err
 	}
 	return s.ApplyQuota(slug)
+}
+
+// CreditUsed is what an organization has used of its credit, as its server last wrote it, and nothing before it has used any.
+func (s *Store) CreditUsed(slug string) float64 {
+	text, err := os.ReadFile(filepath.Join(s.DataDir(slug), "credit-used.json"))
+	if err != nil {
+		return 0
+	}
+	var used struct {
+		USD float64 `json:"usd"`
+	}
+	if json.Unmarshal(text, &used) != nil {
+		return 0
+	}
+	return used.USD
 }

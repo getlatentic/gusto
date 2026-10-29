@@ -209,6 +209,7 @@ The proxy counts each call from the provider's `usage` object (`prompt_tokens`, 
 A field this build does not know stops the server, because a misspelt cap would be no cap. `inputTokens`, `outputTokens` and `usd` in `out/proxy.jsonl` are `null` when the answer has no usage or the model has no price: unmeasured, not free.
 
 - A task's cap is `budget.usd` in `job.json`. Left out is no cap. Zero allows nothing.
+- `organisation` sets a monthly cap on the whole server, on the operator's keys only: a call on a key an organization's admin added is not counted or stopped by it. A hosted organization's one-time credit is its quota's `creditUsd` instead ([CLOUD.md](CLOUD.md#free-credit)).
 - A team's cap is per calendar month in UTC. A task counts against its `team` field, a label the person asking chooses. The cap holds against mistakes, not against a determined spender.
 - The proxy checks both before each call. When one is spent it answers `402` with the reason. A call in flight finishes.
 - Under a cap, a model with no price is refused. A successful answer with no usage stops the next call.

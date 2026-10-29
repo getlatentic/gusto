@@ -122,6 +122,9 @@ type Ledger struct {
 	jobs   map[string]*account
 	months map[monthly]*Tally
 	now    func() time.Time
+	// operatorEver is everything counted on the operator's keys, in any month, which a credit is held to.
+	operatorEver float64
+	credit       *credit
 }
 
 func NewLedger(policy Policy) *Ledger {
@@ -167,6 +170,7 @@ func (l *Ledger) Begin(job string, terms Terms) {
 // Allow is asked before a call leaves, on the credential named, which is the organization's own when own is set. Nil lets it
 // go; a refusal names the cap that stops it. Only calls already in flight can take a task past its cap.
 func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
+	credit := l.creditLimit()
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	held := l.account(job)
@@ -183,8 +187,11 @@ func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 		if refusal := l.organizationSpent(); refusal != nil {
 			return refusal
 		}
+		if refusal := l.creditSpent(credit); refusal != nil {
+			return refusal
+		}
 	}
-	return l.uncountable(held, credential, model, own)
+	return l.uncountable(held, credential, model, own, credit)
 }
 
 // Count adds a call that happened, or was refused, to the task, its project
@@ -194,7 +201,22 @@ func (l *Ledger) Count(job string, call Call) {
 		return
 	}
 	l.guard.Lock()
-	defer l.guard.Unlock()
+	l.countLocked(job, call)
+	credited := l.credit != nil && !call.Own && call.USD != nil && *call.USD > 0
+	used := 0.0
+	if credited {
+		used = l.creditUsedLocked()
+	}
+	l.guard.Unlock()
+	if credited {
+		l.keepCreditUsed(used)
+	}
+}
+
+func (l *Ledger) countLocked(job string, call Call) {
+	if !call.Own && call.USD != nil {
+		l.operatorEver += *call.USD
+	}
 	held := l.account(job)
 	held.tally.add(call)
 	if call.Refused == nil && call.billed() && !call.Measured() {
@@ -309,8 +331,8 @@ func (l *Ledger) organizationSpent() *Refusal {
 // uncountable refuses a call a cap could not count. A cap that cannot see
 // what is spent is not holding anything, so it fails closed: before the call
 // when the model has no price, and after an answer that carried no usage.
-func (l *Ledger) uncountable(held *account, credential, model string, own bool) *Refusal {
-	governing, found := l.governing(held, own)
+func (l *Ledger) uncountable(held *account, credential, model string, own bool, credit creditNow) *Refusal {
+	governing, found := l.governing(held, own, credit)
 	if !found {
 		return nil
 	}
@@ -327,7 +349,7 @@ func (l *Ledger) uncountable(held *account, credential, model string, own bool) 
 
 // governing is the cap this task answers to, the task's own before its team's, and the operator's on the organization last,
 // which a call on the organization's own key does not answer to.
-func (l *Ledger) governing(held *account, own bool) (*Refusal, bool) {
+func (l *Ledger) governing(held *account, own bool, credit creditNow) (*Refusal, bool) {
 	if limit := held.terms.CapUSD; limit != nil {
 		return &Refusal{Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD}, true
 	}
@@ -337,6 +359,9 @@ func (l *Ledger) governing(held *account, own bool) (*Refusal, bool) {
 	}
 	if limit, capped := l.policy.OrganizationCap(); capped && !own {
 		return &Refusal{Cap: "organisation", LimitUSD: limit}, true
+	}
+	if credit.held && l.credit != nil && !own {
+		return &Refusal{Cap: "credit", LimitUSD: credit.limit, SpentUSD: l.creditUsedLocked()}, true
 	}
 	return nil, false
 }
