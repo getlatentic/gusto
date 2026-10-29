@@ -13,18 +13,17 @@ import (
 	"github.com/getlatentic/gusto/internal/entry"
 )
 
-// A demo opens on a room with two agents in it, so a visitor sees a team at work and has somewhere to bring a colleague.
-// The agents run on the agent type the demo's models are known to finish a task on (docs/MATRIX.md), and take the model the server
-// offers first.
+// A demo opens on a room with two agents in it, of two agent types, so a visitor sees a team of several vendors' agents at work and
+// has somewhere to bring a colleague. Each type finishes a task on the demo's models (docs/MATRIX.md) in seconds in a room, and the
+// agents take the model the server offers first.
 const (
-	demoRoomName     = "Launch plan"
-	demoAgentHarness = "opencode"
-	demoRoomFile     = "demo-room"
+	demoRoomName = "Launch plan"
+	demoRoomFile = "demo-room"
 )
 
-var demoCrew = []struct{ Name, Specialty string }{
-	{"Scout", "Finds things out and reports what it found"},
-	{"Draft", "Writes the first version of a document"},
+var demoCrew = []struct{ Name, Specialty, Harness string }{
+	{"Scout", "Finds things out and reports what it found", "opencode"},
+	{"Draft", "Writes the first version of a document", "pi"},
 }
 
 // orgAs is a request-maker that speaks to an organization's server as one of its people, through the entry key only the front door
@@ -98,7 +97,7 @@ func roomIn(where string) string {
 func makeDemoRoom(as *orgAs) (string, error) {
 	agents := make([]string, 0, len(demoCrew))
 	for _, each := range demoCrew {
-		where, err := as.post("/members/agents", url.Values{"name": {each.Name}, "specialty": {each.Specialty}, "harness": {demoAgentHarness}})
+		where, err := as.post("/members/agents", url.Values{"name": {each.Name}, "specialty": {each.Specialty}, "harness": {each.Harness}})
 		if err != nil {
 			return "", err
 		}

@@ -36,6 +36,7 @@ func fakeOrgDoor(t *testing.T) (*orgAs, *[]string) {
 	return &orgAs{base: server.URL, cookie: &http.Cookie{Name: "gusto", Value: "x"}, client: &http.Client{CheckRedirect: stayHere}}, &sent
 }
 
+// The demo's room holds two agents of two agent types, so a visitor sees several vendors' agents together.
 func TestTheDemoRoomHoldsBothAgents(t *testing.T) {
 	as, sent := fakeOrgDoor(t)
 	room, err := makeDemoRoom(as)
@@ -43,7 +44,7 @@ func TestTheDemoRoomHoldsBothAgents(t *testing.T) {
 		t.Fatalf("room %q, %v", room, err)
 	}
 	all := strings.Join(*sent, "\n")
-	for _, want := range []string{"harness=opencode", "name=Scout", "name=Draft", "name=Launch+plan", "/rooms/room-1/members/add agent=id-Scout&agent=id-Draft"} {
+	for _, want := range []string{"harness=opencode&name=Scout", "harness=pi&name=Draft", "name=Launch+plan", "/rooms/room-1/members/add agent=id-Scout&agent=id-Draft"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("the server was never sent %q:\n%s", want, all)
 		}
