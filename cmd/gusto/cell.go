@@ -109,7 +109,8 @@ func beatForCells(ctx context.Context, dir string) {
 // no host runs while nobody is using one. It is on when GUSTO_CLOUD_CELL_LAUNCH is ec2, and then needs
 // GUSTO_CLOUD_CELL_TEMPLATE (the launch template), GUSTO_CLOUD_CELL_USERDATA (the start-up script) and
 // GUSTO_CLOUD_CELL_SETTINGS, NAME=value pairs separated by commas that fill in the script. GUSTO_CLOUD_CELL_PROJECT
-// is the project tag of the hosts (gusto-poc). GUSTO_CLOUD_CELL_MAX (3) is
+// is the project tag of the hosts (gusto-poc), and GUSTO_CLOUD_CELL_IMAGE_PARAMETER the parameter the template reads its
+// image from, so a kept host of an older image is replaced and not started again. GUSTO_CLOUD_CELL_MAX (3) is
 // the most hosts, GUSTO_CLOUD_CELL_IDLE_MINUTES (10) how long a host may have nothing on it, and
 // GUSTO_CLOUD_CELL_BOOT_MINUTES (10) how long a host has to come up.
 func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
@@ -133,7 +134,8 @@ func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
 		settings[name] = value
 	}
 	return &cell.Scaler{
-		Pool: pool, Launcher: &cell.EC2{Template: template, UserData: script, Settings: settings, Project: os.Getenv("GUSTO_CLOUD_CELL_PROJECT")}, Waiting: controller.Waiting,
+		Pool: pool, Launcher: &cell.EC2{Template: template, UserData: script, Settings: settings, Project: os.Getenv("GUSTO_CLOUD_CELL_PROJECT"),
+			ImageParameter: os.Getenv("GUSTO_CLOUD_CELL_IMAGE_PARAMETER")}, Waiting: controller.Waiting,
 		Max:  number("GUSTO_CLOUD_CELL_MAX", 3),
 		Idle: time.Duration(number("GUSTO_CLOUD_CELL_IDLE_MINUTES", 10)) * time.Minute,
 		Boot: time.Duration(number("GUSTO_CLOUD_CELL_BOOT_MINUTES", 10)) * time.Minute,

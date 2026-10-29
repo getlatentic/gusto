@@ -15,6 +15,17 @@
     mode: "0755"
   loop: ["/mnt/efs", "{{ demo_state }}"]
 
+# A cell mounts the file system on every start, from its start-up script, and never from fstab: a host whose fstab names it orders
+# it before the network, systemd breaks the cycle by deleting the network jobs, and the host comes up in emergency mode with no
+# network, which a kept cell started again did. So on a cell the mounts below are made and not written down, and what an earlier
+# run wrote is taken out.
+- name: A cell's fstab does not name the shared file system
+  ansible.posix.mount:
+    path: "{{ item }}"
+    state: absent_from_fstab
+  loop: ["{{ demo_state }}", /mnt/efs]
+  when: demo_role == 'cell'
+
 # A mount target answers a little after it is made, and the name of the file system resolves after it does.
 - name: The file system
   ansible.posix.mount:
@@ -22,7 +33,7 @@
     src: "{{ demo_efs }}:/"
     fstype: nfs4
     opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev
-    state: mounted
+    state: "{{ 'ephemeral' if demo_role == 'cell' else 'mounted' }}"
   register: mounted
   until: mounted is succeeded
   retries: 30
@@ -48,4 +59,4 @@
     src: "/mnt/efs/runs/{{ demo_run }}"
     fstype: none
     opts: bind,x-systemd.requires-mounts-for=/mnt/efs
-    state: mounted
+    state: "{{ 'ephemeral' if demo_role == 'cell' else 'mounted' }}"

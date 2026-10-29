@@ -25,6 +25,8 @@ type EC2 struct {
 	Settings map[string]string
 	// Project is the value of the project tag, which says whose hosts they are. It is gusto-poc when not set.
 	Project string
+	// ImageParameter is the Systems Manager parameter the launch template reads its image from, and empty when it names one itself.
+	ImageParameter string
 	// Run runs the AWS command and gives what it printed. It is exec by default, and a test gives its own.
 	Run func(args ...string) ([]byte, error)
 }
@@ -206,6 +208,24 @@ func (e *EC2) Terminate(id string) error {
 	return err
 }
 
+var imageID = regexp.MustCompile(`^ami-[0-9a-f]{8,17}$`)
+
+// CurrentImage is the image the launch template makes a host from now, read from its parameter.
+func (e *EC2) CurrentImage() (string, error) {
+	if e.ImageParameter == "" {
+		return "", nil
+	}
+	out, err := e.run("ssm", "get-parameter", "--name", e.ImageParameter, "--query", "Parameter.Value", "--output", "text")
+	if err != nil {
+		return "", err
+	}
+	image := strings.TrimSpace(string(out))
+	if !imageID.MatchString(image) {
+		return "", fmt.Errorf("the parameter %s does not name an image: %q", e.ImageParameter, image)
+	}
+	return image, nil
+}
+
 // Running is the scaler's hosts that are starting or up. A started host's launch time is when it was last started.
 func (e *EC2) Running() ([]Instance, error) { return e.listed("pending,running") }
 
@@ -216,21 +236,21 @@ func (e *EC2) Stopped() ([]Instance, error) { return e.listed("stopping,stopped"
 func (e *EC2) listed(states string) ([]Instance, error) {
 	out, err := e.run("ec2", "describe-instances",
 		"--filters", "Name=tag:scaler,Values=on", "Name=tag:project,Values="+e.project(), "Name=instance-state-name,Values="+states,
-		"--query", "Reservations[].Instances[].[InstanceId,LaunchTime,State.Name,Tags[?Key=='kept']|[0].Value]", "--output", "text")
+		"--query", "Reservations[].Instances[].[InstanceId,LaunchTime,State.Name,Tags[?Key=='kept']|[0].Value,ImageId]", "--output", "text")
 	if err != nil {
 		return nil, err
 	}
 	var hosts []Instance
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 4 || !instanceID.MatchString(fields[0]) {
+		if len(fields) != 5 || !instanceID.MatchString(fields[0]) {
 			continue
 		}
 		launched, err := time.Parse(time.RFC3339, fields[1])
 		if err != nil {
 			continue
 		}
-		hosts = append(hosts, Instance{ID: fields[0], Launched: launched, Stopped: fields[2] == "stopped", Kept: fields[3] == "on"})
+		hosts = append(hosts, Instance{ID: fields[0], Launched: launched, Stopped: fields[2] == "stopped", Kept: fields[3] == "on", Image: fields[4]})
 	}
 	return hosts, nil
 }

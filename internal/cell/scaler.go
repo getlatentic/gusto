@@ -9,12 +9,13 @@ import (
 )
 
 // Instance is a host that was started to be a host, and when it was last started. A kept host is stopped rather than removed
-// when it is idle; Stopped says it is stopped now, and not still stopping.
+// when it is idle; Stopped says it is stopped now, and not still stopping. Image is the machine image it was made from.
 type Instance struct {
 	ID       string
 	Launched time.Time
 	Kept     bool
 	Stopped  bool
+	Image    string
 }
 
 // Launcher starts and stops the machines hosts run on.
@@ -31,6 +32,8 @@ type Launcher interface {
 	// LowerDisk takes a stopped host's disk down to the baseline throughput, which is billed while it is stopped; it does nothing
 	// to a disk already there.
 	LowerDisk(id string) error
+	// CurrentImage is the machine image a new host is made from now, and empty when that is not known.
+	CurrentImage() (string, error)
 }
 
 // Scaler keeps as many hosts as the organizations need: one is started when an organization waits for room and none is
