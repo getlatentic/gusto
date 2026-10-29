@@ -7,9 +7,15 @@ import (
 	"strings"
 )
 
+// home takes a signed-in person into their organization, or to choose one when they are in several and have not
+// said which. Anybody else sees what gusto is.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.person(r); ok {
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+	if all, ok := s.memberships(r); ok {
+		where := "/orgs"
+		if person, ok := s.chosen(r, all); ok {
+			where = s.entrance(person)
+		}
+		http.Redirect(w, r, where, http.StatusSeeOther)
 		return
 	}
 	if s.demoOffered() {
@@ -49,7 +55,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	s.provision(org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
-	http.Redirect(w, r, "/org", http.StatusSeeOther)
+	http.Redirect(w, r, "/open", http.StatusSeeOther)
 }
 
 // asksForMore says the form needs the organization's name and address, because
@@ -166,6 +172,6 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 			}
 		}
 		s.Sessions.Issue(w, email)
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }

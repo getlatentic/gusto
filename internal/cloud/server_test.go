@@ -134,7 +134,7 @@ func TestSigningUpMakesTheOrganizationSignsThePersonInAndMailsALink(t *testing.T
 		f := newFront(t, Settings{}, nil)
 		b := f.browser()
 		status, _, header := b.post("/signup", signup("Ada@Acme.com", "Acme Research"))
-		if status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		if status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Fatalf("%d %v", status, header)
 		}
 		status, page := b.get("/org")
@@ -176,7 +176,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 
 		token := strings.TrimPrefix(link[strings.Index(link, "t="):], "t=")
 		status, _, header := other.post("/verify", url.Values{"t": {token}})
-		if status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		if status != http.StatusSeeOther || header.Get("Location") != "/" {
 			t.Fatalf("%d %v", status, header)
 		}
 		if person, _, _ := f.store.only("ada@acme.com"); person.Trial() {
@@ -315,8 +315,11 @@ func TestASignInLinkSignsThePersonInOnceAndTheSessionEndsWhenTheySignOut(t *test
 			t.Fatalf("a person who is not signed in is sent to sign in: %d", status)
 		}
 		token := link[strings.Index(link, "t=")+2:]
-		if status, _, _ := b.post("/signin/link", url.Values{"t": {token}}); status != http.StatusSeeOther {
-			t.Fatal(status)
+		if status, _, header := b.post("/signin/link", url.Values{"t": {token}}); status != http.StatusSeeOther || header.Get("Location") != "/" {
+			t.Fatal(status, header)
+		}
+		if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+			t.Errorf("a person who signs in goes into their organization, not to its settings: %d %v", status, header)
 		}
 		if status, page := b.get("/org"); status != 200 || !strings.Contains(page, "Acme") {
 			t.Fatalf("%d", status)

@@ -71,11 +71,12 @@ The counts are kept in the database, so front doors that share it share the limi
 ## Sign-in to an organization
 
 1. The person signs in at gusto cloud by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
-2. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
-3. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
-4. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
+2. gusto cloud sends the person straight into their organization through `/open`. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
+3. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
+4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
+5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
 
-One address is one sign-in, and a person can be in several organizations, with a role in each. A person in more than one chooses at `/orgs` after signing in, and the choice is remembered. `/org?org=<slug>` and `/open?org=<slug>` choose one of theirs; a name of an organization they are not in chooses nothing. Each organization's server sends people back with its own name. The mark at the top of its rail opens a switcher: it lists the person's organizations from the front door's `/orgs.json`, which answers an organization's own address and no other, and opens each through `/open`. A server knows only its own members, and its own name from `GUSTO_ORG_NAME`.
+One address is one sign-in, and a person can be in several organizations, with a role in each. A person in more than one chooses at `/orgs` after signing in, and the choice is remembered. Each row there goes into the organization, and its Settings link goes to `/org`. `/org?org=<slug>` and `/open?org=<slug>` choose one of theirs; a name of an organization they are not in chooses nothing. Each organization's server sends people back with its own name. The mark at the top of its rail opens a switcher: it lists the person's organizations from the front door's `/orgs.json`, which answers an organization's own address and no other, and opens each through `/open`. A server knows only its own members, and its own name from `GUSTO_ORG_NAME`.
 
 ## People
 
