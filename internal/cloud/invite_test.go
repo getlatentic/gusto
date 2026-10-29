@@ -78,7 +78,7 @@ func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganization(t *testin
 		if _, found, _ := f.store.only("bob@acme.com"); found {
 			t.Fatal("opening the link made a person")
 		}
-		if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Fatalf("%d %v", status, header)
 		}
 		_, page := bob.get("/org")

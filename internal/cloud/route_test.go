@@ -58,10 +58,14 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 		if !strings.Contains(page, "Starting") || !strings.Contains(page, `http-equiv="refresh"`) || strings.Contains(page, `href="/open"`) {
 			t.Errorf("%s", page)
 		}
-		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || header.Get("Location") != "/org" {
-			t.Errorf("there is nothing to open yet: %d %v", status, header)
+		status, page, _ := b.get2("/open")
+		if status != http.StatusOK || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(page, "is being set up") && !strings.Contains(page, "is starting") || !strings.Contains(page, `href="/org"`) {
+			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d\n%s", status, page)
 		}
 		f.server.Wait()
+		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "/auth/entry?t=") {
+			t.Errorf("once it is ready, the same address goes in: %d %v", status, header)
+		}
 		if _, page := b.get("/org"); !strings.Contains(page, "Ready") {
 			t.Errorf("%s", page)
 		}

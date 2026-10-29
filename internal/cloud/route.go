@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"cmp"
 	"log/slog"
 	"net"
 	"net/http"
@@ -185,7 +186,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	if _, state := s.Controller.Route(person.Org); state != Ready {
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		s.starting(w, r, person, state)
 		return
 	}
 	key, err := s.Controller.EntryKey(person.Org)
@@ -211,6 +212,23 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
+}
+
+// starting is what a person going in sees while their organization's server is not ready: what it is doing, on a
+// page that looks again until it can let them in. A demo has its own page for this.
+func (s *Server) starting(w http.ResponseWriter, r *http.Request, person Person, state State) {
+	if _, _, found := s.Store.DemoLeft(person.Org); found {
+		http.Redirect(w, r, "/demo/wait", http.StatusSeeOther)
+		return
+	}
+	org, _, err := s.Store.Org(person.Org)
+	if err != nil {
+		slog.Error("an organization's record could not be read", "org", person.Org, "error", err)
+	}
+	if state == "" {
+		state = Provisioning
+	}
+	s.render(w, http.StatusOK, "starting", view{Title: cmp.Or(org.Name, person.Org), Org: org, Refresh: true, Notice: stateWords(state)})
 }
 
 // stateWords is what a person is told of a server that is not ready.

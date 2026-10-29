@@ -49,11 +49,11 @@ func (s *Server) inviteColleague(w http.ResponseWriter, r *http.Request, person 
 	s.drawColleague(w, r, http.StatusOK, person, view{Link: link, Email: email})
 }
 
-// afterJoining is where a person goes once they have accepted an invitation: straight into a demo's server, and to the
-// organization's page for any other.
-func (s *Server) afterJoining(person Person) string {
+// entrance is where a signed-in person goes in: a demo's own page, which starts its time when its server is
+// ready, and the organization's server for any other.
+func (s *Server) entrance(person Person) string {
 	if _, _, found := s.Store.DemoLeft(person.Org); found {
-		return "/open"
+		return "/demo/wait"
 	}
-	return "/org"
+	return "/open"
 }

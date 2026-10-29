@@ -218,18 +218,25 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 		f.invitedAndJoined(ada, "eve@globex.com")
 
 		eve := f.signInByLink("eve@globex.com")
-		if status, _, header := eve.get2("/org"); status != http.StatusSeeOther || header.Get("Location") != "/orgs" {
-			t.Fatalf("a person in two organizations is asked which: %d %v", status, header)
+		for _, path := range []string{"/", "/org"} {
+			if status, _, header := eve.get2(path); status != http.StatusSeeOther || header.Get("Location") != "/orgs" {
+				t.Fatalf("%s: a person in two organizations is asked which: %d %v", path, status, header)
+			}
 		}
 		_, page := eve.get("/orgs")
-		if !strings.Contains(page, `href="/org?org=acme-com"`) || !strings.Contains(page, `href="/org?org=globex-com"`) || strings.Contains(page, "initech") {
-			t.Fatalf("the choice is their own organizations:\n%s", page)
+		for _, want := range []string{`href="/open?org=acme-com"`, `href="/open?org=globex-com"`, `href="/org?org=acme-com"`, `href="/org?org=globex-com"`} {
+			if !strings.Contains(page, want) || strings.Contains(page, "initech") {
+				t.Fatalf("the choice is their own organizations, to go into or to manage, and lacks %s:\n%s", want, page)
+			}
 		}
 		if _, page := eve.get("/org?org=globex-com"); !strings.Contains(page, ">Globex</h1>") || !strings.Contains(page, `href="/orgs"`) {
 			t.Fatalf("choosing Globex shows Globex, with a way back to the choice:\n%s", page)
 		}
 		if _, page := eve.get("/org"); !strings.Contains(page, ">Globex</h1>") {
 			t.Errorf("the choice is remembered:\n%s", page)
+		}
+		if status, _, header := eve.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+			t.Errorf("once chosen, the front door takes them into it: %d %v", status, header)
 		}
 		if _, page := eve.get("/org?org=initech-com"); !strings.Contains(page, ">Globex</h1>") {
 			t.Errorf("an organization they are not in is not chosen:\n%s", page)

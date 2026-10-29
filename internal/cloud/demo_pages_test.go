@@ -270,11 +270,11 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 	})
 }
 
-func TestASignedInVisitorIsSentToTheirOrganizationAndNotShownTheLandingPage(t *testing.T) {
+func TestASignedInVisitorIsSentToTheirDemoAndNotShownTheLandingPage(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
-		if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/demo/wait" {
 			t.Errorf("%d %v", status, header)
 		}
 		f.server.Wait()
