@@ -157,6 +157,10 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddr
 		if status != http.StatusGone || !strings.Contains(body, "Your demo has ended") || !strings.Contains(body, `href="https://cal.example/gusto"`) || !strings.Contains(body, "Ada") || !strings.Contains(body, "We keep your name, work email and company") {
 			t.Errorf("%d\n%s", status, body)
 		}
+		// A page still open on the demo asks how long is left, and is told it has ended, so it goes to the page above.
+		if status, lease, _ := b.at(slug+".cloud.test", "GET", "/.gusto/lease", nil); status != http.StatusOK || !strings.Contains(lease, `"ended":true`) {
+			t.Errorf("an ended demo's lease: %d %s", status, lease)
+		}
 		if status, sheet, header := b.at(slug+".cloud.test", "GET", "/static/cloud.css", nil); status != http.StatusOK || !strings.Contains(header.Get("Content-Type"), "css") || !strings.Contains(sheet, ".bg-solid") {
 			t.Errorf("the page of an ended demo has no styles: %d %v", status, header)
 		}

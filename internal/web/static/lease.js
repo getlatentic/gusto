@@ -1,7 +1,8 @@
 // Warns, on any page, that the demo host is about to remove itself, and links to where it
 // is extended. It asks the host how long is left, counts down between asks, and does
 // nothing on a host that has no lease. On a demo organization the bar is always there: it
-// counts down the demo, links to more time and to booking a call, and says when it has ended.
+// counts down the demo, links to more time and to booking a call, and when it has ended takes the page to the one that
+// says so.
 (function () {
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");
   var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, invite = null, demo = false, strip = "2rem";
@@ -74,6 +75,7 @@
     fetch("/.gusto/lease", { cache: "no-store", credentials: "omit" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
+        if (d && d.ended === true) { location.reload(); return; }
         if (d && typeof d.seconds === "number") {
           left = d.seconds; demo = d.demo === true;
           if (demo && !window.gustoDemo) {
@@ -93,5 +95,6 @@
 
   ask();
   setInterval(ask, every);
-  setInterval(function () { if (left !== null && left > 0) { left -= 1; draw(); } }, 1000);
+  // At the end of a demo the host is asked at once, and answers that it has ended.
+  setInterval(function () { if (left !== null && left > 0) { left -= 1; draw(); if (left === 0 && demo) { ask(); } } }, 1000);
 })();

@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"fmt"
+	"math"
 	"log"
 	"net/http"
 	"slices"
@@ -144,10 +145,11 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
 }
 
-// creditLeft is what is left of an organization's credit, as a person reads it, and nothing when it has none.
+// creditLeft is what is left of an organization's credit, as a person reads it, and nothing when it has none. What is left is
+// rounded down to the cent, so a credit that has been used never reads as whole.
 func creditLeft(credit, used float64) string {
 	if credit <= 0 {
 		return ""
 	}
-	return fmt.Sprintf("$%.2f of $%.2f left", max(credit-used, 0), credit)
+	return fmt.Sprintf("$%.2f of $%.2f left", math.Floor(max(credit-used, 0)*100)/100, credit)
 }
