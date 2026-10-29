@@ -12,8 +12,8 @@
     <dt>Address</dt><dd>{{.Address}}</dd>
     {{if .Domain}}<dt>Company</dt><dd>{{.Domain}}</dd>{{end}}
     <dt>Admin</dt><dd>{{.Org.Admin}}</dd>
-    <dt>Email</dt>
-    <dd>{{if .Person.Trial}}<span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-warn before:content-['']">Not verified</span>{{else}}<span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-ok before:content-['']">Verified</span>{{end}}</dd>
+    {{if not .Org.Demo}}<dt>Email</dt>
+    <dd>{{if .Person.Trial}}<span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-warn before:content-['']">Not verified</span>{{else}}<span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-ok before:content-['']">Verified</span>{{end}}</dd>{{end}}
     <dt>Tasks</dt>
     <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
     <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
@@ -44,7 +44,9 @@
   {{if .Subscribe}}<form method="post" action="/org/billing/subscribe"><button class="w-full cursor-pointer rounded-sm border border-line-strong p-3 text-center font-semibold text-ink hover:bg-wash" type="submit">{{.Offer}}</button></form>{{end}}
   {{if .Manage}}<form method="post" action="/org/billing/manage"><button class="w-full cursor-pointer rounded-sm border border-line-strong p-3 text-center text-muted hover:bg-wash hover:text-ink" type="submit">Card, invoices and plan</button></form>{{end}}
   {{end}}
-  {{if .Person.Trial}}
+  {{if .Org.Demo}}
+  <p class="text-sm text-muted">This is a demo. Its time left, and a call with us, are on <a class="underline hover:text-ink" href="/demo/wait">the demo page</a>.</p>
+  {{else if .Person.Trial}}
   <p class="text-sm text-muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
   <form method="post" action="/org/verify"><button class="w-full rounded-sm border border-line-strong p-3 text-center text-muted hover:bg-wash hover:text-ink" type="submit">Send the link again</button></form>
   {{end}}
