@@ -72,6 +72,9 @@ func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 	if r.URL.Query().Get("sent") != "" {
 		notice = "The link is on its way."
 	}
+	if r.URL.Query().Get("billing") == "started" {
+		notice = "Thank you. The plan changes here once Stripe confirms the payment, which takes a few seconds."
+	}
 	s.drawOrg(w, http.StatusOK, person, notice)
 }
 
@@ -115,7 +118,8 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	all, _ := s.Store.Memberships(person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
-		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1}
+		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1,
+		Plan: s.planOf(org, person)}
 	s.render(w, status, "org", v)
 }
 

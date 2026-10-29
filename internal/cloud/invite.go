@@ -53,6 +53,7 @@ func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Per
 		return
 	}
 	s.record(r, person, changelog.MemberRemoved, map[string]string{"email": email, "role": string(target.Role)})
+	s.Seats.Wake()
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
@@ -92,6 +93,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
 		s.Sessions.Choose(w, person.Org)
+		s.Seats.Wake()
 		http.Redirect(w, r, s.afterJoining(person), http.StatusSeeOther)
 	case errors.Is(err, ErrLink), errors.Is(err, ErrFull), errors.Is(err, ErrEmailTaken):
 		text := sentence(err)
@@ -107,7 +109,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 
 // sentence is what a person is told of a refusal we made, and nothing of one we did not.
 func sentence(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink} {
+	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrLapsed, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
@@ -120,7 +122,7 @@ func refusedStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNotAdmin):
 		return http.StatusForbidden
-	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin):
+	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrLapsed), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin):
 		return http.StatusConflict
 	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole):
 		return http.StatusUnprocessableEntity

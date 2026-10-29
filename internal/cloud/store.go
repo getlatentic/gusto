@@ -81,6 +81,9 @@ func newStore(db *dbkit.DB, root string, set Settings) (*Store, error) {
 	if set.Limits == (Limits{}) {
 		set.Limits = DefaultLimits()
 	}
+	if set.Limits.Paid == (quota.Quota{}) {
+		set.Limits.Paid = DefaultLimits().Paid
+	}
 	if set.Demo.Enabled() && set.Demo.Limits == (quota.Quota{}) {
 		set.Demo.Limits = DefaultDemoLimits()
 	}

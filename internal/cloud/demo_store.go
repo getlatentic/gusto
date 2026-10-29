@@ -20,6 +20,7 @@ var endStatements = []string{
 	`DELETE FROM people WHERE email IN (SELECT m.email FROM memberships m WHERE m.org = ?
 		AND NOT EXISTS (SELECT 1 FROM memberships o WHERE o.email = m.email AND o.org <> ?))`,
 	`DELETE FROM memberships WHERE org = ?`,
+	`DELETE FROM billing WHERE org = ?`,
 	`DELETE FROM runtime WHERE slug = ?`,
 	`DELETE FROM orgs WHERE slug = ?`,
 }

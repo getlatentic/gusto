@@ -36,7 +36,7 @@ func TestCloudMigrateReportsWithoutChangingAnythingAndImportsOnRequest(t *testin
 	}
 
 	out, _, code = clitest.Capture(t, func() int { return run([]string{"cloud", "migrate", "-import"}) })
-	if code != 0 || !strings.Contains(out, "imported into the database") || !strings.Contains(out, "people         6") || !strings.Contains(out, "schema version     2 (this release reads 2)") {
+	if code != 0 || !strings.Contains(out, "imported into the database") || !strings.Contains(out, "people         6") || !strings.Contains(out, "schema version     3 (this release reads 3)") {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
 	out, _, code = clitest.Capture(t, func() int { return run([]string{"cloud", "migrate", "-import"}) })

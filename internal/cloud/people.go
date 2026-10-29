@@ -45,17 +45,18 @@ type Org struct {
 	Demo *Demo `json:"demo,omitempty"`
 }
 
-// Limits are the two quotas an organization moves between, and the settings that
-// make them.
+// Limits are the quotas an organization moves between, and the settings that make
+// them. Paid is for an organization with a subscription, and its Jobs are for each seat.
 type Limits struct {
-	Trial, Verified quota.Quota
+	Trial, Verified, Paid quota.Quota
 }
 
-// DefaultLimits are what a sign-up may run before and after it is verified.
+// DefaultLimits are what a sign-up may run before and after it is verified, and once it pays.
 func DefaultLimits() Limits {
 	return Limits{
 		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit."},
 		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4},
+		Paid:     quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50},
 	}
 }
 

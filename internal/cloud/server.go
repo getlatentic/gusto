@@ -48,6 +48,9 @@ type Config struct {
 	// Prewarm, when it is set, starts a cell for a visitor who has begun the demo form, so it is up by the time they send it.
 	// It must not block, and must bound what it starts itself.
 	Prewarm func()
+	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
+	Stripe *Stripe
+	Seats  *SeatSync
 }
 
 // Server is the front door's pages.
@@ -152,6 +155,9 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /org/invites/cancel", s.guard(s.cancelInvitation))
 	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
 	mux.HandleFunc("POST /org/people/role", s.guard(s.changeRole))
+	mux.HandleFunc("POST /org/billing/subscribe", s.guard(s.subscribe))
+	mux.HandleFunc("POST /org/billing/manage", s.guard(s.manageBilling))
+	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /demo", s.demoForm)
@@ -194,7 +200,7 @@ func (s *Server) Wait() {
 func (s *Server) secure(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
@@ -210,7 +216,10 @@ func (s *Server) secure(next http.Handler) http.Handler {
 				http.Error(w, "that form was sent from another site", http.StatusForbidden)
 				return
 			}
-			r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+			// An event from Stripe is bigger than a form, and its handler bounds it itself.
+			if r.URL.Path != "/stripe/webhook" {
+				r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+			}
 		}
 		next.ServeHTTP(w, r)
 	})

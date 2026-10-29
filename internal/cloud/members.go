@@ -12,6 +12,7 @@ import (
 var (
 	ErrNotAdmin     = errors.New("only an admin can do that")
 	ErrNoInvites    = errors.New("this organization cannot invite people until its admin has confirmed their email address")
+	ErrLapsed       = errors.New("this organization's subscription has ended, so it cannot invite people until an admin renews it")
 	ErrFull         = errors.New("this organization has as many people as it may")
 	ErrCannotInvite = errors.New("that address cannot be invited")
 	ErrLastAdmin    = errors.New("an organization keeps its last admin")
@@ -71,6 +72,9 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 		return "", err
 	}
 	if !quota.Invites {
+		if billing, found, err := s.Billing(slug); err == nil && found && billing.Lapsed() {
+			return "", ErrLapsed
+		}
 		return "", ErrNoInvites
 	}
 	ctx := context.Background()

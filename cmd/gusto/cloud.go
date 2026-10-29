@@ -58,6 +58,9 @@ func cloudCommand() int {
 	}
 	go front.RunDemos(ctx, 15*time.Second)
 	go front.RunLeads(ctx, 30*time.Second)
+	if front.Seats != nil {
+		go front.Seats.Run(ctx, time.Minute)
+	}
 	scaler, err := cellScaler(controller)
 	if err != nil {
 		return fail(err)
@@ -106,6 +109,13 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	limits.Verified.Concurrent = number("GUSTO_CLOUD_CONCURRENT", limits.Verified.Concurrent)
 	limits.Verified.Members = number("GUSTO_CLOUD_MEMBERS", limits.Verified.Members)
 	limits.Verified.Computers = number("GUSTO_CLOUD_COMPUTERS", limits.Verified.Computers)
+	limits.Paid.Jobs = number("GUSTO_CLOUD_PAID_JOBS_PER_SEAT", limits.Paid.Jobs)
+	limits.Paid.Members = number("GUSTO_CLOUD_PAID_MEMBERS", limits.Paid.Members)
+	limits.Paid.Computers = limits.Paid.Members
+	stripe, err := stripeSettings()
+	if err != nil {
+		return nil, nil, err
+	}
 	store, err := cloud.Open(root, cloud.Settings{
 		AllowFreeMail:  os.Getenv("GUSTO_CLOUD_FREE_MAIL") == "allow",
 		RefusedDomains: lowered(values("GUSTO_CLOUD_REFUSED_DOMAINS")),
@@ -144,12 +154,32 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		Leads:      &cloud.LeadHook{URL: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: os.Getenv("GUSTO_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("GUSTO_CLOUD_TURNSTILE_SECRET")},
 		PerAddress: number("GUSTO_CLOUD_PER_ADDRESS", 0), PerMailbox: number("GUSTO_CLOUD_PER_MAILBOX", 0), InAll: number("GUSTO_CLOUD_IN_ALL", 0),
+		Stripe: stripe,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
+	if stripe != nil {
+		front.Seats = cloud.NewSeatSync(store, stripe)
+	}
 	go sweepLinks(store)
 	return front, controller, nil
+}
+
+// stripeSettings is how gusto cloud bills seats, and nil when it bills nothing. Setting some of
+// the three and not all is refused, so a front door never takes payments it cannot hear about.
+func stripeSettings() (*cloud.Stripe, error) {
+	s := &cloud.Stripe{
+		Key: os.Getenv("GUSTO_CLOUD_STRIPE_KEY"), Price: os.Getenv("GUSTO_CLOUD_STRIPE_PRICE"),
+		WebhookSecret: os.Getenv("GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET"), SeatUSD: number("GUSTO_CLOUD_SEAT_USD", 25),
+	}
+	switch {
+	case s.Enabled():
+		return s, nil
+	case s.Key == "" && s.Price == "" && s.WebhookSecret == "":
+		return nil, nil
+	}
+	return nil, errors.New("billing needs GUSTO_CLOUD_STRIPE_KEY, GUSTO_CLOUD_STRIPE_PRICE and GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET together")
 }
 
 // organizationServers is what starts each organization's gusto serve on this machine.
