@@ -29,6 +29,7 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 		"Teams":    view.Teams,
 		"Models":   view.Models,
 		"Projects": view.Projects,
+		"Payers":   payersOf(report.Payers),
 	}
 	budget := s.budgetOf(report.Total.USD)
 	page["Budget"] = budget

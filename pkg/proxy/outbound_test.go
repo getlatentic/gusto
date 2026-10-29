@@ -116,7 +116,7 @@ func TestAHostNotOnTheAllowlistIsRefusedAndRecorded(t *testing.T) {
 		if len(calls) != 1 || calls[0].Denied == "" || calls[0].Host != hostOf(host) || calls[0].Status != 403 {
 			t.Fatalf("tls %t: the record is %+v", tls, calls)
 		}
-		if report := gateway.ledger.Allow("a-job", "", ""); report != nil {
+		if report := gateway.ledger.Allow("a-job", "", "", false); report != nil {
 			t.Fatalf("a refused host was counted as spend: %+v", report)
 		}
 	}
