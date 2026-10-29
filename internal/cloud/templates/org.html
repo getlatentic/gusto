@@ -3,7 +3,10 @@
     {{template "brand"}}
     <form method="post" action="/signout"><button class="rounded-sm border border-line-strong px-3 py-2 text-center text-muted hover:bg-wash hover:text-ink" type="submit">Sign out</button></form>
   </header>
-  <h1 class="text-xl font-semibold">{{.Org.Name}}</h1>
+  <div class="flex items-baseline justify-between gap-3">
+    <h1 class="text-xl font-semibold">{{.Org.Name}}</h1>
+    {{if .Several}}<a class="text-sm text-muted underline hover:text-ink" href="/orgs">Switch organization</a>{{end}}
+  </div>
   {{if .Notice}}<p class="text-sm text-muted" role="status">{{.Notice}}</p>{{end}}
   <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 [&>dd]:wrap-anywhere [&>dt]:text-muted">
     <dt>Address</dt><dd>{{.Address}}</dd>
@@ -34,7 +37,7 @@
     <button class="rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Invite</button>
   </form>
   {{end}}
-  {{if .CanOpen}}<a class="block rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="/open">Open</a>{{end}}
+  {{if .CanOpen}}<a class="block rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="/open?org={{.Org.Slug}}">Open</a>{{end}}
   {{if .Person.Trial}}
   <p class="text-sm text-muted">Confirm your email address to raise this to {{.Verified.Jobs}} a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
   <form method="post" action="/org/verify"><button class="w-full rounded-sm border border-line-strong p-3 text-center text-muted hover:bg-wash hover:text-ink" type="submit">Send the link again</button></form>

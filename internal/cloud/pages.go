@@ -34,8 +34,11 @@ type view struct {
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
 	Token, Action, Button string
-	// The organization page.
-	Org      Org
+	// The organization page, and Several when the person looking is in more organizations than this one.
+	Org     Org
+	Several bool
+	// Orgs are the organizations a person chooses among.
+	Orgs     []Org
 	Person   Person
 	Address  string
 	Quota    quota.Quota

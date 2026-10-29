@@ -64,7 +64,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 			t.Error("the time did not start when the visitor was sent in")
 		}
 		status, page := b.get("/demo/wait")
-		if status != http.StatusOK || !strings.Contains(page, `href="/open"`) || !strings.Contains(page, "left") || !strings.Contains(page, "10 more minutes") {
+		if status != http.StatusOK || !strings.Contains(page, `href="/open?org=`+org.Slug+`"`) || !strings.Contains(page, "left") || !strings.Contains(page, "10 more minutes") {
 			t.Errorf("%d\n%s", status, page)
 		}
 		status, _, header = b.get2("/open")

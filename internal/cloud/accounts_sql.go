@@ -2,39 +2,11 @@ package cloud
 
 import (
 	"context"
-	"io/fs"
 	"os"
-	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
 	"github.com/getlatentic/gusto/internal/quota"
 )
-
-const personColumns = `email, org, role, created, verified, invited_by, last_sign_in`
-
-var personFields = []string{"email", "org", "role", "created", "verified", "invited_by", "last_sign_in"}
-
-func scanPerson(r rowScanner) (Person, error) {
-	var p Person
-	var role string
-	var created dbkit.Time
-	var verified, lastSignIn nullTime
-	if err := r.Scan(&p.Email, &p.Org, &role, &created, &verified, &p.By, &lastSignIn); err != nil {
-		return Person{}, err
-	}
-	p.Role, p.Created, p.Verified, p.LastSignIn = Role(role), created.Time, timeOf(verified), timeOf(lastSignIn)
-	return p, nil
-}
-
-func fetchPerson(ctx context.Context, q dbkit.Querier, email string) (Person, bool, error) {
-	return one(ctx, q, scanPerson, `SELECT `+personColumns+` FROM people WHERE email = ?`, email)
-}
-
-func (s *Store) personArgs(p Person) []any {
-	return []any{p.Email, p.Org, string(p.Role), s.stamp(p.Created), s.when(p.Verified), p.By, s.when(p.LastSignIn)}
-}
-
-var insertPerson = dbkit.Upsert{Table: "people", Columns: personFields, Conflict: []string{"email"}}
 
 const orgColumns = `slug, name, admin, domain, created, is_demo, demo_name, demo_company, demo_ready, demo_expires, demo_extended, demo_stopped`
 
@@ -94,10 +66,13 @@ func (s *Store) create(ctx context.Context, tx dbkit.Tx, person Person, org Org,
 		}
 		return err
 	}
-	if ok, err := inserted(tx.ExecContext(ctx, insertPerson.SQL(1), s.personArgs(person)...)); err != nil || !ok {
+	if ok, err := inserted(tx.ExecContext(ctx, insertAccount.SQL(1), s.accountArgs(person)...)); err != nil || !ok {
 		if err == nil {
 			err = ErrEmailTaken
 		}
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, insertMembership.SQL(1), s.membershipArgs(person)...); err != nil {
 		return err
 	}
 	return s.makeOrgDir(org.Slug, q)
@@ -114,15 +89,6 @@ func (s *Store) makeOrgDir(slug string, q quota.Quota) error {
 	return nil
 }
 
-// Person is the account at an address.
-func (s *Store) Person(email string) (Person, bool, error) {
-	email, err := NormalEmail(email)
-	if err != nil {
-		return Person{}, false, nil
-	}
-	return fetchPerson(context.Background(), s.db, email)
-}
-
 // Org is an organization by its address.
 func (s *Store) Org(slug string) (Org, bool, error) {
 	if ValidSlug(slug) != nil {
@@ -134,32 +100,4 @@ func (s *Store) Org(slug string) (Org, bool, error) {
 // Orgs is every organization there is.
 func (s *Store) Orgs() ([]Org, error) {
 	return collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
-}
-
-// Verify records that a person read the mail sent to them, and lifts their
-// organization's quota when they administer it.
-func (s *Store) Verify(email string) (Person, error) {
-	ctx := context.Background()
-	var person Person
-	var changed bool
-	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
-		var found bool
-		var err error
-		if person, found, err = fetchPerson(ctx, tx, email); err != nil || !found {
-			if err == nil {
-				err = fs.ErrNotExist
-			}
-			return err
-		}
-		if changed = person.Verified.IsZero(); !changed {
-			return nil
-		}
-		person.Verified = s.now().UTC().Truncate(time.Second)
-		_, err = tx.ExecContext(ctx, `UPDATE people SET verified = ? WHERE email = ?`, s.stamp(person.Verified), email)
-		return err
-	})
-	if err != nil || !changed || person.Role != Admin {
-		return person, err
-	}
-	return person, s.setQuota(person.Org, s.set.Limits.Verified)
 }

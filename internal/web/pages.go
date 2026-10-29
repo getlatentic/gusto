@@ -190,7 +190,7 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.keeper.end(r)
 	s.keeper.clear(w, r)
 	if s.front != nil {
-		http.Redirect(w, r, s.front.URL+"/org", http.StatusSeeOther)
+		http.Redirect(w, r, s.front.page("/org", nil), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)

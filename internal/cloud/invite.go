@@ -47,7 +47,7 @@ func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {
 	email, _ := NormalEmail(r.PostFormValue("email"))
-	target, _, _ := s.Store.Person(email)
+	target, _, _ := s.Store.Person(email, person.Org)
 	if err := s.Store.Remove(person.Org, person, email); err != nil {
 		s.drawOrg(w, refusedStatus(err), person, sentence(err))
 		return
@@ -91,11 +91,12 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
+		s.Sessions.Choose(w, person.Org)
 		http.Redirect(w, r, s.afterJoining(person), http.StatusSeeOther)
 	case errors.Is(err, ErrLink), errors.Is(err, ErrFull), errors.Is(err, ErrEmailTaken):
 		text := sentence(err)
 		if errors.Is(err, ErrEmailTaken) {
-			text = "That address already has an account, so sign in instead."
+			text = "That address is in this organization already, so sign in instead."
 		}
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: text})
 	default:

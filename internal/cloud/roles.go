@@ -42,11 +42,11 @@ func (s *Store) setRoleIn(ctx context.Context, tx dbkit.Tx, slug, email string, 
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 		return "", err
 	}
-	target, found, err := fetchPerson(ctx, tx, email)
+	target, found, err := fetchMember(ctx, tx, email, slug)
 	if err != nil {
 		return "", err
 	}
-	if !found || target.Org != slug {
+	if !found {
 		return "", ErrNoMember
 	}
 	if target.Role == role {
@@ -60,6 +60,6 @@ func (s *Store) setRoleIn(ctx context.Context, tx dbkit.Tx, slug, email string, 
 			return "", err
 		}
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE people SET role = ? WHERE email = ?`, string(role), email)
+	_, err = tx.ExecContext(ctx, `UPDATE memberships SET role = ? WHERE email = ? AND org = ?`, string(role), email, slug)
 	return target.Role, err
 }

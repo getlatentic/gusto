@@ -95,7 +95,7 @@ func TestThePeoplePageListsMembersWithRoleLastSignInAndWhatTheySpent(t *testing.
 	if strings.Contains(rowOf(t, page, "bob@acme.com"), "$") || strings.Contains(page, "$9") {
 		t.Errorf("what a token spent was put against a person:\n%s", page)
 	}
-	for _, want := range []string{"dee@acme.com", "Invited", `href="https://cloud.test/org"`} {
+	for _, want := range []string{"dee@acme.com", "Invited", `href="https://cloud.test/org?org=acme-com"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page lacks %q:\n%s", want, page)
 		}

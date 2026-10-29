@@ -224,7 +224,7 @@ func (s *Server) appOrigin(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	if !s.keeper.knows(r) {
-		http.Redirect(w, r, s.front.URL+"/open?app="+id, http.StatusSeeOther)
+		http.Redirect(w, r, s.front.page("/open", url.Values{"app": {id}}), http.StatusSeeOther)
 		return
 	}
 	s.serveApp(w, r, id, "")

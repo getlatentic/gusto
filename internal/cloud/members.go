@@ -40,8 +40,8 @@ func (s *Store) Members(slug string) ([]Person, error) {
 }
 
 func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, error) {
-	return collect(ctx, q, scanPerson, `SELECT `+personColumns+` FROM people WHERE org = ?
-		ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, created, email`, slug)
+	return collect(ctx, q, scanPerson, `SELECT `+personColumns+personFrom+` WHERE m.org = ?
+		ORDER BY CASE WHEN m.role = 'admin' THEN 0 ELSE 1 END, m.created, m.email`, slug)
 }
 
 // Invitations is what an organization has sent that nobody has answered, oldest
@@ -52,9 +52,9 @@ func (s *Store) Invitations(slug string) ([]Invitation, error) {
 
 // Invite makes an invitation for an address, from an admin. It is refused unless the
 // organization may invite, has room for one more person counting those already
-// invited, and the address is not already somebody's here or elsewhere. The refusal
-// for an address that has an account says nothing of whose, so the form is not a way
-// to find out.
+// invited, and the address is not in this organization already. An address that is
+// in another organization is invited like any other, so the form says nothing of
+// who has an account elsewhere.
 func (s *Store) Invite(slug string, by Person, address string) (secret string, err error) {
 	email, err := NormalEmail(address)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 		return "", err
 	}
-	if _, found, err := fetchPerson(ctx, tx, email); err != nil || found {
+	if _, found, err := fetchMember(ctx, tx, email, slug); err != nil || found {
 		if err == nil {
 			err = ErrCannotInvite
 		}
@@ -116,7 +116,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 // have. People and the invitations that are open both count, and an address that is
 // already invited does not count twice.
 func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int, email string) error {
-	members, err := count(ctx, tx, `SELECT count(*) FROM people WHERE org = ?`, slug)
+	members, err := count(ctx, tx, `SELECT count(*) FROM memberships WHERE org = ?`, slug)
 	if err != nil {
 		return err
 	}

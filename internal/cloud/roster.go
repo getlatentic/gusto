@@ -59,18 +59,17 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	return roster.Write(s.RosterFile(slug), list)
 }
 
-// RecordSignIn notes that a person was signed in to their organization's server, and
-// tells the server.
-func (s *Store) RecordSignIn(email string) error {
-	ctx := context.Background()
-	person, found, err := fetchPerson(ctx, s.db, email)
-	if err != nil || !found {
-		return err
-	}
+// RecordSignIn notes that a person was signed in to one of their organizations' servers, and
+// tells that server.
+func (s *Store) RecordSignIn(email, org string) error {
 	at := s.now().UTC().Truncate(time.Second)
-	if _, err := s.db.ExecContext(ctx, `UPDATE people SET last_sign_in = ? WHERE email = ?`, s.stamp(at), person.Email); err != nil {
+	done, err := s.db.ExecContext(context.Background(), `UPDATE memberships SET last_sign_in = ? WHERE email = ? AND org = ?`, s.stamp(at), email, org)
+	if err != nil {
 		return err
 	}
-	s.publishRoster(person.Org)
+	if changed, err := done.RowsAffected(); err != nil || changed == 0 {
+		return err
+	}
+	s.publishRoster(org)
 	return nil
 }

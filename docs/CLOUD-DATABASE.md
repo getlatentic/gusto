@@ -23,7 +23,8 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 | Table | Holds | What guards it |
 | --- | --- | --- |
 | `orgs` | one row for each organization: address (`slug`), name, admin, company domain, and, for a demo, its name, company, ready time, end time, whether it was extended and whether the visitor stopped it | primary key `slug`: two sign-ups cannot take one address |
-| `people` | one row for each address: organization, role, created, verified, who invited them, last sign-in | primary key `email`: an address has one account. Foreign key to `orgs` |
+| `people` | one row for each address: created, verified | primary key `email`: an address has one account and one sign-in |
+| `memberships` | one row for each (address, organization): role, joined, who invited them, last sign-in there | primary key `(email, org)`: a person is in an organization once, and in as many organizations as invite them. Foreign key to `orgs`. Index on `(org, created)` for an organization's people |
 | `invitations` | an unanswered invitation for each (organization, address), with its expiry and the digest of its link | primary key `(org, email)`: inviting again replaces the earlier one |
 | `links` | a single-use link: digest of the secret, address, purpose (`verify`, `signin`, `invite`), expiry, and for an invitation the organization, role and sender | primary key `hash`. The secret itself is never kept |
 | `leads` | one row for each visitor who started a demo, kept after the demo is gone, with `who` (the address without a `+tag`) and `domain` | primary key `slug`. Indexes on `requested`, `(who, requested)` and `(domain, requested)` make the daily counts a range read |
@@ -40,10 +41,10 @@ A rule that checks a count and then writes is a transaction. SQLite takes the wr
 
 | Operation | One step, because |
 | --- | --- |
-| Sign-up: person, organization, address, directory | inserts into `orgs` and `people` that name their conflict. The loser waits for the winner's commit and gets no row, so it reports `ErrSlugTaken` or `ErrEmailTaken`. The directory and `quota.json` are made inside the transaction, after the claims, so only the winner touches them. A directory that is left by a crash holds no address: the next sign-up uses it |
+| Sign-up: person, organization, address, directory | inserts into `orgs` and `people` that name their conflict, then the admin's row in `memberships`. The loser waits for the winner's commit and gets no row, so it reports `ErrSlugTaken` or `ErrEmailTaken`. The directory and `quota.json` are made inside the transaction, after the claims, so only the winner touches them. A directory that is left by a crash holds no address: the next sign-up uses it |
 | Organizations a company's domain may have unconfirmed | lock `domain:<domain>` around the count and the insert |
 | Using a link once | `DELETE FROM links WHERE hash = ? RETURNING …`. A row has one deleter, so one request gets it. A link used for the wrong purpose, or after its time, is spent by the try, as before |
-| Accepting an invitation | the organization is locked, the link is deleted, the room is counted again, the person is inserted. A refusal after the link was spent (`ErrFull`, `ErrEmailTaken`) is returned after the transaction commits, so the link stays spent |
+| Accepting an invitation | the organization is locked, the link is deleted, the room is counted again, the membership is inserted, and the account too when the address has none. A refusal after the link was spent (`ErrFull`, or `ErrEmailTaken` for a person already in the organization) is returned after the transaction commits, so the link stays spent |
 | Inviting: room counts people and open invitations | lock `org:<slug>` |
 | Role changes and removals: an organization keeps its last admin | lock `org:<slug>` around the admin count and the change, so two admins cannot remove each other |
 | Demo limits: day, address, company, at once | lock `demos` around the counts and the insert. The counts are read from `leads`, so they hold after a demo is deleted |

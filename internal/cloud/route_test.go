@@ -43,7 +43,7 @@ func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testin
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open"`) || strings.Contains(page, "http-equiv") {
+		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open?org=acme-com"`) || strings.Contains(page, "http-equiv") {
 			t.Errorf("the server is ready and can be opened:\n%s", page)
 		}
 	})

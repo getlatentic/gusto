@@ -116,7 +116,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		t.Fatalf("the fourth task is over the trial, and the refusal says how to lift it: %v", err)
 	}
 
-	if _, err := front.Store.Verify("ada@acme.com"); err != nil {
+	if err := front.Store.Verify("ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(1100 * time.Millisecond)

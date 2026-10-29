@@ -170,7 +170,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 				t.Fatalf("opening the link should ask for a press: %d\n%s", status, page)
 			}
 		}
-		if person, _, _ := f.store.Person("ada@acme.com"); !person.Trial() {
+		if person, _, _ := f.store.only("ada@acme.com"); !person.Trial() {
 			t.Fatal("opening the link verified the address")
 		}
 
@@ -179,7 +179,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 		if status != http.StatusSeeOther || header.Get("Location") != "/org" {
 			t.Fatalf("%d %v", status, header)
 		}
-		if person, _, _ := f.store.Person("ada@acme.com"); person.Trial() {
+		if person, _, _ := f.store.only("ada@acme.com"); person.Trial() {
 			t.Error("pressing the button should verify the address")
 		}
 		if quota, _ := f.store.Quota("acme-com"); quota != DefaultLimits().Verified {

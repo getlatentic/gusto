@@ -36,7 +36,7 @@ type inviteRow struct {
 func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	page := map[string]any{"Title": productName + " — people"}
 	if s.front != nil {
-		page["Manage"] = s.front.URL + "/org"
+		page["Manage"] = s.front.page("/org", nil)
 	}
 	list, err := roster.Read(s.rosterPath)
 	if err != nil {
