@@ -25,3 +25,28 @@ func TestAModelSaysWhatTheBenchmarkSawTheAgentDoWithIt(t *testing.T) {
 		t.Errorf("%q", got)
 	}
 }
+
+// The new agent dialog offers every agent type that can run, and says under each what the benchmark saw it do with the models
+// offered here: its quickest finish, or that it finished on none of those it was tried with.
+func TestEachAgentTypeSaysHowItDidOnTheModelsOfferedHere(t *testing.T) {
+	quick, slow := 27.0, 41.0
+	entries := []catalog.Entry{
+		{Name: "pi", Measured: []catalog.Measured{
+			{Model: "gemma/big", Finished: true, WallSeconds: &slow},
+			{Model: "gemma/fast", Finished: true, WallSeconds: &quick},
+			{Model: "elsewhere", Finished: true, WallSeconds: &quick},
+		}},
+		{Name: "dsh", Measured: []catalog.Measured{{Model: "gemma/big", Finished: false}, {Model: "gemma/fast", Finished: false}, {Model: "elsewhere", Finished: true}}},
+		{Name: "codex"},
+	}
+	kinds := kindsFor(entries, []string{"gemma/big", "gemma/fast"})
+	want := []struct {
+		words  string
+		failed bool
+	}{{"Finished our test in 27s", false}, {"Did not finish our test on the models here", true}, {"", false}}
+	for i, each := range want {
+		if kinds[i].Measured != each.words || kinds[i].Failed != each.failed || kinds[i].Name != entries[i].Name {
+			t.Errorf("%s: %q %v, want %q %v", entries[i].Name, kinds[i].Measured, kinds[i].Failed, each.words, each.failed)
+		}
+	}
+}
