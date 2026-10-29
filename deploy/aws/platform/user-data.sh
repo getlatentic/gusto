@@ -29,6 +29,7 @@ exec > >(tee -a "${GUSTO_BOOTSTRAP_LOG:-/var/log/gusto-bootstrap.log}") 2>&1
 # is meant to stay up is not, since it is looked at and started again rather than lost.
 if [ "$LIVE" != on ]; then
   systemd-run --on-active="${MAX_HOURS}h" --unit=gusto-deadman systemctl poweroff
+  # The trap is inherited by functions and subshells, so work in the background must never fail: see in_background.
   trap 'echo "gusto-bootstrap: failed, so the host powers off in 15 minutes"; systemd-run --on-active=15m --unit=gusto-failed systemctl poweroff' ERR
 fi
 
@@ -89,14 +90,19 @@ PY
 # A sandbox reads the whole runner image it is made from to start, about a gigabyte with the files beside it, which a host
 # that has just started has nowhere but on the disk: the first sandbox of a kept host took 14.6 s against 7.9 s for the next.
 # They are read into memory on every start, at idle priority.
+# A host whose agents run in containers has none of them.
 warm_the_cache() {
   local lib=${GUSTO_WARM_DIR:-/var/lib/gusto} images=${GUSTO_WARM_IMAGES:-/var/lib/openshell-xdg/openshell/vm-driver/images}
-  idle find "$lib/runner-all-rootfs.tar.gz" "$images/overlay-templates" "$images"/sandbox-bootstrap-* "$images/../host-runtime" \
-    -type f -exec cat {} + > /dev/null
+  local path found=()
+  for path in "$lib/runner-all-rootfs.tar.gz" "$images/overlay-templates" "$images"/sandbox-bootstrap-* "$images/../host-runtime"; do
+    if [ -e "$path" ]; then found+=("$path"); fi
+  done
+  if [ ${#found[@]} -gt 0 ]; then idle find "${found[@]}" -type f -exec cat {} + > /dev/null; fi
 }
-# GUSTO_WARM_WAIT=on reads in the foreground, so that nothing is still writing when the script returns, which a test needs.
+# The reading is best effort, and its failing is not the host failing to start. GUSTO_WARM_WAIT=on reads in the foreground, so that
+# nothing is still writing when the script returns, which a test needs.
 in_background() {
-  if [ "${GUSTO_WARM_WAIT:-}" = on ]; then "$@" > /dev/null 2>&1 || true; else "$@" > /dev/null 2>&1 & fi
+  if [ "${GUSTO_WARM_WAIT:-}" = on ]; then { "$@" || true; } > /dev/null 2>&1; else { "$@" || true; } > /dev/null 2>&1 & fi
 }
 if [ -e "$baked_marker" ]; then
   in_background warm_the_cache

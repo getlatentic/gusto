@@ -611,3 +611,23 @@ func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *t
 		t.Errorf("the script is %d bytes filled in, and EC2's limit is %d with %d left for what is added: move something into the bundle", len(filled), limit, room)
 	}
 }
+
+// The disk is read in the background, after the script has gone on, and a host whose agents run in containers has none of what is
+// read for virtual machines. Nothing of that reading may schedule the host to go: a cell that did powered off fifteen minutes after
+// every start, with the organizations on it.
+func TestReadingTheDiskInTheBackgroundNeverSchedulesTheHostToGo(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	marker := filepath.Join(b.dir, "baked")
+	os.WriteFile(marker, []byte("key\n"), 0o644)
+	os.WriteFile(filepath.Join(b.dir, ".warmed-i-0test"), nil, 0o644)
+	empty := t.TempDir()
+	if _, err := b.run("GUSTO_BAKED="+marker, "GUSTO_WARM_WAIT=", "GUSTO_WARM_DIR="+empty, "GUSTO_WARM_IMAGES="+empty); err != nil {
+		t.Fatal(err)
+	}
+	// What is read is nothing, so the background is done within milliseconds; the wait is generous.
+	time.Sleep(2 * time.Second)
+	if text, _ := os.ReadFile(b.log); strings.Contains(string(text), "gusto-failed") {
+		t.Errorf("a host that started is scheduled to go:\n%s", text)
+	}
+}
