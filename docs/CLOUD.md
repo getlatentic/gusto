@@ -43,6 +43,9 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 | `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
 | `GUSTO_CLOUD_SERVERS` | `off` runs gusto cloud with accounts and no organization servers |
 | `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
+| `GUSTO_CLOUD_STRIPE_KEY`, `GUSTO_CLOUD_STRIPE_PRICE`, `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET` | bill organizations by the seat ([Billing](#billing)): the secret API key, the monthly price of one seat, and the webhook's signing secret. All three or none. Keep the key and the secret where secrets are kept |
+| `GUSTO_CLOUD_SEAT_USD` | the seat's price the organization page shows, 25 by default |
+| `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`, `GUSTO_CLOUD_PAID_MEMBERS` | a paying organization's tasks a month for each seat, 200, and the people and workspaces it may have, 50 |
 
 ## Accounts and sign-up
 
@@ -81,6 +84,19 @@ An admin with a confirmed address invites people from the organization's page. A
 An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server stops trusting them, and a changed role takes effect, within the hour.
 
 gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
+
+## Billing
+
+With the Stripe settings set, an organization pays $25 a month for each person in it. A demo is never billed.
+
+- An admin presses Subscribe on the organization page and pays on Stripe's Checkout page, for a seat for each member. The organization's slug goes on the subscription.
+- Stripe sends `customer.subscription.*` events to `/stripe/webhook`. An event is believed only with a `v1` signature from the webhook secret, made in the last five minutes. An event older than the one kept changes nothing, so events can arrive in any order or twice.
+- A subscription that is `active`, `trialing` or `past_due` gives the paid quota: `GUSTO_CLOUD_PAID_JOBS_PER_SEAT` tasks a month for each seat. `past_due` is the grace while Stripe tries the card again. One that is `canceled`, `unpaid`, `paused` or `incomplete_expired` starts no new task and invites nobody. It keeps its people, workspaces and work, and an admin renews it by subscribing again. With no subscription an organization stays on the trial and verified limits.
+- The seats billed follow the members. Joining or being removed wakes the seat sync, which also runs every minute, and Stripe prorates the change. A change Stripe refuses is tried again on the next run.
+- An admin opens Stripe's portal from "Card, invoices and plan" to change the card, read invoices or end the subscription.
+- A second subscription for an organization that already pays, from two tabs, is not kept and is logged, for the operator to refund.
+
+In Stripe, make a product with a monthly per-unit price and give its id as `GUSTO_CLOUD_STRIPE_PRICE`. Add a webhook endpoint at `<GUSTO_CLOUD_URL>/stripe/webhook` that sends the `customer.subscription.created`, `.updated`, `.deleted`, `.paused` and `.resumed` events, and turn on the customer portal.
 
 ## Workspaces
 

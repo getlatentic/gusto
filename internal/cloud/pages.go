@@ -37,6 +37,8 @@ type view struct {
 	// The organization page, and Several when the person looking is in more organizations than this one.
 	Org     Org
 	Several bool
+	// Plan is how the organization pays, when this front door bills.
+	Plan *plan
 	// Orgs are the organizations a person chooses among.
 	Orgs     []Org
 	Person   Person

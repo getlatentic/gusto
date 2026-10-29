@@ -116,8 +116,8 @@ func (s *Store) HasAccount(email string) (bool, error) {
 	return hasAccount(context.Background(), s.db, email)
 }
 
-// Verify records that a person read the mail sent to them, and lifts the quota of each organization they
-// administer the first time.
+// Verify records that a person read the mail sent to them, and the first time works out again the quota of
+// each organization they administer, which takes an organization that does not pay off the trial.
 func (s *Store) Verify(email string) error {
 	ctx := context.Background()
 	var administers []Person
@@ -145,7 +145,7 @@ func (s *Store) Verify(email string) error {
 		return err
 	}
 	for _, each := range administers {
-		if err := s.setQuota(each.Org, s.set.Limits.Verified); err != nil {
+		if err := s.ApplyQuota(each.Org); err != nil {
 			return err
 		}
 	}

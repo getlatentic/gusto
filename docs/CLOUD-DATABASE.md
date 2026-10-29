@@ -28,6 +28,7 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 | `invitations` | an unanswered invitation for each (organization, address), with its expiry and the digest of its link | primary key `(org, email)`: inviting again replaces the earlier one |
 | `links` | a single-use link: digest of the secret, address, purpose (`verify`, `signin`, `invite`), expiry, and for an invitation the organization, role and sender | primary key `hash`. The secret itself is never kept |
 | `leads` | one row for each visitor who started a demo, kept after the demo is gone, with `who` (the address without a `+tag`) and `domain` | primary key `slug`. Indexes on `requested`, `(who, requested)` and `(domain, requested)` make the daily counts a range read |
+| `billing` | an organization's Stripe subscription as the newest event said: customer, subscription, item, status, seats billed, the event's time | primary key `org`, foreign key to `orgs`. An event older than `event_at` is not kept |
 | `runtime` | where an organization's server is: state, cell, the two ports, error, restarts | primary key `slug`. Unique `(cell, port)` and `(cell, proxy_port)` where the port is set: two organizations on a cell cannot be given one port, even by two front doors |
 | `settings` | `demo_limits` (the owner's limits), `demos_paused` (present means paused), `session_key` (the key that signs cookies) | primary key `key` |
 | `rate_events` | one row for each event the abuse limits count, with the time it stops counting | `(key, until)` index. Swept with the links |
