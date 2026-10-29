@@ -236,10 +236,21 @@ func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
 	return true
 }
 
-// demoLeaseJSON says how long a demo has, for the banner on each of its pages, and where to extend it and book a call.
+// demoLeaseJSON says how long a demo has, for the banner on each of its pages, and where to extend it and book a call. A demo
+// that has ended says so, so a page still open on it goes to the page that says it has ended.
 func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 	demo, left, found := s.Store.DemoLeft(slug)
-	if !found || demo.Expires.IsZero() {
+	if !found {
+		lead, led := s.Store.LeadOf(slug)
+		if !led || lead.Ended.IsZero() {
+			return false
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		fmt.Fprintln(w, `{"seconds":0,"demo":true,"ended":true}`)
+		return true
+	}
+	if demo.Expires.IsZero() {
 		return false
 	}
 	w.Header().Set("Content-Type", "application/json")
