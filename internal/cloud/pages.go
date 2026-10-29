@@ -85,6 +85,10 @@ type view struct {
 	// StartingCredit an organization begins with.
 	DemoPublic     bool
 	StartingCredit float64
+	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
+	// for it.
+	BookFrame string
+	Wide      bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.

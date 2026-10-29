@@ -20,7 +20,12 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 	}
 	page := view{Title: demoFormTitle, Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length}
 	if !s.Store.set.Demo.Public() && r.URL.Query().Get("team") == "" {
-		page.Title = bookDemoTitle
+		page.Title, page.Wide = bookDemoTitle, true
+		var origins []string
+		page.BookFrame, origins = bookingFrame(page.Book)
+		if page.BookFrame != "" {
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; frame-src "+strings.Join(origins, " "))
+		}
 		s.render(w, http.StatusOK, "demo-book", s.seen(page, "/demo", "Book a demo of "+siteName+" with the team, or create your organization and try it now."))
 		return
 	}
