@@ -19,6 +19,11 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := view{Title: demoFormTitle, Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length}
+	if !s.Store.set.Demo.Public() && r.URL.Query().Get("team") == "" {
+		page.Title = bookDemoTitle
+		s.render(w, http.StatusOK, "demo-book", s.seen(page, "/demo", "Book a demo of "+siteName+" with the team, or create your organization and try it now."))
+		return
+	}
 	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working in workspaces of their own, and nothing to sign up for."))
 }
 
@@ -60,6 +65,10 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 			Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
 	}
 
+	if !s.Store.set.Demo.MayStart(email) {
+		again(http.StatusForbidden, "Demos are given by the gusto team. Book one, or create your organization to try gusto now.")
+		return
+	}
 	if !s.all.Allow("demo") {
 		again(http.StatusServiceUnavailable, "Demos are busy right now. Try again in a little while, or book a call.")
 		return
@@ -252,7 +261,7 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 // to start a demo or book a call.
 func (s *Server) landing(w http.ResponseWriter) {
 	demo := s.Store.set.Demo
-	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL}
+	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL, DemoPublic: demo.Public(), StartingCredit: StartingCredit}
 	description := landingDescription(page)
 	page = s.seen(page, "/", description)
 	page.LD = s.structured(description)

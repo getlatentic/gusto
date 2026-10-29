@@ -12,6 +12,7 @@ const (
 	siteName        = "gusto"
 	landingTitle    = siteName + " — one place for every AI agent your team needs"
 	demoFormTitle   = "Start a demo of " + siteName
+	bookDemoTitle   = "Book a demo of " + siteName
 	organizationURL = "https://getlatentic.com"
 )
 
@@ -24,7 +25,11 @@ func (s *Server) seen(page view, path, description string) view {
 
 // landingDescription is what the landing page says it is, for the page's description and for a link to it.
 func landingDescription(page view) string {
-	return "Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight. Try it for " + minutes(page.DemoLeft) + "."
+	about := "Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight."
+	if page.DemoPublic {
+		return about + " Try it for " + minutes(page.DemoLeft) + "."
+	}
+	return about + " Free to start."
 }
 
 // structured is what the landing page says about who makes it and what it is, as data a search engine reads. It says only what the

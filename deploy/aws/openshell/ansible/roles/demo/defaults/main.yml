@@ -66,6 +66,9 @@ demo_lead_hook_url_parameter: /gusto/poc/lead-hook-url
 demo_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
 demo_visitor_max: 5
 demo_book_url: ""
+# The addresses and domains, comma-separated, whose people alone may start a demo, which then is a sales call and not open to
+# visitors, who sign up instead. Empty is anyone.
+demo_staff: ""
 # An https address of a video file, or of a page that may be embedded, which the landing page shows.
 demo_video_url: ""
 # Mailed when a visitor starts a demo. Nothing is sent when it is empty.

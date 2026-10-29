@@ -2,6 +2,8 @@ package cloud
 
 import (
 	"errors"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/quota"
@@ -27,10 +29,26 @@ type DemoSettings struct {
 	// PerPerson is the most demos one address may start in a day, and PerCompany the most that one company's addresses
 	// may: a day is the last twenty-four hours. A visitor who has had them is asked to book a call. Zero is no limit.
 	PerPerson, PerCompany int
+	// Staff are the addresses, and the domains, whose people may start a demo, in lower case. A host with staff gives demos
+	// as a sales call and not to visitors, who sign up instead; with none, anyone may start one.
+	Staff []string
 }
 
 // Enabled says the front door offers a demo.
 func (d DemoSettings) Enabled() bool { return d.Length > 0 }
+
+// Public says a visitor may start a demo, rather than only the host's staff.
+func (d DemoSettings) Public() bool { return len(d.Staff) == 0 }
+
+// MayStart says whether the person at an address may start a demo.
+func (d DemoSettings) MayStart(address string) bool {
+	if d.Public() {
+		return true
+	}
+	address = strings.ToLower(strings.TrimSpace(address))
+	_, domain, found := strings.Cut(address, "@")
+	return found && domain != "" && (slices.Contains(d.Staff, address) || slices.Contains(d.Staff, domain))
+}
 
 func (d DemoSettings) patience() time.Duration {
 	if d.Patience > 0 {

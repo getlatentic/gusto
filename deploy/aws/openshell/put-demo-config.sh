@@ -22,6 +22,7 @@ print(json.dumps({
     "demo_book_url": os.environ.get("DEMO_BOOK_URL", ""),
     "demo_video_url": os.environ.get("DEMO_VIDEO_URL", ""),
     "demo_notify": os.environ.get("DEMO_NOTIFY", ""),
+    "demo_staff": os.environ.get("DEMO_STAFF", ""),
 }))
 PY
 )"

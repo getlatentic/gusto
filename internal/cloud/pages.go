@@ -81,6 +81,10 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
+	// DemoPublic says a visitor may start a demo; where only the team gives them, the landing page leads to sign-up, with the
+	// StartingCredit an organization begins with.
+	DemoPublic     bool
+	StartingCredit float64
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
