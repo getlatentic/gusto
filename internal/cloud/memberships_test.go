@@ -2,10 +2,12 @@ package cloud
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -252,6 +254,43 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 		}
 		if _, page := ada.get("/org"); strings.Contains(page, `href="/orgs"`) {
 			t.Errorf("a person in one organization is offered no switch:\n%s", page)
+		}
+	})
+}
+
+// The switcher on an organization's pages asks the front door for the person's organizations. Only an
+// organization's own address is told it may read the answer with the person's cookie.
+func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := withServers(t)
+		ada := f.verifiedAdmin("ada@acme.com", "Acme")
+		f.verifiedAdmin("eve@globex.com", "Globex")
+		f.verifiedAdmin("ned@initech.com", "Initech")
+		f.invitedAndJoined(ada, "eve@globex.com")
+		eve := f.signInByLink("eve@globex.com")
+
+		status, body, header := eve.do("GET", "/orgs.json", nil, map[string]string{"Origin": "http://globex-com.cloud.test"})
+		var answer struct{ Orgs []switchable }
+		if err := json.Unmarshal([]byte(body), &answer); status != http.StatusOK || err != nil {
+			t.Fatalf("%d %v %s", status, err, body)
+		}
+		want := []switchable{
+			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com"},
+			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com"},
+		}
+		if !slices.Equal(answer.Orgs, want) {
+			t.Errorf("their own organizations, each opened through the front door: %+v", answer.Orgs)
+		}
+		if header.Get("Access-Control-Allow-Origin") != "http://globex-com.cloud.test" || header.Get("Access-Control-Allow-Credentials") != "true" {
+			t.Errorf("an organization's page may read it: %v", header)
+		}
+		for _, origin := range []string{"http://globex-com--0123456789.cloud.test", "https://globex-com.cloud.test", "http://cloud.test.evil.example", "http://evil.example"} {
+			if _, _, header := eve.do("GET", "/orgs.json", nil, map[string]string{"Origin": origin}); header.Get("Access-Control-Allow-Origin") != "" {
+				t.Errorf("%s may not read it: %v", origin, header)
+			}
+		}
+		if status, _, _ := f.browser().do("GET", "/orgs.json", nil, map[string]string{"Origin": "http://globex-com.cloud.test"}); status != http.StatusUnauthorized {
+			t.Errorf("somebody signed out is told nothing: %d", status)
 		}
 	})
 }
