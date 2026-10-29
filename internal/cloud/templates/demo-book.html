@@ -1,8 +1,11 @@
 {{define "demo-book"}}{{template "head" .}}
   {{template "brand"}}
-  <h1 class="text-xl font-semibold">Book a demo</h1>
-  <p class="text-sm text-muted">Someone from the gusto team runs it with you on a call: agents of several vendors at work in one room, and the controls your organization keeps over them.</p>
-  {{if .Book}}<a class="block rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="{{.Book}}">Book a demo</a>{{end}}
-  <p class="text-center text-sm text-muted">Or <a class="underline" href="/signup">create your organization</a> and try gusto now.</p>
-  <p class="text-center text-xs text-muted"><a class="underline" href="/demo?team=1">gusto team: start a demo</a></p>
+  <div class="grid gap-2">
+    <h1 class="text-xl font-semibold">Book a demo</h1>
+    <p class="max-w-[40rem] text-sm text-muted">Someone from the gusto team runs it with you on a call: agents of several vendors at work in one room, and the controls your organization keeps over them.</p>
+  </div>
+  {{with .BookFrame}}<iframe class="block h-[44rem] w-full rounded-md border border-line bg-surface" src="{{.}}" title="Pick a time for a demo of gusto" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  {{else}}{{if .Book}}<a class="block max-w-[26rem] rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="{{.Book}}">Book a demo</a>{{end}}{{end}}
+  <p class="text-sm text-muted">Or <a class="underline" href="/signup">create your organization</a> and try gusto now.{{if .BookFrame}} The calendar not loading? <a class="underline" href="{{.Book}}">Open it on its own page</a>.{{end}}</p>
+  <p class="text-xs text-muted"><a class="underline" href="/demo?team=1">gusto team: start a demo</a></p>
 {{template "foot"}}{{end}}

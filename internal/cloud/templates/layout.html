@@ -16,7 +16,7 @@
 {{if .Lease}}<script src="{{asset "/static/lease.js"}}" defer data-extend="/lease"></script>{{end}}
 </head>
 <body class="grid min-h-dvh place-items-center text-md leading-[1.55]">
-<main class="grid w-[min(26rem,calc(100vw-2rem))] grid-cols-[minmax(0,1fr)] gap-6 rounded-lg bg-surface p-8 shadow-2 max-[26rem]:p-5">
+<main class="grid {{if .Wide}}w-[min(64rem,calc(100vw-2rem))]{{else}}w-[min(26rem,calc(100vw-2rem))]{{end}} grid-cols-[minmax(0,1fr)] gap-6 rounded-lg bg-surface p-8 shadow-2 max-[26rem]:p-5">
 {{end}}
 
 {{define "brand"}}<div class="flex items-center gap-3 font-display text-lg leading-none font-semibold tracking-[-0.01em]"><img class="h-auto w-7" src="/static/mark.png" alt=""> gusto</div>{{end}}
