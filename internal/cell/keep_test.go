@@ -94,7 +94,7 @@ func TestAKeptHostIsTaggedStartedWithTodaysScriptEncodedAndStopped(t *testing.T)
 				if args[2] == "--instance-ids" {
 					return []byte("vol-0aaa1111\n"), nil
 				}
-				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\tstopped\ton\ni-0bbb2222\t2026-10-01T09:05:00+00:00\tstopping\tNone\n"), nil
+				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\tstopped\ton\tami-0aaa1111\ni-0bbb2222\t2026-10-01T09:05:00+00:00\tstopping\tNone\tami-0aaa1111\n"), nil
 			case "describe-volumes":
 				return []byte("500\n"), nil
 			case "run-instances":
@@ -228,5 +228,70 @@ func TestAKeptHostThatWasJustStoppedIsNotSweptAway(t *testing.T) {
 	r.tick(time.Minute)
 	if len(r.hosts.terminated) != 0 || len(r.hosts.stopped) != 1 {
 		t.Errorf("the kept host stays stopped: terminated %v, stopped %+v", r.hosts.terminated, r.hosts.stopped)
+	}
+}
+
+// A kept host made from an image that is no longer the current one is removed, and a new host made from the current image, rather
+// than started again: on its way up it would run the whole set-up, which once left it a disk it could not boot from.
+func TestAKeptHostOfAnOlderImageIsReplacedRatherThanStartedAgain(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.image = "ami-0new22222"
+	r.hosts.stopped = []Instance{{ID: "i-0old00000", Launched: clockNow.Add(-time.Hour), Kept: true, Stopped: true, Image: "ami-0old11111"}}
+	r.hosts.next = "i-0aaa1111"
+	r.waiting = 1
+	r.tick(0)
+	if r.hosts.started != 0 || r.hosts.launched != 1 || !slices.Contains(r.hosts.terminated, "i-0old00000") {
+		t.Fatalf("started %d, launched %d, terminated %v", r.hosts.started, r.hosts.launched, r.hosts.terminated)
+	}
+	if !r.hosts.hosts[0].Kept {
+		t.Error("the new host takes the kept place")
+	}
+}
+
+func TestTheSweepRemovesAKeptHostOfAnOlderImageAndLeavesOneOfTheCurrent(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.image = "ami-0new22222"
+	r.hosts.stopped = []Instance{{ID: "i-0old00000", Kept: true, Stopped: true, Image: "ami-0old11111"}}
+	r.tick(0)
+	if !slices.Contains(r.hosts.terminated, "i-0old00000") {
+		t.Errorf("the kept host of an older image is still there: %v", r.hosts.terminated)
+	}
+	r = scaling(t)
+	r.scaler.Keep = 1
+	r.hosts.image = "ami-0new22222"
+	r.hosts.stopped = []Instance{{ID: "i-0cur00000", Kept: true, Stopped: true, Image: "ami-0new22222"}}
+	r.tick(0)
+	if len(r.hosts.terminated) != 0 {
+		t.Errorf("the kept host of the current image was removed: %v", r.hosts.terminated)
+	}
+	// An image that cannot be read makes no host out of date.
+	r.hosts.image = ""
+	r.hosts.stopped = append(r.hosts.stopped, Instance{ID: "i-0old00000", Kept: true, Stopped: true, Image: "ami-0old11111"})
+	r.scaler.Keep = 2
+	r.tick(time.Minute)
+	if len(r.hosts.terminated) != 0 {
+		t.Errorf("%v", r.hosts.terminated)
+	}
+}
+
+func TestTheCurrentImageIsReadFromTheTemplatesParameter(t *testing.T) {
+	var asked string
+	answer := "ami-0abc12345\n"
+	e := &EC2{ImageParameter: "/gusto/poc/cell-ami", Run: func(args ...string) ([]byte, error) {
+		asked = strings.Join(args, " ")
+		return []byte(answer), nil
+	}}
+	image, err := e.CurrentImage()
+	if err != nil || image != "ami-0abc12345" || asked != "ssm get-parameter --name /gusto/poc/cell-ami --query Parameter.Value --output text" {
+		t.Fatalf("%q %v %q", image, err, asked)
+	}
+	answer = "None\n"
+	if _, err := e.CurrentImage(); err == nil {
+		t.Error("a parameter that names no image was taken")
+	}
+	if image, err := (&EC2{}).CurrentImage(); image != "" || err != nil {
+		t.Errorf("with no parameter the image is not known: %q %v", image, err)
 	}
 }

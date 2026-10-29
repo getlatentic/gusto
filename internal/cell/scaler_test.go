@@ -22,7 +22,10 @@ type fakeHosts struct {
 	lowered    []string
 	failLaunch error
 	next       string
+	image      string
 }
+
+func (f *fakeHosts) CurrentImage() (string, error) { return f.image, nil }
 
 func (f *fakeHosts) Launch(kept bool) (string, error) {
 	if f.failLaunch != nil {
@@ -272,7 +275,7 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 				}
 			}
 			if args[1] == "describe-instances" {
-				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\trunning\tNone\ni-0bbb2222\t2026-10-01T09:05:00.000Z\tpending\ton\nnot a line\n"), nil
+				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\trunning\tNone\tami-0aaa1111\ni-0bbb2222\t2026-10-01T09:05:00.000Z\tpending\ton\tami-0bbb2222\nnot a line\n"), nil
 			}
 			return []byte("i-0aaa1111\n"), nil
 		}}
@@ -287,7 +290,7 @@ func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccept
 		}
 	}
 	hosts, err := e.Running()
-	if err != nil || len(hosts) != 2 || hosts[0].ID != "i-0aaa1111" || hosts[1].Launched.Minute() != 5 {
+	if err != nil || len(hosts) != 2 || hosts[0].ID != "i-0aaa1111" || hosts[1].Launched.Minute() != 5 || hosts[1].Image != "ami-0bbb2222" {
 		t.Errorf("%+v %v", hosts, err)
 	}
 	if !strings.Contains(strings.Join(ran[1], " "), "Name=tag:scaler,Values=on") {
@@ -326,13 +329,14 @@ func freePort(t *testing.T) int {
 // launches is a launcher that says on a channel when it starts a host.
 type launches struct{ started chan string }
 
-func (l launches) Launch(bool) (string, error)  { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
-func (l launches) Terminate(string) error       { return nil }
-func (l launches) Running() ([]Instance, error) { return nil, nil }
-func (l launches) Stopped() ([]Instance, error) { return nil, nil }
-func (l launches) Start(string) error           { return nil }
-func (l launches) Stop(string) error            { return nil }
-func (l launches) LowerDisk(string) error       { return nil }
+func (l launches) Launch(bool) (string, error)   { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
+func (l launches) Terminate(string) error        { return nil }
+func (l launches) Running() ([]Instance, error)  { return nil, nil }
+func (l launches) Stopped() ([]Instance, error)  { return nil, nil }
+func (l launches) Start(string) error            { return nil }
+func (l launches) Stop(string) error             { return nil }
+func (l launches) LowerDisk(string) error        { return nil }
+func (l launches) CurrentImage() (string, error) { return "", nil }
 
 func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
 	var waiting atomic.Int32

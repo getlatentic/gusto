@@ -47,6 +47,8 @@ demo_bundle_dir: /opt/gusto-bundle
 # The start-up script a cell is made from, where the front door can read it: the bundle is root's.
 demo_cell_userdata: /usr/local/lib/gusto/user-data.sh
 demo_cell_template: gusto-poc-demo-host-cell-live
+# The parameter that template reads its image from, so a kept cell of an older image is replaced rather than started again.
+demo_cell_image_parameter: /gusto/poc/cell-ami
 demo_cell_max: 3
 demo_cell_idle_minutes: 10
 # The most cells a day started for visitors who began the demo form, before they sent it.
