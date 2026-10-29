@@ -29,15 +29,15 @@ func TestARoomSaysWhoseEachAgentIs(t *testing.T) {
 		who          string
 		scout, atlas string
 	}{
-		{alice, "your agent", "bob's agent"},
-		{bob, "alice's agent", "your agent"},
+		{alice, "your agent", "Bob's agent"},
+		{bob, "Alice's agent", "your agent"},
 	} {
 		page := html.UnescapeString(site.as(t, view.who).ask(t, "GET", thread, nil).Body.String())
 		for _, want := range []string{
 			`>does Scout</span><span class="flex-none text-subtle">· ` + view.scout + `<`,
 			`>does Atlas</span><span class="flex-none text-subtle">· ` + view.atlas + `<`,
-			`data-agent-owner="` + alice + `" data-yours="· your agent" data-theirs="· alice's agent">· ` + view.scout + `<`,
-			`data-agent-owner="` + bob + `" data-yours="· your agent" data-theirs="· bob's agent">· ` + view.atlas + `<`,
+			`data-agent-owner="` + alice + `" data-yours="· your agent" data-theirs="· Alice's agent">· ` + view.scout + `<`,
+			`data-agent-owner="` + bob + `" data-yours="· your agent" data-theirs="· Bob's agent">· ` + view.atlas + `<`,
 			`"name":"Scout","role":"does Scout","owner":"` + view.scout + `"`,
 			`"name":"Atlas","role":"does Atlas","owner":"` + view.atlas + `"`,
 		} {

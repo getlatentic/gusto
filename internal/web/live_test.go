@@ -313,7 +313,7 @@ func TestTypingInARoomIsShownToTheOthersAndNotKept(t *testing.T) {
 		}
 		var typing roomlive.Typing
 		if p.Channel == roomlive.LiveChannel(l.id) && json.Unmarshal(p.Data, &typing) == nil && typing.Type == roomlive.FrameTyping {
-			if typing.Who != bob || typing.Name != "bob" {
+			if typing.Who != bob || typing.Name != "Bob" {
 				t.Fatalf("typing from %+v", typing)
 			}
 			break
