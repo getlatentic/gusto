@@ -1,6 +1,7 @@
 package spend
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -28,11 +29,11 @@ func TestAJobCapRefusesOnceItIsSpent(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(0.5)})
 	ledger.Count("a-job", answered(0.3, september))
-	if refusal := ledger.Allow("a-job", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("refused under the cap: %+v", refusal)
 	}
 	ledger.Count("a-job", answered(0.3, september))
-	refusal := ledger.Allow("a-job", "", "fixture-model")
+	refusal := ledger.Allow("a-job", "", "fixture-model", false)
 	if refusal == nil || refusal.Cap != "job" || refusal.LimitUSD != 0.5 || refusal.SpentUSD != 0.6 {
 		t.Fatalf("refusal %+v", refusal)
 	}
@@ -42,11 +43,11 @@ func TestAZeroCapAllowsNothingAndNoCapAllowsEverything(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("nothing", Terms{CapUSD: dollars(0)})
 	ledger.Begin("anything", Terms{})
-	if ledger.Allow("nothing", "", "fixture-model") == nil {
+	if ledger.Allow("nothing", "", "fixture-model", false) == nil {
 		t.Fatal("a cap of zero let a call go")
 	}
 	ledger.Count("anything", answered(1000, september))
-	if refusal := ledger.Allow("anything", "", "unpriced-model"); refusal != nil {
+	if refusal := ledger.Allow("anything", "", "unpriced-model", false); refusal != nil {
 		t.Fatalf("a job with no cap was refused: %+v", refusal)
 	}
 }
@@ -60,18 +61,18 @@ func TestATeamCapStopsTheJobThatWouldExceedIt(t *testing.T) {
 	ledger.Begin("elsewhere", Terms{Team: "research"})
 	ledger.Count("first", answered(0.6, september))
 	ledger.Count("second", answered(0.5, september))
-	refusal := ledger.Allow("second", "", "fixture-model")
+	refusal := ledger.Allow("second", "", "fixture-model", false)
 	if refusal == nil || refusal.Cap != "team" || refusal.Team != "platform" {
 		t.Fatalf("refusal %+v", refusal)
 	}
 	if !strings.Contains(refusal.Reason, "team platform") || !strings.Contains(refusal.Reason, "2026-09") {
 		t.Fatalf("the reason should name the team and the month: %q", refusal.Reason)
 	}
-	if refusal := ledger.Allow("elsewhere", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("elsewhere", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("another team was refused: %+v", refusal)
 	}
 	ledger.now = func() time.Time { return september.AddDate(0, 1, 0) }
-	if refusal := ledger.Allow("second", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("second", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("a new month was refused: %+v", refusal)
 	}
 }
@@ -80,14 +81,14 @@ func TestATeamCapStopsTheJobThatWouldExceedIt(t *testing.T) {
 func TestACapRefusesWhatItCannotCount(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
-	refusal := ledger.Allow("a-job", "", "unpriced-model")
+	refusal := ledger.Allow("a-job", "", "unpriced-model", false)
 	if refusal == nil || !strings.Contains(refusal.Reason, "unpriced-model has no price") {
 		t.Fatalf("an unpriced model under a cap: %+v", refusal)
 	}
 	blind := answered(0, september)
 	blind.InputTokens, blind.OutputTokens, blind.USD = nil, nil, nil
 	ledger.Count("a-job", blind)
-	refusal = ledger.Allow("a-job", "", "fixture-model")
+	refusal = ledger.Allow("a-job", "", "fixture-model", false)
 	if refusal == nil || !strings.Contains(refusal.Reason, "carried no usage") {
 		t.Fatalf("after an answer with no usage: %+v", refusal)
 	}
@@ -99,7 +100,7 @@ func TestAnErrorWithoutUsageDoesNotStopACappedJob(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
 	ledger.Count("a-job", Call{Path: "/v1/chat/completions", Status: 429, AtUnix: september.Unix(), Model: "fixture-model"})
-	if refusal := ledger.Allow("a-job", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("refused after a 429: %+v", refusal)
 	}
 }
@@ -122,7 +123,7 @@ func TestARequestToAnotherHostIsNotSpend(t *testing.T) {
 	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
 	ledger.Count("a-job", Call{Host: "pastebin.com:443", Status: 403, Denied: "not on the allowlist", AtUnix: september.Unix()})
 	ledger.Count("a-job", Call{Host: "registry.npmjs.org:443", Status: 200, AtUnix: september.Unix()})
-	if refusal := ledger.Allow("a-job", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("refused after requests to other hosts: %+v", refusal)
 	}
 	if calls := ledger.jobs["a-job"].tally.Calls; calls != 0 {
@@ -194,14 +195,14 @@ func TestAnOrganizationCapStopsEveryJobOnceTheJobsTogetherHaveSpentIt(t *testing
 	ledger.Count("first", answered(0.3, september))
 	ledger.Count("second", answered(0.15, september))
 	for _, job := range []string{"first", "second", "third"} {
-		if refusal := ledger.Allow(job, "", "fixture-model"); refusal != nil {
+		if refusal := ledger.Allow(job, "", "fixture-model", false); refusal != nil {
 			t.Fatalf("%s was refused under the cap: %+v", job, refusal)
 		}
 	}
 	ledger.Count("second", answered(0.1, september))
 	for _, job := range []string{"first", "second", "third"} {
-		refusal := ledger.Allow(job, "", "fixture-model")
-		if refusal == nil || refusal.Cap != "organisation" || refusal.LimitUSD != 0.5 || refusal.SpentUSD < 0.55 || !strings.Contains(refusal.Reason, "this organization has spent") {
+		refusal := ledger.Allow(job, "", "fixture-model", false)
+		if refusal == nil || refusal.Cap != "organisation" || refusal.LimitUSD != 0.5 || math.Abs(refusal.SpentUSD-0.55) > 1e-9 || !strings.Contains(refusal.Reason, "this organization has spent") {
 			t.Errorf("%s: %+v", job, refusal)
 		}
 	}
@@ -211,12 +212,12 @@ func TestAnOrganizationCapIsForAMonthAndAJobCapStillComesFirst(t *testing.T) {
 	ledger := organizationLedger(september, 0.5)
 	ledger.Begin("old", Terms{})
 	ledger.Count("old", answered(0.6, september.AddDate(0, -1, 0)))
-	if refusal := ledger.Allow("old", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("old", "", "fixture-model", false); refusal != nil {
 		t.Errorf("last month's spending counted: %+v", refusal)
 	}
 	ledger.Begin("capped", Terms{CapUSD: dollars(0.1)})
 	ledger.Count("capped", answered(0.2, september))
-	if refusal := ledger.Allow("capped", "", "fixture-model"); refusal == nil || refusal.Cap != "job" {
+	if refusal := ledger.Allow("capped", "", "fixture-model", false); refusal == nil || refusal.Cap != "job" {
 		t.Errorf("the job's own cap is not the one named: %+v", refusal)
 	}
 }
@@ -224,9 +225,53 @@ func TestAnOrganizationCapIsForAMonthAndAJobCapStillComesFirst(t *testing.T) {
 func TestAnOrganizationCapFailsClosedOnAModelItCannotPrice(t *testing.T) {
 	ledger := organizationLedger(september, 0.5)
 	ledger.Begin("a-job", Terms{})
-	refusal := ledger.Allow("a-job", "", "unpriced-model")
+	refusal := ledger.Allow("a-job", "", "unpriced-model", false)
 	if refusal == nil || refusal.Cap != "organisation" || !strings.Contains(refusal.Reason, "no price in the spend policy") {
 		t.Errorf("a call that cannot be counted was let go: %+v", refusal)
+	}
+}
+
+// A key the organization added for itself is its own to pay for: the operator's cap does not count its calls and does not stop
+// them, so an organization whose free credit is spent carries on with its own key.
+func TestTheOperatorsCapCountsOnlyTheOperatorsKeys(t *testing.T) {
+	ledger := organizationLedger(september, 0.5)
+	ledger.Begin("a-job", Terms{})
+	own := answered(2.0, september)
+	own.Own = true
+	ledger.Count("a-job", own)
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
+		t.Fatalf("the organization's own spending counted against the operator's cap: %+v", refusal)
+	}
+	ledger.Count("a-job", answered(0.6, september))
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal == nil || refusal.Cap != "organisation" || math.Abs(refusal.SpentUSD-0.6) > 1e-9 {
+		t.Fatalf("a call on the operator's key went past the cap: %+v", refusal)
+	}
+	if refusal := ledger.Allow("a-job", "", "fixture-model", true); refusal != nil {
+		t.Errorf("a call on the organization's own key was stopped by the operator's cap: %+v", refusal)
+	}
+	if refusal := ledger.Allow("a-job", "", "unpriced-model", true); refusal != nil {
+		t.Errorf("the operator's cap held back an unpriced model on the organization's own key: %+v", refusal)
+	}
+	if got := ledger.SpentThisMonth(ByPayer, PaidByOrganization); got != 2.0 {
+		t.Errorf("the organization's own spending is %v", got)
+	}
+	if got := ledger.SpentThisMonth(ByPayer, PaidByOperator); got != 0.6 {
+		t.Errorf("the operator's is %v", got)
+	}
+}
+
+// A team's cap is the organization's own, and counts every call whoever's key it went on.
+func TestATeamCapCountsTheOrganizationsOwnKeysToo(t *testing.T) {
+	policy := fixturePolicy()
+	policy.Teams = map[string]TeamCap{"red": {USDPerMonth: 1}}
+	ledger := NewLedger(policy)
+	ledger.now = func() time.Time { return september }
+	ledger.Begin("a-job", Terms{Team: "red"})
+	own := answered(1.5, september)
+	own.Own = true
+	ledger.Count("a-job", own)
+	if refusal := ledger.Allow("a-job", "", "fixture-model", true); refusal == nil || refusal.Cap != "team" {
+		t.Errorf("%+v", refusal)
 	}
 }
 
@@ -234,7 +279,7 @@ func TestNoOrganizationCapIsNoLimit(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{})
 	ledger.Count("a-job", answered(1000, september))
-	if refusal := ledger.Allow("a-job", "", "fixture-model"); refusal != nil {
+	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
 		t.Errorf("%+v", refusal)
 	}
 }

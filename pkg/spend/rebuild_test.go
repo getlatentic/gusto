@@ -46,7 +46,7 @@ func TestARestartedServerRemembersWhatATeamSpent(t *testing.T) {
 		t.Fatal(err)
 	}
 	ledger.now = func() time.Time { return september }
-	if refusal := ledger.Allow("later", "", "fixture-model"); refusal == nil || refusal.Cap != "team" {
+	if refusal := ledger.Allow("later", "", "fixture-model", false); refusal == nil || refusal.Cap != "team" {
 		t.Fatalf("refusal %+v", refusal)
 	}
 }

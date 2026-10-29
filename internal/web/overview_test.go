@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -487,5 +488,31 @@ func TestRunsAreBoundUntilAnAdminChoosesPlainTokensAndEachChangeIsRecorded(t *te
 	}
 	if strings.Join(said, " ") != "bound>plain plain>bound" {
 		t.Errorf("the activity says %v", said)
+	}
+}
+
+// The operator's cap on the organization is a limit on the models the server provides, and the month's spending is shown by
+// whose key paid once the organization has used a key of its own.
+func TestTheOverviewShowsTheProvidedModelsLimitAndWhoseKeyPaid(t *testing.T) {
+	here := open(t)
+	here.signIn(t)
+	spentNowIn(t, here, "provided", "ada@acme.com", "", 0.4)
+	if page := overview(t, here); strings.Contains(page, "By whose key") {
+		t.Errorf("with every call on the provided models there is nothing to tell apart:\n%s", page)
+	}
+	own := fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","credential":"theirs","own":true,"inputTokens":10,"outputTokens":5,"usd":3}`, time.Now().Unix())
+	spentJob(t, here.index.Root(), "own", "", own)
+	ledger, err := spend.Rebuild(here.index.Root(), spend.Policy{Organization: &spend.TeamCap{USDPerMonth: 5}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	here.server.UseLedger(ledger)
+	page := overview(t, here)
+	if row := limitOf(t, page, "Models this server provides"); strings.Contains(row, "text-bad") || !strings.Contains(row, "$0.40") || !strings.Contains(row, "$5.00") {
+		t.Errorf("the provided models' limit counts only their own spending: %s", row)
+	}
+	payers := regexp.MustCompile(`(?s)By whose key.*?</section>`).FindString(page)
+	if !strings.Contains(payers, "Models this server provides") || !strings.Contains(payers, "Your organization&#39;s own keys") || !strings.Contains(payers, "$3.00") {
+		t.Errorf("the spending is not split by whose key paid: %s", payers)
 	}
 }

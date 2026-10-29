@@ -179,3 +179,36 @@ func TestAModelWithNoPriceIsRefusedUnderACap(t *testing.T) {
 		t.Fatalf("code %d, and the model was sent %d calls", answer.Code, answering.calls)
 	}
 }
+
+// Once the operator's cap on the organization is spent, a call on the operator's key is refused, and one on a key the
+// organization added for itself still goes, and is written down as its own.
+func TestACallOnTheOrganizationsOwnKeyIsNotHeldByTheOperatorsCap(t *testing.T) {
+	answering := &model{contentType: "application/json", answer: plainAnswer}
+	server := httptest.NewServer(http.HandlerFunc(answering.serve))
+	t.Cleanup(server.Close)
+	policy := fixturePrices
+	policy.Organization = &spend.TeamCap{USDPerMonth: 1}
+	ledger := spend.NewLedger(policy)
+	ledger.Begin("a-job", spend.Terms{})
+	kept, tokens := t.TempDir(), NewTokens()
+	proxy := New(tokens, Credentials{"": {Address: server.URL, Name: "the-platform-key"}},
+		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+	// The test's model is on this machine, which a key an organization added may not reach; the check is not what is tested here.
+	proxy.public = server.Client()
+	token, _ := tokens.Mint("a-job", "")
+	path := "/model/" + token + "/v1/chat/completions"
+	if answer := ask(t, proxy, path, `{"model":"fixture-model"}`); answer.Code != http.StatusOK {
+		t.Fatalf("the first call: %d", answer.Code)
+	}
+	if answer := ask(t, proxy, path, `{"model":"fixture-model"}`); answer.Code != http.StatusPaymentRequired {
+		t.Fatalf("a call on the operator's key past the cap: %d", answer.Code)
+	}
+	proxy.SetCredentials(Credentials{"": {Address: server.URL, Name: "theirs", Public: true}}, 2)
+	if answer := ask(t, proxy, path, `{"model":"fixture-model"}`); answer.Code != http.StatusOK {
+		t.Fatalf("a call on the organization's own key was held by the operator's cap: %d %s", answer.Code, answer.Body.String())
+	}
+	written := calls(t, filepath.Join(kept, "a-job.jsonl"))
+	if len(written) != 3 || written[0].Own || written[1].Own || !written[2].Own || written[2].Credential != "theirs" {
+		t.Errorf("each call says whose key paid: %+v", written)
+	}
+}

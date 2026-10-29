@@ -52,7 +52,7 @@ func TestTheReportIsByTeamProjectAndJob(t *testing.T) {
 func TestTheReportAndTheCapReadTheSameNumber(t *testing.T) {
 	ledger := reportedLedger()
 	ledger.Count("fix-a", answered(0.5, september))
-	refusal := ledger.Allow("fix-a", "", "fixture-model")
+	refusal := ledger.Allow("fix-a", "", "fixture-model", false)
 	team := lineOf(t, ledger.Report("2026-09").Teams, "platform")
 	if refusal == nil || refusal.SpentUSD != team.USD {
 		t.Fatalf("the cap saw %+v and the report %+v", refusal, team)

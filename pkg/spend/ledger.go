@@ -87,7 +87,23 @@ const (
 	ByDay     = "day"
 	// ByAllowance is a room's agent in its room, as "<room>/<agent>".
 	ByAllowance = "allowance"
+	// ByPayer is who paid the provider: the operator, for the operator's keys, or the organization, for a key it added.
+	ByPayer = "payer"
 )
+
+// Payers a call is counted under.
+const (
+	PaidByOperator     = "operator"
+	PaidByOrganization = "organization"
+)
+
+// payerOf is who paid the provider for a call.
+func payerOf(call Call) string {
+	if call.Own {
+		return PaidByOrganization
+	}
+	return PaidByOperator
+}
 
 // monthly names one tally: a task, a project or a team, in one calendar month.
 type monthly struct {
@@ -148,9 +164,9 @@ func (l *Ledger) Begin(job string, terms Terms) {
 	l.account(job).terms = terms
 }
 
-// Allow is asked before a call leaves. Nil lets it go; a refusal names the cap
-// that stops it. Only calls already in flight can take a task past its cap.
-func (l *Ledger) Allow(job, credential, model string) *Refusal {
+// Allow is asked before a call leaves, on the credential named, which is the organization's own when own is set. Nil lets it
+// go; a refusal names the cap that stops it. Only calls already in flight can take a task past its cap.
+func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	held := l.account(job)
@@ -163,10 +179,12 @@ func (l *Ledger) Allow(job, credential, model string) *Refusal {
 	if refusal := l.allowanceSpent(held); refusal != nil {
 		return refusal
 	}
-	if refusal := l.organizationSpent(); refusal != nil {
-		return refusal
+	if !own {
+		if refusal := l.organizationSpent(); refusal != nil {
+			return refusal
+		}
 	}
-	return l.uncountable(held, credential, model)
+	return l.uncountable(held, credential, model, own)
 }
 
 // Count adds a call that happened, or was refused, to the task, its project
@@ -187,6 +205,7 @@ func (l *Ledger) Count(job string, call Call) {
 	for scope, name := range map[string]string{
 		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
 		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"), ByAllowance: held.terms.Allowance,
+		ByPayer: payerOf(call),
 	} {
 		if scope == ByAllowance && name == "" {
 			continue
@@ -269,20 +288,15 @@ func (l *Ledger) SpentThisMonth(scope, name string) float64 {
 	return 0
 }
 
-// organizationSpent is what every task has spent this month, against the cap on the whole server. It is summed from the tasks,
-// which is the sum the report gives as its total, so the cap and the report cannot disagree.
+// organizationSpent is what every task has spent this month on the operator's keys, against the operator's cap on the whole
+// server. It is the payer's tally, which the report shows beside the organization's own.
 func (l *Ledger) organizationSpent() *Refusal {
-	limit, capped := l.policy.organizationCap()
+	limit, capped := l.policy.OrganizationCap()
 	if !capped {
 		return nil
 	}
 	month := monthOf(l.now())
-	spent := 0.0
-	for key, tally := range l.months {
-		if key.scope == ByJob && key.month == month {
-			spent += tally.USD
-		}
-	}
+	spent := l.tally(ByPayer, PaidByOperator, month).USD
 	if spent < limit {
 		return nil
 	}
@@ -295,8 +309,8 @@ func (l *Ledger) organizationSpent() *Refusal {
 // uncountable refuses a call a cap could not count. A cap that cannot see
 // what is spent is not holding anything, so it fails closed: before the call
 // when the model has no price, and after an answer that carried no usage.
-func (l *Ledger) uncountable(held *account, credential, model string) *Refusal {
-	governing, found := l.governing(held)
+func (l *Ledger) uncountable(held *account, credential, model string, own bool) *Refusal {
+	governing, found := l.governing(held, own)
 	if !found {
 		return nil
 	}
@@ -311,8 +325,9 @@ func (l *Ledger) uncountable(held *account, credential, model string) *Refusal {
 	return governing
 }
 
-// governing is the cap this task answers to, the task's own before its team's.
-func (l *Ledger) governing(held *account) (*Refusal, bool) {
+// governing is the cap this task answers to, the task's own before its team's, and the operator's on the organization last,
+// which a call on the organization's own key does not answer to.
+func (l *Ledger) governing(held *account, own bool) (*Refusal, bool) {
 	if limit := held.terms.CapUSD; limit != nil {
 		return &Refusal{Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD}, true
 	}
@@ -320,7 +335,7 @@ func (l *Ledger) governing(held *account) (*Refusal, bool) {
 		spent := l.tally(ByTeam, held.terms.Team, monthOf(l.now())).USD
 		return &Refusal{Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent}, true
 	}
-	if limit, capped := l.policy.organizationCap(); capped {
+	if limit, capped := l.policy.OrganizationCap(); capped && !own {
 		return &Refusal{Cap: "organisation", LimitUSD: limit}, true
 	}
 	return nil, false

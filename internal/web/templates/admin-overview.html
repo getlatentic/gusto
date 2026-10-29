@@ -91,6 +91,7 @@
   {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
   {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
   {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
+  {{with .Payers}}{{template "shares" (dict "Title" "By whose key" "Lines" .)}}{{end}}
 </div>
 
 {{if .KeepsComputers}}

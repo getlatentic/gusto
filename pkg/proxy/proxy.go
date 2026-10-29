@@ -156,8 +156,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		return
 	}
 	sent := time.Now()
-	if refusal := p.ledger.Allow(job, credential.Name, asked.model); refusal != nil {
+	if refusal := p.ledger.Allow(job, credential.Name, asked.model, credential.Public); refusal != nil {
 		refused := spend.RefusedCall(rest, asked.model, sent.Unix(), refusal)
+		refused.Own = credential.Public
 		report(r.Context(), refused)
 		p.refuse(w, job, refused)
 		return
@@ -192,7 +193,8 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	// the answer is readable here. A compression the container chose would pass
 	// through packed, and the call would go uncounted.
 	out.Header.Del("Accept-Encoding")
-	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Registry: p.registry.Load(), Translated: string(translated.From)}
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Own: credential.Public,
+		Registry: p.registry.Load(), Translated: string(translated.From)}
 	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)

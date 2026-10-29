@@ -65,7 +65,7 @@
     {{range .Lines}}
     <tr>
       <td class="w-[60%] min-w-0 pr-3">
-        {{if not .Name}}<span class="text-muted">none named</span>{{else if .Href}}<a class="line-clamp-2 no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="block text-xs text-subtle">{{.}}</span>{{end}}{{else}}{{.Name}}{{end}}
+        {{if not .Name}}<span class="text-muted">none named</span>{{else if .Href}}<a class="line-clamp-2 no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.Name}}">{{or .Label .Name}}</a>{{with .Sub}}<span class="block text-xs text-subtle">{{.}}</span>{{end}}{{else}}{{or .Label .Name}}{{end}}
       </td>
       <td class="text-right tabular-nums whitespace-nowrap">{{if eq .Unmeasured 0}}{{.Money}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{.Money}}{{end}}</td>
       <td class="pl-3 text-right tabular-nums whitespace-nowrap">{{tokens (add .InputTokens .OutputTokens)}}</td>

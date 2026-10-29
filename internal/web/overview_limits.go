@@ -26,6 +26,15 @@ func (s *Server) addLimits(page map[string]any, policy spend.Policy, report spen
 		})
 	}
 	rows = append(rows, teamCaps(policy, report)...)
+	if limit, capped := policy.OrganizationCap(); capped {
+		spent := 0.0
+		for _, line := range report.Payers {
+			if line.Name == spend.PaidByOperator {
+				spent = line.USD
+			}
+		}
+		rows = append(rows, limitRow{What: "Models this server provides, " + report.Month, Used: headlineUSD(spent), Of: headlineUSD(limit), Over: spent >= limit})
+	}
 	allowed, under, err := s.index.Allowance(now)
 	switch {
 	case err != nil:
@@ -71,4 +80,26 @@ func (s *Server) planRows(allowed jobs.Allowance, running int) []limitRow {
 		rows = append(rows, limitRow{What: "Workspaces", Used: fmt.Sprint(len(all)), Of: fmt.Sprint(allowed.Quota.Computers), Over: len(all) >= allowed.Quota.Computers})
 	}
 	return rows
+}
+
+// payersOf is the month's spending by whose key paid the provider, in the words an admin reads, and nothing when every call went
+// on the keys this server provides: then there is nothing to tell apart.
+func payersOf(lines []spend.Line) []share {
+	own := false
+	for _, line := range lines {
+		own = own || line.Name == spend.PaidByOrganization
+	}
+	if !own {
+		return nil
+	}
+	out := shares(lines)
+	for i := range out {
+		switch out[i].Name {
+		case spend.PaidByOperator:
+			out[i].Label = "Models this server provides"
+		case spend.PaidByOrganization:
+			out[i].Label = "Your organization's own keys"
+		}
+	}
+	return out
 }
