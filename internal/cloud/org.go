@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"slices"
@@ -118,7 +119,7 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	all, _ := s.Store.Memberships(person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
-		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1,
+		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, CreditLeft: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
 		Plan: s.planOf(org, person)}
 	s.render(w, status, "org", v)
 }
@@ -141,4 +142,12 @@ func (s *Server) resend(w http.ResponseWriter, r *http.Request, person Person) {
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.Sessions.Clear(w)
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
+}
+
+// creditLeft is what is left of an organization's credit, as a person reads it, and nothing when it has none.
+func creditLeft(credit, used float64) string {
+	if credit <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("$%.2f of $%.2f left", max(credit-used, 0), credit)
 }

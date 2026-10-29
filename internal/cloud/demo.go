@@ -41,7 +41,7 @@ func (d DemoSettings) patience() time.Duration {
 
 // DefaultDemoLimits is what a demo may run: enough for a person to see agents do work, and not enough to cost much.
 func DefaultDemoLimits() quota.Quota {
-	return quota.Quota{Jobs: 30, Concurrent: 2, Invites: true, Members: 2, Computers: 2, Note: "This is a demo, which is removed when its time is up."}
+	return quota.Quota{Jobs: 30, Concurrent: 2, Invites: true, Members: 2, Computers: 2, Note: "This is a demo, which is removed when its time is up.", CreditUSD: 0.5}
 }
 
 // Demo is what makes an organization a demo. Ready is when its server first answered, which is when its time

@@ -40,6 +40,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/wire"
 )
 
@@ -69,8 +70,9 @@ func serve(args []string) int {
 	}
 	// An organization's gusto cloud writes what it may run, and this server reads it
 	// as it goes. One that cannot read it does not start.
+	var limits *quota.File
 	if path := os.Getenv("GUSTO_QUOTA"); path != "" {
-		limits := quota.Open(path)
+		limits = quota.Open(path)
 		if _, err := limits.Current(); err != nil {
 			return fail(err)
 		}
@@ -86,6 +88,11 @@ func serve(args []string) int {
 	way, err := openWayOut(index.Root())
 	if err != nil {
 		return fail(err)
+	}
+	if limits != nil {
+		if err := way.ledger.UseCredit(creditOf(limits), filepath.Join(filepath.Dir(os.Getenv("GUSTO_QUOTA")), "credit-used.json")); err != nil {
+			return fail(err)
+		}
 	}
 	stopProxy, err := way.Listen()
 	if err != nil {
@@ -528,4 +535,16 @@ func routineNews() (notify.Every, error) {
 		news = append(news, notify.Mail{Via: sender})
 	}
 	return news, nil
+}
+
+// creditOf is the credit an organization's gusto cloud gives it, read from its quota as the quota changes. A quota that cannot be
+// read is a credit of nothing, so a server that lost its limits spends nothing of the operator's.
+func creditOf(limits *quota.File) spend.CreditLimit {
+	return func() (float64, bool) {
+		current, err := limits.Current()
+		if err != nil {
+			return 0, true
+		}
+		return current.CreditUSD, current.CreditUSD > 0
+	}
 }

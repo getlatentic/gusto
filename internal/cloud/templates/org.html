@@ -18,6 +18,7 @@
     <dd>{{.Quota.Jobs}} {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</dd>
     <dt>People</dt><dd>up to {{.Quota.Members}}</dd>
     <dt>Workspaces</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
+    {{with .CreditLeft}}<dt>Free credit</dt><dd>{{.}} on gusto's models{{if $.IsAdmin}}, then add your own key in Admin, Models{{end}}</dd>{{end}}
     {{with .Plan}}<dt>Plan</dt><dd>{{.Words}}</dd>{{end}}
     {{if .Server}}<dt>Server</dt><dd><span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:content-[''] {{if .CanOpen}}before:bg-ok{{else}}before:bg-warn{{end}}">{{if .CanOpen}}Ready{{else}}Starting{{end}}</span></dd>{{end}}
   </dl>

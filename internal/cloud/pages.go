@@ -37,6 +37,8 @@ type view struct {
 	// The organization page, and Several when the person looking is in more organizations than this one.
 	Org     Org
 	Several bool
+	// CreditLeft is what is left of the organization's free credit on the models gusto provides.
+	CreditLeft string
 	// Plan is how the organization pays, when this front door bills.
 	Plan *plan
 	// Orgs are the organizations a person chooses among.

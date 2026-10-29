@@ -39,6 +39,10 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	}
 	running := s.addJobs(page, now)
 	s.addLimits(page, ledger.Policy(), report, budget, running, now)
+	if used, limit, held := ledger.Credit(); held {
+		rows, _ := page["Limits"].([]limitRow)
+		page["Limits"] = append(rows, limitRow{What: "Free credit on the models gusto provides", Used: headlineUSD(used), Of: headlineUSD(limit), Over: used >= limit})
+	}
 	s.addComputers(page)
 	s.addApps(page)
 	s.drawConsole(w, "admin-overview.html", "overview", page)

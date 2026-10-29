@@ -50,7 +50,10 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 		if rt, _ := s.Runtime("acme-com"); rt.State != Ready || rt.Cell != "cell-a" || rt.Port != 9100 || rt.ProxyPort != 9101 || rt.Restarts != 2 {
 			t.Errorf("%+v", rt)
 		}
-		if q, err := s.Quota("acme-com"); err != nil || q != DefaultLimits().Verified {
+		// The quota is the old file's, which was written before an organization had a credit.
+		old := DefaultLimits().Verified
+		old.CreditUSD = 0
+		if q, err := s.Quota("acme-com"); err != nil || q != old {
 			t.Errorf("an organization's own directory is found where it was: %+v %v", q, err)
 		}
 		if _, err := os.Stat(s.DataDir("globex-com")); err != nil {

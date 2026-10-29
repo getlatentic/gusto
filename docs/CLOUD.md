@@ -129,6 +129,16 @@ On the Overview, an admin sets one alert: a monthly budget in dollars. It is kep
 
 An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`agent=model`), then on the first agent and model that can run.
 
+## Free credit
+
+Each organization may spend a credit on the models gusto provides, the operator's keys: 5 dollars for a sign-up (`StartingCredit`), 0.50 for a demo. It is used once and does not come back each month.
+
+- gusto cloud writes the credit into the organization's `quota.json` as `creditUsd`, and its server reads it as it changes. Every start of gusto cloud writes each organization's quota again, so a change of limits reaches organizations made before it.
+- The server counts every call on the operator's keys against it, in any month, and writes what is used to `credit-used.json` beside the quota. That file only grows, so deleting task records gives nothing back.
+- Once it is used, the proxy refuses the next call on the operator's keys, and refuses a model with no price. Calls in flight can pass it by a few cents.
+- A call on a key the organization added at `/admin/models` is never counted against it or stopped by it. Team and task caps still count every call.
+- The organization page says what is left. The admin overview shows it as a limit, and, once the organization has used a key of its own, its spending by whose key paid. A turn the credit stopped says so, and links an admin to `/admin/models`.
+
 ## Models
 
 Admins choose the models their people may use at `/admin/models`. A provider is an address, how it takes its key, and perhaps the agents it works with. A model belongs to a provider and may have a price in dollars for a million tokens of input, output and cached input. A team's cap cannot count a model with no price.
@@ -150,7 +160,7 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 - Each visitor is kept as a lead in the database, which stays after the demo ends.
 - A visitor's agent runs each turn in a Docker container on the cell (`demo_sandbox: container` in `deploy/aws/openshell/ansible/roles/demo/defaults/main.yml`). The container has no network (`--network=none`): the proxy's socket, mounted in, is its only way out. It has a cap on CPU, memory and processes, and only five capabilities. Containers share the cell's kernel, so a flaw in the kernel could let one visitor's agent reach another's on the same cell. An organization that pays runs its agents in OpenShell microVMs (`demo_sandbox: openshell`).
 - Each container is labelled `com.getlatentic.gusto.org`, `.person`, `.instance` and `.job`. The person is an opaque id, the same as their computer's, never their address. `docker ps --filter label=com.getlatentic.gusto.org=<slug>` lists one organization's running agents. When an organization's server stops, or starts again, the cell removes its containers that are left.
-- A demo is capped as a whole organization at 0.50 dollars (`organization` in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`). The proxy then refuses the next call, and refuses a model with no price. Calls in flight can pass the cap by a few cents.
+- A demo has a credit of 0.50 dollars on the models gusto provides, and a sign-up has 5 dollars ([Free credit](#free-credit)).
 
 ## The operator's page
 

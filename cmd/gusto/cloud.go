@@ -127,6 +127,10 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := store.ApplyQuotas(); err != nil {
+		store.Close()
+		return nil, nil, err
+	}
 	sessions, err := store.OpenSessions(public.Scheme == "https")
 	if err != nil {
 		store.Close()

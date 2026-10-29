@@ -39,8 +39,5 @@
       }
     }
   },
-  "teams": {},
-  "organisation": {
-    "usdPerMonth": 0.5
-  }
+  "teams": {}
 }
