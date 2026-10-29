@@ -54,7 +54,7 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 		said := whoIs(t, address)
 		data := s.DataDir(org.Slug)
 		for field, want := range map[string]string{
-			"org": org.Slug, "jobs": filepath.Join(data, "jobs"), "quota": s.QuotaFile(org.Slug), "members": s.RosterFile(org.Slug), "inbox": s.InboxDir(org.Slug), "orgSettings": filepath.Join(data, "settings.json"), "home": filepath.Join(s.OrgDir(org.Slug), "home"),
+			"org": org.Slug, "orgName": "Acme", "jobs": filepath.Join(data, "jobs"), "quota": s.QuotaFile(org.Slug), "members": s.RosterFile(org.Slug), "inbox": s.InboxDir(org.Slug), "orgSettings": filepath.Join(data, "settings.json"), "home": filepath.Join(s.OrgDir(org.Slug), "home"),
 			"entryKey": filepath.Join(s.OrgDir(org.Slug), "entry.key"), "signingKey": filepath.Join(data, "keys", org.Slug+".key"),
 			"front": "https://cloud.test", "concurrency": "2", "operatorSetting": "given",
 		} {

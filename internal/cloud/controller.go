@@ -211,6 +211,10 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 	if _, err := rand.Read(password); err != nil {
 		return nil, err
 	}
+	org, _, err := c.Store.Org(slug)
+	if err != nil {
+		return nil, err
+	}
 	data := c.Store.DataDir(slug)
 	own := map[string]string{
 		"GUSTO_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
@@ -234,6 +238,7 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		"GUSTO_INBOX":        c.Store.InboxDir(slug),
 		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
 		"GUSTO_ORG":          slug,
+		"GUSTO_ORG_NAME":     org.Name,
 		"GUSTO_FRONT_DOOR":   c.FrontDoor,
 		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
 		"GUSTO_APPS":         filepath.Join(data, "apps"),

@@ -14,11 +14,13 @@ import (
 // that this server checks against a key only the two of them hold. An address
 // here that wants a sign-in sends the person to the front door.
 type FrontDoor struct {
-	// Key is what tokens are made and checked with, Org is the organization
-	// this server is, and URL is where the front door is.
-	Key []byte
-	Org string
-	URL string
+	// Key is what tokens are made and checked with, Org is the address of the
+	// organization this server is and Name what it is called, and URL is where
+	// the front door is.
+	Key  []byte
+	Org  string
+	Name string
+	URL  string
 }
 
 type frontDoor struct {

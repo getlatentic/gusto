@@ -187,3 +187,32 @@ func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.
 		t.Error("a server with no front door carries the script")
 	}
 }
+
+// The mark at the top of the rail opens the organization switcher, which asks the front door for the person's
+// organizations: the page's policy lets it ask there and nowhere else. A server on its own has no switcher.
+func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindAFrontDoor(t *testing.T) {
+	s := open(t)
+	s.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", Name: "Acme Research", URL: "https://cloud.test"})
+	s.handler = s.server.Handler()
+	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())))
+	page := s.ask(t, "GET", "/chat", nil)
+	body := page.Body.String()
+	for _, want := range []string{`data-orgs aria-label="Organizations"`, `data-from="https://cloud.test/orgs.json"`, `data-current="acme-com"`, `font-semibold text-ink">Acme Research</span>`, `href="https://cloud.test/orgs"`, "/static/orgs.js"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page has %s:\n%s", want, body)
+		}
+	}
+	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self' https://cloud.test;") {
+		t.Errorf("the switcher may ask the front door: %s", policy)
+	}
+
+	alone := open(t)
+	alone.signIn(t)
+	page = alone.ask(t, "GET", "/chat", nil)
+	if body := page.Body.String(); strings.Contains(body, "data-orgs") || !strings.Contains(body, `class="brand-mark mb-2 grid size-10 place-items-center" href="/chat"`) {
+		t.Errorf("a server on its own has its mark link home:\n%s", body)
+	}
+	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self';") {
+		t.Errorf("a server on its own asks nowhere else: %s", policy)
+	}
+}

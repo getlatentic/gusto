@@ -21,7 +21,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		nonce := randomValue()
 		h := w.Header()
 		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'nonce-"+nonce+"'; "+
-			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "+
+			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"+s.frontDoorSource()+"; "+
 			"form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
@@ -41,6 +41,15 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), req: r, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
 	})
+}
+
+// frontDoorSource is the front door, for the content security policy, when this server is behind one: the
+// organization switcher asks it which organizations the person is in.
+func (s *Server) frontDoorSource() string {
+	if s.front == nil {
+		return ""
+	}
+	return " " + s.front.URL
 }
 
 // marked carries what a page needs to know of its request: the nonce its inline
