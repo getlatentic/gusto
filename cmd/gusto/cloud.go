@@ -260,7 +260,7 @@ func lowered(members []string) []string {
 
 // demoSettings make gusto cloud offer a demo when GUSTO_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
 // from when it is ready, GUSTO_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), GUSTO_CLOUD_DEMO_MAX for the
-// most at once (5), GUSTO_CLOUD_DEMO_PER_DAY for the most in a day (40), GUSTO_CLOUD_DEMO_PER_PERSON and GUSTO_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, GUSTO_CLOUD_DEMO_NOTIFY for an address that is mailed when a visitor starts a demo, GUSTO_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and GUSTO_CLOUD_BOOK_URL for where a call is booked.
+// most at once (5), GUSTO_CLOUD_DEMO_PER_DAY for the most in a day (40), GUSTO_CLOUD_DEMO_PER_PERSON and GUSTO_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, GUSTO_CLOUD_DEMO_NOTIFY for an address that is mailed when a visitor starts a demo, GUSTO_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), GUSTO_CLOUD_DEMO_STAFF for the addresses and domains whose people alone may start a demo (anyone, when it is not set), and GUSTO_CLOUD_BOOK_URL for where a call is booked.
 func demoSettings() cloud.DemoSettings {
 	length := number("GUSTO_CLOUD_DEMO_MINUTES", 0)
 	if length == 0 {
@@ -276,5 +276,6 @@ func demoSettings() cloud.DemoSettings {
 		PerCompany: number("GUSTO_CLOUD_DEMO_PER_COMPANY", 6),
 		BookURL:    os.Getenv("GUSTO_CLOUD_BOOK_URL"),
 		VideoURL:   os.Getenv("GUSTO_CLOUD_DEMO_VIDEO"),
+		Staff:      lowered(values("GUSTO_CLOUD_DEMO_STAFF")),
 	}
 }
