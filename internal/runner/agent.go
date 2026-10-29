@@ -64,20 +64,28 @@ func chownTree(root string, uid, gid int) error {
 	})
 }
 
-// takeBack gives the workspace and home back to the runner's user when the harness is gone. A conversation's workspace is the
-// instance's own folder, mounted from the machine the box runs on, where the runner's user is the server's and the agent's is a
-// stranger: what the agent made would be files the server can list and cannot open, or remove. It is handed over again, whole, at the
-// start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed for it.
+// takeBack gives the task directory, the workspace and the home to whoever owns the task directory, once the record is written
+// and the harness is gone. That is the server that made the directory, on the machine the box runs on. The runner's own user is
+// not: under a container runtime whose root is the machine's root, what the box left would be files the server can list and
+// cannot open or remove. The workspace is a conversation's own folder when it is mounted from elsewhere, and is handed over
+// again, whole, at the start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed.
 func (a agent) takeBack(dir job.Dir) {
 	if !a.present {
 		return
 	}
-	for _, mine := range []string{dir.Workspace(), os.Getenv("HOME")} {
+	uid, gid := os.Geteuid(), os.Getegid()
+	if owner, owned := ownerOfPath(dir.Path()); owned {
+		uid, gid = owner.uid, owner.gid
+	}
+	for _, mine := range []string{dir.Path(), dir.Workspace(), os.Getenv("HOME")} {
 		if mine != "" {
-			_ = chownTree(mine, os.Geteuid(), os.Getegid())
+			_ = chownTree(mine, uid, gid)
 		}
 	}
 }
+
+// owner is who a file belongs to.
+type owner struct{ uid, gid int }
 
 // endAll stops every process the agent left behind, so nothing it started is
 // still running while the record is written.

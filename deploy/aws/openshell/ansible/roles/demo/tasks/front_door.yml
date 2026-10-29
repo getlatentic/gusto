@@ -28,6 +28,14 @@
     mode: "0644"
   notify: Restart the front door
 
+# gusto cloud runs as a user that may not remove what an agent's container left as root, and moves such a directory to its trash.
+- name: The job that empties gusto cloud's trash, as root
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
+    mode: "0644"
+  loop: [gusto-trash.service, gusto-trash.timer]
+
 - name: The operator's page, which listens on this host's loopback and is not in the web server's site
   ansible.builtin.template:
     src: gusto-owner.service.j2

@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"errors"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -311,6 +313,42 @@ func TestADemoLimitOfZeroIsNoLimit(t *testing.T) {
 				t.Fatalf("demo %d: %v", i, err)
 			}
 			s.EndDemo(org.Slug, "its time was up")
+		}
+	})
+}
+
+// A demo whose directory holds files this process may not remove still ends: the directory goes to the trash, which a job that
+// runs as root empties, and the demo no longer counts against the demos that may run at once.
+func TestADemoWithFilesTheFrontDoorCannotRemoveStillEnds(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s, now := clocked(t, demoSet)
+		_, org, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		locked := filepath.Join(s.DataDir(org.Slug), "jobs", "a-turn", "workspace")
+		if err := os.MkdirAll(locked, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(locked, "made-by-root"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(locked, 0o555); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			filepath.WalkDir(s.TrashDir(), func(path string, _ fs.DirEntry, _ error) error { return os.Chmod(path, 0o755) })
+		})
+		*now = now.Add(time.Minute)
+		if err := s.EndDemo(org.Slug, "its time was up"); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, _ := s.Org(org.Slug); found {
+			t.Error("the demo is still there")
+		}
+		if _, err := os.Stat(s.OrgDir(org.Slug)); !os.IsNotExist(err) {
+			t.Errorf("its directory is still in place: %v", err)
+		}
+		trash, _ := os.ReadDir(s.TrashDir())
+		if len(trash) != 1 || !strings.HasPrefix(trash[0].Name(), org.Slug+"-") {
+			t.Errorf("%v", trash)
 		}
 	})
 }

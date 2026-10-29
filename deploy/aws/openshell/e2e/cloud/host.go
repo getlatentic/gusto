@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -36,6 +37,17 @@ func (h host) jobsAskedBy(slug, email string) []jobOf {
 type host struct{ root, gusto, gateway, sandbox, probe string }
 
 func (h host) data(slug string) string { return filepath.Join(h.root, "orgs", slug, "data") }
+
+// strangers is the first few files in an organization's directory that belong to someone other than the user this runs as,
+// which is the user gusto cloud and its servers run as.
+func (h host) strangers(slug string) ([]string, error) {
+	out, err := exec.Command("find", filepath.Join(h.root, "orgs", slug), "!", "-uid", strconv.Itoa(os.Getuid()), "-print").Output()
+	if err != nil {
+		return nil, err
+	}
+	found := strings.Fields(string(out))
+	return found[:min(len(found), 5)], nil
+}
 
 // finished waits until every job the person asked for is done, and there are n of them.
 func (h host) finished(slug, email string, n int, within time.Duration) ([]jobOf, error) {
