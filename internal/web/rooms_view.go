@@ -164,13 +164,23 @@ func dividerAt(at, now time.Time) string {
 // clock is the time of day something was said.
 func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
 
-// personName is what a room calls a person: the part of their address before the @, or Owner for the server's shared sign-in.
+// personName is what a room calls a person, read from their address: ada.lovelace+work@acme.com is Ada Lovelace. A tag after
+// a + is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
 func personName(who string) string {
 	if who == sharedSignIn {
 		return "Owner"
 	}
-	name, _, _ := strings.Cut(who, "@")
-	return name
+	local, _, _ := strings.Cut(who, "@")
+	local, _, _ = strings.Cut(local, "+")
+	words := strings.FieldsFunc(local, func(r rune) bool { return r == '.' || r == '-' || r == '_' })
+	if len(words) == 0 {
+		return local
+	}
+	for i, word := range words {
+		first, size := utf8.DecodeRuneInString(word)
+		words[i] = string(unicode.ToUpper(first)) + word[size:]
+	}
+	return strings.Join(words, " ")
 }
 
 // initials stand for a person where a room has no picture of them. The shared sign-in is nobody in particular, so it has none.

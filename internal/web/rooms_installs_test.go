@@ -97,7 +97,7 @@ func TestAMemberProposesOnlyTheirOwnAgentAndAnAgentsOwnerMustBeInTheRoom(t *test
 		t.Errorf("bob proposing carol's agent was told %q", why)
 	}
 	added := site.as(t, alice).ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"agent": {carols.ID}})
-	if why := refusedTo(t, added.Header().Get("Location")); !strings.Contains(why, "carol is not in this room") {
+	if why := refusedTo(t, added.Header().Get("Location")); !strings.Contains(why, "Carol is not in this room") {
 		t.Errorf("the admin adding the agent of somebody not in the room was told %q", why)
 	}
 }

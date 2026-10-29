@@ -221,7 +221,7 @@ func TestAMentionGoesToTheAgentNamedOnItsOwnHarness(t *testing.T) {
 		}
 	}
 	page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{">bob<", `>@Draft</span> write the page`, ">Draft<", "does Draft"} {
+	for _, want := range []string{">Bob<", `>@Draft</span> write the page`, ">Draft<", "does Draft"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the room does not show %q", want)
 		}
