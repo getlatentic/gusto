@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +34,29 @@ func slugs(statement, slug string) []any {
 		args[i] = slug
 	}
 	return args
+}
+
+// TrashDir is where an organization's directory goes when this process may not remove all of it: files an
+// agent's container left as another user. A job that runs as root empties it.
+func (s *Store) TrashDir() string { return filepath.Join(s.root, "trash") }
+
+// removeOrgDir removes an organization's directory. What this process may not remove is moved to the
+// trash whole, so an organization is never kept because of a file it cannot delete.
+func (s *Store) removeOrgDir(slug string) error {
+	dir := s.OrgDir(slug)
+	err := os.RemoveAll(dir)
+	if err == nil || !errors.Is(err, fs.ErrPermission) {
+		return err
+	}
+	if err := os.MkdirAll(s.TrashDir(), 0o700); err != nil {
+		return err
+	}
+	to := filepath.Join(s.TrashDir(), slug+"-"+strconv.FormatInt(s.now().UnixNano(), 10))
+	if err := os.Rename(dir, to); err != nil {
+		return err
+	}
+	slog.Warn("an organization's directory held files this process may not remove, and went to the trash", "org", slug, "trash", to)
+	return nil
 }
 
 var errNoOrg = fmt.Errorf("there is no such organization: %w", fs.ErrNotExist)
@@ -160,7 +186,7 @@ func (s *Store) EndDemo(slug, reason string) error {
 		}
 		return err
 	}
-	if err := os.RemoveAll(s.OrgDir(slug)); err != nil {
+	if err := s.removeOrgDir(slug); err != nil {
 		return err
 	}
 	ctx := context.Background()

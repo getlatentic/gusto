@@ -37,6 +37,9 @@ func (r run) observe(slug string, threads []*thread) {
 		left, err := r.host.containers()
 		must(err, "Docker's containers")
 		check(len(left) == 0, "every turn's container is gone once it is over: %v", left)
+		strangers, err := r.host.strangers(slug)
+		must(err, "the owners of the organization's files")
+		check(len(strangers) == 0, "every file the turns left belongs to the server, which can remove it: %v", strangers)
 		return
 	}
 	listed, err := r.host.computers()

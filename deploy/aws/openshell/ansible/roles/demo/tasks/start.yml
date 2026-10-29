@@ -15,12 +15,13 @@
     daemon_reload: true
   when: not demo_live | bool
 
-- name: The web server and gusto cloud are running
+- name: The web server and gusto cloud are running, and the trash is emptied
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: started
     enabled: true
-  loop: [nginx, gusto-cloud, gusto-owner]
+    daemon_reload: true
+  loop: [nginx, gusto-cloud, gusto-owner, gusto-trash.timer]
   when: demo_role != 'cell'
 
 # nginx starts when it is installed, with its default site, and a play that fails drops

@@ -1,0 +1,6 @@
+[Unit]
+Description=Empty gusto cloud's trash: what an ended organization left that gusto cloud may not remove itself
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/find {{ demo_state }}/cloud/trash -mindepth 1 -maxdepth 1 -exec rm -rf {} +
