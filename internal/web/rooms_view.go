@@ -26,8 +26,9 @@ type roomTurn struct {
 	From  string
 	// Holding is what a turn that has not started waits for, empty once it has.
 	Holding string
-	// Notice is a note the room made of itself, such as that two agents changed one file.
+	// Notice is a note the room made of itself, such as that two agents changed one file, and File the file it is about.
 	Notice bool
+	File   string
 	// Note is something said that no agent was asked to answer, and Echo a turn whose message the turn before it already shows.
 	Note bool
 	Echo bool
@@ -46,7 +47,7 @@ func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, tu
 	}
 	// Notes go in last first, so each lands after the turns it followed without moving the places of the ones before it.
 	for _, note := range slices.Backward(thread.Notes) {
-		shown := turn{Record: jobs.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice}}
+		shown := turn{Record: jobs.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice, File: note.Path}}
 		turns = slices.Insert(turns, min(note.After, len(turns)), shown)
 	}
 	groupBySender(turns)

@@ -65,6 +65,9 @@ type viewedFile struct {
 	Modified        int64
 	Raw, Download   string
 	Text            string
+	// Editable is a text file shown whole, which a person may change here: Source is all of it, and Hash what it was then.
+	Editable     bool
+	Source, Hash string
 	// Language is what a code file is highlighted as, and Lines how many it has.
 	Language string
 	Lines    int
@@ -110,6 +113,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		file.Kind = kindText
 	}
 	s.fill(&file, resolved, info.Size())
+	editable(&file, resolved, info.Size())
 	if r.URL.Query().Get("panel") != "" {
 		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
 		return

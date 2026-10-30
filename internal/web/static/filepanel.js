@@ -91,6 +91,11 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch(function () { file.pane.textContent = "This file could not be opened."; });
   }
 
+  // A file saved in its tab is read again, and so is what it now says.
+  bodies.addEventListener("gusto-file-saved", function (event) {
+    Object.keys(open).forEach(function (key) { if (open[key].pane.contains(event.target)) { load(open[key]); } });
+  });
+
   function keyOf(url) { return url.pathname + "?" + (url.searchParams.get("path") || ""); }
 
   // A turn that is drawn again names the files it changed, so an open file it names is read again: what is open stays what an agent,

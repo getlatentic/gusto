@@ -215,6 +215,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
+	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))

@@ -333,7 +333,7 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
 <article id="{{.ID}}">
   {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
   {{if .Notice}}
-  <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}</span></p>
+  <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}{{with .File}} <a class="font-medium text-inherit" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">Open it</a>{{end}}</span></p>
   {{else if not (or .From .Echo)}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .SaidJoins}}
