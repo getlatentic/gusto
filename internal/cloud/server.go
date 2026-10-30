@@ -176,6 +176,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
 	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
 	mux.HandleFunc("POST /signout", s.signOut)
+	mux.HandleFunc("GET /signout", s.signedOutThere)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
@@ -203,7 +204,7 @@ func (s *Server) Wait() {
 func (s *Server) secure(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'"+s.orgsSource()+" https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
@@ -231,6 +232,19 @@ func (s *Server) secure(next http.Handler) http.Handler {
 
 // sameSite says a form came from a page of this server. A browser names the
 // page's origin on every form it posts, and says when the site is another.
+// orgsSource is every organization's and app's address, for the content security policy: signing in, signing up and
+// joining are forms whose redirects end in one, and a browser checks each redirect of a form against form-action.
+func (s *Server) orgsSource() string {
+	if s.Domain == "" {
+		return ""
+	}
+	source := " " + s.URL.Scheme + "://*." + s.Domain
+	if port := s.URL.Port(); port != "" {
+		source += ":" + port
+	}
+	return source
+}
+
 func sameSite(r *http.Request) bool {
 	if origin := r.Header.Get("Origin"); origin != "" {
 		parsed, err := url.Parse(origin)

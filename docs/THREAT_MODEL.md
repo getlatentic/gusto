@@ -33,7 +33,7 @@ It trusts the session it signed, an API token it hashed, and the identity provid
 | --- | --- |
 | Who someone is | An HMAC-signed, HttpOnly, SameSite=Lax cookie carrying the role, 12 hours, ended on the server at sign-out. Google sign-in uses state, PKCE and a nonce, and checks the address is verified |
 | What they may see | Every object carries its owner. Somebody else's is answered as missing, so a guess learns nothing |
-| Cross-site requests | SameSite=Lax keeps the cookie off a form posted from another site. No route changes state on a GET. `frame-ancestors 'none'` blocks framing and `form-action 'self'` keeps forms to this server |
+| Cross-site requests | SameSite=Lax keeps the cookie off a form posted from another site. No route changes state on a GET. `frame-ancestors 'none'` blocks framing and `form-action 'self'` keeps forms to this server, and, behind gusto cloud, to gusto cloud, where sign-out continues |
 | What a page may run | A content security policy: no inline script except with the response's nonce, no handler attributes, `object-src 'none'`, `base-uri 'none'` |
 | Size and guessing | 4 MB a request, 1 MB for a task. Ten wrong passwords or bearer credentials from one address in ten minutes turns that address away, the right one included |
 | What is drawn | Templates escape. Model Markdown has raw HTML off and links restricted. Record files are plain text with `nosniff`. A task's record is read as files, never links, so what the agent plants in `out/` is never opened |

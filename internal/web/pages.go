@@ -187,10 +187,11 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.note(r, changelog.SignedOut, nil)
+	who := s.keeper.who(r)
 	s.keeper.end(r)
 	s.keeper.clear(w, r)
 	if s.front != nil {
-		http.Redirect(w, r, s.front.page("/org", nil), http.StatusSeeOther)
+		http.Redirect(w, r, s.front.exit(who), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)

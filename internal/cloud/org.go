@@ -6,6 +6,9 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"time"
+
+	"github.com/getlatentic/gusto/internal/entry"
 )
 
 // memberships is the person a request is signed in as in each organization they are in, and false when nobody is
@@ -143,6 +146,27 @@ func (s *Server) resend(w http.ResponseWriter, r *http.Request, person Person) {
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.Sessions.Clear(w)
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
+}
+
+// signedOutThere finishes a sign-out a person began in their organization's server, which has ended its own session
+// and vouches, with the key it shares with the front door, that this browser asked. A link without that word is
+// sent home and signs nobody out, so another site cannot sign a person out by linking here.
+func (s *Server) signedOutThere(w http.ResponseWriter, r *http.Request) {
+	slug := r.URL.Query().Get("org")
+	if s.Controller == nil || ValidSlug(slug) != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	key, err := s.Controller.EntryKey(slug)
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	if _, err := entry.VerifyExit(key, slug, r.URL.Query().Get("t"), time.Now()); err != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	s.signOut(w, r)
 }
 
 // creditLeft is what is left of an organization's credit, as a person reads it, and nothing when it has none. What is left is

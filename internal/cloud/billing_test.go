@@ -261,7 +261,7 @@ func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 		if status != http.StatusSeeOther || header.Get("Location") != "https://checkout.stripe.com/c/pay/cs_1" {
 			t.Fatalf("%d %v", status, header)
 		}
-		if !strings.Contains(header.Get("Content-Security-Policy"), "form-action 'self' https://checkout.stripe.com") {
+		if !strings.Contains(header.Get("Content-Security-Policy"), "form-action 'self' http://*.cloud.test https://checkout.stripe.com") {
 			t.Errorf("the browser may follow the form to Stripe: %s", header.Get("Content-Security-Policy"))
 		}
 		path, form := stripe.last()

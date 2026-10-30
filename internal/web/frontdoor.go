@@ -2,6 +2,7 @@ package web
 
 import (
 	"html"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -47,6 +48,17 @@ func (f *frontDoor) page(path string, query url.Values) string {
 	}
 	query.Set("org", f.Org)
 	return f.URL + path + "?" + query.Encode()
+}
+
+// exit is where a person who signed out here goes next: the front door, with a token that asks it to sign them
+// out too, or else they would be let straight back in.
+func (f *frontDoor) exit(email string) string {
+	token, err := entry.MintExit(f.Key, f.Org, email, time.Now())
+	if err != nil {
+		slog.Error("a sign-out could not be passed to the front door", "error", err)
+		return f.page("/org", nil)
+	}
+	return f.page("/signout", url.Values{"t": {token}})
 }
 
 // toFrontDoor sends somebody to be signed in where people are.
