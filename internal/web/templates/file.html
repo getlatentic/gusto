@@ -46,7 +46,7 @@
   {{else if eq .File.Kind "pdf"}}
   <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "html"}}
-  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" sandbox="allow-scripts" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" sandbox="allow-scripts allow-forms allow-modals" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "audio"}}
   <div class="grid place-items-center rounded-md bg-wash p-4"><audio controls src="{{.File.Raw}}"></audio></div>
   {{else if eq .File.Kind "video"}}

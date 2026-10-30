@@ -237,11 +237,12 @@ func rawType(name string, kind fileKind) string {
 }
 
 // rawPolicy is what the browser is told a file may do. A page runs its own scripts and styles and may fetch nothing, and a picture may be
-// nothing but a picture.
+// nothing but a picture. A page's forms are allowed because a browser fires no submit event in a sandbox without them, and most
+// pages an agent writes are driven by their forms; form-action 'none' still keeps a form from sending anything anywhere.
 func rawPolicy(kind fileKind) string {
 	switch kind {
 	case kindHTML:
-		return "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
+		return "sandbox allow-scripts allow-forms allow-modals; form-action 'none'; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
 	case kindImage:
 		return "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"
 	}
