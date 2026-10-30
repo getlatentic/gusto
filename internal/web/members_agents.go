@@ -227,7 +227,7 @@ func (s *Server) modelToStartOn(r *http.Request, harness string) string {
 		if org := s.orgDefault(); org.Harness == harness && slices.Contains(each.Models, org.Model) {
 			return org.Model
 		}
-		return first(each.Models)
+		return startingModel(each)
 	}
 	return ""
 }
