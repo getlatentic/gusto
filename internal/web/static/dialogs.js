@@ -15,7 +15,14 @@
     closer.addEventListener("click", function () { closer.closest("dialog").close(); });
   });
   document.querySelectorAll("dialog").forEach(function (dialog) {
-    dialog.addEventListener("click", function (event) { if (event.target === dialog) { dialog.close(); } });
+    dialog.addEventListener("click", function (event) {
+      if (event.target !== dialog) { return; }
+      dialog.close();
+      // A click outside that lands on a field behind the dialog is meant for the field, so what is typed next goes in it.
+      var under = document.elementFromPoint(event.clientX, event.clientY);
+      var field = under && under.closest("textarea, input, [contenteditable]");
+      if (field) { field.focus(); }
+    });
   });
   document.querySelectorAll("[data-filter]").forEach(function (search) {
     var list = document.getElementById(search.dataset.filter);
