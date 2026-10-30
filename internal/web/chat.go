@@ -135,7 +135,7 @@ func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model 
 			if each.Model == "" || slices.Contains(candidate.Models, each.Model) {
 				return each.Harness, each.Model
 			}
-			return each.Harness, first(candidate.Models)
+			return each.Harness, startingModel(candidate)
 		}
 	}
 	for _, candidate := range picks {
@@ -143,13 +143,30 @@ func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model 
 			if slices.Contains(candidate.Models, org.Model) {
 				return org.Harness, org.Model
 			}
-			return org.Harness, first(candidate.Models)
+			return org.Harness, startingModel(candidate)
 		}
 	}
 	if len(picks) == 0 {
 		return "", ""
 	}
-	return picks[0].Name, first(picks[0].Models)
+	return picks[0].Name, startingModel(picks[0])
+}
+
+// startingModel is the model an agent type starts on when nobody chose one: the first offered that it finished the benchmark's
+// simplest task with, else the first it was not seen to fail with, else the first offered. An agent that cannot finish on the
+// deployment's default model is not started on it.
+func startingModel(each pick) string {
+	for _, model := range each.Models {
+		if _, finished := each.Finished(model); finished {
+			return model
+		}
+	}
+	for _, model := range each.Models {
+		if _, cannot := each.CannotFinish(model); !cannot {
+			return model
+		}
+	}
+	return first(each.Models)
 }
 
 func first(all []string) string {

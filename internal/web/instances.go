@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"net/http"
 	"path/filepath"
 	"slices"
@@ -84,11 +85,10 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if why := s.unusable(r, wanted.Model); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
-	// Starting from the catalog names no model, so it gets the first this
-	// deployment offers *that harness* — not the first it offers at all, which
-	// may be one this harness cannot use.
+	// Starting from the catalog names no model, so it gets one this deployment offers that harness and that the harness can
+	// finish on, not merely the first offered.
 	if wanted.Model == "" {
-		wanted.Model = first(s.offeredTo(r))
+		wanted.Model = cmp.Or(s.modelToStartOn(r, wanted.Harness), first(s.offeredTo(r)))
 	}
 	name := wanted.Harness
 	if wanted.Repo != "" {
