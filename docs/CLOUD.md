@@ -75,6 +75,7 @@ The counts are kept in the database, so front doors that share it share the limi
 3. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
 4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
 5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
+6. Sign out in the organization's server ends its session. It then sends the browser to gusto cloud's `/signout` with a token for that purpose only, signed with the same key and good for a minute, and gusto cloud signs the person out too. A link to `/signout` without that token signs nobody out.
 
 gusto cloud's pages allow a form to end at any address under its domain (`form-action`), because sign-in, sign-up and joining redirect into an organization's server.
 

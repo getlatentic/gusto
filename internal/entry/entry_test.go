@@ -95,3 +95,27 @@ func TestTwoTokensForOnePersonAreTwo(t *testing.T) {
 		t.Error("tokens repeat")
 	}
 }
+
+func TestATokenToSignOutWithDoesNotLetAnybodyIn(t *testing.T) {
+	now := time.Now()
+	exit, err := MintExit(key, "acme-com", "ada@acme.com", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claims, err := VerifyExit(key, "acme-com", exit, now); err != nil || claims.Email != "ada@acme.com" || claims.Role != "" {
+		t.Fatalf("%+v %v", claims, err)
+	}
+	if _, err := Verify(key, "acme-com", exit, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a token to sign out with signs somebody in: %v", err)
+	}
+	enter, _ := Mint(key, "acme-com", "ada@acme.com", "admin", now)
+	if _, err := VerifyExit(key, "acme-com", enter, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a token to enter with signs somebody out: %v", err)
+	}
+	if _, err := VerifyExit(key, "acme-com", exit, now.Add(Life)); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a token to sign out with runs out: %v", err)
+	}
+	if _, err := VerifyExit(key, "globex-com", exit, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a token to sign out of one organization is taken by another: %v", err)
+	}
+}

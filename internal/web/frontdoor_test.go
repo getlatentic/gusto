@@ -122,12 +122,24 @@ func TestBehindAFrontDoorThereIsNoPasswordOrProviderToSignInWith(t *testing.T) {
 	}
 }
 
-func TestSigningOutGoesBackToTheFrontDoor(t *testing.T) {
+// Signing out here goes on to the front door with a token that asks it to sign the person out too, or the front door
+// would let them straight back in. The policy lets the form's redirect go there.
+func TestSigningOutGoesOnToSignOutOfTheFrontDoor(t *testing.T) {
 	s := behindAFrontDoor(t)
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	out := s.ask(t, "POST", "/logout", url.Values{})
-	if out.Code != http.StatusSeeOther || out.Header().Get("Location") != "https://cloud.test/org?org=acme-com" {
-		t.Errorf("%d %v", out.Code, out.Header())
+	to, err := url.Parse(out.Header().Get("Location"))
+	if out.Code != http.StatusSeeOther || err != nil || to.Scheme+"://"+to.Host+to.Path != "https://cloud.test/signout" || to.Query().Get("org") != "acme-com" {
+		t.Fatalf("%d %v", out.Code, out.Header())
+	}
+	if claims, err := entry.VerifyExit(entryKey, "acme-com", to.Query().Get("t"), time.Now()); err != nil || claims.Email != "ada@acme.com" {
+		t.Errorf("the front door is not asked to sign ada out: %+v %v", claims, err)
+	}
+	if policy := out.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "form-action 'self' https://cloud.test;") {
+		t.Errorf("the browser would refuse the way on to the front door: %s", policy)
+	}
+	if home := s.ask(t, "GET", "/chat", nil); home.Code != http.StatusSeeOther {
+		t.Errorf("ada is still signed in here: %d", home.Code)
 	}
 }
 
@@ -214,7 +226,7 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindAFrontDoor(t *t
 	if body := page.Body.String(); strings.Contains(body, "data-orgs") || strings.Contains(body, "data-reminder") || !strings.Contains(body, `class="brand-mark mb-2 grid size-10 place-items-center" href="/chat"`) {
 		t.Errorf("a server on its own has its mark link home:\n%s", body)
 	}
-	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self';") {
+	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self';") || !strings.Contains(policy, "form-action 'self';") {
 		t.Errorf("a server on its own asks nowhere else: %s", policy)
 	}
 }
