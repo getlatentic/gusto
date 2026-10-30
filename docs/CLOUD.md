@@ -76,6 +76,8 @@ The counts are kept in the database, so front doors that share it share the limi
 4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
 5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
 
+gusto cloud's pages allow a form to end at any address under its domain (`form-action`), because sign-in, sign-up and joining redirect into an organization's server.
+
 One address is one sign-in, and a person can be in several organizations, with a role in each. A person in more than one chooses at `/orgs` after signing in, and the choice is remembered. Each row there goes into the organization, and its Settings link goes to `/org`. `/org?org=<slug>` and `/open?org=<slug>` choose one of theirs; a name of an organization they are not in chooses nothing. Each organization's server sends people back with its own name. The mark at the top of its rail opens a switcher: it lists the person's organizations from the front door's `/orgs.json`, which answers an organization's own address and no other, and opens each through `/open`. A server knows only its own members, and its own name from `GUSTO_ORG_NAME`.
 
 ## People
