@@ -54,7 +54,7 @@ gusto cloud keeps people, organizations, invitations, single-use links, demos, l
 1. A person gives a work email. The address is refused when it is disposable, or at a free mail provider unless the operator allows it.
 2. The organization is named from the company's domain, found with the public suffix list: `ada@acme-research.com` makes "Acme Research", with the address `acme-research-com`. A free mail address names no company, so the person is asked for a name.
 3. The person, the organization and its directory are made, the person is signed in, and a verification link is mailed.
-4. Until the link is followed, the organization may run a small trial. Following it lifts the limit.
+4. Until the link is followed, the organization may run a small trial. Following it lifts the limit. Until then, the side panel of the organization's pages reminds the person and mails the link again. It asks the front door's `/account.json` and posts to `/account/confirm`, which answer an organization's own address and no other.
 
 A company can have more than one organization. The first at a domain gets the domain's address, and each later one is named by whoever makes it. A confirmed link proves one mailbox, not the domain, so nobody joins an organization by having an address at it. People join by invitation. Domain proof by DNS record is planned (getlatentic/planning#396).
 
