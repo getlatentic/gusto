@@ -46,6 +46,9 @@ func newFront(t *testing.T, set Settings, tune func(*Config)) *front {
 	}
 	listener := httptest.NewServer(server.Handler())
 	t.Cleanup(listener.Close)
+	// An organization a test made is still being started when the test returns, and it writes to the store and the folder
+	// the cleanups before this one remove; it finishes first.
+	t.Cleanup(server.Wait)
 	return &front{t: t, server: server, http: listener, store: store, outbox: outbox}
 }
 
