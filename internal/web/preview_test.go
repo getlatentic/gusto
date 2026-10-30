@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -143,5 +144,23 @@ func TestAPageBehindAFrontDoorIsItsOwnSite(t *testing.T) {
 	}
 	if policy := got.Header().Values("Content-Security-Policy"); len(policy) != 0 {
 		t.Errorf("a page with an origin of its own is fenced as if it had none: %v", policy)
+	}
+}
+
+// A page an agent built is of the same site as the organization's pages, so the browser sends it the person's cookie; what
+// it posts to them is refused, and the organization's own pages still post.
+func TestAnotherPageOfTheSiteCannotActAsThePersonSignedIn(t *testing.T) {
+	site := pagesSite(t)
+	thread := startedThread(t, site)
+	for fetchSite, want := range map[string]int{"same-site": http.StatusForbidden, "cross-site": http.StatusForbidden, "same-origin": http.StatusSeeOther} {
+		request := httptest.NewRequest("POST", thread+"/say", strings.NewReader(url.Values{"said": {"hello"}}.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.Header.Set("Sec-Fetch-Site", fetchSite)
+		request.AddCookie(site.cookie)
+		answer := httptest.NewRecorder()
+		site.handler.ServeHTTP(answer, request)
+		if answer.Code != want {
+			t.Errorf("a post from a %s page answered %d, not %d", fetchSite, answer.Code, want)
+		}
 	}
 }
