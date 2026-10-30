@@ -261,9 +261,9 @@ func TestRemovingAnAgentStopsTheAppsItShared(t *testing.T) {
 	}
 }
 
-func TestAServerWhoseAgentsAreNotInComputersOffersNoSharing(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
+// Without computers an agent's pages are shared, and nothing it would have to run.
+func TestAServerWhoseAgentsAreNotInComputersRunsNoApps(t *testing.T) {
+	site := pagesSite(t)
 	where := startedInstance(t, site)
 	if page := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(page, "Share an app") {
 		t.Error("it offers what it cannot do")

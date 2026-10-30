@@ -39,6 +39,8 @@ type App struct {
 	Owner   string `json:"owner"`
 	Command string `json:"command"`
 	Port    int    `json:"port"`
+	// Folder, for a page, is the folder of the agent's own that this server serves as it is, with no command run for it.
+	Folder  string `json:"folder,omitempty"`
 	Sandbox string `json:"sandbox,omitempty"`
 	// Host is the name the gateway knows the app by, and Target where the gateway is
 	// reached from this machine. Together they are how a request gets to it.
@@ -80,11 +82,20 @@ func Valid(id string) bool {
 
 // New makes an app that is starting.
 func (s *Store) New(instance, owner, command string, port int) (App, error) {
+	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting})
+}
+
+// NewPage makes a page: a folder of the agent's served as it is, live at once.
+func (s *Store) NewPage(instance, owner, folder string) (App, error) {
+	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Folder: folder, State: Live})
+}
+
+func (s *Store) add(app App) (App, error) {
 	raw := make([]byte, 5)
 	if _, err := rand.Read(raw); err != nil {
 		return App{}, err
 	}
-	app := App{ID: hex.EncodeToString(raw), Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting, Started: s.now().Unix()}
+	app.ID, app.Started = hex.EncodeToString(raw), s.now().Unix()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return app, s.write(app)
@@ -197,16 +208,4 @@ func (s *Store) Delete(id string) error {
 		return err
 	}
 	return nil
-}
-
-// PreviewHeader is the header the preview server of gusto puts on everything it answers, so that what answers on a
-// preview's port can be told from something else an agent started there.
-const PreviewHeader = "X-Gusto-Preview"
-
-// PreviewPrefix begins the command of every preview. A command a person typed does not begin so.
-const PreviewPrefix = "node -e 'const[h,f,p]="
-
-// IsPreview says an app is a preview of gusto's own, which must answer with PreviewHeader.
-func (a App) IsPreview() bool {
-	return len(a.Command) >= len(PreviewPrefix) && a.Command[:len(PreviewPrefix)] == PreviewPrefix
 }

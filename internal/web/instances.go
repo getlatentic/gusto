@@ -136,6 +136,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Workspace": s.instances.Workspace(held.ID),
 		"Models":    s.offeredTo(r),
 		"Sharing":   s.apps != nil,
+		"Runs":      s.runner != nil,
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
 		"Tasks":     s.tasks(held.ID),
