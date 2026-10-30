@@ -22,6 +22,9 @@
     var each = button && parts(button);
     if (!each || !each.form) { return; }
     editing(each, button.hasAttribute("data-edit"));
+    if (button.hasAttribute("data-edit-cancel") && each.file.closest(".fp-bodies")) {
+      each.file.dispatchEvent(new CustomEvent("gusto-file-saved", { bubbles: true }));
+    }
   });
 
   document.addEventListener("submit", function (event) {
@@ -40,6 +43,7 @@
         form.querySelector("[name=seen]").value = result.body.hash;
         // A tab beside a chat is read again by the panel; a page of its own is drawn again.
         if (each.file.closest(".fp-bodies")) {
+          editing(each, false);
           each.file.dispatchEvent(new CustomEvent("gusto-file-saved", { bubbles: true }));
         } else {
           location.reload();

@@ -80,6 +80,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function load(file) {
+    // What a person is writing is never put away for what changed under it; they are told, and the tab is read once they are done.
+    var editing = file.pane.querySelector("[data-file-edit]:not([hidden])");
+    if (editing) {
+      var said = editing.querySelector("[data-edit-said]");
+      said.textContent = "This file changed after you began. Saving will be refused: copy what you wrote, then open the file again.";
+      said.hidden = false;
+      return;
+    }
     fetch(file.asked, { credentials: "same-origin", cache: "no-store" })
       .then(function (answer) { return answer.ok ? answer.text() : Promise.reject(); })
       .then(function (html) {
@@ -91,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch(function () { file.pane.textContent = "This file could not be opened."; });
   }
 
-  // A file saved in its tab is read again, and so is what it now says.
+  // A file saved or put away in its tab is read again, so it shows what it now says.
   bodies.addEventListener("gusto-file-saved", function (event) {
     Object.keys(open).forEach(function (key) { if (open[key].pane.contains(event.target)) { load(open[key]); } });
   });
