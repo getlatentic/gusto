@@ -39,12 +39,7 @@ type switchable struct {
 // an organization's own address may read it with the person's cookie: an app's address, or anywhere else, is not
 // told it may.
 func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Vary", "Origin")
-	w.Header().Set("Cache-Control", "no-store")
-	if origin := r.Header.Get("Origin"); s.isOrgOrigin(origin) {
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-	}
+	s.allowOrgOrigin(w, r)
 	all, ok := s.memberships(r)
 	if !ok {
 		http.Error(w, "not signed in", http.StatusUnauthorized)

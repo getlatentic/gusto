@@ -149,6 +149,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
+	mux.HandleFunc("GET /account.json", s.accountJSON)
+	mux.HandleFunc("POST /account/confirm", s.confirmAgain)
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))
@@ -213,7 +215,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			h.Set("Cache-Control", "no-store")
 		}
 		if r.Method == http.MethodPost {
-			if !sameSite(r) {
+			// An organization's pages ask for the confirmation link again from their own address.
+			if !sameSite(r) && !(r.URL.Path == "/account/confirm" && s.isOrgOrigin(r.Header.Get("Origin"))) {
 				http.Error(w, "that form was sent from another site", http.StatusForbidden)
 				return
 			}
