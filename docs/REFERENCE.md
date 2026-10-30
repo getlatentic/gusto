@@ -272,6 +272,8 @@ docker build -t gusto:dev \
 | `GUSTO_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
 | `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
 | `GUSTO_SPEND_POLICY` | a file of model prices and team caps. Without it every model is unpriced and no team is capped |
+| `GUSTO_PROXY_MAX_OUTPUT_TOKENS` | the most output tokens one model call may ask for. A call that asks for more, or names no limit, is sent with this one. Unset is no cap |
+| `GUSTO_PROXY_SILENCE_SECONDS` | how long a model may send nothing before the call is ended. A stream that never begins is answered 504. An answer that is not streamed is waited for whole. Unset is no limit |
 | `GUSTO_REGISTRY` | the directory of an organization's model registry: providers and models its admins add at `/admin/models`, on top of the operator's. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
 | `GUSTO_REGISTRY_KEYS`, `GUSTO_REGISTRY_PRIVATE` | `file`, `ssm` or `secretsmanager` lets a key be a reference to one of these. `allow` lets a provider be at a private address or plain http |
 | `GUSTO_ORG_SETTINGS` | the file of an organization's admin choices, such as the monthly budget. Set by gusto cloud. [CLOUD.md](CLOUD.md) |

@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -37,6 +39,7 @@ type Proxy struct {
 	// lines is how many lines each task's record has, kept under guard.
 	lines    map[string]int
 	recorder atomic.Pointer[Recorder]
+	limits   atomic.Pointer[Limits]
 	counts   counters
 	resolve  Resolver
 	gateways atomic.Pointer[Gateways]
@@ -172,12 +175,26 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		wire.Fail(w, translated.From, http.StatusBadRequest, err.Error())
 		return
 	}
+	limits := p.currentLimits()
+	body = capOutput(body, path, limits.MaxOutput)
 	to, err := url.JoinPath(credential.Address, path)
 	if err != nil {
 		http.Error(w, "that is not an address", http.StatusBadRequest)
 		return
 	}
-	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, bytes.NewReader(body))
+	ctx, end := context.WithCancelCause(r.Context())
+	defer end(nil)
+	var quiet *silence
+	if limits.Silence > 0 {
+		quiet = newSilence(limits.Silence, end)
+		defer quiet.stop()
+	}
+	// A stream begins as soon as the model does, so the wait for it is a silence; an answer that is not streamed comes whole,
+	// after the model has written all of it, which the cap on its output bounds.
+	if asked.streamed {
+		quiet.wait()
+	}
+	out, err := http.NewRequestWithContext(ctx, r.Method, to, bytes.NewReader(body))
 	if err != nil {
 		http.Error(w, "that request could not be made", http.StatusBadGateway)
 		return
@@ -197,6 +214,13 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		Registry: p.registry.Load(), Translated: string(translated.From)}
 	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
+		if errors.Is(context.Cause(ctx), errSilent) {
+			call.Error, call.Took = errSilent.Error(), since(sent)
+			report(r.Context(), call)
+			p.note(job, call)
+			http.Error(w, errSilent.Error(), http.StatusGatewayTimeout)
+			return
+		}
 		call.Error, call.Took = err.Error(), since(sent)
 		report(r.Context(), call)
 		p.note(job, call)
@@ -204,6 +228,11 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		return
 	}
 	defer answer.Body.Close()
+	quiet.wait()
+	answer.Body = struct {
+		io.Reader
+		io.Closer
+	}{quiet.reading(answer.Body), answer.Body}
 	meter := spend.NewMeter(answer.Header.Get("Content-Type"))
 	var masking *maskedAnswer
 	var toHarness http.ResponseWriter = w
@@ -226,6 +255,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 			// An answer that stopped before its end is a call that did not finish, whoever stopped it.
 			call.Error = copyErr.Error()
 		}
+	}
+	if errors.Is(context.Cause(ctx), errSilent) {
+		call.Error = errSilent.Error()
 	}
 	call.Redacted = maskedRequest
 	if masking != nil {

@@ -8,8 +8,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/registry"
@@ -100,7 +102,7 @@ func (w *WayOut) askerOf(id string) string {
 // with no version on it, because the container supplies the rest of the path.
 // GUSTO_SPEND_POLICY names the prices and team caps, and the ledger starts from
 // what every task under jobsRoot has already spent. GUSTO_ALLOWED_HOSTS is every
-// other host a task may reach.
+// other host a task may reach. GUSTO_PROXY_MAX_OUTPUT_TOKENS and GUSTO_PROXY_SILENCE_SECONDS bound each model call.
 func openWayOut(jobsRoot string) (*WayOut, error) {
 	direct := setting("GUSTO_MODEL_URL", "http://localhost:11434/v1")
 	policy, err := spend.LoadPolicy(os.Getenv("GUSTO_SPEND_POLICY"))
@@ -139,6 +141,11 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		address:  setting("GUSTO_PROXY_ADDR", proxyAddress()),
 	}
 	way.held.Store(&credentials)
+	limits, err := callLimits()
+	if err != nil {
+		return nil, err
+	}
+	way.proxy.UseLimits(limits)
 	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return way.runOf(jobsRoot, id) })
 	if err != nil {
 		return nil, err
@@ -433,4 +440,28 @@ func proxyAddress() string {
 		return "127.0.0.1:8041"
 	}
 	return "0.0.0.0:8041"
+}
+
+// callLimits is how far one model call may run: the most output tokens it may ask for, and how long the model may send
+// nothing before the call is ended. Neither is set unless the operator sets it.
+func callLimits() (proxy.Limits, error) {
+	var limits proxy.Limits
+	for _, each := range []struct {
+		name string
+		into func(int)
+	}{
+		{"GUSTO_PROXY_MAX_OUTPUT_TOKENS", func(n int) { limits.MaxOutput = n }},
+		{"GUSTO_PROXY_SILENCE_SECONDS", func(n int) { limits.Silence = time.Duration(n) * time.Second }},
+	} {
+		value := os.Getenv(each.name)
+		if value == "" {
+			continue
+		}
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 1 {
+			return limits, fmt.Errorf("%s is %q, and it is a whole number above zero", each.name, value)
+		}
+		each.into(n)
+	}
+	return limits, nil
 }

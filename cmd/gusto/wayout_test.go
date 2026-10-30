@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -119,5 +120,18 @@ func TestAJobRunHereIsGivenTheProxyAndATokenAndNoneOfTheServersSecrets(t *testin
 	way.Done(dir)
 	if _, err := way.hereEnv(dir, job.Spec{Brief: "b", Harness: "opencode", Model: "nowhere/model"}); err == nil {
 		t.Error("a job naming a credential the server does not hold was given a token")
+	}
+}
+
+func TestTheCallLimitsAreReadFromTheirSettingsAndAWrongOneIsSaid(t *testing.T) {
+	t.Setenv("GUSTO_PROXY_MAX_OUTPUT_TOKENS", "16384")
+	t.Setenv("GUSTO_PROXY_SILENCE_SECONDS", "60")
+	limits, err := callLimits()
+	if err != nil || limits.MaxOutput != 16384 || limits.Silence != time.Minute {
+		t.Fatalf("%+v %v", limits, err)
+	}
+	t.Setenv("GUSTO_PROXY_SILENCE_SECONDS", "a minute")
+	if _, err := callLimits(); err == nil || !strings.Contains(err.Error(), "GUSTO_PROXY_SILENCE_SECONDS") {
+		t.Errorf("a wrong setting was taken: %v", err)
 	}
 }
