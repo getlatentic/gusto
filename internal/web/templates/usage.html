@@ -6,6 +6,7 @@
   {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
 </div>
 
+{{with .Mine}}<p class="{{if .Passed}}{{template "ui-notice"}}{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}
 {{with .Usage}}
 {{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
 

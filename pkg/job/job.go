@@ -85,6 +85,8 @@ type Spec struct {
 	// Team is who a task's spend counts against. It is a label the person
 	// asking chooses: nothing proves they belong to the team yet.
 	Team string `json:"team,omitempty"`
+	// Person is who asked for the task, whose own monthly budget it counts against.
+	Person string `json:"person,omitempty"`
 	// Setup is what the agent was configured with beyond its adapter: the
 	// skills it was given and the MCP servers it may call.
 	Setup *Setup `json:"setup,omitempty"`

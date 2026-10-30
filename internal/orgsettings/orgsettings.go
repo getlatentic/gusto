@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
@@ -19,6 +20,10 @@ type Settings struct {
 	// MonthlyBudgetUSD is what the organization means to spend in a calendar month, UTC.
 	// Zero is no budget.
 	MonthlyBudgetUSD float64 `json:"monthlyBudgetUsd,omitempty"`
+	// MemberBudgetUSD is what each person may spend in a calendar month, all their tasks together, unless MemberBudgets names
+	// them. Zero is no limit. Unlike the organization's budget, a member's is enforced: past it, their agents' calls are refused.
+	MemberBudgetUSD float64            `json:"memberBudgetUsd,omitempty"`
+	MemberBudgets   map[string]float64 `json:"memberBudgets,omitempty"`
 	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
 	DefaultHarness string `json:"defaultHarness,omitempty"`
 	DefaultModel   string `json:"defaultModel,omitempty"`
@@ -58,8 +63,13 @@ func (f *File) read() (Settings, error) {
 	if err := json.Unmarshal(text, &settings); err != nil {
 		return Settings{}, fmt.Errorf("the settings in %s are not valid: %w", f.path, err)
 	}
-	if settings.MonthlyBudgetUSD < 0 {
+	if settings.MonthlyBudgetUSD < 0 || settings.MemberBudgetUSD < 0 {
 		return Settings{}, fmt.Errorf("the settings in %s name a budget below nothing", f.path)
+	}
+	for who, usd := range settings.MemberBudgets {
+		if usd < 0 {
+			return Settings{}, fmt.Errorf("the settings in %s give %s a budget below nothing", f.path, who)
+		}
 	}
 	return settings, nil
 }
@@ -75,4 +85,13 @@ func (f *File) Change(change func(*Settings)) error {
 	}
 	change(&settings)
 	return atomicfile.Write(f.path, settings, 0o600)
+}
+
+// MemberBudget is what one person may spend in a month: their own budget when an admin set one, else every member's, and false
+// when neither is set.
+func (s Settings) MemberBudget(person string) (float64, bool) {
+	if usd, found := s.MemberBudgets[strings.ToLower(person)]; found {
+		return usd, usd > 0
+	}
+	return s.MemberBudgetUSD, s.MemberBudgetUSD > 0
 }

@@ -64,6 +64,9 @@ type Terms struct {
 	// most it may spend there in one.
 	Allowance    string
 	AllowanceUSD *float64
+	// Person is who asked for the task, and PersonUSD the most they may spend in a calendar month, all their tasks together.
+	Person    string
+	PersonUSD *float64
 }
 
 // account is one task's terms and what it has spent against them. Blind counts
@@ -87,6 +90,8 @@ const (
 	ByDay     = "day"
 	// ByAllowance is a room's agent in its room, as "<room>/<agent>".
 	ByAllowance = "allowance"
+	// ByPerson is who asked for a task.
+	ByPerson = "person"
 	// ByPayer is who paid the provider: the operator, for the operator's keys, or the organization, for a key it added.
 	ByPayer = "payer"
 )
@@ -183,6 +188,9 @@ func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 	if refusal := l.allowanceSpent(held); refusal != nil {
 		return refusal
 	}
+	if refusal := l.personSpent(held); refusal != nil {
+		return refusal
+	}
 	if !own {
 		if refusal := l.organizationSpent(); refusal != nil {
 			return refusal
@@ -227,9 +235,9 @@ func (l *Ledger) countLocked(job string, call Call) {
 	for scope, name := range map[string]string{
 		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
 		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"), ByAllowance: held.terms.Allowance,
-		ByPayer: payerOf(call),
+		ByPayer: payerOf(call), ByPerson: held.terms.Person,
 	} {
-		if scope == ByAllowance && name == "" {
+		if (scope == ByAllowance || scope == ByPerson) && name == "" {
 			continue
 		}
 		l.tally(scope, name, month).add(call)
@@ -297,6 +305,23 @@ func (l *Ledger) allowanceSpent(held *account) *Refusal {
 	return &Refusal{
 		Cap: "allowance", LimitUSD: *limit, SpentUSD: spent,
 		Reason: fmt.Sprintf("this agent has spent $%.4f of its $%.4f allowance in this room for %s", spent, *limit, month),
+	}
+}
+
+// personSpent refuses a call once the person who asked for the task has spent their month's budget.
+func (l *Ledger) personSpent(held *account) *Refusal {
+	limit := held.terms.PersonUSD
+	if limit == nil || held.terms.Person == "" {
+		return nil
+	}
+	month := monthOf(l.now())
+	spent := l.tally(ByPerson, held.terms.Person, month).USD
+	if spent < *limit {
+		return nil
+	}
+	return &Refusal{
+		Cap: "person", LimitUSD: *limit, SpentUSD: spent,
+		Reason: fmt.Sprintf("%s has spent $%.2f of their $%.2f budget for %s; an admin of the organization can raise it", held.terms.Person, spent, *limit, month),
 	}
 }
 

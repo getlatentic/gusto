@@ -20,6 +20,8 @@ func (s *Server) hasRoster() bool { return s.rosterPath != "" }
 // has not been signed in yet, and Spent is nil when they spent nothing this month.
 type personRow struct {
 	Email      string
+	Name       string
+	Budget     memberBudget
 	Role       string
 	LastSignIn int64
 	Spent      *spend.Tally
@@ -50,13 +52,14 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	}
 	page["Month"], page["Written"] = month, list.Written.Unix()
 	page["People"], page["Invited"] = s.rowsOf(list, spent), invitesOf(list)
+	page["Budgets"] = s.hasOrgSettings()
 	s.drawConsole(w, "admin-people.html", "people", page)
 }
 
 func (s *Server) rowsOf(list roster.Roster, spent map[string]spend.Tally) []personRow {
 	rows := make([]personRow, 0, len(list.Members))
 	for _, member := range list.Members {
-		row := personRow{Email: member.Email, Role: member.Role}
+		row := personRow{Email: member.Email, Name: s.personName(member.Email), Role: member.Role, Budget: s.memberBudgetOf(member.Email)}
 		if !member.LastSignIn.IsZero() {
 			row.LastSignIn = member.LastSignIn.Unix()
 		}

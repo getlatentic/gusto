@@ -17,6 +17,8 @@ type Report struct {
 	Jobs      []Line `json:"jobs"`
 	// Allowances are rooms' agents in their rooms, as "<room>/<agent>".
 	Allowances []Line `json:"allowances,omitempty"`
+	// People is what each person who asked for tasks spent.
+	People []Line `json:"people,omitempty"`
 	// Payers is who paid the providers: "operator" for the operator's keys, which a hosted organization's credit holds, and
 	// "organization" for keys it added for itself.
 	Payers []Line `json:"payers,omitempty"`
@@ -40,7 +42,7 @@ func (l *Ledger) Report(month string) Report {
 	into := map[string]*[]Line{
 		ByTeam: &report.Teams, ByProject: &report.Projects, ByJob: &report.Jobs,
 		ByHarness: &report.Harnesses, ByModel: &report.Models, ByDay: &report.Days, ByAllowance: &report.Allowances,
-		ByPayer: &report.Payers,
+		ByPayer: &report.Payers, ByPerson: &report.People,
 	}
 	for key, tally := range l.months {
 		if key.month != month {
