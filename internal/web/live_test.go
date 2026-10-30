@@ -328,18 +328,23 @@ func TestTheRoomPageSaysWhereItsStreamStandsAndLoadsTheSocketScripts(t *testing.
 	l := newLiveRoom(t, &roomWork{}, [2]string{"Scout", "fixture"})
 	mine := l.site.as(t, alice)
 	mine.ask(t, "POST", l.thread+"/say", url.Values{"said": {"hello"}})
-	head, _ := l.site.server.instances.RoomHead(l.id)
+	// The agent's turn keeps writing to the room while the page renders, so the page's position lies between the
+	// newest event before the request and the newest after it.
+	before, _ := l.site.server.instances.RoomHead(l.id)
 	page := mine.ask(t, "GET", l.thread, nil).Body.String()
+	after, _ := l.site.server.instances.RoomHead(l.id)
 	for _, want := range []string{
-		`data-live="/live?room=` + l.id + `"`, `data-epoch="` + head.Epoch + `"`, `data-room="` + l.id + `"`,
+		`data-live="/live?room=` + l.id + `"`, `data-epoch="` + before.Epoch + `"`, `data-room="` + l.id + `"`,
 		`/static/centrifuge.js?v=`, `/static/live.js?v=`, `id="typing"`, `id="here"`,
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the room's page lacks %s", want)
 		}
 	}
-	if want := `data-seq="` + strconv.FormatUint(head.Seq, 10) + `"`; head.Seq == 0 || !strings.Contains(page, want) {
-		t.Errorf("the page should follow from the newest event, %s: %s", want, page[strings.Index(page, `id="turns"`):][:200])
+	turns := page[strings.Index(page, `id="turns"`):]
+	seq, err := strconv.ParseUint(between(turns, `data-seq="`, `"`), 10, 64)
+	if err != nil || before.Seq == 0 || seq < before.Seq || seq > after.Seq {
+		t.Errorf("the page should follow from the newest event, between %d and %d: %s", before.Seq, after.Seq, turns[:200])
 	}
 }
 
