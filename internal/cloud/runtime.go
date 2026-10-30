@@ -32,9 +32,12 @@ type Runtime struct {
 	Error     string    `json:"error,omitempty"`
 	Restarts  int       `json:"restarts,omitempty"`
 	Updated   time.Time `json:"updated"`
+	// Command is what the server was started with. A front door whose command is another restarts it, which is how an
+	// organization's server comes to the front door's release.
+	Command string `json:"command,omitempty"`
 }
 
-var runtimeFields = []string{"slug", "state", "cell", "port", "proxy_port", "error", "restarts", "updated"}
+var runtimeFields = []string{"slug", "state", "cell", "port", "proxy_port", "error", "restarts", "updated", "command"}
 
 var putRuntime = dbkit.Upsert{Table: "runtime", Columns: runtimeFields, Conflict: []string{"slug"}, Update: runtimeFields[1:]}
 
@@ -42,7 +45,7 @@ func scanRuntime(r rowScanner) (Runtime, error) {
 	var rt Runtime
 	var state string
 	var updated dbkit.Time
-	if err := r.Scan(&state, &rt.Cell, &rt.Port, &rt.ProxyPort, &rt.Error, &rt.Restarts, &updated); err != nil {
+	if err := r.Scan(&state, &rt.Cell, &rt.Port, &rt.ProxyPort, &rt.Error, &rt.Restarts, &updated, &rt.Command); err != nil {
 		return Runtime{}, err
 	}
 	rt.State, rt.Updated = State(state), updated.Time
@@ -52,7 +55,7 @@ func scanRuntime(r rowScanner) (Runtime, error) {
 // Runtime is the state of an organization's server. One never provisioned has none.
 func (s *Store) Runtime(slug string) (Runtime, error) {
 	rt, _, err := one(context.Background(), s.db, scanRuntime,
-		`SELECT state, cell, port, proxy_port, error, restarts, updated FROM runtime WHERE slug = ?`, slug)
+		`SELECT state, cell, port, proxy_port, error, restarts, updated, command FROM runtime WHERE slug = ?`, slug)
 	return rt, err
 }
 
@@ -61,6 +64,6 @@ func (s *Store) Runtime(slug string) (Runtime, error) {
 func (s *Store) SetRuntime(slug string, rt Runtime) error {
 	rt.Updated = s.now().UTC().Truncate(time.Second)
 	_, err := s.db.ExecContext(context.Background(), putRuntime.SQL(1),
-		slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated))
+		slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
 	return err
 }

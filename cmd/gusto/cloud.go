@@ -212,6 +212,12 @@ func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 	}
 	if pool != nil {
 		controller.Cells = pool
+		// A host apart runs the servers from the shared files, as this release, and not the program it was made with.
+		shared, err := cloud.ShareRelease(exe, filepath.Join(store.Root(), "releases"))
+		if err != nil {
+			return nil, fmt.Errorf("this release could not be put where the hosts run it from: %w", err)
+		}
+		controller.Command = []string{shared, "serve"}
 	}
 	return controller, nil
 }
