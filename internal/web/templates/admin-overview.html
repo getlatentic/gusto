@@ -52,7 +52,14 @@
       <label class="{{template "ui-field"}}">Dollars a month <input class="input" name="usd" type="number" min="0" step="0.01" placeholder="no budget"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
       <button class="{{template "ui-btn"}}" type="submit">Save</button>
     </form>
-    <p class="{{template "ui-note"}}">When the month's spending passes it, this page says so. It stops no task. A team's cap does that.</p>
+    <p class="{{template "ui-note"}}">When the month's spending passes it, this page says so. It stops no task. A member's budget does.</p>
+    <h2 class="mt-2 text-sm font-semibold">Each member</h2>
+    <p>{{if .Budget.MemberSet}}{{usd .Budget.Member}} a month for each person.{{else}}No member has a budget.{{end}}</p>
+    <form method="post" action="/admin/member-budget" class="flex flex-wrap items-end gap-3">
+      <label class="{{template "ui-field"}}">Dollars a month, each <input class="input" name="usd" type="number" min="0" step="0.01" placeholder="no limit"{{if .Budget.MemberSet}} value="{{printf "%.2f" .Budget.Member}}"{{end}}></label>
+      <button class="{{template "ui-btn"}}" type="submit">Save</button>
+    </form>
+    <p class="{{template "ui-note"}}">Past it, a person's agents are stopped until the next month or until you raise it. Give one person their own on People.</p>
   </section>
   {{end}}
 

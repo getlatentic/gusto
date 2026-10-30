@@ -218,6 +218,14 @@ func serve(args []string) int {
 	if path := os.Getenv("GUSTO_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)
 		settings := orgsettings.Open(path)
+		// Settings that cannot be read hold nobody to a budget: the organization's caps and the credit still hold.
+		way.UseMemberBudgets(func(person string) (float64, bool) {
+			chosen, err := settings.Read()
+			if err != nil {
+				return 0, false
+			}
+			return chosen.MemberBudget(person)
+		})
 		// Settings that cannot be read leave runs bound, the safer way.
 		way.UseRunTokens(func() bool {
 			chosen, err := settings.Read()

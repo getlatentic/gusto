@@ -31,6 +31,9 @@ type budgetState struct {
 	Passed   bool
 	Over     float64
 	Err      string
+	// Member is what each member may spend in a month, when MemberSet.
+	Member    float64
+	MemberSet bool
 }
 
 // budgetOf says whether what has been spent this month has passed the budget. Spending
@@ -43,7 +46,8 @@ func (s *Server) budgetOf(spent float64) budgetState {
 	if err != nil {
 		return budgetState{Editable: true, Err: err.Error()}
 	}
-	state := budgetState{Editable: true, Set: settings.MonthlyBudgetUSD > 0, Limit: settings.MonthlyBudgetUSD}
+	state := budgetState{Editable: true, Set: settings.MonthlyBudgetUSD > 0, Limit: settings.MonthlyBudgetUSD,
+		Member: settings.MemberBudgetUSD, MemberSet: settings.MemberBudgetUSD > 0}
 	state.Passed = state.Set && spent > state.Limit
 	if state.Passed {
 		state.Over = spent - state.Limit

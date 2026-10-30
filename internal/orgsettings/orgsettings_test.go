@@ -45,3 +45,23 @@ func TestSettingsThatCannotBeReadAreAnErrorAndAreNotWrittenOver(t *testing.T) {
 		}
 	}
 }
+
+func TestAMembersBudgetIsTheirOwnElseEveryones(t *testing.T) {
+	settings := Settings{MemberBudgetUSD: 20, MemberBudgets: map[string]float64{"ada@acme.com": 50, "bob@acme.com": 0}}
+	for who, want := range map[string]struct {
+		usd float64
+		set bool
+	}{"Ada@Acme.com": {50, true}, "carol@acme.com": {20, true}, "bob@acme.com": {0, false}} {
+		if usd, set := settings.MemberBudget(who); usd != want.usd || set != want.set {
+			t.Errorf("%s: %v %v", who, usd, set)
+		}
+	}
+	if _, set := (Settings{}).MemberBudget("ada@acme.com"); set {
+		t.Error("with no budgets a member has one")
+	}
+	path := filepath.Join(t.TempDir(), "settings.json")
+	os.WriteFile(path, []byte(`{"memberBudgets":{"ada@acme.com":-1}}`), 0o644)
+	if _, err := Open(path).Read(); err == nil {
+		t.Error("a budget below nothing was read")
+	}
+}

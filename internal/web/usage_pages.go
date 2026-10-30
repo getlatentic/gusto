@@ -72,6 +72,10 @@ func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
 
 func (s *Server) showUsage(w http.ResponseWriter, r *http.Request, base string, console bool) {
 	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
+	// A person sees their own month against their budget before they reach it.
+	if mine := s.memberBudgetOf(s.askerName(r)); !console && mine.Set {
+		page["Mine"] = mine
+	}
 	if s.usage.store == nil {
 		s.drawUsage(w, "usage.html", console, page)
 		return

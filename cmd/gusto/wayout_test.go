@@ -135,3 +135,14 @@ func TestTheCallLimitsAreReadFromTheirSettingsAndAWrongOneIsSaid(t *testing.T) {
 		t.Errorf("a wrong setting was taken: %v", err)
 	}
 }
+
+func TestATaskIsHeldToTheBudgetOfThePersonWhoAskedForIt(t *testing.T) {
+	way := &WayOut{}
+	way.UseMemberBudgets(func(person string) (float64, bool) { return 20, person == "ada@acme.com" })
+	if terms := way.termsOf(job.Spec{Person: "Ada@Acme.com"}); terms.PersonUSD == nil || *terms.PersonUSD != 20 || terms.Person != "ada@acme.com" {
+		t.Errorf("ada's task: %+v", terms)
+	}
+	if terms := way.termsOf(job.Spec{Person: "bob@acme.com"}); terms.PersonUSD != nil {
+		t.Errorf("bob, who has no budget, was given one: %+v", terms)
+	}
+}

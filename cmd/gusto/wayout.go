@@ -52,6 +52,8 @@ type WayOut struct {
 	// plainRuns says whether a run in a sandbox gets a plain token in place of a secret its forwarder trades for a run token
 	// bound to a key its sandbox holds; see UseRunTokens. Unset, every run is bound.
 	plainRuns atomic.Pointer[func() bool]
+	// memberBudget is what the person who asked for a task may spend in a month, when an admin set it; see UseMemberBudgets.
+	memberBudget atomic.Pointer[func(person string) (float64, bool)]
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
 	// describe says who and what a run is for, for its record; see UseRunRecords.
@@ -90,6 +92,23 @@ func (w *WayOut) bindsRuns() bool {
 
 // UseAskers says how to find the person a task acts for, which the server's index knows.
 func (w *WayOut) UseAskers(asker func(id string) string) { w.asker.Store(&asker) }
+
+// UseMemberBudgets says what each person may spend in a month. A task is held to the budget of the person who asked for it, as
+// it stands when the task starts.
+func (w *WayOut) UseMemberBudgets(budget func(person string) (float64, bool)) {
+	w.memberBudget.Store(&budget)
+}
+
+// termsOf is what a task may spend: what its spec says, and the budget of the person who asked for it.
+func (w *WayOut) termsOf(spec job.Spec) spend.Terms {
+	terms := spend.TermsOf(spec)
+	if budget := w.memberBudget.Load(); budget != nil && terms.Person != "" {
+		if usd, set := (*budget)(terms.Person); set {
+			terms.PersonUSD = &usd
+		}
+	}
+	return terms
+}
 
 func (w *WayOut) askerOf(id string) string {
 	if asker := w.asker.Load(); asker != nil {
@@ -316,7 +335,7 @@ func (w *WayOut) mayReach(dir job.Dir, spec job.Spec) (string, string, error) {
 			return "", "", runner.Refuse(dir, err)
 		}
 	}
-	w.ledger.Begin(id, spend.TermsOf(spec))
+	w.ledger.Begin(id, w.termsOf(spec))
 	return id, named, nil
 }
 

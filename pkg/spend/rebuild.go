@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/pkg/job"
@@ -90,7 +91,7 @@ func dated(path string) ([]Call, error) {
 // A task's project is the repository it worked in: the one thing every task
 // already names that a platform lead would group spend by.
 func TermsOf(spec job.Spec) Terms {
-	terms := Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
+	terms := Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD, Person: strings.ToLower(spec.Person)}
 	if spec.Session != "" && spec.Agent != "" {
 		terms.Allowance, terms.AllowanceUSD = AllowanceOf(spec.Session, spec.Agent), spec.Budget.MonthUSD
 	}
