@@ -61,15 +61,16 @@
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
     <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
+      <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
         {{if .Instance.Room}}
         <div class="relative">
           <div class="pointer-events-none absolute inset-0 overflow-hidden leading-relaxed whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
-          <textarea class="relative block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" autofocus required></textarea>
+          <textarea class="relative block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
         </div>
         {{else}}
-        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" autofocus required></textarea>
+        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
         {{end}}
         <div class="flex items-center gap-1">
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
@@ -228,7 +229,7 @@
 {{template "foot" .}}
 
 {{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
-<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members refused">
+<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members">
   <div class="grid gap-1 p-6 pb-5">
     <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}

@@ -22,6 +22,7 @@
   var here = document.getElementById("here");
   var path = form.getAttribute("action").replace(/\/say$/, "");
   var empty = document.getElementById("empty");
+  var unsent = document.getElementById("unsent");
   var live = window.gustoLive = { online: false };
 
   var client = new Centrifuge((location.protocol === "https:" ? "wss://" : "ws://") + location.host + turns.dataset.live, {
@@ -253,8 +254,9 @@
       var resend = pending !== null && pending.text === text;
       if (!resend) { pending = { id: newID(), text: text }; }
       call("say", { thread: thread, text: text }, pending.id, resend).then(function (result) {
-        if (!result || !result.ok) { throw new Error((result && result.error) || "not sent"); }
+        if (!result || !result.ok) { throw new Error((result && result.error) || "The server did not say why."); }
         pending = null;
+        if (unsent) { unsent.hidden = true; }
         form.reset();
         box.dispatchEvent(new Event("input"));
         if (typingLine) { typingLine.textContent = typingWords(); }
@@ -262,7 +264,11 @@
       }).catch(function (why) {
         // Not heard. The words stay in the box, and the next press sends them again under the same id.
         if (send) { send.disabled = false; }
-        if (typingNews) { typingNews.textContent = "That was not sent: " + (why && why.message ? why.message : "the connection dropped") + ". Press send to try again."; }
+        if (unsent) {
+          unsent.textContent = "That was not sent. " + (why && why.message ? why.message : "The connection dropped; press send to try again.");
+          unsent.setAttribute("role", "alert");
+          unsent.hidden = false;
+        }
       });
     });
   }
