@@ -237,3 +237,26 @@ func TestTheOrganizationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testi
 		}
 	})
 }
+
+// Join pressed a second time while the first press was on its way takes the person in; the link is no use to anybody else,
+// and the page sends the form once.
+func TestJoinPressedTwiceGoesInAndTheUsedLinkStaysUsedForOthers(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := newFront(t, Settings{}, nil)
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		admin.post("/org/invite", url.Values{"email": {"bob@acme.com"}})
+		link := f.linkTo("bob@acme.com", "/invite?t=")
+		bob := f.browser()
+		if _, page := bob.get(link); !strings.Contains(page, "data-once") || !strings.Contains(page, "/static/once.") {
+			t.Errorf("the page does not send its form once:\n%s", page)
+		}
+		for press := range 2 {
+			if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+				t.Fatalf("press %d: %d %v", press+1, status, header)
+			}
+		}
+		if status, _, _ := f.browser().post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusGone {
+			t.Errorf("another browser was let in by a used link: %d", status)
+		}
+	})
+}

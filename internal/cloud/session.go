@@ -145,10 +145,38 @@ func (s *Sessions) Chosen(r *http.Request) string {
 	return cookie.Value
 }
 
+// joinedName is the cookie that says which invitation this browser just used, so that pressing Join again goes in.
+func (s *Sessions) joinedName() string {
+	if s.secure {
+		return "__Host-gusto_joined"
+	}
+	return "gusto_joined"
+}
+
+// Joined remembers, for a few minutes, that this browser used an invitation. Only a hash of its link is kept.
+func (s *Sessions) Joined(w http.ResponseWriter, secret string) {
+	http.SetCookie(w, &http.Cookie{Name: s.joinedName(), Value: linkHash(secret), Path: "/", MaxAge: int(joinedFor / time.Second),
+		HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// JoinedWith says whether this browser is the one that just used the invitation.
+func (s *Sessions) JoinedWith(r *http.Request, secret string) bool {
+	cookie, err := r.Cookie(s.joinedName())
+	return err == nil && secret != "" && hmac.Equal([]byte(cookie.Value), []byte(linkHash(secret)))
+}
+
+// joinedFor is how long a browser that used an invitation is let in again by its link.
+const joinedFor = 10 * time.Minute
+
+func linkHash(secret string) string {
+	sum := sha256.Sum256([]byte("joined:" + secret))
+	return hex.EncodeToString(sum[:])
+}
+
 // ownCookie says whether a cookie is the front door's, over https or not, which no organization's server is sent.
 func ownCookie(name string) bool {
 	switch name {
-	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org":
+	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined":
 		return true
 	}
 	return false
