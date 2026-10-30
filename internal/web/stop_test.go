@@ -141,3 +141,24 @@ func TestATurnTheCreditStoppedSaysHowToCarryOn(t *testing.T) {
 		t.Errorf("the turn does not say the credit stopped it and what to do:\n%s", page)
 	}
 }
+
+// A model the credit cannot count is refused for that, not because the credit is used, and the turn says the real reason.
+func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testing.T) {
+	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":0,"reason":"m has no price in the spend policy, so the credit cap cannot count it"}}`
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if strings.Contains(page, "free credit for the models gusto provides is used") || !strings.Contains(page, "The model was not asked: m has no price in the spend policy") {
+		t.Errorf("the turn does not give the real reason its model was refused")
+	}
+}

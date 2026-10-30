@@ -65,6 +65,9 @@ type viewedFile struct {
 	Modified        int64
 	Raw, Download   string
 	Text            string
+	// Editable is a text file shown whole, which a person may change here: Source is all of it, and Hash what it was then.
+	Editable     bool
+	Source, Hash string
 	// Language is what a code file is highlighted as, and Lines how many it has.
 	Language string
 	Lines    int
@@ -110,6 +113,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		file.Kind = kindText
 	}
 	s.fill(&file, resolved, info.Size())
+	editable(&file, resolved, info.Size())
 	if r.URL.Query().Get("panel") != "" {
 		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
 		return
@@ -237,11 +241,12 @@ func rawType(name string, kind fileKind) string {
 }
 
 // rawPolicy is what the browser is told a file may do. A page runs its own scripts and styles and may fetch nothing, and a picture may be
-// nothing but a picture.
+// nothing but a picture. A page's forms are allowed because a browser fires no submit event in a sandbox without them, and most
+// pages an agent writes are driven by their forms; form-action 'none' still keeps a form from sending anything anywhere.
 func rawPolicy(kind fileKind) string {
 	switch kind {
 	case kindHTML:
-		return "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
+		return "sandbox allow-scripts allow-forms allow-modals; form-action 'none'; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
 	case kindImage:
 		return "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"
 	}

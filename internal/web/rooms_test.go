@@ -540,3 +540,12 @@ func TestOnlyTheTextAfterAMentionIsKeptOfAReply(t *testing.T) {
 		t.Error("the kept text does not answer who is mentioned")
 	}
 }
+
+// A new room's add dialog, for somebody with no agents yet, says to make one rather than that every agent is already in.
+func TestANewRoomSaysToMakeAnAgentWhenThereIsNone(t *testing.T) {
+	site, _, where := aRoom(t, &roomWork{})
+	page := site.as(t, alice).ask(t, "GET", where+"?add=1", nil).Body.String()
+	if !strings.Contains(page, "You have no agents yet.") || strings.Contains(page, "is in this room already") {
+		t.Error("the add dialog of a room with no agents does not say to make one")
+	}
+}

@@ -99,9 +99,6 @@ func (a *sharedApps) answers(ctx context.Context, app apps.App, address openshel
 	if response.StatusCode >= 500 {
 		return fmt.Errorf("it answered %s", response.Status)
 	}
-	if app.IsPreview() && response.Header.Get(apps.PreviewHeader) == "" {
-		return errors.New("something else answers on that port, not the preview")
-	}
 	return nil
 }
 

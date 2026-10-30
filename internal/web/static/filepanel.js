@@ -70,16 +70,65 @@ document.addEventListener("DOMContentLoaded", function () {
     pane.setAttribute("aria-labeledby", name.id);
     pane.textContent = "Opening…";
     bodies.appendChild(pane);
-    open[key] = { tab: tab, name: name, pane: pane };
-    name.addEventListener("click", function () { show(key); });
-    x.addEventListener("click", function () { close(key); });
     var asked = new URL(url.href);
     asked.searchParams.set("panel", "1");
     asked.searchParams.delete("from");
-    fetch(asked, { credentials: "same-origin" })
+    open[key] = { tab: tab, name: name, pane: pane, asked: asked };
+    name.addEventListener("click", function () { show(key); });
+    x.addEventListener("click", function () { close(key); });
+    load(open[key]);
+  }
+
+  function load(file) {
+    // What a person is writing is never put away for what changed under it; they are told, and the tab is read once they are done.
+    var editing = file.pane.querySelector("[data-file-edit]:not([hidden])");
+    if (editing) {
+      var said = editing.querySelector("[data-edit-said]");
+      said.textContent = "This file changed after you began. Saving will be refused: copy what you wrote, then open the file again.";
+      said.hidden = false;
+      return;
+    }
+    fetch(file.asked, { credentials: "same-origin", cache: "no-store" })
       .then(function (answer) { return answer.ok ? answer.text() : Promise.reject(); })
-      .then(function (html) { pane.innerHTML = html; dressed(pane); })
-      .catch(function () { pane.textContent = "This file could not be opened."; });
+      .then(function (html) {
+        var scrolled = bodies.scrollTop;
+        file.pane.innerHTML = html;
+        dressed(file.pane);
+        if (!file.pane.hidden) { bodies.scrollTop = scrolled; }
+      })
+      .catch(function () { file.pane.textContent = "This file could not be opened."; });
+  }
+
+  // A file saved or put away in its tab is read again, so it shows what it now says.
+  bodies.addEventListener("gusto-file-saved", function (event) {
+    Object.keys(open).forEach(function (key) { if (open[key].pane.contains(event.target)) { load(open[key]); } });
+  });
+
+  function keyOf(url) { return url.pathname + "?" + (url.searchParams.get("path") || ""); }
+
+  // A turn that is drawn again names the files it changed, so an open file it names is read again: what is open stays what an agent,
+  // or a colleague's agent, has just written.
+  var turns = document.getElementById("turns");
+  if (turns && window.MutationObserver) {
+    var stale = {};
+    var timer = null;
+    new MutationObserver(function (changes) {
+      changes.forEach(function (change) {
+        [].forEach.call(change.addedNodes, function (node) {
+          if (!node.querySelectorAll) { return; }
+          [].forEach.call(node.querySelectorAll('a[href*="/file?path="]'), function (link) {
+            var key = keyOf(new URL(link.href, location.href));
+            if (open[key]) { stale[key] = true; }
+          });
+        });
+      });
+      if (timer || !Object.keys(stale).length) { return; }
+      timer = setTimeout(function () {
+        Object.keys(stale).forEach(function (key) { if (open[key]) { load(open[key]); } });
+        stale = {};
+        timer = null;
+      }, 300);
+    }).observe(turns, { childList: true, subtree: true });
   }
 
   // Scripts that come with a tab's html are not run by being put on the page, so the ones it names are loaded in turn: code is colored
@@ -115,7 +164,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function view(href, link) {
     opener = link;
     var url = new URL(href, location.href);
-    var key = url.pathname + "?" + (url.searchParams.get("path") || "");
+    var key = keyOf(url);
     panel.hidden = false;
     if (!open[key]) { add(url, key, link && link.dataset.tabName); }
     show(key);

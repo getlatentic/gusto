@@ -9,7 +9,7 @@
         {{else if eq .State "starting"}}<span class="text-muted">Starting…</span>
         {{else if eq .State "failed"}}<span class="font-medium text-bad">It did not start</span>
         {{else}}<span class="text-muted">Stopped</span>{{end}}
-        <span class="text-muted"><code class="text-xs">{{.Command}}</code> on {{.Port}}</span>
+        {{if .Folder}}<span class="text-muted">the page in <code class="text-xs">{{.Folder}}</code></span>{{else}}<span class="text-muted"><code class="text-xs">{{.Command}}</code> on {{.Port}}</span>{{end}}
       </p>
       {{if .Note}}<pre class="mt-1 whitespace-pre-wrap text-xs text-muted">{{.Note}}</pre>{{end}}
     </div>
@@ -17,7 +17,7 @@
   </li>
   {{end}}
   </ul>{{end}}
-  <details class="group"{{if not .Apps}} open{{end}}>
+  {{if .Runs}}<details class="group"{{if not .Apps}} open{{end}}>
     <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Share an app this agent built</summary>
     <form class="mt-4 grid gap-4" method="post" action="/instances/{{.Instance.ID}}/apps">
       <label class="{{template "ui-field"}}">The line that starts it
@@ -29,5 +29,5 @@
       <div><button type="submit" class="{{template "ui-btn"}}">Start it and share it</button></div>
     </form>
     <p class="mt-3 text-xs text-muted">It runs in this agent's workspace, in its folder, with the port in <code>$PORT</code>. It has to listen on <code>0.0.0.0</code> and use links that are relative, such as <code>style.css</code> and not <code>/style.css</code>. Colleagues signed in to this organization open it here, and nobody else can. The page it draws runs with no access to your account.</p>
-  </details>
+  </details>{{else}}{{if not .Apps}}<p class="m-0 text-sm text-muted">A page this agent builds can be opened from the conversation it was built in, with Preview.</p>{{end}}{{end}}
 </section>{{end}}

@@ -57,8 +57,8 @@ func startingApp(found []apps.App) bool {
 	return false
 }
 
-// publishApp starts the command a person names in their agent's computer, and shares what it
-// serves once it answers. It returns at once, and the page shows the app starting.
+// publishApp shares what an agent built. A folder with a page in it is served by this server at once; a command a
+// person names is started in the agent's computer, and shared once it answers, while the page shows it starting.
 func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)
 	if !found {
@@ -69,35 +69,26 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back := "/instances/" + held.ID
+	if folder := r.FormValue("preview"); folder != "" {
+		s.publishPage(w, r, held.ID, held.Who, folder, s.backTo(held.ID, r.FormValue("back"), back))
+		return
+	}
+	if s.runner == nil {
+		http.NotFound(w, r)
+		return
+	}
 	command := strings.TrimSpace(r.FormValue("command"))
 	port, err := strconv.Atoi(strings.TrimSpace(r.FormValue("port")))
-	folder := r.FormValue("preview")
-	if folder != "" {
-		// A page an agent built is served from its folder by a server of ours, so nobody has to write one. The person
-		// is sent back to the conversation they asked from.
-		back = s.backTo(held.ID, r.FormValue("back"), back)
-		if command, port = previewCommand(folder), previewPort(s.appsOf(held.ID)); command == "" || port == 0 {
-			s.turnAway(w, r, back, "that is not a folder of this agent's that can be previewed")
-			return
-		}
-		err = nil
-	}
 	switch {
-	// What a person types is one short line; the server of ours for a preview is longer and is not typed.
-	case folder == "" && (command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00")):
+	// What a person types is one short line.
+	case command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00"):
 		s.turnAway(w, r, back, "give the one line that starts the app, such as node server.js")
 		return
-	case folder == "" && (err != nil || port < 1024 || port > 65535):
+	case err != nil || port < 1024 || port > 65535:
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
-	running := 0
-	for _, each := range s.appsOf(held.ID) {
-		if each.State == apps.Starting || each.State == apps.Live {
-			running++
-		}
-	}
-	if running >= appsPerAgent {
+	if s.sharesTooMany(held.ID) {
 		s.turnAway(w, r, back, "this agent already shares "+strconv.Itoa(appsPerAgent)+" apps; stop one first")
 		return
 	}
@@ -112,6 +103,41 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		s.startApp(app)
 	}()
 	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+}
+
+// publishPage shares a folder of the agent's that holds a page, served as it is, and sends the person back to the
+// conversation they asked from. A folder already shared is the same page again.
+func (s *Server) publishPage(w http.ResponseWriter, r *http.Request, instance, owner, folder, back string) {
+	if !previewFolder.MatchString(folder) {
+		s.turnAway(w, r, back, "that is not a folder of this agent's that can be previewed")
+		return
+	}
+	for _, each := range s.appsOf(instance) {
+		if each.Folder == folder && each.State == apps.Live {
+			http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+			return
+		}
+	}
+	if s.sharesTooMany(instance) {
+		s.turnAway(w, r, back, "this agent already shares "+strconv.Itoa(appsPerAgent)+" apps; stop one first")
+		return
+	}
+	if _, err := s.apps.NewPage(instance, owner, folder); err != nil {
+		s.turnAway(w, r, back, err.Error())
+		return
+	}
+	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+}
+
+// sharesTooMany is whether an agent already has as many apps as it may.
+func (s *Server) sharesTooMany(instance string) bool {
+	running := 0
+	for _, each := range s.appsOf(instance) {
+		if each.State == apps.Starting || each.State == apps.Live {
+			running++
+		}
+	}
+	return running >= appsPerAgent
 }
 
 // backTo is where to send a person after they started an app: the conversation they asked from when it is one of this
@@ -165,7 +191,7 @@ func (s *Server) removeApp(w http.ResponseWriter, r *http.Request) {
 // stopApp stops an app's processes, gives its address back, and forgets it. An app that would not stop is
 // still forgotten: the computer it ran in is what limits it.
 func (s *Server) stopApp(app apps.App) {
-	if app.State == apps.Live || app.State == apps.Starting {
+	if app.Folder == "" && s.runner != nil && (app.State == apps.Live || app.State == apps.Starting) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		s.runner.Stop(ctx, app)
@@ -295,6 +321,10 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 	// would be said twice beside the ones set below.
 	for _, header := range []string{"Content-Security-Policy", "Referrer-Policy", "Cache-Control", "X-Content-Type-Options", "Strict-Transport-Security"} {
 		w.Header().Del(header)
+	}
+	if app.Folder != "" {
+		s.servePage(w, r, app, prefix)
+		return
 	}
 	proxy := &httputil.ReverseProxy{
 		Transport: s.appTransport(app),

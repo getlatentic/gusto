@@ -64,7 +64,7 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 		"data.csv":  {"<th>name</th>", "<td>ada</td>"},
 		"pic.png":   {`src="/instances/` + id + `/raw?path=pic.png"`},
 		"paper.pdf": {`<iframe class="`, `src="/instances/` + id + `/raw?path=paper.pdf"`},
-		"game.html": {`sandbox="allow-scripts"`, "View source"},
+		"game.html": {`sandbox="allow-scripts allow-forms allow-modals"`, "View source"},
 		"blob.bin":  {"cannot be shown here", "Download it"},
 		"main.go":   {`data-language="go"><code>package main`, "1 line"},
 	} {
@@ -75,7 +75,7 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 			}
 		}
 	}
-	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
+	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts`) {
 		t.Error("the source of a page is not shown as text")
 	}
 }
@@ -124,7 +124,7 @@ func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
 	}
 
 	page := raw("game.html")
-	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "sandbox allow-scripts") || !strings.Contains(policy, "default-src 'none'") || strings.Contains(policy, "connect-src") && !strings.Contains(policy, "default-src 'none'") {
+	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "sandbox allow-scripts allow-forms ") || !strings.Contains(policy, "form-action 'none'") || !strings.Contains(policy, "default-src 'none'") || strings.Contains(policy, "connect-src") && !strings.Contains(policy, "default-src 'none'") {
 		t.Errorf("a page's policy is %q", policy)
 	}
 	if page.Header().Get("X-Frame-Options") != "" || !strings.Contains(page.Header().Get("Content-Security-Policy"), "frame-ancestors 'self'") || page.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.HasPrefix(page.Header().Get("Content-Type"), "text/html") {

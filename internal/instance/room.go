@@ -47,6 +47,8 @@ type Note struct {
 	At   int64  `json:"at"`
 	// Notice marks what the room said of itself: nobody in it said it.
 	Notice bool `json:"notice,omitempty"`
+	// Path is the file of the room's folder a notice is about, when it is about one.
+	Path string `json:"path,omitempty"`
 	// After is how many turns the thread held when it was said, which places it among them.
 	After int `json:"after"`
 	// Key is the sender's own name for saying it, so that saying it twice keeps one note.
@@ -224,6 +226,11 @@ func (s *Store) NoteKeyed(id, thread, who, text, key string) (Note, error) {
 // Notice keeps something the room says to itself, such as that two agents changed the same file.
 func (s *Store) Notice(id, thread, text string) (Note, error) {
 	return s.addNote(id, thread, Note{Text: text, Notice: true})
+}
+
+// FileNotice keeps something the room says to itself about one of its files, such as that a person changed it.
+func (s *Store) FileNotice(id, thread, text, path string) (Note, error) {
+	return s.addNote(id, thread, Note{Text: text, Notice: true, Path: path})
 }
 
 // addNote keeps a note in a thread and records it in the room's event log. A note with a key that the same person already used

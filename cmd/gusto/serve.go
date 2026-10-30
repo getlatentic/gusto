@@ -116,13 +116,14 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	// Pages an agent built are shared wherever it works; an app with a command of its own needs the agent's computer.
+	shared, err := apps.Open(setting("GUSTO_APPS", "apps"))
+	if err != nil {
+		return fail(err)
+	}
 	var sharing *sharedApps
 	if computers != nil {
 		cfg, err := openshell.FromEnv()
-		if err != nil {
-			return fail(err)
-		}
-		shared, err := apps.Open(setting("GUSTO_APPS", "apps"))
 		if err != nil {
 			return fail(err)
 		}
@@ -204,7 +205,9 @@ func serve(args []string) int {
 		})
 	}
 	if sharing != nil {
-		pages.UseApps(sharing.store, sharing)
+		pages.UseApps(shared, sharing)
+	} else {
+		pages.UseApps(shared, nil)
 	}
 	if computers != nil {
 		pages.UseComputers(computers)

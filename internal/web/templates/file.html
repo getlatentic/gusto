@@ -1,6 +1,6 @@
 {{template "head" .}}
 
-<div class="grid max-w-[60rem] gap-5">
+<div class="grid max-w-[60rem] gap-5" data-file>
   <nav class="flex flex-wrap items-center gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
     {{if .Evidence}}<a href="/jobs">Activity</a><span>/</span><a href="/jobs/{{.Evidence}}">Details</a>
     {{else}}<a href="/files">Files</a>
@@ -15,11 +15,13 @@
     <div class="flex flex-none flex-wrap gap-2">
       {{if .Back}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
       {{if eq .File.Kind "html"}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      {{if .File.Editable}}<button type="button" class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" data-edit>Edit</button>{{end}}
       <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
     </div>
   </header>
 
-  {{template "file-body" .}}
+  {{template "file-edit" .}}
+  <div data-file-view>{{template "file-body" .}}</div>
 </div>
 
 {{template "foot" .}}
@@ -46,7 +48,7 @@
   {{else if eq .File.Kind "pdf"}}
   <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "html"}}
-  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" sandbox="allow-scripts" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
+  <iframe class="h-[72vh] w-full rounded-md border border-line [color-scheme:light]" sandbox="allow-scripts allow-forms allow-modals" src="{{.File.Raw}}" title="{{.File.Name}}"></iframe>
   {{else if eq .File.Kind "audio"}}
   <div class="grid place-items-center rounded-md bg-wash p-4"><audio controls src="{{.File.Raw}}"></audio></div>
   {{else if eq .File.Kind "video"}}
@@ -71,16 +73,30 @@
 {{end}}
 
 {{/* file-panel is a file as a tab beside a chat: its name and what can be done with it, and the file. */}}
-{{define "file-panel"}}<div class="grid gap-5">
+{{define "file-panel"}}<div class="grid gap-5" data-file>
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
     <div class="min-w-0 flex-1 basis-40">
       <h2 class="text-lg wrap-anywhere">{{.File.Name}}</h2>
       <p class="mt-1 text-xs text-muted">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
     </div>
     <div class="flex flex-none flex-wrap gap-2">
+      {{if .File.Editable}}<button type="button" class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" data-edit>Edit</button>{{end}}
       <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" data-page href="{{.Page}}">Open as a page</a>
       <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
     </div>
   </header>
-  {{template "file-body" .}}
+  {{template "file-edit" .}}
+  <div data-file-view>{{template "file-body" .}}</div>
 </div>{{end}}
+
+{{/* file-edit is a text file opened to be changed: all of it, and what it was, so a save is refused when it changed since. */}}
+{{define "file-edit"}}{{if .File.Editable}}
+<form class="grid gap-3" method="post" action="/instances/{{.Instance.ID}}/file?path={{.File.Path}}" data-file-edit hidden>
+  <input type="hidden" name="seen" value="{{.File.Hash}}">
+  <textarea class="min-h-[60vh] w-full resize-y rounded-md border border-line-strong bg-surface px-4 py-3 font-mono text-sm leading-relaxed [tab-size:4] focus-visible:border-focus focus-visible:outline-none" name="text" spellcheck="false" aria-label="The text of {{.File.Name}}">
+{{.File.Source}}</textarea>
+  <p class="m-0 text-sm text-bad" role="alert" data-edit-said hidden></p>
+  <div class="flex items-center gap-2"><button type="submit" class="{{template "ui-btn"}} h-9">Save</button><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-edit-cancel>Cancel</button></div>
+</form>
+<script src="{{asset "/static/fileedit.js"}}"></script>
+{{end}}{{end}}

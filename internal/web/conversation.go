@@ -126,7 +126,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Stream":    stream,
 		"Members":   s.roomMembersOf(r, held),
 		"Headcount": len(held.Members) + len(held.Agents),
-		"Refused":   r.URL.Query().Get("refused"),
+		"Refused":   refusedIn(r, "members"),
+		"Unsent":    refusedIn(r, ""),
 		"Hint":      composerHint(held),
 		"Apps":      liveApps,
 		"Starting":  appsStarting,
@@ -289,4 +290,14 @@ func (s *Server) nameOf(thread instance.Thread) string {
 		}
 	}
 	return "New thread"
+}
+
+// refusedIn is why the last thing asked of the page was refused, when it was asked of the part named: the members dialog
+// carries "members" in the address, and what was said in the conversation carries nothing more.
+func refusedIn(r *http.Request, part string) string {
+	asked := r.URL.Query()
+	if (part == "" && len(asked["members"]) > 0) || (part != "" && len(asked[part]) == 0) {
+		return ""
+	}
+	return asked.Get("refused")
 }

@@ -110,8 +110,10 @@ A person has one workspace in an organization, made the first time they run a ta
 - A task from a script or token has no person and runs in a sandbox of its own that goes with the task.
 - A person past the organization's number of workspaces is refused in the task's record, and nothing is made.
 - A workspace idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person marks their workspace, and the organization's server removes it.
-- A person shares a web app their agent built from the agent's page. Members open it at the organization's address ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record.
-- A turn that leaves an `index.html` in the agent's folder gets a Preview button. It starts a static file server, which needs only node, on the first free port from 8080.
+- A turn that leaves an `index.html` in the agent's folder gets a Preview button. The server serves that folder as a page, at once, at `<org>--<id>.<domain>`. On a host name of its own the page keeps what it saves in the browser, and it reaches nothing of the organization's pages.
+- Where agents run in computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
+- An app's host name is the same site as the organization's, so the server refuses any browser request that changes something unless it comes from its own pages.
+- A text file shown whole has Edit, in its page and in its tab beside a chat. A save is refused when the file changed after it was opened. In a room, the room says who changed the file.
 - `gusto cloud workspaces` lists every workspace on the host with its organization and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console

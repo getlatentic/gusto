@@ -3,11 +3,14 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Chat is the home page: the address of the site lands on it, and the list of chats is the side list it carries.
@@ -122,5 +125,30 @@ func TestTheOldAddressOfThePresetsPageLeadsToThePresetsPage(t *testing.T) {
 	}
 	if page := site.ask(t, "GET", "/presets", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Presets") {
 		t.Errorf("/presets answered %d", page.Code)
+	}
+}
+
+// A message that was refused says why above the box it was typed in, and a refusal of the members dialog stays in the dialog.
+func TestARefusedMessageSaysWhyAboveTheBox(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	where := startedThread(t, site)
+	path := filepath.Join(t.TempDir(), "quota.json")
+	if err := quota.Write(path, quota.Quota{Jobs: 1, Concurrent: 1, Note: "Confirm your email address to raise this limit."}); err != nil {
+		t.Fatal(err)
+	}
+	site.index.UseQuota(quota.Open(path))
+
+	site.ask(t, "POST", where+"/say", url.Values{"said": {"the one allowed"}})
+	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"one more"}})
+	back := said.Header().Get("Location")
+	page := site.ask(t, "GET", back, nil).Body.String()
+	shown := regexp.MustCompile(`<p [^>]*id="unsent" role="alert">([^<]*)</p>`).FindStringSubmatch(page)
+	if shown == nil || !strings.Contains(shown[1], "1 task in all") {
+		t.Fatalf("the refusal from %q is not shown above the box", back)
+	}
+	members := site.ask(t, "GET", back+"&members=1", nil).Body.String()
+	if !strings.Contains(members, `id="unsent" hidden>`) {
+		t.Error("a refusal of the members dialog is shown above the box as well")
 	}
 }

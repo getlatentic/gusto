@@ -215,6 +215,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
+	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
@@ -257,7 +258,12 @@ func (s *Server) Handler() http.Handler {
 	// one. A link somebody kept still finds its instance.
 	mux.HandleFunc("GET /talk", moved("/"))
 	mux.HandleFunc("GET /talk/{id}", moved("/instances/{id}"))
-	return s.secure(s.byApp(mux))
+	// The session's cookie goes with a request from any page of the same site, and an app or a page an agent built has an
+	// address of the same site, so only this server's own pages may change anything here. An app served under /apps/ posts to
+	// itself from a sandbox, with no origin, and what it is sent carries none of the person's credentials.
+	protection := http.NewCrossOriginProtection()
+	protection.AddInsecureBypassPattern("/apps/")
+	return s.secure(s.byApp(protection.Handler(mux)))
 }
 
 // moved redirects an address that used to mean something here to where it
