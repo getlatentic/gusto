@@ -88,12 +88,17 @@ func (s *Server) invitationPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
-	person, _, err := s.Store.Accept(r.PostFormValue("t"))
+	secret := r.PostFormValue("t")
+	person, _, err := s.Store.Accept(secret)
 	switch {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
 		s.Sessions.Choose(w, person.Org)
+		s.Sessions.Joined(w, secret)
 		s.Seats.Wake()
+		http.Redirect(w, r, "/open", http.StatusSeeOther)
+	// Join pressed again while the first press was on its way spends nothing more: the person is in, so they go in.
+	case errors.Is(err, ErrLink) && s.Sessions.JoinedWith(r, secret):
 		http.Redirect(w, r, "/open", http.StatusSeeOther)
 	case errors.Is(err, ErrLink), errors.Is(err, ErrFull), errors.Is(err, ErrEmailTaken):
 		text := sentence(err)
