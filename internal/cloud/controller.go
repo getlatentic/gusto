@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -122,14 +123,29 @@ func (c *Controller) provision(slug string) error {
 		return c.fail(slug, runtime, err)
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
+	if err := c.endOtherRelease(cell, slug, runtime); err != nil {
+		return c.fail(slug, runtime, err)
+	}
 	if err := cell.Start(spec); err != nil {
 		return c.fail(slug, runtime, err)
 	}
+	runtime.Command = strings.Join(c.Command, " ")
 	if err := c.answers(cell, runtime.Port); err != nil {
 		return c.fail(slug, runtime, err)
 	}
 	c.set(slug, runtime, Ready, "")
 	return nil
+}
+
+// endOtherRelease stops an organization's server that was started with another command than this front door's, so that
+// it is started again as this release. A server on a host apart outlives the front door that started it, and would
+// otherwise run the release it was started with until its host goes.
+func (c *Controller) endOtherRelease(cell Cell, slug string, runtime Runtime) error {
+	if runtime.Command == strings.Join(c.Command, " ") || !cell.Alive(slug) {
+		return nil
+	}
+	slog.Info("an organization's server is of another release, so it is started again", "org", slug, "was", runtime.Command)
+	return cell.Stop(slug, c.grace())
 }
 
 // cellNamed is the cell an organization was placed on.
