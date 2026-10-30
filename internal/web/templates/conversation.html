@@ -230,7 +230,7 @@
 
 {{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
 <dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members">
-  <div class="grid gap-1 p-6 pb-5">
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-1 p-6 pb-5">
     <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     <button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}{{if .Runs}}Add member{{else}}Propose an agent{{end}}</button>
@@ -281,7 +281,7 @@
       {{end}}
     </div>
     <label class="{{template "ui-field"}}"><span>Allowance <span class="font-normal">dollars each agent may spend in this room a month; empty for no limit</span></span><input class="input" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off"></label>
-    {{else}}<p class="m-0 text-sm text-muted">{{if .Runs}}Every agent you work with is in this room already.{{else}}Every agent of yours is in this room already.{{end}}</p>{{end}}
+    {{else}}<p class="m-0 text-sm text-muted">{{if not $room.Agents}}You have no agents yet. Make one with New agent, then add it here.{{else if .Runs}}Every agent you work with is in this room already.{{else}}Every agent of yours is in this room already.{{end}}</p>{{end}}
     {{if .Runs}}<label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>{{end}}
     <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">{{if .Runs}}Add{{else}}Propose{{end}}</button></div>
   </form>
