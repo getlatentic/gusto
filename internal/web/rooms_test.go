@@ -340,7 +340,7 @@ func TestAMessageShowsItsMentionsAndNothingElseAsMarkup(t *testing.T) {
 	if strings.Contains(shown, "<b>") || strings.Contains(shown, ">@example") || strings.Contains(shown, ">@Scouting") || strings.Contains(shown, ">@Ada</span>") {
 		t.Errorf("the message shows as %s", shown)
 	}
-	if got := initials("mira.ionescu@example.com"); got != "MI" {
+	if got := initialsOf(nameFromAddress("mira.ionescu@example.com")); got != "MI" {
 		t.Errorf("the initials are %q", got)
 	}
 }
@@ -536,7 +536,7 @@ func TestOnlyTheTextAfterAMentionIsKeptOfAReply(t *testing.T) {
 	if strings.Contains(kept, "@example") || !strings.HasPrefix(kept, "@Ada Lovelace") || !strings.Contains(kept, "\n@bob\n") || len(kept) > 2*mentionReach {
 		t.Errorf("kept %q", kept)
 	}
-	if !mentionsPerson(kept, "bob@example.com") || mentionsPerson(kept, "carol@example.com") {
+	if !mentionsPerson(kept, nameFromAddress("bob@example.com")) || mentionsPerson(kept, nameFromAddress("carol@example.com")) {
 		t.Error("the kept text does not answer who is mentioned")
 	}
 }
@@ -547,5 +547,25 @@ func TestANewRoomSaysToMakeAnAgentWhenThereIsNone(t *testing.T) {
 	page := site.as(t, alice).ask(t, "GET", where+"?add=1", nil).Body.String()
 	if !strings.Contains(page, "You have no agents yet.") || strings.Contains(page, "is in this room already") {
 		t.Error("the add dialog of a room with no agents does not say to make one")
+	}
+}
+
+// Adding somebody who is in the room already says so, and changes nobody's role: the admin who adds themselves stays the admin.
+func TestAddingSomebodyInTheRoomAlreadySaysSoAndKeepsTheirRole(t *testing.T) {
+	here, id, _ := aRoom(t, &roomWork{})
+	mine := here.as(t, alice)
+	for who, want := range map[string]string{alice: "you are in this room already", "Alice@Example.com": "you are in this room already"} {
+		added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {who}})
+		if where, _ := url.QueryUnescape(added.Header().Get("Location")); !strings.Contains(where, want) {
+			t.Errorf("adding %s went to %q", who, where)
+		}
+	}
+	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {bob}})
+	added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {bob}})
+	if where, _ := url.QueryUnescape(added.Header().Get("Location")); !strings.Contains(where, "is in this room already") {
+		t.Errorf("adding bob again went to %q", where)
+	}
+	if held, _ := here.server.instances.Get(id); held.RoleOf(alice) != instance.RoleAdmin {
+		t.Errorf("the admin is now %q", held.RoleOf(alice))
 	}
 }

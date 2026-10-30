@@ -165,9 +165,9 @@ func dividerAt(at, now time.Time) string {
 // clock is the time of day something was said.
 func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
 
-// personName is what a room calls a person, read from their address: ada.lovelace+work@acme.com is Ada Lovelace. A tag after
-// a + is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
-func personName(who string) string {
+// nameFromAddress is what a person's address says they are called: ada.lovelace+work@acme.com is Ada Lovelace. A tag after a +
+// is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
+func nameFromAddress(who string) string {
 	if who == sharedSignIn {
 		return "Owner"
 	}
@@ -185,11 +185,16 @@ func personName(who string) string {
 }
 
 // initials stand for a person where a room has no picture of them. The shared sign-in is nobody in particular, so it has none.
-func initials(who string) string {
+func (s *Server) initials(who string) string {
 	if who == sharedSignIn {
 		return ""
 	}
-	words := strings.FieldsFunc(personName(who), func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
+	return initialsOf(s.personName(who))
+}
+
+// initialsOf is the first letters of a name's first two words.
+func initialsOf(name string) string {
+	words := strings.FieldsFunc(name, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
 	letters := ""
 	for _, word := range words[:min(len(words), 2)] {
 		first, _ := utf8.DecodeRuneInString(word)
@@ -211,11 +216,11 @@ type mentionable struct {
 func (s *Server) mentionables(held instance.Instance, you string) []mentionable {
 	offered := make([]mentionable, 0, len(held.Agents)+len(held.Members))
 	for _, agent := range held.Working() {
-		role, owner := firstOf(agent.Job, s.engineName(agent.Harness)), ownerLabel(s.ownerOf(agent), you)
+		role, owner := firstOf(agent.Job, s.engineName(agent.Harness)), s.ownerLabel(s.ownerOf(agent), you)
 		offered = append(offered, mentionable{Name: agent.Name, Role: role, Owner: owner, Agent: true, Icon: logo(agent.Harness)})
 	}
 	for _, member := range held.Members {
-		offered = append(offered, mentionable{Name: personName(member.Who), Short: initials(member.Who)})
+		offered = append(offered, mentionable{Name: s.personName(member.Who), Short: s.initials(member.Who)})
 	}
 	return offered
 }

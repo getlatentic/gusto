@@ -121,7 +121,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Owns":      owns,
 		"Me":        s.askerName(r),
 		"Mentions":  asJSON(s.mentionables(held, s.askerName(r))),
-		"Names":     roomNames(held),
+		"Names":     s.roomNames(held),
 		"Version":   roomVersion,
 		"Stream":    stream,
 		"Members":   s.roomMembersOf(r, held),

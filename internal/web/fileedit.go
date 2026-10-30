@@ -68,7 +68,7 @@ func (s *Server) saveFile(w http.ResponseWriter, r *http.Request) {
 	}
 	if held.Room {
 		if thread := s.instances.Latest(held.ID); thread.ID != "" {
-			_, _ = s.instances.FileNotice(held.ID, thread.ID, personName(s.keeper.who(r))+" changed "+name+".", name)
+			_, _ = s.instances.FileNotice(held.ID, thread.ID, s.personName(s.keeper.who(r))+" changed "+name+".", name)
 		}
 	}
 	answerJSON(w, http.StatusOK, map[string]string{"hash": put.hash})

@@ -84,7 +84,7 @@ func (s *Server) fragmentPage(held instance.Instance, thread instance.Thread) ma
 		"Instance":    held,
 		"Thread":      thread,
 		"Path":        threadPath(thread),
-		"Names":       roomNames(held),
+		"Names":       s.roomNames(held),
 		"Me":          "",
 		"Sharing":     false,
 		"ShareHidden": s.apps != nil,

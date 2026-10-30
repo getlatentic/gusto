@@ -46,14 +46,14 @@ func (s *Server) ownerOf(agent instance.Agent) string {
 }
 
 // ownerLabel is whose an agent is, as the person looking reads it.
-func ownerLabel(owner, you string) string {
+func (s *Server) ownerLabel(owner, you string) string {
 	if owner == "" {
 		return ""
 	}
 	if strings.EqualFold(owner, you) {
 		return "your agent"
 	}
-	return personName(owner) + "'s agent"
+	return s.personName(owner) + "'s agent"
 }
 
 // crewFor is every workspace agent the person asking may work with.
@@ -122,13 +122,13 @@ func mentionsIn(text string, names []string) template.HTML {
 }
 
 // roomNames is everybody a message in the room can mention: its agents and its people.
-func roomNames(held instance.Instance) []string {
+func (s *Server) roomNames(held instance.Instance) []string {
 	names := make([]string, 0, len(held.Agents)+len(held.Members))
 	for _, agent := range held.Agents {
 		names = append(names, agent.Name)
 	}
 	for _, member := range held.Members {
-		names = append(names, personName(member.Who))
+		names = append(names, s.personName(member.Who))
 	}
 	return names
 }

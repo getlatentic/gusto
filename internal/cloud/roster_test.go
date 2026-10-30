@@ -229,3 +229,23 @@ func TestAnAdminIsOfferedTheOtherRoleAndTheLastAdminIsNotOfferedRunner(t *testin
 		t.Errorf("with two admins either may step down:\n%s", page)
 	}
 }
+
+// A demo's visitor is written to the roster with the name they typed on the form, so their organization calls them by it.
+func TestADemoVisitorIsInTheRosterByTheNameTheyGave(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := demoFront(t)
+		startDemoAs(t, f, "Priya Nair", "priya@acme.com", "Acme Research")
+		orgs, err := f.store.Orgs()
+		if err != nil || len(orgs) != 1 {
+			t.Fatalf("%d organizations: %v", len(orgs), err)
+		}
+		slug := orgs[0].Slug
+		if err := f.store.PublishRoster(slug); err != nil {
+			t.Fatal(err)
+		}
+		list, err := roster.Read(f.store.RosterFile(slug))
+		if err != nil || len(list.Members) != 1 || list.Members[0].Name != "Priya Nair" {
+			t.Errorf("the roster says %+v, %v", list.Members, err)
+		}
+	})
+}

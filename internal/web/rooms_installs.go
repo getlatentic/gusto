@@ -33,10 +33,10 @@ func (s *Server) addCrewAgent(r *http.Request, held instance.Instance, memberID 
 	}
 	runs := s.runsRoom(r, held)
 	if !runs && !strings.EqualFold(member.Owner, asker) {
-		return fmt.Errorf("you may propose only an agent of your own; %s is %s", member.Name, ownerLabel(member.Owner, asker))
+		return fmt.Errorf("you may propose only an agent of your own; %s is %s", member.Name, s.ownerLabel(member.Owner, asker))
 	}
 	if member.Owner != "" && held.RoleOf(member.Owner) == "" {
-		return fmt.Errorf("%s is %s, and %s is not in this room", member.Name, ownerLabel(member.Owner, asker), personName(member.Owner))
+		return fmt.Errorf("%s is %s, and %s is not in this room", member.Name, s.ownerLabel(member.Owner, asker), s.personName(member.Owner))
 	}
 	allowance, err := allowanceOf(r.FormValue("allowance"))
 	if err != nil {
