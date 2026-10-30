@@ -42,7 +42,7 @@ func (s *Server) roomAgents(held instance.Instance, you string) []roomAgent {
 	for _, agent := range held.Agents {
 		owner := s.ownerOf(agent)
 		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model),
-			Owner: ownerLabel(owner, you), Yours: owner != "" && strings.EqualFold(owner, you)})
+			Owner: s.ownerLabel(owner, you), Yours: owner != "" && strings.EqualFold(owner, you)})
 	}
 	return shown
 }
@@ -105,6 +105,15 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, who := range people {
+		// Adding somebody who is in the room already would set their role, and so take an admin's away.
+		if inRoom(held, who) {
+			why := s.personName(who) + " is in this room already"
+			if strings.EqualFold(who, s.askerName(r)) {
+				why = "you are in this room already"
+			}
+			s.turnAway(w, r, s.membersPath(held), why)
+			return
+		}
 		if err := s.instances.SetMember(held.ID, who, instance.RoleMember); err != nil {
 			s.turnAway(w, r, s.membersPath(held), err.Error())
 			return
@@ -147,4 +156,14 @@ func (s *Server) changeRoomRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
+}
+
+// inRoom is whether a person is one of the room's people.
+func inRoom(held instance.Instance, who string) bool {
+	for _, member := range held.Members {
+		if strings.EqualFold(member.Who, strings.TrimSpace(who)) {
+			return true
+		}
+	}
+	return false
 }

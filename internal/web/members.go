@@ -68,7 +68,7 @@ func (s *Server) workspacePeople(r *http.Request) []listedPerson {
 	add := func(who, role string) {
 		who = strings.ToLower(strings.TrimSpace(who))
 		if _, found := seen[who]; who != "" && !found {
-			seen[who] = listedPerson{Who: who, Name: personName(who), Role: role, Where: "/members/people/" + url.PathEscape(who)}
+			seen[who] = listedPerson{Who: who, Name: s.personName(who), Role: role, Where: "/members/people/" + url.PathEscape(who)}
 		}
 	}
 	if s.hasRoster() {

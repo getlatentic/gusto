@@ -15,7 +15,9 @@ import (
 
 // Member is a person in the organization. Role is "admin" or "runner".
 type Member struct {
-	Email      string    `json:"email"`
+	Email string `json:"email"`
+	// Name is what the person said they are called, when they said; their address stands for them otherwise.
+	Name       string    `json:"name,omitempty"`
 	Role       string    `json:"role"`
 	Joined     time.Time `json:"joined"`
 	LastSignIn time.Time `json:"lastSignIn,omitzero"`

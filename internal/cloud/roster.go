@@ -45,10 +45,14 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	if err != nil {
 		return err
 	}
+	org, _, err := fetchOrg(ctx, q, slug)
+	if err != nil {
+		return err
+	}
 	list := roster.Roster{Written: s.now().UTC().Truncate(time.Second), Members: []roster.Member{}, Invited: []roster.Invited{}}
 	for _, person := range members {
 		list.Members = append(list.Members, roster.Member{
-			Email: person.Email, Role: string(person.Role), Joined: person.Created, LastSignIn: person.LastSignIn,
+			Email: person.Email, Name: givenName(org, person), Role: string(person.Role), Joined: person.Created, LastSignIn: person.LastSignIn,
 		})
 	}
 	for _, invitation := range invited {
@@ -72,4 +76,12 @@ func (s *Store) RecordSignIn(email, org string) error {
 	}
 	s.publishRoster(org)
 	return nil
+}
+
+// givenName is the name a person gave the front door: a demo's visitor types theirs on the form. Nobody else is asked yet.
+func givenName(org Org, person Person) string {
+	if org.Demo != nil && person.Email == org.Admin {
+		return org.Demo.Name
+	}
+	return ""
 }

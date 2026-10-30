@@ -138,6 +138,8 @@ type Server struct {
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
 	inBuilding atomic.Bool
+	// names is what the roster says each person is called.
+	names nameBook
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -147,8 +149,11 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"waiting": s.waiting,
-		"askedBy": askerOf,
+		"waiting":    s.waiting,
+		"personName": s.personName,
+		"ownerLabel": s.ownerLabel,
+		"initials":   s.initials,
+		"askedBy":    askerOf,
 		// Where a host that has a lease is extended, which is at the front door.
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,

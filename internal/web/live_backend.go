@@ -48,9 +48,9 @@ func (b liveBackend) Authenticate(r *http.Request) (roomlive.Viewer, error) {
 		return roomlive.Viewer{}, roomlive.ErrUnauthenticated
 	}
 	who := b.s.askerName(r)
-	info, _ := json.Marshal(map[string]string{"name": personName(who), "short": initials(who)})
+	info, _ := json.Marshal(map[string]string{"name": b.s.personName(who), "short": b.s.initials(who)})
 	session := liveSession{cookie: r.Header.Get("Cookie"), proto: r.Header.Get("X-Forwarded-Proto"), secure: r.TLS != nil}
-	return roomlive.Viewer{Who: who, Name: personName(who), Info: info, Session: session}, nil
+	return roomlive.Viewer{Who: who, Name: b.s.personName(who), Info: info, Session: session}, nil
 }
 
 func (b liveBackend) Alive(viewer roomlive.Viewer) bool {

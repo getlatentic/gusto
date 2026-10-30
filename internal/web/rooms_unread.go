@@ -21,7 +21,7 @@ func (s *Server) unreadIn(thread instance.Thread, who string) unread {
 	var waiting unread
 	count := func(text string) {
 		waiting.Count++
-		if mentionsPerson(text, who) {
+		if mentionsPerson(text, s.personName(who)) {
 			waiting.ForYou++
 		}
 	}
@@ -48,8 +48,8 @@ func (s *Server) unreadIn(thread instance.Thread, who string) unread {
 }
 
 // mentionsPerson says whether a message mentions a person by the name a room calls them.
-func mentionsPerson(text, who string) bool {
-	return len(mentionSpans(text, []string{personName(who)})) > 0
+func mentionsPerson(text, name string) bool {
+	return len(mentionSpans(text, []string{name})) > 0
 }
 
 // latest is every conversation in the side list, rooms and projects together, the newest first, as its Recent tab lists them.
