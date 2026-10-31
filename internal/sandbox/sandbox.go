@@ -173,6 +173,9 @@ func inContainer(url string) string {
 // address with the virtual machine's own bridge gateway, which reaches the
 // virtual machine instead of the host.
 func ready(absolute string) (bool, error) {
+	if err := ensureImage(context.Background()); err != nil {
+		return false, err
+	}
 	check := exec.Command(Runtime(), "run", "--rm", "-v", absolute+":/job",
 		"--entrypoint", "sh", Image(), "-c",
 		"test -f /job/job.json || exit 3; getent hosts host.docker.internal >/dev/null || exit 4")
