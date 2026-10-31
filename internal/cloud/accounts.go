@@ -40,6 +40,15 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	return person, org, nil
 }
 
+// MaySignUp says whether an organization may be made with the address, as far as the address alone says.
+func (s *Store) MaySignUp(email string) error {
+	normal, err := NormalEmail(email)
+	if err != nil {
+		return err
+	}
+	return workEmail(normal, s.set.AllowFreeMail, s.refused)
+}
+
 func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, domain string) (Person, Org, error) {
 	if found, err := hasAccount(ctx, tx, email); err != nil || found {
 		if err == nil {

@@ -51,11 +51,24 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}
-	s.mailVerification(person, org)
+	s.confirm(r, person, org)
 	s.provision(org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/open", http.StatusSeeOther)
+}
+
+// confirm verifies the address a person signed up with at once when GitHub vouched for it, and mails them the link that does
+// otherwise.
+func (s *Server) confirm(r *http.Request, person Person, org Org) {
+	if !s.Sessions.Vouched(r, person.Email) {
+		s.mailVerification(person, org)
+		return
+	}
+	if err := s.Store.Verify(person.Email); err != nil {
+		log.Printf("cloud: an address GitHub verified was not recorded as verified: %v", err)
+		s.mailVerification(person, org)
+	}
 }
 
 // asksForMore says the form needs the organization's name and address, because

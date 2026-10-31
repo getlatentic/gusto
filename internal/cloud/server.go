@@ -51,6 +51,8 @@ type Config struct {
 	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
 	Stripe *Stripe
 	Seats  *SeatSync
+	// GitHub signs people in with their GitHub account, when it is set.
+	GitHub *GitHub
 }
 
 // Server is the front door's pages.
@@ -147,6 +149,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /verify", s.useLink(Verify))
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
+	mux.HandleFunc("GET /signin/github", s.startGitHub)
+	mux.HandleFunc("GET /signin/github/callback", s.finishGitHub)
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
 	mux.HandleFunc("GET /account.json", s.accountJSON)

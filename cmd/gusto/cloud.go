@@ -152,6 +152,10 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if path := os.Getenv("GUSTO_CLOUD_LEASE_FILE"); path != "" {
 		lease = cloud.OpenLease(path, time.Duration(number("GUSTO_CLOUD_LEASE_STEP_MINUTES", 30))*time.Minute)
 	}
+	github, err := githubSignIn(context.Background(), os.Getenv("GUSTO_CONNECTOR_CLIENTS"), openParameters)
+	if err != nil {
+		return nil, nil, err
+	}
 	front, err := cloud.New(cloud.Config{
 		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     domain,
@@ -160,7 +164,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 		Leads:      &cloud.LeadHook{URL: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: os.Getenv("GUSTO_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("GUSTO_CLOUD_TURNSTILE_SECRET")},
 		PerAddress: number("GUSTO_CLOUD_PER_ADDRESS", 0), PerMailbox: number("GUSTO_CLOUD_PER_MAILBOX", 0), InAll: number("GUSTO_CLOUD_IN_ALL", 0),
-		Stripe: stripe,
+		Stripe: stripe, GitHub: github,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -170,6 +174,20 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	}
 	go sweepLinks(store)
 	return front, controller, nil
+}
+
+// githubSignIn is the sign-in with GitHub, when the operator's clients include GitHub's: the same OAuth app people connect
+// GitHub to their agents with signs them in to gusto cloud.
+func githubSignIn(ctx context.Context, setting string, open func(context.Context) (parameterReader, error)) (*cloud.GitHub, error) {
+	clients, err := connectorClients(ctx, setting, open)
+	if err != nil {
+		return nil, err
+	}
+	client, found := clients["github"]
+	if !found || client.ID == "" || client.Secret == "" {
+		return nil, nil
+	}
+	return &cloud.GitHub{ID: client.ID, Secret: client.Secret}, nil
 }
 
 // stripeSettings is how gusto cloud bills seats, and nil when it bills nothing. Setting some of

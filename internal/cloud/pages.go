@@ -32,6 +32,8 @@ type view struct {
 	Slug string
 	// Sent says a sign-in link was asked for.
 	Sent bool
+	// GitHub says a person may sign in with their GitHub account.
+	GitHub bool
 	// Token, Action and Button draw the page that confirms a link.
 	Token, Action, Button string
 	// The organization page, and Several when the person looking is in more organizations than this one.
@@ -105,6 +107,7 @@ type view struct {
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
+	v.GitHub = s.GitHub != nil
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {

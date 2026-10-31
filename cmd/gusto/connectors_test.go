@@ -122,3 +122,20 @@ func TestConnectorClientsAreReadFromAParameterAndAMissingOneIsNone(t *testing.T)
 		t.Errorf("no setting gave %v, %v", clients, err)
 	}
 }
+
+// The front door signs people in with GitHub when the operator's clients include GitHub's, and offers no such sign-in otherwise.
+func TestTheFrontDoorSignsInWithGitHubWhenItsClientIsStored(t *testing.T) {
+	stored := &storedParameters{held: map[string]string{
+		"/gusto/poc/connector-clients": `{"github": {"id": "Ov23li", "secret": "shh"}}`,
+		"/gusto/poc/others":            `{"asana": {"id": "1", "secret": "2"}}`,
+	}}
+	github, err := githubSignIn(context.Background(), "ssm:/gusto/poc/connector-clients", opening(stored))
+	if err != nil || github == nil || github.ID != "Ov23li" || github.Secret != "shh" {
+		t.Errorf("GitHub's client gave %+v, %v", github, err)
+	}
+	for _, setting := range []string{"ssm:/gusto/poc/others", "ssm:/gusto/poc/missing", ""} {
+		if github, err := githubSignIn(context.Background(), setting, opening(stored)); err != nil || github != nil {
+			t.Errorf("%q gave %+v, %v", setting, github, err)
+		}
+	}
+}

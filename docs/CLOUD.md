@@ -45,6 +45,7 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 | `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 | `GUSTO_CLOUD_STRIPE_KEY`, `GUSTO_CLOUD_STRIPE_PRICE`, `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET` | bill organizations by the seat ([Billing](#billing)): the secret API key, the monthly price of one seat, and the webhook's signing secret. All three or none. Keep the key and the secret where secrets are kept |
 | `GUSTO_CLOUD_SEAT_USD` | the seat's price the organization page shows, 25 by default |
+| `GUSTO_CONNECTOR_CLIENTS` | the operator's clients at apps, as an organization's server reads them ([GATEWAY.md](GATEWAY.md#connectors)). When GitHub's is there, people may sign in with GitHub ([Sign-in with GitHub](#sign-in-with-github)) |
 | `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`, `GUSTO_CLOUD_PAID_MEMBERS` | a paying organization's tasks a month for each seat, 200, and the people and workspaces it may have, 50 |
 
 ## Accounts and sign-up
@@ -76,6 +77,15 @@ The counts are kept in the database, so front doors that share it share the limi
 4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
 5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
 6. Sign out in the organization's server ends its session. It then sends the browser to gusto cloud's `/signout` with a token for that purpose only, signed with the same key and good for a minute, and gusto cloud signs the person out too. A link to `/signout` without that token signs nobody out.
+
+### Sign-in with GitHub
+
+When the operator's clients include GitHub's, the sign-in and sign-up pages offer Continue with GitHub. It uses the OAuth app people connect GitHub to their agents with, and needs that app to list `<GUSTO_CLOUD_URL>/signin/github/callback` as a callback URL.
+
+1. gusto cloud sends the person to GitHub with the `user:email` scope, a state and a PKCE challenge. A cookie for this browser holds the state and the verifier for ten minutes.
+2. When GitHub sends them back, gusto cloud checks the state, trades the code for a token, and reads the addresses the person verified at GitHub. It keeps no token.
+3. The person is signed in as the first verified address that has an account, the primary one first. An address GitHub has not verified signs nobody in, and neither do `users.noreply.github.com` addresses.
+4. A person with no account is asked to make an organization, with the first verified address that may make one written in. Signing up with that address within ten minutes needs no confirmation mail, since GitHub verified it. Any other address is mailed as usual.
 
 gusto cloud's pages allow a form to end at any address under its domain (`form-action`), because sign-in, sign-up and joining redirect into an organization's server.
 

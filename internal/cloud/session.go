@@ -165,6 +165,41 @@ func (s *Sessions) JoinedWith(r *http.Request, secret string) bool {
 	return err == nil && secret != "" && hmac.Equal([]byte(cookie.Value), []byte(linkHash(secret)))
 }
 
+// vouchedName is the cookie that says GitHub verified an address this browser's person has, for the sign-up that follows.
+func (s *Sessions) vouchedName() string {
+	if s.secure {
+		return "__Host-gusto_vouched"
+	}
+	return "gusto_vouched"
+}
+
+// Vouch remembers, for as long as a sign-in at GitHub may take, that the person in this browser showed GitHub the address is theirs.
+// The cookie is signed apart from a session's, so one is never taken for the other.
+func (s *Sessions) Vouch(w http.ResponseWriter, email string) {
+	payload := base64.RawURLEncoding.EncodeToString([]byte(email + "|" + strconv.FormatInt(s.now().Add(githubAsk).Unix(), 10)))
+	http.SetCookie(w, &http.Cookie{Name: s.vouchedName(), Value: payload + "." + s.sign("vouched:"+payload), Path: "/signup",
+		MaxAge: int(githubAsk / time.Second), HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// Vouched says whether this browser's person showed GitHub that the address is theirs, a little while ago.
+func (s *Sessions) Vouched(r *http.Request, email string) bool {
+	cookie, err := r.Cookie(s.vouchedName())
+	if err != nil {
+		return false
+	}
+	payload, signature, found := strings.Cut(cookie.Value, ".")
+	if !found || !hmac.Equal([]byte(signature), []byte(s.sign("vouched:"+payload))) {
+		return false
+	}
+	text, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		return false
+	}
+	vouched, until, found := strings.Cut(string(text), "|")
+	seconds, err := strconv.ParseInt(until, 10, 64)
+	return found && err == nil && s.now().Before(time.Unix(seconds, 0)) && vouched == email
+}
+
 // joinedFor is how long a browser that used an invitation is let in again by its link.
 const joinedFor = 10 * time.Minute
 
@@ -176,7 +211,8 @@ func linkHash(secret string) string {
 // ownCookie says whether a cookie is the front door's, over https or not, which no organization's server is sent.
 func ownCookie(name string) bool {
 	switch name {
-	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined":
+	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined",
+		"gusto_github", "__Host-gusto_github", "gusto_vouched", "__Host-gusto_vouched":
 		return true
 	}
 	return false
