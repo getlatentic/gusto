@@ -272,6 +272,7 @@ docker build -t gusto:dev \
 | `GUSTO_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
 | `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
 | `GUSTO_SPEND_POLICY` | a file of model prices and team caps. Without it every model is unpriced and no team is capped |
+| `GUSTO_IMAGE_SOURCE` | where the runner image can be fetched when this machine lacks it: an `s3://` address read with the AWS command line, or an `http(s)://` one. The first container start fetches it, loads it, and names it `GUSTO_IMAGE`. A cell kept running across releases gets each new image this way. Unset, a missing image fails the start |
 | `GUSTO_PROXY_MAX_OUTPUT_TOKENS` | the most output tokens one model call may ask for. A call that asks for more, or names no limit, is sent with this one. Unset is no cap |
 | `GUSTO_PROXY_SILENCE_SECONDS` | how long a model may send nothing before the call is ended. A stream that never begins is answered 504. An answer that is not streamed is waited for whole. Unset is no limit |
 | `GUSTO_REGISTRY` | the directory of an organization's model registry: providers and models its admins add at `/admin/models`, on top of the operator's. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
