@@ -3,6 +3,13 @@
 // and the agent never sees what the app gave back.
 package connector
 
+import (
+	"fmt"
+	"slices"
+
+	"github.com/getlatentic/gusto/pkg/job"
+)
+
 // Entry is a connector an organization may turn on: an app's MCP server, and whether the operator must register a client with
 // the app first, which an app that registers clients itself does not need.
 type Entry struct {
@@ -29,12 +36,27 @@ var Catalog = []Entry{
 	{ID: "hubspot", Name: "HubSpot", What: "Contacts, companies and deals in your HubSpot", URL: "https://mcp.hubspot.com/", NeedsClient: true},
 }
 
-// Known is a connector of the catalog, by its id.
-func Known(id string) (Entry, bool) {
-	for _, entry := range Catalog {
+func find(entries []Entry, id string) (Entry, bool) {
+	for _, entry := range entries {
 		if entry.ID == id {
 			return entry, true
 		}
 	}
 	return Entry{}, false
+}
+
+// WithMore is the catalog and more apps besides, each checked: an id that is a name, a name, and an https address, or an http one on
+// this computer.
+func WithMore(more []Entry) ([]Entry, error) {
+	all := slices.Clone(Catalog)
+	for _, entry := range more {
+		if !job.Named(entry.ID) || entry.Name == "" || !secureAddress(entry.URL) {
+			return nil, fmt.Errorf("the app %q needs an id of lower case letters, digits and hyphens, a name, and an https address", entry.ID)
+		}
+		if _, taken := find(all, entry.ID); taken {
+			return nil, fmt.Errorf("there is already a connector called %s", entry.ID)
+		}
+		all = append(all, entry)
+	}
+	return all, nil
 }

@@ -32,8 +32,12 @@ type Config struct {
 	Dir     string
 	Base    string
 	Clients map[string]Client
-	// HTTP calls the apps. Unset, the calls reach public addresses only, and give up after callTime.
-	HTTP *http.Client
+	// Apps is the connectors offered, the catalog when it is empty.
+	Apps []Entry
+	// HTTP calls the apps. Unset, the calls reach public addresses only, unless Private allows a private network, and give up
+	// after callTime.
+	HTTP    *http.Client
+	Private bool
 }
 
 // callTime is the most one call to an app's server may take.
@@ -82,16 +86,35 @@ func Open(config Config) (*Connectors, error) {
 	if config.Base == "" {
 		return nil, errors.New("connectors need this server's address, which sign-ins come back to")
 	}
+	if len(config.Apps) == 0 {
+		config.Apps = Catalog
+	}
+	for id := range config.Clients {
+		if _, known := find(config.Apps, id); !known {
+			return nil, fmt.Errorf("a client is given for %s, which is no connector here", id)
+		}
+	}
 	held, err := openVault(config.Dir)
 	if err != nil {
 		return nil, err
 	}
 	client := config.HTTP
 	if client == nil {
-		client = &http.Client{Timeout: callTime, Transport: &http.Transport{DialContext: gateway.PublicDialer(false), ResponseHeaderTimeout: callTime},
+		client = &http.Client{Timeout: callTime, Transport: &http.Transport{DialContext: gateway.PublicDialer(config.Private), ResponseHeaderTimeout: callTime},
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	}
 	return &Connectors{config: config, http: client, vault: held, pending: map[string]pending{}, refreshing: map[string]*sync.Mutex{}}, nil
+}
+
+// Apps is the connectors offered here.
+func (c *Connectors) Apps() []Entry { return c.config.Apps }
+
+// App is one connector offered here, by its id.
+func (c *Connectors) App(id string) (Entry, bool) { return find(c.config.Apps, id) }
+
+// Usable says whether people can sign in to a connector from this server: one that needs a client the operator registers has one.
+func (c *Connectors) Usable(entry Entry) bool {
+	return !entry.NeedsClient || c.config.Clients[entry.ID].ID != ""
 }
 
 // ClientDocument is the client ID metadata document this server is known by to an app that reads one: the address of the

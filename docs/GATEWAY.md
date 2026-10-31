@@ -56,6 +56,29 @@ A setup's integrations put their servers behind the gateway. Their definitions g
 
 Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `discover` (default) or `all`. `GUSTO_GATEWAY_PRIVATE=1` lets servers be on a private network.
 
+### Connectors
+
+A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, and their agents call it as them (`internal/connector`).
+
+1. An admin turns the app on at `/admin/connectors`. Every app is off until then.
+2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.
+3. The app sends them back to `/connections/callback`. gusto trades the code for tokens and keeps them sealed in `GUSTO_CONNECTORS`.
+4. The person's next task has the app behind its gateway. `job.json` names it under `setup.connectors` and `setup.gateway`.
+5. At each call the gateway asks for the person's token, renewed when it is about to run out, and sends it to the app. The agent and the sandbox never hold it.
+
+| What | How |
+| --- | --- |
+| Finding how to sign in | The MCP server's 401 names its resource metadata (RFC 9728), which names the authorization server (RFC 8414 or OpenID Connect). Only https is read, or http on this computer |
+| How gusto is known to the app | The operator's client when one is in `GUSTO_CONNECTOR_CLIENTS`. Otherwise the client document at `/connectors/client.json`, when the app reads one and the server is on https. Otherwise a client the app registers (RFC 7591), kept for next time |
+| The sign-in | PKCE with S256, a `state` bound to the person, and the `resource` parameter. A sign-in not finished in 10 minutes is forgotten |
+| Whose token | The person who asked for the task, read from the task's state. A room's agent works for everyone in the room, and is given nobody's sign-ins. A task another person pays for is given none |
+| Which agents | An agent that takes the gateway in its arguments or on its session. Pi reads its servers from a file, which a sandbox does not carry, so it is given none |
+| The vault | AES-GCM, with a key made the first time and kept beside the tokens, readable by the server's user alone |
+
+The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_PUBLIC_URL>/connections/callback` as its redirect. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
+
+Settings: `GUSTO_CONNECTORS` is the folder of sealed sign-ins, and turns connectors on. `GUSTO_PUBLIC_URL` is the address an app sends a person back to. `GUSTO_CONNECTOR_CLIENTS` is a JSON file of operator clients, `{"github": {"id": "…", "secret": "…"}}`. `GUSTO_CONNECTOR_APPS` is a JSON file of more apps, `[{"id": "wiki", "name": "Wiki", "what": "…", "url": "https://…"}]`. gusto cloud sets the first two for each organization.
+
 Measured on 2026-10-08 with 60 tools of about 200 tokens each: Claude Code and Codex load a tool's definition when needed, so 60 tools added about 710 and about 15 input tokens. OpenCode puts every definition in the request. The 60 tools cost it about 9,000 tokens, and the three gateway tools about 5,000, with counts that vary by thousands between calls. `GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./pkg/gateway` repeats it.
 
 ### Programs

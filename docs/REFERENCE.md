@@ -276,6 +276,8 @@ docker build -t gusto:dev \
 | `GUSTO_PROXY_SILENCE_SECONDS` | how long a model may send nothing before the call is ended. A stream that never begins is answered 504. An answer that is not streamed is waited for whole. Unset is no limit |
 | `GUSTO_REGISTRY` | the directory of an organization's model registry: providers and models its admins add at `/admin/models`, on top of the operator's. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
 | `GUSTO_REGISTRY_KEYS`, `GUSTO_REGISTRY_PRIVATE` | `file`, `ssm` or `secretsmanager` lets a key be a reference to one of these. `allow` lets a provider be at a private address or plain http |
+| `GUSTO_CONNECTORS`, `GUSTO_PUBLIC_URL` | the folder of people's sealed sign-ins to apps, and the address an app sends a person back to. Both turn connectors on. Set by gusto cloud. [GATEWAY.md](GATEWAY.md#connectors) |
+| `GUSTO_CONNECTOR_CLIENTS`, `GUSTO_CONNECTOR_APPS` | JSON files of the clients the operator registered with apps, by connector id, and of more apps than the catalog's |
 | `GUSTO_ORG_SETTINGS` | the file of an organization's admin choices, such as the monthly budget. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
 | `GUSTO_SIGNING_KEY` | the private key the runner signs with, from `gusto keygen`, or `awskms://<key>`. It stays on the host. [KEYS.md](KEYS.md) |
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |

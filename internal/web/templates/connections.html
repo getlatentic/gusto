@@ -1,0 +1,33 @@
+{{template "head" .}}
+
+<div class="{{template "ui-title"}}">
+  <h1>Connections</h1>
+  <span class="text-sm text-muted">Apps your agents use as you</span>
+</div>
+
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{with .Done}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">You are signed in to {{.}}. Your agents use it from their next task.</p>{{end}}
+
+{{if not .Person}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">You are signed in with the shared password, which is nobody's own. Sign in as yourself to connect your accounts.</p>{{end}}
+{{if .Connectors}}
+<p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. Agents in a room do not use it.</p>
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>App</th><th>What your agents reach</th><th>Signed in</th><th></th></tr></thead>
+    <tbody>
+      {{range .Connectors}}
+      <tr>
+        <td class="whitespace-nowrap font-medium">{{.Name}}</td>
+        <td class="text-muted">{{.What}}</td>
+        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">no</span>{{end}}</td>
+        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{else}}
+<p class="text-muted">No app is turned on yet. An admin turns them on under Admin, Connectors.</p>
+{{end}}
+
+{{template "foot" .}}

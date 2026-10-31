@@ -106,6 +106,8 @@ type Setup struct {
 	// Integrations is each integration the task was given skills or servers from, and the version of it: what was turned on when
 	// the task started.
 	Integrations []IntegrationUse `json:"integrations,omitempty"`
+	// Connectors is the apps the task's asker had signed in to with their own account, which the gateway calls as them.
+	Connectors []string `json:"connectors,omitempty"`
 }
 
 // IntegrationUse is one version of an integration a task ran with.

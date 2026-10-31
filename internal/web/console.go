@@ -32,6 +32,9 @@ func (s *Server) sections() []section {
 	if s.hasIntegrations() {
 		all = append(all, section{"integrations", integrationsPath, "Integrations"})
 	}
+	if s.hasConnectors() {
+		all = append(all, section{"connectors", "/admin/connectors", "Connectors"})
+	}
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}

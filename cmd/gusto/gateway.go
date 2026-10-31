@@ -30,6 +30,8 @@ type gateways struct {
 	// redactor is what masks the answers of tools, which a change to GUSTO_REDACTION replaces.
 	redactor atomic.Pointer[redact.Redactor]
 	private  bool
+	// tokens is people's sign-ins to apps, which a server that is one of those apps is called with. It is set before the proxy listens.
+	tokens tools.Tokens
 
 	mu       sync.Mutex
 	sessions map[string]*tools.Session
@@ -107,8 +109,15 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 		}
 	}
 	caller := tools.Caller{Job: id, Team: spec.Team, Person: askerOf(dir)}
+	// An app is called with the sign-in of the person who asked for the task, whatever the file says.
+	for i := range servers {
+		if servers[i].Connector != "" {
+			servers[i].Person = caller.Person
+		}
+	}
 	return tools.New(tools.Config{
 		Caller: caller, Servers: servers, Live: g.currentPolicy, Redactor: g.currentRedactor, Launch: g.launch, Mode: g.mode, Private: g.private,
+		Tokens: g.tokens,
 		Record: tools.OpenRecord(dir.OutFile(tools.RecordFile)),
 	}), true
 }

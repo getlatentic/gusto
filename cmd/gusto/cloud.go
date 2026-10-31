@@ -140,11 +140,13 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	domain := setting("GUSTO_CLOUD_DOMAIN", "localhost")
 	var controller *cloud.Controller
 	if os.Getenv("GUSTO_CLOUD_SERVERS") != "off" {
 		if controller, err = organizationServers(store, public, limits); err != nil {
 			return nil, nil, err
 		}
+		controller.OrgURL = func(slug string) string { return cloud.OrgAddress(public, domain, slug) }
 	}
 	var lease *cloud.Lease
 	if path := os.Getenv("GUSTO_CLOUD_LEASE_FILE"); path != "" {
@@ -152,7 +154,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	}
 	front, err := cloud.New(cloud.Config{
 		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
-		Domain:     setting("GUSTO_CLOUD_DOMAIN", "localhost"),
+		Domain:     domain,
 		TrustProxy: os.Getenv("GUSTO_CLOUD_TRUST_PROXY") == "1",
 		Notify:     os.Getenv("GUSTO_CLOUD_DEMO_NOTIFY"),
 		Leads:      &cloud.LeadHook{URL: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},

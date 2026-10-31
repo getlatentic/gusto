@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 
@@ -30,6 +31,8 @@ type Settings struct {
 	// PlainRunTokens gives an agent in a sandbox a token for its run in place of one bound to a key only its sandbox holds.
 	// Unset is bound.
 	PlainRunTokens bool `json:"plainRunTokens,omitempty"`
+	// Connectors is the apps, by connector id, that people may sign in to with their own accounts and give their agents.
+	Connectors []string `json:"connectors,omitempty"`
 }
 
 // File is the organization's settings kept in a file.
@@ -95,3 +98,6 @@ func (s Settings) MemberBudget(person string) (float64, bool) {
 	}
 	return s.MemberBudgetUSD, s.MemberBudgetUSD > 0
 }
+
+// ConnectorOn says whether people may sign in to a connector and give it to their agents.
+func (s Settings) ConnectorOn(id string) bool { return slices.Contains(s.Connectors, id) }
