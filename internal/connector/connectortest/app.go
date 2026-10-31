@@ -20,6 +20,8 @@ type App struct {
 	Server *httptest.Server
 	// Docs is whether it says it reads client ID metadata documents.
 	Docs bool
+	// SecretAuth is how it says a client's secret is sent, as token_endpoint_auth_methods_supported; none says nothing.
+	SecretAuth []string
 
 	mu      sync.Mutex
 	codes   map[string]string // code to PKCE challenge
@@ -28,6 +30,8 @@ type App struct {
 	clients int
 	tokens  map[string]bool
 	called  []string
+	scope   string
+	secrets []string
 }
 
 // New is an app that runs until the test ends.
@@ -42,7 +46,8 @@ func New(t *testing.T) *App {
 	mux.HandleFunc("GET /.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"issuer": a.Server.URL, "authorization_endpoint": a.Server.URL + "/authorize",
 			"token_endpoint": a.Server.URL + "/token", "registration_endpoint": a.Server.URL + "/register",
-			"code_challenge_methods_supported": []string{"S256"}, "client_id_metadata_document_supported": a.Docs})
+			"code_challenge_methods_supported": []string{"S256"}, "client_id_metadata_document_supported": a.Docs,
+			"token_endpoint_auth_methods_supported": a.SecretAuth})
 	})
 	mux.HandleFunc("POST /register", func(w http.ResponseWriter, r *http.Request) {
 		a.mu.Lock()
@@ -72,6 +77,20 @@ func (a *App) Clients() int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.clients
+}
+
+// Secrets is how each call for tokens that carried a client's secret sent it: "basic <id> <secret>" or "form <id> <secret>".
+func (a *App) Secrets() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.secrets...)
+}
+
+// Scope is what the last sign-in asked for.
+func (a *App) Scope() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.scope
 }
 
 // Called is the tokens its MCP server was called with, in order.
@@ -122,6 +141,11 @@ func (a *App) token(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if id, secret, basic := r.BasicAuth(); basic {
+		a.secrets = append(a.secrets, "basic "+id+" "+secret)
+	} else if secret := r.PostForm.Get("client_secret"); secret != "" {
+		a.secrets = append(a.secrets, "form "+r.PostForm.Get("client_id")+" "+secret)
+	}
 	switch r.Form.Get("grant_type") {
 	case "authorization_code":
 		challenge, found := a.codes[r.Form.Get("code")]
@@ -166,11 +190,12 @@ func (a *App) Approve(t *testing.T, signIn string) (state, code string) {
 		t.Fatal(err)
 	}
 	query := parsed.Query()
-	if query.Get("code_challenge_method") != "S256" || query.Get("resource") != a.MCP() || query.Get("scope") != "read write" {
+	if query.Get("code_challenge_method") != "S256" || query.Get("resource") != a.MCP() || query.Get("scope") == "" {
 		t.Fatalf("the sign-in address lacks what it should carry: %s", signIn)
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.scope = query.Get("scope")
 	code = fmt.Sprintf("code-%d", len(a.codes)+1)
 	a.codes[code] = query.Get("code_challenge")
 	return query.Get("state"), code
