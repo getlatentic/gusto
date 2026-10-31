@@ -75,10 +75,13 @@ func (a *attribution) engineName(name string) string {
 	return name
 }
 
-func (a *attribution) agentName(instanceID string) (string, bool) {
+func (a *attribution) agentName(instanceID, roomAgent string) (string, bool) {
 	held, found := a.instances.Get(instanceID)
 	if !found {
 		return "", false
+	}
+	if agent, found := held.AgentByID(roomAgent); found && roomAgent != "" {
+		return agent.Name, true
 	}
 	template, _ := industry.Get(held.Setup)
 	return usage.AgentName(held.Title, template.Title, a.engineName(held.Harness)), true

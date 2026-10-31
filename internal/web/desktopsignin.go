@@ -112,7 +112,7 @@ func (s *Server) afterSignIn(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/desktop/handoff", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, wantedPage(w, r), http.StatusSeeOther)
 }
 
 // desktopHandoff gives the signed-in browser a ticket and sends it to the app.

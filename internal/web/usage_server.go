@@ -34,10 +34,13 @@ func (s *Server) UsageWho(task string) (usage.Who, bool) {
 	if !found {
 		return usage.Who{}, false
 	}
-	return usage.WhoOfTask(record, s.engineName, func(id string) (string, bool) {
+	return usage.WhoOfTask(record, s.engineName, func(id, roomAgent string) (string, bool) {
 		held, found := s.instances.Get(id)
 		if !found {
 			return "", false
+		}
+		if agent, found := s.liveRoom(held).AgentByID(roomAgent); found && roomAgent != "" {
+			return agent.Name, true
 		}
 		return s.agentOf(held).Name, true
 	}), true

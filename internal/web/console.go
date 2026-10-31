@@ -15,7 +15,8 @@ func (s *Server) sections() []section {
 		{"overview", "/admin", "Overview"},
 		{"usage", "/admin/usage", "Usage"},
 	}
-	all = append(all, section{"verification", "/admin/verification", "Verification"}, section{"ui-kit", "/admin/ui-kit", "UI kit"})
+	// The UI kit is the pages' own reference, kept at its address for whoever builds them and out of an admin's menu.
+	all = append(all, section{"verification", "/admin/verification", "Verification"})
 	if s.changes != nil {
 		all = append(all, section{"activity", "/admin/activity", "Activity"})
 	}

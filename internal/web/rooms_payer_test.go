@@ -27,9 +27,12 @@ func TestATurnOfARoomsAgentCountsAgainstItsOwnerWhoeverAsks(t *testing.T) {
 	if !strings.EqualFold(turn.Asked, bob) || !strings.EqualFold(turn.PaidBy, alice) || !strings.EqualFold(turn.Payer(), alice) {
 		t.Fatalf("the turn was asked by %q and paid by %q", turn.Asked, turn.PaidBy)
 	}
-	who := usage.WhoOfTask(turn, func(string) string { return "" }, func(string) (string, bool) { return "", false })
+	who := usage.WhoOfTask(turn, func(string) string { return "" }, func(string, string) (string, bool) { return "", false })
 	if !strings.EqualFold(who.Person, alice) {
 		t.Errorf("its calls count against %q", who.Person)
+	}
+	if named, _ := site.server.UsageWho(turn.ID); named.Agent != "Scout" {
+		t.Errorf("usage names the room's agent %q, not Scout", named.Agent)
 	}
 	if got := askerOf(turn.Payer()); !strings.EqualFold(got, alice) {
 		t.Errorf("the month's spending by person puts it under %q", got)
