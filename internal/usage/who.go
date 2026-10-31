@@ -4,9 +4,10 @@ import "github.com/getlatentic/gusto/internal/jobs"
 
 // WhoOfTask is who made a task's calls, from the task's record: the person who asked, the team and repository,
 // the agent type that ran it, and the conversation, or the task itself when it is in none. engine gives the name a
-// person reads for an agent type, and agent the name of the agent a person set up, for an instance.
+// person reads for an agent type, and agent the name of the agent a person set up, for an instance, or of a room's agent that
+// took the turn, by its id in the room.
 // The server and the commands that run without one both find who made a call here.
-func WhoOfTask(record jobs.Record, engine func(harness string) string, agent func(instance string) (string, bool)) Who {
+func WhoOfTask(record jobs.Record, engine func(harness string) string, agent func(instance, roomAgent string) (string, bool)) Who {
 	who := Who{Session: record.ID, Person: record.Payer(), Team: record.Team, Project: record.Repo, Engine: engine(record.Harness)}
 	if record.Instance == "" {
 		return who
@@ -15,7 +16,7 @@ func WhoOfTask(record jobs.Record, engine func(harness string) string, agent fun
 	if record.Thread != "" {
 		who.Session += ":" + record.Thread
 	}
-	if name, found := agent(record.Instance); found {
+	if name, found := agent(record.Instance, record.Agent); found {
 		who.Agent = name
 	}
 	return who

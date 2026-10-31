@@ -53,7 +53,7 @@
         <td title="{{.LastFull}}">{{.Last}}</td>
         <td class="max-w-64 truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
         {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
-        <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{.Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
+        <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2" title="{{.Engine}}">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{or .Agent .Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
         <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>

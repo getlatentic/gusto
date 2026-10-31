@@ -21,6 +21,17 @@ func (s *Server) byAsker(jobs []spend.Line) []spend.Line {
 
 const askerNotRecorded = "Not recorded"
 
+// peopleShares is what each person spent, each called by their name with their address under it.
+func (s *Server) peopleShares(lines []spend.Line) []share {
+	out := shares(lines)
+	for i := range out {
+		if strings.Contains(out[i].Name, "@") {
+			out[i].Label, out[i].Sub = s.personName(out[i].Name), out[i].Name
+		}
+	}
+	return out
+}
+
 func askerOf(asked string) string {
 	switch {
 	case asked == "":
