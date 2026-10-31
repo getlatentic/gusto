@@ -156,8 +156,12 @@ func (c *Connectors) Begin(ctx context.Context, person string, entry Entry) (str
 		"response_type": {"code"}, "client_id": {client.ID}, "redirect_uri": {c.redirect()}, "state": {state},
 		"code_challenge": {base64.RawURLEncoding.EncodeToString(sum[:])}, "code_challenge_method": {"S256"}, "resource": {server.Resource},
 	}
-	if len(server.Scopes) > 0 {
-		query.Set("scope", strings.Join(server.Scopes, " "))
+	scopes := entry.Scopes
+	if len(scopes) == 0 {
+		scopes = server.Scopes
+	}
+	if len(scopes) > 0 {
+		query.Set("scope", strings.Join(scopes, " "))
 	}
 	join := "?"
 	if strings.Contains(server.Authorize, "?") {
@@ -287,8 +291,11 @@ func (c *Connectors) ask(ctx context.Context, server Server, client Client, form
 	if !secureAddress(server.Token) {
 		return tokens{}, fmt.Errorf("%s is not an https address", server.Token)
 	}
-	if client.Secret == "" {
+	if client.Secret == "" || server.SecretInBody {
 		form.Set("client_id", client.ID)
+	}
+	if client.Secret != "" && server.SecretInBody {
+		form.Set("client_secret", client.Secret)
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, server.Token, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -296,7 +303,7 @@ func (c *Connectors) ask(ctx context.Context, server Server, client Client, form
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Accept", "application/json")
-	if client.Secret != "" {
+	if client.Secret != "" && !server.SecretInBody {
 		request.SetBasicAuth(url.QueryEscape(client.ID), url.QueryEscape(client.Secret))
 	}
 	answer, err := c.http.Do(request)

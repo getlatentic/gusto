@@ -33,6 +33,9 @@ func TestAPersonSignsInAndTheirTokenIsKeptAndRenewed(t *testing.T) {
 		t.Errorf("the sign-in is not as the registered client, back to this server: %s", signIn)
 	}
 	state, code := a.Approve(t, signIn)
+	if a.Scope() != "read write" {
+		t.Errorf("the sign-in asked for %q, not the scope the server's challenge named", a.Scope())
+	}
 	if _, err := c.Finish(context.Background(), "bob@acme.com", state, code); err == nil {
 		t.Error("somebody else finished ada's sign-in")
 	}
@@ -110,6 +113,38 @@ func TestMoreAppsAreCheckedAndAdded(t *testing.T) {
 		{ID: "wiki", Name: "W", URL: "http://wiki.acme.com"}, {ID: "wiki", URL: "https://x.com"}} {
 		if _, err := WithMore([]Entry{bad}); err == nil {
 			t.Errorf("%+v was taken", bad)
+		}
+	}
+}
+
+// An operator's client sends its secret the way the app says, and in the form when the app says nothing, as GitHub does; and a
+// catalog entry that names its scopes asks for those, not every scope the app's server lists.
+func TestAnOperatorsSecretIsSentAsTheAppAsksAndTheEntrysScopesAreAskedFor(t *testing.T) {
+	for _, each := range []struct {
+		said []string
+		want string
+	}{
+		{nil, "form operators-app shh"},
+		{[]string{"client_secret_post"}, "form operators-app shh"},
+		{[]string{"client_secret_post", "client_secret_basic"}, "basic operators-app shh"},
+	} {
+		a := connectortest.New(t)
+		a.SecretAuth = each.said
+		tasks := Entry{ID: "tasks", Name: "Tasks", URL: a.MCP(), NeedsClient: true, Scopes: []string{"read"}}
+		c, err := Open(Config{Dir: t.TempDir(), Base: "https://acme.gusto.test", HTTP: http.DefaultClient, Apps: []Entry{tasks},
+			Clients: map[string]Client{"tasks": {ID: "operators-app", Secret: "shh"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", tasks))
+		if a.Scope() != "read" {
+			t.Errorf("the sign-in asked for %q, not the entry's scopes", a.Scope())
+		}
+		if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+			t.Fatal(err)
+		}
+		if got := a.Secrets(); len(got) != 1 || got[0] != each.want {
+			t.Errorf("an app that says %v was sent the secret as %v, not %q", each.said, got, each.want)
 		}
 	}
 }

@@ -20,6 +20,9 @@ type Entry struct {
 	URL  string `json:"url"`
 	// NeedsClient is an app that has no way for a client to register itself, so the operator registers one and gives its id.
 	NeedsClient bool `json:"needsClient,omitempty"`
+	// Scopes is what a sign-in asks for, in place of everything the app's server lists, for an app that lists more than an agent
+	// needs.
+	Scopes []string `json:"scopes,omitempty"`
 }
 
 // Catalog is the connectors gusto knows. Each server was asked on 31 Oct 2026 and answered as MCP's authorization asks: a 401
@@ -31,7 +34,8 @@ var Catalog = []Entry{
 	{ID: "figma", Name: "Figma", What: "Files, frames and comments in your Figma", URL: "https://mcp.figma.com/mcp"},
 	{ID: "canva", Name: "Canva", What: "Designs in your Canva", URL: "https://mcp.canva.com/mcp"},
 	{ID: "stripe", Name: "Stripe", What: "Customers, payments and products in your Stripe account", URL: "https://mcp.stripe.com"},
-	{ID: "github", Name: "GitHub", What: "Repositories, issues and pull requests you can see on GitHub", URL: "https://api.githubcopilot.com/mcp/", NeedsClient: true},
+	{ID: "github", Name: "GitHub", What: "Repositories, issues and pull requests you can see on GitHub", URL: "https://api.githubcopilot.com/mcp/", NeedsClient: true,
+		Scopes: []string{"repo", "read:org", "read:user"}},
 	{ID: "asana", Name: "Asana", What: "Tasks and projects in your Asana", URL: "https://mcp.asana.com/v2/mcp", NeedsClient: true},
 	{ID: "hubspot", Name: "HubSpot", What: "Contacts, companies and deals in your HubSpot", URL: "https://mcp.hubspot.com/", NeedsClient: true},
 }
