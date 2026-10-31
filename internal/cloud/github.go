@@ -37,7 +37,9 @@ const githubAsk = 10 * time.Minute
 const githubAnswer = 1 << 20
 
 func (g *GitHub) site() string { return strings.TrimSuffix(cmp.Or(g.Site, "https://github.com"), "/") }
-func (g *GitHub) api() string  { return strings.TrimSuffix(cmp.Or(g.API, "https://api.github.com"), "/") }
+func (g *GitHub) api() string {
+	return strings.TrimSuffix(cmp.Or(g.API, "https://api.github.com"), "/")
+}
 
 func (g *GitHub) client() *http.Client {
 	if g.HTTP != nil {
