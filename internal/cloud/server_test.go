@@ -523,4 +523,3 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 		}
 	})
 }
-
