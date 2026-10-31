@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -22,6 +23,8 @@ type Server struct {
 	ClientDocs    bool     `json:"clientDocs,omitempty"`
 	Scopes        []string `json:"scopes,omitempty"`
 	ChallengeS256 bool     `json:"challengeS256"`
+	// SecretInBody is an app that takes a client's secret in the form it is sent, and not as basic authentication.
+	SecretInBody bool `json:"secretInBody,omitempty"`
 }
 
 // mostMetadata is the most of a metadata document read; a real one is a few kilobytes.
@@ -67,6 +70,7 @@ func Discover(ctx context.Context, client *http.Client, address string) (Server,
 		Registration     string   `json:"registration_endpoint"`
 		ClientDocs       bool     `json:"client_id_metadata_document_supported"`
 		ChallengeMethods []string `json:"code_challenge_methods_supported"`
+		TokenAuth        []string `json:"token_endpoint_auth_methods_supported"`
 	}
 	for _, each := range []string{
 		wellKnown(issuer, "oauth-authorization-server", true), wellKnown(issuer, "openid-configuration", true),
@@ -83,7 +87,14 @@ func Discover(ctx context.Context, client *http.Client, address string) (Server,
 	for _, method := range meta.ChallengeMethods {
 		found.ChallengeS256 = found.ChallengeS256 || method == "S256"
 	}
+	found.SecretInBody = secretInBody(meta.TokenAuth)
 	return found, nil
+}
+
+// secretInBody says how a client's secret is sent: as basic authentication when the app names it, and in the form when the app
+// names only that, or names nothing, as GitHub does and documents the form for.
+func secretInBody(methods []string) bool {
+	return !slices.Contains(methods, "client_secret_basic")
 }
 
 // challenge asks the MCP server without a token and reads the 401 it answers: where its resource metadata is, and the scope it

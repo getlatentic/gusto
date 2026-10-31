@@ -68,6 +68,8 @@ demo_turnstile_site: ""
 demo_turnstile_parameter: /gusto/poc/turnstile-secret
 demo_lead_hook_url_parameter: /gusto/poc/lead-hook-url
 demo_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
+# The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
+demo_connector_clients_parameter: /gusto/poc/connector-clients
 demo_visitor_max: 5
 demo_book_url: ""
 # The addresses and domains, comma-separated, whose people alone may start a demo, which then is a sales call and not open to
