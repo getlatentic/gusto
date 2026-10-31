@@ -285,7 +285,8 @@ func TestSignUpsInAllAreLimited(t *testing.T) {
 }
 
 // The form cannot be used to learn who has an account: the answer is the same
-// bytes for an address that has one and one that has not, and only the first is mailed.
+// bytes for an address that has one and one that has not, but for the address it
+// names, and only the first is mailed. What is not an address is asked for again.
 func TestSigningInAnswersTheSameWhetherOrNotTheAddressHasAnAccount(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
@@ -294,9 +295,13 @@ func TestSigningInAnswersTheSameWhetherOrNotTheAddressHasAnAccount(t *testing.T)
 
 		knownStatus, known, _ := f.browser().post("/signin", url.Values{"email": {"ada@acme.com"}})
 		unknownStatus, unknown, _ := f.browser().post("/signin", url.Values{"email": {"nobody@acme.com"}})
-		junkStatus, junk, _ := f.browser().post("/signin", url.Values{"email": {"not an address"}})
-		if knownStatus != 200 || unknownStatus != knownStatus || junkStatus != knownStatus || known != unknown || known != junk {
-			t.Errorf("the answers differ:\n%d %q\n%d %q\n%d %q", knownStatus, known, unknownStatus, unknown, junkStatus, junk)
+		if knownStatus != 200 || unknownStatus != knownStatus || !strings.Contains(known, "ada@acme.com") ||
+			strings.ReplaceAll(unknown, "nobody@acme.com", "ada@acme.com") != known {
+			t.Errorf("the answers differ:\n%d %q\n%d %q", knownStatus, known, unknownStatus, unknown)
+		}
+		if status, junk, _ := f.browser().post("/signin", url.Values{"email": {"not an address"}}); status != http.StatusUnprocessableEntity ||
+			!strings.Contains(junk, "Enter an email address") {
+			t.Errorf("what is not an address answered %d:\n%s", status, junk)
 		}
 		mails := f.mails()
 		if len(mails) != before+1 || !strings.Contains(mails[len(mails)-1], "To: ada@acme.com") || !strings.Contains(mails[len(mails)-1], "/signin/link?t=") {
@@ -518,3 +523,4 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 		}
 	})
 }
+
