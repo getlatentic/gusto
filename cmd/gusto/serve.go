@@ -89,6 +89,13 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	connectors, err := openConnectors()
+	if err != nil {
+		return fail(err)
+	}
+	if connectors != nil {
+		way.gateways.tokens = connectors
+	}
 	if limits != nil {
 		if err := way.ledger.UseCredit(creditOf(limits), filepath.Join(filepath.Dir(os.Getenv("GUSTO_QUOTA")), "credit-used.json")); err != nil {
 			return fail(err)
@@ -214,6 +221,9 @@ func serve(args []string) int {
 	}
 	if local {
 		pages.UseLocalSignIn(password, localPerson())
+	}
+	if connectors != nil {
+		pages.UseConnectors(connectors)
 	}
 	if path := os.Getenv("GUSTO_ORG_SETTINGS"); path != "" {
 		pages.UseOrgSettings(path)

@@ -58,6 +58,8 @@ type Config struct {
 	// addresses. A host that checks addresses itself, or trusts its own authority, gives its own. It must not follow
 	// redirects, since a server is called with credentials.
 	Client *http.Client
+	// Tokens gives the token of a person's own sign-in for a server that is an app they connected.
+	Tokens Tokens
 	// Tell, when set, is told of each line the record would hold, as well as the record.
 	Tell func(Entry)
 	// HideAddresses keeps from the agent why a server could not be reached or called, since the reason names where the server is and
@@ -94,7 +96,7 @@ func New(config Config) *Session {
 	if policy == nil {
 		policy = func() Policy { return config.Policy }
 	}
-	catalog := newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record, config.Client)
+	catalog := newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record, config.Client, config.Tokens)
 	catalog.withheld = config.Withheld
 	return &Session{config: config, now: time.Now, catalog: catalog, sent: map[string]int64{}}
 }

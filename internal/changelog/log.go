@@ -80,6 +80,11 @@ const (
 	IntegrationRestored = "integration.restored"
 	IntegrationPrograms = "integration.programs"
 	IntegrationScoped   = "integration.scoped"
+
+	ConnectorEnabled      = "connector.enabled"
+	ConnectorDisabled     = "connector.disabled"
+	ConnectorConnected    = "connector.connected"
+	ConnectorDisconnected = "connector.disconnected"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organization's front

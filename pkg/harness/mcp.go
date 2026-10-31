@@ -41,6 +41,10 @@ type MCP struct {
 // TakesMCP says whether this agent can be given MCP servers.
 func (a Adapter) TakesMCP() bool { return a.MCP != nil }
 
+// ReachesGateway says whether this agent can be given the gateway wherever it runs: on its session, or in its arguments or its
+// environment. One that reads its servers from a file in its own folder is not, since a sandbox does not put that file there.
+func (a Adapter) ReachesGateway() bool { return a.MCP != nil && (a.Stream == ACP || a.MCP.File == "") }
+
 // Give hands a built command the servers a task names, in this agent's own
 // format. An ACP agent is given them on the session instead, by the runner.
 func (a Adapter) Give(command *exec.Cmd, servers []job.Server) error {

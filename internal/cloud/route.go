@@ -77,12 +77,16 @@ func (s *Server) appURL(slug, id string) string {
 }
 
 // orgURL is the address of an organization's server as a browser reaches it.
-func (s *Server) orgURL(slug string) string {
-	host := slug + "." + s.Domain
-	if port := s.URL.Port(); port != "" {
+func (s *Server) orgURL(slug string) string { return OrgAddress(s.URL, s.Domain, slug) }
+
+// OrgAddress is the address of an organization's server as a browser reaches it, under a front door at public that serves
+// organizations on their own names in domain.
+func OrgAddress(public *url.URL, domain, slug string) string {
+	host := slug + "." + domain
+	if port := public.Port(); port != "" {
 		host += ":" + port
 	}
-	return s.URL.Scheme + "://" + host
+	return public.Scheme + "://" + host
 }
 
 // route sends a request to the organization's server, or says why it cannot.

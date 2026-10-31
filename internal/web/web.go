@@ -25,6 +25,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
@@ -89,6 +90,7 @@ type Server struct {
 	// orgSettings is what the organization's admins choose for it, and computers is
 	// the record of the computers its people have.
 	orgSettings *orgsettings.File
+	connectors  *connector.Connectors
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
@@ -244,6 +246,7 @@ func (s *Server) Handler() http.Handler {
 		mux.Handle("GET "+livePath, s.sockets.Handler())
 	}
 	s.memberRoutes(mux)
+	s.connectorRoutes(mux)
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
@@ -295,6 +298,7 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 		marks := markOf(w)
 		fields["Nonce"] = nonceOf(w)
 		fields["Admin"] = marks.admin
+		fields["Connections"] = s.hasConnectors()
 		if s.front != nil && s.front.Org != "" {
 			fields["Org"] = s.front.Org
 			fields["OrgName"] = cmp.Or(s.front.Name, s.front.Org)

@@ -128,6 +128,7 @@ An organization's server has a console for its admins at `/admin`. A person who 
 | Tokens | `/admin/tokens` | API tokens |
 | Retention | `/admin/retention` | the disk, the policy, sweeps and holds ([RETENTION.md](RETENTION.md)) |
 | Skill sets | `/admin/skill-sets` | skill sets and their skills |
+| Connectors | `/admin/connectors` | the apps people may sign in to with their own accounts, for their agents ([GATEWAY.md](GATEWAY.md#connectors)) |
 | People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at gusto cloud |
 | Models | `/admin/models` | providers, models and limits per person |
 

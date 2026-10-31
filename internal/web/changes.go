@@ -326,6 +326,12 @@ func saidOf(e changelog.Event) string {
 		return fmt.Sprintf("changed the model tokens of runs in sandboxes from %s to %s", w["was"], w["now"])
 	case changelog.BudgetSet:
 		return fmt.Sprintf("changed the monthly budget from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
+	case changelog.ConnectorEnabled, changelog.ConnectorDisabled:
+		return fmt.Sprintf("turned the connector %s %s", w["connector"], w["now"])
+	case changelog.ConnectorConnected:
+		return fmt.Sprintf("signed in to %s with their own account, for their agents", w["connector"])
+	case changelog.ConnectorDisconnected:
+		return fmt.Sprintf("took their %s sign-in away from their agents", w["connector"])
 	case changelog.MemberBudgetSet:
 		return fmt.Sprintf("changed %s monthly budget from %s to %s", or(w["whose"], "every member's"), or(w["was"], "none"), or(w["now"], "none"))
 	case changelog.ProviderAdded:

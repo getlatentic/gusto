@@ -253,6 +253,22 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 // the sandbox cannot: it is the owner's alone.
 const GatewayFile = "gateway.json"
 
+// AddToGateway puts more servers behind a task's gateway, beside any its setup gave it.
+func AddToGateway(dir job.Dir, servers []gateway.Server) error {
+	path := filepath.Join(dir.SetupDir(), GatewayFile)
+	var held []gateway.Server
+	text, err := os.ReadFile(path)
+	if err == nil {
+		err = json.Unmarshal(text, &held)
+	} else if errors.Is(err, os.ErrNotExist) {
+		err = os.MkdirAll(dir.SetupDir(), 0o700)
+	}
+	if err != nil {
+		return err
+	}
+	return writeSecret(path, append(held, servers...))
+}
+
 // writeSecret writes definitions, which may hold a credential, for their owner alone. Nothing to write is no file.
 func writeSecret[T any](path string, definitions []T) error {
 	if len(definitions) == 0 {

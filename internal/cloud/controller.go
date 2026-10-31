@@ -37,6 +37,9 @@ type Controller struct {
 	Env []string
 	// FrontDoor is the front door's public address, which a server sends people to.
 	FrontDoor string
+	// OrgURL is the address each organization's server is reached at, which an app a person signs in to sends them back to. With
+	// none, people sign in to no apps.
+	OrgURL func(slug string) string
 	// PortFrom is the first port organizations' servers are given, two each.
 	PortFrom int
 	// Wait is how long a server has to answer once it is started.
@@ -266,6 +269,10 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		// Nobody knows this: a server behind the front door has no password to type.
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
+	}
+	if c.OrgURL != nil {
+		own["GUSTO_PUBLIC_URL"] = c.OrgURL(slug)
+		own["GUSTO_CONNECTORS"] = filepath.Join(data, "connectors")
 	}
 	database, err := usageDatabase(c.Env, slug, c.indexDir())
 	if err != nil {

@@ -40,15 +40,19 @@ type Catalog struct {
 	broken  map[string]string
 }
 
-func newCatalog(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record, client *http.Client) *Catalog {
+func newCatalog(servers []Server, private bool, launch Launcher, policy func() Policy, caller Caller, record *Record, client *http.Client, tokens Tokens) *Catalog {
 	c := &Catalog{servers: map[string]Conn{}, policy: policy, caller: caller, record: record}
 	for _, server := range servers {
 		if server.IsProgram() {
 			c.servers[server.Name] = StartProgram(server, caller.Job, launch)
 		} else if client != nil {
-			c.servers[server.Name] = DialWith(server, client)
+			upstream := DialWith(server, client)
+			upstream.tokens = tokens
+			c.servers[server.Name] = upstream
 		} else {
-			c.servers[server.Name] = Dial(server, private)
+			upstream := Dial(server, private)
+			upstream.tokens = tokens
+			c.servers[server.Name] = upstream
 		}
 		c.order = append(c.order, server.Name)
 	}
