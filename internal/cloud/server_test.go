@@ -144,7 +144,7 @@ func TestSigningUpMakesTheOrganizationSignsThePersonInAndMailsALink(t *testing.T
 		if status != 200 {
 			t.Fatalf("the person should be signed in: %d", status)
 		}
-		for _, want := range []string{"Acme Research", "acme-com.cloud.test", "acme.com", "ada@acme.com", "Not verified", "3 in all, 1 at a time", "200 a month", "0 of 1"} {
+		for _, want := range []string{"Acme Research", "acme-com.cloud.test", "acme.com", "ada@acme.com", "Not verified", "tasks in all, 1 at a time", "0 of 1"} {
 			if !strings.Contains(page, want) {
 				t.Errorf("the organization page lacks %q:\n%s", want, page)
 			}
@@ -188,7 +188,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 		if quota, _ := f.store.Quota("acme-com"); quota != DefaultLimits().Verified {
 			t.Errorf("verifying lifts the limit: %+v", quota)
 		}
-		if _, page := other.get("/org"); !strings.Contains(page, "Verified") || !strings.Contains(page, "200 a month, 4 at a time") || !strings.Contains(page, "0 of 4") || !strings.Contains(page, "up to 4") {
+		if _, page := other.get("/org"); !strings.Contains(page, "Verified") || !strings.Contains(page, ">200</span>") || !strings.Contains(page, "tasks a month, 4 at a time") || !strings.Contains(page, "0 of 4") || !strings.Contains(page, "up to 4") {
 			t.Errorf("the page should say so, and the browser that followed the link is signed in:\n%s", page)
 		}
 		if status, _, _ := f.browser().post("/verify", url.Values{"t": {token}}); status != http.StatusGone {

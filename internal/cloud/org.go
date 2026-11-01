@@ -123,8 +123,8 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	all, _ := s.Store.Memberships(person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
-		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, CreditLeft: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
-		Plan: s.planOf(org, person)}
+		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
+		Plan: s.planOf(org, person), Console: true}
 	s.render(w, status, "org", v)
 }
 
@@ -169,11 +169,14 @@ func (s *Server) signedOutThere(w http.ResponseWriter, r *http.Request) {
 	s.signOut(w, r)
 }
 
-// creditLeft is what is left of an organization's credit, as a person reads it, and nothing when it has none. What is left is
+// credit is what is left of an organization's free credit on gusto's models, out of how much it was given.
+type credit struct{ Left, Of string }
+
+// creditLeft is what is left of an organization's credit, as a person reads it, and nil when it has none. What is left is
 // rounded down to the cent, so a credit that has been used never reads as whole.
-func creditLeft(credit, used float64) string {
-	if credit <= 0 {
-		return ""
+func creditLeft(given, used float64) *credit {
+	if given <= 0 {
+		return nil
 	}
-	return fmt.Sprintf("$%.2f of $%.2f left", math.Floor(max(credit-used, 0)*100)/100, credit)
+	return &credit{Left: fmt.Sprintf("$%.2f", math.Floor(max(given-used, 0)*100)/100), Of: fmt.Sprintf("$%.2f", given)}
 }

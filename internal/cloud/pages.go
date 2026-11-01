@@ -43,8 +43,8 @@ type view struct {
 	// The organization page, and Several when the person looking is in more organizations than this one.
 	Org     Org
 	Several bool
-	// CreditLeft is what is left of the organization's free credit on the models gusto provides.
-	CreditLeft string
+	// Credit is what is left of the organization's free credit on the models gusto provides.
+	Credit *credit
 	// Plan is how the organization pays, when this front door bills.
 	Plan *plan
 	// Orgs are the organizations a person chooses among.
@@ -95,6 +95,8 @@ type view struct {
 	// for it.
 	BookFrame string
 	Wide      bool
+	// Console draws the page in the app's admin layout instead of a card.
+	Console bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.

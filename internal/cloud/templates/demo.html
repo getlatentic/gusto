@@ -13,4 +13,4 @@
   </form>
   {{if .Book}}<p class="text-center text-sm text-muted">Rather be shown? <a class="underline" href="{{.Book}}">Book a call</a></p>{{end}}
 <script src="{{own "/static/demo-warm.js"}}" defer></script>
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}

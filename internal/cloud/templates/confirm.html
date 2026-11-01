@@ -7,4 +7,4 @@
     <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover aria-disabled:cursor-default aria-disabled:opacity-60" type="submit" data-busy="Just a moment…">{{.Button}}</button>
   </form>
   <script src="{{own "/static/once.js"}}" defer></script>
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}

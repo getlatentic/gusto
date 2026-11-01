@@ -15,13 +15,26 @@
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 {{if .Lease}}<script src="{{asset "/static/lease.js"}}" defer data-extend="/lease"></script>{{end}}
 </head>
-<body class="grid min-h-dvh place-items-center text-md leading-[1.55]">
-<main class="grid {{if .Wide}}w-[min(64rem,calc(100vw-2rem))]{{else}}w-[min(26rem,calc(100vw-2rem))]{{end}} grid-cols-[minmax(0,1fr)] gap-6 rounded-lg bg-surface p-8 shadow-2 max-[26rem]:p-5">
+{{if .Console}}<body class="min-h-dvh text-md leading-[1.55]">
+{{template "console-bar" .}}{{else}}<body class="grid min-h-dvh place-items-center text-md leading-[1.55]">
+<main class="grid {{if .Wide}}w-[min(64rem,calc(100vw-2rem))]{{else}}w-[min(26rem,calc(100vw-2rem))]{{end}} grid-cols-[minmax(0,1fr)] gap-6 rounded-lg bg-surface p-8 shadow-2 max-[26rem]:p-5">{{end}}
+{{end}}
+
+{{/* console-bar draws an organization's own pages in the app's admin layout: its name down the side, the way into gusto and out, and the page beside them. */}}
+{{define "console-bar"}}<div class="grid min-h-dvh grid-cols-[15.5rem_minmax(0,1fr)] max-[56rem]:grid-cols-[minmax(0,1fr)] max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
+<nav class="flex min-w-0 flex-col gap-1 border-r border-line-strong bg-wash px-3 py-4 max-[56rem]:flex-row max-[56rem]:flex-wrap max-[56rem]:items-center max-[56rem]:border-r-0 max-[56rem]:border-b" aria-label="Organization">
+  <div class="flex min-h-12 items-center gap-3 px-3 max-[56rem]:flex-1"><img class="w-8 flex-none" src="/static/mark.png" alt=""><span class="grid min-w-0 leading-tight"><strong class="truncate font-display text-sm font-semibold">{{.Org.Name}}</strong><span class="text-xs text-subtle">Organization</span></span></div>
+  {{if .Several}}<a class="flex h-[2.375rem] items-center rounded-sm px-3 text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink" href="/orgs">Switch organization</a>{{end}}
+  <span class="flex-1 max-[56rem]:hidden"></span>
+  <form method="post" action="/signout"><button class="flex h-[2.375rem] w-full items-center rounded-sm px-3 text-left text-[0.8125rem] text-muted hover:bg-hover hover:text-ink" type="submit">Sign out</button></form>
+</nav>
+<main class="min-w-0"><div class="mx-auto grid max-w-[60rem] grid-cols-[minmax(0,1fr)] gap-4 px-8 pt-8 pb-20 max-[56rem]:px-4 max-[56rem]:pt-5">
 {{end}}
 
 {{define "brand"}}<div class="flex items-center gap-3 font-display text-lg leading-none font-semibold tracking-[-0.01em]"><img class="h-auto w-7" src="/static/mark.png" alt=""> gusto</div>{{end}}
 
-{{define "foot"}}</main>
+{{define "foot"}}{{if .Console}}</div></main>
+</div>{{else}}</main>{{end}}
 </body>
 </html>
 {{end}}
