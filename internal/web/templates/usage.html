@@ -51,7 +51,7 @@
       {{range .Rows}}
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
-        <td class="max-w-64 truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a></td>
+        <td class="max-w-64 truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a>{{if gt .Turns 1}} <span class="text-subtle">· {{.Turns}} turns</span>{{end}}</td>
         {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
         <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2" title="{{.Engine}}">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{or .Agent .Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
@@ -86,7 +86,7 @@
 
 {{define "usage-tabs"}}<nav class="flex gap-1 rounded-md bg-wash p-[0.1875rem] text-sm" aria-label="Usage views">
   <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
-  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Tasks</a>
+  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
 </nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>
