@@ -311,6 +311,9 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {
 			fields["Rail"] = s.railFor(marks.req, "")
 		}
+		if marks.req != nil && s.keeper.knows(marks.req) {
+			fields["Signed"] = s.signedAs(marks.req)
+		}
 	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
 		slog.Error("a page could not be drawn", "page", page, "error", err)
