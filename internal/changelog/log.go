@@ -85,6 +85,7 @@ const (
 	ConnectorDisabled     = "connector.disabled"
 	ConnectorConnected    = "connector.connected"
 	ConnectorDisconnected = "connector.disconnected"
+	ConnectorsLetInRoom   = "connector.room"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organization's front

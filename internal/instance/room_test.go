@@ -80,3 +80,36 @@ func TestThePeopleInARoomFindItWithoutLookingThroughEveryInstance(t *testing.T) 
 		t.Errorf("a removed room is still ada's: %v", roomIDs(got))
 	}
 }
+
+// A member's choice to let the room's agents use their connected apps is off at first, theirs alone, kept when the room is read
+// again, and kept when their role changes.
+func TestAMemberLetsTheRoomsAgentsUseTheirAppsOnlyForThemselves(t *testing.T) {
+	dir := t.TempDir()
+	store, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	room, err := store.StartRoom("Launch plan", "ada@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.SetMember(room.ID, "bob@example.com", RoleMember)
+	if room.LetsConnections("ada@example.com") {
+		t.Fatal("a member's apps were let before they chose")
+	}
+	if err := store.LetConnections(room.ID, "Ada@Example.com", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.LetConnections(room.ID, "carol@example.com", true); err == nil {
+		t.Error("somebody outside the room let its agents use their apps")
+	}
+	store.SetMember(room.ID, "ada@example.com", RoleAdmin)
+	again, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	held, _ := again.Get(room.ID)
+	if !held.LetsConnections("ada@example.com") || held.LetsConnections("bob@example.com") {
+		t.Errorf("the choice is not each member's own, or was not kept: %+v", held.Members)
+	}
+}

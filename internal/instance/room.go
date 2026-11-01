@@ -17,6 +17,9 @@ const (
 type Member struct {
 	Who  string `json:"who"`
 	Role string `json:"role"`
+	// Connections says the member lets the room's agents use the apps they connected, as them, for the turns they ask. It is off
+	// until the member turns it on, and only they change it.
+	Connections bool `json:"connections,omitempty"`
 }
 
 // Agent is an agent in a room: a harness and a model, known by a name people mention it by, and what it does there.
@@ -66,6 +69,16 @@ func (s *Store) StartRoom(name, who string) (Instance, error) {
 	}
 	who = strings.ToLower(strings.TrimSpace(who))
 	return s.Start(slug(name), Instance{Title: name, Who: who, Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
+}
+
+// LetsConnections says whether a person in a room lets its agents use the apps they connected, for the turns they ask.
+func (held Instance) LetsConnections(who string) bool {
+	for _, member := range held.Members {
+		if strings.EqualFold(member.Who, who) {
+			return member.Connections
+		}
+	}
+	return false
 }
 
 // RoleOf is the role a person holds in a room, or nothing when they are not in it.
@@ -148,6 +161,19 @@ func (s *Store) RemoveMember(id, who string) error {
 		}
 		held.Members = kept
 		return keepsAdmin(*held)
+	})
+}
+
+// LetConnections lets the room's agents use a member's connected apps for the turns that member asks, or stops them.
+func (s *Store) LetConnections(id, who string, let bool) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		for i, member := range held.Members {
+			if strings.EqualFold(member.Who, who) {
+				held.Members[i].Connections = let
+				return nil
+			}
+		}
+		return fmt.Errorf("%s is not in this room", who)
 	})
 }
 

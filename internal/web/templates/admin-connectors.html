@@ -6,7 +6,7 @@
 </div>
 <details class="group mb-6">
   <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How this works</summary>
-  <p class="mt-2 max-w-prose text-sm text-muted">Turn on an app, and each person may sign in to it from Connections, with their own account there. Their agents then call it as them, through the gateway: the agent never holds the token, and sees what that person can see in the app, no more. A room's agent is given nobody's sign-ins. Turning an app off stops it from the next task. An app that needs setting up first is registered by whoever runs this server, with its client id in <code>GUSTO_CONNECTOR_CLIENTS</code>.</p>
+  <p class="mt-2 max-w-prose text-sm text-muted">Turn on an app, and each person may sign in to it from Connections, with their own account there. Their agents then call it as them, through the gateway: the agent never holds the token, and sees what that person can see in the app, no more. In a room, an agent uses a person's apps only for what that person asks, and only after they let it in that room. Turning an app off stops it from the next task. An app that needs setting up first is registered by whoever runs this server, with its client id in <code>GUSTO_CONNECTOR_CLIENTS</code>.</p>
 </details>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}

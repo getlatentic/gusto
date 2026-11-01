@@ -71,7 +71,7 @@ A connector is an app's MCP server that asks for OAuth. Each person signs in to 
 | Finding how to sign in | The MCP server's 401 names its resource metadata (RFC 9728), which names the authorization server (RFC 8414 or OpenID Connect). Only https is read, or http on this computer |
 | How gusto is known to the app | The operator's client when one is in `GUSTO_CONNECTOR_CLIENTS`. Otherwise the client document at `/connectors/client.json`, when the app reads one and the server is on https. Otherwise a client the app registers (RFC 7591), kept for next time. An operator's secret is sent as basic authentication when the app names it, and in the form otherwise |
 | The sign-in | PKCE with S256, a `state` bound to the person, and the `resource` parameter. A sign-in not finished in 10 minutes is forgotten |
-| Whose token | The person who asked for the task, read from the task's state. A room's agent works for everyone in the room, and is given nobody's sign-ins. A task another person pays for is given none |
+| Whose token | The person who asked for the task, read from the task's state. A room's agent works for everyone in the room, so a room turn is given only its asker's sign-ins, and only once the asker has let that room's agents use them (the line above the room's message box). The reply says whose apps it used. A task another person pays for is given none |
 | Which agents | An agent that takes the gateway in its arguments or on its session. Pi reads its servers from a file, which a sandbox does not carry, so it is given none |
 | The vault | AES-GCM, with a key made the first time and kept beside the tokens, readable by the server's user alone |
 
