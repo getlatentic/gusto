@@ -55,11 +55,13 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 	if got := ada.ask(t, "GET", "/connections/tasks/connect", nil).Code; got != http.StatusNotFound {
 		t.Errorf("an app that is off could be connected: %d", got)
 	}
-	if got := here.ask(t, "POST", "/admin/connectors/tasks/on", nil).Header().Get("Location"); got != "/admin/connectors" {
-		t.Fatalf("turning it on went to %q", got)
+	turnedOn := here.ask(t, "POST", "/admin/connectors/tasks/on", nil).Header().Get("Location")
+	if turnedOn != "/admin/connectors?on=Tasks" {
+		t.Fatalf("turning it on went to %q", turnedOn)
 	}
-	if page := here.ask(t, "GET", "/admin/connectors", nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) {
-		t.Errorf("the admin's page does not show it on:\n%s", page)
+	if page := here.ask(t, "GET", turnedOn, nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) ||
+		!strings.Contains(page, "Tasks is on. Each person, you included, connects their own account from") || !strings.Contains(page, `href="/connections"`) {
+		t.Errorf("the admin's page does not show it on and where people connect it:\n%s", page)
 	}
 	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {
 		t.Fatalf("the person is not offered it:\n%s", page)
