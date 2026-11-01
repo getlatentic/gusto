@@ -210,14 +210,15 @@ func TestASignUpThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 			"disposable":      {signup("bob@mailinator.com", "Bob Ltd"), 422, "expire"},
 			"not an email":    {signup("bob", "Bob Ltd"), 422, "not an email address"},
 			"a taken address": {url.Values{"email": {"bob@bob.com"}, "org": {"Bob Ltd"}, "slug": {"acme-com"}}, 409, "is taken"},
-			"a taken email":   {signup("ada@acme.com", "Another"), 409, "already has an account"},
+			"a taken email":   {signup("ada@acme.com", "Another"), 409, "already has a gusto account"},
 			"a bad name":      {signup("bob@bob.com", "x"), 422, "2 to 80 characters"},
 		} {
 			status, page, _ := f.browser().post("/signup", c.form)
 			if status != c.status || !strings.Contains(page, c.says) {
 				t.Errorf("%s: %d\n%s", name, status, page)
 			}
-			if !strings.Contains(page, `value="`+c.form.Get("org")+`"`) {
+			// A taken email is offered its sign-in link in place of the form.
+			if name != "a taken email" && !strings.Contains(page, `value="`+c.form.Get("org")+`"`) {
 				t.Errorf("%s: the organization's name should still be in the form", name)
 			}
 		}
@@ -530,7 +531,7 @@ func TestSigningUpWithAnAddressThatHasAnAccountOffersASignInLink(t *testing.T) {
 	f.browser().post("/signup", signup("ada@acme.com", "Acme"))
 	before := len(f.mails())
 	status, page, _ := f.browser().post("/signup", signup("ada@acme.com", "Acme"))
-	if status != http.StatusConflict || !strings.Contains(page, "ada@acme.com already has an account") ||
+	if status != http.StatusConflict || !strings.Contains(page, "ada@acme.com</strong> already has a gusto account") ||
 		!strings.Contains(page, `<form method="post" action="/signin"><input type="hidden" name="email" value="ada@acme.com">`) {
 		t.Fatalf("a taken address is not offered a sign-in link: %d\n%s", status, page)
 	}
@@ -549,5 +550,15 @@ func TestTheSignUpFormAsksForAWorkEmailOnlyWhenOnlyOneWillDo(t *testing.T) {
 		if _, page := f.browser().get("/signup"); !strings.Contains(page, want) || (allow && strings.Contains(page, "Work email")) {
 			t.Errorf("with free mail allowed %v the form does not say %q:\n%s", allow, want, page)
 		}
+	}
+}
+
+// A taken address is offered only its sign-in link and a way back, not a second sign-up form.
+func TestATakenAddressIsNotShownASecondForm(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	f.browser().post("/signup", signup("ada@acme.com", "Acme"))
+	_, page, _ := f.browser().post("/signup", signup("ada@acme.com", "Acme"))
+	if strings.Contains(page, `action="/signup"`) || !strings.Contains(page, `href="/signup">Use a different email`) {
+		t.Errorf("a taken address is shown the sign-up form again:\n%s", page)
 	}
 }

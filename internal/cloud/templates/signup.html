@@ -1,20 +1,22 @@
 {{define "signup"}}{{template "head" .}}
   {{template "brand"}}
-  <h1 class="text-xl font-semibold">Get started</h1>
   {{if .Taken}}
-  <p class="text-sm text-bad" role="alert">{{.Email}} already has an account.</p>
+  <h1 class="text-xl font-semibold">Welcome back</h1>
+  <p><strong class="font-semibold">{{.Email}}</strong> already has a gusto account.</p>
   <form method="post" action="/signin"><input type="hidden" name="email" value="{{.Email}}"><button class="w-full cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a sign-in link</button></form>
-  <p class="text-center text-sm text-muted">or start with another email</p>
-  {{else if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>
+  <p class="text-center text-sm text-muted"><a class="underline" href="/signup">Use a different email</a></p>
+  {{else}}
+  <h1 class="text-xl font-semibold">Get started</h1>
+  {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>
   {{else}}<p class="text-sm text-muted">Enter your email and gusto sets up a workspace for your team.</p>{{end}}
   <form class="grid gap-3" method="post" action="/signup">
-    <label class="grid gap-1 text-sm text-muted">{{if .WorkOnly}}Work email{{else}}Email{{end}} <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{if not .Taken}}{{.Email}}{{end}}" autocomplete="email"{{if not .Taken}} autofocus{{end}} required></label>
+    <label class="grid gap-1 text-sm text-muted">{{if .WorkOnly}}Work email{{else}}Email{{end}} <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
     {{if .More}}
     <label class="grid gap-1 text-sm text-muted">Organization name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
     <label class="grid gap-1 text-sm text-muted">Address <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="slug" value="{{.Slug}}" maxlength="32" autocomplete="off" placeholder="made from the name"></label>
     {{end}}
-    {{if .Taken}}<button class="cursor-pointer rounded-sm border border-line-strong p-3 text-center font-semibold hover:bg-surface" type="submit">Continue</button>
-    {{else}}<button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Continue</button>{{end}}
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Continue</button>
   </form>
   <p class="text-center text-sm text-muted">Already use gusto? <a class="underline" href="/signin">Sign in</a></p>
+  {{end}}
 {{template "foot"}}{{end}}
