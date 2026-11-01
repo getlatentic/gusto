@@ -28,7 +28,6 @@ const importLimit = integration.MaxUpload + 1<<20
 
 func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	offered := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasIntegrations, next)) }
-	mux.HandleFunc("GET "+integrationsPath, offered(s.integrationsPage))
 	mux.HandleFunc("POST "+integrationsPath+"/import", offered(s.importIntegration))
 	mux.HandleFunc("GET "+integrationsPath+"/{name}", offered(s.integrationPage))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/enable", offered(s.enableIntegration))
@@ -37,19 +36,6 @@ func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/for", offered(s.scopeIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/allow", offered(s.allowPrograms))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/refuse", offered(s.refusePrograms))
-}
-
-func (s *Server) integrationsPage(w http.ResponseWriter, r *http.Request) {
-	all, err := s.integrations.List()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	s.drawConsole(w, "admin-integrations.html", "integrations", map[string]any{
-		"Title":        productName + " — integrations",
-		"Integrations": all,
-		"Refused":      r.URL.Query().Get("refused"),
-	})
 }
 
 func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
@@ -71,13 +57,13 @@ func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.drawConsole(w, "admin-integration.html", "integrations", page)
+	s.drawConsole(w, "admin-integration.html", "apps", page)
 }
 
 // importIntegration takes a plugin in, from an upload or a git address, as a version that is off.
 func (s *Server) importIntegration(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(8 << 20); err != nil && !errors.Is(err, http.ErrNotMultipart) {
-		s.turnAway(w, r, integrationsPath, "the upload could not be read: "+err.Error())
+		s.turnAway(w, r, skillsTab, "the upload could not be read: "+err.Error())
 		return
 	}
 	scratch, err := os.MkdirTemp("", "gusto-integration-")
@@ -88,12 +74,12 @@ func (s *Server) importIntegration(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(scratch)
 	dir, source, err := s.fetchIntegration(r, scratch)
 	if err != nil {
-		s.turnAway(w, r, integrationsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	held, version, err := s.integrations.Import(dir, source, s.keeper.who(r))
 	if err != nil {
-		s.turnAway(w, r, integrationsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	s.note(r, changelog.IntegrationImported, map[string]string{

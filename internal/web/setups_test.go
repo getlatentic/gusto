@@ -36,7 +36,7 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	if list := site.ask(t, "GET", "/new/blank", nil).Body.String(); strings.Contains(list, "reviewer") {
 		t.Error("a skill set that is off is offered to people")
 	}
-	if console := site.ask(t, "GET", "/admin/skill-sets", nil).Body.String(); !strings.Contains(console, "reviewer") || !strings.Contains(console, "off") {
+	if console := site.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(console, "reviewer") || !strings.Contains(console, "off") {
 		t.Error("the console does not show the skill set that is off")
 	}
 	site.ask(t, "POST", "/admin/skill-sets/reviewer/enable", nil)

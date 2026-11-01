@@ -13,9 +13,9 @@ func TestTheConsoleHasAVerificationSectionThatListsOnlyWhatNeedsALook(t *testing
 	sealWith(t, claiming(t, root, "acme-20260927-0100"), trusted, "acme")
 	site := openKeyed(t, root, keyringAt(t, trusted))
 	site.signIn(t)
-	page := site.ask(t, "GET", "/admin/verification", nil)
+	page := site.ask(t, "GET", "/admin/records?tab=checks", nil)
 	body := page.Body.String()
-	if page.Code != 200 || !strings.Contains(body, `href="/admin/verification"`) || !strings.Contains(body, "Needs a look") {
+	if page.Code != 200 || !strings.Contains(body, `href="/admin/records"`) || !strings.Contains(body, "Needs a look") {
 		t.Fatalf("the section is missing: %d\n%s", page.Code, body)
 	}
 	if !strings.Contains(body, "unsigned-20260927-0100") && !strings.Contains(body, "/jobs/unsigned-20260927-0100") {
@@ -23,5 +23,8 @@ func TestTheConsoleHasAVerificationSectionThatListsOnlyWhatNeedsALook(t *testing
 	}
 	if strings.Contains(body, "/jobs/acme-20260927-0100") {
 		t.Errorf("a verified run is listed among those needing a look:\n%s", body)
+	}
+	if !strings.Contains(body, "Intact") || !strings.Contains(body, "the last 2 tasks check out") {
+		t.Errorf("the top line does not say the runs check out:\n%s", body)
 	}
 }

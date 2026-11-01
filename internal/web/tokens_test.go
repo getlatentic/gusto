@@ -207,8 +207,8 @@ func TestTheTokensPageIsAnAdminsAndOnlyOnAServerThatTakesTokens(t *testing.T) {
 		t.Fatal("a server with no tokens links to its tokens page")
 	}
 	here.signIn(t)
-	if page := here.ask(t, "GET", "/admin", nil).Body.String(); !strings.Contains(page, `href="/admin/tokens"`) {
-		t.Fatal("an admin is not offered the tokens page")
+	if got := here.ask(t, "GET", "/admin/tokens", nil); got.Code != http.StatusOK {
+		t.Fatalf("an admin cannot read the tokens page: %d", got.Code)
 	}
 }
 

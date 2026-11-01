@@ -150,7 +150,7 @@ func TestTheActivityPageShowsWhatTheFrontDoorReportedInWords(t *testing.T) {
 		adminDid(changelog.MemberRole, time.Now(), map[string]string{"email": "bob@acme.com", "was": "runner", "now": "admin"}),
 		adminDid(changelog.MemberRemoved, time.Now(), map[string]string{"email": "bob@acme.com", "role": "admin"}),
 	)
-	page := admin.ask(t, "GET", "/admin/activity", nil).Body.String()
+	page := admin.ask(t, "GET", "/admin/records", nil).Body.String()
 	for _, want := range []string{
 		"invited bob@acme.com to join as a runner",
 		"changed the role of bob@acme.com from runner to admin",

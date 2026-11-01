@@ -140,9 +140,9 @@ const routes = [
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],
   ["members", "/members"], ["member-agent", scout], ["room-new", "/rooms/new"], ["room", roomThread], ["room-members", `${roomThread}?members=1`],
-  ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-activity", "/admin/activity"],
-  ["admin-verification", "/admin/verification"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-retention", "/admin/retention"], ["admin-tokens", "/admin/tokens"],
-  ["admin-skill-sets", "/admin/skill-sets"],
+  ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-records", "/admin/records"],
+  ["admin-records-checks", "/admin/records?tab=checks"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-records-keeping", "/admin/records?tab=keeping"], ["admin-tokens", "/admin/tokens"],
+  ["admin-apps", "/admin/apps"], ["admin-skills", "/admin/apps?tab=skills"],
 ].filter(([name]) => !only || name.includes(only));
 
 // 4. the photographs

@@ -328,7 +328,7 @@ func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	if strings.Join(said, " ") != "none>$100.00 $100.00>$250.50 $250.50>none" {
 		t.Errorf("the record has %v, and setting the same figure again is no change", said)
 	}
-	activity := here.ask(t, "GET", "/admin/activity", nil).Body.String()
+	activity := here.ask(t, "GET", "/admin/records", nil).Body.String()
 	for _, want := range []string{"changed the monthly budget from none to $100.00", "changed the monthly budget from $250.50 to none"} {
 		if !strings.Contains(activity, want) {
 			t.Errorf("the activity page does not say %q:\n%s", want, activity)

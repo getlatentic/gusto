@@ -38,7 +38,6 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
 	mux.HandleFunc("POST /instances/{id}/connections", mine(s.letConnections))
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasConnectors, next)) }
-	mux.HandleFunc("GET /admin/connectors", admin(s.connectorsPage))
 	mux.HandleFunc("POST /admin/connectors/{id}/on", admin(s.turnConnector(true)))
 	mux.HandleFunc("POST /admin/connectors/{id}/off", admin(s.turnConnector(false)))
 }
@@ -168,18 +167,6 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, connectionsPath, http.StatusSeeOther)
 }
 
-func (s *Server) connectorsPage(w http.ResponseWriter, r *http.Request) {
-	views, err := s.connectorViews("")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	s.drawConsole(w, "admin-connectors.html", "connectors", map[string]any{
-		"Title": productName + " — connectors", "Connectors": views, "Refused": r.URL.Query().Get("refused"),
-		"TurnedOn": r.URL.Query().Get("on"),
-	})
-}
-
 // turnConnector lets people sign in to a connector and give it to their agents, or stops them: their agents are not given it
 // from their next task, and what they signed in to stays theirs to end.
 func (s *Server) turnConnector(on bool) http.HandlerFunc {
@@ -190,7 +177,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 			return
 		}
 		if on && !s.connectors.Usable(entry) {
-			s.turnAway(w, r, "/admin/connectors", entry.Name+" needs setting up by whoever runs this server first")
+			s.turnAway(w, r, appsTab, entry.Name+" needs setting up by whoever runs this server first")
 			return
 		}
 		changed := false
@@ -202,7 +189,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 			}
 		})
 		if err != nil {
-			s.turnAway(w, r, "/admin/connectors", err.Error())
+			s.turnAway(w, r, appsTab, err.Error())
 			return
 		}
 		if changed {
@@ -212,9 +199,9 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 			}
 			s.note(r, kind, map[string]string{"connector": entry.Name, "now": now})
 		}
-		back := "/admin/connectors"
+		back := appsTab
 		if on {
-			back += "?on=" + url.QueryEscape(entry.Name)
+			back += "&on=" + url.QueryEscape(entry.Name)
 		}
 		http.Redirect(w, r, back, http.StatusSeeOther)
 	}

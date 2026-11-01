@@ -2,7 +2,7 @@
 
 {{template "ui-flash" .}}
 
-{{if .Console}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="{{.Base}}">Skill sets</a><span>/</span><span>{{.Setup.Name}}</span></nav>
+{{if .Console}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/admin/apps?tab=skills">Skills</a><span>/</span><span>{{.Setup.Name}}</span></nav>
 {{else}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
 <div class="mb-6 flex items-center gap-3">
   <h1 class="flex-1">{{.Setup.Name}}{{if .Setup.Off}} <span class="{{template "ui-badge"}} align-middle">off</span>{{end}}</h1>
