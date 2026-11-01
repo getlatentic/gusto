@@ -1,11 +1,14 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>People</h1>
-  <span class="text-sm text-muted">Roles, last sign-in and spend this month</span>
-  <span class="flex-1"></span>
+<div class="{{template "ui-title"}} items-start justify-between">
+  <div>
+    <h1>People</h1>
+    <p class="{{template "ui-lede"}}">Who is in {{or .OrgName "this organization"}}, what they may do and spend</p>
+  </div>
   {{with .Manage}}<a class="{{template "ui-btn"}}" href="{{.}}">Invite people</a>{{end}}
 </div>
+
+{{template "ui-flash" .}}
 
 {{if .Unreadable}}
 <p class="{{template "ui-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
@@ -13,22 +16,37 @@
 
 {{if .SpendUnreadable}}<p class="{{template "ui-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
-<div class="{{template "ui-card"}} overflow-x-auto">
+{{with .Budget}}
+<details class="group {{template "ui-card"}} mb-4">
+  <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+    <span class="grid gap-0.5">
+      <strong class="font-semibold">Budgets</strong>
+      <span class="text-muted">{{if .Err}}The budgets could not be read. {{.Err}}{{else}}{{if .MemberSet}}{{usd .Member}} a month for each person; their agents stop there.{{else}}No budget for each person, so their agents do not stop.{{end}} {{if .Set}}The organization's {{usd .Limit}} a month only warns.{{else}}The organization has no budget to warn at.{{end}}{{end}}</span>
+    </span>
+    <span class="{{template "ui-btn-quiet"}} group-open:hidden">Change</span>
+  </summary>
+  <form method="post" action="/admin/budget" class="mt-4 grid gap-4 border-t border-line pt-4">
+    <div class="flex flex-wrap items-end gap-4">
+      <label class="{{template "ui-field"}}">Organization, a month <input class="input w-40" name="usd" type="number" min="0" step="0.01" placeholder="No budget"{{if .Set}} value="{{printf "%.2f" .Limit}}"{{end}}></label>
+      <label class="{{template "ui-field"}}">Each person, a month <input class="input w-40" name="each" type="number" min="0" step="0.01" placeholder="No budget"{{if .MemberSet}} value="{{printf "%.2f" .Member}}"{{end}}></label>
+      <button class="{{template "ui-btn"}}" type="submit">Save</button>
+    </div>
+    <p class="{{template "ui-note"}}">Past their own budget, a person's agents stop until next month or until you raise it. Give one person a different budget from the ⋯ on their row. The organization's budget stops nothing: this console says when it is passed.</p>
+  </form>
+</details>
+{{end}}
+
+<div class="{{template "ui-card"}} @max-[56rem]:overflow-x-auto">
   <table class="{{template "ui-table"}}">
-    <thead><tr><th>Person</th><th>Role</th><th>Last signed in</th><th class="text-right">Spent in {{.Month}}</th>{{if .Budgets}}<th>Budget a month</th>{{end}}</tr></thead>
+    <thead><tr><th>Person</th><th>Role</th><th class="text-right">Spent this month</th><th class="text-right">Last in</th><th><span class="sr-only">More</span></th></tr></thead>
     <tbody>
       {{range .People}}
       <tr>
-        <td><span class="flex items-center gap-3"><span class="grid size-8 flex-none place-items-center rounded-full bg-wash text-xs font-semibold text-muted" aria-hidden="true">{{initial .Email}}</span><span class="grid"><span>{{.Name}}</span><span class="text-xs text-muted">{{.Email}}</span></span></span></td>
-        <td><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize {{if eq .Role "admin"}}bg-ink text-inverse{{else}}bg-wash text-subtle{{end}}">{{.Role}}</span></td>
-        <td class="text-muted">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
-        <td class="text-right tabular-nums">{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{usd .USD}} <span class="text-muted">at least</span>{{end}}{{else}}<span class="text-muted">nothing</span>{{end}}</td>
-        {{if $.Budgets}}<td>{{with .Budget}}<form method="post" action="/admin/member-budget" class="flex items-center gap-2">
-          <input type="hidden" name="who" value="{{.Who}}">
-          <input class="input h-8 w-28" name="usd" type="number" min="0" step="0.01" aria-label="Budget a month for {{.Who}}" placeholder="{{if and .Set (not .Own)}}{{printf "%.2f" .Limit}} each{{else}}no limit{{end}}"{{if .Own}} value="{{printf "%.2f" .Limit}}"{{end}}>
-          <button class="{{template "ui-btn-sm"}}" type="submit">Save</button>
-          {{if .Passed}}<span class="text-xs font-medium text-bad">reached</span>{{end}}
-        </form>{{end}}</td>{{end}}
+        <td><span class="flex items-center gap-3"><span class="grid size-8 flex-none place-items-center rounded-full border border-line bg-sunken text-xs font-semibold text-muted" aria-hidden="true">{{initial .Name}}</span><span class="grid"><span>{{.Name}}</span><span class="text-xs text-muted">{{.Email}}</span></span></span></td>
+        <td>{{template "people-role" (dict "Person" . "Action" $.RoleAction "Back" $.Back "Admins" $.Admins)}}</td>
+        <td class="text-right whitespace-nowrap tabular-nums">{{$budget := .Budget}}{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{usd .USD}} <span class="text-muted">at least</span>{{end}}{{if $budget.Set}} <span class="text-subtle">of {{usd $budget.Limit}}</span>{{end}}{{else}}<span class="text-subtle">nothing</span>{{end}}{{if .Budget.Passed}} <span class="text-xs font-medium text-bad">reached</span>{{end}}</td>
+        <td class="text-right whitespace-nowrap text-subtle">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
+        <td class="w-10 text-right">{{if $.Budget}}{{template "people-more" .}}{{end}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -36,12 +54,46 @@
 </div>
 
 {{if .Invited}}
-<h2 class="mt-8 mb-3">Waiting to join</h2>
-<div class="{{template "ui-card"}} grid gap-3">
-  {{range .Invited}}<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><span>{{.Email}}</span><span class="text-xs text-muted">Invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
-</div>
+<section class="mt-8">
+  <h2 class="mb-3 text-[0.9375rem] font-semibold">Invited, not joined yet</h2>
+  <div class="grid gap-2">
+    {{range .Invited}}<div class="{{template "ui-card"}} flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-4"><span>{{.Email}}</span><span class="text-sm text-subtle">invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
+  </div>
+</section>
 {{end}}
 
 {{end}}
 
 {{template "foot" .}}
+
+{{/* A person's role: a choice that is sent to the front door, which owns roles, when there is one, and the role in words
+     otherwise. The only admin is not offered the choice: an organization keeps one. */}}
+{{define "people-role"}}{{with .Person}}
+{{if and $.Action (not (and (eq .Role "admin") (le $.Admins 1)))}}
+<form method="post" action="{{$.Action}}" class="m-0">
+  <input type="hidden" name="email" value="{{.Email}}">
+  <input type="hidden" name="back" value="{{$.Back}}">
+  <select class="select h-8 text-sm" name="role" aria-label="Role of {{.Name}}" data-autosubmit{{if eq .Role "admin"}} data-confirm-when="runner" data-confirm="Make {{.Name}} a runner? They lose the admin pages and can no longer change budgets or roles."{{end}}>
+    <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option>
+    <option value="runner"{{if ne .Role "admin"}} selected{{end}}>Runner</option>
+  </select>
+</form>
+{{else}}<span class="capitalize">{{.Role}}</span>{{end}}
+{{end}}{{end}}
+
+{{/* The rare things done to one person, behind ⋯ on their row. */}}
+{{define "people-more"}}
+<details class="relative inline-block text-left">
+  <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-sm border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for {{.Name}}" title="More">{{template "icon-more"}}</summary>
+  <div class="absolute top-full right-0 z-40 mt-1 grid w-72 gap-3 rounded-md border border-line bg-surface p-4 shadow-2">
+    {{with .Budget}}<form method="post" action="/admin/member-budget" class="grid gap-2">
+      <input type="hidden" name="who" value="{{.Who}}">
+      <label class="{{template "ui-field"}}">Their own budget, a month
+        <span class="flex items-center gap-2"><input class="input h-8 w-full" name="usd" type="number" min="0" step="0.01" placeholder="{{if and .Set (not .Own)}}{{printf "%.2f" .Limit}}, as everyone{{else}}no limit{{end}}"{{if .Own}} value="{{printf "%.2f" .Limit}}"{{end}}>
+        <button class="{{template "ui-btn-sm"}}" type="submit">Save</button></span>
+      </label>
+      <p class="text-xs text-subtle">Leave it empty to use everyone's budget again.</p>
+    </form>{{end}}
+  </div>
+</details>
+{{end}}

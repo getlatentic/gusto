@@ -123,20 +123,20 @@ An organization's server has a console for its admins at `/admin`. A person who 
 
 | Section | Address | Holds |
 | --- | --- | --- |
-| Overview | `/admin` | this month's spending (UTC), limits and use, tasks running, waiting and failed in the last seven days, workspaces, shared apps, the budget |
+| Overview | `/admin` | this month's spending (UTC) against the budget, split by person and by agent type, each line linked to its calls on Usage. It changes nothing |
 | Spending | `/admin/spending` | the spend report for the whole organization |
-| People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at gusto cloud |
+| People | `/admin/people` | the budgets, each person's role, last sign-in and spend this month against their budget, and unanswered invitations. A role is changed here and kept by gusto cloud; inviting and removing happen there |
 | Models | `/admin/models` | providers, models and limits per person |
 | Apps & skills | `/admin/apps` | on the Apps tab, the apps people may sign in to with their own accounts, for their agents ([GATEWAY.md](GATEWAY.md#connectors)); on the Skills tab (`?tab=skills`), skill sets and imported plugins |
 | Records | `/admin/records` | whether the record is intact; the change record on the Activity tab, downloadable at `/admin/activity.jsonl`; task checks (`?tab=checks`); the disk, the policy, sweeps and holds (`?tab=keeping`, [RETENTION.md](RETENTION.md)) |
 
-API tokens are at `/admin/tokens`, which the menu does not list. The old addresses `/admin/activity`, `/admin/verification`, `/admin/retention`, `/admin/connectors`, `/admin/skill-sets` and `/admin/integrations` redirect to their tabs. Behind a front door, the menu links to the organization's page there for its members and billing.
+API tokens are at `/admin/tokens`, linked from the foot of People. The old addresses `/admin/activity`, `/admin/verification`, `/admin/retention`, `/admin/connectors`, `/admin/skill-sets` and `/admin/integrations` redirect to their tabs. Behind a front door, the menu links to the organization's page there for its members and billing.
 
-On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organization's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no task (a member's budget does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
+On People, an admin sets one alert: a monthly budget in dollars for the organization. It is kept in `settings.json` in the organization's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no task (a member's budget does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
 
-Each member can have a monthly budget too, which is enforced. The Overview sets one figure for every member, and People sets a person's own, which stands in place of it (0 is no limit for that person). Every task records who asked for it (`person` in its spec), and the proxy refuses a model call once that person's spending this month reaches their budget, saying so in the turn. A person sees their month against their budget on their Usage page. A task is held to the budget as it stood when the task started. Settings that cannot be read hold nobody to a member budget; the organization's caps and the credit still apply.
+Each member can have a monthly budget too, which is enforced. People sets one figure for every member, in the same form as the organization's, and a person's own from the menu on their row, which stands in place of it (0 is no limit for that person). Every task records who asked for it (`person` in its spec), and the proxy refuses a model call once that person's spending this month reaches their budget, saying so in the turn. A person sees their month against their budget on their Usage page. A task is held to the budget as it stood when the task started. Settings that cannot be read hold nobody to a member budget; the organization's caps and the credit still apply.
 
-An admin also chooses what a new chat runs on, under New chats. A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`agent=model`), then on the first agent and model that can run.
+An admin also chooses what a new chat runs on, on Models under "A new chat starts on". A person's last choice comes first. With no admin choice, a new chat starts on `GUSTO_CHAT_DEFAULT` (`agent=model`), then on the first agent and model that can run.
 
 ## Free credit
 

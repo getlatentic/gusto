@@ -24,7 +24,6 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
@@ -87,15 +86,13 @@ type Server struct {
 	inbox      string
 	taking     sync.Mutex
 	admins     map[string]bool
-	// orgSettings is what the organization's admins choose for it, and computers is
-	// the record of the computers its people have.
+	// orgSettings is what the organization's admins choose for it.
 	orgSettings *orgsettings.File
 	connectors  *connector.Connectors
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
 	operatorDefault chatDefault
-	computers       *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes *changelog.Log

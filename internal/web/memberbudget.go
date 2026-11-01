@@ -14,10 +14,7 @@ import (
 // in place of everyone's, and none to fall back to everyone's again. Past it the proxy refuses their agents' calls.
 func (s *Server) setMemberBudget(w http.ResponseWriter, r *http.Request) {
 	who := strings.ToLower(strings.TrimSpace(r.FormValue("who")))
-	back := "/admin"
-	if who != "" {
-		back = "/admin/people"
-	}
+	back := "/admin/people"
 	typed := strings.TrimSpace(r.FormValue("usd"))
 	usd, err := parseBudget(typed)
 	if err != nil {

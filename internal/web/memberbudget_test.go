@@ -8,36 +8,34 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/roster"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // An admin gives every member a budget and one person their own, sees both on People, and each change is recorded.
 func TestAnAdminSetsEveryMembersBudgetAndOnePersonsOwn(t *testing.T) {
 	here, log, _ := budgeted(t)
-	members := filepath.Join(t.TempDir(), "members.json")
-	if err := roster.Write(members, roster.Roster{Members: []roster.Member{{Email: alice, Role: "runner"}, {Email: bob, Role: "runner"}}}); err != nil {
-		t.Fatal(err)
-	}
-	here.server.UseRoster(members)
 	set := func(form url.Values) *http.Response {
 		return here.ask(t, "POST", "/admin/member-budget", form).Result()
 	}
-	if got := set(url.Values{"usd": {"20"}}); got.Header.Get("Location") != "/admin" {
+	if got := set(url.Values{"usd": {"20"}}); got.Header.Get("Location") != "/admin/people" {
 		t.Fatalf("setting everyone's went to %q", got.Header.Get("Location"))
 	}
-	if page := overview(t, here); !strings.Contains(page, "$20.00 a month for each person.") {
-		t.Errorf("everyone's budget is not on the overview")
+	if page := people(t, here); !strings.Contains(page, "$20.00 a month for each person; their agents stop there.") {
+		t.Errorf("everyone's budget is not on People")
 	}
 	if got := set(url.Values{"who": {alice}, "usd": {"50"}}); got.Header.Get("Location") != "/admin/people" {
 		t.Fatalf("setting alice's went to %q", got.Header.Get("Location"))
 	}
-	people := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	if !strings.Contains(people, `aria-label="Budget a month for `+alice+`" placeholder="no limit" value="50.00"`) || !strings.Contains(people, `placeholder="20.00 each"`) {
-		t.Errorf("People does not show alice's own budget and everyone else's:\n%s", people)
+	page := people(t, here)
+	own := rowOf(t, page, alice)
+	if !strings.Contains(own, `action="/admin/member-budget"`) || !strings.Contains(own, `placeholder="no limit" value="50.00"`) {
+		t.Errorf("alice's row does not hold her own budget behind its menu:\n%s", own)
+	}
+	if theirs := rowOf(t, page, bob); !strings.Contains(theirs, `placeholder="20.00, as everyone"`) || !strings.Contains(theirs, "nothing") {
+		t.Errorf("bob's row does not hold everyone's budget:\n%s", theirs)
 	}
 	set(url.Values{"who": {alice}, "usd": {""}})
-	if people := here.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Count(people, `placeholder="20.00 each"`) != 2 {
+	if page := people(t, here); strings.Count(page, `placeholder="20.00, as everyone"`) != 2 {
 		t.Error("alice's own budget, cleared, does not fall back to everyone's")
 	}
 	if got := set(url.Values{"usd": {"-3"}}); !strings.Contains(got.Header.Get("Location"), "refused=") {

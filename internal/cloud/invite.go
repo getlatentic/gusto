@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 )
@@ -60,6 +61,10 @@ func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Per
 // changeRole makes a person of the organization an admin or a runner. A role that is
 // the one they have changes nothing and is not recorded.
 func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Person) {
+	if origin := r.Header.Get("Origin"); !sameSite(r) && s.orgOf(origin) != person.Org {
+		http.Error(w, "that form was sent from another organization", http.StatusForbidden)
+		return
+	}
 	email, _ := NormalEmail(r.PostFormValue("email"))
 	role := Role(r.PostFormValue("role"))
 	was, err := s.Store.SetRole(person.Org, person, email, role)
@@ -70,7 +75,31 @@ func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Perso
 	if was != role {
 		s.record(r, person, changelog.MemberRole, map[string]string{"email": email, "was": string(was), "now": string(role)})
 	}
-	http.Redirect(w, r, "/org", http.StatusSeeOther)
+	http.Redirect(w, r, s.backTo(r.PostFormValue("back"), person), http.StatusSeeOther)
+}
+
+// backTo is where a change sent from an organization's own pages goes back to: the page it names, when that is an https
+// address of the organization the change was made in, and the organization's page here otherwise, so that a form can
+// send nobody anywhere else.
+func (s *Server) backTo(back string, person Person) string {
+	page, err := url.Parse(back)
+	if err != nil || page.Scheme != "https" || page.User != nil || page.Opaque != "" {
+		return "/org"
+	}
+	if s.orgOf(page.Scheme+"://"+page.Host) != person.Org {
+		return "/org"
+	}
+	return page.String()
+}
+
+// orgOf is the organization an origin is the address of, or nothing for an origin that is none of theirs.
+func (s *Server) orgOf(origin string) string {
+	if !s.isOrgOrigin(origin) {
+		return ""
+	}
+	parsed, _ := url.Parse(origin)
+	slug, _ := s.orgSlug(parsed.Host)
+	return slug
 }
 
 // invitationPage asks a person to press a button to join, and says what they are
