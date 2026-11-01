@@ -40,6 +40,9 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	return person, org, nil
 }
 
+// FreeMailAllowed says whether an address at a free mail provider may sign up.
+func (s *Store) FreeMailAllowed() bool { return s.set.AllowFreeMail }
+
 func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, domain string) (Person, Org, error) {
 	if found, err := hasAccount(ctx, tx, email); err != nil || found {
 		if err == nil {

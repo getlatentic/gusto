@@ -214,7 +214,7 @@ func TestWithNoControllerTheFrontDoorRoutesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		status, page, _ := f.browser().at("acme-com.cloud.test", "GET", "/", nil)
-		if status != 200 || !strings.Contains(page, "Create your organization") {
+		if status != 200 || !strings.Contains(page, "Get started") {
 			t.Errorf("%d", status)
 		}
 	})
