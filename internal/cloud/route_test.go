@@ -108,7 +108,7 @@ func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testin
 		if status, _, _ := b.at("nobody.cloud.test", "GET", "/whoami", nil); status != http.StatusNotFound {
 			t.Errorf("no organization of that name: %d", status)
 		}
-		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a link") {
+		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a sign-in code") {
 			t.Errorf("the domain itself is the front door: %d", status)
 		}
 		if status, body, _ := b.at("a.acme-com.cloud.test", "GET", "/whoami", nil); status == 200 && strings.Contains(body, "acme-com") {

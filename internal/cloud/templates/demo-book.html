@@ -8,4 +8,4 @@
   {{else}}{{if .Book}}<a class="block max-w-[26rem] rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" href="{{.Book}}">Book a demo</a>{{end}}{{end}}
   <p class="text-sm text-muted">Or <a class="underline" href="/signup">create your organization</a> and try gusto now.{{if .BookFrame}} The calendar not loading? <a class="underline" href="{{.Book}}">Open it on its own page</a>.{{end}}</p>
   <p class="text-xs text-muted"><a class="underline" href="/demo?team=1">gusto team: start a demo</a></p>
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}

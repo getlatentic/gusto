@@ -426,11 +426,12 @@ func TestTheOrganizationPageSaysWhatIsLeftOfTheCredit(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); !strings.Contains(page, "$5.00 of $5.00 left on gusto's models, then add your own key in Admin, Models") {
+		if _, page := admin.get("/org"); !strings.Contains(page, ">$5.00</span>") || !strings.Contains(page, "left of $5.00 on gusto's models") ||
+			!strings.Contains(page, "add your own key in Admin, Models") {
 			t.Errorf("a new organization's credit:\n%s", page)
 		}
 		os.WriteFile(filepath.Join(f.store.DataDir("acme-com"), "credit-used.json"), []byte(`{"usd":1.8}`), 0o600)
-		if _, page := admin.get("/org"); !strings.Contains(page, "$3.20 of $5.00 left") {
+		if _, page := admin.get("/org"); !strings.Contains(page, ">$3.20</span>") {
 			t.Errorf("after the server used some:\n%s", page)
 		}
 	})

@@ -16,8 +16,8 @@
   {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
   <form class="grid gap-3" method="post" action="/signin">
     <label class="grid gap-1 text-sm text-muted">Email <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
-    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a link</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a sign-in code</button>
   </form>
   <p class="text-center text-sm text-muted">New to gusto? <a class="underline" href="/signup">Get started</a></p>
   {{end}}
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}
