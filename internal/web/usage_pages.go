@@ -188,7 +188,7 @@ func costOf(t usage.Totals) (cost, unpriced string) {
 	case t.Unmeasured == t.Calls:
 		return "no price", ""
 	}
-	return headlineUSD(t.USD), fmt.Sprintf("+ %d with no price", t.Unmeasured)
+	return headlineUSD(t.USD), fmt.Sprintf("+ %d %s with no price", t.Unmeasured, plural(int(t.Unmeasured), "call"))
 }
 
 // usageFacets are the values the selects offer: those of the person's own calls, in the dates asked for.

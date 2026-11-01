@@ -82,7 +82,7 @@ func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 		t.Errorf("an unpriced call was shown as a cost:\n%s", calls)
 	}
 	partly := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(partly, "spent, and 1 call is not priced") {
+	if !strings.Contains(partly, "spent; 1 call has no price and is not counted") {
 		t.Errorf("a total that leaves calls out should say so")
 	}
 }

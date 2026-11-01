@@ -46,10 +46,11 @@ type turn struct {
 	Stopped string
 	// Capped is the spending limit that refused the turn's model, in the proxy's own words, when one did.
 	Capped *spend.Refusal
-	// Blocked is how many requests to other sites the proxy refused, and
-	// Signed whether the turn's record is signed: the guarantees, shown where
-	// the work is rather than a page away.
+	// Blocked is how many requests to other sites the proxy refused, Refused
+	// the sites they were for, and Signed whether the turn's record is signed:
+	// the guarantees, shown where the work is rather than a page away.
 	Blocked int
+	Refused []blocked
 	Signed  bool
 	roomTurn
 }
@@ -153,7 +154,7 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 		shown.Capped = refusal
 	}
 	if calls := callsOf(dir); calls != nil {
-		shown.Blocked = len(calls.Denied)
+		shown.Blocked, shown.Refused = len(calls.Denied), calls.Sites()
 	}
 	attested, err := evidence.Attest(dir, s.keyring)
 	shown.Signed = err == nil && attested.Signed

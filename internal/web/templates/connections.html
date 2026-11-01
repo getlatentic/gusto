@@ -13,13 +13,13 @@
 <p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. Agents in a room do not use it.</p>
 <section class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">
-    <thead><tr><th>App</th><th>What your agents reach</th><th>Signed in</th><th></th></tr></thead>
+    <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th></th></tr></thead>
     <tbody>
       {{range .Connectors}}
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
-        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">no</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
         <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
       </tr>
       {{end}}

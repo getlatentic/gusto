@@ -9,7 +9,7 @@
 <div class="{{template "ui-figures"}}">
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Verified}}</span><span class="{{template "ui-figure-label"}}">verified</span></div>
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Unsigned}}</span><span class="{{template "ui-figure-label"}}">not signed</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="{{template "ui-figure-label"}}">do not check out</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="{{template "ui-figure-label"}}">failed the check</span></div>
 </div>
 
 {{if .Rows}}

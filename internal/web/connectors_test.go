@@ -155,8 +155,8 @@ func TestTheSharedSignInConnectsNothingAndAnAppWithoutItsClientStaysOff(t *testi
 	if got := here.ask(t, "POST", "/admin/connectors/crm/on", nil).Header().Get("Location"); !strings.Contains(got, "refused=") {
 		t.Errorf("an app with no client was turned on: %q", got)
 	}
-	if page := here.ask(t, "GET", "/admin/connectors", nil).Body.String(); !strings.Contains(page, "needs a client") {
-		t.Errorf("the admin is not told it needs a client:\n%s", page)
+	if page := here.ask(t, "GET", "/admin/connectors", nil).Body.String(); !strings.Contains(page, "setup required") {
+		t.Errorf("the admin is not told it needs setting up:\n%s", page)
 	}
 }
 

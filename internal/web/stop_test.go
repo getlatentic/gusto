@@ -162,3 +162,28 @@ func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testi
 		t.Errorf("the turn does not give the real reason its model was refused")
 	}
 }
+
+// A turn whose agent was refused other sites says how many requests were blocked, and opens to the sites, each once.
+func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
+	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		at := strconv.FormatInt(time.Now().Unix(), 10)
+		refused := func(host string) string {
+			return `{"path":"/","host":"` + host + `","status":403,"denied":"not on the allowlist","atUnix":` + at + `,"tookMs":0,"inputTokens":null,"outputTokens":null}`
+		}
+		lines := refused("pypi.org:443") + "\n" + refused("pypi.org:443") + "\n" + refused("evil.example:443") + "\n"
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(lines), 0o644)
+		return 0, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "fetch something", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "<span>3 requests blocked</span>") || !strings.Contains(page, ">pypi.org</code> <span>× 2</span>") ||
+		!strings.Contains(page, ">evil.example</code></li>") {
+		t.Errorf("the turn does not list the sites its agent was refused:\n%s", page)
+	}
+}
