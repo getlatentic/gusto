@@ -162,6 +162,7 @@ func (s *Server) connectorsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.drawConsole(w, "admin-connectors.html", "connectors", map[string]any{
 		"Title": productName + " — connectors", "Connectors": views, "Refused": r.URL.Query().Get("refused"),
+		"TurnedOn": r.URL.Query().Get("on"),
 	})
 }
 
@@ -197,7 +198,11 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 			}
 			s.note(r, kind, map[string]string{"connector": entry.Name, "now": now})
 		}
-		http.Redirect(w, r, "/admin/connectors", http.StatusSeeOther)
+		back := "/admin/connectors"
+		if on {
+			back += "?on=" + url.QueryEscape(entry.Name)
+		}
+		http.Redirect(w, r, back, http.StatusSeeOther)
 	}
 }
 
