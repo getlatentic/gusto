@@ -94,8 +94,8 @@ func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 		t.Errorf("an unpriced call was shown as a cost:\n%s", calls)
 	}
 	partly := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(partly, "spent; 1 call has no price and is not counted") {
-		t.Errorf("a total that leaves calls out should say so")
+	if !strings.Contains(partly, "1 call has no price on file, so it is not in these totals.") || strings.Contains(partly, "spent;") {
+		t.Errorf("a total that leaves calls out should say so in one line under the table, not in the headline")
 	}
 }
 
@@ -215,7 +215,7 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 	if !strings.Contains(body, `aria-sort="descending" class="text-right"><a class="text-inherit no-underline hover:text-ink" href="/usage?q=s-&amp;sort=cost"`) || strings.Contains(body, "this page") {
 		t.Errorf("the sorted column is not marked, or the filter is lost from its link:\n%s", body)
 	}
-	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=tokens">Tokens</a>`) {
+	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=last">Last request</a>`) {
 		t.Error("the other headings should set the sort and keep the filter")
 	}
 	api := jsonList(t, here.call("GET", "/api/usage/sessions?sort=calls&limit=2", here.secrets["finance"]), "sessions")

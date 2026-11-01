@@ -1,14 +1,20 @@
 {{template "head" .}}
 
-<div class="mb-6 flex items-center gap-3">
-  <h1>Usage</h1>
-  {{template "usage-tabs" .Tabs}}
+<div class="mb-6 flex flex-wrap items-start gap-3">
+  <div class="grid gap-1">
+    <div class="flex flex-wrap items-center gap-3"><h1>Usage</h1>{{template "usage-tabs" .Tabs}}</div>
+    <p class="m-0 text-sm text-muted">Every conversation, what it cost, and whether it worked</p>
+  </div>
   {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
 </div>
 
 {{with .Mine}}<p class="{{if .Passed}}{{template "ui-notice"}}{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}
 {{with .Usage}}
 {{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
+
+<nav class="mb-5 flex gap-1 border-b border-line text-sm" aria-label="Which conversations">
+  {{range .States}}<a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}
+</nav>
 
 <section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
   {{template "figure" (dict "Value" .Figures.Spent "Label" .Figures.SpentCaption "Headline" true)}}
@@ -23,9 +29,10 @@
     <label class="min-w-56 flex-1"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
       <input class="input" type="search" name="q" value="{{.Values.Get "q"}}" placeholder="Search">
     </label>
-    <div class="flex items-center gap-2 whitespace-nowrap text-muted">From <input class="input w-40" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="input w-40" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
+    <div class="flex flex-wrap items-center gap-2 text-muted">From <input class="input w-40" type="date" name="from" value="{{.Values.Get "from"}}" data-autosubmit> To <input class="input w-40" type="date" name="to" value="{{.Values.Get "to"}}" data-autosubmit></div>
+    {{with .Values.Get "state"}}<input type="hidden" name="state" value="{{.}}">{{end}}
     <button class="btn" type="submit">Filter</button>
-    {{if .Filtered}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}">Clear</a>{{end}}
+    {{if .Filtered}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{.Clear}}">Clear</a>{{end}}
   </div>
   <details class="group"{{if .Filtered}} open{{end}}>
     <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
@@ -42,7 +49,7 @@
 {{if .Rows}}
 <div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
   <div class="overflow-x-auto">
-  <table class="text-sm [&_th]:bg-wash [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
+  <table class="w-full text-sm [&_th]:bg-wash [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
     <thead><tr>
       {{range .Columns}}<th scope="col"{{with .Sorted}} aria-sort="{{.}}"{{end}}{{if .Num}} class="text-right"{{end}}>{{if .Href}}<a class="text-inherit no-underline hover:text-ink" href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>
       {{end}}
@@ -52,11 +59,10 @@
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
         <td class="max-w-72"><span class="flex min-w-0 items-baseline gap-1.5"><a class="min-w-0 truncate no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a>{{if gt .Turns 1}}<span class="shrink-0 whitespace-nowrap text-xs text-subtle">· {{.Turns}} turns</span>{{end}}</span></td>
-        {{if $.Usage.ShowWho}}<td class="max-w-40 truncate" title="{{.Person}}">{{.Person}}</td>{{end}}
-        <td class="max-w-48 truncate">{{if .Engine}}<span class="flex items-center gap-2" title="{{.Engine}}">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}{{or .Agent .Engine}}</span>{{else}}{{or .Agent "—"}}{{end}}</td>
+        {{if $.Usage.ShowWho}}<td class="max-w-40 truncate">{{.Asked}}</td>{{end}}
+        <td class="max-w-56 truncate">{{if .Engine}}<span class="flex items-center gap-2" title="{{.Engine}}">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}<span class="truncate">{{or .Agent .Engine}} <span class="text-subtle">· {{.Owner}}'s</span></span></span>{{else}}{{or .Agent "—"}} <span class="text-subtle">· {{.Owner}}'s</span>{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
-        <td class="max-w-48 truncate" title="{{.Models}}">{{.Models}}</td>
-        <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
+        <td class="max-w-48 truncate text-muted" title="{{.Models}}">{{.Models}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -70,8 +76,11 @@
   </nav>
   {{end}}
 </div>
+{{with .Figures.Unpriced}}<p class="mt-3 text-sm text-muted">{{.}}</p>{{end}}
 {{else if .Filtered}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{$.Base}}">Clear them</a>.</p>
+<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{.Clear}}">Clear them</a>.</p>
+{{else if .Values.Get "state"}}
+<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No conversation has failed. One is listed here when its latest turn fails.</p>
 {{else if .Building.Building}}
 <p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">Nothing is listed yet: the index is still being built.</p>
 {{else}}

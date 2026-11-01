@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +59,9 @@ func matches(r usage.Row, f usage.Filter) bool {
 		if c[0] != "" && c[0] != c[1] {
 			return false
 		}
+	}
+	if f.OnlySessions && !slices.Contains(f.Sessions, r.Session) {
+		return false
 	}
 	if f.Search == "" {
 		return true

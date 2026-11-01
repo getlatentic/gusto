@@ -63,6 +63,9 @@ type Filter struct {
 	Provider string
 	Model    string
 	Search   string
+	// OnlySessions keeps the calls of the sessions listed in Sessions alone, so an empty list keeps nothing.
+	OnlySessions bool
+	Sessions     []string
 }
 
 // Cursor continues a listing where the last page ended. It is opaque, and empty at the start and at the end. It

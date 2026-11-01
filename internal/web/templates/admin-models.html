@@ -1,20 +1,54 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}} mb-3!">
-  <h1>Models</h1>
-  <span class="text-sm text-muted">Which models the organization may use, and what each costs</span>
+<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div class="grid gap-1">
+    <h1>Models</h1>
+    <p class="m-0 text-sm text-muted">Where models answer, what they cost, and who may use them</p>
+  </div>
+  {{if not .View.Unnamed}}<button type="button" class="{{template "ui-btn-quiet"}}" data-open="add-provider">Add a provider</button>{{end}}
 </div>
-<details class="group mb-6">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How this works</summary>
-  <p class="mt-2 max-w-prose text-sm text-muted">A model that is not here cannot be chosen, and an agent is offered only the models its agent type can use. Registry version {{.View.Version}}: every call a task makes is written with the version it was sent under.</p>
-</details>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="grid gap-4">
-{{range .View.Providers}}{{if not .Retired}}
+{{with .Defaults}}
+<section class="{{template "ui-card"}} flex flex-wrap items-center justify-between gap-3">
+  <div class="grid gap-0.5">
+    <h2 class="text-sm font-semibold">A new chat starts on</h2>
+    <p class="m-0 text-sm text-muted">{{$.DefaultNow}}. A person's own last choice comes first.</p>
+  </div>
+  <button type="button" class="{{template "ui-btn-quiet"}}" data-open="chat-default">Change</button>
+</section>
+{{end}}
+
 <section class="{{template "ui-card"}} grid gap-3">
-  <h2>{{.Name}}{{if .Operator}} <span class="text-sm font-normal text-muted">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">off: waiting for you to turn it on</span>{{end}}</h2>
+  {{if .Rows}}
+  <div class="overflow-x-auto">
+  <table class="{{template "ui-table"}} text-sm">
+    <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-left text-xs text-subtle">Provider</th><th class="text-right text-xs text-subtle">Input / M</th><th class="text-right text-xs text-subtle">Output / M</th><th class="text-right text-xs text-subtle">Who</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td class="whitespace-nowrap" title="{{.Full}}">{{.Name}}{{if .Off}} <span class="{{template "ui-badge-warn"}}">off</span>{{end}}</td>
+        <td class="whitespace-nowrap text-muted">{{.Provider}}</td>
+        {{if .Input}}<td class="text-right tabular-nums">{{.Input}}</td><td class="text-right tabular-nums">{{.Output}}</td>
+        {{else}}<td class="text-right text-muted" colspan="2">no price</td>{{end}}
+        <td class="text-right text-muted">{{.Who}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="m-0 text-sm text-muted">No models yet. Add a provider, then the models it answers.</p>
+  {{end}}
+  <p class="{{template "ui-note"}} m-0">A model that is not here cannot be chosen. Prices are dollars for a million tokens; a model with no price is not counted against a budget. Registry version {{.View.Version}}.</p>
+</section>
+
+{{range .View.Providers}}{{if not .Retired}}
+<details class="group {{template "ui-card"}}">
+  <summary class="{{template "ui-summary"}} w-full!">{{template "ui-chev"}} <span class="text-ink">{{.Name}}</span>{{if .Operator}} <span class="font-normal text-subtle">set by the operator of this gusto</span>{{else}} <span class="font-normal text-subtle">addresses, key, prices and models</span>{{end}}{{if .Pending}} <span class="rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">off: waiting for you to turn it on</span>{{end}}</summary>
+  <div class="mt-4 grid gap-3">
   {{$provider := .}}
   <ul class="grid gap-1 text-sm">
     {{range .Addresses}}
@@ -88,51 +122,18 @@
     </div>
   </div>
   {{end}}
-</section>
+  </div>
+</details>
 {{end}}{{end}}
 
 {{if .View.Unnamed}}
 <p class="{{template "ui-note"}} max-w-prose">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>
-{{else}}
-<section class="{{template "ui-card"}} grid gap-3">
-  <h2 class="text-sm font-semibold">Add a provider</h2>
-  <p class="{{template "ui-note"}}">A provider is where models answer and how to be let in.{{if not .View.Private}} It must be at a public https address.{{end}}</p>
-  <form class="grid max-w-prose gap-4" method="post" action="/admin/models/providers">
-    <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
-    <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com" required></label>
-    {{template "address-kind"}}
-    <label class="{{template "ui-field"}}">Key comes from
-      <select class="select w-full" name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
-    </label>
-    <label class="{{template "ui-field"}}">Key <input class="input" type="password" name="key" autocomplete="off"></label>
-    <label class="{{template "ui-field"}}">Reference, when the key is not typed here <input class="input" name="reference" placeholder="/path, parameter name or secret id"></label>
-    <div><button type="submit" class="{{template "ui-btn"}}">Add provider</button></div>
-  </form>
-</section>
 {{end}}
 
-{{if .Steps}}
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Go back</h2>
-  <p class="{{template "ui-note"}} max-w-prose">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
-  <table class="{{template "ui-table"}}">
-    <tbody>
-      {{range .Steps}}
-      <tr>
-        <td class="whitespace-nowrap">Version {{.Version}}</td>
-        <td class="whitespace-nowrap text-muted">{{when .At}}</td>
-        <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
-        <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "ui-btn-sm"}}">Go back to it</button></form></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-</section>
-{{end}}
-
-<section class="{{template "ui-card"}} grid gap-3">
-  <h2 class="text-sm font-semibold">Who may use which models</h2>
-  <p class="{{template "ui-note"}} max-w-prose">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
+<details class="group {{template "ui-card"}}">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Who may use which models{{with .View.Limits}} <span class="font-normal text-subtle">{{len .}} limited</span>{{end}}</summary>
+  <div class="mt-4 grid gap-3">
+  <p class="{{template "ui-note"}} m-0 max-w-prose">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
   {{if .View.Limits}}
   <div class="overflow-x-auto">
   <table class="{{template "ui-table"}}">
@@ -159,12 +160,14 @@
     <div><button type="submit" class="{{template "ui-btn"}}">Limit this person</button></div>
   </form>
   {{end}}
-</section>
+  </div>
+</details>
 
 {{if .View.Editable}}
-<section class="{{template "ui-card"}} grid gap-3">
-  <h2 class="text-sm font-semibold">What providers may be</h2>
-  <p class="{{template "ui-note"}} max-w-prose">This installation is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
+<details class="group {{template "ui-card"}}">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} What providers may be</summary>
+  <div class="mt-4 grid gap-3">
+  <p class="{{template "ui-note"}} m-0 max-w-prose">This installation is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
   <form class="grid max-w-prose gap-4" method="post" action="/admin/models/policy">
     <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">A key may be named as a reference to</legend>
@@ -172,20 +175,96 @@
     </fieldset>
     <div><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
   </form>
-</section>
-{{else}}
+  </div>
+</details>
+{{end}}
+
+{{with .RunTokens}}
+<details class="group {{template "ui-card"}}">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Advanced: how sandboxes reach a model</summary>
+  <div class="mt-4 grid gap-3">
+    {{if .Err}}<p class="m-0 text-sm">The setting could not be read, so runs are bound. {{.Err}}</p>{{end}}
+    <p class="m-0 text-sm">{{if .Bound}}Each run's model access is bound to its sandbox. What an agent could copy out is no use anywhere else.{{else}}Each run gets a plain token for its model, which works from anywhere until the run ends.{{end}}</p>
+    <form method="post" action="/admin/run-tokens">
+      <input type="hidden" name="bound" value="{{if .Bound}}no{{else}}yes{{end}}">
+      <button class="{{if .Bound}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}}" type="submit">{{if .Bound}}Use plain tokens{{else}}Bind to the sandbox{{end}}</button>
+    </form>
+    <p class="{{template "ui-note"}} m-0">A change takes effect on the next run.</p>
+  </div>
+</details>
+{{end}}
+
+{{if .Steps}}
+<details class="group {{template "ui-card"}}">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Go back to an earlier version</summary>
+  <div class="mt-4 grid gap-3 overflow-x-auto">
+  <p class="{{template "ui-note"}} m-0 max-w-prose">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
+  <table class="{{template "ui-table"}}">
+    <tbody>
+      {{range .Steps}}
+      <tr>
+        <td class="whitespace-nowrap">Version {{.Version}}</td>
+        <td class="whitespace-nowrap text-muted">{{when .At}}</td>
+        <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
+        <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "ui-btn-sm"}}">Go back to it</button></form></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+</details>
+{{end}}
+
+{{if not .View.Editable}}
 <p class="{{template "ui-note"}} max-w-prose">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
 {{end}}
 </div>
 
+{{if not .View.Unnamed}}
+<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="add-provider" aria-labelledby="add-provider-title">
+  <form class="grid max-h-[calc(100vh-4rem)] gap-4 overflow-y-auto p-6" method="post" action="/admin/models/providers">
+    {{template "dialog-head" (dict "ID" "add-provider-title" "Title" "Add a provider" "Words" "Where models answer and how to be let in.")}}
+    {{if not .View.Private}}<p class="m-0 text-sm text-muted">It must be at a public https address.</p>{{end}}
+    <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
+    <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com" required></label>
+    {{template "address-kind"}}
+    <label class="{{template "ui-field"}}">Key comes from
+      <select class="select w-full" name="source">{{range .View.Kinds}}<option value="{{.}}">{{if eq . "stored"}}typed here, kept and never shown{{else}}{{.}}{{end}}</option>{{end}}</select>
+    </label>
+    <label class="{{template "ui-field"}}">Key <input class="input" type="password" name="key" autocomplete="off"></label>
+    <label class="{{template "ui-field"}}">Reference, when the key is not typed here <input class="input" name="reference" placeholder="/path, parameter name or secret id"></label>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Add provider</button></div>
+  </form>
+</dialog>
+{{end}}
+
+{{with .Defaults}}
+<dialog class="m-auto w-[28rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="chat-default" aria-labelledby="chat-default-title">
+  <form class="grid gap-4 p-6" method="post" action="/admin/chat-default">
+    {{template "dialog-head" (dict "ID" "chat-default-title" "Title" "A new chat starts on" "Words" "What a new chat runs on until a person chooses their own. A person's last choice comes first.")}}
+    <label class="{{template "ui-field"}}">Agent and model
+      <select class="select w-full" name="default">
+        <option value="">The first that can run</option>
+        {{range .}}<option value="{{.Value}}"{{if .Chosen}} selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </label>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
+  </form>
+</dialog>
+{{end}}
+
+<script src="{{asset "/static/dialogs.js"}}"></script>
+
 {{template "foot" .}}
+
+{{define "dialog-head"}}<div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="{{.ID}}">{{.Title}}</h2><p class="m-0 mt-1 text-sm text-muted">{{.Words}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
 
 {{define "address-kind"}}
 <label class="{{template "ui-field"}}">Kind of API
   <select class="select w-full" name="kind"><option value="openai">OpenAI-compatible</option><option value="anthropic">Anthropic-compatible</option><option value="custom">Custom</option></select>
 </label>
-<details class="w-full">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Custom: the key's header and the shapes it answers</summary>
+<details class="group/kind w-full">
+  <summary class="{{template "ui-summary"}}"><svg class="i size-4 flex-none transition-transform group-open/kind:rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg> Custom: the key's header and the shapes it answers</summary>
   <div class="mt-2 flex flex-wrap gap-4">
     <label class="{{template "ui-field"}}">Sends its key as
       <select class="select" name="auth"><option value="bearer">a bearer token</option><option value="anthropic">Anthropic's header</option></select>

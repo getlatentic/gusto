@@ -80,19 +80,23 @@ func tally(count *int64) string {
 	return compact(*count)
 }
 
-// usageSpent is what a total cost as a person reads it. The calls that have no price are not in the sum, so the
-// sum is said to be at least that, and a sum of nothing but unpriced calls is not shown as a figure at all.
+// usageSpent is what a total cost as a person reads it. A sum of nothing but unpriced calls is not shown as a figure at all.
 func usageSpent(t usage.Totals) (figure, caption string) {
-	switch {
-	case t.Unmeasured == 0:
-		return headlineUSD(t.USD), "spent"
-	case t.Unmeasured == t.Calls:
+	if t.Unmeasured > 0 && t.Unmeasured == t.Calls {
 		return "no price", "no price set for these models"
 	}
-	if t.Unmeasured == 1 {
-		return headlineUSD(t.USD), "spent; 1 call has no price and is not counted"
+	return headlineUSD(t.USD), "spent"
+}
+
+// unpricedNote says which calls the sum leaves out, when it leaves out some but not all, so a sum is never read as complete.
+func unpricedNote(t usage.Totals) string {
+	switch {
+	case t.Unmeasured == 0 || t.Unmeasured == t.Calls:
+		return ""
+	case t.Unmeasured == 1:
+		return "1 call has no price on file, so it is not in these totals."
 	}
-	return headlineUSD(t.USD), "spent; " + strconv.FormatInt(t.Unmeasured, 10) + " calls have no price and are not counted"
+	return strconv.FormatInt(t.Unmeasured, 10) + " calls have no price on file, so they are not in these totals."
 }
 
 // cacheRate is the share of the tokens in that the provider's cache answered.
