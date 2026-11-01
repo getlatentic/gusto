@@ -63,7 +63,8 @@ type usageRow struct {
 	Providers, Models                       string
 	Cost, Unpriced, In, Out, Cache          string
 	Calls, Refused                          int64
-	MoreTasks                               int
+	// Turns is how many tasks the conversation's calls came from, so a row that adds up several reads as a total.
+	Turns int
 }
 
 func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
@@ -159,7 +160,7 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request", "last"), {Label: "Task"}, {Label: "Who"}, {Label: "Agent"},
+	return []usageColumn{sortable("Last request", "last"), {Label: "Conversation"}, {Label: "Who"}, {Label: "Agent"},
 		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens")}
 }
 
@@ -172,7 +173,7 @@ func rowsOf(sessions []usage.Session, base string) []usageRow {
 			In: compact(each.InputTokens), Out: compact(each.OutputTokens), Cache: cacheRate(each.CachedTokens, each.InputTokens)}
 		row.Cost, row.Unpriced = costOf(each.Totals)
 		if n := len(each.Tasks); n > 0 {
-			row.Record, row.MoreTasks = "/jobs/"+url.PathEscape(each.Tasks[n-1]), n-1
+			row.Record, row.Turns = "/jobs/"+url.PathEscape(each.Tasks[n-1]), n
 		}
 		rows = append(rows, row)
 	}

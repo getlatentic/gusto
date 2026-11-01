@@ -63,6 +63,18 @@ func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 	}
 }
 
+// A conversation's row adds up every turn in it, and says how many, so its cost reads as a total and not as one reply's.
+func TestAConversationsRowSaysHowManyTurnsItAddsUp(t *testing.T) {
+	here, _ := withUsage(t, aCall("turn-1", 0, "room", alice, 0), aCall("turn-2", 0, "room", alice, 1), aCall("only", 0, "chat", bob, 2))
+	page := here.ask(t, "GET", "/usage", nil).Body.String()
+	if !strings.Contains(page, ">Conversation<") || !strings.Contains(page, ">Conversations</a>") {
+		t.Errorf("the rows are not named conversations:\n%s", page)
+	}
+	if !strings.Contains(page, "· 2 turns") || strings.Contains(page, "· 1 turns") {
+		t.Errorf("a conversation does not say how many turns its cost adds up:\n%s", page)
+	}
+}
+
 func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 	unpriced := aCall("task-c", 0, "free-looking", alice, 3)
 	unpriced.USD = nil
