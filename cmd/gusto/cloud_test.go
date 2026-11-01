@@ -49,7 +49,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	get := httptest.NewRequest("GET", "/org", nil)
 	get.AddCookie(cookie)
 	front.Handler().ServeHTTP(page, get)
-	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), "7 in all") {
+	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), ">7</span>") || !strings.Contains(page.Body.String(), "tasks in all") {
 		t.Errorf("the page should show the organization's address and the trial from the settings:\n%s", page.Body)
 	}
 }
