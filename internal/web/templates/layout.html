@@ -45,9 +45,12 @@
     } catch (e) {}
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,
-    // and a form that asks first.
+    // asking first when it is changed to its data-confirm-when, and a form that asks first.
     document.addEventListener("change", function (event) {
-      if (event.target.matches("[data-autosubmit]") && event.target.form) { event.target.form.submit(); }
+      var field = event.target;
+      if (!field.matches("[data-autosubmit]") || !field.form) { return; }
+      if (field.dataset.confirmWhen === field.value && !confirm(field.dataset.confirm)) { field.form.reset(); return; }
+      field.form.submit();
     });
     // The side list slides over on a narrow window, and anything that takes you away closes it again, giving the keyboard back to the button.
     var sideOpen = function (open) {

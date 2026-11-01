@@ -3,69 +3,46 @@ package web
 import (
 	"net/http"
 	"time"
-
-	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// overviewPage is where an admin starts: what the organization has spent this month
-// and against which limits, what its jobs are doing, and what computers and apps it has.
-// The figures are the ledger's, the queue's and the records' own, so this page and the
-// pages they came from cannot disagree.
+// overviewPage answers one question for an admin: is this month's spending under control. It changes nothing; budgets
+// are set on People.
 func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
-	ledger, err := s.spending()
+	month := monthStart(time.Now())
+	spent, err := s.monthSpend(r, month)
 	if err != nil {
 		http.Error(w, "the spend could not be read: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	now := time.Now()
-	report := ledger.Report(ledger.ThisMonth())
-	view := s.viewLedger(report, nil, now)
+	budget := s.budgetOf(spent.USD)
 	page := map[string]any{
-		"Title":    productName + " — admin",
-		"Refused":  r.URL.Query().Get("refused"),
-		"Month":    report.Month,
-		"Spent":    report.Total,
-		"People":   s.peopleShares(s.byAsker(report.Jobs)),
-		"Teams":    view.Teams,
-		"Models":   view.Models,
-		"Projects": view.Projects,
-		"Payers":   payersOf(report.Payers),
+		"Title":      productName + " — admin",
+		"MonthName":  month.Format("January"),
+		"Spent":      spent,
+		"Budget":     budget,
+		"PeoplePage": s.hasRoster(),
 	}
-	budget := s.budgetOf(report.Total.USD)
-	page["Budget"] = budget
-	if s.hasOrgSettings() {
-		page["Defaults"] = s.defaultChoices(r)
-		page["RunTokens"] = s.runTokensOf()
+	if budget.Set {
+		page["Percent"] = percentOf(spent.USD, budget.Limit)
 	}
-	running := s.addJobs(page, now)
-	s.addLimits(page, ledger.Policy(), report, budget, running, now)
-	if used, limit, held := ledger.Credit(); held {
-		rows, _ := page["Limits"].([]limitRow)
-		page["Limits"] = append(rows, limitRow{What: "Free credit on the models gusto provides", Used: headlineUSD(used), Of: headlineUSD(limit), Over: used >= limit})
+	if ledger, err := s.spending(); err == nil {
+		if used, limit, held := ledger.Credit(); held {
+			page["Credit"] = map[string]float64{"Used": used, "Limit": limit}
+		}
 	}
-	s.addComputers(page)
-	s.addApps(page)
 	s.drawConsole(w, "admin-overview.html", "overview", page)
 }
 
-// addJobs says what the queue is doing, and how many jobs are running now.
-func (s *Server) addJobs(page map[string]any, now time.Time) (running int) {
-	stats := s.index.Stats(now)
-	running = stats.ByState[jobs.Running]
-	page["Running"], page["Slots"] = running, stats.Slots
-	page["Waiting"] = stats.ByState[jobs.Queued]
-	page["Failed"] = s.failedSince(now.Add(-lately))
-	return running
+// percentOf is how much of a budget is spent, as a bar draws it: whole, at most all of it, and never none once anything is.
+func percentOf(spent, budget float64) int {
+	if spent <= 0 {
+		return 0
+	}
+	return max(1, min(100, int(spent/budget*100+0.5)))
 }
 
-// failedSince is how many jobs asked for after a time failed or were
-// interrupted, as the record of jobs counts them.
-func (s *Server) failedSince(since time.Time) int {
-	failed := 0
-	for _, record := range s.index.List() {
-		if filed(record.State) == string(jobs.Failed) && record.Queued >= since.Unix() {
-			failed++
-		}
-	}
-	return failed
+// monthStart is the first moment of the month in UTC, which is the month the ledger and the budgets count.
+func monthStart(now time.Time) time.Time {
+	now = now.UTC()
+	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 }

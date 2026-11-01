@@ -19,7 +19,7 @@ type contractCase struct {
 // TestContract holds every store to the same rules: the in-memory fake, SQLite, and Postgres when
 // GUSTO_TEST_POSTGRES_URL names a server.
 func TestContract(t *testing.T) {
-	cases := append(append(append(append(append(storageCases, filterCases...), listingCases...), sortCases...), exportCases...), concurrencyCases...)
+	cases := append(append(append(append(append(append(storageCases, filterCases...), listingCases...), sortCases...), exportCases...), concurrencyCases...), groupCases...)
 	for _, b := range backends(t) {
 		t.Run(b.name, func(t *testing.T) {
 			for _, c := range cases {
