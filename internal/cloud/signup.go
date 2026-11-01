@@ -7,9 +7,20 @@ import (
 	"strings"
 )
 
-// home takes a signed-in person into their organization, or to choose one when they are in several and have not
-// said which. Anybody else sees what gusto is.
+// home is what gusto is, for everybody, signed in or not, when this front door has a landing page. One without is only the
+// way in.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	if s.demoOffered() {
+		_, signedIn := s.memberships(r)
+		s.landing(w, signedIn)
+		return
+	}
+	s.app(w, r)
+}
+
+// app takes a signed-in person into their organization, or to choose one when they are in several and have not said
+// which. Anybody else is asked to sign in, or, where there is no landing page, to sign up.
+func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	if all, ok := s.memberships(r); ok {
 		where := "/orgs"
 		if person, ok := s.chosen(r, all); ok {
@@ -19,7 +30,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.demoOffered() {
-		s.landing(w)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
 		return
 	}
 	s.signUpPage(w, r)
@@ -179,6 +190,6 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 			}
 		}
 		s.Sessions.Issue(w, email)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/app", http.StatusSeeOther)
 	}
 }

@@ -71,7 +71,7 @@ The counts are kept in the database, so front doors that share it share the limi
 ## Sign-in to an organization
 
 1. The person signs in at gusto cloud by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
-2. gusto cloud sends the person straight into their organization through `/open`. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
+2. gusto cloud sends the person to `/app`, which takes them into their organization through `/open`, or to `/orgs` to choose one. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
 3. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
 4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
 5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
@@ -163,6 +163,7 @@ Admins choose the models their people may use at `/admin/models`. A provider is 
 
 With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one workspace, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its workspaces, waits up to ninety seconds, stops the server and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way. With `GUSTO_CLOUD_DEMO_STAFF` set, only the addresses and domains it names may start a demo. Everyone else is offered sign-up, or a demo booked with the team.
 
+- The landing page at `/` is shown to everybody, signed in or not. Its header offers Sign in, or Open gusto (`/app`) to a person who is signed in. A front door with no demos has no landing page, and `/` is the way in.
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
 - At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
 - Pause new demos on the operator's page. Resume there. Running demos continue.

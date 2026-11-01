@@ -179,7 +179,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 
 		token := strings.TrimPrefix(link[strings.Index(link, "t="):], "t=")
 		status, _, header := other.post("/verify", url.Values{"t": {token}})
-		if status != http.StatusSeeOther || header.Get("Location") != "/" {
+		if status != http.StatusSeeOther || header.Get("Location") != "/app" {
 			t.Fatalf("%d %v", status, header)
 		}
 		if person, _, _ := f.store.only("ada@acme.com"); person.Trial() {
@@ -324,7 +324,7 @@ func TestASignInLinkSignsThePersonInOnceAndTheSessionEndsWhenTheySignOut(t *test
 			t.Fatalf("a person who is not signed in is sent to sign in: %d", status)
 		}
 		token := link[strings.Index(link, "t=")+2:]
-		if status, _, header := b.post("/signin/link", url.Values{"t": {token}}); status != http.StatusSeeOther || header.Get("Location") != "/" {
+		if status, _, header := b.post("/signin/link", url.Values{"t": {token}}); status != http.StatusSeeOther || header.Get("Location") != "/app" {
 			t.Fatal(status, header)
 		}
 		if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {

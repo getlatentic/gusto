@@ -139,6 +139,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /app", s.app)
 	mux.HandleFunc("GET /signup", s.signUpPage)
 	mux.HandleFunc("POST /signup", s.signUp)
 	mux.HandleFunc("GET /signin", s.signInPage)

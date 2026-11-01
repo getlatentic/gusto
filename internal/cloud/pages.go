@@ -34,6 +34,8 @@ type view struct {
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
 	WorkOnly bool
+	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
+	SignedIn bool
 	// Sent says a sign-in link was asked for.
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
