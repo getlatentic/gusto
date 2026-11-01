@@ -270,12 +270,22 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 	})
 }
 
-func TestASignedInVisitorIsSentToTheirDemoAndNotShownTheLandingPage(t *testing.T) {
+// The landing page is shown to everybody, and a person signed in is offered gusto from it, which takes them to their demo.
+func TestASignedInVisitorSeesTheLandingPageAndOpensTheirDemoFromIt(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		b := startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
-		if status, _, header := b.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/demo/wait" {
+		if status, page := b.get("/"); status != http.StatusOK || !strings.Contains(page, `href="/app">Open gusto`) || strings.Contains(page, `href="/signin"`) {
+			t.Errorf("a signed-in visitor was not shown the landing page with a way into gusto: %d", status)
+		}
+		if status, _, header := b.get2("/app"); status != http.StatusSeeOther || header.Get("Location") != "/demo/wait" {
 			t.Errorf("%d %v", status, header)
+		}
+		if status, page := f.browser().get("/"); status != http.StatusOK || !strings.Contains(page, `href="/signin">Sign in`) {
+			t.Errorf("a visitor is not offered a sign-in: %d", status)
+		}
+		if status, _, header := f.browser().get2("/app"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
+			t.Errorf("a visitor opening gusto was sent to %d %v", status, header)
 		}
 		f.server.Wait()
 	})

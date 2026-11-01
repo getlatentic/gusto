@@ -275,9 +275,9 @@ func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
 
 // landing is what a visitor sees first where a demo is offered: what gusto is, the video if there is one, and where
 // to start a demo or book a call.
-func (s *Server) landing(w http.ResponseWriter) {
+func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
 	demo := s.Store.set.Demo
-	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL, DemoPublic: demo.Public(), StartingCredit: StartingCredit}
+	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL, DemoPublic: demo.Public(), StartingCredit: StartingCredit, SignedIn: signedIn}
 	description := landingDescription(page)
 	page = s.seen(page, "/", description)
 	page.LD = s.structured(description)
