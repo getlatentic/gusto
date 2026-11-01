@@ -129,6 +129,7 @@ put-key.sh, put-cloudflare.sh                    store a model's key, and the tw
 demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
 demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS, the tests of the boot script and the lease reaper, the role
 demo-sweep.sh                                    terminates a demo host that has been up longer than any may be
+demo-ready.sh                                    checks the live public cloud is ready to show, reading only
 e2e-cloud.sh, e2e/cloud/                         gusto cloud driven through its pages, on a real model
 e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two agents in one sandbox, a shared app, many sandboxes
 harnesses.sh, e2e/credentials.sh                 the agent list and the proxy's credentials, shared by the runs
@@ -137,6 +138,28 @@ harnesses.sh, e2e/credentials.sh                 the agent list and the proxy's 
 The binaries are OpenShell 0.1.2. Their checksums are pinned in
 `ansible/roles/openshell/defaults/main.yml`, from the release's own checksum
 files, so a changed asset fails the install.
+
+## Before a demo
+
+`demo-ready.sh` checks the live public cloud in about 15 seconds. It changes nothing and sends no mail.
+It needs `gh` signed in and the `gusto-poc` AWS profile.
+
+```bash
+./demo-ready.sh                 # getlatentic-com; prints "ready", or "not ready" and exits 1
+./demo-ready.sh <org>           # another organization
+```
+
+It checks:
+
+- main is deployed: the `deploy` and `demo bundle` runs of its head passed
+- the landing, demo and sign-up pages answer, `/app` sends a stranger to sign in, and signing in reaches the code page
+- the organization is ready, sends a stranger to the front door, and serves its connector client document
+- both certificates have 14 days or more left
+- the front door and a cell are running, and no sign-in mail failed in 24 hours
+- the organization's newest task did not fail. An older failure is printed as a note
+
+It does not start a demo, because the demo page asks for a Turnstile check. It does not run a task.
+To check those, start a chat in the organization and ask it something.
 
 ## A demo host on a public name
 
