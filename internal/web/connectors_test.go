@@ -60,8 +60,14 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		t.Fatalf("turning it on went to %q", turnedOn)
 	}
 	if page := here.ask(t, "GET", turnedOn, nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) ||
-		!strings.Contains(page, "Tasks is on. Each person, you included, connects their own account from") || !strings.Contains(page, `href="/connections"`) {
-		t.Errorf("the admin's page does not show it on and where people connect it:\n%s", page)
+		!strings.Contains(page, "Tasks is on. Each person connects their own account") {
+		t.Errorf("the admin's page does not show it on and that people connect it:\n%s", page)
+	}
+	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect">Connect Tasks`) {
+		t.Errorf("the chat page does not offer the person the app they have not connected:\n%s", page)
+	}
+	if page := here.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "/connections/tasks/connect") {
+		t.Errorf("the shared sign-in, which connects nothing, is offered the app")
 	}
 	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {
 		t.Fatalf("the person is not offered it:\n%s", page)
@@ -73,6 +79,10 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 	if page := ada.ask(t, "GET", "/connections?connected=Tasks", nil).Body.String(); !strings.Contains(page, "You are signed in to Tasks.") ||
 		!strings.Contains(page, `action="/connections/tasks/disconnect"`) {
 		t.Errorf("the page does not show the person signed in:\n%s", page)
+	}
+
+	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "/connections/tasks/connect") {
+		t.Errorf("the chat page still offers an app the person connected")
 	}
 
 	dir := placed(t, here, "own", jobs.Record{Asked: alice}, "opencode")
