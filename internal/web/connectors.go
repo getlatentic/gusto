@@ -36,6 +36,7 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
 	mux.HandleFunc("GET "+connectionsPath+"/{id}/connect", mine(s.connect))
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
+	mux.HandleFunc("POST /instances/{id}/connections", mine(s.letConnections))
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasConnectors, next)) }
 	mux.HandleFunc("GET /admin/connectors", admin(s.connectorsPage))
 	mux.HandleFunc("POST /admin/connectors/{id}/on", admin(s.turnConnector(true)))
@@ -56,6 +57,19 @@ type connectorView struct {
 }
 
 // connectorViews is every connector in the catalog, as it stands for one person, or for nobody on the admin's page.
+// connectionsAllowed says whether a task may be given its asker's apps: their own task that they pay for, or a turn they asked in
+// a room where they let the agents use them.
+func (s *Server) connectionsAllowed(record jobs.Record) bool {
+	if !record.InRoom() {
+		return record.Payer() == record.Asked
+	}
+	if s.instances == nil {
+		return false
+	}
+	held, found := s.instances.Get(record.Instance)
+	return found && held.Room && held.LetsConnections(record.Asked)
+}
+
 func (s *Server) connectorViews(person string) ([]connectorView, error) {
 	settings, err := s.orgSettings.Read()
 	if err != nil {
@@ -219,11 +233,12 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 	}
 }
 
-// giveConnectors puts the apps the asker signed in to behind the task's gateway, so their agent calls them as the asker. Only a
-// person's own task is given them: a room's agent works for everybody in the room, and must not act with one member's accounts.
-// An agent that cannot reach the gateway is given none, and runs as it would without them.
+// giveConnectors puts the apps the asker signed in to behind the task's gateway, so their agent calls them as the asker. A
+// person's own task is given them. A room's agent works for everybody in the room, so a room turn is given them only when its
+// asker has let that room's agents use their apps, and then only the asker's. An agent that cannot reach the gateway is given
+// none, and runs as it would without them.
 func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record) error {
-	if !s.hasConnectors() || record.InRoom() || record.Payer() != record.Asked {
+	if !s.hasConnectors() || !s.connectionsAllowed(record) {
 		return nil
 	}
 	settings, err := s.orgSettings.Read()

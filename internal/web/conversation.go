@@ -52,6 +52,8 @@ type turn struct {
 	Blocked int
 	Refused []blocked
 	Signed  bool
+	// Used says whose connected apps a room turn used, for everybody in the room to see.
+	Used string
 	roomTurn
 }
 
@@ -137,6 +139,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Waiting": running != "",
 		"Latest":  running,
 		"Holding": s.holdingOfLatest(held, running),
+		"MyApps":  s.myRoomApps(r, held),
 	}, true
 }
 
@@ -156,6 +159,7 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	if calls := callsOf(dir); calls != nil {
 		shown.Blocked, shown.Refused = len(calls.Denied), calls.Sites()
 	}
+	shown.Used = s.usedApps(record, dir)
 	attested, err := evidence.Attest(dir, s.keyring)
 	shown.Signed = err == nil && attested.Signed
 	return shown

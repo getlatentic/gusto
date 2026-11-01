@@ -10,7 +10,7 @@
 
 {{if not .Person}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">You are signed in with the shared password, which is nobody's own. Sign in as yourself to connect your accounts.</p>{{end}}
 {{if .Connectors}}
-<p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. Agents in a room do not use it.</p>
+<p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. In a room, agents use it only for what you ask, once you let them in that room.</p>
 <section class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">
     <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th></th></tr></thead>
