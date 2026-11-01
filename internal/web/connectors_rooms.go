@@ -76,11 +76,30 @@ func (s *Server) usedApps(record jobs.Record, dir job.Dir) string {
 	if err != nil || spec.Setup == nil || len(spec.Setup.Connectors) == 0 {
 		return ""
 	}
+	return "with " + nameFromAddress(record.Asked) + "'s " + strings.Join(s.appNames(spec.Setup.Connectors), ", ")
+}
+
+// roomAppsLine tells a room's agent which connected apps it has for this message. It keeps one conversation across the room, so
+// without this it would look for apps an earlier asker gave it, which this asker's turn does not have.
+func (s *Server) roomAppsLine(record jobs.Record, spec job.Spec) string {
+	if !record.InRoom() || !s.hasConnectors() {
+		return ""
+	}
+	asker := nameFromAddress(record.Asked)
+	if spec.Setup != nil && len(spec.Setup.Connectors) > 0 {
+		return "\nFor this message you have " + asker + "'s connected apps: " + strings.Join(s.appNames(spec.Setup.Connectors), ", ") + ". Use them only for what " + asker + " asks.\n"
+	}
+	return "\nFor this message you have no connected apps. A room's agents get a person's apps only for what that person asks, and " + asker +
+		" asked this. Apps you used earlier for someone else are not available now, so do not look for them. If the work needs one, say so in a sentence and ask the person who connected it.\n"
+}
+
+// appNames is the catalog name of each connector given.
+func (s *Server) appNames(ids []string) []string {
 	var names []string
-	for _, id := range spec.Setup.Connectors {
+	for _, id := range ids {
 		if entry, known := s.connectors.App(id); known {
 			names = append(names, entry.Name)
 		}
 	}
-	return "with " + nameFromAddress(record.Asked) + "'s " + strings.Join(names, ", ")
+	return names
 }

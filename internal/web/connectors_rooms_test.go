@@ -64,6 +64,16 @@ func TestARoomTurnUsesItsAskersAppsOnlyOnceTheyLetIt(t *testing.T) {
 	if got := turn("bob", bob); got != nil {
 		t.Errorf("another member's turn was given the asker's app: %+v", got)
 	}
+	brief := func(id string) string {
+		spec, _ := job.Read(job.Dir(filepath.Join(here.index.Root(), id)))
+		return spec.Brief
+	}
+	if got := brief("after"); !strings.Contains(got, "you have "+nameFromAddress(alice)+"'s connected apps: Tasks.") {
+		t.Errorf("the agent is not told whose apps it has for the message:\n%s", got)
+	}
+	if got := brief("bob"); !strings.Contains(got, "you have no connected apps") || !strings.Contains(got, "do not look for them") {
+		t.Errorf("the agent is not told it has no apps for another member's message:\n%s", got)
+	}
 	if page := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Agents here use your Tasks as you, for what you ask them.") {
 		t.Error("the room does not say the person's app is in use")
 	}
