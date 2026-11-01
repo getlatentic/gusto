@@ -312,7 +312,7 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 			fields["Rail"] = s.railFor(marks.req, "")
 		}
 		if marks.req != nil && s.keeper.knows(marks.req) {
-			fields["Signed"] = s.signedAs(marks.req)
+			fields["SignedAs"] = s.signedAs(marks.req)
 		}
 	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {

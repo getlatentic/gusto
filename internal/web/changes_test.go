@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -243,6 +244,9 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	report, err := changelog.Verify(strings.NewReader(download.Body.String()), here.server.keyring)
 	if err != nil || report.Events < 1 || report.Signers["acme"] != report.Events {
 		t.Errorf("what was downloaded does not verify: %+v %v", report, err)
+	}
+	if signed := strconv.Itoa(report.Signed) + " signed"; !strings.Contains(page.Body.String(), signed) {
+		t.Errorf("the page does not count the signed lines as %q", signed)
 	}
 
 	for _, path := range []string{"/admin/activity", "/admin/activity.jsonl"} {
