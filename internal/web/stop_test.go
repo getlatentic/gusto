@@ -149,6 +149,7 @@ func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testi
 		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
 			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":0,"reason":"m has no price in the spend policy, so the credit cap cannot count it"}}`
 		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		os.WriteFile(dir.OutFile("stderr.log"), []byte("gusto: session/prompt: Internal error: turn failed (-32603)\n"), 0o644)
 		return 1, nil
 	}
 	t.Cleanup(func() { testWork = nil })
@@ -160,6 +161,9 @@ func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testi
 	page := ada.ask(t, "GET", thread, nil).Body.String()
 	if strings.Contains(page, "free credit for the models gusto provides is used") || !strings.Contains(page, "The model was not asked: m has no price in the spend policy") {
 		t.Errorf("the turn does not give the real reason its model was refused")
+	}
+	if strings.Contains(page, "It stopped before it finished") || strings.Contains(page, "-32603") {
+		t.Errorf("a turn a spending limit stopped also shows the agent's own error:\n%s", page)
 	}
 }
 
