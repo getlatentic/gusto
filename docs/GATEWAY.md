@@ -75,7 +75,7 @@ A connector is an app's MCP server that asks for OAuth. Each person signs in to 
 | Which agents | An agent that takes the gateway in its arguments or on its session. Pi reads its servers from a file, which a sandbox does not carry, so it is given none |
 | The vault | AES-GCM, with a key made the first time and kept beside the tokens, readable by the server's user alone |
 
-The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_PUBLIC_URL>/connections/callback` as its redirect. GitHub is asked for `repo`, `read:org` and `read:user`, not the ten scopes its server lists. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
+The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. Trello, asked on 2026-11-01, needs none either, and is asked for its boards, its members and offline access, not its inbox or planner. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_PUBLIC_URL>/connections/callback` as its redirect. GitHub is asked for `repo`, `read:org` and `read:user`, not the ten scopes its server lists. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
 
 To add GitHub to gusto cloud:
 

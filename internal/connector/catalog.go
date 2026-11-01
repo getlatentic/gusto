@@ -34,6 +34,8 @@ var Catalog = []Entry{
 	{ID: "figma", Name: "Figma", What: "Files, frames and comments in your Figma", URL: "https://mcp.figma.com/mcp"},
 	{ID: "canva", Name: "Canva", What: "Designs in your Canva", URL: "https://mcp.canva.com/mcp"},
 	{ID: "stripe", Name: "Stripe", What: "Customers, payments and products in your Stripe account", URL: "https://mcp.stripe.com"},
+	{ID: "trello", Name: "Trello", What: "Boards, lists and cards in your Trello workspaces", URL: "https://mcp.trello.com/v1",
+		Scopes: []string{"offline_access", "read:me", "read:account", "read:board:trello", "write:board:trello", "read:organization:trello", "read:member:trello"}},
 	{ID: "github", Name: "GitHub", What: "Repositories, issues and pull requests you can see on GitHub", URL: "https://api.githubcopilot.com/mcp/", NeedsClient: true,
 		Scopes: []string{"repo", "read:org", "read:user"}},
 	{ID: "asana", Name: "Asana", What: "Tasks and projects in your Asana", URL: "https://mcp.asana.com/v2/mcp", NeedsClient: true},
