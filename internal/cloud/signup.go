@@ -158,8 +158,13 @@ func (s *Server) mailSignIn(email string) {
 		log.Printf("cloud: a sign-in link was not made: %v", err)
 		return
 	}
-	s.send(email, "Your gusto sign-in link",
-		"Follow this link to sign in:\n\n"+s.link("/signin/link", secret)+"\n\nThe link works once and expires in 20 minutes. If you did not ask for it, ignore this mail.\n")
+	code, err := s.Store.MakeSignInCode(email)
+	if err != nil {
+		log.Printf("cloud: a sign-in code was not made: %v", err)
+		return
+	}
+	subject, body := signInMail(code, s.link("/signin/link", secret), SignInLife)
+	s.send(email, subject, body)
 }
 
 // confirmPage asks a person to press a button before a link is used. A mail
@@ -188,6 +193,10 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return
 			}
+		}
+		if purpose == SignIn {
+			s.signedIn(w, r, email)
+			return
 		}
 		s.Sessions.Issue(w, email)
 		http.Redirect(w, r, "/app", http.StatusSeeOther)

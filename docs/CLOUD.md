@@ -62,6 +62,7 @@ A company can have more than one organization. The first at a domain gets the do
 | --- | --- |
 | Sign-up attempts from one address, refused ones too | 10 an hour |
 | Mail to one address | 3 an hour |
+| Sign-in codes tried for one address | 5 an hour |
 | Sign-ups in all | 200 an hour |
 | Organizations for one company domain whose admin has not confirmed their address | 3 |
 | Invitations for one organization | 20 an hour |
@@ -70,7 +71,7 @@ The counts are kept in the database, so front doors that share it share the limi
 
 ## Sign-in to an organization
 
-1. The person signs in at gusto cloud by a mailed link. A sign-in link is always answered the same way, so the form cannot show who is a customer.
+1. The person signs in at gusto cloud with what they are mailed: a 6-digit code to type on the page where they asked, or a link for the device they read mail on. Using either spends both, and both last 20 minutes. A code works only for the address it was mailed to. Asking is always answered the same way, and a code for an address with no account is answered as a wrong one, so neither shows who is a customer.
 2. gusto cloud sends the person to `/app`, which takes them into their organization through `/open`, or to `/orgs` to choose one. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
 3. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
 4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
