@@ -40,7 +40,6 @@
         </div>
       </div>
     </form>
-    {{with .Unconnected}}<p class="order-2 mt-2 flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted">Use your apps in chats:{{range .}}<a class="inline-flex h-7 items-center rounded-full border border-line px-3 font-medium text-ink no-underline hover:bg-wash" href="/connections/{{.ID}}/connect">{{.Name}}</a>{{end}}</p>{{end}}
     <div class="order-3 mx-auto mt-6 flex max-w-[45rem] flex-wrap justify-center gap-2 @max-[40rem]:order-1 @max-[40rem]:mx-0 @max-[40rem]:mt-0 @max-[40rem]:mb-3 @max-[40rem]:w-full @max-[40rem]:flex-nowrap @max-[40rem]:justify-start @max-[40rem]:overflow-x-auto @max-[40rem]:[scrollbar-width:none] @max-[40rem]:[&::-webkit-scrollbar]:hidden" id="chat-starters">
       <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Draft a one-page policy for how we use AI at work">Draft a policy for using AI at work</button>
       <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
