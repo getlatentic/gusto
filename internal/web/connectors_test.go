@@ -63,7 +63,7 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		!strings.Contains(page, "Tasks is on. Each person connects their own account") {
 		t.Errorf("the admin's page does not show it on and that people connect it:\n%s", page)
 	}
-	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect">Connect Tasks`) {
+	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect">Tasks</a>`) || !strings.Contains(page, "Use your apps in chats:") {
 		t.Errorf("the chat page does not offer the person the app they have not connected:\n%s", page)
 	}
 	if page := here.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "/connections/tasks/connect") {
