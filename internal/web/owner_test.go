@@ -211,12 +211,13 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 	}
 }
 
-// The side list ends with who is signed in, by name, and it opens the settings, so two people at one screen can tell whose it is.
-func TestTheSideListSaysWhoIsSignedIn(t *testing.T) {
+// The rail ends with who is signed in: their initials, their name on hover, and the settings when pressed, so two people at one
+// screen can tell whose it is.
+func TestTheRailSaysWhoIsSignedIn(t *testing.T) {
 	site := open(t)
 	page := site.as(t, "ada.lovelace@example.com").ask(t, "GET", "/chat", nil).Body.String()
 	if !strings.Contains(page, `aria-label="Ada Lovelace, account and settings"`) || !strings.Contains(page, `title="ada.lovelace@example.com"`) ||
-		!strings.Contains(page, ">Ada Lovelace</span>") {
-		t.Errorf("the side list does not say who is signed in:\n%s", page)
+		!strings.Contains(page, `aria-hidden="true">AL</span>`) {
+		t.Errorf("the rail does not say who is signed in:\n%s", page)
 	}
 }
