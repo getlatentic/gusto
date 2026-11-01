@@ -136,20 +136,16 @@ func (r *retained) measure(s *Server) retention.Usage {
 	return r.usage
 }
 
-func (s *Server) retentionPage(w http.ResponseWriter, r *http.Request) {
+// keepingInto puts on a page what the disk holds, the policy, the holds, and what the last and the next sweep remove.
+func (s *Server) keepingInto(page map[string]any) error {
 	held, err := s.retention.holds.Read()
 	if err != nil {
-		http.Error(w, "the holds could not be read: "+err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("the holds could not be read: %w", err)
 	}
 	used := s.retention.measure(s)
-	page := map[string]any{
-		"Title":   productName + " — retention",
-		"Refused": r.URL.Query().Get("refused"),
-		"Used":    size(used.Bytes), "Workspaces": size(used.Workspaces), "Jobs": used.Jobs,
-		"Policy": s.retention.policy.Rows(), "Removes": s.retention.policy.Any(),
-		"HeldJobs": held.Jobs, "HeldPeople": held.People,
-	}
+	page["Used"], page["Workspaces"], page["Jobs"] = size(used.Bytes), size(used.Workspaces), used.Jobs
+	page["Policy"], page["Removes"] = s.retention.policy.Rows(), s.retention.policy.Any()
+	page["HeldJobs"], page["HeldPeople"] = held.Jobs, held.People
 	if used.Oldest != nil {
 		page["Oldest"], page["OldestAt"] = used.Oldest.ID, time.Unix(used.Oldest.Ended, 0).UTC().Format("2 Jan 2006")
 	}
@@ -160,7 +156,7 @@ func (s *Server) retentionPage(w http.ResponseWriter, r *http.Request) {
 	}
 	upcoming := retention.Sweep(s.index, s.index.Root(), s.retention.policy, held, time.Now(), true)
 	page["Upcoming"], page["UpcomingFreed"] = upcoming.Actions, size(sumBytes(upcoming))
-	s.drawConsole(w, "admin-retention.html", "retention", page)
+	return nil
 }
 
 func sumBytes(report retention.Report) int64 {
@@ -191,59 +187,56 @@ func size(bytes int64) string {
 // sweepNow is an admin asking for the sweep the schedule would make.
 func (s *Server) sweepNow(w http.ResponseWriter, r *http.Request) {
 	s.Sweep(time.Now())
-	http.Redirect(w, r, retentionPath, http.StatusSeeOther)
+	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
-
-// retentionPath is where the holds and the sweeps are managed.
-const retentionPath = "/admin/retention"
 
 // holdJob keeps one job whole, and releaseJob ends that.
 func (s *Server) holdJob(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.FormValue("job"))
 	if _, found := s.index.Get(id); !found {
-		s.turnAway(w, r, retentionPath, "no task has the id "+id)
+		s.turnAway(w, r, keepingTab, "no task has the id "+id)
 		return
 	}
 	why := strings.TrimSpace(r.FormValue("why"))
 	if err := s.retention.holds.HoldJob(id, s.keeper.who(r), why); err != nil {
-		s.turnAway(w, r, retentionPath, err.Error())
+		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}
 	s.note(r, changelog.HoldSet, map[string]string{"job": id, "why": why})
-	http.Redirect(w, r, retentionPath, http.StatusSeeOther)
+	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
 
 func (s *Server) releaseJob(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.FormValue("job"))
 	if err := s.retention.holds.ReleaseJob(id); err != nil {
-		s.turnAway(w, r, retentionPath, err.Error())
+		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}
 	s.note(r, changelog.HoldReleased, map[string]string{"job": id})
-	http.Redirect(w, r, retentionPath, http.StatusSeeOther)
+	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
 
 // holdPerson keeps everything a person asked for whole, and releasePerson ends it.
 func (s *Server) holdPerson(w http.ResponseWriter, r *http.Request) {
 	who, why := strings.TrimSpace(r.FormValue("who")), strings.TrimSpace(r.FormValue("why"))
 	if who == "" {
-		s.turnAway(w, r, retentionPath, "name the person whose work to keep")
+		s.turnAway(w, r, keepingTab, "name the person whose work to keep")
 		return
 	}
 	if err := s.retention.holds.HoldPerson(who, s.keeper.who(r), why); err != nil {
-		s.turnAway(w, r, retentionPath, err.Error())
+		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}
 	s.note(r, changelog.HoldSet, map[string]string{"person": strings.ToLower(who), "why": why})
-	http.Redirect(w, r, retentionPath, http.StatusSeeOther)
+	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
 
 func (s *Server) releasePerson(w http.ResponseWriter, r *http.Request) {
 	who := strings.TrimSpace(r.FormValue("who"))
 	if err := s.retention.holds.ReleasePerson(who); err != nil {
-		s.turnAway(w, r, retentionPath, err.Error())
+		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}
 	s.note(r, changelog.HoldReleased, map[string]string{"person": strings.ToLower(who)})
-	http.Redirect(w, r, retentionPath, http.StatusSeeOther)
+	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }

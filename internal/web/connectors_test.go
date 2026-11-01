@@ -56,7 +56,7 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		t.Errorf("an app that is off could be connected: %d", got)
 	}
 	turnedOn := here.ask(t, "POST", "/admin/connectors/tasks/on", nil).Header().Get("Location")
-	if turnedOn != "/admin/connectors?on=Tasks" {
+	if turnedOn != "/admin/apps?tab=apps&on=Tasks" {
 		t.Fatalf("turning it on went to %q", turnedOn)
 	}
 	if page := here.ask(t, "GET", turnedOn, nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) ||
@@ -148,7 +148,7 @@ func TestTheSharedSignInConnectsNothingAndAnAppWithoutItsClientStaysOff(t *testi
 	if got := here.ask(t, "POST", "/admin/connectors/crm/on", nil).Header().Get("Location"); !strings.Contains(got, "refused=") {
 		t.Errorf("an app with no client was turned on: %q", got)
 	}
-	if page := here.ask(t, "GET", "/admin/connectors", nil).Body.String(); !strings.Contains(page, "setup required") {
+	if page := here.ask(t, "GET", "/admin/apps", nil).Body.String(); !strings.Contains(page, "needs setup") {
 		t.Errorf("the admin is not told it needs setting up:\n%s", page)
 	}
 }

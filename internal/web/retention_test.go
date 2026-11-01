@@ -47,7 +47,7 @@ func oldJob(t *testing.T, site *site, id string, days int) {
 func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 	here, _, _ := keeping(t)
 	oldJob(t, here, "a-week-old", 10)
-	if got := here.as(t, "amy@acme.test").ask(t, "GET", "/admin/retention", nil); got.Code != http.StatusForbidden {
+	if got := here.as(t, "amy@acme.test").ask(t, "GET", "/admin/records?tab=keeping", nil); got.Code != http.StatusForbidden {
 		t.Errorf("a person who runs work got %d", got.Code)
 	}
 	for _, target := range [][2]string{{"POST", "/admin/retention/sweep"}, {"POST", "/admin/retention/jobs/hold"}, {"POST", "/admin/retention/holds"}} {
@@ -59,19 +59,19 @@ func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 		t.Error("a person who runs work swept a workspace")
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/admin/retention", nil)
+	page := here.ask(t, "GET", "/admin/records?tab=keeping", nil)
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
-	for _, want := range []string{"2.0 KB", "a-week-old", "workspace", "7 days", "90 days", `href="/admin/retention"`} {
+	for _, want := range []string{"2.0 KB", "a-week-old", "workspace", "7 days", "90 days", `href="/admin/records?tab=keeping"`} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page lacks %q:\n%s", want, page.Body.String())
 		}
 	}
 	plain := open(t)
 	plain.signIn(t)
-	if got := plain.ask(t, "GET", "/admin/retention", nil); got.Code != http.StatusNotFound {
-		t.Errorf("a server that removes nothing gave %d", got.Code)
+	if got := plain.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); strings.Contains(got, "tab=keeping") || strings.Contains(got, "Sweep now") {
+		t.Errorf("a server that removes nothing offers keeping:\n%s", got)
 	}
 }
 
@@ -81,7 +81,7 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	oldJob(t, here, "hundred-days", 100)
 	oldJob(t, here, "one-day", 1)
 	here.signIn(t)
-	if got := here.ask(t, "POST", "/admin/retention/sweep", nil); got.Code != http.StatusSeeOther {
+	if got := here.ask(t, "POST", "/admin/retention/sweep", nil); got.Code != http.StatusSeeOther || got.Header().Get("Location") != "/admin/records?tab=keeping" {
 		t.Fatalf("sweeping gave %d", got.Code)
 	}
 	root := here.index.Root()
@@ -101,7 +101,7 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, lastSweepFile)); err != nil {
 		t.Error("the last sweep was not kept")
 	}
-	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "The last sweep was") {
+	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "The last sweep was") {
 		t.Errorf("the page does not show the last sweep:\n%s", page)
 	}
 }
@@ -121,7 +121,7 @@ func TestAHoldKeepsAJobAndIsRecordedAndReleased(t *testing.T) {
 	if got := here.ask(t, "POST", "/admin/retention/jobs/hold", url.Values{"job": {"held"}, "why": {"the audit"}}); got.Code != http.StatusSeeOther {
 		t.Fatalf("holding gave %d", got.Code)
 	}
-	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "the audit") || !strings.Contains(page, `action="/admin/retention/jobs/release"`) {
+	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "the audit") || !strings.Contains(page, `action="/admin/retention/jobs/release"`) {
 		t.Errorf("the retention page does not say the job is held:\n%s", page)
 	}
 	here.ask(t, "POST", "/admin/retention/sweep", nil)
@@ -156,7 +156,7 @@ func TestAHoldOnAPersonKeepsEverythingTheyAskedFor(t *testing.T) {
 	if _, found := here.index.Get("amys"); !found {
 		t.Fatal("work of a held person was removed")
 	}
-	if page := here.ask(t, "GET", "/admin/retention", nil).Body.String(); !strings.Contains(page, "everything asked for by amy@acme.test") {
+	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "everything asked for by amy@acme.test") {
 		t.Errorf("the hold is not listed:\n%s", page)
 	}
 	here.ask(t, "POST", "/admin/retention/holds/release", url.Values{"who": {"amy@acme.test"}})

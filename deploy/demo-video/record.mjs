@@ -239,7 +239,7 @@ await pause(3.4);
 await go(new URL("/admin/models", home).href);
 await say("Which models are approved, what each costs, and who may use which", ["table"], 20);
 await pause(3.4);
-await go(new URL("/admin/activity", home).href);
+await go(new URL("/admin/records", home).href);
 await say("A record of what happened, who did it, and when", ["table"], 20);
 await pause(3.4);
 await go(new URL("/admin/people", home).href);

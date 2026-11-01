@@ -14,9 +14,9 @@ jar=$(mktemp)
 trap 'rm -f "$jar"' EXIT
 
 landed=$(curl -s -L --resolve dex:5556:127.0.0.1 -c "$jar" -b "$jar" -o /dev/null -w '%{url_effective}' "$base/auth/start")
-admin=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' "$base/admin/activity")
+admin=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' "$base/admin/records")
 home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' "$base/")
-echo "signed in through Dex and landed on $landed; /admin/activity answered $admin, / answered $home"
+echo "signed in through Dex and landed on $landed; /admin/records answered $admin, / answered $home"
 
 case "$want" in
 admin)

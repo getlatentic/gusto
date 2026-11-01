@@ -88,7 +88,7 @@ func TestAnAdministratorImportsAnIntegrationAndItIsOffUntilTurnedOn(t *testing.T
 			t.Errorf("the page does not say %q", want)
 		}
 	}
-	if list := admin.ask(t, "GET", "/admin/integrations", nil).Body.String(); !strings.Contains(list, "reports") {
+	if list := admin.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(list, "reports") {
 		t.Error("the list does not show it")
 	}
 }

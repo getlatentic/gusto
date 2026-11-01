@@ -55,3 +55,9 @@
 {{define "ui-badge-warn"}}inline-flex items-center whitespace-nowrap rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn{{end}}
 {{define "ui-badge-bad"}}inline-flex items-center whitespace-nowrap rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad{{end}}
 {{define "ui-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed") (eq . "live")}}{{template "ui-badge-ok"}}{{else if or (eq . "failed") (eq . "interrupted")}}{{template "ui-badge-bad"}}{{else if or (eq . "running") (eq . "queued")}}{{template "ui-badge-warn"}}{{else}}{{template "ui-badge"}}{{end}}">{{.}}</span>{{end}}
+
+{{/* Tabs: the views of one page, as links, with the one shown marked. It takes the page's tabs. */}}
+{{define "ui-tabs"}}<nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line text-sm" aria-label="Views">{{range .}}<a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>{{end}}
+
+{{/* A switch is a button in a form that turns one thing on or off; aria-checked says which it is now. */}}
+{{define "ui-switch"}}relative inline-flex h-5 w-[2.125rem] flex-none cursor-pointer rounded-full bg-line-strong align-middle transition-colors after:absolute after:top-[0.1875rem] after:left-[0.1875rem] after:size-3.5 after:rounded-full after:bg-plate after:shadow-1 after:transition-[left] after:content-[''] aria-checked:bg-solid aria-checked:after:left-[1.0625rem] hover:bg-faint aria-checked:hover:bg-solid-hover{{end}}

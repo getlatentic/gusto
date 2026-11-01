@@ -147,7 +147,7 @@ func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
 	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
 
 	controls := map[string][]string{
-		"/setups":          {"New skill set"},
+		"/setups":          {"Write a skill set"},
 		"/setups/reviewer": {"Add a skill", "/skills/review/drop"},
 	}
 	for path, wanted := range controls {
@@ -163,6 +163,9 @@ func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
 			}
 		}
 		console := "/admin/skill-sets" + strings.TrimPrefix(path, "/setups")
+		if path == "/setups" {
+			console = "/admin/apps?tab=skills"
+		}
 		if got := runner.ask(t, "GET", console, nil); got.Code != http.StatusForbidden {
 			t.Errorf("a runner reading %s got %d", console, got.Code)
 		}

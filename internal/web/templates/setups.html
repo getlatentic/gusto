@@ -2,7 +2,7 @@
 
 {{template "ui-flash" .}}
 
-{{if not .Console}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">New agent</a><span>/</span><span>Skill sets</span></nav>{{end}}
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">New agent</a><span>/</span><span>Skill sets</span></nav>
 <div class="{{template "ui-head"}}">
   <h1>Skill sets</h1>
   <p class="{{template "ui-lede"}}">Instructions and tools you can give any agent.</p>
@@ -12,26 +12,9 @@
 <section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
   {{range .Setups}}
   <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 dark:border dark:border-line" href="{{$.Base}}/{{.Name}}">
-    <span class="font-display font-semibold">{{.Name}}{{if .Off}} <span class="{{template "ui-badge"}}">off</span>{{end}}</span>
+    <span class="font-display font-semibold">{{.Name}}</span>
     <span class="text-sm text-muted">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>
-  {{end}}
-  {{if .Console}}
-  <form class="grid content-start gap-3 rounded-md border border-dashed border-line-strong p-5" method="post" action="{{.Base}}">
-    <span class="font-display font-semibold">New skill set</span>
-    <input class="input" name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required aria-label="Name">
-    {{with .Offered}}
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-muted">Tools</legend>
-      {{range $name, $server := .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
-    </fieldset>
-    {{end}}
-    {{with .Imported}}
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-muted">Integrations</legend>
-      {{range .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="text-muted">off</span>{{end}}</label>{{end}}
-    </fieldset>
-    {{end}}
-    <div><button type="submit" class="{{template "ui-btn"}}">Create</button></div>
-  </form>
   {{end}}
 </section>
 {{end}}

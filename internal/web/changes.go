@@ -200,20 +200,18 @@ type row struct {
 	Since string
 }
 
-func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
-	s.TakeInbox()
-	page := map[string]any{"Title": productName + " — activity", "Shown": shownChanges}
-	if file, err := os.Open(s.changes.Path()); err == nil {
-		report, verr := changelog.Verify(file, s.keyring)
-		file.Close()
-		page["Events"], page["Head"] = report.Events, report.Head
-		page["Signed"], page["Unsigned"] = report.Signed, report.Unsigned
-		if verr != nil {
-			page["Broken"] = verr.Error()
-		}
+// checkLog reads the whole activity log and says whether its chain holds, how much of it is signed, and its head.
+func (s *Server) checkLog() (changelog.Report, string) {
+	file, err := os.Open(s.changes.Path())
+	if err != nil {
+		return changelog.Report{}, ""
 	}
-	page["Rows"] = s.recentChanges()
-	s.drawConsole(w, "admin-activity.html", "activity", page)
+	defer file.Close()
+	report, err := changelog.Verify(file, s.keyring)
+	if err != nil {
+		return report, err.Error()
+	}
+	return report, ""
 }
 
 // recentChanges is the newest events first.

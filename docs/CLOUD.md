@@ -125,13 +125,12 @@ An organization's server has a console for its admins at `/admin`. A person who 
 | --- | --- | --- |
 | Overview | `/admin` | this month's spending (UTC), limits and use, tasks running, waiting and failed in the last seven days, workspaces, shared apps, the budget |
 | Spending | `/admin/spending` | the spend report for the whole organization |
-| Activity | `/admin/activity` | the change record, downloadable at `/admin/activity.jsonl` |
-| Tokens | `/admin/tokens` | API tokens |
-| Retention | `/admin/retention` | the disk, the policy, sweeps and holds ([RETENTION.md](RETENTION.md)) |
-| Skill sets | `/admin/skill-sets` | skill sets and their skills |
-| Connectors | `/admin/connectors` | the apps people may sign in to with their own accounts, for their agents ([GATEWAY.md](GATEWAY.md#connectors)) |
 | People | `/admin/people` | each person's role, last sign-in and spend this month, and unanswered invitations. Inviting, removing and changing a role happen at gusto cloud |
 | Models | `/admin/models` | providers, models and limits per person |
+| Apps & skills | `/admin/apps` | on the Apps tab, the apps people may sign in to with their own accounts, for their agents ([GATEWAY.md](GATEWAY.md#connectors)); on the Skills tab (`?tab=skills`), skill sets and imported plugins |
+| Records | `/admin/records` | whether the record is intact; the change record on the Activity tab, downloadable at `/admin/activity.jsonl`; task checks (`?tab=checks`); the disk, the policy, sweeps and holds (`?tab=keeping`, [RETENTION.md](RETENTION.md)) |
+
+API tokens are at `/admin/tokens`, which the menu does not list. The old addresses `/admin/activity`, `/admin/verification`, `/admin/retention`, `/admin/connectors`, `/admin/skill-sets` and `/admin/integrations` redirect to their tabs. Behind a front door, the menu links to the organization's page there for its members and billing.
 
 On the Overview, an admin sets one alert: a monthly budget in dollars. It is kept in `settings.json` in the organization's data directory, and `GUSTO_ORG_SETTINGS` names it. When spending passes the budget, a banner shows the excess, "at least" when some spending has no price. The budget stops no task (a member's budget does) and sends no mail. An unreadable quota is shown as unreadable, not as no limit.
 

@@ -1,0 +1,109 @@
+{{template "head" .}}
+
+<div class="{{template "ui-title"}} mb-4!">
+  <h1>Apps &amp; skills</h1>
+  <span class="text-sm text-muted">What agents may use, for everyone in {{with .OrgName}}{{.}}{{else}}this workspace{{end}}</span>
+</div>
+{{if gt (len .Tabs) 1}}{{template "ui-tabs" .Tabs}}{{end}}
+
+{{template "ui-flash" .}}
+{{if eq .Tab "apps"}}{{template "apps-tab" .}}{{else}}{{template "skills-tab" .}}{{end}}
+
+{{template "foot" .}}
+
+{{define "apps-tab"}}
+{{with .TurnedOn}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">{{.}} is on. Each person connects their own account from Connections before their agents can use it.</p>{{end}}
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>App</th><th>What agents reach</th><th class="text-right">For everyone</th></tr></thead>
+    <tbody>
+      {{range .Connectors}}
+      <tr>
+        <td class="whitespace-nowrap font-medium">{{.Name}}</td>
+        <td class="text-muted">{{.What}}</td>
+        <td class="text-right">{{if or .On .Usable}}<form method="post" action="/admin/connectors/{{.ID}}/{{if .On}}off{{else}}on{{end}}"><button class="{{template "ui-switch"}}" type="submit" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}} for everyone" title="Turn {{.Name}} {{if .On}}off{{else}}on{{end}}"></button></form>{{else}}<span class="{{template "ui-badge"}}" title="Whoever runs this server registers it with the app first">needs setup</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  <p class="mt-3 text-xs text-muted">Turning an app on lets each person connect their own account. Agents use it only as that person, and only for what they ask.</p>
+</section>
+<details class="group mt-6">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How this works</summary>
+  <p class="mt-2 max-w-prose text-sm text-muted">Each person signs in to an app that is on from Connections, with their own account there. Their agents then call it as them, through the gateway: the agent never holds the token, and sees what that person can see in the app, no more. In a room, an agent uses a person's apps only for what that person asks, and only after they let it in that room. Turning an app off stops it from the next task. An app that needs setup is registered by whoever runs this server, with its client id in <code>GUSTO_CONNECTOR_CLIENTS</code>.</p>
+</details>
+{{end}}
+
+{{/* skills-tab is every skill set written here and every plugin imported, in one list, and one button that opens the ways to add
+     another. Choosing a way shows only its form: the radios sit outside every form, and only say which form shows. */}}
+{{define "skills-tab"}}
+<details class="group/add mb-5">
+  <summary class="{{template "ui-btn"}} w-fit list-none [&::-webkit-details-marker]:hidden">{{template "icon-add"}} Add a skill</summary>
+  <div class="{{template "ui-card"}} mt-3 grid gap-5">
+    <fieldset class="grid grid-cols-[repeat(auto-fit,minmax(min(13rem,100%),1fr))] gap-2">
+      <legend class="sr-only">How to add it</legend>
+      {{if .Writes}}<label class="{{template "add-way"}}"><input class="sr-only" type="radio" name="add-way" id="add-new" checked><strong class="text-ink">Write a skill set</strong><span class="text-xs text-muted">Name it, then write its skills here</span></label>{{end}}
+      {{if .Imports}}
+      <label class="{{template "add-way"}}"><input class="sr-only" type="radio" name="add-way" id="add-git"{{if not .Writes}} checked{{end}}><strong class="text-ink">Import from git</strong><span class="text-xs text-muted">An Agent Plugin in a repository</span></label>
+      <label class="{{template "add-way"}}"><input class="sr-only" type="radio" name="add-way" id="add-upload"><strong class="text-ink">Import an upload</strong><span class="text-xs text-muted">A .zip or .tar.gz of an Agent Plugin</span></label>
+      {{end}}
+    </fieldset>
+    {{if .Writes}}
+    <form class="hidden max-w-xl gap-4 group-has-[#add-new:checked]/add:grid" method="post" action="/admin/skill-sets">
+      <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required></label>
+      {{with .Offered}}
+      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Tools</legend>
+        {{range $name, $server := .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
+      </fieldset>
+      {{end}}
+      {{with .Imported}}
+      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Imported plugins</legend>
+        {{range .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="text-muted">off</span>{{end}}</label>{{end}}
+      </fieldset>
+      {{end}}
+      <p class="{{template "ui-note"}}">It is off until you turn it on from its page.</p>
+      <div><button class="{{template "ui-btn"}}" type="submit">Create</button></div>
+    </form>
+    {{end}}
+    {{if .Imports}}
+    <form class="hidden max-w-xl gap-4 group-has-[#add-git:checked]/add:grid" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+      <input type="hidden" name="kind" value="git">
+      <label class="{{template "ui-field"}}">Git address <input class="input" name="address" placeholder="https://github.com/example/plugin.git" required></label>
+      <label class="{{template "ui-field"}}"><span>Branch, tag or commit <span class="font-normal text-subtle">· pinned to the commit it resolves to</span></span> <input class="input" name="ref" placeholder="main"></label>
+      <label class="{{template "ui-field"}}"><span>Folder in the repository <span class="font-normal text-subtle">· only if the plugin is not at the top</span></span> <input class="input" name="folder" placeholder="plugins/reports"></label>
+      <p class="{{template "ui-note"}}">An imported plugin is off until you turn a version on.</p>
+      <div><button class="{{template "ui-btn"}}" type="submit">Import from git</button></div>
+    </form>
+    <form class="hidden max-w-xl gap-4 group-has-[#add-upload:checked]/add:grid" method="post" action="/admin/integrations/import" enctype="multipart/form-data">
+      <input type="hidden" name="kind" value="upload">
+      <label class="{{template "ui-field"}}">A .zip or .tar.gz of the plugin <input class="input" type="file" name="archive" accept=".zip,.gz,.tgz" required></label>
+      <p class="{{template "ui-note"}}">An imported plugin is off until you turn a version on.</p>
+      <div><button class="{{template "ui-btn"}}" type="submit">Import the upload</button></div>
+    </form>
+    {{end}}
+  </div>
+</details>
+
+{{if .Skills}}
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>Name</th><th>Kind</th><th>Holds</th><th class="text-right">On</th></tr></thead>
+    <tbody>
+      {{range .Skills}}
+      <tr>
+        <td><a class="font-medium text-ink no-underline underline-offset-2 hover:underline" href="{{.Href}}">{{.Name}}</a></td>
+        <td class="whitespace-nowrap text-muted">{{.Kind}}</td>
+        <td class="text-muted">{{.Detail}}</td>
+        <td class="text-right">{{if .On}}<span class="{{template "ui-badge-ok"}}">on</span>{{else}}<span class="text-muted">off</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  <p class="mt-3 text-xs text-muted">Open one to turn it on or off, or to change what it holds.</p>
+</section>
+{{else}}
+<p class="text-muted">No skills yet.</p>
+{{end}}
+{{end}}
+
+{{define "add-way"}}grid cursor-pointer content-start gap-0.5 rounded-sm border border-line-strong p-3 text-sm hover:bg-wash has-[:checked]:border-ink has-[:checked]:bg-wash has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus{{end}}
