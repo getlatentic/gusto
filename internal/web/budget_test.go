@@ -115,7 +115,7 @@ func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	if n := len(ofKind(written(t, log), changelog.MemberBudgetSet)); n != 0 {
 		t.Errorf("a form with only the organization's budget changed each person's %d times", n)
 	}
-	activity := here.ask(t, "GET", "/admin/activity", nil).Body.String()
+	activity := here.ask(t, "GET", "/admin/records", nil).Body.String()
 	for _, want := range []string{"changed the monthly budget from none to $100.00", "changed the monthly budget from $250.50 to none"} {
 		if !strings.Contains(activity, want) {
 			t.Errorf("the activity page does not say %q:\n%s", want, activity)

@@ -54,6 +54,7 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	page["Month"], page["Written"] = month, list.Written.Unix()
 	page["People"], page["Invited"] = s.rowsOf(list, spent), invitesOf(list)
 	page["Admins"] = adminsIn(list)
+	page["Tokens"] = s.hasTokens()
 	if s.hasOrgSettings() {
 		page["Budget"] = s.budgetOf(0)
 	}
