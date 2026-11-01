@@ -311,9 +311,14 @@
     {{if not .Files}}{{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}{{end}}
     {{with .Capped}}{{if and (eq .Cap "credit") (ge .SpentUSD .LimitUSD)}}<p class="m-0 rounded-sm bg-warn-wash px-4 py-3 text-sm">The free credit for the models gusto provides is used: ${{printf "%.2f" .SpentUSD}} of ${{printf "%.2f" .LimitUSD}}. {{if $.P.Admin}}<a class="font-medium text-ink underline" href="/admin/models">Add your organization's own model key</a> to carry on.{{else}}Ask an admin of your organization to add its own model key to carry on.{{end}}</p>{{else}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">{{with .Reason}}The model was not asked: {{.}}.{{else}}A spending limit stopped this.{{end}}</p>{{end}}{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
-    <p class="m-0 flex flex-wrap items-center gap-4 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
-      {{with .Blocked}}<span class="inline-flex min-h-6 items-center gap-1 text-ok [&>svg]:size-3.5" title="Requests to other sites that gusto refused">{{template "icon-shield"}} {{.}} blocked</span>{{end}}
-    </p>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-subtle">{{with took .Started .Ended}}<span>{{.}}</span>{{end}}{{if .Metered}}{{if eq .Spent.Unmeasured 0}}<span>{{.Spent.Money}}</span>{{end}}{{end}}
+      {{if .Blocked}}<details class="group open:basis-full">
+        <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-ok hover:bg-wash [&::-webkit-details-marker]:hidden [&_svg]:size-3.5">{{template "icon-shield"}}<span>{{.Blocked}} request{{if ne .Blocked 1}}s{{end}} blocked</span></summary>
+        <div class="mt-1 ml-2 grid gap-1 border-l border-line-strong pl-4 text-muted"><p class="m-0">The agent may reach its model and nothing else. gusto refused these:</p>
+          <ul class="m-0 grid list-none gap-0.5 p-0">{{range .Refused}}<li><code class="font-mono text-xs wrap-anywhere text-ink">{{.Host}}</code>{{if gt .Times 1}} <span>× {{.Times}}</span>{{end}}</li>{{end}}</ul>
+        </div>
+      </details>{{end}}
+    </div>
     {{if or $.P.Sharing $.P.ShareHidden}}{{range .Previews}}
     <form class="m-0" method="post" action="/instances/{{$.P.Instance.ID}}/apps"{{if not $.P.Sharing}} data-owner-only hidden{{end}}>
       <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.P.Path}}">

@@ -89,11 +89,10 @@ func usageSpent(t usage.Totals) (figure, caption string) {
 	case t.Unmeasured == t.Calls:
 		return "no price", "no price set for these models"
 	}
-	unpriced := strconv.FormatInt(t.Unmeasured, 10) + " calls are"
 	if t.Unmeasured == 1 {
-		unpriced = "1 call is"
+		return headlineUSD(t.USD), "spent; 1 call has no price and is not counted"
 	}
-	return headlineUSD(t.USD), "spent, and " + unpriced + " not priced"
+	return headlineUSD(t.USD), "spent; " + strconv.FormatInt(t.Unmeasured, 10) + " calls have no price and are not counted"
 }
 
 // cacheRate is the share of the tokens in that the provider's cache answered.

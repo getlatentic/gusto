@@ -189,7 +189,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 			return
 		}
 		if on && !s.connectors.Usable(entry) {
-			s.turnAway(w, r, "/admin/connectors", entry.Name+" needs a client the operator registers with it first")
+			s.turnAway(w, r, "/admin/connectors", entry.Name+" needs setting up by whoever runs this server first")
 			return
 		}
 		changed := false
