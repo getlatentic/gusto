@@ -212,6 +212,7 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 	if err := s.giveConnectors(&spec, dir, record); err != nil {
 		return err
 	}
+	spec.Brief += s.roomAppsLine(record, spec)
 	if err := spec.Write(dir); err != nil {
 		return err
 	}
