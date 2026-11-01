@@ -107,19 +107,6 @@ func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// unconnected is the apps an admin turned on that the signed-in person has not connected yet, which the chat page offers them.
-func (s *Server) unconnected(r *http.Request) []connectorView {
-	who, person := s.connectingPerson(r)
-	if !s.hasConnectors() || !person {
-		return nil
-	}
-	views, err := s.connectorViews(who)
-	if err != nil {
-		return nil
-	}
-	return slices.DeleteFunc(views, func(view connectorView) bool { return !view.On || !view.Usable || view.Connected })
-}
-
 // offeredConnector is the connector a request names, when an admin has turned it on and people can sign in to it.
 func (s *Server) offeredConnector(r *http.Request) (connector.Entry, bool) {
 	entry, known := s.connectors.App(r.PathValue("id"))

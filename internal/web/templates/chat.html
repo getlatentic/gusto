@@ -14,7 +14,6 @@
     <h1 class="text-center @max-[40rem]:my-auto">{{if .NeedsModel}}Add the model you use{{else if and .Wall .Wall.Unconfirmed}}Agents will run with no sandbox{{else}}What are we working on?{{end}}</h1>
     {{if .Refused}}<p class="{{template "ui-notice-chat"}}" id="refused" role="alert">{{.Refused}}</p>{{end}}
     {{range .Lacking}}<p class="{{template "ui-notice-chat"}}" role="status">{{.}}</p>{{end}}
-    {{range .Unconnected}}<p class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-muted">Let your agents use your {{.Name}} account.<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect {{.Name}}</a></p>{{end}}
     {{if .NeedsModel}}{{template "first-model" .}}{{else if not .Picks}}<p class="text-muted">This deployment cannot start an agent yet.</p>{{end}}
     {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
     <div class="composer flex w-full max-w-[46rem] flex-col">

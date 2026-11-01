@@ -10,7 +10,7 @@
 </details>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
-{{with .TurnedOn}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">{{.}} is on. Each person connects their own account before their agents can use it, and the chat page offers it until they do.</p>{{end}}
+{{with .TurnedOn}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">{{.}} is on. Each person connects their own account from Connections before their agents can use it.</p>{{end}}
 
 <section class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">
