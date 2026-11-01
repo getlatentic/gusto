@@ -126,12 +126,17 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 		s.render(w, http.StatusTooManyRequests, "signin", view{Title: "Sign in", Email: email, Error: "That is a lot of attempts from one place. Try again later."})
 		return
 	}
-	if normal, err := NormalEmail(email); err == nil && s.mails.Allow(normal) {
+	normal, err := NormalEmail(email)
+	if err != nil {
+		s.render(w, http.StatusUnprocessableEntity, "signin", view{Title: "Sign in", Email: email, Error: "Enter an email address, such as you@company.com."})
+		return
+	}
+	if s.mails.Allow(normal) {
 		if found, err := s.Store.HasAccount(normal); err == nil && found {
 			s.mailSignIn(normal)
 		}
 	}
-	s.render(w, http.StatusOK, "signin", view{Title: "Sign in", Sent: true})
+	s.render(w, http.StatusOK, "signin", view{Title: "Check your email", Email: normal, Sent: true})
 }
 
 func (s *Server) mailSignIn(email string) {
