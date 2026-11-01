@@ -61,6 +61,7 @@ type Server struct {
 	mails   *Limiter
 	all     *Limiter
 	invites *Limiter
+	codes   *Limiter
 	sending sync.WaitGroup
 	making  sync.WaitGroup
 	ender   demoEnder
@@ -89,7 +90,7 @@ func New(c Config) (*Server, error) {
 	}
 	return &Server{Config: c, pages: pages,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
-		invites: c.limiter("invites", 20)}, nil
+		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
 }
 
 // limiter counts most events an hour. With a store the count is shared by every front door on its database.
@@ -148,6 +149,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /verify", s.useLink(Verify))
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
+	mux.HandleFunc("POST /signin/code", s.signInWithCode)
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
 	mux.HandleFunc("GET /account.json", s.accountJSON)
