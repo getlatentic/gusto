@@ -144,3 +144,42 @@ func TestThereIsNoPeoplePageWhereNoFrontDoorKeepsThePeople(t *testing.T) {
 		t.Error("the console lists people where there are none to list")
 	}
 }
+
+// Behind a front door, which owns roles, a role is a choice sent there, and it comes back to this page.
+func TestARoleIsChangedAtTheFrontDoorAndComesBackToPeople(t *testing.T) {
+	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{
+		{Email: "ada@acme.com", Role: "admin"}, {Email: "bea@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"},
+	}})
+	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
+	for _, email := range []string{"ada@acme.com", "bea@acme.com", "bob@acme.com"} {
+		row := rowOf(t, page, email)
+		for _, want := range []string{`action="https://cloud.test/org/people/role?org=acme-com"`, `name="email" value="` + email + `"`,
+			`name="back" value="http://example.com/admin/people"`, `name="role"`, "data-autosubmit"} {
+			if !strings.Contains(row, want) {
+				t.Errorf("the role of %s lacks %q:\n%s", email, want, row)
+			}
+		}
+	}
+	if row := rowOf(t, page, "bea@acme.com"); !strings.Contains(row, `data-confirm-when="runner"`) || !strings.Contains(row, `<option value="admin" selected>`) {
+		t.Errorf("making an admin a runner does not ask first:\n%s", row)
+	}
+	if row := rowOf(t, page, "bob@acme.com"); strings.Contains(row, "data-confirm") || !strings.Contains(row, `<option value="runner" selected>`) {
+		t.Errorf("making a runner an admin asks, or the runner is not shown as one:\n%s", row)
+	}
+}
+
+func TestTheOnlyAdminAndAServerWithNoFrontDoorShowTheRoleInWords(t *testing.T) {
+	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}}})
+	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
+	if row := rowOf(t, page, "ada@acme.com"); strings.Contains(row, "<select") || !strings.Contains(row, ">admin</span>") {
+		t.Errorf("the only admin is offered to stop being one:\n%s", row)
+	}
+	if row := rowOf(t, page, "bob@acme.com"); !strings.Contains(row, "<select") {
+		t.Errorf("a runner is not offered to be made an admin:\n%s", row)
+	}
+
+	alone, _, _ := budgeted(t)
+	if page := people(t, alone); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
+		t.Errorf("a server with no front door offers to change a role:\n%s", page)
+	}
+}

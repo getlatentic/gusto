@@ -1,12 +1,92 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>Retention</h1>
-  <span class="text-sm text-muted">Finished work is removed on a schedule</span>
+<div class="{{template "ui-title"}} mb-4!">
+  <h1>Records</h1>
+  <span class="text-sm text-muted">A signed record of everything that happened, and how long work is kept</span>
+  <span class="flex-1"></span>
+  {{if .Logged}}<a class="{{template "ui-btn-quiet"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>{{end}}
+</div>
+{{if gt (len .Tabs) 1}}{{template "ui-tabs" .Tabs}}{{end}}
+
+{{template "ui-flash" .}}
+{{with .Health}}
+<section class="{{template "ui-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3" aria-label="Whether the record is intact">
+  <p class="min-w-0 flex-1 text-sm">
+    <span class="mr-2 inline-block size-2 rounded-full align-middle {{if .Broken}}bg-bad{{else}}bg-ok{{end}}" aria-hidden="true"></span><strong class="{{if .Broken}}text-bad{{end}}">{{if .Broken}}Broken{{else}}Intact{{end}}</strong>
+    {{if .Logged}}<span class="{{if .LogBad}}text-bad{{else}}text-muted{{end}}"> · {{.Log}}</span>{{end}}
+    <span class="{{if .RunsBad}}text-bad{{else}}text-muted{{end}}"> · {{.Runs}}</span>
+  </p>
+  {{if and (eq $.Tab "activity") (not .LogBad)}}
+  <details class="group basis-full">
+    <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How to check it yourself</summary>
+    <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
+      <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
+      {{if .Head}}<p>Download it, and keep this head to learn later whether lines were cut off the end:</p>
+      <pre class="overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-ink">gusto changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
+    </div>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
+{{if eq .Tab "activity"}}{{template "records-activity" .}}{{else if eq .Tab "checks"}}{{template "records-checks" .Checks}}{{else}}{{template "records-keeping" .}}{{end}}
+
+{{template "foot" .}}
+
+{{define "records-activity"}}
+{{if .Rows}}
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th class="w-40">When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td class="whitespace-nowrap text-muted" title="{{.Full}}">{{.At}}</td>
+        <td class="whitespace-nowrap">{{.Who}}</td>
+        <td>{{.Said}}{{if gt .Times 1}} <span class="{{template "ui-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
+        <td class="whitespace-nowrap font-mono text-xs text-muted">{{.From}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="text-muted">Nothing has been recorded yet.</p>
+{{end}}
+{{end}}
+
+{{define "records-checks"}}
+{{if .Failing}}<p class="{{template "ui-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
+
+<div class="{{template "ui-figures"}}">
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Verified}}</span><span class="{{template "ui-figure-label"}}">verified</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Unsigned}}</span><span class="{{template "ui-figure-label"}}">not signed</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="{{template "ui-figure-label"}}">failed the check</span></div>
 </div>
 
-{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{if .Rows}}
+<h2 class="mb-3 text-sm font-semibold">Needs a look</h2>
+<div class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th class="w-32">When</th><th>Run</th><th>Who</th><th>Result</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td class="whitespace-nowrap text-muted">{{.When}}</td>
+        <td class="max-w-md truncate"><a class="no-underline underline-offset-4 hover:underline" href="{{.Href}}#proof">{{.Brief}}</a></td>
+        <td class="whitespace-nowrap">{{.Who}}</td>
+        <td>{{template "ui-state" (or (and (eq .State "does not check out") "failed") .State)}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="text-muted">{{if .Verified}}Every one of the newest {{.Verified}} finished run{{if ne .Verified 1}}s{{end}} checks out.{{else}}No run has finished yet.{{end}}</p>
+{{end}}
+{{end}}
 
+{{define "records-keeping"}}
 <section class="{{template "ui-figures"}}">
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Used}}</span><span class="{{template "ui-figure-label"}}">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Workspaces}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
@@ -72,5 +152,4 @@
 </section>
 </div>
 </div>
-
-{{template "foot" .}}
+{{end}}

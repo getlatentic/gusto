@@ -15,33 +15,16 @@ func (s *Server) sections() []section {
 		{"overview", "/admin", "Overview"},
 		{"usage", "/admin/usage", "Usage"},
 	}
-	// The UI kit is the pages' own reference, kept at its address for whoever builds them and out of an admin's menu.
-	all = append(all, section{"verification", "/admin/verification", "Verification"})
-	if s.changes != nil {
-		all = append(all, section{"activity", "/admin/activity", "Activity"})
-	}
-	if s.tokens != nil {
-		all = append(all, section{"tokens", "/admin/tokens", "Tokens"})
-	}
-	if s.retention != nil {
-		all = append(all, section{"retention", "/admin/retention", "Retention"})
-	}
-	if s.setups != nil {
-		all = append(all, section{"skill-sets", "/admin/skill-sets", "Skill sets"})
-	}
-	if s.hasIntegrations() {
-		all = append(all, section{"integrations", integrationsPath, "Integrations"})
-	}
-	if s.hasConnectors() {
-		all = append(all, section{"connectors", "/admin/connectors", "Connectors"})
-	}
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}
 	if s.hasRegistry() {
 		all = append(all, section{"models", "/admin/models", "Models"})
 	}
-	return all
+	if s.hasAppsOrSkills() {
+		all = append(all, section{"apps", appsPath, "Apps & skills"})
+	}
+	return append(all, section{"records", recordsPath, "Records"})
 }
 
 // console lets an admin through and answers 403 to anybody else who is signed
@@ -77,6 +60,9 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 	page["Console"], page["Nav"], page["Sections"] = true, key, s.sections()
 	if s.front != nil {
 		page["Org"] = s.front.Org
+		if s.front.Org != "" {
+			page["OrgPage"] = s.front.page("/org", nil)
+		}
 	}
 	s.render(w, name, page)
 }
@@ -84,11 +70,11 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin", s.console(s.overviewPage))
 	mux.HandleFunc("GET /admin/spending", s.console(s.consoleSpend))
-	mux.HandleFunc("GET /admin/verification", s.console(s.verificationPage))
+	mux.HandleFunc("GET "+recordsPath, s.console(s.recordsPage))
+	mux.HandleFunc("GET "+appsPath, s.console(offering(s.hasAppsOrSkills, s.appsPage)))
 	mux.HandleFunc("GET /admin/ui-kit", s.console(s.uiKitPage))
 
 	changes := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasChanges, next)) }
-	mux.HandleFunc("GET /admin/activity", changes(s.changesPage))
 	mux.HandleFunc("GET /admin/activity.jsonl", changes(s.changesFile))
 
 	tokens := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasTokens, next)) }
@@ -97,7 +83,6 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/tokens/{id}/revoke", tokens(s.revokeToken))
 
 	retention := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasRetention, next)) }
-	mux.HandleFunc("GET /admin/retention", retention(s.retentionPage))
 	mux.HandleFunc("POST /admin/retention/sweep", retention(s.sweepNow))
 	mux.HandleFunc("POST /admin/retention/holds", retention(s.holdPerson))
 	mux.HandleFunc("POST /admin/retention/holds/release", retention(s.releasePerson))
@@ -105,15 +90,14 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/retention/jobs/release", retention(s.releaseJob))
 
 	setups := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasSetups, next)) }
-	mux.HandleFunc("GET /admin/skill-sets", setups(s.skillSetsPage))
-	mux.HandleFunc("POST /admin/skill-sets", setups(s.saveSetup))
-	mux.HandleFunc("GET /admin/skill-sets/{name}", setups(s.skillSetPage))
-	mux.HandleFunc("GET /admin/skill-sets/{name}/plugin.zip", setups(s.exportSetup))
-	mux.HandleFunc("POST /admin/skill-sets/{name}/skills", setups(s.writeSkill))
-	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/drop", setups(s.dropSkill))
-	mux.HandleFunc("POST /admin/skill-sets/{name}/skills/{skill}/restore", setups(s.restoreSkill))
-	mux.HandleFunc("POST /admin/skill-sets/{name}/enable", setups(s.turnSetup(false)))
-	mux.HandleFunc("POST /admin/skill-sets/{name}/disable", setups(s.turnSetup(true)))
+	mux.HandleFunc("POST "+setupsPath, setups(s.saveSetup))
+	mux.HandleFunc("GET "+setupsPath+"/{name}", setups(s.skillSetPage))
+	mux.HandleFunc("GET "+setupsPath+"/{name}/plugin.zip", setups(s.exportSetup))
+	mux.HandleFunc("POST "+setupsPath+"/{name}/skills", setups(s.writeSkill))
+	mux.HandleFunc("POST "+setupsPath+"/{name}/skills/{skill}/drop", setups(s.dropSkill))
+	mux.HandleFunc("POST "+setupsPath+"/{name}/skills/{skill}/restore", setups(s.restoreSkill))
+	mux.HandleFunc("POST "+setupsPath+"/{name}/enable", setups(s.turnSetup(false)))
+	mux.HandleFunc("POST "+setupsPath+"/{name}/disable", setups(s.turnSetup(true)))
 
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
@@ -131,12 +115,23 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 // to the same place with its method kept.
 func (s *Server) movedRoutes(mux *http.ServeMux) {
 	for from, to := range map[string]string{
-		"/changes":       "/admin/activity",
+		"/changes":       activityTab,
 		"/changes.jsonl": "/admin/activity.jsonl",
 		"/tokens":        "/admin/tokens",
-		"/retention":     "/admin/retention",
+		"/retention":     keepingTab,
 	} {
 		mux.HandleFunc("GET "+from, s.guard(moved(to)))
+	}
+	// A page that became a tab of another goes to that tab, with what it was sent to say.
+	for from, to := range map[string]string{
+		"/admin/activity":     activityTab,
+		"/admin/verification": checksTab,
+		"/admin/retention":    keepingTab,
+		"/admin/connectors":   appsTab,
+		setupsPath:            skillsTab,
+		integrationsPath:      skillsTab,
+	} {
+		mux.HandleFunc("GET "+from, s.console(toTab(to)))
 	}
 	for from, to := range map[string]string{
 		"/tokens":                            "/admin/tokens",
@@ -144,10 +139,41 @@ func (s *Server) movedRoutes(mux *http.ServeMux) {
 		"/retention/sweep":                   "/admin/retention/sweep",
 		"/retention/holds":                   "/admin/retention/holds",
 		"/retention/holds/release":           "/admin/retention/holds/release",
-		"/setups":                            "/admin/skill-sets",
-		"/setups/{name}/skills":              "/admin/skill-sets/{name}/skills",
-		"/setups/{name}/skills/{skill}/drop": "/admin/skill-sets/{name}/skills/{skill}/drop",
+		"/setups":                            setupsPath,
+		"/setups/{name}/skills":              setupsPath + "/{name}/skills",
+		"/setups/{name}/skills/{skill}/drop": setupsPath + "/{name}/skills/{skill}/drop",
 	} {
 		mux.HandleFunc("POST "+from, s.guard(redirected(to, http.StatusPermanentRedirect)))
 	}
+}
+
+// toTab sends a request for a page that is now a tab to that tab, keeping its query.
+func toTab(tab string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		to := tab
+		if r.URL.RawQuery != "" {
+			to += "&" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, to, http.StatusSeeOther)
+	}
+}
+
+// tab is one view of a console page, as a link.
+type tab struct {
+	Key, Label, Href string
+	On               bool
+}
+
+// chooseTab marks the tab the request names, or the first when it names none of them, and says which it is.
+func chooseTab(r *http.Request, path string, tabs []tab) ([]tab, string) {
+	chosen := tabs[0].Key
+	for _, each := range tabs {
+		if each.Key == r.URL.Query().Get("tab") {
+			chosen = each.Key
+		}
+	}
+	for i := range tabs {
+		tabs[i].Href, tabs[i].On = path+"?tab="+tabs[i].Key, tabs[i].Key == chosen
+	}
+	return tabs, chosen
 }

@@ -1,14 +1,13 @@
 package web
 
 import (
-	"net/http"
 	"sort"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
-// verifiedRuns is how many of the newest runs the verification page checks. Each check reads the run's files.
+// verifiedRuns is how many of the newest runs the task checks look at. Each check reads the run's files.
 const verifiedRuns = 40
 
 // checked is one run and what checking its files and signature found.
@@ -17,8 +16,17 @@ type checked struct {
 	Href                        string
 }
 
-// verification says, for the newest runs, whether each still matches what was recorded when it finished.
-func (s *Server) verificationPage(w http.ResponseWriter, r *http.Request) {
+// runChecks is what checking the newest finished runs found: how many came out each way, and the ones that need a look.
+type runChecks struct {
+	Rows                                   []checked
+	Verified, Unsigned, Unchecked, Failing int
+}
+
+// Checked is how many runs were checked.
+func (c runChecks) Checked() int { return c.Verified + c.Unsigned + c.Unchecked + c.Failing }
+
+// checkRuns says, for the newest runs, whether each still matches what was recorded when it finished.
+func (s *Server) checkRuns() runChecks {
 	all := s.index.List()
 	sort.SliceStable(all, func(a, b int) bool { return all[a].Queued > all[b].Queued })
 	counts := map[string]int{}
@@ -41,10 +49,7 @@ func (s *Server) verificationPage(w http.ResponseWriter, r *http.Request) {
 			rows = append(rows, checkedRow(record, state))
 		}
 	}
-	s.drawConsole(w, "admin-verification.html", "verification", map[string]any{
-		"Title": productName + " — verification", "Rows": rows, "Verified": counts["verified"], "Unsigned": counts["unsigned"],
-		"Unchecked": counts["unchecked"], "Failing": counts["does not check out"], "Shown": verifiedRuns,
-	})
+	return runChecks{Rows: rows, Verified: counts["verified"], Unsigned: counts["unsigned"], Unchecked: counts["unchecked"], Failing: counts["does not check out"]}
 }
 
 func checkedRow(record jobs.Record, state string) checked {

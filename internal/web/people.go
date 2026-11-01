@@ -36,9 +36,10 @@ type inviteRow struct {
 
 // peoplePage is who is in the organization, with what each has spent this month.
 func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — people"}
-	if s.front != nil {
+	page := map[string]any{"Title": productName + " — people", "Refused": r.URL.Query().Get("refused")}
+	if s.front != nil && s.front.URL != "" {
 		page["Manage"] = s.front.page("/org", nil)
+		page["RoleAction"], page["Back"] = s.front.page("/org/people/role", nil), pageAddress(r)
 	}
 	list, err := roster.Read(s.rosterPath)
 	if err != nil {
@@ -52,8 +53,32 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	}
 	page["Month"], page["Written"] = month, list.Written.Unix()
 	page["People"], page["Invited"] = s.rowsOf(list, spent), invitesOf(list)
-	page["Budgets"] = s.hasOrgSettings()
+	page["Admins"] = adminsIn(list)
+	page["Tokens"] = s.hasTokens()
+	if s.hasOrgSettings() {
+		page["Budget"] = s.budgetOf(0)
+	}
 	s.drawConsole(w, "admin-people.html", "people", page)
+}
+
+// pageAddress is the page a request is for, as a browser outside reads its address, for a page elsewhere to send the
+// person back to.
+func pageAddress(r *http.Request) string {
+	scheme := "http"
+	if overTLS(r) {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host + r.URL.Path
+}
+
+func adminsIn(list roster.Roster) int {
+	admins := 0
+	for _, member := range list.Members {
+		if member.Role == "admin" {
+			admins++
+		}
+	}
+	return admins
 }
 
 func (s *Server) rowsOf(list roster.Roster, spent map[string]spend.Tally) []personRow {

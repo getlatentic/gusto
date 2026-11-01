@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -228,7 +227,7 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	admin, runner := here.as(t, "admin@example.com"), here.as(t, alice)
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
 
-	page := admin.ask(t, "GET", "/admin/activity", nil)
+	page := admin.ask(t, "GET", "/admin/records", nil)
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
@@ -245,17 +244,17 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	if err != nil || report.Events < 1 || report.Signers["acme"] != report.Events {
 		t.Errorf("what was downloaded does not verify: %+v %v", report, err)
 	}
-	if signed := strconv.Itoa(report.Signed) + " signed"; !strings.Contains(page.Body.String(), signed) {
+	if signed := eventsSaid(report.Events, report.Signed); report.Signed != report.Events || !strings.Contains(page.Body.String(), signed) {
 		t.Errorf("the page does not count the signed lines as %q", signed)
 	}
 
-	for _, path := range []string{"/admin/activity", "/admin/activity.jsonl"} {
+	for _, path := range []string{"/admin/records", "/admin/activity.jsonl"} {
 		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusForbidden {
 			t.Errorf("a runner asking for %s got %d", path, got.Code)
 		}
 	}
 	stranger := httptest.NewRecorder()
-	here.handler.ServeHTTP(stranger, httptest.NewRequest("GET", "/admin/activity", nil))
+	here.handler.ServeHTTP(stranger, httptest.NewRequest("GET", "/admin/records", nil))
 	if stranger.Code != http.StatusSeeOther {
 		t.Errorf("somebody not signed in got %d", stranger.Code)
 	}
@@ -283,8 +282,12 @@ func TestAScriptWithThePasswordReadsTheSameRecord(t *testing.T) {
 func TestWithNoLogNothingIsRecordedAndNobodyIsShownAPage(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	if got := here.ask(t, "GET", "/admin/activity", nil); got.Code != http.StatusNotFound {
-		t.Errorf("with no log the page answered %d", got.Code)
+	page := here.ask(t, "GET", "/admin/records", nil).Body.String()
+	if strings.Contains(page, "tab=activity") || strings.Contains(page, "/admin/activity.jsonl") {
+		t.Errorf("with no log the records offer its activity:\n%s", page)
+	}
+	if got := here.ask(t, "GET", "/admin/activity.jsonl", nil); got.Code != http.StatusNotFound {
+		t.Errorf("with no log the download answered %d", got.Code)
 	}
 }
 

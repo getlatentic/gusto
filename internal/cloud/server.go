@@ -219,8 +219,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			h.Set("Cache-Control", "no-store")
 		}
 		if r.Method == http.MethodPost {
-			// An organization's pages ask for the confirmation link again from their own address.
-			if !sameSite(r) && !(r.URL.Path == "/account/confirm" && s.isOrgOrigin(r.Header.Get("Origin"))) {
+			// An organization's pages ask for the confirmation link again, and change a person's role, from their own address.
+			if !sameSite(r) && !(sentFromOrgs[r.URL.Path] && s.isOrgOrigin(r.Header.Get("Origin"))) {
 				http.Error(w, "that form was sent from another site", http.StatusForbidden)
 				return
 			}
@@ -232,6 +232,9 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// sentFromOrgs are the forms an organization's own pages send here.
+var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role": true}
 
 // sameSite says a form came from a page of this server. A browser names the
 // page's origin on every form it posts, and says when the site is another.

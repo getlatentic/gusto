@@ -169,6 +169,8 @@
     <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-two-col</h3><p class="{{template "ui-note"}}">A main column and a 20rem side column. They stack below 56rem.</p></section></div>
     <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">Side</h3></section></div>
   </div>
+  {{template "ui-tabs" .Tabs}}
+  <div class="flex items-center gap-3 text-sm"><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="true" aria-label="ui-switch, on"></button><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="false" aria-label="ui-switch, off"></button><span class="text-muted">ui-switch, on and off</span></div>
   <nav class="{{template "ui-crumb"}}" aria-label="Breadcrumb"><a class="{{template "ui-crumb-link"}}" href="#kit-surfaces">Usage</a><span>/</span><span>ui-crumb</span></nav>
   <div>
     <details class="group">

@@ -216,9 +216,6 @@ func serve(args []string) int {
 	} else {
 		pages.UseApps(shared, nil)
 	}
-	if computers != nil {
-		pages.UseComputers(computers)
-	}
 	if local {
 		pages.UseLocalSignIn(password, localPerson())
 	}

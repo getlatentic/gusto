@@ -62,7 +62,7 @@ More than half the tasks that ended in the last hour failed, and at least five d
 
 ### GustoDiskLow
 
-Less than a tenth of the tasks volume is free. Tasks fail to write and the queue stalls. Open `/admin/retention`. Set or shorten the policy ([RETENTION.md](RETENTION.md)), then sweep. `gusto retention` gives a dry run. Run `du` to find other things on the same volume.
+Less than a tenth of the tasks volume is free. Tasks fail to write and the queue stalls. Open `/admin/records?tab=keeping`. Set or shorten the policy ([RETENTION.md](RETENTION.md)), then sweep. `gusto retention` gives a dry run. Run `du` to find other things on the same volume.
 
 ### GustoModelErrors
 

@@ -1,6 +1,6 @@
 # The record of what changes on the platform
 
-This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A task's record says what an agent did. An admin reads this one under Activity in the admin console, at `/admin/activity`.
+This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A task's record says what an agent did. An admin reads this one under Records in the admin console, at `/admin/records`.
 
 ## What is written
 

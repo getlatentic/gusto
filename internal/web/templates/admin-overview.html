@@ -1,135 +1,52 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
+<div class="{{template "ui-head"}}">
   <h1>Overview</h1>
+  <p class="{{template "ui-lede"}}">{{.MonthName}}, so far</p>
 </div>
 
-{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
-{{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.Month}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
+{{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.MonthName}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
 {{if .Budget.Err}}<p class="{{template "ui-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
+{{if .Spent.Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index of model calls is still being built, so these figures are not yet everything.</p>{{end}}
 
-<section class="{{template "ui-figures"}}">
-  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/admin/spending">
-    <span class="{{template "ui-figure-value"}}">{{if and (eq .Spent.USD 0.0) .Spent.Unmeasured}}—{{else}}{{usd .Spent.USD}}{{end}}</span>
-    <span class="{{template "ui-figure-label"}}">spent in {{.Month}}</span>
-  </a>
-  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=running">
-    <span class="{{template "ui-figure-value"}}">{{.Running}}</span>
-    <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>running, up to {{.Slots}} at once</span>
-  </a>
-  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=queued">
-    <span class="{{template "ui-figure-value"}}">{{.Waiting}}</span>
-    <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-warn"></span>waiting</span>
-  </a>
-  <a class="{{template "ui-figure"}} transition-colors hover:bg-wash" href="/jobs?state=failed">
-    <span class="{{template "ui-figure-value"}}">{{.Failed}}</span>
-    <span class="flex items-center gap-2 text-xs text-muted"><span class="size-1.5 rounded-full bg-bad"></span>failed this week</span>
-  </a>
+<section class="{{template "ui-card"}} mb-4">
+  <p class="text-sm text-muted">Spent this month</p>
+  <p class="mt-1 flex flex-wrap items-baseline gap-x-2"><span class="font-display text-[2.125rem] leading-tight font-semibold tracking-tight tabular-nums">{{usd .Spent.USD}}</span>
+    {{if .Budget.Set}}<span class="text-muted">of {{usd .Budget.Limit}}</span>{{else}}<span class="text-muted">no budget set{{if .PeoplePage}} · <a class="text-accent-ink no-underline hover:underline" href="/admin/people">set one on People</a>{{end}}</span>{{end}}</p>
+  {{if .Spent.Unmeasured}}<p class="text-sm text-muted">at least: {{.Spent.Unmeasured}} {{if eq .Spent.Unmeasured 1}}call has{{else}}calls have{{end}} no price</p>{{end}}
+  <div class="mt-3 mb-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true"><div class="h-full rounded-full {{if .Budget.Passed}}bg-bad{{else}}bg-accent{{end}}" style="width:{{if .Budget.Set}}{{.Percent}}{{else}}0{{end}}%"></div></div>
+  <p class="text-xs text-subtle">{{with .Credit}}Free model credit: {{usd .Used}} of {{usd .Limit}} used. {{end}}Each person's agents stop at their own budget{{if .PeoplePage}}; set it on <a class="text-accent-ink no-underline hover:underline" href="/admin/people">People</a>{{end}}.</p>
 </section>
 
-<div class="grid gap-4">
-<div class="{{template "ui-masonry"}}">
+{{if .Spent.Split}}
+<div class="grid grid-cols-2 items-start gap-4 @max-[56rem]:grid-cols-1">
   <section class="{{template "ui-card"}}">
-    <h2 class="{{template "ui-card-title"}}">Limits</h2>
-    {{if .LimitsUnreadable}}<p class="{{template "ui-notice"}}">The limits could not be read. {{.LimitsUnreadable}}</p>{{end}}
-    {{if .Limits}}
-    <table class="{{template "ui-table"}}">
-      <thead><tr><th>What</th><th class="text-right">Used</th><th class="text-right">Of</th></tr></thead>
-      <tbody>
-        {{range .Limits}}<tr><td>{{.What}}</td><td class="text-right tabular-nums">{{if .Over}}<span class="font-semibold text-bad">{{.Used}}</span>{{else}}{{.Used}}{{end}}</td><td class="text-right tabular-nums">{{.Of}}</td></tr>{{end}}
-      </tbody>
-    </table>
-    {{else if not .LimitsUnreadable}}
-    <p class="{{template "ui-note"}}">Nothing limits this organization.</p>
+    <h2 class="{{template "ui-card-title"}}">By person</h2>
+    {{range .Spent.People}}
+    <a class="grid grid-cols-[minmax(0,1fr)_7.5rem_9.5rem] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-2.5 text-inherit no-underline first-of-type:border-t-0 {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
+      <span class="flex min-w-0 items-center gap-2.5"><span class="grid size-7 flex-none place-items-center rounded-full border border-line bg-sunken text-[0.6875rem] font-semibold text-muted" aria-hidden="true">{{if .More}}+{{else}}{{initial .Label}}{{end}}</span><span class="truncate">{{.Label}}</span></span>
+      <span class="h-1.5 overflow-hidden rounded-full bg-line @max-[40rem]:hidden" aria-hidden="true">{{if .Budget}}<span class="block h-full {{if ge .Percent 100}}bg-bad{{else}}bg-accent{{end}}" style="width:{{.Percent}}%"></span>{{end}}</span>
+      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if .Calls}}{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">no price</span>{{else}}{{usd .USD}}{{end}}{{if .Budget}} <span class="text-subtle">of {{usd .Budget}}</span>{{end}}{{else}}<span class="text-subtle">nothing yet</span>{{end}}</span>
+    </a>
+    {{else}}
+    <p class="{{template "ui-note"}}">Nobody has spent anything this month.</p>
     {{end}}
+    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{if .PeoplePage}}/admin/people{{else}}{{.Spent.AllUsage}}{{end}}">View all</a>
   </section>
 
-  {{if .Budget.Editable}}
-  <section class="{{template "ui-card"}} grid gap-3">
-    <h2 class="text-sm font-semibold">Budget</h2>
-    <p>{{if .Budget.Set}}{{usd .Budget.Limit}} a month.{{else}}No budget is set.{{end}}</p>
-    <form method="post" action="/admin/budget" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "ui-field"}}">Dollars a month <input class="input" name="usd" type="number" min="0" step="0.01" placeholder="No spending limit"{{if .Budget.Set}} value="{{printf "%.2f" .Budget.Limit}}"{{end}}></label>
-      <button class="{{template "ui-btn"}}" type="submit">Save</button>
-    </form>
-    <p class="{{template "ui-note"}}">When the month's spending passes it, this page says so. It stops no task. A member's budget does.</p>
-    <h2 class="mt-2 text-sm font-semibold">Each member</h2>
-    <p>{{if .Budget.MemberSet}}{{usd .Budget.Member}} a month for each person.{{else}}No member has a budget.{{end}}</p>
-    <form method="post" action="/admin/member-budget" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "ui-field"}}">Dollars a month, each <input class="input" name="usd" type="number" min="0" step="0.01" placeholder="No spending limit"{{if .Budget.MemberSet}} value="{{printf "%.2f" .Budget.Member}}"{{end}}></label>
-      <button class="{{template "ui-btn"}}" type="submit">Save</button>
-    </form>
-    <p class="{{template "ui-note"}}">Past it, a person's agents are stopped until the next month or until you raise it. Give one person their own on People.</p>
+  <section class="{{template "ui-card"}}">
+    <h2 class="{{template "ui-card-title"}}">By agent type</h2>
+    {{range .Spent.Engines}}
+    <a class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-2.5 text-inherit no-underline first-of-type:border-t-0 {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
+      <span class="min-w-0 truncate">{{.Label}}{{with .Sub}} <span class="text-subtle">· {{.}}</span>{{end}}</span>
+      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">no price</span>{{else}}{{usd .USD}}{{end}}</span>
+    </a>
+    {{else}}
+    <p class="{{template "ui-note"}}">No agent has spent anything this month.</p>
+    {{end}}
+    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{.Spent.AllUsage}}">View all</a>
   </section>
-  {{end}}
-
-  {{with .Defaults}}
-  <section class="{{template "ui-card"}} grid gap-3">
-    <h2 class="text-sm font-semibold">New chats</h2>
-    <p>What a new chat runs on until a person chooses their own. A person's last choice comes first.</p>
-    <form method="post" action="/admin/chat-default" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "ui-field"}}">Agent and model
-        <select class="select w-full" name="default">
-          <option value="">The first that can run</option>
-          {{range .}}<option value="{{.Value}}"{{if .Chosen}} selected{{end}}>{{.Label}}</option>{{end}}
-        </select>
-      </label>
-      <button class="{{template "ui-btn"}}" type="submit">Save</button>
-    </form>
-  </section>
-  {{end}}
-
-  {{with .RunTokens}}
-  <section class="{{template "ui-card"}} grid gap-3">
-    <h2 class="text-sm font-semibold">Model access in sandboxes</h2>
-    {{if .Err}}<p>The setting could not be read, so runs are bound. {{.Err}}</p>{{end}}
-    <p>{{if .Bound}}Each run's model access is bound to its sandbox. What an agent could copy out is no use anywhere else.{{else}}Each run gets a plain token for its model, which works from anywhere until the run ends.{{end}}</p>
-    <form method="post" action="/admin/run-tokens">
-      <input type="hidden" name="bound" value="{{if .Bound}}no{{else}}yes{{end}}">
-      <button class="{{if .Bound}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}}" type="submit">{{if .Bound}}Use plain tokens{{else}}Bind to the sandbox{{end}}</button>
-    </form>
-    <p class="{{template "ui-note"}}">Binding takes effect on the next run.</p>
-  </section>
-  {{end}}
 </div>
-
-<div class="{{template "ui-masonry"}}">
-  {{template "shares" (dict "Title" "By person" "Lines" .People)}}
-  {{with .Teams}}{{template "shares" (dict "Title" "By team" "Lines" .)}}{{end}}
-  {{template "shares" (dict "Title" "By model" "Lines" .Models)}}
-  {{with .Projects}}{{template "shares" (dict "Title" "By repository" "Lines" .)}}{{end}}
-  {{with .Payers}}{{template "shares" (dict "Title" "By whose key" "Lines" .)}}{{end}}
-</div>
-
-{{if .KeepsComputers}}
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Workspaces</h2>
-  {{if .Computers}}
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th>Person</th><th>State</th><th>Last used</th></tr></thead>
-    <tbody>
-      {{range .Computers}}<tr><td>{{.Person}}</td><td>{{template "ui-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{if .LastActive}}{{ago .LastActive}}{{else}}never{{end}}</td></tr>{{end}}
-    </tbody>
-  </table>
-  {{else}}<p class="{{template "ui-note"}}">Nobody has a workspace yet. A person's is made when they first run a task.</p>{{end}}
-</section>
 {{end}}
-{{if .ComputersUnreadable}}<p class="{{template "ui-notice"}}">The workspaces could not be read. {{.ComputersUnreadable}}</p>{{end}}
-
-{{if .SharesApps}}
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Apps</h2>
-  {{if .Apps}}
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th>Shared by</th><th>From</th><th>State</th><th>Started</th></tr></thead>
-    <tbody>
-      {{range .Apps}}<tr><td>{{.Owner}}</td><td>{{.Agent}}</td><td>{{template "ui-state" (printf "%s" .State)}}{{with .Note}} <span class="text-muted">{{.}}</span>{{end}}</td><td class="text-muted">{{ago .Started}}</td></tr>{{end}}
-    </tbody>
-  </table>
-  {{else}}<p class="{{template "ui-note"}}">Nobody has shared an app.</p>{{end}}
-</section>
-{{end}}
-{{if .AppsUnreadable}}<p class="{{template "ui-notice"}}">The apps could not be read. {{.AppsUnreadable}}</p>{{end}}
-</div>
 
 {{template "foot" .}}

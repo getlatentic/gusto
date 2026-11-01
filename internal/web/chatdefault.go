@@ -37,7 +37,7 @@ func (s *Server) orgDefault() chatDefault {
 	return chatDefault{Harness: settings.DefaultHarness, Model: settings.DefaultModel}
 }
 
-// defaultChoice is one engine and model an admin may make the default, as the admin overview lists it.
+// defaultChoice is one engine and model an admin may make the default, as the models page lists it.
 type defaultChoice struct {
 	Value, Label string
 	Chosen       bool
@@ -68,7 +68,7 @@ func (s *Server) setChatDefault(w http.ResponseWriter, r *http.Request) {
 	harness, model, _ := strings.Cut(r.FormValue("default"), "|")
 	chosen := chatDefault{Harness: harness, Model: model}
 	if harness != "" && !s.canRun(r, chosen) {
-		s.turnAway(w, r, "/admin", "that agent and model cannot run here")
+		s.turnAway(w, r, s.settingsBack(), "that agent and model cannot run here")
 		return
 	}
 	var was chatDefault
@@ -77,13 +77,13 @@ func (s *Server) setChatDefault(w http.ResponseWriter, r *http.Request) {
 		settings.DefaultHarness, settings.DefaultModel = chosen.Harness, chosen.Model
 	})
 	if err != nil {
-		s.turnAway(w, r, "/admin", err.Error())
+		s.turnAway(w, r, s.settingsBack(), err.Error())
 		return
 	}
 	if was != chosen {
 		s.note(r, changelog.ChatDefaultSet, map[string]string{"was": was.words(), "now": chosen.words()})
 	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	http.Redirect(w, r, s.settingsBack(), http.StatusSeeOther)
 }
 
 func (s *Server) canRun(r *http.Request, d chatDefault) bool {

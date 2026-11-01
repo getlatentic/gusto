@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +59,9 @@ func matches(r usage.Row, f usage.Filter) bool {
 		if c[0] != "" && c[0] != c[1] {
 			return false
 		}
+	}
+	if f.OnlySessions && !slices.Contains(f.Sessions, r.Session) {
+		return false
 	}
 	if f.Search == "" {
 		return true
@@ -113,6 +117,39 @@ func (f *Fake) Totals(ctx context.Context, filter usage.Filter) (usage.Totals, e
 		add(&t, r)
 	}
 	return t, nil
+}
+
+func (f *Fake) Groups(ctx context.Context, filter usage.Filter, by string) ([]usage.Group, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if by != usage.ByPerson && by != usage.ByEngine {
+		return nil, usage.ErrBadGroup
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	index := map[string]*usage.Group{}
+	agents := map[string]map[string]bool{}
+	for _, r := range f.matching(filter) {
+		value := r.Person
+		if by == usage.ByEngine {
+			value = r.Engine
+		}
+		if index[value] == nil {
+			index[value], agents[value] = &usage.Group{Value: value}, map[string]bool{}
+		}
+		add(&index[value].Totals, r)
+		if r.Agent != "" {
+			agents[value][r.Agent] = true
+		}
+	}
+	var out []usage.Group
+	for value, g := range index {
+		g.Agents = int64(len(agents[value]))
+		out = append(out, *g)
+	}
+	usage.SortGroups(out)
+	return out, nil
 }
 
 // before is the order calls were made in: by time, then by task and line.

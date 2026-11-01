@@ -45,9 +45,12 @@
     } catch (e) {}
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,
-    // and a form that asks first.
+    // asking first when it is changed to its data-confirm-when, and a form that asks first.
     document.addEventListener("change", function (event) {
-      if (event.target.matches("[data-autosubmit]") && event.target.form) { event.target.form.submit(); }
+      var field = event.target;
+      if (!field.matches("[data-autosubmit]") || !field.form) { return; }
+      if (field.dataset.confirmWhen === field.value && !confirm(field.dataset.confirm)) { field.form.reset(); return; }
+      field.form.submit();
     });
     // The side list slides over on a narrow window, and anything that takes you away closes it again, giving the keyboard back to the button.
     var sideOpen = function (open) {
@@ -94,6 +97,7 @@
   <div class="flex min-h-12 items-center gap-3 px-3 @max-[56rem]:order-[-2] @max-[56rem]:flex-1"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-sliders"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold">Admin</strong>{{with .OrgName}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
   <div class="flex min-w-0 flex-col gap-1 @max-[56rem]:basis-full @max-[56rem]:flex-row @max-[56rem]:overflow-x-auto @max-[56rem]:[scrollbar-width:none]">{{range .Sections}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium whitespace-nowrap text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto @max-[56rem]:shrink-0 [&_svg.i]:size-4" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</div>
   <span class="flex-1 @max-[56rem]:hidden"></span>
+  {{with .OrgPage}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium whitespace-nowrap text-muted no-underline hover:bg-hover hover:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal @max-[56rem]:order-[-1]" href="{{.}}">{{template "icon-settings"}} Organization and billing</a>{{end}}
   <a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal @max-[56rem]:order-[-1]" href="/">{{template "icon-back"}} Back to gusto</a>
   <form class="@max-[56rem]:order-[-1]" method="post" action="/logout"><button class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>

@@ -40,29 +40,14 @@ const setupsPath = "/admin/skill-sets"
 
 // setupsPage is every skill set, for anybody to read.
 func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "setups.html", s.setupsData(r, "/setups"))
-}
-
-// skillSetsPage is every skill set, and the way to make another.
-func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
-	s.drawConsole(w, "setups.html", "skill-sets", s.setupsData(r, setupsPath))
-}
-
-func (s *Server) setupsData(r *http.Request, base string) map[string]any {
-	list := s.setupsList()
-	if base == setupsPath {
-		list = s.setupsAll()
-	}
-	return map[string]any{
-		"Title":    productName + " — skill sets",
-		"Nav":      "presets",
-		"Base":     base,
-		"Setups":   list,
-		"Offered":  s.servers,
-		"Imported": s.importedIntegrations(),
-		"Keeps":    s.setups != nil,
-		"Refused":  r.URL.Query().Get("refused"),
-	}
+	s.render(w, "setups.html", map[string]any{
+		"Title":   productName + " — skill sets",
+		"Nav":     "presets",
+		"Base":    "/setups",
+		"Setups":  s.setupsList(),
+		"Keeps":   s.setups != nil,
+		"Refused": r.URL.Query().Get("refused"),
+	})
 }
 
 // setupOf is what a job on this instance is given, named for job.json.
@@ -123,11 +108,11 @@ func (s *Server) setupsAll() []setup.Setup {
 // saveSetup makes a setup, or changes which servers one names.
 func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	if s.setups == nil {
-		s.turnAway(w, r, setupsPath, "this server keeps no setups")
+		s.turnAway(w, r, skillsTab, "this server keeps no setups")
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		s.turnAway(w, r, setupsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -142,7 +127,7 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	wanted.Servers, wanted.Integrations = r.Form["server"], r.Form["integration"]
 	if err := s.setups.Save(wanted, s.servers); err != nil {
-		s.turnAway(w, r, setupsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", "), "integrations": strings.Join(wanted.Integrations, ", "),
@@ -173,7 +158,7 @@ func (s *Server) exportSetup(w http.ResponseWriter, r *http.Request) {
 // skillSetPage is one setup, and the way to change its skills and servers.
 func (s *Server) skillSetPage(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.setupData(w, r, setupsPath); ok {
-		s.drawConsole(w, "setup-detail.html", "skill-sets", page)
+		s.drawConsole(w, "setup-detail.html", "apps", page)
 	}
 }
 

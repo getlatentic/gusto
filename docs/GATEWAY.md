@@ -60,7 +60,7 @@ Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `disco
 
 A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, and their agents call it as them (`internal/connector`).
 
-1. An admin turns the app on at `/admin/connectors`. Every app is off until then.
+1. An admin turns the app on at `/admin/apps`. Every app is off until then.
 2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.
 3. The app sends them back to `/connections/callback`. gusto trades the code for tokens and keeps them sealed in `GUSTO_CONNECTORS`.
 4. The person's next task has the app behind its gateway. `job.json` names it under `setup.connectors` and `setup.gateway`.

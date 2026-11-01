@@ -2,7 +2,7 @@
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<nav class="mb-2 flex items-center gap-2 text-sm text-muted" aria-label="Where this is"><a class="hover:text-ink" href="/admin/integrations">Integrations</a><span aria-hidden="true">/</span><span>{{.Held.Name}}</span></nav>
+<nav class="mb-2 flex items-center gap-2 text-sm text-muted" aria-label="Where this is"><a class="hover:text-ink" href="/admin/apps?tab=skills">Skills</a><span aria-hidden="true">/</span><span>{{.Held.Name}}</span></nav>
 <div class="{{template "ui-title"}}">
   <h1>{{.Held.Name}} <span class="text-base font-normal text-muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
   <span class="flex-1"></span>

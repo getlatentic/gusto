@@ -63,6 +63,9 @@ type Filter struct {
 	Provider string
 	Model    string
 	Search   string
+	// OnlySessions keeps the calls of the sessions listed in Sessions alone, so an empty list keeps nothing.
+	OnlySessions bool
+	Sessions     []string
 }
 
 // Cursor continues a listing where the last page ended. It is opaque, and empty at the start and at the end. It
@@ -134,6 +137,9 @@ type Store interface {
 	// stays flat however many there are. It stops at the first error from fn, and returns it.
 	Export(ctx context.Context, filter Filter, fn func(Row) error) error
 	Totals(ctx context.Context, filter Filter) (Totals, error)
+	// Groups adds up the calls that match the filter by ByPerson or ByEngine, the most spent first. The calls that
+	// have no value there are one group whose Value is empty, so the groups always add up to Totals.
+	Groups(ctx context.Context, filter Filter, by string) ([]Group, error)
 	// Facets lists the distinct values, in order, of the calls that match the filter.
 	Facets(ctx context.Context, filter Filter) (Facets, error)
 	// Indexed is, for each task the index holds, how many of its calls it holds: one more than the highest Line.

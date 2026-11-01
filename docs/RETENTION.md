@@ -28,11 +28,11 @@ The server refuses a policy that sets a record to go before its workspace, names
 | Chart | `retention` in the values |
 | Compose | `policy.json` in `$GUSTO_DATA/retention/` on the volume |
 
-`GUSTO_RETENTION` names the directory. It holds `policy.json`, `holds.json` and `last.json`, the newest sweep's report. With no policy the server removes nothing, and `/admin/retention` still shows the disk and the holds.
+`GUSTO_RETENTION` names the directory. It holds `policy.json`, `holds.json` and `last.json`, the newest sweep's report. With no policy the server removes nothing, and `/admin/records?tab=keeping` still shows the disk and the holds.
 
 ## Sweeps
 
-The server sweeps every 60 minutes. Set `GUSTO_RETENTION_MINUTES` to change the interval. An admin can sweep at once from `/admin/retention`.
+The server sweeps every 60 minutes. Set `GUSTO_RETENTION_MINUTES` to change the interval. An admin can sweep at once from `/admin/records?tab=keeping`.
 
 A sweep touches only tasks that have ended and that no agent owns. A task or message on an agent goes when the agent is removed. A queued or running task is never touched.
 
@@ -44,7 +44,7 @@ A sweep that cannot read the holds removes nothing.
 
 ## See what a sweep removes
 
-`/admin/retention` shows the disk the tasks use, how much is workspaces, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
+`/admin/records?tab=keeping` shows the disk the tasks use, how much is workspaces, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
 
 This command lists what a sweep would remove now and removes nothing. It is safe to run while the server runs.
 
