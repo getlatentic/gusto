@@ -3,7 +3,7 @@
   {{if .Taken}}
   <h1 class="text-xl font-semibold">Welcome back</h1>
   <p><strong class="font-semibold">{{.Email}}</strong> already has a gusto account.</p>
-  <form method="post" action="/signin"><input type="hidden" name="email" value="{{.Email}}"><button class="w-full cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a sign-in link</button></form>
+  <form method="post" action="/signin"><input type="hidden" name="email" value="{{.Email}}"><button class="w-full cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a sign-in code</button></form>
   <p class="text-center text-sm text-muted"><a class="underline" href="/signup">Use a different email</a></p>
   {{else}}
   <h1 class="text-xl font-semibold">Get started</h1>
@@ -19,4 +19,4 @@
   </form>
   <p class="text-center text-sm text-muted">Already use gusto? <a class="underline" href="/signin">Sign in</a></p>
   {{end}}
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}
