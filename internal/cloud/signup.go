@@ -26,7 +26,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, http.StatusOK, "signup", view{Title: "Create your organization"})
+	s.render(w, http.StatusOK, "signup", view{Title: "Get started"})
 }
 
 // signUp makes the person and their organization, signs them in, and mails them
@@ -34,8 +34,9 @@ func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
 // what they typed.
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
+	var refused error
 	again := func(status int, why string, more bool) {
-		s.render(w, status, "signup", view{Title: "Create your organization", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug,
+		s.render(w, status, "signup", view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug, Taken: errors.Is(refused, ErrEmailTaken),
 			More: more || in.OrgName != "" || in.Slug != ""})
 	}
 	if !s.all.Allow("all") {
@@ -48,6 +49,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	}
 	person, org, err := s.Store.SignUp(in)
 	if err != nil {
+		refused = err
 		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}

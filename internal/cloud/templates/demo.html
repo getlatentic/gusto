@@ -5,7 +5,7 @@
   {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
   <form class="grid gap-3" method="post" action="/demo" data-warm="/demo/warm">
     <label class="grid gap-1 text-sm text-muted">Your name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="name" value="{{.Name}}" maxlength="80" autocomplete="name" autofocus required></label>
-    <label class="grid gap-1 text-sm text-muted">Work email <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" required></label>
+    <label class="grid gap-1 text-sm text-muted">{{if .WorkOnly}}Work email{{else}}Email{{end}} <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" required></label>
     <label class="grid gap-1 text-sm text-muted">Company <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="company" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
     {{with .TurnstileSite}}<div class="cf-turnstile" data-size="flexible" data-sitekey="{{.}}"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}

@@ -523,3 +523,31 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 		}
 	})
 }
+
+// Signing up with an address that has an account offers a sign-in link to it, which one press sends.
+func TestSigningUpWithAnAddressThatHasAnAccountOffersASignInLink(t *testing.T) {
+	f := newFront(t, Settings{}, nil)
+	f.browser().post("/signup", signup("ada@acme.com", "Acme"))
+	before := len(f.mails())
+	status, page, _ := f.browser().post("/signup", signup("ada@acme.com", "Acme"))
+	if status != http.StatusConflict || !strings.Contains(page, "ada@acme.com already has an account") ||
+		!strings.Contains(page, `<form method="post" action="/signin"><input type="hidden" name="email" value="ada@acme.com">`) {
+		t.Fatalf("a taken address is not offered a sign-in link: %d\n%s", status, page)
+	}
+	if _, page, _ := f.browser().post("/signin", url.Values{"email": {"ada@acme.com"}}); !strings.Contains(page, "Check your email") {
+		t.Errorf("pressing it did not ask for a link:\n%s", page)
+	}
+	if mails := f.mails(); len(mails) != before+1 || !strings.Contains(mails[len(mails)-1], "/signin/link?t=") {
+		t.Errorf("no sign-in link was mailed: %d mails", len(mails)-before)
+	}
+}
+
+// The sign-up form asks for a work email only when a free mail address would be refused.
+func TestTheSignUpFormAsksForAWorkEmailOnlyWhenOnlyOneWillDo(t *testing.T) {
+	for allow, want := range map[bool]string{false: "Work email", true: "Email <input"} {
+		f := newFront(t, Settings{AllowFreeMail: allow}, nil)
+		if _, page := f.browser().get("/signup"); !strings.Contains(page, want) || (allow && strings.Contains(page, "Work email")) {
+			t.Errorf("with free mail allowed %v the form does not say %q:\n%s", allow, want, page)
+		}
+	}
+}

@@ -30,6 +30,10 @@ type view struct {
 	// after they have been.
 	More bool
 	Slug string
+	// Taken says the address a person signed up with has an account, so they are offered a sign-in link to it.
+	Taken bool
+	// WorkOnly says only a work address may sign up or start a demo.
+	WorkOnly bool
 	// Sent says a sign-in link was asked for.
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
@@ -105,6 +109,7 @@ type view struct {
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
+	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {

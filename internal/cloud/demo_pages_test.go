@@ -230,13 +230,13 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 			t.Errorf("a video of its own opens nothing up: %s", csp)
 		}
 		f := newFront(t, demoSet, nil)
-		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
+		if status, page := f.browser().get("/signup"); status != http.StatusOK || !strings.Contains(page, "Get started") {
 			t.Errorf("sign-up is still there: %d", status)
 		}
 		if status, css, _ := f.browser().do("GET", "/static/cloud.css", nil, nil); status != http.StatusOK || !strings.Contains(css, ".bg-solid") {
 			t.Errorf("its stylesheet is served: %d", status)
 		}
-		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Create your organization") {
+		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || !strings.Contains(page, "Get started") {
 			t.Errorf("a host that offers no demo still has the sign-up page at the front: %d", status)
 		}
 	})
