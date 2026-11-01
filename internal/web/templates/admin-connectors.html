@@ -10,7 +10,7 @@
 </details>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
-{{if .TurnedOn}}<p class="{{template "ui-notice"}}" role="status">{{.TurnedOn}} is on. Each person, you included, connects their own account from <a href="/connections">Connections</a> before their agents can use it.</p>{{end}}
+{{with .TurnedOn}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">{{.}} is on. Each person connects their own account before their agents can use it, and the chat page offers it until they do.</p>{{end}}
 
 <section class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">
@@ -20,7 +20,7 @@
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
-        <td class="whitespace-nowrap">{{if .On}}<span class="{{template "ui-badge-ok"}}">on</span> <a class="text-xs" href="/connections">Connect yours</a>{{else if .Usable}}<span class="text-muted">off</span>{{else}}<span class="text-muted">needs a client</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if .On}}<span class="{{template "ui-badge-ok"}}">on</span>{{else if .Usable}}<span class="text-muted">off</span>{{else}}<span class="text-muted">needs a client</span>{{end}}</td>
         <td class="text-right">{{if .On}}<form method="post" action="/admin/connectors/{{.ID}}/off"><button class="{{template "ui-btn-sm"}}" type="submit">Turn off</button></form>{{else if .Usable}}<form method="post" action="/admin/connectors/{{.ID}}/on"><button class="{{template "ui-btn-sm"}}" type="submit">Turn on</button></form>{{end}}</td>
       </tr>
       {{end}}

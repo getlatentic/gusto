@@ -49,6 +49,7 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"FoundKeys":   s.foundKeys,
 		"Lacking":     s.lacking(),
 		"Wall":        s.wallView(),
+		"Unconnected": s.unconnected(r),
 	})
 }
 
