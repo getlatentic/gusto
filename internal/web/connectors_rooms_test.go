@@ -39,10 +39,10 @@ func TestARoomTurnUsesItsAskersAppsOnlyOnceTheyLetIt(t *testing.T) {
 	if got := turn("before", alice); got != nil {
 		t.Fatalf("a room turn used the asker's apps before they let it: %+v", got)
 	}
-	if page := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Agents here don't use your Tasks.") || !strings.Contains(page, "Let them, for what I ask") {
+	if page := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Let agents use your Tasks") {
 		t.Fatalf("the room does not ask the person who connected an app:\n%s", page)
 	}
-	if page := bea.ask(t, "GET", thread, nil).Body.String(); strings.Contains(page, "Let them, for what I ask") {
+	if page := bea.ask(t, "GET", thread, nil).Body.String(); strings.Contains(page, "Let agents use your") {
 		t.Error("the room asks a person who connected nothing")
 	}
 
@@ -74,7 +74,7 @@ func TestARoomTurnUsesItsAskersAppsOnlyOnceTheyLetIt(t *testing.T) {
 	if got := brief("bob"); !strings.Contains(got, "you have no connected apps") || !strings.Contains(got, "do not look for them") {
 		t.Errorf("the agent is not told it has no apps for another member's message:\n%s", got)
 	}
-	if page := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Agents here use your Tasks as you, for what you ask them.") {
+	if page := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Agents here use your Tasks as you, only for what you ask them.") {
 		t.Error("the room does not say the person's app is in use")
 	}
 
