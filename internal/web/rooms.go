@@ -12,7 +12,7 @@ import (
 )
 
 // A room is a conversation its people share. Each of its agents keeps a conversation of its own in it and answers when it is
-// mentioned, or always when it is the room's only agent. An agent that mentions another in its reply hands the work on.
+// mentioned, or, when it is the room's only agent, to anything not said to one of the room's people. An agent that mentions another in its reply hands the work on.
 
 const (
 	// handOffs is how many times a chain of agents may hand a request on before it stops and waits for a person.
@@ -130,6 +130,16 @@ func mentioned(held instance.Instance, text string) []instance.Agent {
 		}
 	}
 	return named
+}
+
+// mentionsAPerson says whether the text mentions one of the room's people, which makes it said to them and not to the room's
+// only agent.
+func (s *Server) mentionsAPerson(held instance.Instance, text string) bool {
+	names := make([]string, 0, len(held.Members))
+	for _, member := range held.Members {
+		names = append(names, s.personName(member.Who))
+	}
+	return len(mentionSpans(text, names)) > 0
 }
 
 // mentionedWaiting is each agent the text mentions that a member proposed and no admin of the room has accepted yet.

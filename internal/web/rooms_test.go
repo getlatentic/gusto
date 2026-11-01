@@ -285,6 +285,26 @@ func TestARoomsOnlyAgentAnswersWithoutAMention(t *testing.T) {
 	}
 }
 
+// A message that mentions one of the room's people is said to them, so the room's only agent does not take it as a request.
+func TestARoomsOnlyAgentLeavesAMessageToAPersonAlone(t *testing.T) {
+	work := &roomWork{}
+	site, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
+	site.server.instances.SetMember(id, bob, instance.RoleMember)
+	to := "@" + site.server.personName(bob)
+	site.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {to + " the webinar is on 12 November"}})
+	time.Sleep(100 * time.Millisecond)
+	if heard := work.turns(); len(heard) != 0 {
+		t.Fatalf("the agent took a message said to a person: %+v", heard)
+	}
+	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "the webinar is on 12 November") {
+		t.Error("the room does not show the message")
+	}
+	site.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout use what " + to + " was told"}})
+	if heard := work.waitTurns(t, site, 1); !strings.Contains(heard[0].Brief, "the webinar is on 12 November") {
+		t.Errorf("the agent asked next was not told the message to the person:\n%s", heard[0].Brief)
+	}
+}
+
 func TestAnAgentHandsWorkOnByMentioningAnotherAndTheChainStops(t *testing.T) {
 	work := &roomWork{replies: map[string]string{"a1": "@Draft over to you", "a2": "@Scout back to you"}}
 	site, _, thread := aRoom(t, work, [2]string{"Scout", "fixture"}, [2]string{"Draft", "other"})

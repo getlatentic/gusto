@@ -20,7 +20,7 @@ func (s *Server) speak(asked string, held instance.Instance, thread instance.Thr
 	held = s.liveRoom(held)
 	agents := mentioned(held, said)
 	waiting := mentionedWaiting(held, said)
-	if working := held.Working(); len(agents) == 0 && len(waiting) == 0 && len(working) == 1 {
+	if working := held.Working(); len(agents) == 0 && len(waiting) == 0 && len(working) == 1 && !s.mentionsAPerson(held, said) {
 		agents = working
 	}
 	if len(agents) == 0 {
