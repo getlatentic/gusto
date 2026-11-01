@@ -60,7 +60,7 @@
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    {{with .MyApps}}<form class="mx-auto mb-2 flex max-w-[56rem] flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" method="post" action="/instances/{{$.Instance.ID}}/connections"><input type="hidden" name="back" value="{{$.Path}}"><input type="hidden" name="let" value="{{if .Let}}off{{else}}on{{end}}"><span>{{if .Let}}Agents here use your {{.Names}} as you, for what you ask them.{{else}}Agents here don't use your {{.Names}}.{{end}}</span><button class="{{template "ui-btn-sm"}}" type="submit">{{if .Let}}Stop{{else}}Let them, for what I ask{{end}}</button></form>{{end}}
+    {{with .MyApps}}<form id="apps-form" method="post" action="/instances/{{$.Instance.ID}}/connections" hidden><input type="hidden" name="back" value="{{$.Path}}"><input type="hidden" name="let" value="{{if .Let}}off{{else}}on{{end}}"></form>{{end}}
     <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
@@ -75,6 +75,13 @@
         {{end}}
         <div class="flex items-center gap-1">
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
+          {{with .MyApps}}{{if .Let}}<details class="group relative">
+            <summary class="{{template "apps-chip"}}" title="Agents here use your {{.Names}} as you, only for what you ask them">{{template "icon-link"}}<span>Your {{.Names}}</span></summary>
+            <div class="absolute bottom-full left-0 z-30 mb-2 grid w-72 gap-2 rounded-xl border border-line bg-surface p-3 text-xs text-muted shadow-2">
+              <p class="m-0">Agents here use your {{.Names}} as you, only for what you ask them.</p>
+              <button class="{{template "ui-btn-sm"}} justify-self-start" type="submit" form="apps-form">Stop</button>
+            </div>
+          </details>{{else}}<button class="{{template "apps-chip"}}" type="submit" form="apps-form" title="Agents here use your apps only once you let them, and only for what you ask">{{template "icon-link"}}<span>Let agents use your {{.Names}}</span></button>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
           <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
