@@ -25,7 +25,7 @@ func (s *Server) seen(page view, path, description string) view {
 
 // landingDescription is what the landing page says it is, for the page's description and for a link to it.
 func landingDescription(page view) string {
-	about := "Run Claude Code, Codex, Pi, OpenCode and other agents with the same controls for credentials, models, spend and oversight."
+	about := "Your team and its AI agents, from Claude Code to Codex and OpenCode, work together in shared rooms, with each person's apps kept their own, approved models only, and budgets that stop spend."
 	if page.DemoPublic {
 		return about + " Try it for " + minutes(page.DemoLeft) + "."
 	}
