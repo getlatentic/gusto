@@ -83,12 +83,13 @@ func roomWaiting(turns []turn) string {
 	return ""
 }
 
-// composerHint is what a room's message box suggests, naming its agents so people know whom they can mention.
+// composerHint is what a room's message box suggests, naming its agents so people know whom they can mention. Only a person's own
+// room with one agent is a conversation with that agent; anywhere else a message goes to the room.
 func composerHint(held instance.Instance) string {
-	switch len(held.Agents) {
-	case 0:
+	switch {
+	case len(held.Agents) == 0:
 		return "Message the room"
-	case 1:
+	case held.Direct && len(held.Agents) == 1:
 		return "Message " + held.Agents[0].Name
 	}
 	names := make([]string, 0, len(held.Agents))

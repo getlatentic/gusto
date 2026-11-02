@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
@@ -55,5 +56,25 @@ func TestAPersonIsCalledByTheNameTheyGaveAndOthersByTheirAddress(t *testing.T) {
 	write("Priya N. Nair")
 	if got := site.server.personName("priya@getlatentic.com"); got != "Priya N. Nair" {
 		t.Errorf("a roster written again was not read again: %q", got)
+	}
+}
+
+// A shared room's message box says a message goes to the room, even with one agent in it; only a person's own room with an agent
+// is a conversation with that agent.
+func TestTheMessageBoxSaysWhereAMessageGoes(t *testing.T) {
+	nova := instance.Agent{Name: "Nova"}
+	cases := []struct {
+		held instance.Instance
+		want string
+	}{
+		{instance.Instance{Room: true}, "Message the room"},
+		{instance.Instance{Room: true, Agents: []instance.Agent{nova}}, "Message the room, mention @Nova"},
+		{instance.Instance{Room: true, Direct: true, Agents: []instance.Agent{nova}}, "Message Nova"},
+		{instance.Instance{Room: true, Agents: []instance.Agent{nova, {Name: "Ivy"}}}, "Message the room, mention @Nova or @Ivy"},
+	}
+	for _, each := range cases {
+		if got := composerHint(each.held); got != each.want {
+			t.Errorf("the message box says %q, want %q", got, each.want)
+		}
 	}
 }
