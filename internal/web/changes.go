@@ -333,6 +333,11 @@ func saidOf(e changelog.Event) string {
 			return fmt.Sprintf("let the agents in %s use their connected apps, for what they ask", w["room"])
 		}
 		return fmt.Sprintf("stopped the agents in %s using their connected apps", w["room"])
+	case changelog.ConnectorsLetAgent:
+		if w["now"] == "on" {
+			return fmt.Sprintf("let %s use their connected apps, for what they ask it", w["agent"])
+		}
+		return fmt.Sprintf("stopped %s using their connected apps", w["agent"])
 	case changelog.ConnectorDisconnected:
 		return fmt.Sprintf("took their %s sign-in away from their agents", w["connector"])
 	case changelog.MemberBudgetSet:

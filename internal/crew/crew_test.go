@@ -66,3 +66,34 @@ func TestAnAgentNeedsANamePeopleCanMention(t *testing.T) {
 		t.Error("a path was taken for an id")
 	}
 }
+
+// Each person lets an agent use their own apps, and only they stop it. The choice is kept with the agent.
+func TestEachPersonLetsAnAgentUseTheirOwnApps(t *testing.T) {
+	dir := t.TempDir()
+	store, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	made, err := store.Make(Agent{Name: "Nova", Harness: "codex", Owner: "ada@example.com", Apps: []string{"mallory@example.com"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if made.UsesAppsOf("mallory@example.com") {
+		t.Fatal("an agent was made already using somebody's apps")
+	}
+	if _, err := store.LetApps(made.ID, "Bob@Example.com", true); err != nil {
+		t.Fatal(err)
+	}
+	store.LetApps(made.ID, "bob@example.com", true)
+	if _, err := store.LetApps(made.ID, " ", true); err == nil {
+		t.Error("nobody let the agent use their apps")
+	}
+	reopened, _ := Open(dir)
+	held, _ := reopened.Get(made.ID)
+	if !held.UsesAppsOf("BOB@example.com") || held.UsesAppsOf("ada@example.com") || len(held.Apps) != 1 {
+		t.Errorf("the agent uses the apps of %v", held.Apps)
+	}
+	if stopped, _ := store.LetApps(made.ID, "bob@example.com", false); stopped.UsesAppsOf("bob@example.com") {
+		t.Error("stopping did not stop it")
+	}
+}

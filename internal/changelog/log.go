@@ -85,7 +85,9 @@ const (
 	ConnectorDisabled     = "connector.disabled"
 	ConnectorConnected    = "connector.connected"
 	ConnectorDisconnected = "connector.disconnected"
-	ConnectorsLetInRoom   = "connector.room"
+	// ConnectorsLetInRoom is a room's agents let use a member's apps, which the record still holds from when rooms decided it.
+	ConnectorsLetInRoom = "connector.room"
+	ConnectorsLetAgent  = "connector.agent"
 )
 
 // FromFrontDoor says whether a kind of event is one that an organization's front

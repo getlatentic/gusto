@@ -32,8 +32,11 @@ type Agent struct {
 	// Persona is how it works and talks, which it is told at the start of every turn.
 	Persona string `json:"persona,omitempty"`
 	// Owner made it and decides who else may work with it; Access is everybody else who may.
-	Owner   string   `json:"owner"`
-	Access  []string `json:"access,omitempty"`
+	Owner  string   `json:"owner"`
+	Access []string `json:"access,omitempty"`
+	// Apps is everybody who lets it use the apps they connected, as them, for what they ask it. Each person decides only for
+	// themselves.
+	Apps    []string `json:"apps,omitempty"`
 	Created int64    `json:"createdAt"`
 }
 
@@ -111,6 +114,7 @@ func (s *Store) Get(id string) (Agent, bool) {
 // copied is the agent with a list of its own, so a caller that changes it changes nothing kept.
 func (held Agent) copied() Agent {
 	held.Access = slices.Clone(held.Access)
+	held.Apps = slices.Clone(held.Apps)
 	return held
 }
 
@@ -131,7 +135,7 @@ func (s *Store) Make(wanted Agent) (Agent, error) {
 	wanted.Name = strings.TrimSpace(wanted.Name)
 	wanted.ID = newID()
 	wanted.Created = time.Now().Unix()
-	wanted.Access = nil
+	wanted.Access, wanted.Apps = nil, nil
 	if err := s.write(wanted); err != nil {
 		return Agent{}, err
 	}
@@ -157,6 +161,7 @@ func (s *Store) Change(id string, change func(*Agent) error) (Agent, error) {
 		return Agent{}, err
 	}
 	changed.Access = people(changed.Access, changed.Owner)
+	changed.Apps = people(changed.Apps, "")
 	if err := s.write(changed); err != nil {
 		return Agent{}, err
 	}
@@ -184,6 +189,26 @@ func (held Agent) MayUse(who string) bool {
 	return who != "" && (who == held.Owner || slices.Contains(held.Access, who))
 }
 
+// UsesAppsOf says whether a person lets the agent use the apps they connected, for what they ask it.
+func (held Agent) UsesAppsOf(who string) bool {
+	return slices.Contains(held.Apps, strings.ToLower(strings.TrimSpace(who)))
+}
+
+// LetApps lets an agent use a person's connected apps for what that person asks it, or stops it.
+func (s *Store) LetApps(id, who string, let bool) (Agent, error) {
+	who = strings.ToLower(strings.TrimSpace(who))
+	if who == "" {
+		return Agent{}, errors.New("only a person lets an agent use their apps")
+	}
+	return s.Change(id, func(held *Agent) error {
+		held.Apps = slices.DeleteFunc(held.Apps, func(each string) bool { return each == who })
+		if let {
+			held.Apps = append(held.Apps, who)
+		}
+		return nil
+	})
+}
+
 func (s *Store) nameFree(name, besides string) error {
 	name = strings.TrimSpace(name)
 	if !named.MatchString(name) {
@@ -197,7 +222,7 @@ func (s *Store) nameFree(name, besides string) error {
 	return nil
 }
 
-// people is a list of addresses tidied: lower case, each once, without the owner, who always has access.
+// people is a list of addresses tidied: lower case, each once, without the owner, who always has access, when one is given.
 func people(listed []string, owner string) []string {
 	var kept []string
 	for _, who := range listed {
