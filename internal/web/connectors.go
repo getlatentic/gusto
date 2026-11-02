@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/connector"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/setup"
@@ -36,7 +37,7 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
 	mux.HandleFunc("GET "+connectionsPath+"/{id}/connect", mine(s.connect))
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
-	mux.HandleFunc("POST /instances/{id}/connections", mine(s.letConnections))
+	mux.HandleFunc("POST /members/agents/{id}/apps", mine(s.letAgentApps))
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasConnectors, next)) }
 	mux.HandleFunc("POST /admin/connectors/{id}/on", admin(s.turnConnector(true)))
 	mux.HandleFunc("POST /admin/connectors/{id}/off", admin(s.turnConnector(false)))
@@ -56,17 +57,30 @@ type connectorView struct {
 }
 
 // connectorViews is every connector in the catalog, as it stands for one person, or for nobody on the admin's page.
-// connectionsAllowed says whether a task may be given its asker's apps: their own task that they pay for, or a turn they asked in
-// a room where they let the agents use them.
+// connectionsAllowed says whether a task may be given its asker's apps: their own task that they pay for, or a turn they asked of
+// a room's agent that they let use them.
 func (s *Server) connectionsAllowed(record jobs.Record) bool {
 	if !record.InRoom() {
 		return record.Payer() == record.Asked
 	}
-	if s.instances == nil {
-		return false
+	member, found := s.memberOf(record)
+	return found && member.UsesAppsOf(record.Asked)
+}
+
+// memberOf is the workspace agent that took a room turn.
+func (s *Server) memberOf(record jobs.Record) (crew.Agent, bool) {
+	if s.instances == nil || s.crew == nil {
+		return crew.Agent{}, false
 	}
 	held, found := s.instances.Get(record.Instance)
-	return found && held.Room && held.LetsConnections(record.Asked)
+	if !found || !held.Room {
+		return crew.Agent{}, false
+	}
+	agent, found := held.AgentByID(record.Agent)
+	if !found || agent.Member == "" {
+		return crew.Agent{}, false
+	}
+	return s.crew.Get(agent.Member)
 }
 
 func (s *Server) connectorViews(person string) ([]connectorView, error) {
@@ -209,7 +223,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 
 // giveConnectors puts the apps the asker signed in to behind the task's gateway, so their agent calls them as the asker. A
 // person's own task is given them. A room's agent works for everybody in the room, so a room turn is given them only when its
-// asker has let that room's agents use their apps, and then only the asker's. An agent that cannot reach the gateway is given
+// asker has let that agent use their apps, and then only the asker's. An agent that cannot reach the gateway is given
 // none, and runs as it would without them.
 func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record) error {
 	if !s.hasConnectors() || !s.connectionsAllowed(record) {

@@ -143,7 +143,6 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Waiting": running != "",
 		"Latest":  running,
 		"Holding": s.holdingOfLatest(held, running),
-		"MyApps":  s.myRoomApps(r, held),
 	}, true
 }
 

@@ -51,7 +51,7 @@
     {{if $a.Mine}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/remove" data-confirm="Remove {{$a.Name}}? It leaves every room it is in, and what it said there stays."><button type="submit" class="grid size-9 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-bad-wash hover:text-bad [&>svg]:size-4" title="Remove {{$a.Name}}" aria-label="Remove {{$a.Name}}">{{template "icon-trash"}}</button></form>{{end}}
   </header>
   <nav class="flex gap-0.5" aria-label="About {{$a.Name}}">
-    <a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=profile"{{if eq "profile" $p.Tab}} aria-current="page"{{end}}>Profile</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=access"{{if eq "access" $p.Tab}} aria-current="page"{{end}}>Access</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=skills"{{if eq "skills" $p.Tab}} aria-current="page"{{end}}>Skills</a>
+    <a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=profile"{{if eq "profile" $p.Tab}} aria-current="page"{{end}}>Profile</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=access"{{if eq "access" $p.Tab}} aria-current="page"{{end}}>Access</a><a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=skills"{{if eq "skills" $p.Tab}} aria-current="page"{{end}}>Skills</a>{{if $p.Apps}}<a class="flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted no-underline hover:text-ink aria-[current]:bg-sunken aria-[current]:text-ink" href="{{$a.Where}}?tab=apps"{{if eq "apps" $p.Tab}} aria-current="page"{{end}}>Apps</a>{{end}}
   </nav>
 
   {{if eq $p.Tab "profile"}}
@@ -98,6 +98,20 @@
     {{if $a.Mine}}<form class="flex items-end gap-2" method="post" action="/members/agents/{{$a.ID}}/access"><label class="{{template "ui-field"}} flex-1">Let somebody work with it <input class="input" type="email" name="who" placeholder="name@example.com" required></label><button type="submit" class="{{template "ui-btn"}} h-9">Add</button></form>{{end}}
   </section>
 
+  {{else if eq $p.Tab "apps"}}{{with $p.Apps}}
+  <section class="grid gap-3">
+    <p class="m-0 text-sm text-muted">{{$a.Name}} uses your apps as you, only for what you ask it, in any room. Somebody else's request never carries them. Each person decides this for themselves.</p>
+    {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to let {{$a.Name}} use your apps.</p>
+    {{else if not .Names}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">You have connected no apps. <a class="text-ink underline" href="/connections">Connect one</a>, then let {{$a.Name}} use it here.</p>
+    {{else}}
+    <form class="m-0 flex items-center gap-4 rounded-xl border border-line p-5" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="let" value="{{if .Let}}off{{else}}on{{end}}">
+      <span class="grid size-9 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
+      <span class="grid min-w-0 flex-1"><span class="text-sm font-medium">Your {{.Names}}</span><span class="text-sm text-muted">{{if .Let}}{{$a.Name}} may use them for what you ask it.{{else}}{{$a.Name}} cannot use them.{{end}}</span></span>
+      <button type="submit" class="{{if .Let}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}} h-9">{{if .Let}}Stop{{else}}Let {{$a.Name}} use them{{end}}</button>
+    </form>
+    {{end}}
+  </section>
+  {{end}}
   {{else}}
   <section class="grid gap-3">
     <p class="m-0 text-sm text-muted">The skills {{$a.Name}} is given in every turn: one of the ready-made roles, or a skill set made for this workspace.</p>

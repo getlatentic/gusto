@@ -178,12 +178,14 @@ func (s *Server) agentPage(w http.ResponseWriter, r *http.Request) {
 	page := s.membersData(r, shown.Where)
 	held, has := s.skillsOf(member.Setup)
 	tab := r.URL.Query().Get("tab")
-	if !slices.Contains([]string{"access", "skills"}, tab) {
+	apps := s.agentAppsFor(r, member.ID)
+	if !slices.Contains([]string{"access", "skills"}, tab) && (tab != "apps" || apps == nil) {
 		tab = "profile"
 	}
 	page["Title"] = productName + " — " + member.Name
 	page["Agent"] = shown
 	page["Tab"] = tab
+	page["Apps"] = apps
 	page["SkillSet"], page["HasSkills"] = held, has
 	page["SkillTitle"] = s.skillTitle(member.Setup)
 	page["Rooms"] = s.roomsWith(r, member.ID)
