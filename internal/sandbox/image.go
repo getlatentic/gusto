@@ -25,9 +25,9 @@ const imageFetchTime = 15 * time.Minute
 // imageMu makes one fetch at a time in this process; a task that waits for it then finds the image there.
 var imageMu sync.Mutex
 
-// ensureImage makes the runner image present before a container is started from it, fetching and loading it when it is
+// EnsureImage makes the runner image present before a container is started from it, fetching and loading it when it is
 // missing and a source is set. With no source, a missing image is left for the start to say so.
-func ensureImage(ctx context.Context) error {
+func EnsureImage(ctx context.Context) error {
 	source := os.Getenv(ImageSource)
 	if source == "" {
 		return nil
