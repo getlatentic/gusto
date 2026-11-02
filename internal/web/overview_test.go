@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -91,6 +92,12 @@ func TestTheOverviewSplitsTheMonthByPersonAndByAgentTypeAndEachSplitAddsUp(t *te
 		lastMonth,
 	)
 	here.ask(t, "POST", "/admin/budget", url.Values{"usd": {"50"}, "each": {"10"}})
+	// The split by person is of the ledger, by who asked: ada asked for $2, bob for $1 and a call with no price, and one
+	// task named nobody.
+	spentNow(t, here, "ada-1", "ada@acme.com", 1.5)
+	spentNow(t, here, "ada-2", "ada@acme.com", 0.5)
+	spentNow(t, here, "bob-1", "bob@acme.com", 1)
+	spentJobFor(t, here.index.Root(), "nobody-1", "", "", fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":1,"outputTokens":1,"usd":0.25}`, time.Now().Unix()))
 	page := overview(t, here)
 	from := "from=" + monthStart(time.Now()).Format("2006-01-02")
 
@@ -100,18 +107,18 @@ func TestTheOverviewSplitsTheMonthByPersonAndByAgentTypeAndEachSplitAddsUp(t *te
 	if strings.Contains(page, "$40") {
 		t.Error("last month's calls are counted in this month")
 	}
-	person := regexp.MustCompile(`(?s)By person</h2>.*?</section>`).FindString(page)
+	person := regexp.MustCompile(`(?s)By person, what they asked for</h2>.*?</section>`).FindString(page)
 	for _, want := range []string{
-		`href="/admin/usage?person=ada%40acme.com&amp;` + from + `"`, "$2.00", "of $10.00",
-		`href="/admin/usage?person=bob%40acme.com&amp;` + from + `"`, "$1.00",
-		"Cy", "nothing yet", `href="/admin/people">View all`,
+		">Ada</span>", "$2.00", "of $10.00", ">Bob</span>", "$1.00", ">No one named</span>", "$0.25",
+		">Cy</span>", "nothing yet", `href="/admin/budgets">View all`,
 	} {
 		if !strings.Contains(person, want) {
 			t.Errorf("By person lacks %q:\n%s", want, person)
 		}
 	}
-	if strings.Index(person, "ada%40") > strings.Index(person, "bob%40") || strings.Index(person, "bob%40") > strings.Index(person, "nothing yet") {
-		t.Errorf("the people are not in order of what they spent:\n%s", person)
+	if strings.Index(person, ">Ada<") > strings.Index(person, ">Bob<") || strings.Index(person, ">Bob<") > strings.Index(person, ">No one named<") ||
+		strings.Index(person, ">No one named<") > strings.Index(person, "nothing yet") {
+		t.Errorf("the people are not in order of what they asked for, then nobody, then those who asked for nothing:\n%s", person)
 	}
 	engines := regexp.MustCompile(`(?s)By agent type</h2>.*?</section>`).FindString(page)
 	for _, want := range []string{

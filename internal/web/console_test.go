@@ -116,7 +116,7 @@ func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 
 var sectionLink = regexp.MustCompile(`<a [^>]*href="(/admin[^"]*)"[^>]*>([^<]*)</a>`)
 
-func TestAFullConsoleListsSixSectionsInOrder(t *testing.T) {
+func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	full, _, _ := registered(t, registry.Rules{})
 	admin := full.as(t, boss)
 	seen := sectionsOf(t, admin.ask(t, "GET", "/admin", nil).Body.String())
@@ -124,7 +124,7 @@ func TestAFullConsoleListsSixSectionsInOrder(t *testing.T) {
 	for _, link := range sectionLink.FindAllStringSubmatch(seen, -1) {
 		got = append(got, link[2]+" "+link[1])
 	}
-	want := []string{"Overview /admin", "Usage /admin/usage", "People /admin/people", "Models /admin/models", "Apps &amp; skills /admin/apps", "Records /admin/records"}
+	want := []string{"Overview /admin", "Usage /admin/usage", "Budgets /admin/budgets", "People /admin/people", "Models /admin/models", "Apps &amp; skills /admin/apps", "Records /admin/records"}
 	if strings.Join(got, ", ") != strings.Join(want, ", ") {
 		t.Errorf("the console lists\n%s\nand not\n%s", strings.Join(got, ", "), strings.Join(want, ", "))
 	}

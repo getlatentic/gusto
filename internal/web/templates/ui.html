@@ -31,6 +31,8 @@
 {{define "ui-two-col"}}grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}
 {{define "ui-col"}}grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4{{end}}
 {{define "ui-stack"}}grid gap-4{{end}}
+{{define "ui-dialog"}}m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25{{end}}
+{{define "ui-dialog-head"}}<div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="{{.ID}}">{{.Title}}</h2><p class="m-0 mt-1 text-sm text-muted">{{.Words}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
 
 {{/* Page heads. */}}
 {{define "ui-head"}}mb-6{{end}}
@@ -43,6 +45,8 @@
 {{define "ui-table-wrap"}}overflow-x-auto rounded-md bg-surface shadow-1 dark:border dark:border-line{{end}}
 {{define "ui-th"}}px-5 py-3 text-xs font-semibold text-subtle border-b border-line{{end}}
 {{define "ui-td"}}px-5 py-3 border-b border-line group-last/row:border-b-0{{end}}
+{{/* A table longer than a page shows one page and the links to the pages either side. It takes a pager. */}}
+{{define "ui-pager"}}{{if .Shown}}<nav class="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-line pt-3 text-sm [&_a]:rounded-sm [&_a]:border [&_a]:border-line-strong [&_a]:px-3 [&_a]:py-1 [&_a]:text-ink [&_a]:no-underline [&_a]:hover:border-accent" aria-label="Pages"><span>{{with .Previous}}<a href="{{.}}" rel="prev">Previous</a>{{end}}</span><span class="text-subtle tabular-nums">{{.Shown}}</span><span class="justify-self-end">{{with .Next}}<a href="{{.}}" rel="next">Next</a>{{end}}</span></nav>{{end}}{{end}}
 {{define "ui-table"}}w-full [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr:last-child_td]:border-b-0 [&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0{{end}}
 
 {{/* Disclosure: the words beside a chevron that turns. */}}
@@ -57,7 +61,7 @@
 {{define "ui-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed") (eq . "live")}}{{template "ui-badge-ok"}}{{else if or (eq . "failed") (eq . "interrupted")}}{{template "ui-badge-bad"}}{{else if or (eq . "running") (eq . "queued")}}{{template "ui-badge-warn"}}{{else}}{{template "ui-badge"}}{{end}}">{{.}}</span>{{end}}
 
 {{/* Tabs: the views of one page, as links, with the one shown marked. It takes the page's tabs. */}}
-{{define "ui-tabs"}}<nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line text-sm" aria-label="Views">{{range .}}<a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>{{end}}
+{{define "ui-tabs"}}<nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line text-sm" aria-label="Views">{{range .}}<a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}</nav>{{end}}
 
 {{/* A switch is a button in a form that turns one thing on or off; aria-checked says which it is now. */}}
 {{define "ui-switch"}}relative inline-flex h-5 w-[2.125rem] flex-none cursor-pointer rounded-full bg-line-strong align-middle transition-colors after:absolute after:top-[0.1875rem] after:left-[0.1875rem] after:size-3.5 after:rounded-full after:bg-plate after:shadow-1 after:transition-[left] after:content-[''] aria-checked:bg-solid aria-checked:after:left-[1.0625rem] hover:bg-faint aria-checked:hover:bg-solid-hover{{end}}

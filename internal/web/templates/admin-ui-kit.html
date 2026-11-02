@@ -170,6 +170,13 @@
     <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">Side</h3></section></div>
   </div>
   {{template "ui-tabs" .Tabs}}
+  <div><button type="button" class="{{template "ui-btn-quiet"}}" data-open="kit-dialog">Open ui-dialog</button></div>
+  <dialog class="{{template "ui-dialog"}}" id="kit-dialog" aria-labelledby="kit-dialog-title">
+    <form class="grid gap-4 p-6" method="dialog">
+      {{template "ui-dialog-head" (dict "ID" "kit-dialog-title" "Title" "ui-dialog" "Words" "A form over the page, with ui-dialog-head for its title and close button.")}}
+      <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
+    </form>
+  </dialog>
   <div class="flex items-center gap-3 text-sm"><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="true" aria-label="ui-switch, on"></button><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="false" aria-label="ui-switch, off"></button><span class="text-muted">ui-switch, on and off</span></div>
   <nav class="{{template "ui-crumb"}}" aria-label="Breadcrumb"><a class="{{template "ui-crumb-link"}}" href="#kit-surfaces">Usage</a><span>/</span><span>ui-crumb</span></nav>
   <div>
@@ -197,6 +204,7 @@
       <thead><tr><th class="text-left">Name</th><th class="text-left">Can</th><th class="text-left">Last used</th></tr></thead>
       <tbody><tr><td class="font-medium">ci-nightly</td><td><span class="{{template "ui-badge"}}">submit</span></td><td class="text-muted">Never</td></tr><tr><td class="font-medium">reports</td><td><span class="{{template "ui-badge"}}">usage</span></td><td class="text-muted">2 days ago</td></tr></tbody>
     </table>
+    {{template "ui-pager" (dict "Shown" "26–30 of 30" "Previous" "#kit-tables")}}
   </div>
   <p class="{{template "ui-note"}}">The first table is <code>ui-table-wrap</code> with <code>ui-th</code> and <code>ui-td</code>, the second is <code>ui-table</code> inside a card.</p>
 </section>
@@ -263,6 +271,7 @@
 
 <script src="{{asset "/static/uikit.js"}}"></script>
 
+<script src="{{asset "/static/dialogs.js"}}"></script>
 {{template "foot" .}}
 
 

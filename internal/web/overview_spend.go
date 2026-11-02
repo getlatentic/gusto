@@ -16,9 +16,10 @@ import (
 // overviewLines is how many lines each split of the month shows before the rest are added up as one.
 const overviewLines = 6
 
-// monthSpend is the month's spending, split by person and by agent type. Both splits are of the usage index, the one the
-// Usage page reads, so each split adds up to USD and each line's link opens the calls it counts. Split is false on a
-// server that keeps no index, which has the total from its ledger and nothing to split it by.
+// monthSpend is the month's spending, split by person and by agent type. The split by agent type is of the usage index, the
+// one the Usage page reads, so it adds up to USD and each line's link opens the calls it counts. The split by person is of
+// the ledger, by who asked, which is what a person's budget is held to; calls that named nobody are one line of their own, so
+// it adds up too. Split is false on a server that keeps no index, which has the total from its ledger and nothing to split it by.
 type monthSpend struct {
 	USD        float64
 	Unmeasured int64
@@ -48,7 +49,7 @@ func (s *Server) monthSpend(r *http.Request, month time.Time) (monthSpend, error
 	}
 	from := url.Values{"from": {month.Format("2006-01-02")}}
 	ctx, filter := r.Context(), usage.Filter{From: month}
-	people, err := s.usage.store.Groups(ctx, filter, usage.ByPerson)
+	asked, err := s.askedThisMonth()
 	if err != nil {
 		return monthSpend{}, err
 	}
@@ -60,7 +61,7 @@ func (s *Server) monthSpend(r *http.Request, month time.Time) (monthSpend, error
 	for _, g := range engines {
 		spent.USD, spent.Unmeasured = spent.USD+g.USD, spent.Unmeasured+g.Unmeasured
 	}
-	spent.People = firstLines(s.personLines(people, from), "/admin/people")
+	spent.People = firstLines(s.personLines(asked), s.peopleAll(spent.AllUsage))
 	spent.Engines = firstLines(engineLines(engines, from), spent.AllUsage)
 	return spent, nil
 }
@@ -75,22 +76,29 @@ func (s *Server) ledgerSpend() (monthSpend, error) {
 	return monthSpend{USD: total.USD, Unmeasured: int64(total.Unmeasured)}, nil
 }
 
-// personLines is each person who spent this month, with their budget, and then each member who has spent nothing yet.
-func (s *Server) personLines(groups []usage.Group, from url.Values) []spendLine {
+// personLines is each person who asked for something this month, with their budget, then the calls that named nobody, then
+// each member who has asked for nothing yet.
+func (s *Server) personLines(asked askedSpend) []spendLine {
 	var settings orgsettings.Settings
 	if s.orgSettings != nil {
 		settings, _ = s.orgSettings.Read()
 	}
 	seen := map[string]bool{}
-	lines := make([]spendLine, 0, len(groups))
-	for _, g := range groups {
-		seen[strings.ToLower(g.Value)] = true
-		line := spendLine{Label: s.askerLabel(g.Value), USD: g.USD, Calls: g.Calls, Unpriced: g.Unmeasured > 0}
-		if g.Value != "" {
-			line.Href = usageLink(from, "person", g.Value)
-		}
-		line.withBudget(settings, g.Value)
+	lines := make([]spendLine, 0, len(asked.People)+1)
+	for who, tally := range asked.People {
+		seen[who] = true
+		line := spendLine{Label: s.askerLabel(who), USD: tally.USD, Calls: int64(tally.Calls), Unpriced: tally.Unmeasured > 0}
+		line.withBudget(settings, who)
 		lines = append(lines, line)
+	}
+	sort.Slice(lines, func(i, j int) bool {
+		if lines[i].USD != lines[j].USD {
+			return lines[i].USD > lines[j].USD
+		}
+		return lines[i].Label < lines[j].Label
+	})
+	if asked.NoOne.Calls > 0 {
+		lines = append(lines, spendLine{Label: "No one named", USD: asked.NoOne.USD, Calls: int64(asked.NoOne.Calls), Unpriced: asked.NoOne.Unmeasured > 0})
 	}
 	for _, member := range s.membersWithout(seen) {
 		line := spendLine{Label: s.personName(member)}
@@ -98,6 +106,17 @@ func (s *Server) personLines(groups []usage.Group, from url.Values) []spendLine 
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+// peopleAll is where the whole split by person is: the budgets, the people, or the month's usage on a server with neither.
+func (s *Server) peopleAll(usage string) string {
+	switch {
+	case s.hasOrgSettings():
+		return budgetsPath
+	case s.hasRoster():
+		return "/admin/people"
+	}
+	return usage
 }
 
 func (line *spendLine) withBudget(settings orgsettings.Settings, who string) {
