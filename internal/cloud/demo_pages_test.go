@@ -249,8 +249,8 @@ func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsA
 			tag, csp  string
 			notInPage string
 		}{
-			"a file":          {"https://media.example/gusto.mp4", "<video", "media-src 'self' https:", "<iframe"},
-			"a page to embed": {"https://www.loom.com/embed/abc123", "<iframe", "frame-src https://www.loom.com", "<video"},
+			"a file":          {"https://media.example/gusto.mp4", `poster="https://media.example/gusto.jpg"`, "media-src 'self' https:; img-src 'self' data: https:", "<iframe"},
+			"a page to embed": {"https://www.loom.com/embed/abc123", "<iframe", "frame-src https://www.loom.com; img-src 'self' data:", "<video"},
 		} {
 			set := demoSet
 			set.Demo.VideoURL = tc.video

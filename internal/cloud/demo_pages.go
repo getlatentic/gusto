@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 )
@@ -281,20 +282,33 @@ func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
 	description := landingDescription(page)
 	page = s.seen(page, "/", description)
 	page.LD = s.structured(description)
-	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+	images := "'self' data:"
+	csp := "default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 	if demo.VideoURL == "" {
 		// Two people and their agents in one room is what is shown unless an operator names a video of their own.
 		page.Shot, page.ShotDark = fingerprinted("/static/hero-light.webp"), fingerprinted("/static/hero-dark.webp")
 	} else if video, file, frame := videoOf(demo.VideoURL); video != "" {
 		page.Video, page.VideoFile = video, file
 		if file {
+			page.VideoPoster, images = posterOf(video), images+" https:"
 			csp += "; media-src 'self' https:"
 		} else {
 			csp += "; frame-src " + frame
 		}
 	}
-	w.Header().Set("Content-Security-Policy", csp)
+	w.Header().Set("Content-Security-Policy", csp+"; img-src "+images)
 	s.render(w, http.StatusOK, "landing", page)
+}
+
+// posterOf is the picture a video file is shown with before it plays: a .jpg of the same name beside it. Without one the
+// player shows the video's first frame.
+func posterOf(video string) string {
+	parsed, err := url.Parse(video)
+	if err != nil {
+		return ""
+	}
+	parsed.Path = strings.TrimSuffix(parsed.Path, path.Ext(parsed.Path)) + ".jpg"
+	return parsed.String()
 }
 
 // videoOf is the video to show for an address, whether it is a file, and the origin a page for it is embedded from. An

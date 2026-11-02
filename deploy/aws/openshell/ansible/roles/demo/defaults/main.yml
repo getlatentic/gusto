@@ -32,6 +32,8 @@ demo_lease_minutes: 30
 demo_max_hours: 4
 demo_user: ubuntu
 demo_state: /var/lib/gusto-cloud
+# The files the front door serves at /media/, such as the landing page's video, kept in the bucket under media/ by put-media.sh.
+demo_media: /var/www/gusto-media
 demo_lib: /var/lib/gusto
 # all is one host that is the front door and runs the organizations' servers. orchestrator is the front door
 # alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one demo share
