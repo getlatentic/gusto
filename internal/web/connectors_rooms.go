@@ -67,7 +67,7 @@ func (s *Server) letConnections(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
-// usedApps is what a room turn says about the apps it used: whose, and which, so everyone in the room can see it.
+// usedApps is whose connected apps a room turn could use, and which, for the turn's steps to say.
 func (s *Server) usedApps(record jobs.Record, dir job.Dir) string {
 	if !record.InRoom() || !s.hasConnectors() {
 		return ""
@@ -76,7 +76,7 @@ func (s *Server) usedApps(record jobs.Record, dir job.Dir) string {
 	if err != nil || spec.Setup == nil || len(spec.Setup.Connectors) == 0 {
 		return ""
 	}
-	return "with " + nameFromAddress(record.Asked) + "'s " + strings.Join(s.appNames(spec.Setup.Connectors), ", ")
+	return nameFromAddress(record.Asked) + "'s " + strings.Join(s.appNames(spec.Setup.Connectors), ", ")
 }
 
 // roomAppsLine tells a room's agent which connected apps it has for this message. It keeps one conversation across the room, so

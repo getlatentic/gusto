@@ -191,3 +191,30 @@ func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
 		t.Errorf("the turn does not list the sites its agent was refused:\n%s", page)
 	}
 }
+
+// A turn a person's budget stopped says so plainly, by their name and the month, and does not repeat the error the agent
+// printed, since the model was never asked.
+func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
+	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"person","limitUsd":0.01,"spentUsd":0.09,"reason":"over budget"}}`
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		os.WriteFile(dir.OutFile("transcript.log"), []byte("API Error: 402 gusto stopped this task: over budget\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	month := time.Now().UTC().Format("January")
+	if want := "Stopped before asking the model: " + nameFromAddress(alice) + "&#39;s budget for " + month + " is used up, $0.09 of $0.01."; !strings.Contains(page, want) {
+		t.Errorf("the turn does not say plainly whose budget stopped it; want %q", want)
+	}
+	if strings.Contains(page, "API Error") || strings.Contains(page, "The model was not asked") {
+		t.Error("the turn repeats the agent's error or the proxy's own words")
+	}
+}

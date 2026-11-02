@@ -58,8 +58,8 @@ func TestARoomTurnUsesItsAskersAppsOnlyOnceTheyLetIt(t *testing.T) {
 	if json.Unmarshal(text, &behind) != nil || len(behind) != 1 || behind[0].Person != alice {
 		t.Errorf("the gateway is not given the app as the asker: %s", text)
 	}
-	if record, _ := here.index.Get("after"); here.server.fullTurn(record, nil).Used != "with "+nameFromAddress(alice)+"'s Tasks" {
-		t.Errorf("the turn does not say whose app it used: %q", here.server.fullTurn(record, nil).Used)
+	if record, _ := here.index.Get("after"); here.server.fullTurn(record, nil).Apps != nameFromAddress(alice)+"'s Tasks" {
+		t.Errorf("the turn does not say whose app it could use: %q", here.server.fullTurn(record, nil).Apps)
 	}
 	if got := turn("bob", bob); got != nil {
 		t.Errorf("another member's turn was given the asker's app: %+v", got)

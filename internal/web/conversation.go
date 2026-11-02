@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -44,16 +45,18 @@ type turn struct {
 	// Stopped is the harness's last words when the turn failed, which is the
 	// reason as near as the record has one.
 	Stopped string
-	// Capped is the spending limit that refused the turn's model, in the proxy's own words, when one did.
+	// Capped is the spending limit that refused the turn's model, in the proxy's own words, when one did, and Limit the same
+	// in a sentence for the people reading the turn.
 	Capped *spend.Refusal
+	Limit  string
 	// Blocked is how many requests to other sites the proxy refused, Refused
 	// the sites they were for, and Signed whether the turn's record is signed:
 	// the guarantees, shown where the work is rather than a page away.
 	Blocked int
 	Refused []blocked
 	Signed  bool
-	// Used says whose connected apps a room turn used, for everybody in the room to see.
-	Used string
+	// Apps says whose connected apps a room turn could use, shown with its steps.
+	Apps string
 	roomTurn
 }
 
@@ -156,10 +159,15 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), record.Started); err == nil {
 		shown.Capped = refusal
 	}
+	if shown.Capped != nil && shown.Spent.Calls == 0 {
+		// The model was never asked, so what the agent said is only the refusal again.
+		shown.Replied = ""
+	}
+	shown.Limit = s.limitWords(record, shown.Capped)
 	if calls := callsOf(dir); calls != nil {
 		shown.Blocked, shown.Refused = len(calls.Denied), calls.Sites()
 	}
-	shown.Used = s.usedApps(record, dir)
+	shown.Apps = s.usedApps(record, dir)
 	attested, err := evidence.Attest(dir, s.keyring)
 	shown.Signed = err == nil && attested.Signed
 	return shown
@@ -305,4 +313,16 @@ func refusedIn(r *http.Request, part string) string {
 		return ""
 	}
 	return asked.Get("refused")
+}
+
+// limitWords is the limit that stopped a turn, said plainly: a person's budget by their name and the month, or the proxy's words.
+func (s *Server) limitWords(record jobs.Record, refusal *spend.Refusal) string {
+	if refusal == nil || (refusal.Cap == "credit" && refusal.SpentUSD >= refusal.LimitUSD) {
+		return ""
+	}
+	if refusal.Cap == "person" && record.Asked != "" {
+		month := time.Unix(record.Started, 0).UTC().Format("January")
+		return fmt.Sprintf("Stopped before asking the model: %s's budget for %s is used up, $%.2f of $%.2f.", s.personName(record.Asked), month, refusal.SpentUSD, refusal.LimitUSD)
+	}
+	return "The model was not asked: " + refusal.Reason + "."
 }
