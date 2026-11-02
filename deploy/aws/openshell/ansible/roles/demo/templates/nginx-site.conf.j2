@@ -21,6 +21,13 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
     client_max_body_size 50m;
 
+    # Media are files, served here with ranges so a video seeks, and never by the front door.
+    location /media/ {
+        alias {{ demo_media }}/;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Cache-Control "public, max-age=3600";
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8050;
         proxy_http_version 1.1;

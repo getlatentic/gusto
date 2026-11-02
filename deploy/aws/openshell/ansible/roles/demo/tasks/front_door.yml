@@ -43,6 +43,20 @@
     mode: "0644"
   notify: Restart the owner's page
 
+- name: Where the front door's media are
+  ansible.builtin.file:
+    path: "{{ demo_media }}"
+    state: directory
+    mode: "0755"
+
+- name: The front door's media, as the bucket holds them
+  ansible.builtin.command: aws s3 sync s3://{{ demo_bucket }}/media/ {{ demo_media }}/ --delete --only-show-errors
+  environment:
+    AWS_REGION: "{{ demo_region }}"
+    AWS_DEFAULT_REGION: "{{ demo_region }}"
+    PATH: "/usr/local/bin:/snap/bin:/usr/bin:/bin"
+  changed_when: false
+
 - name: The web server's site
   ansible.builtin.template:
     src: nginx-site.conf.j2
