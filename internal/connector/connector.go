@@ -79,6 +79,9 @@ type tokens struct {
 	Client  Client    `json:"client"`
 	Server  Server    `json:"server"`
 	Since   time.Time `json:"since"`
+	// ForAgents is the person's default for whether their agents may use the app, which an agent follows unless the person
+	// chose otherwise for it. It is off until they turn it on.
+	ForAgents bool `json:"forAgents,omitempty"`
 }
 
 // Open makes the store over its folder.
@@ -184,7 +187,16 @@ func (c *Connectors) Finish(ctx context.Context, person, state, code string) (st
 		return "", err
 	}
 	got.Client, got.Server, got.Since = begun.Client, begun.Server, time.Now()
-	return begun.Connector, c.vault.put(tokenName(begun.Person, begun.Connector), got)
+	name := tokenName(begun.Person, begun.Connector)
+	lock := c.lockFor(name)
+	lock.Lock()
+	defer lock.Unlock()
+	// Signing in again keeps what the person chose for their agents.
+	var held tokens
+	if found, err := c.vault.get(name, &held); err == nil && found {
+		got.ForAgents = held.ForAgents
+	}
+	return begun.Connector, c.vault.put(name, got)
 }
 
 // Token is the person's access token for a connector, refreshed first when it has run out or is about to.
@@ -214,7 +226,7 @@ func (c *Connectors) Token(ctx context.Context, person, connector string) (strin
 	if fresh.Refresh == "" {
 		fresh.Refresh = held.Refresh
 	}
-	fresh.Client, fresh.Server, fresh.Since = held.Client, held.Server, held.Since
+	fresh.Client, fresh.Server, fresh.Since, fresh.ForAgents = held.Client, held.Server, held.Since, held.ForAgents
 	return fresh.Access, c.vault.put(name, fresh)
 }
 
@@ -226,6 +238,31 @@ func (c *Connectors) Connected(person, connector string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return held.Since, true
+}
+
+// ForAgents is the person's default for whether their agents may use a connector they are signed in to.
+func (c *Connectors) ForAgents(person, connector string) bool {
+	var held tokens
+	found, err := c.vault.get(tokenName(strings.ToLower(person), connector), &held)
+	return err == nil && found && held.ForAgents
+}
+
+// SetForAgents changes a person's default for whether their agents may use a connector they are signed in to.
+func (c *Connectors) SetForAgents(person, connector string, on bool) error {
+	name := tokenName(strings.ToLower(person), connector)
+	lock := c.lockFor(name)
+	lock.Lock()
+	defer lock.Unlock()
+	var held tokens
+	found, err := c.vault.get(name, &held)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("%s is not signed in to %s", person, connector)
+	}
+	held.ForAgents = on
+	return c.vault.put(name, held)
 }
 
 // Disconnect forgets a person's tokens for a connector. The app keeps its own record of the sign-in until the person ends it there.

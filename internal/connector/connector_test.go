@@ -176,3 +176,30 @@ func TestTokensAreSealed(t *testing.T) {
 		t.Errorf("%v %v %v", found, err, got)
 	}
 }
+
+// A person's default for their agents starts off, is theirs to change, and is kept when their token is renewed or they sign in again.
+func TestAPersonsDefaultForTheirAgentsIsKeptAcrossRenewalAndSigningInAgain(t *testing.T) {
+	a := connectortest.New(t)
+	c := connectors(t, "https://acme.gusto.test")
+	entry := Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}
+	if err := c.SetForAgents("ada@acme.com", "tasks", true); err == nil {
+		t.Error("a person who never signed in set a default for their agents")
+	}
+	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
+	c.Finish(context.Background(), "ada@acme.com", state, code)
+	if c.ForAgents("ada@acme.com", "tasks") {
+		t.Fatal("agents may use an app before the person said so")
+	}
+	if err := c.SetForAgents("Ada@Acme.com", "tasks", true); err != nil || !c.ForAgents("ada@acme.com", "tasks") {
+		t.Fatalf("the default did not turn on: %v", err)
+	}
+	a.Lasts(30 * time.Second)
+	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
+	c.Finish(context.Background(), "ada@acme.com", state, code)
+	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err != nil || !c.ForAgents("ada@acme.com", "tasks") {
+		t.Errorf("signing in again or renewing lost the default: %v", err)
+	}
+	if c.ForAgents("bob@acme.com", "tasks") {
+		t.Error("bob's agents use an app bob never connected")
+	}
+}
