@@ -37,7 +37,8 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
 	mux.HandleFunc("GET "+connectionsPath+"/{id}/connect", mine(s.connect))
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
-	mux.HandleFunc("POST /members/agents/{id}/apps", mine(s.letAgentApps))
+	mux.HandleFunc("POST /members/agents/{id}/apps", mine(s.chooseAgentApp))
+	mux.HandleFunc("POST "+connectionsPath+"/{id}/agents", mine(s.setAppForAgents))
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasConnectors, next)) }
 	mux.HandleFunc("POST /admin/connectors/{id}/on", admin(s.turnConnector(true)))
 	mux.HandleFunc("POST /admin/connectors/{id}/off", admin(s.turnConnector(false)))
@@ -54,17 +55,24 @@ type connectorView struct {
 	connector.Entry
 	On, Usable, Connected bool
 	Since                 time.Time
+	// ForAgents is the person's default for whether their agents may use the app.
+	ForAgents bool
 }
 
-// connectorViews is every connector in the catalog, as it stands for one person, or for nobody on the admin's page.
-// connectionsAllowed says whether a task may be given its asker's apps: their own task that they pay for, or a turn they asked of
-// a room's agent that they let use them.
-func (s *Server) connectionsAllowed(record jobs.Record) bool {
+// appAllowed says whether a task may be given one app of its asker's: any, on their own task that they pay for; on a turn they
+// asked of a room's agent, what they chose for that agent and app, or else their default for their agents.
+func (s *Server) appAllowed(record jobs.Record, app string) bool {
 	if !record.InRoom() {
 		return record.Payer() == record.Asked
 	}
 	member, found := s.memberOf(record)
-	return found && member.UsesAppsOf(record.Asked)
+	if !found {
+		return false
+	}
+	if allowed, chosen := member.AppChoice(record.Asked, app); chosen {
+		return allowed
+	}
+	return s.connectors.ForAgents(record.Asked, app)
 }
 
 // memberOf is the workspace agent that took a room turn.
@@ -83,6 +91,7 @@ func (s *Server) memberOf(record jobs.Record) (crew.Agent, bool) {
 	return s.crew.Get(agent.Member)
 }
 
+// connectorViews is every connector in the catalog, as it stands for one person, or for nobody on the admin's page.
 func (s *Server) connectorViews(person string) ([]connectorView, error) {
 	settings, err := s.orgSettings.Read()
 	if err != nil {
@@ -93,6 +102,7 @@ func (s *Server) connectorViews(person string) ([]connectorView, error) {
 		view := connectorView{Entry: entry, On: settings.ConnectorOn(entry.ID), Usable: s.connectors.Usable(entry)}
 		if person != "" {
 			view.Since, view.Connected = s.connectors.Connected(person, entry.ID)
+			view.ForAgents = view.Connected && s.connectors.ForAgents(person, entry.ID)
 		}
 		views = append(views, view)
 	}
@@ -120,9 +130,9 @@ func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// offeredConnector is the connector a request names, when an admin has turned it on and people can sign in to it.
-func (s *Server) offeredConnector(r *http.Request) (connector.Entry, bool) {
-	entry, known := s.connectors.App(r.PathValue("id"))
+// offeredConnector is the connector of that id, when an admin has turned it on and people can sign in to it.
+func (s *Server) offeredConnector(id string) (connector.Entry, bool) {
+	entry, known := s.connectors.App(id)
 	if !known || !s.connectors.Usable(entry) {
 		return connector.Entry{}, false
 	}
@@ -132,7 +142,7 @@ func (s *Server) offeredConnector(r *http.Request) (connector.Entry, bool) {
 
 // connect sends a person to the app to sign in, with their own account there.
 func (s *Server) connect(w http.ResponseWriter, r *http.Request) {
-	entry, offered := s.offeredConnector(r)
+	entry, offered := s.offeredConnector(r.PathValue("id"))
 	if !offered {
 		http.NotFound(w, r)
 		return
@@ -223,10 +233,10 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 
 // giveConnectors puts the apps the asker signed in to behind the task's gateway, so their agent calls them as the asker. A
 // person's own task is given them. A room's agent works for everybody in the room, so a room turn is given them only when its
-// asker has let that agent use their apps, and then only the asker's. An agent that cannot reach the gateway is given
+// asker has let that agent use an app, and then only the asker's apps they let it use. An agent that cannot reach the gateway is given
 // none, and runs as it would without them.
 func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record) error {
-	if !s.hasConnectors() || !s.connectionsAllowed(record) {
+	if !s.hasConnectors() {
 		return nil
 	}
 	settings, err := s.orgSettings.Read()
@@ -243,7 +253,7 @@ func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record)
 	var servers []gateway.Server
 	var given []string
 	for _, entry := range s.connectors.Apps() {
-		if !settings.ConnectorOn(entry.ID) || slices.Contains(taken, entry.ID) {
+		if !settings.ConnectorOn(entry.ID) || slices.Contains(taken, entry.ID) || !s.appAllowed(record, entry.ID) {
 			continue
 		}
 		if _, connected := s.connectors.Connected(record.Asked, entry.ID); connected {

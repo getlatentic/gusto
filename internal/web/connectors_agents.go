@@ -2,35 +2,22 @@ package web
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 )
 
-// agentApps is what an agent's Apps tab shows the person looking: the apps they connected, and whether the agent may use them.
+// agentApps is what an agent's Apps tab shows the person looking: each app they connected, and what the agent may do with it.
 type agentApps struct {
-	Names string
-	Let   bool
+	Apps []agentApp
 	// Person is false for the shared sign-in, which is nobody and has no apps to give.
 	Person bool
 }
 
-// connectedApps is the name of each app a person connected that an admin has turned on.
-func (s *Server) connectedApps(who string) []string {
-	if !s.hasConnectors() || who == "" {
-		return nil
-	}
-	views, err := s.connectorViews(who)
-	if err != nil {
-		return nil
-	}
-	var names []string
-	for _, view := range views {
-		if view.On && view.Usable && view.Connected {
-			names = append(names, view.Name)
-		}
-	}
-	return names
+// agentApp is one app of the person's: what they chose for this agent, inherit, allow or deny, and their default for their agents,
+// which inherit follows.
+type agentApp struct {
+	ID, Name, Choice string
+	Default          bool
 }
 
 // agentAppsFor is an agent's Apps tab for the person asking, or nil where this server offers no apps.
@@ -43,32 +30,66 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 	if !person {
 		return shown
 	}
-	shown.Names = strings.Join(s.connectedApps(who), ", ")
-	if held, found := s.crew.Get(member); found {
-		shown.Let = held.UsesAppsOf(who)
+	views, err := s.connectorViews(who)
+	if err != nil {
+		return shown
+	}
+	held, _ := s.crew.Get(member)
+	for _, view := range views {
+		if !view.On || !view.Usable || !view.Connected {
+			continue
+		}
+		app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, view.ID)}
+		if allowed, chosen := held.AppChoice(who, view.ID); chosen {
+			app.Choice = map[bool]string{true: "allow", false: "deny"}[allowed]
+		}
+		shown.Apps = append(shown.Apps, app)
 	}
 	return shown
 }
 
-// letAgentApps lets an agent use the asking person's connected apps for what they ask it, or stops it. Each person decides only
-// for themselves.
-func (s *Server) letAgentApps(w http.ResponseWriter, r *http.Request) {
+// chooseAgentApp sets what an agent may do with one app of the asking person's: inherit their default, allow or deny. Each person
+// decides only for themselves.
+func (s *Server) chooseAgentApp(w http.ResponseWriter, r *http.Request) {
 	member, found := s.crewAgent(r)
 	who, person := s.connectingPerson(r)
 	if !found || !person {
 		http.NotFound(w, r)
 		return
 	}
-	let := r.FormValue("let") == "on"
 	back := "/members/agents/" + member.ID + "?tab=apps"
-	if _, err := s.crew.LetApps(member.ID, who, let); err != nil {
+	entry, offered := s.offeredConnector(r.FormValue("app"))
+	if !offered {
+		s.turnAway(w, r, back, "that app is not one offered here")
+		return
+	}
+	choice := r.FormValue("choice")
+	if _, err := s.crew.ChooseApp(member.ID, who, entry.ID, choice); err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
+	s.note(r, changelog.ConnectorsLetAgent, map[string]string{"agent": member.Name, "connector": entry.Name, "now": choice})
+	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// setAppForAgents sets the asking person's default for whether their agents may use one app they connected, which every agent they
+// left on inherit follows.
+func (s *Server) setAppForAgents(w http.ResponseWriter, r *http.Request) {
+	who, person := s.connectingPerson(r)
+	entry, offered := s.offeredConnector(r.PathValue("id"))
+	if !person || !offered {
+		http.NotFound(w, r)
+		return
+	}
+	on := r.FormValue("on") == "on"
+	if err := s.connectors.SetForAgents(who, entry.ID, on); err != nil {
+		s.turnAway(w, r, connectionsPath, err.Error())
+		return
+	}
 	now := "off"
-	if let {
+	if on {
 		now = "on"
 	}
-	s.note(r, changelog.ConnectorsLetAgent, map[string]string{"agent": member.Name, "now": now})
-	http.Redirect(w, r, back, http.StatusSeeOther)
+	s.note(r, changelog.ConnectorForAgents, map[string]string{"connector": entry.Name, "now": now})
+	http.Redirect(w, r, connectionsPath, http.StatusSeeOther)
 }

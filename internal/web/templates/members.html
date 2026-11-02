@@ -100,15 +100,25 @@
 
   {{else if eq $p.Tab "apps"}}{{with $p.Apps}}
   <section class="grid gap-3">
-    <p class="m-0 text-sm text-muted">{{$a.Name}} uses your apps as you, only for what you ask it, in any room. Somebody else's request never carries them. Each person decides this for themselves.</p>
+    <p class="m-0 text-sm text-muted">What {{$a.Name}} may use of yours, app by app. It works as you, only for what you ask it, in any room; somebody else&rsquo;s request never carries your apps. An app left on Inherit follows your default on <a class="text-ink underline" href="/connections">Connections</a>.</p>
     {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to let {{$a.Name}} use your apps.</p>
-    {{else if not .Names}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">You have connected no apps. <a class="text-ink underline" href="/connections">Connect one</a>, then let {{$a.Name}} use it here.</p>
+    {{else if not .Apps}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">You have connected no apps. <a class="text-ink underline" href="/connections">Connect one</a>, then choose here what {{$a.Name}} may use.</p>
     {{else}}
-    <form class="m-0 flex items-center gap-4 rounded-xl border border-line p-5" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="let" value="{{if .Let}}off{{else}}on{{end}}">
-      <span class="grid size-9 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
-      <span class="grid min-w-0 flex-1"><span class="text-sm font-medium">Your {{.Names}}</span><span class="text-sm text-muted">{{if .Let}}{{$a.Name}} may use them for what you ask it.{{else}}{{$a.Name}} cannot use them.{{end}}</span></span>
-      <button type="submit" class="{{if .Let}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}} h-9">{{if .Let}}Stop{{else}}Let {{$a.Name}} use them{{end}}</button>
-    </form>
+    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
+      {{range .Apps}}
+      <li class="flex h-12 items-center gap-3 px-2">
+        <span class="grid size-8 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
+        <span class="grid min-w-0 flex-1"><span class="text-sm font-medium">{{.Name}}</span><span class="text-sm text-muted">{{if eq .Choice "allow"}}{{$a.Name}} may use it.{{else if eq .Choice "deny"}}{{$a.Name}} may not use it.{{else if .Default}}{{$a.Name}} may use it, as your default says.{{else}}{{$a.Name}} may not use it, as your default says.{{end}}</span></span>
+        <form class="m-0" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="app" value="{{.ID}}">
+          <select class="select h-8" name="choice" aria-label="What {{$a.Name}} may do with your {{.Name}}" data-autosubmit>
+            <option value="inherit"{{if eq .Choice "inherit"}} selected{{end}}>Inherit ({{if .Default}}on{{else}}off{{end}})</option>
+            <option value="allow"{{if eq .Choice "allow"}} selected{{end}}>Allow</option>
+            <option value="deny"{{if eq .Choice "deny"}} selected{{end}}>Don&rsquo;t allow</option>
+          </select>
+        </form>
+      </li>
+      {{end}}
+    </ul>
     {{end}}
   </section>
   {{end}}

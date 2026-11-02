@@ -334,10 +334,12 @@ func saidOf(e changelog.Event) string {
 		}
 		return fmt.Sprintf("stopped the agents in %s using their connected apps", w["room"])
 	case changelog.ConnectorsLetAgent:
+		return agentAppWords(w)
+	case changelog.ConnectorForAgents:
 		if w["now"] == "on" {
-			return fmt.Sprintf("let %s use their connected apps, for what they ask it", w["agent"])
+			return fmt.Sprintf("let their agents use %s unless they say otherwise for one", w["connector"])
 		}
-		return fmt.Sprintf("stopped %s using their connected apps", w["agent"])
+		return fmt.Sprintf("kept their agents from %s unless they allow one", w["connector"])
 	case changelog.ConnectorDisconnected:
 		return fmt.Sprintf("took their %s sign-in away from their agents", w["connector"])
 	case changelog.MemberBudgetSet:
@@ -423,4 +425,20 @@ func recordsOf(ids string) string {
 		return ""
 	}
 	return " (records removed: " + ids + ")"
+}
+
+// agentAppWords is a person's choice for an agent and one app of theirs. An entry from before choices were made app by app names
+// no app, and was on or off for them all.
+func agentAppWords(w map[string]string) string {
+	switch {
+	case w["connector"] == "" && w["now"] == "on":
+		return fmt.Sprintf("let %s use their connected apps, for what they ask it", w["agent"])
+	case w["connector"] == "":
+		return fmt.Sprintf("stopped %s using their connected apps", w["agent"])
+	case w["now"] == "allow":
+		return fmt.Sprintf("let %s use their %s, for what they ask it", w["agent"], w["connector"])
+	case w["now"] == "deny":
+		return fmt.Sprintf("kept %s from their %s", w["agent"], w["connector"])
+	}
+	return fmt.Sprintf("left %s to follow their default for %s", w["agent"], w["connector"])
 }

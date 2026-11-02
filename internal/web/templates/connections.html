@@ -13,13 +13,14 @@
 <p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. In a room, agents use it only for what you ask, once you let them in that room.</p>
 <section class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">
-    <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th></th></tr></thead>
+    <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th>For my agents</th><th></th></tr></thead>
     <tbody>
       {{range .Connectors}}
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
         <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if .Connected}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
         <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
       </tr>
       {{end}}

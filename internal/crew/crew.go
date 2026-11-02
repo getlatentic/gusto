@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -34,10 +35,11 @@ type Agent struct {
 	// Owner made it and decides who else may work with it; Access is everybody else who may.
 	Owner  string   `json:"owner"`
 	Access []string `json:"access,omitempty"`
-	// Apps is everybody who lets it use the apps they connected, as them, for what they ask it. Each person decides only for
-	// themselves.
-	Apps    []string `json:"apps,omitempty"`
-	Created int64    `json:"createdAt"`
+	// Apps is what each person chose for the agent, app by app: true lets it use that app of theirs, as them, for what they ask
+	// it, and false keeps it away. An app with no choice follows the person's default for their agents. Each person decides only
+	// for themselves.
+	Apps    map[string]map[string]bool `json:"appChoices,omitempty"`
+	Created int64                      `json:"createdAt"`
 }
 
 // named is what an agent can be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
@@ -114,7 +116,13 @@ func (s *Store) Get(id string) (Agent, bool) {
 // copied is the agent with a list of its own, so a caller that changes it changes nothing kept.
 func (held Agent) copied() Agent {
 	held.Access = slices.Clone(held.Access)
-	held.Apps = slices.Clone(held.Apps)
+	if held.Apps != nil {
+		apps := make(map[string]map[string]bool, len(held.Apps))
+		for who, chosen := range held.Apps {
+			apps[who] = maps.Clone(chosen)
+		}
+		held.Apps = apps
+	}
 	return held
 }
 
@@ -161,7 +169,6 @@ func (s *Store) Change(id string, change func(*Agent) error) (Agent, error) {
 		return Agent{}, err
 	}
 	changed.Access = people(changed.Access, changed.Owner)
-	changed.Apps = people(changed.Apps, "")
 	if err := s.write(changed); err != nil {
 		return Agent{}, err
 	}
@@ -189,22 +196,37 @@ func (held Agent) MayUse(who string) bool {
 	return who != "" && (who == held.Owner || slices.Contains(held.Access, who))
 }
 
-// UsesAppsOf says whether a person lets the agent use the apps they connected, for what they ask it.
-func (held Agent) UsesAppsOf(who string) bool {
-	return slices.Contains(held.Apps, strings.ToLower(strings.TrimSpace(who)))
+// AppChoice is what a person chose for the agent and one app of theirs, and whether they chose at all; with no choice, the agent
+// follows the person's default for their agents.
+func (held Agent) AppChoice(who, app string) (allowed, chosen bool) {
+	allowed, chosen = held.Apps[strings.ToLower(strings.TrimSpace(who))][app]
+	return allowed, chosen
 }
 
-// LetApps lets an agent use a person's connected apps for what that person asks it, or stops it.
-func (s *Store) LetApps(id, who string, let bool) (Agent, error) {
+// ChooseApp sets what a person lets an agent do with one app of theirs: "allow", "deny", or "inherit" to follow their default.
+func (s *Store) ChooseApp(id, who, app, choice string) (Agent, error) {
 	who = strings.ToLower(strings.TrimSpace(who))
-	if who == "" {
-		return Agent{}, errors.New("only a person lets an agent use their apps")
+	if who == "" || app == "" {
+		return Agent{}, errors.New("a person chooses for one app of theirs")
+	}
+	if choice != "allow" && choice != "deny" && choice != "inherit" {
+		return Agent{}, fmt.Errorf("%q is not allow, deny or inherit", choice)
 	}
 	return s.Change(id, func(held *Agent) error {
-		held.Apps = slices.DeleteFunc(held.Apps, func(each string) bool { return each == who })
-		if let {
-			held.Apps = append(held.Apps, who)
+		if choice == "inherit" {
+			delete(held.Apps[who], app)
+			if len(held.Apps[who]) == 0 {
+				delete(held.Apps, who)
+			}
+			return nil
 		}
+		if held.Apps == nil {
+			held.Apps = map[string]map[string]bool{}
+		}
+		if held.Apps[who] == nil {
+			held.Apps[who] = map[string]bool{}
+		}
+		held.Apps[who][app] = choice == "allow"
 		return nil
 	})
 }
@@ -222,7 +244,7 @@ func (s *Store) nameFree(name, besides string) error {
 	return nil
 }
 
-// people is a list of addresses tidied: lower case, each once, without the owner, who always has access, when one is given.
+// people is a list of addresses tidied: lower case, each once, without the owner, who always has access.
 func people(listed []string, owner string) []string {
 	var kept []string
 	for _, who := range listed {

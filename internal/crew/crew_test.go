@@ -67,33 +67,43 @@ func TestAnAgentNeedsANamePeopleCanMention(t *testing.T) {
 	}
 }
 
-// Each person lets an agent use their own apps, and only they stop it. The choice is kept with the agent.
-func TestEachPersonLetsAnAgentUseTheirOwnApps(t *testing.T) {
+// Each person chooses for an agent app by app, only for themselves; an app they did not choose for follows their default. The
+// choices are kept with the agent.
+func TestEachPersonChoosesForAnAgentAppByApp(t *testing.T) {
 	dir := t.TempDir()
 	store, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	made, err := store.Make(Agent{Name: "Nova", Harness: "codex", Owner: "ada@example.com", Apps: []string{"mallory@example.com"}})
+	made, err := store.Make(Agent{Name: "Nova", Harness: "codex", Owner: "ada@example.com", Apps: map[string]map[string]bool{"mallory@example.com": {"notion": true}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if made.UsesAppsOf("mallory@example.com") {
-		t.Fatal("an agent was made already using somebody's apps")
+	if _, chosen := made.AppChoice("mallory@example.com", "notion"); chosen {
+		t.Fatal("an agent was made with somebody's choice already in it")
 	}
-	if _, err := store.LetApps(made.ID, "Bob@Example.com", true); err != nil {
-		t.Fatal(err)
-	}
-	store.LetApps(made.ID, "bob@example.com", true)
-	if _, err := store.LetApps(made.ID, " ", true); err == nil {
-		t.Error("nobody let the agent use their apps")
+	store.ChooseApp(made.ID, "Bob@Example.com", "notion", "allow")
+	store.ChooseApp(made.ID, "bob@example.com", "github", "deny")
+	if _, err := store.ChooseApp(made.ID, "bob@example.com", "notion", "always"); err == nil {
+		t.Error("a choice that is not allow, deny or inherit was kept")
 	}
 	reopened, _ := Open(dir)
 	held, _ := reopened.Get(made.ID)
-	if !held.UsesAppsOf("BOB@example.com") || held.UsesAppsOf("ada@example.com") || len(held.Apps) != 1 {
-		t.Errorf("the agent uses the apps of %v", held.Apps)
+	if allowed, chosen := held.AppChoice("BOB@example.com", "notion"); !allowed || !chosen {
+		t.Error("bob's notion is not allowed")
 	}
-	if stopped, _ := store.LetApps(made.ID, "bob@example.com", false); stopped.UsesAppsOf("bob@example.com") {
-		t.Error("stopping did not stop it")
+	if allowed, chosen := held.AppChoice("bob@example.com", "github"); allowed || !chosen {
+		t.Error("bob's github is not kept away")
+	}
+	if _, chosen := held.AppChoice("ada@example.com", "notion"); chosen {
+		t.Error("bob's choice was taken as ada's")
+	}
+	again, _ := store.ChooseApp(made.ID, "bob@example.com", "notion", "inherit")
+	if _, chosen := again.AppChoice("bob@example.com", "notion"); chosen {
+		t.Error("inherit did not clear the choice")
+	}
+	again.Apps["bob@example.com"]["github"] = true
+	if allowed, _ := store.held[made.ID].AppChoice("bob@example.com", "github"); allowed {
+		t.Error("changing an agent a caller was given changed the one kept")
 	}
 }
