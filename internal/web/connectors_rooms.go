@@ -90,7 +90,9 @@ func (s *Server) roomAppsLine(record jobs.Record, spec job.Spec) string {
 		return "\nFor this message you have " + asker + "'s connected apps: " + strings.Join(s.appNames(spec.Setup.Connectors), ", ") + ". Use them only for what " + asker + " asks.\n"
 	}
 	return "\nFor this message you have no connected apps. A room's agents get a person's apps only for what that person asks, and " + asker +
-		" asked this. Apps you used earlier for someone else are not available now, so do not look for them. If the work needs one, say so in a sentence and ask the person who connected it.\n"
+		" asked this. Apps you used earlier for someone else are not available now, so do not look for them. If the work needs one, say so in" +
+		" one sentence: " + asker + "'s request does not carry another person's apps, and the person whose app it is can ask for it themselves." +
+		" Nothing is disconnected, so never suggest reconnecting.\n"
 }
 
 // appNames is the catalog name of each connector given.
