@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // withAcme is a console with the registry, an organization's settings and one provider of the admin's, acme.
@@ -151,20 +152,66 @@ func TestTheModelsTableAndAProvidersModelsArePagedAt25(t *testing.T) {
 	}
 }
 
-func TestPeopleSaysTheBudgetsInALineAndChangesThemInADialog(t *testing.T) {
+// spendFor counts a call of this many dollars, made now, against the person who asked for it.
+func spendFor(ledger *spend.Ledger, person string, usd float64) {
+	job := "job-" + person
+	ledger.Begin(job, spend.Terms{Person: person})
+	ledger.Count(job, spend.Call{Path: "/v1/chat/completions", Status: 200, AtUnix: time.Now().Unix(), USD: &usd})
+}
+
+func TestBudgetsSaysTheBudgetsInALineAndListsEachPersonsAgainstWhatTheySpent(t *testing.T) {
 	here, _, _ := budgeted(t)
+	ledger := spend.NewLedger(spend.Policy{})
+	here.server.UseLedger(ledger)
 	setBudget(t, here, "50")
 	here.ask(t, "POST", "/admin/member-budget", url.Values{"usd": {"10"}})
-	page := people(t, here)
-	if !strings.Contains(page, "$10.00 a month for each person; their agents stop there. The organization's $50.00 a month only warns.") {
-		t.Errorf("People does not say both budgets in a line:\n%s", page)
+	here.ask(t, "POST", "/admin/member-budget", url.Values{"who": {alice}, "usd": {"4"}})
+	spendFor(ledger, alice, 5)
+	spendFor(ledger, bob, 2.5)
+	page := budgets(t, here)
+	if !strings.Contains(page, "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns.") {
+		t.Errorf("Budgets does not say both budgets in a line:\n%s", page)
 	}
-	if strings.Contains(page, "<details class=\"group") {
-		t.Error("the budgets are a card on People")
+	own, theirs := rowOf(t, page, alice), rowOf(t, page, bob)
+	if !strings.Contains(own, "$4.00 <span") || !strings.Contains(own, ">own</span>") || !strings.Contains(own, "reached") || !strings.Contains(own, "bg-bad") || !strings.Contains(own, "width:100%") {
+		t.Errorf("alice's row does not show her own budget, reached:\n%s", own)
+	}
+	if !strings.Contains(theirs, "$10.00") || strings.Contains(theirs, ">own<") || strings.Contains(theirs, "bg-bad") || !strings.Contains(theirs, "width:25%") {
+		t.Errorf("bob's row does not show everyone's budget, a quarter spent:\n%s", theirs)
 	}
 	dialog, form := strings.Index(page, `<dialog class="`), strings.Index(page, `action="/admin/budget"`)
-	if !strings.Contains(page, `data-open="budgets"`) || !strings.Contains(page, `id="budgets"`) || dialog < 0 || form < dialog || form < strings.Index(page, "</table>") {
-		t.Error("Change does not open the budget form in a dialog")
+	if strings.Count(page, `data-open="budgets"`) != 1 || dialog < 0 || form < dialog || form < strings.Index(page, "</table>") {
+		t.Error("the one Change does not open the budget form in a dialog")
+	}
+	if strings.Count(page, `action="/admin/member-budget"`) != 2 {
+		t.Error("each row does not hold its own budget form behind its menu")
+	}
+}
+
+func TestBudgetsIsPagedAt25AndListedAfterUsage(t *testing.T) {
+	list := roster.Roster{Written: time.Now(), Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}}
+	for i := 2; i <= 30; i++ {
+		list.Members = append(list.Members, roster.Member{Email: fmt.Sprintf("person%02d@acme.com", i), Role: "runner"})
+	}
+	here, _ := withPeople(t, list)
+	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
+	first := budgets(t, here)
+	if !strings.Contains(first, "person25@acme.com") || strings.Contains(first, "person26@acme.com") || !strings.Contains(first, `href="/admin/budgets?page=2" rel="next"`) {
+		t.Error("the first page of Budgets is not the first 25 people")
+	}
+	second := here.ask(t, "GET", "/admin/budgets?page=2", nil).Body.String()
+	if !strings.Contains(second, "person26@acme.com") || strings.Contains(second, "person25@acme.com") {
+		t.Error("the second page of Budgets does not start at the 26th person")
+	}
+	usage, budgetsAt, peopleAt := strings.Index(first, `href="/admin/usage"`), strings.Index(first, `href="/admin/budgets"`), strings.Index(first, `href="/admin/people"`)
+	if usage < 0 || budgetsAt < usage || peopleAt < budgetsAt {
+		t.Error("the menu does not list Budgets between Usage and People")
+	}
+	people := here.ask(t, "GET", "/admin/people", nil).Body.String()
+	for _, gone := range []string{`action="/admin/budget"`, `action="/admin/member-budget"`, `data-open="budgets"`, "Each person:"} {
+		if strings.Contains(people, gone) {
+			t.Errorf("People still has %s", gone)
+		}
 	}
 }
 

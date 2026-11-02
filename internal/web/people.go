@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/getlatentic/gusto/internal/roster"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -50,11 +49,11 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 		s.drawConsole(w, "admin-people.html", "people", page)
 		return
 	}
-	spent, month, err := s.spentThisMonth()
+	asked, err := s.askedThisMonth()
 	if err != nil {
 		page["SpendUnreadable"] = err.Error()
 	}
-	page["Month"], page["Written"] = month, list.Written.Unix()
+	page["Month"], page["Written"] = asked.Month, list.Written.Unix()
 	tabs := []tab{{Key: "people", Label: "People"}}
 	if len(list.Invited) > 0 {
 		tabs = append(tabs, tab{Key: "invited", Label: "Invited", Count: len(list.Invited)})
@@ -64,13 +63,11 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	if chosen == "invited" {
 		page["Invited"] = invitesOf(list)
 	} else {
-		page["People"], page["Pages"] = onePage(r, peoplePath+"?tab=people", s.rowsOf(list, spent))
+		page["People"], page["Pages"] = onePage(r, peoplePath+"?tab=people", s.rowsOf(list, asked))
 	}
 	page["Admins"] = adminsIn(list)
 	page["Tokens"] = s.hasTokens()
-	if s.hasOrgSettings() {
-		page["Budget"] = s.budgetOf(0)
-	}
+	page["Budgets"] = s.hasOrgSettings()
 	s.drawConsole(w, "admin-people.html", "people", page)
 }
 
@@ -94,14 +91,14 @@ func adminsIn(list roster.Roster) int {
 	return admins
 }
 
-func (s *Server) rowsOf(list roster.Roster, spent map[string]spend.Tally) []personRow {
+func (s *Server) rowsOf(list roster.Roster, asked askedSpend) []personRow {
 	rows := make([]personRow, 0, len(list.Members))
 	for _, member := range list.Members {
-		row := personRow{Email: member.Email, Name: s.personName(member.Email), Role: member.Role, Budget: s.memberBudgetOf(member.Email)}
+		row := personRow{Email: member.Email, Name: s.personName(member.Email), Role: member.Role, Budget: s.memberBudgetFor(member.Email, asked.spentBy(member.Email))}
 		if !member.LastSignIn.IsZero() {
 			row.LastSignIn = member.LastSignIn.Unix()
 		}
-		if tally, found := spent[strings.ToLower(member.Email)]; found {
+		if tally, found := asked.People[strings.ToLower(member.Email)]; found {
 			row.Spent = &tally
 		}
 		rows = append(rows, row)
@@ -115,19 +112,4 @@ func invitesOf(list roster.Roster) []inviteRow {
 		rows = append(rows, inviteRow{Email: invited.Email, By: invited.By, Expires: invited.Expires.Unix()})
 	}
 	return rows
-}
-
-// spentThisMonth is what each person who asked for work spent this month, by the
-// address they signed in with, as the ledger the caps are checked against says.
-func (s *Server) spentThisMonth() (map[string]spend.Tally, string, error) {
-	ledger, err := s.spending()
-	if err != nil {
-		return nil, time.Now().UTC().Format("2006-01"), err
-	}
-	report := ledger.Report(ledger.ThisMonth())
-	spent := map[string]spend.Tally{}
-	for _, line := range s.byAsker(report.Jobs) {
-		spent[strings.ToLower(line.Name)] = line.Tally
-	}
-	return spent, report.Month, nil
 }

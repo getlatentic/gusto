@@ -38,7 +38,7 @@ func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 	t.Helper()
 	line := fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":10,"outputTokens":5,"usd":%v}`, time.Now().Unix(), usd)
-	spentJob(t, here.index.Root(), id, team, line)
+	spentJobFor(t, here.index.Root(), id, team, asked, line)
 	if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestTheOnlyAdminAndAServerWithNoFrontDoorShowTheRoleInWords(t *testing.T) {
 	}
 
 	alone, _, _ := budgeted(t)
-	if page := people(t, alone); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
+	if page := alone.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
 		t.Errorf("a server with no front door offers to change a role:\n%s", page)
 	}
 }

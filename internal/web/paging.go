@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // perTable is how many rows one page of a console table shows.
@@ -13,8 +14,8 @@ type pager struct {
 	Shown, Previous, Next string
 }
 
-// onePage cuts the page the request names, counted from 1, out of rows. here is the page's own address with its query, which
-// the links to the other pages add to.
+// onePage cuts the page the request names, counted from 1, out of rows. here is the page's own address, with its query if it
+// has one, which the links to the other pages add to.
 func onePage[T any](r *http.Request, here string, rows []T) ([]T, pager) {
 	at, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || at < 1 {
@@ -40,5 +41,9 @@ func pageLink(here string, at int) string {
 	if at == 1 {
 		return here
 	}
-	return here + "&page=" + strconv.Itoa(at)
+	join := "?"
+	if strings.Contains(here, "?") {
+		join = "&"
+	}
+	return here + join + "page=" + strconv.Itoa(at)
 }

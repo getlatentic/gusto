@@ -15,6 +15,9 @@ func (s *Server) sections() []section {
 		{"overview", "/admin", "Overview"},
 		{"usage", "/admin/usage", "Usage"},
 	}
+	if s.hasOrgSettings() {
+		all = append(all, section{"budgets", budgetsPath, "Budgets"})
+	}
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}
@@ -100,6 +103,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+setupsPath+"/{name}/disable", setups(s.turnSetup(true)))
 
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
+	mux.HandleFunc("GET "+budgetsPath, s.console(offering(s.hasOrgSettings, s.budgetsPage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 	mux.HandleFunc("POST /admin/member-budget", s.console(offering(s.hasOrgSettings, s.setMemberBudget)))
 	mux.HandleFunc("POST /admin/chat-default", s.console(offering(s.hasOrgSettings, s.setChatDefault)))

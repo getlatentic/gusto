@@ -32,11 +32,11 @@ func setBudget(t *testing.T, here *site, typed string) *http.Response {
 	return here.ask(t, "POST", "/admin/budget", url.Values{"usd": {typed}}).Result()
 }
 
-func people(t *testing.T, here *site) string {
+func budgets(t *testing.T, here *site) string {
 	t.Helper()
-	answer := here.ask(t, "GET", "/admin/people", nil)
+	answer := here.ask(t, "GET", budgetsPath, nil)
 	if answer.Code != http.StatusOK {
-		t.Fatalf("People answered %d", answer.Code)
+		t.Fatalf("Budgets answered %d", answer.Code)
 	}
 	return answer.Body.String()
 }
@@ -48,23 +48,23 @@ func damage(t *testing.T, path string) {
 	}
 }
 
-func TestPeopleSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testing.T) {
+func TestBudgetsSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testing.T) {
 	here, log, _ := budgeted(t)
-	page := people(t, here)
+	page := budgets(t, here)
 	for _, want := range []string{"No budget for each person, so their agents do not stop.", "The organization has no budget to warn at.", `data-open="budgets"`, `<dialog class=`} {
 		if !strings.Contains(page, want) {
-			t.Errorf("with no budgets, People lacks %q", want)
+			t.Errorf("with no budgets, Budgets lacks %q", want)
 		}
 	}
 	if n := strings.Count(page, `action="/admin/budget"`); n != 1 {
-		t.Fatalf("People has %d budget forms, and one sets both", n)
+		t.Fatalf("Budgets has %d budget forms, and one sets both", n)
 	}
 	got := here.ask(t, "POST", "/admin/budget", url.Values{"usd": {"50"}, "each": {"10"}}).Result()
-	if got.StatusCode != http.StatusSeeOther || got.Header.Get("Location") != "/admin/people" {
+	if got.StatusCode != http.StatusSeeOther || got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("saving both: %d %v", got.StatusCode, got.Header)
 	}
-	page = people(t, here)
-	if !strings.Contains(page, "$10.00 a month for each person; their agents stop there. The organization's $50.00 a month only warns.") {
+	page = budgets(t, here)
+	if !strings.Contains(page, "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns.") {
 		t.Errorf("both budgets are not said:\n%s", page)
 	}
 	if !strings.Contains(page, `name="usd" type="number" min="0" step="0.01" placeholder="No budget" value="50.00"`) || !strings.Contains(page, `name="each" type="number" min="0" step="0.01" placeholder="No budget" value="10.00"`) {
@@ -90,7 +90,7 @@ func TestPeopleSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testing
 func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	here, log, path := budgeted(t)
 	setBudget(t, here, "100")
-	if page := people(t, here); !strings.Contains(page, "The organization's $100.00 a month only warns.") {
+	if page := budgets(t, here); !strings.Contains(page, "Organization: $100.00 a month, which only warns.") {
 		t.Errorf("the budget is not shown:\n%s", page)
 	}
 	if page := overview(t, here); !strings.Contains(page, "of $100.00") {
@@ -99,7 +99,7 @@ func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	setBudget(t, here, "100")
 	setBudget(t, here, "250.5")
 	setBudget(t, here, "")
-	if page := people(t, here); !strings.Contains(page, "The organization has no budget to warn at.") {
+	if page := budgets(t, here); !strings.Contains(page, "The organization has no budget to warn at.") {
 		t.Errorf("a budget left empty is not cleared:\n%s", page)
 	}
 	var said []string
@@ -136,7 +136,7 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 		for _, form := range []url.Values{{"usd": {typed}}, {"usd": {"2"}, "each": {typed}}} {
 			got := here.ask(t, "POST", "/admin/budget", form).Result()
 			why, _ := url.QueryUnescape(got.Header.Get("Location"))
-			if !strings.HasPrefix(why, "/admin/people?refused=") || !strings.Contains(why, "the budget is a number of dollars") {
+			if !strings.HasPrefix(why, budgetsPath+"?refused=") || !strings.Contains(why, "the budget is a number of dollars") {
 				t.Errorf("%v was accepted or refused for another reason: %d %v", form, got.StatusCode, got.Header)
 			}
 		}
@@ -144,7 +144,7 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 	if kept, _ := here.server.orgSettings.Read(); kept.MonthlyBudgetUSD != 2 || kept.MemberBudgetUSD != 0 {
 		t.Errorf("a refused budget changed the budgets: %+v", kept)
 	}
-	refused := here.ask(t, "GET", "/admin/people?refused="+url.QueryEscape("the budget is a number"), nil).Body.String()
+	refused := here.ask(t, "GET", budgetsPath+"?refused="+url.QueryEscape("the budget is a number"), nil).Body.String()
 	if !strings.Contains(refused, `role="alert">the budget is a number</p>`) {
 		t.Errorf("a refusal is not shown:\n%s", refused)
 	}
@@ -156,8 +156,8 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 func TestABudgetThatCannotBeReadIsSaidAndNotWrittenOver(t *testing.T) {
 	here, _, path := budgeted(t)
 	damage(t, path)
-	if page := people(t, here); !strings.Contains(page, "The budgets could not be read.") {
-		t.Errorf("People does not say the budgets cannot be read:\n%s", page)
+	if page := budgets(t, here); !strings.Contains(page, "The budgets could not be read.") {
+		t.Errorf("Budgets does not say the budgets cannot be read:\n%s", page)
 	}
 	got := setBudget(t, here, "1")
 	if !strings.Contains(got.Header.Get("Location"), "refused=") {
@@ -181,8 +181,11 @@ func TestABudgetIsKeptAcrossARestart(t *testing.T) {
 
 func TestThereIsNoBudgetWhereTheServerKeepsNoSettings(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
-	if page := people(t, here); strings.Contains(page, "Budgets") || strings.Contains(page, "/admin/member-budget") {
+	if page := here.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "Budgets") || strings.Contains(page, "/admin/budget") {
 		t.Errorf("a server that cannot keep a budget offers one:\n%s", page)
+	}
+	if got := here.ask(t, "GET", budgetsPath, nil); got.Code != http.StatusNotFound {
+		t.Errorf("Budgets where none is kept: %d", got.Code)
 	}
 	if got := setBudget(t, here, "5"); got.StatusCode != http.StatusNotFound {
 		t.Errorf("setting a budget where none is kept: %d", got.StatusCode)

@@ -2,11 +2,12 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 )
 
 // overviewPage answers one question for an admin: is this month's spending under control. It changes nothing; budgets
-// are set on People.
+// are set on Budgets.
 func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	month := monthStart(time.Now())
 	spent, err := s.monthSpend(r, month)
@@ -16,11 +17,13 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 	}
 	budget := s.budgetOf(spent.USD)
 	page := map[string]any{
-		"Title":      productName + " — admin",
-		"MonthName":  month.Format("January"),
-		"Spent":      spent,
-		"Budget":     budget,
-		"PeoplePage": s.hasRoster(),
+		"Title":       productName + " — admin",
+		"MonthName":   month.Format("January"),
+		"Spent":       spent,
+		"Budget":      budget,
+		"PeoplePage":  s.hasRoster(),
+		"BudgetsPage": s.hasOrgSettings(),
+		"PeopleAll":   s.peopleAll("/admin/usage?" + url.Values{"from": {month.Format("2006-01-02")}}.Encode()),
 	}
 	if budget.Set {
 		page["Percent"] = percentOf(spent.USD, budget.Limit)

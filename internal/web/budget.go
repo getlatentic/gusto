@@ -56,17 +56,17 @@ func (s *Server) budgetOf(spent float64) budgetState {
 }
 
 // setBudget keeps the monthly budget an admin gives, or takes it away when they give none. A form that also has "each"
-// sets what each person may spend in the same change, which is how People sets both with one Save.
+// sets what each person may spend in the same change, which is how Budgets sets both with one Save.
 func (s *Server) setBudget(w http.ResponseWriter, r *http.Request) {
 	usd, err := parseBudget(r.FormValue("usd"))
 	if err != nil {
-		s.turnAway(w, r, "/admin/people", err.Error())
+		s.turnAway(w, r, budgetsPath, err.Error())
 		return
 	}
 	_, both := r.PostForm["each"]
 	each, err := parseBudget(r.PostFormValue("each"))
 	if err != nil {
-		s.turnAway(w, r, "/admin/people", err.Error())
+		s.turnAway(w, r, budgetsPath, err.Error())
 		return
 	}
 	var was, eachWas float64
@@ -78,7 +78,7 @@ func (s *Server) setBudget(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 	if err != nil {
-		s.turnAway(w, r, "/admin/people", err.Error())
+		s.turnAway(w, r, budgetsPath, err.Error())
 		return
 	}
 	if was != usd {
@@ -87,7 +87,7 @@ func (s *Server) setBudget(w http.ResponseWriter, r *http.Request) {
 	if both && eachWas != each {
 		s.note(r, changelog.MemberBudgetSet, map[string]string{"whose": "", "was": budgetWords(eachWas), "now": budgetWords(each)})
 	}
-	http.Redirect(w, r, "/admin/people", http.StatusSeeOther)
+	http.Redirect(w, r, budgetsPath, http.StatusSeeOther)
 }
 
 // parseBudget is the dollars an admin typed, to the cent. Nothing typed is no budget.
