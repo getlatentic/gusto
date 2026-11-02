@@ -10,7 +10,7 @@ import (
 
 const (
 	siteName        = "gusto"
-	landingTitle    = siteName + " — one place for every AI agent your team needs"
+	landingTitle    = siteName + " — one workspace for every AI agent your team uses"
 	demoFormTitle   = "Start a demo of " + siteName
 	bookDemoTitle   = "Book a demo of " + siteName
 	organizationURL = "https://getlatentic.com"

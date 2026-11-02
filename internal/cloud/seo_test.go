@@ -23,7 +23,7 @@ func TestTheLandingPageTellsASearchEngineWhatItIsAndWhereItLives(t *testing.T) {
 			`<meta property="og:image" content="http://cloud.test/static/og.png">`,
 			`<meta property="og:image:width" content="1200">`,
 			`<meta name="twitter:card" content="summary_large_image">`,
-			`<meta property="og:title" content="gusto — one place for every AI agent your team needs">`,
+			`<meta property="og:title" content="gusto — one workspace for every AI agent your team uses">`,
 		} {
 			if !strings.Contains(page, want) {
 				t.Errorf("the landing page lacks %s", want)
