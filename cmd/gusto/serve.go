@@ -178,6 +178,14 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseRoomHold(rooms.hub.Hold)
+	if imageFetched() {
+		waiting, stopWaiting := context.WithCancel(context.Background())
+		read, done := awaitImage(waiting, offered, sandbox.EnsureImage, func() []catalog.Entry { return surveyed(harness.Names()) })
+		defer func() { stopWaiting(); <-done }()
+		if read != nil {
+			pages.UseLiveCatalog(read)
+		}
+	}
 	if wall != nil {
 		pages.UseWall(theWall())
 	}
