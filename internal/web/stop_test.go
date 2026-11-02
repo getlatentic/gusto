@@ -218,3 +218,30 @@ func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
 		t.Error("the turn repeats the agent's error or the proxy's own words")
 	}
 }
+
+// A turn a person's budget stopped part way keeps what the agent said before it, without the agent repeating the refusal.
+func TestATurnStoppedPartWayKeepsTheReplyWithoutTheRefusalRepeated(t *testing.T) {
+	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		at := strconv.FormatInt(time.Now().Unix(), 10)
+		lines := `{"path":"/v1/chat/completions","status":200,"atUnix":` + at + `,"model":"m","inputTokens":100,"outputTokens":50,"usd":0.02}` + "\n" +
+			`{"path":"/v1/chat/completions","status":402,"atUnix":` + at +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"person","limitUsd":0.02,"spentUsd":0.02,"reason":"over budget"}}` + "\n"
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(lines), 0o644)
+		os.WriteFile(dir.OutFile("transcript.log"), []byte("Drafting the reminder email now.\nAPI Error: 402 gusto stopped this task: over budget\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "Drafting the reminder email now.") {
+		t.Error("the turn drops what the agent said before the budget stopped it")
+	}
+	if strings.Contains(page, "API Error") || !strings.Contains(page, "is used up, $0.02 of $0.02.") {
+		t.Errorf("the turn repeats the agent's error, or does not say the budget stopped it:\n%s", page)
+	}
+}

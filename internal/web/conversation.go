@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -159,9 +160,13 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), record.Started); err == nil {
 		shown.Capped = refusal
 	}
-	if shown.Capped != nil && shown.Spent.Calls == 0 {
+	switch {
+	case shown.Capped != nil && shown.Spent.Calls == 0:
 		// The model was never asked, so what the agent said is only the refusal again.
 		shown.Replied = ""
+	case shown.Capped != nil:
+		// The page says what stopped the turn under the reply, so the agent printing the refusal again is left out.
+		shown.Replied = withoutRefusal(shown.Replied)
 	}
 	shown.Limit = s.limitWords(record, shown.Capped)
 	if calls := callsOf(dir); calls != nil {
@@ -171,6 +176,17 @@ func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
 	attested, err := evidence.Attest(dir, s.keyring)
 	shown.Signed = err == nil && attested.Signed
 	return shown
+}
+
+// withoutRefusal is a reply without the lines where the agent repeats the proxy's refusal.
+func withoutRefusal(replied string) string {
+	var kept []string
+	for _, line := range strings.Split(replied, "\n") {
+		if !strings.Contains(line, proxy.Refusal) {
+			kept = append(kept, line)
+		}
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
 }
 
 // said is what the harness replied, read from the turn's own transcript. It is
