@@ -16,6 +16,9 @@ func (s *Server) UseRoster(path string) { s.rosterPath = path }
 
 func (s *Server) hasRoster() bool { return s.rosterPath != "" }
 
+// peoplePath is the console's page of the organization's people.
+const peoplePath = "/admin/people"
+
 // personRow is one member as the page says it. LastSignIn is zero for a person who
 // has not been signed in yet, and Spent is nil when they spent nothing this month.
 type personRow struct {
@@ -52,7 +55,17 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 		page["SpendUnreadable"] = err.Error()
 	}
 	page["Month"], page["Written"] = month, list.Written.Unix()
-	page["People"], page["Invited"] = s.rowsOf(list, spent), invitesOf(list)
+	tabs := []tab{{Key: "people", Label: "People"}}
+	if len(list.Invited) > 0 {
+		tabs = append(tabs, tab{Key: "invited", Label: "Invited", Count: len(list.Invited)})
+	}
+	tabs, chosen := chooseTab(r, peoplePath, tabs)
+	page["Tabs"], page["Tab"] = tabs, chosen
+	if chosen == "invited" {
+		page["Invited"] = invitesOf(list)
+	} else {
+		page["People"], page["Pages"] = onePage(r, peoplePath+"?tab=people", s.rowsOf(list, spent))
+	}
 	page["Admins"] = adminsIn(list)
 	page["Tokens"] = s.hasTokens()
 	if s.hasOrgSettings() {

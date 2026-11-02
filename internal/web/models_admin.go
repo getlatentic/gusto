@@ -36,35 +36,32 @@ func (s *Server) ownsItsModels() bool { return s.local != nil && s.registry != n
 // formLimit is the most a form to the registry may be.
 const formLimit = 16 << 10
 
-func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
-	view := s.registry.View()
-	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Sources": keySources(view),
-		"People": s.memberEmails(), "Steps": s.registry.Steps(), "Rows": s.modelRows(view)}
-	if s.hasOrgSettings() {
-		choices := s.defaultChoices(r)
-		page["Defaults"], page["DefaultNow"], page["RunTokens"] = choices, chatDefaultWords(choices), s.runTokensOf()
-	}
-	s.drawConsole(w, "admin-models.html", "models", page)
-}
-
-// registryAction reads a form, makes the change and records it, and goes back to the page with the reason when
-// it is refused. What is recorded is what changed and never a key.
-func (s *Server) registryAction(kind string, make func(r *http.Request) (map[string]string, error)) http.HandlerFunc {
+// registryAction reads a form, makes the change and records it, and goes back to the tab the form is on, with the reason
+// when it is refused. What is recorded is what changed and never a key.
+func (s *Server) registryAction(kind string, back func(r *http.Request) string, make func(r *http.Request) (map[string]string, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, formLimit)
 		if err := r.ParseForm(); err != nil {
-			s.turnAway(w, r, "/admin/models", "that form is too large")
+			s.turnAway(w, r, back(r), "that form is too large")
 			return
 		}
 		what, err := make(r)
 		if err != nil {
-			s.turnAway(w, r, "/admin/models", registryWords(err))
+			s.turnAway(w, r, back(r), registryWords(err))
 			return
 		}
 		s.note(r, kind, what)
-		http.Redirect(w, r, "/admin/models", http.StatusSeeOther)
+		http.Redirect(w, r, back(r), http.StatusSeeOther)
 	}
 }
+
+// toModelsTab goes back to a tab of the models page.
+func toModelsTab(key string) func(r *http.Request) string {
+	return func(*http.Request) string { return modelsTab(key) }
+}
+
+// toProvider goes back to the provider the form changed.
+func toProvider(r *http.Request) string { return providerPage(r.PathValue("name")) }
 
 func registryWords(err error) string {
 	if errors.Is(err, registry.ErrNoSuch) {
@@ -75,23 +72,24 @@ func registryWords(err error) string {
 
 func (s *Server) modelRoutes(mux *http.ServeMux) {
 	guard := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasRegistry, next)) }
-	mux.HandleFunc("GET /admin/models", guard(s.modelsPage))
-	mux.HandleFunc("POST /admin/models/providers", guard(s.registryAction(changelog.ProviderAdded, s.addProvider)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/key", guard(s.registryAction(changelog.KeyReplaced, s.replaceKey)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/addresses", guard(s.registryAction(changelog.AddressAdded, s.addAddress)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/addresses/remove", guard(s.registryAction(changelog.AddressRemoved, s.removeAddress)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/retire", guard(s.registryAction(changelog.ProviderRetired, s.retireProvider)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/models", guard(s.registryAction(changelog.ModelAdded, s.addModel)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/price", guard(s.registryAction(changelog.PriceSet, s.setPrice)))
-	mux.HandleFunc("POST /admin/models/access", guard(s.registryAction(changelog.AccessSet, s.setAccess)))
-	mux.HandleFunc("POST /admin/models/access/clear", guard(s.registryAction(changelog.AccessSet, s.clearAccess)))
-	mux.HandleFunc("POST /admin/models/policy", guard(s.registryAction(changelog.PolicySet, s.setPolicy)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/enable", guard(s.registryAction(changelog.ProviderEnabled, s.turn(true, false))))
-	mux.HandleFunc("POST /admin/models/providers/{name}/disable", guard(s.registryAction(changelog.ProviderDisabled, s.turn(false, false))))
-	mux.HandleFunc("POST /admin/models/providers/{name}/models/enable", guard(s.registryAction(changelog.ModelEnabled, s.turn(true, true))))
-	mux.HandleFunc("POST /admin/models/providers/{name}/models/disable", guard(s.registryAction(changelog.ModelDisabled, s.turn(false, true))))
-	mux.HandleFunc("POST /admin/models/restore", guard(s.registryAction(changelog.RegistryRestored, s.restoreRegistry)))
-	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, s.retireModel)))
+	providers, access, settings := toModelsTab("providers"), toModelsTab("access"), toModelsTab("settings")
+	mux.HandleFunc("GET "+modelsPath, guard(s.modelsPage))
+	mux.HandleFunc("POST /admin/models/providers", guard(s.registryAction(changelog.ProviderAdded, providers, s.addProvider)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/key", guard(s.registryAction(changelog.KeyReplaced, toProvider, s.replaceKey)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/addresses", guard(s.registryAction(changelog.AddressAdded, toProvider, s.addAddress)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/addresses/remove", guard(s.registryAction(changelog.AddressRemoved, toProvider, s.removeAddress)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/retire", guard(s.registryAction(changelog.ProviderRetired, providers, s.retireProvider)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models", guard(s.registryAction(changelog.ModelAdded, toProvider, s.addModel)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/price", guard(s.registryAction(changelog.PriceSet, toProvider, s.setPrice)))
+	mux.HandleFunc("POST /admin/models/access", guard(s.registryAction(changelog.AccessSet, access, s.setAccess)))
+	mux.HandleFunc("POST /admin/models/access/clear", guard(s.registryAction(changelog.AccessSet, access, s.clearAccess)))
+	mux.HandleFunc("POST /admin/models/policy", guard(s.registryAction(changelog.PolicySet, providers, s.setPolicy)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/enable", guard(s.registryAction(changelog.ProviderEnabled, toProvider, s.turn(true, false))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/disable", guard(s.registryAction(changelog.ProviderDisabled, toProvider, s.turn(false, false))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models/enable", guard(s.registryAction(changelog.ModelEnabled, toProvider, s.turn(true, true))))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models/disable", guard(s.registryAction(changelog.ModelDisabled, toProvider, s.turn(false, true))))
+	mux.HandleFunc("POST /admin/models/restore", guard(s.registryAction(changelog.RegistryRestored, settings, s.restoreRegistry)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/models/retire", guard(s.registryAction(changelog.ModelRetired, toProvider, s.retireModel)))
 	own := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.ownsItsModels, next)) }
 	mux.HandleFunc("POST /setup/model", own(s.addFirstModel))
 	mux.HandleFunc("POST /setup/models", own(s.listModels))

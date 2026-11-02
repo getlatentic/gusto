@@ -21,14 +21,16 @@ func TestTheModelsPageOpensOnTheTableWithTheFormsFolded(t *testing.T) {
 	page := admin.ask(t, "GET", "/admin/models", nil).Body.String()
 	for _, want := range []string{"Where models answer, what they cost, and who may use them", `data-open="add-provider"`,
 		`<td class="whitespace-nowrap" title="platform/qwen">Qwen</td>`, "$1.00", "$2.00", "$0.50", "$1.50",
-		"everyone but " + here.server.personName(bob2()), "Who may use which models"} {
+		"everyone but " + here.server.personName(bob2()), `href="/admin/models?tab=access"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the models page lacks %q", want)
 		}
 	}
-	table, folded, form := strings.Index(page, "<table"), strings.Index(page, "<details"), strings.Index(page, `action="/admin/models/providers"`)
-	if table < 0 || folded < table || form < strings.Index(page, `<dialog`) {
-		t.Errorf("the page does not open on the table with the provider's forms folded and the new provider's in a dialog")
+	if strings.Contains(page, "Registry version") {
+		t.Error("the models page says the registry's version")
+	}
+	if table, form := strings.Index(page, "<table"), strings.Index(page, `action="/admin/models/providers"`); table < 0 || form < strings.Index(page, `<dialog`) {
+		t.Errorf("the page does not open on the table with the new provider's form in a dialog")
 	}
 }
 
@@ -36,7 +38,7 @@ func TestTheModelsPageSetsWhatANewChatRunsOnAndHowSandboxesReachAModel(t *testin
 	here, _, _ := registered(t, registry.Rules{})
 	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
 	admin := here.as(t, boss)
-	page := admin.ask(t, "GET", "/admin/models", nil).Body.String()
+	page := admin.ask(t, "GET", modelsTab("settings"), nil).Body.String()
 	for _, want := range []string{"A new chat starts on", "The first agent and model that can run.", `id="chat-default"`, `action="/admin/chat-default"`,
 		"Advanced: how sandboxes reach a model", `action="/admin/run-tokens"`, "Use plain tokens"} {
 		if !strings.Contains(page, want) {
@@ -48,24 +50,24 @@ func TestTheModelsPageSetsWhatANewChatRunsOnAndHowSandboxesReachAModel(t *testin
 		t.Fatal("the models page offers no agent and model for a new chat")
 	}
 	set := admin.ask(t, "POST", "/admin/chat-default", url.Values{"default": {choice[1]}})
-	if set.Code != http.StatusSeeOther || set.Header().Get("Location") != "/admin/models" {
+	if set.Code != http.StatusSeeOther || set.Header().Get("Location") != modelsTab("settings") {
 		t.Fatalf("setting the default answered %d %s", set.Code, set.Header().Get("Location"))
 	}
-	if page := admin.ask(t, "GET", "/admin/models", nil).Body.String(); !strings.Contains(page, choice[2]+". A person's own last choice comes first.") {
+	if page := admin.ask(t, "GET", modelsTab("settings"), nil).Body.String(); !strings.Contains(page, choice[2]+". A person's own last choice comes first.") {
 		t.Errorf("the page does not say a new chat starts on %s", choice[2])
 	}
-	if refused := admin.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"nothing|that-runs"}}); !strings.HasPrefix(refused.Header().Get("Location"), "/admin/models?refused=") {
+	if refused := admin.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"nothing|that-runs"}}); !strings.HasPrefix(refused.Header().Get("Location"), modelsTab("settings")+"&refused=") {
 		t.Errorf("a refused default went to %s", refused.Header().Get("Location"))
 	}
 
 	plain := admin.ask(t, "POST", "/admin/run-tokens", url.Values{"bound": {"no"}})
-	if plain.Code != http.StatusSeeOther || plain.Header().Get("Location") != "/admin/models" {
+	if plain.Code != http.StatusSeeOther || plain.Header().Get("Location") != modelsTab("settings") {
 		t.Fatalf("choosing plain tokens answered %d %s", plain.Code, plain.Header().Get("Location"))
 	}
-	if page := admin.ask(t, "GET", "/admin/models", nil).Body.String(); !strings.Contains(page, "Bind to the sandbox") {
+	if page := admin.ask(t, "GET", modelsTab("settings"), nil).Body.String(); !strings.Contains(page, "Bind to the sandbox") {
 		t.Error("the models page does not offer to bind runs again")
 	}
-	if refused := admin.ask(t, "POST", "/admin/run-tokens", url.Values{"bound": {"maybe"}}); !strings.HasPrefix(refused.Header().Get("Location"), "/admin/models?refused=") {
+	if refused := admin.ask(t, "POST", "/admin/run-tokens", url.Values{"bound": {"maybe"}}); !strings.HasPrefix(refused.Header().Get("Location"), modelsTab("settings")+"&refused=") {
 		t.Errorf("a refused choice went to %s", refused.Header().Get("Location"))
 	}
 }

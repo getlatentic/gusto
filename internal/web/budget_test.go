@@ -51,7 +51,7 @@ func damage(t *testing.T, path string) {
 func TestPeopleSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testing.T) {
 	here, log, _ := budgeted(t)
 	page := people(t, here)
-	for _, want := range []string{"No budget for each person, so their agents do not stop.", "The organization has no budget to warn at.", ">Change</span>"} {
+	for _, want := range []string{"No budget for each person, so their agents do not stop.", "The organization has no budget to warn at.", `data-open="budgets"`, `<dialog class=`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("with no budgets, People lacks %q", want)
 		}

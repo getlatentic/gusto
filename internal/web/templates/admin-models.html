@@ -1,229 +1,25 @@
 {{template "head" .}}
 
-<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
   <div class="grid gap-1">
     <h1>Models</h1>
     <p class="m-0 text-sm text-muted">Where models answer, what they cost, and who may use them</p>
   </div>
   {{if not .View.Unnamed}}<button type="button" class="{{template "ui-btn-quiet"}}" data-open="add-provider">Add a provider</button>{{end}}
 </div>
+{{template "ui-tabs" .Tabs}}
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
-<div class="grid gap-4">
-{{with .Defaults}}
-<section class="{{template "ui-card"}} flex flex-wrap items-center justify-between gap-3">
-  <div class="grid gap-0.5">
-    <h2 class="text-sm font-semibold">A new chat starts on</h2>
-    <p class="m-0 text-sm text-muted">{{$.DefaultNow}}. A person's own last choice comes first.</p>
-  </div>
-  <button type="button" class="{{template "ui-btn-quiet"}}" data-open="chat-default">Change</button>
-</section>
-{{end}}
-
-<section class="{{template "ui-card"}} grid gap-3">
-  {{if .Rows}}
-  <div class="overflow-x-auto">
-  <table class="{{template "ui-table"}} text-sm">
-    <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-left text-xs text-subtle">Provider</th><th class="text-right text-xs text-subtle">Input / M</th><th class="text-right text-xs text-subtle">Output / M</th><th class="text-right text-xs text-subtle">Who</th></tr></thead>
-    <tbody>
-      {{range .Rows}}
-      <tr>
-        <td class="whitespace-nowrap" title="{{.Full}}">{{.Name}}{{if .Off}} <span class="{{template "ui-badge-warn"}}">off</span>{{end}}</td>
-        <td class="whitespace-nowrap text-muted">{{.Provider}}</td>
-        {{if .Input}}<td class="text-right tabular-nums">{{.Input}}</td><td class="text-right tabular-nums">{{.Output}}</td>
-        {{else}}<td class="text-right text-muted" colspan="2">no price</td>{{end}}
-        <td class="text-right text-muted">{{.Who}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
-  {{else}}
-  <p class="m-0 text-sm text-muted">No models yet. Add a provider, then the models it answers.</p>
-  {{end}}
-  <p class="{{template "ui-note"}} m-0">A model that is not here cannot be chosen. Prices are dollars for a million tokens; a model with no price is not counted against a budget. Registry version {{.View.Version}}.</p>
-</section>
-
-{{range .View.Providers}}{{if not .Retired}}
-<details class="group {{template "ui-card"}}">
-  <summary class="{{template "ui-summary"}} w-full!">{{template "ui-chev"}} <span class="text-ink">{{.Name}}</span>{{if .Operator}} <span class="font-normal text-subtle">set by the operator of this gusto</span>{{else}} <span class="font-normal text-subtle">addresses, key, prices and models</span>{{end}}{{if .Pending}} <span class="rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">off: waiting for you to turn it on</span>{{end}}</summary>
-  <div class="mt-4 grid gap-3">
-  {{$provider := .}}
-  <ul class="grid gap-1 text-sm">
-    {{range .Addresses}}
-    <li class="flex flex-wrap items-center gap-2"><code>{{.Address}}</code> <span class="text-muted">{{.Kind}}</span>
-      {{if and .Extra (not $provider.Operator)}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/addresses/remove"><input type="hidden" name="address" value="{{.Address}}"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Remove</button></form>{{end}}
-    </li>
-    {{end}}
-  </ul>
-  <p class="{{template "ui-note"}}">Key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}{{if gt (len .Addresses) 1}}, the same at each address. A call goes to the address that answers the agent's kind of API.{{end}}</p>
-  {{if .Problem}}<p class="{{template "ui-notice"}} mb-0!">Not in use: {{.Problem}}</p>{{end}}
-  <div class="overflow-x-auto">
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th>Model</th><th class="text-right">Input <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Output <span class="font-normal text-subtle">$ / million</span></th><th class="text-right">Cached input <span class="font-normal text-subtle">$ / million</span></th>{{if not .Operator}}<th class="text-right">Actions</th>{{end}}</tr></thead>
-    <tbody>
-      {{range .Models}}{{if not .Retired}}
-      {{$row := printf "price-%s-%s" $provider.Name .Name}}
-      <tr>
-        <td class="whitespace-nowrap"><code>{{.Full}}</code>{{if .Pending}} <span class="text-muted">off</span>{{end}}</td>
-        {{if $provider.Operator}}
-          {{if .Price}}
-          <td class="text-right tabular-nums">${{.Price.InputPerMillion}}</td><td class="text-right tabular-nums">${{.Price.OutputPerMillion}}</td>
-          <td class="text-right tabular-nums">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="text-muted">as input</span>{{end}}</td>
-          {{else}}
-          <td class="text-right text-muted" colspan="3">no price, so its cost is not counted against a cap</td>
-          {{end}}
-        {{else}}
-        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="input" inputmode="decimal" aria-label="Input price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></td>
-        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="output" inputmode="decimal" aria-label="Output price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></td>
-        <td class="text-right"><input class="input w-24 text-right tabular-nums" form="{{$row}}" name="cached" inputmode="decimal" aria-label="Cached input price for {{.Full}}, dollars for a million tokens" placeholder="as input" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></td>
-        <td>
-          <div class="flex items-center justify-end gap-2">
-            <form id="{{$row}}" method="post" action="/admin/models/providers/{{$provider.Name}}/price"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Set price</button></form>
-            {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on</button></form>
-            {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off</button></form>{{end}}
-            <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire</button></form>
-          </div>
-        </td>
-        {{end}}
-      </tr>
-      {{end}}{{else}}
-      <tr><td class="text-muted" colspan="5">No models yet.</td></tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
-  {{if not .Operator}}
-  <form method="post" action="/admin/models/providers/{{.Name}}/models" class="flex flex-wrap items-end gap-3 border-t border-line pt-4">
-    <label class="{{template "ui-field"}} min-w-44 flex-1">Model, as {{.Name}} names it <input class="input" name="model" placeholder="model-name" required></label>
-    <label class="{{template "ui-field"}} w-32">Input <input class="input" name="input" inputmode="decimal" placeholder="$ per million"></label>
-    <label class="{{template "ui-field"}} w-32">Output <input class="input" name="output" inputmode="decimal" placeholder="$ per million"></label>
-    <label class="{{template "ui-field"}} w-32">Cached input <input class="input" name="cached" inputmode="decimal" placeholder="optional"></label>
-    <button type="submit" class="{{template "ui-btn"}}">Add model</button>
-  </form>
-  <form method="post" action="/admin/models/providers/{{.Name}}/addresses" class="flex flex-wrap items-end gap-3 border-t border-line pt-4">
-    <label class="{{template "ui-field"}} min-w-56 flex-1">Another address of {{.Name}}, under the same key <input class="input" name="address" placeholder="https://api.example.com/anthropic" required></label>
-    {{template "address-kind"}}
-    <button type="submit" class="{{template "ui-btn"}}">Add address</button>
-  </form>
-  <div class="flex flex-wrap items-end justify-between gap-3 border-t border-line pt-4">
-    {{if eq .Key "stored"}}
-    <form method="post" action="/admin/models/providers/{{.Name}}/key" class="flex flex-wrap items-end gap-3">
-      <label class="{{template "ui-field"}}">New key <input class="input" type="password" name="key" autocomplete="off" required></label>
-      <button type="submit" class="{{template "ui-btn-sm"}}">Replace key</button>
-      <span class="py-2 text-xs text-muted">A key is never shown again.</span>
-    </form>
-    {{end}}
-    <div class="ml-auto flex items-center gap-2">
-      {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on {{.Name}}</button></form>
-      {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off {{.Name}}</button></form>{{end}}
-      <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire {{.Name}}</button></form>
-    </div>
-  </div>
-  {{end}}
-  </div>
-</details>
-{{end}}{{end}}
-
-{{if .View.Unnamed}}
-<p class="{{template "ui-note"}} max-w-prose">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>
-{{end}}
-
-<details class="group {{template "ui-card"}}">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Who may use which models{{with .View.Limits}} <span class="font-normal text-subtle">{{len .}} limited</span>{{end}}</summary>
-  <div class="mt-4 grid gap-3">
-  <p class="{{template "ui-note"}} m-0 max-w-prose">Everybody may use every model above unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
-  {{if .View.Limits}}
-  <div class="overflow-x-auto">
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th>Person</th><th>May use</th><th></th></tr></thead>
-    <tbody>
-      {{range .View.Limits}}
-      <tr>
-        <td>{{.Email}}</td>
-        <td>{{range $i, $m := .Models}}{{if $i}}, {{end}}<code>{{$m}}</code>{{end}}</td>
-        <td class="text-right"><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit" class="{{template "ui-btn-sm"}}">Let use everything</button></form></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
-  {{end}}
-  {{if .View.Available}}
-  <form class="grid max-w-prose gap-4 border-t border-line pt-4" method="post" action="/admin/models/access">
-    <label class="{{template "ui-field"}}">Person <input class="input" name="email" type="email" list="people" placeholder="ada@example.com" required></label>
-    <datalist id="people">{{range .People}}<option value="{{.}}">{{end}}</datalist>
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">May use</legend>
-      {{range .View.Available}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
-    </fieldset>
-    <div><button type="submit" class="{{template "ui-btn"}}">Limit this person</button></div>
-  </form>
-  {{end}}
-  </div>
-</details>
-
-{{if .View.Editable}}
-<details class="group {{template "ui-card"}}">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} What providers may be</summary>
-  <div class="mt-4 grid gap-3">
-  <p class="{{template "ui-note"}} m-0 max-w-prose">This installation is yours, so you decide how far a provider may reach. Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
-  <form class="grid max-w-prose gap-4" method="post" action="/admin/models/policy">
-    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">A key may be named as a reference to</legend>
-      {{range $kind := .Sources}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
-    </fieldset>
-    <div><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
-  </form>
-  </div>
-</details>
-{{end}}
-
-{{with .RunTokens}}
-<details class="group {{template "ui-card"}}">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Advanced: how sandboxes reach a model</summary>
-  <div class="mt-4 grid gap-3">
-    {{if .Err}}<p class="m-0 text-sm">The setting could not be read, so runs are bound. {{.Err}}</p>{{end}}
-    <p class="m-0 text-sm">{{if .Bound}}Each run's model access is bound to its sandbox. What an agent could copy out is no use anywhere else.{{else}}Each run gets a plain token for its model, which works from anywhere until the run ends.{{end}}</p>
-    <form method="post" action="/admin/run-tokens">
-      <input type="hidden" name="bound" value="{{if .Bound}}no{{else}}yes{{end}}">
-      <button class="{{if .Bound}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}}" type="submit">{{if .Bound}}Use plain tokens{{else}}Bind to the sandbox{{end}}</button>
-    </form>
-    <p class="{{template "ui-note"}} m-0">A change takes effect on the next run.</p>
-  </div>
-</details>
-{{end}}
-
-{{if .Steps}}
-<details class="group {{template "ui-card"}}">
-  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} Go back to an earlier version</summary>
-  <div class="mt-4 grid gap-3 overflow-x-auto">
-  <p class="{{template "ui-note"}} m-0 max-w-prose">What was added is off until you turn it on. Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
-  <table class="{{template "ui-table"}}">
-    <tbody>
-      {{range .Steps}}
-      <tr>
-        <td class="whitespace-nowrap">Version {{.Version}}</td>
-        <td class="whitespace-nowrap text-muted">{{when .At}}</td>
-        <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
-        <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "ui-btn-sm"}}">Go back to it</button></form></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  </div>
-</details>
-{{end}}
-
-{{if not .View.Editable}}
-<p class="{{template "ui-note"}} max-w-prose">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
-{{end}}
-</div>
+{{if eq .Tab "models"}}{{template "models-prices" .}}
+{{else if eq .Tab "providers"}}{{if .Provider}}{{template "models-provider" .}}{{else}}{{template "models-providers" .}}{{end}}
+{{else if eq .Tab "access"}}{{template "models-access" .}}
+{{else}}{{template "models-settings" .}}{{end}}
 
 {{if not .View.Unnamed}}
-<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="add-provider" aria-labelledby="add-provider-title">
+<dialog class="{{template "ui-dialog"}}" id="add-provider" aria-labelledby="add-provider-title">
   <form class="grid max-h-[calc(100vh-4rem)] gap-4 overflow-y-auto p-6" method="post" action="/admin/models/providers">
-    {{template "dialog-head" (dict "ID" "add-provider-title" "Title" "Add a provider" "Words" "Where models answer and how to be let in.")}}
+    {{template "ui-dialog-head" (dict "ID" "add-provider-title" "Title" "Add a provider" "Words" "Where models answer and how to be let in.")}}
     {{if not .View.Private}}<p class="m-0 text-sm text-muted">It must be at a public https address.</p>{{end}}
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="acme" pattern="[a-z][a-z0-9\-]*" maxlength="31" required></label>
     <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com" required></label>
@@ -238,10 +34,280 @@
 </dialog>
 {{end}}
 
+<script src="{{asset "/static/dialogs.js"}}"></script>
+
+{{template "foot" .}}
+
+{{/* The Models tab: every model the organization has, what it costs and who may use it. */}}
+{{define "models-prices"}}
+{{if .Rows}}
+<div class="{{template "ui-card"}} relative overflow-x-auto">
+  <table class="{{template "ui-table"}} text-sm">
+    <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-left text-xs text-subtle">Provider</th><th class="text-right text-xs text-subtle">Input / M</th><th class="text-right text-xs text-subtle">Output / M</th><th class="text-right text-xs text-subtle">Who</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr>
+        <td class="whitespace-nowrap" title="{{.Full}}">{{.Name}}{{if .Off}} <span class="{{template "ui-badge-warn"}}">off</span>{{end}}</td>
+        <td class="whitespace-nowrap text-muted">{{.Provider}}</td>
+        {{if .Input}}<td class="text-right tabular-nums">{{.Input}}</td><td class="text-right tabular-nums">{{.Output}}</td>
+        {{else}}<td class="text-right text-muted" colspan="2">no price</td>{{end}}
+        <td class="text-right text-muted">{{.Who}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{template "ui-pager" .Pages}}
+</div>
+{{else}}
+<p class="{{template "ui-card"}} m-0 text-sm text-muted">No models yet. Add a provider, then the models it answers.</p>
+{{end}}
+<p class="{{template "ui-note"}} mt-3">A model that is not here cannot be chosen. Prices are dollars for a million tokens; a model with no price is not counted against a budget.</p>
+{{end}}
+
+{{/* The Providers tab: each provider in a line, which leads to its own addresses, key and models. */}}
+{{define "models-providers"}}
+{{if .Providers}}
+<div class="{{template "ui-card"}} relative overflow-x-auto">
+  <table class="{{template "ui-table"}} text-sm">
+    <thead><tr><th class="text-left text-xs text-subtle">Provider</th><th class="text-left text-xs text-subtle">Address</th><th class="text-left text-xs text-subtle">Key</th><th class="text-right text-xs text-subtle">Models</th><th class="text-right text-xs text-subtle">State</th></tr></thead>
+    <tbody>
+      {{range .Providers}}
+      <tr>
+        <td class="whitespace-nowrap"><a class="font-medium text-accent-ink no-underline hover:underline" href="{{.Href}}">{{.Name}}</a>{{if .Operator}} <span class="text-subtle">set by the operator</span>{{end}}</td>
+        <td class="whitespace-nowrap text-muted"><code>{{.Address}}</code>{{if .More}} <span class="text-subtle">and {{.More}} more</span>{{end}}</td>
+        <td class="whitespace-nowrap text-muted">{{.Key}}</td>
+        <td class="text-right tabular-nums">{{.Models}}</td>
+        <td class="text-right">{{if eq .State "on"}}<span class="{{template "ui-badge-ok"}}">on</span>{{else if eq .State "off"}}<span class="{{template "ui-badge-warn"}}">off: waiting for you to turn it on</span>{{else}}<span class="{{template "ui-badge-bad"}}">{{.State}}</span>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="{{template "ui-card"}} m-0 text-sm text-muted">No providers yet. Add a provider, then the models it answers.</p>
+{{end}}
+{{if .View.Unnamed}}<p class="{{template "ui-note"}} mt-3 max-w-prose">This deployment's own models are reached through one provider with no name, so a provider cannot be added beside it. Its operator names it to allow that.</p>{{end}}
+{{if .View.Editable}}
+<p class="{{template "ui-note"}} mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+  <span>A provider {{if .View.Private}}may{{else}}may not{{end}} be at a private address, and its key is typed here{{range .Sources}}{{if .On}} or named as {{.Words}}{{end}}{{end}}.</span>
+  <button type="button" class="{{template "ui-btn-sm"}}" data-open="provider-policy">Change</button>
+</p>
+<dialog class="{{template "ui-dialog"}}" id="provider-policy" aria-labelledby="provider-policy-title">
+  <form class="grid gap-4 p-6" method="post" action="/admin/models/policy">
+    {{template "ui-dialog-head" (dict "ID" "provider-policy-title" "Title" "What providers may be" "Words" "This installation is yours, so you decide how far a provider may reach.")}}
+    <p class="m-0 text-sm text-muted">Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
+    <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
+    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">A key may be named as a reference to</legend>
+      {{range $kind := .Sources}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
+    </fieldset>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
+  </form>
+</dialog>
+{{else}}
+<p class="{{template "ui-note"}} mt-3 max-w-prose">This deployment's operator fixes where providers may be and how a key may be named: a provider must be at a public https address, and a key is typed here.{{if .View.Private}} Private addresses are allowed.{{end}}</p>
+{{end}}
+{{end}}
+
+{{/* One provider: where it answers, its key, and its models with their prices. A provider the operator set is shown, not changed. */}}
+{{define "models-provider"}}
+{{$provider := .Provider}}
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/admin/models?tab=providers">Providers</a><span>/</span><span class="text-ink">{{.Provider.Name}}</span></nav>
+{{with .Provider}}
+<div class="mb-4 grid gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="flex flex-wrap items-center gap-2 text-base font-semibold">{{.Name}}{{if .Operator}} <span class="text-sm font-normal text-subtle">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="{{template "ui-badge-warn"}}">off: waiting for you to turn it on</span>{{end}}</h2>
+    {{if not .Operator}}
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="{{template "ui-btn-sm"}}" data-open="add-model">Add model</button>
+      <button type="button" class="{{template "ui-btn-sm"}}" data-open="add-address">Add address</button>
+      {{if eq .Key "stored"}}<button type="button" class="{{template "ui-btn-sm"}}" data-open="replace-key">Replace key</button>{{end}}
+      {{if .Pending}}<form method="post" action="/admin/models/providers/{{.Name}}/enable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on {{.Name}}</button></form>
+      {{else}}<form method="post" action="/admin/models/providers/{{.Name}}/disable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off {{.Name}}</button></form>{{end}}
+      <form method="post" action="/admin/models/providers/{{.Name}}/retire"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire {{.Name}}</button></form>
+    </div>
+    {{end}}
+  </div>
+    <ul class="grid gap-1 text-sm">
+      {{range .Addresses}}
+      <li class="flex flex-wrap items-center gap-2"><code class="break-all">{{.Address}}</code> <span class="text-muted">{{.Kind}}</span>
+        {{if and .Extra (not $provider.Operator)}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/addresses/remove"><input type="hidden" name="address" value="{{.Address}}"><button type="submit" class="{{template "ui-btn-sm-danger"}} h-6! px-2!">Remove</button></form>{{end}}
+      </li>
+      {{end}}
+    </ul>
+    <p class="{{template "ui-note"}} m-0">Key: {{if eq .Key "stored"}}kept here{{else}}{{.Key}}{{end}}{{if gt (len .Addresses) 1}}, the same at each address. A call goes to the address that answers the agent's kind of API.{{end}}</p>
+</div>
+{{if .Problem}}<p class="{{template "ui-notice"}}">Not in use: {{.Problem}}</p>{{end}}
+{{end}}
+
+<div class="{{template "ui-card"}} relative overflow-x-auto">
+  <table class="{{template "ui-table"}} text-sm [&_td]:align-middle">
+    <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-right text-xs text-subtle">Input <span class="font-normal">$ / million</span></th><th class="text-right text-xs text-subtle">Output <span class="font-normal">$ / million</span></th><th class="text-right text-xs text-subtle">Cached input <span class="font-normal">$ / million</span></th>{{if not $provider.Operator}}<th class="text-right text-xs text-subtle"><span class="sr-only">Actions</span></th>{{end}}</tr></thead>
+    <tbody>
+      {{range .Models}}
+      {{$row := printf "price-%s-%s" $provider.Name .Name}}
+      <tr>
+        <td class="whitespace-nowrap"><code>{{.Full}}</code>{{if .Pending}} <span class="{{template "ui-badge-warn"}}">off</span>{{end}}</td>
+        {{if $provider.Operator}}
+          {{if .Price}}
+          <td class="text-right tabular-nums">${{.Price.InputPerMillion}}</td><td class="text-right tabular-nums">${{.Price.OutputPerMillion}}</td>
+          <td class="text-right tabular-nums">{{with .Price.CachedInputPerMillion}}${{.}}{{else}}<span class="text-muted">as input</span>{{end}}</td>
+          {{else}}
+          <td class="text-right text-muted" colspan="3">no price, so its cost is not counted against a cap</td>
+          {{end}}
+        {{else}}
+        <td class="text-right"><input class="input h-8 w-24 text-right tabular-nums" form="{{$row}}" name="input" inputmode="decimal" aria-label="Input price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.InputPerMillion}}{{end}}"></td>
+        <td class="text-right"><input class="input h-8 w-24 text-right tabular-nums" form="{{$row}}" name="output" inputmode="decimal" aria-label="Output price for {{.Full}}, dollars for a million tokens" placeholder="no price" value="{{with .Price}}{{.OutputPerMillion}}{{end}}"></td>
+        <td class="text-right"><input class="input h-8 w-24 text-right tabular-nums" form="{{$row}}" name="cached" inputmode="decimal" aria-label="Cached input price for {{.Full}}, dollars for a million tokens" placeholder="as input" value="{{with .Price}}{{with .CachedInputPerMillion}}{{.}}{{end}}{{end}}"></td>
+        <td>
+          <div class="flex items-center justify-end gap-2">
+            <form id="{{$row}}" method="post" action="/admin/models/providers/{{$provider.Name}}/price"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Set price</button></form>
+            {{if .Pending}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/enable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on</button></form>
+            {{else}}<form method="post" action="/admin/models/providers/{{$provider.Name}}/models/disable"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off</button></form>{{end}}
+            <form method="post" action="/admin/models/providers/{{$provider.Name}}/models/retire"><input type="hidden" name="model" value="{{.Name}}"><button type="submit" class="{{template "ui-btn-sm-danger"}}">Retire</button></form>
+          </div>
+        </td>
+        {{end}}
+      </tr>
+      {{else}}
+      <tr><td class="text-muted" colspan="5">No models yet.{{if not $provider.Operator}} Add the models {{$provider.Name}} answers.{{end}}</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{template "ui-pager" .Pages}}
+</div>
+
+{{if not $provider.Operator}}
+<dialog class="{{template "ui-dialog"}}" id="add-model" aria-labelledby="add-model-title">
+  <form class="grid gap-4 p-6" method="post" action="/admin/models/providers/{{$provider.Name}}/models">
+    {{template "ui-dialog-head" (dict "ID" "add-model-title" "Title" "Add a model" "Words" "A model it answers, and what it costs. A model with no price is not counted against a budget.")}}
+    <label class="{{template "ui-field"}}">Model, as {{$provider.Name}} names it <input class="input" name="model" placeholder="model-name" required></label>
+    <div class="grid grid-cols-3 gap-3">
+      <label class="{{template "ui-field"}}">Input <input class="input" name="input" inputmode="decimal" placeholder="$ per million"></label>
+      <label class="{{template "ui-field"}}">Output <input class="input" name="output" inputmode="decimal" placeholder="$ per million"></label>
+      <label class="{{template "ui-field"}}">Cached input <input class="input" name="cached" inputmode="decimal" placeholder="optional"></label>
+    </div>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Add model</button></div>
+  </form>
+</dialog>
+<dialog class="{{template "ui-dialog"}}" id="add-address" aria-labelledby="add-address-title">
+  <form class="grid gap-4 p-6" method="post" action="/admin/models/providers/{{$provider.Name}}/addresses">
+    {{template "ui-dialog-head" (dict "ID" "add-address-title" "Title" "Add an address" "Words" (printf "Another address of %s, under the same key." $provider.Name))}}
+    <label class="{{template "ui-field"}}">Address <input class="input" name="address" placeholder="https://api.example.com/anthropic" required></label>
+    {{template "address-kind"}}
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Add address</button></div>
+  </form>
+</dialog>
+{{if eq $provider.Key "stored"}}
+<dialog class="{{template "ui-dialog"}}" id="replace-key" aria-labelledby="replace-key-title">
+  <form class="grid gap-4 p-6" method="post" action="/admin/models/providers/{{$provider.Name}}/key">
+    {{template "ui-dialog-head" (dict "ID" "replace-key-title" "Title" "Replace the key" "Words" "A key is never shown again.")}}
+    <label class="{{template "ui-field"}}">New key <input class="input" type="password" name="key" autocomplete="off" required></label>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Replace key</button></div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
+{{end}}
+
+{{/* The Who may use tab: the people limited to some of the models, and a way to limit another. */}}
+{{define "models-access"}}
+<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+  <p class="{{template "ui-note"}} m-0 max-w-prose">Everybody may use every model unless they are limited here. A person who is limited is offered only the models you tick, when they start an agent, change its model or compare agents.</p>
+  {{if .View.Available}}<button type="button" class="{{template "ui-btn-quiet"}}" data-open="limit-person">Limit a person</button>{{end}}
+</div>
+{{if .Limits}}
+<div class="{{template "ui-card"}} relative overflow-x-auto">
+  <table class="{{template "ui-table"}} text-sm">
+    <thead><tr><th class="text-left text-xs text-subtle">Person</th><th class="text-left text-xs text-subtle">May use</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+      {{range .Limits}}
+      <tr>
+        <td class="whitespace-nowrap">{{.Email}}</td>
+        <td>{{range $i, $m := .Models}}{{if $i}}, {{end}}<code>{{$m}}</code>{{end}}</td>
+        <td class="text-right"><form method="post" action="/admin/models/access/clear"><input type="hidden" name="email" value="{{.Email}}"><button type="submit" class="{{template "ui-btn-sm"}}">Let use everything</button></form></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{template "ui-pager" .Pages}}
+</div>
+{{else}}
+<p class="{{template "ui-card"}} m-0 text-sm text-muted">Nobody is limited, so everybody may use every model.</p>
+{{end}}
+{{if .View.Available}}
+<dialog class="{{template "ui-dialog"}}" id="limit-person" aria-labelledby="limit-person-title">
+  <form class="grid max-h-[calc(100vh-4rem)] gap-4 overflow-y-auto p-6" method="post" action="/admin/models/access">
+    {{template "ui-dialog-head" (dict "ID" "limit-person-title" "Title" "Limit a person" "Words" "They are offered only the models you tick.")}}
+    <label class="{{template "ui-field"}}">Person <input class="input" name="email" type="email" list="people" placeholder="ada@example.com" required></label>
+    <datalist id="people">{{range .People}}<option value="{{.}}">{{end}}</datalist>
+    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">May use</legend>
+      {{range .View.Available}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
+    </fieldset>
+    <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Limit this person</button></div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
+
+{{/* The Settings tab: what a new chat runs on, how sandboxes reach a model, and the earlier versions of the registry. */}}
+{{define "models-settings"}}
+<div class="grid gap-8">
+{{if or .Defaults .RunTokens}}
+<div class="{{template "ui-card"}} grid gap-0 divide-y divide-line py-0">
+  {{with .Defaults}}
+  <section class="flex flex-wrap items-center justify-between gap-3 py-4">
+    <div class="grid gap-0.5">
+      <h2 class="text-sm font-semibold">A new chat starts on</h2>
+      <p class="m-0 text-sm text-muted">{{$.DefaultNow}}. A person's own last choice comes first.</p>
+    </div>
+    <button type="button" class="{{template "ui-btn-quiet"}}" data-open="chat-default">Change</button>
+  </section>
+  {{end}}
+  {{with .RunTokens}}
+  <section class="flex flex-wrap items-center justify-between gap-3 py-4">
+    <div class="grid max-w-prose gap-0.5">
+      <h2 class="text-sm font-semibold">Advanced: how sandboxes reach a model</h2>
+      {{if .Err}}<p class="m-0 text-sm text-bad">The setting could not be read, so runs are bound. {{.Err}}</p>{{end}}
+      <p class="m-0 text-sm text-muted">{{if .Bound}}Each run's model access is bound to its sandbox. What an agent could copy out is no use anywhere else.{{else}}Each run gets a plain token for its model, which works from anywhere until the run ends.{{end}} A change takes effect on the next run.</p>
+    </div>
+    <form method="post" action="/admin/run-tokens">
+      <input type="hidden" name="bound" value="{{if .Bound}}no{{else}}yes{{end}}">
+      <button class="{{if .Bound}}{{template "ui-btn-quiet"}}{{else}}{{template "ui-btn"}}{{end}}" type="submit">{{if .Bound}}Use plain tokens{{else}}Bind to the sandbox{{end}}</button>
+    </form>
+  </section>
+  {{end}}
+</div>
+{{end}}
+
+{{if .Steps}}
+<section class="grid gap-3">
+  <div class="grid gap-1">
+    <h2 class="text-sm font-semibold">Go back to an earlier version</h2>
+    <p class="{{template "ui-note"}} m-0 max-w-prose">Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. What was added is off until you turn it on. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
+  </div>
+  <div class="{{template "ui-card"}} relative overflow-x-auto">
+    <table class="{{template "ui-table"}} text-sm">
+      <tbody>
+        {{range .Steps}}
+        <tr>
+          <td class="whitespace-nowrap">Version {{.Version}}</td>
+          <td class="whitespace-nowrap text-muted">{{when .At}}</td>
+          <td>then: {{range $i, $line := .Then}}{{if $i}}; {{end}}{{$line}}{{else}}no change you can see{{end}}</td>
+          <td class="text-right"><form method="post" action="/admin/models/restore"><input type="hidden" name="version" value="{{.Version}}"><button type="submit" class="{{template "ui-btn-sm"}}">Go back to it</button></form></td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{template "ui-pager" .Pages}}
+  </div>
+</section>
+{{end}}
+</div>
+
 {{with .Defaults}}
-<dialog class="m-auto w-[28rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="chat-default" aria-labelledby="chat-default-title">
+<dialog class="{{template "ui-dialog"}} w-[28rem]!" id="chat-default" aria-labelledby="chat-default-title">
   <form class="grid gap-4 p-6" method="post" action="/admin/chat-default">
-    {{template "dialog-head" (dict "ID" "chat-default-title" "Title" "A new chat starts on" "Words" "What a new chat runs on until a person chooses their own. A person's last choice comes first.")}}
+    {{template "ui-dialog-head" (dict "ID" "chat-default-title" "Title" "A new chat starts on" "Words" "What a new chat runs on until a person chooses their own. A person's last choice comes first.")}}
     <label class="{{template "ui-field"}}">Agent and model
       <select class="select w-full" name="default">
         <option value="">The first that can run</option>
@@ -252,12 +318,7 @@
   </form>
 </dialog>
 {{end}}
-
-<script src="{{asset "/static/dialogs.js"}}"></script>
-
-{{template "foot" .}}
-
-{{define "dialog-head"}}<div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="{{.ID}}">{{.Title}}</h2><p class="m-0 mt-1 text-sm text-muted">{{.Words}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
+{{end}}
 
 {{define "address-kind"}}
 <label class="{{template "ui-field"}}">Kind of API

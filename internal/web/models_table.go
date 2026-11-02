@@ -76,7 +76,7 @@ func chatDefaultWords(choices []defaultChoice) string {
 // settingsBack is the page the forms for a new chat's default and the sandboxes' tokens are on.
 func (s *Server) settingsBack() string {
 	if s.hasRegistry() {
-		return "/admin/models"
+		return modelsTab("settings")
 	}
 	return "/admin"
 }

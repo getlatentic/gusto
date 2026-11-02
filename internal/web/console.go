@@ -161,7 +161,9 @@ func toTab(tab string) http.HandlerFunc {
 // tab is one view of a console page, as a link.
 type tab struct {
 	Key, Label, Href string
-	On               bool
+	// Count is how many things the tab holds, said beside its label when there are any.
+	Count int
+	On    bool
 }
 
 // chooseTab marks the tab the request names, or the first when it names none of them, and says which it is.
