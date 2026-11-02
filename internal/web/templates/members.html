@@ -100,15 +100,15 @@
 
   {{else if eq $p.Tab "apps"}}{{with $p.Apps}}
   <section class="grid gap-3">
-    <p class="m-0 text-sm text-muted">What {{$a.Name}} may use of yours, app by app. It works as you, only for what you ask it, in any room; somebody else&rsquo;s request never carries your apps. An app left on Inherit follows your default on <a class="text-ink underline" href="/connections">Connections</a>.</p>
-    {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to let {{$a.Name}} use your apps.</p>
-    {{else if not .Apps}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">You have connected no apps. <a class="text-ink underline" href="/connections">Connect one</a>, then choose here what {{$a.Name}} may use.</p>
+    <p class="m-0 text-sm text-muted">Which of your apps {{$a.Name}} may use when you ask it. Inherit follows your <a class="text-ink underline" href="/connections">default</a>.</p>
+    {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to choose.</p>
+    {{else if not .Apps}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No apps connected. <a class="text-ink underline" href="/connections">Connect one</a>.</p>
     {{else}}
     <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
       {{range .Apps}}
       <li class="flex h-12 items-center gap-3 px-2">
         <span class="grid size-8 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
-        <span class="grid min-w-0 flex-1"><span class="text-sm font-medium">{{.Name}}</span><span class="text-sm text-muted">{{if eq .Choice "allow"}}{{$a.Name}} may use it.{{else if eq .Choice "deny"}}{{$a.Name}} may not use it.{{else if .Default}}{{$a.Name}} may use it, as your default says.{{else}}{{$a.Name}} may not use it, as your default says.{{end}}</span></span>
+        <span class="min-w-0 flex-1 text-sm font-medium">{{.Name}}</span>
         <form class="m-0" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="app" value="{{.ID}}">
           <select class="select h-8" name="choice" aria-label="What {{$a.Name}} may do with your {{.Name}}" data-autosubmit>
             <option value="inherit"{{if eq .Choice "inherit"}} selected{{end}}>Inherit ({{if .Default}}on{{else}}off{{end}})</option>
