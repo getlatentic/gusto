@@ -114,7 +114,9 @@ func TestOrganizationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testi
 		for _, org := range orgs {
 			address, state := c.Route(org.Slug)
 			if state != Ready {
-				t.Fatalf("%s: %q", org.Slug, state)
+				logged, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
+				runtime, _ := s.Runtime(org.Slug)
+				t.Fatalf("%s: %q, port %d, server said:\n%s", org.Slug, state, runtime.Port, logged)
 			}
 			said := whoIs(t, address)
 			if said["org"] != org.Slug {
