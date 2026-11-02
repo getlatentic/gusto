@@ -107,6 +107,8 @@ type view struct {
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
 	VideoFile     bool
+	// VideoPoster is the picture a video file is shown with before it plays.
+	VideoPoster string
 	// Name is who a demo is for.
 	Name string
 }

@@ -37,7 +37,7 @@
 
 {{if .Video}}
 <section class="pt-8" aria-label="gusto, from inside">
-  {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls preload="metadata" src="{{.Video}}"></video>
+  {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls playsinline preload="metadata" poster="{{.VideoPoster}}" src="{{.Video}}"></video>
   {{else}}<iframe class="aspect-video w-full rounded-lg border-0 bg-black shadow-2" src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{else if .Shot}}
