@@ -11,22 +11,22 @@ import (
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// An admin gives every member a budget and one person their own, sees both on People, and each change is recorded.
+// An admin gives every member a budget and one person their own, sees both on Budgets, and each change is recorded.
 func TestAnAdminSetsEveryMembersBudgetAndOnePersonsOwn(t *testing.T) {
 	here, log, _ := budgeted(t)
 	set := func(form url.Values) *http.Response {
 		return here.ask(t, "POST", "/admin/member-budget", form).Result()
 	}
-	if got := set(url.Values{"usd": {"20"}}); got.Header.Get("Location") != "/admin/people" {
+	if got := set(url.Values{"usd": {"20"}}); got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("setting everyone's went to %q", got.Header.Get("Location"))
 	}
-	if page := people(t, here); !strings.Contains(page, "$20.00 a month for each person; their agents stop there.") {
-		t.Errorf("everyone's budget is not on People")
+	if page := budgets(t, here); !strings.Contains(page, "Each person: $20.00 a month; their agents stop there.") {
+		t.Errorf("everyone's budget is not on Budgets")
 	}
-	if got := set(url.Values{"who": {alice}, "usd": {"50"}}); got.Header.Get("Location") != "/admin/people" {
+	if got := set(url.Values{"who": {alice}, "usd": {"50"}}); got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("setting alice's went to %q", got.Header.Get("Location"))
 	}
-	page := people(t, here)
+	page := budgets(t, here)
 	own := rowOf(t, page, alice)
 	if !strings.Contains(own, `action="/admin/member-budget"`) || !strings.Contains(own, `placeholder="no limit" value="50.00"`) {
 		t.Errorf("alice's row does not hold her own budget behind its menu:\n%s", own)
@@ -35,7 +35,7 @@ func TestAnAdminSetsEveryMembersBudgetAndOnePersonsOwn(t *testing.T) {
 		t.Errorf("bob's row does not hold everyone's budget:\n%s", theirs)
 	}
 	set(url.Values{"who": {alice}, "usd": {""}})
-	if page := people(t, here); strings.Count(page, `placeholder="20.00, as everyone"`) != 2 {
+	if page := budgets(t, here); strings.Count(page, `placeholder="20.00, as everyone"`) != 2 {
 		t.Error("alice's own budget, cleared, does not fall back to everyone's")
 	}
 	if got := set(url.Values{"usd": {"-3"}}); !strings.Contains(got.Header.Get("Location"), "refused=") {

@@ -17,11 +17,17 @@ import (
 // proxy would. The lines are fixtures in the format the proxy writes.
 func spentJob(t *testing.T, root, id, team string, lines ...string) {
 	t.Helper()
+	spentJobFor(t, root, id, team, "", lines...)
+}
+
+// spentJobFor is spentJob for a task a person asked for.
+func spentJobFor(t *testing.T, root, id, team, person string, lines ...string) {
+	t.Helper()
 	dir := job.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Repo: "github.com/o/api", Gate: []string{"true"}, Harness: "fixture", Team: team}
+	spec := job.Spec{Brief: "b", Repo: "github.com/o/api", Gate: []string{"true"}, Harness: "fixture", Team: team, Person: person}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}

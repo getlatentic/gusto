@@ -7,14 +7,13 @@ import (
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/orgsettings"
-	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // setMemberBudget sets what each member may spend in a month, or, for one person, what they may: their own figure, which stands
 // in place of everyone's, and none to fall back to everyone's again. Past it the proxy refuses their agents' calls.
 func (s *Server) setMemberBudget(w http.ResponseWriter, r *http.Request) {
 	who := strings.ToLower(strings.TrimSpace(r.FormValue("who")))
-	back := "/admin/people"
+	back := budgetsPath
 	typed := strings.TrimSpace(r.FormValue("usd"))
 	usd, err := parseBudget(typed)
 	if err != nil {
@@ -73,7 +72,13 @@ type memberBudget struct {
 }
 
 func (s *Server) memberBudgetOf(who string) memberBudget {
-	shown := memberBudget{Who: who, Form: url.QueryEscape(who)}
+	asked, _ := s.askedThisMonth()
+	return s.memberBudgetFor(who, asked.spentBy(who))
+}
+
+// memberBudgetFor is memberBudgetOf with what the person asked for this month already read, for a page of many people.
+func (s *Server) memberBudgetFor(who string, spent float64) memberBudget {
+	shown := memberBudget{Who: who, Form: url.QueryEscape(who), Spent: spent}
 	if s.orgSettings == nil {
 		return shown
 	}
@@ -83,9 +88,6 @@ func (s *Server) memberBudgetOf(who string) memberBudget {
 	}
 	_, shown.Own = settings.MemberBudgets[strings.ToLower(who)]
 	shown.Limit, shown.Set = settings.MemberBudget(who)
-	if s.ledger != nil {
-		shown.Spent = s.ledger.SpentThisMonth(spend.ByPerson, strings.ToLower(who))
-	}
 	shown.Passed = shown.Set && shown.Spent >= shown.Limit
 	return shown
 }

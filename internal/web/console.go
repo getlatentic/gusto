@@ -15,6 +15,9 @@ func (s *Server) sections() []section {
 		{"overview", "/admin", "Overview"},
 		{"usage", "/admin/usage", "Usage"},
 	}
+	if s.hasOrgSettings() {
+		all = append(all, section{"budgets", budgetsPath, "Budgets"})
+	}
 	if s.hasRoster() {
 		all = append(all, section{"people", "/admin/people", "People"})
 	}
@@ -100,6 +103,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+setupsPath+"/{name}/disable", setups(s.turnSetup(true)))
 
 	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
+	mux.HandleFunc("GET "+budgetsPath, s.console(offering(s.hasOrgSettings, s.budgetsPage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 	mux.HandleFunc("POST /admin/member-budget", s.console(offering(s.hasOrgSettings, s.setMemberBudget)))
 	mux.HandleFunc("POST /admin/chat-default", s.console(offering(s.hasOrgSettings, s.setChatDefault)))
@@ -161,7 +165,9 @@ func toTab(tab string) http.HandlerFunc {
 // tab is one view of a console page, as a link.
 type tab struct {
 	Key, Label, Href string
-	On               bool
+	// Count is how many things the tab holds, said beside its label when there are any.
+	Count int
+	On    bool
 }
 
 // chooseTab marks the tab the request names, or the first when it names none of them, and says which it is.

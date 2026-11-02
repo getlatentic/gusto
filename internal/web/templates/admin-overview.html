@@ -12,16 +12,16 @@
 <section class="{{template "ui-card"}} mb-4">
   <p class="text-sm text-muted">Spent this month</p>
   <p class="mt-1 flex flex-wrap items-baseline gap-x-2"><span class="font-display text-[2.125rem] leading-tight font-semibold tracking-tight tabular-nums">{{usd .Spent.USD}}</span>
-    {{if .Budget.Set}}<span class="text-muted">of {{usd .Budget.Limit}}</span>{{else}}<span class="text-muted">no budget set{{if .PeoplePage}} · <a class="text-accent-ink no-underline hover:underline" href="/admin/people">set one on People</a>{{end}}</span>{{end}}</p>
+    {{if .Budget.Set}}<span class="text-muted">of {{usd .Budget.Limit}}</span>{{else}}<span class="text-muted">no budget set{{if .BudgetsPage}} · <a class="text-accent-ink no-underline hover:underline" href="/admin/budgets">set one on Budgets</a>{{end}}</span>{{end}}</p>
   {{if .Spent.Unmeasured}}<p class="text-sm text-muted">at least: {{.Spent.Unmeasured}} {{if eq .Spent.Unmeasured 1}}call has{{else}}calls have{{end}} no price</p>{{end}}
   <div class="mt-3 mb-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true"><div class="h-full rounded-full {{if .Budget.Passed}}bg-bad{{else}}bg-accent{{end}}" style="width:{{if .Budget.Set}}{{.Percent}}{{else}}0{{end}}%"></div></div>
-  <p class="text-xs text-subtle">{{with .Credit}}Free model credit: {{usd .Used}} of {{usd .Limit}} used. {{end}}Each person's agents stop at their own budget{{if .PeoplePage}}; set it on <a class="text-accent-ink no-underline hover:underline" href="/admin/people">People</a>{{end}}.</p>
+  <p class="text-xs text-subtle">{{with .Credit}}Free model credit: {{usd .Used}} of {{usd .Limit}} used. {{end}}Each person's agents stop at their own budget{{if .BudgetsPage}}; set it on <a class="text-accent-ink no-underline hover:underline" href="/admin/budgets">Budgets</a>{{end}}.</p>
 </section>
 
 {{if .Spent.Split}}
 <div class="grid grid-cols-2 items-start gap-4 @max-[56rem]:grid-cols-1">
   <section class="{{template "ui-card"}}">
-    <h2 class="{{template "ui-card-title"}}">By person</h2>
+    <h2 class="{{template "ui-card-title"}}">By person, what they asked for</h2>
     {{range .Spent.People}}
     <a class="grid grid-cols-[minmax(0,1fr)_7.5rem_9.5rem] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-2.5 text-inherit no-underline first-of-type:border-t-0 {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
       <span class="flex min-w-0 items-center gap-2.5"><span class="grid size-7 flex-none place-items-center rounded-full border border-line bg-sunken text-[0.6875rem] font-semibold text-muted" aria-hidden="true">{{if .More}}+{{else}}{{initial .Label}}{{end}}</span><span class="truncate">{{.Label}}</span></span>
@@ -31,7 +31,7 @@
     {{else}}
     <p class="{{template "ui-note"}}">Nobody has spent anything this month.</p>
     {{end}}
-    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{if .PeoplePage}}/admin/people{{else}}{{.Spent.AllUsage}}{{end}}">View all</a>
+    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{.PeopleAll}}">View all</a>
   </section>
 
   <section class="{{template "ui-card"}}">

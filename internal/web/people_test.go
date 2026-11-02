@@ -38,7 +38,7 @@ func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 	t.Helper()
 	line := fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":10,"outputTokens":5,"usd":%v}`, time.Now().Unix(), usd)
-	spentJob(t, here.index.Root(), id, team, line)
+	spentJobFor(t, here.index.Root(), id, team, asked, line)
 	if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
 		t.Fatal(err)
 	}
@@ -95,10 +95,17 @@ func TestThePeoplePageListsMembersWithRoleLastSignInAndWhatTheySpent(t *testing.
 	if strings.Contains(rowOf(t, page, "bob@acme.com"), "$") || strings.Contains(page, "$9") {
 		t.Errorf("what a token spent was put against a person:\n%s", page)
 	}
-	for _, want := range []string{"dee@acme.com", "Invited", `href="https://cloud.test/org?org=acme-com"`} {
+	for _, want := range []string{`href="/admin/people?tab=invited">Invited <span class="font-normal text-subtle">1</span>`, `href="https://cloud.test/org?org=acme-com"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page lacks %q:\n%s", want, page)
 		}
+	}
+	if strings.Contains(page, "dee@acme.com") {
+		t.Error("the People tab lists who is only invited")
+	}
+	invited := here.ask(t, "GET", "/admin/people?tab=invited", nil).Body.String()
+	if !strings.Contains(invited, "dee@acme.com") || strings.Contains(invited, "bob@acme.com") {
+		t.Errorf("the Invited tab does not list only who is invited:\n%s", invited)
 	}
 }
 
@@ -179,7 +186,7 @@ func TestTheOnlyAdminAndAServerWithNoFrontDoorShowTheRoleInWords(t *testing.T) {
 	}
 
 	alone, _, _ := budgeted(t)
-	if page := people(t, alone); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
+	if page := alone.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
 		t.Errorf("a server with no front door offers to change a role:\n%s", page)
 	}
 }
