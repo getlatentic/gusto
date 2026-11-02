@@ -125,6 +125,9 @@ func countLines(path string) (int, error) {
 	return count, nil
 }
 
+// Refusal starts what a cap's refusal says, so a page can tell an agent repeating it from the agent's own words.
+const Refusal = "gusto stopped this task: "
+
 // refuse answers a call a cap stopped, in the error shape an OpenAI-compatible
 // client already prints, so the reason reaches the agent's own transcript.
 // 402 rather than 429, because a client retries a 429 and a spent cap does not
@@ -135,7 +138,7 @@ func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
 	w.WriteHeader(http.StatusPaymentRequired)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
-			"message": "gusto stopped this task: " + call.Refused.Reason,
+			"message": Refusal + call.Refused.Reason,
 			"type":    "gusto_cap",
 			"code":    call.Refused.Cap + "_cap",
 		},
