@@ -125,7 +125,8 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
+	// Adding finishes the job, so the room comes back with its conversation in view and no dialog over it.
+	http.Redirect(w, r, threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
 }
 
 // changeRoomRole makes a member an admin or a member, or takes them out of the room.

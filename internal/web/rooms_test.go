@@ -414,6 +414,9 @@ func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
 		t.Fatalf("adding gave %d to %s", added.Code, added.Header().Get("Location"))
 	}
+	if back := added.Header().Get("Location"); back != thread {
+		t.Errorf("adding came back to %s, not to the room with no dialog open", back)
+	}
 	held, _ := here.server.instances.Get(id)
 	if agent, found := held.AgentCalled("Tosin's Claude"); !found || agent.Member != member.ID {
 		t.Errorf("the agent became %+v", held.Agents)
