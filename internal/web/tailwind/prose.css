@@ -3,6 +3,8 @@
 
 /* Unlayered, so every rule here beats the plugin's own in the utilities layer. */
 .prose {
+  /* A grid item sizes to its widest line unless told not to, and a wide code block would then push the reply off the page. */
+  min-width: 0;
   overflow-wrap: anywhere;
   font-family: var(--gu-font-text);
 }
