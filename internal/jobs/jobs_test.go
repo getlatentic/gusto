@@ -414,3 +414,40 @@ func TestTurnsOfDifferentInstancesRunSideBySide(t *testing.T) {
 		}
 	}
 }
+
+// A run that ended while the server was gone is graded by the rule the runner applies when it watches: a turn with no gate
+// whose harness failed, or whose model never answered, failed; and one that was told to stop was interrupted.
+func TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched(t *testing.T) {
+	for name, tc := range map[string]struct {
+		manifest evidence.Manifest
+		state    State
+		exit     int
+	}{
+		"harness failed":       {evidence.Manifest{HarnessExit: 1}, Failed, 1},
+		"model never answered": {evidence.Manifest{ModelUnanswered: &evidence.Unanswered{}}, Failed, 1},
+		"told to stop":         {evidence.Manifest{StoppedBy: "ada@acme.example"}, Interrupted, -1},
+		"answered":             {evidence.Manifest{}, Passed, 0},
+		"gate failed":          {evidence.Manifest{Gate: &evidence.Verdict{Code: 2}}, Failed, 1},
+	} {
+		index := at(t)
+		record := queued(t, index, name)
+		if _, _, err := index.Claim(); err != nil {
+			t.Fatal(err)
+		}
+		dir := record.Dir(index.Root())
+		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		tc.manifest.AtUnix = Now()
+		if err := evidence.Write(dir, tc.manifest); err != nil {
+			t.Fatal(err)
+		}
+		reopened, err := Open(index.Root())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, _ := reopened.Get(record.ID); got.State != tc.state || got.Exit != tc.exit {
+			t.Errorf("%s: recovered as %s, exit %d; want %s, exit %d", name, got.State, got.Exit, tc.state, tc.exit)
+		}
+	}
+}
