@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -85,7 +86,7 @@ func (b *Board) Save(lineup Lineup) error {
 	}
 	b.guard.Lock()
 	defer b.guard.Unlock()
-	return os.WriteFile(b.file(lineup.ID), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(b.file(lineup.ID), append(text, '\n'), 0o644)
 }
 
 func (b *Board) Get(id string) (Lineup, bool) {

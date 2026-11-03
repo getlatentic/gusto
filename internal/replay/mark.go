@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -43,7 +44,7 @@ func writeMark(dir job.Dir, mark Mark) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dir.OutFile(MarkFile), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(dir.OutFile(MarkFile), append(text, '\n'), 0o644)
 }
 
 // Marked reads the mark, and says whether the directory is a rerun at all.

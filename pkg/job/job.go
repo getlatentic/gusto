@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Sensitivity is how sensitive the code in a task is. A runner says whose
@@ -230,7 +232,7 @@ func (s Spec) Write(d Dir) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(d.Spec(), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(d.Spec(), append(text, '\n'), 0o644)
 }
 
 // CleanDir is a folder of a workspace as a task may name it: relative to the workspace, with no way out of it. It says why when it is not.

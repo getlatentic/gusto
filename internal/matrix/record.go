@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -87,10 +88,7 @@ func write(where string, record Record) error {
 		return err
 	}
 	path := filepath.Join(where, RecordFile)
-	if err := os.WriteFile(path+".new", append(text, '\n'), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(path+".new", path)
+	return atomicfile.WriteFile(path, append(text, '\n'), 0o644)
 }
 
 // opened is the matrix at where, or a new one for environment when there is
