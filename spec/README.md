@@ -33,6 +33,9 @@ ok   Demo.before-ending.cfg: Error: Invariant EndingStaysEnding is violated.
 ok   Demo.before-guards.cfg: Error: Invariant NoExtendAfterStop is violated.
 ok   Demo.before-lead.cfg: Error: Invariant LeadFollowsDemo is violated.
 ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states left on queue.
+ok   Evidence.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
+ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
+ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   Hosts.before-busy.cfg: Error: Invariant NoStopUnderAStart is violated.
@@ -294,6 +297,18 @@ Two more fixes have Go tests and no model: a front door that starts again counts
 (`TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain`), and knows when a quiet host was last heard from
 (`TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain`). A host that goes stops its servers together, inside
 its service's stop time (`TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway`).
+
+## Evidence
+
+A room turn's record, as `evidence.Decide` puts what was done with the turn's changes under its signature
+(`internal/evidence/decide.go`). The run ends with `out/` hashed into `manifest.json` and the manifest signed. Decide writes
+`decision.json`, makes the manifest again and signs it again. A file in `out/` may be changed after the run was signed, and
+the server may crash at any step and start again.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `StaysSigned` | A signed record that Decide is done with is signed over its manifest. | `pending`: the manifest was written without its signature first, so a crash or a key that could not sign left the record unsigned for good | `TestADecisionTheKeyCannotSignLeavesTheRecordSignedAsItWas`, `TestADecisionCutShortIsSaidAndFinished` |
+| `NothingChangedIsSigned` | The signature never vouches for a file changed after the run was signed. | `intact`: Decide hashed `out/` as it was and signed it | `TestARecordChangedSinceItWasSignedIsNotSignedAgain` |
 
 ## Changing a modelled machine
 
