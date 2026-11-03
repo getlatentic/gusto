@@ -8,6 +8,7 @@ on:
       - "spec/**"
       - "internal/jobs/**"
       - "internal/evidence/**"
+      - "internal/matrix/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"

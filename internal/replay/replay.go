@@ -84,19 +84,21 @@ func marking(old job.Dir, pin Pin) (Mark, error) {
 	return Mark{Of: of, Manifest: digest, Commit: pin.Commit, PinnedBy: pin.By, HarnessCommits: pin.Committed}, nil
 }
 
-// fill writes everything a replay starts with: the spec, the adapter, and the
-// mark.
+// fill writes everything a replay starts with: the mark, the spec, and the
+// adapter. The mark goes first, so a directory a stop cut short is never one a
+// sweep takes for an original: without its job.json it is not a task, and with
+// it, it is a replay.
 func fill(old, fresh job.Dir, harness string, mark Mark) error {
 	if err := fresh.Make(); err != nil {
+		return err
+	}
+	if err := writeMark(fresh, mark); err != nil {
 		return err
 	}
 	if err := Rewrite(old, fresh, map[string]any{"ref": mark.Commit}); err != nil {
 		return err
 	}
-	if err := Carry(old, fresh, harness); err != nil {
-		return err
-	}
-	return writeMark(fresh, mark)
+	return Carry(old, fresh, harness)
 }
 
 // claim makes the replay's directory beside the others under parent, named for

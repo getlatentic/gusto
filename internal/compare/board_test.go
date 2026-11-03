@@ -23,3 +23,23 @@ func TestTheSampleFollowsTheTemplate(t *testing.T) {
 		t.Error("a file outside the sample was written")
 	}
 }
+
+// A lineup is listed whole from the moment its id is reserved, before any of its runs is queued.
+func TestAReservedLineupIsListedWhole(t *testing.T) {
+	board, err := OpenBoard(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := board.Reserve("compare-fix-it", Lineup{Brief: "fix it", At: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := board.Reserve("compare-fix-it", Lineup{Brief: "fix it again", At: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed := board.List()
+	if first == second || len(listed) != 2 || listed[0].ID != second || listed[1].Brief != "fix it" {
+		t.Errorf("reserved %s and %s, and the board lists %+v", first, second, listed)
+	}
+}

@@ -54,25 +54,54 @@ func OpenBoard(root string) (*Board, error) {
 
 func (b *Board) file(id string) string { return filepath.Join(b.root, id+".json") }
 
-// Reserve takes an id no lineup has, numbering the one proposed when it is
-// taken, and holds it by making its file, which only one caller can do.
-func (b *Board) Reserve(proposed string) (string, error) {
+// Reserve keeps a new lineup under an id no lineup has, the one proposed or that
+// numbered when it is taken, and says which. The lineup is whole in its file
+// from the moment the id is taken, so one whose runs are still being queued is
+// listed with the runs queued so far, and never as a file nothing can read.
+func (b *Board) Reserve(proposed string, lineup Lineup) (string, error) {
 	for n := 1; ; n++ {
-		id := proposed
+		lineup.ID = proposed
 		if n > 1 {
-			id = fmt.Sprintf("%s-%d", proposed, n)
+			lineup.ID = fmt.Sprintf("%s-%d", proposed, n)
 		}
-		if !job.Named(id) {
-			return "", fmt.Errorf("%q cannot name a comparison", id)
-		}
-		file, err := os.OpenFile(b.file(id), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if err == nil {
-			return id, file.Close()
-		}
-		if !errors.Is(err, os.ErrExist) {
-			return "", err
+		taken, err := b.claim(lineup)
+		if err != nil || !taken {
+			return lineup.ID, err
 		}
 	}
+}
+
+// claim writes the lineup beside its file and links it into place, which only
+// one caller can do for a name. It says whether the name was taken already.
+func (b *Board) claim(lineup Lineup) (taken bool, err error) {
+	if !job.Named(lineup.ID) {
+		return false, fmt.Errorf("%q cannot name a comparison", lineup.ID)
+	}
+	text, err := json.MarshalIndent(lineup, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	temp, err := os.CreateTemp(b.root, ".lineup-")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(temp.Name())
+	if _, err := temp.Write(append(text, '\n')); err != nil {
+		temp.Close()
+		return false, err
+	}
+	if err := temp.Sync(); err != nil {
+		temp.Close()
+		return false, err
+	}
+	if err := temp.Close(); err != nil {
+		return false, err
+	}
+	err = os.Link(temp.Name(), b.file(lineup.ID))
+	if errors.Is(err, os.ErrExist) {
+		return true, nil
+	}
+	return false, err
 }
 
 // Save keeps a lineup under its id.

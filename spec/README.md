@@ -42,6 +42,9 @@ ok   Hosts.before-busy.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-mark.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-unregister.cfg: Error: Invariant DownIsGone is violated.
 ok   Hosts.now.cfg: 16509 states generated, 4580 distinct states found, 0 states left on queue.
+ok   Matrix.before-remake.cfg: Error: Invariant NeverStuck is violated.
+ok   Matrix.before-time.cfg: Error: Invariant TimeIsTheRun is violated.
+ok   Matrix.now.cfg: 153 states generated, 91 distinct states found, 0 states left on queue.
 ok   MergeJournal.before-keep.cfg: Error: Invariant AllOrNothing is violated.
 ok   MergeJournal.before-twice.cfg: Error: Invariant AllOrNothing is violated.
 ok   MergeJournal.now.cfg: 76 states generated, 50 distinct states found, 0 states left on queue.
@@ -309,6 +312,22 @@ the server may crash at any step and start again.
 | --- | --- | --- | --- |
 | `StaysSigned` | A signed record that Decide is done with is signed over its manifest. | `pending`: the manifest was written without its signature first, so a crash or a key that could not sign left the record unsigned for good | `TestADecisionTheKeyCannotSignLeavesTheRecordSignedAsItWas`, `TestADecisionCutShortIsSaidAndFinished` |
 | `NothingChangedIsSigned` | The signature never vouches for a file changed after the run was signed. | `intact`: Decide hashed `out/` as it was and signed it | `TestARecordChangedSinceItWasSignedIsNotSignedAgain` |
+
+## Matrix
+
+One cell of a benchmark matrix (`internal/matrix/matrix.go`, `internal/matrix/prepare.go`). A measure readies the cell and
+runs it when it has no verdict or is asked for again; a used directory is moved aside and made again first. A run may leave
+a verdict, and may fail after it. The measure may stop at any step, and is run again.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `NeverStuck` | No run is started in a directory that has no `job.json`. | `remake`: a stop between moving the old run aside and making the cell again failed every later measure | `TestACellMovedAsideAndNotMadeAgainIsMadeAndRun` |
+| `TimeIsTheRun` | A cell whose run left a verdict is timed around that run. | `time`: a run that failed after its verdict was not timed, so the cell kept the time of the run it replaced | `TestACellsTimeIsTheTimeOfTheRunItHolds` |
+
+Two more fixes from the same pass have Go tests and no model. A comparison is listed whole from the moment its id is
+reserved, and one refused for any agent queues no run (`TestAReservedLineupIsListedWhole`,
+`TestAComparisonRefusedForOneAgentQueuesNoRun`). A replay writes its mark first, so one cut short is never swept as an
+original (`TestAReplayCutShortIsNotTakenForAnOriginal`).
 
 ## Changing a modelled machine
 
