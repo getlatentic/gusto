@@ -9,6 +9,9 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   AppendLog.before-repair.cfg: Error: Invariant AlwaysStarts is violated.
+ok   AppendLog.before-rollback.cfg: Error: Invariant AlwaysStarts is violated.
+ok   AppendLog.now.cfg: 515 states generated, 190 distinct states found, 0 states left on queue.
 ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
@@ -98,6 +101,18 @@ disk. The kernel writes a file's data and a directory's names to disk on its own
 
 `atomicfile.WriteFile` is the protocol that passes: write a temporary file, fsync it, rename it over the file, fsync
 the directory.
+
+## AppendLog
+
+The change log (`internal/changelog`): numbered, hash-chained lines that `Append` writes one at a time, each synced
+before it returns, and that `Open` checks before the server starts. A write may be cut short by a full disk, a sync may
+fail, the kernel may write part of the last line, and either the process or the host may crash.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `AlwaysStarts` | A crash or a failed write never stops the server starting. | `repairTail`: a crash leaves part of a line, and `Open` refuses the log for good. `rollback`: the next event is written after part of the last one, which no repair can take out | `TestALogEndingInPartOfALineOpensWithoutIt`, `TestAWriteCutShortLeavesNothingBehind`, `TestALogThatCannotBeCutBackTakesNoMoreEvents` |
+| `NothingDoneIsLost` | Every event `Append` said was written is in the log at its number. | | |
+| `RepairHidesNothing` | `Open` removes only a last line without its newline, never a whole line, so a cut or changed log is still refused. | | the existing tamper tests |
 
 ## Changing a modelled machine
 
