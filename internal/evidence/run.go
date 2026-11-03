@@ -55,25 +55,6 @@ type Decision struct {
 // WriteRun keeps who and where a run is for, before it starts.
 func WriteRun(dir job.Dir, run Run) error { return writeOut(dir, RunFile, run) }
 
-// Decide keeps what was done with what a room's turn changed, and puts it under the record's signature: the manifest is made
-// again over out/ as it now is and signed again with the key the run was, when one is configured.
-func Decide(dir job.Dir, decision Decision) error {
-	if err := writeOut(dir, DecisionFile, decision); err != nil {
-		return err
-	}
-	manifest, err := Read(dir)
-	if err != nil {
-		return err
-	}
-	if manifest.Job, manifest.Files, err = Of(dir); err != nil {
-		return err
-	}
-	if err := Write(dir, manifest); err != nil {
-		return err
-	}
-	return SealAsConfigured(dir)
-}
-
 func writeOut(dir job.Dir, name string, value any) error {
 	text, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {

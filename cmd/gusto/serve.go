@@ -68,6 +68,7 @@ func serve(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	finishDecisions(index)
 	// An organization's gusto cloud writes what it may run, and this server reads it
 	// as it goes. One that cannot read it does not start.
 	var limits *quota.File

@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/job"
@@ -171,5 +172,15 @@ func decisionOf(outcome roomwork.Outcome) evidence.Decision {
 func decided(dir job.Dir, decision evidence.Decision) {
 	if err := evidence.Decide(dir, decision); err != nil {
 		slog.Error("a turn's record does not say what was done with its changes", "job", filepath.Base(dir.Path()), "error", err)
+	}
+}
+
+// finishDecisions puts in place the decisions a crash left on their way under a turn's signature. A decision is made while its
+// turn runs, so the turns to look at are the ones that were running when the server before this one stopped.
+func finishDecisions(index *jobs.Index) {
+	for _, record := range index.Recovered() {
+		if err := evidence.Finish(record.Dir(index.Root())); err != nil {
+			slog.Error("a turn's decision could not be put under its signature", "job", record.ID, "error", err)
+		}
 	}
 }

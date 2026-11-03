@@ -131,17 +131,26 @@ func Of(dir job.Dir) (string, []Entry, error) {
 // caller left it out. A signature already beside it signed other bytes, so it
 // goes: a rewritten record is unsigned until somebody holding a key signs it.
 func Write(dir job.Dir, manifest Manifest) error {
-	if manifest.Version == 0 {
-		manifest.Version = Version
-	}
-	text, err := json.MarshalIndent(manifest, "", "  ")
+	text, err := encode(manifest)
 	if err != nil {
 		return err
 	}
 	if err := os.Remove(dir.OutFile(SignatureFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	return atomicfile.WriteFile(dir.OutFile("manifest.json"), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(dir.OutFile("manifest.json"), text, 0o644)
+}
+
+// encode is the manifest as it is kept, stamped with the version this build writes when the caller left it out.
+func encode(manifest Manifest) ([]byte, error) {
+	if manifest.Version == 0 {
+		manifest.Version = Version
+	}
+	text, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(text, '\n'), nil
 }
 
 // Read the manifest. A field this build does not know is ignored, and a version
@@ -178,6 +187,9 @@ func Check(dir job.Dir) ([]string, error) {
 		return nil, err
 	}
 	wrong := append(sealComplaints(dir), harnessComplaints(dir, manifest)...)
+	if _, err := os.Stat(pendingFile(dir)); err == nil {
+		wrong = append(wrong, "a decision is waiting to be put under the signature ("+PendingFile+")")
+	}
 	if spec != manifest.Job {
 		wrong = append(wrong, "job.json changed")
 	}

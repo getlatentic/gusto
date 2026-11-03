@@ -65,7 +65,7 @@ Two files in `out/` name a run's parties and decisions. The manifest hashes them
 | `refused` | Why it did not: the agent was taken out, or the person who asked left the room |
 | `changed`, `joined`, `conflicts` | How many files it changed, and the files it shared with another change |
 
-The decision comes after the run's manifest is signed. `evidence.Decide` writes it, then writes the manifest again over `out/` as it now is and signs it again with the same configured key. The record checks clean afterwards. A manifest signed before the decision is replaced, not kept beside it.
+The decision comes after the run's manifest is signed. `evidence.Decide` makes the decision, the manifest that hashes it with the rest of `out/`, and that manifest's signature with the configured key. It keeps all three in `seal.pending` beside `out/` before it puts them in place. A crash part way leaves `seal.pending`, which the check reports and which the server puts in place when it starts again. A key that cannot sign changes nothing. A record that does not check is not decided, since a new manifest would vouch for what changed, and neither is a signed record when no key is configured. The record checks clean afterwards. A manifest signed before the decision is replaced, not kept beside it.
 
 ## The configured agent digest
 

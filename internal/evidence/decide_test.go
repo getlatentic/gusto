@@ -1,0 +1,112 @@
+package evidence_test
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/job"
+)
+
+// aSignedTurn is a room's turn whose run was hashed and signed with the acme key, as a run ends.
+func aSignedTurn(t *testing.T) (dir job.Dir, ring string) {
+	t.Helper()
+	ring = t.TempDir()
+	keyIn(t, ring, "acme")
+	t.Setenv(signing.KeyEnv, filepath.Join(ring, "acme.key"))
+	dir = aRoomTurn(t)
+	if err := evidence.WriteRun(dir, evidence.Run{Asked: "bob@acme.com", Agent: "a1", Room: "room-launch"}); err != nil {
+		t.Fatal(err)
+	}
+	spec, files, err := evidence.Of(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files}); err != nil {
+		t.Fatal(err)
+	}
+	if err := evidence.SealAsConfigured(dir); err != nil {
+		t.Fatal(err)
+	}
+	return dir, ring
+}
+
+func signedBy(t *testing.T, dir job.Dir, ring string) string {
+	t.Helper()
+	attested, err := evidence.Attest(dir, keyringOf(t, ring))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !attested.Signed {
+		return ""
+	}
+	return attested.Signer
+}
+
+// A key that cannot sign the decision leaves the record signed as the run left it. spec/Evidence.before-pending.cfg is the
+// trace of the crash at the same step.
+func TestADecisionTheKeyCannotSignLeavesTheRecordSignedAsItWas(t *testing.T) {
+	dir, ring := aSignedTurn(t)
+	t.Setenv(signing.KeyEnv, filepath.Join(ring, "gone.key"))
+	if err := evidence.Decide(dir, evidence.Decision{Kept: true, Changed: 1}); err == nil {
+		t.Fatal("a decision no key could sign was taken")
+	}
+	if signer := signedBy(t, dir, ring); signer != "acme" {
+		t.Errorf("the record is signed by %q", signer)
+	}
+	if wrong := complaints(t, dir); len(wrong) != 0 {
+		t.Errorf("the record does not check: %v", wrong)
+	}
+}
+
+// A file changed after the run was signed is not signed again by the decision. spec/Evidence.before-intact.cfg is the trace.
+func TestARecordChangedSinceItWasSignedIsNotSignedAgain(t *testing.T) {
+	dir, ring := aSignedTurn(t)
+	writeFile(t, dir.OutFile(evidence.RunFile), `{"asked": "mallory@acme.com"}`)
+	if err := evidence.Decide(dir, evidence.Decision{Kept: true}); err == nil {
+		t.Fatal("a changed record was decided")
+	}
+	if wrong := complaints(t, dir); !slices.Contains(wrong, evidence.RunFile+" changed") {
+		t.Errorf("the change is not said: %v", wrong)
+	}
+	if signer := signedBy(t, dir, ring); signer != "acme" {
+		t.Errorf("the record is signed by %q", signer)
+	}
+}
+
+// A decision cut short after it was made is said by the check, and a start puts it in place under the signature.
+func TestADecisionCutShortIsSaidAndFinished(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("a folder's mode stops writes only for a person who is not root, on Unix")
+	}
+	dir, ring := aSignedTurn(t)
+	if err := os.Chmod(dir.Out(), 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir.Out(), 0o755) })
+	if err := evidence.Decide(dir, evidence.Decision{Kept: true, Changed: 3}); err == nil {
+		t.Fatal("a decision out/ could not take was put in place")
+	}
+	os.Chmod(dir.Out(), 0o755)
+	wrong := complaints(t, dir)
+	if !slices.ContainsFunc(wrong, func(w string) bool { return strings.Contains(w, evidence.PendingFile) }) {
+		t.Fatalf("the check does not say a decision is waiting: %v", wrong)
+	}
+	if err := evidence.Finish(dir); err != nil {
+		t.Fatal(err)
+	}
+	if wrong := complaints(t, dir); len(wrong) != 0 {
+		t.Errorf("the finished record does not check: %v", wrong)
+	}
+	if signer := signedBy(t, dir, ring); signer != "acme" {
+		t.Errorf("the finished record is signed by %q", signer)
+	}
+	if text, err := os.ReadFile(dir.OutFile(evidence.DecisionFile)); err != nil || !strings.Contains(string(text), `"changed": 3`) {
+		t.Errorf("the decision is %q, %v", text, err)
+	}
+}
