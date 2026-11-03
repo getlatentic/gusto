@@ -3,12 +3,14 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/crew"
 )
 
 func TestAnAgentIsMadeInMembersAndStartsPrivate(t *testing.T) {
@@ -187,5 +189,39 @@ func TestGustoOnAPersonsOwnComputerInstallsAnAgentItLacks(t *testing.T) {
 	}
 	if got := site.ask(t, "POST", "/agents/opencode/install", nil); !strings.Contains(got.Header().Get("Location"), "refused") || len(installer.asked) != 2 {
 		t.Error("an agent gusto cannot install was installed")
+	}
+}
+
+// Editing an agent's profile changes only the profile: people given access, or app choices made, while the edit was on its way stay.
+func TestEditingAnAgentsProfileKeepsAccessGivenMeanwhile(t *testing.T) {
+	site := openOffering(t, twoHarnesses())
+	member := aCrewAgent(t, site, alice, "Atlas", "other")
+	mine := site.as(t, alice)
+	const given = 40
+	done := make(chan error, 1)
+	go func() {
+		for n := range given {
+			if _, err := site.server.crew.Change(member.ID, func(held *crew.Agent) error {
+				held.Access = append(held.Access, fmt.Sprintf("p%d@acme.com", n))
+				return nil
+			}); err != nil {
+				done <- err
+				return
+			}
+		}
+		done <- nil
+	}()
+	for n := range given {
+		mine.ask(t, "POST", "/members/agents/"+member.ID, url.Values{"tab": {"profile"}, "persona": {fmt.Sprintf("Version %d.", n)}})
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	held, _ := site.server.crew.Get(member.ID)
+	if len(held.Access) != given {
+		t.Errorf("%d of %d people given access meanwhile kept it", len(held.Access), given)
+	}
+	if held.Persona != fmt.Sprintf("Version %d.", given-1) {
+		t.Errorf("the profile edit was lost: %q", held.Persona)
 	}
 }
