@@ -17,3 +17,6 @@ func (l *Log) CutShort(part []byte) error {
 
 // LoseFile closes the file under the log, so a write fails and cannot be cut back.
 func (l *Log) LoseFile() error { return l.file.Close() }
+
+// RepairTail is what Open does first to the log's file.
+func RepairTail(path string) error { return repairTail(path) }
