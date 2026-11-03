@@ -18,6 +18,7 @@ on:
       - "internal/atomicfile/**"
       - "internal/changelog/**"
       - "internal/computer/**"
+      - "internal/roomwork/**"
       - "cmd/gusto/computers*.go"
       - ".github/workflows/specs.yml"
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const plan = "# Launch plan\n\n## Goals\nlaunch in May\n\n## Risks\nnone yet\n\n## Owners\nAda\n"
@@ -152,4 +153,63 @@ func replaceFile(folder, name, text string) error {
 		return err
 	}
 	return os.Rename(next, filepath.Join(folder, name))
+}
+
+// A person's change made while no turn works in the room still holds off a turn that joins meanwhile: nothing it does lands
+// in the folder until the change is done. spec/RoomGuard.before-hold.cfg is the trace.
+func TestAChangeHoldsOffATurnThatJoinsWhileItIsMade(t *testing.T) {
+	hub, in := aRoom(t, map[string]string{"plan.md": plan})
+	done, err := hub.Hold(context.Background(), in.Folder, []string{"notes.md"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	merged := make(chan string, 1)
+	go func() {
+		scout, err := hub.Begin(context.Background(), in, filepath.Join(t.TempDir(), "copy"), "Scout")
+		if err != nil {
+			merged <- err.Error()
+			return
+		}
+		defer scout.Close()
+		os.WriteFile(filepath.Join(scout.dest, "notes.md"), []byte("Scout's notes\n"), 0o644)
+		scout.Merge(context.Background())
+		merged <- "merged"
+	}()
+	select {
+	case got := <-merged:
+		t.Fatalf("a turn %s while a person's change was under way", got)
+	case <-time.After(100 * time.Millisecond):
+	}
+	if err := os.WriteFile(filepath.Join(in.Folder, "notes.md"), []byte("Ada's upload\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	done(true)
+	if got := <-merged; got != "merged" {
+		t.Fatal(got)
+	}
+}
+
+// The room's state outlives its last turn while a person's change holds it, so a turn that joins after meets the same guard.
+func TestAChangeHoldsTheRoomWhenItsLastTurnLeaves(t *testing.T) {
+	hub, in := aRoom(t, map[string]string{"plan.md": plan})
+	first := begin(t, hub, in, "Scout")
+	done, err := hub.Hold(context.Background(), in.Folder, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.Close()
+	second := begin(t, hub, in, "Draft")
+	write(t, second.dest, "notes.md", "Draft's notes\n")
+	merged := make(chan struct{})
+	go func() {
+		second.Merge(context.Background())
+		close(merged)
+	}()
+	select {
+	case <-merged:
+		t.Fatal("a turn that joined after the last one left merged under a guard of its own")
+	case <-time.After(100 * time.Millisecond):
+	}
+	done(false)
+	<-merged
 }

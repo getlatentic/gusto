@@ -10,25 +10,34 @@ import (
 // Hold is for a change to a room's folder that is not a turn's, such as a person's upload or edit: it waits until no merge is
 // changing the folder and keeps any from starting until done is called, so neither replaces what the other wrote. The files at
 // paths, relative to the folder, are kept as they were for the turns working in the room, and a turn that changed one of them
-// too is merged with the change line by line, as with another turn's. done says whether the folder was changed. With no turn
-// working in the room there is no merge to wait for, and Hold returns at once.
+// too is merged with the change line by line, as with another turn's. done says whether the folder was changed. A room with
+// no turn working has its guard taken all the same, since a turn may join while the change is under way.
 func (h *Hub) Hold(ctx context.Context, folder string, paths []string) (done func(changed bool), err error) {
 	if folder, err = filepath.Abs(folder); err != nil {
 		return nil, err
 	}
 	h.mu.Lock()
 	state := h.rooms[folder]
-	h.mu.Unlock()
 	if state == nil {
-		return func(bool) {}, nil
+		state = newRoomState("")
+		h.rooms[folder] = state
 	}
+	state.holds++
+	working := len(state.live) > 0
+	h.mu.Unlock()
 	release, err := guard(ctx, state)
 	if err != nil {
+		h.unhold(folder, state)
 		return nil, err
 	}
-	seq := h.next(state)
-	kept := keepBefore(Room{Folder: folder, Meta: state.meta}, seq, paths)
+	var seq uint64
+	var kept map[string]string
+	if working {
+		seq = h.next(state)
+		kept = keepBefore(Room{Folder: folder, Meta: state.meta}, seq, paths)
+	}
 	return func(changed bool) {
+		defer h.unhold(folder, state)
 		defer release()
 		if !changed {
 			for _, file := range kept {
@@ -36,8 +45,22 @@ func (h *Hub) Hold(ctx context.Context, folder string, paths []string) (done fun
 			}
 			return
 		}
+		if !working {
+			// A turn that joined while the change was under way finds it here, and conflicts with it instead of replacing it.
+			seq = h.next(state)
+		}
 		h.changed(state, seq, paths, kept)
 	}, nil
+}
+
+// unhold counts a held change out of its room, and lets go of the room's state when no turn works in it and nothing holds it.
+func (h *Hub) unhold(folder string, state *roomState) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	state.holds--
+	if state.holds == 0 && len(state.live) == 0 && h.rooms[folder] == state {
+		delete(h.rooms, folder)
+	}
 }
 
 // next numbers a change as a merge is numbered. The caller holds the guard, so no merge takes a number between.
