@@ -20,7 +20,7 @@ func TestADemoTheFrontDoorRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *te
 			t.Fatalf("the demo is not starting:\n%s", waiting)
 		}
 		// The upgrade: the first front door's servers are stopped part-way through starting, and it is gone.
-		f.server.Controller.stopAll()
+		f.server.Controller.StopAll()
 		f.http.Close()
 		f.server.Wait()
 

@@ -30,6 +30,7 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 | `leads` | one row for each visitor who started a demo, kept after the demo is gone, with `who` (the address without a `+tag`) and `domain` | primary key `slug`. Indexes on `requested`, `(who, requested)` and `(domain, requested)` make the daily counts a range read |
 | `billing` | an organization's Stripe subscription as the newest event said: customer, subscription, item, status, seats billed, the event's time | primary key `org`, foreign key to `orgs`. An event older than `event_at` is not kept |
 | `runtime` | where an organization's server is: state, cell, the two ports, error, restarts, and the command it was started with | primary key `slug`. Unique `(cell, port)` and `(cell, proxy_port)` where the port is set: two organizations on a cell cannot be given one port, even by two front doors |
+| `leader` | the lease that makes one front door the leader: its holder, its epoch, and when it runs out | primary key `name`. Taken and renewed under lock `leader` |
 | `settings` | `demo_limits` (the owner's limits), `demos_paused` (present means paused), `session_key` (the key that signs cookies) | primary key `key` |
 | `rate_events` | one row for each event the abuse limits count, with the time it stops counting | `(key, until)` index. Swept with the links |
 | `imports` | one row once the old files were loaded, with the counts | primary key `name` |
@@ -53,6 +54,14 @@ A rule that checks a count and then writes is a transaction. SQLite takes the wr
 | Abuse limits (sign-ups, mail, sign-ups in all, invitations an hour) | `Store.Limiter` counts in `rate_events` under lock `rate:<key>`: delete the expired rows, count, insert. A database that cannot be asked refuses the event |
 | The list of people an organization's server reads (`members.json`) | read and written under lock `roster:<slug>`, so the file always holds the later read |
 | First import | lock `import` |
+| Which front door leads | lock `leader` around reading the lease and writing it. A front door takes a lease that has run out at the next epoch |
+| A runtime write from the controller | lock `leader` around checking that the lease's epoch is still the writer's and the write. A front door that lost the lease while paused is refused (`ErrNotLeading`) and stops the provision it was in |
+
+## One front door leads
+
+Every front door serves pages and sign-ups. One at a time leads, and only the leader runs the controller (provisioning and supervising organizations' servers), the demo sweep and the scaler. The others route a request for an organization to where the leader started its server, read from `runtime` and kept for a second. An organization signed up on a front door that does not lead has no runtime until the leader finds it, within one supervision round.
+
+The leader renews its lease every third of `GUSTO_CLOUD_LEADER_SECONDS` (30 by default). A front door that stops gives the lease up, and another takes it at once; one that is killed keeps it until it runs out. `spec/FrontDoors.tla` is the model TLC checks, with a leader that pauses past its lease.
 
 ## Loading the old files
 

@@ -11,6 +11,9 @@ on:
       - "internal/cloud/controller.go"
       - "internal/cloud/demo_sweep.go"
       - "internal/cloud/route.go"
+      - "internal/cloud/leader.go"
+      - "internal/cloud/leadership.go"
+      - "internal/cloud/controller_follow.go"
       - ".github/workflows/specs.yml"
 
 permissions:

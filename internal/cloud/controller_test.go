@@ -260,7 +260,9 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 	})
 }
 
-func TestRunStartsEveryOrganizationAndStopsThemAllWhenItIsToldToEnd(t *testing.T) {
+// Run starts every organization, and leaves them running when it ends, for the next leader; StopAll, when the front door
+// stops, asks each to stop.
+func TestRunStartsEveryOrganizationAndStopAllStopsThem(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 100})
 		c := controlled(t, s)
@@ -272,6 +274,12 @@ func TestRunStartsEveryOrganizationAndStopsThemAllWhenItIsToldToEnd(t *testing.T
 		waitFor(t, func() bool { _, sa := c.Route(a.Slug); _, sb := c.Route(b.Slug); return sa == Ready && sb == Ready })
 		cancel()
 		<-stopped
+		for _, org := range []Org{a, b} {
+			if !c.Cell.Alive(org.Slug) {
+				t.Errorf("%s stopped when Run ended", org.Slug)
+			}
+		}
+		c.StopAll()
 		for _, org := range []Org{a, b} {
 			if c.Cell.Alive(org.Slug) {
 				t.Errorf("%s is still running", org.Slug)
@@ -291,7 +299,7 @@ func TestAServerThatIgnoresBeingAskedToStopIsMadeToAfterTheGrace(t *testing.T) {
 		org := made(t, s, "ada@acme.com", "Acme")
 		c.Provision(org.Slug)
 		began := time.Now()
-		c.stopAll()
+		c.StopAll()
 		if c.Cell.Alive(org.Slug) || time.Since(began) < 250*time.Millisecond || time.Since(began) > 5*time.Second {
 			t.Errorf("stopped in %s, alive %v", time.Since(began), c.Cell.Alive(org.Slug))
 		}
@@ -306,7 +314,7 @@ func TestAnOrganizationThatWasReadyIsStartingAgainWhenTheFrontDoorRestarts(t *te
 		first := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
 		first.Provision(org.Slug)
-		first.stopAll()
+		first.StopAll()
 
 		second := controlled(t, s, "FAKE_DELAY=1s")
 		ctx, cancel := context.WithCancel(context.Background())
