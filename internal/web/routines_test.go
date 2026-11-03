@@ -28,7 +28,7 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, where := aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"what changed?"}, "every": {"6"}})
-	routine := site.server.instances.Routines(id)[0]
+	routine := routinesOf(t, site, id)[0]
 
 	site.server.StartDueRoutines(time.Now())
 	thread, _ := site.server.instances.Thread(id, routine.Thread)
@@ -39,7 +39,7 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	if !strings.HasPrefix(record.Brief, "[routine] Morning: what changed?") || record.Instance != id || record.Thread != routine.Thread {
 		t.Errorf("the turn is %+v", record)
 	}
-	if got := site.server.instances.Routines(id)[0].Last; got == nil || got.Job != record.ID {
+	if got := routinesOf(t, site, id)[0].Last; got == nil || got.Job != record.ID {
 		t.Errorf("the slot kept %+v", got)
 	}
 
@@ -68,7 +68,7 @@ func TestARoutineWhoseLastRunIsStillAnsweringSkipsTheSlotAndSaysWhy(t *testing.T
 	t.Cleanup(func() { close(release) })
 	site.signIn(t)
 	id, _ := aRoutine(t, site, url.Values{"title": {"Hourly"}, "prompt": {"go"}, "every": {"1"}})
-	routine := site.server.instances.Routines(id)[0]
+	routine := routinesOf(t, site, id)[0]
 	site.server.StartDueRoutines(time.Now())
 	thread, _ := site.server.instances.Thread(id, routine.Thread)
 	if len(thread.Turns) != 1 {
@@ -79,7 +79,7 @@ func TestARoutineWhoseLastRunIsStillAnsweringSkipsTheSlotAndSaysWhy(t *testing.T
 	if again, _ := site.server.instances.Thread(id, routine.Thread); len(again.Turns) != 1 {
 		t.Errorf("a second turn started beside one that was still answering: %d", len(again.Turns))
 	}
-	if last := site.server.instances.Routines(id)[0].Last; last == nil || !strings.Contains(last.Skipped, "still answering") {
+	if last := routinesOf(t, site, id)[0].Last; last == nil || !strings.Contains(last.Skipped, "still answering") {
 		t.Errorf("the skip is not kept: %+v", last)
 	}
 }
@@ -88,7 +88,7 @@ func TestAPausedRoutineStartsNothingUntilItIsResumed(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, where := aRoutine(t, site, url.Values{"title": {"Paused"}, "prompt": {"go"}, "every": {"1"}})
-	routine := site.server.instances.Routines(id)[0]
+	routine := routinesOf(t, site, id)[0]
 	site.ask(t, "POST", where+"/routines/"+routine.ID+"/pause", nil)
 	site.server.StartDueRoutines(time.Now())
 	if thread, _ := site.server.instances.Thread(id, routine.Thread); len(thread.Turns) != 0 {
@@ -100,7 +100,7 @@ func TestAPausedRoutineStartsNothingUntilItIsResumed(t *testing.T) {
 		t.Fatalf("a resumed routine started %d turns", len(thread.Turns))
 	}
 	site.ask(t, "POST", where+"/routines/"+routine.ID+"/remove", nil)
-	if len(site.server.instances.Routines(id)) != 0 {
+	if len(routinesOf(t, site, id)) != 0 {
 		t.Error("the routine was not removed")
 	}
 }
@@ -149,10 +149,10 @@ func (n *news) Notify(e notify.Event) error {
 func aFinishedRun(t *testing.T, site *site) (id, routine string) {
 	t.Helper()
 	id, _ = aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"go"}, "every": {"1"}})
-	routine = site.server.instances.Routines(id)[0].ID
+	routine = routinesOf(t, site, id)[0].ID
 	site.server.StartDueRoutines(time.Now())
 	<-site.ran
-	last := site.server.instances.Routines(id)[0].Last
+	last := routinesOf(t, site, id)[0].Last
 	for range 100 {
 		if record, _ := site.index.Get(last.Job); record.State.Done() {
 			return id, routine
@@ -175,7 +175,7 @@ func TestTheNewsOfARunIsTakenOnceByEachChannelAndAFailedOneIsRetriedAlone(t *tes
 		!strings.HasPrefix(mail.told[0].Link, "https://gusto.example/jobs/") || mail.told[0].Answer == "" {
 		t.Fatalf("mail was told %+v", mail.told)
 	}
-	ran := site.server.instances.Routines(id)[0].Last
+	ran := routinesOf(t, site, id)[0].Last
 	if ran.Notified || ran.Tries != 1 || len(ran.Told) != 1 || ran.NotifyError == "" {
 		t.Fatalf("one channel is down and the run is not settled: %+v", ran)
 	}
@@ -186,7 +186,7 @@ func TestTheNewsOfARunIsTakenOnceByEachChannelAndAFailedOneIsRetriedAlone(t *tes
 	if len(mail.told) != 1 || len(hook.told) != 1 {
 		t.Errorf("each channel takes it once: mail %d, webhook %d", len(mail.told), len(hook.told))
 	}
-	if ran := site.server.instances.Routines(id)[0].Last; !ran.Notified || ran.NotifyError != "" {
+	if ran := routinesOf(t, site, id)[0].Last; !ran.Notified || ran.NotifyError != "" {
 		t.Errorf("settled: %+v", ran)
 	}
 	_ = routine
@@ -201,7 +201,7 @@ func TestTheNewsIsGivenUpOnAfterFiveTriesAndSaysWhy(t *testing.T) {
 	for range 8 {
 		site.server.tellRoutines()
 	}
-	ran := site.server.instances.Routines(id)[0].Last
+	ran := routinesOf(t, site, id)[0].Last
 	if !ran.Notified || ran.Tries != 5 || !strings.Contains(ran.NotifyError, "down") {
 		t.Errorf("%+v", ran)
 	}

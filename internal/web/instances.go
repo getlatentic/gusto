@@ -127,6 +127,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 	for i := len(threads) - 1; i >= 0; i-- {
 		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
 	}
+	routines, unread := s.routineRows(held.ID)
 	s.render(w, "instance.html", map[string]any{
 		"Title":     productName + " — " + s.agentOf(held).Name,
 		"Nav":       "harnesses",
@@ -140,7 +141,8 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Apps":      s.appsOf(held.ID),
 		"Refresh":   startingApp(s.appsOf(held.ID)),
 		"Tasks":     s.tasks(held.ID),
-		"Routines":  s.routineRows(held.ID),
+		"Routines":  routines,
+		"Unread":    unread,
 		"Refused":   r.URL.Query().Get("refused"),
 	})
 }

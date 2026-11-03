@@ -51,17 +51,20 @@ func TestAPausedRoutineIsNeverDue(t *testing.T) {
 }
 
 func TestAScheduleIsATimeOfDayOrAnHourCountAndNotBoth(t *testing.T) {
-	for schedule, ok := range map[Routine]bool{
-		{Daily: "08:00"}:           true,
-		{Every: 6}:                 true,
-		{}:                         false,
-		{Daily: "8am"}:             false,
-		{Daily: "25:00"}:           false,
-		{Daily: "08:00", Every: 6}: false,
-		{Every: -1}:                false,
+	for _, c := range []struct {
+		schedule Routine
+		ok       bool
+	}{
+		{Routine{Daily: "08:00"}, true},
+		{Routine{Every: 6}, true},
+		{Routine{}, false},
+		{Routine{Daily: "8am"}, false},
+		{Routine{Daily: "25:00"}, false},
+		{Routine{Daily: "08:00", Every: 6}, false},
+		{Routine{Every: -1}, false},
 	} {
-		if err := schedule.Schedule(); (err == nil) != ok {
-			t.Errorf("%+v: %v", schedule, err)
+		if err := c.schedule.Schedule(); (err == nil) != c.ok {
+			t.Errorf("%+v: %v", c.schedule, err)
 		}
 	}
 }
@@ -89,7 +92,10 @@ func TestARoutineKeepsItsThreadAndSurvivesAReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	read := again.Routines(held.ID)
+	read, err := again.Routines(held.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(read) != 1 || !read[0].Paused || read[0].Last == nil || read[0].Last.Job != "job-1" || read[0].Who != "tosin" {
 		t.Fatalf("read back as %+v", read)
 	}

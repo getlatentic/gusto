@@ -46,6 +46,10 @@ ok   Quota.before-serial.cfg: Error: Invariant QuotaFollows is violated.
 ok   Quota.now.cfg: 5452 states generated, 2777 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
+ok   Routines.before-owe.cfg: Error: Invariant NewsKept is violated.
+ok   Routines.before-surface.cfg: Error: Invariant NoneMeansNone is violated.
+ok   Routines.before-undo.cfg: Error: Invariant NoOrphanThread is violated.
+ok   Routines.now.cfg: 1482 states generated, 553 distinct states found, 0 states left on queue.
 ok   SpendCap.before-governing.cfg: Error: Invariant BudgetHolds is violated.
 ok   SpendCap.before-live.cfg: Error: Invariant BudgetHolds is violated.
 ok   SpendCap.before-zero.cfg: Error: Invariant BudgetHolds is violated.
@@ -253,6 +257,19 @@ stamps are Checkout's: three changes in one second, then one later.
 | --- | --- | --- | --- |
 | `NeverOlder` | The row never goes back to an older version of the subscription. | `tieFetch`: of two events in one second, the one that arrived last was kept, so an active subscription went back to incomplete | `TestTwoEventsInOneSecondKeepTheSubscriptionAsStripeHasIt` |
 | `Converges` | Once Stripe stops changing it, the row comes to hold the subscription as it is. | `tieFetch` | |
+
+## Routines
+
+One agent's routines (`internal/instance/routine.go`, `internal/web/routines.go`). A routine's slot comes, and it starts a run
+or skips while its last run is still answering; the slot is kept as the routine's last. A run's turn ends, and its news is
+offered to the channels until it is taken or given up on. A person adds a routine, which opens its thread and then writes
+`routines.json`, and the write may fail. The file may be damaged from outside: writes are whole or not at all (StateFile).
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `NewsKept` | Every run's news is settled, or still kept to be told. | `owe`: a slot replaced the routine's last run, so a skip beside a run still answering, or the next run, lost its news | `TestARunsNewsIsToldAfterASlotItWasStillAnsweringIn`, `TestARunsNewsIsToldAfterTheNextRunStarts` |
+| `NoOrphanThread` | Every routine thread belongs to a routine. | `undo`: an add whose write failed left the thread it opened | `TestARoutineThatCannotBeKeptLeavesNoThread` |
+| `NoneMeansNone` | A read that gives no routines is of a file that holds none. | `surface`: a damaged `routines.json` was read as no routines, so every routine stopped and the page showed none | `TestADamagedRoutinesFileIsSaidOnThePage` |
 
 ## Changing a modelled machine
 
