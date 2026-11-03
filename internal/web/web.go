@@ -140,7 +140,7 @@ type Server struct {
 	// reachable, without which restricted work cannot start at all.
 	inBuilding atomic.Bool
 	// names is what the roster says each person is called.
-	names nameBook
+	names rosterBook
 }
 
 func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
@@ -149,6 +149,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 		return nil, err
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
+	keeper.now = s.memberNow
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
 		"waiting":    s.waiting,
 		"personName": s.personName,
@@ -251,6 +252,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
+	mux.HandleFunc("POST /device/sign-out-everywhere", s.guard(s.signOutEverywhere))
 	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("POST /jobs/{id}/stop", s.guard(s.stopPage))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))

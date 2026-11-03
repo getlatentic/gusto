@@ -146,7 +146,7 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	here := withTokens(t)
 	here.signIn(t)
 	made := here.ask(t, "POST", "/admin/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
-	secret := regexp.MustCompile(`gusto_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
+	secret := regexp.MustCompile(`gusto_[0-9a-f]{16}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if secret == "" {
 		t.Fatalf("the page did not show the secret:\n%s", made.Body.String())
 	}

@@ -34,6 +34,8 @@ type deviceCode struct {
 	expires             time.Time
 	// person is who approved it, empty until somebody has.
 	person string
+	// taking says a poll is making its token, so another poll waits for it.
+	taking bool
 }
 
 type deviceCodes struct {
@@ -67,8 +69,21 @@ func (d *deviceCodes) start(label, client string, now time.Time) (device, user s
 		return "", "", false
 	}
 	device, user = randomValue(), userCode()
+	for d.userHeld(user) {
+		user = userCode()
+	}
 	d.held[device] = &deviceCode{user: user, label: label, client: client, expires: now.Add(deviceLife)}
 	return device, user, true
+}
+
+// userHeld says a code a person types is waiting already, so a new one would approve whichever was found first.
+func (d *deviceCodes) userHeld(user string) bool {
+	for _, held := range d.held {
+		if held.user == user {
+			return true
+		}
+	}
+	return false
 }
 
 // approve ties the code a person typed to them. It says nothing about a code that does not exist, so that guessing one
@@ -87,8 +102,9 @@ func (d *deviceCodes) approve(user, person string, now time.Time) (label string,
 	return "", false
 }
 
-// take hands over what a computer asked for: the person who approved, once. Pending is true while nobody has, and a code
-// that is gone or never was answers as expired.
+// take hands over what a computer asked for: the person who approved. Pending is true while nobody has, or while another poll
+// is making the token, and a code that is gone or never was answers as expired. The code is spent by done, once its token is
+// made, and given back by release when making it failed, so the computer asks again.
 func (d *deviceCodes) take(device string, now time.Time) (person, label string, pending bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -97,11 +113,25 @@ func (d *deviceCodes) take(device string, now time.Time) (person, label string, 
 	switch {
 	case !found:
 		return "", "", false
-	case held.person == "":
+	case held.person == "" || held.taking:
 		return "", "", true
 	}
-	delete(d.held, device)
+	held.taking = true
 	return held.person, held.label, false
+}
+
+func (d *deviceCodes) done(device string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.held, device)
+}
+
+func (d *deviceCodes) release(device string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if held, found := d.held[device]; found {
+		held.taking = false
+	}
 }
 
 func userCode() string {
@@ -178,11 +208,18 @@ func (s *Server) pollDevice(w http.ResponseWriter, r *http.Request) {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": "expired_token"})
 		return
 	}
+	if _, in, checked := s.memberNow(person); checked && !in {
+		s.devices.done(asked.DeviceCode)
+		answerJSON(w, http.StatusBadRequest, map[string]string{"error": "access_denied"})
+		return
+	}
 	token, secret, err := s.tokens.CreateFor(person, label)
 	if err != nil {
+		s.devices.release(asked.DeviceCode)
 		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "server_error"})
 		return
 	}
+	s.devices.done(asked.DeviceCode)
 	s.record(changelog.Event{Who: person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenCreated,
 		What: map[string]string{"id": token.ID, "name": token.Name, "scopes": "acts as " + person}})
 	answerJSON(w, http.StatusOK, map[string]string{"access_token": secret, "token_type": "bearer", "person": person})
@@ -262,12 +299,48 @@ func (s *Server) approveDevice(w http.ResponseWriter, r *http.Request) {
 		s.showDevices(w, r, map[string]any{"Refused": "That form could not be read."})
 		return
 	}
-	label, ok := s.devices.approve(r.FormValue("code"), person, time.Now())
+	now := time.Now()
+	if s.wrong.blocked(clientOf(r), now) {
+		s.showDevices(w, r, map[string]any{"Refused": "Too many codes that were not waiting. Wait a few minutes, then try again."})
+		return
+	}
+	label, ok := s.devices.approve(r.FormValue("code"), person, now)
 	if !ok {
+		s.wrong.failed(clientOf(r), now)
 		s.showDevices(w, r, map[string]any{"Refused": "That code is not waiting. Start the sign-in again on your computer and use the new code."})
 		return
 	}
 	s.showDevices(w, r, map[string]any{"Approved": label})
+}
+
+// signOutEverywhere ends every sign-in of the person's: their sessions in every browser and in the app, and every computer
+// they approved.
+func (s *Server) signOutEverywhere(w http.ResponseWriter, r *http.Request) {
+	who := s.keeper.who(r)
+	if who == sharedSignIn && !s.soleOwner() {
+		s.showDevices(w, r, map[string]any{"Refused": "The shared sign-in is not one person, so it has no sign-ins of its own to end."})
+		return
+	}
+	if s.tokens != nil {
+		for _, held := range s.tokens.ListFor(who) {
+			if !held.Live() {
+				continue
+			}
+			if _, err := s.tokens.RevokeOwn(held.ID, who); err != nil {
+				s.showDevices(w, r, map[string]any{"Refused": "A computer's sign-in could not be ended: " + err.Error()})
+				return
+			}
+			s.note(r, changelog.TokenRevoked, map[string]string{"id": held.ID, "name": held.Name})
+		}
+	}
+	s.note(r, changelog.SignedOut, map[string]string{"everywhere": "yes"})
+	s.keeper.endAll(who)
+	s.keeper.clear(w, r)
+	if s.front != nil {
+		http.Redirect(w, r, s.front.exit(who), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // endDeviceToken ends one of the signed-in person's own tokens. Somebody else's is answered as not there.

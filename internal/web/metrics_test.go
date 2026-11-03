@@ -104,7 +104,7 @@ func TestMetricsAreForACallerThatMayReadThem(t *testing.T) {
 	}
 	here.signIn(t)
 	made := here.ask(t, "POST", "/admin/tokens", map[string][]string{"name": {"prometheus"}, "scope": {"metrics"}})
-	secret := regexp.MustCompile(`gusto_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
+	secret := regexp.MustCompile(`gusto_[0-9a-f]{16}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if got := here.call("GET", "/metrics", secret); got.Code != http.StatusOK {
 		t.Errorf("a token that reads metrics gave %d", got.Code)
 	}

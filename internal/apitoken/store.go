@@ -23,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Scopes are what a token may do. A token has at least one.
@@ -53,11 +55,22 @@ var (
 	ErrUnknown = errors.New("that is not a token this server made")
 	// ErrRevoked is a token that was made and has been ended.
 	ErrRevoked = errors.New("that token has been revoked")
+	// ErrIdle is a computer's token that has gone unused for longer than WorkIdle.
+	ErrIdle = errors.New("that computer's token has not been used for too long; sign the computer in again")
+	// ErrUnread is the tokens' file changed and could not be read, so no token is believed until it can be.
+	ErrUnread = errors.New("the tokens could not be read")
 	// ErrName is a name that will not do.
 	ErrName = errors.New("name a token in lowercase letters, digits and dashes, so a record can say which one it was")
 )
 
 var plain = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,59}$`)
+
+// WorkIdle is how long a computer's token may go unused before it stops working, so a computer left behind does not act as
+// its person for ever.
+const WorkIdle = 90 * 24 * time.Hour
+
+// idBytes is how long a new token's id is, at random. An id that is taken already is drawn again.
+const idBytes = 8
 
 // Token is one token as the file keeps it.
 type Token struct {
@@ -129,11 +142,22 @@ func (s *Store) load() error {
 	return nil
 }
 
-// fresh reads the file again when something else changed it.
-func (s *Store) fresh() {
-	if info, err := os.Stat(s.path); err == nil && (info.ModTime().After(s.seen) || info.Size() != s.size) {
-		_ = s.load()
+// fresh reads the file again when something else changed it. A file that changed and cannot be read is an error, and the
+// tokens held from before are not believed or written back over it: a revocation in it would be lost.
+func (s *Store) fresh() error {
+	info, err := os.Stat(s.path)
+	if errors.Is(err, os.ErrNotExist) && s.size == 0 && s.tokens == nil {
+		return nil
 	}
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrUnread, err)
+	}
+	if info.ModTime().After(s.seen) || info.Size() != s.size {
+		if err := s.load(); err != nil {
+			return fmt.Errorf("%w: %w", ErrUnread, err)
+		}
+	}
+	return nil
 }
 
 // save writes the file whole and moves it into place, so a reader never sees
@@ -143,11 +167,7 @@ func (s *Store) save() error {
 	if err != nil {
 		return err
 	}
-	scratch := s.path + ".new"
-	if err := os.WriteFile(scratch, append(text, '\n'), 0o600); err != nil {
-		return err
-	}
-	if err := os.Rename(scratch, s.path); err != nil {
+	if err := atomicfile.WriteFile(s.path, append(text, '\n'), 0o600); err != nil {
 		return err
 	}
 	if info, err := os.Stat(s.path); err == nil {
@@ -185,31 +205,41 @@ func (s *Store) Create(name string, scopes []string, by string) (Token, string, 
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fresh()
+	if err := s.fresh(); err != nil {
+		return Token{}, "", err
+	}
 	for _, held := range s.tokens {
 		if held.Live() && held.Name == name {
 			return Token{}, "", fmt.Errorf("a token called %s is already in use: revoke it first, or choose another name", name)
 		}
 	}
-	id, err := random(4)
-	if err != nil {
-		return Token{}, "", err
+	return s.addLocked(Token{Name: name, Scopes: sorted(scopes), By: by})
+}
+
+// addLocked gives a token an id nothing else has and a secret, and keeps it.
+func (s *Store) addLocked(token Token) (Token, string, error) {
+	for token.ID == "" || slices.ContainsFunc(s.tokens, func(held Token) bool { return held.ID == token.ID }) {
+		id, err := random(idBytes)
+		if err != nil {
+			return Token{}, "", err
+		}
+		token.ID = hex.EncodeToString(id)
 	}
 	part, err := random(32)
 	if err != nil {
 		return Token{}, "", err
 	}
-	random := base64.RawURLEncoding.EncodeToString(part)
-	token := Token{
-		ID: hex.EncodeToString(id), Name: name, Scopes: sorted(scopes), Hash: digest(random),
-		Made: s.now().Unix(), By: by,
+	secret := base64.RawURLEncoding.EncodeToString(part)
+	token.Hash, token.Made = digest(secret), s.now().Unix()
+	if token.Person != "" {
+		token.Name = nameFor(token.Person, token.Name, token.ID)
 	}
 	s.tokens = append(s.tokens, token)
 	if err := s.save(); err != nil {
 		s.tokens = s.tokens[:len(s.tokens)-1]
 		return Token{}, "", err
 	}
-	return token, Prefix + token.ID + "_" + random, nil
+	return token, Prefix + token.ID + "_" + secret, nil
 }
 
 // sorted is the scopes in the order Scopes gives them, each once.
@@ -227,7 +257,9 @@ func sorted(scopes []string) []string {
 func (s *Store) Revoke(id, by string) (Token, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fresh()
+	if err := s.fresh(); err != nil {
+		return Token{}, err
+	}
 	for i := range s.tokens {
 		if s.tokens[i].ID != id {
 			continue
@@ -249,7 +281,7 @@ func (s *Store) Revoke(id, by string) (Token, error) {
 func (s *Store) List() []Token {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fresh()
+	_ = s.fresh()
 	out := slices.Clone(s.tokens)
 	slices.Reverse(out)
 	return out
@@ -257,7 +289,9 @@ func (s *Store) List() []Token {
 
 // Check is the token a secret stands for. The secret's id finds the token, and
 // its random part is compared to the stored hash in constant time, so how long
-// a refusal takes says nothing about how close a guess was.
+// a refusal takes says nothing about how close a guess was. Ids made before
+// they were checked for clashes may be shared, so each token with the id is
+// compared.
 func (s *Store) Check(secret string) (Token, error) {
 	rest, ok := strings.CutPrefix(secret, Prefix)
 	id, random, found := strings.Cut(rest, "_")
@@ -266,18 +300,20 @@ func (s *Store) Check(secret string) (Token, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fresh()
+	if err := s.fresh(); err != nil {
+		return Token{}, err
+	}
 	for i := range s.tokens {
-		if s.tokens[i].ID != id {
+		if s.tokens[i].ID != id || subtle.ConstantTimeCompare([]byte(digest(random)), []byte(s.tokens[i].Hash)) != 1 {
 			continue
-		}
-		if subtle.ConstantTimeCompare([]byte(digest(random)), []byte(s.tokens[i].Hash)) != 1 {
-			return Token{}, ErrUnknown
 		}
 		if !s.tokens[i].Live() {
 			return s.tokens[i], ErrRevoked
 		}
 		now := s.now()
+		if s.tokens[i].May(Work) && now.Sub(time.Unix(max(s.tokens[i].LastUsed, s.tokens[i].Made), 0)) > WorkIdle {
+			return s.tokens[i], ErrIdle
+		}
 		s.tokens[i].LastUsed = now.Unix()
 		if now.Sub(s.written) > time.Minute {
 			if s.save() == nil {
@@ -299,26 +335,10 @@ func (s *Store) CreateFor(person, label string) (Token, string, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fresh()
-	id, err := random(4)
-	if err != nil {
+	if err := s.fresh(); err != nil {
 		return Token{}, "", err
 	}
-	part, err := random(32)
-	if err != nil {
-		return Token{}, "", err
-	}
-	random := base64.RawURLEncoding.EncodeToString(part)
-	token := Token{
-		ID: hex.EncodeToString(id), Name: nameFor(person, label, hex.EncodeToString(id)), Scopes: []string{Work}, Hash: digest(random),
-		Person: person, Made: s.now().Unix(), By: person,
-	}
-	s.tokens = append(s.tokens, token)
-	if err := s.save(); err != nil {
-		s.tokens = s.tokens[:len(s.tokens)-1]
-		return Token{}, "", err
-	}
-	return token, Prefix + token.ID + "_" + random, nil
+	return s.addLocked(Token{Name: label, Scopes: []string{Work}, Person: person, By: person})
 }
 
 var notPlain = regexp.MustCompile(`[^a-z0-9]+`)

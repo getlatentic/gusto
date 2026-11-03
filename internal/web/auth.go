@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // A shared password stands in for an identity provider. It is the smallest
@@ -30,10 +33,16 @@ type keeper struct {
 	// signing out stops working when they do.
 	mu    sync.Mutex
 	ended map[string]int64
+	// cut is, for each person who signed out everywhere, when they did, in milliseconds: a session that began before it no
+	// longer works.
+	cut map[string]int64
 	// life is how long a sign-in lasts.
 	life time.Duration
 	// path is where the key and the ended sessions are kept, when they are kept, so that a sign-in outlives a restart.
 	path string
+	// now is the role the person a session names has now, and whether they are still a member, when the server can ask;
+	// see Server.memberNow.
+	now func(who string) (role Role, in, checked bool)
 }
 
 func newKeeper(password string) (*keeper, error) {
@@ -43,7 +52,7 @@ func newKeeper(password string) (*keeper, error) {
 	}
 	// The key is made at boot, so a restart asks everybody to sign in again.
 	// That is the honest trade for keeping no secret on disk.
-	return &keeper{password: password, key: key, ended: map[string]int64{}, life: 12 * time.Hour}, nil
+	return &keeper{password: password, key: key, ended: map[string]int64{}, cut: map[string]int64{}, life: 12 * time.Hour}, nil
 }
 
 const cookieName = "gusto"
@@ -84,8 +93,9 @@ func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, ro
 // issueLasting signs somebody in for as long as asked, which is more than the usual when the sign-in is one a person made on purpose
 // for a program they keep, such as the desktop app.
 func (k *keeper) issueLasting(w http.ResponseWriter, r *http.Request, who string, role Role, life time.Duration) {
-	until := time.Now().Add(life).Unix()
-	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + cookieWho(who)
+	now := time.Now()
+	until := now.Add(life).Unix()
+	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + cookieWho(who) + "|" + strconv.FormatInt(now.UnixMilli(), 10)
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie(r),
 		Value:    value + "." + k.sign(value),
@@ -118,21 +128,43 @@ func (k *keeper) end(r *http.Request) {
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
-	now := time.Now().Unix()
+	k.forgetLocked(time.Now().Unix())
+	k.ended[signature] = until
+	k.save()
+}
+
+// endAll makes every session of a person's stop working, in every browser and in the app, that began before now.
+func (k *keeper) endAll(who string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	now := time.Now()
+	k.forgetLocked(now.Unix())
+	k.cut[who] = now.UnixMilli()
+	k.save()
+}
+
+// forgetLocked drops the ended sessions that would have expired by now, and the cuts older than any session lasts.
+func (k *keeper) forgetLocked(now int64) {
 	for held, expires := range k.ended {
 		if expires <= now {
 			delete(k.ended, held)
 		}
 	}
-	k.ended[signature] = until
-	k.save()
+	longest := int64(max(k.life, desktopLife) / time.Millisecond)
+	for who, at := range k.cut {
+		if at+longest <= now*1000 {
+			delete(k.cut, who)
+		}
+	}
 }
 
-func (k *keeper) hasEnded(signature string) bool {
+// hasEnded says a session was signed out of, or began before its person signed out everywhere.
+func (k *keeper) hasEnded(signature, who string, began int64) bool {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	_, gone := k.ended[signature]
-	return gone
+	cut, wasCut := k.cut[who]
+	return gone || (wasCut && began <= cut)
 }
 
 func (k *keeper) clear(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +172,9 @@ func (k *keeper) clear(w http.ResponseWriter, r *http.Request) {
 }
 
 // session is who is in a signature this server made and has not yet expired,
-// and the role they signed in with.
+// and their role: the one the front door's roster gives them now, behind a front
+// door, where a person it no longer has is signed in nowhere, and else the role
+// they signed in with.
 //
 // The signature is taken from the last dot rather than the first, because the
 // name is an address and an address has dots in it. A signature is base64url,
@@ -155,18 +189,36 @@ func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
 		return "", "", false
 	}
 	value, signature := cookie.Value[:cut], cookie.Value[cut+1:]
-	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) || k.hasEnded(signature) {
+	if !hmac.Equal([]byte(signature), []byte(k.sign(value))) {
 		return "", "", false
 	}
-	parts := strings.SplitN(value, "|", 3)
-	if len(parts) != 3 || parts[2] == "" {
+	parts := strings.SplitN(value, "|", 4)
+	if len(parts) < 3 || parts[2] == "" {
 		return "", "", false
 	}
 	until, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil || time.Now().Unix() >= until {
 		return "", "", false
 	}
-	return whoInCookie(parts[2]), Role(parts[1]), true
+	// A cookie made before sessions said when they began, in milliseconds, counts as begun at once, so signing out everywhere
+	// ends it.
+	var began int64
+	if len(parts) == 4 {
+		began, _ = strconv.ParseInt(parts[3], 10, 64)
+	}
+	who, role = whoInCookie(parts[2]), Role(parts[1])
+	if k.hasEnded(signature, who, began) {
+		return "", "", false
+	}
+	if k.now != nil {
+		if now, in, checked := k.now(who); checked {
+			if !in {
+				return "", "", false
+			}
+			role = now
+		}
+	}
+	return who, role, true
 }
 
 // cookieWho is a name as a cookie can carry it. A cookie's value cannot hold a space, a quote, a comma, a backslash or a
@@ -225,6 +277,7 @@ func (k *keeper) role(r *http.Request) Role {
 type keptSessions struct {
 	Key   []byte           `json:"key"`
 	Ended map[string]int64 `json:"ended"`
+	Cut   map[string]int64 `json:"cut,omitempty"`
 }
 
 // keep makes sign-ins last across a restart: the key they are signed with and the sessions people ended are read from a file only
@@ -245,12 +298,9 @@ func (k *keeper) keep(path string) error {
 		return k.writeLocked()
 	}
 	k.key = held.Key
-	now := time.Now().Unix()
-	for signature, until := range held.Ended {
-		if until > now {
-			k.ended[signature] = until
-		}
-	}
+	maps.Copy(k.ended, held.Ended)
+	maps.Copy(k.cut, held.Cut)
+	k.forgetLocked(time.Now().Unix())
 	return nil
 }
 
@@ -263,16 +313,12 @@ func (k *keeper) save() {
 }
 
 func (k *keeper) writeLocked() error {
-	text, err := json.Marshal(keptSessions{Key: k.key, Ended: k.ended})
+	text, err := json.Marshal(keptSessions{Key: k.key, Ended: k.ended, Cut: k.cut})
 	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(k.path), 0o700); err != nil {
 		return err
 	}
-	scratch := k.path + ".new"
-	if err := os.WriteFile(scratch, text, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(scratch, k.path)
+	return atomicfile.WriteFile(k.path, text, 0o600)
 }

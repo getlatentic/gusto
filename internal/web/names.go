@@ -9,36 +9,59 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// nameBook is what each person of the organization is called, as the roster the front door writes says. A page asks for
-// names many times over, so the roster is looked at again at most once a second, and read again only when it changed.
-type nameBook struct {
+// rosterBook is the organization's people as the roster the front door writes says: what each is called and their role. A
+// page asks for names many times over, and every request asks for its person's role, so the roster is looked at again at most
+// once a second, and read again only when it changed.
+type rosterBook struct {
 	mu      sync.Mutex
 	checked time.Time
 	stamp   time.Time
 	size    int64
-	byEmail map[string]string
+	byEmail map[string]roster.Member
 }
 
-// nameRecheck is how long a name book trusts what it read before it looks at the roster again.
-const nameRecheck = time.Second
+// rosterRecheck is how long a roster book trusts what it read before it looks at the roster again, which is also how long a
+// person who was removed may still be served.
+const rosterRecheck = time.Second
 
-// of is the name the roster gives a person, when it gives one.
-func (b *nameBook) of(path, who string) (string, bool) {
-	if path == "" {
-		return "", false
-	}
+// member is a person as the newest roster that could be read says. A roster that changed and cannot be read keeps the
+// people known from the one before, which holds every change the front door wrote up to it.
+func (b *rosterBook) member(path, who string) (roster.Member, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if now := time.Now(); now.Sub(b.checked) >= nameRecheck {
+	if now := time.Now(); now.Sub(b.checked) >= rosterRecheck {
 		b.checked = now
 		b.refresh(path)
 	}
-	name, found := b.byEmail[strings.ToLower(who)]
+	member, found := b.byEmail[strings.ToLower(who)]
+	return member, found
+}
+
+// of is the name the roster gives a person, when it gives one.
+func (b *rosterBook) of(path, who string) (string, bool) {
+	if path == "" {
+		return "", false
+	}
+	member, found := b.member(path, who)
+	name := strings.TrimSpace(member.Name)
 	return name, found && name != ""
 }
 
-// refresh reads the roster when its file is not the one read last. A roster that cannot be read keeps the names known.
-func (b *nameBook) refresh(path string) {
+// roleOf is a person's role as the roster says it now, and false for a person not in it, and for anybody before a roster
+// could be read at all.
+func (b *rosterBook) roleOf(path, who string) (Role, bool) {
+	member, found := b.member(path, who)
+	if !found {
+		return "", false
+	}
+	if Role(member.Role) == Admin {
+		return Admin, true
+	}
+	return Runner, true
+}
+
+// refresh reads the roster when its file is not the one read last.
+func (b *rosterBook) refresh(path string) {
 	info, err := os.Stat(path)
 	if err != nil || (info.ModTime().Equal(b.stamp) && info.Size() == b.size) {
 		return
@@ -47,11 +70,11 @@ func (b *nameBook) refresh(path string) {
 	if err != nil {
 		return
 	}
-	names := make(map[string]string, len(list.Members))
+	members := make(map[string]roster.Member, len(list.Members))
 	for _, member := range list.Members {
-		names[strings.ToLower(member.Email)] = strings.TrimSpace(member.Name)
+		members[strings.ToLower(member.Email)] = member
 	}
-	b.byEmail, b.stamp, b.size = names, info.ModTime(), info.Size()
+	b.byEmail, b.stamp, b.size = members, info.ModTime(), info.Size()
 }
 
 // personName is what the organization calls a person: the name they gave, else what their address says.
@@ -60,4 +83,14 @@ func (s *Server) personName(who string) string {
 		return name
 	}
 	return nameFromAddress(who)
+}
+
+// memberNow is the role a person has now, as the front door's roster says, for a server behind a front door. checked is false
+// for a server that has no roster to ask, whose sign-ins stand for as long as they last.
+func (s *Server) memberNow(who string) (role Role, in, checked bool) {
+	if s.front == nil || s.rosterPath == "" || who == sharedSignIn {
+		return "", false, false
+	}
+	role, in = s.names.roleOf(s.rosterPath, who)
+	return role, in, true
 }

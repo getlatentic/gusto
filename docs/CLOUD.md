@@ -87,7 +87,7 @@ One address is one sign-in, and a person can be in several organizations, with a
 
 An admin with a confirmed address invites people from the organization's page. An invitation counts against `GUSTO_CLOUD_MEMBERS`. The link opens a page that asks the person to press a button, so a mail program that opens every link does not answer it. The person joins as a runner. An address that is already in another organization is invited the same way and keeps that organization.
 
-An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server stops trusting them, and a changed role takes effect, within the hour.
+An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server reads `members.json` at every request, at most once a second: a removed person is signed out of it, their computers' tokens stop working, and a changed role holds, from their next request.
 
 gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
 
