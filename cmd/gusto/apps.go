@@ -105,12 +105,22 @@ func (a *sharedApps) answers(ctx context.Context, app apps.App, address openshel
 // Stop takes the app's address away and stops its processes. Each is tried whatever became of the other.
 func (a *sharedApps) Stop(ctx context.Context, app apps.App) error {
 	if app.Sandbox == "" {
-		return nil
+		// An app still starting has its sandbox named only once it answers; it runs in its owner's computer.
+		held, err := a.registry.Of(app.Owner)
+		if err != nil {
+			return nil
+		}
+		app.Sandbox = held.Sandbox
 	}
 	return errors.Join(
 		openshell.UnexposeApp(ctx, a.cfg, app.Sandbox, serviceName(app)),
 		openshell.StopApp(ctx, a.cfg, app.Sandbox, app.ID),
 	)
+}
+
+// Answers says whether a live app answers a request through the address it was given.
+func (a *sharedApps) Answers(ctx context.Context, app apps.App) error {
+	return a.answers(ctx, app, openshell.Address{Host: app.Host, Target: app.Target})
 }
 
 // serving is whether a person's computer has an app that people use, which is why it is not stopped for being idle.

@@ -73,10 +73,12 @@ type Server struct {
 	apps       *apps.Store
 	runner     AppRunner
 	publishing sync.WaitGroup
-	ledger     *spend.Ledger
-	usage      usageIndex
-	listing    taskIndex
-	keyring    signing.Keyring
+	// checking is the apps a request could not reach that are being asked again, one check for each.
+	checking sync.Map
+	ledger   *spend.Ledger
+	usage    usageIndex
+	listing  taskIndex
+	keyring  signing.Keyring
 	// front is set when this server is one organization's in a hosted gusto, and
 	// then rosterPath is the list of its people that the front door writes, and
 	// inbox is where the front door leaves what its admins did, for the change

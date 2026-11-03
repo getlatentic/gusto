@@ -9,6 +9,11 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   AppPreview.before-error.cfg: Error: Invariant NothingRunsUnseen is violated.
+ok   AppPreview.before-limit.cfg: Error: Invariant WithinLimit is violated.
+ok   AppPreview.before-orphan.cfg: Error: Invariant NothingRunsUnseen is violated.
+ok   AppPreview.before-reconcile.cfg: Error: Invariant NoStuckStart is violated.
+ok   AppPreview.now.cfg: 1337 states generated, 404 distinct states found, 0 states left on queue.
 ok   AppendLog.before-repair.cfg: Error: Invariant AlwaysStarts is violated.
 ok   AppendLog.before-rollback.cfg: Error: Invariant AlwaysStarts is violated.
 ok   AppendLog.now.cfg: 515 states generated, 190 distinct states found, 0 states left on queue.
@@ -154,6 +159,18 @@ journal. A crash leaves the journal, and `recoverMerge` undoes what ran; putting
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `AllOrNothing` | Until a merge is final, each file it replaced is old in the folder or kept in its backup. | `keepUntilUndone`: a recovery that could not put every file back removed the backups anyway. `undoTwice`: a recovery run again removed a file the first had put back, taking it for one the merge made | `TestARecoveryThatFailsPartWayIsFinishedLater` |
+
+## AppPreview
+
+An agent's shared app previews (`internal/apps`, `internal/web/sharing.go`, `cmd/gusto/apps.go`): publishing one under the
+agent's limit, starting its process in the owner's computer, the proxy finding it not answering, removing it, its
+process dying, and the server restarting.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `NothingRunsUnseen` | A process runs only for an app the page shows starting, live or being removed, or while its start is under way. | `orphanStopped`: an app removed while it started was forgotten, and its start's process stayed running and exposed. `errorChecks`: one failed request marked a live app stopped and left its process running | `TestAnAppRemovedWhileItStartsIsStoppedWhenItHasStarted`, `TestOneFailedRequestDoesNotStopALiveApp` |
+| `NoStuckStart` | An app shows as starting or being removed only while its start is under way. | `reconcile`: an app a restart cut off stayed starting for good, counting against the limit | `TestARestartFinishesTheAppsItCutOff` |
+| `WithinLimit` | An agent has no more apps starting or live than its limit. | `limitInStore`: two publishes at once both passed the count | `TestAppsAddedAtOnceKeepToTheLimit` |
 
 ## Changing a modelled machine
 

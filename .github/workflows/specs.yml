@@ -19,6 +19,9 @@ on:
       - "internal/changelog/**"
       - "internal/computer/**"
       - "internal/roomwork/**"
+      - "internal/apps/**"
+      - "internal/web/sharing.go"
+      - "cmd/gusto/apps.go"
       - "cmd/gusto/computers*.go"
       - ".github/workflows/specs.yml"
 

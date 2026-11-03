@@ -64,9 +64,16 @@ type runnerFake struct {
 	started []apps.App
 	stopped []apps.App
 	fail    error
+	// silent is what asking a live app gives: nil when it answers.
+	silent error
+	// hold, when set, keeps each start from returning until it is closed.
+	hold chan struct{}
 }
 
 func (r *runnerFake) Start(_ context.Context, app apps.App) (apps.App, error) {
+	if r.hold != nil {
+		<-r.hold
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.started = append(r.started, app)
@@ -82,6 +89,18 @@ func (r *runnerFake) Stop(_ context.Context, app apps.App) error {
 	defer r.mu.Unlock()
 	r.stopped = append(r.stopped, app)
 	return nil
+}
+
+func (r *runnerFake) Answers(context.Context, apps.App) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.silent
+}
+
+func (r *runnerFake) stops() []apps.App {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]apps.App(nil), r.stopped...)
 }
 
 func sharingSite(t *testing.T) (*site, *runnerFake, *gatewayFake) {
@@ -184,13 +203,18 @@ func TestAnAppThatDoesNotAnswerIsFailedWithWhatItSaidAndIsNotShared(t *testing.T
 	}
 }
 
+// An app that stops answering is found so when it is asked again, then stopped and no longer opens.
 func TestAnAppThatStopsAnsweringIsStoppedAndNoLongerOpens(t *testing.T) {
-	site, _, gateway := sharingSite(t)
+	site, runner, gateway := sharingSite(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	gateway.Close()
+	runner.mu.Lock()
+	runner.silent = errors.New("connection refused")
+	runner.mu.Unlock()
 	if got := site.ask(t, "GET", "/apps/"+id+"/", nil); got.Code != http.StatusBadGateway {
 		t.Fatalf("%d", got.Code)
 	}
+	site.server.Wait()
 	if app, _ := site.server.apps.Get(id); app.State != apps.Stopped {
 		t.Errorf("%+v", app)
 	}
@@ -567,5 +591,69 @@ func TestARequestToAYoungAppThatIsNotAnsweredIsAskedAgainOnANewConnectionAndALat
 	gave := site.appRequest(t, id, "GET", "/never", cookie)
 	if gave.Code != http.StatusBadGateway || time.Since(began) > 5*time.Second {
 		t.Errorf("%d after %s", gave.Code, time.Since(began))
+	}
+}
+
+// An app removed while it starts is stopped once its start has started it, and forgotten, so nothing runs that the page no
+// longer shows. spec/AppPreview.before-orphan.cfg is the trace.
+func TestAnAppRemovedWhileItStartsIsStoppedWhenItHasStarted(t *testing.T) {
+	site, runner, _ := sharingSite(t)
+	runner.hold = make(chan struct{})
+	where := startedInstance(t, site)
+	site.ask(t, "POST", where+"/apps", url.Values{"command": {"node server.js"}, "port": {"8080"}})
+	all, _ := site.server.apps.Of(strings.TrimPrefix(where, "/instances/"))
+	if len(all) != 1 || all[0].State != apps.Starting {
+		t.Fatalf("%+v", all)
+	}
+	site.ask(t, "POST", where+"/apps/"+all[0].ID+"/remove", nil)
+	close(runner.hold)
+	site.server.Wait()
+	if _, err := site.server.apps.Get(all[0].ID); err == nil {
+		t.Error("an app removed while it started is still kept")
+	}
+	stopped := runner.stops()
+	if len(stopped) == 0 || stopped[len(stopped)-1].Sandbox != "c-1111-2222" {
+		t.Errorf("what the start started was not stopped: %+v", stopped)
+	}
+}
+
+// One request the proxy could not pass on does not stop a live app: it is asked again, and stopped, with its process, only
+// when it does not answer. spec/AppPreview.before-error.cfg is the trace.
+func TestOneFailedRequestDoesNotStopALiveApp(t *testing.T) {
+	site, runner, _ := sharingSite(t)
+	where := startedInstance(t, site)
+	id := sharedApp(t, site, where)
+	site.server.apps.Change(id, func(a *apps.App) { a.Target = "127.0.0.1:1" })
+	site.ask(t, "GET", "/apps/"+id+"/", nil)
+	site.server.Wait()
+	if app, _ := site.server.apps.Get(id); app.State != apps.Live || len(runner.stops()) != 0 {
+		t.Fatalf("an app that still answers was taken for stopped: %s, %d stopped", app.State, len(runner.stops()))
+	}
+	runner.mu.Lock()
+	runner.silent = errors.New("connection refused")
+	runner.mu.Unlock()
+	site.ask(t, "GET", "/apps/"+id+"/", nil)
+	site.server.Wait()
+	if app, _ := site.server.apps.Get(id); app.State != apps.Stopped || len(runner.stops()) != 1 {
+		t.Errorf("an app that does not answer: %s, %d stopped", app.State, len(runner.stops()))
+	}
+}
+
+// An app a restart left starting is stopped and marked failed, and one it left being removed is stopped and forgotten, when
+// the server starts. spec/AppPreview.before-reconcile.cfg is the trace.
+func TestARestartFinishesTheAppsItCutOff(t *testing.T) {
+	site, runner, _ := sharingSite(t)
+	starting, _ := site.server.apps.New("20260930-1200-notes", "ada@acme.com", "node a.js", 8080, 3)
+	removing, _ := site.server.apps.New("20260930-1200-notes", "ada@acme.com", "node b.js", 8081, 3)
+	site.server.apps.Change(removing.ID, func(a *apps.App) { a.State = apps.Removing })
+	site.server.ReconcileApps()
+	if app, _ := site.server.apps.Get(starting.ID); app.State != apps.Failed {
+		t.Errorf("an app left starting is %s", app.State)
+	}
+	if _, err := site.server.apps.Get(removing.ID); err == nil {
+		t.Error("an app left being removed is still kept")
+	}
+	if len(runner.stops()) != 2 {
+		t.Errorf("%d of the two apps were stopped", len(runner.stops()))
 	}
 }
