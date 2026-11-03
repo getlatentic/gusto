@@ -9,6 +9,8 @@ on:
       - "internal/jobs/**"
       - "internal/evidence/**"
       - "internal/matrix/**"
+      - "internal/helper/**"
+      - "internal/filelock/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"

@@ -38,6 +38,9 @@ ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
 ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
+ok   Helper.before-hold.cfg: Error: Invariant NothingLost is violated.
+ok   Helper.before-lock.cfg: Error: Invariant OneHelper is violated.
+ok   Helper.now.cfg: 383 states generated, 117 distinct states found, 0 states left on queue.
 ok   Hosts.before-busy.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-mark.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-unregister.cfg: Error: Invariant DownIsGone is violated.
@@ -328,6 +331,21 @@ Two more fixes from the same pass have Go tests and no model. A comparison is li
 reserved, and one refused for any agent queues no run (`TestAReservedLineupIsListedWhole`,
 `TestAComparisonRefusedForOneAgentQueuesNoRun`). A replay writes its mark first, so one cut short is never swept as an
 original (`TestAReplayCutShortIsNotTakenForAnOriginal`).
+
+## Helper
+
+The desktop helper on one computer (`internal/helper/daemon.go`, `internal/helper/mirror/engine.go`). Helpers start: each
+looks for one already running and, finding none, says where it is and serves. Engines keep a pair of folders the same, the
+helper's and a sync beside it: each run reads the folders' record, works and writes it again.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `OneHelper` | One helper serves at a time. | `lock`: two helpers started together both looked before either said where it was, and both served | `TestAHelperStartedBesideOneThatIsStartingRefuses` |
+| `NothingLost` | No run writes the folders' record over a run it did not read. | `hold`: an engine wrote what it read when it was made, so a file the other engine carried and the person deleted came back | `TestTwoEnginesOfOneFolderEachReadWhatTheOtherLeft` |
+
+Two more fixes have Go tests and no model. A token kept in the file wins over an older one in the keychain
+(`TestATokenKeptInTheFileWinsOverAnOlderOneInTheKeychain`). An engine stopped for a new folder path or agent stays among the
+running until it ends, and is then started again at once (`TestAFolderRegisteredAtANewPathRestartsItsEngineOnceTheOldOneHasEnded`).
 
 ## Changing a modelled machine
 
