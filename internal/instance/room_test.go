@@ -1,6 +1,7 @@
 package instance
 
 import (
+	"os"
 	"slices"
 	"testing"
 )
@@ -78,5 +79,37 @@ func TestThePeopleInARoomFindItWithoutLookingThroughEveryInstance(t *testing.T) 
 	}
 	if got := reopened.RoomsOf("ada@example.com"); len(got) != 0 {
 		t.Errorf("a removed room is still ada's: %v", roomIDs(got))
+	}
+}
+
+// An agent added after another was removed never gets the removed one's id: the id names a conversation each thread remembers
+// and the agent's memory on disk, and a new agent given it would carry on as the one that left.
+func TestANewAgentNeverTakesTheIDOfOneThatLeftSomethingBehind(t *testing.T) {
+	store, _ := Open(t.TempDir())
+	room, err := store.StartRoom("Launch", "ada@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _ := store.AddAgent(room.ID, Agent{Name: "Nova", Harness: "codex"})
+	second, _ := store.AddAgent(room.ID, Agent{Name: "Wren", Harness: "claude"})
+	thread := store.Threads(room.ID)[0].ID
+	if err := store.Learned(room.ID, thread, second.ID, "wren's conversation"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(store.AgentState(room.ID, second.ID), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RemoveAgent(room.ID, second.ID); err != nil {
+		t.Fatal(err)
+	}
+	third, err := store.AddAgent(room.ID, Agent{Name: "Ivy", Harness: "claude"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if third.ID == second.ID || third.ID == first.ID {
+		t.Fatalf("the new agent took the id %s, which %s or %s had", third.ID, first.ID, second.ID)
+	}
+	if held, _ := store.Get(room.ID); len(held.Agents) != 2 {
+		t.Errorf("the room holds %+v", held.Agents)
 	}
 }
