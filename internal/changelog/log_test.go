@@ -357,6 +357,20 @@ func TestALogEndingInPartOfALineOpensWithoutIt(t *testing.T) {
 	}
 }
 
+// A whole log is only read before it is opened to append, so one the server may not rewrite opens, as an append-only one does.
+func TestAWholeLogIsNotOpenedToBeRewritten(t *testing.T) {
+	log, path, _ := opened(t)
+	wrote(t, log, changelog.SignedIn)
+	log.Close()
+	if err := os.Chmod(path, 0o400); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(path, 0o600) })
+	if err := changelog.RepairTail(path); err != nil {
+		t.Errorf("a whole log was opened to be rewritten: %v", err)
+	}
+}
+
 // A write a full disk cuts short leaves nothing behind: the next event follows the last whole line, with the next number.
 // spec/AppendLog.before-rollback.cfg is the trace.
 func TestAWriteCutShortLeavesNothingBehind(t *testing.T) {
