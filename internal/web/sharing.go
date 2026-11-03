@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -24,6 +25,8 @@ import (
 type AppRunner interface {
 	Start(ctx context.Context, app apps.App) (apps.App, error)
 	Stop(ctx context.Context, app apps.App) error
+	// Answers says whether a live app answers a request.
+	Answers(ctx context.Context, app apps.App) error
 }
 
 // UseApps lets people share the web apps their agents built.
@@ -36,6 +39,9 @@ const (
 	appStart = 90 * time.Second
 	// appsPerAgent is how many apps an agent may have at once.
 	appsPerAgent = 3
+	// appChecks is how many times an app a request could not reach is asked again, a second apart, before it is taken for
+	// stopped.
+	appChecks = 3
 )
 
 // appsOf is an agent's apps, or none where nothing is shared.
@@ -88,11 +94,11 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
-	if s.sharesTooMany(held.ID) {
-		s.turnAway(w, r, back, "this agent already shares "+strconv.Itoa(appsPerAgent)+" apps; stop one first")
+	app, err := s.apps.New(held.ID, held.Who, command, port, appsPerAgent)
+	if errors.Is(err, apps.ErrTooMany) {
+		s.turnAway(w, r, back, tooManyApps)
 		return
 	}
-	app, err := s.apps.New(held.ID, held.Who, command, port)
 	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
@@ -118,27 +124,20 @@ func (s *Server) publishPage(w http.ResponseWriter, r *http.Request, instance, o
 			return
 		}
 	}
-	if s.sharesTooMany(instance) {
-		s.turnAway(w, r, back, "this agent already shares "+strconv.Itoa(appsPerAgent)+" apps; stop one first")
+	_, err := s.apps.NewPage(instance, owner, folder, appsPerAgent)
+	if errors.Is(err, apps.ErrTooMany) {
+		s.turnAway(w, r, back, tooManyApps)
 		return
 	}
-	if _, err := s.apps.NewPage(instance, owner, folder); err != nil {
+	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
 	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
 }
 
-// sharesTooMany is whether an agent already has as many apps as it may.
-func (s *Server) sharesTooMany(instance string) bool {
-	running := 0
-	for _, each := range s.appsOf(instance) {
-		if each.State == apps.Starting || each.State == apps.Live {
-			running++
-		}
-	}
-	return running >= appsPerAgent
-}
+// tooManyApps is what a person is told who asks an agent for more apps than it may share.
+var tooManyApps = "this agent already shares " + strconv.Itoa(appsPerAgent) + " apps; stop one first"
 
 // backTo is where to send a person after they started an app: the conversation they asked from when it is one of this
 // agent's, and the agent's own page otherwise.
@@ -161,12 +160,30 @@ func (s *Server) startApp(app apps.App) {
 		if len(note) > 1500 {
 			note = note[len(note)-1500:]
 		}
-		s.apps.Change(app.ID, func(a *apps.App) { a.State, a.Note = apps.Failed, note })
+		after, _ := s.apps.Change(app.ID, func(a *apps.App) {
+			if a.State == apps.Starting {
+				a.State, a.Note = apps.Failed, note
+			}
+		})
+		if after.State == apps.Removing {
+			s.apps.Delete(app.ID)
+		}
 		return
 	}
-	s.apps.Change(app.ID, func(a *apps.App) {
-		a.State, a.Sandbox, a.Host, a.Target, a.Note = apps.Live, started.Sandbox, started.Host, started.Target, ""
+	after, err := s.apps.Change(app.ID, func(a *apps.App) {
+		if a.State == apps.Starting {
+			a.State, a.Sandbox, a.Host, a.Target, a.Note = apps.Live, started.Sandbox, started.Host, started.Target, ""
+		}
 	})
+	if err != nil || after.State != apps.Live {
+		// Removed while it started: what was started is stopped, so nothing runs that the page no longer shows.
+		stop, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		s.runner.Stop(stop, started)
+		if err == nil {
+			s.apps.Delete(app.ID)
+		}
+	}
 }
 
 // removeApp stops an app and takes it off the agent's page.
@@ -188,15 +205,95 @@ func (s *Server) removeApp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/instances/"+held.ID+"#apps", http.StatusSeeOther)
 }
 
-// stopApp stops an app's processes, gives its address back, and forgets it. An app that would not stop is
-// still forgotten: the computer it ran in is what limits it.
+// stopApp stops an app's processes, gives its address back, and forgets it, whatever its state. An app that would not stop is
+// still forgotten: the computer it ran in is what limits it. One still starting is marked removing, and its start, which may
+// not yet have started anything, stops it and forgets it when it ends.
 func (s *Server) stopApp(app apps.App) {
-	if app.Folder == "" && s.runner != nil && (app.State == apps.Live || app.State == apps.Starting) {
+	if app.Folder != "" || s.runner == nil {
+		s.apps.Delete(app.ID)
+		return
+	}
+	marked, err := s.apps.Change(app.ID, func(a *apps.App) {
+		if a.State == apps.Starting {
+			a.State = apps.Removing
+		}
+	})
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	s.runner.Stop(ctx, marked)
+	if marked.State != apps.Removing {
+		s.apps.Delete(app.ID)
+	}
+}
+
+// checkApp asks an app a request could not reach whether it answers, a few times a second apart, and only when it never does
+// stops it and says so: one reset connection is not an app that stopped.
+func (s *Server) checkApp(id string) {
+	if _, busy := s.checking.LoadOrStore(id, true); busy {
+		return
+	}
+	s.publishing.Add(1)
+	go func() {
+		defer s.publishing.Done()
+		defer s.checking.Delete(id)
+		for range appChecks {
+			app, err := s.apps.Get(id)
+			if err != nil || app.State != apps.Live {
+				return
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err = s.runner.Answers(ctx, app)
+			cancel()
+			if err == nil {
+				return
+			}
+			time.Sleep(time.Second)
+		}
+		app, err := s.apps.Change(id, func(a *apps.App) {
+			if a.State == apps.Live {
+				a.State, a.Note = apps.Stopped, "it stopped answering"
+			}
+		})
+		if err != nil || app.State != apps.Stopped {
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		s.runner.Stop(ctx, app)
+	}()
+}
+
+// ReconcileApps finishes what a restart cut off, before any app is started: an app left starting is stopped and marked
+// failed, and one left being removed is stopped and forgotten.
+func (s *Server) ReconcileApps() {
+	if s.apps == nil || s.runner == nil {
+		return
 	}
-	s.apps.Delete(app.ID)
+	all, err := s.apps.All()
+	if err != nil {
+		slog.Error("the shared apps could not be read to finish what a restart cut off", "error", err)
+		return
+	}
+	for _, app := range all {
+		if app.State != apps.Starting && app.State != apps.Removing {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		s.runner.Stop(ctx, app)
+		cancel()
+		if app.State == apps.Removing {
+			s.apps.Delete(app.ID)
+			continue
+		}
+		s.apps.Change(app.ID, func(a *apps.App) {
+			if a.State == apps.Starting {
+				a.State, a.Note = apps.Failed, "the server restarted while it was starting"
+			}
+		})
+	}
 }
 
 // AppHeader says which app a request is for. The front door sets it, for a request to an
@@ -382,7 +479,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 			// An app that is slow, or that a person gave up on, has not stopped; one that refuses a connection has.
 			var timeout net.Error
 			if !errors.Is(err, context.Canceled) && !(errors.As(err, &timeout) && timeout.Timeout()) {
-				s.apps.Change(app.ID, func(a *apps.App) { a.State, a.Note = apps.Stopped, "it stopped answering" })
+				s.checkApp(app.ID)
 			}
 			http.Error(w, "this app is not answering", http.StatusBadGateway)
 		},

@@ -29,7 +29,13 @@ const (
 	Stopped State = "stopped"
 	// Failed is an app that did not answer, and the note says what its command wrote.
 	Failed State = "failed"
+	// Removing is an app somebody removed while it was starting. Its start stops what it started and removes it, or, after a
+	// restart, the server does when it starts: spec/AppPreview.tla is the model.
+	Removing State = "removing"
 )
+
+// ErrTooMany is an app refused because its agent already has as many starting or live as it may.
+var ErrTooMany = errors.New("the agent already shares as many apps as it may")
 
 // App is a web app shared from an agent's workspace.
 type App struct {
@@ -80,17 +86,19 @@ func Valid(id string) bool {
 	return err == nil
 }
 
-// New makes an app that is starting.
-func (s *Store) New(instance, owner, command string, port int) (App, error) {
-	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting})
+// New makes an app that is starting, when its agent has fewer than most starting or live.
+func (s *Store) New(instance, owner, command string, port, most int) (App, error) {
+	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting}, most)
 }
 
-// NewPage makes a page: a folder of the agent's served as it is, live at once.
-func (s *Store) NewPage(instance, owner, folder string) (App, error) {
-	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Folder: folder, State: Live})
+// NewPage makes a page: a folder of the agent's served as it is, live at once, when its agent has fewer than most starting
+// or live.
+func (s *Store) NewPage(instance, owner, folder string, most int) (App, error) {
+	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Folder: folder, State: Live}, most)
 }
 
-func (s *Store) add(app App) (App, error) {
+// add counts the agent's apps and writes the new one under one lock, so two added at once cannot both pass the count.
+func (s *Store) add(app App, most int) (App, error) {
 	raw := make([]byte, 5)
 	if _, err := rand.Read(raw); err != nil {
 		return App{}, err
@@ -98,6 +106,19 @@ func (s *Store) add(app App) (App, error) {
 	app.ID, app.Started = hex.EncodeToString(raw), s.now().Unix()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	all, err := s.all()
+	if err != nil {
+		return App{}, err
+	}
+	running := 0
+	for _, each := range all {
+		if each.Instance == app.Instance && (each.State == Starting || each.State == Live) {
+			running++
+		}
+	}
+	if running >= most {
+		return App{}, ErrTooMany
+	}
 	return app, s.write(app)
 }
 
@@ -163,6 +184,10 @@ func (s *Store) Change(id string, change func(*App)) (App, error) {
 func (s *Store) All() ([]App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.all()
+}
+
+func (s *Store) all() ([]App, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
 		return nil, err

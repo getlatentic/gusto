@@ -222,6 +222,7 @@ func serve(args []string) int {
 	}
 	if sharing != nil {
 		pages.UseApps(shared, sharing)
+		pages.ReconcileApps()
 	} else {
 		pages.UseApps(shared, nil)
 	}
