@@ -175,7 +175,15 @@ func (c *Controller) provision(slug string) error {
 	if err := c.answers(cell, runtime.Port); err != nil {
 		return c.fail(slug, runtime, err)
 	}
-	return c.set(slug, runtime, Ready, "")
+	if err := c.set(slug, runtime, Ready, ""); err != nil {
+		return err
+	}
+	// A demo's time starts when its server first answers, whoever opens it first: its visitor's waiting page, or a colleague
+	// who came by the organization's own address.
+	if _, err := c.Store.DemoReady(slug); err != nil && !errors.Is(err, ErrNotDemo) {
+		slog.Error("a demo's time could not be started", "org", slug, "error", err)
+	}
+	return nil
 }
 
 // stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
@@ -188,7 +196,8 @@ func (c *Controller) stillServed(slug string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	made, removed := c.removed[slug]
-	if found && !(removed && made.Equal(org.Created)) {
+	ending := found && org.Demo != nil && org.Demo.Ending
+	if found && !ending && !(removed && made.Equal(org.Created)) {
 		return nil
 	}
 	delete(c.states, slug)

@@ -22,7 +22,7 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 
 | Table | Holds | What guards it |
 | --- | --- | --- |
-| `orgs` | one row for each organization: address (`slug`), name, admin, company domain, and, for a demo, its name, company, ready time, end time, whether it was extended and whether the visitor stopped it | primary key `slug`: two sign-ups cannot take one address |
+| `orgs` | one row for each organization: address (`slug`), name, admin, company domain, and, for a demo, its name, company, ready time, end time, whether it was extended, whether the visitor stopped it, and whether the sweep has begun to end it | primary key `slug`: two sign-ups cannot take one address |
 | `people` | one row for each address: created, verified | primary key `email`: an address has one account and one sign-in |
 | `memberships` | one row for each (address, organization): role, joined, who invited them, last sign-in there | primary key `(email, org)`: a person is in an organization once, and in as many organizations as invite them. Foreign key to `orgs`. Index on `(org, created)` for an organization's people |
 | `invitations` | an unanswered invitation for each (organization, address), with its expiry and the digest of its link | primary key `(org, email)`: inviting again replaces the earlier one |

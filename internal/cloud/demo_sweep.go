@@ -70,6 +70,10 @@ func (s *Server) endDemo(slug, reason string) {
 		delete(s.ender.ending, slug)
 		s.ender.mu.Unlock()
 	}()
+	if err := s.Store.MarkEnding(slug); err != nil {
+		slog.Error("a demo could not be marked as ending, and is tried again", "org", slug, "error", err)
+		return
+	}
 	if s.Controller != nil {
 		s.removeComputers(slug)
 		s.Controller.Remove(slug)

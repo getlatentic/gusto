@@ -166,11 +166,14 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 		s.render(w, http.StatusOK, "demo-wait", page)
 		return
 	}
-	if demo.Ready.IsZero() {
+	// The first time the visitor finds the demo ready, its room is made and they are sent in, once. The demo's time started when its
+	// server first answered; it is started here too, for a demo whose controller could not.
+	if !s.demoOpened(person.Org) {
 		if _, err := s.Store.DemoReady(person.Org); err != nil {
 			log.Printf("cloud: a demo's time was not started: %v", err)
 		}
 		s.seedDemoRoom(person)
+		s.markDemoOpened(person.Org)
 		http.Redirect(w, r, "/open", http.StatusSeeOther)
 		return
 	}

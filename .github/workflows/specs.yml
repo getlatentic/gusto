@@ -15,6 +15,7 @@ on:
       - "internal/cloud/leader.go"
       - "internal/cloud/leadership.go"
       - "internal/cloud/controller_follow.go"
+      - "internal/cloud/demo_*.go"
       - "internal/atomicfile/**"
       - "internal/changelog/**"
       - "internal/computer/**"

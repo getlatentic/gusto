@@ -72,6 +72,8 @@ type Demo struct {
 	Extended bool      `json:"extended,omitempty"`
 	// Stopped is a demo whose visitor ended it before its time was up.
 	Stopped bool `json:"stopped,omitempty"`
+	// Ending is a demo the sweep has begun to end. It is not started, extended or made again: spec/Demo.tla is the model.
+	Ending bool `json:"ending,omitempty"`
 }
 
 // Lead is a visitor who started a demo, kept after the demo is gone.
