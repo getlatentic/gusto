@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"os/exec"
@@ -285,7 +286,9 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 		registry.Change(c.ID, func(each *computer.Computer) { each.LastActive = old })
 	}
 	retire(cfg, registry)
-	rest(cfg, registry, func(person string) bool { return person == "cy@acme.com" }, time.Hour)
+	use := newComputerUse()
+	use.enter(cy.ID)
+	rest(cfg, registry, use, func(string) bool { return false }, time.Hour)
 
 	deleted, _ := os.ReadFile(filepath.Join(root, "deleted.log"))
 	if !strings.Contains(string(deleted), ada.Sandbox) {
@@ -337,5 +340,57 @@ func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
 	}
 	if all, _ := registry.All(); len(all) != 0 {
 		t.Errorf("the organization counts %+v", all)
+	}
+}
+
+// The idle stop leaves a computer a task is in, whoever asked the task, and a task that starts while a stop is under way
+// waits for it, so it is not stopped once it runs. spec/Computer.tla is the model.
+func TestTheIdleStopLeavesAComputerATaskIsIn(t *testing.T) {
+	use := newComputerUse()
+	use.enter("c1")
+	if use.stopIdle("c1", func() { t.Error("a computer a task is in was stopped") }) {
+		t.Error("the stop said it stopped a busy computer")
+	}
+	use.leave("c1")
+	stopping, release := make(chan struct{}), make(chan struct{})
+	stopped := make(chan bool, 1)
+	go func() { stopped <- use.stopIdle("c1", func() { close(stopping); <-release }) }()
+	<-stopping
+	entered := make(chan struct{})
+	go func() { use.enter("c1"); close(entered) }()
+	select {
+	case <-entered:
+		t.Fatal("a task was counted in a computer while it was being stopped")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	<-entered
+	if !<-stopped {
+		t.Error("an idle computer was not stopped")
+	}
+	if use.stopIdle("c1", func() { t.Error("the task that started after the stop was stopped") }) {
+		t.Error("the stop said it stopped a busy computer")
+	}
+}
+
+// A computer that never started is not left being made: it says why it failed, and does not count as being made for good. One
+// that had started keeps its state when a later task fails before starting.
+func TestAComputerThatNeverStartedIsNotLeftBeingMade(t *testing.T) {
+	registry, err := computer.Open(t.TempDir(), "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	held, _, err := registry.Ensure("ada@acme.com", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	failedBeforeStart(registry, held.ID, errors.New("no token for the sandbox"))
+	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Failed || got.Note != "no token for the sandbox" {
+		t.Errorf("a computer that never started: %s %q", got.State, got.Note)
+	}
+	registry.Change(held.ID, func(each *computer.Computer) { each.State = computer.Running })
+	failedBeforeStart(registry, held.ID, errors.New("a later task failed"))
+	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Running {
+		t.Errorf("a running computer was marked %s by a task that failed", got.State)
 	}
 }

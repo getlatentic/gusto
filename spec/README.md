@@ -12,6 +12,10 @@ Expected output:
 ok   AppendLog.before-repair.cfg: Error: Invariant AlwaysStarts is violated.
 ok   AppendLog.before-rollback.cfg: Error: Invariant AlwaysStarts is violated.
 ok   AppendLog.now.cfg: 515 states generated, 190 distinct states found, 0 states left on queue.
+ok   Computer.before-creating.cfg: Error: Invariant NoIdleCreating is violated.
+ok   Computer.before-in-use.cfg: Error: Invariant NoStopMidTask is violated.
+ok   Computer.before-retire.cfg: Error: Invariant OnlyAskedIsRemoved is violated.
+ok   Computer.now.cfg: 4448 states generated, 1164 distinct states found, 0 states left on queue.
 ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
@@ -113,6 +117,19 @@ fail, the kernel may write part of the last line, and either the process or the 
 | `AlwaysStarts` | A crash or a failed write never stops the server starting. | `repairTail`: a crash leaves part of a line, and `Open` refuses the log for good. `rollback`: the next event is written after part of the last one, which no repair can take out | `TestALogEndingInPartOfALineOpensWithoutIt`, `TestAWriteCutShortLeavesNothingBehind`, `TestALogThatCannotBeCutBackTakesNoMoreEvents` |
 | `NothingDoneIsLost` | Every event `Append` said was written is in the log at its number. | | |
 | `RepairHidesNothing` | `Open` removes only a last line without its newline, never a whole line, so a cut or changed log is still refused. | | the existing tamper tests |
+
+## Computer
+
+One person's computer (`internal/computer`, `cmd/gusto/computers.go`): its record, its sandbox, the tasks that run in
+it, the front door asking for it to be removed when the person is, and the organization server's tend loop, which
+removes what was asked and stops what is idle. A computer made again after one was removed is a new generation under
+the same id. Tasks are paid for by the owner and may be asked by a colleague, as a room agent's turn is.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `OnlyAskedIsRemoved` | A computer is removed only when its person was removed while it lived. | `retireOnlyLive`: removing a person whose computer was already removed leaves a mark, and the tend loop removes the computer made when they come back | `TestAMarkOnARemovedComputerDoesNotRemoveTheNextOne` |
+| `NoStopMidTask` | No sandbox is stopped while a task works in it. | `inUse`: the idle stop asked whether the owner had a task running, so a colleague's turn in the owner's computer was stopped, and a task could start between the look and the stop | `TestTheIdleStopLeavesAComputerATaskIsIn` |
+| `NoIdleCreating` | A computer is Creating only while a task is making it. | `failBeforeStart`: a task that failed before its sandbox started left the computer being made, counting against the quota | `TestAComputerThatNeverStartedIsNotLeftBeingMade` |
 
 ## Changing a modelled machine
 

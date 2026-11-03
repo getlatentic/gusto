@@ -49,6 +49,8 @@ type WayOut struct {
 	gateways *gateways
 	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
 	spares *spareComputers
+	// computers counts the tasks in each person's computer, for the idle stop. It is set before any task runs.
+	computers *computerUse
 	// plainRuns says whether a run in a sandbox gets a plain token in place of a secret its forwarder trades for a run token
 	// bound to a key its sandbox holds; see UseRunTokens. Unset, every run is bound.
 	plainRuns atomic.Pointer[func() bool]

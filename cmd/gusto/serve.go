@@ -137,7 +137,8 @@ func serve(args []string) int {
 		sharing = newSharedApps(cfg, computers, shared)
 		tending, stopTending := context.WithCancel(context.Background())
 		defer stopTending()
-		go tendComputers(tending, cfg, computers, func(person string) bool { return running(index, person) || sharing.serving(person) },
+		way.computers = newComputerUse()
+		go tendComputers(tending, cfg, computers, way.computers, sharing.serving,
 			30*time.Second, time.Duration(number("GUSTO_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
 		if way.spares, err = openSpareComputers(tending, cfg, os.Getenv("GUSTO_ORG"), "http://"+cfg.Host+":"+way.proxyPort()+"/model/v1"); err != nil {
 			return fail(err)
