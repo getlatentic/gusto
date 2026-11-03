@@ -2,6 +2,7 @@ package instance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -204,6 +205,16 @@ func (s *Store) writeThread(thread Thread) error {
 		return err
 	}
 	return writeJSON(filepath.Join(s.threadsDir(thread.Instance), thread.ID+".json"), thread)
+}
+
+// forgetThread lets go of a thread that was opened for something that could not be kept.
+func (s *Store) forgetThread(thread Thread) error {
+	delete(s.threads[thread.Instance], thread.ID)
+	err := os.Remove(filepath.Join(s.threadsDir(thread.Instance), thread.ID+".json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 func readThreads(dir string) (map[string]Thread, error) {
