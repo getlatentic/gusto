@@ -149,8 +149,15 @@ func (c *computerBox) change(state computer.State, note string) {
 	c.update(func(each *computer.Computer) { each.State, each.Note, each.LastActive = state, note, now() })
 }
 
+// update changes the record of the computer a task used. A computer removed while the task used it stays removed: the task
+// starting or ending does not bring its record back for a sandbox that is gone.
 func (c *computerBox) update(change func(*computer.Computer)) {
-	if _, err := c.registry.Change(c.id, change); err != nil {
+	_, err := c.registry.Change(c.id, func(each *computer.Computer) {
+		if each.State != computer.Deleted {
+			change(each)
+		}
+	})
+	if err != nil {
 		slog.Error("a workspace's record was not changed", "workspace", c.id, "error", err)
 	}
 }
