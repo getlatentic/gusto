@@ -85,25 +85,38 @@ func (w *WayOut) RunInComputer(ctx context.Context, dir job.Dir, spec job.Spec, 
 	}
 	token, bound, err := w.admitSandbox(dir, spec)
 	if err != nil {
-		return 0, err
+		return 0, failedBeforeStart(registry, held.ID, err)
 	}
 	box, err := openshell.NewComputer(cfg, held.Sandbox, filepath.Base(dir.Path()), folderInComputer(spec), configured.Adapter,
 		modelURL, "http://127.0.0.1:"+port+"/model/v1", token)
 	if err != nil {
-		return 0, err
+		return 0, failedBeforeStart(registry, held.ID, err)
 	}
 	if bound {
 		box.Bind()
 	}
 	if err := w.recordRun(dir, spec, held.Sandbox, bound); err != nil {
-		return 0, err
+		return 0, failedBeforeStart(registry, held.ID, err)
 	}
 	// A room's turn sees only the room: its copy of the folder and its agent's own memory, not the rest of the person's
 	// computer (getlatentic/planning#731).
 	if isRoomTurn(spec) {
 		box.Confine(folderInComputer(spec))
 	}
-	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: registry, id: held.ID})
+	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: registry, id: held.ID, use: w.computers})
+}
+
+// failedBeforeStart says why a computer being made never started, so it is not left being made for good, counting against
+// the quota. A computer that had started before keeps its state: this task failed, not it.
+func failedBeforeStart(registry *computer.Registry, id string, err error) error {
+	if _, changeErr := registry.Change(id, func(each *computer.Computer) {
+		if each.State == computer.Creating {
+			each.State, each.Note = computer.Failed, err.Error()
+		}
+	}); changeErr != nil {
+		slog.Error("a workspace's record was not changed", "workspace", id, "error", changeErr)
+	}
+	return err
 }
 
 // folderInComputer names the folder a turn works in in the person's computer. A room's agents run at the same time, each on
@@ -121,9 +134,16 @@ type computerBox struct {
 	*openshell.Sandbox
 	registry *computer.Registry
 	id       string
+	// use counts this task in the computer from before its sandbox starts until it closes, so the idle stop leaves it.
+	use     *computerUse
+	entered bool
 }
 
 func (c *computerBox) Start(ctx context.Context, workspace string) error {
+	if c.use != nil {
+		c.use.enter(c.id)
+		c.entered = true
+	}
 	if err := c.Sandbox.Start(ctx, workspace); err != nil {
 		c.change(computer.Failed, err.Error())
 		return err
@@ -136,6 +156,10 @@ func (c *computerBox) Start(ctx context.Context, workspace string) error {
 // failed, and says why, and is not made running by a task's ending.
 func (c *computerBox) Close() error {
 	err := c.Sandbox.Close()
+	if c.entered {
+		c.use.leave(c.id)
+		c.entered = false
+	}
 	c.update(func(each *computer.Computer) {
 		each.LastActive = now()
 		if each.State != computer.Failed {
@@ -167,7 +191,7 @@ func now() time.Time { return time.Now().UTC().Truncate(time.Second) }
 // tendComputers removes the computers people were removed from the organization
 // for, and stops those nobody has used for a while. Removing needs the gateway, which
 // this server reaches and gusto cloud does not, so gusto cloud only marks them.
-func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer.Registry, busy func(person string) bool, every, idle time.Duration) {
+func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(person string) bool, every, idle time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -175,7 +199,7 @@ func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer
 		case <-time.After(every):
 		}
 		retire(cfg, registry)
-		rest(cfg, registry, busy, idle)
+		rest(cfg, registry, use, serving, idle)
 	}
 }
 
@@ -196,29 +220,23 @@ func retire(cfg openshell.Config, registry *computer.Registry) {
 	}
 }
 
-func rest(cfg openshell.Config, registry *computer.Registry, busy func(string) bool, idle time.Duration) {
+// rest stops the computers nobody has used for a while: none of their tasks is running, under the computer's lock, and none
+// serves a shared app.
+func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(string) bool, idle time.Duration) {
 	all, err := registry.All()
 	if err != nil {
 		return
 	}
 	for _, each := range all {
-		if each.State != computer.Running || each.LastActive.IsZero() || time.Since(each.LastActive) < idle || busy(each.User) {
+		if each.State != computer.Running || each.LastActive.IsZero() || time.Since(each.LastActive) < idle || serving(each.User) {
 			continue
 		}
-		if err := openshell.Stop(cfg, each.Sandbox); err != nil {
-			slog.Error("an idle workspace could not be stopped", "workspace", each.ID, "error", err)
-			continue
-		}
-		registry.Change(each.ID, func(c *computer.Computer) { c.State, c.Note = computer.Stopped, "stopped when idle" })
+		use.stopIdle(each.ID, func() {
+			if err := openshell.Stop(cfg, each.Sandbox); err != nil {
+				slog.Error("an idle workspace could not be stopped", "workspace", each.ID, "error", err)
+				return
+			}
+			registry.Change(each.ID, func(c *computer.Computer) { c.State, c.Note = computer.Stopped, "stopped when idle" })
+		})
 	}
-}
-
-// running says a person has a task running now, which keeps their computer awake.
-func running(index *jobs.Index, person string) bool {
-	for _, record := range index.List() {
-		if record.State == jobs.Running && strings.EqualFold(record.Asked, person) {
-			return true
-		}
-	}
-	return false
 }

@@ -269,3 +269,42 @@ func TestAComputerAskedToBeRemovedIsListedUntilItIsRemoved(t *testing.T) {
 		t.Errorf("a new computer is not marked by the old one's request: %+v", retiring)
 	}
 }
+
+// A person removed again after their computer was removed leaves no mark, and a mark left by an earlier release is cleared
+// when a computer is made: neither removes the computer they get when they come back. spec/Computer.tla is the model.
+func TestAMarkOnARemovedComputerDoesNotRemoveTheNextOne(t *testing.T) {
+	dir := t.TempDir()
+	registry, err := Open(dir, "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _, err := registry.Ensure("ada@acme.com", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.Retire("ada@acme.com")
+	if err := registry.Retired(first.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := registry.Retire("ada@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := registry.Ensure("ada@acme.com", "local"); err != nil {
+		t.Fatal(err)
+	}
+	if retiring, _ := registry.Retiring(); len(retiring) != 0 {
+		t.Errorf("the computer made when the person came back is to be removed: %+v", retiring)
+	}
+	again, _ := registry.Of("ada@acme.com")
+	registry.Retire("ada@acme.com")
+	registry.Retired(again.ID)
+	if err := os.WriteFile(filepath.Join(dir, again.ID+".retire"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := registry.Ensure("ada@acme.com", "local"); err != nil {
+		t.Fatal(err)
+	}
+	if retiring, _ := registry.Retiring(); len(retiring) != 0 {
+		t.Errorf("a mark left on a removed computer removes the next one: %+v", retiring)
+	}
+}
