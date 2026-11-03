@@ -78,6 +78,9 @@ func (s *Server) endDemo(slug, reason string) {
 		slog.Error("a demo could not be ended", "org", slug, "error", err)
 		return
 	}
+	if s.Controller != nil {
+		s.Controller.Ended(slug)
+	}
 	slog.Info("a demo ended", "org", slug, "reason", reason)
 	s.tell("ended", slug)
 }

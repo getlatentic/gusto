@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -387,6 +388,68 @@ func TestARemovedOrganizationIsNotStartedAgain(t *testing.T) {
 		}
 		if err := c.reprovision(org.Slug); err != nil || c.Cell.Alive(org.Slug) {
 			t.Errorf("a retry for a removed organization started it: %v", err)
+		}
+	})
+}
+
+// A call to provision decided before Remove, as the signup's and Run's are, that runs after it is refused: the trace TLC
+// finds in spec/OrgSupervisor.before-provision.cfg.
+func TestAProvisionThatRunsAfterRemoveIsRefused(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		c := controlled(t, s)
+		org := made(t, s, "ada@acme.com", "Acme")
+		c.Remove(org.Slug)
+		if err := c.Provision(org.Slug); !errors.Is(err, ErrRemoved) {
+			t.Errorf("provisioning a removed organization said %v", err)
+		}
+		if c.Cell.Alive(org.Slug) {
+			t.Error("a removed organization's server was started")
+		}
+		if _, state := c.Route(org.Slug); state != "" {
+			t.Errorf("a removed organization is %q", state)
+		}
+	})
+}
+
+// A demo the store has deleted is not made again: no server, and no directory.
+func TestAnOrganizationGoneFromTheStoreIsNotProvisioned(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s, _ := clocked(t, demoSet)
+		c := controlled(t, s)
+		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.Remove(org.Slug)
+		if err := s.EndDemo(org.Slug, "test"); err != nil {
+			t.Fatal(err)
+		}
+		c.Ended(org.Slug)
+		if err := c.Provision(org.Slug); !errors.Is(err, ErrRemoved) {
+			t.Errorf("provisioning a deleted organization said %v", err)
+		}
+		if c.Cell.Alive(org.Slug) {
+			t.Error("a deleted organization's server was started")
+		}
+		if _, err := os.Stat(s.OrgDir(org.Slug)); !os.IsNotExist(err) {
+			t.Errorf("a deleted organization's directory is back: %v", err)
+		}
+	})
+}
+
+// A new organization at the address of one that was removed is provisioned: it is told apart by when it was made.
+func TestANewOrganizationAtARemovedAddressIsProvisioned(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		c := controlled(t, s)
+		org := made(t, s, "ada@acme.com", "Acme")
+		c.removed = map[string]time.Time{org.Slug: org.Created.Add(-time.Hour)}
+		if err := c.Provision(org.Slug); err != nil {
+			t.Fatal(err)
+		}
+		if !c.Cell.Alive(org.Slug) {
+			t.Error("a new organization at a removed address was not started")
 		}
 	})
 }
