@@ -7,7 +7,7 @@ import (
 )
 
 // Leadership keeps this front door's claim to the lease, and runs the work only one front door may do while it holds it:
-// the controller, the demo sweep and the scaler. Front doors that do not lead serve pages and route from the database.
+// the controller, the demo and quota sweeps and the scaler. Front doors that do not lead serve pages and route from the database.
 type Leadership struct {
 	Store *Store
 	// Holder names this front door, apart from every other.

@@ -71,7 +71,7 @@ func cloudCommand() int {
 		controller.OnWaiting = scaler.Wake
 		front.Prewarm = scaler.Prewarm
 	}
-	// One front door on the database leads: it runs the controller, the demo sweep and the scaler. The others serve pages
+	// One front door on the database leads: it runs the controller, the demo and quota sweeps and the scaler. The others serve pages
 	// and route from the database, and one of them takes over when the leader's lease runs out.
 	if controller != nil {
 		controller.Follow()
@@ -83,6 +83,7 @@ func cloudCommand() int {
 		}
 		var wg sync.WaitGroup
 		wg.Go(func() { front.RunDemos(ctx, 15*time.Second) })
+		wg.Go(func() { front.Store.RunQuotas(ctx, 30*time.Second) })
 		if scaler != nil {
 			wg.Go(func() { scaler.Run(ctx, 10*time.Second) })
 		}

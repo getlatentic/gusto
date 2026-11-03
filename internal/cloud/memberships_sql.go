@@ -134,20 +134,25 @@ func (s *Store) Verify(email string) error {
 			return err
 		}
 		all, err := membershipsOf(ctx, tx, email)
-		for _, each := range all {
-			if each.Role == Admin {
-				administers = append(administers, each)
-			}
+		if err != nil {
+			return err
 		}
-		return err
+		for _, each := range all {
+			if each.Role != Admin {
+				continue
+			}
+			if err := markQuota(ctx, tx, each.Org); err != nil {
+				return err
+			}
+			administers = append(administers, each)
+		}
+		return nil
 	})
 	if err != nil {
 		return err
 	}
 	for _, each := range administers {
-		if err := s.ApplyQuota(each.Org); err != nil {
-			return err
-		}
+		s.quotaChanged(each.Org)
 	}
 	return nil
 }

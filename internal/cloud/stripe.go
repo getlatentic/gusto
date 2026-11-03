@@ -81,39 +81,70 @@ func (s *Stripe) SetSeats(ctx context.Context, item string, seats int) error {
 	return s.post(ctx, "/v1/subscription_items/"+url.PathEscape(item), form, nil)
 }
 
+// Subscription is a subscription as it is now, stamped with the second Stripe answered in, which no event
+// made before that second is newer than.
+func (s *Stripe) Subscription(ctx context.Context, id string) (Billing, error) {
+	var sub stripeSubscription
+	header, err := s.call(ctx, http.MethodGet, "/v1/subscriptions/"+url.PathEscape(id), nil, &sub)
+	if err != nil {
+		return Billing{}, err
+	}
+	at, err := http.ParseTime(header.Get("Date"))
+	if err != nil {
+		return Billing{}, fmt.Errorf("stripe answered with no time: %w", err)
+	}
+	b, about := billingOfSubscription(sub, at)
+	if !about {
+		return Billing{}, fmt.Errorf("stripe's subscription %s names no organization", id)
+	}
+	return b, nil
+}
+
 func (s *Stripe) post(ctx context.Context, path string, form url.Values, into any) error {
+	_, err := s.call(ctx, http.MethodPost, path, form, into)
+	return err
+}
+
+// call sends one request, and says what the answer's headers were.
+func (s *Stripe) call(ctx context.Context, method, path string, form url.Values, into any) (http.Header, error) {
 	ctx, cancel := context.WithTimeout(ctx, stripeTimeout)
 	defer cancel()
 	base := s.API
 	if base == "" {
 		base = "https://api.stripe.com"
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+path, strings.NewReader(form.Encode()))
+	var body io.Reader
+	if form != nil {
+		body = strings.NewReader(form.Encode())
+	}
+	req, err := http.NewRequestWithContext(ctx, method, base+path, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.SetBasicAuth(s.Key, "")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if form != nil {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 	client := s.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("stripe %s: %w", path, err)
+		return nil, fmt.Errorf("stripe %s: %w", path, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	text, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return fmt.Errorf("stripe %s: %w", path, err)
+		return nil, fmt.Errorf("stripe %s: %w", path, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return stripeError(path, resp.StatusCode, body)
+		return nil, stripeError(path, resp.StatusCode, text)
 	}
 	if into == nil {
-		return nil
+		return resp.Header, nil
 	}
-	return json.Unmarshal(body, into)
+	return resp.Header, json.Unmarshal(text, into)
 }
 
 // stripeError is what Stripe said was wrong, without the request, which carries no secret
