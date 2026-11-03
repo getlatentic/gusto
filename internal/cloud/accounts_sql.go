@@ -8,23 +8,23 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-const orgColumns = `slug, name, admin, domain, created, is_demo, demo_name, demo_company, demo_ready, demo_expires, demo_extended, demo_stopped`
+const orgColumns = `slug, name, admin, domain, created, is_demo, demo_name, demo_company, demo_ready, demo_expires, demo_extended, demo_stopped, demo_ending`
 
-var orgFields = []string{"slug", "name", "admin", "domain", "created", "is_demo", "demo_name", "demo_company", "demo_ready", "demo_expires", "demo_extended", "demo_stopped"}
+var orgFields = []string{"slug", "name", "admin", "domain", "created", "is_demo", "demo_name", "demo_company", "demo_ready", "demo_expires", "demo_extended", "demo_stopped", "demo_ending"}
 
 func scanOrg(r rowScanner) (Org, error) {
 	var o Org
 	var created dbkit.Time
-	var isDemo, extended, stopped bool
+	var isDemo, extended, stopped, ending bool
 	var demo Demo
 	var ready, expires nullTime
-	err := r.Scan(&o.Slug, &o.Name, &o.Admin, &o.Domain, &created, &isDemo, &demo.Name, &demo.Company, &ready, &expires, &extended, &stopped)
+	err := r.Scan(&o.Slug, &o.Name, &o.Admin, &o.Domain, &created, &isDemo, &demo.Name, &demo.Company, &ready, &expires, &extended, &stopped, &ending)
 	if err != nil {
 		return Org{}, err
 	}
 	o.Created = created.Time
 	if isDemo {
-		demo.Ready, demo.Expires, demo.Extended, demo.Stopped = timeOf(ready), timeOf(expires), extended, stopped
+		demo.Ready, demo.Expires, demo.Extended, demo.Stopped, demo.Ending = timeOf(ready), timeOf(expires), extended, stopped, ending
 		o.Demo = &demo
 	}
 	return o, nil
@@ -39,7 +39,7 @@ func (s *Store) orgArgs(o Org) []any {
 	if o.Demo != nil {
 		d = *o.Demo
 	}
-	return []any{o.Slug, o.Name, o.Admin, o.Domain, s.stamp(o.Created), o.Demo != nil, d.Name, d.Company, s.when(d.Ready), s.when(d.Expires), d.Extended, d.Stopped}
+	return []any{o.Slug, o.Name, o.Admin, o.Domain, s.stamp(o.Created), o.Demo != nil, d.Name, d.Company, s.when(d.Ready), s.when(d.Expires), d.Extended, d.Stopped, d.Ending}
 }
 
 var insertOrg = dbkit.Upsert{Table: "orgs", Columns: orgFields, Conflict: []string{"slug"}}

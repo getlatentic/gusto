@@ -25,6 +25,11 @@ ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violate
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
+ok   Demo.before-clock.cfg: Error: Invariant UsedIsNotNeverReady is violated.
+ok   Demo.before-ending.cfg: Error: Invariant EndingStaysEnding is violated.
+ok   Demo.before-guards.cfg: Error: Invariant NoExtendAfterStop is violated.
+ok   Demo.before-lead.cfg: Error: Invariant LeadFollowsDemo is violated.
+ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   MergeJournal.before-keep.cfg: Error: Invariant AllOrNothing is violated.
@@ -171,6 +176,20 @@ process dying, and the server restarting.
 | `NothingRunsUnseen` | A process runs only for an app the page shows starting, live or being removed, or while its start is under way. | `orphanStopped`: an app removed while it started was forgotten, and its start's process stayed running and exposed. `errorChecks`: one failed request marked a live app stopped and left its process running | `TestAnAppRemovedWhileItStartsIsStoppedWhenItHasStarted`, `TestOneFailedRequestDoesNotStopALiveApp` |
 | `NoStuckStart` | An app shows as starting or being removed only while its start is under way. | `reconcile`: an app a restart cut off stayed starting for good, counting against the limit | `TestARestartFinishesTheAppsItCutOff` |
 | `WithinLimit` | An agent has no more apps starting or live than its limit. | `limitInStore`: two publishes at once both passed the count | `TestAppsAddedAtOnceKeepToTheLimit` |
+
+## Demo
+
+One demo (`internal/cloud/demo_*.go`): made at a visitor's request, its server made ready by the leader's controller, its
+clock started, opened by the visitor or by a colleague through the organization's own address, extended, stopped,
+ended by the leader's sweep, and the front door crashing. The lead row is kept after the demo, and says how it went.
+A lead write outside a transaction may fail.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `UsedIsNotNeverReady` | A demo whose server was ready is never ended as one that never was. | `clockOnReady`: only the visitor's waiting page started the clock, so a demo a colleague opened was swept as never ready | `TestADemosTimeStartsWhenItsServerAnswers` |
+| `LeadFollowsDemo` | The lead says the demo was ready, and extended, when it was. | `leadInTx`: the lead was written after the demo's transaction, and not again when that failed | the model only: the write now cannot fail apart from the demo's |
+| `NoExtendAfterStop` | A stopped demo is not extended. | `guards` | `TestAStoppedDemoIsNotExtendedOrStarted` |
+| `EndingStaysEnding` | A demo being ended is not made again. | `endingMark`: a crash part way through the end lost the controller's memory of it, and the next start made the demo again | `TestADemoBeingEndedIsNotMadeAgain` |
 
 ## Changing a modelled machine
 

@@ -114,6 +114,22 @@ func makeDemoRoom(as *orgAs) (string, error) {
 	return room, nil
 }
 
+// demoOpenedFile marks that the demo's visitor was sent in from the waiting page, which happens once.
+const demoOpenedFile = "demo-opened"
+
+// demoOpened is whether the visitor was sent in already.
+func (s *Server) demoOpened(org string) bool {
+	_, err := os.Stat(filepath.Join(s.Store.OrgDir(org), demoOpenedFile))
+	return err == nil
+}
+
+// markDemoOpened records that the visitor was sent in.
+func (s *Server) markDemoOpened(org string) {
+	if err := os.WriteFile(filepath.Join(s.Store.OrgDir(org), demoOpenedFile), nil, 0o644); err != nil {
+		slog.Warn("a demo's first opening was not recorded", "org", org, "error", err)
+	}
+}
+
 // seedDemoRoom makes the demo's room once, when its server first answers. A demo whose room could not be made still works, as a
 // chat, so a failure is told to the operator and not to the visitor.
 func (s *Server) seedDemoRoom(person Person) {

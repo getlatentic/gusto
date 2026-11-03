@@ -61,8 +61,9 @@ func (s *Store) removeOrgDir(slug string) error {
 
 var errNoOrg = fmt.Errorf("there is no such organization: %w", fs.ErrNotExist)
 
-// changeDemo reads an organization under its lock, lets change alter the demo's record, and keeps the result.
-func (s *Store) changeDemo(slug string, change func(*Org) error) (Org, error) {
+// changeDemo reads an organization under its lock, lets change alter the demo's record, and keeps the result, and the change
+// to its lead that lead makes, when it is not nil, in the same transaction, so the lead never says other than the demo.
+func (s *Store) changeDemo(slug string, change func(*Org) error, lead func(context.Context, dbkit.Tx, Org) error) (Org, error) {
 	ctx := context.Background()
 	var org Org
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
@@ -80,53 +81,67 @@ func (s *Store) changeDemo(slug string, change func(*Org) error) (Org, error) {
 		if err := change(&org); err != nil {
 			return err
 		}
-		return s.saveDemo(ctx, tx, org)
+		if err := s.saveDemo(ctx, tx, org); err != nil {
+			return err
+		}
+		if lead == nil {
+			return nil
+		}
+		return lead(ctx, tx, org)
 	})
 	return org, err
 }
 
 func (s *Store) saveDemo(ctx context.Context, tx dbkit.Tx, org Org) error {
 	d := org.Demo
-	_, err := tx.ExecContext(ctx, `UPDATE orgs SET demo_ready = ?, demo_expires = ?, demo_extended = ?, demo_stopped = ? WHERE slug = ?`,
-		s.when(d.Ready), s.when(d.Expires), d.Extended, d.Stopped, org.Slug)
+	_, err := tx.ExecContext(ctx, `UPDATE orgs SET demo_ready = ?, demo_expires = ?, demo_extended = ?, demo_stopped = ?, demo_ending = ? WHERE slug = ?`,
+		s.when(d.Ready), s.when(d.Expires), d.Extended, d.Stopped, d.Ending, org.Slug)
 	return err
 }
 
-// DemoReady starts a demo's time, when it is not started. It is asked each time the organization is found ready and
-// starts the time once.
+// DemoReady starts a demo's time, when it is not started: the controller asks when the demo's server first answers, and the
+// visitor's waiting page when it finds it ready, and the time starts once. A demo that was stopped or is being ended does not
+// start. An organization that is not a demo is ErrNotDemo.
 func (s *Store) DemoReady(slug string) (Demo, error) {
 	org, err := s.changeDemo(slug, func(org *Org) error {
 		if org.Demo == nil {
-			return errors.New("that is not a demo")
+			return ErrNotDemo
 		}
-		if org.Demo.Ready.IsZero() {
+		if org.Demo.Ready.IsZero() && !org.Demo.Stopped && !org.Demo.Ending {
 			now := s.now().UTC().Truncate(time.Second)
 			org.Demo.Ready, org.Demo.Expires = now, now.Add(s.set.Demo.Length)
 		}
 		return nil
+	}, func(ctx context.Context, tx dbkit.Tx, org Org) error {
+		if org.Demo.Ready.IsZero() {
+			return nil
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE leads SET ready = ? WHERE slug = ? AND ready IS NULL`, s.stamp(org.Demo.Ready), slug)
+		return err
 	})
 	if err != nil {
 		return Demo{}, err
 	}
-	_, err = s.db.ExecContext(context.Background(), `UPDATE leads SET ready = ? WHERE slug = ? AND ready IS NULL`, s.stamp(org.Demo.Ready), slug)
-	return *org.Demo, err
+	return *org.Demo, nil
 }
 
 // ExtendDemo gives a demo the one extension it may have, while it still has time.
 func (s *Store) ExtendDemo(slug string) (Demo, error) {
 	org, err := s.changeDemo(slug, func(org *Org) error {
 		demo := org.Demo
-		if demo == nil || demo.Extended || s.set.Demo.Extend <= 0 || demo.Expires.IsZero() || !s.now().Before(demo.Expires) {
+		if demo == nil || demo.Extended || demo.Stopped || demo.Ending || s.set.Demo.Extend <= 0 || demo.Expires.IsZero() || !s.now().Before(demo.Expires) {
 			return ErrNoExtension
 		}
 		demo.Expires, demo.Extended = demo.Expires.Add(s.set.Demo.Extend), true
 		return nil
+	}, func(ctx context.Context, tx dbkit.Tx, _ Org) error {
+		_, err := tx.ExecContext(ctx, `UPDATE leads SET extended = ? WHERE slug = ?`, true, slug)
+		return err
 	})
 	if err != nil {
 		return Demo{}, err
 	}
-	_, err = s.db.ExecContext(context.Background(), `UPDATE leads SET extended = ? WHERE slug = ?`, true, slug)
-	return *org.Demo, err
+	return *org.Demo, nil
 }
 
 // StopDemo makes a demo due now, for a visitor who is finished with it.
@@ -137,7 +152,20 @@ func (s *Store) StopDemo(slug string) error {
 		}
 		org.Demo.Stopped = true
 		return nil
-	})
+	}, nil)
+	return err
+}
+
+// MarkEnding records that the sweep has begun to end a demo, before it stops anything, so a front door that starts again
+// partway does not make the demo's server again: the mark is in the database, where a crash does not lose it.
+func (s *Store) MarkEnding(slug string) error {
+	_, err := s.changeDemo(slug, func(org *Org) error {
+		if org.Demo == nil {
+			return ErrNotDemo
+		}
+		org.Demo.Ending = true
+		return nil
+	}, nil)
 	return err
 }
 
@@ -170,6 +198,8 @@ func (s *Store) DemosDue() (map[string]string, error) {
 			due[org.Slug] = "its time was up"
 		case org.Demo.Ready.IsZero() && now.Sub(org.Created) > s.set.Demo.patience():
 			due[org.Slug] = "it was never ready"
+		case org.Demo.Ending:
+			due[org.Slug] = "its ending was cut off"
 		}
 	}
 	return due, nil
@@ -194,7 +224,7 @@ func (s *Store) EndDemo(slug, reason string) error {
 		if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE leads SET ended = ?, reason = ? WHERE slug = ?`, s.stamp(s.now().UTC().Truncate(time.Second)), reason, slug); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE leads SET ended = ?, reason = ? WHERE slug = ? AND ended IS NULL`, s.stamp(s.now().UTC().Truncate(time.Second)), reason, slug); err != nil {
 			return err
 		}
 		for _, statement := range endStatements {
