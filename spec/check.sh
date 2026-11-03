@@ -30,7 +30,7 @@ for config in *.cfg; do
   # TLC exits 12 when an invariant or action property is broken, and 13 when a liveness property is.
   if [[ "$config" == *.before-*.cfg ]]; then
     if [[ $status == 12 || $status == 13 ]]; then
-      echo "ok   $config: $(grep -m1 -E 'is violated' "$scratch/out")"
+      echo "ok   $config: $(grep -m1 -E 'is violated|were violated' "$scratch/out")"
     else
       echo "FAIL $config: TLC exited $status, but this config must find the bug"
       failed=1

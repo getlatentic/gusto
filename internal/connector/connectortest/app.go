@@ -32,6 +32,7 @@ type App struct {
 	called  []string
 	scope   string
 	secrets []string
+	revoked bool
 }
 
 // New is an app that runs until the test ends.
@@ -70,6 +71,13 @@ func (a *App) Lasts(lasts time.Duration) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.lasts = lasts
+}
+
+// Revoke is the person ending the sign-in at the app: it renews no token after.
+func (a *App) Revoke() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.revoked = true
 }
 
 // Clients is how many clients it has registered.
@@ -156,7 +164,7 @@ func (a *App) token(w http.ResponseWriter, r *http.Request) {
 		}
 		delete(a.codes, r.Form.Get("code"))
 	case "refresh_token":
-		if r.Form.Get("refresh_token") != "refresh-1" {
+		if a.revoked || r.Form.Get("refresh_token") != "refresh-1" {
 			refuse(w)
 			return
 		}

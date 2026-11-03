@@ -9,6 +9,10 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
+ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
+ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
+ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
@@ -62,6 +66,20 @@ The lease may lapse while its holder is paused, and the holder acts on until it 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `OneServer` | The organization's server runs on one cell at most. | `leader`: each front door places it on a cell of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
+
+## ConnectorSignIn
+
+One person's sign-in to one app (`internal/connector`): `Finish`, `Token` renewing, `Disconnect`, the app revoking the
+grant, and the server restarting. The app rotates refresh tokens, and a vault write may fail. `Fixes` says which fixes
+the code has.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `DisconnectHolds` | Nothing begun before a disconnect is kept after it. | `disconnectLocks` (getlatentic/gusto#563): a renewal writes the tokens back; `finishChecksGen`: a sign-in that came back before the disconnect is kept | `TestDisconnectingDuringARenewalStaysDisconnected`, `TestDisconnectingWhileASignInFinishesStaysDisconnected` |
+| `DeadSignInIsSeen` | A sign-in the app no longer renews stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected | `TestASignInTheAppNoLongerTakesIsNotConnected` |
+
+`DeadSignInIsSeen` assumes the app answers and the disk takes a write in the end (strong fairness), and that somebody
+keeps using the app.
 
 ## Changing a modelled machine
 
