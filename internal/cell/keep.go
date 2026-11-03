@@ -1,6 +1,8 @@
 package cell
 
 import (
+	"errors"
+	"io/fs"
 	"log/slog"
 	"slices"
 	"sort"
@@ -28,6 +30,7 @@ func (s *Scaler) bringUp(running []Instance) (string, error) {
 			continue
 		}
 		if host.Stopped {
+			s.Pool.setRetiring(CellOf(host.ID), false)
 			return host.ID, s.Launcher.Start(host.ID)
 		}
 		kept++
@@ -51,12 +54,13 @@ func (s *Scaler) putAway(id string, kept bool) error {
 // sweep removes the stopped hosts that are not the kept ones, which nothing would start: a host that is not kept and powered itself
 // off, and kept hosts beyond Keep. A kept host that powered itself off, as a host does at its twelfth hour, is left stopped to be
 // started again, and its disk is lowered to the baseline, which the scaler does when it stops a host but a host that stopped itself
-// has not had. A host still stopping is looked at again at the next tick.
-func (s *Scaler) sweep(running []Instance) {
+// has not had. A host still stopping is looked at again at the next tick. A stopping or stopped host has its registration taken
+// away, which one that beat again on its way down left. It says which hosts are stopping or stopped, or nil when that is not known.
+func (s *Scaler) sweep(running []Instance) []Instance {
 	stopped, err := s.Launcher.Stopped()
 	if err != nil {
 		slog.Error("the stopped hosts could not be listed", "error", err)
-		return
+		return nil
 	}
 	sort.Slice(stopped, func(i, j int) bool { return stopped[i].ID < stopped[j].ID })
 	room := s.Keep
@@ -68,6 +72,7 @@ func (s *Scaler) sweep(running []Instance) {
 	current := s.currentImage(stopped)
 	lowered := map[string]bool{}
 	for _, host := range stopped {
+		s.unregister(host.ID)
 		if host.Kept && room > 0 && !stale(host, current) {
 			room--
 			if host.Stopped {
@@ -80,6 +85,20 @@ func (s *Scaler) sweep(running []Instance) {
 		}
 	}
 	s.lowered = lowered
+	return stopped
+}
+
+// forgetRetired lets go of the mark on a host that is gone: no longer listed, running or stopped, and not registered. A host
+// still stopping, or stopped to be started again, stays marked until bringUp starts it.
+func (s *Scaler) forgetRetired(running, stopped []Instance) {
+	listed := map[string]bool{}
+	for _, host := range append(running, stopped...) {
+		listed[CellOf(host.ID)] = true
+	}
+	s.Pool.forgetRetiring(func(name string) bool {
+		_, _, err := Registered(s.Pool.Dir, name, s.clock())
+		return !listed[name] && errors.Is(err, fs.ErrNotExist)
+	})
 }
 
 func (s *Scaler) lower(id string) bool {

@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -20,6 +22,10 @@ import (
 // gets a real process on a real port.
 func TestMain(m *testing.M) {
 	if os.Getenv("CELL_FAKE_ORG") == "1" {
+		// A server that does not end when asked, as one busy with a turn may not, is ended at its grace.
+		if os.Getenv("CELL_IGNORE_TERM") == "1" {
+			signal.Ignore(syscall.SIGTERM)
+		}
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 		mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +46,7 @@ var secret = []byte("0123456789abcdef0123456789abcdef")
 
 // agentHost is a cell: an agent on a listener of its own, its servers, and what it says it has to spare.
 type agentHost struct {
+	agent   *Agent
 	server  *httptest.Server
 	servers *cloud.LocalCell
 	mu      sync.Mutex
@@ -54,6 +61,7 @@ func newAgent(t *testing.T, name string, free int) *agentHost {
 		defer h.mu.Unlock()
 		return Capacity{CPUs: 4, MemoryAvailableMiB: h.free}
 	}}
+	h.agent = agent
 	h.server = httptest.NewServer(agent.Handler())
 	t.Cleanup(func() {
 		h.stopServers()

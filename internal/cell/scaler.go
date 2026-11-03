@@ -44,6 +44,9 @@ type Scaler struct {
 	Launcher Launcher
 	// Waiting is how many organizations wait for a host with room.
 	Waiting func() int
+	// Busy is how many organizations wait for room or are being placed and started. No host is judged idle while any are,
+	// since the one an organization is being placed on may be the idle one. Waiting stands in for it when it is not set.
+	Busy func() int
 	// Max is the most hosts there may be at once.
 	Max int
 	// Idle is how long a host may have nothing on it before it is stopped.
@@ -65,8 +68,6 @@ type Scaler struct {
 	now       func() time.Time
 	idleSince map[string]time.Time
 	firstSeen map[string]time.Time
-	// lastAlive is when each host was last seen registered as a cell.
-	lastAlive map[string]time.Time
 	retryAt   time.Time
 	// lowered is the stopped kept hosts whose disk is known to be at the baseline.
 	lowered map[string]bool
@@ -74,44 +75,9 @@ type Scaler struct {
 	wakeOnce sync.Once
 	woken    chan struct{}
 
-	// guard guards the prewarm fields, which a request sets while Run decides.
+	// guard guards expectUntil, which a request sets while Run decides.
 	guard       sync.Mutex
 	expectUntil time.Time
-	prewarmDay  string
-	prewarmed   int
-}
-
-// expected is how long after a visitor begins asking for a demo a host is started for it before it waits: the time it takes
-// to send the form, and a little more.
-const expected = 2 * time.Minute
-
-// Prewarm says a visitor has begun asking for a demo, so a host is started now, while they finish, if none is up or on its
-// way. It never blocks.
-func (s *Scaler) Prewarm() {
-	s.guard.Lock()
-	s.expectUntil = s.clock().Add(expected)
-	s.guard.Unlock()
-	s.Wake()
-}
-
-// expecting says a host should be started for a visitor about to wait, and counts it against the day's prewarms. It is
-// asked only when nothing waits, no host is up and none is starting.
-func (s *Scaler) expecting() bool {
-	s.guard.Lock()
-	defer s.guard.Unlock()
-	now := s.clock()
-	if !now.Before(s.expectUntil) {
-		return false
-	}
-	if day := now.UTC().Format(time.DateOnly); day != s.prewarmDay {
-		s.prewarmDay, s.prewarmed = day, 0
-	}
-	if s.prewarmed >= s.Prewarms {
-		return false
-	}
-	s.prewarmed++
-	s.expectUntil = time.Time{}
-	return true
 }
 
 // wake is the scaler's mailbox: one pending wake-up is enough, since a decision looks at everything there is.
@@ -170,7 +136,9 @@ func (s *Scaler) Tick() {
 		slog.Error("the hosts could not be listed", "error", err)
 		return
 	}
-	s.sweep(hosts)
+	if stopped := s.sweep(hosts); stopped != nil {
+		s.forgetRetired(hosts, stopped)
+	}
 	registered, err := Fresh(s.Pool.Dir, s.clock(), s.Pool.maxAge())
 	if err != nil {
 		slog.Error("the hosts could not be listed", "error", err)
@@ -181,8 +149,8 @@ func (s *Scaler) Tick() {
 		alive[InstanceOf(each.Name)] = each
 	}
 	starting := s.reap(hosts, alive)
+	s.retire(hosts, alive)
 	waiting := s.Waiting()
-	s.retire(hosts, alive, waiting)
 	if starting > 0 || s.settling(alive) || len(hosts) >= s.Max || s.clock().Before(s.retryAt) {
 		return
 	}
@@ -224,46 +192,61 @@ func (s *Scaler) settling(alive map[string]Registration) bool {
 	return settling
 }
 
+// CellOf is the host a machine runs: the name InstanceOf takes back to the machine.
+func CellOf(instance string) string { return "cell-" + strings.TrimPrefix(instance, "i-") }
+
 // reap removes a host that has not been a registered cell for as long as a host has to become one, counted from when it was started
-// or was last seen registered, whichever is later: a host that registered a moment ago and went quiet is a cell that is shutting
+// or was last heard from, whichever is later: a host that registered a moment ago and went quiet is a cell that is shutting
 // down, as a host does when it powers itself off, and is left for AWS to stop. It says how many are still starting.
 func (s *Scaler) reap(hosts []Instance, alive map[string]Registration) int {
-	if s.lastAlive == nil {
-		s.lastAlive = map[string]time.Time{}
-	}
 	now, starting := s.clock(), 0
 	for _, host := range hosts {
 		if _, registered := alive[host.ID]; registered {
-			s.lastAlive[host.ID] = now
 			continue
 		}
-		since := host.Launched
-		if seen := s.lastAlive[host.ID]; seen.After(since) {
-			since = seen
-		}
-		if now.Sub(since) <= orDefault(s.Boot, 10*time.Minute) {
+		if now.Sub(s.lastHeard(host)) <= orDefault(s.Boot, 10*time.Minute) {
 			starting++
 			continue
 		}
 		slog.Warn("a host did not come up in time, so it is stopped", "host", host.ID)
 		if err := s.Launcher.Terminate(host.ID); err != nil {
 			slog.Error("a host could not be stopped", "host", host.ID, "error", err)
+			continue
 		}
-	}
-	listed := map[string]bool{}
-	for _, host := range hosts {
-		listed[host.ID] = true
-	}
-	for id := range s.lastAlive {
-		if !listed[id] {
-			delete(s.lastAlive, id)
-		}
+		s.unregister(host.ID)
 	}
 	return starting
 }
 
-// retire stops a cell that has had nothing on it for as long as a cell may, unless somebody is waiting for room.
-func (s *Scaler) retire(hosts []Instance, alive map[string]Registration, waiting int) {
+// lastHeard is when a host was started or last said it was there, whichever is later. The registration keeps the second, so a
+// front door that starts again knows it.
+func (s *Scaler) lastHeard(host Instance) time.Time {
+	_, age, err := Registered(s.Pool.Dir, CellOf(host.ID), s.clock())
+	if heard := s.clock().Add(-age); err == nil && heard.After(host.Launched) {
+		return heard
+	}
+	return host.Launched
+}
+
+// unregister takes away the registration of a host that was stopped or removed, so that the organizations placed on it are
+// placed again rather than tried there until it has been silent for long.
+func (s *Scaler) unregister(id string) {
+	if err := Unregister(s.Pool.Dir, CellOf(id)); err != nil {
+		slog.Error("a stopped host's registration could not be taken away", "host", id, "error", err)
+	}
+}
+
+func (s *Scaler) busy() int {
+	if s.Busy != nil {
+		return s.Busy()
+	}
+	return s.Waiting()
+}
+
+// retire stops a cell that has had nothing on it for as long as a cell may, unless an organization waits for room or is being
+// placed or started. A restarted front door gives each idle cell the whole of that time again, which delays a stop and never
+// hastens one.
+func (s *Scaler) retire(hosts []Instance, alive map[string]Registration) {
 	if s.idleSince == nil {
 		s.idleSince = map[string]time.Time{}
 	}
@@ -272,26 +255,8 @@ func (s *Scaler) retire(hosts []Instance, alive map[string]Registration, waiting
 		onHost[host.ID], kept[host.ID] = true, host.Kept
 	}
 	for id, registration := range alive {
-		if !onHost[id] {
-			continue
-		}
-		status, err := newRemote(registration, s.Pool.Secret).Status()
-		if err != nil || len(status.Servers) > 0 || waiting > 0 {
-			delete(s.idleSince, id)
-			continue
-		}
-		since, idle := s.idleSince[id]
-		if !idle {
-			s.idleSince[id] = s.clock()
-			continue
-		}
-		if s.clock().Sub(since) >= orDefault(s.Idle, 10*time.Minute) {
-			slog.Info("a host has had nothing on it, so it is stopped", "host", id, "kept", kept[id])
-			if err := s.putAway(id, kept[id]); err != nil {
-				slog.Error("a host could not be stopped", "host", id, "error", err)
-				continue
-			}
-			delete(s.idleSince, id)
+		if onHost[id] && s.idleLongEnough(id, registration) {
+			s.retireIdle(id, registration, kept[id])
 		}
 	}
 	for id := range s.idleSince {
@@ -299,4 +264,43 @@ func (s *Scaler) retire(hosts []Instance, alive map[string]Registration, waiting
 			delete(s.idleSince, id)
 		}
 	}
+}
+
+// idleLongEnough says a cell is idle now and has been for as long as a cell may be.
+func (s *Scaler) idleLongEnough(id string, registration Registration) bool {
+	if !s.idle(registration) {
+		delete(s.idleSince, id)
+		return false
+	}
+	since, seen := s.idleSince[id]
+	if !seen {
+		s.idleSince[id] = s.clock()
+		return false
+	}
+	return s.clock().Sub(since) >= orDefault(s.Idle, 10*time.Minute)
+}
+
+// idle says a cell has no server on it and no organization waits for room or is being placed or started.
+func (s *Scaler) idle(registration Registration) bool {
+	status, err := newRemote(registration, s.Pool.Secret).Status()
+	return err == nil && len(status.Servers) == 0 && s.busy() == 0
+}
+
+// retireIdle stops an idle cell. It is marked first, so that from the moment it is checked the last time nothing is placed or
+// started on it; an organization placed on it before then is being placed, and keeps it.
+func (s *Scaler) retireIdle(id string, registration Registration, kept bool) {
+	s.Pool.setRetiring(registration.Name, true)
+	if !s.idle(registration) {
+		s.Pool.setRetiring(registration.Name, false)
+		delete(s.idleSince, id)
+		return
+	}
+	slog.Info("a host has had nothing on it, so it is stopped", "host", id, "kept", kept)
+	if err := s.putAway(id, kept); err != nil {
+		slog.Error("a host could not be stopped", "host", id, "error", err)
+		s.Pool.setRetiring(registration.Name, false)
+		return
+	}
+	delete(s.idleSince, id)
+	s.unregister(id)
 }

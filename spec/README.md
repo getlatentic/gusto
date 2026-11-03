@@ -35,6 +35,10 @@ ok   Demo.before-lead.cfg: Error: Invariant LeadFollowsDemo is violated.
 ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
+ok   Hosts.before-busy.cfg: Error: Invariant NoStopUnderAStart is violated.
+ok   Hosts.before-mark.cfg: Error: Invariant NoStopUnderAStart is violated.
+ok   Hosts.before-unregister.cfg: Error: Invariant DownIsGone is violated.
+ok   Hosts.now.cfg: 16509 states generated, 4580 distinct states found, 0 states left on queue.
 ok   MergeJournal.before-keep.cfg: Error: Invariant AllOrNothing is violated.
 ok   MergeJournal.before-twice.cfg: Error: Invariant AllOrNothing is violated.
 ok   MergeJournal.now.cfg: 76 states generated, 50 distinct states found, 0 states left on queue.
@@ -270,6 +274,26 @@ offered to the channels until it is taken or given up on. A person adds a routin
 | `NewsKept` | Every run's news is settled, or still kept to be told. | `owe`: a slot replaced the routine's last run, so a skip beside a run still answering, or the next run, lost its news | `TestARunsNewsIsToldAfterASlotItWasStillAnsweringIn`, `TestARunsNewsIsToldAfterTheNextRunStarts` |
 | `NoOrphanThread` | Every routine thread belongs to a routine. | `undo`: an add whose write failed left the thread it opened | `TestARoutineThatCannotBeKeptLeavesNoThread` |
 | `NoneMeansNone` | A read that gives no routines is of a file that holds none. | `surface`: a damaged `routines.json` was read as no routines, so every routine stopped and the page showed none | `TestADamagedRoutinesFileIsSaidOnThePage` |
+
+## Hosts
+
+The hosts organizations' servers run on, as the scaler stops them and the controller places on them
+(`internal/cell/scaler.go`, `internal/cell/pool.go`, `internal/cloud/controller.go`). An organization is provisioned: it is
+placed on a host, or stays on the one it was placed on, and its server is started there. A server may end on its own. The
+scaler retires a host it judges idle: it marks it, checks it again and stops it. A stopped host may start again and register.
+While a host's registration is there, the pool takes a silent host to be away for a while; once it is not, the host is gone,
+and its organizations are placed again.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `DownIsGone` | An organization on a host that is down is not kept there: the pool says the host is gone. | `unregister`: a host the scaler stopped or removed stayed registered, so its organizations were tried there for half an hour | `TestAHostTheScalerStopsOrRemovesIsGoneToThePool` |
+| `NoStopUnderAStart` | No host is stopped under an organization whose server is being started on it. | `busy`: an organization being placed or started did not count, and the idle host is the one with the most room | `TestAHostIsNotStoppedUnderAnOrganizationBeingPlacedOnIt` |
+| `NoStopUnderAStart` | | `mark`: a host was placed on after its last check and before it stopped | `TestAHostBeingStoppedIsNotPlacedOnWhileItBeatsOnItsWayDown` |
+
+Two more fixes have Go tests and no model: a front door that starts again counts on from the day's prewarms
+(`TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain`), and knows when a quiet host was last heard from
+(`TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain`). A host that goes stops its servers together, inside
+its service's stop time (`TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway`).
 
 ## Changing a modelled machine
 

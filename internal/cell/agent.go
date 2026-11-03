@@ -21,7 +21,9 @@ type Agent struct {
 	Servers *cloud.LocalCell
 	// Measure says what the machine has left. It is Measure unless a test says otherwise.
 	Measure func() Capacity
-	now     func() time.Time
+	// Grace is how long each server is given to end when the host goes, thirty seconds when not set.
+	Grace time.Duration
+	now   func() time.Time
 }
 
 // Status is what a host says of itself.
