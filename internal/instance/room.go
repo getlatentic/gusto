@@ -215,6 +215,19 @@ func (s *Store) AcceptAgent(id, agent string) error {
 	})
 }
 
+// SetAllowance changes what an agent may spend in a room in a calendar month; nil is no limit.
+func (s *Store) SetAllowance(id, agent string, usd *float64) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		for i := range held.Agents {
+			if held.Agents[i].ID == agent {
+				held.Agents[i].AllowanceUSD = usd
+				return nil
+			}
+		}
+		return fmt.Errorf("no agent %s in this room", agent)
+	})
+}
+
 // RemoveAgent takes an agent out of a room. What it did stays in the conversation.
 func (s *Store) RemoveAgent(id, agent string) error {
 	return s.changeRoom(id, func(held *Instance) error {

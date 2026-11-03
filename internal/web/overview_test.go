@@ -165,8 +165,8 @@ func TestTheOverviewSaysWhenTheMonthsSpendingHasPassedTheBudget(t *testing.T) {
 		t.Errorf("60 of 100 is not passed:\n%s", page)
 	}
 	spentNow(t, here, "second", "bob@acme.com", 40)
-	if page := overview(t, here); strings.Contains(page, `role="alert"`) {
-		t.Errorf("spending what the budget is has not passed it:\n%s", page)
+	if page := overview(t, here); !strings.Contains(page, "so the budget is reached.") {
+		t.Errorf("spending what the budget is does not reach it:\n%s", page)
 	}
 	spentNow(t, here, "third", "ada@acme.com", 30.5)
 	page := overview(t, here)

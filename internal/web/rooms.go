@@ -36,6 +36,7 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/members/remove", s.guard(s.removeRoomMember))
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/remove", s.guard(s.removeRoomAgent))
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/accept", s.guard(s.acceptRoomAgent))
+	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/allowance", s.guard(s.setRoomAgentAllowance))
 }
 
 func (s *Server) newRoomPage(w http.ResponseWriter, r *http.Request) {

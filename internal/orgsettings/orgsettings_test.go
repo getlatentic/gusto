@@ -51,7 +51,7 @@ func TestAMembersBudgetIsTheirOwnElseEveryones(t *testing.T) {
 	for who, want := range map[string]struct {
 		usd float64
 		set bool
-	}{"Ada@Acme.com": {50, true}, "carol@acme.com": {20, true}, "bob@acme.com": {0, false}} {
+	}{"Ada@Acme.com": {50, true}, "carol@acme.com": {20, true}, "bob@acme.com": {0, true}} {
 		if usd, set := settings.MemberBudget(who); usd != want.usd || set != want.set {
 			t.Errorf("%s: %v %v", who, usd, set)
 		}

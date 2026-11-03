@@ -1,12 +1,14 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/orgsettings"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // setMemberBudget sets what each member may spend in a month, or, for one person, what they may: their own figure, which stands
@@ -58,7 +60,7 @@ func memberBudgetWords(settings orgsettings.Settings, who string) string {
 	if !set {
 		return "none"
 	}
-	return budgetWords(usd)
+	return fmt.Sprintf("$%.2f", usd)
 }
 
 // memberBudget is what a page says of one person's month: their budget, whether it is their own or everyone's, and what they
@@ -88,6 +90,6 @@ func (s *Server) memberBudgetFor(who string, spent float64) memberBudget {
 	}
 	_, shown.Own = settings.MemberBudgets[strings.ToLower(who)]
 	shown.Limit, shown.Set = settings.MemberBudget(who)
-	shown.Passed = shown.Set && shown.Spent >= shown.Limit
+	shown.Passed = shown.Set && spend.Reached(shown.Spent, shown.Limit)
 	return shown
 }

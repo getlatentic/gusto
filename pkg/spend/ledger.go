@@ -3,6 +3,7 @@ package spend
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -64,10 +65,13 @@ type Terms struct {
 	// most it may spend there in one.
 	Allowance    string
 	AllowanceUSD *float64
-	// Person is who asked for the task, and PersonUSD the most they may spend in a calendar month, all their tasks together.
-	Person    string
-	PersonUSD *float64
+	// Person is who asked for the task, whose monthly budget the ledger reads at each call; see UsePersonBudgets.
+	Person string
 }
+
+// Reached says what has been spent has come to a limit, so nothing more may leave. Every cap, budget and allowance is reached
+// by the same rule.
+func Reached(spent, limit float64) bool { return spent >= limit }
 
 // account is one task's terms and what it has spent against them. Blind counts
 // the answers the provider accepted and the proxy could not price, which is
@@ -130,6 +134,8 @@ type Ledger struct {
 	// operatorEver is everything counted on the operator's keys, in any month, which a credit is held to.
 	operatorEver float64
 	credit       *credit
+	// budgets is what each person may spend in a calendar month, all their tasks together; see UsePersonBudgets.
+	budgets atomic.Pointer[func(person string) (float64, bool)]
 }
 
 func NewLedger(policy Policy) *Ledger {
@@ -172,10 +178,39 @@ func (l *Ledger) Begin(job string, terms Terms) {
 	l.account(job).terms = terms
 }
 
+// UsePersonBudgets says what each person may spend in a month, and false for a person with no budget. It is asked at each
+// call, so a budget an admin lowers holds from the next call of a task already running. It may read a file, so it is asked
+// before the ledger's lock is taken.
+func (l *Ledger) UsePersonBudgets(budget func(person string) (float64, bool)) {
+	l.budgets.Store(&budget)
+}
+
+// personBudget is the budget of the person who asked for a task, read before the ledger's lock is taken.
+type personBudget struct {
+	limit float64
+	set   bool
+}
+
+func (l *Ledger) personBudgetOf(job string) personBudget {
+	budget := l.budgets.Load()
+	if budget == nil {
+		return personBudget{}
+	}
+	l.guard.Lock()
+	person := l.account(job).terms.Person
+	l.guard.Unlock()
+	if person == "" {
+		return personBudget{}
+	}
+	limit, set := (*budget)(person)
+	return personBudget{limit: limit, set: set}
+}
+
 // Allow is asked before a call leaves, on the credential named, which is the organization's own when own is set. Nil lets it
 // go; a refusal names the cap that stops it. Only calls already in flight can take a task past its cap.
 func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 	credit := l.creditLimit()
+	person := l.personBudgetOf(job)
 	l.guard.Lock()
 	defer l.guard.Unlock()
 	held := l.account(job)
@@ -188,7 +223,7 @@ func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 	if refusal := l.allowanceSpent(held); refusal != nil {
 		return refusal
 	}
-	if refusal := l.personSpent(held); refusal != nil {
+	if refusal := l.personSpent(held, person); refusal != nil {
 		return refusal
 	}
 	if !own {
@@ -199,7 +234,7 @@ func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 			return refusal
 		}
 	}
-	return l.uncountable(held, credential, model, own, credit)
+	return l.uncountable(held, person, credential, model, own, credit)
 }
 
 // Count adds a call that happened, or was refused, to the task, its project
@@ -267,7 +302,7 @@ func monthOf(at time.Time) string { return at.UTC().Format("2006-01") }
 
 func (l *Ledger) jobSpent(held *account) *Refusal {
 	limit := held.terms.CapUSD
-	if limit == nil || held.tally.USD < *limit {
+	if limit == nil || !Reached(held.tally.USD, *limit) {
 		return nil
 	}
 	return &Refusal{
@@ -283,7 +318,7 @@ func (l *Ledger) teamSpent(held *account) *Refusal {
 	}
 	month := monthOf(l.now())
 	spent := l.tally(ByTeam, held.terms.Team, month).USD
-	if spent < limit {
+	if !Reached(spent, limit) {
 		return nil
 	}
 	return &Refusal{
@@ -299,7 +334,7 @@ func (l *Ledger) allowanceSpent(held *account) *Refusal {
 	}
 	month := monthOf(l.now())
 	spent := l.tally(ByAllowance, held.terms.Allowance, month).USD
-	if spent < *limit {
+	if !Reached(spent, *limit) {
 		return nil
 	}
 	return &Refusal{
@@ -309,19 +344,18 @@ func (l *Ledger) allowanceSpent(held *account) *Refusal {
 }
 
 // personSpent refuses a call once the person who asked for the task has spent their month's budget.
-func (l *Ledger) personSpent(held *account) *Refusal {
-	limit := held.terms.PersonUSD
-	if limit == nil || held.terms.Person == "" {
+func (l *Ledger) personSpent(held *account, budget personBudget) *Refusal {
+	if !budget.set {
 		return nil
 	}
 	month := monthOf(l.now())
 	spent := l.tally(ByPerson, held.terms.Person, month).USD
-	if spent < *limit {
+	if !Reached(spent, budget.limit) {
 		return nil
 	}
 	return &Refusal{
-		Cap: "person", LimitUSD: *limit, SpentUSD: spent,
-		Reason: fmt.Sprintf("%s has spent $%.2f of their $%.2f budget for %s; an admin of the organization can raise it", held.terms.Person, spent, *limit, month),
+		Cap: "person", LimitUSD: budget.limit, SpentUSD: spent,
+		Reason: fmt.Sprintf("%s has spent $%.2f of their $%.2f budget for %s; an admin of the organization can raise it", held.terms.Person, spent, budget.limit, month),
 	}
 }
 
@@ -344,7 +378,7 @@ func (l *Ledger) organizationSpent() *Refusal {
 	}
 	month := monthOf(l.now())
 	spent := l.tally(ByPayer, PaidByOperator, month).USD
-	if spent < limit {
+	if !Reached(spent, limit) {
 		return nil
 	}
 	return &Refusal{
@@ -356,8 +390,8 @@ func (l *Ledger) organizationSpent() *Refusal {
 // uncountable refuses a call a cap could not count. A cap that cannot see
 // what is spent is not holding anything, so it fails closed: before the call
 // when the model has no price, and after an answer that carried no usage.
-func (l *Ledger) uncountable(held *account, credential, model string, own bool, credit creditNow) *Refusal {
-	governing, found := l.governing(held, own, credit)
+func (l *Ledger) uncountable(held *account, person personBudget, credential, model string, own bool, credit creditNow) *Refusal {
+	governing, found := l.governing(held, person, own, credit)
 	if !found {
 		return nil
 	}
@@ -372,15 +406,25 @@ func (l *Ledger) uncountable(held *account, credential, model string, own bool, 
 	return governing
 }
 
-// governing is the cap this task answers to, the task's own before its team's, and the operator's on the organization last,
-// which a call on the organization's own key does not answer to.
-func (l *Ledger) governing(held *account, own bool, credit creditNow) (*Refusal, bool) {
+// governing is the cap this task answers to: the task's own, its team's, its agent's allowance in the room, the budget of the
+// person who asked, and the operator's on the organization and the credit last, which a call on the organization's own key does
+// not answer to.
+func (l *Ledger) governing(held *account, person personBudget, own bool, credit creditNow) (*Refusal, bool) {
+	month := monthOf(l.now())
 	if limit := held.terms.CapUSD; limit != nil {
 		return &Refusal{Cap: "job", LimitUSD: *limit, SpentUSD: held.tally.USD}, true
 	}
 	if limit, capped := l.policy.teamCap(held.terms.Team); capped {
-		spent := l.tally(ByTeam, held.terms.Team, monthOf(l.now())).USD
+		spent := l.tally(ByTeam, held.terms.Team, month).USD
 		return &Refusal{Cap: "team", Team: held.terms.Team, LimitUSD: limit, SpentUSD: spent}, true
+	}
+	if limit := held.terms.AllowanceUSD; limit != nil && held.terms.Allowance != "" {
+		spent := l.tally(ByAllowance, held.terms.Allowance, month).USD
+		return &Refusal{Cap: "allowance", LimitUSD: *limit, SpentUSD: spent}, true
+	}
+	if person.set {
+		spent := l.tally(ByPerson, held.terms.Person, month).USD
+		return &Refusal{Cap: "person", LimitUSD: person.limit, SpentUSD: spent}, true
 	}
 	if limit, capped := l.policy.OrganizationCap(); capped && !own {
 		return &Refusal{Cap: "organisation", LimitUSD: limit}, true

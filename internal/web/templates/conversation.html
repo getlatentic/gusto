@@ -262,6 +262,10 @@
       </form>
       {{else}}<span class="text-sm text-muted">{{if .Pending}}Waiting for an admin{{else}}Agent{{end}}</span>{{end}}
     </div>
+    {{if or $.Members.Runs .Yours}}<form class="m-0 flex items-center gap-2 pb-2 pl-11" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/allowance">
+      <label class="flex items-center gap-2 text-xs text-subtle">Allowance a month <input class="input h-7 w-24" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off" value="{{.AllowanceField}}" aria-label="{{.Name}}'s allowance a month"></label>
+      <button class="{{template "ui-btn-sm"}}" type="submit">Save</button>
+    </form>{{end}}
     {{end}}
   </div>
 </dialog>

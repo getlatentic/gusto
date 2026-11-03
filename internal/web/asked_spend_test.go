@@ -20,8 +20,14 @@ func TestSpendShownAgainstABudgetIsWhatThePersonAskedForAsTheProxyCountsIt(t *te
 	here.ask(t, "POST", "/admin/budget", url.Values{"each": {"4"}})
 	spendFor(ledger, "bob@acme.com", 5)
 
-	limit := 4.0
-	ledger.Begin("bob-again", spend.Terms{Person: "bob@acme.com", PersonUSD: &limit})
+	ledger.UsePersonBudgets(func(person string) (float64, bool) {
+		settings, err := here.server.orgSettings.Read()
+		if err != nil {
+			return 0, false
+		}
+		return settings.MemberBudget(person)
+	})
+	ledger.Begin("bob-again", spend.Terms{Person: "bob@acme.com"})
 	refusal := ledger.Allow("bob-again", "platform", "m", false)
 	if refusal == nil || refusal.Cap != "person" || refusal.SpentUSD != 5 {
 		t.Fatalf("the proxy does not hold bob to his budget: %+v", refusal)

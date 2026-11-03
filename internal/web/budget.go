@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/orgsettings"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // UseOrgSettings says where the choices an admin makes for the organization are kept,
@@ -48,7 +49,7 @@ func (s *Server) budgetOf(spent float64) budgetState {
 	}
 	state := budgetState{Editable: true, Set: settings.MonthlyBudgetUSD > 0, Limit: settings.MonthlyBudgetUSD,
 		Member: settings.MemberBudgetUSD, MemberSet: settings.MemberBudgetUSD > 0}
-	state.Passed = state.Set && spent > state.Limit
+	state.Passed = state.Set && spend.Reached(spent, state.Limit)
 	if state.Passed {
 		state.Over = spent - state.Limit
 	}
