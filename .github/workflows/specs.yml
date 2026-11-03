@@ -1,0 +1,25 @@
+# TLC checks the TLA+ specs, and that each spec still finds the bug it was written for, whenever a spec or the code it
+# models changes.
+name: specs
+
+on:
+  pull_request:
+    paths:
+      - "spec/**"
+      - "internal/jobs/**"
+      - "internal/evidence/**"
+      - ".github/workflows/specs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check every spec with TLC
+        run: |
+          java -version
+          spec/check.sh
