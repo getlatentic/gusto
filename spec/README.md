@@ -13,6 +13,8 @@ ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violate
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
+ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
+ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
@@ -57,7 +59,17 @@ may hold it one after another: a demo's address has two random bytes, so it can 
 | `NewOrgIsProvisioned` | A new organization at a removed address is provisioned. | a check that ignores when the organization was made | `TestANewOrganizationAtARemovedAddressIsProvisioned` |
 
 `provisionChecksOrg` alone keeps `EndingStopsServer`: the supervisor's own check from getlatentic/gusto#560 is a second
-guard. The model leaves out two front doors at once, which is getlatentic/planning#775.
+guard. FrontDoors models several front doors.
+
+## FrontDoors
+
+Two front doors on one database, each with a controller over one organization, and two cells. With `leader`, one front
+door at a time holds a lease with an epoch, only it acts, and a runtime write is refused unless its epoch is the lease's.
+The lease may lapse while its holder is paused, and the holder acts on until it notices.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `OneServer` | The organization's server runs on one cell at most. | `leader`: each front door places it on a cell of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
 
 ## ConnectorSignIn
 

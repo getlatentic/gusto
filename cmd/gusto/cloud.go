@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -56,7 +59,6 @@ func cloudCommand() int {
 	if dir := os.Getenv("GUSTO_CLOUD_CELLS_DIR"); dir != "" && controller != nil {
 		go beatForCells(ctx, dir)
 	}
-	go front.RunDemos(ctx, 15*time.Second)
 	go front.RunLeads(ctx, 30*time.Second)
 	if front.Seats != nil {
 		go front.Seats.Run(ctx, time.Minute)
@@ -68,13 +70,35 @@ func cloudCommand() int {
 	if scaler != nil {
 		controller.OnWaiting = scaler.Wake
 		front.Prewarm = scaler.Prewarm
-		go scaler.Run(ctx, 10*time.Second)
 	}
+	// One front door on the database leads: it runs the controller, the demo sweep and the scaler. The others serve pages
+	// and route from the database, and one of them takes over when the leader's lease runs out.
+	if controller != nil {
+		controller.Follow()
+	}
+	lead := func(ctx context.Context, epoch int64) {
+		if controller != nil {
+			controller.Lead(epoch)
+			defer controller.Follow()
+		}
+		var wg sync.WaitGroup
+		wg.Go(func() { front.RunDemos(ctx, 15*time.Second) })
+		if scaler != nil {
+			wg.Go(func() { scaler.Run(ctx, 10*time.Second) })
+		}
+		if controller != nil {
+			wg.Go(func() { controller.Run(ctx, 5*time.Second) })
+		}
+		wg.Wait()
+	}
+	ttl := time.Duration(number("GUSTO_CLOUD_LEADER_SECONDS", 30)) * time.Second
+	leadership := &cloud.Leadership{Store: front.Store, Holder: holderName(), TTL: ttl, Every: ttl / 3}
 	controlled := make(chan struct{})
 	go func() {
 		defer close(controlled)
+		leadership.Run(ctx, lead)
 		if controller != nil {
-			controller.Run(ctx, 5*time.Second)
+			controller.StopAll()
 		}
 	}()
 	go func() {
@@ -90,6 +114,15 @@ func cloudCommand() int {
 	front.Wait()
 	<-controlled
 	return 0
+}
+
+// holderName tells this front door apart from every other on the database: its host, its process and a random part, since
+// a process number is used again after a restart.
+func holderName() string {
+	host, _ := os.Hostname()
+	random := make([]byte, 4)
+	_, _ = rand.Read(random)
+	return fmt.Sprintf("%s/%d/%s", host, os.Getpid(), hex.EncodeToString(random))
 }
 
 // openCloud reads gusto cloud's settings and opens what it keeps. Links

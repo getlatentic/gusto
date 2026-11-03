@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/signing"
@@ -72,7 +73,28 @@ type Controller struct {
 	removed map[string]time.Time
 	locks   sync.Map
 	portMu  sync.Mutex
+
+	// epoch is the lease this controller leads with, which fences what it writes: 0 when no lease governs it, and -1
+	// while another front door leads, when this one routes from the database and starts nothing.
+	epoch atomic.Int64
+	// followed is what routing read from the database while another front door leads.
+	followed routeCache
 }
+
+// Lead makes this controller the one that provisions and supervises, at the lease's epoch.
+func (c *Controller) Lead(epoch int64) { c.epoch.Store(epoch) }
+
+// Follow makes this controller route from the database and start nothing, while another front door leads. What it kept
+// while it led is forgotten, since the leader changes it now.
+func (c *Controller) Follow() {
+	c.epoch.Store(-1)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	clear(c.states)
+	clear(c.retry)
+}
+
+func (c *Controller) following() bool { return c.epoch.Load() < 0 }
 
 func (c *Controller) lock(slug string) *sync.Mutex {
 	held, _ := c.locks.LoadOrStore(slug, &sync.Mutex{})
@@ -88,8 +110,12 @@ func (c *Controller) indexDir() string {
 
 func (c *Controller) orgDir(slug string) string { return c.Store.OrgDir(slug) }
 
-// Provision makes an organization's server exist and start, and says when it answers.
+// Provision makes an organization's server exist and start, and says when it answers. A front door that does not lead
+// starts nothing: the leader finds the organization and provisions it.
 func (c *Controller) Provision(slug string) error {
+	if c.following() {
+		return nil
+	}
 	held := c.lock(slug)
 	held.Lock()
 	defer held.Unlock()
@@ -113,7 +139,9 @@ func (c *Controller) provision(slug string) error {
 		runtime.Restarts = held.Restarts
 	}
 	c.mu.Unlock()
-	c.set(slug, runtime, Provisioning, "")
+	if err := c.set(slug, runtime, Provisioning, ""); err != nil {
+		return err
+	}
 	if err := c.prepare(slug); err != nil {
 		return c.fail(slug, runtime, err)
 	}
@@ -129,7 +157,9 @@ func (c *Controller) provision(slug string) error {
 			return c.fail(slug, runtime, err)
 		}
 	}
-	c.set(slug, runtime, Starting, "")
+	if err := c.set(slug, runtime, Starting, ""); err != nil {
+		return err
+	}
 	env, err := c.environment(slug, runtime, cell)
 	if err != nil {
 		return c.fail(slug, runtime, err)
@@ -145,8 +175,7 @@ func (c *Controller) provision(slug string) error {
 	if err := c.answers(cell, runtime.Port); err != nil {
 		return c.fail(slug, runtime, err)
 	}
-	c.set(slug, runtime, Ready, "")
-	return nil
+	return c.set(slug, runtime, Ready, "")
 }
 
 // stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
@@ -207,7 +236,7 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 		}
 	}
 	runtime.Cell = cell.Name()
-	return cell, c.Store.SetRuntime(slug, *runtime)
+	return cell, c.Store.SetRuntimeAt(c.epoch.Load(), slug, *runtime)
 }
 
 // prepare makes what an organization's server keeps: its directories, the key it signs
@@ -335,7 +364,7 @@ func (c *Controller) givePorts(slug string, runtime Runtime, cell Cell) (Runtime
 		return runtime, err
 	}
 	runtime.Port, runtime.ProxyPort = server, proxy
-	return runtime, c.Store.SetRuntime(slug, runtime)
+	return runtime, c.Store.SetRuntimeAt(c.epoch.Load(), slug, runtime)
 }
 
 func free(port int) bool {
@@ -364,18 +393,25 @@ func (c *Controller) answers(cell Cell, port int) error {
 	}
 }
 
-// set writes down the state of a server and remembers it for routing.
-func (c *Controller) set(slug string, runtime Runtime, state State, why string) {
+// set writes down the state of a server and remembers it for routing. A write refused because another front door leads now
+// is said, and nothing is remembered: the provision that made it stops. Any other failure to write is logged, and routing
+// follows what is remembered.
+func (c *Controller) set(slug string, runtime Runtime, state State, why string) error {
 	runtime.State, runtime.Error = state, why
+	err := c.Store.SetRuntimeAt(c.epoch.Load(), slug, runtime)
+	if errors.Is(err, ErrNotLeading) {
+		return err
+	}
+	if err != nil {
+		slog.Error("an organization's state was not written", "org", slug, "error", err)
+	}
 	c.mu.Lock()
 	if c.states == nil {
 		c.states = map[string]Runtime{}
 	}
 	c.states[slug] = runtime
 	c.mu.Unlock()
-	if err := c.Store.SetRuntime(slug, runtime); err != nil {
-		slog.Error("an organization's state was not written", "org", slug, "error", err)
-	}
+	return nil
 }
 
 // wait leaves an organization waiting for a cell with room, which it is tried for again shortly. It is not a failure
@@ -423,6 +459,9 @@ func (c *Controller) fail(slug string, runtime Runtime, err error) error {
 // Route is where an organization's server is when it can be reached, and its state
 // when it cannot. A server whose process has gone is not reached.
 func (c *Controller) Route(slug string) (address string, state State) {
+	if c.following() {
+		return c.routeFollowed(slug)
+	}
 	c.mu.Lock()
 	runtime, known := c.states[slug]
 	c.mu.Unlock()
@@ -439,10 +478,10 @@ func (c *Controller) Route(slug string) (address string, state State) {
 	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
 }
 
-// Run provisions every organization there is and then keeps their servers running,
-// until the context ends, when it stops them all. A server that has stopped is
-// started again, at first at once and then less often, so one that cannot start
-// does not take the machine with it.
+// Run provisions every organization there is and then keeps their servers running, until the context ends: when this front
+// door stops leading, or stops. It leaves the servers running, for the next leader; StopAll stops them. A server that has
+// stopped is started again, at first at once and then less often, so one that cannot start does not take the machine with
+// it.
 func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	orgs, err := c.Store.Orgs()
 	if err != nil {
@@ -468,7 +507,6 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			c.stopAll()
 			return
 		case <-timer.C:
 			c.supervise()
@@ -476,14 +514,20 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	}
 }
 
+// supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a front door that
+// does not lead. Whether a server is alive is asked of its cell outside c.mu, so routing does not wait on a cell.
 func (c *Controller) supervise() {
 	var due, waiting []string
+	var ready map[string]Runtime
 	c.mu.Lock()
 	now := time.Now()
 	for slug, runtime := range c.states {
 		switch {
-		case runtime.State == Ready && !c.alive(slug, runtime):
-			due = append(due, slug)
+		case runtime.State == Ready:
+			if ready == nil {
+				ready = map[string]Runtime{}
+			}
+			ready[slug] = runtime
 		case runtime.State == Failed && !now.Before(c.retry[slug]):
 			due = append(due, slug)
 		case runtime.State == Waiting && !now.Before(c.retry[slug]):
@@ -491,11 +535,34 @@ func (c *Controller) supervise() {
 		}
 	}
 	c.mu.Unlock()
+	for slug, runtime := range ready {
+		if !c.alive(slug, runtime) {
+			due = append(due, slug)
+		}
+	}
 	for _, slug := range due {
 		c.restart(slug)
 	}
 	for _, slug := range waiting {
 		go c.reprovision(slug)
+	}
+	c.provisionNew()
+}
+
+// provisionNew provisions each organization that has no runtime yet and that this controller does not hold.
+func (c *Controller) provisionNew() {
+	slugs, err := c.Store.Unprovisioned()
+	if err != nil {
+		slog.Error("the organizations with no server could not be listed", "error", err)
+		return
+	}
+	for _, slug := range slugs {
+		c.mu.Lock()
+		_, held := c.states[slug]
+		c.mu.Unlock()
+		if !held {
+			go c.Provision(slug)
+		}
 	}
 }
 
@@ -544,7 +611,9 @@ func (c *Controller) alive(slug string, runtime Runtime) bool {
 	return err == nil && cell.Alive(slug)
 }
 
-func (c *Controller) stopAll() {
+// StopAll stops every server this controller holds, when the front door stops. A server on a host apart is left running:
+// it does not end with the front door, which is restarted at every deploy.
+func (c *Controller) StopAll() {
 	c.mu.Lock()
 	held := make(map[string]Runtime, len(c.states))
 	for slug, runtime := range c.states {
