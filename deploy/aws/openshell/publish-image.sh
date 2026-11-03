@@ -21,6 +21,6 @@ address="$(terraform output -raw address)"
 ./image.sh runner-all-rootfs "$(./harnesses.sh)"
 ssh "${ssh_options[@]}" "ubuntu@$address" "set -e
   sudo podman save --format docker-archive docker.io/library/gusto-runner | gzip -1 > ~/e2e/runner-all-docker.tar.gz
-  AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$key.tar.gz --only-show-errors
-  AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-docker.tar.gz s3://$bucket/image/$key.docker.tar.gz --only-show-errors"
+  AWS_REGION=$AWS_REGION PATH=/snap/bin:/usr/local/bin:\$PATH aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$key.tar.gz --only-show-errors
+  AWS_REGION=$AWS_REGION PATH=/snap/bin:/usr/local/bin:\$PATH aws s3 cp ~/e2e/runner-all-docker.tar.gz s3://$bucket/image/$key.docker.tar.gz --only-show-errors"
 echo "made the image $key"

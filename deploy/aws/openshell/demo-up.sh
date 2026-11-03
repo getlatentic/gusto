@@ -36,7 +36,7 @@ if [ -z "${ONLY_CONFIGURE:-}" ]; then
   address="$(terraform output -raw address)"
   if ! aws s3api head-object --bucket "$bucket" --key "image/$image_key.tar.gz" >/dev/null 2>&1; then
     ./image.sh runner-all-rootfs "$harnesses"
-    ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
+    ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION PATH=/snap/bin:/usr/local/bin:\$PATH aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
   fi
 fi
 
