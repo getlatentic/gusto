@@ -368,3 +368,25 @@ func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
 		}
 	})
 }
+
+// An organization the supervisor saw stop, and that is removed before it is started again, stays removed: its server is not
+// started, and the controller does not hold it again.
+func TestARemovedOrganizationIsNotStartedAgain(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		c := controlled(t, s)
+		org := made(t, s, "ada@acme.com", "Acme")
+		c.Provision(org.Slug)
+		c.Remove(org.Slug)
+		c.restart(org.Slug)
+		if _, state := c.Route(org.Slug); state != "" {
+			t.Fatalf("a removed organization is %q", state)
+		}
+		if c.Cell.Alive(org.Slug) {
+			t.Error("a removed organization's server was started again")
+		}
+		if err := c.reprovision(org.Slug); err != nil || c.Cell.Alive(org.Slug) {
+			t.Errorf("a retry for a removed organization started it: %v", err)
+		}
+	})
+}
