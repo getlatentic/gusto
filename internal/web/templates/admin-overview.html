@@ -5,7 +5,7 @@
   <p class="{{template "ui-lede"}}">{{.MonthName}}, so far</p>
 </div>
 
-{{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.MonthName}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}.</p>{{end}}
+{{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.MonthName}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is {{if .Budget.Over}}passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}{{else}}reached{{end}}.</p>{{end}}
 {{if .Budget.Err}}<p class="{{template "ui-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
 {{if .Spent.Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index of model calls is still being built, so these figures are not yet everything.</p>{{end}}
 

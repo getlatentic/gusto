@@ -37,6 +37,14 @@ func (a roomAgent) Allowance() string {
 	return fmt.Sprintf("$%.2f a month here", *a.AllowanceUSD)
 }
 
+// AllowanceField is the allowance as its field shows it, and empty for no limit.
+func (a roomAgent) AllowanceField() string {
+	if a.AllowanceUSD == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *a.AllowanceUSD)
+}
+
 func (s *Server) roomAgents(held instance.Instance, you string) []roomAgent {
 	shown := make([]roomAgent, 0, len(held.Agents))
 	for _, agent := range held.Agents {

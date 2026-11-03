@@ -99,6 +99,29 @@ func (s *Server) removeRoomAgent(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
 }
 
+// setRoomAgentAllowance changes what an agent may spend in a room a month, which its owner may do as well as the room's admin,
+// as either may when it is added. It holds from the agent's next turn.
+func (s *Server) setRoomAgentAllowance(w http.ResponseWriter, r *http.Request) {
+	held, found := s.roomOf(w, r)
+	if !found {
+		return
+	}
+	agent, in := held.AgentByID(r.PathValue("agent"))
+	if !in || (!s.runsRoom(r, held) && !strings.EqualFold(s.ownerOf(agent), s.askerName(r))) {
+		http.Error(w, "only a room's admin or the agent's owner sets its allowance", http.StatusForbidden)
+		return
+	}
+	allowance, err := allowanceOf(r.FormValue("allowance"))
+	if err == nil {
+		err = s.instances.SetAllowance(held.ID, agent.ID, allowance)
+	}
+	if err != nil {
+		s.turnAway(w, r, s.membersPath(held), err.Error())
+		return
+	}
+	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
+}
+
 // takeOutAgent removes an agent from a room and stops what it was doing there.
 func (s *Server) takeOutAgent(room, agent, by string) error {
 	if err := s.instances.RemoveAgent(room, agent); err != nil {
@@ -130,9 +153,9 @@ func (s *Server) overAllowance(held instance.Instance, agent instance.Agent) str
 		return ""
 	}
 	spent := s.ledger.SpentThisMonth(spend.ByAllowance, spend.AllowanceOf(held.ID, agent.ID))
-	if spent < *agent.AllowanceUSD {
+	if !spend.Reached(spent, *agent.AllowanceUSD) {
 		return ""
 	}
-	return fmt.Sprintf("%s has spent $%.2f of its $%.2f allowance in this room this month, so it was not asked. Its owner can raise it.",
+	return fmt.Sprintf("%s has spent $%.2f of its $%.2f allowance in this room this month, so it was not asked. Its owner or the room's admin can raise it from the room's members.",
 		agent.Name, spent, *agent.AllowanceUSD)
 }

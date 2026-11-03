@@ -43,6 +43,10 @@ ok   Quota.before-serial.cfg: Error: Invariant QuotaFollows is violated.
 ok   Quota.now.cfg: 5452 states generated, 2777 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
+ok   SpendCap.before-governing.cfg: Error: Invariant BudgetHolds is violated.
+ok   SpendCap.before-live.cfg: Error: Invariant BudgetHolds is violated.
+ok   SpendCap.before-zero.cfg: Error: Invariant BudgetHolds is violated.
+ok   SpendCap.now.cfg: 5532 states generated, 1158 distinct states found, 0 states left on queue.
 ok   StateFile.before-dir-sync.cfg: Error: Invariant NothingDoneIsLost is violated.
 ok   StateFile.before-in-place.cfg: Error: Invariant AlwaysWhole is violated.
 ok   StateFile.before-unsynced.cfg: Error: Invariant AlwaysWhole is violated.
@@ -210,6 +214,19 @@ quota.
 | `QuotaFollows` | When no call is left to make and nothing is marked, the file says what the database does. | `serial`: two calls read in one order and wrote in the other, so the older quota was left | the model only: the order depends on goroutine scheduling |
 | `QuotaFollows` | | `dueMark`: a quota a confirmed address or the seat sync failed to write stayed wrong until the next start | `TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep` |
 | `Converges` | However the changes go, the file comes to say what the database does. | either | |
+
+## SpendCap
+
+One person's monthly budget, as the proxy holds their tasks to it (`pkg/spend/ledger.go`, `cmd/gusto/wayout.go`). An admin sets
+the budget, lowers it, or sets $0. The person's tasks start and make calls, priced or not, and `Ledger.Allow` decides each one.
+After an answer that carried no usage, a task's later calls cannot be counted. The server restarts, and `Rebuild` gives each task
+its terms again. Calls already in flight may take a person past the budget, so the property is about what `Allow` lets leave.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `BudgetHolds` | No call leaves that the budget, as the settings hold it now, should stop. | `live`: the budget was read when the task started, so lowering it did not stop running tasks, and a restart dropped it | `TestALoweredBudgetStopsATaskAlreadyRunning` |
+| `BudgetHolds` | | `governing`: a person's budget alone let through calls it could not count | `TestABudgetOrAnAllowanceAloneRefusesWhatItCannotCount` |
+| `BudgetHolds` | | `zero`: one person's $0 budget was taken for no budget | `TestOnePersonsBudgetOfNothingAllowsNothing` |
 
 ## Subscription
 

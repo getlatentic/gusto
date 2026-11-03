@@ -23,8 +23,9 @@ type Settings struct {
 	MonthlyBudgetUSD float64 `json:"monthlyBudgetUsd,omitempty"`
 	// MemberBudgetUSD is what each person may spend in a calendar month, all their tasks together, unless MemberBudgets names
 	// them. Zero is no limit. Unlike the organization's budget, a member's is enforced: past it, their agents' calls are refused.
-	MemberBudgetUSD float64            `json:"memberBudgetUsd,omitempty"`
-	MemberBudgets   map[string]float64 `json:"memberBudgets,omitempty"`
+	MemberBudgetUSD float64 `json:"memberBudgetUsd,omitempty"`
+	// MemberBudgets is a person's own budget, which stands in place of every member's; $0 allows nothing.
+	MemberBudgets map[string]float64 `json:"memberBudgets,omitempty"`
 	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
 	DefaultHarness string `json:"defaultHarness,omitempty"`
 	DefaultModel   string `json:"defaultModel,omitempty"`
@@ -90,11 +91,11 @@ func (f *File) Change(change func(*Settings)) error {
 	return atomicfile.Write(f.path, settings, 0o600)
 }
 
-// MemberBudget is what one person may spend in a month: their own budget when an admin set one, else every member's, and false
-// when neither is set.
+// MemberBudget is what one person may spend in a month: their own budget when an admin set one, where $0 allows nothing, else
+// every member's, and false when neither is set.
 func (s Settings) MemberBudget(person string) (float64, bool) {
 	if usd, found := s.MemberBudgets[strings.ToLower(person)]; found {
-		return usd, usd > 0
+		return usd, true
 	}
 	return s.MemberBudgetUSD, s.MemberBudgetUSD > 0
 }

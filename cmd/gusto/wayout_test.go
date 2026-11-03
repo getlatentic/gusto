@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // A sealed box reaches its model only through the proxy, on its own loopback,
@@ -137,12 +138,17 @@ func TestTheCallLimitsAreReadFromTheirSettingsAndAWrongOneIsSaid(t *testing.T) {
 }
 
 func TestATaskIsHeldToTheBudgetOfThePersonWhoAskedForIt(t *testing.T) {
-	way := &WayOut{}
+	way := &WayOut{ledger: spend.NewLedger(spend.Policy{})}
 	way.UseMemberBudgets(func(person string) (float64, bool) { return 20, person == "ada@acme.com" })
-	if terms := way.termsOf(job.Spec{Person: "Ada@Acme.com"}); terms.PersonUSD == nil || *terms.PersonUSD != 20 || terms.Person != "ada@acme.com" {
-		t.Errorf("ada's task: %+v", terms)
+	twenty := 20.0
+	for _, person := range []string{"Ada@Acme.com", "bob@acme.com"} {
+		way.ledger.Begin(person, spend.TermsOf(job.Spec{Person: person}))
+		way.ledger.Count(person, spend.Call{Path: "/v1/chat/completions", Model: "m", Status: 200, AtUnix: time.Now().Unix(), USD: &twenty})
 	}
-	if terms := way.termsOf(job.Spec{Person: "bob@acme.com"}); terms.PersonUSD != nil {
-		t.Errorf("bob, who has no budget, was given one: %+v", terms)
+	if refusal := way.ledger.Allow("Ada@Acme.com", "", "", false); refusal == nil || refusal.Cap != "person" {
+		t.Errorf("ada's task went past her budget: %+v", refusal)
+	}
+	if refusal := way.ledger.Allow("bob@acme.com", "", "", false); refusal != nil {
+		t.Errorf("bob, who has no budget, was held to one: %+v", refusal)
 	}
 }
