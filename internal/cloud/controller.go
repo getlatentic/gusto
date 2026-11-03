@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -447,16 +448,22 @@ func (c *Controller) waitEvery() time.Duration {
 }
 
 // Waiting is how many organizations are waiting for a cell with room, which is what makes another start.
-func (c *Controller) Waiting() int {
+func (c *Controller) Waiting() int { return c.count(Waiting) }
+
+// Busy is how many organizations wait for a cell with room or are being placed and started, while which no cell is idle:
+// the one an organization is being placed on may be the one with nothing on it yet.
+func (c *Controller) Busy() int { return c.count(Waiting, Provisioning, Starting) }
+
+func (c *Controller) count(states ...State) int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	waiting := 0
+	counted := 0
 	for _, runtime := range c.states {
-		if runtime.State == Waiting {
-			waiting++
+		if slices.Contains(states, runtime.State) {
+			counted++
 		}
 	}
-	return waiting
+	return counted
 }
 
 func (c *Controller) fail(slug string, runtime Runtime, err error) error {

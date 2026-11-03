@@ -60,6 +60,14 @@ func Register(dir string, r Registration) error {
 	return os.Rename(temp.Name(), file(dir, r.Name))
 }
 
+// Unregister takes a host's registration away, so the pool says the host is gone.
+func Unregister(dir, name string) error {
+	if err := os.Remove(file(dir, name)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
 // Registered is the host with that name, and how long ago it was last heard from.
 func Registered(dir, name string, now time.Time) (Registration, time.Duration, error) {
 	if !ValidName(name) {

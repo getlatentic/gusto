@@ -28,6 +28,46 @@ type Pool struct {
 	// Measure says what this machine has left, as an agent does for its own.
 	Measure func() Capacity
 	now     func() time.Time
+
+	// guard guards retiring, which the scaler sets while the controller places.
+	guard sync.Mutex
+	// retiring is the hosts the scaler is stopping, by name: none is placed on or started on.
+	retiring map[string]bool
+}
+
+// setRetiring says the scaler is stopping a host, or is not after all.
+func (p *Pool) setRetiring(name string, retiring bool) {
+	p.guard.Lock()
+	defer p.guard.Unlock()
+	if p.retiring == nil {
+		p.retiring = map[string]bool{}
+	}
+	if retiring {
+		p.retiring[name] = true
+		return
+	}
+	delete(p.retiring, name)
+}
+
+// forgetRetiring lets go of the marks of the hosts that gone says are gone.
+func (p *Pool) forgetRetiring(gone func(name string) bool) {
+	p.guard.Lock()
+	marked := make([]string, 0, len(p.retiring))
+	for name := range p.retiring {
+		marked = append(marked, name)
+	}
+	p.guard.Unlock()
+	for _, name := range marked {
+		if gone(name) {
+			p.setRetiring(name, false)
+		}
+	}
+}
+
+func (p *Pool) isRetiring(name string) bool {
+	p.guard.Lock()
+	defer p.guard.Unlock()
+	return p.retiring[name]
 }
 
 func (p *Pool) clock() time.Time {
@@ -59,6 +99,8 @@ func (p *Pool) Get(name string) (cloud.Cell, error) {
 		return nil, fmt.Errorf("there is no host called %q: %w", name, cloud.ErrCellGone)
 	case err != nil:
 		return nil, err
+	case p.isRetiring(name):
+		return nil, fmt.Errorf("the host %s is being stopped", name)
 	case age > gone:
 		return nil, fmt.Errorf("the host %s has not been heard from for %s: %w", name, age.Round(time.Second), cloud.ErrCellGone)
 	case age > p.maxAge():
@@ -75,7 +117,7 @@ type candidate struct {
 }
 
 // Place is the host with the most memory to spare that has enough, and this machine counts among them
-// when it runs servers. A host that does not answer is not a candidate.
+// when it runs servers. A host that does not answer, or that is being stopped, is not a candidate.
 func (p *Pool) Place() (cloud.Cell, error) {
 	fresh, err := Fresh(p.Dir, p.clock(), p.maxAge())
 	if err != nil {
@@ -87,6 +129,9 @@ func (p *Pool) Place() (cloud.Cell, error) {
 		wg    sync.WaitGroup
 	)
 	for _, registered := range fresh {
+		if p.isRetiring(registered.Name) {
+			continue
+		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

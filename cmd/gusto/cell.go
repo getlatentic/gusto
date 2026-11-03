@@ -135,7 +135,7 @@ func cellScaler(controller *cloud.Controller) (*cell.Scaler, error) {
 	}
 	return &cell.Scaler{
 		Pool: pool, Launcher: &cell.EC2{Template: template, UserData: script, Settings: settings, Project: os.Getenv("GUSTO_CLOUD_CELL_PROJECT"),
-			ImageParameter: os.Getenv("GUSTO_CLOUD_CELL_IMAGE_PARAMETER")}, Waiting: controller.Waiting,
+			ImageParameter: os.Getenv("GUSTO_CLOUD_CELL_IMAGE_PARAMETER")}, Waiting: controller.Waiting, Busy: controller.Busy,
 		Max:  number("GUSTO_CLOUD_CELL_MAX", 3),
 		Idle: time.Duration(number("GUSTO_CLOUD_CELL_IDLE_MINUTES", 10)) * time.Minute,
 		Boot: time.Duration(number("GUSTO_CLOUD_CELL_BOOT_MINUTES", 10)) * time.Minute,

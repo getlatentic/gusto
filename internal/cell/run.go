@@ -2,17 +2,17 @@ package cell
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net"
 	"net/http"
-	"os"
+	"sync"
 	"time"
 )
 
 // Run serves the agent on the address until the context ends, and says every few seconds that the host is
-// there, so the gusto cloud places on it and reaches it. When it ends it stops the servers it started,
-// which a host that is going has no use for, and takes its registration away.
+// there, so the gusto cloud places on it and reaches it. When it ends it stops the servers it started, all at once,
+// which a host that is going has no use for, and takes its registration away. Stopping them together keeps the whole well
+// inside the time the service is given to stop, however many there are.
 func (a *Agent) Run(ctx context.Context, listen, dir string, every time.Duration) error {
 	listener, err := net.Listen("tcp", listen)
 	if err != nil {
@@ -41,13 +41,12 @@ func (a *Agent) Run(ctx context.Context, listen, dir string, every time.Duration
 			shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			server.Shutdown(shutdown)
 			cancel()
+			var stopping sync.WaitGroup
 			for _, slug := range a.Servers.Running() {
-				a.Servers.Stop(slug, 30*time.Second)
+				stopping.Go(func() { a.Servers.Stop(slug, orDefault(a.Grace, 30*time.Second)) })
 			}
-			if err := os.Remove(file(dir, a.Name)); err != nil && !errors.Is(err, os.ErrNotExist) {
-				return err
-			}
-			return nil
+			stopping.Wait()
+			return Unregister(dir, a.Name)
 		}
 	}
 }

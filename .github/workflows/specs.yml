@@ -10,6 +10,7 @@ on:
       - "internal/evidence/**"
       - "internal/connector/**"
       - "internal/cloud/controller.go"
+      - "internal/cell/**"
       - "internal/cloud/demo_sweep.go"
       - "internal/cloud/route.go"
       - "internal/cloud/leader.go"
