@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -46,7 +47,7 @@ func Seal(dir job.Dir, signer signing.Signer) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dir.OutFile(SignatureFile), text, 0o644)
+	return atomicfile.WriteFile(dir.OutFile(SignatureFile), text, 0o644)
 }
 
 // SealAsConfigured signs with the key GUSTO_SIGNING_KEY names, and leaves the

@@ -16,6 +16,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -140,7 +141,7 @@ func Write(dir job.Dir, manifest Manifest) error {
 	if err := os.Remove(dir.OutFile(SignatureFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	return os.WriteFile(dir.OutFile("manifest.json"), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(dir.OutFile("manifest.json"), append(text, '\n'), 0o644)
 }
 
 // Read the manifest. A field this build does not know is ignored, and a version

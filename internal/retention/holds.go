@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/jobs"
 )
 
@@ -115,9 +116,5 @@ func (h *Holds) change(edit func(*Held)) error {
 	if err := os.MkdirAll(filepath.Dir(h.path), 0o750); err != nil {
 		return err
 	}
-	scratch := h.path + ".tmp"
-	if err := os.WriteFile(scratch, append(text, '\n'), 0o640); err != nil {
-		return err
-	}
-	return os.Rename(scratch, h.path)
+	return atomicfile.WriteFile(h.path, append(text, '\n'), 0o640)
 }

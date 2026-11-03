@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // lift reads a conversation written before an instance had threads and writes
@@ -55,5 +57,5 @@ func writeJSON(name string, value any) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(name, append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(name, append(text, '\n'), 0o644)
 }

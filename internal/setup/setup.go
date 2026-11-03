@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/gateway"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -115,7 +116,7 @@ func (s *Store) saveLocked(wanted Setup) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(s.dir(wanted.Name), "setup.json"), text, 0o644)
+	return atomicfile.WriteFile(filepath.Join(s.dir(wanted.Name), "setup.json"), text, 0o644)
 }
 
 // Get reads one setup and its skills.
@@ -183,7 +184,7 @@ func (s *Store) put(setup, skill, text string) error {
 	if err := os.MkdirAll(filepath.Dir(s.skillFile(setup, skill)), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(s.skillFile(setup, skill), []byte(text), 0o644)
+	return atomicfile.WriteFile(s.skillFile(setup, skill), []byte(text), 0o644)
 }
 
 // Drop takes a skill out of a setup.
@@ -290,7 +291,7 @@ func writeSecret[T any](path string, definitions []T) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, text, 0o600)
+	return atomicfile.WriteFile(path, text, 0o600)
 }
 
 // Fits says why an agent cannot take a setup, or nothing when it can.

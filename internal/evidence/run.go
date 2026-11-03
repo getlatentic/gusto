@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -81,5 +82,5 @@ func writeOut(dir job.Dir, name string, value any) error {
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(dir.OutFile(name), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(dir.OutFile(name), append(text, '\n'), 0o644)
 }

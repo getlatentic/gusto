@@ -10,6 +10,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // vault keeps small documents sealed on disk with a key kept beside them: a person's tokens, and a client an app registered. The
@@ -30,7 +32,7 @@ func openVault(dir string) (*vault, error) {
 		if _, err := rand.Read(key); err != nil {
 			return nil, err
 		}
-		if err := writeWhole(keyPath, key); err != nil {
+		if err := atomicfile.WriteFile(keyPath, key, 0o600); err != nil {
 			return nil, err
 		}
 	} else if err != nil {
@@ -64,7 +66,7 @@ func (v *vault) put(name string, document any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	return writeWhole(path, v.aead.Seal(nonce, nonce, plain, []byte(name)))
+	return atomicfile.WriteFile(path, v.aead.Seal(nonce, nonce, plain, []byte(name)), 0o600)
 }
 
 // get opens what was sealed at a name, and says false when nothing is there.
@@ -93,25 +95,4 @@ func (v *vault) remove(name string) error {
 		return nil
 	}
 	return err
-}
-
-// writeWhole puts bytes at path by renaming a finished file into place, readable by this user alone, so a reader never sees half.
-func writeWhole(path string, data []byte) error {
-	temp, err := os.CreateTemp(filepath.Dir(path), ".write-")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(temp.Name())
-	if _, err := temp.Write(data); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Chmod(0o600); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(temp.Name(), path)
 }

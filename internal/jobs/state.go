@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -116,5 +117,5 @@ func write(dir job.Dir, record Record) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dir.Path()+"/state.json", append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(dir.Path()+"/state.json", append(text, '\n'), 0o644)
 }

@@ -16,6 +16,10 @@ ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
+ok   StateFile.before-dir-sync.cfg: Error: Invariant NothingDoneIsLost is violated.
+ok   StateFile.before-in-place.cfg: Error: Invariant AlwaysWhole is violated.
+ok   StateFile.before-unsynced.cfg: Error: Invariant AlwaysWhole is violated.
+ok   StateFile.now.cfg: 771 states generated, 318 distinct states found, 0 states left on queue.
 ok   TaskLifecycle.before-recovery.cfg: Error: Invariant PassedIsEarned is violated.
 ok   TaskLifecycle.before-stop-race.cfg: Error: Invariant StopWins is violated.
 ok   TaskLifecycle.now.cfg: 1060 states generated, 577 distinct states found, 0 states left on queue.
@@ -68,6 +72,20 @@ the code has.
 
 `DeadSignInIsSeen` assumes the app answers and the disk takes a write in the end (strong fairness), and that somebody
 keeps using the app.
+
+## StateFile
+
+One state file that gusto replaces with each new version, as a task's `state.json` or a room's thread file, through a
+process crash or a host crash. The file system has two layers: what processes see, and what a host crash leaves on
+disk. The kernel writes a file's data and a directory's names to disk on its own, in either order.
+
+| Property | What it says | Broken by | Go test |
+| --- | --- | --- | --- |
+| `AlwaysWhole` | A reader finds a whole version, never an empty or torn file. | writing in place (`os.WriteFile`): a reader, or a crash, finds it half written. Renaming without fsyncing the file first: a host crash keeps the rename and not the data, and the file is empty | `TestAReaderNeverFindsHalfAFile` |
+| `NothingDoneIsLost` | A version said to be written is still there after a crash. | renaming without fsyncing the directory: a host crash forgets the rename | the model only: a test cannot crash the host |
+
+`atomicfile.WriteFile` is the protocol that passes: write a temporary file, fsync it, rename it over the file, fsync
+the directory.
 
 ## Changing a modelled machine
 

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/pkg/job"
@@ -167,5 +168,5 @@ func writeComparison(where string, record compare.Record) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(where, compare.RecordFile), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(filepath.Join(where, compare.RecordFile), append(text, '\n'), 0o644)
 }

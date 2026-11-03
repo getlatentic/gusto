@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -44,7 +45,7 @@ func (s *Store) archive(setup, skill string) error {
 			stamp = previous + 1
 		}
 	}
-	if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.md", stamp)), text, 0o644); err != nil {
+	if err := atomicfile.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.md", stamp)), text, 0o644); err != nil {
 		return err
 	}
 	for len(kept)+1 > mostEarlier {
