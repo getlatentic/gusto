@@ -318,3 +318,24 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 		t.Errorf("%+v", got)
 	}
 }
+
+// A person removed while a task of theirs runs has their computer removed; the task ending, or a late start, does not mark it
+// running again, so it is not counted against the organization or handed out.
+func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
+	work, index, registry, cfg, _ := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
+	jobBy(t, work, index, "ada@acme.com", "for ada")
+	ada, _ := registry.Of("ada@acme.com")
+	if err := registry.Retire("ada@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	retire(cfg, registry)
+	box := &computerBox{registry: registry, id: ada.ID}
+	box.update(func(each *computer.Computer) { each.State = computer.Running })
+	box.change(computer.Running, "")
+	if _, err := registry.Of("ada@acme.com"); err == nil {
+		t.Error("a removed computer is live again")
+	}
+	if all, _ := registry.All(); len(all) != 0 {
+		t.Errorf("the organization counts %+v", all)
+	}
+}
