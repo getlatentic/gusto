@@ -37,6 +37,7 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 | `GUSTO_CLOUD_MAIL_TOKEN` | the Cloudflare API token that may send mail, for `cloudflare://`. Keep it where a secret is kept |
 | `GUSTO_CLOUD_LEASE_FILE` | the file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
 | `GUSTO_CLOUD_LEASE_STEP_MINUTES` | how much each extension adds, 30 by default |
+| `GUSTO_CLOUD_LEADER_SECONDS` | how long the lease that makes one front door the leader lasts unrenewed, 30 by default. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) says what the leader does |
 | `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and workspaces a verified organization may have, 4 and 4 by default: an admin and three users |
 | `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organization's server starts with: the operator's credentials directory, models and sandbox. Nothing else of gusto cloud's environment goes to them |
 | `GUSTO_CLOUD_PORT_FROM` | the first port an organization's server gets, two each, 9100 by default |
