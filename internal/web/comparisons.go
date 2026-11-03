@@ -107,25 +107,32 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 	if err != nil {
 		return "", err
 	}
-	id, err := s.lineups.Reserve(jobs.Name("compare "+brief, time.Now()))
-	if err != nil {
-		return "", err
-	}
-	lineup := compare.Lineup{ID: id, Brief: brief, Template: held.Name,
-		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
 	models := s.offeredTo(r)
+	specs := make([]job.Spec, 0, len(harnesses))
 	for _, harness := range harnesses {
 		spec, err := s.sideSpec(models, held, harness, named, brief, repo, commit)
 		if err != nil {
 			return "", err
 		}
+		specs = append(specs, spec)
+	}
+	lineup := compare.Lineup{Brief: brief, Template: held.Name,
+		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
+	if lineup.ID, err = s.lineups.Reserve(jobs.Name("compare "+brief, time.Now()), lineup); err != nil {
+		return "", err
+	}
+	// Each run is kept in the lineup as soon as it is queued, so a run queued before a failure is one the lineup shows.
+	for _, spec := range specs {
 		run, err := s.queued(spec, nil, s.keeper.who(r), "")
 		if err != nil {
-			return "", err
+			return lineup.ID, err
 		}
-		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: harness, Job: run})
+		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: spec.Harness, Job: run})
+		if err := s.lineups.Save(lineup); err != nil {
+			return lineup.ID, err
+		}
 	}
-	return lineup.ID, s.lineups.Save(lineup)
+	return lineup.ID, nil
 }
 
 // sideSpec is one engine's run in a lineup, refused here rather than in the

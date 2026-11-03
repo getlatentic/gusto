@@ -82,6 +82,20 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	}
 }
 
+// A comparison refused for one of its agents queues no run for the others, so no run is left that no lineup shows.
+func TestAComparisonRefusedForOneAgentQueuesNoRun(t *testing.T) {
+	site := twoEngines(t)
+	site.signIn(t)
+	refused := site.ask(t, "POST", "/compare", url.Values{"brief": {"x"}, "model": {modelOf("platform/test-model")},
+		"harness": {"first", "nobody-offers-this"}})
+	if !strings.Contains(refused.Header().Get("Location"), "refused=") {
+		t.Fatalf("a comparison with an agent nobody offers was taken: %q", refused.Header().Get("Location"))
+	}
+	if queued := site.index.List(); len(queued) != 0 {
+		t.Errorf("the refused comparison left runs queued: %+v", queued)
+	}
+}
+
 func TestAComparisonNeedsTwoAgents(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)

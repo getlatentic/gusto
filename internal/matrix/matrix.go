@@ -119,29 +119,38 @@ func (c column) due(again Again) []Pair {
 	return due
 }
 
-// runOne runs one cell from a clean directory and times it. A run that fails is
-// said and left for the next time the matrix runs; only a record that cannot
-// be written stops the matrix.
+// runOne runs one cell from a clean directory and times it. A cell's time is its run's, so it is cleared before the run and set
+// when the run leaves a verdict, whatever else went wrong. A run that left none is said and left for the next time the matrix
+// runs; only a record that cannot be written stops the matrix.
 func (c column) runOne(pair Pair, commit string, run replay.Run, progress io.Writer) error {
-	dir := c.record.cell(c.name(), pair).Run(c.where)
+	cell := c.record.cell(c.name(), pair)
+	dir := cell.Run(c.where)
 	if err := c.clean(dir, pair, commit); err != nil {
+		return err
+	}
+	cell.StartedUnix, cell.WallSeconds = 0, nil
+	if err := write(c.where, *c.record); err != nil {
 		return err
 	}
 	started := time.Now()
 	failed := run(dir)
 	took := time.Since(started).Seconds()
-	if failed != nil || !Finished(dir) {
+	if !Finished(dir) {
 		fmt.Fprintf(progress, "%s on %s left no verdict: %v\n", c.name(), pair.Name(), failed)
 		return nil
 	}
-	cell := c.record.cell(c.name(), pair)
+	if failed != nil {
+		fmt.Fprintf(progress, "%s on %s left its verdict, then: %v\n", c.name(), pair.Name(), failed)
+	}
+	cell = c.record.cell(c.name(), pair)
 	cell.StartedUnix, cell.WallSeconds = started.Unix(), &took
 	return write(c.where, *c.record)
 }
 
 // clean gives the cell a directory nothing has run in. An earlier attempt is
 // moved aside rather than deleted, because it is evidence of what that run
-// did, and remade from the submission at the comparison's commit.
+// did, and remade from the submission at the comparison's commit. A stop
+// between the two leaves no directory, which prepared makes again.
 func (c column) clean(dir job.Dir, pair Pair, commit string) error {
 	if !used(dir) {
 		return nil

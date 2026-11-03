@@ -21,7 +21,9 @@ import (
 
 // prepared is the comparison for one job with a run for every pair, made
 // where it was missing. A comparison made before keeps its commit, so a pair
-// added to the plan later works on the same code as the pairs already run.
+// added to the plan later works on the same code as the pairs already run, and
+// a run it holds whose directory a stop left without its job.json is made again
+// at that commit.
 func prepared(where string, submission job.Dir, pairs []Pair) (compare.Record, error) {
 	record, err := compare.Read(where)
 	if errors.Is(err, os.ErrNotExist) {
@@ -32,10 +34,13 @@ func prepared(where string, submission job.Dir, pairs []Pair) (compare.Record, e
 	}
 	var added []compare.Run
 	for _, pair := range pairs {
+		run := compare.Run{Harness: pair.Harness, Dir: pair.Dir()}
 		if holds(record, pair.Dir()) {
+			if err := remade(submission, run.Job(where), pair, record.Commit); err != nil {
+				return compare.Record{}, err
+			}
 			continue
 		}
-		run := compare.Run{Harness: pair.Harness, Dir: pair.Dir()}
 		if err := made(submission, run.Job(where), pair); err != nil {
 			return compare.Record{}, err
 		}
@@ -73,6 +78,17 @@ func made(submission, dir job.Dir, pair Pair) error {
 		return err
 	}
 	return replay.Carry(submission, dir, pair.Harness)
+}
+
+// remade makes a run the comparison holds again when its job.json is gone.
+func remade(submission, dir job.Dir, pair Pair, commit string) error {
+	if _, err := os.Stat(dir.Spec()); !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := made(submission, dir, pair); err != nil {
+		return err
+	}
+	return replay.Rewrite(dir, dir, map[string]any{"ref": commit})
 }
 
 // pinned resolves the ref once, the first time the comparison gets a run, and
