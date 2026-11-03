@@ -35,7 +35,10 @@ type roomState struct {
 	// meta is the room's Meta, where a change that is not a turn's keeps what it replaces.
 	meta string
 	// The rest is guarded by Hub.mu.
-	live    map[*Turn]struct{}
+	live map[*Turn]struct{}
+	// holds is the people's changes holding or waiting for the guard. The state is kept while there is one, so a turn that
+	// joins meanwhile meets the same guard: spec/RoomGuard.tla is the model.
+	holds   int
 	seq     uint64
 	healed  bool
 	history history
@@ -56,11 +59,18 @@ func (h *Hub) join(in Room, turn *Turn) {
 	defer h.mu.Unlock()
 	state := h.rooms[in.Folder]
 	if state == nil {
-		state = &roomState{guard: make(chan struct{}, 1), meta: in.Meta, live: map[*Turn]struct{}{}, history: newHistory()}
+		state = newRoomState(in.Meta)
 		h.rooms[in.Folder] = state
+	}
+	if state.meta == "" {
+		state.meta = in.Meta
 	}
 	turn.begin = state.seq
 	state.live[turn] = struct{}{}
+}
+
+func newRoomState(meta string) *roomState {
+	return &roomState{guard: make(chan struct{}, 1), meta: meta, live: map[*Turn]struct{}{}, history: newHistory()}
 }
 
 // leave takes a turn out of its room, and lets go of what the room kept for turns that began before every one still working.
@@ -76,11 +86,11 @@ func (h *Hub) leave(in Room, turn *Turn) {
 	for each := range state.live {
 		oldest = min(oldest, each.begin)
 	}
-	if len(state.live) == 0 {
+	idle := len(state.live) == 0 && state.holds == 0
+	if idle {
 		delete(h.rooms, in.Folder)
 	}
 	spent := state.history.trim(oldest)
-	idle := len(state.live) == 0
 	h.mu.Unlock()
 	for _, file := range spent {
 		_ = os.Remove(file)

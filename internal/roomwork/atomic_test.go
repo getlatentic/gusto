@@ -93,3 +93,53 @@ func TestAMergeThatWasCutOffIsUndoneBeforeTheNextTurnBegins(t *testing.T) {
 	}
 	noStaging(t, in)
 }
+
+// A recovery that cannot put every file back keeps the journal and the backups, and a later one finishes without removing a
+// file the first put back. spec/MergeJournal.tla is the model.
+func TestARecoveryThatFailsPartWayIsFinishedLater(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes where it is told not to")
+	}
+	_, in := aRoom(t, map[string]string{"a.md": "old a\n", "sub/b.md": "old b\n"})
+	for _, dir := range []string{stageDir(in), backupDir(in)} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	steps, err := stage(in, []action{{dest: "a.md", source: writeTemp(t, "new a\n")}, {dest: "sub/b.md", source: writeTemp(t, "new b\n")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := atomicfile.Write(journalOf(in), journal{Steps: steps}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(journal{Steps: steps}); err != nil {
+		t.Fatal(err)
+	}
+	// The merge is cut off before its journal goes, and sub/ cannot be written to when the room is next used.
+	sub := filepath.Join(in.Folder, "sub")
+	os.Chmod(sub, 0o500)
+	if err := recoverMerge(in); err == nil {
+		t.Fatal("a recovery that could not put sub/b.md back said it had")
+	}
+	os.Chmod(sub, 0o755)
+	if read(t, in.Folder, "a.md") != "old a\n" || !exists(journalOf(in)) {
+		t.Fatalf("after the failed recovery a.md holds %q, journal kept %v", read(t, in.Folder, "a.md"), exists(journalOf(in)))
+	}
+	if err := recoverMerge(in); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, in.Folder, "a.md") != "old a\n" || read(t, in.Folder, "sub/b.md") != "old b\n" {
+		t.Errorf("a.md %q, sub/b.md %q", read(t, in.Folder, "a.md"), read(t, in.Folder, "sub/b.md"))
+	}
+	noStaging(t, in)
+}
+
+func writeTemp(t *testing.T, text string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}

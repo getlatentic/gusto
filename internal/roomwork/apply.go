@@ -15,11 +15,13 @@ import (
 // it replaces or removes is kept in backup, and a journal says what is about to happen. If anything fails, or the server dies
 // part way, the journal is enough to put every file back as it was.
 
-// step is one file the merge puts in place, or removes when Stage is empty. Backup is where the file it replaces is kept.
+// step is one file the merge puts in place, or removes when Stage is empty. Backup is where the file it replaces is kept, and
+// Existed says there was one, so an undo run again does not take for the merge's a file it already put back.
 type step struct {
-	Dest   string `json:"dest"`
-	Stage  string `json:"stage,omitempty"`
-	Backup string `json:"backup"`
+	Dest    string `json:"dest"`
+	Stage   string `json:"stage,omitempty"`
+	Backup  string `json:"backup"`
+	Existed bool   `json:"existed,omitempty"`
 }
 
 // journal is a merge that has begun and not finished: its steps, and the folders it made to hold them.
@@ -82,6 +84,7 @@ func stage(in Room, actions []action) ([]step, error) {
 	steps := make([]step, len(actions))
 	for i, each := range actions {
 		steps[i] = step{Dest: filepath.Join(in.Folder, filepath.FromSlash(each.dest)), Backup: filepath.Join(backupDir(in), strconv.Itoa(i))}
+		steps[i].Existed = exists(steps[i].Dest)
 		if each.source == "" {
 			continue
 		}
@@ -166,7 +169,8 @@ func keep(from, to string, info fs.FileInfo) error {
 }
 
 // undo puts the folder back as it was before the steps that ran, last first. A step ran when its staged file is gone, or for a
-// removal when its backup exists.
+// removal when its backup exists. It can be run again after it failed part way: a file it put back has no backup left, and is
+// left as it is. spec/MergeJournal.tla is the model.
 func undo(plan journal) error {
 	var failed error
 	for i := len(plan.Steps) - 1; i >= 0; i-- {
@@ -176,8 +180,10 @@ func undo(plan journal) error {
 		case each.Stage != "" && exists(each.Stage):
 		case each.Stage != "" && exists(each.Backup):
 			err = os.Rename(each.Backup, each.Dest)
-		case each.Stage != "":
-			err = os.Remove(each.Dest)
+		case each.Stage != "" && !each.Existed:
+			if err = os.Remove(each.Dest); errors.Is(err, fs.ErrNotExist) {
+				err = nil
+			}
 		case exists(each.Backup) && !exists(each.Dest):
 			err = os.Rename(each.Backup, each.Dest)
 		}
@@ -189,7 +195,8 @@ func undo(plan journal) error {
 	return failed
 }
 
-// recoverMerge puts back what a merge that was cut off had changed. A room with no journal has nothing to put back.
+// recoverMerge puts back what a merge that was cut off had changed. A room with no journal has nothing to put back. The
+// backups and the journal are kept until every file is back, so a later try can finish what this one could not.
 func recoverMerge(in Room) error {
 	text, err := os.ReadFile(journalOf(in))
 	if errors.Is(err, fs.ErrNotExist) {
@@ -203,9 +210,11 @@ func recoverMerge(in Room) error {
 	if err := json.Unmarshal(text, &plan); err != nil {
 		return err
 	}
-	err = undo(plan)
+	if err := undo(plan); err != nil {
+		return err
+	}
 	forget(in)
-	return err
+	return nil
 }
 
 // tidy removes the folders a merge emptied by removing files, up to but not including the room's folder.

@@ -22,9 +22,14 @@ ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is viol
 ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
+ok   MergeJournal.before-keep.cfg: Error: Invariant AllOrNothing is violated.
+ok   MergeJournal.before-twice.cfg: Error: Invariant AllOrNothing is violated.
+ok   MergeJournal.now.cfg: 76 states generated, 50 distinct states found, 0 states left on queue.
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
+ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
+ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
 ok   StateFile.before-dir-sync.cfg: Error: Invariant NothingDoneIsLost is violated.
 ok   StateFile.before-in-place.cfg: Error: Invariant AlwaysWhole is violated.
 ok   StateFile.before-unsynced.cfg: Error: Invariant AlwaysWhole is violated.
@@ -130,6 +135,25 @@ the same id. Tasks are paid for by the owner and may be asked by a colleague, as
 | `OnlyAskedIsRemoved` | A computer is removed only when its person was removed while it lived. | `retireOnlyLive`: removing a person whose computer was already removed leaves a mark, and the tend loop removes the computer made when they come back | `TestAMarkOnARemovedComputerDoesNotRemoveTheNextOne` |
 | `NoStopMidTask` | No sandbox is stopped while a task works in it. | `inUse`: the idle stop asked whether the owner had a task running, so a colleague's turn in the owner's computer was stopped, and a task could start between the look and the stop | `TestTheIdleStopLeavesAComputerATaskIsIn` |
 | `NoIdleCreating` | A computer is Creating only while a task is making it. | `failBeforeStart`: a task that failed before its sandbox started left the computer being made, counting against the quota | `TestAComputerThatNeverStartedIsNotLeftBeingMade` |
+
+## RoomGuard
+
+One room's folder in the room-work hub (`internal/roomwork`): turns join, merge under the room's guard, and leave, and a
+person's upload or edit holds the guard while it writes (`Hub.Hold`). The hub keeps a state for the room, with its
+guard, and drops it when it is not needed.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `Exclusive` | A merge never changes the folder while a person's change writes to it. | `holdKeepsState`: a change made with no turn in the room held nothing, and a state dropped when its last turn left gave the next turn a guard of its own | `TestAChangeHoldsOffATurnThatJoinsWhileItIsMade`, `TestAChangeHoldsTheRoomWhenItsLastTurnLeaves` |
+
+## MergeJournal
+
+One merge into a room's folder (`internal/roomwork/apply.go`): stage, journal, keep and replace each file, remove the
+journal. A crash leaves the journal, and `recoverMerge` undoes what ran; putting a file back may fail.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `AllOrNothing` | Until a merge is final, each file it replaced is old in the folder or kept in its backup. | `keepUntilUndone`: a recovery that could not put every file back removed the backups anyway. `undoTwice`: a recovery run again removed a file the first had put back, taking it for one the merge made | `TestARecoveryThatFailsPartWayIsFinishedLater` |
 
 ## Changing a modelled machine
 
