@@ -111,3 +111,29 @@ func TestAQueueThatHasJustStartedAlreadyCountsItsWorkers(t *testing.T) {
 		}
 	}
 }
+
+// A stop that comes after the queue looked for one, and before the task's end is written, still ends it interrupted: a task
+// somebody stopped is never recorded as having passed. A task that has ended is not ended again.
+func TestAStopThatComesAsTheWorkReturnsStillEndsTheTaskInterrupted(t *testing.T) {
+	index := at(t)
+	record := queued(t, index, "stopped as it finishes")
+	if _, _, err := index.Claim(); err != nil {
+		t.Fatal(err)
+	}
+	if _, wasRunning, err := index.Stop(record.ID, "ada@acme.example"); err != nil || !wasRunning {
+		t.Fatalf("running=%v %v", wasRunning, err)
+	}
+	if err := index.Finish(record.ID, Passed, 0); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := index.Get(record.ID)
+	if got.State != Interrupted || got.Exit != -1 || got.StoppedBy != "ada@acme.example" {
+		t.Fatalf("a stopped task ended %+v", got)
+	}
+	if err := index.Finish(record.ID, Failed, 1); !errors.Is(err, ErrEnded) {
+		t.Errorf("a task that had ended was ended again: %v", err)
+	}
+	if again, _ := index.Get(record.ID); again.State != Interrupted {
+		t.Errorf("ending it again made it %q", again.State)
+	}
+}

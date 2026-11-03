@@ -238,6 +238,9 @@ func (i *Index) Claim() (Record, bool, error) {
 // ErrNotStoppable is the answer to stopping a task that is already over.
 var ErrNotStoppable = fmt.Errorf("that task is already over")
 
+// ErrEnded is the answer to finishing a task that has already ended: it ends once.
+var ErrEnded = fmt.Errorf("that task has already ended")
+
 // Stop marks a task as stopped by somebody. A task that is still queued is over at once, interrupted, and never runs. A task
 // that is running is marked, and ends interrupted when its work returns, which the queue arranges after it has told the
 // work to stop. It gives the task as it stands, and whether it was running.
@@ -290,6 +293,14 @@ func (i *Index) finish(id string, state State, exit int) (Record, error) {
 	if !found {
 		return Record{}, fmt.Errorf("no task called %s", id)
 	}
+	if record.State.Done() {
+		return record, ErrEnded
+	}
+	// Whoever stopped a task ended it, whatever its work returned. The queue looks before it finishes, and a stop that comes
+	// after it looked is caught here, under the same lock Stop takes.
+	if record.StoppedBy != "" {
+		state, exit = Interrupted, -1
+	}
 	record.State = state
 	record.Exit = exit
 	record.Ended = Now()
@@ -320,17 +331,16 @@ func ended(record Record, root string) Record {
 	// The manifest knows when the run ended. The clock at recovery only knows
 	// when somebody noticed, which would count the outage as part of the job.
 	record.Ended = manifest.AtUnix
-	if manifest.Gate == nil {
-		// A turn in a conversation has no verdict. It ran, and that is all the
-		// evidence claims.
-		record.State = Passed
-		record.Exit = 0
+	// A run that was told to stop ended interrupted, whatever its work did before it stopped, as the queue records one it watched.
+	if manifest.StoppedBy != "" || record.StoppedBy != "" {
+		record.State, record.Exit = Interrupted, -1
 		return record
 	}
-	record.Exit = manifest.Gate.Code
-	record.State = Failed
-	if manifest.Gate.Passed {
-		record.State = Passed
+	// The same rule the runner applied, so a run graded while nobody watched is graded as it would have been.
+	record.Exit = evidence.Earned(manifest.Gate, manifest.HarnessExit, manifest.ModelUnanswered != nil)
+	record.State = Passed
+	if record.Exit != 0 {
+		record.State = Failed
 	}
 	return record
 }

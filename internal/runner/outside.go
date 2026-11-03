@@ -158,7 +158,7 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 			return 0, err
 		}
 	}
-	return earned(verdict, exit, silent != nil), nil
+	return evidence.Earned(verdict, exit, silent != nil), nil
 }
 
 // gateIn asks the gate in the box, where the repository's own code runs, and

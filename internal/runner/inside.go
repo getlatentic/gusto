@@ -191,23 +191,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 			return 0, err
 		}
 	}
-	return earned(verdict, exit, silent != nil), nil
-}
-
-// earned is the exit code a run earned. A gate decides when there is one. A
-// turn in a conversation has none, and then it failed when the harness failed,
-// whatever it managed to say first, or when the proxy saw its model never
-// answer, whatever the harness's exit says.
-func earned(verdict *evidence.Verdict, harnessExit int, modelSilent bool) int {
-	switch {
-	case verdict != nil && verdict.Passed:
-		return 0
-	case verdict != nil:
-		return 1
-	case harnessExit != 0, modelSilent:
-		return 1
-	}
-	return 0
+	return evidence.Earned(verdict, exit, silent != nil), nil
 }
 
 type said struct {
