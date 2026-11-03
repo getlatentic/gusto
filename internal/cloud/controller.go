@@ -468,19 +468,39 @@ func (c *Controller) supervise() {
 		c.restart(slug)
 	}
 	for _, slug := range waiting {
-		go c.Provision(slug)
+		go c.reprovision(slug)
 	}
+}
+
+// reprovision starts again a server the controller keeps, and does nothing for one it was told to forget. The supervisor
+// decides what to restart before it takes each organization's lock, and Remove may come in between: what it removed stays
+// removed.
+func (c *Controller) reprovision(slug string) error {
+	held := c.lock(slug)
+	held.Lock()
+	defer held.Unlock()
+	c.mu.Lock()
+	_, kept := c.states[slug]
+	c.mu.Unlock()
+	if !kept {
+		return nil
+	}
+	return c.provision(slug)
 }
 
 // restart starts a server that has stopped or failed. One that fails again is
 // tried after twice as long each time, up to five minutes.
 func (c *Controller) restart(slug string) {
 	c.mu.Lock()
-	runtime := c.states[slug]
+	runtime, kept := c.states[slug]
+	if !kept {
+		c.mu.Unlock()
+		return
+	}
 	runtime.Restarts++
 	c.states[slug] = runtime
 	c.mu.Unlock()
-	if err := c.Provision(slug); err != nil {
+	if err := c.reprovision(slug); err != nil {
 		c.mu.Lock()
 		if c.retry == nil {
 			c.retry = map[string]time.Time{}
