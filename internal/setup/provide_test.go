@@ -94,3 +94,32 @@ func TestAnOlderSetupIsUpdatedOnlyWhereUntouched(t *testing.T) {
 		t.Errorf("somebody else's setup was changed: %+v", held)
 	}
 }
+
+// A shipped setup an administrator turned off, and gave integrations, keeps both when gusto brings it up to date.
+func TestAShippedSetupKeepsWhatAnAdministratorChose(t *testing.T) {
+	store, _, _ := world(t, true)
+	if err := store.Provide(shipped("Replace names."), nil); err != nil {
+		t.Fatal(err)
+	}
+	chosen, _ := store.Get("health")
+	chosen.Integrations = []string{"reports"}
+	if err := store.Save(chosen, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetOff("health", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Provide(shipped("Replace names, in replies too."), nil); err != nil {
+		t.Fatal(err)
+	}
+	held, _ := store.Get("health")
+	if !held.Off {
+		t.Error("bringing the setup up to date turned it back on")
+	}
+	if len(held.Integrations) != 1 || held.Integrations[0] != "reports" {
+		t.Errorf("integrations = %v, want the administrator's", held.Integrations)
+	}
+	if got := bodyOf(t, store, "phi-guard"); got != "Replace names, in replies too." {
+		t.Errorf("body = %q, want the newer version", got)
+	}
+}
