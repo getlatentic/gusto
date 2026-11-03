@@ -9,6 +9,9 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
+ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
+ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
 ok   TaskLifecycle.before-recovery.cfg: Error: Invariant PassedIsEarned is violated.
 ok   TaskLifecycle.before-stop-race.cfg: Error: Invariant StopWins is violated.
 ok   TaskLifecycle.now.cfg: 1060 states generated, 577 distinct states found, 0 states left on queue.
@@ -31,6 +34,22 @@ server crash and restart (`Open`). Each action names the Go function it models.
 | `EveryTaskEnds` | Every task finishes, with up to one crash. | | |
 
 The model assumes `state.json` is written whole. Torn writes are getlatentic/planning#769.
+
+## OrgSupervisor
+
+One organization address in the front door's controller (`internal/cloud/controller.go`), across the organizations that
+may hold it one after another: a demo's address has two random bytes, so it can be given again. The callers of
+`provision` are the signup's goroutine, `Run`'s goroutines at start, and the supervisor. The demo sweep removes with
+`Controller.Remove`, then `Store.EndDemo`, then `Controller.Ended`. `Fixes` says which fixes the code has.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `EndingStopsServer` | While a demo is being ended, nothing starts its server. | either fix: a `provision` decided before `Remove` runs after it | `TestAProvisionThatRunsAfterRemoveIsRefused`, `TestARemovedOrganizationIsNotStartedAgain` |
+| `NothingOutlivesOrg` | The directory, runtime row and server exist only while the organization does. | `provisionChecksOrg` | `TestAnOrganizationGoneFromTheStoreIsNotProvisioned` |
+| `NewOrgIsProvisioned` | A new organization at a removed address is provisioned. | a check that ignores when the organization was made | `TestANewOrganizationAtARemovedAddressIsProvisioned` |
+
+`provisionChecksOrg` alone keeps `EndingStopsServer`: the supervisor's own check from getlatentic/gusto#560 is a second
+guard. The model leaves out two front doors at once, which is getlatentic/planning#775.
 
 ## Changing a modelled machine
 

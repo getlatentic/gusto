@@ -67,8 +67,11 @@ type Controller struct {
 	mu     sync.Mutex
 	states map[string]Runtime
 	retry  map[string]time.Time
-	locks  sync.Map
-	portMu sync.Mutex
+	// removed is when each organization Remove forgot was made, until Ended: a slug may be given again, and a new
+	// organization that holds it is told apart from the removed one by when it was made.
+	removed map[string]time.Time
+	locks   sync.Map
+	portMu  sync.Mutex
 }
 
 func (c *Controller) lock(slug string) *sync.Mutex {
@@ -93,7 +96,13 @@ func (c *Controller) Provision(slug string) error {
 	return c.provision(slug)
 }
 
+// ErrRemoved is the answer to provisioning an organization that is gone, or that Remove forgot.
+var ErrRemoved = errors.New("that organization has been removed")
+
 func (c *Controller) provision(slug string) error {
+	if err := c.stillServed(slug); err != nil {
+		return err
+	}
 	runtime, err := c.Store.Runtime(slug)
 	if err != nil {
 		return err
@@ -138,6 +147,24 @@ func (c *Controller) provision(slug string) error {
 	}
 	c.set(slug, runtime, Ready, "")
 	return nil
+}
+
+// stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
+// to provision can be decided on before Remove and run after it, as the signup's and Run's are; this is where it is refused.
+func (c *Controller) stillServed(slug string) error {
+	org, found, err := c.Store.Org(slug)
+	if err != nil {
+		return err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	made, removed := c.removed[slug]
+	if found && !(removed && made.Equal(org.Created)) {
+		return nil
+	}
+	delete(c.states, slug)
+	delete(c.retry, slug)
+	return ErrRemoved
 }
 
 // endOtherRelease stops an organization's server that was started with another command than this front door's, so that
@@ -500,7 +527,7 @@ func (c *Controller) restart(slug string) {
 	runtime.Restarts++
 	c.states[slug] = runtime
 	c.mu.Unlock()
-	if err := c.reprovision(slug); err != nil {
+	if err := c.reprovision(slug); err != nil && !errors.Is(err, ErrRemoved) {
 		c.mu.Lock()
 		if c.retry == nil {
 			c.retry = map[string]time.Time{}
@@ -544,16 +571,24 @@ func (c *Controller) stopAll() {
 	wg.Wait()
 }
 
-// Remove stops an organization's server and forgets it, so it is not started again. What the organization's
-// directory holds is the store's to delete, after this.
+// Remove stops an organization's server and forgets it, so it is not started again, even by a call to provision made
+// before. What the organization's directory holds is the store's to delete, after this, and Ended is called once it has.
 func (c *Controller) Remove(slug string) {
 	held := c.lock(slug)
 	held.Lock()
 	defer held.Unlock()
+	org, _, err := c.Store.Org(slug)
+	if err != nil {
+		slog.Error("a removed organization could not be read, so a new one at its address is refused until it ends", "org", slug, "error", err)
+	}
 	c.mu.Lock()
 	runtime := c.states[slug]
 	delete(c.states, slug)
 	delete(c.retry, slug)
+	if c.removed == nil {
+		c.removed = map[string]time.Time{}
+	}
+	c.removed[slug] = org.Created
 	c.mu.Unlock()
 	if runtime.Cell == "" {
 		if stored, err := c.Store.Runtime(slug); err == nil {
@@ -563,6 +598,14 @@ func (c *Controller) Remove(slug string) {
 	if cell, err := c.cellNamed(runtime.Cell); err == nil {
 		cell.Stop(slug, c.grace())
 	}
+}
+
+// Ended says the store has deleted an organization Remove forgot. The store is then what refuses it, and its address is
+// free for a new organization.
+func (c *Controller) Ended(slug string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.removed, slug)
 }
 
 func (c *Controller) grace() time.Duration {

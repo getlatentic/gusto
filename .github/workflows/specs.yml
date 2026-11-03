@@ -8,6 +8,9 @@ on:
       - "spec/**"
       - "internal/jobs/**"
       - "internal/evidence/**"
+      - "internal/cloud/controller.go"
+      - "internal/cloud/demo_sweep.go"
+      - "internal/cloud/route.go"
       - ".github/workflows/specs.yml"
 
 permissions:

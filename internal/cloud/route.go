@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"cmp"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -23,7 +24,7 @@ func (s *Server) provision(slug string) {
 	s.making.Add(1)
 	go func() {
 		defer s.making.Done()
-		if err := s.Controller.Provision(slug); err != nil {
+		if err := s.Controller.Provision(slug); err != nil && !errors.Is(err, ErrRemoved) {
 			slog.Error("an organization's server could not be started", "org", slug, "error", err)
 		}
 	}()
