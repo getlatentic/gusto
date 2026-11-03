@@ -267,7 +267,11 @@ func (c *Connectors) SetForAgents(person, connector string, on bool) error {
 
 // Disconnect forgets a person's tokens for a connector. The app keeps its own record of the sign-in until the person ends it there.
 func (c *Connectors) Disconnect(person, connector string) error {
-	return c.vault.remove(tokenName(strings.ToLower(person), connector))
+	name := tokenName(strings.ToLower(person), connector)
+	lock := c.lockFor(name)
+	lock.Lock()
+	defer lock.Unlock()
+	return c.vault.remove(name)
 }
 
 // clientFor is how this server is known to the app: the operator's client when they registered one, else this server's client
