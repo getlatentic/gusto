@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -202,4 +203,60 @@ func TestAPersonsDefaultForTheirAgentsIsKeptAcrossRenewalAndSigningInAgain(t *te
 	if c.ForAgents("bob@acme.com", "tasks") {
 		t.Error("bob's agents use an app bob never connected")
 	}
+}
+
+// A person who disconnects while their token is being renewed stays disconnected: the renewal does not put the sign-in back.
+func TestDisconnectingDuringARenewalStaysDisconnected(t *testing.T) {
+	a := connectortest.New(t)
+	renewing, release := make(chan struct{}), make(chan struct{})
+	held := &http.Client{Transport: holdRenewal{renewing: renewing, release: release}}
+	c, err := Open(Config{Dir: t.TempDir(), Base: "https://acme.gusto.test", HTTP: held})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.Lasts(30 * time.Second)
+	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
+	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+		t.Fatal(err)
+	}
+	renewed := make(chan error, 1)
+	go func() {
+		_, err := c.Token(context.Background(), "ada@acme.com", "tasks")
+		renewed <- err
+	}()
+	<-renewing
+	disconnected := make(chan error, 1)
+	go func() { disconnected <- c.Disconnect("ada@acme.com", "tasks") }()
+	time.Sleep(50 * time.Millisecond)
+	close(release)
+	if err := <-renewed; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-disconnected; err != nil {
+		t.Fatal(err)
+	}
+	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+		t.Error("the renewal put back a sign-in the person had disconnected")
+	}
+}
+
+// holdRenewal holds a request to renew a token until release is closed, saying on renewing that it has one.
+type holdRenewal struct {
+	renewing chan<- struct{}
+	release  <-chan struct{}
+}
+
+func (h holdRenewal) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.Body != nil && r.GetBody != nil {
+		body, err := r.GetBody()
+		if err != nil {
+			return nil, err
+		}
+		form, _ := io.ReadAll(body)
+		if strings.Contains(string(form), "grant_type=refresh_token") {
+			h.renewing <- struct{}{}
+			<-h.release
+		}
+	}
+	return http.DefaultTransport.RoundTrip(r)
 }
