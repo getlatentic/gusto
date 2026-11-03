@@ -2,6 +2,8 @@ package instance
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -169,17 +171,35 @@ func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
 				return fmt.Errorf("%s is already in this room", agent.Name)
 			}
 		}
-		agent.ID = fmt.Sprintf("a%d", len(held.Agents)+1)
-		for {
-			if _, used := held.AgentByID(agent.ID); !used {
-				break
-			}
-			agent.ID += "x"
-		}
+		agent.ID = s.freeAgentID(*held)
 		held.Agents = append(held.Agents, agent)
 		return nil
 	})
 	return agent, err
+}
+
+// freeAgentID is an id no agent of the room has had that left anything behind: not one in it now, not one whose conversation a
+// thread remembers, and not one whose memory is on disk. An id names an agent's conversation and its memory, so a new agent
+// given a removed agent's id would pick up both. It is called under the store's guard.
+func (s *Store) freeAgentID(held Instance) string {
+	for n := len(held.Agents) + 1; ; n++ {
+		if id := fmt.Sprintf("a%d", n); !s.agentIDUsed(held, id) {
+			return id
+		}
+	}
+}
+
+func (s *Store) agentIDUsed(held Instance, id string) bool {
+	if _, in := held.AgentByID(id); in {
+		return true
+	}
+	for _, thread := range s.threads[held.ID] {
+		if _, remembered := thread.Sessions[id]; remembered {
+			return true
+		}
+	}
+	_, err := os.Stat(filepath.Join(s.Dir(held.ID), "agents", id))
+	return err == nil
 }
 
 // AcceptAgent lets an agent a member proposed work in the room.
