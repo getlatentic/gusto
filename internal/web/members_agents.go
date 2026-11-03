@@ -119,11 +119,31 @@ func (s *Server) changeAgent(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
-	if _, err := s.crew.Change(member.ID, func(held *crew.Agent) error { *held = changed; return nil }); err != nil {
+	if _, err := s.crew.Change(member.ID, func(held *crew.Agent) error { takeProfile(r, changed, held); return nil }); err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// takeProfile puts on held the profile fields the form changed, as checked in changed. Who may use the agent and its apps are
+// changed elsewhere, so they stay as held.
+func takeProfile(r *http.Request, changed crew.Agent, held *crew.Agent) {
+	if r.Form.Has("name") {
+		held.Name = changed.Name
+	}
+	if r.Form.Has("specialty") {
+		held.Specialty = changed.Specialty
+	}
+	if r.Form.Has("persona") {
+		held.Persona = changed.Persona
+	}
+	if r.Form.Has("model") {
+		held.Model = changed.Model
+	}
+	if r.Form.Has("setup") {
+		held.Setup = changed.Setup
+	}
 }
 
 // changeAgentAccess lets another person work with an agent, or stops them.
