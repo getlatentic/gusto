@@ -9,6 +9,10 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
+ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
+ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
+ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
@@ -50,6 +54,20 @@ may hold it one after another: a demo's address has two random bytes, so it can 
 
 `provisionChecksOrg` alone keeps `EndingStopsServer`: the supervisor's own check from getlatentic/gusto#560 is a second
 guard. The model leaves out two front doors at once, which is getlatentic/planning#775.
+
+## ConnectorSignIn
+
+One person's sign-in to one app (`internal/connector`): `Finish`, `Token` renewing, `Disconnect`, the app revoking the
+grant, and the server restarting. The app rotates refresh tokens, and a vault write may fail. `Fixes` says which fixes
+the code has.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `DisconnectHolds` | Nothing begun before a disconnect is kept after it. | `disconnectLocks` (getlatentic/gusto#563): a renewal writes the tokens back; `finishChecksGen`: a sign-in that came back before the disconnect is kept | `TestDisconnectingDuringARenewalStaysDisconnected`, `TestDisconnectingWhileASignInFinishesStaysDisconnected` |
+| `DeadSignInIsSeen` | A sign-in the app no longer renews stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected | `TestASignInTheAppNoLongerTakesIsNotConnected` |
+
+`DeadSignInIsSeen` assumes the app answers and the disk takes a write in the end (strong fairness), and that somebody
+keeps using the app.
 
 ## Changing a modelled machine
 

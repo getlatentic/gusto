@@ -8,6 +8,7 @@ on:
       - "spec/**"
       - "internal/jobs/**"
       - "internal/evidence/**"
+      - "internal/connector/**"
       - "internal/cloud/controller.go"
       - "internal/cloud/demo_sweep.go"
       - "internal/cloud/route.go"
