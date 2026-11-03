@@ -25,6 +25,9 @@ ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violate
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
+ok   Credentials.before-code.cfg: Error: Invariant ApprovalKept is violated.
+ok   Credentials.before-recheck.cfg: Error: Invariant NoStaleAuthority is violated.
+ok   Credentials.now.cfg: 308 states generated, 92 distinct states found, 0 states left on queue.
 ok   Demo.before-clock.cfg: Error: Invariant UsedIsNotNeverReady is violated.
 ok   Demo.before-ending.cfg: Error: Invariant EndingStaysEnding is violated.
 ok   Demo.before-guards.cfg: Error: Invariant NoExtendAfterStop is violated.
@@ -185,6 +188,18 @@ process dying, and the server restarting.
 | `NothingRunsUnseen` | A process runs only for an app the page shows starting, live or being removed, or while its start is under way. | `orphanStopped`: an app removed while it started was forgotten, and its start's process stayed running and exposed. `errorChecks`: one failed request marked a live app stopped and left its process running | `TestAnAppRemovedWhileItStartsIsStoppedWhenItHasStarted`, `TestOneFailedRequestDoesNotStopALiveApp` |
 | `NoStuckStart` | An app shows as starting or being removed only while its start is under way. | `reconcile`: an app a restart cut off stayed starting for good, counting against the limit | `TestARestartFinishesTheAppsItCutOff` |
 | `WithinLimit` | An agent has no more apps starting or live than its limit. | `limitInStore`: two publishes at once both passed the count | `TestAppsAddedAtOnceKeepToTheLimit` |
+
+## Credentials
+
+What one person may do on their organization's server, and what they carry to show it (`internal/web/auth.go`, `sent.go`,
+`device.go`). The front door changes the person's role, or removes them, and writes the roster the server reads. The person
+signs in with a signed cookie that names their role, and approves a computer by the device flow, which gives it a token that
+acts as them. Making the token may fail.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `NoStaleAuthority` | No request is served as more than the person is now. | `recheck`: the cookie's role, and a computer's token, held until they expired after the front door demoted or removed the person | `TestAPersonDemotedOrRemovedAtTheFrontDoorIsHeldToItAtTheirNextRequest`, `TestAComputerOfAPersonWhoWasRemovedStopsWorking` |
+| `ApprovalKept` | A computer whose approval was taken is given its token, or may ask again. | `keepCode`: the code was spent before the token was made, so a failure made the person start over | `TestAComputerWhoseTokenCouldNotBeMadeAsksAgain` |
 
 ## Demo
 

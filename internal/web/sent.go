@@ -68,6 +68,12 @@ func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 			s.turnBackForbidden(w, r, who, scope)
 			return
 		}
+		if token.Person != "" {
+			if _, in, checked := s.memberNow(token.Person); checked && !in {
+				s.turnBack(w, r, "a token for a person no longer in the organization", "that is not a live API token")
+				return
+			}
+		}
 		ctx := context.WithValue(r.Context(), callerKey{}, who)
 		if token.Person != "" {
 			ctx = context.WithValue(ctx, personKey{}, token.Person)
@@ -87,8 +93,13 @@ func (s *Server) credential() string {
 
 // refusalOf is why a token was turned away, as a short phrase.
 func refusalOf(err error) string {
-	if errors.Is(err, apitoken.ErrRevoked) {
+	switch {
+	case errors.Is(err, apitoken.ErrRevoked):
 		return "a revoked token"
+	case errors.Is(err, apitoken.ErrIdle):
+		return "a computer's token unused for too long"
+	case errors.Is(err, apitoken.ErrUnread):
+		return "the tokens could not be read"
 	}
 	return "an unknown token"
 }

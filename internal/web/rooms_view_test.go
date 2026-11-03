@@ -52,7 +52,7 @@ func TestAPersonIsCalledByTheNameTheyGaveAndOthersByTheirAddress(t *testing.T) {
 	if got := site.server.ownerLabel("priya@getlatentic.com", "sam.okafor@getlatentic.com"); got != "Priya Nair's agent" {
 		t.Errorf("her agent is %q", got)
 	}
-	time.Sleep(nameRecheck + 10*time.Millisecond)
+	time.Sleep(rosterRecheck + 10*time.Millisecond)
 	write("Priya N. Nair")
 	if got := site.server.personName("priya@getlatentic.com"); got != "Priya N. Nair" {
 		t.Errorf("a roster written again was not read again: %q", got)

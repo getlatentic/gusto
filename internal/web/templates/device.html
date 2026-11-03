@@ -38,6 +38,12 @@
   </table>
 </div>
 {{else}}<p class="{{template "ui-note"}}">None yet.</p>{{end}}
+
+<h2 class="mt-4">Sign out everywhere</h2>
+<form method="post" action="/device/sign-out-everywhere" class="grid gap-2" data-confirm="Sign out everywhere? Every browser and the app sign in again, and every computer you approved is ended.">
+  <p class="text-sm text-muted">Ends your sign-in in every browser and in the app, and every computer above. Use it when a computer is lost.</p>
+  <div><button type="submit" class="{{template "ui-btn-sm-danger"}}">Sign out everywhere</button></div>
+</form>
 {{end}}
 </div>
 

@@ -119,6 +119,8 @@ func TestAPersonsSpendIsFoundWhateverTheCaseTheirAddressWasRecordedIn(t *testing
 
 func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T) {
 	here, path := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
+	// The list was read once, as every request reads it, so ada stays signed in on what it said.
+	here.ask(t, "GET", "/admin/people", nil)
 	for name, damage := range map[string]func(){
 		"it is not there":  func() { os.Remove(path) },
 		"it is not a list": func() { os.WriteFile(path, []byte("{this is not json"), 0o600) },
