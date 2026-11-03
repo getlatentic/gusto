@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -209,7 +210,7 @@ func TestAPersonsDefaultForTheirAgentsIsKeptAcrossRenewalAndSigningInAgain(t *te
 func TestDisconnectingDuringARenewalStaysDisconnected(t *testing.T) {
 	a := connectortest.New(t)
 	renewing, release := make(chan struct{}), make(chan struct{})
-	held := &http.Client{Transport: holdRenewal{renewing: renewing, release: release}}
+	held := &http.Client{Transport: holdGrant{grant: "refresh_token", holding: renewing, release: release}}
 	c, err := Open(Config{Dir: t.TempDir(), Base: "https://acme.gusto.test", HTTP: held})
 	if err != nil {
 		t.Fatal(err)
@@ -240,23 +241,81 @@ func TestDisconnectingDuringARenewalStaysDisconnected(t *testing.T) {
 	}
 }
 
-// holdRenewal holds a request to renew a token until release is closed, saying on renewing that it has one.
-type holdRenewal struct {
-	renewing chan<- struct{}
-	release  <-chan struct{}
+// holdGrant holds a request to the token endpoint for one grant until release is closed, saying on holding that it has one.
+type holdGrant struct {
+	grant   string
+	holding chan<- struct{}
+	release <-chan struct{}
 }
 
-func (h holdRenewal) RoundTrip(r *http.Request) (*http.Response, error) {
+func (h holdGrant) RoundTrip(r *http.Request) (*http.Response, error) {
 	if r.Body != nil && r.GetBody != nil {
 		body, err := r.GetBody()
 		if err != nil {
 			return nil, err
 		}
 		form, _ := io.ReadAll(body)
-		if strings.Contains(string(form), "grant_type=refresh_token") {
-			h.renewing <- struct{}{}
+		if strings.Contains(string(form), "grant_type="+h.grant) {
+			h.holding <- struct{}{}
 			<-h.release
 		}
 	}
 	return http.DefaultTransport.RoundTrip(r)
+}
+
+// A person who disconnects while a sign-in they approved is finishing stays disconnected: the disconnect is the later word.
+func TestDisconnectingWhileASignInFinishesStaysDisconnected(t *testing.T) {
+	a := connectortest.New(t)
+	trading, release := make(chan struct{}), make(chan struct{})
+	held := &http.Client{Transport: holdGrant{grant: "authorization_code", holding: trading, release: release}}
+	c, err := Open(Config{Dir: t.TempDir(), Base: "https://acme.gusto.test", HTTP: held})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
+	finished := make(chan error, 1)
+	go func() {
+		_, err := c.Finish(context.Background(), "ada@acme.com", state, code)
+		finished <- err
+	}()
+	<-trading
+	if err := c.Disconnect("ada@acme.com", "tasks"); err != nil {
+		t.Fatal(err)
+	}
+	close(release)
+	if err := <-finished; err == nil {
+		t.Error("a sign-in that came back before a disconnect was kept after it")
+	}
+	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+		t.Error("the person is connected after disconnecting")
+	}
+}
+
+// A sign-in the app no longer renews is not connected, so the person is asked to sign in again; and the app is not asked
+// again for it.
+func TestASignInTheAppNoLongerTakesIsNotConnected(t *testing.T) {
+	a := connectortest.New(t)
+	c := connectors(t, "https://acme.gusto.test")
+	a.Lasts(30 * time.Second)
+	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
+	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+		t.Fatal(err)
+	}
+	a.Revoke()
+	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); !errors.Is(err, ErrGrantGone) {
+		t.Fatalf("a revoked sign-in renewed: %v", err)
+	}
+	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+		t.Error("a sign-in the app refused is still connected")
+	}
+	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err == nil || errors.Is(err, ErrGrantGone) {
+		t.Errorf("a broken sign-in was taken to the app again: %v", err)
+	}
+	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
+	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+		t.Fatal(err)
+	}
+	if _, connected := c.Connected("ada@acme.com", "tasks"); !connected {
+		t.Error("signing in again did not connect")
+	}
 }
