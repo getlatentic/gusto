@@ -16,6 +16,7 @@ on:
       - "internal/cloud/leadership.go"
       - "internal/cloud/controller_follow.go"
       - "internal/atomicfile/**"
+      - "internal/changelog/**"
       - ".github/workflows/specs.yml"
 
 permissions:

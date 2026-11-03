@@ -328,3 +328,57 @@ func TestOnlyTheChangesTheFrontDoorReportsAreItsToReport(t *testing.T) {
 		}
 	}
 }
+
+// A log that ends in part of a line, which a crash or a full disk left, opens without it and carries on the chain: the
+// server starts. spec/AppendLog.before-repair.cfg is the trace.
+func TestALogEndingInPartOfALineOpensWithoutIt(t *testing.T) {
+	log, path, keyring := opened(t)
+	wrote(t, log, changelog.SignedIn, changelog.SetupSaved)
+	log.Close()
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Write([]byte(`{"seq":3,"at":"2026-11-03T09:`))
+	file.Close()
+	ring := t.TempDir()
+	key, _ := signing.Generate(ring, "acme")
+	again, err := changelog.Open(path, key, keyring)
+	if err != nil {
+		t.Fatalf("a log ending in part of a line was refused: %v", err)
+	}
+	defer again.Close()
+	event, err := again.Append(changelog.Event{Who: "alice@example.com", Kind: changelog.SignedOut})
+	if err != nil || event.Seq != 3 {
+		t.Fatalf("the chain did not carry on: %d %v", event.Seq, err)
+	}
+	if report, err := verify(t, path, keyring); err != nil || report.Events != 3 {
+		t.Errorf("the repaired log: %d events, %v", report.Events, err)
+	}
+}
+
+// A write a full disk cuts short leaves nothing behind: the next event follows the last whole line, with the next number.
+// spec/AppendLog.before-rollback.cfg is the trace.
+func TestAWriteCutShortLeavesNothingBehind(t *testing.T) {
+	log, path, keyring := opened(t)
+	wrote(t, log, changelog.SignedIn)
+	if err := log.CutShort([]byte(`{"seq":2,"kind":"sig`)); err == nil {
+		t.Fatal("a write cut short said nothing")
+	}
+	wrote(t, log, changelog.SetupSaved)
+	if report, err := verify(t, path, keyring); err != nil || report.Events != 2 {
+		t.Errorf("after a write cut short: %d events, %v", report.Events, err)
+	}
+}
+
+// A log whose failed write cannot be cut back takes no more events, so nothing is written after part of a line.
+func TestALogThatCannotBeCutBackTakesNoMoreEvents(t *testing.T) {
+	log, _, _ := opened(t)
+	wrote(t, log, changelog.SignedIn)
+	log.LoseFile()
+	for range 2 {
+		if _, err := log.Append(changelog.Event{Who: "alice@example.com", Kind: changelog.SignedOut}); err == nil {
+			t.Fatal("an event was taken after a write that could not be cut back")
+		}
+	}
+}
