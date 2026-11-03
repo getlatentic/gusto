@@ -76,6 +76,16 @@ func (s *Store) skillsDir(name string) string { return filepath.Join(s.dir(name)
 
 // Save writes a setup's name and servers, keeping whatever skills it has.
 func (s *Store) Save(wanted Setup, offered Servers) error {
+	if err := checkShape(wanted, offered); err != nil {
+		return err
+	}
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	return s.saveCheckedLocked(wanted)
+}
+
+// checkShape is whether a setup's name can name one and each server it names is offered.
+func checkShape(wanted Setup, offered Servers) error {
 	if !job.Named(wanted.Name) {
 		return fmt.Errorf("%q cannot name a setup: use lower case, digits and hyphens", wanted.Name)
 	}
@@ -84,8 +94,10 @@ func (s *Store) Save(wanted Setup, offered Servers) error {
 			return fmt.Errorf("this deployment offers no MCP server called %s", server)
 		}
 	}
-	s.guard.Lock()
-	defer s.guard.Unlock()
+	return nil
+}
+
+func (s *Store) saveCheckedLocked(wanted Setup) error {
 	if err := s.checkIntegrations(wanted.Integrations); err != nil {
 		return err
 	}

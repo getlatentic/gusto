@@ -13,23 +13,27 @@ const Provided = "gusto"
 
 // Provide keeps a setup gusto ships up to date with the version it ships. A
 // skill still as gusto last wrote it takes the new version; a skill a person
-// has changed keeps their change. A setup of that name that somebody else made
-// is not touched.
+// has changed keeps their change. Whether an administrator turned the setup
+// off, and the integrations they gave it, stay as they are. A setup of that
+// name that somebody else made is not touched.
 func (s *Store) Provide(wanted Setup, offered Servers) error {
+	if err := checkShape(wanted, offered); err != nil {
+		return err
+	}
+	s.guard.Lock()
+	defer s.guard.Unlock()
 	held, found := s.Get(wanted.Name)
 	if found && held.Who != Provided {
 		return nil
 	}
 	wanted.Made = time.Now().Unix()
 	if found {
-		wanted.Made, wanted.Wrote = held.Made, held.Wrote
+		wanted.Made, wanted.Wrote, wanted.Off, wanted.Integrations = held.Made, held.Wrote, held.Off, held.Integrations
 	}
 	wanted.Who = Provided
-	if err := s.Save(wanted, offered); err != nil {
+	if err := s.saveCheckedLocked(wanted); err != nil {
 		return err
 	}
-	s.guard.Lock()
-	defer s.guard.Unlock()
 	if wanted.Wrote == nil {
 		wanted.Wrote = map[string]string{}
 	}
