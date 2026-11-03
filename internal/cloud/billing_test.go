@@ -22,13 +22,15 @@ import (
 
 const testWebhookSecret = "whsec_test"
 
-// fakeStripe answers the three calls the seat billing makes, and keeps what it was sent.
+// fakeStripe answers the calls the seat billing makes, and keeps what it was sent. A subscription is asked for answers
+// with subscription.
 type fakeStripe struct {
-	mu       sync.Mutex
-	calls    []string
-	forms    []url.Values
-	failing  bool
-	listener *httptest.Server
+	mu           sync.Mutex
+	calls        []string
+	forms        []url.Values
+	failing      bool
+	subscription string
+	listener     *httptest.Server
 }
 
 func newFakeStripe(t *testing.T) *fakeStripe {
@@ -38,7 +40,7 @@ func newFakeStripe(t *testing.T) *fakeStripe {
 		r.ParseForm()
 		f.mu.Lock()
 		f.calls, f.forms = append(f.calls, r.URL.Path), append(f.forms, r.PostForm)
-		failing := f.failing
+		failing, subscription := f.failing, f.subscription
 		f.mu.Unlock()
 		switch {
 		case user != "sk_test":
@@ -49,6 +51,8 @@ func newFakeStripe(t *testing.T) *fakeStripe {
 			w.Write([]byte(`{"id":"cs_1","url":"https://checkout.stripe.com/c/pay/cs_1"}`))
 		case r.URL.Path == "/v1/billing_portal/sessions":
 			w.Write([]byte(`{"id":"bps_1","url":"https://billing.stripe.com/p/session/bps_1"}`))
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/v1/subscriptions/") && subscription != "":
+			w.Write([]byte(subscription))
 		case strings.HasPrefix(r.URL.Path, "/v1/subscription_items/"):
 			w.Write([]byte(`{"id":"si_1"}`))
 		default:

@@ -22,13 +22,13 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 
 | Table | Holds | What guards it |
 | --- | --- | --- |
-| `orgs` | one row for each organization: address (`slug`), name, admin, company domain, and, for a demo, its name, company, ready time, end time, whether it was extended, whether the visitor stopped it, and whether the sweep has begun to end it | primary key `slug`: two sign-ups cannot take one address |
+| `orgs` | one row for each organization: address (`slug`), name, admin, company domain, and, for a demo, its name, company, ready time, end time, whether it was extended, whether the visitor stopped it, and whether the sweep has begun to end it; whether its `quota.json` is due to be written again (`quota_due`) | primary key `slug`: two sign-ups cannot take one address |
 | `people` | one row for each address: created, verified | primary key `email`: an address has one account and one sign-in |
 | `memberships` | one row for each (address, organization): role, joined, who invited them, last sign-in there | primary key `(email, org)`: a person is in an organization once, and in as many organizations as invite them. Foreign key to `orgs`. Index on `(org, created)` for an organization's people |
 | `invitations` | an unanswered invitation for each (organization, address), with its expiry and the digest of its link | primary key `(org, email)`: inviting again replaces the earlier one |
 | `links` | a single-use link: digest of the secret, address, purpose (`verify`, `signin`, `invite`), expiry, and for an invitation the organization, role and sender | primary key `hash`. The secret itself is never kept |
 | `leads` | one row for each visitor who started a demo, kept after the demo is gone, with `who` (the address without a `+tag`) and `domain` | primary key `slug`. Indexes on `requested`, `(who, requested)` and `(domain, requested)` make the daily counts a range read |
-| `billing` | an organization's Stripe subscription as the newest event said: customer, subscription, item, status, seats billed, the event's time | primary key `org`, foreign key to `orgs`. An event older than `event_at` is not kept |
+| `billing` | an organization's Stripe subscription as the newest event said: customer, subscription, item, status, seats billed, the event's time | primary key `org`, foreign key to `orgs`. An event older than `event_at` is not kept. One made in the same second that says something else is not kept either: the subscription is asked of Stripe, stamped with the second Stripe answers in |
 | `runtime` | where an organization's server is: state, cell, the two ports, error, restarts, and the command it was started with | primary key `slug`. Unique `(cell, port)` and `(cell, proxy_port)` where the port is set: two organizations on a cell cannot be given one port, even by two front doors |
 | `leader` | the lease that makes one front door the leader: its holder, its epoch, and when it runs out | primary key `name`. Taken and renewed under lock `leader` |
 | `settings` | `demo_limits` (the owner's limits), `demos_paused` (present means paused), `session_key` (the key that signs cookies) | primary key `key` |
@@ -52,6 +52,7 @@ A rule that checks a count and then writes is a transaction. SQLite takes the wr
 | Demo limits: day, address, company, at once | lock `demos` around the counts and the insert. The counts are read from `leads`, so they hold after a demo is deleted |
 | Demo ready, extend, stop | lock `org:<slug>`; the one extension is checked inside it |
 | Abuse limits (sign-ups, mail, sign-ups in all, invitations an hour) | `Store.Limiter` counts in `rate_events` under lock `rate:<key>`: delete the expired rows, count, insert. A database that cannot be asked refuses the event |
+| An organization's limits (`quota.json`) | a change to what they are worked out from (a subscription, seats, a confirmed address) sets `quota_due` in its transaction. `ApplyQuota` clears it, which holds the organization's row, then reads and writes the file before it commits: a second `ApplyQuota` and a new mark wait, so an older quota never overwrites a newer one. The leader writes every quota still marked every 30 seconds |
 | The list of people an organization's server reads (`members.json`) | read and written under lock `roster:<slug>`, so the file always holds the later read |
 | First import | lock `import` |
 | Which front door leads | lock `leader` around reading the lease and writing it. A front door takes a lease that has run out at the next epoch |

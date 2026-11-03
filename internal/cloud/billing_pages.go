@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -48,6 +49,8 @@ func (s *Server) planOf(org Org, person Person) *plan {
 	p := &plan{Words: "Free trial", Offer: "Subscribe: " + seatWords(max(seats, 1), s.Stripe.SeatUSD), Subscribe: admin,
 		Manage: admin && found && billing.Customer != ""}
 	switch {
+	case found && billing.Status == "incomplete":
+		p.Words, p.Subscribe = "Payment pending: Stripe is waiting for the first payment", false
 	case found && billing.Status == "past_due":
 		p.Words, p.Subscribe = "Payment overdue: Stripe is trying the card again", false
 	case found && billing.Paid():
@@ -138,7 +141,7 @@ func (s *Server) stripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if about {
-		_, err = s.Store.RecordSubscription(billing)
+		err = s.keepSubscription(r.Context(), billing)
 	}
 	switch {
 	case errors.Is(err, errSecondSubscription):
@@ -149,4 +152,20 @@ func (s *Server) stripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte("ok\n"))
+}
+
+// sameSecondTries is how many times an event made in the same second as the subscription kept asks Stripe for the
+// subscription. One still tied is answered with an error, and Stripe sends it again in a later second.
+const sameSecondTries = 3
+
+// keepSubscription keeps what an event says of a subscription. When the event and the version kept were made in the
+// same second, it keeps the subscription as Stripe says it is instead, by the same rule, which a later second decides.
+func (s *Server) keepSubscription(ctx context.Context, b Billing) error {
+	_, err := s.Store.RecordSubscription(b)
+	for try := 0; try < sameSecondTries && errors.Is(err, errSameSecond); try++ {
+		if b, err = s.Stripe.Subscription(ctx, b.Subscription); err == nil {
+			_, err = s.Store.RecordSubscription(b)
+		}
+	}
+	return err
 }

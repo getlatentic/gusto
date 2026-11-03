@@ -90,13 +90,20 @@ func billingOfEvent(event stripeEvent) (Billing, bool, error) {
 	if err := json.Unmarshal(event.Data.Object, &sub); err != nil {
 		return Billing{}, false, err
 	}
+	b, about := billingOfSubscription(sub, time.Unix(event.Created, 0))
+	return b, about, nil
+}
+
+// billingOfSubscription is the row a subscription gives its organization as it was at a time, and false for one that
+// names no organization.
+func billingOfSubscription(sub stripeSubscription, at time.Time) (Billing, bool) {
 	org := sub.Metadata["org"]
 	if org == "" || ValidSlug(org) != nil {
-		return Billing{}, false, nil
+		return Billing{}, false
 	}
-	b := Billing{Org: org, Customer: sub.Customer, Subscription: sub.ID, Status: sub.Status, EventAt: time.Unix(event.Created, 0).UTC()}
+	b := Billing{Org: org, Customer: sub.Customer, Subscription: sub.ID, Status: sub.Status, EventAt: at.UTC()}
 	if len(sub.Items.Data) > 0 {
 		b.Item, b.Seats = sub.Items.Data[0].ID, sub.Items.Data[0].Quantity
 	}
-	return b, true, nil
+	return b, true
 }

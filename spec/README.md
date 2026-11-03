@@ -38,12 +38,17 @@ ok   MergeJournal.now.cfg: 76 states generated, 50 distinct states found, 0 stat
 ok   OrgSupervisor.before-560.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.before-provision.cfg: Error: Invariant EndingStopsServer is violated.
 ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 states left on queue.
+ok   Quota.before-mark.cfg: Error: Invariant QuotaFollows is violated.
+ok   Quota.before-serial.cfg: Error: Invariant QuotaFollows is violated.
+ok   Quota.now.cfg: 5452 states generated, 2777 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
 ok   StateFile.before-dir-sync.cfg: Error: Invariant NothingDoneIsLost is violated.
 ok   StateFile.before-in-place.cfg: Error: Invariant AlwaysWhole is violated.
 ok   StateFile.before-unsynced.cfg: Error: Invariant AlwaysWhole is violated.
 ok   StateFile.now.cfg: 771 states generated, 318 distinct states found, 0 states left on queue.
+ok   Subscription.before-tie.cfg: Error: Action property NeverOlder is violated.
+ok   Subscription.now.cfg: 39090 states generated, 12753 distinct states found, 0 states left on queue.
 ok   TaskLifecycle.before-recovery.cfg: Error: Invariant PassedIsEarned is violated.
 ok   TaskLifecycle.before-stop-race.cfg: Error: Invariant StopWins is violated.
 ok   TaskLifecycle.now.cfg: 1060 states generated, 577 distinct states found, 0 states left on queue.
@@ -190,6 +195,32 @@ A lead write outside a transaction may fail.
 | `LeadFollowsDemo` | The lead says the demo was ready, and extended, when it was. | `leadInTx`: the lead was written after the demo's transaction, and not again when that failed | the model only: the write now cannot fail apart from the demo's |
 | `NoExtendAfterStop` | A stopped demo is not extended. | `guards` | `TestAStoppedDemoIsNotExtendedOrStarted` |
 | `EndingStaysEnding` | A demo being ended is not made again. | `endingMark`: a crash part way through the end lost the controller's memory of it, and the next start made the demo again | `TestADemoBeingEndedIsNotMadeAgain` |
+
+## Quota
+
+One organization's `quota.json` (`internal/cloud/quota_apply.go`), which its server reads for its limits, and the database it
+is worked out from. A Stripe event, the seat sync and a confirmed address change the database, and each then calls
+`ApplyQuota`, several at once. Writing the file may fail, and the front door may crash; a start writes every quota again.
+Stripe sends an event again when its quota was not written. Role changes and removals are not modelled: an organization with
+no admin who confirmed their address is on the trial, which has room for one person, or has a subscription, which decides its
+quota.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `QuotaFollows` | When no call is left to make and nothing is marked, the file says what the database does. | `serial`: two calls read in one order and wrote in the other, so the older quota was left | the model only: the order depends on goroutine scheduling |
+| `QuotaFollows` | | `dueMark`: a quota a confirmed address or the seat sync failed to write stayed wrong until the next start | `TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep` |
+| `Converges` | However the changes go, the file comes to say what the database does. | either | |
+
+## Subscription
+
+One organization's subscription as Stripe changes it and as `RecordSubscription` keeps it. Stripe stamps each change's event
+with the second it was made in, and sends it until it is answered, in any order, to handlers that run at once. The model's
+stamps are Checkout's: three changes in one second, then one later.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `NeverOlder` | The row never goes back to an older version of the subscription. | `tieFetch`: of two events in one second, the one that arrived last was kept, so an active subscription went back to incomplete | `TestTwoEventsInOneSecondKeepTheSubscriptionAsStripeHasIt` |
+| `Converges` | Once Stripe stops changing it, the row comes to hold the subscription as it is. | `tieFetch` | |
 
 ## Changing a modelled machine
 

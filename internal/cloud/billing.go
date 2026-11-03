@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
-	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Billing is an organization's subscription, as Stripe last said it was. Seats is the
@@ -27,15 +26,12 @@ type Billing struct {
 	EventAt time.Time
 }
 
-// Paid says the subscription is in good standing, or in the retries Stripe makes
-// after a failed payment, which is the grace an organization has.
-func (b Billing) Paid() bool {
-	switch b.Status {
-	case "active", "trialing", "past_due":
-		return true
-	}
-	return false
-}
+// paidStatuses are a subscription in good standing, or in the retries Stripe makes after a failed payment, which is the
+// grace an organization has.
+var paidStatuses = []string{"active", "trialing", "past_due"}
+
+// Paid says the subscription is one of the paidStatuses.
+func (b Billing) Paid() bool { return slices.Contains(paidStatuses, b.Status) }
 
 // Lapsed says the organization subscribed and the subscription has ended or gone
 // unpaid. It keeps its people and its work, and starts no new tasks.
@@ -88,80 +84,14 @@ func (s *Store) SeatsWanted(slug string) (int, error) {
 	return count(context.Background(), s.db, `SELECT count(*) FROM memberships WHERE org = ?`, slug)
 }
 
-// paidQuota is the quota of a paid organization: the paid limits, with tasks for each seat.
-func (s *Store) paidQuota(seats int) quota.Quota {
-	q := s.set.Limits.Paid
-	q.Jobs *= max(seats, 1)
-	return q
-}
-
-// lapsedQuota keeps a lapsed organization's people and computers and starts nothing.
-func (s *Store) lapsedQuota() quota.Quota {
-	q := s.set.Limits.Paid
-	q.Jobs, q.Concurrent, q.Invites, q.Note = 0, 0, false, lapsedNote
-	return q
-}
-
-// ApplyQuota writes the quota an organization has now: a demo's, a paid or lapsed
-// subscription's, or, with none, the trial until one of its admins has confirmed their
-// address and the verified limits after.
-func (s *Store) ApplyQuota(slug string) error {
-	ctx := context.Background()
-	org, found, err := fetchOrg(ctx, s.db, slug)
-	if err != nil || !found {
-		return err
-	}
-	q, err := s.quotaOf(ctx, org)
-	if err != nil {
-		return err
-	}
-	return s.setQuota(slug, q)
-}
-
-// ApplyQuotas writes every organization's quota again, so a change to the limits a release or the operator sets reaches the
-// organizations made before it. One that cannot be written is logged and the rest are written.
-func (s *Store) ApplyQuotas() error {
-	orgs, err := s.Orgs()
-	if err != nil {
-		return err
-	}
-	for _, org := range orgs {
-		if err := s.ApplyQuota(org.Slug); err != nil {
-			slog.Error("an organization's quota was not written again", "org", org.Slug, "error", err)
-		}
-	}
-	return nil
-}
-
-func (s *Store) quotaOf(ctx context.Context, org Org) (quota.Quota, error) {
-	if org.Demo != nil {
-		return s.set.Demo.Limits, nil
-	}
-	billing, found, err := billingOf(ctx, s.db, org.Slug)
-	if err != nil {
-		return quota.Quota{}, err
-	}
-	switch {
-	case found && billing.Paid():
-		return s.paidQuota(billing.Seats), nil
-	case found && billing.Lapsed():
-		return s.lapsedQuota(), nil
-	}
-	verified, err := count(ctx, s.db, `SELECT count(*) FROM memberships m JOIN people p ON p.email = m.email
-		WHERE m.org = ? AND m.role = ? AND p.verified IS NOT NULL`, org.Slug, string(Admin))
-	if err != nil {
-		return quota.Quota{}, err
-	}
-	if verified > 0 {
-		return s.set.Limits.Verified, nil
-	}
-	return s.set.Limits.Trial, nil
-}
-
 // errSecondSubscription is an organization that already pays being sent a second subscription,
 // which happens when an admin subscribes from two tabs. The first stands, and the operator
 // refunds the second.
 var errSecondSubscription = errors.New("an organization that pays was sent a second subscription")
+
+// errSameSecond is an event about the subscription kept, made in the same second as the one kept and saying something
+// else. Stripe stamps events in whole seconds, so which is newer is not known: the subscription is asked of Stripe.
+var errSameSecond = errors.New("two versions of a subscription were made in the same second")
 
 // RecordSubscription keeps what a Stripe event says an organization's subscription is, and sets
 // its quota to match. An event older than the one kept changes nothing, since Stripe may send
@@ -184,6 +114,12 @@ func (s *Store) RecordSubscription(b Billing) (bool, error) {
 		if found && b.EventAt.Before(held.EventAt) {
 			return nil
 		}
+		if found && held.Subscription == b.Subscription && b.EventAt.Equal(held.EventAt) {
+			if held.sameAs(b) {
+				return nil
+			}
+			return errSameSecond
+		}
 		if found && held.Subscription != b.Subscription && held.Paid() {
 			if b.Paid() {
 				return errSecondSubscription
@@ -191,21 +127,38 @@ func (s *Store) RecordSubscription(b Billing) (bool, error) {
 			return nil
 		}
 		kept = true
-		_, err = tx.ExecContext(ctx, putBilling.SQL(1), s.billingArgs(b)...)
-		return err
+		if _, err := tx.ExecContext(ctx, putBilling.SQL(1), s.billingArgs(b)...); err != nil {
+			return err
+		}
+		return markQuota(ctx, tx, b.Org)
 	})
 	if err != nil || !kept {
 		return kept, err
 	}
-	return true, s.ApplyQuota(b.Org)
+	s.quotaChanged(b.Org)
+	return true, nil
 }
 
-// SeatsBilled records that Stripe now bills an organization for seats, and sets its quota to match.
+// sameAs says two versions of a subscription say the same of it.
+func (b Billing) sameAs(other Billing) bool {
+	return b.Customer == other.Customer && b.Item == other.Item && b.Status == other.Status && b.Seats == other.Seats
+}
+
+// SeatsBilled records that Stripe now bills an organization for seats, and sets its quota to match. An event Stripe made
+// before the change may still bring the old number, and the seat sync then sets the seats again.
 func (s *Store) SeatsBilled(slug string, seats int) error {
-	if _, err := s.db.ExecContext(context.Background(), `UPDATE billing SET seats = ? WHERE org = ?`, seats, slug); err != nil {
+	ctx := context.Background()
+	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
+		if _, err := tx.ExecContext(ctx, `UPDATE billing SET seats = ? WHERE org = ?`, seats, slug); err != nil {
+			return err
+		}
+		return markQuota(ctx, tx, slug)
+	})
+	if err != nil {
 		return err
 	}
-	return s.ApplyQuota(slug)
+	s.quotaChanged(slug)
+	return nil
 }
 
 // CreditUsed is what an organization has used of its credit, as its server last wrote it, and nothing before it has used any.

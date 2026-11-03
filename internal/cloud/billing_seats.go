@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -77,10 +78,14 @@ type seatChange struct {
 
 // seatsOff is every paying organization billed for a number of seats other than its members.
 func (s *Store) seatsOff(ctx context.Context) ([]seatChange, error) {
+	paid := make([]any, len(paidStatuses))
+	for i, status := range paidStatuses {
+		paid[i] = status
+	}
 	rows, err := s.db.QueryContext(ctx, `SELECT b.org, b.item, count(m.email) FROM billing b
 		LEFT JOIN memberships m ON m.org = b.org
-		WHERE b.item <> '' AND b.status IN ('active', 'trialing', 'past_due')
-		GROUP BY b.org, b.item, b.seats HAVING count(m.email) <> b.seats AND count(m.email) > 0`)
+		WHERE b.item <> '' AND b.status IN (`+strings.TrimSuffix(strings.Repeat("?, ", len(paid)), ", ")+`)
+		GROUP BY b.org, b.item, b.seats HAVING count(m.email) <> b.seats AND count(m.email) > 0`, paid...)
 	if err != nil {
 		return nil, err
 	}
