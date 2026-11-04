@@ -36,6 +36,10 @@ ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states lef
 ok   Evidence.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
 ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
 ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
+ok   Formats.before-applied.cfg: Error: Invariant UpToDateIsWhole is violated.
+ok   Formats.before-format.cfg: Error: Invariant UndoneIsUpgraded is violated.
+ok   Formats.before-scratch.cfg: Error: Invariant StampsLand is violated.
+ok   Formats.now.cfg: 325 states generated, 60 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   Helper.before-hold.cfg: Error: Invariant NothingLost is violated.
@@ -381,6 +385,18 @@ that is refused. Retiring it keeps it retired, then forgets its key.
 | --- | --- | --- | --- |
 | `KeyIsTheLatest` | Once every change has finished, the key kept is the one the provider was last added with. | `lock`: a refused add forgot the key of the one that won, and a late forget took the key of a provider added again | `TestTwoAdminsAddingTheSameProviderAtOnceLeaveTheOneAddedWithItsKey`, `TestARetiredProviderAddedAgainKeepsItsNewKey` |
 | `RetiredIsRetired` | A retired provider has no model in use, and none of its models is changed. | `models`: retiring a provider left its models live, to be priced and turned on | `TestARetiredProvidersModelsAreRetiredWithItAndCannotBeChanged`, `TestAModelKeptLiveUnderARetiredProviderCannotBeChanged` |
+
+## Formats
+
+The format of what gusto keeps (`internal/datadir/datadir.go`, `internal/dbkit/migrate.go`). A data directory has data in a
+format and a stamp that says which, and one made before stamps is format 1 with no stamp. A database has had some of a
+component's migrations, and a migration can be added later with a number below one it has had.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `UndoneIsUpgraded` | No step is undone on data in another format. | `format`: a rollback took a directory with data and no stamp as the current format, and undid steps it never had | `TestADirectoryWithDataAndNoStampIsFormatOneToARollbackToo` |
+| `StampsLand` | Every stamp written is put in place. | `scratch`: two releases stamping at once wrote the same scratch file, and the second rename found none | `TestTwoReleasesStampingADirectoryAtOnceBothStampIt` |
+| `UpToDateIsWhole` | A database said to be up to date has had every migration. | `applied`: a migration numbered below the newest applied was passed over | `TestADatabaseThatPassedOverAMigrationIsRefused`, `TestADatabaseThatHadAnotherMigrationUnderANumberIsRefused`, `TestAMigrationSetWithAGapIsRefused` |
 
 ## Changing a modelled machine
 

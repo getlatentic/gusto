@@ -45,6 +45,8 @@ on:
       - "internal/web/routines.go"
       - "cmd/gusto/apps.go"
       - "cmd/gusto/computers*.go"
+      - "internal/datadir/**"
+      - "internal/dbkit/**"
       - ".github/workflows/specs.yml"
 
 permissions:
