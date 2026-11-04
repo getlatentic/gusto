@@ -12,6 +12,8 @@ on:
       - "internal/helper/**"
       - "internal/filelock/**"
       - "internal/vmwall/**"
+      - "internal/datadir/**"
+      - "internal/dbkit/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"

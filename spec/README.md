@@ -36,6 +36,10 @@ ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states lef
 ok   Evidence.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
 ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
 ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
+ok   Formats.before-applied.cfg: Error: Invariant UpToDateIsWhole is violated.
+ok   Formats.before-format.cfg: Error: Invariant UndoneIsUpgraded is violated.
+ok   Formats.before-scratch.cfg: Error: Invariant StampsLand is violated.
+ok   Formats.now.cfg: 325 states generated, 60 distinct states found, 0 states left on queue.
 ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
 ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   Helper.before-hold.cfg: Error: Invariant NothingLost is violated.
@@ -367,6 +371,18 @@ The runner image fixes from the same pass have Go tests and no model. A server w
 again until it is here (`TestAFailedImageFetchIsTriedAgainUntilTheImageIsHere`), and a load whose naming failed is named,
 not fetched again (`TestALoadedImageThatCouldNotBeNamedIsNamedAndNotFetchedAgain`). A crash between starting the gateway and
 writing `vm.json` leaves a gateway that the next install starts again over, and `gusto local sandbox uninstall` stops.
+
+## Formats
+
+The format of what gusto keeps (`internal/datadir/datadir.go`, `internal/dbkit/migrate.go`). A data directory has data in a
+format and a stamp that says which, and one made before stamps is format 1 with no stamp. A database has had some of a
+component's migrations, and a migration can be added later with a number below one it has had.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `UndoneIsUpgraded` | No step is undone on data in another format. | `format`: a rollback took a directory with data and no stamp as the current format, and undid steps it never had | `TestADirectoryWithDataAndNoStampIsFormatOneToARollbackToo` |
+| `StampsLand` | Every stamp written is put in place. | `scratch`: two releases stamping at once wrote the same scratch file, and the second rename found none | `TestTwoReleasesStampingADirectoryAtOnceBothStampIt` |
+| `UpToDateIsWhole` | A database said to be up to date has had every migration. | `applied`: a migration numbered below the newest applied was passed over | `TestADatabaseThatPassedOverAMigrationIsRefused`, `TestADatabaseThatHadAnotherMigrationUnderANumberIsRefused`, `TestAMigrationSetWithAGapIsRefused` |
 
 ## Changing a modelled machine
 
