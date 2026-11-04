@@ -12,6 +12,7 @@ on:
       - "internal/helper/**"
       - "internal/filelock/**"
       - "internal/vmwall/**"
+      - "internal/registry/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"
