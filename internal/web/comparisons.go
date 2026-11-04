@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -34,7 +33,7 @@ func comparable() []industry.Template {
 }
 
 func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — compare agents", "Nav": "compare", "Refused": r.URL.Query().Get("refused")}
+	page := map[string]any{"Title": productName + " — compare agents", "Nav": "compare", "Refused": s.refusal(r)}
 	if s.lineups != nil {
 		page["Lineups"] = s.ownLineups(r, s.lineups.List())
 	}
@@ -79,7 +78,7 @@ func (s *Server) startComparison(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := s.lineUp(r, r.PostForm.Get("brief"), r.PostForm.Get("model"), r.PostForm["harness"])
 	if err != nil {
-		http.Redirect(w, r, "/compare?refused="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		s.turnAway(w, r, "/compare", err.Error())
 		return
 	}
 	http.Redirect(w, r, "/compare/"+id, http.StatusSeeOther)

@@ -64,7 +64,7 @@ func (f *frontDoor) exit(email string) string {
 // toFrontDoor sends somebody to be signed in where people are.
 func (s *Server) toFrontDoor(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("desktop") {
-		s.render(w, "login.html", map[string]any{"Desktop": true, "Provider": true, "Refused": r.URL.Query().Get("refused")})
+		s.render(w, "login.html", map[string]any{"Desktop": true, "Provider": true, "Refused": s.refusal(r)})
 		return
 	}
 	http.Redirect(w, r, s.front.page("/open", nil), http.StatusSeeOther)

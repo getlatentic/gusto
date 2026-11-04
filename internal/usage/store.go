@@ -78,7 +78,7 @@ func (s *store) Reset(ctx context.Context) (int64, error) {
 
 func (s *store) Indexed(ctx context.Context) (map[string]int, error) {
 	out := map[string]int{}
-	err := s.query(ctx, s.db, `SELECT task, MAX(line) + 1 FROM usage_calls GROUP BY task`, nil, func(r *sql.Rows) error {
+	err := s.query(ctx, s.db, `SELECT task, CASE WHEN COUNT(*) = MAX(line) + 1 THEN MAX(line) + 1 ELSE 0 END FROM usage_calls GROUP BY task`, nil, func(r *sql.Rows) error {
 		var task string
 		var n int
 		if err := r.Scan(&task, &n); err != nil {

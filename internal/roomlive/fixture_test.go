@@ -31,6 +31,8 @@ type fakeBackend struct {
 	bulk   int
 	draws  atomic.Int64
 	server *Server
+	// authorized, when set, is told of each check that let somebody in, after it was made.
+	authorized atomic.Pointer[func(viewer Viewer, room string)]
 }
 
 func newFakeBackend(dir string, window int) *fakeBackend {
@@ -125,9 +127,13 @@ func (b *fakeBackend) Alive(viewer Viewer) bool {
 
 func (b *fakeBackend) Authorize(viewer Viewer, room string) error {
 	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.revoked[viewer.Who] || !(b.members[room][viewer.Who] || b.members[room]["*"]) {
+	refused := b.revoked[viewer.Who] || !(b.members[room][viewer.Who] || b.members[room]["*"])
+	b.mu.Unlock()
+	if refused {
 		return ErrNotFound
+	}
+	if told := b.authorized.Load(); told != nil {
+		(*told)(viewer, room)
 	}
 	return nil
 }

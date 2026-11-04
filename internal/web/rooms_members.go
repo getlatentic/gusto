@@ -96,6 +96,11 @@ func (s *Server) roomMembersPage(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.membersPath(held), http.StatusSeeOther)
 }
 
+// addPath is the room with its add dialog open, where what was refused there comes back to.
+func (s *Server) addPath(held instance.Instance) string {
+	return threadPath(s.instances.Latest(held.ID)) + "?add=1"
+}
+
 // membersPath is the room with its members dialog open, where a change to its members comes back to.
 func (s *Server) membersPath(held instance.Instance) string {
 	return threadPath(s.instances.Latest(held.ID)) + "?members=1"
@@ -114,7 +119,7 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, who := range people {
 		if inRoom(held, who) {
-			s.turnAway(w, r, s.membersPath(held), s.alreadyIn(r, who))
+			s.turnAway(w, r, s.addPath(held), s.alreadyIn(r, who))
 			return
 		}
 	}
@@ -122,7 +127,7 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 	for _, id := range r.Form["agent"] {
 		arrival, err := s.crewArrival(r, held, id)
 		if err != nil {
-			s.turnAway(w, r, s.membersPath(held), err.Error())
+			s.turnAway(w, r, s.addPath(held), err.Error())
 			return
 		}
 		arrivals = append(arrivals, arrival)
@@ -132,7 +137,7 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 		if already, is := err.(instance.AlreadyInError); is {
 			why = s.alreadyIn(r, already.Who)
 		}
-		s.turnAway(w, r, s.membersPath(held), why)
+		s.turnAway(w, r, s.addPath(held), why)
 		return
 	}
 	// Adding finishes the job, so the room comes back with its conversation in view and no dialog over it.

@@ -272,6 +272,7 @@
 <dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-add" aria-labelledby="room-add-title" data-asked="add">
   <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
     <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-add-title">{{if .Runs}}Add members{{else}}Propose an agent{{end}}</h2><p class="m-0 mt-1 text-sm text-muted">{{if .Runs}}Pick the agents you work with, or add people by their email address.{{else}}Pick an agent of yours. It joins when an admin of the room accepts it.{{end}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{with $.AddRefused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     {{if .Addable}}
     <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
     <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">

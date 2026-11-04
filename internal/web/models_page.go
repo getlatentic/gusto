@@ -34,7 +34,7 @@ func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
 		tabs = append(tabs, tab{Key: "settings", Label: "Settings"})
 	}
 	tabs, chosen := chooseTab(r, modelsPath, tabs)
-	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": r.URL.Query().Get("refused"), "Tabs": tabs, "Tab": chosen}
+	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": s.refusal(r), "Tabs": tabs, "Tab": chosen}
 	switch chosen {
 	case "models":
 		page["Rows"], page["Pages"] = onePage(r, modelsTab("models"), s.modelRows(view))

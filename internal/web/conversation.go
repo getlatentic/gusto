@@ -117,27 +117,28 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Rail":     s.railFor(r, threadPath(thread)),
 		"Here":     threadPath(thread),
 		// A chat fills the window rather than sitting in a document.
-		"Chat":      true,
-		"Title":     productName + " — " + s.nameOf(thread),
-		"Nav":       "chat",
-		"Instance":  held,
-		"Thread":    thread,
-		"Path":      threadPath(thread),
-		"Turns":     turns,
-		"Sharing":   s.apps != nil && owns,
-		"Owns":      owns,
-		"Me":        s.askerName(r),
-		"Mentions":  asJSON(s.mentionables(held, s.askerName(r))),
-		"Names":     s.roomNames(held),
-		"Version":   roomVersion,
-		"Stream":    stream,
-		"Members":   s.roomMembersOf(r, held),
-		"Headcount": len(held.Members) + len(held.Agents),
-		"Refused":   refusedIn(r, "members"),
-		"Unsent":    refusedIn(r, ""),
-		"Hint":      composerHint(held),
-		"Apps":      liveApps,
-		"Starting":  appsStarting,
+		"Chat":       true,
+		"Title":      productName + " — " + s.nameOf(thread),
+		"Nav":        "chat",
+		"Instance":   held,
+		"Thread":     thread,
+		"Path":       threadPath(thread),
+		"Turns":      turns,
+		"Sharing":    s.apps != nil && owns,
+		"Owns":       owns,
+		"Me":         s.askerName(r),
+		"Mentions":   asJSON(s.mentionables(held, s.askerName(r))),
+		"Names":      s.roomNames(held),
+		"Version":    roomVersion,
+		"Stream":     stream,
+		"Members":    s.roomMembersOf(r, held),
+		"Headcount":  len(held.Members) + len(held.Agents),
+		"Refused":    s.refusedIn(r, "members"),
+		"AddRefused": s.refusedIn(r, "add"),
+		"Unsent":     s.refusedIn(r, ""),
+		"Hint":       composerHint(held),
+		"Apps":       liveApps,
+		"Starting":   appsStarting,
 		// While a preview starts the page looks again, so its link appears without being asked for.
 		"Refresh": appsStarting,
 		"Waiting": running != "",
@@ -320,14 +321,24 @@ func (s *Server) nameOf(thread instance.Thread) string {
 	return "New thread"
 }
 
-// refusedIn is why the last thing asked of the page was refused, when it was asked of the part named: the members dialog
-// carries "members" in the address, and what was said in the conversation carries nothing more.
-func refusedIn(r *http.Request, part string) string {
+// dialogs are the parts of a room's page that carry their own refusals: what was asked in one comes back with its name in the
+// address.
+var dialogs = []string{"members", "add"}
+
+// refusedIn is why the last thing asked of the page was refused, when it was asked of the part named: a dialog, or with no name,
+// what was said in the conversation, which carries no dialog's name.
+func (s *Server) refusedIn(r *http.Request, part string) string {
 	asked := r.URL.Query()
-	if (part == "" && len(asked["members"]) > 0) || (part != "" && len(asked[part]) == 0) {
+	if part == "" {
+		for _, dialog := range dialogs {
+			if asked.Has(dialog) {
+				return ""
+			}
+		}
+	} else if !asked.Has(part) {
 		return ""
 	}
-	return asked.Get("refused")
+	return s.refusal(r)
 }
 
 // limitWords is the limit that stopped a turn, said plainly: a person's budget by their name and the month, or the proxy's words.

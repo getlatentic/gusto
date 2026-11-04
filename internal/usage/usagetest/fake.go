@@ -438,10 +438,16 @@ func (f *Fake) Indexed(ctx context.Context) (map[string]int, error) {
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	out := map[string]int{}
+	out, count := map[string]int{}, map[string]int{}
 	for _, r := range f.rows {
+		count[r.Task]++
 		if r.Line+1 > out[r.Task] {
 			out[r.Task] = r.Line + 1
+		}
+	}
+	for task, next := range out {
+		if count[task] != next {
+			out[task] = 0
 		}
 	}
 	return out, nil

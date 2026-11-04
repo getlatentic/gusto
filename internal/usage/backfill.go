@@ -52,14 +52,14 @@ type Result struct {
 }
 
 // Backfill reads the model calls the index does not hold yet from every task's out/proxy.jsonl under jobsDir. It
-// asks the store how many of each task's lines it holds and parses only the lines past that, so it can be run
-// again at any time, resumes where an interrupted run stopped, and adds nothing twice.
+// asks the store where each task's lines are held up to and parses only the lines past that, or all of them when
+// one is missing, so it can be run again at any time, resumes where an interrupted run stopped, and adds nothing
+// twice.
 func Backfill(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, progress *Progress) (Result, error) {
 	return rebuild(ctx, store, jobsDir, who, provider, progress, nil)
 }
 
-// Repair reads the named tasks again from their first line. A call the recorder could not write leaves a gap that
-// Backfill, which starts after the last line held, does not look back for.
+// Repair reads the named tasks again from their first line, as soon as the recorder says it dropped a call of theirs.
 func Repair(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, progress *Progress, tasks []string) (Result, error) {
 	if len(tasks) == 0 {
 		return Result{}, nil

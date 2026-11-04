@@ -152,7 +152,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "login.html", map[string]any{
 		"Wrong":    wrong,
 		"Local":    s.local != nil,
-		"Refused":  r.URL.Query().Get("refused"),
+		"Refused":  s.refusal(r),
 		"Identity": s.identity.Configured(),
 		"Provider": s.identity.Configured(),
 		"Desktop":  r.URL.Query().Has("desktop"),
@@ -225,11 +225,7 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 // turnAway sends somebody back to the page they came from, carrying the reason
 // they did not get what they asked for.
 func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why string) {
-	join := "?"
-	if strings.Contains(back, "?") {
-		join = "&"
-	}
-	http.Redirect(w, r, back+join+"refused="+template.URLQueryEscaper(why), http.StatusSeeOther)
+	http.Redirect(w, r, s.withMessage(back, "refused", why), http.StatusSeeOther)
 }
 
 // file hands back one evidence file. The name is checked against the listing

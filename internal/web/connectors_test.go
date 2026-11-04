@@ -56,7 +56,7 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		t.Errorf("an app that is off could be connected: %d", got)
 	}
 	turnedOn := here.ask(t, "POST", "/admin/connectors/tasks/on", nil).Header().Get("Location")
-	if turnedOn != "/admin/apps?tab=apps&on=Tasks" {
+	if turnedOn != here.server.withMessage("/admin/apps?tab=apps", "on", "Tasks") {
 		t.Fatalf("turning it on went to %q", turnedOn)
 	}
 	if page := here.ask(t, "GET", turnedOn, nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) ||
@@ -70,10 +70,11 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		t.Fatalf("the person is not offered it:\n%s", page)
 	}
 	back := signInAt(t, ada, app)
-	if back.StatusCode != http.StatusSeeOther || back.Header.Get("Location") != "/connections?connected=Tasks" {
+	connected := here.server.withMessage("/connections", "connected", "Tasks")
+	if back.StatusCode != http.StatusSeeOther || back.Header.Get("Location") != connected {
 		t.Fatalf("coming back went to %d %q", back.StatusCode, back.Header.Get("Location"))
 	}
-	if page := ada.ask(t, "GET", "/connections?connected=Tasks", nil).Body.String(); !strings.Contains(page, "You are signed in to Tasks.") ||
+	if page := ada.ask(t, "GET", connected, nil).Body.String(); !strings.Contains(page, "You are signed in to Tasks.") ||
 		!strings.Contains(page, `action="/connections/tasks/disconnect"`) {
 		t.Errorf("the page does not show the person signed in:\n%s", page)
 	}

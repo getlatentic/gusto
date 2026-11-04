@@ -60,6 +60,7 @@ on:
       - "pkg/proxy/tokens.go"
       - "pkg/proxy/runtokens.go"
       - "internal/runtoken/**"
+      - "internal/roomlive/**"
       - ".github/workflows/specs.yml"
 
 permissions:

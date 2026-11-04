@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	neturl "net/url"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -105,7 +104,7 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 	if err != nil || given.Value == "" || subtle.ConstantTimeCompare([]byte(given.Value), []byte(r.URL.Query().Get("state"))) != 1 {
 		// An answer this server did not ask for, so it is not acted on.
 		s.noteRefused(r, "", "the provider", "the answer did not come from a sign-in started here")
-		refuse(w, r, "that sign-in did not start here")
+		s.turnAway(w, r, "/login", "that sign-in did not start here")
 		return
 	}
 	verifier, nonce := cookieValue(r, verifierCookie), cookieValue(r, nonceCookie)
@@ -117,7 +116,7 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Warn("a sign-in could not be checked", "error", err)
 		s.noteRefused(r, "", "the provider", "the sign-in could not be checked")
-		refuse(w, r, "that sign-in could not be checked")
+		s.turnAway(w, r, "/login", "that sign-in could not be checked")
 		return
 	}
 	role, admitted := s.roleFor(who)
@@ -126,16 +125,12 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 		// Who they are is settled; whether they may spend this server's
 		// credential is a separate question, and the answer is no.
 		slog.Info("a sign-in was refused: no role maps to this person", "email", who.Email, "groups", len(who.Groups))
-		refuse(w, r, who.Email+" is not allowed here")
+		s.turnAway(w, r, "/login", who.Email+" is not allowed here")
 		return
 	}
 	s.keeper.issueFor(w, r, who.Email, role)
 	s.noteSignIn(r, who.Email, role, "the provider")
 	s.afterSignIn(w, r)
-}
-
-func refuse(w http.ResponseWriter, r *http.Request, why string) {
-	http.Redirect(w, r, "/login?refused="+neturl.QueryEscape(why), http.StatusSeeOther)
 }
 
 // person exchanges the code and reads who signed in out of the token the
