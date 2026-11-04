@@ -104,11 +104,10 @@ func (s *Server) removeRoomMember(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "only a room's admin takes somebody out of it", http.StatusForbidden)
 		return
 	}
-	if err := s.instances.RemoveMember(held.ID, who); err != nil {
+	if err := s.takeOutMember(held.ID, who, s.askerName(r)); err != nil {
 		s.turnAway(w, r, s.membersPath(held), err.Error())
 		return
 	}
-	s.takeOutAgentsOf(held.ID, who, s.askerName(r))
 	if strings.EqualFold(who, s.askerName(r)) && !s.admin(r) {
 		http.Redirect(w, r, "/chat", http.StatusSeeOther)
 		return

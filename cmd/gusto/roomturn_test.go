@@ -262,7 +262,8 @@ func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testi
 		said  string
 	}{
 		{"asker left", func(rooms *roomRuns, held instance.Instance) error {
-			return rooms.instances.RemoveMember(held.ID, "bea@acme.com")
+			_, err := rooms.instances.RemoveMember(held.ID, "bea@acme.com", nil)
+			return err
 		}, "bea@acme.com left the room while Ada worked for them"},
 		{"agent taken out", func(rooms *roomRuns, held instance.Instance) error {
 			return rooms.instances.RemoveAgent(held.ID, "a1")
