@@ -45,6 +45,10 @@ ok   Hosts.before-busy.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-mark.cfg: Error: Invariant NoStopUnderAStart is violated.
 ok   Hosts.before-unregister.cfg: Error: Invariant DownIsGone is violated.
 ok   Hosts.now.cfg: 16509 states generated, 4580 distinct states found, 0 states left on queue.
+ok   Install.before-clear.cfg: Error: Invariant RecordIsTrue is violated.
+ok   Install.before-stop.cfg: Error: Invariant NoIdleGateway is violated.
+ok   Install.before-verify.cfg: Error: Invariant RecordIsTrue is violated.
+ok   Install.now.cfg: 70 states generated, 38 distinct states found, 0 states left on queue.
 ok   Matrix.before-remake.cfg: Error: Invariant NeverStuck is violated.
 ok   Matrix.before-time.cfg: Error: Invariant TimeIsTheRun is violated.
 ok   Matrix.now.cfg: 153 states generated, 91 distinct states found, 0 states left on queue.
@@ -346,6 +350,23 @@ helper's and a sync beside it: each run reads the folders' record, works and wri
 Two more fixes have Go tests and no model. A token kept in the file wins over an older one in the keychain
 (`TestATokenKeptInTheFileWinsOverAnOlderOneInTheKeychain`). An engine stopped for a new folder path or agent stays among the
 running until it ends, and is then started again at once (`TestAFolderRegisteredAtANewPathRestartsItsEngineOnceTheOldOneHasEnded`).
+
+## Install
+
+The OpenShell install on a person's computer, made and run again for a new release (`internal/vmwall/apply.go`). An install
+puts the programs in place, keeps the agents' root file system, starts the gateway for good, and last writes `vm.json`,
+which is what gusto uses. Any step may fail, and the install stops there.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `RecordIsTrue` | What `vm.json` names is what is in place. | `clear`: a re-run that failed left the old `vm.json` beside the new programs | `TestAReRunThatFailsIsNotUsedAndStopsTheGateway` |
+| `RecordIsTrue` | | `verify`: a root file system already there was kept, though its name is the processor's and not the release's | `TestANewReleasesImageReplacesTheOneKeptBefore` |
+| `NoIdleGateway` | No gateway runs that no install gusto uses started. | `stop`: an install that failed left its gateway, or the one before it, started at every login | `TestAReRunThatFailsIsNotUsedAndStopsTheGateway` |
+
+The runner image fixes from the same pass have Go tests and no model. A server whose start found no image tries the fetch
+again until it is here (`TestAFailedImageFetchIsTriedAgainUntilTheImageIsHere`), and a load whose naming failed is named,
+not fetched again (`TestALoadedImageThatCouldNotBeNamedIsNamedAndNotFetchedAgain`). A crash between starting the gateway and
+writing `vm.json` leaves a gateway that the next install starts again over, and `gusto local sandbox uninstall` stops.
 
 ## Changing a modelled machine
 

@@ -3,6 +3,8 @@ package vmwall
 import (
 	"encoding/json"
 	"os"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Settings is what gusto needs to use what was installed: it is written last, so a half-finished install is not used.
@@ -46,5 +48,5 @@ func (s Settings) save(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(text, '\n'), 0o600)
+	return atomicfile.WriteFile(path, append(text, '\n'), 0o600)
 }
