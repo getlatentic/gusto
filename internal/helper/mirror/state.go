@@ -1,10 +1,14 @@
 package mirror
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/filelock"
 )
 
 // State is what a pair of folders remembers between runs: what both sides agreed on, which is the picture a change is told
@@ -66,9 +70,20 @@ func (s *State) Save() error {
 	if err != nil {
 		return err
 	}
-	scratch := s.path + ".new"
-	if err := os.WriteFile(scratch, text, 0o600); err != nil {
-		return err
+	return atomicfile.WriteFile(s.path, text, 0o600)
+}
+
+// hold keeps every other engine off this record until the held file is let go, and reads the record again, since one that held
+// it before may have changed it.
+func (s *State) hold(ctx context.Context) (*State, *filelock.Held, error) {
+	held, err := filelock.Wait(ctx, s.path+".lock")
+	if err != nil {
+		return nil, nil, err
 	}
-	return os.Rename(scratch, s.path)
+	fresh, err := OpenState(s.path)
+	if err != nil {
+		held.Release()
+		return nil, nil, err
+	}
+	return fresh, held, nil
 }
