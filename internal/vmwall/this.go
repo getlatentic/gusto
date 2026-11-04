@@ -22,6 +22,7 @@ func This(release string, say io.Writer) Env {
 		Release:  release,
 		Run:      run,
 		Start:    startGateway,
+		Stop:     stopGateway,
 		Say:      say,
 	}
 }

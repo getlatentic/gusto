@@ -11,6 +11,7 @@ on:
       - "internal/matrix/**"
       - "internal/helper/**"
       - "internal/filelock/**"
+      - "internal/vmwall/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"

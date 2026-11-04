@@ -2,6 +2,9 @@ package vmwall
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,7 +24,9 @@ const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
 var startupWait = 45 * time.Second
 
 // Apply installs: it downloads and checks the programs, makes the gateway's certificates and configuration, starts the gateway for
-// good, and last records what it made so gusto uses it. Run again, it replaces the programs and keeps the certificates.
+// good, and last records what it made so gusto uses it. Run again, it replaces the programs and keeps the certificates. The record
+// of an install before is taken away first, so an install that does not finish is never used, whether it is the first or a
+// later one, and its gateway is stopped: the one it started, or the one of the install before, which nothing uses now.
 func (p Plan) Apply(ctx context.Context) error {
 	steps := []struct {
 		say string
@@ -40,13 +45,25 @@ func (p Plan) Apply(ctx context.Context) error {
 	if err := ensureDirs(p.Root, p.Bin(), p.Libexec(), p.TLS(), p.Rootfs(), p.State()); err != nil {
 		return err
 	}
+	if err := os.Remove(p.Settings()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	for _, step := range steps {
 		p.say("%s...", step.say)
 		if err := step.do(ctx); err != nil {
-			return fmt.Errorf("%s: %w", step.say, err)
+			return errors.Join(fmt.Errorf("%s: %w", step.say, err), p.stopUnused())
 		}
 	}
 	return Settings{Version: Version, Binary: p.Program(CLI), Gateway: GatewayName, Image: p.imagePath()}.save(p.Settings())
+}
+
+// stopUnused stops the gateway after an install that did not finish, which would otherwise run on, started at every login, with
+// nothing that uses it.
+func (p Plan) stopUnused() error {
+	if p.Stop == nil {
+		return nil
+	}
+	return p.Stop(p.Layout)
 }
 
 func (p Plan) install(ctx context.Context) error {
@@ -128,9 +145,13 @@ func (p Plan) fetchTools(ctx context.Context) error {
 	})
 }
 
-// fetchImage downloads gusto's root file system and keeps it only if it is the one the release's checksum file names.
+// fetchImage downloads gusto's root file system and keeps it only if it is the one the release's checksum file names. One already
+// here is kept when it is that one: its name is the processor's, not the release's, so one from a release before is replaced.
 func (p Plan) fetchImage(ctx context.Context) error {
-	if p.ImageFile != "" || p.Exists(p.imagePath()) {
+	if p.ImageFile != "" {
+		return nil
+	}
+	if sum, err := sumOf(p.imagePath()); err == nil && sum == p.Image.SHA256 {
 		return nil
 	}
 	name := RootfsAsset(p.Platform.GOARCH)
@@ -139,6 +160,19 @@ func (p Plan) fetchImage(ctx context.Context) error {
 		return err
 	}
 	return os.Rename(downloaded, p.imagePath())
+}
+
+func sumOf(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	digest := sha256.New()
+	if _, err := io.Copy(digest, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
 }
 
 func (p Plan) start(context.Context) error { return p.Start(p.Layout) }

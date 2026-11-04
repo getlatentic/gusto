@@ -28,8 +28,9 @@ type Env struct {
 	Release string
 	// Run runs a program with exactly the environment given and returns what it printed.
 	Run func(ctx context.Context, env []string, program string, args ...string) (string, error)
-	// Start keeps the gateway running, now and at login.
+	// Start keeps the gateway running, now and at login, and Stop takes that away.
 	Start func(Layout) error
+	Stop  func(Layout) error
 	// Say is where progress is written.
 	Say io.Writer
 }

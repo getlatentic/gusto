@@ -83,3 +83,39 @@ func TestARunnerImageWithNoSourceIsLeftAndAFailedFetchSaysWhy(t *testing.T) {
 		t.Error("a source of another kind was taken")
 	}
 }
+
+// A load whose naming failed is named on the next try, and the image is not fetched again.
+func TestALoadedImageThatCouldNotBeNamedIsNamedAndNotFetchedAgain(t *testing.T) {
+	runtimePath := imageRuntime(t)
+	dir := filepath.Dir(runtimePath)
+	script, _ := os.ReadFile(runtimePath)
+	failOnce := strings.Replace(string(script), `tag) touch "$dir/tagged" ;;`,
+		`tag) if [ -f "$dir/refused" ]; then touch "$dir/tagged"; else touch "$dir/refused"; echo "no room" >&2; exit 1; fi ;;
+inspect) [ -f "$dir/archive" ] ;;`, 1)
+	failOnce = strings.Replace(failOnce, `image) [ -f "$dir/tagged" ] ;;`, `image) if [ "$3" = "gusto-runner:latest" ]; then [ -f "$dir/archive" ]; else [ -f "$dir/tagged" ]; fi ;;`, 1)
+	if err := os.WriteFile(runtimePath, []byte(failOnce), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var fetched atomic.Int32
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fetched.Add(1)
+		w.Write([]byte("the image's layers"))
+	}))
+	defer source.Close()
+	t.Setenv("GUSTO_CONTAINER", runtimePath)
+	t.Setenv("GUSTO_IMAGE", "gusto-runner:abc123")
+	t.Setenv(ImageSource, source.URL+"/image/abc123.docker.tar.gz")
+	t.Setenv("TMPDIR", t.TempDir())
+	if err := EnsureImage(context.Background()); err == nil {
+		t.Fatal("a load that could not be named was taken")
+	}
+	if err := EnsureImage(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if fetched.Load() != 1 {
+		t.Errorf("the image was fetched %d times", fetched.Load())
+	}
+	if _, err := os.Stat(filepath.Join(dir, "tagged")); err != nil {
+		t.Error("the loaded image was not named on the second try")
+	}
+}
