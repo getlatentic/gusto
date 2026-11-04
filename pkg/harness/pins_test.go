@@ -20,6 +20,13 @@ func TestEveryAdaptersPackageIsPinned(t *testing.T) {
 		if strings.Contains(adapter.Package[1:], "@") {
 			t.Errorf("%s: the adapter names %q with a version; versions live in pins.json", name, adapter.Package)
 		}
+		if binary, found := PinnedBinary(adapter.Package); found {
+			checkBinaryPin(t, name, binary)
+			if adapter.Download == "" || adapter.Install() != "" {
+				t.Errorf("%s: a program that is not on npm needs a download page, and has Install %q", name, adapter.Install())
+			}
+			continue
+		}
 		pin, found := Pinned(adapter.Package)
 		if !found {
 			t.Errorf("%s: %s is not in pins.json; run pkg/harness/pin.sh %s@<version>", name, adapter.Package, adapter.Package)
@@ -30,6 +37,20 @@ func TestEveryAdaptersPackageIsPinned(t *testing.T) {
 		}
 		if adapter.Install() != adapter.Package+"@"+pin.Version {
 			t.Errorf("%s: Install is %q", name, adapter.Install())
+		}
+	}
+}
+
+// A binary is pinned for both architectures the image is built for, each an https file with a whole sha256.
+func checkBinaryPin(t *testing.T, name string, pin BinaryPin) {
+	t.Helper()
+	if pin.Version == "" {
+		t.Errorf("%s: the binary pin has no version", name)
+	}
+	for _, arch := range []string{"x64", "arm64"} {
+		artifact, found := pin.Artifacts[arch]
+		if !found || !strings.HasPrefix(artifact.URL, "https://") || !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(artifact.SHA256) {
+			t.Errorf("%s: the %s build is pinned as %+v", name, arch, artifact)
 		}
 	}
 }

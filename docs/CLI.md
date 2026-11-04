@@ -704,7 +704,7 @@ Adds the key in one of your environment variables to your own gusto, with the mo
 
 Arguments:
 
-- `<NAME>`: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY
+- `<NAME>`: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, META_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY
 - `<model>`: a model to offer; left out, you pick from what the provider lists
 
 Flags:

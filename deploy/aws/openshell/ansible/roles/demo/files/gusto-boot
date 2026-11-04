@@ -126,7 +126,7 @@ image() {
 
 credentials() {
   rm -rf "$run/creds"
-  READ_PARAMETER="gusto param" BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
+  READ_PARAMETER="gusto param" BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER META_PARAMETER=${META_PARAMETER:-} bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
   chmod 0700 "$run/creds"
   own "$run/creds"
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Writes pins.json: the version and registry integrity of every npm package the runner image installs, so an image is built
 # from the same bytes every time and a tampered registry fails the build. Run it to move a pin, then run the tests.
+# It keeps the binaries section as it is: an agent that is not on npm is pinned there by hand, with each download's sha256.
 #
 #   pkg/harness/pin.sh                      # keep every version, refresh the integrity
 #   pkg/harness/pin.sh opencode-ai@1.19.3   # move one package to that version
@@ -24,6 +25,6 @@ for name in sorted(set(packages) | set(moves)):
         sys.exit(f"{name}@{version} matches several versions: pin one")
     packages[name] = {"version": seen["version"], "integrity": seen["dist.integrity"], "tarball": seen["dist.tarball"]}
     print(f"{name}@{seen['version']}")
-json.dump({"_note": "Written by pin.sh. Each package the runner image installs, at one version, with the registry's sha512 integrity of that tarball.", "packages": packages}, open("pins.json", "w"), indent=2)
+json.dump({"_note": "Written by pin.sh. Each package the runner image installs, at one version, with the registry's sha512 integrity of that tarball.", "packages": packages, "binaries": pins.get("binaries", {})}, open("pins.json", "w"), indent=2)
 open("pins.json", "a").write("\n")
 EOF

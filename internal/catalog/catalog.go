@@ -124,7 +124,10 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 
 // notInstalled is how a person installs an agent that is not on their computer.
 func notInstalled(adapter harness.Adapter) string {
-	if adapter.Package == "" {
+	switch {
+	case adapter.Download != "" && adapter.Install() == "":
+		return adapter.Installed() + " is not installed on this computer: install it from " + adapter.Download
+	case adapter.Package == "":
 		return adapter.Installed() + " is not installed on this computer"
 	}
 	return "npm install -g " + adapter.Install()
