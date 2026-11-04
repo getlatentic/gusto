@@ -27,6 +27,8 @@ type Forwarder struct {
 	mu      sync.Mutex
 	token   string
 	expires time.Time
+	// refreshing is set while one call trades the token for a new one, which the calls meanwhile do not do again.
+	refreshing bool
 }
 
 // Place is the address an agent's configuration is written with on the host, before its forwarder has a port. gusto boxed puts
@@ -112,13 +114,20 @@ func expiryOf(token string) (time.Time, error) {
 func (f *Forwarder) current() string {
 	f.mu.Lock()
 	token, expires := f.token, f.expires
+	due := expires.Sub(f.now()) < tokenLife/3 && !f.refreshing
+	if due {
+		f.refreshing = true
+	}
 	f.mu.Unlock()
-	if left := expires.Sub(f.now()); left < tokenLife/3 {
-		if f.exchange(token) == nil {
-			f.mu.Lock()
-			token = f.token
-			f.mu.Unlock()
-		}
+	if !due {
+		return token
+	}
+	err := f.exchange(token)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.refreshing = false
+	if err == nil {
+		token = f.token
 	}
 	return token
 }

@@ -11,7 +11,7 @@ import (
 // key, and every call shows the token with a fresh proof signed by the key (DPoP, RFC 9449). A token or a secret taken out of the
 // sandbox is worth nothing: the secret is spent, and the token needs the key.
 type RunTokens interface {
-	Exchange(subject, proof, method, url string, redeem func(secret string) (job string, ok bool)) (string, error)
+	Exchange(subject, proof, method, url string, redeem func(secret string) (job string, ok bool), live func(job string) bool) (string, error)
 	Check(token, proof, method, url string) (job string, err error)
 }
 
@@ -51,7 +51,8 @@ func (p *Proxy) exchange(w http.ResponseWriter, r *http.Request) {
 		oauthError(w, "unsupported_grant_type")
 		return
 	}
-	token, err := tokens.Exchange(r.PostForm.Get("subject_token"), r.Header.Get("DPoP"), r.Method, requestURL(r), runs.Redeem)
+	live := func(job string) bool { _, running := runs.Run(job); return running }
+	token, err := tokens.Exchange(r.PostForm.Get("subject_token"), r.Header.Get("DPoP"), r.Method, requestURL(r), runs.Redeem, live)
 	if err != nil {
 		oauthError(w, "invalid_grant")
 		return

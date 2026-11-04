@@ -62,11 +62,12 @@ func NewIssuer(ttl time.Duration, describe func(run string) Run) (*Issuer, error
 	return &Issuer{key: key, ttl: ttl, now: time.Now, describe: describe, proofs: &replays{seen: map[string]time.Time{}, most: 1 << 20}}, nil
 }
 
-// Exchange trades a run's bootstrap secret, which redeem takes once, or a token of the run that is still good, for a token bound
-// to the key that signed the proof. It is an OAuth token exchange (RFC 8693) with the proof of RFC 9449.
-func (i *Issuer) Exchange(subject, proof, method, url string, redeem func(secret string) (run string, ok bool)) (string, error) {
+// Exchange trades a run's bootstrap secret, which redeem takes once, or a token of a run that live says is still running and
+// that is still good, for a token bound to the key that signed the proof. It is an OAuth token exchange (RFC 8693) with the
+// proof of RFC 9449.
+func (i *Issuer) Exchange(subject, proof, method, url string, redeem func(secret string) (run string, ok bool), live func(run string) bool) (string, error) {
 	if strings.Count(subject, ".") == 2 {
-		return i.refresh(subject, proof, method, url)
+		return i.refresh(subject, proof, method, url, live)
 	}
 	thumbprint, err := i.proofs.checkProof(proof, method, url, "", i.now())
 	if err != nil {
@@ -79,14 +80,17 @@ func (i *Issuer) Exchange(subject, proof, method, url string, redeem func(secret
 	return i.mint(run, thumbprint)
 }
 
-// refresh is a token of a run that is still good traded for a new one, bound to the same key.
-func (i *Issuer) refresh(token, proof, method, url string) (string, error) {
+// refresh is a token of a run that is still good traded for a new one, bound to the same key. A run that has ended gets none.
+func (i *Issuer) refresh(token, proof, method, url string, live func(run string) bool) (string, error) {
 	held, thumbprint, err := i.check(token, proof, method, url)
 	if err != nil {
 		return "", err
 	}
 	if thumbprint != held.Cnf.JKT {
 		return "", errors.New("the proof is not by the token's key")
+	}
+	if !live(held.Run) {
+		return "", errors.New("that run has ended")
 	}
 	return i.mint(held.Run, thumbprint)
 }

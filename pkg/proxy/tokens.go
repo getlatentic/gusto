@@ -31,46 +31,41 @@ type Ticket struct {
 type Tokens struct {
 	guard sync.RWMutex
 	jobs  map[string]Ticket
+	// tokenOf is each task's token in jobs, so a task has one.
+	tokenOf map[string]string
 	// redeemed are the tasks whose secret was traded, by task, until the task ends.
 	redeemed map[string]Ticket
 }
 
 func NewTokens() *Tokens {
-	return &Tokens{jobs: map[string]Ticket{}, redeemed: map[string]Ticket{}}
+	return &Tokens{jobs: map[string]Ticket{}, tokenOf: map[string]string{}, redeemed: map[string]Ticket{}}
 }
 
 // Mint gives this task a token good for one credential. A task that already has
 // one keeps it, so a restarted run does not orphan the address its container
-// was given.
+// was given, and it is good for the credential named now.
 func (t *Tokens) Mint(job, credential string) (string, error) {
+	return t.mint(Ticket{Job: job, Credential: credential})
+}
+
+// MintBound gives a task in a sandbox with a key of its own the secret it trades, once, for its run token.
+func (t *Tokens) MintBound(job, credential string) (string, error) {
+	return t.mint(Ticket{Job: job, Credential: credential, Bound: true})
+}
+
+func (t *Tokens) mint(ticket Ticket) (string, error) {
 	t.guard.Lock()
 	defer t.guard.Unlock()
-	for token, held := range t.jobs {
-		if held.Job == job {
-			return token, nil
-		}
+	if token, held := t.tokenOf[ticket.Job]; held {
+		t.jobs[token] = ticket
+		return token, nil
 	}
 	raw := make([]byte, 24)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
-	t.jobs[token] = Ticket{Job: job, Credential: credential}
-	return token, nil
-}
-
-// MintBound gives a task in a sandbox with a key of its own the secret it trades, once, for its run token.
-func (t *Tokens) MintBound(job, credential string) (string, error) {
-	token, err := t.Mint(job, credential)
-	if err != nil {
-		return "", err
-	}
-	t.guard.Lock()
-	defer t.guard.Unlock()
-	if held, found := t.jobs[token]; found {
-		held.Bound = true
-		t.jobs[token] = held
-	}
+	t.jobs[token], t.tokenOf[ticket.Job] = ticket, token
 	return token, nil
 }
 
@@ -95,6 +90,7 @@ func (t *Tokens) Redeem(secret string) (string, bool) {
 		return "", false
 	}
 	delete(t.jobs, secret)
+	delete(t.tokenOf, ticket.Job)
 	t.redeemed[ticket.Job] = ticket
 	return ticket.Job, true
 }
@@ -112,10 +108,7 @@ func (t *Tokens) Run(job string) (Ticket, bool) {
 func (t *Tokens) Drop(job string) {
 	t.guard.Lock()
 	defer t.guard.Unlock()
-	for token, held := range t.jobs {
-		if held.Job == job {
-			delete(t.jobs, token)
-		}
-	}
+	delete(t.jobs, t.tokenOf[job])
+	delete(t.tokenOf, job)
 	delete(t.redeemed, job)
 }

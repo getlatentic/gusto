@@ -56,6 +56,10 @@ on:
       - "internal/web/rooms_installs.go"
       - "internal/retention/**"
       - "internal/web/retention.go"
+      - "pkg/gateway/**"
+      - "pkg/proxy/tokens.go"
+      - "pkg/proxy/runtokens.go"
+      - "internal/runtoken/**"
       - ".github/workflows/specs.yml"
 
 permissions:
