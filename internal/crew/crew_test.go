@@ -82,6 +82,9 @@ func TestEachPersonChoosesForAnAgentAppByApp(t *testing.T) {
 	if _, chosen := made.AppChoice("mallory@example.com", "notion"); chosen {
 		t.Fatal("an agent was made with somebody's choice already in it")
 	}
+	if _, err := store.SetAccess(made.ID, "bob@example.com", true); err != nil {
+		t.Fatal(err)
+	}
 	store.ChooseApp(made.ID, "Bob@Example.com", "notion", "allow")
 	store.ChooseApp(made.ID, "bob@example.com", "github", "deny")
 	if _, err := store.ChooseApp(made.ID, "bob@example.com", "notion", "always"); err == nil {

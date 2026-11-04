@@ -158,14 +158,7 @@ func (s *Server) changeAgentAccess(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "give the person's email address")
 		return
 	}
-	_, err := s.crew.Change(member.ID, func(held *crew.Agent) error {
-		held.Access = slices.DeleteFunc(held.Access, func(each string) bool { return each == who })
-		if r.FormValue("action") != "remove" {
-			held.Access = append(held.Access, who)
-		}
-		return nil
-	})
-	if err != nil {
+	if _, err := s.crew.SetAccess(member.ID, who, r.FormValue("action") != "remove"); err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
 	}

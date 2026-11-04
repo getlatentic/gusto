@@ -9,6 +9,9 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   AgentApps.before-forget.cfg: Error: Invariant ChoiceIsOfThisConnection is violated.
+ok   AgentApps.before-member.cfg: Error: Invariant ChoiceIsAMembers is violated.
+ok   AgentApps.now.cfg: 80 states generated, 39 distinct states found, 0 states left on queue.
 ok   AppPreview.before-error.cfg: Error: Invariant NothingRunsUnseen is violated.
 ok   AppPreview.before-limit.cfg: Error: Invariant WithinLimit is violated.
 ok   AppPreview.before-orphan.cfg: Error: Invariant NothingRunsUnseen is violated.
@@ -397,6 +400,17 @@ component's migrations, and a migration can be added later with a number below o
 | `UndoneIsUpgraded` | No step is undone on data in another format. | `format`: a rollback took a directory with data and no stamp as the current format, and undid steps it never had | `TestADirectoryWithDataAndNoStampIsFormatOneToARollbackToo` |
 | `StampsLand` | Every stamp written is put in place. | `scratch`: two releases stamping at once wrote the same scratch file, and the second rename found none | `TestTwoReleasesStampingADirectoryAtOnceBothStampIt` |
 | `UpToDateIsWhole` | A database said to be up to date has had every migration. | `applied`: a migration numbered below the newest applied was passed over | `TestADatabaseThatPassedOverAMigrationIsRefused`, `TestADatabaseThatHadAnotherMigrationUnderANumberIsRefused`, `TestAMigrationSetWithAGapIsRefused` |
+
+## AgentApps
+
+What one person chose for an agent and one app of theirs (`internal/crew/crew.go`, `internal/web/connectors.go`). The person
+works with the agent or not, as its owner decides, and is connected to the app or not. A turn they ask of the agent uses the
+app by their choice. Each connection is numbered.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `ChoiceIsAMembers` | A choice is held only for a person who works with the agent. | `member`: anybody chose for an agent, and a person taken off it kept their choices for when they were let back | `TestAPersonWhoDoesNotWorkWithAnAgentDoesNotChooseForIt`, `TestAPersonTakenOffAnAgentLosesWhatTheyChoseForItsApps` |
+| `ChoiceIsOfThisConnection` | A choice that a turn would use was made in the connection it uses. | `forget`: an app connected again was used by a choice made under the connection that ended | `TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore` |
 
 ## Changing a modelled machine
 

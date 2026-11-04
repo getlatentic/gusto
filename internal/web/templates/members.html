@@ -102,6 +102,7 @@
   <section class="grid gap-3">
     <p class="m-0 text-sm text-muted">Which of your apps {{$a.Name}} may use when you ask it. Inherit follows your <a class="text-ink underline" href="/connections">default</a>.</p>
     {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to choose.</p>
+    {{else if not .Works}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Only the people who work with {{$a.Name}} choose here. When you ask it in a room, your <a class="text-ink underline" href="/connections">default</a> applies.</p>
     {{else if not .Apps}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No apps connected. <a class="text-ink underline" href="/connections">Connect one</a>.</p>
     {{else}}
     <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
