@@ -27,7 +27,7 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 		"Template":   held,
 		"Harnesses":  s.runnersOf(held),
 		"InBuilding": s.inBuilding.Load(),
-		"Refused":    r.URL.Query().Get("refused"),
+		"Refused":    s.refusal(r),
 	})
 }
 

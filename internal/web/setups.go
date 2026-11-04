@@ -46,7 +46,7 @@ func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
 		"Base":    "/setups",
 		"Setups":  s.setupsList(),
 		"Keeps":   s.setups != nil,
-		"Refused": r.URL.Query().Get("refused"),
+		"Refused": s.refusal(r),
 	})
 }
 
@@ -183,7 +183,7 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 		"Offered":  s.servers,
 		"Imported": s.importedIntegrations(),
 		"Catalog":  s.engines(),
-		"Refused":  r.URL.Query().Get("refused"),
+		"Refused":  s.refusal(r),
 	}, true
 }
 

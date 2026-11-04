@@ -30,7 +30,7 @@ func (s *Server) appsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	tabs, chosen := chooseTab(r, appsPath, tabs)
 	page := map[string]any{
-		"Title": productName + " — apps & skills", "Tabs": tabs, "Tab": chosen, "Refused": r.URL.Query().Get("refused"),
+		"Title": productName + " — apps & skills", "Tabs": tabs, "Tab": chosen, "Refused": s.refusal(r),
 	}
 	if chosen == "apps" {
 		views, err := s.connectorViews("")
@@ -38,7 +38,7 @@ func (s *Server) appsPage(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		page["Connectors"], page["TurnedOn"] = views, r.URL.Query().Get("on")
+		page["Connectors"], page["TurnedOn"] = views, s.message(r, "on")
 	} else {
 		imported := s.importedIntegrations()
 		page["Skills"], page["Writes"], page["Imports"] = s.skillRows(imported), s.hasSetups(), s.hasIntegrations()

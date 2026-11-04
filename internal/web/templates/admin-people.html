@@ -22,7 +22,7 @@
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Invited</th><th>By</th><th class="text-right">Link works until</th></tr></thead>
     <tbody>
-      {{range .Invited}}<tr><td>{{.Email}}</td><td class="text-muted">{{.By}}</td><td class="text-right whitespace-nowrap text-subtle">{{when .Expires}}</td></tr>{{end}}
+      {{range .Invited}}<tr><td>{{.Email}}</td><td class="text-muted">{{.By}}</td><td class="text-right whitespace-nowrap text-subtle">{{if .Expired}}Expired {{when .Expires}}{{else}}{{when .Expires}}{{end}}</td></tr>{{end}}
     </tbody>
   </table>
 </div>

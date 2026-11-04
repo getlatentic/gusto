@@ -204,7 +204,7 @@ func TestACutNameIsWholeInItsTitle(t *testing.T) {
 func TestARefusedChatSaysWhyAtTheBox(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	doc, err := html.Parse(site.ask(t, "GET", "/chat?refused="+url.QueryEscape("That folder is not yours."), nil).Body)
+	doc, err := html.Parse(site.ask(t, "GET", site.server.withMessage("/chat", "refused", "That folder is not yours."), nil).Body)
 	if err != nil {
 		t.Fatal(err)
 	}

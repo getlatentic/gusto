@@ -144,7 +144,7 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 	if kept, _ := here.server.orgSettings.Read(); kept.MonthlyBudgetUSD != 2 || kept.MemberBudgetUSD != 0 {
 		t.Errorf("a refused budget changed the budgets: %+v", kept)
 	}
-	refused := here.ask(t, "GET", budgetsPath+"?refused="+url.QueryEscape("the budget is a number"), nil).Body.String()
+	refused := here.ask(t, "GET", here.server.withMessage(budgetsPath, "refused", "the budget is a number"), nil).Body.String()
 	if !strings.Contains(refused, `role="alert">the budget is a number</p>`) {
 		t.Errorf("a refusal is not shown:\n%s", refused)
 	}

@@ -46,6 +46,8 @@ type Event struct {
 	By      string `json:"by"`
 	Action  string `json:"action"`
 	Version string `json:"version,omitempty"`
+	// Was is what the change replaced: the version that was on, the version whose programs could run, or who it was on for.
+	Was string `json:"was,omitempty"`
 }
 
 // Actions an administrator takes.
@@ -98,6 +100,8 @@ func Open(root string) (*Store, error) {
 var (
 	ErrNotFound  = errors.New("there is no such integration or version")
 	ErrNoVersion = errors.New("that version is not imported")
+	// ErrNoChange is a change that would leave the integration as it is, which is not made and not written down.
+	ErrNoChange = errors.New("that is how the integration is already")
 )
 
 func (s *Store) file(name string) string { return filepath.Join(s.root, name, "integration.json") }
@@ -227,73 +231,85 @@ func (held *Integration) Version(id string) (Version, bool) { return held.versio
 
 // Enable turns a version on, for everyone, and the one that was on is the one Restore returns to.
 func (s *Store) Enable(name, id, by string) (*Integration, error) {
-	return s.change(name, by, func(held *Integration) (string, string, error) {
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
 		if _, found := held.version(id); !found {
-			return "", "", ErrNoVersion
+			return "", "", "", ErrNoVersion
 		}
+		was := held.On
 		if held.On != id {
 			held.Before = held.On
 		}
 		held.On = id
-		return Enabled, id, nil
+		return Enabled, id, was, nil
 	})
 }
 
-// Disable turns an integration off. Its versions are kept.
+// Disable turns an integration off. Its versions are kept, and turning it on again asks again whether its programs may run.
 func (s *Store) Disable(name, by string) (*Integration, error) {
-	return s.change(name, by, func(held *Integration) (string, string, error) {
-		if held.On != "" {
-			held.Before = held.On
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
+		if held.On == "" {
+			return "", "", "", ErrNoChange
 		}
-		held.On = ""
-		return Disabled, "", nil
+		was := held.On
+		held.Before, held.On, held.Programs = held.On, "", ""
+		return Disabled, "", was, nil
 	})
 }
 
 // Restore turns on the version that was on before the one that is, or that was on before the integration was turned off.
 func (s *Store) Restore(name, by string) (*Integration, error) {
-	return s.change(name, by, func(held *Integration) (string, string, error) {
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
 		if _, found := held.version(held.Before); !found {
-			return "", "", errors.New("there is no earlier version to put back")
+			return "", "", "", errors.New("there is no earlier version to put back")
 		}
+		was := held.On
 		held.On, held.Before = held.Before, held.On
-		return Restored, held.On, nil
+		return Restored, held.On, was, nil
 	})
 }
 
-func (s *Store) change(name, by string, do func(*Integration) (action, version string, err error)) (*Integration, error) {
+// Last is the change last written down.
+func (held *Integration) Last() Event {
+	if len(held.History) == 0 {
+		return Event{}
+	}
+	return held.History[len(held.History)-1]
+}
+
+func (s *Store) change(name, by string, do func(*Integration) (action, version, was string, err error)) (*Integration, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	held, err := s.read(name)
 	if err != nil {
 		return nil, err
 	}
-	action, version, err := do(held)
+	action, version, was, err := do(held)
 	if err != nil {
 		return nil, err
 	}
-	held.History = append(held.History, Event{At: s.Now().Unix(), By: by, Action: action, Version: version})
+	held.History = append(held.History, Event{At: s.Now().Unix(), By: by, Action: action, Version: version, Was: was})
 	return held, s.write(held)
 }
 
 // AllowPrograms lets the programs of a version run, which is to say the servers it brings that are programs and not addresses. They run
 // in a box, and an administrator decides they may: a program is code that somebody else wrote.
 func (s *Store) AllowPrograms(name, id, by string) (*Integration, error) {
-	return s.change(name, by, func(held *Integration) (string, string, error) {
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
 		if _, found := held.version(id); !found {
-			return "", "", ErrNoVersion
+			return "", "", "", ErrNoVersion
 		}
+		was := held.Programs
 		held.Programs = id
-		return ProgramsAllowed, id, nil
+		return ProgramsAllowed, id, was, nil
 	})
 }
 
 // RefusePrograms takes the permission back.
 func (s *Store) RefusePrograms(name, by string) (*Integration, error) {
-	return s.change(name, by, func(held *Integration) (string, string, error) {
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
 		version := held.Programs
 		held.Programs = ""
-		return ProgramsRefused, version, nil
+		return ProgramsRefused, version, version, nil
 	})
 }
 
@@ -310,9 +326,10 @@ func (s *Store) SetFor(name string, patterns []string, by string) (*Integration,
 		}
 		cleaned = append(cleaned, pattern)
 	}
-	return s.change(name, by, func(held *Integration) (string, string, error) {
+	return s.change(name, by, func(held *Integration) (string, string, string, error) {
+		was := strings.Join(held.For, " ")
 		held.For = cleaned
-		return Scoped, strings.Join(cleaned, " "), nil
+		return Scoped, strings.Join(cleaned, " "), was, nil
 	})
 }
 

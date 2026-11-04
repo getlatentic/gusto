@@ -38,7 +38,7 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 		"Models":      s.modelOptions(picks),
 		"Rail":        s.railFor(r, "/chat"),
 		"Here":        "/chat",
-		"Refused":     r.URL.Query().Get("refused"),
+		"Refused":     s.refusal(r),
 		"Start":       s.startIn(r),
 		"Roles":       s.roleChoices(r),
 		"Role":        s.chosenRole(r),

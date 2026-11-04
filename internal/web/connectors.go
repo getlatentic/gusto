@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"slices"
 	"time"
 
@@ -126,7 +125,7 @@ func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
 	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.On || !view.Usable })
 	s.render(w, "connections.html", map[string]any{
 		"Title": productName + " — connections", "Nav": "connections", "Connectors": offered, "Person": person,
-		"Refused": r.URL.Query().Get("refused"), "Done": r.URL.Query().Get("connected"),
+		"Refused": s.refusal(r), "Done": s.message(r, "connected"),
 	})
 }
 
@@ -180,7 +179,7 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 	}
 	entry, _ := s.connectors.App(id)
 	s.note(r, changelog.ConnectorConnected, map[string]string{"connector": entry.Name})
-	http.Redirect(w, r, connectionsPath+"?connected="+url.QueryEscape(entry.Name), http.StatusSeeOther)
+	http.Redirect(w, r, s.withMessage(connectionsPath, "connected", entry.Name), http.StatusSeeOther)
 }
 
 func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
@@ -238,7 +237,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 		}
 		back := appsTab
 		if on {
-			back += "&on=" + url.QueryEscape(entry.Name)
+			back = s.withMessage(back, "on", entry.Name)
 		}
 		http.Redirect(w, r, back, http.StatusSeeOther)
 	}

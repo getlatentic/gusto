@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/gusto/internal/roster"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -34,11 +35,13 @@ type inviteRow struct {
 	Email   string
 	By      string
 	Expires int64
+	// Expired is an invitation whose link no longer works, which is not waiting for an answer.
+	Expired bool
 }
 
 // peoplePage is who is in the organization, with what each has spent this month.
 func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — people", "Refused": r.URL.Query().Get("refused")}
+	page := map[string]any{"Title": productName + " — people", "Refused": s.refusal(r)}
 	if s.front != nil && s.front.URL != "" {
 		page["Manage"] = s.front.page("/org", nil)
 		page["RoleAction"], page["Back"] = s.front.page("/org/people/role", nil), pageAddress(r)
@@ -61,7 +64,7 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	tabs, chosen := chooseTab(r, peoplePath, tabs)
 	page["Tabs"], page["Tab"] = tabs, chosen
 	if chosen == "invited" {
-		page["Invited"] = invitesOf(list)
+		page["Invited"] = invitesOf(list, time.Now())
 	} else {
 		page["People"], page["Pages"] = onePage(r, peoplePath+"?tab=people", s.rowsOf(list, asked))
 	}
@@ -106,10 +109,10 @@ func (s *Server) rowsOf(list roster.Roster, asked askedSpend) []personRow {
 	return rows
 }
 
-func invitesOf(list roster.Roster) []inviteRow {
+func invitesOf(list roster.Roster, now time.Time) []inviteRow {
 	rows := make([]inviteRow, 0, len(list.Invited))
 	for _, invited := range list.Invited {
-		rows = append(rows, inviteRow{Email: invited.Email, By: invited.By, Expires: invited.Expires.Unix()})
+		rows = append(rows, inviteRow{Email: invited.Email, By: invited.By, Expires: invited.Expires.Unix(), Expired: !invited.Expires.After(now)})
 	}
 	return rows
 }

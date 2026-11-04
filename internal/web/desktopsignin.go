@@ -149,7 +149,7 @@ func (s *Server) desktopRedeem(w http.ResponseWriter, r *http.Request) {
 	who, role, ok := s.tickets.redeem(query.Get("ticket"), query.Get("secret"), time.Now())
 	if !ok {
 		s.noteRefused(r, "", "the desktop app", "the sign-in ticket was wrong, old or used")
-		refuse(w, r, "that sign-in expired; try again")
+		s.turnAway(w, r, "/login", "that sign-in expired; try again")
 		return
 	}
 	s.keeper.issueLasting(w, r, who, role, s.desktopSessionLife())

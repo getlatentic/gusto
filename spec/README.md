@@ -83,6 +83,8 @@ ok   RoomMembers.before-once.cfg: Error: Invariant OneOwnRoom is violated.
 ok   RoomMembers.before-stop.cfg: Error: Invariant NoTurnWithoutItsAgent is violated.
 ok   RoomMembers.before-together.cfg: Error: Invariant AgentsFollowTheirOwner is violated.
 ok   RoomMembers.now.cfg: 197 states generated, 68 distinct states found, 0 states left on queue.
+ok   RoomSocket.before-watch.cfg: Error: Invariant OnlyMembersWatch is violated.
+ok   RoomSocket.now.cfg: 24 states generated, 16 distinct states found, 0 states left on queue.
 ok   Routines.before-owe.cfg: Error: Invariant NewsKept is violated.
 ok   Routines.before-surface.cfg: Error: Invariant NoneMeansNone is violated.
 ok   Routines.before-undo.cfg: Error: Invariant NoOrphanThread is violated.
@@ -478,6 +480,28 @@ run's forwarder trades its token near its end, from calls made at once.
 `MintBound` marks the token bound in the same step that mints it, so a bound task's secret never stands as a token, which has no
 test: there is no moment to catch. A record that cannot be written stops every call after it for the rest of the task. That is
 kept: a call that is not written down cannot be audited, and a later line does not make up for the missing one.
+
+## RoomSocket
+
+One person's socket subscribing to a room while they are taken out of it (`internal/roomlive/connect.go`). The subscription
+checks the person is in the room, and taking them out asks every socket watching the room to be checked again, which cannot
+unsubscribe a socket that is not subscribed yet.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `OnlyMembersWatch` | Once the check owed is done, a subscribed socket is a member's. | `watch`: a socket checked before it was a watcher was subscribed after the check that missed it | `TestAMemberTakenOutWhileTheirSocketSubscribesLosesTheRoom` |
+
+The other findings of the same pass have Go tests and no model, since each is one step:
+
+| Finding | Go test |
+| --- | --- |
+| Turning off an integration that is off writes nothing down, and its programs are asked for again when it comes back | `TestTurningOffWhatIsOffChangesNothingAndWritesNothingDown`, `TestProgramsAllowedBeforeATurnOffAreAskedForAgainWhenItComesBack` |
+| A change to an integration records what it replaced, under the store's lock | `TestEachChangeSaysWhatItReplaced` |
+| A page shows a message from its address only when this server sealed it | `TestAMessageInAnAddressIsShownOnlyWhenThisServerSaidIt` |
+| What the add dialog refuses is said in the add dialog | `TestWhatTheAddDialogRefusesIsSaidInTheAddDialog` |
+| An expired invitation is not listed as waiting | `TestAnExpiredInvitationIsNotListedAsWaiting` |
+| A backfill reads a task with a gap again from its first line | `TestABackfillFillsAGapTheRecorderLeftThoughLaterLinesAreHeld` |
+| A turn the agent ended for another reason than being done is not an answer | `TestATurnTheAgentEndedWithoutAnsweringIsNotAnAnswer` |
 
 ## Changing a modelled machine
 

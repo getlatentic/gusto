@@ -168,7 +168,7 @@ func TestWhatTheRegistryRefusesIsSaidOnThePageAndNothingIsChanged(t *testing.T) 
 	if reg.Document().Version != 0 {
 		t.Errorf("a refused change was made: %+v", reg.Document())
 	}
-	shown := admin.ask(t, "GET", "/admin/models?refused="+url.QueryEscape("a provider is reached over https"), nil).Body.String()
+	shown := admin.ask(t, "GET", here.server.withMessage("/admin/models", "refused", "a provider is reached over https"), nil).Body.String()
 	if !strings.Contains(shown, "a provider is reached over https") {
 		t.Error("the reason is not on the page")
 	}

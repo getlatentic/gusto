@@ -3,6 +3,7 @@ package runner
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +20,8 @@ const hangUp = 10 * time.Second
 
 // converse holds one turn over the Agent Client Protocol. The harness's exit
 // status is the turn's: an answered prompt is 0 whatever the teardown took, and
-// a turn the harness failed or never answered is 1, with its reason in stderr.
+// a turn the harness failed, never answered, or ended for another reason than
+// being done is 1, with its reason in stderr.
 // cwd is the directory the conversation works in, by the path the harness sees.
 func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, auth string, record *Record) (int, error) {
 	in, err := command.StdinPipe()
@@ -51,6 +53,9 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec,
 	in.Close()
 	if err := hangUpOn(command, exited); err != nil {
 		return 0, err
+	}
+	if failed == nil && !ended.Answered() {
+		failed = fmt.Errorf("the agent ended the turn without answering it: %s", ended.Stop)
 	}
 	if failed == nil {
 		return 0, nil

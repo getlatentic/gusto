@@ -142,8 +142,8 @@ type Store interface {
 	Groups(ctx context.Context, filter Filter, by string) ([]Group, error)
 	// Facets lists the distinct values, in order, of the calls that match the filter.
 	Facets(ctx context.Context, filter Filter) (Facets, error)
-	// Indexed is, for each task the index holds, how many of its calls it holds: one more than the highest Line.
-	// A rebuild reads only the lines past it.
+	// Indexed is, for each task the index holds, the line a rebuild reads from: one more than the highest Line when
+	// every line before it is held, and 0 when one is missing, so a gap the recorder left is read again.
 	Indexed(ctx context.Context) (map[string]int, error)
 	// Reset deletes every row and says how many it removed, which is how an index is rebuilt from scratch.
 	Reset(ctx context.Context) (int64, error)

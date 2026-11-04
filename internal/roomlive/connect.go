@@ -79,7 +79,11 @@ func (s *Server) subscribe(each *conn, event centrifuge.SubscribeEvent, done cen
 		done(centrifuge.SubscribeReply{}, centrifuge.ErrorUnknownChannel)
 		return
 	}
+	// The socket is a watcher before it is let in, so a Revalidate from here on finds it; one that ran between the check and the
+	// subscription is caught by asking again once it is subscribed.
+	s.watch(each, event.Channel)
 	if err := s.backend.Authorize(each.viewer, room); err != nil {
+		s.unsubscribed(each, event.Channel)
 		done(centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied)
 		return
 	}
@@ -87,8 +91,10 @@ func (s *Server) subscribe(each *conn, event centrifuge.SubscribeEvent, done cen
 	if stream {
 		options = centrifuge.SubscribeOptions{EnablePositioning: true, EnableRecovery: true, RecoveryMode: centrifuge.RecoveryModeStream}
 	}
-	s.watch(each, event.Channel)
 	done(centrifuge.SubscribeReply{Options: options}, nil)
+	if s.backend.Authorize(each.viewer, room) != nil {
+		each.client.Unsubscribe(event.Channel, centrifuge.Unsubscribe{Code: unsubscribeLeftRoom, Reason: "not in this room"})
+	}
 }
 
 func (s *Server) presence(each *conn, event centrifuge.PresenceEvent, done centrifuge.PresenceCallback) {

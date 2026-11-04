@@ -133,13 +133,13 @@ var storageCases = []contractCase{
 			t.Fatalf("indexed = %v", got)
 		}
 	}},
-	{"indexed is one more than the highest line of each task", func(t *testing.T, s usage.Store) {
+	{"indexed is one more than the highest line of a task held whole, and 0 for one with a gap", func(t *testing.T, s usage.Store) {
 		add(t, s, callRow("a", 0, "s", 1), callRow("a", 1, "s", 2), callRow("a", 4, "s", 3), callRow("b", 0, "s", 4))
-		if got := must[map[string]int](t)(s.Indexed(ctx)); !reflect.DeepEqual(got, map[string]int{"a": 5, "b": 1}) {
+		if got := must[map[string]int](t)(s.Indexed(ctx)); !reflect.DeepEqual(got, map[string]int{"a": 0, "b": 1}) {
 			t.Fatalf("indexed = %v", got)
 		}
-		add(t, s, callRow("a", 9, "s", 5))
-		if got := must[map[string]int](t)(s.Indexed(ctx)); got["a"] != 10 {
+		add(t, s, callRow("a", 2, "s", 5), callRow("a", 3, "s", 6))
+		if got := must[map[string]int](t)(s.Indexed(ctx)); got["a"] != 5 {
 			t.Fatalf("indexed = %v", got)
 		}
 	}},

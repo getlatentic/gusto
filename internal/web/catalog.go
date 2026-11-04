@@ -30,7 +30,7 @@ func (s *Server) presetsPage(w http.ResponseWriter, r *http.Request) {
 		"Roles":   roles,
 		"Fields":  fields,
 		"Presets": s.presetRows(r),
-		"Refused": r.URL.Query().Get("refused"),
+		"Refused": s.refusal(r),
 	})
 }
 
@@ -83,7 +83,7 @@ func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
 		"Nav":     "presets",
 		"Engines": s.readyEngines(),
 		"Setups":  s.setupsList(),
-		"Refused": r.URL.Query().Get("refused"),
+		"Refused": s.refusal(r),
 	})
 }
 

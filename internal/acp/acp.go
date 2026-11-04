@@ -35,6 +35,10 @@ type Ended struct {
 	Stop    string
 }
 
+// Answered says the agent finished the turn: it stopped because it was done, or said no reason, as an agent before stop reasons
+// does. A turn it cancelled, refused, or stopped at a limit was not answered.
+func (e Ended) Answered() bool { return e.Stop == "" || e.Stop == "end_turn" }
+
 // Converse runs one turn. Every line the agent says during it goes to keep,
 // with the answers to gusto's own requests among them, so the record holds the
 // session id and the usage exactly as the agent reported them.

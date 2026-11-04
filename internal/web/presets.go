@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -115,12 +114,12 @@ func (s *Server) engineTitle(name string) string {
 func (s *Server) savePreset(w http.ResponseWriter, r *http.Request) {
 	back := "/chat"
 	if s.presets == nil {
-		http.Redirect(w, r, back+"?refused="+url.QueryEscape("presets cannot be saved here"), http.StatusSeeOther)
+		s.turnAway(w, r, back, "presets cannot be saved here")
 		return
 	}
 	harness := strings.TrimSpace(r.FormValue("harness"))
 	if !slices.ContainsFunc(s.picksFor(r), func(each pick) bool { return each.Name == harness }) {
-		http.Redirect(w, r, back+"?refused="+url.QueryEscape("choose an agent you may use before saving"), http.StatusSeeOther)
+		s.turnAway(w, r, back, "choose an agent you may use before saving")
 		return
 	}
 	role := strings.TrimSpace(r.FormValue("role"))
@@ -129,7 +128,7 @@ func (s *Server) savePreset(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := s.presets.Save(s.keeper.who(r), preset.Preset{Name: r.FormValue("name"), Harness: harness, Model: strings.TrimSpace(r.FormValue("model")), Role: role})
 	if err != nil {
-		http.Redirect(w, r, back+"?refused="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		s.turnAway(w, r, back, err.Error())
 		return
 	}
 	http.Redirect(w, r, back+"?preset="+saved.ID, http.StatusSeeOther)

@@ -27,7 +27,7 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Setups":  s.fitting(entry),
 				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
-				"Refused": r.URL.Query().Get("refused"),
+				"Refused": s.refusal(r),
 			})
 			return
 		}
@@ -143,7 +143,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 		"Tasks":     s.tasks(held.ID),
 		"Routines":  routines,
 		"Unread":    unread,
-		"Refused":   r.URL.Query().Get("refused"),
+		"Refused":   s.refusal(r),
 	})
 }
 

@@ -240,13 +240,23 @@ func TestATaskNobodyKnowsIsIndexedUnderUnknown(t *testing.T) {
 	}
 }
 
-func TestRepairReadsATaskFromItsFirstLineToFillAGap(t *testing.T) {
+func TestABackfillFillsAGapTheRecorderLeftThoughLaterLinesAreHeld(t *testing.T) {
 	jobs, store := t.TempDir(), usagetest.New()
 	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
 	store.Add(context.Background(), []usage.Row{{Task: "a", Line: 2}})
-	if got := bfRun(t, store, jobs); got.Rows != 0 {
-		t.Fatalf("a backfill looked behind the last line held: %+v", got)
+	bfRun(t, store, jobs)
+	if n := len(store.All()); n != 3 {
+		t.Fatalf("a backfill left the lines before the last one held: %d rows", n)
 	}
+	if got := bfRun(t, store, jobs); got.Rows != 0 {
+		t.Errorf("a backfill of a task held whole read it again: %+v", got)
+	}
+}
+
+func TestRepairReadsATaskFromItsFirstLine(t *testing.T) {
+	jobs, store := t.TempDir(), usagetest.New()
+	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
+	store.Add(context.Background(), []usage.Row{{Task: "a", Line: 0}})
 	if _, err := usage.Repair(context.Background(), store, jobs, recAda, recNamed, nil, []string{"a"}); err != nil {
 		t.Fatal(err)
 	}

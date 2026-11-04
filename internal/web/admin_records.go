@@ -27,7 +27,7 @@ func (s *Server) recordsPage(w http.ResponseWriter, r *http.Request) {
 	checks := s.checkRuns()
 	health := s.recordHealth(checks)
 	page := map[string]any{
-		"Title": productName + " — records", "Tabs": tabs, "Tab": chosen, "Refused": r.URL.Query().Get("refused"),
+		"Title": productName + " — records", "Tabs": tabs, "Tab": chosen, "Refused": s.refusal(r),
 		"Health": health, "Logged": s.hasChanges(),
 	}
 	switch chosen {
