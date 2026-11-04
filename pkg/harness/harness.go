@@ -85,7 +85,9 @@ type Adapter struct {
 	Package string `json:"package,omitempty"`
 	// Installs is the program the package puts on the PATH, when the adapter starts it through another: hermes is started by
 	// sh. It is what a catalog looks for. Empty is the program itself.
-	Installs string            `json:"installs,omitempty"`
+	Installs string `json:"installs,omitempty"`
+	// Download is the page a person installs the program from, for one that is not on npm.
+	Download string            `json:"download,omitempty"`
 	Argv     []string          `json:"argv"`
 	Env      map[string]string `json:"env,omitempty"`
 	Endpoint string            `json:"endpoint,omitempty"`

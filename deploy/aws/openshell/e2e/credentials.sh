@@ -8,7 +8,7 @@
 set -euo pipefail
 dir=${1:?the directory to write the credentials in}
 mkdir -p "$dir"
-python3 - "$BEDROCK_PARAMETER" "$DEEPSEEK_PARAMETER" "$dir" <<'PY'
+python3 - "$BEDROCK_PARAMETER" "$DEEPSEEK_PARAMETER" "$dir" "${META_PARAMETER:-}" <<'PY'
 import json, os, shlex, subprocess, sys
 reader = shlex.split(os.environ.get("READ_PARAMETER", ""))
 def secret(name):

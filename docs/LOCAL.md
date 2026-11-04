@@ -60,7 +60,7 @@ The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a 
 
 gusto finds agents in its own `agents` folder first, then on the PATH. **Install**, beside an agent the chat page or **New agent** lists as missing, puts it in that folder at the version `pkg/harness/pins.json` pins, and refuses a tarball whose sha512 is not the pinned one. It needs Node.js and npm; `GUSTO_AGENTS` moves the folder. An agent that signs in with a person's own subscription is not installed this way. Until there is a model, the chat page asks for a provider (Anthropic, OpenAI, DeepSeek, OpenRouter, Ollama, or another address), the API shape, the key and the models. **List my models** asks the provider. Every agent is offered every model. Add providers on the console's Models page.
 
-A key your shell already has is offered, not taken. `gusto local use` adds it. It knows `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` and `OPENROUTER_API_KEY`:
+A key your shell already has is offered, not taken. `gusto local use` adds it. It knows `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `META_API_KEY` and `OPENROUTER_API_KEY`:
 
 ```bash
 gusto local use ANTHROPIC_API_KEY                     # pick a model from the provider's list

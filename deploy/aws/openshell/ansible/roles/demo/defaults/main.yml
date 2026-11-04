@@ -27,6 +27,8 @@ demo_dns_token_parameter: /gusto/poc/cloudflare-dns-token
 demo_mail_token_parameter: /gusto/poc/cloudflare-mail-token
 demo_model_parameter: /gusto/poc/model-key
 demo_deepseek_parameter: /gusto/poc/deepseek-key
+# Meta's Model API key, for the meta credential. A host where it is not stored offers no Muse model.
+demo_meta_parameter: /gusto/poc/meta-key
 # How long a host has when it starts, and each extension adds, and the most a host may ever be up.
 demo_lease_minutes: 30
 demo_max_hours: 4

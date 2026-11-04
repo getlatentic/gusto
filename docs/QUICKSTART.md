@@ -27,7 +27,7 @@ The first page asks for one. Pick your provider, paste the key, press **List my 
 Or from a terminal, if your shell already has the key:
 
 ```bash
-gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
+gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, META_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
 ```
 
 ## 3. Install an agent

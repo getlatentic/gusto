@@ -33,6 +33,7 @@ var modelPresets = []modelPreset{
 	{"Anthropic", "https://api.anthropic.com", proxy.Anthropic},
 	{"OpenAI", "https://api.openai.com", proxy.Bearer},
 	{"DeepSeek", "https://api.deepseek.com", proxy.Bearer},
+	{"Meta", "https://api.meta.ai", proxy.Bearer},
 	{"OpenRouter", "https://openrouter.ai/api", proxy.Bearer},
 	{"Ollama on this computer", "http://127.0.0.1:11434", proxy.Bearer},
 }

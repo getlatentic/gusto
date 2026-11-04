@@ -166,7 +166,7 @@ func localCommands() []*cmdline.Command {
 			Description: "Adds the key in one of your environment variables to your own gusto, with the models you name, or the one you pick " +
 				"from what the provider lists. The key goes to this computer's keychain and nowhere else.",
 			Args: []cmdline.Param{
-				{Name: "<NAME>", Text: "ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY"},
+				{Name: "<NAME>", Text: "ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, META_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY"},
 				{Name: "<model>", Text: "a model to offer; left out, you pick from what the provider lists"},
 			},
 			Examples: []string{"gusto local use ANTHROPIC_API_KEY"},

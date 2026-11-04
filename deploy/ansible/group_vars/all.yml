@@ -53,6 +53,7 @@ runner_harnesses:
   - pi=@earendil-works/pi-coding-agent
   - dsh=@deepseek-ai/dsh
   - hermes=hermes-agent
+  - muse=muse
 
 # The npm packages of the MCP servers the image carries, for mcp_servers to
 # offer, and of what a harness needs to call them. A setup can only give a
