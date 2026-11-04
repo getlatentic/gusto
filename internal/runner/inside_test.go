@@ -202,12 +202,13 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 }
 
 // waitForFile waits until the harness has done what it does first, so that a stop comes while it is working and not while it
-// is being set up, which takes longer on a busy machine.
+// is being set up, which takes longer on a busy machine. The file is there before what is written to it, so it is waited for
+// until it holds something.
 func waitForFile(t *testing.T, path string) {
 	t.Helper()
 	deadline := time.Now().Add(30 * time.Second)
 	for {
-		if _, err := os.Stat(path); err == nil {
+		if info, err := os.Stat(path); err == nil && info.Size() > 0 {
 			return
 		}
 		if time.Now().After(deadline) {
