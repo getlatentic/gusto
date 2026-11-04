@@ -54,6 +54,8 @@ on:
       - "internal/instance/room.go"
       - "internal/web/rooms_members.go"
       - "internal/web/rooms_installs.go"
+      - "internal/retention/**"
+      - "internal/web/retention.go"
       - ".github/workflows/specs.yml"
 
 permissions:

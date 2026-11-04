@@ -59,23 +59,18 @@ func (r Report) Removed(kind string) int {
 	return n
 }
 
-// Sweep removes what the policy says is due. It touches only tasks that ended
-// and that no agent owns: a task on an agent belongs to that agent's
-// conversation, and goes when the agent does. A task with a hold is skipped, and
-// so is one asked for by somebody with a hold.
-func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry bool) Report {
+// Sweep removes what the policy says is due. It touches only tasks that ended, and not a turn of a room that live says is still
+// kept: that turn belongs to the room's conversation. A turn of a room that was removed is swept like any task. A task with a
+// hold is skipped, and so is one asked for by somebody with a hold; holds says so at the moment of each removal.
+func Sweep(all Jobs, root string, policy Policy, holds Guard, live func(room string) bool, now time.Time, dry bool) Report {
 	report := Report{At: now.Unix(), Dry: dry}
 	for _, record := range all.List() {
-		if !record.State.Done() || record.Instance != "" {
+		if !record.State.Done() || (record.Instance != "" && (live == nil || live(record.Instance))) {
 			continue
 		}
 		days := daysSince(record, now)
 		kind := due(policy, record, days)
 		if kind == "" {
-			continue
-		}
-		if _, held := holds.Covers(record); held {
-			report.Held = append(report.Held, record.ID)
 			continue
 		}
 		action := Action{Job: record.ID, Brief: record.Brief, Kind: kind, State: string(record.State), Days: days}
@@ -87,12 +82,23 @@ func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry 
 		if kind == Workspace && action.Bytes == 0 {
 			continue
 		}
-		if !dry {
-			if err := remove(all, record, kind, target); err != nil {
-				action.Failed = err.Error()
-			} else {
-				report.Freed += action.Bytes
+		var failed error
+		held, err := holds.UnlessHeld(record, func() error {
+			if !dry {
+				failed = remove(all, record, kind, target)
 			}
+			return nil
+		})
+		switch {
+		case err != nil:
+			action.Failed = "the holds could not be read: " + err.Error()
+		case held:
+			report.Held = append(report.Held, record.ID)
+			continue
+		case failed != nil:
+			action.Failed = failed.Error()
+		case !dry:
+			report.Freed += action.Bytes
 		}
 		report.Actions = append(report.Actions, action)
 	}

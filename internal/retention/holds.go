@@ -42,6 +42,20 @@ func (h Held) Covers(record jobs.Record) (Hold, bool) {
 	return Hold{}, false
 }
 
+// Guard says whether a task is held, and removes it when it is not, as one step: a hold placed while a sweep runs keeps what the
+// sweep has not yet removed.
+type Guard interface {
+	UnlessHeld(record jobs.Record, remove func() error) (held bool, err error)
+}
+
+// UnlessHeld is the holds as they were read, for a sweep that plans and removes nothing.
+func (h Held) UnlessHeld(record jobs.Record, remove func() error) (bool, error) {
+	if _, held := h.Covers(record); held {
+		return true, nil
+	}
+	return false, remove()
+}
+
 // Holds is the file the holds are kept in. Every read goes to the file, so a
 // sweep in another process sees a hold made a moment ago.
 type Holds struct {
@@ -99,6 +113,42 @@ func (h *Holds) HoldPerson(who, by, why string) error {
 // ReleasePerson ends a hold on a person.
 func (h *Holds) ReleasePerson(who string) error {
 	return h.change(func(held *Held) { delete(held.People, strings.ToLower(who)) })
+}
+
+// UnlessHeld reads the holds and removes the task when none covers it, all while no hold can be placed.
+func (h *Holds) UnlessHeld(record jobs.Record, remove func() error) (bool, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	held, err := h.read()
+	if err != nil {
+		return false, err
+	}
+	if _, covered := held.Covers(record); covered {
+		return true, nil
+	}
+	return false, remove()
+}
+
+// ForgetGone ends the holds on tasks that are no longer kept, which nothing else would end.
+func (h *Holds) ForgetGone(kept func(id string) bool) error {
+	held, err := h.Read()
+	if err != nil {
+		return err
+	}
+	var gone []string
+	for id := range held.Jobs {
+		if !kept(id) {
+			gone = append(gone, id)
+		}
+	}
+	if len(gone) == 0 {
+		return nil
+	}
+	return h.change(func(held *Held) {
+		for _, id := range gone {
+			delete(held.Jobs, id)
+		}
+	})
 }
 
 func (h *Holds) change(edit func(*Held)) error {

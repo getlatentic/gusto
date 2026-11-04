@@ -11,12 +11,13 @@ import (
 	"github.com/getlatentic/gusto/internal/retention"
 )
 
-type retentionFlags struct{ tasks, dir string }
+type retentionFlags struct{ tasks, dir, sessions string }
 
 func declareRetention(set *flag.FlagSet) *retentionFlags {
 	f := &retentionFlags{}
 	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
 	set.StringVar(&f.dir, "dir", "", "the retention `directory`, with policy.json and the holds (default $GUSTO_RETENTION)")
+	set.StringVar(&f.sessions, "sessions", "", "the `directory` the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)")
 	return f
 }
 
@@ -41,7 +42,12 @@ func retentionCommand(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	report := retention.Sweep(retention.Scanned{Root: tasksDir}, tasksDir, policy, held, time.Now(), true)
+	sessions := orSetting(f.sessions, "GUSTO_SESSIONS", "sessions")
+	kept := func(room string) bool {
+		_, err := os.Stat(filepath.Join(sessions, room))
+		return err == nil
+	}
+	report := retention.Sweep(retention.Scanned{Root: tasksDir}, tasksDir, policy, held, kept, time.Now(), true)
 	printSweep(report, filepath.Join(dir, retention.PolicyFile), policy)
 	return 0
 }

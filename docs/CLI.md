@@ -1182,6 +1182,7 @@ Lists what a sweep would remove now and how much it frees, and removes nothing. 
 Flags:
 
 - `-dir <directory>`: the retention directory, with policy.json and the holds (default $GUSTO_RETENTION)
+- `-sessions <directory>`: the directory the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)
 - `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
 - `-h, --help`: show this help
 

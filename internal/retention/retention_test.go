@@ -63,7 +63,7 @@ func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	index := opened(t)
 	finished(t, index, "young", jobs.Passed, 3, 5000)
 	finished(t, index, "old", jobs.Passed, 10, 5000)
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 
 	if exists(t, index, "old", "workspace") || !exists(t, index, "old", "out/manifest.json") || !exists(t, index, "old", "job.json") {
 		t.Error("an old job did not lose its workspace and keep its record")
@@ -77,7 +77,7 @@ func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	if _, found := index.Get("old"); !found {
 		t.Error("a job whose workspace went is no longer in the index")
 	}
-	again := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	again := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if len(again.Actions) != 0 {
 		t.Errorf("a second sweep did the same again: %+v", again)
 	}
@@ -87,7 +87,7 @@ func TestARecordGoesWhenItsOwnRetentionEnds(t *testing.T) {
 	index := opened(t)
 	finished(t, index, "kept", jobs.Passed, 89, 1000)
 	finished(t, index, "gone", jobs.Passed, 91, 1000)
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if exists(t, index, "gone", "") || exists(t, index, "gone", "out/manifest.json") {
 		t.Error("a record past its retention was kept")
 	}
@@ -107,7 +107,7 @@ func TestRetentionIsSetPerState(t *testing.T) {
 	finished(t, index, "passed-20", jobs.Passed, 20, 100)
 	finished(t, index, "failed-20", jobs.Failed, 20, 100)
 	finished(t, index, "interrupted-400", jobs.Interrupted, 400, 100)
-	Sweep(index, index.Root(), policy, Held{}, noon, false)
+	Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if exists(t, index, "passed-20", "workspace") || !exists(t, index, "failed-20", "workspace") {
 		t.Error("the workspace rules did not follow the state")
 	}
@@ -134,7 +134,7 @@ func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report := Sweep(index, index.Root(), policy, held, noon, false)
+	report := Sweep(index, index.Root(), policy, held, nil, noon, false)
 	for _, id := range []string{"held-job", "held-person", free.ID} {
 		if !exists(t, index, id, "workspace") {
 			t.Errorf("%s lost its workspace though its asker is held", id)
@@ -147,7 +147,7 @@ func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
 		t.Fatal(err)
 	}
 	held, _ = holds.Read()
-	Sweep(index, index.Root(), policy, held, noon, false)
+	Sweep(index, index.Root(), policy, held, nil, noon, false)
 	if !exists(t, index, "held-job", "workspace") {
 		t.Error("a job held by itself was swept when its person was released")
 	}
@@ -178,7 +178,7 @@ func TestOnlyFinishedWorkNoAgentOwnsIsSwept(t *testing.T) {
 	if err := index.Add(running); err != nil {
 		t.Fatal(err)
 	}
-	Sweep(index, index.Root(), policy, Held{}, noon, false)
+	Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if !exists(t, index, "on-an-agent", "workspace/f") || !exists(t, index, "still-running", "workspace/f") {
 		t.Error("a sweep touched a running job or a job that belongs to an agent")
 	}
@@ -188,7 +188,7 @@ func TestADryRunSaysWhatItWouldDoAndDoesNothing(t *testing.T) {
 	index := opened(t)
 	finished(t, index, "old", jobs.Passed, 10, 5000)
 	finished(t, index, "ancient", jobs.Passed, 100, 5000)
-	report := Sweep(Scanned{Root: index.Root()}, index.Root(), policy, Held{}, noon, true)
+	report := Sweep(Scanned{Root: index.Root()}, index.Root(), policy, Held{}, nil, noon, true)
 	if !report.Dry || len(report.Actions) != 2 || report.Freed != 0 {
 		t.Fatalf("report %+v", report)
 	}
@@ -281,7 +281,7 @@ func TestASweptJobStillVerifiesAndNamesItsSigner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if report.Removed(Workspace) != 1 || exists(t, index, "signed", "workspace") {
 		t.Fatalf("the workspace stayed: %+v", report)
 	}
