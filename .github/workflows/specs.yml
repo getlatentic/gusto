@@ -12,8 +12,7 @@ on:
       - "internal/helper/**"
       - "internal/filelock/**"
       - "internal/vmwall/**"
-      - "internal/datadir/**"
-      - "internal/dbkit/**"
+      - "internal/registry/**"
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"
@@ -46,6 +45,8 @@ on:
       - "internal/web/routines.go"
       - "cmd/gusto/apps.go"
       - "cmd/gusto/computers*.go"
+      - "internal/datadir/**"
+      - "internal/dbkit/**"
       - ".github/workflows/specs.yml"
 
 permissions:

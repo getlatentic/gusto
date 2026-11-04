@@ -65,6 +65,9 @@ ok   OrgSupervisor.now.cfg: 1280 states generated, 411 distinct states found, 0 
 ok   Quota.before-mark.cfg: Error: Invariant QuotaFollows is violated.
 ok   Quota.before-serial.cfg: Error: Invariant QuotaFollows is violated.
 ok   Quota.now.cfg: 5452 states generated, 2777 distinct states found, 0 states left on queue.
+ok   Registry.before-lock.cfg: Error: Invariant KeyIsTheLatest is violated.
+ok   Registry.before-models.cfg: Error: Invariant RetiredIsRetired is violated.
+ok   Registry.now.cfg: 65 states generated, 43 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
 ok   Routines.before-owe.cfg: Error: Invariant NewsKept is violated.
@@ -371,6 +374,17 @@ The runner image fixes from the same pass have Go tests and no model. A server w
 again until it is here (`TestAFailedImageFetchIsTriedAgainUntilTheImageIsHere`), and a load whose naming failed is named,
 not fetched again (`TestALoadedImageThatCouldNotBeNamedIsNamedAndNotFetchedAgain`). A crash between starting the gateway and
 writing `vm.json` leaves a gateway that the next install starts again over, and `gusto local sandbox uninstall` stops.
+
+## Registry
+
+One provider in an organization's model registry, and its model, as admins change them at once (`internal/registry/edit.go`).
+Adding the provider checks its name is free, keeps the key it was given, then keeps the provider, and forgets the key when
+that is refused. Retiring it keeps it retired, then forgets its key.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `KeyIsTheLatest` | Once every change has finished, the key kept is the one the provider was last added with. | `lock`: a refused add forgot the key of the one that won, and a late forget took the key of a provider added again | `TestTwoAdminsAddingTheSameProviderAtOnceLeaveTheOneAddedWithItsKey`, `TestARetiredProviderAddedAgainKeepsItsNewKey` |
+| `RetiredIsRetired` | A retired provider has no model in use, and none of its models is changed. | `models`: retiring a provider left its models live, to be priced and turned on | `TestARetiredProvidersModelsAreRetiredWithItAndCannotBeChanged`, `TestAModelKeptLiveUnderARetiredProviderCannotBeChanged` |
 
 ## Formats
 
