@@ -52,7 +52,7 @@ func exchange(t *testing.T, issuer *Issuer, key ed25519.PrivateKey, subject stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	return issuer.Exchange(subject, proof, "POST", exchangeURL, redeem)
+	return issuer.Exchange(subject, proof, "POST", exchangeURL, redeem, running)
 }
 
 func call(t *testing.T, issuer *Issuer, key ed25519.PrivateKey, token string) (string, error) {
@@ -164,3 +164,6 @@ func TestReplaysAreRememberedUpToABoundAndThenRefused(t *testing.T) {
 		t.Error("old proofs were not forgotten to make room")
 	}
 }
+
+// running says every run is still running.
+func running(string) bool { return true }

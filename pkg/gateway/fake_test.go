@@ -26,6 +26,10 @@ type upstream struct {
 	gone    bool
 	session int
 	inits   int
+	// down answers every request with an error, as a server that is not up.
+	down bool
+	// lost is told, as the fake still holds its lock, when a request comes in a session it no longer knows.
+	lost func(*upstream)
 }
 
 func tool(name, description string) Tool {
@@ -44,6 +48,10 @@ func (u *upstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.headers = append(u.headers, r.Header.Clone())
+	if u.down {
+		http.Error(w, "not up", http.StatusServiceUnavailable)
+		return
+	}
 	if r.Method == http.MethodDelete {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -57,6 +65,9 @@ func (u *upstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(body, &in)
 	if in.Method != "initialize" && (u.gone || r.Header.Get("Mcp-Session-Id") != fmt.Sprint("session-", u.session)) {
 		u.gone = false
+		if u.lost != nil {
+			u.lost(u)
+		}
 		http.Error(w, "unknown session", http.StatusNotFound)
 		return
 	}

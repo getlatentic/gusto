@@ -100,6 +100,12 @@ ok   Subscription.now.cfg: 39090 states generated, 12753 distinct states found, 
 ok   TaskLifecycle.before-recovery.cfg: Error: Invariant PassedIsEarned is violated.
 ok   TaskLifecycle.before-stop-race.cfg: Error: Invariant StopWins is violated.
 ok   TaskLifecycle.now.cfg: 1060 states generated, 577 distinct states found, 0 states left on queue.
+ok   WayOut.before-flight.cfg: Error: Invariant OneTrade is violated.
+ok   WayOut.before-live.cfg: Error: Invariant NoneAfterEnd is violated.
+ok   WayOut.before-mint.cfg: Error: Invariant TokenIsCurrent is violated.
+ok   WayOut.before-reread.cfg: Error: Temporal properties were violated.
+ok   WayOut.before-session.cfg: Error: Invariant NoNeedlessStart is violated.
+ok   WayOut.now.cfg: 3249 states generated, 640 distinct states found, 0 states left on queue.
 ```
 
 A `*.before-*.cfg` config models the code before a fix and must fail. It shows that the spec finds the bug the fix closed.
@@ -453,6 +459,25 @@ ever or for some days.
 | `ForeverIsForever` | A workspace the policy keeps for ever is never removed. | `forever`: a record with days and a workspace with none took the workspace with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
 | `RemovedRoomsTurnsGo` | A due turn of a room that was removed goes, or is held. | `rooms`: no turn of a room was ever swept, and removing a room keeps its turns | `TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot` |
 | `NoHoldOutlivesItsTask` | A hold on a task that is gone ends. | `forget`: holds on removed tasks stayed for ever | `TestAHoldOnATaskThatIsGoneIsEnded` |
+
+## WayOut
+
+A task's ways out of its sandbox: the tool gateway (`pkg/gateway`) and the model proxy's tokens (`pkg/proxy/tokens.go`,
+`internal/runtoken`). The gateway reads a server's tools when a request first asks, and two calls share one session with the
+server, which the server may lose. The proxy mints a task's token again when its run restarts with another credential, and a
+run's forwarder trades its token near its end, from calls made at once.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `UpIsRead` | A server that is up has its tools read. | `reread`: the first request's cancellation, or a server down then, left it broken for the task | `TestAServerIsNotBrokenForTheTaskByAFirstRequestThatWasCancelled`, `TestAServerThatCouldNotBeReadIsReadAgainLater` |
+| `NoNeedlessStart` | A session is started again only when the server lost one. | `session`: a call told its session was lost ended the one another call had started | `TestALostSessionEndsOnlyThatSession` |
+| `TokenIsCurrent` | A task's token is good for the credential its run was started with. | `mint`: minting again kept the old credential | `TestATaskMintedAgainKeepsItsTokenAndTakesTheNewCredential` |
+| `NoneAfterEnd` | No token is minted for a run that has ended. | `live`: a refresh minted for any run whose token was still good | `TestARunThatHasEndedIsNotGivenANewToken` |
+| `OneTrade` | One trade of a run's token at a time. | `flight`: every call near the token's end traded it | `TestManyCallsAsATokenNearsItsEndRefreshItOnce` |
+
+`MintBound` marks the token bound in the same step that mints it, so a bound task's secret never stands as a token, which has no
+test: there is no moment to catch. A record that cannot be written stops every call after it for the rest of the task. That is
+kept: a call that is not written down cannot be audited, and a later line does not make up for the missing one.
 
 ## Changing a modelled machine
 

@@ -296,10 +296,8 @@ func (s *Session) search(arguments json.RawMessage) Result {
 	if out.Len() == 0 {
 		out.WriteString("no tool matches")
 	}
-	for _, name := range s.catalog.order {
-		if why, down := s.catalog.broken[name]; down {
-			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, s.explain(why))
-		}
+	for _, down := range s.catalog.down() {
+		fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", down[0], s.explain(down[1]))
 	}
 	withheld := make([]string, 0, len(s.catalog.withheld))
 	for name := range s.catalog.withheld {

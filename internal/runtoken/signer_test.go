@@ -29,7 +29,7 @@ func TestATokenTradedWithASignersProofsWorksOnlyWithItsProofs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := issuer.Exchange("boot", proof, "POST", exchangeURL, secrets())
+	token, err := issuer.Exchange("boot", proof, "POST", exchangeURL, secrets(), running)
 	if err != nil {
 		t.Fatal(err)
 	}

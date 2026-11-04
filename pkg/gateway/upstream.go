@@ -136,10 +136,13 @@ func (u *Upstream) call(ctx context.Context, method string, params any) (json.Ra
 		if err := u.start(ctx); err != nil {
 			return nil, err
 		}
-		raw, err := u.exchange(ctx, method, params)
+		raw, used, err := u.exchange(ctx, method, params)
 		if errors.Is(err, errSessionGone) && attempt == 0 {
+			// Only the session that was lost is ended: another call may have started a new one meanwhile, which stays.
 			u.mu.Lock()
-			u.ready, u.session = false, ""
+			if u.session == used {
+				u.ready, u.session = false, ""
+			}
 			u.mu.Unlock()
 			continue
 		}
@@ -167,12 +170,13 @@ func (u *Upstream) start(ctx context.Context) error {
 	return nil
 }
 
-func (u *Upstream) exchange(ctx context.Context, method string, params any) (json.RawMessage, error) {
+// exchange sends one message in the session there is now, and says which session that was.
+func (u *Upstream) exchange(ctx context.Context, method string, params any) (json.RawMessage, string, error) {
 	u.mu.Lock()
 	session := u.session
 	u.mu.Unlock()
 	raw, _, err := u.post(ctx, session, u.ids.Add(1)+1, method, params)
-	return raw, err
+	return raw, session, err
 }
 
 func (u *Upstream) decorate(request *http.Request, session string) error {
