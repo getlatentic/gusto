@@ -40,7 +40,8 @@ func (r *Registry) readHistory() error {
 	return nil
 }
 
-// remember keeps the state that is about to be replaced. A registry with nothing in it has nothing to go back to.
+// remember keeps the state that is about to be replaced, by a caller that holds edit. A registry with nothing in it has
+// nothing to go back to.
 func (r *Registry) remember(was Document) error {
 	if was.Version == 0 {
 		return nil
@@ -52,7 +53,9 @@ func (r *Registry) remember(was Document) error {
 	if err := atomicfile.Write(r.historyPath(), kept, 0o600); err != nil {
 		return err
 	}
+	r.mu.Lock()
 	r.history = kept
+	r.mu.Unlock()
 	return nil
 }
 
