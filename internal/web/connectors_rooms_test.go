@@ -73,8 +73,8 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	if page := ada.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, ">Tasks<") || !strings.Contains(page, "Inherit (off)") {
 		t.Fatalf("the agent's Apps tab does not offer the person's app with their default:\n%s", page)
 	}
-	if page := bea.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, "No apps connected.") {
-		t.Error("the Apps tab offers apps to a person who connected nothing")
+	if page := bea.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, "Only the people who work with Nova choose here") {
+		t.Error("the Apps tab offers choices to a person who does not work with the agent")
 	}
 
 	byDefault("on")

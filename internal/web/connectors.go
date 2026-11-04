@@ -172,6 +172,12 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}
+	// A connection starts from the person's default for their agents, and a disconnect made before choices were forgotten with it
+	// left some.
+	if err := s.forgetAgentChoices(s.keeper.who(r), id); err != nil {
+		s.turnAway(w, r, connectionsPath, err.Error())
+		return
+	}
 	entry, _ := s.connectors.App(id)
 	s.note(r, changelog.ConnectorConnected, map[string]string{"connector": entry.Name})
 	http.Redirect(w, r, connectionsPath+"?connected="+url.QueryEscape(entry.Name), http.StatusSeeOther)
@@ -183,7 +189,14 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.connectors.Disconnect(s.keeper.who(r), entry.ID); err != nil {
+	// What the person chose for their agents goes first, so a disconnect that fails leaves them connected on their default, and
+	// never ends a connection whose choices a later one would find.
+	who := s.keeper.who(r)
+	if err := s.forgetAgentChoices(who, entry.ID); err != nil {
+		s.turnAway(w, r, connectionsPath, err.Error())
+		return
+	}
+	if err := s.connectors.Disconnect(who, entry.ID); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}

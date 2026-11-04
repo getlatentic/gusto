@@ -169,6 +169,7 @@ func (s *Store) Change(id string, change func(*Agent) error) (Agent, error) {
 		return Agent{}, err
 	}
 	changed.Access = people(changed.Access, changed.Owner)
+	keepUsersChoices(&changed)
 	if err := s.write(changed); err != nil {
 		return Agent{}, err
 	}
@@ -203,7 +204,56 @@ func (held Agent) AppChoice(who, app string) (allowed, chosen bool) {
 	return allowed, chosen
 }
 
+// keepUsersChoices drops the app choices of anybody who may not work with the agent, so a person given access again starts from
+// their default.
+func keepUsersChoices(held *Agent) {
+	for who := range held.Apps {
+		if !held.MayUse(who) {
+			delete(held.Apps, who)
+		}
+	}
+	if len(held.Apps) == 0 {
+		held.Apps = nil
+	}
+}
+
+// ErrNoAccess is a person choosing for an agent they may not work with.
+var ErrNoAccess = errors.New("you do not work with this agent, so you do not choose what it may do with your apps")
+
+// SetAccess lets a person work with an agent, or stops them. A person stopped loses what they chose for its apps.
+func (s *Store) SetAccess(id, who string, allowed bool) (Agent, error) {
+	who = strings.ToLower(strings.TrimSpace(who))
+	return s.Change(id, func(held *Agent) error {
+		held.Access = slices.DeleteFunc(held.Access, func(each string) bool { return each == who })
+		if allowed {
+			held.Access = append(held.Access, who)
+		}
+		return nil
+	})
+}
+
+// ForgetApp drops every choice a person made for one app of theirs, on every agent, so that when they connect it again each agent
+// follows their default.
+func (s *Store) ForgetApp(who, app string) error {
+	who = strings.ToLower(strings.TrimSpace(who))
+	s.guard.Lock()
+	var chose []string
+	for id, held := range s.held {
+		if _, found := held.Apps[who][app]; found {
+			chose = append(chose, id)
+		}
+	}
+	s.guard.Unlock()
+	for _, id := range chose {
+		if _, err := s.ChooseApp(id, who, app, "inherit"); err != nil && !errors.Is(err, ErrNotFound) && !errors.Is(err, ErrNoAccess) {
+			return err
+		}
+	}
+	return nil
+}
+
 // ChooseApp sets what a person lets an agent do with one app of theirs: "allow", "deny", or "inherit" to follow their default.
+// Only a person who may work with the agent chooses.
 func (s *Store) ChooseApp(id, who, app, choice string) (Agent, error) {
 	who = strings.ToLower(strings.TrimSpace(who))
 	if who == "" || app == "" {
@@ -213,6 +263,9 @@ func (s *Store) ChooseApp(id, who, app, choice string) (Agent, error) {
 		return Agent{}, fmt.Errorf("%q is not allow, deny or inherit", choice)
 	}
 	return s.Change(id, func(held *Agent) error {
+		if !held.MayUse(who) {
+			return ErrNoAccess
+		}
 		if choice == "inherit" {
 			delete(held.Apps[who], app)
 			if len(held.Apps[who]) == 0 {

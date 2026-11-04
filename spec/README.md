@@ -9,6 +9,9 @@ spec/check.sh    # fetches tla2tools.jar v1.7.4 once; needs Java 11 or later
 Expected output:
 
 ```
+ok   AgentApps.before-forget.cfg: Error: Invariant ChoiceIsOfThisConnection is violated.
+ok   AgentApps.before-member.cfg: Error: Invariant ChoiceIsAMembers is violated.
+ok   AgentApps.now.cfg: 80 states generated, 39 distinct states found, 0 states left on queue.
 ok   AppPreview.before-error.cfg: Error: Invariant NothingRunsUnseen is violated.
 ok   AppPreview.before-limit.cfg: Error: Invariant WithinLimit is violated.
 ok   AppPreview.before-orphan.cfg: Error: Invariant NothingRunsUnseen is violated.
@@ -367,6 +370,17 @@ The runner image fixes from the same pass have Go tests and no model. A server w
 again until it is here (`TestAFailedImageFetchIsTriedAgainUntilTheImageIsHere`), and a load whose naming failed is named,
 not fetched again (`TestALoadedImageThatCouldNotBeNamedIsNamedAndNotFetchedAgain`). A crash between starting the gateway and
 writing `vm.json` leaves a gateway that the next install starts again over, and `gusto local sandbox uninstall` stops.
+
+## AgentApps
+
+What one person chose for an agent and one app of theirs (`internal/crew/crew.go`, `internal/web/connectors.go`). The person
+works with the agent or not, as its owner decides, and is connected to the app or not. A turn they ask of the agent uses the
+app by their choice. Each connection is numbered.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `ChoiceIsAMembers` | A choice is held only for a person who works with the agent. | `member`: anybody chose for an agent, and a person taken off it kept their choices for when they were let back | `TestAPersonWhoDoesNotWorkWithAnAgentDoesNotChooseForIt`, `TestAPersonTakenOffAnAgentLosesWhatTheyChoseForItsApps` |
+| `ChoiceIsOfThisConnection` | A choice that a turn would use was made in the connection it uses. | `forget`: an app connected again was used by a choice made under the connection that ended | `TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore` |
 
 ## Changing a modelled machine
 

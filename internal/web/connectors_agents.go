@@ -11,6 +11,8 @@ type agentApps struct {
 	Apps []agentApp
 	// Person is false for the shared sign-in, which is nobody and has no apps to give.
 	Person bool
+	// Works is whether the person works with the agent: only they choose for it, and anybody else's default applies.
+	Works bool
 }
 
 // agentApp is one app of the person's: what they chose for this agent, inherit, allow or deny, and their default for their agents,
@@ -30,11 +32,14 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 	if !person {
 		return shown
 	}
+	held, _ := s.crew.Get(member)
+	if shown.Works = held.MayUse(who); !shown.Works {
+		return shown
+	}
 	views, err := s.connectorViews(who)
 	if err != nil {
 		return shown
 	}
-	held, _ := s.crew.Get(member)
 	for _, view := range views {
 		if !view.On || !view.Usable || !view.Connected {
 			continue
@@ -70,6 +75,14 @@ func (s *Server) chooseAgentApp(w http.ResponseWriter, r *http.Request) {
 	}
 	s.note(r, changelog.ConnectorsLetAgent, map[string]string{"agent": member.Name, "connector": entry.Name, "now": choice})
 	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// forgetAgentChoices drops what a person chose for one app of theirs on every agent.
+func (s *Server) forgetAgentChoices(who, app string) error {
+	if s.crew == nil {
+		return nil
+	}
+	return s.crew.ForgetApp(who, app)
 }
 
 // setAppForAgents sets the asking person's default for whether their agents may use one app they connected, which every agent they
