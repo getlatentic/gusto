@@ -5,6 +5,7 @@ package runner
 import (
 	"os/exec"
 	"syscall"
+	"time"
 )
 
 // ownGroup puts the harness in a process group of its own and has the whole group killed when the run's context ends. A
@@ -23,6 +24,19 @@ func ownGroup(command *exec.Cmd) {
 		if err := syscall.Kill(-command.Process.Pid, syscall.SIGKILL); err != nil {
 			return command.Process.Kill()
 		}
+		go killStragglers(-command.Process.Pid)
 		return nil
+	}
+}
+
+// killStragglers kills the group again until it is empty. A child that was being forked when the group was killed can miss the
+// signal, and would hold the harness's output open until it ended. It stops after a second, so a group id used again later is
+// left alone.
+func killStragglers(group int) {
+	for range 20 {
+		time.Sleep(50 * time.Millisecond)
+		if syscall.Kill(group, syscall.SIGKILL) != nil {
+			return
+		}
 	}
 }
