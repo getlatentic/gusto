@@ -30,11 +30,11 @@ func TestARoomKeepsItsMembersAndAlwaysAnAdmin(t *testing.T) {
 	if err := store.SetMember(room.ID, "bob@example.com", RoleMember); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RemoveMember(room.ID, "ada@example.com"); err == nil {
+	if _, err := store.RemoveMember(room.ID, "ada@example.com", nil); err == nil {
 		t.Error("the room's only admin left it")
 	}
 	store.SetMember(room.ID, "bob@example.com", RoleAdmin)
-	if err := store.RemoveMember(room.ID, "ada@example.com"); err != nil {
+	if _, err := store.RemoveMember(room.ID, "ada@example.com", nil); err != nil {
 		t.Fatal(err)
 	}
 	if held, _ := store.Get(room.ID); held.RoleOf("ada@example.com") != "" {
@@ -66,7 +66,7 @@ func TestThePeopleInARoomFindItWithoutLookingThroughEveryInstance(t *testing.T) 
 	if got := roomIDs(store.RoomsOf("ADA@example.com")); !slices.Equal(got, roomIDs([]Instance{first, second})) {
 		t.Errorf("ada's rooms are %v", got)
 	}
-	store.RemoveMember(second.ID, "ada@example.com")
+	store.RemoveMember(second.ID, "ada@example.com", nil)
 	if got := roomIDs(store.RoomsOf("ada@example.com")); !slices.Equal(got, []string{first.ID}) {
 		t.Errorf("after leaving, ada's rooms are %v", got)
 	}

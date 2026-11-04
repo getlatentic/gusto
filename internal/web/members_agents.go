@@ -171,10 +171,15 @@ func (s *Server) removeAgent(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
+	// It leaves every room first, its turns there stopped, so an agent that could not be taken out of one is still kept.
 	for _, held := range s.instances.List() {
 		for _, agent := range held.Agents {
-			if agent.Member == member.ID {
-				_ = s.instances.RemoveAgent(held.ID, agent.ID)
+			if agent.Member != member.ID {
+				continue
+			}
+			if err := s.takeOutAgent(held.ID, agent.ID, s.askerName(r)); err != nil {
+				s.turnAway(w, r, "/members/agents/"+member.ID, err.Error())
+				return
 			}
 		}
 	}
@@ -198,35 +203,12 @@ func (s *Server) messageAgent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "you may not work with this agent; ask the person who made it", http.StatusForbidden)
 		return
 	}
-	if held, found := s.directRoom(who, member.ID); found {
-		http.Redirect(w, r, threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
-		return
-	}
-	held, err := s.instances.StartRoom(member.Name, who)
-	if err == nil {
-		_, err = s.instances.AddAgent(held.ID, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
-	}
-	if err == nil {
-		err = s.instances.Direct(held.ID, true)
-	}
-	if err == nil {
-		err = s.instances.Name(held.ID, s.instances.Latest(held.ID).ID, member.Name)
-	}
+	held, err := s.instances.StartDirect(who, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
 	if err != nil {
 		s.turnAway(w, r, "/members/agents/"+member.ID, err.Error())
 		return
 	}
 	http.Redirect(w, r, threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
-}
-
-// directRoom is the room of two a person keeps with an agent, when there is one.
-func (s *Server) directRoom(who, member string) (instance.Instance, bool) {
-	for _, held := range s.instances.RoomsOf(who) {
-		if held.Direct && len(held.Members) == 1 && len(held.Agents) == 1 && held.Agents[0].Member == member {
-			return held, true
-		}
-	}
-	return instance.Instance{}, false
 }
 
 // modelToStartOn is the model a new agent runs on when nobody chose one. Where the server offers models, an agent type left to its

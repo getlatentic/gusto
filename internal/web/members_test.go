@@ -62,7 +62,7 @@ func TestSharingAnAgentLetsAnotherPersonMessageIt(t *testing.T) {
 	if again.Header().Get("Location") != opened.Header().Get("Location") {
 		t.Errorf("messaging twice opened %s and %s", opened.Header().Get("Location"), again.Header().Get("Location"))
 	}
-	direct, found := site.server.directRoom(bob, member.ID)
+	direct, found := site.server.instances.DirectRoom(bob, member.ID)
 	if !found || !direct.Direct || direct.RoleOf(alice) != "" {
 		t.Fatalf("the direct room is %+v", direct)
 	}

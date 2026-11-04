@@ -20,33 +20,32 @@ import (
 // mostAllowance is the most a month's allowance may be, so a slip of the hand is caught.
 const mostAllowance = 100000.0
 
-// addCrewAgent puts a workspace agent into a room: at once when the person asking runs the room, and waiting for an admin when a
+// crewArrival is a workspace agent joining a room: at once when the person asking runs the room, and waiting for an admin when a
 // member proposes it. A member proposes only an agent of their own, and an agent's owner has to be in the room.
-func (s *Server) addCrewAgent(r *http.Request, held instance.Instance, memberID string) error {
+func (s *Server) crewArrival(r *http.Request, held instance.Instance, memberID string) (instance.Arrival, error) {
 	if s.crew == nil {
-		return fmt.Errorf("this server keeps no agents")
+		return instance.Arrival{}, fmt.Errorf("this server keeps no agents")
 	}
 	asker := s.askerName(r)
 	member, found := s.crew.Get(memberID)
 	if !found || !member.MayUse(asker) {
-		return fmt.Errorf("that agent is not one you may work with")
+		return instance.Arrival{}, fmt.Errorf("that agent is not one you may work with")
 	}
 	runs := s.runsRoom(r, held)
 	if !runs && !strings.EqualFold(member.Owner, asker) {
-		return fmt.Errorf("you may propose only an agent of your own; %s is %s", member.Name, s.ownerLabel(member.Owner, asker))
+		return instance.Arrival{}, fmt.Errorf("you may propose only an agent of your own; %s is %s", member.Name, s.ownerLabel(member.Owner, asker))
 	}
 	if member.Owner != "" && held.RoleOf(member.Owner) == "" {
-		return fmt.Errorf("%s is %s, and %s is not in this room", member.Name, s.ownerLabel(member.Owner, asker), s.personName(member.Owner))
+		return instance.Arrival{}, fmt.Errorf("%s is %s, and %s is not in this room", member.Name, s.ownerLabel(member.Owner, asker), s.personName(member.Owner))
 	}
 	allowance, err := allowanceOf(r.FormValue("allowance"))
 	if err != nil {
-		return err
+		return instance.Arrival{}, err
 	}
-	_, err = s.instances.AddAgent(held.ID, instance.Agent{
+	return instance.Arrival{Owner: member.Owner, Agent: instance.Agent{
 		Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID,
 		Pending: !runs, ProposedBy: asker, AllowanceUSD: allowance,
-	})
-	return err
+	}}, nil
 }
 
 // allowanceOf reads a month's allowance in dollars, where nothing is no limit.
@@ -127,23 +126,28 @@ func (s *Server) takeOutAgent(room, agent, by string) error {
 	if err := s.instances.RemoveAgent(room, agent); err != nil {
 		return err
 	}
-	for _, turn := range s.index.Unfinished(jobs.Record{Instance: room, Agent: agent}.Lane()) {
-		_ = runner.NoteStop(turn.Dir(s.index.Root()), by, time.Now().Unix())
-		_, _, _ = s.queue.Cancel(turn.ID, by)
+	s.stopTurns(room, agent, by)
+	return nil
+}
+
+// takeOutMember takes a person out of a room, and every agent of theirs with them in the same change, then stops those agents'
+// turns there.
+func (s *Server) takeOutMember(room, who, by string) error {
+	gone, err := s.instances.RemoveMember(room, who, func(agent instance.Agent) bool { return strings.EqualFold(s.ownerOf(agent), who) })
+	if err != nil {
+		return err
+	}
+	for _, agent := range gone {
+		s.stopTurns(room, agent.ID, by)
 	}
 	return nil
 }
 
-// takeOutAgentsOf removes, from a room a person has left, every agent of theirs.
-func (s *Server) takeOutAgentsOf(room, who, by string) {
-	held, found := s.instances.Get(room)
-	if !found {
-		return
-	}
-	for _, agent := range held.Agents {
-		if strings.EqualFold(s.ownerOf(agent), who) {
-			_ = s.takeOutAgent(room, agent.ID, by)
-		}
+// stopTurns stops every turn of an agent's in a room that has not finished.
+func (s *Server) stopTurns(room, agent, by string) {
+	for _, turn := range s.index.Unfinished(jobs.Record{Instance: room, Agent: agent}.Lane()) {
+		_ = runner.NoteStop(turn.Dir(s.index.Root()), by, time.Now().Unix())
+		_, _, _ = s.queue.Cancel(turn.ID, by)
 	}
 }
 

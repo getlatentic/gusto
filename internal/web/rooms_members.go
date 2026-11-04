@@ -113,28 +113,38 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, who := range people {
-		// Adding somebody who is in the room already would set their role, and so take an admin's away.
 		if inRoom(held, who) {
-			why := s.personName(who) + " is in this room already"
-			if strings.EqualFold(who, s.askerName(r)) {
-				why = "you are in this room already"
-			}
-			s.turnAway(w, r, s.membersPath(held), why)
-			return
-		}
-		if err := s.instances.SetMember(held.ID, who, instance.RoleMember); err != nil {
-			s.turnAway(w, r, s.membersPath(held), err.Error())
+			s.turnAway(w, r, s.membersPath(held), s.alreadyIn(r, who))
 			return
 		}
 	}
+	var arrivals []instance.Arrival
 	for _, id := range r.Form["agent"] {
-		if err := s.addCrewAgent(r, held, id); err != nil {
+		arrival, err := s.crewArrival(r, held, id)
+		if err != nil {
 			s.turnAway(w, r, s.membersPath(held), err.Error())
 			return
 		}
+		arrivals = append(arrivals, arrival)
+	}
+	if _, err := s.instances.Join(held.ID, people, arrivals); err != nil {
+		why := err.Error()
+		if already, is := err.(instance.AlreadyInError); is {
+			why = s.alreadyIn(r, already.Who)
+		}
+		s.turnAway(w, r, s.membersPath(held), why)
+		return
 	}
 	// Adding finishes the job, so the room comes back with its conversation in view and no dialog over it.
 	http.Redirect(w, r, threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
+}
+
+// alreadyIn is why a person is not added to a room they are in: adding them would set their role, and so take an admin's away.
+func (s *Server) alreadyIn(r *http.Request, who string) string {
+	if strings.EqualFold(who, s.askerName(r)) {
+		return "you are in this room already"
+	}
+	return s.personName(who) + " is in this room already"
 }
 
 // changeRoomRole makes a member an admin or a member, or takes them out of the room.
@@ -150,9 +160,7 @@ func (s *Server) changeRoomRole(w http.ResponseWriter, r *http.Request) {
 	who, role := r.FormValue("who"), r.FormValue("role")
 	var err error
 	if role == "remove" {
-		if err = s.instances.RemoveMember(held.ID, who); err == nil {
-			s.takeOutAgentsOf(held.ID, who, s.askerName(r))
-		}
+		err = s.takeOutMember(held.ID, who, s.askerName(r))
 	} else {
 		err = s.instances.SetMember(held.ID, who, role)
 	}

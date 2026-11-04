@@ -136,46 +136,43 @@ func (s *Store) SetMember(id, who, role string) error {
 	})
 }
 
-// RemoveMember takes a person out of a room. The last admin cannot be taken out.
-func (s *Store) RemoveMember(id, who string) error {
-	return s.changeRoom(id, func(held *Instance) error {
-		kept := held.Members[:0:0]
-		for _, member := range held.Members {
-			if !strings.EqualFold(member.Who, who) {
-				kept = append(kept, member)
-			}
-		}
-		if len(kept) == len(held.Members) {
-			return fmt.Errorf("%s is not in this room", who)
-		}
-		held.Members = kept
-		return keepsAdmin(*held)
-	})
-}
-
 // AddAgent puts an agent in a room under a name nobody else there has.
 func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
-	agent.Name = strings.TrimSpace(agent.Name)
-	if !agentName.MatchString(agent.Name) {
-		return Agent{}, fmt.Errorf("%q cannot name an agent: start with a letter, and use up to 32 letters, digits and spaces", agent.Name)
-	}
-	if agent.Harness == "" {
-		return Agent{}, fmt.Errorf("an agent needs a harness")
+	if err := checkAgent(&agent); err != nil {
+		return Agent{}, err
 	}
 	err := s.changeRoom(id, func(held *Instance) error {
-		if _, taken := held.AgentCalled(agent.Name); taken {
-			return fmt.Errorf("this room already has an agent called %s", agent.Name)
-		}
-		for _, other := range held.Agents {
-			if agent.Member != "" && other.Member == agent.Member {
-				return fmt.Errorf("%s is already in this room", agent.Name)
-			}
-		}
-		agent.ID = s.freeAgentID(*held)
-		held.Agents = append(held.Agents, agent)
-		return nil
+		added, err := s.placeAgent(held, agent)
+		agent = added
+		return err
 	})
 	return agent, err
+}
+
+func checkAgent(agent *Agent) error {
+	agent.Name = strings.TrimSpace(agent.Name)
+	if !agentName.MatchString(agent.Name) {
+		return fmt.Errorf("%q cannot name an agent: start with a letter, and use up to 32 letters, digits and spaces", agent.Name)
+	}
+	if agent.Harness == "" {
+		return fmt.Errorf("an agent needs a harness")
+	}
+	return nil
+}
+
+// placeAgent adds a checked agent to a room being changed, under the store's guard.
+func (s *Store) placeAgent(held *Instance, agent Agent) (Agent, error) {
+	if _, taken := held.AgentCalled(agent.Name); taken {
+		return Agent{}, fmt.Errorf("this room already has an agent called %s", agent.Name)
+	}
+	for _, other := range held.Agents {
+		if agent.Member != "" && other.Member == agent.Member {
+			return Agent{}, fmt.Errorf("%s is already in this room", agent.Name)
+		}
+	}
+	agent.ID = s.freeAgentID(*held)
+	held.Agents = append(held.Agents, agent)
+	return agent, nil
 }
 
 // freeAgentID is an id no agent of the room has had that left anything behind: not one in it now, not one whose conversation a
@@ -207,6 +204,9 @@ func (s *Store) AcceptAgent(id, agent string) error {
 	return s.changeRoom(id, func(held *Instance) error {
 		for i := range held.Agents {
 			if held.Agents[i].ID == agent {
+				if !held.Agents[i].Pending {
+					return fmt.Errorf("%s is working in this room already", held.Agents[i].Name)
+				}
 				held.Agents[i].Pending = false
 				return nil
 			}

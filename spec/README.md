@@ -73,6 +73,11 @@ ok   Registry.before-models.cfg: Error: Invariant RetiredIsRetired is violated.
 ok   Registry.now.cfg: 65 states generated, 43 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
+ok   RoomMembers.before-join.cfg: Error: Invariant AddsOnlyAdd is violated.
+ok   RoomMembers.before-once.cfg: Error: Invariant OneOwnRoom is violated.
+ok   RoomMembers.before-stop.cfg: Error: Invariant NoTurnWithoutItsAgent is violated.
+ok   RoomMembers.before-together.cfg: Error: Invariant AgentsFollowTheirOwner is violated.
+ok   RoomMembers.now.cfg: 197 states generated, 68 distinct states found, 0 states left on queue.
 ok   Routines.before-owe.cfg: Error: Invariant NewsKept is violated.
 ok   Routines.before-surface.cfg: Error: Invariant NoneMeansNone is violated.
 ok   Routines.before-undo.cfg: Error: Invariant NoOrphanThread is violated.
@@ -411,6 +416,24 @@ app by their choice. Each connection is numbered.
 | --- | --- | --- | --- |
 | `ChoiceIsAMembers` | A choice is held only for a person who works with the agent. | `member`: anybody chose for an agent, and a person taken off it kept their choices for when they were let back | `TestAPersonWhoDoesNotWorkWithAnAgentDoesNotChooseForIt`, `TestAPersonTakenOffAnAgentLosesWhatTheyChoseForItsApps` |
 | `ChoiceIsOfThisConnection` | A choice that a turn would use was made in the connection it uses. | `forget`: an app connected again was used by a choice made under the connection that ended | `TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore` |
+
+## RoomMembers
+
+Who and what is in one room (`internal/instance/membership.go`, `internal/web/rooms_members.go`, `internal/web/members_agents.go`).
+An admin adds a person, and their agent may be added with them; another admin may make that person an admin at the same time.
+The person can be taken out, and their agent goes with them. The agent takes turns and can be deleted. The person opens their
+own room with the agent from two clicks at once, and the server can crash between two steps.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `AddsOnlyAdd` | No add takes an admin's role away, and one that is refused adds nobody. | `join`: the add checked a room read before, and added people one at a time | `TestAnAddThatIsRefusedAddsNobody`, `TestJoiningIsAllOrNothingAndNeverChangesARole` |
+| `AgentsFollowTheirOwner` | An agent whose owner is not in the room is not in it either. | `together`: a crash after taking the person out left their agents in | `TestAPersonTakenOutOfARoomTakesTheirAgentsInTheSameChange` |
+| `NoTurnWithoutItsAgent` | No turn runs for an agent that is not in the room. | `stop`: deleting an agent took it out of its rooms and left its turns running | `TestDeletingAnAgentStopsItsTurnsInTheRoomsItWasIn` |
+| `OneOwnRoom` | A person has one room of their own with an agent. | `once`: two clicks each found none and made one | `TestMessagingAnAgentTwiceAtOnceOpensOneRoom`, `TestAPersonsOwnRoomWithAnAgentIsMadeOnceAndWhole` |
+
+The model takes stopping a turn as part of the change that takes its agent out. In the code it follows the change at once, and
+a crash between them ends the turn with the process. Accepting an agent that is working already is refused, with a Go test
+(`TestAnAgentThatIsWorkingIsNotAcceptedAgain`) and no model.
 
 ## Changing a modelled machine
 

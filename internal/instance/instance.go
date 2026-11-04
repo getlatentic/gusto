@@ -61,8 +61,10 @@ type Instance struct {
 
 // Store is every instance under one directory.
 type Store struct {
-	root    string
-	guard   sync.Mutex
+	root  string
+	guard sync.Mutex
+	// directs is held across finding a person's own room with an agent and making it, so two clicks make one.
+	directs sync.Mutex
 	held    map[string]Instance
 	threads map[string]map[string]Thread
 	// rooms is each person's rooms, by address in lower case, kept by put and drop.
