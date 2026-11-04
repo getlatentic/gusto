@@ -69,18 +69,29 @@ func (s *Server) Sweep(now time.Time) retention.Report {
 	r := s.retention
 	r.sweeping.Lock()
 	defer r.sweeping.Unlock()
-	held, err := r.holds.Read()
-	if err != nil {
+	if _, err := r.holds.Read(); err != nil {
 		// A sweep that cannot read its holds must not guess that there are none.
 		slog.Error("retention could not read its holds, so it removed nothing", "error", err)
 		return retention.Report{At: now.Unix()}
 	}
-	report := retention.Sweep(s.index, s.index.Root(), r.policy, held, now, false)
+	report := retention.Sweep(s.index, s.index.Root(), r.policy, r.holds, s.roomKept, now, false)
 	if len(report.Actions) > 0 {
 		s.recordSweep(report)
 	}
+	if err := r.holds.ForgetGone(func(id string) bool { _, kept := s.index.Get(id); return kept }); err != nil {
+		slog.Error("the holds on tasks that are gone could not be ended", "error", err)
+	}
 	r.keep(report)
 	return report
+}
+
+// roomKept says whether a room is still kept, so its turns are its conversation's and not the sweep's.
+func (s *Server) roomKept(room string) bool {
+	if s.instances == nil {
+		return true
+	}
+	_, kept := s.instances.Get(room)
+	return kept
 }
 
 func (r *retained) keep(report retention.Report) {
@@ -154,7 +165,7 @@ func (s *Server) keepingInto(page map[string]any) error {
 		page["LastAt"] = time.Unix(last.At, 0).UTC().Format("2 Jan 2006 15:04 UTC")
 		page["LastFreed"] = size(last.Freed)
 	}
-	upcoming := retention.Sweep(s.index, s.index.Root(), s.retention.policy, held, time.Now(), true)
+	upcoming := retention.Sweep(s.index, s.index.Root(), s.retention.policy, held, s.roomKept, time.Now(), true)
 	page["Upcoming"], page["UpcomingFreed"] = upcoming.Actions, size(sumBytes(upcoming))
 	return nil
 }
@@ -200,6 +211,12 @@ func (s *Server) holdJob(w http.ResponseWriter, r *http.Request) {
 	why := strings.TrimSpace(r.FormValue("why"))
 	if err := s.retention.holds.HoldJob(id, s.keeper.who(r), why); err != nil {
 		s.turnAway(w, r, keepingTab, err.Error())
+		return
+	}
+	// A sweep removes a task and reads the holds as one step, so a task here now is kept, and one gone went before the hold.
+	if _, found := s.index.Get(id); !found {
+		_ = s.retention.holds.ReleaseJob(id)
+		s.turnAway(w, r, keepingTab, "a sweep removed "+id+" before it could be held")
 		return
 	}
 	s.note(r, changelog.HoldSet, map[string]string{"job": id, "why": why})

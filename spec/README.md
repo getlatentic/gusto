@@ -71,6 +71,11 @@ ok   Quota.now.cfg: 5452 states generated, 2777 distinct states found, 0 states 
 ok   Registry.before-lock.cfg: Error: Invariant KeyIsTheLatest is violated.
 ok   Registry.before-models.cfg: Error: Invariant RetiredIsRetired is violated.
 ok   Registry.now.cfg: 65 states generated, 43 distinct states found, 0 states left on queue.
+ok   Retention.before-forever.cfg: Error: Invariant ForeverIsForever is violated.
+ok   Retention.before-forget.cfg: Error: Temporal properties were violated.
+ok   Retention.before-guard.cfg: Error: Invariant TheHeldAreKept is violated.
+ok   Retention.before-rooms.cfg: Error: Temporal properties were violated.
+ok   Retention.now.cfg: 26 states generated, 12 distinct states found, 0 states left on queue.
 ok   RoomGuard.before-hold.cfg: Error: Invariant Exclusive is violated.
 ok   RoomGuard.now.cfg: 162 states generated, 97 distinct states found, 0 states left on queue.
 ok   RoomMembers.before-join.cfg: Error: Invariant AddsOnlyAdd is violated.
@@ -434,6 +439,20 @@ own room with the agent from two clicks at once, and the server can crash betwee
 The model takes stopping a turn as part of the change that takes its agent out. In the code it follows the change at once, and
 a crash between them ends the turn with the process. Accepting an agent that is working already is refused, with a Go test
 (`TestAnAgentThatIsWorkingIsNotAcceptedAgain`) and no model.
+
+## Retention
+
+One finished task and the sweep that removes it when it is due (`internal/retention/sweep.go`, `internal/retention/holds.go`,
+`internal/web/retention.go`). An admin holds the task. A sweep reads whether the task is held and removes it when it is not.
+The task may be a turn of a room, which its owner removes, and an operator may delete it. The policy keeps the workspace for
+ever or for some days.
+
+| Property | What it says | Broken without | Go test |
+| --- | --- | --- | --- |
+| `TheHeldAreKept` | The sweep never removes a task that is held. | `guard`: the sweep read the holds once, and removed a task held after that | `TestAHoldPlacedWhileASweepRunsKeepsTheTask` |
+| `ForeverIsForever` | A workspace the policy keeps for ever is never removed. | `forever`: a record with days and a workspace with none took the workspace with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
+| `RemovedRoomsTurnsGo` | A due turn of a room that was removed goes, or is held. | `rooms`: no turn of a room was ever swept, and removing a room keeps its turns | `TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot` |
+| `NoHoldOutlivesItsTask` | A hold on a task that is gone ends. | `forget`: holds on removed tasks stayed for ever | `TestAHoldOnATaskThatIsGoneIsEnded` |
 
 ## Changing a modelled machine
 

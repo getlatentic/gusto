@@ -46,7 +46,8 @@ func (p Policy) Any() bool {
 }
 
 // Check refuses a policy that names a state a task cannot end in, a negative
-// number, or a record that would go before its workspace.
+// number, or a record that would go before its workspace, a workspace kept for
+// ever among them.
 func (p Policy) Check() error {
 	for name, set := range map[string]map[string]int{"workspaceDays": p.WorkspaceDays, "recordDays": p.RecordDays} {
 		for state, days := range set {
@@ -59,7 +60,12 @@ func (p Policy) Check() error {
 		}
 	}
 	for state, records := range p.RecordDays {
-		if workspace := p.WorkspaceDays[state]; records > 0 && workspace > records {
+		workspace := p.WorkspaceDays[state]
+		if records > 0 && workspace == 0 {
+			return fmt.Errorf("a %s task's record is kept %d days and its workspace for ever, but removing the record removes the workspace: "+
+				"set workspaceDays for %s to %d or fewer", state, records, state, records)
+		}
+		if records > 0 && workspace > records {
 			return fmt.Errorf("a %s task's workspace is kept %d days and its record %d: the record cannot go first", state, workspace, records)
 		}
 	}
