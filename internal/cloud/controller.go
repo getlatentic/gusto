@@ -176,7 +176,7 @@ func (c *Controller) provision(ctx context.Context, slug string) error {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	runtime.Command = strings.Join(c.Command, " ")
-	if err := c.answers(cell, runtime.Port); err != nil {
+	if err := c.answers(ctx, cell, runtime.Port); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	if err := c.set(ctx, slug, runtime, Ready, ""); err != nil {
@@ -393,21 +393,43 @@ func free(port int) bool {
 	return true
 }
 
-// answers waits until the server on the port says it is well.
-func (c *Controller) answers(cell Cell, port int) error {
-	deadline := time.Now().Add(c.Wait)
+// healthCheck bounds one ask of a server's health, so a server that takes the connection and never answers is asked again.
+var healthCheck = &http.Client{Timeout: 2 * time.Second}
+
+// answers waits until the server on the port says it is well, for as long as c.Wait or until ctx ends.
+func (c *Controller) answers(ctx context.Context, cell Cell, port int) error {
+	ctx, cancel := context.WithTimeout(ctx, c.Wait)
+	defer cancel()
+	address := "http://" + net.JoinHostPort(cell.Host(), strconv.Itoa(port)) + "/healthz"
+	every := time.NewTicker(100 * time.Millisecond)
+	defer every.Stop()
 	for {
-		if response, err := http.Get("http://" + net.JoinHostPort(cell.Host(), strconv.Itoa(port)) + "/healthz"); err == nil {
-			response.Body.Close()
-			if response.StatusCode == http.StatusOK {
-				return nil
+		if healthy(ctx, address) {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return fmt.Errorf("the server did not answer in %s, and what it said is in server.log", c.Wait)
 			}
+			return ctx.Err()
+		case <-every.C:
 		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("the server did not answer in %s, and what it said is in server.log", c.Wait)
-		}
-		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+// healthy is whether the server at address says it is well.
+func healthy(ctx context.Context, address string) bool {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
+	if err != nil {
+		return false
+	}
+	response, err := healthCheck.Do(request)
+	if err != nil {
+		return false
+	}
+	response.Body.Close()
+	return response.StatusCode == http.StatusOK
 }
 
 // set writes down the state of a server and remembers it for routing. A write refused because another front door leads now

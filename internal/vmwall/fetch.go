@@ -12,10 +12,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Download writes what is at url to dst, within ctx.
 type Download func(ctx context.Context, url string, dst io.Writer) error
+
+// download has no limit on the whole request, because a root file system is large, and a server that never starts to answer
+// is given up on. ctx bounds the rest.
+var download = &http.Client{Transport: waitingAtMost(30 * time.Second)}
+
+func waitingAtMost(d time.Duration) http.RoundTripper {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.ResponseHeaderTimeout = d
+	return t
+}
 
 // OverHTTP is the Download that asks the server named in the address.
 func OverHTTP(ctx context.Context, url string, dst io.Writer) error {
@@ -23,7 +34,7 @@ func OverHTTP(ctx context.Context, url string, dst io.Writer) error {
 	if err != nil {
 		return err
 	}
-	answer, err := http.DefaultClient.Do(request)
+	answer, err := download.Do(request)
 	if err != nil {
 		return err
 	}
