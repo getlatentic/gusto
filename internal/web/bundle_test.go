@@ -167,7 +167,7 @@ func verify(t *testing.T, dir job.Dir) (string, bool) {
 	if err != nil {
 		return err.Error(), false
 	}
-	again, _, err := runner.Ask(spec, dir)
+	again, _, err := runner.Ask(t.Context(), spec, dir)
 	if err != nil {
 		return err.Error(), false
 	}
