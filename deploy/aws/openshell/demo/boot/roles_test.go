@@ -76,7 +76,7 @@ func TestACellWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther
 	h := newHost(t)
 	h.put("image/key1.docker.tar.gz", "the archive")
 	h.as("cell")
-	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOX=container\n"), 0o644)
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=container\n"), 0o644)
 	os.MkdirAll(filepath.Join(h.dir, "docker"), 0o755)
 	os.WriteFile(filepath.Join(h.dir, "docker", "key0"), nil, 0o644)
 	done, err := h.boot()
@@ -94,10 +94,26 @@ func TestACellWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther
 	}
 }
 
+// A cell runs a sign-up's agents in containers and a demo's in microVMs, so it has both images.
+func TestACellOfBothSandboxesHasTheContainerImageAndTheRootFileSystem(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.put("image/key1.tar.gz", "the root file system")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container openshell\"\n"), 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || !h.has("lib/runner-all-rootfs.tar.gz") {
+		t.Errorf("both images: %v", done)
+	}
+}
+
 func TestAHostOfAnotherSandboxIsRefused(t *testing.T) {
 	h := newHost(t)
 	h.as("cell")
-	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOX=chroot\n"), 0o644)
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container chroot\"\n"), 0o644)
 	if _, err := h.boot(); err == nil {
 		t.Fatal("a sandbox the boot does not know must stop it")
 	}

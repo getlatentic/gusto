@@ -41,7 +41,16 @@ func Image() string {
 type Mount struct {
 	From string
 	To   string
+	// Kept is a person's own home, kept between their tasks: the runner gives the agent only what it put there for this task,
+	// and leaves the rest as the agent left it, rather than walking every file in it twice a task.
+	Kept bool
 }
+
+// Home is the agent's home in a task's container, and KeptHomeEnv tells the runner that what is there is a person's own.
+const (
+	Home        = "/root"
+	KeptHomeEnv = "GUSTO_HOME_KEPT"
+)
 
 // Run takes the address the container should ask for a model at. It is given
 // rather than read from the environment because it is per task: the proxy mints
@@ -135,6 +144,9 @@ func argv(absolute string, network []string, owner Owner, mounts []Mount) ([]str
 			return nil, err
 		}
 		args = append(args, "-v", absolute+":"+mount.To)
+		if mount.Kept {
+			args = append(args, "-e", KeptHomeEnv+"=1")
+		}
 	}
 	args = append(args, Limits()...)
 	args = append(args, Hardening()...)

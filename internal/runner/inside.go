@@ -94,6 +94,10 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 	if err != nil {
 		return 0, Refuse(dir, err)
 	}
+	agent.skills = adapter.Skills
+	if err := agent.freshenHome(); err != nil {
+		return 0, err
+	}
 	if adapter.Keeps != "" {
 		if err := os.MkdirAll(adapter.Keeps, 0o700); err != nil {
 			return 0, err

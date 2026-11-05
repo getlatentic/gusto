@@ -225,7 +225,8 @@ func stripeSettings() (*cloud.Stripe, error) {
 // organizationServers is what starts each organization's gusto serve on this machine.
 // GUSTO_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organization's
 // server is started with, which is where the operator's model credentials, models and
-// sandbox settings go. Nothing else of gusto cloud's environment goes to them.
+// sandbox settings go, and GUSTO_CLOUD_DEMO_ENV a file whose lines a demo organization's server has on top of them. Nothing
+// else of gusto cloud's environment goes to them.
 func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -235,9 +236,13 @@ func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 	if err != nil {
 		return nil, err
 	}
+	demoEnv, err := envLines(os.Getenv("GUSTO_CLOUD_DEMO_ENV"))
+	if err != nil {
+		return nil, err
+	}
 	local := &cloud.LocalCell{}
 	controller := &cloud.Controller{
-		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env,
+		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: number("GUSTO_CLOUD_PORT_FROM", 9100),
 		Wait: time.Duration(number("GUSTO_CLOUD_START_WAIT_SECONDS", 120)) * time.Second, Concurrent: limits.Verified.Concurrent,
 		IndexDir: setting("GUSTO_CLOUD_INDEX_DIR", filepath.Join(store.Root(), "index")),
@@ -262,14 +267,20 @@ func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 // KEY=VALUE, and blank lines and lines that begin with # are skipped. PATH is
 // this process's unless the file sets it, so a server finds git and openshell.
 func operatorEnv(path string) ([]string, error) {
-	env := []string{"PATH=" + os.Getenv("PATH")}
+	lines, err := envLines(path)
+	return append([]string{"PATH=" + os.Getenv("PATH")}, lines...), err
+}
+
+// envLines are the KEY=VALUE lines of a file of settings, without its blank lines and comments, and none when no file is named.
+func envLines(path string) ([]string, error) {
 	if path == "" {
-		return env, nil
+		return nil, nil
 	}
 	text, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+	var env []string
 	for number, line := range strings.Split(string(text), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {

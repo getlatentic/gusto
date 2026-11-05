@@ -793,6 +793,7 @@ Environment:
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com
 - `GUSTO_CLOUD_DOMAIN`: the domain organizations' servers are under
 - `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
+- `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
 - `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
