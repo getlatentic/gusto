@@ -18,6 +18,7 @@
     mode: "0644"
   loop:
     - { src: org.env.j2, dest: /etc/gusto/org.env }
+    - { src: org-demo.env.j2, dest: /etc/gusto/org-demo.env }
     - { src: cloud.env.j2, dest: /etc/gusto/cloud.env }
   notify: Restart the front door
 

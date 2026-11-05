@@ -61,6 +61,7 @@ func runCommands() []*cmdline.Command {
 				{Name: "GUSTO_CLOUD_URL", Text: "the address links in mail begin with, such as https://cloud.example.com"},
 				{Name: "GUSTO_CLOUD_DOMAIN", Text: "the domain organizations' servers are under"},
 				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes"},
+				{Name: "GUSTO_CLOUD_DEMO_ENV", Text: "a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox"},
 				{Name: "GUSTO_CLOUD_INDEX_DIR", Text: "where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)"},
 			}, envCloudDatabase...),
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud workspaces"},

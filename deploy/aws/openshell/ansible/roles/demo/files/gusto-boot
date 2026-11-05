@@ -115,13 +115,17 @@ container_image() {
   for tag in $stale; do docker rmi "gusto-runner:$tag" >/dev/null; done
 }
 
-# The image an organization's agents run in: a container's, or the root file system an OpenShell sandbox is made from.
+# The images organizations' agents run in: a container's, and the root file system an OpenShell sandbox is made from, for each
+# kind of sandbox the host has (SANDBOXES).
 image() {
-  case "${SANDBOX:-openshell}" in
-  container) container_image ;;
-  openshell) runner_image ;;
-  *) echo "gusto-boot: SANDBOX is container or openshell, not $SANDBOX" >&2; exit 2 ;;
-  esac
+  local sandbox
+  for sandbox in ${SANDBOXES:-${SANDBOX:-openshell}}; do
+    case "$sandbox" in
+    container) container_image ;;
+    openshell) runner_image ;;
+    *) echo "gusto-boot: a sandbox is container or openshell, not $sandbox" >&2; exit 2 ;;
+    esac
+  done
 }
 
 credentials() {

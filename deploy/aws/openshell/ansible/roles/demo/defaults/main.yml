@@ -18,9 +18,12 @@ demo_chat_default: claude=gemma/google.gemma-4-26b-a4b
 # agent to write a whole page in one call; the silence ends a stream that stops sending without ending (planning#749).
 demo_max_output_tokens: 16384
 demo_model_silence_seconds: 60
-# What an organization's agents run in: container, a Docker container on the cell's kernel, or openshell, a microVM of its own. A
-# visitor's demo runs in containers; an organization that pays is given microVMs.
-demo_sandbox: container
+# What an organization's agents run in: container, a Docker container for each task on the cell's kernel, with a home kept for
+# each person; or openshell, a microVM for each person. A sign-up's run in public_sandbox and a demo's in demo_sandbox, and a
+# cell has every kind of the two.
+public_sandbox: container
+demo_sandbox: openshell
+demo_sandboxes: "{{ [public_sandbox, demo_sandbox] | unique }}"
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
 demo_dns_token_parameter: /gusto/poc/cloudflare-dns-token

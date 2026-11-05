@@ -37,6 +37,9 @@ type Controller struct {
 	// Env is the settings every organization's server has, and only those and
 	// its own: the operator's credentials directory, models and sandbox.
 	Env []string
+	// DemoEnv is what a demo organization's server has on top of Env, and wins over it: a demo's agents can run in a sandbox
+	// of another kind than a sign-up's, such as a microVM for each person where a sign-up has a container.
+	DemoEnv []string
 	// FrontDoor is the front door's public address, which a server sends people to.
 	FrontDoor string
 	// OrgURL is the address each organization's server is reached at, which an app a person signs in to sends them back to. With
@@ -340,14 +343,18 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 		own["GUSTO_PUBLIC_URL"] = c.OrgURL(slug)
 		own["GUSTO_CONNECTORS"] = filepath.Join(data, "connectors")
 	}
-	database, err := usageDatabase(c.Env, slug, c.indexDir())
+	operator := c.Env
+	if org.Demo != nil {
+		operator = append(slices.Clone(c.Env), c.DemoEnv...)
+	}
+	database, err := usageDatabase(operator, slug, c.indexDir())
 	if err != nil {
 		return nil, err
 	}
 	if database != "" {
 		own[databaseURLEnv] = database
 	}
-	env := withoutSetting(c.Env, databaseURLEnv)
+	env := withoutSetting(operator, databaseURLEnv)
 	for name, value := range own {
 		env = append(env, name+"="+value)
 	}
