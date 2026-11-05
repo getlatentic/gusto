@@ -10,6 +10,11 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: "0644"
+    timeout: 120
+  register: go_download
+  until: go_download is succeeded
+  retries: 3
+  delay: 10
 
 # Asked of the installed toolchain alone (GOTOOLCHAIN=local), so it says what is
 # on disk and not what Go would fetch to satisfy go.mod.

@@ -40,7 +40,7 @@ for (const member of members) {
   const file = join(stage, packed[0].filename);
   const sum = "sha512-" + createHash("sha512").update(readFileSync(file)).digest("base64");
   if (sum !== pin.integrity) fail(`${pkg}@${pin.version}: the tarball's sha512 is not the pinned one\n  got  ${sum}\n  want ${pin.integrity}`);
-  execFileSync("npm", ["install", "-g", "--no-fund", "--no-audit", file], { stdio: "inherit", env: npm });
+  tried(`${pkg}@${pin.version}`, () => execFileSync("npm", ["install", "-g", "--no-fund", "--no-audit", file], { stdio: "inherit", env: npm }));
   appendFileSync(recordPath, `${name ? name + "=" : ""}${pkg}@${pin.version}\n`);
   console.log(`${name || pkg}: ${pkg}@${pin.version} verified and installed`);
 }
@@ -66,6 +66,20 @@ async function installBinary(name, pkg, version, pin) {
   chmodSync(program, 0o755);
   appendFileSync(recordPath, `${name ? name + "=" : ""}${pkg}@${pin.version}\n`);
   console.log(`${name || pkg}: ${pkg}@${pin.version} verified and installed`);
+}
+
+// tried runs an install up to three times, ten seconds apart. A package's own install script may download from its maker, as
+// hermes-agent's downloads uv, and one answer of 504 there would otherwise fail the whole image.
+function tried(what, install) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return install();
+    } catch (error) {
+      if (attempt === 3) throw error;
+      console.error(`${what}: the install failed (${error.message.split("\n")[0]}); trying again`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10_000);
+    }
+  }
 }
 
 // parse splits name=package@version into its parts. A scoped package starts with @, so only an @ after the first
