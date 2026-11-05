@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"hash/fnv"
-	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
@@ -28,7 +27,7 @@ const (
 func openDatabase(ctx context.Context, url, root string) (*dbkit.DB, error) {
 	for attempt := 1; ; attempt++ {
 		db, err := dbkit.Open(ctx, url, root, databaseFile)
-		if err == nil || attempt == openAttempts || !strings.Contains(err.Error(), "SQLITE_BUSY") {
+		if err == nil || attempt == openAttempts || !dbkit.Busy(err) {
 			return db, err
 		}
 		select {

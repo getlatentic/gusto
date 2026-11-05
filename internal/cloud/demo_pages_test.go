@@ -51,7 +51,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 		if !strings.Contains(waiting, "Getting your demo ready") || !strings.Contains(waiting, `http-equiv="refresh"`) || strings.Contains(waiting, `href="/open"`) {
 			t.Errorf("a demo that is not ready says so and looks again:\n%s", waiting)
 		}
-		org, _, _ := f.store.Org(demoSlugOf(t, f))
+		org, _, _ := f.store.Org(t.Context(), demoSlugOf(t, f))
 		if org.Demo == nil || !org.Demo.Ready.IsZero() {
 			t.Errorf("the time started before the server was ready: %+v", org.Demo)
 		}
@@ -60,7 +60,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 		if status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Fatalf("a demo that is ready sends the visitor in: %d %v", status, header)
 		}
-		if org, _, _ = f.store.Org(org.Slug); org.Demo.Ready.IsZero() || org.Demo.Expires.IsZero() {
+		if org, _, _ = f.store.Org(t.Context(), org.Slug); org.Demo.Ready.IsZero() || org.Demo.Expires.IsZero() {
 			t.Error("the time did not start when the visitor was sent in")
 		}
 		status, page := b.get("/demo/wait")
@@ -76,7 +76,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 
 func demoSlugOf(t *testing.T, f *front) string {
 	t.Helper()
-	orgs, err := f.store.Orgs()
+	orgs, err := f.store.Orgs(t.Context())
 	if err != nil || len(orgs) != 1 {
 		t.Fatalf("%v %v", orgs, err)
 	}
@@ -108,11 +108,11 @@ func TestADemoIsExtendedOnceFromThePage(t *testing.T) {
 		f.server.Wait()
 		b.get("/demo/wait")
 		slug := demoSlugOf(t, f)
-		before, _, _ := f.store.DemoLeft(slug)
+		before, _, _ := f.store.DemoLeft(t.Context(), slug)
 		if status, _, header := b.post("/demo/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/demo/wait" {
 			t.Fatalf("%d %v", status, header)
 		}
-		after, _, _ := f.store.DemoLeft(slug)
+		after, _, _ := f.store.DemoLeft(t.Context(), slug)
 		if !after.Expires.Equal(before.Expires.Add(10 * time.Minute)) {
 			t.Errorf("%v then %v", before.Expires, after.Expires)
 		}
@@ -135,22 +135,22 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddr
 		slug := demoSlugOf(t, f)
 		f.signedUp("cy@initech.com")
 		f.server.Wait()
-		if address, state := f.server.Controller.Route(slug); state != Ready || address == "" {
+		if address, state := f.server.Controller.Route(t.Context(), slug); state != Ready || address == "" {
 			t.Fatalf("%q %q", address, state)
 		}
-		f.server.EndDueDemos()
+		f.server.EndDueDemos(t.Context())
 		f.server.ender.running.Wait()
-		if _, found, _ := f.store.Org(slug); !found {
+		if _, found, _ := f.store.Org(t.Context(), slug); !found {
 			t.Fatal("a demo with time left was ended")
 		}
 		f.store.now = func() time.Time { return time.Now().Add(time.Hour) }
-		f.server.EndDueDemos()
+		f.server.EndDueDemos(t.Context())
 		f.server.ender.running.Wait()
 
-		if _, found, _ := f.store.Org(slug); found {
+		if _, found, _ := f.store.Org(t.Context(), slug); found {
 			t.Error("the organization is still there")
 		}
-		if address, state := f.server.Controller.Route(slug); address != "" || state != "" {
+		if address, state := f.server.Controller.Route(t.Context(), slug); address != "" || state != "" {
 			t.Errorf("the server was not stopped and forgotten: %q %q", address, state)
 		}
 		status, body, _ := b.at(slug+".cloud.test", "GET", "/", nil)
@@ -167,10 +167,10 @@ func TestWhenADemosTimeIsUpItsServerComputersAndOrganizationAreRemovedAndTheAddr
 		if status, _, header := b.get2("/demo/wait"); status != http.StatusSeeOther || header.Get("Location") != "/signin" {
 			t.Errorf("the visitor's sign-in went with their account: %d %v", status, header)
 		}
-		if lead, _ := f.store.LeadOf(slug); lead.Reason != "its time was up" || lead.Ended.IsZero() {
+		if lead, _ := f.store.LeadOf(t.Context(), slug); lead.Reason != "its time was up" || lead.Ended.IsZero() {
 			t.Errorf("%+v", lead)
 		}
-		if _, found, _ := f.store.Org("initech-com"); !found {
+		if _, found, _ := f.store.Org(t.Context(), "initech-com"); !found {
 			t.Error("an organization that is not a demo was ended")
 		}
 	})
@@ -183,7 +183,7 @@ func TestADemoThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 		if status != http.StatusUnprocessableEntity || !strings.Contains(page, "Say who you are") || !strings.Contains(page, `value="ada@acme.com"`) || !strings.Contains(page, `value="Acme"`) {
 			t.Errorf("%d\n%s", status, page)
 		}
-		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+		if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 0 {
 			t.Error("a refusal made an organization")
 		}
 		startDemoAs(t, f, "Ada", "ada@acme.com", "Acme")
@@ -311,7 +311,7 @@ func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *test
 		if status, page, _ := b.get2("/demo/end"); status != http.StatusOK || !strings.Contains(page, "End your demo now?") {
 			t.Fatalf("the visitor is not asked: %d\n%s", status, page)
 		}
-		if _, found, _ := f.store.Org(slug); !found {
+		if _, found, _ := f.store.Org(t.Context(), slug); !found {
 			t.Fatal("asking ended the demo")
 		}
 		status, _, header := b.post("/demo/end", url.Values{})
@@ -319,10 +319,10 @@ func TestAVisitorWhoEndsTheirDemoHasItDeletedAtOnceAndIsToldWhenItIsDone(t *test
 		if status != http.StatusSeeOther || header.Get("Location") != "/demo/ended/"+slug {
 			t.Fatalf("%d %v", status, header)
 		}
-		if _, found, _ := f.store.Org(slug); found {
+		if _, found, _ := f.store.Org(t.Context(), slug); found {
 			t.Error("the organization is still there")
 		}
-		if lead, _ := f.store.LeadOf(slug); lead.Reason != "the visitor ended it" || lead.Ended.IsZero() {
+		if lead, _ := f.store.LeadOf(t.Context(), slug); lead.Reason != "the visitor ended it" || lead.Ended.IsZero() {
 			t.Errorf("%+v", lead)
 		}
 		status, page, _ := b.get2("/demo/ended/" + slug)

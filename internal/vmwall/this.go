@@ -51,7 +51,7 @@ func releaseAsset(ctx context.Context, release, name string, dst io.Writer) erro
 		return err
 	}
 	gh, lookErr := exec.LookPath("gh")
-	if lookErr != nil || !strings.Contains(err.Error(), "404") {
+	if lookErr != nil || !answeredNotFound(err) {
 		return err
 	}
 	command := exec.CommandContext(ctx, gh, "release", "download", release, "-R", gustoRepository, "-p", name, "-O", "-")

@@ -61,17 +61,17 @@ func TestTwoFrontDoorsCannotBothAcceptOneInvitation(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		admin, org := verifiedOrg(t, ds[0], "ada@acme.com", "Acme")
-		secret, err := ds[0].Invite(org.Slug, admin, "bob@acme.com")
+		secret, err := ds[0].Invite(t.Context(), org.Slug, admin, "bob@acme.com")
 		if err != nil {
 			t.Fatal(err)
 		}
 		var won atomic.Int32
 		race(ds, 24, func(s *Store, _ int) {
-			if _, _, err := s.Accept(secret); err == nil {
+			if _, _, err := s.Accept(t.Context(), secret); err == nil {
 				won.Add(1)
 			}
 		})
-		if members, _ := ds[1].Members(org.Slug); won.Load() != 1 || len(members) != 2 {
+		if members, _ := ds[1].Members(t.Context(), org.Slug); won.Load() != 1 || len(members) != 2 {
 			t.Errorf("%d accepted one invitation and %d are in", won.Load(), len(members))
 		}
 	})
@@ -81,13 +81,13 @@ func TestTwoFrontDoorsCannotBothUseOneLink(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		for _, purpose := range []Purpose{SignIn, Verify} {
-			secret, err := ds[0].MakeLink("ada@acme.com", purpose, time.Hour)
+			secret, err := ds[0].MakeLink(t.Context(), "ada@acme.com", purpose, time.Hour)
 			if err != nil {
 				t.Fatal(err)
 			}
 			var used atomic.Int32
 			race(ds, 24, func(s *Store, _ int) {
-				if _, err := s.UseLink(secret, purpose); err == nil {
+				if _, err := s.UseLink(t.Context(), secret, purpose); err == nil {
 					used.Add(1)
 				}
 			})
@@ -105,7 +105,7 @@ func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 		var bySlug, byEmail atomic.Int32
 		var refused atomic.Value
 		race(ds, 40, func(s *Store, i int) {
-			_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("p%d@company%d.com", i, i), OrgName: "Contested", Slug: "contested"})
+			_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("p%d@company%d.com", i, i), OrgName: "Contested", Slug: "contested"})
 			switch {
 			case err == nil:
 				bySlug.Add(1)
@@ -114,7 +114,7 @@ func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 			}
 		})
 		race(ds, 40, func(s *Store, i int) {
-			_, _, err := s.SignUp(Signup{Email: "same@acme-two.com", OrgName: fmt.Sprintf("Org %d", i)})
+			_, _, err := s.SignUp(t.Context(), Signup{Email: "same@acme-two.com", OrgName: fmt.Sprintf("Org %d", i)})
 			switch {
 			case err == nil:
 				byEmail.Add(1)
@@ -125,7 +125,7 @@ func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 		if err := refused.Load(); err != nil {
 			t.Errorf("a loser should be told what was taken: %v", err)
 		}
-		orgs, _ := ds[0].Orgs()
+		orgs, _ := ds[0].Orgs(t.Context())
 		people, _ := count(context.Background(), ds[1].db, `SELECT count(*) FROM people`)
 		if bySlug.Load() != 1 || byEmail.Load() != 1 || len(orgs) != 2 || people != 2 {
 			t.Errorf("%d took the slug, %d took the address, %d organizations and %d people were made", bySlug.Load(), byEmail.Load(), len(orgs), people)
@@ -139,11 +139,11 @@ func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganizationMayHave(t *te
 		admin, org := verifiedOrg(t, ds[0], "ada@acme.com", "Acme")
 		var sent atomic.Int32
 		race(ds, 20, func(s *Store, i int) {
-			if _, err := s.Invite(org.Slug, admin, fmt.Sprintf("p%d@acme.com", i)); err == nil {
+			if _, err := s.Invite(t.Context(), org.Slug, admin, fmt.Sprintf("p%d@acme.com", i)); err == nil {
 				sent.Add(1)
 			}
 		})
-		if open, _ := ds[1].Invitations(org.Slug); sent.Load() != 3 || len(open) != 3 {
+		if open, _ := ds[1].Invitations(t.Context(), org.Slug); sent.Load() != 3 || len(open) != 3 {
 			t.Errorf("%d were sent and %d are open, and an admin and three is all that is allowed", sent.Load(), len(open))
 		}
 	})
@@ -154,7 +154,7 @@ func TestFrontDoorsTogetherNeverPassTheOrganizationsOneCompanyMayLeaveUnconfirme
 		ds := doors(t, set, 2)
 		var made, full atomic.Int32
 		race(ds, 12, func(s *Store, i int) {
-			_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("p%d@acme.com", i), OrgName: fmt.Sprintf("Team %d", i)})
+			_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("p%d@acme.com", i), OrgName: fmt.Sprintf("Team %d", i)})
 			switch {
 			case err == nil:
 				made.Add(1)
@@ -174,18 +174,18 @@ func TestFrontDoorsTogetherNeverLeaveAnOrganizationWithoutAnAdmin(t *testing.T) 
 		for round := range 6 {
 			admin, org := verifiedOrg(t, ds[0], fmt.Sprintf("ada%d@acme%d.com", round, round), "Acme "+fmt.Sprint(round))
 			bob := joined(t, ds[0], org, admin, fmt.Sprintf("bob%d@acme%d.com", round, round))
-			if _, err := ds[0].SetRole(org.Slug, admin, bob.Email, Admin); err != nil {
+			if _, err := ds[0].SetRole(t.Context(), org.Slug, admin, bob.Email, Admin); err != nil {
 				t.Fatal(err)
 			}
 			bob.Role = Admin
 			attempts := []func(s *Store) error{
-				func(s *Store) error { return s.Remove(org.Slug, admin, bob.Email) },
-				func(s *Store) error { return s.Remove(org.Slug, bob, admin.Email) },
-				func(s *Store) error { _, err := s.SetRole(org.Slug, admin, bob.Email, Runner); return err },
-				func(s *Store) error { _, err := s.SetRole(org.Slug, bob, admin.Email, Runner); return err },
+				func(s *Store) error { return s.Remove(t.Context(), org.Slug, admin, bob.Email) },
+				func(s *Store) error { return s.Remove(t.Context(), org.Slug, bob, admin.Email) },
+				func(s *Store) error { _, err := s.SetRole(t.Context(), org.Slug, admin, bob.Email, Runner); return err },
+				func(s *Store) error { _, err := s.SetRole(t.Context(), org.Slug, bob, admin.Email, Runner); return err },
 			}
 			race(ds, len(attempts), func(s *Store, i int) { attempts[i](s) })
-			members, _ := ds[1].Members(org.Slug)
+			members, _ := ds[1].Members(t.Context(), org.Slug)
 			admins := 0
 			for _, member := range members {
 				if member.Role == Admin {
@@ -206,7 +206,7 @@ func TestFrontDoorsTogetherHoldADemoToItsLimits(t *testing.T) {
 		started := func(email func(i int) string) int32 {
 			var n atomic.Int32
 			race(ds, 12, func(s *Store, i int) {
-				if _, _, err := s.StartDemo("Visitor", email(i), "Company"); err == nil {
+				if _, _, err := s.StartDemo(t.Context(), "Visitor", email(i), "Company"); err == nil {
 					n.Add(1)
 				}
 			})
@@ -231,7 +231,7 @@ func TestFrontDoorsTogetherNeverRunMoreDemosAtOnceThanTheHostAllows(t *testing.T
 		ds := doors(t, set, 2)
 		var n atomic.Int32
 		race(ds, 16, func(s *Store, i int) {
-			if _, _, err := s.StartDemo("Visitor", fmt.Sprintf("p%d@one%d.com", i, i), "Company"); err == nil {
+			if _, _, err := s.StartDemo(t.Context(), "Visitor", fmt.Sprintf("p%d@one%d.com", i, i), "Company"); err == nil {
 				n.Add(1)
 			}
 		})
@@ -247,19 +247,19 @@ func TestARateLimitIsOneCountForEveryFrontDoorOnTheDatabase(t *testing.T) {
 		limiters := []*Limiter{ds[0].Limiter("invites", 5, time.Hour), ds[1].Limiter("invites", 5, time.Hour)}
 		var allowed atomic.Int32
 		race(ds, 30, func(_ *Store, i int) {
-			if limiters[i%2].Allow("acme-com") {
+			if limiters[i%2].Allow(t.Context(), "acme-com") {
 				allowed.Add(1)
 			}
 		})
 		if allowed.Load() != 5 {
 			t.Errorf("%d events went ahead, and the limit is 5", allowed.Load())
 		}
-		if !limiters[0].Allow("globex-com") {
+		if !limiters[0].Allow(t.Context(), "globex-com") {
 			t.Error("another key has its own count")
 		}
 		now := time.Now().Add(2 * time.Hour)
 		ds[0].now, ds[1].now = func() time.Time { return now }, func() time.Time { return now }
-		if !limiters[1].Allow("acme-com") {
+		if !limiters[1].Allow(t.Context(), "acme-com") {
 			t.Error("the window slides")
 		}
 	})
@@ -269,18 +269,18 @@ func TestWhatAnOperatorSetsOnOneFrontDoorHoldsOnTheOthers(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.Demo = DemoSettings{Length: time.Minute, MaxOrgs: 5}
 		ds := doors(t, set, 2)
-		ds[0].SetDemosPaused(true)
-		if !ds[1].DemosPaused() {
+		ds[0].SetDemosPaused(t.Context(), true)
+		if !ds[1].DemosPaused(t.Context()) {
 			t.Error("a pause on one front door is not seen by the other")
 		}
-		if err := ds[0].SetDemoLimits(DemoLimits{PerDay: 7, MaxOrgs: 2}); err != nil {
+		if err := ds[0].SetDemoLimits(t.Context(), DemoLimits{PerDay: 7, MaxOrgs: 2}); err != nil {
 			t.Fatal(err)
 		}
-		if got := ds[1].DemoLimits(); got.PerDay != 7 || got.MaxOrgs != 2 || !ds[1].DemoLimitsSet() {
+		if got := ds[1].DemoLimits(t.Context()); got.PerDay != 7 || got.MaxOrgs != 2 || !ds[1].DemoLimitsSet(t.Context()) {
 			t.Errorf("%+v", got)
 		}
-		ds[1].ResetDemoLimits()
-		if ds[0].DemoLimitsSet() {
+		ds[1].ResetDemoLimits(t.Context())
+		if ds[0].DemoLimitsSet(t.Context()) {
 			t.Error("a reset on one front door is not seen by the other")
 		}
 	})
@@ -292,7 +292,7 @@ func TestEveryFrontDoorOnADatabaseSignsAndChecksTheSameCookies(t *testing.T) {
 		sessions := make([]*Sessions, len(ds))
 		race(ds, len(ds), func(s *Store, i int) {
 			var err error
-			if sessions[i], err = s.OpenSessions(false); err != nil {
+			if sessions[i], err = s.OpenSessions(t.Context(), false); err != nil {
 				t.Error(err)
 			}
 		})
@@ -311,7 +311,7 @@ func TestTwoOrganizationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
 		ds := doors(t, set, 2)
 		var slugs []string
 		for i := range 8 {
-			_, org, err := ds[0].SignUp(Signup{Email: fmt.Sprintf("p%d@c%d.com", i, i), OrgName: fmt.Sprintf("Org %d", i)})
+			_, org, err := ds[0].SignUp(t.Context(), Signup{Email: fmt.Sprintf("p%d@c%d.com", i, i), OrgName: fmt.Sprintf("Org %d", i)})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -319,7 +319,7 @@ func TestTwoOrganizationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
 		}
 		var given atomic.Int32
 		race(ds, len(slugs), func(s *Store, i int) {
-			if s.SetRuntime(slugs[i], Runtime{State: Starting, Cell: "cell-a", Port: 9100, ProxyPort: 9101}) == nil {
+			if s.SetRuntime(t.Context(), slugs[i], Runtime{State: Starting, Cell: "cell-a", Port: 9100, ProxyPort: 9101}) == nil {
 				given.Add(1)
 			}
 		})

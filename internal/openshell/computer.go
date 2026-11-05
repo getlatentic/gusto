@@ -98,10 +98,14 @@ func (s *Sandbox) answering(ctx context.Context) error {
 		if s.answers(ctx) == nil {
 			return nil
 		}
-		if time.Now().After(deadline) || ctx.Err() != nil {
+		if time.Now().After(deadline) {
 			return fmt.Errorf("the workspace %s did not answer in %s", s.name, readyWithin)
 		}
-		time.Sleep(retryEvery)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("the workspace %s was not waited for: %w", s.name, ctx.Err())
+		case <-time.After(retryEvery):
+		}
 	}
 }
 

@@ -68,7 +68,7 @@ func Read(dir string) (Stamp, bool, error) {
 	}
 	var stamp Stamp
 	if err := json.Unmarshal(text, &stamp); err != nil || stamp.Format < 1 {
-		return Stamp{}, false, fmt.Errorf("%s does not say a format: %v", filepath.Join(dir, StampFile), err)
+		return Stamp{}, false, fmt.Errorf("%s does not say a format: %w", filepath.Join(dir, StampFile), err)
 	}
 	return stamp, true, nil
 }

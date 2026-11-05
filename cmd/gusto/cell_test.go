@@ -103,7 +103,7 @@ func TestTheFrontDoorPlacesOnCellsOnlyWhenTheyAreConfigured(t *testing.T) {
 	t.Setenv("GUSTO_CLOUD_SERVERS", "")
 	t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
 	t.Setenv("GUSTO_CLOUD_CELLS_DIR", "")
-	_, plain, err := openCloud()
+	_, plain, err := openCloud(t.Context())
 	if err != nil || plain == nil || plain.Cells != nil {
 		t.Fatalf("one machine: %v %+v", err, plain)
 	}
@@ -112,7 +112,7 @@ func TestTheFrontDoorPlacesOnCellsOnlyWhenTheyAreConfigured(t *testing.T) {
 	os.WriteFile(secret, []byte(goodSecret), 0o600)
 	t.Setenv("GUSTO_CLOUD_CELLS_DIR", filepath.Join(dir, "cells"))
 	t.Setenv("GUSTO_CLOUD_CELL_SECRET_FILE", secret)
-	_, placed, err := openCloud()
+	_, placed, err := openCloud(t.Context())
 	if err != nil || placed.Cells == nil {
 		t.Errorf("cells: %v %+v", err, placed)
 	}

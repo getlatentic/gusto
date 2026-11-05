@@ -16,8 +16,8 @@ func (s *Store) Limiter(scope string, most int, per time.Duration) *Limiter {
 
 // allow counts an event for key and says whether it may go ahead. An event is refused, and not
 // counted, when the key has had its most in the window. A database that cannot be asked refuses.
-func (s *Store) allow(key string, most int, per time.Duration) bool {
-	ctx := context.Background()
+func (s *Store) allow(ctx context.Context, key string, most int, per time.Duration) bool {
+
 	allowed := false
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		now := s.now()

@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"strings"
@@ -23,30 +23,30 @@ const codeTries = 5
 func codeKey(email, code string) string { return "code:" + email + ":" + code }
 
 // MakeSignInCode is six digits that sign the address in once, for as long as a sign-in link lasts.
-func (s *Store) MakeSignInCode(email string) (string, error) {
+func (s *Store) MakeSignInCode(ctx context.Context, email string) (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
 	if err != nil {
 		return "", err
 	}
 	code := fmt.Sprintf("%06d", n.Int64())
 	made := link{Email: email, Purpose: SignInCode, Expires: s.now().Add(SignInLife)}
-	_, err = s.db.ExecContext(context.Background(), insertLink.SQL(1), s.linkArgs(digest(codeKey(email, code)), made)...)
+	_, err = s.db.ExecContext(ctx, insertLink.SQL(1), s.linkArgs(digest(codeKey(email, code)), made)...)
 	return code, err
 }
 
 // UseSignInCode spends the code the address was mailed. A code typed with spaces or a dash between its digits is the same code.
-func (s *Store) UseSignInCode(email, typed string) error {
+func (s *Store) UseSignInCode(ctx context.Context, email, typed string) error {
 	code := strings.NewReplacer(" ", "", "-", "").Replace(strings.TrimSpace(typed))
 	if len(code) != 6 || strings.Trim(code, "0123456789") != "" {
 		return ErrLink
 	}
-	_, err := s.UseLink(codeKey(email, code), SignInCode)
+	_, err := s.UseLink(ctx, codeKey(email, code), SignInCode)
 	return err
 }
 
 // forgetSignIns spends every sign-in link and code an address has, once one of them has signed it in.
-func (s *Store) forgetSignIns(email string) error {
-	_, err := s.db.ExecContext(context.Background(), `DELETE FROM links WHERE email = ? AND purpose IN (?, ?)`, email, string(SignIn), string(SignInCode))
+func (s *Store) forgetSignIns(ctx context.Context, email string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM links WHERE email = ? AND purpose IN (?, ?)`, email, string(SignIn), string(SignInCode))
 	return err
 }
 
@@ -61,11 +61,11 @@ func (s *Server) signInWithCode(w http.ResponseWriter, r *http.Request) {
 	again := func(status int, why string) {
 		s.render(w, status, "signin", view{Title: "Check your email", Email: email, Sent: true, Error: why})
 	}
-	if !s.signups.Allow("code:"+s.source(r)) || !s.codes.Allow(email) {
+	if !s.signups.Allow(r.Context(), "code:"+s.source(r)) || !s.codes.Allow(r.Context(), email) {
 		again(http.StatusTooManyRequests, "That is a lot of tries. Use the link in the email, or ask for a new code in a while.")
 		return
 	}
-	if err := s.Store.UseSignInCode(email, r.PostFormValue("code")); err != nil {
+	if err := s.Store.UseSignInCode(r.Context(), email, r.PostFormValue("code")); err != nil {
 		again(http.StatusUnprocessableEntity, "That code is wrong or has expired. Check the newest email from gusto, or ask for a new one.")
 		return
 	}
@@ -74,8 +74,8 @@ func (s *Server) signInWithCode(w http.ResponseWriter, r *http.Request) {
 
 // signedIn starts a person's session once a link or code showed the address is theirs, and spends the rest they were sent.
 func (s *Server) signedIn(w http.ResponseWriter, r *http.Request, email string) {
-	if err := s.Store.forgetSignIns(email); err != nil {
-		log.Printf("cloud: the other sign-in links of an address were not spent: %v", err)
+	if err := s.Store.forgetSignIns(r.Context(), email); err != nil {
+		slog.Error("the other sign-in links of an address were not spent", "error", err)
 	}
 	s.Sessions.Issue(w, email)
 	http.Redirect(w, r, "/app", http.StatusSeeOther)

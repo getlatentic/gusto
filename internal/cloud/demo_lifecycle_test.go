@@ -11,18 +11,18 @@ func TestADemosTimeStartsWhenItsServerAnswers(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		c := controlled(t, s)
-		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		_, org, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		demo, _, _ := s.DemoLeft(org.Slug)
+		demo, _, _ := s.DemoLeft(t.Context(), org.Slug)
 		if demo.Ready.IsZero() {
 			t.Fatal("a demo whose server answers has not started its time")
 		}
-		if due, _ := s.DemosDue(); due[org.Slug] != "" {
+		if due, _ := s.DemosDue(t.Context()); due[org.Slug] != "" {
 			t.Errorf("a demo in use is due: %s", due[org.Slug])
 		}
 	})
@@ -32,20 +32,20 @@ func TestADemosTimeStartsWhenItsServerAnswers(t *testing.T) {
 func TestAStoppedDemoIsNotExtendedOrStarted(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
-		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		_, org, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.StopDemo(org.Slug); err != nil {
+		if err := s.StopDemo(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		if demo, _ := s.DemoReady(org.Slug); !demo.Ready.IsZero() {
+		if demo, _ := s.DemoReady(t.Context(), org.Slug); !demo.Ready.IsZero() {
 			t.Error("a stopped demo's time started")
 		}
-		_, other, _ := s.StartDemo("Bob", "bob@globex.com", "Globex")
-		s.DemoReady(other.Slug)
-		s.StopDemo(other.Slug)
-		if _, err := s.ExtendDemo(other.Slug); !errors.Is(err, ErrNoExtension) {
+		_, other, _ := s.StartDemo(t.Context(), "Bob", "bob@globex.com", "Globex")
+		s.DemoReady(t.Context(), other.Slug)
+		s.StopDemo(t.Context(), other.Slug)
+		if _, err := s.ExtendDemo(t.Context(), other.Slug); !errors.Is(err, ErrNoExtension) {
 			t.Errorf("a stopped demo was extended: %v", err)
 		}
 	})
@@ -57,20 +57,20 @@ func TestADemoBeingEndedIsNotMadeAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		c := controlled(t, s)
-		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		_, org, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.MarkEnding(org.Slug); err != nil {
+		if err := s.MarkEnding(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.Provision(org.Slug); !errors.Is(err, ErrRemoved) {
+		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("a demo being ended was provisioned: %v", err)
 		}
 		if c.Cell.Alive(org.Slug) {
 			t.Error("a demo being ended has a server")
 		}
-		if due, _ := s.DemosDue(); due[org.Slug] == "" {
+		if due, _ := s.DemosDue(t.Context()); due[org.Slug] == "" {
 			t.Error("a demo whose ending was cut off is not due")
 		}
 	})

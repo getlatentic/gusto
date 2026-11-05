@@ -1,11 +1,12 @@
 package cloud
 
 import (
-	"github.com/getlatentic/gusto/internal/computer"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/computer"
 )
 
 // verifiedAdmin signs up an organization, follows the mail's link to confirm the
@@ -75,7 +76,7 @@ func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganization(t *testin
 				t.Fatalf("opening the link asks and does not answer: %d\n%s", status, page)
 			}
 		}
-		if _, found, _ := f.store.only("bob@acme.com"); found {
+		if _, found, _ := f.store.only(t.Context(), "bob@acme.com"); found {
 			t.Fatal("opening the link made a person")
 		}
 		if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
@@ -126,7 +127,7 @@ func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganizationReachNoOther(t *
 		if status, _, _ := ada.post("/org/people/remove", url.Values{"email": {"fay@globex.com"}}); status != http.StatusUnprocessableEntity {
 			t.Errorf("Acme's admin cannot remove Globex's person: %d", status)
 		}
-		if _, found, _ := f.store.only("fay@globex.com"); !found {
+		if _, found, _ := f.store.only(t.Context(), "fay@globex.com"); !found {
 			t.Error("a person of another organization was removed")
 		}
 		if _, page := ada.get("/org"); strings.Contains(page, "globex") || strings.Contains(page, "fay@") {

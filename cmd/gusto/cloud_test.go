@@ -24,7 +24,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	t.Setenv("GUSTO_CLOUD_DOMAIN", "example.com")
 	t.Setenv("GUSTO_CLOUD_FREE_MAIL", "allow")
 	t.Setenv("GUSTO_CLOUD_TRIAL_JOBS", "7")
-	front, _, err := openCloud()
+	front, _, err := openCloud(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 			for key, value := range set {
 				t.Setenv(key, value)
 			}
-			if _, _, err := openCloud(); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
+			if _, _, err := openCloud(t.Context()); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
 				t.Errorf("%v", err)
 			}
 		})
@@ -79,11 +79,11 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
 	t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-	front, _, err := openCloud()
+	front, _, err := openCloud(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, org, err := front.Store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	_, org, err := front.Store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		t.Fatalf("the fourth task is over the trial, and the refusal says how to lift it: %v", err)
 	}
 
-	if err := front.Store.Verify("ada@acme.com"); err != nil {
+	if err := front.Store.Verify(t.Context(), "ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(1100 * time.Millisecond)
@@ -160,7 +160,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 		t.Fatal(err)
 	}
 	for _, sign := range []cloud.Signup{{Email: "ada@acme.com", OrgName: "Acme"}, {Email: "eve@globex.com", OrgName: "Globex"}, {Email: "ned@initech.com", OrgName: "Initech"}} {
-		if _, org, err := store.SignUp(sign); err != nil {
+		if _, org, err := store.SignUp(t.Context(), sign); err != nil {
 			t.Fatal(err)
 		} else if org.Slug != "initech-com" {
 			registry, _ := store.Computers(org.Slug)
@@ -168,7 +168,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 		}
 	}
 	var out strings.Builder
-	if err := listComputers(&out, store); err != nil {
+	if err := listComputers(t.Context(), &out, store); err != nil {
 		t.Fatal(err)
 	}
 	text := out.String()

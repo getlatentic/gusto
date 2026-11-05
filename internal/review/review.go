@@ -81,12 +81,12 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 			return Report{Wrong: wrong}, err
 		}
 	}
-	return gated(dir)
+	return gated(ctx, dir)
 }
 
 // gated runs the gate in the rebuilt workspace and sets its answer beside the
 // one the manifest records.
-func gated(dir job.Dir) (Report, error) {
+func gated(ctx context.Context, dir job.Dir) (Report, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return Report{}, err
@@ -95,7 +95,7 @@ func gated(dir job.Dir) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	again, _, err := runner.Ask(spec, dir)
+	again, _, err := runner.Ask(ctx, spec, dir)
 	if err != nil {
 		return Report{}, err
 	}

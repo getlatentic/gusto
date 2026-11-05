@@ -72,8 +72,8 @@ func scanLink(r rowScanner) (link, error) {
 }
 
 // MakeLink is the secret of a single-use link for an address.
-func (s *Store) MakeLink(email string, purpose Purpose, life time.Duration) (string, error) {
-	ctx := context.Background()
+func (s *Store) MakeLink(ctx context.Context, email string, purpose Purpose, life time.Duration) (string, error) {
+
 	var secret string
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		secret, err = s.putLink(ctx, tx, link{Email: email, Purpose: purpose, Expires: s.now().Add(life)})
@@ -95,16 +95,16 @@ func (s *Store) putLink(ctx context.Context, tx dbkit.Tx, made link) (string, er
 // UseLink is the address a link was made for, and the link is spent. It is deleted in
 // the step that reads it, and a row has one deleter, so two requests with the same link
 // cannot both get in, even on two front doors.
-func (s *Store) UseLink(secret string, purpose Purpose) (string, error) {
-	used, err := s.useLink(secret, purpose)
+func (s *Store) UseLink(ctx context.Context, secret string, purpose Purpose) (string, error) {
+	used, err := s.useLink(ctx, secret, purpose)
 	return used.Email, err
 }
 
-func (s *Store) useLink(secret string, purpose Purpose) (link, error) {
+func (s *Store) useLink(ctx context.Context, secret string, purpose Purpose) (link, error) {
 	if secret == "" || len(secret) > longestSecret {
 		return link{}, ErrLink
 	}
-	ctx := context.Background()
+
 	var made link
 	var found bool
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
@@ -127,8 +127,8 @@ func (s *Store) spend(ctx context.Context, tx dbkit.Tx, hash string) (link, bool
 
 // Sweep removes links that have run out, and returns how many. Invitations and rate counts that have
 // run out go with them.
-func (s *Store) Sweep() (int, error) {
-	ctx, now := context.Background(), s.stamp(s.now())
+func (s *Store) Sweep(ctx context.Context) (int, error) {
+	ctx, now := ctx, s.stamp(s.now())
 	done, err := s.db.ExecContext(ctx, `DELETE FROM links WHERE expires <= ?`, now)
 	if err != nil {
 		return 0, err
@@ -145,11 +145,11 @@ func (s *Store) Sweep() (int, error) {
 // peekInvitation is what an invitation link is for, without spending it, so the page
 // that asks a person to join can say what they are joining. A link that is not an
 // invitation, has run out or never was is not found.
-func (s *Store) peekInvitation(secret string) (link, bool) {
+func (s *Store) peekInvitation(ctx context.Context, secret string) (link, bool) {
 	if secret == "" || len(secret) > longestSecret {
 		return link{}, false
 	}
-	made, found, err := one(context.Background(), s.db, scanLink,
+	made, found, err := one(ctx, s.db, scanLink,
 		`SELECT email, purpose, expires, org, role, invited_by FROM links WHERE hash = ?`, digest(secret))
 	if err != nil || !found || made.Purpose != Invite || !s.now().Before(made.Expires) {
 		return link{}, false

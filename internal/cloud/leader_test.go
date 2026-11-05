@@ -36,30 +36,30 @@ func TestOneFrontDoorLeadsUntilItsLeaseRunsOut(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		a, b, advance := twoDoors(t, set)
 		org := made(t, a, "ada@acme.com", "Acme")
-		if epoch, err := a.Lead("a", 30*time.Second); err != nil || epoch != 1 {
+		if epoch, err := a.Lead(t.Context(), "a", 30*time.Second); err != nil || epoch != 1 {
 			t.Fatalf("the first front door: %d %v", epoch, err)
 		}
-		if epoch, _ := b.Lead("b", 30*time.Second); epoch != 0 {
+		if epoch, _ := b.Lead(t.Context(), "b", 30*time.Second); epoch != 0 {
 			t.Errorf("a second front door led while the first's lease held: %d", epoch)
 		}
 		advance(20 * time.Second)
-		if epoch, _ := a.Lead("a", 30*time.Second); epoch != 1 {
+		if epoch, _ := a.Lead(t.Context(), "a", 30*time.Second); epoch != 1 {
 			t.Errorf("renewing changed the epoch to %d", epoch)
 		}
 		advance(31 * time.Second)
-		if epoch, _ := b.Lead("b", 30*time.Second); epoch != 2 {
+		if epoch, _ := b.Lead(t.Context(), "b", 30*time.Second); epoch != 2 {
 			t.Fatalf("the lease that ran out was not taken: %d", epoch)
 		}
-		if err := a.SetRuntimeAt(1, org.Slug, Runtime{State: Ready}); !errors.Is(err, ErrNotLeading) {
+		if err := a.SetRuntimeAt(t.Context(), 1, org.Slug, Runtime{State: Ready}); !errors.Is(err, ErrNotLeading) {
 			t.Errorf("the earlier leader's write was taken: %v", err)
 		}
-		if err := b.SetRuntimeAt(2, org.Slug, Runtime{State: Ready}); err != nil {
+		if err := b.SetRuntimeAt(t.Context(), 2, org.Slug, Runtime{State: Ready}); err != nil {
 			t.Errorf("the leader's write was refused: %v", err)
 		}
-		if err := b.Resign("b"); err != nil {
+		if err := b.Resign(t.Context(), "b"); err != nil {
 			t.Fatal(err)
 		}
-		if epoch, _ := a.Lead("a", 30*time.Second); epoch != 3 {
+		if epoch, _ := a.Lead(t.Context(), "a", 30*time.Second); epoch != 3 {
 			t.Errorf("a lease given up was not taken at once: %d", epoch)
 		}
 	})
@@ -72,13 +72,13 @@ func TestAControllerThatLostTheLeaseStartsNothing(t *testing.T) {
 		a, b, advance := twoDoors(t, set)
 		org := made(t, a, "ada@acme.com", "Acme")
 		old := controlled(t, a)
-		epoch, _ := a.Lead("a", 30*time.Second)
+		epoch, _ := a.Lead(t.Context(), "a", 30*time.Second)
 		old.Lead(epoch)
 		advance(31 * time.Second)
-		if epoch, _ := b.Lead("b", 30*time.Second); epoch != 2 {
+		if epoch, _ := b.Lead(t.Context(), "b", 30*time.Second); epoch != 2 {
 			t.Fatalf("the lease was not taken: %d", epoch)
 		}
-		if err := old.Provision(org.Slug); !errors.Is(err, ErrNotLeading) {
+		if err := old.Provision(t.Context(), org.Slug); !errors.Is(err, ErrNotLeading) {
 			t.Errorf("a controller that lost the lease provisioned: %v", err)
 		}
 		if old.Cell.Alive(org.Slug) {
@@ -93,17 +93,17 @@ func TestAFollowerStartsNothingAndRoutesWhereTheLeaderStarted(t *testing.T) {
 		a, b, _ := twoDoors(t, set)
 		org := made(t, a, "ada@acme.com", "Acme")
 		leader, follower := controlled(t, a), controlled(t, b)
-		epoch, _ := a.Lead("a", 30*time.Second)
+		epoch, _ := a.Lead(t.Context(), "a", 30*time.Second)
 		leader.Lead(epoch)
 		follower.Follow()
-		if err := follower.Provision(org.Slug); err != nil || follower.Cell.Alive(org.Slug) {
+		if err := follower.Provision(t.Context(), org.Slug); err != nil || follower.Cell.Alive(org.Slug) {
 			t.Fatalf("a follower provisioned: %v", err)
 		}
-		if err := leader.Provision(org.Slug); err != nil {
+		if err := leader.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		led, state := leader.Route(org.Slug)
-		followed, followedState := follower.Route(org.Slug)
+		led, state := leader.Route(t.Context(), org.Slug)
+		followed, followedState := follower.Route(t.Context(), org.Slug)
 		if state != Ready || followedState != Ready || followed != led {
 			t.Errorf("the follower routes to %q (%s), the leader to %q (%s)", followed, followedState, led, state)
 		}
@@ -116,9 +116,9 @@ func TestTheLeaderProvisionsAnOrganizationSignedUpElsewhere(t *testing.T) {
 		a, _, _ := twoDoors(t, set)
 		org := made(t, a, "ada@acme.com", "Acme")
 		leader := controlled(t, a)
-		epoch, _ := a.Lead("a", 30*time.Second)
+		epoch, _ := a.Lead(t.Context(), "a", 30*time.Second)
 		leader.Lead(epoch)
-		leader.supervise()
+		leader.supervise(t.Context())
 		deadline := time.Now().Add(20 * time.Second)
 		for !leader.Cell.Alive(org.Slug) {
 			if time.Now().After(deadline) {

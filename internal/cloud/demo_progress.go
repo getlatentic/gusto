@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -48,7 +49,7 @@ func waited(since time.Time, now time.Time) string {
 }
 
 // orgExists says an organization is still there, whether or not its server is running.
-func (s *Server) orgExists(slug string) bool {
-	_, found, _ := s.Store.Org(slug)
+func (s *Server) orgExists(ctx context.Context, slug string) bool {
+	_, found, _ := s.Store.Org(ctx, slug)
 	return found
 }

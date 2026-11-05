@@ -32,8 +32,8 @@ func markQuota(ctx context.Context, tx dbkit.Tx, slug string) error {
 
 // quotaChanged writes the quota of an organization whose change has committed. One not written stays marked, and the
 // sweep writes it.
-func (s *Store) quotaChanged(slug string) {
-	if err := s.ApplyQuota(slug); err != nil {
+func (s *Store) quotaChanged(ctx context.Context, slug string) {
+	if err := s.ApplyQuota(ctx, slug); err != nil {
 		slog.Error("an organization's quota was not written, and the sweep writes it", "org", slug, "error", err)
 	}
 }
@@ -44,8 +44,8 @@ func (s *Store) quotaChanged(slug string) {
 // its row until the file is written: a second ApplyQuota waits, so an older quota is never
 // written over a newer one, and a change that marks the row again waits too, so its mark stays
 // for the sweep. The row is held across the write of one small file.
-func (s *Store) ApplyQuota(slug string) error {
-	ctx := context.Background()
+func (s *Store) ApplyQuota(ctx context.Context, slug string) error {
+
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if _, err := tx.ExecContext(ctx, `UPDATE orgs SET quota_due = FALSE WHERE slug = ?`, slug); err != nil {
 			return err
@@ -64,13 +64,13 @@ func (s *Store) ApplyQuota(slug string) error {
 
 // ApplyQuotas writes every organization's quota again, so a change to the limits a release or the operator sets reaches the
 // organizations made before it. One that cannot be written is logged and the rest are written.
-func (s *Store) ApplyQuotas() error {
-	orgs, err := s.Orgs()
+func (s *Store) ApplyQuotas(ctx context.Context) error {
+	orgs, err := s.Orgs(ctx)
 	if err != nil {
 		return err
 	}
 	for _, org := range orgs {
-		s.quotaChanged(org.Slug)
+		s.quotaChanged(ctx, org.Slug)
 	}
 	return nil
 }
@@ -100,7 +100,7 @@ func (s *Store) applyDueQuotas(ctx context.Context) error {
 		return err
 	}
 	for _, slug := range due {
-		s.quotaChanged(slug)
+		s.quotaChanged(ctx, slug)
 	}
 	return nil
 }

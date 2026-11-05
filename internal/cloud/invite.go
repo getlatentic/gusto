@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -12,23 +12,23 @@ import (
 // invite sends an invitation to join the organization, from an admin. It is mailed
 // once, and asking again for the same address replaces the earlier link.
 func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
-	if !s.invites.Allow(person.Org) {
-		s.drawOrg(w, http.StatusTooManyRequests, person, "That is a lot of invitations for one hour. Try again later.")
+	if !s.invites.Allow(r.Context(), person.Org) {
+		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That is a lot of invitations for one hour. Try again later.")
 		return
 	}
 	address := r.PostFormValue("email")
-	secret, err := s.Store.Invite(person.Org, person, address)
+	secret, err := s.Store.Invite(r.Context(), person.Org, person, address)
 	if err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	email, _ := NormalEmail(address)
 	s.record(r, person, changelog.MemberInvited, map[string]string{"email": email, "role": string(Runner)})
-	if !s.mails.Allow(email) {
-		s.drawOrg(w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
+	if !s.mails.Allow(r.Context(), email) {
+		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
 		return
 	}
-	org, _, _ := s.Store.Org(person.Org)
+	org, _, _ := s.Store.Org(r.Context(), person.Org)
 	s.send(email, person.Email+" invited you to "+org.Name+" on gusto",
 		person.Email+" invited you to join "+org.Name+" on gusto:\n\n"+s.link("/invite", secret)+
 			"\n\nThe link works once and expires in seven days. If you were not expecting it, ignore this mail.\n")
@@ -36,8 +36,8 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 }
 
 func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person Person) {
-	if err := s.Store.Cancel(person.Org, person, r.PostFormValue("email")); err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+	if err := s.Store.Cancel(r.Context(), person.Org, person, r.PostFormValue("email")); err != nil {
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
@@ -48,9 +48,9 @@ func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {
 	email, _ := NormalEmail(r.PostFormValue("email"))
-	target, _, _ := s.Store.Person(email, person.Org)
-	if err := s.Store.Remove(person.Org, person, email); err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+	target, _, _ := s.Store.Person(r.Context(), email, person.Org)
+	if err := s.Store.Remove(r.Context(), person.Org, person, email); err != nil {
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	s.record(r, person, changelog.MemberRemoved, map[string]string{"email": email, "role": string(target.Role)})
@@ -67,9 +67,9 @@ func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Perso
 	}
 	email, _ := NormalEmail(r.PostFormValue("email"))
 	role := Role(r.PostFormValue("role"))
-	was, err := s.Store.SetRole(person.Org, person, email, role)
+	was, err := s.Store.SetRole(r.Context(), person.Org, person, email, role)
 	if err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	if was != role {
@@ -107,18 +107,18 @@ func (s *Server) orgOf(origin string) string {
 // link does not.
 func (s *Server) invitationPage(w http.ResponseWriter, r *http.Request) {
 	secret := r.URL.Query().Get("t")
-	made, found := s.Store.peekInvitation(secret)
+	made, found := s.Store.peekInvitation(r.Context(), secret)
 	if !found {
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: ErrLink.Error() + "."})
 		return
 	}
-	org, _, _ := s.Store.Org(made.Org)
+	org, _, _ := s.Store.Org(r.Context(), made.Org)
 	s.render(w, http.StatusOK, "confirm", view{Title: "Join " + org.Name, Token: secret, Action: "/invite", Button: "Join", Inviter: made.By})
 }
 
 func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 	secret := r.PostFormValue("t")
-	person, _, err := s.Store.Accept(secret)
+	person, _, err := s.Store.Accept(r.Context(), secret)
 	switch {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
@@ -136,7 +136,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 		}
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: text})
 	default:
-		log.Printf("cloud: an invitation was not accepted: %v", err)
+		slog.Error("an invitation was not accepted", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 	}
 }
@@ -148,7 +148,7 @@ func sentence(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: an admin's request failed: %v", err)
+	slog.Error("an admin's request failed", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 

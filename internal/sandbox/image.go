@@ -98,6 +98,16 @@ func imageLock() string {
 	return filepath.Join(os.TempDir(), "gusto-image-"+name+".lock")
 }
 
+// imageDownload has no limit on the whole request, because the image is large, and a server that never starts to answer is
+// given up on. ctx bounds the rest.
+var imageDownload = &http.Client{Transport: waitingAtMost(30 * time.Second)}
+
+func waitingAtMost(d time.Duration) http.RoundTripper {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.ResponseHeaderTimeout = d
+	return t
+}
+
 // openImage streams the image's archive from where it is kept, with a wait that says whether the fetch itself went well.
 func openImage(ctx context.Context, source string) (io.ReadCloser, func() error, error) {
 	switch {
@@ -123,7 +133,7 @@ func openImage(ctx context.Context, source string) (io.ReadCloser, func() error,
 		if err != nil {
 			return nil, nil, err
 		}
-		answer, err := http.DefaultClient.Do(request)
+		answer, err := imageDownload.Do(request)
 		if err != nil {
 			return nil, nil, err
 		}

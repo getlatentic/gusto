@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -11,8 +12,8 @@ import (
 
 // listComputers is every workspace on this host, with the organization each is in and
 // whose it is: the operator's view across organizations, read from each one's own record.
-func listComputers(w io.Writer, store *cloud.Store) error {
-	orgs, err := store.Orgs()
+func listComputers(ctx context.Context, w io.Writer, store *cloud.Store) error {
+	orgs, err := store.Orgs(ctx)
 	if err != nil {
 		return err
 	}

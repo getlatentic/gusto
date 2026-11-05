@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,7 +31,7 @@ func cloudWorkspaces() int {
 		return fail(err)
 	}
 	defer store.Close()
-	if err := listComputers(os.Stdout, store); err != nil {
+	if err := listComputers(context.Background(), os.Stdout, store); err != nil {
 		return fail(err)
 	}
 	return 0
@@ -40,7 +41,9 @@ func cloudWorkspaces() int {
 // and the servers it starts for each organization and sends their people to. It runs
 // no tasks itself.
 func cloudCommand() int {
-	front, controller, err := openCloud()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	front, controller, err := openCloud(ctx)
 	if err != nil {
 		return fail(err)
 	}
@@ -54,8 +57,6 @@ func cloudCommand() int {
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 	if dir := os.Getenv("GUSTO_CLOUD_CELLS_DIR"); dir != "" && controller != nil {
 		go beatForCells(ctx, dir)
 	}
@@ -129,7 +130,7 @@ func holderName() string {
 // openCloud reads gusto cloud's settings and opens what it keeps. Links
 // that expired are swept when it starts and every hour after. A database that has no accounts yet
 // takes in the files an earlier release kept under the root.
-func openCloud() (*cloud.Server, *cloud.Controller, error) {
+func openCloud(ctx context.Context) (*cloud.Server, *cloud.Controller, error) {
 	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
 	public, err := url.Parse(setting("GUSTO_CLOUD_URL", "http://"+address))
 	if err != nil || (public.Scheme != "http" && public.Scheme != "https") || public.Host == "" {
@@ -161,11 +162,11 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := store.ApplyQuotas(); err != nil {
+	if err := store.ApplyQuotas(ctx); err != nil {
 		store.Close()
 		return nil, nil, err
 	}
-	sessions, err := store.OpenSessions(public.Scheme == "https")
+	sessions, err := store.OpenSessions(ctx, public.Scheme == "https")
 	if err != nil {
 		store.Close()
 		return nil, nil, err
@@ -202,7 +203,7 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if stripe != nil {
 		front.Seats = cloud.NewSeatSync(store, stripe)
 	}
-	go sweepLinks(store)
+	go sweepLinks(ctx, store)
 	return front, controller, nil
 }
 
@@ -294,12 +295,19 @@ func envLines(path string) ([]string, error) {
 	return env, nil
 }
 
-func sweepLinks(store *cloud.Store) {
+// sweepLinks removes expired links now and every hour, until ctx ends.
+func sweepLinks(ctx context.Context, store *cloud.Store) {
+	tick := time.NewTicker(time.Hour)
+	defer tick.Stop()
 	for {
-		if _, err := store.Sweep(); err != nil {
-			fmt.Fprintf(os.Stderr, "gusto cloud could not sweep expired links: %v\n", err)
+		if _, err := store.Sweep(ctx); err != nil && ctx.Err() == nil {
+			slog.Error("expired links could not be swept", "error", err)
 		}
-		time.Sleep(time.Hour)
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
 	}
 }
 

@@ -30,7 +30,7 @@ func newFront(t *testing.T, set Settings, tune func(*Config)) *front {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := store.OpenSessions(false)
+	sessions, err := store.OpenSessions(t.Context(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 				t.Fatalf("opening the link should ask for a press: %d\n%s", status, page)
 			}
 		}
-		if person, _, _ := f.store.only("ada@acme.com"); !person.Trial() {
+		if person, _, _ := f.store.only(t.Context(), "ada@acme.com"); !person.Trial() {
 			t.Fatal("opening the link verified the address")
 		}
 
@@ -182,7 +182,7 @@ func TestFollowingTheLinkVerifiesAndLiftsTheLimitOnlyWhenItIsPressed(t *testing.
 		if status != http.StatusSeeOther || header.Get("Location") != "/app" {
 			t.Fatalf("%d %v", status, header)
 		}
-		if person, _, _ := f.store.only("ada@acme.com"); person.Trial() {
+		if person, _, _ := f.store.only(t.Context(), "ada@acme.com"); person.Trial() {
 			t.Error("pressing the button should verify the address")
 		}
 		if quota, _ := f.store.Quota("acme-com"); quota != DefaultLimits().Verified {
@@ -369,7 +369,7 @@ func TestOnePersonNeverSeesAnotherOrganization(t *testing.T) {
 		}
 		// A cookie for another address, made with the wrong key, is nobody.
 		forged := f.browser()
-		other, _ := open(t, Settings{}).OpenSessions(false)
+		other, _ := open(t, Settings{}).OpenSessions(t.Context(), false)
 		recorder := httptest.NewRecorder()
 		other.Issue(recorder, "bob@globex.com")
 		u, _ := url.Parse(f.http.URL)

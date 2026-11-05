@@ -64,7 +64,7 @@ func TestAVisitorWhoIsNotStaffIsRefusedADemoAndTheStaffAreNot(t *testing.T) {
 		if status != http.StatusForbidden || !strings.Contains(page, "Demos are given by the gusto team") || !strings.Contains(page, `value="ada@acme.com"`) {
 			t.Errorf("%d: a visitor started a demo\n%s", status, page)
 		}
-		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+		if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 0 {
 			t.Errorf("a refused demo made an organization: %v", orgs)
 		}
 		startDemoAs(t, f, "Priya Nair", "priya@latentic.com", "Acme")

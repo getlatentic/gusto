@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"sync"
@@ -46,12 +47,12 @@ func (r *routeCache) put(slug string, runtime Runtime, now time.Time) {
 }
 
 // routeFollowed is Route for a front door that does not lead: where the leader wrote the server is, read from the database.
-func (c *Controller) routeFollowed(slug string) (string, State) {
+func (c *Controller) routeFollowed(ctx context.Context, slug string) (string, State) {
 	now := time.Now()
 	runtime, fresh := c.followed.get(slug, now)
 	if !fresh {
 		var err error
-		if runtime, err = c.Store.Runtime(slug); err != nil {
+		if runtime, err = c.Store.Runtime(ctx, slug); err != nil {
 			return "", ""
 		}
 		c.followed.put(slug, runtime, now)

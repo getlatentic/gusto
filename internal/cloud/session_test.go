@@ -31,7 +31,7 @@ func whoAmI(s *Sessions, cookie *http.Cookie) (string, bool) {
 func TestASessionNamesThePersonUntilItRunsOutAndSurvivesARestart(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		store := open(t, Settings{})
-		s, err := store.OpenSessions(false)
+		s, err := store.OpenSessions(t.Context(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,7 +42,7 @@ func TestASessionNamesThePersonUntilItRunsOutAndSurvivesARestart(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(store.Root(), "secret")); err == nil {
 			t.Error("the key is in the database, and not in a file beside it")
 		}
-		restarted, _ := store.OpenSessions(false)
+		restarted, _ := store.OpenSessions(t.Context(), false)
 		if email, ok := whoAmI(restarted, cookie); !ok || email != "ada@acme.com" {
 			t.Errorf("a restart signs nobody out: %q %v", email, ok)
 		}
@@ -55,9 +55,9 @@ func TestASessionNamesThePersonUntilItRunsOutAndSurvivesARestart(t *testing.T) {
 
 func TestACookieThatWasChangedOrSignedWithAnotherKeyIsNobody(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		s, _ := open(t, Settings{}).OpenSessions(false)
+		s, _ := open(t, Settings{}).OpenSessions(t.Context(), false)
 		cookie := cookieFor(t, s, "ada@acme.com")
-		other, _ := open(t, Settings{}).OpenSessions(false)
+		other, _ := open(t, Settings{}).OpenSessions(t.Context(), false)
 		if _, ok := whoAmI(other, cookie); ok {
 			t.Error("another key accepted it")
 		}
@@ -82,7 +82,7 @@ func TestACookieThatWasChangedOrSignedWithAnotherKeyIsNobody(t *testing.T) {
 
 func TestOverHTTPSTheCookieIsLockedToTheHostAndSecure(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		s, _ := open(t, Settings{}).OpenSessions(true)
+		s, _ := open(t, Settings{}).OpenSessions(t.Context(), true)
 		cookie := cookieFor(t, s, "ada@acme.com")
 		if cookie.Name != "__Host-gusto_cloud" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Path != "/" || cookie.Domain != "" {
 			t.Errorf("%+v", cookie)

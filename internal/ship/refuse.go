@@ -40,7 +40,7 @@ func Shippable(dir job.Dir) (evidence.Manifest, error) {
 func untouched(dir job.Dir) error {
 	wrong, err := evidence.Check(dir)
 	if err != nil {
-		return fmt.Errorf("%w: the record cannot be read: %v", ErrRefused, err)
+		return fmt.Errorf("%w: the record cannot be read: %w", ErrRefused, err)
 	}
 	if len(wrong) > 0 {
 		return fmt.Errorf("%w: the record changed since the run: %s", ErrRefused, strings.Join(wrong, "; "))
@@ -51,7 +51,7 @@ func untouched(dir job.Dir) error {
 func passed(dir job.Dir, claimed evidence.Verdict) error {
 	recorded, err := gates(dir)
 	if err != nil {
-		return fmt.Errorf("%w: gates.json cannot be read: %v", ErrRefused, err)
+		return fmt.Errorf("%w: gates.json cannot be read: %w", ErrRefused, err)
 	}
 	if !recorded.Passed || recorded.Code != 0 {
 		return fmt.Errorf("%w: the check did not pass, it exited %d", ErrRefused, recorded.Code)
@@ -75,7 +75,7 @@ func gates(dir job.Dir) (evidence.Verdict, error) {
 func carriesChange(dir job.Dir) error {
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if err != nil {
-		return fmt.Errorf("%w: the task left no patch: %v", ErrRefused, err)
+		return fmt.Errorf("%w: the task left no patch: %w", ErrRefused, err)
 	}
 	if len(strings.TrimSpace(string(patch))) == 0 {
 		return fmt.Errorf("%w: the patch is empty, so there is nothing to open a pull request for", ErrRefused)

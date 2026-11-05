@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -10,27 +11,27 @@ import (
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// Ask runs the command that says pass or fail and writes nothing. An agent
-// reporting success is a claim; this is the check, and a re-run of it has to
-// leave the record it is checking untouched.
-func Ask(spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
-	return askIn(spec, dir, nil, nil)
+// Ask runs the command that says pass or fail and writes nothing, until it ends or ctx does. An agent reporting success is a
+// claim; this is the check, and a re-run of it has to leave the record it is checking untouched.
+func Ask(ctx context.Context, spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
+	command, err := gateCommand(ctx, spec, dir, nil)
+	if err != nil {
+		return evidence.Verdict{}, nil, err
+	}
+	return askWith(spec, command)
 }
 
-// askIn is Ask with the environment the gate runs with, or this process's when env is nil, and behind a wall when wrap is given.
-func askIn(spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, []byte, error) {
+// gateCommand is the task's check, to run in its workspace with env, or this process's environment when env is nil.
+func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string) (*exec.Cmd, error) {
 	if len(spec.Gate) == 0 {
-		return evidence.Verdict{}, nil, errors.New("the task names no check")
+		return nil, errors.New("the task names no check")
 	}
-	command := exec.Command(spec.Gate[0], spec.Gate[1:]...)
+	command := exec.CommandContext(ctx, spec.Gate[0], spec.Gate[1:]...)
 	command.Dir = dir.Workspace()
 	command.Env = env
 	// The gate runs the repository's own code, as untrusted as the harness.
 	agentHere().runAs(command)
-	if wrap != nil {
-		wrap(command)
-	}
-	return askWith(spec, command)
+	return command, nil
 }
 
 // askWith runs a gate command already prepared, in a box or here.
@@ -43,14 +44,18 @@ func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error)
 	}, output, nil
 }
 
-// Gate asks, then keeps the answer and the whole output.
-func Gate(spec job.Spec, dir job.Dir) (evidence.Verdict, error) {
-	return gateWith(spec, dir, nil, nil)
-}
-
-// gateWith is Gate with the environment the gate runs with, or this process's when env is nil, and behind a wall when wrap is given.
-func gateWith(spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, error) {
-	verdict, output, err := askIn(spec, dir, env, wrap)
+// gateWith runs the check within the run's ctx, in a process group that ends with it, behind a wall when wrap is given, and
+// keeps the answer and the whole output in the record.
+func gateWith(ctx context.Context, spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, error) {
+	command, err := gateCommand(ctx, spec, dir, env)
+	if err != nil {
+		return evidence.Verdict{}, err
+	}
+	ownGroup(command)
+	if wrap != nil {
+		wrap(command)
+	}
+	verdict, output, err := askWith(spec, command)
 	if err != nil {
 		return evidence.Verdict{}, err
 	}

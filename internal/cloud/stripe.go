@@ -30,6 +30,9 @@ type Stripe struct {
 // stripeTimeout bounds every call to Stripe.
 const stripeTimeout = 15 * time.Second
 
+// stripeClient is the client for a Stripe with none of its own: no call to Stripe takes longer than this.
+var stripeClient = &http.Client{Timeout: 30 * time.Second}
+
 // Enabled says billing is set up.
 func (s *Stripe) Enabled() bool {
 	return s != nil && s.Key != "" && s.Price != "" && s.WebhookSecret != ""
@@ -127,7 +130,7 @@ func (s *Stripe) call(ctx context.Context, method, path string, form url.Values,
 	}
 	client := s.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = stripeClient
 	}
 	resp, err := client.Do(req)
 	if err != nil {

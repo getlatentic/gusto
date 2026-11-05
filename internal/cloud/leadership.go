@@ -16,6 +16,9 @@ type Leadership struct {
 	TTL, Every time.Duration
 }
 
+// resignWithin is how long giving up the lease may take as the front door stops.
+const resignWithin = 5 * time.Second
+
 // Run claims the lease every Every, until ctx ends. While it holds the lease it runs lead, with a context that ends when the
 // lease is lost, and with the epoch that fences its writes. It gives the lease up when ctx ends, so another front door takes
 // it at once.
@@ -23,7 +26,10 @@ func (l *Leadership) Run(ctx context.Context, lead func(ctx context.Context, epo
 	held := leading{}
 	defer func() {
 		held.end()
-		if err := l.Store.Resign(l.Holder); err != nil {
+		// ctx has ended by now, and the lease is still given up so the next front door need not wait for it to run out.
+		resign, cancel := context.WithTimeout(context.WithoutCancel(ctx), resignWithin)
+		defer cancel()
+		if err := l.Store.Resign(resign, l.Holder); err != nil {
 			slog.Warn("the lease could not be given up, so it passes when it runs out", "error", err)
 		}
 	}()
@@ -40,7 +46,7 @@ func (l *Leadership) Run(ctx context.Context, lead func(ctx context.Context, epo
 }
 
 func (l *Leadership) claim(ctx context.Context, held *leading, lead func(context.Context, int64)) {
-	epoch, err := l.Store.Lead(l.Holder, l.TTL)
+	epoch, err := l.Store.Lead(ctx, l.Holder, l.TTL)
 	switch {
 	case err != nil:
 		// The lease may have run out unrenewed, and another front door may lead now. Its writes would be refused anyway.

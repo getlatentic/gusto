@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -23,10 +24,10 @@ const (
 // DemoLimits are the limits now: what the owner last set, or what the front door was started with when they have set
 // none. They are read whenever a demo is asked for, so a change holds from the next one without a restart, on every
 // front door.
-func (s *Store) DemoLimits() DemoLimits {
+func (s *Store) DemoLimits(ctx context.Context) DemoLimits {
 	set := s.set.Demo
 	started := DemoLimits{PerDay: set.PerDay, PerPerson: set.PerPerson, PerCompany: set.PerCompany, MaxOrgs: max(set.MaxOrgs, 1)}
-	raw, found, err := s.setting(settingDemoLimits)
+	raw, found, err := s.setting(ctx, settingDemoLimits)
 	if err != nil {
 		slog.Error("the demo limits could not be read, so the ones the front door started with hold", "error", err)
 		return started
@@ -40,13 +41,13 @@ func (s *Store) DemoLimits() DemoLimits {
 }
 
 // DemoLimitsSet says the owner has set the limits, so that they are not the ones the front door started with.
-func (s *Store) DemoLimitsSet() bool {
-	_, found, err := s.setting(settingDemoLimits)
+func (s *Store) DemoLimitsSet(ctx context.Context) bool {
+	_, found, err := s.setting(ctx, settingDemoLimits)
 	return found && err == nil
 }
 
 // SetDemoLimits keeps the limits the owner chose.
-func (s *Store) SetDemoLimits(limits DemoLimits) error {
+func (s *Store) SetDemoLimits(ctx context.Context, limits DemoLimits) error {
 	for name, value := range map[string]int{"a day": limits.PerDay, "a person": limits.PerPerson, "a company": limits.PerCompany} {
 		if value < 0 || value > mostPerLimit {
 			return fmt.Errorf("the most demos %s is from 0 to %d", name, mostPerLimit)
@@ -59,22 +60,24 @@ func (s *Store) SetDemoLimits(limits DemoLimits) error {
 	if err != nil {
 		return err
 	}
-	return s.saveSetting(settingDemoLimits, string(text))
+	return s.saveSetting(ctx, settingDemoLimits, string(text))
 }
 
 // ResetDemoLimits goes back to the limits the front door was started with.
-func (s *Store) ResetDemoLimits() error { return s.dropSetting(settingDemoLimits) }
+func (s *Store) ResetDemoLimits(ctx context.Context) error {
+	return s.dropSetting(ctx, settingDemoLimits)
+}
 
 // SetDemosPaused pauses or resumes new demos, which an operator does without restarting anything.
-func (s *Store) SetDemosPaused(paused bool) error {
+func (s *Store) SetDemosPaused(ctx context.Context, paused bool) error {
 	if paused {
-		return s.saveSetting(settingDemosPaused, "1")
+		return s.saveSetting(ctx, settingDemosPaused, "1")
 	}
-	return s.dropSetting(settingDemosPaused)
+	return s.dropSetting(ctx, settingDemosPaused)
 }
 
 // DemosPaused says an operator has paused demos. Demos that are running go on.
-func (s *Store) DemosPaused() bool {
-	_, found, err := s.setting(settingDemosPaused)
+func (s *Store) DemosPaused(ctx context.Context) bool {
+	_, found, err := s.setting(ctx, settingDemosPaused)
 	return found && err == nil
 }

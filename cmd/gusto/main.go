@@ -168,7 +168,7 @@ func verify(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	again, _, err := runner.Ask(spec, dir)
+	again, _, err := runner.Ask(context.Background(), spec, dir)
 	if err != nil {
 		return fail(err)
 	}

@@ -150,7 +150,7 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, erro
 	// happened without claiming anything passed.
 	var verdict *evidence.Verdict
 	if len(spec.Gate) > 0 {
-		given, err := gateWith(spec, dir, env.Base, env.Wrap)
+		given, err := gateWith(ctx, spec, dir, env.Base, env.Wrap)
 		agent.endAll()
 		if err != nil {
 			return 0, err

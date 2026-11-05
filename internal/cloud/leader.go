@@ -18,8 +18,8 @@ const controllerLease = "controller"
 // Lead takes or keeps the lease that makes one front door the one that runs the controller, until ttl from now. It gives
 // the lease's epoch when holder has it, and 0 when another holder has it and it has not run out. A holder that takes the
 // lease from another is given the next epoch, so that what the earlier holder writes after is refused.
-func (s *Store) Lead(holder string, ttl time.Duration) (int64, error) {
-	ctx := context.Background()
+func (s *Store) Lead(ctx context.Context, holder string, ttl time.Duration) (int64, error) {
+
 	var epoch int64
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "leader"); err != nil {
@@ -54,23 +54,23 @@ func (s *Store) Lead(holder string, ttl time.Duration) (int64, error) {
 }
 
 // Resign gives up the lease, when holder has it, so another front door takes it at once rather than when it runs out.
-func (s *Store) Resign(holder string) error {
-	_, err := s.db.ExecContext(context.Background(), `UPDATE leader SET until = ? WHERE name = ? AND holder = ?`,
+func (s *Store) Resign(ctx context.Context, holder string) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE leader SET until = ? WHERE name = ? AND holder = ?`,
 		s.stamp(time.Unix(0, 0)), controllerLease, holder)
 	return err
 }
 
 // SetRuntimeAt is SetRuntime for the front door that leads at epoch, and is refused with ErrNotLeading when the lease has
 // moved on. The check and the write are one step for every front door. An epoch of 0 is a controller no lease governs.
-func (s *Store) SetRuntimeAt(epoch int64, slug string, rt Runtime) error {
+func (s *Store) SetRuntimeAt(ctx context.Context, epoch int64, slug string, rt Runtime) error {
 	switch {
 	case epoch == 0:
-		return s.SetRuntime(slug, rt)
+		return s.SetRuntime(ctx, slug, rt)
 	case epoch < 0:
 		return ErrNotLeading
 	}
 	rt.Updated = s.now().UTC().Truncate(time.Second)
-	ctx := context.Background()
+
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "leader"); err != nil {
 			return err
@@ -93,8 +93,8 @@ func (s *Store) SetRuntimeAt(epoch int64, slug string, rt Runtime) error {
 
 // Unprovisioned is every organization that has no runtime yet: one signed up on a front door that does not lead, which the
 // leader provisions.
-func (s *Store) Unprovisioned() ([]string, error) {
-	return collect(context.Background(), s.db, func(r rowScanner) (string, error) {
+func (s *Store) Unprovisioned(ctx context.Context) ([]string, error) {
+	return collect(ctx, s.db, func(r rowScanner) (string, error) {
 		var slug string
 		return slug, r.Scan(&slug)
 	}, `SELECT o.slug FROM orgs o LEFT JOIN runtime r ON r.slug = o.slug WHERE r.slug IS NULL ORDER BY o.slug`)

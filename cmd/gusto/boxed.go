@@ -131,7 +131,7 @@ func startForwarder(model, secret string) (string, error) {
 	line, err := firstLine(said, forwarderStart)
 	if err != nil || line != "ok" {
 		child.Process.Kill()
-		return "", fmt.Errorf("the forwarder said %q: %v", line, err)
+		return "", fmt.Errorf("the forwarder said %q: %w", line, err)
 	}
 	return "http://" + listener.Addr().String(), nil
 }

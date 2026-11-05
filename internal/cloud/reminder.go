@@ -55,7 +55,7 @@ func (s *Server) accountJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not signed in", http.StatusUnauthorized)
 		return
 	}
-	org, _, _ := s.Store.Org(slug)
+	org, _, _ := s.Store.Org(r.Context(), slug)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(confirmation{Email: person.Email, Confirmed: !person.Trial() || org.Demo != nil, Jobs: s.Store.set.Limits.Verified.Jobs})
 }
@@ -76,11 +76,11 @@ func (s *Server) confirmAgain(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if !s.mails.Allow(person.Email) {
+	if !s.mails.Allow(r.Context(), person.Email) {
 		http.Error(w, "that address has been mailed too often", http.StatusTooManyRequests)
 		return
 	}
-	org, _, _ := s.Store.Org(slug)
-	s.mailVerification(person, org)
+	org, _, _ := s.Store.Org(r.Context(), slug)
+	s.mailVerification(r.Context(), person, org)
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -17,7 +17,7 @@ func TestTheDemoFormAsksForACellWhenTheVisitorBeginsAndNotWhenDemosArePaused(t *
 		if status, _, _ := f.browser().post("/demo/warm", nil); status != http.StatusNoContent || asked.Load() != 1 {
 			t.Errorf("%d, asked %d times", status, asked.Load())
 		}
-		if err := f.store.SetDemosPaused(true); err != nil {
+		if err := f.store.SetDemosPaused(t.Context(), true); err != nil {
 			t.Fatal(err)
 		}
 		if status, _, _ := f.browser().post("/demo/warm", nil); status != http.StatusNoContent || asked.Load() != 1 {

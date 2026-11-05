@@ -118,7 +118,7 @@ func TestAnAdminChangesRolesAndAnOrganizationKeepsAnAdmin(t *testing.T) {
 		return status
 	}
 	roleOf := func(email string) Role {
-		person, _, _ := f.store.only(email)
+		person, _, _ := f.store.only(t.Context(), email)
 		return person.Role
 	}
 
@@ -235,12 +235,12 @@ func TestADemoVisitorIsInTheRosterByTheNameTheyGave(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		startDemoAs(t, f, "Priya Nair", "priya@acme.com", "Acme Research")
-		orgs, err := f.store.Orgs()
+		orgs, err := f.store.Orgs(t.Context())
 		if err != nil || len(orgs) != 1 {
 			t.Fatalf("%d organizations: %v", len(orgs), err)
 		}
 		slug := orgs[0].Slug
-		if err := f.store.PublishRoster(slug); err != nil {
+		if err := f.store.PublishRoster(t.Context(), slug); err != nil {
 			t.Fatal(err)
 		}
 		list, err := roster.Read(f.store.RosterFile(slug))

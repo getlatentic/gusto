@@ -70,18 +70,18 @@ func billingOf(ctx context.Context, q dbkit.Querier, slug string) (Billing, bool
 }
 
 // Billing is an organization's subscription, and false when it has never had one.
-func (s *Store) Billing(slug string) (Billing, bool, error) {
-	return billingOf(context.Background(), s.db, slug)
+func (s *Store) Billing(ctx context.Context, slug string) (Billing, bool, error) {
+	return billingOf(ctx, s.db, slug)
 }
 
 // Billed is every organization with a subscription that bills seats.
-func (s *Store) Billed() ([]Billing, error) {
-	return collect(context.Background(), s.db, scanBilling, `SELECT `+billingColumns+` FROM billing WHERE item <> '' ORDER BY org`)
+func (s *Store) Billed(ctx context.Context) ([]Billing, error) {
+	return collect(ctx, s.db, scanBilling, `SELECT `+billingColumns+` FROM billing WHERE item <> '' ORDER BY org`)
 }
 
 // SeatsWanted is how many seats an organization should be billed for: one for each member.
-func (s *Store) SeatsWanted(slug string) (int, error) {
-	return count(context.Background(), s.db, `SELECT count(*) FROM memberships WHERE org = ?`, slug)
+func (s *Store) SeatsWanted(ctx context.Context, slug string) (int, error) {
+	return count(ctx, s.db, `SELECT count(*) FROM memberships WHERE org = ?`, slug)
 }
 
 // errSecondSubscription is an organization that already pays being sent a second subscription,
@@ -97,8 +97,8 @@ var errSameSecond = errors.New("two versions of a subscription were made in the 
 // its quota to match. An event older than the one kept changes nothing, since Stripe may send
 // them out of order, and so does one for an organization that is gone. It says whether the
 // event was kept.
-func (s *Store) RecordSubscription(b Billing) (bool, error) {
-	ctx := context.Background()
+func (s *Store) RecordSubscription(ctx context.Context, b Billing) (bool, error) {
+
 	kept := false
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "org:"+b.Org); err != nil {
@@ -135,7 +135,7 @@ func (s *Store) RecordSubscription(b Billing) (bool, error) {
 	if err != nil || !kept {
 		return kept, err
 	}
-	s.quotaChanged(b.Org)
+	s.quotaChanged(ctx, b.Org)
 	return true, nil
 }
 
@@ -146,8 +146,8 @@ func (b Billing) sameAs(other Billing) bool {
 
 // SeatsBilled records that Stripe now bills an organization for seats, and sets its quota to match. An event Stripe made
 // before the change may still bring the old number, and the seat sync then sets the seats again.
-func (s *Store) SeatsBilled(slug string, seats int) error {
-	ctx := context.Background()
+func (s *Store) SeatsBilled(ctx context.Context, slug string, seats int) error {
+
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if _, err := tx.ExecContext(ctx, `UPDATE billing SET seats = ? WHERE org = ?`, seats, slug); err != nil {
 			return err
@@ -157,7 +157,7 @@ func (s *Store) SeatsBilled(slug string, seats int) error {
 	if err != nil {
 		return err
 	}
-	s.quotaChanged(slug)
+	s.quotaChanged(ctx, slug)
 	return nil
 }
 

@@ -64,7 +64,7 @@ func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 
 func TestTheOwnerSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
 	a, store := app(t)
-	if _, _, err := store.StartDemo("Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
+	if _, _, err := store.StartDemo(t.Context(), "Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
 		t.Fatal(err)
 	}
 	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
@@ -77,24 +77,24 @@ func TestTheOwnerSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
 
 func TestDemosArePausedAndResumedFromThePageAndOnlyFromThisSite(t *testing.T) {
 	a, store := app(t)
-	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, url.Values{"paused": {"on"}}); got.Code != http.StatusForbidden || store.DemosPaused() {
+	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, url.Values{"paused": {"on"}}); got.Code != http.StatusForbidden || store.DemosPaused(t.Context()) {
 		t.Fatalf("another site paused demos: %d", got.Code)
 	}
-	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, url.Values{"paused": {"on"}}); got.Code != http.StatusSeeOther || !store.DemosPaused() {
+	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, url.Values{"paused": {"on"}}); got.Code != http.StatusSeeOther || !store.DemosPaused(t.Context()) {
 		t.Fatalf("demos were not paused: %d", got.Code)
 	}
 	if body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String(); !strings.Contains(body, "New demos are paused") || !strings.Contains(body, "Accept new demos") {
 		t.Errorf("the page does not say so:\n%s", body)
 	}
 	ask(a, "POST", "/demos/pause", "localhost:8090", nil, url.Values{"paused": {"off"}})
-	if store.DemosPaused() {
+	if store.DemosPaused(t.Context()) {
 		t.Error("demos were not resumed")
 	}
 }
 
 func TestTheLeadsCsvWritesWhatAVisitorTypedAsTextAndNotAsAFormula(t *testing.T) {
 	a, store := app(t)
-	if _, _, err := store.StartDemo("=HYPERLINK(\"http://evil.example\")", "mallory@acme.com", "+cmd Co"); err != nil {
+	if _, _, err := store.StartDemo(t.Context(), "=HYPERLINK(\"http://evil.example\")", "mallory@acme.com", "+cmd Co"); err != nil {
 		t.Skip("the store refused the name: ", err)
 	}
 	got := ask(a, "GET", "/leads.csv", "localhost:8090", nil, nil)
@@ -108,17 +108,17 @@ func TestTheLeadsCsvWritesWhatAVisitorTypedAsTextAndNotAsAFormula(t *testing.T) 
 
 func TestTheOwnerChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) {
 	a, store := app(t)
-	if got := store.DemoLimits(); got.PerPerson != 0 || got.MaxOrgs != 1 {
+	if got := store.DemoLimits(t.Context()); got.PerPerson != 0 || got.MaxOrgs != 1 {
 		t.Fatalf("the starting limits: %+v", got)
 	}
 	form := url.Values{"perDay": {"25"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"3"}}
-	if got := ask(a, "POST", "/demos/limits", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, form); got.Code != http.StatusForbidden || store.DemoLimitsSet() {
+	if got := ask(a, "POST", "/demos/limits", "localhost:8090", map[string]string{"Sec-Fetch-Site": "cross-site"}, form); got.Code != http.StatusForbidden || store.DemoLimitsSet(t.Context()) {
 		t.Fatalf("another site set the limits: %d", got.Code)
 	}
 	if got := ask(a, "POST", "/demos/limits", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, form); got.Code != http.StatusSeeOther {
 		t.Fatalf("%d", got.Code)
 	}
-	if got := store.DemoLimits(); got != (cloud.DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
+	if got := store.DemoLimits(t.Context()); got != (cloud.DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
 		t.Errorf("%+v", got)
 	}
 	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
@@ -128,10 +128,10 @@ func TestTheOwnerChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) 
 		}
 	}
 	// It holds on the very next demo, with no restart.
-	if _, _, err := store.StartDemo("Ada", "ada@acme.com", "Acme"); err != nil {
+	if _, _, err := store.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := store.StartDemo("Ada", "ada+2@acme.com", "Acme"); err == nil || !strings.Contains(err.Error(), "demos for today") {
+	if _, _, err := store.StartDemo(t.Context(), "Ada", "ada+2@acme.com", "Acme"); err == nil || !strings.Contains(err.Error(), "demos for today") {
 		t.Errorf("a person limit of 1 did not hold: %v", err)
 	}
 	for name, bad := range map[string]url.Values{
@@ -141,12 +141,12 @@ func TestTheOwnerChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) 
 		"too many at once": {"perDay": {"1"}, "perPerson": {"1"}, "perCompany": {"4"}, "maxOrgs": {"51"}},
 	} {
 		ask(a, "POST", "/demos/limits", "localhost:8090", nil, bad)
-		if got := store.DemoLimits(); got.PerDay != 25 {
+		if got := store.DemoLimits(t.Context()); got.PerDay != 25 {
 			t.Errorf("%s was kept: %+v", name, got)
 		}
 	}
 	ask(a, "POST", "/demos/limits", "localhost:8090", nil, url.Values{"reset": {"1"}})
-	if store.DemoLimitsSet() || store.DemoLimits().PerPerson != 0 {
-		t.Errorf("not back to the starting limits: %+v", store.DemoLimits())
+	if store.DemoLimitsSet(t.Context()) || store.DemoLimits(t.Context()).PerPerson != 0 {
+		t.Errorf("not back to the starting limits: %+v", store.DemoLimits(t.Context()))
 	}
 }

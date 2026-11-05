@@ -24,7 +24,7 @@ func TestADemoTheFrontDoorRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *te
 		f.http.Close()
 		f.server.Wait()
 
-		sessions, err := f.store.OpenSessions(false)
+		sessions, err := f.store.OpenSessions(t.Context(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -49,7 +49,7 @@ func TestADemoTheFrontDoorRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *te
 			status, _, header := again.do("GET", "/demo/wait", nil, nil)
 			return status == http.StatusSeeOther && header.Get("Location") == "/open"
 		})
-		if demo, _, found := f.store.DemoLeft(sluggedDemo(t, f.store)); !found || demo.Ready.IsZero() {
+		if demo, _, found := f.store.DemoLeft(ctx, sluggedDemo(t, f.store)); !found || demo.Ready.IsZero() {
 			t.Error("the demo's time did not start once it was ready")
 		}
 	})
@@ -58,7 +58,7 @@ func TestADemoTheFrontDoorRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *te
 // sluggedDemo is the one demo organization there is.
 func sluggedDemo(t *testing.T, s *Store) string {
 	t.Helper()
-	orgs, err := s.Orgs()
+	orgs, err := s.Orgs(t.Context())
 	if err != nil || len(orgs) != 1 {
 		t.Fatalf("%d organizations: %v", len(orgs), err)
 	}
