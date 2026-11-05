@@ -28,6 +28,21 @@ func waitingAtMost(d time.Duration) http.RoundTripper {
 	return t
 }
 
+// answeredError is a server that answered, with something other than the file.
+type answeredError struct {
+	url    string
+	code   int
+	status string
+}
+
+func (e *answeredError) Error() string { return e.url + " answered " + e.status }
+
+// answeredNotFound is whether err is a server saying it has no such file.
+func answeredNotFound(err error) bool {
+	var answered *answeredError
+	return errors.As(err, &answered) && answered.code == http.StatusNotFound
+}
+
 // OverHTTP is the Download that asks the server named in the address.
 func OverHTTP(ctx context.Context, url string, dst io.Writer) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -40,7 +55,7 @@ func OverHTTP(ctx context.Context, url string, dst io.Writer) error {
 	}
 	defer answer.Body.Close()
 	if answer.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s answered %s", url, answer.Status)
+		return &answeredError{url: url, code: answer.StatusCode, status: answer.Status}
 	}
 	_, err = io.Copy(dst, answer.Body)
 	return err

@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -350,10 +351,37 @@ func output(command *exec.Cmd) ([]byte, error) {
 	var out, complaint bytes.Buffer
 	command.Stdout, command.Stderr = &out, &complaint
 	if err := command.Run(); err != nil {
-		return out.Bytes(), fmt.Errorf("openshell %s: %w: %s", step(command.Args), err, strings.TrimSpace(complaint.String()))
+		return out.Bytes(), &refusal{step: step(command.Args), err: err, said: strings.TrimSpace(complaint.String())}
 	}
 	return out.Bytes(), nil
 }
+
+// refusal is a command of the openshell CLI that failed, and what it said on stderr. The CLI says why only in words.
+type refusal struct {
+	step string
+	err  error
+	said string
+}
+
+func (r *refusal) Error() string { return fmt.Sprintf("openshell %s: %v: %s", r.step, r.err, r.said) }
+func (r *refusal) Unwrap() error { return r.err }
+
+// refusedSaying is whether err is the openshell CLI failing with any of words in what it said.
+func refusedSaying(err error, words ...string) bool {
+	var r *refusal
+	if !errors.As(err, &r) {
+		return false
+	}
+	for _, w := range words {
+		if strings.Contains(r.said, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// notThere is the CLI refusing because what it was asked about does not exist.
+func notThere(err error) bool { return refusedSaying(err, "not found", "NotFound") }
 
 func step(args []string) string {
 	var words []string
@@ -447,7 +475,7 @@ func (s *Sandbox) create(ctx context.Context, args []string) error {
 	deadline := time.Now().Add(retryFor)
 	for {
 		_, err := output(s.run(ctx, args...))
-		if err == nil || !strings.Contains(err.Error(), slotsBusy) || time.Now().After(deadline) {
+		if err == nil || !refusedSaying(err, slotsBusy) || time.Now().After(deadline) {
 			return err
 		}
 		select {

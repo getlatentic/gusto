@@ -56,7 +56,7 @@ func MakeBlank(ctx context.Context, cfg Config, name, modelURL string) error {
 
 // Remove removes a sandbox by its name, and one that is not there is removed.
 func Remove(ctx context.Context, cfg Config, name string) error {
-	if _, err := output((&Sandbox{cfg: cfg}).run(ctx, "sandbox", "delete", name)); err != nil && !strings.Contains(err.Error(), "not found") {
+	if _, err := output((&Sandbox{cfg: cfg}).run(ctx, "sandbox", "delete", name)); err != nil && !notThere(err) {
 		return err
 	}
 	return nil

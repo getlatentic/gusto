@@ -83,7 +83,7 @@ func ExposeApp(ctx context.Context, cfg Config, sandbox string, port int, name s
 // UnexposeApp takes an exposed service away. One that is not there is taken away.
 func UnexposeApp(ctx context.Context, cfg Config, sandbox, name string) error {
 	_, err := output((&Sandbox{cfg: cfg}).run(ctx, "service", "delete", sandbox, name))
-	if err != nil && (strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "NotFound")) {
+	if notThere(err) {
 		return nil
 	}
 	return err
