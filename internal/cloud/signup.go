@@ -47,8 +47,12 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
 	var refused error
 	again := func(status int, why string, more bool) {
-		s.render(w, status, "signup", view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug, Taken: errors.Is(refused, ErrEmailTaken),
-			More: more || in.OrgName != "" || in.Slug != ""})
+		page := view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug, Taken: errors.Is(refused, ErrEmailTaken),
+			More: more || in.OrgName != "" || in.Slug != ""}
+		if ask := nextQuestion(refused, in); ask != "" {
+			status, page.Error, page.Ask = http.StatusOK, "", ask
+		}
+		s.render(w, status, "signup", page)
 	}
 	if !s.all.Allow("all") {
 		again(http.StatusServiceUnavailable, "Sign-ups are busy right now. Try again in a little while.", false)
@@ -69,6 +73,21 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/open", http.StatusSeeOther)
+}
+
+// nextQuestion is what the form asks when a sign-up only lacks an organization's name, which a domain that is not a
+// company's cannot give. It is "" for every other refusal, and once a name was given.
+func nextQuestion(refused error, in Signup) string {
+	if strings.TrimSpace(in.OrgName) != "" {
+		return ""
+	}
+	switch {
+	case errors.Is(refused, ErrNeedName):
+		return "What should your organization be called? Your team sees this name."
+	case errors.Is(refused, ErrSameCompany):
+		return "Your company already has an organization on gusto. Name this one, or ask its admin to invite you."
+	}
+	return ""
 }
 
 // asksForMore says the form needs the organization's name and address, because
