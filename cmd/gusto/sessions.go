@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/evidence"
@@ -35,6 +36,21 @@ func staying(instances *instance.Store, spec job.Spec) []sandbox.Mount {
 		return []sandbox.Mount{memory}
 	}
 	return []sandbox.Mount{{From: instances.Workspace(spec.Session), To: "/job/workspace"}, memory}
+}
+
+// keptHome is the home of the person a task counts against, mounted where the agent's is: what they install and keep there is
+// there at their next task, as it is in a computer of their own. A task nobody asked for has none, and nor does a room's turn,
+// which sees only the room. An organization's server keeps the homes beside its computers' records (GUSTO_COMPUTERS).
+func keptHome(index *jobs.Index, dir job.Dir, spec job.Spec) ([]sandbox.Mount, error) {
+	computers, person := os.Getenv("GUSTO_COMPUTERS"), personWhoPays(index, dir)
+	if computers == "" || person == "" || isRoomTurn(spec) {
+		return nil, nil
+	}
+	home := filepath.Join(computers, computer.ID(os.Getenv("GUSTO_ORG"), person), "home")
+	if err := os.MkdirAll(home, 0o700); err != nil {
+		return nil, err
+	}
+	return []sandbox.Mount{{From: home, To: sandbox.Home, Kept: true}}, nil
 }
 
 // ownerOf is whose a task's container is: this server's organization, the person who pays for the task as the same opaque id

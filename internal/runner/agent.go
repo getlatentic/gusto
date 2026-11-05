@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -22,6 +23,10 @@ const AgentUIDEnv = "GUSTO_AGENT_UID"
 type agent struct {
 	uid, gid int
 	present  bool
+	// keptHome is a home that is the person's own, kept between their tasks (sandbox.KeptHomeEnv).
+	keptHome bool
+	// skills is where the harness finds its skills, which a kept home is given afresh for each task.
+	skills string
 }
 
 func agentHere() agent {
@@ -29,7 +34,7 @@ func agentHere() agent {
 	if err != nil || uid <= 0 || os.Geteuid() != 0 {
 		return agent{}
 	}
-	return agent{uid: uid, gid: uid, present: true}
+	return agent{uid: uid, gid: uid, present: true, keptHome: os.Getenv(sandbox.KeptHomeEnv) == "1"}
 }
 
 // handOver gives the agent its workspace and home, closes out/ to it, and
@@ -38,11 +43,17 @@ func (a agent) handOver(dir job.Dir, command *exec.Cmd) error {
 	if !a.present {
 		return nil
 	}
-	for _, mine := range []string{dir.Workspace(), os.Getenv("HOME")} {
+	for _, mine := range append([]string{dir.Workspace()}, a.homeToGive()...) {
 		if mine == "" {
 			continue
 		}
 		if err := a.own(mine); err != nil {
+			return err
+		}
+	}
+	if a.keptHome {
+		// The home's own folder, and not what is in it: everything else there the agent made, and is the agent's already.
+		if err := os.Lchown(os.Getenv("HOME"), a.uid, a.gid); err != nil {
 			return err
 		}
 	}
@@ -77,7 +88,7 @@ func (a agent) takeBack(dir job.Dir) {
 	if owner, owned := ownerOfPath(dir.Path()); owned {
 		uid, gid = owner.uid, owner.gid
 	}
-	for _, mine := range []string{dir.Path(), dir.Workspace(), os.Getenv("HOME")} {
+	for _, mine := range append([]string{dir.Path(), dir.Workspace()}, a.homeToTakeBack()...) {
 		if mine != "" {
 			_ = chownTree(mine, uid, gid)
 		}

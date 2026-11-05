@@ -40,6 +40,7 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 | `GUSTO_CLOUD_LEADER_SECONDS` | how long the lease that makes one front door the leader lasts unrenewed, 30 by default. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) says what the leader does |
 | `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and workspaces a verified organization may have, 4 and 4 by default: an admin and three users |
 | `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organization's server starts with: the operator's credentials directory, models and sandbox. Nothing else of gusto cloud's environment goes to them |
+| `GUSTO_CLOUD_DEMO_ENV` | a file of `KEY=VALUE` lines that a demo organization's server starts with on top of `GUSTO_CLOUD_ORG_ENV`'s, which win over them: another sandbox for demos ([Demos](#demos)) |
 | `GUSTO_CLOUD_PORT_FROM` | the first port an organization's server gets, two each, 9100 by default |
 | `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
 | `GUSTO_CLOUD_SERVERS` | `off` runs gusto cloud with accounts and no organization servers |
@@ -170,7 +171,9 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 - At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
 - Pause new demos on the operator's page. Resume there. Running demos continue.
 - Each visitor is kept as a lead in the database, which stays after the demo ends.
-- A visitor's agent runs each turn in a Docker container on the cell (`demo_sandbox: container` in `deploy/aws/openshell/ansible/roles/demo/defaults/main.yml`). The container has no network (`--network=none`): the proxy's socket, mounted in, is its only way out. It has a cap on CPU, memory and processes, and only five capabilities. Containers share the cell's kernel, so a flaw in the kernel could let one visitor's agent reach another's on the same cell. An organization that pays runs its agents in OpenShell microVMs (`demo_sandbox: openshell`).
+- A demo's agents run in an OpenShell microVM for each person (`demo_sandbox: openshell` in `deploy/aws/openshell/ansible/roles/demo/defaults/main.yml`). The front door gives a demo's server the lines of `GUSTO_CLOUD_DEMO_ENV` on top of `GUSTO_CLOUD_ORG_ENV`, so a demo and a sign-up on the same cell run their agents in different sandboxes.
+- A sign-up's agents run each turn in a Docker container on the cell (`public_sandbox: container`). The container has no network (`--network=none`): the proxy's socket, mounted in, is its only way out. It has a cap on CPU, memory and processes, and only five capabilities. Containers share the cell's kernel, so a flaw in the kernel could let one organization's agent reach another's on the same cell.
+- A person's turns in containers share a home of theirs, mounted at `/root`. It is kept under the organization's `computers/<id>/home`, so what they install and keep there is there at their next turn, as it is in a microVM. A room's turn sees only the room, and a task sent with a token is nobody's, so neither has a person's home. Each turn starts with the image's harness settings and only its own skills.
 - Each container is labelled `com.getlatentic.gusto.org`, `.person`, `.instance` and `.job`. The person is an opaque id, the same as their computer's, never their address. `docker ps --filter label=com.getlatentic.gusto.org=<slug>` lists one organization's running agents. When an organization's server stops, or starts again, the cell removes its containers that are left.
 - A demo has a credit of 0.50 dollars on the models gusto provides, and a sign-up has 5 dollars ([Free credit](#free-credit)).
 

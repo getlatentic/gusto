@@ -78,3 +78,22 @@ func TestRemovingAnOrganizationRemovesItsContainersAndNoOneElses(t *testing.T) {
 		t.Error("another organization's containers, or nobody's, were removed")
 	}
 }
+
+// A person's kept home is mounted where the agent's home is, and the runner is told it is one, so it leaves what is there alone.
+func TestAKeptHomeIsMountedAndTheRunnerToldSo(t *testing.T) {
+	args, err := argv("/jobs/a", nil, Owner{}, []Mount{{From: "/computers/3fa1c2d0/home", To: Home, Kept: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(args, " ")
+	if !strings.Contains(joined, "-v /computers/3fa1c2d0/home:/root") || !strings.Contains(joined, "-e "+KeptHomeEnv+"=1") {
+		t.Errorf("the home or the word for it is missing: %v", args)
+	}
+	plain, err := argv("/jobs/a", nil, Owner{}, []Mount{{From: "/state", To: "/root/.local/share"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.Join(plain, " "), KeptHomeEnv) {
+		t.Errorf("a mount that is not a home was called one: %v", plain)
+	}
+}
