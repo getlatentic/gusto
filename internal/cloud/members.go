@@ -36,8 +36,8 @@ const InviteLife = 7 * 24 * time.Hour
 
 // Members is the people in an organization, its admins first and then in the order
 // they joined.
-func (s *Store) Members(slug string) ([]Person, error) {
-	return membersOf(context.Background(), s.db, slug)
+func (s *Store) Members(ctx context.Context, slug string) ([]Person, error) {
+	return membersOf(ctx, s.db, slug)
 }
 
 func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, error) {
@@ -47,8 +47,8 @@ func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, err
 
 // Invitations is what an organization has sent that nobody has answered, oldest
 // first. One that ran out is not listed.
-func (s *Store) Invitations(slug string) ([]Invitation, error) {
-	return s.openInvitations(context.Background(), s.db, slug)
+func (s *Store) Invitations(ctx context.Context, slug string) ([]Invitation, error) {
+	return s.openInvitations(ctx, s.db, slug)
 }
 
 // Invite makes an invitation for an address, from an admin. It is refused unless the
@@ -56,7 +56,7 @@ func (s *Store) Invitations(slug string) ([]Invitation, error) {
 // invited, and the address is not in this organization already. An address that is
 // in another organization is invited like any other, so the form says nothing of
 // who has an account elsewhere.
-func (s *Store) Invite(slug string, by Person, address string) (secret string, err error) {
+func (s *Store) Invite(ctx context.Context, slug string, by Person, address string) (secret string, err error) {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return "", err
@@ -72,12 +72,12 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 		return "", err
 	}
 	if !quota.Invites {
-		if billing, found, err := s.Billing(slug); err == nil && found && billing.Lapsed() {
+		if billing, found, err := s.Billing(ctx, slug); err == nil && found && billing.Lapsed() {
 			return "", ErrLapsed
 		}
 		return "", ErrNoInvites
 	}
-	ctx := context.Background()
+
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		secret, err = s.invite(ctx, tx, slug, by.Email, email, quota.Members)
 		return err
@@ -85,7 +85,7 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 	if err != nil {
 		return "", err
 	}
-	s.publishRoster(slug)
+	s.publishRoster(ctx, slug)
 	return secret, nil
 }
 
@@ -136,7 +136,7 @@ func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int,
 }
 
 // Cancel takes an invitation back, and its link with it.
-func (s *Store) Cancel(slug string, by Person, address string) error {
+func (s *Store) Cancel(ctx context.Context, slug string, by Person, address string) error {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if by.Org != slug || by.Role != Admin {
 		return ErrNotAdmin
 	}
-	ctx := context.Background()
+
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := dropInvitationLink(ctx, tx, slug, email); err != nil {
 			return err
@@ -155,6 +155,6 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if err != nil {
 		return err
 	}
-	s.publishRoster(slug)
+	s.publishRoster(ctx, slug)
 	return nil
 }

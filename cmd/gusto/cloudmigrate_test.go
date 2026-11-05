@@ -53,7 +53,7 @@ func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOl
 	root := oldCloudRoot(t)
 	elsewhere := filepath.Join(t.TempDir(), "elsewhere", "accounts.db")
 	t.Setenv("GUSTO_DATABASE_URL", "sqlite://"+filepath.ToSlash(elsewhere))
-	front, _, err := openCloud()
+	front, _, err := openCloud(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOl
 	if _, err := os.Stat(filepath.Join(root, "cloud.db")); err == nil {
 		t.Error("the default database was made as well")
 	}
-	if found, _ := front.Store.HasAccount("ada@acme.com"); !found {
+	if found, _ := front.Store.HasAccount(t.Context(), "ada@acme.com"); !found {
 		t.Error("the front door started on the old files without taking them in")
 	}
 }

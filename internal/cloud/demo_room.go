@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -38,8 +39,8 @@ type orgAs struct {
 func stayHere(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 
 // signedInAs enters an organization's server as a person of it.
-func (c *Controller) signedInAs(person Person) (*orgAs, error) {
-	address, state := c.Route(person.Org)
+func (c *Controller) signedInAs(ctx context.Context, person Person) (*orgAs, error) {
+	address, state := c.Route(ctx, person.Org)
 	if state != Ready {
 		return nil, fmt.Errorf("the server is %s", state)
 	}
@@ -132,12 +133,12 @@ func (s *Server) markDemoOpened(org string) {
 
 // seedDemoRoom makes the demo's room once, when its server first answers. A demo whose room could not be made still works, as a
 // chat, so a failure is told to the operator and not to the visitor.
-func (s *Server) seedDemoRoom(person Person) {
+func (s *Server) seedDemoRoom(ctx context.Context, person Person) {
 	file := filepath.Join(s.Store.OrgDir(person.Org), demoRoomFile)
 	if _, err := os.Stat(file); err == nil {
 		return
 	}
-	as, err := s.Controller.signedInAs(person)
+	as, err := s.Controller.signedInAs(ctx, person)
 	if err == nil {
 		var room string
 		if room, err = makeDemoRoom(as); err == nil {
@@ -150,12 +151,12 @@ func (s *Server) seedDemoRoom(person Person) {
 }
 
 // addToDemoRoom puts a colleague in the demo's room, so it is the first thing they see.
-func (s *Server) addToDemoRoom(admin Person, colleague string) {
+func (s *Server) addToDemoRoom(ctx context.Context, admin Person, colleague string) {
 	room, err := os.ReadFile(filepath.Join(s.Store.OrgDir(admin.Org), demoRoomFile))
 	if err != nil {
 		return
 	}
-	as, err := s.Controller.signedInAs(admin)
+	as, err := s.Controller.signedInAs(ctx, admin)
 	if err == nil {
 		_, err = as.post("/rooms/"+string(room)+"/members", url.Values{"who": {colleague}})
 	}

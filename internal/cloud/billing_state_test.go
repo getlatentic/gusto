@@ -27,7 +27,7 @@ func TestTwoEventsInOneSecondKeepTheSubscriptionAsStripeHasIt(t *testing.T) {
 				t.Fatalf("%d %s", status, text)
 			}
 		}
-		if b, _, _ := f.store.Billing("acme-com"); b.Status != "active" {
+		if b, _, _ := f.store.Billing(t.Context(), "acme-com"); b.Status != "active" {
 			t.Errorf("the older of two events in one second was kept: %+v", b)
 		}
 		if _, page := admin.get("/org"); !strings.Contains(page, "Paid: 1 seat") {
@@ -54,7 +54,7 @@ func TestAnAdminIsNotOfferedASecondSubscriptionWhileTheFirstAwaitsPayment(t *tes
 func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		_, org, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, org, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(file, "in-the-way"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Verify("ada@acme.com"); err != nil {
+		if err := s.Verify(t.Context(), "ada@acme.com"); err != nil {
 			t.Fatalf("the address was confirmed, whatever became of the quota: %v", err)
 		}
 		if err := os.RemoveAll(file); err != nil {

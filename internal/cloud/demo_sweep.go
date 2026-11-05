@@ -26,7 +26,7 @@ func (s *Server) RunDemos(ctx context.Context, every time.Duration) {
 	tick := time.NewTicker(every)
 	defer tick.Stop()
 	for {
-		s.EndDueDemos()
+		s.EndDueDemos(ctx)
 		select {
 		case <-ctx.Done():
 			s.ender.running.Wait()
@@ -36,9 +36,10 @@ func (s *Server) RunDemos(ctx context.Context, every time.Duration) {
 	}
 }
 
-// EndDueDemos starts to end each demo that is due. It does not wait for them.
-func (s *Server) EndDueDemos() {
-	due, err := s.Store.DemosDue()
+// EndDueDemos starts to end each demo that is due. It does not wait for them, and the asker going away does not stop them.
+func (s *Server) EndDueDemos(ctx context.Context) {
+	ctx = context.WithoutCancel(ctx)
+	due, err := s.Store.DemosDue(ctx)
 	if err != nil {
 		slog.Error("the demos that are due could not be listed", "error", err)
 		return
@@ -57,28 +58,28 @@ func (s *Server) EndDueDemos() {
 		s.ender.running.Add(1)
 		go func() {
 			defer s.ender.running.Done()
-			s.endDemo(slug, reason)
+			s.endDemo(ctx, slug, reason)
 		}()
 	}
 }
 
 // endDemo removes a demo's workspaces, then its server, then the organization. A demo that cannot be ended is tried
 // again at the next sweep, which it is not until this has finished.
-func (s *Server) endDemo(slug, reason string) {
+func (s *Server) endDemo(ctx context.Context, slug, reason string) {
 	defer func() {
 		s.ender.mu.Lock()
 		delete(s.ender.ending, slug)
 		s.ender.mu.Unlock()
 	}()
-	if err := s.Store.MarkEnding(slug); err != nil {
+	if err := s.Store.MarkEnding(ctx, slug); err != nil {
 		slog.Error("a demo could not be marked as ending, and is tried again", "org", slug, "error", err)
 		return
 	}
 	if s.Controller != nil {
 		s.removeComputers(slug)
-		s.Controller.Remove(slug)
+		s.Controller.Remove(ctx, slug)
 	}
-	if err := s.Store.EndDemo(slug, reason); err != nil {
+	if err := s.Store.EndDemo(ctx, slug, reason); err != nil {
 		slog.Error("a demo could not be ended", "org", slug, "error", err)
 		return
 	}
@@ -86,7 +87,7 @@ func (s *Server) endDemo(slug, reason string) {
 		s.Controller.Ended(slug)
 	}
 	slog.Info("a demo ended", "org", slug, "reason", reason)
-	s.tell("ended", slug)
+	s.tell(ctx, "ended", slug)
 }
 
 // removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may.

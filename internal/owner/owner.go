@@ -5,6 +5,7 @@
 package owner
 
 import (
+	"context"
 	"embed"
 	"encoding/csv"
 	"fmt"
@@ -95,14 +96,14 @@ type hostRow struct {
 }
 
 func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
-	leads, err := a.Store.Leads()
+	leads, err := a.Store.Leads(r.Context())
 	if err != nil {
 		slog.Error("the leads could not be read", "error", err)
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	page := map[string]any{"Title": "gusto operator", "Leads": leads, "Paused": a.Store.DemosPaused(), "Limits": a.Store.DemoLimits(), "LimitsSet": a.Store.DemoLimitsSet(), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
-	page["Running"] = a.running()
+	page := map[string]any{"Title": "gusto operator", "Leads": leads, "Paused": a.Store.DemosPaused(r.Context()), "Limits": a.Store.DemoLimits(r.Context()), "LimitsSet": a.Store.DemoLimitsSet(r.Context()), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
+	page["Running"] = a.running(r.Context())
 	if a.Hosts != nil {
 		if hosts, err := a.Hosts.Running(); err != nil {
 			page["HostsError"] = err.Error()
@@ -117,14 +118,14 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // running is the demos that have not ended, soonest to end first.
-func (a *App) running() []running {
-	orgs, err := a.Store.Orgs()
+func (a *App) running(ctx context.Context) []running {
+	orgs, err := a.Store.Orgs(ctx)
 	if err != nil {
 		return nil
 	}
 	var rows []running
 	for _, org := range orgs {
-		if demo, time, found := a.Store.DemoLeft(org.Slug); found {
+		if demo, time, found := a.Store.DemoLeft(ctx, org.Slug); found {
 			rows = append(rows, running{Name: demo.Name, Company: demo.Company, Slug: org.Slug, Left: time, Ready: !demo.Ready.IsZero()})
 		}
 	}
@@ -142,7 +143,7 @@ func (a *App) pause(w http.ResponseWriter, r *http.Request) {
 	if paused {
 		notice = "New demos are paused. Demos that are running go on."
 	}
-	if err := a.Store.SetDemosPaused(paused); err != nil {
+	if err := a.Store.SetDemosPaused(r.Context(), paused); err != nil {
 		slog.Error("demos were not paused or resumed", "error", err)
 		notice = "That did not change: " + err.Error()
 	}
@@ -158,10 +159,10 @@ func (a *App) limits(w http.ResponseWriter, r *http.Request) {
 	notice := "The limits are saved. They hold from the next demo."
 	var err error
 	if r.PostForm.Get("reset") != "" {
-		err = a.Store.ResetDemoLimits()
+		err = a.Store.ResetDemoLimits(r.Context())
 		notice = "The limits are the ones gusto cloud started with."
 	} else {
-		err = a.Store.SetDemoLimits(cloud.DemoLimits{
+		err = a.Store.SetDemoLimits(r.Context(), cloud.DemoLimits{
 			PerDay: number(r, "perDay"), PerPerson: number(r, "perPerson"), PerCompany: number(r, "perCompany"), MaxOrgs: number(r, "maxOrgs"),
 		})
 	}
@@ -183,7 +184,7 @@ func number(r *http.Request, name string) int {
 // leadsCSV is every lead for a spreadsheet. A cell a spreadsheet would read as a formula is written as text, since
 // the visitor typed it.
 func (a *App) leadsCSV(w http.ResponseWriter, r *http.Request) {
-	leads, err := a.Store.Leads()
+	leads, err := a.Store.Leads(r.Context())
 	if err != nil {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return

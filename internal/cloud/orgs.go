@@ -19,7 +19,7 @@ func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	orgs, err := s.Store.OrgsOf(all[0].Email)
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
 		log.Printf("cloud: a person's organizations could not be read: %v", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
@@ -45,7 +45,7 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not signed in", http.StatusUnauthorized)
 		return
 	}
-	orgs, err := s.Store.OrgsOf(all[0].Email)
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
 		log.Printf("cloud: a person's organizations could not be read: %v", err)
 		http.Error(w, "the organizations could not be read", http.StatusInternalServerError)

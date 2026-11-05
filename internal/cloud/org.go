@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -18,7 +19,7 @@ func (s *Server) memberships(r *http.Request) ([]Person, bool) {
 	if !ok {
 		return nil, false
 	}
-	all, err := s.Store.Memberships(email)
+	all, err := s.Store.Memberships(r.Context(), email)
 	if err != nil || len(all) == 0 {
 		return nil, false
 	}
@@ -80,11 +81,11 @@ func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 	if r.URL.Query().Get("billing") == "started" {
 		notice = "Thank you. The plan changes here once Stripe confirms the payment, which takes a few seconds."
 	}
-	s.drawOrg(w, http.StatusOK, person, notice)
+	s.drawOrg(r.Context(), w, http.StatusOK, person, notice)
 }
 
-func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notice string) {
-	org, found, err := s.Store.Org(person.Org)
+func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int, person Person, notice string) {
+	org, found, err := s.Store.Org(ctx, person.Org)
 	if err != nil || !found {
 		log.Printf("cloud: an organization is missing its record: %v", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
@@ -105,13 +106,13 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 	}
 	server, canOpen := "", false
 	if s.Controller != nil {
-		_, state := s.Controller.Route(org.Slug)
+		_, state := s.Controller.Route(ctx, org.Slug)
 		if state == "" {
 			state = Provisioning
 		}
 		server, canOpen = string(state), state == Ready
 	}
-	members, _ := s.Store.Members(org.Slug)
+	members, _ := s.Store.Members(ctx, org.Slug)
 	admins := 0
 	for _, member := range members {
 		if member.Role == Admin {
@@ -119,12 +120,12 @@ func (s *Server) drawOrg(w http.ResponseWriter, status int, person Person, notic
 		}
 	}
 
-	invited, _ := s.Store.Invitations(org.Slug)
-	all, _ := s.Store.Memberships(person.Email)
+	invited, _ := s.Store.Invitations(ctx, org.Slug)
+	all, _ := s.Store.Memberships(ctx, person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
-		Plan: s.planOf(org, person), Console: true}
+		Plan: s.planOf(ctx, org, person), Console: true}
 	s.render(w, status, "org", v)
 }
 
@@ -134,12 +135,12 @@ func (s *Server) resend(w http.ResponseWriter, r *http.Request, person Person) {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	if !s.mails.Allow(person.Email) {
-		s.drawOrg(w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
+	if !s.mails.Allow(r.Context(), person.Email) {
+		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
 		return
 	}
-	org, _, _ := s.Store.Org(person.Org)
-	s.mailVerification(person, org)
+	org, _, _ := s.Store.Org(r.Context(), person.Org)
+	s.mailVerification(r.Context(), person, org)
 	http.Redirect(w, r, "/org?sent=1", http.StatusSeeOther)
 }
 

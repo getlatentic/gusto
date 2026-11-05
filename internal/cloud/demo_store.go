@@ -63,8 +63,8 @@ var errNoOrg = fmt.Errorf("there is no such organization: %w", fs.ErrNotExist)
 
 // changeDemo reads an organization under its lock, lets change alter the demo's record, and keeps the result, and the change
 // to its lead that lead makes, when it is not nil, in the same transaction, so the lead never says other than the demo.
-func (s *Store) changeDemo(slug string, change func(*Org) error, lead func(context.Context, dbkit.Tx, Org) error) (Org, error) {
-	ctx := context.Background()
+func (s *Store) changeDemo(ctx context.Context, slug string, change func(*Org) error, lead func(context.Context, dbkit.Tx, Org) error) (Org, error) {
+
 	var org Org
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "org:"+slug); err != nil {
@@ -102,8 +102,8 @@ func (s *Store) saveDemo(ctx context.Context, tx dbkit.Tx, org Org) error {
 // DemoReady starts a demo's time, when it is not started: the controller asks when the demo's server first answers, and the
 // visitor's waiting page when it finds it ready, and the time starts once. A demo that was stopped or is being ended does not
 // start. An organization that is not a demo is ErrNotDemo.
-func (s *Store) DemoReady(slug string) (Demo, error) {
-	org, err := s.changeDemo(slug, func(org *Org) error {
+func (s *Store) DemoReady(ctx context.Context, slug string) (Demo, error) {
+	org, err := s.changeDemo(ctx, slug, func(org *Org) error {
 		if org.Demo == nil {
 			return ErrNotDemo
 		}
@@ -126,8 +126,8 @@ func (s *Store) DemoReady(slug string) (Demo, error) {
 }
 
 // ExtendDemo gives a demo the one extension it may have, while it still has time.
-func (s *Store) ExtendDemo(slug string) (Demo, error) {
-	org, err := s.changeDemo(slug, func(org *Org) error {
+func (s *Store) ExtendDemo(ctx context.Context, slug string) (Demo, error) {
+	org, err := s.changeDemo(ctx, slug, func(org *Org) error {
 		demo := org.Demo
 		if demo == nil || demo.Extended || demo.Stopped || demo.Ending || s.set.Demo.Extend <= 0 || demo.Expires.IsZero() || !s.now().Before(demo.Expires) {
 			return ErrNoExtension
@@ -145,8 +145,8 @@ func (s *Store) ExtendDemo(slug string) (Demo, error) {
 }
 
 // StopDemo makes a demo due now, for a visitor who is finished with it.
-func (s *Store) StopDemo(slug string) error {
-	_, err := s.changeDemo(slug, func(org *Org) error {
+func (s *Store) StopDemo(ctx context.Context, slug string) error {
+	_, err := s.changeDemo(ctx, slug, func(org *Org) error {
 		if org.Demo == nil {
 			return ErrNotDemo
 		}
@@ -158,8 +158,8 @@ func (s *Store) StopDemo(slug string) error {
 
 // MarkEnding records that the sweep has begun to end a demo, before it stops anything, so a front door that starts again
 // partway does not make the demo's server again: the mark is in the database, where a crash does not lose it.
-func (s *Store) MarkEnding(slug string) error {
-	_, err := s.changeDemo(slug, func(org *Org) error {
+func (s *Store) MarkEnding(ctx context.Context, slug string) error {
+	_, err := s.changeDemo(ctx, slug, func(org *Org) error {
 		if org.Demo == nil {
 			return ErrNotDemo
 		}
@@ -171,8 +171,8 @@ func (s *Store) MarkEnding(slug string) error {
 
 // DemoLeft is a demo's record and how long it has, and whether the organization is a demo at all. A demo that is not
 // ready has its whole time still, which is not counting down.
-func (s *Store) DemoLeft(slug string) (Demo, time.Duration, bool) {
-	org, found, err := s.Org(slug)
+func (s *Store) DemoLeft(ctx context.Context, slug string) (Demo, time.Duration, bool) {
+	org, found, err := s.Org(ctx, slug)
 	if err != nil || !found || org.Demo == nil {
 		return Demo{}, 0, false
 	}
@@ -183,8 +183,8 @@ func (s *Store) DemoLeft(slug string) (Demo, time.Duration, bool) {
 }
 
 // DemosDue are the demos whose time is up, or that were never ready and have waited as long as they may.
-func (s *Store) DemosDue() (map[string]string, error) {
-	orgs, err := collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs WHERE is_demo ORDER BY slug`)
+func (s *Store) DemosDue(ctx context.Context) (map[string]string, error) {
+	orgs, err := collect(ctx, s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs WHERE is_demo ORDER BY slug`)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +208,8 @@ func (s *Store) DemosDue() (map[string]string, error) {
 // EndDemo deletes a demo: its people, its data and its record, and keeps the lead with why it ended. The
 // organization's server and computers are stopped before this, since nothing here reaches them. The data goes
 // first and the record in one step after it, so a failure part way leaves a demo that is found and tried again.
-func (s *Store) EndDemo(slug, reason string) error {
-	org, found, err := s.Org(slug)
+func (s *Store) EndDemo(ctx context.Context, slug, reason string) error {
+	org, found, err := s.Org(ctx, slug)
 	if err != nil || !found || org.Demo == nil {
 		if err == nil {
 			err = errors.New("that is not a demo")
@@ -219,7 +219,7 @@ func (s *Store) EndDemo(slug, reason string) error {
 	if err := s.removeOrgDir(slug); err != nil {
 		return err
 	}
-	ctx := context.Background()
+
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 			return err

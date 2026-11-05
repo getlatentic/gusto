@@ -29,19 +29,19 @@ func TestTheStoreAtScale(t *testing.T) {
 		s := open(t, set)
 		seed(t, s)
 		measure(t, "sign-in lookup (Person by address)", 2000, func(i int) error {
-			_, found, err := s.only(fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
+			_, found, err := s.only(t.Context(), fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
 			if err == nil && !found {
 				err = fmt.Errorf("not found")
 			}
 			return err
 		})
 		measure(t, "sign-up (person, organization, directory)", 300, func(i int) error {
-			_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("new%d@fresh%d.com", i, i), OrgName: fmt.Sprintf("Fresh %d", i)})
+			_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("new%d@fresh%d.com", i, i), OrgName: fmt.Sprintf("Fresh %d", i)})
 			return err
 		})
 		measureInvitations(t, s)
 		measure(t, "list every lead (20,000)", 5, func(int) error {
-			leads, err := s.Leads()
+			leads, err := s.Leads(t.Context())
 			if err == nil && len(leads) != scaleLeads {
 				err = fmt.Errorf("%d leads", len(leads))
 			}
@@ -51,7 +51,7 @@ func TestTheStoreAtScale(t *testing.T) {
 			return s.demoAllowed(context.Background(), s.db, fmt.Sprintf("visitor%d@lead%d.com", i, i))
 		})
 		measure(t, "start a demo (all of its checks and writes)", 45, func(i int) error {
-			_, _, err := s.StartDemo("Visitor", fmt.Sprintf("v%d@visit%d.com", i, i), "Visitors")
+			_, _, err := s.StartDemo(t.Context(), "Visitor", fmt.Sprintf("v%d@visit%d.com", i, i), "Visitors")
 			return err
 		})
 	})
@@ -61,20 +61,20 @@ func measureInvitations(t *testing.T, s *Store) {
 	const n = 200
 	secrets := make([]string, n)
 	for i := range n {
-		admin, org, err := s.SignUp(Signup{Email: fmt.Sprintf("boss%d@inv%d.com", i, i), OrgName: fmt.Sprintf("Inviting %d", i)})
+		admin, org, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("boss%d@inv%d.com", i, i), OrgName: fmt.Sprintf("Inviting %d", i)})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err = s.Verify(admin.Email); err != nil {
+		if err = s.Verify(t.Context(), admin.Email); err != nil {
 			t.Fatal(err)
 		}
-		admin, _, _ = s.Person(admin.Email, org.Slug)
-		if secrets[i], err = s.Invite(org.Slug, admin, fmt.Sprintf("guest%d@inv%d.com", i, i)); err != nil {
+		admin, _, _ = s.Person(t.Context(), admin.Email, org.Slug)
+		if secrets[i], err = s.Invite(t.Context(), org.Slug, admin, fmt.Sprintf("guest%d@inv%d.com", i, i)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	measure(t, "accept an invitation", n, func(i int) error {
-		_, _, err := s.Accept(secrets[i])
+		_, _, err := s.Accept(t.Context(), secrets[i])
 		return err
 	})
 }

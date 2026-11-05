@@ -17,8 +17,8 @@ func (s *Store) InboxDir(slug string) string   { return filepath.Join(s.DataDir(
 
 // PublishRoster writes the organization's people where its server reads them. The people are read and the
 // file is written under a lock, so two front doors that publish together leave the list of the later read.
-func (s *Store) PublishRoster(slug string) error {
-	ctx := context.Background()
+func (s *Store) PublishRoster(ctx context.Context, slug string) error {
+
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "roster:"+slug); err != nil {
 			return err
@@ -30,8 +30,8 @@ func (s *Store) PublishRoster(slug string) error {
 // publishRoster is PublishRoster for a change that has already been made. The
 // change stands whether or not the list is written, so a failure is said loudly and
 // does not undo it: the next change writes the list again, and so does a restart.
-func (s *Store) publishRoster(slug string) {
-	if err := s.PublishRoster(slug); err != nil {
+func (s *Store) publishRoster(ctx context.Context, slug string) {
+	if err := s.PublishRoster(ctx, slug); err != nil {
 		slog.Error("an organization's list of people was not written", "org", slug, "error", err)
 	}
 }
@@ -65,16 +65,16 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 
 // RecordSignIn notes that a person was signed in to one of their organizations' servers, and
 // tells that server.
-func (s *Store) RecordSignIn(email, org string) error {
+func (s *Store) RecordSignIn(ctx context.Context, email, org string) error {
 	at := s.now().UTC().Truncate(time.Second)
-	done, err := s.db.ExecContext(context.Background(), `UPDATE memberships SET last_sign_in = ? WHERE email = ? AND org = ?`, s.stamp(at), email, org)
+	done, err := s.db.ExecContext(ctx, `UPDATE memberships SET last_sign_in = ? WHERE email = ? AND org = ?`, s.stamp(at), email, org)
 	if err != nil {
 		return err
 	}
 	if changed, err := done.RowsAffected(); err != nil || changed == 0 {
 		return err
 	}
-	s.publishRoster(org)
+	s.publishRoster(ctx, org)
 	return nil
 }
 

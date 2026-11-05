@@ -29,39 +29,39 @@ func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 		c.Cells, c.WaitEvery = cells, 10*time.Millisecond
 		org := made(t, s, "ada@acme.com", "Acme")
 
-		if err := c.Provision(org.Slug); err == nil {
+		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("an organization with nowhere to go was provisioned")
 		}
-		if address, state := c.Route(org.Slug); state != Waiting || address != "" || c.Waiting() != 1 {
+		if address, state := c.Route(t.Context(), org.Slug); state != Waiting || address != "" || c.Waiting() != 1 {
 			t.Fatalf("it waits, which is not failing: %q %q %d", address, state, c.Waiting())
 		}
-		if runtime, _ := s.Runtime(org.Slug); runtime.State != Waiting || runtime.Restarts != 0 || runtime.Cell != "" {
+		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.State != Waiting || runtime.Restarts != 0 || runtime.Cell != "" {
 			t.Errorf("a wait is not counted as a restart: %+v", runtime)
 		}
 
 		time.Sleep(30 * time.Millisecond)
-		c.supervise()
+		c.supervise(t.Context())
 		time.Sleep(50 * time.Millisecond)
-		if _, state := c.Route(org.Slug); state != Waiting {
+		if _, state := c.Route(t.Context(), org.Slug); state != Waiting {
 			t.Errorf("it is tried again and there is still no room: %q", state)
 		}
 
 		cells.open.Store(true)
 		deadline := time.Now().Add(15 * time.Second)
 		for time.Now().Before(deadline) {
-			c.supervise()
-			if _, state := c.Route(org.Slug); state == Ready {
+			c.supervise(t.Context())
+			if _, state := c.Route(t.Context(), org.Slug); state == Ready {
 				break
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		if address, state := c.Route(org.Slug); state != Ready || address == "" {
+		if address, state := c.Route(t.Context(), org.Slug); state != Ready || address == "" {
 			t.Fatalf("it did not start once there was room: %q %q", address, state)
 		}
 		if c.Waiting() != 0 {
 			t.Errorf("%d still wait", c.Waiting())
 		}
-		if runtime, _ := s.Runtime(org.Slug); runtime.Restarts != 0 {
+		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.Restarts != 0 {
 			t.Errorf("%+v", runtime)
 		}
 	})
@@ -75,7 +75,7 @@ func TestAnOrganizationThatStartsWaitingAsksForACellAtOnceAndIsPlacedWithoutATic
 		var asked atomic.Int32
 		c.Cells, c.WaitEvery, c.OnWaiting = cells, 20*time.Millisecond, func() { asked.Add(1) }
 		org := made(t, s, "ada@acme.com", "Acme")
-		if err := c.Provision(org.Slug); err == nil {
+		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("an organization with nowhere to go was provisioned")
 		}
 		if asked.Load() != 1 {
@@ -88,12 +88,12 @@ func TestAnOrganizationThatStartsWaitingAsksForACellAtOnceAndIsPlacedWithoutATic
 		cells.open.Store(true)
 		deadline := time.Now().Add(15 * time.Second)
 		for time.Now().Before(deadline) {
-			if _, state := c.Route(org.Slug); state == Ready {
+			if _, state := c.Route(ctx, org.Slug); state == Ready {
 				break
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		if _, state := c.Route(org.Slug); state != Ready {
+		if _, state := c.Route(ctx, org.Slug); state != Ready {
 			t.Errorf("with an hour between ticks, a waiting organization was not placed once there was room: %q", state)
 		}
 		cancel()

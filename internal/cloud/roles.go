@@ -13,7 +13,7 @@ var ErrBadRole = errors.New("a role is admin or runner")
 // SetRole changes the role of a person in the organization, and says what it was. An
 // admin may change anybody's, and the organization keeps at least one admin, so the
 // last cannot be made a runner.
-func (s *Store) SetRole(slug string, by Person, address string, role Role) (was Role, err error) {
+func (s *Store) SetRole(ctx context.Context, slug string, by Person, address string, role Role) (was Role, err error) {
 	if role != Admin && role != Runner {
 		return "", ErrBadRole
 	}
@@ -24,7 +24,7 @@ func (s *Store) SetRole(slug string, by Person, address string, role Role) (was 
 	if by.Org != slug || by.Role != Admin {
 		return "", ErrNotAdmin
 	}
-	ctx := context.Background()
+
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		was, err = s.setRoleIn(ctx, tx, slug, email, role)
 		return err
@@ -33,7 +33,7 @@ func (s *Store) SetRole(slug string, by Person, address string, role Role) (was 
 		return "", err
 	}
 	if was != role {
-		s.publishRoster(slug)
+		s.publishRoster(ctx, slug)
 	}
 	return was, nil
 }

@@ -61,7 +61,7 @@ func (y *SeatSync) Once(ctx context.Context) int {
 			slog.Error("an organization's seats were not changed at Stripe", "org", each.org, "seats", each.want, "error", err)
 			continue
 		}
-		if err := y.Store.SeatsBilled(each.org, each.want); err != nil {
+		if err := y.Store.SeatsBilled(ctx, each.org, each.want); err != nil {
 			slog.Error("an organization's billed seats were not recorded", "org", each.org, "error", err)
 			continue
 		}

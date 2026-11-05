@@ -53,17 +53,17 @@ func scanRuntime(r rowScanner) (Runtime, error) {
 }
 
 // Runtime is the state of an organization's server. One never provisioned has none.
-func (s *Store) Runtime(slug string) (Runtime, error) {
-	rt, _, err := one(context.Background(), s.db, scanRuntime,
+func (s *Store) Runtime(ctx context.Context, slug string) (Runtime, error) {
+	rt, _, err := one(ctx, s.db, scanRuntime,
 		`SELECT state, cell, port, proxy_port, error, restarts, updated, command FROM runtime WHERE slug = ?`, slug)
 	return rt, err
 }
 
 // SetRuntime keeps the state of an organization's server. Two organizations on one cell cannot be given
 // the same port, even by two front doors.
-func (s *Store) SetRuntime(slug string, rt Runtime) error {
+func (s *Store) SetRuntime(ctx context.Context, slug string, rt Runtime) error {
 	rt.Updated = s.now().UTC().Truncate(time.Second)
-	_, err := s.db.ExecContext(context.Background(), putRuntime.SQL(1),
+	_, err := s.db.ExecContext(ctx, putRuntime.SQL(1),
 		slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
 	return err
 }

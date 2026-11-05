@@ -90,14 +90,14 @@ func (s *Store) makeOrgDir(slug string, q quota.Quota) error {
 }
 
 // Org is an organization by its address.
-func (s *Store) Org(slug string) (Org, bool, error) {
+func (s *Store) Org(ctx context.Context, slug string) (Org, bool, error) {
 	if ValidSlug(slug) != nil {
 		return Org{}, false, nil
 	}
-	return fetchOrg(context.Background(), s.db, slug)
+	return fetchOrg(ctx, s.db, slug)
 }
 
 // Orgs is every organization there is.
-func (s *Store) Orgs() ([]Org, error) {
-	return collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
+func (s *Store) Orgs(ctx context.Context) ([]Org, error) {
+	return collect(ctx, s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
 }

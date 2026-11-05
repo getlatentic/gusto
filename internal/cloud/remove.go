@@ -9,7 +9,7 @@ import (
 // Remove takes a person out of an organization, and leaves them in any other they are in.
 // An admin may remove anybody but themselves and the last admin, so an organization is
 // never left with nobody to run it.
-func (s *Store) Remove(slug string, by Person, address string) error {
+func (s *Store) Remove(ctx context.Context, slug string, by Person, address string) error {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return ErrNoMember
@@ -17,11 +17,11 @@ func (s *Store) Remove(slug string, by Person, address string) error {
 	if by.Org != slug || by.Role != Admin {
 		return ErrNotAdmin
 	}
-	ctx := context.Background()
+
 	if err := s.db.InTx(ctx, func(tx dbkit.Tx) error { return s.removeIn(ctx, tx, slug, by.Email, email) }); err != nil {
 		return err
 	}
-	s.publishRoster(slug)
+	s.publishRoster(ctx, slug)
 	// Their computer is marked, and the organization's server, which reaches the gateway,
 	// removes it. A person who never had one has nothing marked.
 	registry, err := s.Computers(slug)

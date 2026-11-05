@@ -35,12 +35,12 @@ func seatWords(seats, usd int) string {
 
 // planOf is the organization's plan, and nil when this front door does not bill or the
 // organization is a demo.
-func (s *Server) planOf(org Org, person Person) *plan {
+func (s *Server) planOf(ctx context.Context, org Org, person Person) *plan {
 	if !s.Stripe.Enabled() || org.Demo != nil {
 		return nil
 	}
-	seats, _ := s.Store.SeatsWanted(org.Slug)
-	billing, found, err := s.Store.Billing(org.Slug)
+	seats, _ := s.Store.SeatsWanted(ctx, org.Slug)
+	billing, found, err := s.Store.Billing(ctx, org.Slug)
 	if err != nil {
 		slog.Error("an organization's billing could not be read", "org", org.Slug, "error", err)
 		return nil
@@ -63,27 +63,27 @@ func (s *Server) planOf(org Org, person Person) *plan {
 
 // subscribe sends an admin to Stripe to subscribe the organization for a seat for each member.
 func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, person Person) {
-	org, found, err := s.Store.Org(person.Org)
+	org, found, err := s.Store.Org(r.Context(), person.Org)
 	if !s.Stripe.Enabled() || err != nil || !found || org.Demo != nil {
 		http.NotFound(w, r)
 		return
 	}
 	if person.Role != Admin {
-		s.drawOrg(w, http.StatusForbidden, person, sentence(ErrNotAdmin))
+		s.drawOrg(r.Context(), w, http.StatusForbidden, person, sentence(ErrNotAdmin))
 		return
 	}
-	billing, _, err := s.Store.Billing(org.Slug)
+	billing, _, err := s.Store.Billing(r.Context(), org.Slug)
 	if err != nil {
-		s.drawOrg(w, http.StatusInternalServerError, person, sentence(err))
+		s.drawOrg(r.Context(), w, http.StatusInternalServerError, person, sentence(err))
 		return
 	}
 	if billing.Paid() {
 		http.Redirect(w, r, "/org?org="+org.Slug, http.StatusSeeOther)
 		return
 	}
-	seats, err := s.Store.SeatsWanted(org.Slug)
+	seats, err := s.Store.SeatsWanted(r.Context(), org.Slug)
 	if err != nil {
-		s.drawOrg(w, http.StatusInternalServerError, person, sentence(err))
+		s.drawOrg(r.Context(), w, http.StatusInternalServerError, person, sentence(err))
 		return
 	}
 	back := s.URL.String() + "/org?org=" + url.QueryEscape(org.Slug)
@@ -91,7 +91,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, person Person
 		Success: back + "&billing=started", Cancel: back})
 	if err != nil {
 		slog.Error("a Stripe checkout was not started", "org", org.Slug, "error", err)
-		s.drawOrg(w, http.StatusBadGateway, person, "Payments are not answering. Try again in a minute.")
+		s.drawOrg(r.Context(), w, http.StatusBadGateway, person, "Payments are not answering. Try again in a minute.")
 		return
 	}
 	http.Redirect(w, r, page, http.StatusSeeOther)
@@ -100,19 +100,19 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, person Person
 // manageBilling sends an admin to Stripe's portal, where the card, the invoices and the
 // subscription are.
 func (s *Server) manageBilling(w http.ResponseWriter, r *http.Request, person Person) {
-	billing, found, err := s.Store.Billing(person.Org)
+	billing, found, err := s.Store.Billing(r.Context(), person.Org)
 	if !s.Stripe.Enabled() || err != nil || !found || billing.Customer == "" {
 		http.NotFound(w, r)
 		return
 	}
 	if person.Role != Admin {
-		s.drawOrg(w, http.StatusForbidden, person, sentence(ErrNotAdmin))
+		s.drawOrg(r.Context(), w, http.StatusForbidden, person, sentence(ErrNotAdmin))
 		return
 	}
 	page, err := s.Stripe.Portal(r.Context(), billing.Customer, s.URL.String()+"/org?org="+url.QueryEscape(person.Org))
 	if err != nil {
 		slog.Error("a Stripe portal was not opened", "org", person.Org, "error", err)
-		s.drawOrg(w, http.StatusBadGateway, person, "Payments are not answering. Try again in a minute.")
+		s.drawOrg(r.Context(), w, http.StatusBadGateway, person, "Payments are not answering. Try again in a minute.")
 		return
 	}
 	http.Redirect(w, r, page, http.StatusSeeOther)
@@ -161,10 +161,10 @@ const sameSecondTries = 3
 // keepSubscription keeps what an event says of a subscription. When the event and the version kept were made in the
 // same second, it keeps the subscription as Stripe says it is instead, by the same rule, which a later second decides.
 func (s *Server) keepSubscription(ctx context.Context, b Billing) error {
-	_, err := s.Store.RecordSubscription(b)
+	_, err := s.Store.RecordSubscription(ctx, b)
 	for try := 0; try < sameSecondTries && errors.Is(err, errSameSecond); try++ {
 		if b, err = s.Stripe.Subscription(ctx, b.Subscription); err == nil {
-			_, err = s.Store.RecordSubscription(b)
+			_, err = s.Store.RecordSubscription(ctx, b)
 		}
 	}
 	return err

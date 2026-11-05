@@ -13,11 +13,11 @@ import (
 // was in, and they are a runner. The room is checked again, since
 // the organization may have filled while the invitation was out. A link that is
 // followed is spent whether or not it gets a person in.
-func (s *Store) Accept(secret string) (Person, Org, error) {
+func (s *Store) Accept(ctx context.Context, secret string) (Person, Org, error) {
 	if secret == "" || len(secret) > longestSecret {
 		return Person{}, Org{}, ErrLink
 	}
-	ctx := context.Background()
+
 	var joined acceptance
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		joined, err = s.acceptIn(ctx, tx, digest(secret))
@@ -29,7 +29,7 @@ func (s *Store) Accept(secret string) (Person, Org, error) {
 	if joined.refusal != nil {
 		return Person{}, Org{}, joined.refusal
 	}
-	s.publishRoster(joined.org.Slug)
+	s.publishRoster(ctx, joined.org.Slug)
 	return joined.person, joined.org, nil
 }
 

@@ -6,11 +6,11 @@ import "testing"
 // the operator's, and a sign-up's server never has them.
 func TestADemoServerHasTheDemoSettingsOnTopAndASignUpDoesNot(t *testing.T) {
 	store := open(t, demoSet)
-	_, signup, err := store.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	_, signup, err := store.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, demo, err := store.StartDemo("Bea", "bea@globex.com", "Globex")
+	_, demo, err := store.StartDemo(t.Context(), "Bea", "bea@globex.com", "Globex")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestADemoServerHasTheDemoSettingsOnTopAndASignUpDoesNot(t *testing.T) {
 	for _, each := range []struct {
 		slug, sandbox, gateway string
 	}{{signup.Slug, "container", ""}, {demo.Slug, "openshell", "g"}} {
-		env, err := c.environment(each.slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+		env, err := c.environment(t.Context(), each.slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
 		if err != nil {
 			t.Fatal(err)
 		}

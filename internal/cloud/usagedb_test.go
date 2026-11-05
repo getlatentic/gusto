@@ -25,7 +25,7 @@ func environmentFor(t *testing.T, operator []string, slug string) []string {
 	t.Helper()
 	store := open(t, Settings{})
 	c := &Controller{Store: store, Cell: &LocalCell{}, Env: operator, FrontDoor: "https://cloud.test"}
-	env, err := c.environment(slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+	env, err := c.environment(t.Context(), slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 			c := &Controller{Store: open(t, Settings{}), Cell: &LocalCell{}, Env: operator, FrontDoor: "https://cloud.test", IndexDir: index}
 			got := map[string]string{}
 			for _, slug := range []string{"acme", "globex"} {
-				env, err := c.environment(slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+				env, err := c.environment(t.Context(), slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -126,7 +126,7 @@ func TestTheIndexDirectoryIsTheStoresRootByDefaultAndIsNotInAnOrganizationsDataD
 	onEachDatabase(t, func(t *testing.T) {
 		store := open(t, Settings{})
 		c := &Controller{Store: store, Cell: &LocalCell{}, FrontDoor: "https://cloud.test"}
-		env, err := c.environment("acme", Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+		env, err := c.environment(t.Context(), "acme", Runtime{Port: 1, ProxyPort: 2}, c.Cell)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -160,7 +160,7 @@ func TestAnIndexPathWithASpaceIsOpenedWhereItIs(t *testing.T) {
 func TestADatabaseURLThatDoesNotParseStopsTheServerAndIsNotQuoted(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		c := &Controller{Store: open(t, Settings{}), Cell: &LocalCell{}, Env: []string{"GUSTO_DATABASE_URL=postgres://u:hunter2@h:notaport/db"}}
-		_, err := c.environment("acme", Runtime{}, c.Cell)
+		_, err := c.environment(t.Context(), "acme", Runtime{}, c.Cell)
 		if err == nil || strings.Contains(err.Error(), "hunter2") {
 			t.Fatalf("%v", err)
 		}

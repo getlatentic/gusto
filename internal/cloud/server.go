@@ -108,7 +108,7 @@ func (s *Server) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Asked on every host name, so a page of an organization can warn of the end of the host.
 		if r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
-			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(w, slug) {
+			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
 				return
 			}
 			s.leaseJSON(w, r)
@@ -126,7 +126,7 @@ func (s *Server) Handler() http.Handler {
 		}
 		if slug, ok := s.orgSlug(r.Host); ok {
 			// The page of a demo that has ended is made of the front door's own styles, which the gone server cannot send.
-			if _, found := s.Store.LeadOf(slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(slug) {
+			if _, found := s.Store.LeadOf(r.Context(), slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(r.Context(), slug) {
 				pages.ServeHTTP(w, r)
 				return
 			}

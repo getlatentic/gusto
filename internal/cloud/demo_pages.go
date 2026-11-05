@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -41,7 +42,7 @@ func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if s.Prewarm != nil && !s.Store.DemosPaused() && s.signups.Allow("warm:"+s.source(r)) {
+	if s.Prewarm != nil && !s.Store.DemosPaused(r.Context()) && s.signups.Allow(r.Context(), "warm:"+s.source(r)) {
 		s.Prewarm()
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -75,11 +76,11 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 		again(http.StatusForbidden, "Demos are given by the gusto team. Book one, or create your organization to try gusto now.")
 		return
 	}
-	if !s.all.Allow("demo") {
+	if !s.all.Allow(r.Context(), "demo") {
 		again(http.StatusServiceUnavailable, "Demos are busy right now. Try again in a little while, or book a call.")
 		return
 	}
-	if !s.signups.Allow("demo:" + s.source(r)) {
+	if !s.signups.Allow(r.Context(), "demo:"+s.source(r)) {
 		again(http.StatusTooManyRequests, "That is a lot of demos from one place. Try again later.")
 		return
 	}
@@ -93,14 +94,14 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	person, org, err := s.Store.StartDemo(name, email, company)
+	person, org, err := s.Store.StartDemo(r.Context(), name, email, company)
 	if err != nil {
 		again(demoStatus(err), demoText(err))
 		return
 	}
-	s.provision(org.Slug)
-	s.tell("started", org.Slug)
-	s.noticeOfDemo(org.Slug)
+	s.provision(r.Context(), org.Slug)
+	s.tell(r.Context(), "started", org.Slug)
+	s.noticeOfDemo(r.Context(), org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/demo/wait", http.StatusSeeOther)
@@ -145,14 +146,14 @@ func demoStatus(err error) int {
 // demoWait is the page a demo's visitor is on until their server answers, which sends them in once, and is where
 // they come back to for the time they have, to extend it, and to book a call.
 func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person) {
-	demo, left, found := s.Store.DemoLeft(person.Org)
+	demo, left, found := s.Store.DemoLeft(r.Context(), person.Org)
 	if !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
 	state := Ready
 	if s.Controller != nil {
-		_, state = s.Controller.Route(person.Org)
+		_, state = s.Controller.Route(r.Context(), person.Org)
 	}
 	page := view{Title: "Your gusto demo", Org: Org{Slug: person.Org, Name: demo.Company}, Person: person, DemoLeft: left,
 		Book: s.Store.set.Demo.BookURL, Extendable: !demo.Extended && s.Store.set.Demo.Extend > 0 && !demo.Expires.IsZero(),
@@ -160,7 +161,7 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 	if state != Ready {
 		page.Refresh, page.DemoWords = true, waitingWords(state)
 		page.Steps = demoSteps(state)
-		if lead, found := s.Store.LeadOf(person.Org); found {
+		if lead, found := s.Store.LeadOf(r.Context(), person.Org); found {
 			page.Waited = waited(lead.Requested, time.Now())
 		}
 		s.render(w, http.StatusOK, "demo-wait", page)
@@ -169,10 +170,10 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 	// The first time the visitor finds the demo ready, its room is made and they are sent in, once. The demo's time started when its
 	// server first answered; it is started here too, for a demo whose controller could not.
 	if !s.demoOpened(person.Org) {
-		if _, err := s.Store.DemoReady(person.Org); err != nil {
+		if _, err := s.Store.DemoReady(r.Context(), person.Org); err != nil {
 			log.Printf("cloud: a demo's time was not started: %v", err)
 		}
-		s.seedDemoRoom(person)
+		s.seedDemoRoom(r.Context(), person)
 		s.markDemoOpened(person.Org)
 		http.Redirect(w, r, "/open", http.StatusSeeOther)
 		return
@@ -193,7 +194,7 @@ func waitingWords(state State) string {
 }
 
 func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Person) {
-	_, err := s.Store.ExtendDemo(person.Org)
+	_, err := s.Store.ExtendDemo(r.Context(), person.Org)
 	notice := ""
 	switch {
 	case errors.Is(err, ErrNoExtension):
@@ -211,7 +212,7 @@ func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Perso
 
 // stopDemoPage asks a visitor whether to end their demo now, since everything in it is deleted with it.
 func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Person) {
-	if _, _, found := s.Store.DemoLeft(person.Org); !found {
+	if _, _, found := s.Store.DemoLeft(r.Context(), person.Org); !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
@@ -221,18 +222,18 @@ func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Per
 // stopDemo ends a visitor's demo now, which is what it does at the end of its time, and takes them to the page that
 // says when it is done.
 func (s *Server) stopDemo(w http.ResponseWriter, r *http.Request, person Person) {
-	if err := s.Store.StopDemo(person.Org); err != nil {
+	if err := s.Store.StopDemo(r.Context(), person.Org); err != nil {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	s.EndDueDemos()
+	s.EndDueDemos(r.Context())
 	http.Redirect(w, r, "/demo/ended/"+person.Org, http.StatusSeeOther)
 }
 
 // demoEndedPage is where a visitor who ended their demo waits for it to be deleted, and reads that it has been.
 func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
-	lead, found := s.Store.LeadOf(slug)
+	lead, found := s.Store.LeadOf(r.Context(), slug)
 	if !found {
 		http.NotFound(w, r)
 		return
@@ -245,8 +246,8 @@ func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // demoEnded is what an address shows after its demo has been deleted: that it has ended, and where to book a call.
-func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
-	lead, found := s.Store.LeadOf(slug)
+func (s *Server) demoEnded(ctx context.Context, w http.ResponseWriter, slug string) bool {
+	lead, found := s.Store.LeadOf(ctx, slug)
 	if !found || lead.Ended.IsZero() {
 		return false
 	}
@@ -256,10 +257,10 @@ func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
 
 // demoLeaseJSON says how long a demo has, for the banner on each of its pages, and where to extend it and book a call. A demo
 // that has ended says so, so a page still open on it goes to the page that says it has ended.
-func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
-	demo, left, found := s.Store.DemoLeft(slug)
+func (s *Server) demoLeaseJSON(ctx context.Context, w http.ResponseWriter, slug string) bool {
+	demo, left, found := s.Store.DemoLeft(ctx, slug)
 	if !found {
-		lead, led := s.Store.LeadOf(slug)
+		lead, led := s.Store.LeadOf(ctx, slug)
 		if !led || lead.Ended.IsZero() {
 			return false
 		}

@@ -116,24 +116,24 @@ func (c *Controller) orgDir(slug string) string { return c.Store.OrgDir(slug) }
 
 // Provision makes an organization's server exist and start, and says when it answers. A front door that does not lead
 // starts nothing: the leader finds the organization and provisions it.
-func (c *Controller) Provision(slug string) error {
+func (c *Controller) Provision(ctx context.Context, slug string) error {
 	if c.following() {
 		return nil
 	}
 	held := c.lock(slug)
 	held.Lock()
 	defer held.Unlock()
-	return c.provision(slug)
+	return c.provision(ctx, slug)
 }
 
 // ErrRemoved is the answer to provisioning an organization that is gone, or that Remove forgot.
 var ErrRemoved = errors.New("that organization has been removed")
 
-func (c *Controller) provision(slug string) error {
-	if err := c.stillServed(slug); err != nil {
+func (c *Controller) provision(ctx context.Context, slug string) error {
+	if err := c.stillServed(ctx, slug); err != nil {
 		return err
 	}
-	runtime, err := c.Store.Runtime(slug)
+	runtime, err := c.Store.Runtime(ctx, slug)
 	if err != nil {
 		return err
 	}
@@ -143,48 +143,48 @@ func (c *Controller) provision(slug string) error {
 		runtime.Restarts = held.Restarts
 	}
 	c.mu.Unlock()
-	if err := c.set(slug, runtime, Provisioning, ""); err != nil {
+	if err := c.set(ctx, slug, runtime, Provisioning, ""); err != nil {
 		return err
 	}
-	if err := c.prepare(slug); err != nil {
-		return c.fail(slug, runtime, err)
+	if err := c.prepare(ctx, slug); err != nil {
+		return c.fail(ctx, slug, runtime, err)
 	}
-	cell, err := c.placement(slug, &runtime)
+	cell, err := c.placement(ctx, slug, &runtime)
 	if errors.Is(err, ErrNoCapacity) {
-		return c.wait(slug, runtime, err)
+		return c.wait(ctx, slug, runtime, err)
 	}
 	if err != nil {
-		return c.fail(slug, runtime, err)
+		return c.fail(ctx, slug, runtime, err)
 	}
 	if runtime.Port == 0 {
-		if runtime, err = c.givePorts(slug, runtime, cell); err != nil {
-			return c.fail(slug, runtime, err)
+		if runtime, err = c.givePorts(ctx, slug, runtime, cell); err != nil {
+			return c.fail(ctx, slug, runtime, err)
 		}
 	}
-	if err := c.set(slug, runtime, Starting, ""); err != nil {
+	if err := c.set(ctx, slug, runtime, Starting, ""); err != nil {
 		return err
 	}
-	env, err := c.environment(slug, runtime, cell)
+	env, err := c.environment(ctx, slug, runtime, cell)
 	if err != nil {
-		return c.fail(slug, runtime, err)
+		return c.fail(ctx, slug, runtime, err)
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
 	if err := c.endOtherRelease(cell, slug, runtime); err != nil {
-		return c.fail(slug, runtime, err)
+		return c.fail(ctx, slug, runtime, err)
 	}
 	if err := cell.Start(spec); err != nil {
-		return c.fail(slug, runtime, err)
+		return c.fail(ctx, slug, runtime, err)
 	}
 	runtime.Command = strings.Join(c.Command, " ")
 	if err := c.answers(cell, runtime.Port); err != nil {
-		return c.fail(slug, runtime, err)
+		return c.fail(ctx, slug, runtime, err)
 	}
-	if err := c.set(slug, runtime, Ready, ""); err != nil {
+	if err := c.set(ctx, slug, runtime, Ready, ""); err != nil {
 		return err
 	}
 	// A demo's time starts when its server first answers, whoever opens it first: its visitor's waiting page, or a colleague
 	// who came by the organization's own address.
-	if _, err := c.Store.DemoReady(slug); err != nil && !errors.Is(err, ErrNotDemo) {
+	if _, err := c.Store.DemoReady(ctx, slug); err != nil && !errors.Is(err, ErrNotDemo) {
 		slog.Error("a demo's time could not be started", "org", slug, "error", err)
 	}
 	return nil
@@ -192,8 +192,8 @@ func (c *Controller) provision(slug string) error {
 
 // stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
 // to provision can be decided on before Remove and run after it, as the signup's and Run's are; this is where it is refused.
-func (c *Controller) stillServed(slug string) error {
-	org, found, err := c.Store.Org(slug)
+func (c *Controller) stillServed(ctx context.Context, slug string) error {
+	org, found, err := c.Store.Org(ctx, slug)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (c *Controller) cellNamed(name string) (Cell, error) {
 // placement is the cell an organization's server runs on. One that was placed stays there, since its
 // computers are on that cell's gateway, and one that was not is put on the cell with the most room and
 // has that written down before anything is started on it.
-func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
+func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtime) (Cell, error) {
 	if runtime.Cell != "" {
 		cell, err := c.cellNamed(runtime.Cell)
 		if !errors.Is(err, ErrCellGone) {
@@ -249,12 +249,12 @@ func (c *Controller) placement(slug string, runtime *Runtime) (Cell, error) {
 		}
 	}
 	runtime.Cell = cell.Name()
-	return cell, c.Store.SetRuntimeAt(c.epoch.Load(), slug, *runtime)
+	return cell, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, *runtime)
 }
 
 // prepare makes what an organization's server keeps: its directories, the key it signs
 // its records with, and the key it and the front door share.
-func (c *Controller) prepare(slug string) error {
+func (c *Controller) prepare(ctx context.Context, slug string) error {
 	data := c.Store.DataDir(slug)
 	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
 		if err := os.MkdirAll(filepath.Join(data, dir), 0o700); err != nil {
@@ -264,7 +264,7 @@ func (c *Controller) prepare(slug string) error {
 	if err := os.MkdirAll(filepath.Join(c.orgDir(slug), "home"), 0o700); err != nil {
 		return err
 	}
-	if err := c.Store.PublishRoster(slug); err != nil {
+	if err := c.Store.PublishRoster(ctx, slug); err != nil {
 		return err
 	}
 	keys := filepath.Join(data, "keys")
@@ -294,12 +294,12 @@ func (c *Controller) EntryKey(slug string) ([]byte, error) { return os.ReadFile(
 
 // environment is the whole environment of an organization's server: the operator's
 // settings, then what is the organization's own, which wins.
-func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]string, error) {
+func (c *Controller) environment(ctx context.Context, slug string, runtime Runtime, cell Cell) ([]string, error) {
 	password := make([]byte, 24)
 	if _, err := rand.Read(password); err != nil {
 		return nil, err
 	}
-	org, _, err := c.Store.Org(slug)
+	org, _, err := c.Store.Org(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
@@ -363,16 +363,16 @@ func (c *Controller) environment(slug string, runtime Runtime, cell Cell) ([]str
 
 // givePorts gives an organization two ports on its cell and writes them down before anyone
 // else is given any, so two organizations provisioned together do not share one.
-func (c *Controller) givePorts(slug string, runtime Runtime, cell Cell) (Runtime, error) {
+func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime, cell Cell) (Runtime, error) {
 	c.portMu.Lock()
 	defer c.portMu.Unlock()
-	orgs, err := c.Store.Orgs()
+	orgs, err := c.Store.Orgs(ctx)
 	if err != nil {
 		return runtime, err
 	}
 	given := map[int]bool{}
 	for _, org := range orgs {
-		if other, err := c.Store.Runtime(org.Slug); err == nil && other.Cell == runtime.Cell {
+		if other, err := c.Store.Runtime(ctx, org.Slug); err == nil && other.Cell == runtime.Cell {
 			given[other.Port], given[other.ProxyPort] = true, true
 		}
 	}
@@ -381,7 +381,7 @@ func (c *Controller) givePorts(slug string, runtime Runtime, cell Cell) (Runtime
 		return runtime, err
 	}
 	runtime.Port, runtime.ProxyPort = server, proxy
-	return runtime, c.Store.SetRuntimeAt(c.epoch.Load(), slug, runtime)
+	return runtime, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, runtime)
 }
 
 func free(port int) bool {
@@ -413,9 +413,9 @@ func (c *Controller) answers(cell Cell, port int) error {
 // set writes down the state of a server and remembers it for routing. A write refused because another front door leads now
 // is said, and nothing is remembered: the provision that made it stops. Any other failure to write is logged, and routing
 // follows what is remembered.
-func (c *Controller) set(slug string, runtime Runtime, state State, why string) error {
+func (c *Controller) set(ctx context.Context, slug string, runtime Runtime, state State, why string) error {
 	runtime.State, runtime.Error = state, why
-	err := c.Store.SetRuntimeAt(c.epoch.Load(), slug, runtime)
+	err := c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, runtime)
 	if errors.Is(err, ErrNotLeading) {
 		return err
 	}
@@ -433,8 +433,8 @@ func (c *Controller) set(slug string, runtime Runtime, state State, why string) 
 
 // wait leaves an organization waiting for a cell with room, which it is tried for again shortly. It is not a failure
 // and is not counted as one, since what it waits for is being made.
-func (c *Controller) wait(slug string, runtime Runtime, err error) error {
-	c.set(slug, runtime, Waiting, err.Error())
+func (c *Controller) wait(ctx context.Context, slug string, runtime Runtime, err error) error {
+	c.set(ctx, slug, runtime, Waiting, err.Error())
 	c.mu.Lock()
 	if c.retry == nil {
 		c.retry = map[string]time.Time{}
@@ -473,17 +473,17 @@ func (c *Controller) count(states ...State) int {
 	return counted
 }
 
-func (c *Controller) fail(slug string, runtime Runtime, err error) error {
+func (c *Controller) fail(ctx context.Context, slug string, runtime Runtime, err error) error {
 	slog.Error("an organization's server could not be made ready", "org", slug, "error", err)
-	c.set(slug, runtime, Failed, err.Error())
+	c.set(ctx, slug, runtime, Failed, err.Error())
 	return err
 }
 
 // Route is where an organization's server is when it can be reached, and its state
 // when it cannot. A server whose process has gone is not reached.
-func (c *Controller) Route(slug string) (address string, state State) {
+func (c *Controller) Route(ctx context.Context, slug string) (address string, state State) {
 	if c.following() {
-		return c.routeFollowed(slug)
+		return c.routeFollowed(ctx, slug)
 	}
 	c.mu.Lock()
 	runtime, known := c.states[slug]
@@ -506,19 +506,19 @@ func (c *Controller) Route(slug string) (address string, state State) {
 // stopped is started again, at first at once and then less often, so one that cannot start does not take the machine with
 // it.
 func (c *Controller) Run(ctx context.Context, every time.Duration) {
-	orgs, err := c.Store.Orgs()
+	orgs, err := c.Store.Orgs(ctx)
 	if err != nil {
 		slog.Error("the organizations could not be listed", "error", err)
 	}
 	// What each server was is known before it is started again, so a request for it
 	// is told it is starting and not that it is not there.
 	for _, org := range orgs {
-		if runtime, err := c.Store.Runtime(org.Slug); err == nil && runtime.State != "" {
-			c.set(org.Slug, runtime, Starting, "")
+		if runtime, err := c.Store.Runtime(ctx, org.Slug); err == nil && runtime.State != "" {
+			c.set(ctx, org.Slug, runtime, Starting, "")
 		}
 	}
 	for _, org := range orgs {
-		go c.Provision(org.Slug)
+		go c.Provision(ctx, org.Slug)
 	}
 	for {
 		// An organization that waits for a cell is looked at often, since a visitor waits on it; otherwise every so often.
@@ -532,14 +532,14 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 			timer.Stop()
 			return
 		case <-timer.C:
-			c.supervise()
+			c.supervise(ctx)
 		}
 	}
 }
 
 // supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a front door that
 // does not lead. Whether a server is alive is asked of its cell outside c.mu, so routing does not wait on a cell.
-func (c *Controller) supervise() {
+func (c *Controller) supervise(ctx context.Context) {
 	var due, waiting []string
 	var ready map[string]Runtime
 	c.mu.Lock()
@@ -564,17 +564,17 @@ func (c *Controller) supervise() {
 		}
 	}
 	for _, slug := range due {
-		c.restart(slug)
+		c.restart(ctx, slug)
 	}
 	for _, slug := range waiting {
-		go c.reprovision(slug)
+		go c.reprovision(ctx, slug)
 	}
-	c.provisionNew()
+	c.provisionNew(ctx)
 }
 
 // provisionNew provisions each organization that has no runtime yet and that this controller does not hold.
-func (c *Controller) provisionNew() {
-	slugs, err := c.Store.Unprovisioned()
+func (c *Controller) provisionNew(ctx context.Context) {
+	slugs, err := c.Store.Unprovisioned(ctx)
 	if err != nil {
 		slog.Error("the organizations with no server could not be listed", "error", err)
 		return
@@ -584,7 +584,7 @@ func (c *Controller) provisionNew() {
 		_, held := c.states[slug]
 		c.mu.Unlock()
 		if !held {
-			go c.Provision(slug)
+			go c.Provision(ctx, slug)
 		}
 	}
 }
@@ -592,7 +592,7 @@ func (c *Controller) provisionNew() {
 // reprovision starts again a server the controller keeps, and does nothing for one it was told to forget. The supervisor
 // decides what to restart before it takes each organization's lock, and Remove may come in between: what it removed stays
 // removed.
-func (c *Controller) reprovision(slug string) error {
+func (c *Controller) reprovision(ctx context.Context, slug string) error {
 	held := c.lock(slug)
 	held.Lock()
 	defer held.Unlock()
@@ -602,12 +602,12 @@ func (c *Controller) reprovision(slug string) error {
 	if !kept {
 		return nil
 	}
-	return c.provision(slug)
+	return c.provision(ctx, slug)
 }
 
 // restart starts a server that has stopped or failed. One that fails again is
 // tried after twice as long each time, up to five minutes.
-func (c *Controller) restart(slug string) {
+func (c *Controller) restart(ctx context.Context, slug string) {
 	c.mu.Lock()
 	runtime, kept := c.states[slug]
 	if !kept {
@@ -617,7 +617,7 @@ func (c *Controller) restart(slug string) {
 	runtime.Restarts++
 	c.states[slug] = runtime
 	c.mu.Unlock()
-	if err := c.reprovision(slug); err != nil && !errors.Is(err, ErrRemoved) {
+	if err := c.reprovision(ctx, slug); err != nil && !errors.Is(err, ErrRemoved) {
 		c.mu.Lock()
 		if c.retry == nil {
 			c.retry = map[string]time.Time{}
@@ -665,11 +665,11 @@ func (c *Controller) StopAll() {
 
 // Remove stops an organization's server and forgets it, so it is not started again, even by a call to provision made
 // before. What the organization's directory holds is the store's to delete, after this, and Ended is called once it has.
-func (c *Controller) Remove(slug string) {
+func (c *Controller) Remove(ctx context.Context, slug string) {
 	held := c.lock(slug)
 	held.Lock()
 	defer held.Unlock()
-	org, _, err := c.Store.Org(slug)
+	org, _, err := c.Store.Org(ctx, slug)
 	if err != nil {
 		slog.Error("a removed organization could not be read, so a new one at its address is refused until it ends", "org", slug, "error", err)
 	}
@@ -683,7 +683,7 @@ func (c *Controller) Remove(slug string) {
 	c.removed[slug] = org.Created
 	c.mu.Unlock()
 	if runtime.Cell == "" {
-		if stored, err := c.Store.Runtime(slug); err == nil {
+		if stored, err := c.Store.Runtime(ctx, slug); err == nil {
 			runtime = stored
 		}
 	}

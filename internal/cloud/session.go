@@ -31,34 +31,34 @@ const SessionLife = 30 * 24 * time.Hour
 // OpenSessions reads the signing key the database holds, and makes it when there is none, so that
 // every front door on one database signs and checks the same cookies and a restart signs nobody out.
 // secure is whether the cookie is for a site served over https.
-func (s *Store) OpenSessions(secure bool) (*Sessions, error) {
-	key, err := s.sessionKey()
+func (s *Store) OpenSessions(ctx context.Context, secure bool) (*Sessions, error) {
+	key, err := s.sessionKey(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &Sessions{key: key, secure: secure, life: SessionLife, now: time.Now}, nil
 }
 
-func (s *Store) sessionKey() ([]byte, error) {
-	if key, err := s.storedKey(); err != nil || key != nil {
+func (s *Store) sessionKey(ctx context.Context) ([]byte, error) {
+	if key, err := s.storedKey(ctx); err != nil || key != nil {
 		return key, err
 	}
 	fresh := make([]byte, 32)
 	if _, err := rand.Read(fresh); err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(context.Background(), keepSetting.SQL(1), settingSessionKey, hex.EncodeToString(fresh)); err != nil {
+	if _, err := s.db.ExecContext(ctx, keepSetting.SQL(1), settingSessionKey, hex.EncodeToString(fresh)); err != nil {
 		return nil, err
 	}
-	key, err := s.storedKey()
+	key, err := s.storedKey(ctx)
 	if err == nil && key == nil {
 		err = errors.New("gusto cloud's signing key was not kept")
 	}
 	return key, err
 }
 
-func (s *Store) storedKey() ([]byte, error) {
-	text, found, err := s.setting(settingSessionKey)
+func (s *Store) storedKey(ctx context.Context) ([]byte, error) {
+	text, found, err := s.setting(ctx, settingSessionKey)
 	if err != nil || !found {
 		return nil, err
 	}

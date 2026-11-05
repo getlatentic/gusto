@@ -14,15 +14,15 @@ func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.
 		s := open(t, Settings{})
 		before := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		if err := before.Provision(org.Slug); err != nil {
+		if err := before.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		address, _ := before.Route(org.Slug)
+		address, _ := before.Route(t.Context(), org.Slug)
 		first := whoIs(t, address)
 
 		same := controlled(t, s)
 		same.Cell = before.Cell
-		if err := same.Provision(org.Slug); err != nil {
+		if err := same.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
 		if whoIs(t, address)["pid"] != first["pid"] {
@@ -32,14 +32,14 @@ func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.
 		newer := controlled(t, s)
 		newer.Cell = before.Cell
 		newer.Command = append(newer.Command, "--newer")
-		if err := newer.Provision(org.Slug); err != nil {
+		if err := newer.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		again, state := newer.Route(org.Slug)
+		again, state := newer.Route(t.Context(), org.Slug)
 		if state != Ready || whoIs(t, again)["pid"] == first["pid"] {
 			t.Fatalf("the server of the older release still answers: %q", state)
 		}
-		if runtime, _ := s.Runtime(org.Slug); runtime.Command != newer.Command[0]+" serve --newer" {
+		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.Command != newer.Command[0]+" serve --newer" {
 			t.Errorf("what the server was started with is not written down: %q", runtime.Command)
 		}
 	})

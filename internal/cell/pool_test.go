@@ -132,11 +132,11 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	pool := pooled(t, 4096, map[string]*agentHost{"cell-a": a, "cell-b": b})
 	c, store := controlledOn(t, pool)
 	signUp := func(email, name string) string {
-		_, org, err := store.SignUp(cloud.Signup{Email: email, OrgName: name})
+		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: email, OrgName: name})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
 		return org.Slug
@@ -145,14 +145,14 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	a.setFree(2000) // the first organization took what cell-a had
 	second := signUp("bob@globex.com", "Globex")
 
-	placed := func(slug string) string { r, _ := store.Runtime(slug); return r.Cell }
+	placed := func(slug string) string { r, _ := store.Runtime(t.Context(), slug); return r.Cell }
 	if placed(first) != "cell-a" || placed(second) != "cell-b" {
 		t.Fatalf("placed on %q and %q", placed(first), placed(second))
 	}
 	if len(a.servers.Running()) != 1 || a.servers.Running()[0] != first || len(b.servers.Running()) != 1 || b.servers.Running()[0] != second {
 		t.Errorf("each cell runs its own: %v and %v", a.servers.Running(), b.servers.Running())
 	}
-	address, state := c.Route(first)
+	address, state := c.Route(t.Context(), first)
 	if state != cloud.Ready || !strings.HasPrefix(address, "127.0.0.1:") {
 		t.Fatalf("%q %v", address, state)
 	}
@@ -162,7 +162,7 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	// An organization is not moved when another cell has more room: its computers are on its cell.
 	a.setFree(50000)
 	b.setFree(1)
-	if err := c.Provision(second); err != nil {
+	if err := c.Provision(t.Context(), second); err != nil {
 		t.Fatal(err)
 	}
 	if placed(second) != "cell-b" {
@@ -174,26 +174,26 @@ func TestAServerWhoseCellStopsAnsweringIsNotRoutedToAndIsStartedAgainWhenTheCell
 	host := newAgent(t, "cell-a", 12000)
 	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
 	c, store := controlledOn(t, pool)
-	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
-	if err := c.Provision(org.Slug); err != nil {
+	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
 	// The cell goes quiet: its registration is old.
 	Register(pool.Dir, host.registration("cell-a", time.Now().Add(-10*time.Minute)))
-	if address, state := c.Route(org.Slug); address != "" || state != cloud.Starting {
+	if address, state := c.Route(t.Context(), org.Slug); address != "" || state != cloud.Starting {
 		t.Errorf("a server on a cell that is not heard from is routed to: %q %v", address, state)
 	}
-	if err := c.Provision(org.Slug); err == nil || !strings.Contains(err.Error(), "has not been heard from") {
+	if err := c.Provision(t.Context(), org.Slug); err == nil || !strings.Contains(err.Error(), "has not been heard from") {
 		t.Errorf("provisioning on a silent cell: %v", err)
 	}
-	if r, _ := store.Runtime(org.Slug); r.State != cloud.Failed || r.Cell != "cell-a" {
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.State != cloud.Failed || r.Cell != "cell-a" {
 		t.Errorf("it is failed, and still placed where it was: %+v", r)
 	}
 	Register(pool.Dir, host.registration("cell-a", time.Now()))
-	if err := c.Provision(org.Slug); err != nil {
+	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	if _, state := c.Route(org.Slug); state != cloud.Ready {
+	if _, state := c.Route(t.Context(), org.Slug); state != cloud.Ready {
 		t.Errorf("%v", state)
 	}
 }
@@ -204,14 +204,14 @@ func TestPortsAreGivenPerCellSoTwoCellsMayUseTheSameOnesAndOneCellNeverDoes(t *t
 	c, store := controlledOn(t, pool)
 	seen := map[string]bool{}
 	for i := 0; i < 4; i++ {
-		_, org, err := store.SignUp(cloud.Signup{Email: fmt.Sprintf("u%d@company%d.com", i, i), OrgName: fmt.Sprintf("Company %d", i)})
+		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: fmt.Sprintf("u%d@company%d.com", i, i), OrgName: fmt.Sprintf("Company %d", i)})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		r, _ := store.Runtime(org.Slug)
+		r, _ := store.Runtime(t.Context(), org.Slug)
 		for _, port := range []int{r.Port, r.ProxyPort} {
 			key := fmt.Sprintf("%s:%d", r.Cell, port)
 			if seen[key] {
@@ -296,21 +296,21 @@ func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTh
 	}
 	c := &cloud.Controller{Store: store, Cells: cellsOf{"cell-a": a, "cell-b": b}, Command: []string{"serve"}, FrontDoor: "https://cloud.test", PortFrom: 9100, Wait: 5 * time.Second}
 	provision := func(email, name string) (string, cloud.Runtime) {
-		_, org, err := store.SignUp(cloud.Signup{Email: email, OrgName: name})
+		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: email, OrgName: name})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		r, _ := store.Runtime(org.Slug)
+		r, _ := store.Runtime(t.Context(), org.Slug)
 		return org.Slug, r
 	}
 	_, first := provision("ada@acme.com", "Acme")
 	// The second is placed on the other cell, by writing down where it goes before it is provisioned.
-	_, org, _ := store.SignUp(cloud.Signup{Email: "bob@globex.com", OrgName: "Globex"})
-	store.SetRuntime(org.Slug, cloud.Runtime{Cell: "cell-b"})
-	if err := c.Provision(org.Slug); err != nil {
+	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "bob@globex.com", OrgName: "Globex"})
+	store.SetRuntime(t.Context(), org.Slug, cloud.Runtime{Cell: "cell-b"})
+	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
 	_, third := provision("cy@initech.com", "Initech")
@@ -351,11 +351,11 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
 	first, store := controlledOn(t, pool)
 	t.Cleanup(host.stopServers)
-	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
-	if err := first.Provision(org.Slug); err != nil {
+	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err := first.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	before, state := first.Route(org.Slug)
+	before, state := first.Route(t.Context(), org.Slug)
 	if state != cloud.Ready {
 		t.Fatal(state)
 	}
@@ -367,10 +367,10 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 	next := &cloud.Controller{Store: store, Cells: pool, Command: first.Command, Env: first.Env, FrontDoor: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
 	pids := func() string { return strings.Join(host.servers.Running(), ",") }
 	was := pids()
-	if err := next.Provision(org.Slug); err != nil {
+	if err := next.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	after, _ := next.Route(org.Slug)
+	after, _ := next.Route(t.Context(), org.Slug)
 	if after != before || pids() != was {
 		t.Errorf("the next front door started another: %q then %q, %q then %q", before, after, was, pids())
 	}
@@ -421,31 +421,31 @@ func TestAnOrganizationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlyS
 	pool := pooled(t, 1000, map[string]*agentHost{"cell-old": old, "cell-new": fresh})
 	pool.GoneAfter = 10 * time.Minute
 	c, store := controlledOn(t, pool)
-	_, org, _ := store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
-	if err := c.Provision(org.Slug); err != nil {
+	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.Cell != "cell-old" {
 		t.Fatalf("placed on %s", r.Cell)
 	}
 	// Silent for five minutes: the host may come back, and the organization's computers are on it.
 	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-5*time.Minute)))
-	if err := c.Provision(org.Slug); err == nil {
+	if err := c.Provision(t.Context(), org.Slug); err == nil {
 		t.Fatal("an organization was moved off a cell that was only quiet")
 	}
-	if r, _ := store.Runtime(org.Slug); r.Cell != "cell-old" {
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.Cell != "cell-old" {
 		t.Errorf("moved to %s", r.Cell)
 	}
 	// Silent for a quarter of an hour: it is gone.
 	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-15*time.Minute)))
-	if err := c.Provision(org.Slug); err != nil {
+	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatalf("it was not placed again: %v", err)
 	}
-	r, _ := store.Runtime(org.Slug)
+	r, _ := store.Runtime(t.Context(), org.Slug)
 	if r.Cell != "cell-new" || r.State != cloud.Ready || r.Port == 0 {
 		t.Errorf("%+v", r)
 	}
-	if address, state := c.Route(org.Slug); state != cloud.Ready || whoami(t, address)["cell"] != "cell-new" {
+	if address, state := c.Route(t.Context(), org.Slug); state != cloud.Ready || whoami(t, address)["cell"] != "cell-new" {
 		t.Errorf("%q %v", address, state)
 	}
 }
