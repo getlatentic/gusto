@@ -3,7 +3,7 @@ package cloud
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -96,7 +96,7 @@ func refusalText(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: a sign-up failed: %v", err)
+	slog.Error("a sign-up failed", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 
@@ -119,7 +119,7 @@ func refusalStatus(err error) int {
 func (s *Server) mailVerification(ctx context.Context, person Person, org Org) {
 	secret, err := s.Store.MakeLink(ctx, person.Email, Verify, VerifyLife)
 	if err != nil {
-		log.Printf("cloud: a verification link was not made: %v", err)
+		slog.Error("a verification link was not made", "error", err)
 		return
 	}
 	s.send(person.Email, "Confirm your email address for "+org.Name,
@@ -156,12 +156,12 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 func (s *Server) mailSignIn(ctx context.Context, email string) {
 	secret, err := s.Store.MakeLink(ctx, email, SignIn, SignInLife)
 	if err != nil {
-		log.Printf("cloud: a sign-in link was not made: %v", err)
+		slog.Error("a sign-in link was not made", "error", err)
 		return
 	}
 	code, err := s.Store.MakeSignInCode(ctx, email)
 	if err != nil {
-		log.Printf("cloud: a sign-in code was not made: %v", err)
+		slog.Error("a sign-in code was not made", "error", err)
 		return
 	}
 	subject, body := signInMail(code, s.link("/signin/link", secret), SignInLife)
@@ -190,7 +190,7 @@ func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 		}
 		if purpose == Verify {
 			if err := s.Store.Verify(r.Context(), email); err != nil {
-				log.Printf("cloud: an address was not verified: %v", err)
+				slog.Error("an address was not verified", "error", err)
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return
 			}

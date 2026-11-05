@@ -3,7 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"slices"
@@ -87,13 +87,13 @@ func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int, person Person, notice string) {
 	org, found, err := s.Store.Org(ctx, person.Org)
 	if err != nil || !found {
-		log.Printf("cloud: an organization is missing its record: %v", err)
+		slog.Error("an organization is missing its record", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 		return
 	}
 	quota, err := s.Store.Quota(org.Slug)
 	if err != nil {
-		log.Printf("cloud: an organization is missing its quota: %v", err)
+		slog.Error("an organization is missing its quota", "error", err)
 	}
 	computers, byAddress := 0, map[string]string{}
 	if registry, err := s.Store.Computers(org.Slug); err == nil {

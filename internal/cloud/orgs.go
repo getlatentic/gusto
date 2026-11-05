@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 )
@@ -21,7 +21,7 @@ func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
-		log.Printf("cloud: a person's organizations could not be read: %v", err)
+		slog.Error("a person's organizations could not be read", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 		return
 	}
@@ -47,7 +47,7 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
-		log.Printf("cloud: a person's organizations could not be read: %v", err)
+		slog.Error("a person's organizations could not be read", "error", err)
 		http.Error(w, "the organizations could not be read", http.StatusInternalServerError)
 		return
 	}

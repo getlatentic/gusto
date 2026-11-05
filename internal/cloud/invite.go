@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -136,7 +136,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 		}
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: text})
 	default:
-		log.Printf("cloud: an invitation was not accepted: %v", err)
+		slog.Error("an invitation was not accepted", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 	}
 }
@@ -148,7 +148,7 @@ func sentence(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: an admin's request failed: %v", err)
+	slog.Error("an admin's request failed", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 

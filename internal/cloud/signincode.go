@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"strings"
@@ -75,7 +75,7 @@ func (s *Server) signInWithCode(w http.ResponseWriter, r *http.Request) {
 // signedIn starts a person's session once a link or code showed the address is theirs, and spends the rest they were sent.
 func (s *Server) signedIn(w http.ResponseWriter, r *http.Request, email string) {
 	if err := s.Store.forgetSignIns(r.Context(), email); err != nil {
-		log.Printf("cloud: the other sign-in links of an address were not spent: %v", err)
+		slog.Error("the other sign-in links of an address were not spent", "error", err)
 	}
 	s.Sessions.Issue(w, email)
 	http.Redirect(w, r, "/app", http.StatusSeeOther)

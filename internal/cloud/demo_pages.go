@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -125,7 +125,7 @@ func demoText(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: a demo could not be started: %v", err)
+	slog.Error("a demo could not be started", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 
@@ -171,7 +171,7 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 	// server first answered; it is started here too, for a demo whose controller could not.
 	if !s.demoOpened(person.Org) {
 		if _, err := s.Store.DemoReady(r.Context(), person.Org); err != nil {
-			log.Printf("cloud: a demo's time was not started: %v", err)
+			slog.Error("a demo's time was not started", "error", err)
 		}
 		s.seedDemoRoom(r.Context(), person)
 		s.markDemoOpened(person.Org)
@@ -200,7 +200,7 @@ func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Perso
 	case errors.Is(err, ErrNoExtension):
 		notice = "This demo cannot be extended any more."
 	case err != nil:
-		log.Printf("cloud: a demo was not extended: %v", err)
+		slog.Error("a demo was not extended", "error", err)
 		notice = "The demo could not be extended."
 	}
 	if notice == "" {

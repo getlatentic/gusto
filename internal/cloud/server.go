@@ -3,7 +3,7 @@ package cloud
 import (
 	"embed"
 	"html/template"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -288,7 +288,7 @@ func (s *Server) send(to, subject, body string) {
 	go func() {
 		defer s.sending.Done()
 		if err := s.Mail.Send(to, subject, body); err != nil {
-			log.Printf("cloud: mail to a person was not sent: %v", err)
+			slog.Error("mail to a person was not sent", "error", err)
 		}
 	}()
 }
