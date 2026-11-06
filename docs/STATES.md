@@ -57,7 +57,7 @@ The time budget ends an agent. It comes from `budget.seconds`, default 900 (`pkg
 | SIGKILL, a crash, the machine | The container runs on, and the next start reads its manifest |
 
 - On a signal the server shuts the HTTP server down with a 30-second grace. `queue.Stop()` then waits for every worker. A worker checks for stop between tasks, so nothing new starts (`cmd/gusto/serve.go`, `internal/jobs/queue.go`).
-- The task in flight is not interrupted, so the stop takes as long as that task. The service unit allows 60 seconds, then kills everything in the cgroup (`deploy/ansible/roles/serve/templates/gusto.service.j2`). A task with the default 900-second budget often meets the hard kill. Tasks left queued are the next server's work.
+- The task in flight is not interrupted, so the stop takes as long as that task. A service manager that allows 60 seconds, as a systemd unit's default does, then kills everything in the cgroup. A task with the default 900-second budget often meets the hard kill. Tasks left queued are the next server's work.
 - A task left `queued` stays `queued`, and the next server takes it. A task that appears in the directory while a server runs waits for the next start, because the index is read once, at `Open`.
 - `GUSTO_SANDBOX=here` runs the work as a function call, so a task dies with the server.
 

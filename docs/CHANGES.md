@@ -32,7 +32,6 @@ A change is applied and then recorded. When the record cannot be written, the se
 `GUSTO_CHANGES` names the file.
 
 - Compose and the chart: `$GUSTO_DATA/changes/changes.jsonl` on the volume.
-- The playbook: `/opt/gusto/var/changes/changes.jsonl`, append-only where the filesystem allows, so not even the server's user can rewrite or shorten it. The playbook says when it cannot.
 
 An admin downloads the file from `/admin/activity.jsonl`. A script with the shared password, or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 

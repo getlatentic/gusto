@@ -1,8 +1,7 @@
 #!/bin/sh
 # One real job through a running install: submitted to the server over its API,
 # run in a container the server starts from the runner image, and its evidence
-# verified. It is the check deploy/ansible's smoke role makes on the box, made
-# against compose or Kubernetes instead.
+# verified, against compose or Kubernetes.
 #
 # It runs inside the server's container, so it needs nothing where you type but
 # the command that reaches in, and the paths it makes are the ones the server

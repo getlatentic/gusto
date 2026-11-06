@@ -24,7 +24,7 @@ What to watch on a gusto server, and what to do when an alert fires.
 | `gusto_disk_free_bytes{store="jobs"}`, `gusto_disk_total_bytes{store="jobs"}` | the volume the tasks are on |
 | `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the workspaces among them, and when the longest-kept finished task ended |
 | `gusto_proxy_calls_total`, `gusto_proxy_errors_total`, `gusto_proxy_refused_total` | model calls; calls the model's side failed (no answer, or a 5xx); calls a spending cap stopped. Absent with no proxy |
-| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT`, as the playbook's autodeploy does |
+| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT` |
 
 ## Alerts
 

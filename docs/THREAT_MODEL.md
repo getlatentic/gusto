@@ -17,7 +17,7 @@ gusto protects the assets below from a hostile agent, a hostile caller and a cur
 
 | Actor | Trusted with | Not trusted with |
 | --- | --- | --- |
-| Operator | Everything: the host, the vault, the playbook | |
+| Operator | Everything: the host, its secrets, the deployment | |
 | Admin | Every person's work, tokens, retention, skill sets | The host |
 | Runner (a signed-in person) | Their own agents, tasks and spend | Anyone else's, and settings |
 | API token | Exactly its scopes | Anything else, and any page |

@@ -24,7 +24,6 @@ The server refuses a policy that sets a record to go before its workspace, names
 
 | Install | Where |
 | --- | --- |
-| Playbook | `retention_policy` in the host's variables |
 | Chart | `retention` in the values |
 | Compose | `policy.json` in `$GUSTO_DATA/retention/` on the volume |
 
