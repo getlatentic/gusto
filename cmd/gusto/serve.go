@@ -71,8 +71,7 @@ func serve(args []string) int {
 func newServer() (*server, int) {
 	cfg, set, err := loadServe()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gusto:", err)
-		return nil, 2
+		return nil, refused(err)
 	}
 	if cfg.core.password == "" {
 		// A URL that spends money and runs code is not left open because a variable was forgotten.
