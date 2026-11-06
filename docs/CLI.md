@@ -854,7 +854,7 @@ gusto cloud workspaces
 gusto cloud migrate
 ```
 
-With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
+With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting whose value does not read. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
 
 Commands:
 
@@ -867,14 +867,72 @@ Flags:
 
 Environment:
 
-- `GUSTO_CLOUD_ADDR`: where to listen (default 127.0.0.1:8050)
-- `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com
-- `GUSTO_CLOUD_DOMAIN`: the domain organizations' servers are under
-- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
-- `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
-- `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_CLOUD_ADDR`: where gusto cloud listens (default 127.0.0.1:8050)
+- `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)
+- `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain> (default localhost)
+- `GUSTO_CLOUD_TRUST_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_CLOUD_MAIL`: how mail is sent: outbox writes it to files; smtp://user:pass@host:587?from=a@example.com sends it by SMTP; cloudflare://<account id>?from=a@example.com sends it by Cloudflare (default outbox)
+- `GUSTO_CLOUD_MAIL_TOKEN`: the Cloudflare API token that may send mail, for cloudflare://
+- `GUSTO_CLOUD_LEASE_FILE`: the file that says when a demo host removes itself; a person signed in at /lease extends it, and without it there is no lease
+- `GUSTO_CLOUD_LEASE_STEP_MINUTES`: how much each extension of the lease adds, in minutes (default 30)
+- `GUSTO_CLOUD_LEADER_SECONDS`: how long the lease that makes one front door the leader lasts unrenewed, in seconds (default 30)
+- `GUSTO_CLOUD_LEAD_HOOK_URL`: the address each demo lead is sent to, by a signed request
+- `GUSTO_CLOUD_LEAD_HOOK_SECRET`: the secret the lead hook's requests are signed with
+- `GUSTO_CLOUD_TURNSTILE_SITE`: the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed
+- `GUSTO_CLOUD_TURNSTILE_SECRET`: the Cloudflare Turnstile secret of the bot check
+- `GUSTO_CLOUD_PER_ADDRESS`: the most sign-ups, sign-ins and demo requests from one network address in an hour (default 10)
+- `GUSTO_CLOUD_PER_MAILBOX`: the most mail sent to one address in an hour (default 3)
+- `GUSTO_CLOUD_IN_ALL`: the most sign-ups, and the most demo requests, in all in an hour (default 200)
+- `GUSTO_CLOUD_FREE_MAIL`: whether free mail providers may sign up; allow is for a demonstration (allow, refuse) (default refuse)
+- `GUSTO_CLOUD_REFUSED_DOMAINS`: more mail domains to turn away, beside the built-in ones, comma-separated
+- `GUSTO_CLOUD_PER_DOMAIN`: how many organizations one mail domain may make (default 3)
+- `GUSTO_CLOUD_TRIAL_JOBS`: the tasks in all an organization may run before its admin's address is confirmed (default 3)
+- `GUSTO_CLOUD_TRIAL_CONCURRENT`: the tasks at once an organization may run before its admin's address is confirmed (default 1)
+- `GUSTO_CLOUD_JOBS`: the tasks a month a confirmed organization may run (default 200)
+- `GUSTO_CLOUD_CONCURRENT`: the tasks at once a confirmed organization may run (default 4)
+- `GUSTO_CLOUD_MEMBERS`: the people a confirmed organization may have (default 4)
+- `GUSTO_CLOUD_COMPUTERS`: the workspaces a confirmed organization may have (default 4)
+- `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200)
+- `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the workspaces, a paying organization may have (default 50)
+- `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
+- `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
+- `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)
+- `GUSTO_CLOUD_DEMO_MAX`: the most demos at once, until the operator's page sets it (default 5)
+- `GUSTO_CLOUD_DEMO_PER_DAY`: the most demos started in a day, until the operator's page sets it (default 40)
+- `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
+- `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
+- `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
+- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
+- `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
+- `GUSTO_CLOUD_STRIPE_PRICE`: the Stripe price of one seat for a month
+- `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET`: the signing secret of the Stripe webhook
+- `GUSTO_CLOUD_SEAT_USD`: the seat's price the organization page shows, in dollars (default 25)
+- `GUSTO_CLOUD_SERVERS`: whether gusto cloud starts organizations' servers; off keeps the accounts only (on, off) (default on)
+- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
+- `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
+- `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
+- `GUSTO_CLOUD_PORT_FROM`: the first port an organization's server gets, two each (default 9100)
+- `GUSTO_CLOUD_START_WAIT_SECONDS`: how long a server has to answer once started, in seconds (default 120)
+- `GUSTO_CLOUD_CELLS_DIR`: the directory hosts register in; unset, this machine runs every organization's server
+- `GUSTO_CLOUD_CELL_SECRET_FILE`: the file with the secret gusto cloud and the hosts sign with
+- `GUSTO_CLOUD_CELL_MIN_FREE_MIB`: the memory a host must have free for an organization to be placed on it, in MiB (default 4096)
+- `GUSTO_CLOUD_CELL_GONE_MINUTES`: how long a host may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30)
+- `GUSTO_CLOUD_LOCAL_CELL`: this machine is a host too
+- `GUSTO_CLOUD_CELL_LAUNCH`: how a host is started when an organization waits for room; unset, none is (ec2)
+- `GUSTO_CLOUD_CELL_PROJECT`: the project tag of the hosts
+- `GUSTO_CLOUD_CELL_TEMPLATE`: the launch template a host is made from
+- `GUSTO_CLOUD_CELL_USERDATA`: the start-up script a host runs
+- `GUSTO_CLOUD_CELL_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script
+- `GUSTO_CLOUD_CELL_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept host of an older image is replaced and not started again
+- `GUSTO_CLOUD_CELL_MAX`: the most hosts (default 3)
+- `GUSTO_CLOUD_CELL_IDLE_MINUTES`: how long a host may have nothing on it before it is stopped, in minutes (default 10)
+- `GUSTO_CLOUD_CELL_BOOT_MINUTES`: how long a host has to come up, in minutes (default 10)
+- `GUSTO_CLOUD_CELL_PREWARMS`: the most hosts started in a day for a visitor still filling in the demo form (default 20)
+- `GUSTO_CLOUD_CELL_KEEP`: how many idle hosts are stopped and kept, rather than removed (default 0)
 
 Examples:
 
@@ -902,8 +960,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
 
 Examples:
 
@@ -930,8 +988,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
 
 Exit codes:
 
@@ -990,8 +1048,21 @@ Flags:
 Environment:
 
 - `GUSTO_OWNER_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
+- `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
+- `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)
+- `GUSTO_CLOUD_DEMO_MAX`: the most demos at once, until the operator's page sets it (default 5)
+- `GUSTO_CLOUD_DEMO_PER_DAY`: the most demos started in a day, until the operator's page sets it (default 40)
+- `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
+- `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
+- `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
+- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
+- `GUSTO_CLOUD_CELL_LAUNCH`: how a host is started when an organization waits for room; unset, none is (ec2)
+- `GUSTO_CLOUD_CELL_PROJECT`: the project tag of the hosts
 
 See also: `gusto cloud`
 

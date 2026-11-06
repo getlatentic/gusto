@@ -8,6 +8,21 @@ func envServer() []cmdline.Param {
 	return paramsOf(cfg.declare)
 }
 
+func envCloud() []cmdline.Param {
+	var cfg cloudSettings
+	return paramsOf(cfg.declare)
+}
+
+func envHost() []cmdline.Param {
+	var cfg hostSettings
+	return paramsOf(cfg.declare)
+}
+
+func envOperator() []cmdline.Param {
+	var cfg operatorSettings
+	return paramsOf(cfg.declare)
+}
+
 func runCommands() []*cmdline.Command {
 	return []*cmdline.Command{
 		{
@@ -42,17 +57,10 @@ func runCommands() []*cmdline.Command {
 			Name: "cloud", Group: groupRun, Summary: "Run gusto cloud, the hosted server for accounts and routing",
 			Usage: []string{"", "workspaces", "migrate"},
 			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it " +
-				"starts for each organization and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ " +
-				"variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in " +
+				"starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting " +
+				"whose value does not read. The accounts are in a database that several front doors can share: SQLite in " +
 				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
-			Env: append([]cmdline.Param{
-				{Name: "GUSTO_CLOUD_ADDR", Text: "where to listen (default 127.0.0.1:8050)"},
-				{Name: "GUSTO_CLOUD_URL", Text: "the address links in mail begin with, such as https://cloud.example.com"},
-				{Name: "GUSTO_CLOUD_DOMAIN", Text: "the domain organizations' servers are under"},
-				{Name: "GUSTO_CLOUD_ORG_ENV", Text: "a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes"},
-				{Name: "GUSTO_CLOUD_DEMO_ENV", Text: "a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox"},
-				{Name: "GUSTO_CLOUD_INDEX_DIR", Text: "where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)"},
-			}, envCloudDatabase...),
+			Env:      envCloud(),
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud workspaces"},
 			SeeAlso:  []string{"host", "operator"},
 			Run:      none("cloud", cloudCommand),
@@ -60,7 +68,7 @@ func runCommands() []*cmdline.Command {
 				Name: "workspaces", Summary: "List every workspace on this host",
 				Description: "Lists every workspace on this host, with the organization each is in and whose it is: the operator's " +
 					"view across organizations, read from each one's own record.",
-				Env:      envCloudDatabase,
+				Env:      envCloudDatabase(),
 				Examples: []string{"gusto cloud workspaces"},
 				SeeAlso:  []string{"cloud"},
 				Run:      none("cloud workspaces", cloudWorkspaces),
@@ -70,13 +78,7 @@ func runCommands() []*cmdline.Command {
 			Name: "host", Group: groupRun, Summary: "Run a host for organizations' servers, for a gusto cloud",
 			Description: "Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops " +
 				"what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.",
-			Env: []cmdline.Param{
-				{Name: "GUSTO_CELL_NAME", Text: "what this host is called: lower case letters, digits and hyphens, up to 31"},
-				{Name: "GUSTO_CELL_PRIVATE", Text: "this host's IPv4 address on the private network, which its servers bind to"},
-				{Name: "GUSTO_CELL_PORT", Text: "the port to listen on (default 8060)"},
-				{Name: "GUSTO_CELL_SECRET_FILE", Text: "the file with the secret gusto cloud and the hosts sign with"},
-				{Name: "GUSTO_CELLS_DIR", Text: "the directory every host and gusto cloud see"},
-			},
+			Env:     envHost(),
 			SeeAlso: []string{"cloud"},
 			Run:     none("host", hostCommand),
 		},
@@ -84,9 +86,7 @@ func runCommands() []*cmdline.Command {
 			Name: "operator", Group: groupRun, Summary: "Serve the operator's page for a gusto cloud, on loopback",
 			Description: "Serves the page an operator manages a gusto cloud from. It listens on the loopback of the machine gusto cloud " +
 				"runs on and refuses any other address, so nothing gusto cloud serves can reach it. Open a tunnel to it.",
-			Env: append([]cmdline.Param{
-				{Name: "GUSTO_OWNER_ADDR", Text: "where to listen; a loopback address (default 127.0.0.1:8090)"},
-			}, envCloudDatabase...),
+			Env:     envOperator(),
 			SeeAlso: []string{"cloud"},
 			Run:     none("operator", operatorCommand),
 		},

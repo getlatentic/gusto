@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
@@ -44,6 +45,12 @@ func loadSettings(declare ...func(*settings.Set)) error {
 		each(set)
 	}
 	return set.Load(os.Getenv)
+}
+
+// refused says why a command's settings do not read, and is the exit code of a command started wrongly.
+func refused(err error) int {
+	fmt.Fprintln(os.Stderr, "gusto:", err)
+	return 2
 }
 
 // paramsOf is the settings that declare declares as a command's help lists them.

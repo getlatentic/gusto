@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"maps"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -15,19 +16,30 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
-	// A test binary is not a gusto that can serve an organization.
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
-	root := filepath.Join(t.TempDir(), "cloud")
-	t.Setenv("GUSTO_CLOUD_ROOT", root)
-	t.Setenv("GUSTO_CLOUD_URL", "https://cloud.example.com")
-	t.Setenv("GUSTO_CLOUD_DOMAIN", "example.com")
-	t.Setenv("GUSTO_CLOUD_FREE_MAIL", "allow")
-	t.Setenv("GUSTO_CLOUD_TRIAL_JOBS", "7")
-	front, _, err := openCloud(t.Context())
+// cloudFrom is gusto cloud's settings as values sets them, on a root of the test's own and with no organization servers,
+// since a test binary is not a gusto that can serve one, unless values says otherwise.
+func cloudFrom(t *testing.T, values map[string]string) cloudSettings {
+	t.Helper()
+	with := map[string]string{"GUSTO_CLOUD_SERVERS": "off", "GUSTO_CLOUD_ROOT": filepath.Join(t.TempDir(), "cloud")}
+	maps.Copy(with, values)
+	cfg, err := loadCloud(func(name string) string { return with[name] })
 	if err != nil {
 		t.Fatal(err)
 	}
+	return cfg
+}
+
+func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
+	t.Parallel()
+	cfg := cloudFrom(t, map[string]string{
+		"GUSTO_CLOUD_URL": "https://cloud.example.com", "GUSTO_CLOUD_DOMAIN": "example.com",
+		"GUSTO_CLOUD_FREE_MAIL": "allow", "GUSTO_CLOUD_TRIAL_JOBS": "7",
+	})
+	front, _, err := openCloud(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer front.Store.Close()
 	server := httptest.NewServer(front.Handler())
 	defer server.Close()
 
@@ -55,17 +67,15 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 }
 
 func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
+	t.Parallel()
 	for name, set := range map[string]map[string]string{
 		"a link address that is not one": {"GUSTO_CLOUD_URL": "cloud.example.com"},
 		"a mail setting that is not one": {"GUSTO_CLOUD_MAIL": "smtp://mail.example.com"},
+		"billing with a key alone":       {"GUSTO_CLOUD_STRIPE_KEY": "sk_test"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-			for key, value := range set {
-				t.Setenv(key, value)
-			}
-			if _, _, err := openCloud(t.Context()); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
+			t.Parallel()
+			if _, _, err := openCloud(t.Context(), cloudFrom(t, set)); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
 				t.Errorf("%v", err)
 			}
 		})
@@ -77,12 +87,12 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 // organization's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
-	t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-	front, _, err := openCloud(t.Context())
+	t.Parallel()
+	front, _, err := openCloud(t.Context(), cloudFrom(t, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer front.Store.Close()
 	_, org, err := front.Store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err != nil {
 		t.Fatal(err)
@@ -126,6 +136,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 }
 
 func TestTheOperatorsSettingsForEveryOrganizationAreReadFromAFile(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "org.env")
 	os.WriteFile(path, []byte("# what every organization's server has\nGUSTO_CREDENTIALS=/etc/gusto/credentials\n\n  GUSTO_SANDBOX=openshell  \n"), 0o600)
 	env, err := operatorEnv(path)
@@ -155,6 +166,7 @@ func TestTheOperatorsSettingsForEveryOrganizationAreReadFromAFile(t *testing.T) 
 }
 
 func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) {
+	t.Parallel()
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 10})
 	if err != nil {
 		t.Fatal(err)

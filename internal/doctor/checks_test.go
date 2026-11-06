@@ -253,6 +253,14 @@ func TestHardwareVirtualizationIsDemandedOfAMachineThatRunsSandboxesAndHasNone(t
 // being called unhealthy.
 func TestTheDoctorSaysWhichWallAnAgentRunsBehind(t *testing.T) {
 	t.Setenv("GUSTO_SANDBOX", "")
+	// The socket probe makes a real socket in the working directory, and a unix socket's path is at most about 104 bytes,
+	// so the test runs it in a short directory wherever the checkout is.
+	short, err := os.MkdirTemp("", "d")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(short) })
+	t.Chdir(short)
 	only := func(programs ...string) func(string) (string, error) {
 		return func(program string) (string, error) {
 			if slices.Contains(programs, program) {

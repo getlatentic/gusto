@@ -25,29 +25,7 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 
 ## Settings
 
-| Setting | Meaning |
-| --- | --- |
-| `GUSTO_CLOUD_ROOT` | where organizations' files are kept, and `cloud.db` when there is no database address. `cloud` by default |
-| `GUSTO_DATABASE_URL` | where the accounts are kept. Unset, SQLite in `cloud.db` under the root. A `postgres://` address (its `search_path` names the schema, made when missing) lets several front doors share them ([CLOUD-DATABASE.md](CLOUD-DATABASE.md)) |
-| `GUSTO_CLOUD_INDEX_DIR` | the directory for organizations' indexes of model calls and tasks when an organization's own `GUSTO_DATABASE_URL` is not Postgres: `<dir>/<slug>/index.db` on the local disk of the host the server runs on. `index` under the root by default. Set it to a local path when the root is on a disk that hosts share |
-| `GUSTO_CLOUD_ADDR` | where gusto cloud listens, `127.0.0.1:8050` by default |
-| `GUSTO_CLOUD_URL` | the address links in mail begin with |
-| `GUSTO_CLOUD_DOMAIN` | the domain organizations are served under, as `<slug>.<domain>` |
-| `GUSTO_CLOUD_MAIL` | `outbox`, `smtp://user:password@host:587?from=name@example.com`, or `cloudflare://<account id>?from=name@example.com` |
-| `GUSTO_CLOUD_MAIL_TOKEN` | the Cloudflare API token that may send mail, for `cloudflare://`. Keep it where a secret is kept |
-| `GUSTO_CLOUD_LEASE_FILE` | the file that says when a demo host removes itself. A person signed in at `/lease` extends it, and every page warns in its last five minutes. Without it there is no lease |
-| `GUSTO_CLOUD_LEASE_STEP_MINUTES` | how much each extension adds, 30 by default |
-| `GUSTO_CLOUD_LEADER_SECONDS` | how long the lease that makes one front door the leader lasts unrenewed, 30 by default. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) says what the leader does |
-| `GUSTO_CLOUD_MEMBERS`, `GUSTO_CLOUD_COMPUTERS` | people and workspaces a verified organization may have, 4 and 4 by default: an admin and three users |
-| `GUSTO_CLOUD_ORG_ENV` | a file of `KEY=VALUE` lines that every organization's server starts with: the operator's credentials directory, models and sandbox. Nothing else of gusto cloud's environment goes to them |
-| `GUSTO_CLOUD_DEMO_ENV` | a file of `KEY=VALUE` lines that a demo organization's server starts with on top of `GUSTO_CLOUD_ORG_ENV`'s, which win over them: another sandbox for demos ([Demos](#demos)) |
-| `GUSTO_CLOUD_PORT_FROM` | the first port an organization's server gets, two each, 9100 by default |
-| `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
-| `GUSTO_CLOUD_SERVERS` | `off` runs gusto cloud with accounts and no organization servers |
-| `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
-| `GUSTO_CLOUD_STRIPE_KEY`, `GUSTO_CLOUD_STRIPE_PRICE`, `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET` | bill organizations by the seat ([Billing](#billing)): the secret API key, the monthly price of one seat, and the webhook's signing secret. All three or none. Keep the key and the secret where secrets are kept |
-| `GUSTO_CLOUD_SEAT_USD` | the seat's price the organization page shows, 25 by default |
-| `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`, `GUSTO_CLOUD_PAID_MEMBERS` | a paying organization's tasks a month for each seat, 200, and the people and workspaces it may have, 50 |
+Every setting gusto cloud reads, with its default, is listed by `gusto help cloud` and in [CLI.md](CLI.md#gusto-cloud), from the one place each is declared. A value that does not read, such as a number that is not one, stops gusto cloud before it starts, with the setting's name. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) says where the accounts are kept and what the leader does. [Billing](#billing) and [Demos](#demos) say what their settings do.
 
 ## Accounts and sign-up
 

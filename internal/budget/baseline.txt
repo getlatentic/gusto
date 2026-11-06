@@ -4,12 +4,10 @@
 #   go test ./internal/budget -update
 95 1 cmd/gusto-helper/commands.go:program
 64 16 cmd/gusto/changes.go:changesVerify
-77 14 cmd/gusto/cloud.go:cloudCommand
-76 15 cmd/gusto/cloud.go:openCloud
 51 1 cmd/gusto/commands_account.go:otherCommands
 110 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
-114 1 cmd/gusto/commands_run.go:runCommands
+99 1 cmd/gusto/commands_run.go:runCommands
 120 1 cmd/gusto/commands_task.go:taskCommands
 50 14 cmd/gusto/export.go:exportTask
 37 11 cmd/gusto/gateway.go:(*gateways).open
