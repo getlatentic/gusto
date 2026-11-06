@@ -33,7 +33,11 @@ func spendReport(args []string) int {
 	if set.NArg() != 0 {
 		return usageError("spend", "takes no arguments")
 	}
-	ledger, err := spend.Rebuild(orSetting(f.tasks, "GUSTO_JOBS", "jobs"), spend.Policy{})
+	tasks, err := tasksDir(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
+	ledger, err := spend.Rebuild(tasks, spend.Policy{})
 	if err != nil {
 		return fail(err)
 	}

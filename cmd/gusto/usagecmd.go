@@ -116,8 +116,12 @@ func usageSessions(args []string) int {
 	if f.limit < 1 {
 		return usageError("usage sessions", "-limit wants a number above 0")
 	}
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx := context.Background()
-	store, err := openUsage(ctx, orSetting(f.tasks, "GUSTO_JOBS", "jobs"))
+	store, err := where.openUsage(ctx)
 	if err != nil {
 		return fail(err)
 	}
@@ -230,10 +234,13 @@ func usageReindex(args []string) int {
 	if set.NArg() != 0 {
 		return usageError("usage reindex", "takes no arguments")
 	}
-	tasks := orSetting(f.tasks, "GUSTO_JOBS", "jobs")
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	store, err := openUsage(ctx, tasks)
+	store, err := where.openUsage(ctx)
 	if err != nil {
 		return fail(err)
 	}
@@ -243,12 +250,12 @@ func usageReindex(args []string) int {
 			return fail(err)
 		}
 	}
-	who, err := openAttribution(tasks)
+	who, err := openAttribution(where.tasks)
 	if err != nil {
 		return fail(err)
 	}
 	progress := &usage.Progress{Changed: printProgress}
-	result, err := usage.Backfill(ctx, store, tasks, who.who, who.provider, progress)
+	result, err := usage.Backfill(ctx, store, where.tasks, who.who, who.provider, progress)
 	fmt.Fprintln(os.Stderr)
 	if err != nil {
 		return fail(err)

@@ -8,7 +8,11 @@ import (
 // servers that start after this find it there. A host does it before it takes any work, since the first
 // question waits for the gateway to import the image.
 func scanCommand() int {
-	boxes, err := openBackend(nil, "")
+	cfg, _, err := loadServe()
+	if err != nil {
+		return fail(err)
+	}
+	boxes, err := openBackend(cfg.boxes, cfg.core.org, cfg.served.quota, nil, "")
 	if err != nil {
 		return fail(err)
 	}

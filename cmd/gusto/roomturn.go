@@ -28,14 +28,12 @@ type roomRuns struct {
 	askedBy func(job.Dir) string
 }
 
-func newRoomRuns(instances *instance.Store, askedBy func(job.Dir) string) *roomRuns {
+// newRoomRuns is how turns of a room's agents get their working copies, each copy held to limits.
+func newRoomRuns(instances *instance.Store, askedBy func(job.Dir) string, limits roomwork.Limits) *roomRuns {
 	if askedBy == nil {
 		askedBy = func(job.Dir) string { return "" }
 	}
-	return &roomRuns{instances: instances, askedBy: askedBy, hub: roomwork.NewHub(roomwork.Limits{
-		Bytes: int64(number("GUSTO_ROOM_COPY_MB", 4096)) << 20,
-		Files: number("GUSTO_ROOM_COPY_FILES", 200000),
-	})}
+	return &roomRuns{instances: instances, askedBy: askedBy, hub: roomwork.NewHub(limits)}
 }
 
 // isRoomTurn says whether a turn is one of a room's agents. Only a room's turns name an agent.

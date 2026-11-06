@@ -184,20 +184,20 @@ func TestUsageReindexFromScratchSaysHowManyRowsItRemovedAndRebuildsThem(t *testi
 
 func TestDoctorAndDataStatusReportTheIndex(t *testing.T) {
 	data := withUsageData(t)
-	result := usageCheck()
+	result := usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || !strings.Contains(result.Said, "does not exist yet") {
 		t.Errorf("before the server made it: %+v", result)
 	}
 	seedUsage(t, data, usageRow("t1", 0, "s1", "ada@acme.com", "m", time.Now(), 1))
-	result = usageCheck()
+	result = usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || !strings.Contains(result.Said, "schema version") || result.Name != "usage index" {
 		t.Errorf("after: %+v", result)
 	}
-	if line := usageStatusLine(); !strings.Contains(line, "schema version") || !strings.Contains(line, "1 rows") {
+	if line := usageStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "schema version") || !strings.Contains(line, "1 rows") {
 		t.Errorf("data status line: %q", line)
 	}
 	t.Setenv("GUSTO_DATABASE_URL", "ftp://u:hunter2@h/db")
-	result = usageCheck()
+	result = usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
 		t.Errorf("a database that cannot be used: %+v", result)
 	}
@@ -205,7 +205,7 @@ func TestDoctorAndDataStatusReportTheIndex(t *testing.T) {
 
 func TestAnIndexPlaceNeverHoldsAPassword(t *testing.T) {
 	t.Setenv("GUSTO_DATABASE_URL", "postgres://gusto:hunter2@db.internal:5432/gusto?search_path=org_acme")
-	place := usagePlace("jobs")
+	place := indexes{url: indexesOf(fromEnv(t).stores).url, tasks: "jobs"}.usagePlace()
 	if strings.Contains(place, "hunter2") || !strings.Contains(place, "db.internal") || !strings.Contains(place, "org_acme") {
 		t.Errorf("%q", place)
 	}
@@ -227,7 +227,7 @@ func TestAServerFillsTheIndexAtStartAndStopsCleanly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stop, err := startUsage(nil, pages, index.Root())
+	stop, err := startUsage(nil, pages, indexes{url: indexesOf(fromEnv(t).stores).url, tasks: index.Root()}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

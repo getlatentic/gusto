@@ -152,11 +152,11 @@ func TestTasksListPagesPastOneThousand(t *testing.T) {
 
 func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 	data := withUsageData(t)
-	result := taskIndexCheck()
+	result := taskIndexCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || result.Name != "task index" || !strings.Contains(result.Said, "does not exist yet") {
 		t.Errorf("before the server made it: %+v", result)
 	}
-	if line := taskIndexStatusLine(); !strings.Contains(line, "not made yet") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "not made yet") {
 		t.Errorf("data status line before: %q", line)
 	}
 	if _, err := os.Stat(filepath.Join(data, "tasks.db")); err == nil {
@@ -164,10 +164,10 @@ func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 	}
 	someTasks(t, data)
 	clitest.Capture(t, func() int { return run([]string{"tasks", "reindex"}) })
-	if result = taskIndexCheck(); result.Status != "pass" || !strings.Contains(result.Said, "schema version") {
+	if result = taskIndexCheck(indexesOf(fromEnv(t).stores)); result.Status != "pass" || !strings.Contains(result.Said, "schema version") {
 		t.Errorf("after: %+v", result)
 	}
-	if line := taskIndexStatusLine(); !strings.Contains(line, "schema version") || !strings.Contains(line, "3 rows") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "schema version") || !strings.Contains(line, "3 rows") {
 		t.Errorf("data status line: %q", line)
 	}
 	out, _, _ := clitest.Capture(t, func() int { return run([]string{"data", "status"}) })
@@ -175,10 +175,10 @@ func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 		t.Errorf("data status:\n%s", out)
 	}
 	t.Setenv("GUSTO_DATABASE_URL", "ftp://u:hunter2@h/db")
-	if result = taskIndexCheck(); result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
+	if result = taskIndexCheck(indexesOf(fromEnv(t).stores)); result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
 		t.Errorf("a database that cannot be used: %+v", result)
 	}
-	if line := taskIndexStatusLine(); strings.Contains(line, "hunter2") || !strings.Contains(line, "unavailable") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); strings.Contains(line, "hunter2") || !strings.Contains(line, "unavailable") {
 		t.Errorf("data status line for a bad URL: %q", line)
 	}
 }
@@ -199,7 +199,7 @@ func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	stop, err := startTasks(index, pages, nil)
+	stop, err := startTasks(index, pages, nil, fromEnv(t).stores.databaseURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing
 		t.Helper()
 		deadline := time.Now().Add(10 * time.Second)
 		for {
-			store, err := openTasks(context.Background(), index.Root())
+			store, err := indexes{url: indexesOf(fromEnv(t).stores).url, tasks: index.Root()}.openTasks(context.Background())
 			if err != nil {
 				t.Fatal(err)
 			}

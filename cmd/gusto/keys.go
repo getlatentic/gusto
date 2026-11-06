@@ -35,10 +35,23 @@ func checkKeys(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	found, err := evidence.SignersUnder(orSetting(f.tasks, "GUSTO_JOBS", "jobs"), keyring)
+	tasks, err := tasksDir(f.tasks)
 	if err != nil {
 		return fail(err)
 	}
+	found, err := evidence.SignersUnder(tasks, keyring)
+	if err != nil {
+		return fail(err)
+	}
+	printSigners(found)
+	if !found.Sound() {
+		return 1
+	}
+	return 0
+}
+
+// printSigners says how many records each signer signed, how many nobody did, and which do not check.
+func printSigners(found evidence.Signers) {
 	names := make([]string, 0, len(found.Signed))
 	for name := range found.Signed {
 		names = append(names, name)
@@ -56,10 +69,6 @@ func checkKeys(args []string) int {
 	for _, name := range found.Broken {
 		fmt.Printf("      %s: the signature does not hold, or cannot be read\n", name)
 	}
-	if !found.Sound() {
-		return 1
-	}
-	return 0
 }
 
 // signerFromKMS writes the public key of a key AWS KMS holds into a keyring

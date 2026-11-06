@@ -58,12 +58,16 @@ func matrixWay(here bool) (matrix.Way, error) {
 	if here {
 		return matrix.Here(), nil
 	}
-	boxes, err := openBackend(nil, "")
+	cfg, _, err := loadServe()
+	if err != nil {
+		return matrix.Way{}, err
+	}
+	boxes, err := openBackend(cfg.boxes, cfg.core.org, cfg.served.quota, nil, "")
 	if err != nil {
 		return matrix.Way{}, err
 	}
 	return matrix.Contained(boxes.String(), func(root string) (matrix.Door, error) {
-		way, err := openWayOut(root)
+		way, err := openWayOut(root, cfg.way, cfg.core.local)
 		if err != nil {
 			return nil, err
 		}

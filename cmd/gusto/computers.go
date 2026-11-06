@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -12,11 +11,9 @@ import (
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// computersFromEnv is the record of the computers people in this organization have, when
-// this server is an organization's and runs tasks in sandboxes: GUSTO_COMPUTERS is its
-// directory, GUSTO_ORG the organization, and GUSTO_QUOTA is the limit on how many.
-func computersFromEnv() (*computer.Registry, error) {
-	dir, org := os.Getenv("GUSTO_COMPUTERS"), os.Getenv("GUSTO_ORG")
+// computersOf is the record of the computers people in this organization have, when this server is an organization's and runs
+// tasks in sandboxes: dir is its directory, org the organization, and the file quota the limit on how many.
+func computersOf(dir, org, quotaFile string) (*computer.Registry, error) {
 	if dir == "" {
 		return nil, nil
 	}
@@ -27,8 +24,8 @@ func computersFromEnv() (*computer.Registry, error) {
 	if err != nil {
 		return nil, err
 	}
-	if path := os.Getenv("GUSTO_QUOTA"); path != "" {
-		registry.UseQuota(quota.Open(path))
+	if quotaFile != "" {
+		registry.UseQuota(quota.Open(quotaFile))
 	}
 	return registry, nil
 }

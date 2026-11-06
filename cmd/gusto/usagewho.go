@@ -26,12 +26,16 @@ type attribution struct {
 }
 
 func openAttribution(tasks string) (*attribution, error) {
-	instances, err := instance.Open(setting("GUSTO_SESSIONS", "sessions"))
+	cfg, _, err := loadServe()
+	if err != nil {
+		return nil, err
+	}
+	instances, err := instance.Open(cfg.stores.sessions)
 	if err != nil {
 		return nil, err
 	}
 	engines := catalog.SurveyOf(catalog.Machine(), harness.Names())
-	provider, err := providerOf(engines)
+	provider, err := providerOf(engines, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +44,7 @@ func openAttribution(tasks string) (*attribution, error) {
 
 // providerOf names providers as the server does: through the web server's own method, over the organization's
 // registry when GUSTO_REGISTRY is set.
-func providerOf(engines []catalog.Entry) (usage.ProviderFunc, error) {
+func providerOf(engines []catalog.Entry, cfg serveSettings) (usage.ProviderFunc, error) {
 	identity, err := web.NewIdentity(context.Background(), "", "", "", "", web.Access{})
 	if err != nil {
 		return nil, err
@@ -49,14 +53,14 @@ func providerOf(engines []catalog.Entry) (usage.ProviderFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if setting("GUSTO_REGISTRY", "") == "" {
+	if cfg.way.registry == "" {
 		return pages.UsageProvider, nil
 	}
-	way, err := openWayOut(setting("GUSTO_JOBS", "jobs"))
+	way, err := openWayOut(cfg.stores.jobs, cfg.way, cfg.core.local)
 	if err != nil {
 		return nil, err
 	}
-	reg, offered, err := openRegistry(way, func() {})
+	reg, offered, err := openRegistry(way, cfg.access.frontDoor != "", cfg.core.local, func() {})
 	if err != nil {
 		return nil, err
 	}

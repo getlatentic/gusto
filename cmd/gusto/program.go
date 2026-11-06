@@ -83,15 +83,6 @@ func oneDir(path string, args []string) (job.Dir, int) {
 	return job.Dir(args[0]), 0
 }
 
-// orSetting is what a flag was given, or else what the environment says, or else the fallback. A default read from the
-// environment is not declared on the flag, so that help reads the same wherever it is run.
-func orSetting(given, name, fallback string) string {
-	if given != "" {
-		return given
-	}
-	return setting(name, fallback)
-}
-
 func fail(err error) int {
 	fmt.Fprintf(os.Stderr, "gusto: %v\n", err)
 	return 1

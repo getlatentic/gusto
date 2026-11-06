@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -16,27 +15,32 @@ import (
 	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
-// usageURL is where the index of model calls is kept: empty for a SQLite file beside the tasks, or a postgres:// address.
-func usageURL() string { return strings.TrimSpace(os.Getenv("GUSTO_DATABASE_URL")) }
+// indexes is where the indexes of tasks and of model calls are kept: url is a postgres:// address, or empty for SQLite files
+// beside tasks, the tasks directory.
+type indexes struct{ url, tasks string }
 
-// usageDataDir is the directory the server keeps its own data in, the one that holds the tasks directory, so
-// that the index sits beside what it is built from and not inside the tasks.
-func usageDataDir(tasks string) string { return filepath.Dir(filepath.Clean(tasks)) }
-
-func openUsage(ctx context.Context, tasks string) (usage.Store, error) {
-	return usage.Open(ctx, usageURL(), usageDataDir(tasks))
+// indexesOf is where the stores' settings put the indexes.
+func indexesOf(stores storeSettings) indexes {
+	return indexes{url: strings.TrimSpace(stores.databaseURL), tasks: stores.jobs}
 }
 
-// usagePlace says where the index is, with no password in it.
-func usagePlace(tasks string) string { return databasePlace(tasks, "usage.db") }
+// dataDir is the directory the server keeps its own data in, the one that holds the tasks directory, so that an index sits
+// beside what it is built from and not inside the tasks.
+func (x indexes) dataDir() string { return filepath.Dir(filepath.Clean(x.tasks)) }
 
-// databasePlace says where an index kept in file is, with no password in it.
-func databasePlace(tasks, file string) string {
-	raw := usageURL()
-	if raw == "" {
-		return filepath.Join(usageDataDir(tasks), file)
+func (x indexes) openUsage(ctx context.Context) (usage.Store, error) {
+	return usage.Open(ctx, x.url, x.dataDir())
+}
+
+// usagePlace says where the index of model calls is, with no password in it.
+func (x indexes) usagePlace() string { return x.place("usage.db") }
+
+// place says where an index kept in file is, with no password in it.
+func (x indexes) place(file string) string {
+	if x.url == "" {
+		return filepath.Join(x.dataDir(), file)
 	}
-	parsed, err := url.Parse(raw)
+	parsed, err := url.Parse(x.url)
 	if err != nil || parsed.Host == "" {
 		return "the database in GUSTO_DATABASE_URL"
 	}
@@ -49,12 +53,12 @@ func databasePlace(tasks, file string) string {
 
 // startUsage opens the index, has the proxy record each call into it, fills it from the tasks' own records, and
 // gives it to the pages. The returned function stops all of that, writing what is still queued first.
-func startUsage(held *proxy.Proxy, pages *web.Server, tasks string) (func(), error) {
-	store, err := openUsage(context.Background(), tasks)
+func startUsage(held *proxy.Proxy, pages *web.Server, where indexes, org string) (func(), error) {
+	store, err := where.openUsage(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("the usage index at %s: %w", usagePlace(tasks), err)
+		return nil, fmt.Errorf("the usage index at %s: %w", where.usagePlace(), err)
 	}
-	if os.Getenv("GUSTO_ORG") != "" && strings.HasPrefix(usageURL(), "postgres") && !strings.Contains(usageURL(), "search_path") {
+	if org != "" && strings.HasPrefix(where.url, "postgres") && !strings.Contains(where.url, "search_path") {
 		fmt.Println("warning: GUSTO_DATABASE_URL names no search_path, so every organization using this database shares one usage index")
 	}
 	progress := &usage.Progress{}
@@ -69,7 +73,7 @@ func startUsage(held *proxy.Proxy, pages *web.Server, tasks string) (func(), err
 	kept.Add(1)
 	go func() {
 		defer kept.Done()
-		usage.Keep(keeping, store, tasks, pages.UsageWho, pages.UsageProvider, recorder, progress)
+		usage.Keep(keeping, store, where.tasks, pages.UsageWho, pages.UsageProvider, recorder, progress)
 	}()
 	var once sync.Once
 	return func() {
@@ -83,13 +87,12 @@ func startUsage(held *proxy.Proxy, pages *web.Server, tasks string) (func(), err
 }
 
 // usageCheck is the doctor's check of the index: that it opens, and what schema it is at.
-func usageCheck() doctor.Result {
-	tasks := setting("GUSTO_JOBS", "jobs")
+func usageCheck(where indexes) doctor.Result {
 	result := doctor.Result{Name: "usage index"}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	current, latest, err := usage.Version(ctx, usageURL(), usageDataDir(tasks))
-	result.Verdict = schemaVerdict(usagePlace(tasks), current, latest, err)
+	current, latest, err := usage.Version(ctx, where.url, where.dataDir())
+	result.Verdict = schemaVerdict(where.usagePlace(), current, latest, err)
 	return result
 }
 
@@ -112,12 +115,11 @@ func schemaVerdict(place string, current, latest int, err error) doctor.Verdict 
 
 // usageStatusLine is what `gusto data status` says of the index. It opens the index only when it is already at the
 // schema this release reads, so that asking changes nothing.
-func usageStatusLine() string {
-	tasks := setting("GUSTO_JOBS", "jobs")
-	place := usagePlace(tasks)
+func usageStatusLine(where indexes) string {
+	place := where.usagePlace()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	current, latest, err := usage.Version(ctx, usageURL(), usageDataDir(tasks))
+	current, latest, err := usage.Version(ctx, where.url, where.dataDir())
 	switch {
 	case err != nil:
 		return fmt.Sprintf("usage index  %s  unavailable: %v", place, err)
@@ -126,7 +128,7 @@ func usageStatusLine() string {
 	case current != latest:
 		return fmt.Sprintf("usage index  %s  schema version %d; this release reads %d", place, current, latest)
 	}
-	store, err := openUsage(ctx, tasks)
+	store, err := where.openUsage(ctx)
 	if err != nil {
 		return fmt.Sprintf("usage index  %s  schema version %d  unavailable: %v", place, current, err)
 	}

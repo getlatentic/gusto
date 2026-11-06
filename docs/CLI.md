@@ -537,7 +537,7 @@ Serve the pages: submit a task, watch it, read the record
 gusto serve
 ```
 
-Runs the gusto server: the pages for submitting a task, watching it and reading its record, and the queue that runs tasks. It will not start without GUSTO_PASSWORD. Many more settings, for sign-in, limits, models and storage, are read from GUSTO_ variables; docs/REFERENCE.md lists them.
+Runs the gusto server: the pages for submitting a task, watching it and reading its record, and the queue that runs tasks. It will not start without GUSTO_PASSWORD, or with a setting whose value does not read.
 
 Flags:
 
@@ -547,17 +547,95 @@ Environment:
 
 - `GUSTO_PASSWORD`: the server's shared sign-in; required
 - `GUSTO_ADDR`: where to listen (default 127.0.0.1:8040)
+- `GUSTO_BEHIND_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
+- `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
+- `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
 - `GUSTO_JOBS`: the directory tasks are kept in (default jobs)
-- `GUSTO_SESSIONS`: the directory agents' conversations are kept in (default sessions)
-- `GUSTO_SANDBOX`: how tasks are held: container, openshell, process or here
-- `GUSTO_JOB_CONCURRENCY`: how many tasks run at once (default 1)
-- `GUSTO_MODELS`: the models the server offers
-- `GUSTO_OIDC_ISSUER`: sign people in through this OpenID Connect issuer
-- `GUSTO_ALLOWED`: the people who may sign in, separated by commas
-- `GUSTO_ADMINS`: the people who administer the server
-- `GUSTO_API_TOKENS`: the file of API tokens
-- `GUSTO_RETENTION`: the directory of the retention policy and holds
-- `GUSTO_REGISTRY`: the directory of the organization's registry of models
+- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
+- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
+- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
+- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
+- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
+- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
+- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_API_TOKENS`: the file API tokens are kept in
+- `GUSTO_RETENTION`: the directory of the retention policy and what it removed
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_JOBS)
+- `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
+- `GUSTO_APPS`: the directory the web apps agents built are kept in (default apps)
+- `GUSTO_MCP`: the directory of the operator's MCP servers, one file each
+- `GUSTO_KEEPER`: the file sign-ins are kept in, so a deploy does not sign people out (default .keeper.json in GUSTO_SESSIONS)
+- `GUSTO_MEMBERS`: the file of the organization's members and their roles
+- `GUSTO_INBOX`: the directory gusto cloud leaves messages for this server in
+- `GUSTO_ORG_SETTINGS`: the file of what the organization's admins chose
+- `GUSTO_QUOTA`: the file of what the organization may run, which its gusto cloud writes
+- `GUSTO_DESKTOP`: the directory the desktop app's downloads are served from
+- `GUSTO_AGENTS`: the directory gusto installs agents into on a person's own computer (default agents)
+- `GUSTO_INTEGRATIONS_PRIVATE`: let an integration be imported from a private address
+- `GUSTO_OIDC_ISSUER`: the identity provider people sign in with
+- `GUSTO_OIDC_CLIENT_ID`: this server's client at the identity provider
+- `GUSTO_OIDC_CLIENT_SECRET`: the client's secret at the identity provider
+- `GUSTO_OIDC_REDIRECT`: the address the identity provider sends a person back to
+- `GUSTO_OIDC_GROUPS_CLAIM`: the claim a person's groups are in
+- `GUSTO_OIDC_SCOPES`: the scopes asked for at sign-in, comma-separated
+- `GUSTO_ALLOWED`: the people and domains who may sign in, comma-separated
+- `GUSTO_RUNNER_GROUPS`: the groups whose members may run tasks
+- `GUSTO_ADMIN_GROUPS`: the groups whose members are admins
+- `GUSTO_ADMINS`: the people who are admins, comma-separated
+- `GUSTO_FOUND_KEYS`: the model keys found on a person's own computer
+- `GUSTO_LOCAL_REPOS`: the repositories on a person's own computer a task may start from
+- `GUSTO_FRONT_DOOR`: the address of the gusto cloud that sends people here
+- `GUSTO_ENTRY_KEY`: the file of the key gusto cloud signs a person's entry with
+- `GUSTO_ORG_NAME`: what the organization is called, which its pages show
+- `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
+- `GUSTO_MODEL_UPSTREAM`: the root of the one model provider this server holds a key for, with no version on it
+- `GUSTO_MODEL_KEY`: the key for GUSTO_MODEL_UPSTREAM, which the proxy holds
+- `GUSTO_MODEL_NAME`: what the credential for GUSTO_MODEL_UPSTREAM is called (default the platform credential)
+- `GUSTO_CREDENTIALS`: the directory of credentials the proxy holds, one <name>.json each
+- `GUSTO_SPEND_POLICY`: the file of prices and team caps
+- `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
+- `GUSTO_ALLOWED_HOSTS`: every other host a task may reach through the proxy, comma-separated
+- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_JOBS)
+- `GUSTO_PROXY_ADDR`: where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)
+- `GUSTO_PROXY_MAX_OUTPUT_TOKENS`: the most output tokens one model call may ask for (default no limit)
+- `GUSTO_PROXY_SILENCE_SECONDS`: how long a model may send nothing before its call is ended, in seconds (default no limit)
+- `GUSTO_TOOL_POLICY`: the file of which tool servers a task may call, and how
+- `GUSTO_GATEWAY_MODE`: how a task finds the tools behind the gateway (discover, all) (default discover)
+- `GUSTO_GATEWAY_PRIVATE`: let tool servers and connected apps be on a private network
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_REDACTION`: the file of what the proxy and the gateway mask in what passes through
+- `GUSTO_LIVE`: the file of limits and models read again as it changes
+- `GUSTO_RELOAD_SECONDS`: how often the files read as they change are looked at, in seconds (default 20)
+- `GUSTO_LIMIT_PERSON`: the most tasks one person may have running (default no limit)
+- `GUSTO_LIMIT_TEAM`: the most tasks may run for the whole team (default no limit)
+- `GUSTO_REGISTRY`: the directory of the model providers and models an organization's admins keep
+- `GUSTO_REGISTRY_KEYS`: the kinds of reference a provider's key may be besides one typed in: file, ssm, secretsmanager
+- `GUSTO_REGISTRY_PRIVATE`: allow lets a provider be at a private address or plain http (allow)
+- `GUSTO_KEYCHAIN`: off keeps model keys in files only you can read, not in the keychain (on, off) (default on)
+- `GUSTO_CONNECTORS`: the directory people's connected apps are kept in
+- `GUSTO_CONNECTOR_CLIENTS`: the file of the clients registered with the apps that need one, or ssm:<name>
+- `GUSTO_CONNECTOR_APPS`: the file of more apps than the catalog's
+- `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
+- `GUSTO_JOB_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open)
+- `GUSTO_JOB_CONCURRENCY`: how many tasks run at a time (default 1)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it
+- `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
+- `GUSTO_CELL`: where a new computer is made (default local)
+- `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
+- `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
+- `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
+- `GUSTO_NOTIFY_WEBHOOK`: the address told how each run of a routine ended, by a signed request
+- `GUSTO_NOTIFY_SECRET`: the secret the webhook's requests are signed with
+- `GUSTO_MAIL`: how mail is sent to the person who added a routine, as GUSTO_CLOUD_MAIL is
+- `GUSTO_MAIL_TOKEN`: the token mail is sent with
+- `GUSTO_MAIL_OUTBOX`: the directory mail is written to when it is not sent (default outbox)
+- `GUSTO_CHAT_DEFAULT`: what a new chat runs on, as agent=model
+- `GUSTO_DEPLOY_RESULT`: how the last deploy went, which the health page shows
+- `GUSTO_RETENTION_MINUTES`: how often retention removes what its policy says, in minutes (default 60)
+- `GUSTO_LIVE_CONNECTIONS`: the most rooms' pages followed live at once (default 10000)
 
 Examples:
 

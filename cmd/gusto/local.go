@@ -16,8 +16,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/web"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 // localHome is where gusto keeps a person's work on their own computer: GUSTO_LOCAL_HOME, or the system's place for an app's data.
