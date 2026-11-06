@@ -170,9 +170,10 @@ func TestAChangeHoldsOffATurnThatJoinsWhileItIsMade(t *testing.T) {
 			merged <- err.Error()
 			return
 		}
-		defer scout.Close()
 		os.WriteFile(filepath.Join(scout.dest, "notes.md"), []byte("Scout's notes\n"), 0o644)
 		scout.Merge(context.Background())
+		// Closed before the test hears, so nothing writes in its temporary directory once it returns.
+		scout.Close()
 		merged <- "merged"
 	}()
 	select {
