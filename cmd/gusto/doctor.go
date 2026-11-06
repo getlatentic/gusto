@@ -24,7 +24,11 @@ func checkMachine() int {
 			fmt.Printf("Checking the gusto installed for you, in %s.\n\n", home)
 		}
 	}
-	results := append(doctor.Run(doctor.Checks(doctor.This())), usageCheck(), taskIndexCheck())
+	stores, err := loadStores()
+	if err != nil {
+		return fail(err)
+	}
+	results := append(doctor.Run(doctor.Checks(doctor.This())), usageCheck(indexesOf(stores)), taskIndexCheck(indexesOf(stores)))
 	doctor.Print(os.Stdout, results)
 	if !doctor.Healthy(results) {
 		return 1

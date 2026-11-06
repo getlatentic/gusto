@@ -128,8 +128,12 @@ func tasksList(args []string) int {
 	if _, err := taskindex.SortFor(f.sort); err != nil {
 		return usageError("tasks list", err.Error())
 	}
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx := context.Background()
-	store, err := openTasks(ctx, orSetting(f.tasks, "GUSTO_JOBS", "jobs"))
+	store, err := where.openTasks(ctx)
 	if err != nil {
 		return fail(fmt.Errorf("%s", taskindex.Scrub(err)))
 	}
@@ -206,16 +210,19 @@ func tasksReindex(args []string) int {
 	if set.NArg() != 0 {
 		return usageError("tasks reindex", "takes no arguments")
 	}
-	tasks := orSetting(f.tasks, "GUSTO_JOBS", "jobs")
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	store, err := openTasks(ctx, tasks)
+	store, err := where.openTasks(ctx)
 	if err != nil {
-		return fail(fmt.Errorf("the task index at %s: %s", taskIndexPlace(tasks), taskindex.Scrub(err)))
+		return fail(fmt.Errorf("the task index at %s: %s", where.taskPlace(), taskindex.Scrub(err)))
 	}
 	defer store.Close()
 	progress := &taskindex.Progress{Changed: printTaskProgress}
-	result, err := jobs.Rebuild(ctx, store, tasks, f.fromScratch, progress)
+	result, err := jobs.Rebuild(ctx, store, where.tasks, f.fromScratch, progress)
 	fmt.Fprintln(os.Stderr)
 	if err != nil {
 		return fail(fmt.Errorf("%s", taskindex.Scrub(err)))

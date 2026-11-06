@@ -83,7 +83,7 @@ func newReloading(t *testing.T) *reloading {
 	if r.index, err = jobs.Open(jobsRoot); err != nil {
 		t.Fatal(err)
 	}
-	if r.way, err = openWayOut(jobsRoot); err != nil {
+	if r.way, err = openWayOut(jobsRoot, fromEnv(t).way, fromEnv(t).core.local); err != nil {
 		t.Fatal(err)
 	}
 	if r.live, err = startLive(t.Context(), r.way, r.index, r.pages, false); err != nil {
@@ -260,7 +260,7 @@ func TestAServerWithNoProxyCannotPromiseToMaskWhatItSends(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	way, err := openWayOut(filepath.Join(dir, "jobs"))
+	way, err := openWayOut(filepath.Join(dir, "jobs"), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}

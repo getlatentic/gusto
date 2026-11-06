@@ -30,7 +30,11 @@ func retentionCommand(args []string) int {
 	if code, ok := parseFlags("retention", set, args); !ok {
 		return code
 	}
-	dir, tasksDir := orSetting(f.dir, "GUSTO_RETENTION", ""), orSetting(f.tasks, "GUSTO_JOBS", "jobs")
+	stores, err := loadStores()
+	if err != nil {
+		return fail(err)
+	}
+	dir, tasksDir := firstOf(f.dir, stores.retention), firstOf(f.tasks, stores.jobs)
 	if set.NArg() > 0 || dir == "" {
 		return usageError("retention", "name the retention directory with -dir or GUSTO_RETENTION")
 	}
@@ -42,7 +46,7 @@ func retentionCommand(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	sessions := orSetting(f.sessions, "GUSTO_SESSIONS", "sessions")
+	sessions := firstOf(f.sessions, stores.sessions)
 	kept := func(room string) bool {
 		_, err := os.Stat(filepath.Join(sessions, room))
 		return err == nil

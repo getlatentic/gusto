@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/backend"
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
@@ -22,7 +23,7 @@ func TestRestrictedCodeIsRefusedACredentialOutsideTheBuilding(t *testing.T) {
 	os.WriteFile(filepath.Join(credentials, "deepseek.json"),
 		[]byte(`{"address": "https://api.deepseek.com", "key": "sk-test"}`), 0o600)
 	t.Setenv("GUSTO_CREDENTIALS", credentials)
-	way, err := openWayOut(t.TempDir())
+	way, err := openWayOut(t.TempDir(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +48,7 @@ func TestRestrictedCodeIsRefusedACredentialWithAnyAddressOutsideTheBuilding(t *t
 	os.WriteFile(filepath.Join(credentials, "inside.json"), []byte(`{"address": "http://127.0.0.1:9", "key": "k",
 		"endpoints": [{"address": "https://api.deepseek.com/anthropic", "auth": "anthropic"}]}`), 0o600)
 	t.Setenv("GUSTO_CREDENTIALS", credentials)
-	way, err := openWayOut(t.TempDir())
+	way, err := openWayOut(t.TempDir(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +99,7 @@ func TestATurnsWayOutIsTheProxyWhenACredentialIsHeld(t *testing.T) {
 	os.WriteFile(filepath.Join(credentials, "deepseek.json"), []byte(`{"address": "https://api.deepseek.com", "key": "sk-the-real-key"}`), 0o600)
 	t.Setenv("GUSTO_CREDENTIALS", credentials)
 	t.Setenv("GUSTO_PROXY_ADDR", "127.0.0.1:9041")
-	way, err := openWayOut(t.TempDir())
+	way, err := openWayOut(t.TempDir(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +108,7 @@ func TestATurnsWayOutIsTheProxyWhenACredentialIsHeld(t *testing.T) {
 	}
 	t.Setenv("GUSTO_CREDENTIALS", "")
 	t.Setenv("GUSTO_MODEL_UPSTREAM", "")
-	direct, err := openWayOut(t.TempDir())
+	direct, err := openWayOut(t.TempDir(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,15 +118,21 @@ func TestATurnsWayOutIsTheProxyWhenACredentialIsHeld(t *testing.T) {
 }
 
 func TestTheCallLimitsAreReadFromTheirSettingsAndAWrongOneIsSaid(t *testing.T) {
-	t.Setenv("GUSTO_PROXY_MAX_OUTPUT_TOKENS", "16384")
-	t.Setenv("GUSTO_PROXY_SILENCE_SECONDS", "60")
-	limits, err := callLimits()
-	if err != nil || limits.MaxOutput != 16384 || limits.Silence != time.Minute {
-		t.Fatalf("%+v %v", limits, err)
+	t.Parallel()
+	read := func(values map[string]string) (wayOutSettings, error) {
+		var cfg wayOutSettings
+		set := settings.New()
+		cfg.declare(set)
+		return cfg, set.Load(func(name string) string { return values[name] })
 	}
-	t.Setenv("GUSTO_PROXY_SILENCE_SECONDS", "a minute")
-	if _, err := callLimits(); err == nil || !strings.Contains(err.Error(), "GUSTO_PROXY_SILENCE_SECONDS") {
-		t.Errorf("a wrong setting was taken: %v", err)
+	cfg, err := read(map[string]string{"GUSTO_PROXY_MAX_OUTPUT_TOKENS": "16384", "GUSTO_PROXY_SILENCE_SECONDS": "60"})
+	if err != nil || cfg.maxOutput != 16384 || cfg.silenceSeconds != 60 {
+		t.Fatalf("%+v %v", cfg, err)
+	}
+	for _, wrong := range []string{"a minute", "0"} {
+		if _, err := read(map[string]string{"GUSTO_PROXY_SILENCE_SECONDS": wrong}); err == nil || !strings.Contains(err.Error(), "GUSTO_PROXY_SILENCE_SECONDS") {
+			t.Errorf("%q was taken: %v", wrong, err)
+		}
 	}
 }
 

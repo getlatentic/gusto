@@ -13,6 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/live"
 	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -20,51 +21,55 @@ import (
 // deployment's key when it holds one. A log that does not hold together stops
 // the server starting: what it would go on to write would look as sound as what
 // came before it.
-func openChanges(keyring signing.Keyring) (*changelog.Log, error) {
+func openChanges(file string, keyring signing.Keyring) (*changelog.Log, error) {
 	signer, _, err := signing.Configured()
 	if err != nil {
 		return nil, err
 	}
-	return changelog.Open(setting("GUSTO_CHANGES", filepath.Join("changes", "changes.jsonl")), signer, keyring)
+	return changelog.Open(file, signer, keyring)
 }
 
-// governing is the settings that decide who may sign in and what they may do,
-// with nothing secret in them. A change to any is written down the next time the
-// server starts.
-func governing() map[string]string {
-	settings := map[string]string{}
-	for _, name := range []string{
-		"GUSTO_ALLOWED", "GUSTO_ADMINS", "GUSTO_RUNNER_GROUPS", "GUSTO_ADMIN_GROUPS",
-		"GUSTO_OIDC_GROUPS_CLAIM", "GUSTO_OIDC_ISSUER", "GUSTO_ALLOWED_HOSTS", "GUSTO_MODELS", "GUSTO_REGISTRY", "GUSTO_REGISTRY_KEYS", "GUSTO_REGISTRY_PRIVATE", "GUSTO_JOB_NETWORK", "GUSTO_API_TOKENS", "GUSTO_RETENTION", "GUSTO_INTEGRATIONS_PRIVATE", "GUSTO_GATEWAY_MODE", "GUSTO_GATEWAY_PRIVATE", "GUSTO_TOOLS_IMAGE", "GUSTO_TOOLS_NETWORK", "GUSTO_LIMIT_PERSON", "GUSTO_LIMIT_TEAM", "GUSTO_CHAT_DEFAULT",
-	} {
-		settings[name] = os.Getenv(name)
+// governed are the settings that decide who may sign in and what they may do, with nothing secret in them. A change to any is
+// written down the next time the server starts.
+var governed = []string{
+	"GUSTO_ALLOWED", "GUSTO_ADMINS", "GUSTO_RUNNER_GROUPS", "GUSTO_ADMIN_GROUPS", "GUSTO_OIDC_GROUPS_CLAIM", "GUSTO_OIDC_ISSUER",
+	"GUSTO_ALLOWED_HOSTS", "GUSTO_MODELS", "GUSTO_REGISTRY", "GUSTO_REGISTRY_KEYS", "GUSTO_REGISTRY_PRIVATE", "GUSTO_JOB_NETWORK",
+	"GUSTO_API_TOKENS", "GUSTO_RETENTION", "GUSTO_INTEGRATIONS_PRIVATE", "GUSTO_GATEWAY_MODE", "GUSTO_GATEWAY_PRIVATE",
+	"GUSTO_TOOLS_IMAGE", "GUSTO_TOOLS_NETWORK", "GUSTO_LIMIT_PERSON", "GUSTO_LIMIT_TEAM", "GUSTO_CHAT_DEFAULT",
+}
+
+// governing is the governed settings as set, read from set, and a fingerprint of each file of rules they name, so a change to
+// a policy is written down as a change to its setting would be.
+func governing(set *settings.Set, cfg serveSettings) map[string]string {
+	recorded := map[string]string{}
+	for _, name := range governed {
+		recorded[name] = set.Raw(name)
 	}
-	if dir := os.Getenv("GUSTO_RETENTION"); dir != "" {
-		if text, err := os.ReadFile(filepath.Join(dir, retention.PolicyFile)); err == nil {
-			sum := sha256.Sum256(text)
-			settings["GUSTO_RETENTION policy sha256"] = hex.EncodeToString(sum[:])
+	if cfg.stores.retention != "" {
+		fingerprint(recorded, "GUSTO_RETENTION policy sha256", filepath.Join(cfg.stores.retention, retention.PolicyFile))
+	}
+	fingerprint(recorded, "GUSTO_TOOL_POLICY sha256", cfg.way.toolPolicy)
+	fingerprint(recorded, "GUSTO_SPEND_POLICY sha256", cfg.way.spendPolicy)
+	for name, path := range map[string]string{"GUSTO_LIVE": cfg.way.live, "GUSTO_CREDENTIALS": cfg.way.credentials, "GUSTO_REDACTION": cfg.way.redaction} {
+		if path == "" {
+			continue
+		}
+		if sum, err := live.Fingerprint(path); err == nil && sum != "" {
+			recorded[name+" sha256"] = sum
 		}
 	}
-	for _, name := range []string{"GUSTO_LIVE", "GUSTO_CREDENTIALS", "GUSTO_REDACTION"} {
-		if path := os.Getenv(name); path != "" {
-			if sum, err := live.Fingerprint(path); err == nil && sum != "" {
-				settings[name+" sha256"] = sum
-			}
-		}
+	return recorded
+}
+
+// fingerprint records the sha256 of the file at path under name, when there is a file there to read.
+func fingerprint(recorded map[string]string, name, path string) {
+	if path == "" {
+		return
 	}
-	if path := os.Getenv("GUSTO_TOOL_POLICY"); path != "" {
-		if text, err := os.ReadFile(path); err == nil {
-			sum := sha256.Sum256(text)
-			settings["GUSTO_TOOL_POLICY sha256"] = hex.EncodeToString(sum[:])
-		}
+	if text, err := os.ReadFile(path); err == nil {
+		sum := sha256.Sum256(text)
+		recorded[name] = hex.EncodeToString(sum[:])
 	}
-	if path := os.Getenv("GUSTO_SPEND_POLICY"); path != "" {
-		if text, err := os.ReadFile(path); err == nil {
-			sum := sha256.Sum256(text)
-			settings["GUSTO_SPEND_POLICY sha256"] = hex.EncodeToString(sum[:])
-		}
-	}
-	return settings
 }
 
 type changesVerifyFlags struct{ head string }

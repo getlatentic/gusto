@@ -24,6 +24,11 @@ import (
 // agent sends.
 type gateways struct {
 	jobs string
+	// policyFile is the tool policy's file, read again when it changes.
+	policyFile string
+	// inProcess says tasks run in the server's own process, where there is no container to run a program in. It is set before
+	// any task runs.
+	inProcess bool
 	// policy is the tool policy as it is now, which a change to its file replaces and a task that is running asks for at each call.
 	policy atomic.Pointer[tools.Policy]
 	mode   tools.Mode
@@ -37,25 +42,22 @@ type gateways struct {
 	sessions map[string]*tools.Session
 }
 
-// openGateways reads how the gateway is configured: GUSTO_TOOL_POLICY is the policy file, GUSTO_GATEWAY_MODE is discover or all, and
-// GUSTO_GATEWAY_PRIVATE=1 lets the servers be on a private network.
-func openGateways(jobsRoot string) (*gateways, error) {
-	policy, err := tools.ReadPolicy(os.Getenv("GUSTO_TOOL_POLICY"))
+// openGateways opens the gateway as cfg says: the policy file, whether a task discovers its tools or is given them all, and
+// whether the servers may be on a private network.
+func openGateways(jobsRoot string, cfg wayOutSettings) (*gateways, error) {
+	policy, err := tools.ReadPolicy(cfg.toolPolicy)
 	if err != nil {
 		return nil, err
 	}
-	mode := tools.Mode(os.Getenv("GUSTO_GATEWAY_MODE"))
-	if mode != tools.All {
-		mode = tools.Discover
-	}
-	g := &gateways{jobs: jobsRoot, mode: mode, private: os.Getenv("GUSTO_GATEWAY_PRIVATE") == "1", sessions: map[string]*tools.Session{}}
+	g := &gateways{jobs: jobsRoot, policyFile: cfg.toolPolicy, mode: tools.Mode(cfg.gatewayMode), private: cfg.gatewayPrivate,
+		sessions: map[string]*tools.Session{}}
 	g.policy.Store(&policy)
 	return g, nil
 }
 
 // reload reads the policy file again, and keeps the policy it has when the file does not read.
 func (g *gateways) reload() error {
-	policy, err := tools.ReadPolicy(os.Getenv("GUSTO_TOOL_POLICY"))
+	policy, err := tools.ReadPolicy(g.policyFile)
 	if err != nil {
 		return err
 	}
@@ -138,7 +140,7 @@ func askerOf(dir job.Dir) string {
 // launch is the command that runs a server that is a program, in a box of its own. A task that runs in this server's own process has
 // no container to put a program in, and so no program runs.
 func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (*exec.Cmd, func(), error) {
-	if runsHere() {
+	if g.inProcess {
 		return nil, nil, errors.New("a program runs in a container, and this server runs tasks in its own process")
 	}
 	return sandbox.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,

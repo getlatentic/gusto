@@ -248,6 +248,8 @@ docker build -t gusto:dev \
 
 ## Environment
 
+`gusto serve` reads every setting it uses when it starts, and a value that does not read, such as a word where a number goes, stops it with the setting's name. `gusto help serve` lists them all with their defaults.
+
 | Name | What it does |
 | --- | --- |
 | `GUSTO_HARNESSES` | a directory of adapter files that override the built-in ones |

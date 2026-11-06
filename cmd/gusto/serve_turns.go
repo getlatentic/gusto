@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/apps"
@@ -17,12 +16,12 @@ import (
 // openRecords opens the tasks and the instances. An organization's gusto cloud writes what the organization may run, and this
 // server reads it as it goes; one that cannot read it does not start.
 func (s *server) openRecords() error {
-	index, err := jobs.Open(setting("GUSTO_JOBS", "jobs"))
+	index, err := jobs.Open(s.cfg.stores.jobs)
 	if err != nil {
 		return err
 	}
 	finishDecisions(index)
-	if path := os.Getenv("GUSTO_QUOTA"); path != "" {
+	if path := s.cfg.served.quota; path != "" {
 		s.limits = quota.Open(path)
 		if _, err := s.limits.Current(); err != nil {
 			return err
@@ -31,7 +30,7 @@ func (s *server) openRecords() error {
 	}
 	// The directory keeps the name it was written under: what is in it is the same thing, read now as an instance with
 	// threads rather than as one conversation.
-	instances, err := instance.Open(setting("GUSTO_SESSIONS", "sessions"))
+	instances, err := instance.Open(s.cfg.stores.sessions)
 	if err != nil {
 		return err
 	}
@@ -42,18 +41,18 @@ func (s *server) openRecords() error {
 // openWayOut opens the proxy turns reach their models through, with the connectors a turn's tools use and the credit the
 // organization's cloud gives it.
 func (s *server) openWayOut() error {
-	way, err := openWayOut(s.index.Root())
+	way, err := openWayOut(s.index.Root(), s.cfg.way, s.cfg.core.local)
 	if err != nil {
 		return err
 	}
-	if s.connect, err = openConnectors(); err != nil {
+	if s.connect, err = openConnectors(s.cfg.way, s.cfg.core.publicURL); err != nil {
 		return err
 	}
 	if s.connect != nil {
 		way.gateways.tokens = s.connect
 	}
 	if s.limits != nil {
-		used := filepath.Join(filepath.Dir(os.Getenv("GUSTO_QUOTA")), "credit-used.json")
+		used := filepath.Join(filepath.Dir(s.cfg.served.quota), "credit-used.json")
 		if err := way.ledger.UseCredit(creditOf(s.limits), used); err != nil {
 			return err
 		}
@@ -65,11 +64,11 @@ func (s *server) openWayOut() error {
 // startTurns makes the boxes turns run in, starts the proxy where they reach it, and starts the queue that runs the turns.
 // Pages an agent built are shared wherever it works; an app with a command of its own needs the agent's computer.
 func (s *server) startTurns() error {
-	shared, err := apps.Open(setting("GUSTO_APPS", "apps"))
+	shared, err := apps.Open(s.cfg.served.apps)
 	if err != nil {
 		return err
 	}
-	boxes, err := openBackend(shared, s.way.proxyPort())
+	boxes, err := openBackend(s.cfg.boxes, s.cfg.core.org, s.cfg.served.quota, shared, s.way.proxyPort())
 	if err != nil {
 		return err
 	}
@@ -82,8 +81,11 @@ func (s *server) startTurns() error {
 	}
 	s.started(stopProxy)
 	s.shared, s.boxes = shared, boxes
-	s.index.SetLimits(jobs.Limits{Person: number("GUSTO_LIMIT_PERSON", 0), Team: number("GUSTO_LIMIT_TEAM", 0)})
-	s.rooms = newRoomRuns(s.instances, func(dir job.Dir) string { return personWhoAsked(s.index, dir) })
+	if s.way.gateways != nil {
+		s.way.gateways.inProcess = s.cfg.boxes.here()
+	}
+	s.index.SetLimits(jobs.Limits{Person: s.cfg.way.limitPerson, Team: s.cfg.way.limitTeam})
+	s.rooms = newRoomRuns(s.instances, func(dir job.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy())
 	s.tellWayOut()
 	// Started before any turn: a backend keeps up what its turns use, such as its image or people's computers.
 	stopBoxes, err := boxes.Start(context.Background())
@@ -91,7 +93,7 @@ func (s *server) startTurns() error {
 		return err
 	}
 	s.started(stopBoxes)
-	s.queue = jobs.StartStoppable(s.index, turns(boxes, s.way, s.instances, s.index, s.rooms), number("GUSTO_JOB_CONCURRENCY", 1))
+	s.queue = jobs.StartStoppable(s.index, turns(boxes, s.way, s.instances, s.index, s.rooms), s.cfg.boxes.concurrency)
 	s.started(s.queue.Stop)
 	return nil
 }

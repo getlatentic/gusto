@@ -18,6 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -27,8 +28,9 @@ const shutdownWithin = 30 * time.Second
 // server is what `gusto serve` is made of, in the order it is built: the records, the way out, the boxes turns run in and
 // their queue, then the pages and what they use.
 type server struct {
-	password string
-	local    bool
+	cfg serveSettings
+	// set is the settings as they were read, which the record of what changed is written from.
+	set *settings.Set
 
 	index     *jobs.Index
 	limits    *quota.File
@@ -58,30 +60,34 @@ func serve(args []string) int {
 	if err := s.build(); err != nil {
 		return fail(err)
 	}
-	if err := s.listen(setting("GUSTO_ADDR", "127.0.0.1:8040")); err != nil {
+	if err := s.listen(s.cfg.core.addr); err != nil {
 		return fail(err)
 	}
 	return 0
 }
 
-// newServer is a server that may start, or nil and the exit code of the reason it may not.
+// newServer is a server that may start, or nil and the exit code of the reason it may not. A setting that does not read is a
+// server started wrongly, which is said as a missing password is.
 func newServer() (*server, int) {
-	password := os.Getenv("GUSTO_PASSWORD")
-	if password == "" {
+	cfg, set, err := loadServe()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "gusto:", err)
+		return nil, 2
+	}
+	if cfg.core.password == "" {
 		// A URL that spends money and runs code is not left open because a variable was forgotten.
 		fmt.Fprintln(os.Stderr, "gusto: set GUSTO_PASSWORD; the server will not start without a sign-in")
 		return nil, 2
 	}
-	accesslog.TrustForwarded(os.Getenv("GUSTO_BEHIND_PROXY") == "1")
-	local := os.Getenv("GUSTO_LOCAL") == "1"
-	if local && !onLoopback(setting("GUSTO_ADDR", "127.0.0.1:8040")) {
+	accesslog.TrustForwarded(cfg.core.behindProxy)
+	if cfg.core.local && !onLoopback(cfg.core.addr) {
 		fmt.Fprintln(os.Stderr, "gusto: a server for one person on their own computer listens on the loopback only, and GUSTO_ADDR names another address")
 		return nil, 2
 	}
-	if err := ready(); err != nil {
+	if err := ready(cfg.stores); err != nil {
 		return nil, fail(err)
 	}
-	return &server{password: password, local: local}, 0
+	return &server{cfg: cfg, set: set}, 0
 }
 
 // build makes the server, step by step. A step that fails stops the build, and what the steps before it started is stopped.
@@ -133,7 +139,7 @@ func (s *server) listen(address string) error {
 		}
 		_ = server.Shutdown(ctx)
 	}()
-	fmt.Printf("gusto is listening on %s, with %d task(s) at a time\n", address, number("GUSTO_JOB_CONCURRENCY", 1))
+	fmt.Printf("gusto is listening on %s, with %d task(s) at a time\n", address, s.cfg.boxes.concurrency)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

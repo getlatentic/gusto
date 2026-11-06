@@ -41,7 +41,7 @@ func TestAnAgentCallsAnAppAsThePersonWhoAskedForTheTask(t *testing.T) {
 	root := t.TempDir()
 	adas := connectedTask(t, root, "20261031-1200-ada", "ada@acme.example", app.MCP())
 	bobs := connectedTask(t, root, "20261031-1300-bob", "bob@acme.example", app.MCP())
-	gates, err := openGateways(root)
+	gates, err := openGateways(root, fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,9 +10,15 @@ import (
 	"time"
 )
 
+// write puts text in path whole, as an editor saves a file: written beside it and renamed over it. A file written in place is
+// empty for a moment, and a watcher looking every few milliseconds on a busy machine can take that moment for a change.
 func write(t *testing.T, path, text string) {
 	t.Helper()
-	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+	beside := path + ".writing"
+	if err := os.WriteFile(beside, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(beside, path); err != nil {
 		t.Fatal(err)
 	}
 }

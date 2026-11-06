@@ -26,7 +26,7 @@ func installed(t *testing.T) map[datadir.Store]string {
 	} {
 		t.Setenv(name, filepath.Join(root, path))
 	}
-	return dataDirs()
+	return dataDirs(fromEnv(t).stores)
 }
 
 // Every store reads a directory that carries the stamp, so a release that
@@ -34,7 +34,7 @@ func installed(t *testing.T) map[datadir.Store]string {
 // rollback needs.
 func TestEveryStoreOpensADirectoryThatCarriesTheStamp(t *testing.T) {
 	dirs := installed(t)
-	if err := ready(); err != nil {
+	if err := ready(fromEnv(t).stores); err != nil {
 		t.Fatal(err)
 	}
 	for store, dir := range dirs {
@@ -81,7 +81,7 @@ func TestStartingOnNewerDataChangesNothingAnywhere(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dirs[datadir.Sessions], datadir.StampFile), []byte(newer), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := ready()
+	err := ready(fromEnv(t).stores)
 	if err == nil || !strings.Contains(err.Error(), "format 9") || !strings.Contains(err.Error(), "v9.9.9") {
 		t.Fatalf("%v", err)
 	}
@@ -103,7 +103,7 @@ func TestStartingOnNewerDataChangesNothingAnywhere(t *testing.T) {
 
 func TestDataRollbackNamesAReleaseAndRefusesAnUnknownOne(t *testing.T) {
 	dirs := installed(t)
-	if err := ready(); err != nil {
+	if err := ready(fromEnv(t).stores); err != nil {
 		t.Fatal(err)
 	}
 	if code := dataRollback([]string{"-to", "v0.1.0-rc.2"}); code != 0 {

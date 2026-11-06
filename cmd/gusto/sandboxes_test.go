@@ -22,7 +22,7 @@ func TestEachSandboxSettingMakesItsBackend(t *testing.T) {
 	t.Setenv("GUSTO_COMPUTERS", "")
 	for setting, want := range map[string]string{"here": "process", "process": "process", "openshell": "vm", "container": "container", "": "container"} {
 		t.Setenv("GUSTO_SANDBOX", setting)
-		boxes, err := openBackend(nil, "8041")
+		boxes, err := openBackend(fromEnv(t).boxes, "", "", nil, "8041")
 		if err != nil {
 			t.Fatalf("%q: %v", setting, err)
 		}
@@ -85,12 +85,12 @@ func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) 
 	if err := index.Add(record); err != nil {
 		t.Fatal(err)
 	}
-	way, err := openWayOut(index.Root())
+	way, err := openWayOut(index.Root(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
 	boxes := &recording{session: "the-agents-own-name"}
-	if _, err := turns(boxes, way, instances, index, newRoomRuns(instances, nil))(context.Background(), dir); err != nil {
+	if _, err := turns(boxes, way, instances, index, newRoomRuns(instances, nil, fromEnv(t).boxes.roomCopy()))(context.Background(), dir); err != nil {
 		t.Fatal(err)
 	}
 	got := boxes.turn

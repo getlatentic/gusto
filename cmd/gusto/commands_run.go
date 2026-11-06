@@ -2,20 +2,10 @@ package main
 
 import "github.com/getlatentic/gusto/cmd/internal/cmdline"
 
-var envServer = []cmdline.Param{
-	{Name: "GUSTO_PASSWORD", Text: "the server's shared sign-in; required"},
-	{Name: "GUSTO_ADDR", Text: "where to listen (default 127.0.0.1:8040)"},
-	{Name: "GUSTO_JOBS", Text: "the directory tasks are kept in (default jobs)"},
-	{Name: "GUSTO_SESSIONS", Text: "the directory agents' conversations are kept in (default sessions)"},
-	{Name: "GUSTO_SANDBOX", Text: "how tasks are held: container, openshell, process or here"},
-	{Name: "GUSTO_JOB_CONCURRENCY", Text: "how many tasks run at once (default 1)"},
-	{Name: "GUSTO_MODELS", Text: "the models the server offers"},
-	{Name: "GUSTO_OIDC_ISSUER", Text: "sign people in through this OpenID Connect issuer"},
-	{Name: "GUSTO_ALLOWED", Text: "the people who may sign in, separated by commas"},
-	{Name: "GUSTO_ADMINS", Text: "the people who administer the server"},
-	{Name: "GUSTO_API_TOKENS", Text: "the file of API tokens"},
-	{Name: "GUSTO_RETENTION", Text: "the directory of the retention policy and holds"},
-	{Name: "GUSTO_REGISTRY", Text: "the directory of the organization's registry of models"},
+// envServer is every setting gusto serve reads, as its declarations say them.
+func envServer() []cmdline.Param {
+	var cfg serveSettings
+	return paramsOf(cfg.declare)
 }
 
 func runCommands() []*cmdline.Command {
@@ -23,9 +13,8 @@ func runCommands() []*cmdline.Command {
 		{
 			Name: "serve", Group: groupRun, Summary: "Serve the pages: submit a task, watch it, read the record",
 			Description: "Runs the gusto server: the pages for submitting a task, watching it and reading its record, and the " +
-				"queue that runs tasks. It will not start without GUSTO_PASSWORD. Many more settings, for sign-in, limits, models and " +
-				"storage, are read from GUSTO_ variables; docs/REFERENCE.md lists them.",
-			Env:      envServer,
+				"queue that runs tasks. It will not start without GUSTO_PASSWORD, or with a setting whose value does not read.",
+			Env:      envServer(),
 			Examples: []string{"GUSTO_PASSWORD=secret gusto serve"},
 			SeeAlso:  []string{"local", "cloud", "doctor"},
 			Run:      none("serve", func() int { return serve(nil) }),

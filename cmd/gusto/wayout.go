@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/settings"
 
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/rules"
@@ -24,12 +23,83 @@ import (
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
+// wayOutSettings is how a turn reaches its model and its tools: the credentials the proxy holds, the prices and caps, where the
+// proxy listens, the tool gateway, the files read again as they change, the models offered, and the registry and connectors
+// an organization's admins keep.
+type wayOutSettings struct {
+	modelURL, upstream, modelKey, modelName, credentials string
+	spendPolicy, allowedHosts, proxySocket, proxyAddr    string
+	maxOutput, silenceSeconds                            int
+	toolPolicy, gatewayMode                              string
+	gatewayPrivate                                       bool
+	toolsImage, toolsNetwork                             string
+	redaction, live                                      string
+	reloadSeconds, limitPerson, limitTeam                int
+	models                                               []string
+	registry, registryPrivate, keychain                  string
+	registryKeys                                         []string
+	connectors, connectorClients, connectorApps          string
+}
+
+func (w *wayOutSettings) declare(set *settings.Set) {
+	w.declareModels(set)
+	w.declareProxy(set)
+	w.declareTools(set)
+	w.declareLive(set)
+	w.declareRegistry(set)
+}
+
+func (w *wayOutSettings) declareModels(set *settings.Set) {
+	set.String(&w.modelURL, "GUSTO_MODEL_URL", "http://localhost:11434/v1", "the model a task asks directly when this server holds no credential")
+	set.String(&w.upstream, "GUSTO_MODEL_UPSTREAM", "", "the root of the one model provider this server holds a key for, with no version on it")
+	set.Secret(&w.modelKey, "GUSTO_MODEL_KEY", "the key for GUSTO_MODEL_UPSTREAM, which the proxy holds")
+	set.String(&w.modelName, "GUSTO_MODEL_NAME", "the platform credential", "what the credential for GUSTO_MODEL_UPSTREAM is called")
+	set.String(&w.credentials, "GUSTO_CREDENTIALS", "", "the directory of credentials the proxy holds, one <name>.json each")
+	set.String(&w.spendPolicy, "GUSTO_SPEND_POLICY", "", "the file of prices and team caps")
+	set.List(&w.models, "GUSTO_MODELS", "the models offered, as credential/model, comma-separated")
+}
+
+func (w *wayOutSettings) declareProxy(set *settings.Set) {
+	set.String(&w.allowedHosts, "GUSTO_ALLOWED_HOSTS", "", "every other host a task may reach through the proxy, comma-separated")
+	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_JOBS)")
+	set.String(&w.proxyAddr, "GUSTO_PROXY_ADDR", "", "where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)")
+	set.Int(&w.maxOutput, "GUSTO_PROXY_MAX_OUTPUT_TOKENS", 0, 1, "the most output tokens one model call may ask for (default no limit)")
+	set.Int(&w.silenceSeconds, "GUSTO_PROXY_SILENCE_SECONDS", 0, 1, "how long a model may send nothing before its call is ended, in seconds (default no limit)")
+}
+
+func (w *wayOutSettings) declareTools(set *settings.Set) {
+	set.String(&w.toolPolicy, "GUSTO_TOOL_POLICY", "", "the file of which tool servers a task may call, and how")
+	set.Choice(&w.gatewayMode, "GUSTO_GATEWAY_MODE", "discover", []string{"discover", "all"}, "how a task finds the tools behind the gateway")
+	set.Bool(&w.gatewayPrivate, "GUSTO_GATEWAY_PRIVATE", "let tool servers and connected apps be on a private network")
+	set.String(&w.toolsImage, "GUSTO_TOOLS_IMAGE", "", "the image a tool server that is a program runs in")
+	set.Choice(&w.toolsNetwork, "GUSTO_TOOLS_NETWORK", "", []string{"open"}, "open gives a tool server the runtime's network")
+}
+
+func (w *wayOutSettings) declareLive(set *settings.Set) {
+	set.String(&w.redaction, "GUSTO_REDACTION", "", "the file of what the proxy and the gateway mask in what passes through")
+	set.String(&w.live, "GUSTO_LIVE", "", "the file of limits and models read again as it changes")
+	set.Int(&w.reloadSeconds, "GUSTO_RELOAD_SECONDS", 20, 1, "how often the files read as they change are looked at, in seconds")
+	set.Int(&w.limitPerson, "GUSTO_LIMIT_PERSON", 0, 0, "the most tasks one person may have running (default no limit)")
+	set.Int(&w.limitTeam, "GUSTO_LIMIT_TEAM", 0, 0, "the most tasks may run for the whole team (default no limit)")
+}
+
+func (w *wayOutSettings) declareRegistry(set *settings.Set) {
+	set.String(&w.registry, "GUSTO_REGISTRY", "", "the directory of the model providers and models an organization's admins keep")
+	set.List(&w.registryKeys, "GUSTO_REGISTRY_KEYS", "the kinds of reference a provider's key may be besides one typed in: file, ssm, secretsmanager")
+	set.Choice(&w.registryPrivate, "GUSTO_REGISTRY_PRIVATE", "", []string{"allow"}, "allow lets a provider be at a private address or plain http")
+	set.Choice(&w.keychain, "GUSTO_KEYCHAIN", "on", []string{"on", "off"}, "off keeps model keys in files only you can read, not in the keychain")
+	set.String(&w.connectors, "GUSTO_CONNECTORS", "", "the directory people's connected apps are kept in")
+	set.String(&w.connectorClients, "GUSTO_CONNECTOR_CLIENTS", "", "the file of the clients registered with the apps that need one, or ssm:<name>")
+	set.String(&w.connectorApps, "GUSTO_CONNECTOR_APPS", "", "the file of more apps than the catalog's")
+}
+
 // WayOut is how a container reaches a model. When a credential is configured it
 // is the proxy, which holds the key, writes down what actually went, and lets a
 // task reach nothing else unless the allowlist names it. When one is not, it is
 // the model's own address, which is the local case where there is no credential
 // to keep out of anywhere.
 type WayOut struct {
+	cfg    wayOutSettings
 	proxy  *proxy.Proxy
 	tokens *proxy.Tokens
 	ledger *spend.Ledger
@@ -99,64 +169,65 @@ func (w *WayOut) askerOf(id string) string {
 	return ""
 }
 
-// openWayOut reads what is configured. GUSTO_MODEL_UPSTREAM is the model's root,
-// with no version on it, because the container supplies the rest of the path.
-// GUSTO_SPEND_POLICY names the prices and team caps, and the ledger starts from
-// what every task under jobsRoot has already spent. GUSTO_ALLOWED_HOSTS is every
-// other host a task may reach. GUSTO_PROXY_MAX_OUTPUT_TOKENS and GUSTO_PROXY_SILENCE_SECONDS bound each model call.
-func openWayOut(jobsRoot string) (*WayOut, error) {
-	direct := setting("GUSTO_MODEL_URL", "http://localhost:11434/v1")
-	policy, err := spend.LoadPolicy(os.Getenv("GUSTO_SPEND_POLICY"))
+// openWayOut opens the way out cfg describes, with the ledger starting from what every task under jobsRoot has already spent. A
+// deployment that holds no credential has no proxy, and its boxes ask the model directly, except on a person's own computer,
+// which always has one, since the person adds their models to it as they go.
+func openWayOut(jobsRoot string, cfg wayOutSettings, local bool) (*WayOut, error) {
+	policy, err := spend.LoadPolicy(cfg.spendPolicy)
 	if err != nil {
 		return nil, err
 	}
-	// The ledger exists without a proxy too, so the spend page reports what
-	// tasks spent through one before, rather than nothing.
+	// The ledger exists without a proxy too, so the spend page reports what tasks spent through one before, rather than
+	// nothing.
 	ledger, err := spend.Rebuild(jobsRoot, policy)
 	if err != nil {
 		return nil, err
 	}
-	credentials, err := heldCredentials()
+	credentials, err := heldCredentials(cfg)
 	if err != nil {
 		return nil, err
 	}
-	// gusto on a person's own computer always has a proxy, since the person adds their models to it as they go.
-	if len(credentials) == 0 && os.Getenv("GUSTO_LOCAL") != "1" {
-		return &WayOut{direct: direct, ledger: ledger}, nil
+	if len(credentials) == 0 && !local {
+		return &WayOut{cfg: cfg, direct: cfg.modelURL, ledger: ledger}, nil
 	}
-	platform := registry.Platform{Credentials: credentials, Models: values("GUSTO_MODELS"), Prices: policy.Prices}
 	tokens := proxy.NewTokens()
-	where := func(id string) (string, bool) {
+	way := &WayOut{
+		cfg:      cfg,
+		direct:   cfg.modelURL,
+		proxy:    proxy.New(tokens, credentials, recordsUnder(jobsRoot), ledger, proxy.ParseAllowlist(cfg.allowedHosts)),
+		platform: registry.Platform{Credentials: credentials, Models: cfg.models, Prices: policy.Prices},
+		tokens:   tokens,
+		ledger:   ledger,
+		socket:   firstOf(cfg.proxySocket, filepath.Join(jobsRoot, ".proxy.sock")),
+		address:  cfg.proxyAddr,
+	}
+	way.held.Store(&credentials)
+	return way, way.equipProxy(jobsRoot)
+}
+
+// recordsUnder is where the proxy writes down what a task sent: proxy.jsonl in the task's out/, under jobsRoot.
+func recordsUnder(jobsRoot string) func(id string) (string, bool) {
+	return func(id string) (string, bool) {
 		if strings.ContainsAny(id, `/\`) {
 			return "", false
 		}
 		return filepath.Join(jobsRoot, id, "out", "proxy.jsonl"), true
 	}
-	way := &WayOut{
-		proxy:    proxy.New(tokens, credentials, where, ledger, proxy.ParseAllowlist(os.Getenv("GUSTO_ALLOWED_HOSTS"))),
-		platform: platform,
-		tokens:   tokens,
-		ledger:   ledger,
-		socket:   setting("GUSTO_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
-		address:  os.Getenv("GUSTO_PROXY_ADDR"),
-	}
-	way.held.Store(&credentials)
-	limits, err := callLimits()
+}
+
+// equipProxy gives the proxy how far one call may run, the run tokens a sandbox's forwarder trades for, and the tool gateway.
+func (w *WayOut) equipProxy(jobsRoot string) error {
+	w.proxy.UseLimits(proxy.Limits{MaxOutput: w.cfg.maxOutput, Silence: time.Duration(w.cfg.silenceSeconds) * time.Second})
+	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return w.runOf(jobsRoot, id) })
 	if err != nil {
-		return nil, err
+		return err
 	}
-	way.proxy.UseLimits(limits)
-	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return way.runOf(jobsRoot, id) })
-	if err != nil {
-		return nil, err
+	w.proxy.UseRunTokens(issuer)
+	if w.gateways, err = openGateways(jobsRoot, w.cfg); err != nil {
+		return err
 	}
-	way.proxy.UseRunTokens(issuer)
-	way.gateways, err = openGateways(jobsRoot)
-	if err != nil {
-		return nil, err
-	}
-	way.proxy.UseGateways(way.gateways.For)
-	return way, nil
+	w.proxy.UseGateways(w.gateways.For)
+	return nil
 }
 
 // credentials is every credential this deployment holds now.
@@ -350,19 +421,14 @@ func (w *WayOut) Done(dir job.Dir) {
 // read. A deployment configured before that directory existed named one
 // upstream in the environment, and it is read as the one unnamed credential
 // that serves every task.
-func heldCredentials() (proxy.Credentials, error) {
-	if dir := os.Getenv("GUSTO_CREDENTIALS"); dir != "" {
-		return proxy.OpenCredentials(dir)
+func heldCredentials(cfg wayOutSettings) (proxy.Credentials, error) {
+	if cfg.credentials != "" {
+		return proxy.OpenCredentials(cfg.credentials)
 	}
-	address := os.Getenv("GUSTO_MODEL_UPSTREAM")
-	if address == "" {
+	if cfg.upstream == "" {
 		return nil, nil
 	}
-	return proxy.Credentials{"": {
-		Address: address,
-		Key:     os.Getenv("GUSTO_MODEL_KEY"),
-		Name:    setting("GUSTO_MODEL_NAME", "the platform credential"),
-	}}, nil
+	return proxy.Credentials{"": {Address: cfg.upstream, Key: cfg.modelKey, Name: cfg.modelName}}, nil
 }
 
 // InBuilding says whether any model this deployment reaches is inside its own
@@ -387,28 +453,4 @@ func allLocal(addresses []string) bool {
 		}
 	}
 	return true
-}
-
-// callLimits is how far one model call may run: the most output tokens it may ask for, and how long the model may send
-// nothing before the call is ended. Neither is set unless the operator sets it.
-func callLimits() (proxy.Limits, error) {
-	var limits proxy.Limits
-	for _, each := range []struct {
-		name string
-		into func(int)
-	}{
-		{"GUSTO_PROXY_MAX_OUTPUT_TOKENS", func(n int) { limits.MaxOutput = n }},
-		{"GUSTO_PROXY_SILENCE_SECONDS", func(n int) { limits.Silence = time.Duration(n) * time.Second }},
-	} {
-		value := os.Getenv(each.name)
-		if value == "" {
-			continue
-		}
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 1 {
-			return limits, fmt.Errorf("%s is %q, and it is a whole number above zero", each.name, value)
-		}
-		each.into(n)
-	}
-	return limits, nil
 }

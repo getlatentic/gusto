@@ -80,7 +80,7 @@ func proxied(t *testing.T, upstream string) (front *httptest.Server, token, root
 	})
 	os.WriteFile(filepath.Join(dir.SetupDir(), setup.GatewayFile), definitions, 0o600)
 
-	gates, err := openGateways(root)
+	gates, err := openGateways(root, fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestAJobWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
 	plain := job.Dir(filepath.Join(root, "20261008-1300-plain"))
 	plain.Make()
 	job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: job.Internal, Budget: job.Budget{Turns: 1, Seconds: 60}}.Write(plain)
-	gates, _ := openGateways(root)
+	gates, _ := openGateways(root, fromEnv(t).way)
 	if _, has := gates.For("20261008-1300-plain"); has {
 		t.Error("a job with no servers behind the gateway has one")
 	}
@@ -234,7 +234,7 @@ rl.on("line", (line) => {
 		t.Fatalf("gateway = %v", carried.Gateway)
 	}
 
-	gates, err := openGateways(filepath.Join(root, "jobs"))
+	gates, err := openGateways(filepath.Join(root, "jobs"), fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}
