@@ -46,13 +46,51 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// What a box cannot yet carry is refused by name before anything starts.
+	run, err := prepareOutside(dir, spec, box)
+	if err != nil {
+		return 0, err
+	}
+	defer os.RemoveAll(objectsOf(dir))
+	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, key: key, keyed: keyed}
+	record, err := Open(dir, run.adapter)
+	if err != nil {
+		return 0, err
+	}
+	ctx, cancel := context.WithTimeout(parent, time.Duration(spec.Budget.Seconds)*time.Second)
+	defer cancel()
+	// Closed however Start ends: a box that was half made is still there.
+	defer box.Close()
+	end.exit, err = run.agentTurn(ctx, record)
+	if end.tokens, end.cost, err = finished(record, err); err != nil {
+		return 0, err
+	}
+	if end.verdict, err = run.check(ctx); err != nil {
+		return 0, err
+	}
+	end.version, end.session = versionIn(ctx, box, run.adapter.Name), record.Remembered
+	return end.close(ctx)
+}
+
+// outside is a run of an agent in a box this process drives, as prepareOutside readied it.
+type outside struct {
+	dir      job.Dir
+	spec     job.Spec
+	box      Box
+	adapter  harness.Adapter
+	digest   string
+	endpoint string
+	before   string
+}
+
+// prepareOutside readies a run in a box: what the box cannot carry and a model the run may not reach are refused by name before
+// anything starts, and the workspace, which already holds the repository, is snapshotted.
+func prepareOutside(dir job.Dir, spec job.Spec, box Box) (*outside, error) {
 	if spec.Setup != nil && len(spec.Setup.Servers) > 0 {
-		return 0, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
+		return nil, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
 	}
 	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	adapter := configured.Adapter
 	endpoint := adapter.EndpointOf()
@@ -60,105 +98,50 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 		endpoint = box.HostModelURL()
 	}
 	if err := admitOutside(spec, adapter, endpoint); err != nil {
-		return 0, Refuse(dir, err)
+		return nil, Refuse(dir, err)
 	}
 	if err := dir.Make(); err != nil {
-		return 0, err
+		return nil, err
 	}
 	before, err := Snapshot(dir)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	defer os.RemoveAll(objectsOf(dir))
+	return &outside{dir: dir, spec: spec, box: box, adapter: adapter, digest: configured.Digest, endpoint: endpoint, before: before}, nil
+}
 
-	started := evidence.Now()
-	record, err := Open(dir, adapter)
-	if err != nil {
+// agentTurn starts the box with the workspace, checks it carries the agent, equips it, and talks to the agent until it ends or
+// ctx does. A box that does not carry the agent is a refusal, in the record.
+func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
+	if err := r.box.Start(ctx, r.dir.Workspace()); err != nil {
 		return 0, err
 	}
-	budget := time.Duration(spec.Budget.Seconds) * time.Second
-	ctx, cancel := context.WithTimeout(parent, budget)
-	defer cancel()
+	if err := carriedIn(ctx, r.box, r.spec.Harness, r.adapter); err != nil {
+		return 0, Refuse(r.dir, err)
+	}
+	if err := r.box.Equip(ctx, r.dir, r.spec, r.adapter); err != nil {
+		return 0, err
+	}
+	return talk(ctx, r.box, r.adapter, r.spec, record)
+}
 
-	// Closed however Start ends: a box that was half made is still there.
-	defer box.Close()
-	if err := box.Start(ctx, dir.Workspace()); err != nil {
-		record.Close()
-		return 0, err
+// check brings the workspace out of the box, diffs it, asks the gate in the box, and keeps what the box's guard saw.
+func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
+	if err := r.box.Fetch(r.dir.Workspace()); err != nil {
+		return nil, err
 	}
-	if err := carriedIn(ctx, box, spec.Harness, adapter); err != nil {
-		record.Close()
-		return 0, Refuse(dir, err)
-	}
-	if err := box.Equip(ctx, dir, spec, adapter); err != nil {
-		record.Close()
-		return 0, err
-	}
-	exit, err := talk(ctx, box, adapter, spec, record)
-	tokens, cost := record.Spent()
-	if closeErr := record.Close(); closeErr != nil && err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return 0, err
-	}
-
-	if err := box.Fetch(dir.Workspace()); err != nil {
-		return 0, err
-	}
-	if err := Diff(dir, before); err != nil {
-		return 0, err
+	if err := Diff(r.dir, r.before); err != nil {
+		return nil, err
 	}
 	var verdict *evidence.Verdict
-	if len(spec.Gate) > 0 {
-		given, err := gateIn(ctx, spec, dir, box)
+	if len(r.spec.Gate) > 0 {
+		given, err := gateIn(ctx, r.spec, r.dir, r.box)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		verdict = &given
 	}
-	if err := keepGuard(dir, box); err != nil {
-		return 0, err
-	}
-	capped, err := stoppedByCap(dir, started)
-	if err != nil {
-		return 0, err
-	}
-	silent, err := unanswered(dir, started)
-	if err != nil {
-		return 0, err
-	}
-	spent, files, err := evidence.Of(dir)
-	if err != nil {
-		return 0, err
-	}
-	if err := evidence.Write(dir, evidence.Manifest{
-		Job:             spent,
-		Files:           files,
-		Gate:            verdict,
-		Harness:         adapter.Name,
-		HarnessDigest:   configured.Digest,
-		HarnessVersion:  versionIn(ctx, box, adapter.Name),
-		Session:         record.Remembered,
-		HarnessExit:     exit,
-		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
-		StoppedBy:       stoppedBy(ctx, dir),
-		StoppedByCap:    capped,
-		ModelUnanswered: silent,
-		ModelEndpoint:   endpoint,
-		Tokens:          tokens,
-		CostUSD:         cost,
-		Signer:          signer(key, keyed),
-		AtUnix:          evidence.Now(),
-	}); err != nil {
-		return 0, err
-	}
-	if keyed {
-		if err := evidence.Seal(dir, key); err != nil {
-			return 0, err
-		}
-	}
-	return evidence.Earned(verdict, exit, silent != nil), nil
+	return verdict, keepGuard(r.dir, r.box)
 }
 
 // gateIn asks the gate in the box, where the repository's own code runs, and
