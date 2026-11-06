@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -108,7 +109,7 @@ func counting(ran *int) matrix.Way {
 	return matrix.Way{
 		Where: "here, in this process",
 		Open: func(string) (replay.Run, func(), error) {
-			return func(dir job.Dir) error { *ran++; return replay.Here(dir) }, func() {}, nil
+			return func(dir job.Dir) error { *ran++; return replay.Here(signing.Identity{})(dir) }, func() {}, nil
 		},
 	}
 }

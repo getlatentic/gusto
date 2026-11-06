@@ -14,6 +14,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 var appConfig = openshell.Config{Binary: "openshell"}
@@ -123,7 +124,7 @@ func TestEveryAgentIsGivenTheGuidanceOnTheSandboxsNetworkWhetherOrNotItHasASetup
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","skills":"/root/.config/fixture/skills",
 	  "argv":["-c","printf yes > answer.txt; cat ../../../.config/fixture/skills/gusto-sandbox/SKILL.md"],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	if exit, err := runner.Outside(dir, inComputer(t, dir, "c-12345678-abcdefgh", "20260930-1200-guidance")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, "c-12345678-abcdefgh", "20260930-1200-guidance"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	said, _ := os.ReadFile(dir.OutFile("transcript.log"))

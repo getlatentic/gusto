@@ -116,11 +116,19 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 - `GUSTO_MODEL_URL`: the model endpoint the agent calls
 - `GUSTO_MODEL_TOKEN`: the key for that endpoint
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
 
 Exit codes:
 
@@ -156,9 +164,13 @@ Flags:
 
 Environment:
 
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
+- `GUSTO_PROXY_SOCKET`: in a box with no network, the proxy's socket the agent's calls are relayed to
+- `GUSTO_AGENT_UID`: the user the agent and the check run as when gusto runs as root in a box (default 0, which is gusto's own)
+- `GUSTO_HOME_KEPT`: the agent's home is a person's own, kept between their tasks
 - `GUSTO_MODEL_URL`: the model endpoint the agent calls
 - `GUSTO_MODEL_TOKEN`: the key for that endpoint
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
 
 Exit codes:
 
@@ -258,8 +270,17 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 
 Exit codes:
 
@@ -301,8 +322,17 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 
 Exit codes:
 
@@ -342,8 +372,15 @@ Flags:
 Environment:
 
 - `GUSTO_SANDBOX`: openshell runs each task in an OpenShell sandbox
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
 
 Exit codes:
 
@@ -603,8 +640,6 @@ Environment:
 - `GUSTO_TOOL_POLICY`: the file of which tool servers a task may call, and how
 - `GUSTO_GATEWAY_MODE`: how a task finds the tools behind the gateway (discover, all) (default discover)
 - `GUSTO_GATEWAY_PRIVATE`: let tool servers and connected apps be on a private network
-- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in
-- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_REDACTION`: the file of what the proxy and the gateway mask in what passes through
 - `GUSTO_LIVE`: the file of limits and models read again as it changes
 - `GUSTO_RELOAD_SECONDS`: how often the files read as they change are looked at, in seconds (default 20)
@@ -620,7 +655,23 @@ Environment:
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
 - `GUSTO_JOB_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open)
 - `GUSTO_JOB_CONCURRENCY`: how many tasks run at a time (default 1)
-- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_OPENSHELL`: the openshell command (default openshell)
+- `GUSTO_OPENSHELL_GATEWAY`: the registered gateway to use (default the selected one)
+- `GUSTO_OPENSHELL_IMAGE`: what a sandbox is made from: an image the gateway can pull, or a root file system archive
+- `GUSTO_OPENSHELL_HOST`: the name a sandbox uses for the machine the gateway runs on (default host.openshell.internal)
+- `GUSTO_OPENSHELL_CPU`: the CPUs one sandbox may use (default 1)
+- `GUSTO_OPENSHELL_MEMORY`: the memory one sandbox may use (default 3Gi)
+- `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
+- `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
 - `GUSTO_CELL`: where a new computer is made (default local)
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
@@ -636,6 +687,9 @@ Environment:
 - `GUSTO_DEPLOY_RESULT`: how the last deploy went, which the health page shows
 - `GUSTO_RETENTION_MINUTES`: how often retention removes what its policy says, in minutes (default 60)
 - `GUSTO_LIVE_CONNECTIONS`: the most rooms' pages followed live at once (default 10000)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
+- `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Examples:
 
@@ -1082,8 +1136,15 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
 
 See also: `gusto agents`, `gusto doctor`
 
@@ -1127,8 +1188,58 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_PASSWORD`: the server's shared sign-in; required
+- `GUSTO_ADDR`: where to listen (default 127.0.0.1:8040)
+- `GUSTO_BEHIND_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
+- `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
+- `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
+- `GUSTO_JOBS`: the directory tasks are kept in (default jobs)
+- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
+- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
+- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
+- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
+- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
+- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
+- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_API_TOKENS`: the file API tokens are kept in
+- `GUSTO_RETENTION`: the directory of the retention policy and what it removed
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_JOBS)
+- `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
+- `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
+- `GUSTO_JOB_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open)
+- `GUSTO_JOB_CONCURRENCY`: how many tasks run at a time (default 1)
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
+- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_OPENSHELL`: the openshell command (default openshell)
+- `GUSTO_OPENSHELL_GATEWAY`: the registered gateway to use (default the selected one)
+- `GUSTO_OPENSHELL_IMAGE`: what a sandbox is made from: an image the gateway can pull, or a root file system archive
+- `GUSTO_OPENSHELL_HOST`: the name a sandbox uses for the machine the gateway runs on (default host.openshell.internal)
+- `GUSTO_OPENSHELL_CPU`: the CPUs one sandbox may use (default 1)
+- `GUSTO_OPENSHELL_MEMORY`: the memory one sandbox may use (default 3Gi)
+- `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
+- `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
+- `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
+- `GUSTO_CELL`: where a new computer is made (default local)
+- `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
+- `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
+- `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
+- `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
+- `GUSTO_MODEL_UPSTREAM`: the root of the one model provider this server holds a key for, with no version on it
+- `GUSTO_MODEL_KEY`: the key for GUSTO_MODEL_UPSTREAM, which the proxy holds
+- `GUSTO_MODEL_NAME`: what the credential for GUSTO_MODEL_UPSTREAM is called (default the platform credential)
+- `GUSTO_CREDENTIALS`: the directory of credentials the proxy holds, one <name>.json each
+- `GUSTO_SPEND_POLICY`: the file of prices and team caps
+- `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
+- `GUSTO_HARNESSES`: the directory of agents of your own, beside the built-in ones
 
 Exit codes:
 
@@ -1230,7 +1341,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 - `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Examples:
@@ -1258,8 +1370,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 - `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Exit codes:
 

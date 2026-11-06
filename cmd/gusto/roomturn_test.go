@@ -39,7 +39,7 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 		}
 	}
 	held, _ = instances.Get(held.ID)
-	return newRoomRuns(instances, nil, fromEnv(t).boxes.roomCopy()), held
+	return newRoomRuns(instances, nil, fromEnv(t).boxes.roomCopy(), nil), held
 }
 
 // aRoomTurn is the task directory and spec of a turn of one of the room's agents.

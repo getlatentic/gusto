@@ -9,11 +9,13 @@ import (
 	"testing"
 
 	internal "github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/runner"
 )
 
 func TestRefuseKeepsTheReasonWhereAPersonReadingTheTaskLooksAndReturnsIt(t *testing.T) {
+	t.Parallel()
 	dir := job.Dir(filepath.Join(t.TempDir(), "task"))
 	reason := errors.New("the model is not allowed")
 	if got := runner.Refuse(dir, reason); !errors.Is(got, reason) {
@@ -26,14 +28,19 @@ func TestRefuseKeepsTheReasonWhereAPersonReadingTheTaskLooksAndReturnsIt(t *test
 }
 
 func TestTheFacadeAnswersAsTheRunnerBehindItDoes(t *testing.T) {
+	t.Parallel()
 	missing := job.Dir(filepath.Join(t.TempDir(), "no-such-task"))
-	_, want := internal.OutsideContext(context.Background(), missing, nil)
-	for name, got := range map[string]func() error{
-		"Outside":        func() error { _, err := runner.Outside(missing, nil); return err },
-		"OutsideContext": func() error { _, err := runner.OutsideContext(context.Background(), missing, nil); return err },
-	} {
-		if err := got(); want == nil || err == nil || err.Error() != want.Error() {
-			t.Errorf("%s: %v, the runner behind it says %v", name, err, want)
-		}
+	_, want := internal.Outside(context.Background(), missing, nil, signing.Identity{})
+	if _, err := runner.Outside(context.Background(), missing, nil, runner.Signing{}); want == nil || err == nil || err.Error() != want.Error() {
+		t.Errorf("%v, the runner behind it says %v", err, want)
+	}
+}
+
+func TestAKeyThatCannotBeReadStopsTheRunBeforeTheAgent(t *testing.T) {
+	t.Parallel()
+	dir := job.Dir(filepath.Join(t.TempDir(), "task"))
+	absent := filepath.Join(t.TempDir(), "absent.key")
+	if _, err := runner.Outside(context.Background(), dir, nil, runner.Signing{Key: absent}); err == nil || !strings.Contains(err.Error(), "absent.key") {
+		t.Fatalf("want the key named, got %v", err)
 	}
 }

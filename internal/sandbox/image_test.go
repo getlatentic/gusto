@@ -45,11 +45,10 @@ func TestAMissingRunnerImageIsFetchedLoadedAndNamedOnce(t *testing.T) {
 		w.Write([]byte("the image's layers"))
 	}))
 	defer source.Close()
-	t.Setenv("GUSTO_CONTAINER", runtimePath)
-	t.Setenv("GUSTO_IMAGE", "gusto-runner:abc123")
-	t.Setenv(ImageSource, source.URL+"/image/abc123.docker.tar.gz")
+	c := with(runtimePath, "gusto-runner:abc123")
+	c.ImageSource = source.URL + "/image/abc123.docker.tar.gz"
 
-	if err := EnsureImage(context.Background()); err != nil {
+	if err := c.EnsureImage(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Dir(runtimePath)
@@ -59,27 +58,25 @@ func TestAMissingRunnerImageIsFetchedLoadedAndNamedOnce(t *testing.T) {
 	if said, _ := os.ReadFile(filepath.Join(dir, "said")); !strings.Contains(string(said), "tag gusto-runner:latest gusto-runner:abc123") {
 		t.Errorf("the loaded image was not named for the tasks:\n%s", said)
 	}
-	if err := EnsureImage(context.Background()); err != nil || fetched.Load() != 1 {
+	if err := c.EnsureImage(context.Background()); err != nil || fetched.Load() != 1 {
 		t.Errorf("an image that is here was fetched again: %d fetches, %v", fetched.Load(), err)
 	}
 }
 
 // With no source a missing image is left for the container's start to report, and a source that fails says why.
 func TestARunnerImageWithNoSourceIsLeftAndAFailedFetchSaysWhy(t *testing.T) {
-	t.Setenv("GUSTO_CONTAINER", imageRuntime(t))
-	t.Setenv("GUSTO_IMAGE", "gusto-runner:abc123")
-	t.Setenv(ImageSource, "")
-	if err := EnsureImage(context.Background()); err != nil {
+	c := with(imageRuntime(t), "gusto-runner:abc123")
+	if err := c.EnsureImage(context.Background()); err != nil {
 		t.Errorf("with no source: %v", err)
 	}
 	gone := httptest.NewServer(http.NotFoundHandler())
 	defer gone.Close()
-	t.Setenv(ImageSource, gone.URL+"/image/abc123.docker.tar.gz")
-	if err := EnsureImage(context.Background()); err == nil || !strings.Contains(err.Error(), "could not be fetched") {
+	c.ImageSource = gone.URL + "/image/abc123.docker.tar.gz"
+	if err := c.EnsureImage(context.Background()); err == nil || !strings.Contains(err.Error(), "could not be fetched") {
 		t.Errorf("a source that has no image: %v", err)
 	}
-	t.Setenv(ImageSource, "ftp://elsewhere/x")
-	if err := EnsureImage(context.Background()); err == nil {
+	c.ImageSource = "ftp://elsewhere/x"
+	if err := c.EnsureImage(context.Background()); err == nil {
 		t.Error("a source of another kind was taken")
 	}
 }
@@ -102,14 +99,13 @@ inspect) [ -f "$dir/archive" ] ;;`, 1)
 		w.Write([]byte("the image's layers"))
 	}))
 	defer source.Close()
-	t.Setenv("GUSTO_CONTAINER", runtimePath)
-	t.Setenv("GUSTO_IMAGE", "gusto-runner:abc123")
-	t.Setenv(ImageSource, source.URL+"/image/abc123.docker.tar.gz")
+	c := with(runtimePath, "gusto-runner:abc123")
+	c.ImageSource = source.URL + "/image/abc123.docker.tar.gz"
 	t.Setenv("TMPDIR", t.TempDir())
-	if err := EnsureImage(context.Background()); err == nil {
+	if err := c.EnsureImage(context.Background()); err == nil {
 		t.Fatal("a load that could not be named was taken")
 	}
-	if err := EnsureImage(context.Background()); err != nil {
+	if err := c.EnsureImage(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	if fetched.Load() != 1 {

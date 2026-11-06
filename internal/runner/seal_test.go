@@ -1,37 +1,37 @@
 package runner_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/schema"
 )
 
-// keyed names a fresh key as the runner's and returns the keyring holding its
-// public half.
-func keyed(t *testing.T, name string) signing.Keyring {
+// keyed is a runner with a fresh key and no name, and the keyring holding its public half.
+func keyed(t *testing.T, name string) (signing.Identity, signing.Keyring) {
 	t.Helper()
 	ring := t.TempDir()
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, name+".key"))
+	identity, err := signing.Open(context.Background(), filepath.Join(ring, name+".key"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	keyring, err := signing.OpenKeyring(ring)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return keyring
+	return identity, keyring
 }
 
 func TestARunWithAKeySignsItsManifest(t *testing.T) {
-	keyring := keyed(t, "acme")
-	dir, _ := ran(t)
+	identity, keyring := keyed(t, "acme")
+	dir, _ := ranAs(t, identity)
 	if wrong, err := evidence.Check(dir); err != nil || len(wrong) != 0 {
 		t.Fatalf("a signed run should check clean, got %v: %v", wrong, err)
 	}
@@ -49,8 +49,7 @@ func TestARunWithAKeySignsItsManifest(t *testing.T) {
 }
 
 func TestARunWithNoKeyIsUnsigned(t *testing.T) {
-	t.Setenv(signing.KeyEnv, "")
-	dir, _ := ran(t)
+	dir, _ := ranAs(t, signing.Identity{})
 	if _, err := os.Stat(dir.OutFile(evidence.SignatureFile)); !os.IsNotExist(err) {
 		t.Fatalf("no key, no signature: %v", err)
 	}
@@ -60,11 +59,11 @@ func TestARunWithNoKeyIsUnsigned(t *testing.T) {
 	}
 }
 
-// A runner with a key and no GUSTO_SIGNER names the key in the manifest, so a
-// signed record never calls itself unsigned.
+// A runner with a key and no name names the key in the manifest, so a signed
+// record never calls itself unsigned.
 func TestASignedManifestWithNoNameGivesTheKeysID(t *testing.T) {
-	keyring := keyed(t, "acme")
-	dir := unnamedRun(t)
+	identity, keyring := keyed(t, "acme")
+	dir, _ := ranAs(t, identity)
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -74,47 +73,4 @@ func TestASignedManifestWithNoNameGivesTheKeysID(t *testing.T) {
 			t.Fatalf("want the key's id %s, got %q", id, manifest.Signer)
 		}
 	}
-}
-
-func TestANamedKeyThatCannotBeReadStopsTheRunBeforeItStarts(t *testing.T) {
-	t.Setenv(signing.KeyEnv, filepath.Join(t.TempDir(), "absent.key"))
-	dir := unnamedJob(t)
-	if _, err := runner.Inside(dir); err == nil || !strings.Contains(err.Error(), "absent.key") {
-		t.Fatalf("want the key named, got %v", err)
-	}
-	if _, err := os.Stat(dir.OutFile("transcript.log")); !os.IsNotExist(err) {
-		t.Fatalf("the harness should not have run: %v", err)
-	}
-}
-
-func unnamedRun(t *testing.T) job.Dir {
-	t.Helper()
-	dir := unnamedJob(t)
-	if _, err := runner.Inside(dir); err != nil {
-		t.Fatal(err)
-	}
-	return dir
-}
-
-// unnamedJob is the fixture job with GUSTO_SIGNER unset.
-func unnamedJob(t *testing.T) job.Dir {
-	t.Helper()
-	harnesses := t.TempDir()
-	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
-	t.Setenv("GUSTO_HARNESSES", harnesses)
-	t.Setenv("GUSTO_SIGNER", "")
-	dir := job.Dir(t.TempDir())
-	if err := dir.Make(); err != nil {
-		t.Fatal(err)
-	}
-	spec := job.Spec{
-		Brief:   "make the answer yes",
-		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
-		Harness: "fixture",
-	}
-	if err := spec.Write(dir); err != nil {
-		t.Fatal(err)
-	}
-	return dir
 }

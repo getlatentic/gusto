@@ -50,18 +50,17 @@ func Seal(dir job.Dir, signer signing.Signer) error {
 	return atomicfile.WriteFile(dir.OutFile(SignatureFile), text, 0o644)
 }
 
-// SealAsConfigured signs with the key GUSTO_SIGNING_KEY names, and leaves the
-// record unsigned when it names none. A directory with no manifest has nothing
-// to sign: a run that died before writing one is reported by its own error.
-func SealAsConfigured(dir job.Dir) error {
-	signer, found, err := signing.Configured()
-	if err != nil || !found {
-		return err
+// SealIfKeyed signs with key, and leaves the record unsigned when there is none.
+// A directory with no manifest has nothing to sign: a run that died before
+// writing one is reported by its own error.
+func SealIfKeyed(dir job.Dir, key signing.Signer) error {
+	if key == nil {
+		return nil
 	}
 	if _, err := os.Stat(dir.OutFile("manifest.json")); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	return Seal(dir, signer)
+	return Seal(dir, key)
 }
 
 // Attest names who signed the record, from the keyring. An unsigned record is

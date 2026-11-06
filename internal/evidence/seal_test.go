@@ -209,26 +209,25 @@ func TestRewritingAManifestDropsTheSignatureItNoLongerHas(t *testing.T) {
 	}
 }
 
-func TestSealAsConfiguredSignsWithTheNamedKeyOrNotAtAll(t *testing.T) {
+func TestSealIfKeyedSignsWithTheKeyOrNotAtAll(t *testing.T) {
+	t.Parallel()
 	unkeyed := recorded(t, "yes")
-	t.Setenv(signing.KeyEnv, "")
-	if err := evidence.SealAsConfigured(unkeyed); err != nil {
+	if err := evidence.SealIfKeyed(unkeyed, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(unkeyed.OutFile(evidence.SignatureFile)); !os.IsNotExist(err) {
 		t.Fatalf("no key, no signature: %v", err)
 	}
 	ring := t.TempDir()
-	keyIn(t, ring, "acme")
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, "acme.key"))
+	key := keyIn(t, ring, "acme")
 	keyed := recorded(t, "yes")
-	if err := evidence.SealAsConfigured(keyed); err != nil {
+	if err := evidence.SealIfKeyed(keyed, key); err != nil {
 		t.Fatal(err)
 	}
 	if attested, err := evidence.Attest(keyed, keyringOf(t, ring)); err != nil || attested.Signer != "acme" {
 		t.Fatalf("want acme, got %+v: %v", attested, err)
 	}
-	if err := evidence.SealAsConfigured(job.Dir(t.TempDir())); err != nil {
+	if err := evidence.SealIfKeyed(job.Dir(t.TempDir()), key); err != nil {
 		t.Fatalf("a directory with no manifest has nothing to sign: %v", err)
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -26,14 +27,16 @@ type roomRuns struct {
 	hub       *roomwork.Hub
 	// askedBy is the person a turn was asked for by, or nothing for a token or a script.
 	askedBy func(job.Dir) string
+	// key signs a turn's record again once what was done with its changes is in it, or is nil for an unsigned record.
+	key signing.Signer
 }
 
-// newRoomRuns is how turns of a room's agents get their working copies, each copy held to limits.
-func newRoomRuns(instances *instance.Store, askedBy func(job.Dir) string, limits roomwork.Limits) *roomRuns {
+// newRoomRuns is how turns of a room's agents get their working copies, each copy held to limits, and their records signed with key.
+func newRoomRuns(instances *instance.Store, askedBy func(job.Dir) string, limits roomwork.Limits, key signing.Signer) *roomRuns {
 	if askedBy == nil {
 		askedBy = func(job.Dir) string { return "" }
 	}
-	return &roomRuns{instances: instances, askedBy: askedBy, hub: roomwork.NewHub(limits)}
+	return &roomRuns{instances: instances, askedBy: askedBy, hub: roomwork.NewHub(limits), key: key}
 }
 
 // isRoomTurn says whether a turn is one of a room's agents. Only a room's turns name an agent.
@@ -91,14 +94,14 @@ func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec job.Spec
 		if _, err := r.instances.Notice(spec.Session, spec.Thread, why); err != nil {
 			slog.Error("could not tell the room a turn wrote nothing", "room", spec.Session, "error", err)
 		}
-		decided(dir, evidence.Decision{Refused: why})
+		r.decided(dir, evidence.Decision{Refused: why})
 		return nil
 	}
 	outcome, err := turn.Merge(ctx)
 	if err != nil {
 		return err
 	}
-	decided(dir, decisionOf(outcome))
+	r.decided(dir, decisionOf(outcome))
 	if words := outcome.Words(); words != "" {
 		if _, err := r.instances.Notice(spec.Session, spec.Thread, words); err != nil {
 			slog.Error("could not tell the room about a conflict", "room", spec.Session, "error", err)
@@ -167,8 +170,8 @@ func decisionOf(outcome roomwork.Outcome) evidence.Decision {
 
 // decided puts what was done with a turn's changes in its signed record. A record that cannot take it is said, and the room's
 // folder is as the decision left it either way.
-func decided(dir job.Dir, decision evidence.Decision) {
-	if err := evidence.Decide(dir, decision); err != nil {
+func (r *roomRuns) decided(dir job.Dir, decision evidence.Decision) {
+	if err := evidence.Decide(dir, decision, r.key); err != nil {
 		slog.Error("a turn's record does not say what was done with its changes", "job", filepath.Base(dir.Path()), "error", err)
 	}
 }

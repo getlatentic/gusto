@@ -21,41 +21,47 @@ import (
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// Inside does the whole run and returns the exit code the check earned, so a
-// caller needs nothing but the process status to know what happened.
-func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(), dir) }
+// Place is what a runner is told of where it runs, by the command that starts it.
+type Place struct {
+	// Signing is who stands behind the record.
+	Signing signing.Identity
+	// ProxySocket is the proxy's socket in a sealed box, which the agent's loopback is relayed to, or nothing.
+	ProxySocket string
+	// AgentUID is the user the agent and the check run as, when the runner is root, or 0 for the runner's own.
+	AgentUID int
+	// KeptHome says the agent's home is a person's own, kept between their tasks.
+	KeptHome bool
+}
 
-// InsideContext is Inside that stops early when its context ends, as it does when the budget's seconds run out: the agent
-// is killed, what it did is kept, and the manifest says why it stopped.
-func InsideContext(parent context.Context, dir job.Dir) (int, error) {
-	return InsideWith(parent, dir, harness.Here())
+// Inside does the whole run in a place that is nothing but this process, unsigned, and returns the exit code the check
+// earned, so a caller needs nothing but the process status to know what happened.
+func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(), dir, Place{}) }
+
+// InsideContext is a run in place that stops early when its context ends, as it does when the budget's seconds run out: the
+// agent is killed, what it did is kept, and the manifest says why it stopped.
+func InsideContext(parent context.Context, dir job.Dir, place Place) (int, error) {
+	return InsideWith(parent, dir, harness.Here(), place)
 }
 
 // InsideWith is InsideContext for an agent started with the environment given, and not this process's: a task run in the server's
 // own process is given the proxy and its token and nothing of the server's secrets. The check runs with the same environment.
-func InsideWith(parent context.Context, dir job.Dir, env harness.Env) (int, error) {
-	stopRelay, err := relayOut()
+func InsideWith(parent context.Context, dir job.Dir, env harness.Env, place Place) (int, error) {
+	stopRelay, err := relayOut(place.ProxySocket)
 	if err != nil {
 		return 0, err
 	}
 	defer stopRelay()
-	// A key that is named but unreadable stops the run before the agent does
-	// any work, rather than leaving a record unsigned that was meant to be.
-	key, keyed, err := signing.Configured()
-	if err != nil {
-		return 0, err
-	}
 	spec, err := job.Read(dir)
 	if err != nil {
 		return 0, err
 	}
-	agent := agentHere()
+	agent := agentIn(place)
 	defer agent.takeBack(dir)
 	run, err := prepareInside(dir, spec, env)
 	if err != nil {
 		return 0, err
 	}
-	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, key: key, keyed: keyed}
+	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: place.Signing}
 	record, err := Open(dir, run.adapter)
 	if err != nil {
 		return 0, err
@@ -185,7 +191,7 @@ func (r *inside) check(ctx context.Context, agent agent) (*evidence.Verdict, err
 	if len(r.spec.Gate) == 0 {
 		return nil, nil
 	}
-	given, err := gateWith(ctx, r.spec, r.dir, r.env.Base, r.env.Wrap)
+	given, err := gateWith(ctx, r.spec, r.dir, r.env.Base, r.env.Wrap, agent)
 	agent.endAll()
 	if err != nil {
 		return nil, err

@@ -128,7 +128,7 @@ func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*W
 	}
 	way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
 	boxes := vm.New(vm.Config{Gateway: cfg, Computers: registry, Org: "acme-com", Cell: "local"})
-	work := turns(boxes, way, instances, index, newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) }, fromEnv(t).boxes.roomCopy()))
+	work := turns(boxes, way, instances, index, newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) }, fromEnv(t).boxes.roomCopy(), nil))
 	return func(dir job.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
 }
 

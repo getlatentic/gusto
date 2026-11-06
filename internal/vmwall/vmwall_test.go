@@ -252,19 +252,15 @@ func TestAnImageThePersonNamesIsUsedWhereTheyKeepIt(t *testing.T) {
 	}
 }
 
-func TestAnInstallIsUsedByGustoButNeverOverAnOperatorsSetting(t *testing.T) {
+func TestAnInstallSaysTheProgramAndGatewayItMade(t *testing.T) {
 	c, env := newComputer(t, "arm64")
 	plan, _ := Prepare(context.Background(), env, c.root, c.user, "")
 	if err := plan.Apply(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	set := map[string]string{}
-	Adopt(plan.Layout, func(name string) string { return map[string]string{"GUSTO_OPENSHELL_IMAGE": "theirs"}[name] }, func(name, value string) { set[name] = value })
-	if set["GUSTO_OPENSHELL"] != plan.Program(CLI) || set["GUSTO_OPENSHELL_GATEWAY"] != GatewayName {
-		t.Errorf("the install is not used: %v", set)
-	}
-	if _, overridden := set["GUSTO_OPENSHELL_IMAGE"]; overridden {
-		t.Error("an operator's image was replaced")
+	settings, ok := Installed(plan.Layout)
+	if !ok || settings.Binary != plan.Program(CLI) || settings.Gateway != GatewayName || settings.Image == "" {
+		t.Errorf("the install is not read back: %+v", settings)
 	}
 }
 

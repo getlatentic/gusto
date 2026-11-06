@@ -1,6 +1,7 @@
 package openshell_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -50,12 +52,12 @@ func TestAComputerIsMadeOnceAndKeepsWhatAPersonPutInItBetweenJobs(t *testing.T) 
 	root := installFake(t)
 	first, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; printf remembered > ../../../notes.txt; echo first job in $(pwd | sed 's|.*/sandbox||')`)
-	if exit, err := runner.Outside(first, inComputer(t, first, "c-12345678-abcdefgh", "20260929-1200-first")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), first, inComputer(t, first, "c-12345678-abcdefgh", "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	second, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; echo second job sees: $(cat ../../../notes.txt)`)
-	if exit, err := runner.Outside(second, inComputer(t, second, "c-12345678-abcdefgh", "20260929-1201-second")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), second, inComputer(t, second, "c-12345678-abcdefgh", "20260929-1201-second"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 
@@ -99,12 +101,12 @@ func TestEachJobInAComputerHasOnlyItsOwnPartOfTheGuardsLog(t *testing.T) {
 
 	first, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; echo "first job event" >> ../../../../events.log`)
-	if _, err := runner.Outside(first, inComputer(t, first, name, "20260929-1200-first")); err != nil {
+	if _, err := runner.Outside(context.Background(), first, inComputer(t, first, name, "20260929-1200-first"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	second, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; echo "second job event" >> ../../../../events.log`)
-	if _, err := runner.Outside(second, inComputer(t, second, name, "20260929-1201-second")); err != nil {
+	if _, err := runner.Outside(context.Background(), second, inComputer(t, second, name, "20260929-1201-second"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	one, _ := os.ReadFile(first.OutFile(runner.GuardEvents))
@@ -122,13 +124,13 @@ func TestAComputerThatWasStoppedIsStartedAgainForTheNextJob(t *testing.T) {
 	name := "c-12345678-abcdefgh"
 	first, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt`)
-	if _, err := runner.Outside(first, inComputer(t, first, name, "20260929-1200-first")); err != nil {
+	if _, err := runner.Outside(context.Background(), first, inComputer(t, first, name, "20260929-1200-first"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	os.WriteFile(filepath.Join(root, name, "stopped"), nil, 0o644)
 	second, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; echo ran`)
-	if exit, err := runner.Outside(second, inComputer(t, second, name, "20260929-1201-second")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), second, inComputer(t, second, name, "20260929-1201-second"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("a stopped computer is started for a job: exit %d, %v", exit, err)
 	}
 	if started, _ := os.ReadFile(filepath.Join(root, "starts.log")); strings.TrimSpace(string(started)) != name {
@@ -153,7 +155,7 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	write(t, filepath.Join(first.SetupDir(), "skills", "review", "SKILL.md"), "review\n")
 	spec.Setup = &job.Setup{Name: "engineering", Skills: []string{"review"}}
 	spec.Write(first)
-	if _, err := runner.Outside(first, inComputer(t, first, name, "20260929-1200-first")); err != nil {
+	if _, err := runner.Outside(context.Background(), first, inComputer(t, first, name, "20260929-1200-first"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	if said, _ := os.ReadFile(first.OutFile("transcript.log")); !strings.Contains(string(said), "skills: gusto-sandbox review") {
@@ -161,7 +163,7 @@ func TestASkillOneJobWasGivenIsNotLeftForTheNext(t *testing.T) {
 	}
 	second, _ := aJob(t)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	if _, err := runner.Outside(second, inComputer(t, second, name, "20260929-1201-second")); err != nil {
+	if _, err := runner.Outside(context.Background(), second, inComputer(t, second, name, "20260929-1201-second"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	if said, _ := os.ReadFile(second.OutFile("transcript.log")); strings.Contains(string(said), "review") || !strings.Contains(string(said), "gusto-sandbox") {
@@ -216,7 +218,7 @@ func TestTurnsOfOneInstanceShareADirectoryThatIsKeptAndIsGivenTheInstancesFilesA
 	kept := filepath.Join(root, "c-12345678-abcdefgh", "sandbox", "jobs", "instance-20260929-1200-notes")
 	first, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; printf stale > only-in-the-first-turn.txt; echo turn in $(pwd | sed 's|.*/sandbox||')`)
-	if exit, err := runner.Outside(first, inComputerFor(t, first, "c-12345678-abcdefgh", "20260929-1200-first", "20260929-1200-notes")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), first, inComputerFor(t, first, "c-12345678-abcdefgh", "20260929-1200-first", "20260929-1200-notes"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if _, err := os.Stat(kept); err != nil {
@@ -224,7 +226,7 @@ func TestTurnsOfOneInstanceShareADirectoryThatIsKeptAndIsGivenTheInstancesFilesA
 	}
 	second, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; ls; echo turn in $(pwd | sed 's|.*/sandbox||')`)
-	if exit, err := runner.Outside(second, inComputerFor(t, second, "c-12345678-abcdefgh", "20260929-1201-second", "20260929-1200-notes")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), second, inComputerFor(t, second, "c-12345678-abcdefgh", "20260929-1201-second", "20260929-1200-notes"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	for _, dir := range []job.Dir{first, second} {
@@ -239,7 +241,7 @@ func TestTurnsOfOneInstanceShareADirectoryThatIsKeptAndIsGivenTheInstancesFilesA
 	}
 	other, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; echo one-off in $(pwd | sed 's|.*/sandbox||')`)
-	if _, err := runner.Outside(other, inComputer(t, other, "c-12345678-abcdefgh", "20260929-1202-oneoff")); err != nil {
+	if _, err := runner.Outside(context.Background(), other, inComputer(t, other, "c-12345678-abcdefgh", "20260929-1202-oneoff"), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "c-12345678-abcdefgh", "sandbox", "jobs", "20260929-1202-oneoff")); err == nil {

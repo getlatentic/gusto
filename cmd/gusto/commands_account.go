@@ -48,7 +48,7 @@ func recordCommands() []*cmdline.Command {
 				"private key stays in AWS KMS and only the public key is written.",
 			Args:     []cmdline.Param{{Name: "<name>", Text: "what the signer is called"}},
 			Flags:    flagsOf(declareKeygen),
-			Env:      []cmdline.Param{envSigning, envKeyring},
+			Env:      cmdline.ParamsOf(new(signingSettings).declare),
 			Examples: []string{"gusto keygen ci -dir keys"},
 			SeeAlso:  []string{"keys", "verify"},
 			Run:      makeKey,
@@ -59,7 +59,7 @@ func recordCommands() []*cmdline.Command {
 			Description: "Says which key stands behind every signed record in the tasks directory, and which records no key in the keyring " +
 				"can vouch for. Run it before a public key is removed from a keyring, and after one is restored.",
 			Flags: flagsOf(declareKeys),
-			Env:   []cmdline.Param{envKeyring, {Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}},
+			Env:   append([]cmdline.Param{{Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}}, envKeyring...),
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "every record is attributed"},
 				{Name: "1", Text: "a record cannot be attributed"},
@@ -78,7 +78,7 @@ func recordCommands() []*cmdline.Command {
 					"earlier is still in the record, which shows whether lines were cut off the end.",
 				Args:     []cmdline.Param{{Name: "<file>", Text: "the exported record"}},
 				Flags:    flagsOf(declareChangesVerify),
-				Env:      []cmdline.Param{envKeyring},
+				Env:      envKeyring,
 				Examples: []string{"gusto changes verify changes.jsonl -head 9b1c..."},
 				Exit: []cmdline.Param{
 					{Name: "0", Text: "the chain holds"},

@@ -1,6 +1,7 @@
 package audit_test
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"strings"
@@ -19,8 +20,11 @@ func signedRun(t *testing.T, ring, name string) job.Dir {
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, name+".key"))
-	return ran(t)
+	signs, err := signing.Open(context.Background(), filepath.Join(ring, name+".key"), "a-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ranAs(t, signs, firstCall, secondCall, refusedCall, reachedHost, deniedHost)
 }
 
 func keyringAt(t *testing.T, ring string) signing.Keyring {

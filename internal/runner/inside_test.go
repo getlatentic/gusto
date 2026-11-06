@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -49,10 +50,15 @@ func repo(t *testing.T) string {
 
 func ran(t *testing.T) (job.Dir, job.Spec) {
 	t.Helper()
+	return ranAs(t, signing.Identity{Name: "a-test"})
+}
+
+// ranAs is the fixture job, run here with its record signed as signs.
+func ranAs(t *testing.T, signs signing.Identity) (job.Dir, job.Spec) {
+	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	dir := job.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
@@ -67,7 +73,7 @@ func ran(t *testing.T) (job.Dir, job.Spec) {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	exit, err := runner.Inside(dir)
+	exit, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +256,7 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	started := time.Now()
-	go func() { _, err := runner.InsideContext(ctx, dir); done <- err }()
+	go func() { _, err := runner.InsideContext(ctx, dir, runner.Place{}); done <- err }()
 	waitForFile(t, filepath.Join(dir.Workspace(), "made.txt"))
 	stop()
 	select {
@@ -286,7 +292,7 @@ func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.
 	spec.Write(dir)
 	ctx, stop := context.WithCancel(context.Background())
 	go func() { waitForFile(t, filepath.Join(dir.Workspace(), "up.txt")); stop() }()
-	if _, err := runner.InsideContext(ctx, dir); err != nil {
+	if _, err := runner.InsideContext(ctx, dir, runner.Place{}); err != nil {
 		t.Fatal(err)
 	}
 	if manifest, _ := evidence.Read(dir); manifest.StoppedBy != "a signal" {

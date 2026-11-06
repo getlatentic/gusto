@@ -5,36 +5,30 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// AgentUIDEnv names the user an agent runs as inside the box. The runner
-// stays root there, so the record in out/ is written by the runner alone: the
-// agent, and whatever code it runs, can read its workspace and its own home
-// and cannot touch the record, the proxy's log included.
-const AgentUIDEnv = "GUSTO_AGENT_UID"
-
-// agent is that user. A runner that is not root, or an image that names no
-// agent, has nobody to hand the work to and runs the harness as itself: a
-// laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
+// agent is the user an agent runs as inside the box. The runner stays root
+// there, so the record in out/ is written by the runner alone: the agent, and
+// whatever code it runs, can read its workspace and its own home and cannot
+// touch the record, the proxy's log included. A runner that is not root, or an
+// image that names no agent, has nobody to hand the work to and runs the
+// harness as itself: a laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
 type agent struct {
 	uid, gid int
 	present  bool
-	// keptHome is a home that is the person's own, kept between their tasks (sandbox.KeptHomeEnv).
+	// keptHome is a home that is the person's own, kept between their tasks.
 	keptHome bool
 	// skills is where the harness finds its skills, which a kept home is given afresh for each task.
 	skills string
 }
 
-func agentHere() agent {
-	uid, err := strconv.Atoi(os.Getenv(AgentUIDEnv))
-	if err != nil || uid <= 0 || os.Geteuid() != 0 {
+func agentIn(place Place) agent {
+	if place.AgentUID <= 0 || os.Geteuid() != 0 {
 		return agent{}
 	}
-	return agent{uid: uid, gid: uid, present: true, keptHome: os.Getenv(sandbox.KeptHomeEnv) == "1"}
+	return agent{uid: place.AgentUID, gid: place.AgentUID, present: true, keptHome: place.KeptHome}
 }
 
 // handOver gives the agent its workspace and home, closes out/ to it, and

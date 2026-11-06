@@ -7,7 +7,6 @@ import (
 
 	"github.com/getlatentic/gusto/internal/audit"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -43,7 +42,7 @@ func exportTask(args []string) int {
 	}
 	// The keyring names the signer both ways: the one an export is written
 	// under, and the one a verifier checks that name against.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}

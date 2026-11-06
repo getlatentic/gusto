@@ -1,41 +1,47 @@
 package replay
 
 import (
+	"context"
 	"flag"
 
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
-// Here runs a rerun in this process, the way `gusto inside` does.
-func Here(dir job.Dir) error {
-	_, err := runner.Inside(dir)
-	return err
+// Here runs a rerun in this process, the way `gusto inside` does, with its record signed as signs.
+func Here(signs signing.Identity) Run {
+	return func(dir job.Dir) error {
+		_, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs})
+		return err
+	}
 }
 
 // Contained runs a rerun in a container, the way `gusto run` does: the clone
 // happens on this side of the box, so a repository credential never enters it.
 // The exit code is the check's, and the verdict is read from the evidence.
-func Contained(dir job.Dir) error {
-	spec, err := job.Read(dir)
-	if err != nil {
+func Contained(box sandbox.Containers) Run {
+	return func(dir job.Dir) error {
+		spec, err := job.Read(dir)
+		if err != nil {
+			return err
+		}
+		if err := runner.Fill(spec, dir); err != nil {
+			return err
+		}
+		_, err = box.Run(context.Background(), dir, harness.ModelURL(), "", sandbox.Owner{})
 		return err
 	}
-	if err := runner.Fill(spec, dir); err != nil {
-		return err
-	}
-	_, err = sandbox.Run(dir, harness.ModelURL(), "")
-	return err
 }
 
 // Where is Here when asked for, and a container otherwise.
-func Where(here bool) Run {
+func Where(here bool, box sandbox.Containers) Run {
 	if here {
-		return Here
+		return Here(box.Signing)
 	}
-	return Contained
+	return Contained(box)
 }
 
 // Interspersed parses flags wherever they sit among the directories and returns

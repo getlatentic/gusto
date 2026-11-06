@@ -68,7 +68,7 @@ func (s *server) startTurns() error {
 	if err != nil {
 		return err
 	}
-	boxes, err := openBackend(s.cfg.boxes, s.cfg.core.org, s.cfg.served.quota, shared, s.way.proxyPort())
+	boxes, err := openBackend(s.cfg, s.signs, shared, s.way.proxyPort())
 	if err != nil {
 		return err
 	}
@@ -83,9 +83,10 @@ func (s *server) startTurns() error {
 	s.shared, s.boxes = shared, boxes
 	if s.way.gateways != nil {
 		s.way.gateways.inProcess = s.cfg.boxes.here()
+		s.way.gateways.containers = s.cfg.boxes.containers.signedBy(s.signs)
 	}
 	s.index.SetLimits(jobs.Limits{Person: s.cfg.way.limitPerson, Team: s.cfg.way.limitTeam})
-	s.rooms = newRoomRuns(s.instances, func(dir job.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy())
+	s.rooms = newRoomRuns(s.instances, func(dir job.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy(), s.signs.Key)
 	s.tellWayOut()
 	// Started before any turn: a backend keeps up what its turns use, such as its image or people's computers.
 	stopBoxes, err := boxes.Start(context.Background())

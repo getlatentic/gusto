@@ -4,12 +4,12 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/apitoken"
+	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // offerSetups is what a task is set up with: the setups kept beside the instances and the operator's MCP servers they choose
@@ -60,12 +60,12 @@ func (s *server) offerHistory() error {
 		return err
 	}
 	s.pages.UseBoard(lineups)
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := s.cfg.sign.openKeyring()
 	if err != nil {
 		return err
 	}
 	s.pages.UseKeyring(keyring)
-	changes, err := openChanges(s.cfg.stores.changes, keyring)
+	changes, err := changelog.Open(s.cfg.stores.changes, s.signs.Key, keyring)
 	if err != nil {
 		return err
 	}

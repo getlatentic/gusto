@@ -32,16 +32,9 @@ const (
 // Outside does the whole run for an agent that runs in a box, and returns the
 // exit code the check earned, as Inside does for one in this process. The
 // workspace must already hold the repository.
-func Outside(dir job.Dir, box Box) (int, error) {
-	return OutsideContext(context.Background(), dir, box)
-}
-
-// OutsideContext is Outside that stops early when its context ends, as Inside does.
-func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
-	key, keyed, err := signing.Configured()
-	if err != nil {
-		return 0, err
-	}
+//
+// The record is signed by who signs, and the run stops early when ctx ends, as Inside does.
+func Outside(parent context.Context, dir job.Dir, box Box, signs signing.Identity) (int, error) {
 	spec, err := job.Read(dir)
 	if err != nil {
 		return 0, err
@@ -51,7 +44,7 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 		return 0, err
 	}
 	defer os.RemoveAll(objectsOf(dir))
-	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, key: key, keyed: keyed}
+	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: signs}
 	record, err := Open(dir, run.adapter)
 	if err != nil {
 		return 0, err

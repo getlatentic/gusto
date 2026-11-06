@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/spare"
 	"github.com/getlatentic/gusto/pkg/harness"
 )
@@ -165,7 +166,7 @@ func TestAFirstTaskRunsInTheSpareWithoutMakingASandboxAndAnotherSpareIsMade(t *t
 
 	dir, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt; ls -A ../../../.. | tr '\n' ' ' > seen.txt`)
-	if exit, err := runner.Outside(dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
@@ -217,7 +218,7 @@ func TestASpareThatCannotBeMadeLeavesNothingAndTheFirstTaskMakesItsOwn(t *testin
 	os.Remove(filepath.Join(root, "broken"))
 	dir, _ := aJob(t)
 	withHarness(t, `printf yes > answer.txt`)
-	if exit, err := runner.Outside(dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if _, err := os.Stat(filepath.Join(root, held.Sandbox, "sandbox")); err != nil {

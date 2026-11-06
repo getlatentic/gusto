@@ -128,24 +128,38 @@ func TestThePersonsOwnShellIsAskedForItsPath(t *testing.T) {
 	}
 }
 
-// A computer's own choice of wall is set as GUSTO_SANDBOX, so the rest of gusto runs jobs behind it, and a person's own setting
+// A computer's own choice of wall is the GUSTO_SANDBOX the rest of gusto reads, so it runs jobs behind it, and a person's own setting
 // is left alone.
 func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
-	t.Setenv("GUSTO_SANDBOX", "")
-	t.Setenv("GUSTO_CONTAINER", "")
 	t.Setenv("PATH", t.TempDir())
 	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a job to a folder and a
 	// port, and nothing otherwise.
 	expected := "here"
-	if isolation.ProcessWall(isolation.This()).Ready {
+	if isolation.ProcessWall(isolation.This(isolation.Settings{})).Ready {
 		expected = "process"
 	}
-	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != expected || wall == nil {
-		t.Errorf("a computer with no docker and no VM chose %q, want %q", os.Getenv("GUSTO_SANDBOX"), expected)
+	nothingSet := func(string) string { return "" }
+	if decided, err := chooseWall(nothingSet); err != nil || decided["GUSTO_SANDBOX"] != expected || wall == nil {
+		t.Errorf("a computer with no docker and no VM chose %v, want %q: %v", decided, expected, err)
 	}
-	t.Setenv("GUSTO_SANDBOX", "container")
-	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != "container" || !wall.Forced {
-		t.Error("a person's own setting was second-guessed")
+	theirs := func(name string) string { return map[string]string{"GUSTO_SANDBOX": "container"}[name] }
+	if decided, err := chooseWall(theirs); err != nil || len(decided) != 0 || !wall.Forced {
+		t.Errorf("a person's own setting was second-guessed: %v, %v", decided, err)
+	}
+}
+
+// The sandbox a person installed is what gusto uses, under what they set themselves, and the sandbox chosen is read over both.
+func TestAnInstalledSandboxIsUsedUnderThePersonsOwnSettings(t *testing.T) {
+	t.Parallel()
+	installed := map[string]string{"GUSTO_OPENSHELL": "/h/openshell/bin/openshell", "GUSTO_OPENSHELL_IMAGE": "/h/openshell/rootfs.tar"}
+	theirs := map[string]string{"GUSTO_OPENSHELL_IMAGE": "/theirs/rootfs.tar"}
+	lookup := settings.Over(map[string]string{"GUSTO_SANDBOX": "openshell"}, settings.Under(installed, func(name string) string { return theirs[name] }))
+	cfg, _, err := loadServe(lookup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.boxes.openShell.cfg; got.Binary != installed["GUSTO_OPENSHELL"] || got.Image != theirs["GUSTO_OPENSHELL_IMAGE"] || cfg.boxes.sandbox != "openshell" {
+		t.Errorf("the sandbox is %+v, kind %s", got, cfg.boxes.sandbox)
 	}
 }
 

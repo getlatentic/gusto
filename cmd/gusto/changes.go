@@ -14,20 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/live"
 	"github.com/getlatentic/gusto/internal/retention"
 	"github.com/getlatentic/gusto/internal/settings"
-	"github.com/getlatentic/gusto/internal/signing"
 )
-
-// openChanges opens the record of what changes on the platform, signed by the
-// deployment's key when it holds one. A log that does not hold together stops
-// the server starting: what it would go on to write would look as sound as what
-// came before it.
-func openChanges(file string, keyring signing.Keyring) (*changelog.Log, error) {
-	signer, _, err := signing.Configured()
-	if err != nil {
-		return nil, err
-	}
-	return changelog.Open(file, signer, keyring)
-}
 
 // governed are the settings that decide who may sign in and what they may do, with nothing secret in them. A change to any is
 // written down the next time the server starts.
@@ -99,7 +86,7 @@ func changesVerify(args []string) int {
 	if set.NArg() > 0 {
 		return usageError("changes verify", "needs only the exported record")
 	}
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}

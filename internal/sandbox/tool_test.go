@@ -19,7 +19,7 @@ func aTool(t *testing.T) Tool {
 }
 
 func TestAProgramsBoxHasNoCapabilityNoNetworkAndNothingItMayWriteButItsOwnFolder(t *testing.T) {
-	args, err := ToolArgs(aTool(t))
+	args, err := plain().ToolArgs(aTool(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,16 +50,18 @@ func TestAProgramsBoxHasNoCapabilityNoNetworkAndNothingItMayWriteButItsOwnFolder
 }
 
 func TestTheNetworkIsOpenOnlyWhenAnAdministratorSaysSo(t *testing.T) {
-	if ToolNetwork() != "none" {
+	t.Parallel()
+	c := plain()
+	if c.toolNetwork() != "none" {
 		t.Fatal("a program has a network by default")
 	}
-	t.Setenv("GUSTO_TOOLS_NETWORK", "open")
-	args, _ := ToolArgs(aTool(t))
+	c.ToolNetwork = "open"
+	args, _ := c.ToolArgs(aTool(t))
 	if !strings.Contains(strings.Join(args, " "), "--network=bridge") {
 		t.Errorf("%v", args)
 	}
-	t.Setenv("GUSTO_TOOLS_NETWORK", "host")
-	if ToolNetwork() != "none" {
+	c.ToolNetwork = "host"
+	if c.toolNetwork() != "none" {
 		t.Error("anything but open is not open")
 	}
 }
@@ -73,13 +75,13 @@ func TestACommandOrWorkingFolderOutsideThePluginIsRefused(t *testing.T) {
 	} {
 		tool := aTool(t)
 		change(&tool)
-		if _, err := ToolArgs(tool); err == nil {
+		if _, err := plain().ToolArgs(tool); err == nil {
 			t.Errorf("%+v was taken", tool)
 		}
 	}
 	tool := aTool(t)
 	tool.Command = "node"
-	if args, err := ToolArgs(tool); err != nil || !strings.Contains(strings.Join(args, " "), "--entrypoint node ") {
+	if args, err := plain().ToolArgs(tool); err != nil || !strings.Contains(strings.Join(args, " "), "--entrypoint node ") {
 		t.Errorf("a bare name: %v %v", args, err)
 	}
 }
@@ -87,11 +89,11 @@ func TestACommandOrWorkingFolderOutsideThePluginIsRefused(t *testing.T) {
 // realToolImage is an image this machine has that carries node, which the real test runs a small MCP server in.
 func realToolImage(t *testing.T) string {
 	t.Helper()
-	if _, err := exec.LookPath(Runtime()); err != nil {
+	if _, err := exec.LookPath(plain().Runtime); err != nil {
 		t.Skip("no container runtime")
 	}
 	image := "node:24-slim"
-	if err := exec.Command(Runtime(), "image", "inspect", image).Run(); err != nil {
+	if err := exec.Command(plain().Runtime, "image", "inspect", image).Run(); err != nil {
 		t.Skip("no " + image + " here")
 	}
 	return image
@@ -123,8 +125,8 @@ rl.on("line", (line) => {
 `
 
 func TestAProgramRunsInARealBoxThatHoldsItInAndTheGatewayCanSpeakToIt(t *testing.T) {
-	image := realToolImage(t)
-	t.Setenv("GUSTO_TOOLS_IMAGE", image)
+	c := plain()
+	c.ToolImage = realToolImage(t)
 	// A folder under the home directory, which a runtime that is a virtual machine shares and a temporary folder it may not.
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -139,7 +141,7 @@ func TestAProgramRunsInARealBoxThatHoldsItInAndTheGatewayCanSpeakToIt(t *testing
 	os.MkdirAll(plugin, 0o755)
 	os.WriteFile(filepath.Join(plugin, "server.js"), []byte(echoServer), 0o644)
 	tool := Tool{Job: "20261008-1200-real", Name: "probe", Plugin: plugin, Data: data, Command: "node", Args: []string{"${PLUGIN_ROOT}/server.js"}}
-	command, ended, err := ToolCommand(context.Background(), tool)
+	command, ended, err := c.ToolCommand(context.Background(), tool)
 	if err != nil {
 		t.Fatal(err)
 	}

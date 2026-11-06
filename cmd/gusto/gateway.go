@@ -29,6 +29,8 @@ type gateways struct {
 	// inProcess says tasks run in the server's own process, where there is no container to run a program in. It is set before
 	// any task runs.
 	inProcess bool
+	// containers is how a program's box is started. It is set before any task runs.
+	containers sandbox.Containers
 	// policy is the tool policy as it is now, which a change to its file replaces and a task that is running asks for at each call.
 	policy atomic.Pointer[tools.Policy]
 	mode   tools.Mode
@@ -143,7 +145,7 @@ func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (
 	if g.inProcess {
 		return nil, nil, errors.New("a program runs in a container, and this server runs tasks in its own process")
 	}
-	return sandbox.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
+	return g.containers.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
 		Command: server.Command, Args: server.Args, Env: server.Env, Cwd: server.Cwd})
 }
 

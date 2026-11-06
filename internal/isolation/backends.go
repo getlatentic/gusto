@@ -18,18 +18,18 @@ func virtualMachine(h Host) Backend {
 	default:
 		return no("virtual machines for tasks are not supported on " + h.GOOS)
 	}
-	binary := h.Getenv("GUSTO_OPENSHELL")
+	binary := h.Settings.OpenShell
 	if binary == "" {
 		binary = "openshell"
 	}
 	if _, err := h.LookPath(binary); err != nil {
 		return no("OpenShell is not installed")
 	}
-	if h.Getenv("GUSTO_OPENSHELL_IMAGE") == "" {
+	if h.Settings.OpenShellImage == "" {
 		return no("GUSTO_OPENSHELL_IMAGE names no image that carries the engines")
 	}
 	list := []string{"sandbox", "list"}
-	if gateway := h.Getenv("GUSTO_OPENSHELL_GATEWAY"); gateway != "" {
+	if gateway := h.Settings.OpenShellGateway; gateway != "" {
 		list = append([]string{"--gateway", gateway}, list...)
 	}
 	if _, ok := h.Run(binary, list...); !ok {
@@ -71,7 +71,7 @@ func landlock(h Host, no func(string) Backend) Backend {
 		return no("gusto does not know where its own program is")
 	}
 	args := []string{"sandbox-run", "--check"}
-	if h.Getenv("GUSTO_JOB_NETWORK") != "open" {
+	if h.Settings.JobNetwork != "open" {
 		args = append(args, "--network")
 	}
 	out, ok := h.Run(h.Self, args...)
@@ -96,14 +96,14 @@ func container(h Host) Backend {
 	if h.GOOS == "windows" {
 		return no("containers for tasks are not supported on Windows yet")
 	}
-	name := runtimeName(h)
+	name := RuntimeName(h.Settings.Container, h.LookPath)
 	if _, err := h.LookPath(name); err != nil {
 		return no("neither Docker nor Podman is installed")
 	}
 	if _, ok := h.Run(name, "info"); !ok {
 		return no(name + " is installed and does not answer: start it")
 	}
-	image := h.Getenv("GUSTO_IMAGE")
+	image := h.Settings.Image
 	if image == "" {
 		image = "gusto:dev"
 	}

@@ -57,13 +57,13 @@ func theJob(t *testing.T) job.Dir {
 
 func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing.T) {
 	script, log := runtimeThat(t, "    trap 'echo heard-interrupt >> "+"$LOGFILE"+"; exit 130' INT\n    echo ready >> "+"$LOGFILE"+"\n    while true; do sleep 0.1; done")
-	t.Setenv("GUSTO_CONTAINER", script)
+	c := with(script, "image")
 	t.Setenv("LOGFILE", log)
 	dir := theJob(t)
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		_, err := start(ctx, dir, []string{"run", "--rm", "--name", containerName(dir), "image"})
+		_, err := c.start(ctx, dir, []string{"run", "--rm", "--name", containerName(dir), "image"})
 		done <- err
 	}()
 	waitForLine(t, log, "ready")
@@ -86,7 +86,8 @@ func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing
 }
 
 func TestEveryJobsContainerHasAnAddressableName(t *testing.T) {
-	args, err := argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, Owner{}, nil)
+	t.Parallel()
+	args, err := plain().argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

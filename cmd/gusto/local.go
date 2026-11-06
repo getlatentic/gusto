@@ -143,9 +143,11 @@ func runLocal(home string) int {
 	if setup.Path != "" {
 		os.Setenv("PATH", setup.Path)
 	}
-	useInstalledWall(home)
-	chooseWall()
-	return serveFrom(settings.Over(ownServer(home, setup), os.Getenv))
+	lookup, err := ownComputer(home)
+	if err != nil {
+		return refused(err)
+	}
+	return serveFrom(settings.Over(ownServer(home, setup), lookup))
 }
 
 // ownServer is the settings gusto decides for the server of one person on their own computer, over any they set themselves.

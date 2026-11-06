@@ -31,7 +31,7 @@ func checkKeys(args []string) int {
 	if set.NArg() > 0 {
 		return usageError("keys", "takes no arguments")
 	}
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}

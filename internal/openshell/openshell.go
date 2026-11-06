@@ -19,7 +19,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -50,43 +49,15 @@ type Config struct {
 	// Processes is the most processes an agent's user may have running in a sandbox at once. The VM driver
 	// enforces no limit of its own, so the command that starts an agent sets it.
 	Processes int
+	// Remote says the gateway runs on another machine, so this one needs no hardware virtualization.
+	Remote bool
 }
 
-// defaultProcesses leaves room for an agent, its tools and a test runner's workers, and stops a fork that never ends.
-const defaultProcesses = 512
+// DefaultProcesses leaves room for an agent, its tools and a test runner's workers, and stops a fork that never ends.
+const DefaultProcesses = 512
 
 // unsetProcesses is the limit for a sandbox whose configuration names none.
-var unsetProcesses = defaultProcesses
-
-// FromEnv reads the settings of a deployment that runs tasks in sandboxes.
-func FromEnv() (Config, error) {
-	cfg := Config{
-		Binary:  or(os.Getenv("GUSTO_OPENSHELL"), "openshell"),
-		Gateway: os.Getenv("GUSTO_OPENSHELL_GATEWAY"),
-		Image:   os.Getenv("GUSTO_OPENSHELL_IMAGE"),
-		Host:    or(os.Getenv("GUSTO_OPENSHELL_HOST"), "host.openshell.internal"),
-		CPU:     or(os.Getenv("GUSTO_OPENSHELL_CPU"), "1"),
-		Memory:  or(os.Getenv("GUSTO_OPENSHELL_MEMORY"), "3Gi"),
-	}
-	processes, err := strconv.Atoi(or(os.Getenv("GUSTO_OPENSHELL_PROCESSES"), strconv.Itoa(defaultProcesses)))
-	if err != nil || processes < 1 {
-		return cfg, fmt.Errorf("GUSTO_OPENSHELL_PROCESSES is %q, and has to be a number of processes above zero", os.Getenv("GUSTO_OPENSHELL_PROCESSES"))
-	}
-	cfg.Processes = processes
-	for _, entry := range strings.Split(os.Getenv("GUSTO_ALLOWED_HOSTS"), ",") {
-		if entry = strings.TrimSpace(entry); entry != "" {
-			cfg.Allowed = append(cfg.Allowed, entry)
-		}
-	}
-	return cfg, nil
-}
-
-func or(value, fallback string) string {
-	if value != "" {
-		return value
-	}
-	return fallback
-}
+var unsetProcesses = DefaultProcesses
 
 // Workdir is where the workspace is inside a sandbox. It is under the home a
 // sandbox user has, /sandbox: the file rules can only be laid on a path that

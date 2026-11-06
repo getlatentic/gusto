@@ -16,6 +16,7 @@ type serveSettings struct {
 	way    wayOutSettings
 	boxes  sandboxSettings
 	news   newsSettings
+	sign   signingSettings
 }
 
 func (s *serveSettings) declare(set *settings.Set) {
@@ -26,6 +27,7 @@ func (s *serveSettings) declare(set *settings.Set) {
 	s.way.declare(set)
 	s.boxes.declare(set)
 	s.news.declare(set)
+	s.sign.declare(set)
 }
 
 // loadServe reads serve's settings from lookup. The set is kept, so the settings people sign in under can be recorded as they

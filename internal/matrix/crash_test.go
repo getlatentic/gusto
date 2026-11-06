@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -41,7 +42,7 @@ func TestACellsTimeIsTheTimeOfTheRunItHolds(t *testing.T) {
 	}
 	afterwards := matrix.Way{Where: "here, in this process", Open: func(string) (replay.Run, func(), error) {
 		return func(dir job.Dir) error {
-			return errors.Join(replay.Here(dir), errors.New("the runner failed after the verdict"))
+			return errors.Join(replay.Here(signing.Identity{})(dir), errors.New("the runner failed after the verdict"))
 		}, func() {}, nil
 	}}
 	_, table = measure(t, path, finishes.Name(), afterwards)

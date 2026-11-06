@@ -1,20 +1,17 @@
 package evidence_test
 
 import (
-	"path/filepath"
 	"slices"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // A room's turn is decided after its record was signed: the decision goes under the signature, which still holds.
 func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	ring := t.TempDir()
-	keyIn(t, ring, "acme")
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, "acme.key"))
+	key := keyIn(t, ring, "acme")
 	dir := aRoomTurn(t)
 	allowance := 5.0
 	if err := evidence.WriteRun(dir, evidence.Run{Asked: "bob@acme.com", PaidBy: "ada@acme.com", Agent: "a1", AgentName: "Scout",
@@ -28,11 +25,11 @@ func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files}); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.SealAsConfigured(dir); err != nil {
+	if err := evidence.SealIfKeyed(dir, key); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := evidence.Decide(dir, evidence.Decision{Kept: true, Changed: 2, Joined: []string{"plan.md"}}); err != nil {
+	if err := evidence.Decide(dir, evidence.Decision{Kept: true, Changed: 2, Joined: []string{"plan.md"}}, key); err != nil {
 		t.Fatal(err)
 	}
 

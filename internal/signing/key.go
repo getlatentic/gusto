@@ -8,7 +8,6 @@
 package signing
 
 import (
-	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -22,10 +21,13 @@ import (
 	"strings"
 )
 
-// KeyEnv names the private key a runner signs with: a file on the machine that
-// runs gusto, never in a task directory or a container, or a KMS key written
-// awskms://<key>.
-const KeyEnv = "GUSTO_SIGNING_KEY"
+// KeyEnv is the setting that names the private key a runner signs with: a file on the machine that runs gusto, never in a
+// task directory or a container, or a KMS key written awskms://<key>. NameEnv is the setting for the name a runner gives
+// itself in a record.
+const (
+	KeyEnv  = "GUSTO_SIGNING_KEY"
+	NameEnv = "GUSTO_SIGNER"
+)
 
 // Key is a private key a runner holds in a file and signs with.
 type Key struct {
@@ -50,22 +52,6 @@ func (k Key) Public() ed25519.PublicKey {
 func IDOf(public ed25519.PublicKey) string {
 	sum := sha256.Sum256(public)
 	return "sha256:" + hex.EncodeToString(sum[:16])
-}
-
-// Configured is the signer GUSTO_SIGNING_KEY names. Found is false when the
-// variable is unset, which leaves a run unsigned rather than failing it; a
-// variable naming a file that is not a key is an error, because a runner that
-// meant to sign must not quietly stop.
-func Configured() (signer Signer, found bool, err error) {
-	path := os.Getenv(KeyEnv)
-	if path == "" {
-		return nil, false, nil
-	}
-	signer, err = signerFor(context.Background(), path)
-	if err != nil {
-		return nil, false, err
-	}
-	return signer, true, nil
 }
 
 // ReadKey reads a PEM PKCS#8 Ed25519 private key.

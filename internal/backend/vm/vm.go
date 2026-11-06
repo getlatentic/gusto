@@ -16,6 +16,7 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 )
 
@@ -41,6 +42,8 @@ type Config struct {
 	Idle time.Duration
 	// ProxyPort is the proxy's port, which a spare computer's policy names.
 	ProxyPort string
+	// Signing is who stands behind each turn's record.
+	Signing signing.Identity
 }
 
 // Backend runs turns in OpenShell sandboxes.
@@ -66,7 +69,7 @@ func New(cfg Config) *Backend {
 func (b *Backend) String() string { return "in an OpenShell sandbox, " + b.cfg.Gateway.Image }
 
 // Check says why this computer cannot make the gateway's virtual machines.
-func (b *Backend) Check() error { return openshell.HostCannotMakeVMs() }
+func (b *Backend) Check() error { return openshell.HostCannotMakeVMs(b.cfg.Gateway.Remote) }
 
 // Reach is the loopback: a sandbox reaches this computer's loopback through the gateway's own proxy.
 func (b *Backend) Reach() backend.Reach { return backend.Loopback }
@@ -163,5 +166,5 @@ func (b *Backend) inSandbox(ctx context.Context, turn backend.Turn) (int, error)
 	if err := door.RecordRun(dir, spec, openshell.Name(id), bound); err != nil {
 		return 0, err
 	}
-	return runner.OutsideContext(ctx, dir, box)
+	return runner.Outside(ctx, dir, box, b.cfg.Signing)
 }

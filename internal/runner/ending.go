@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"os"
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
@@ -24,8 +23,7 @@ type ending struct {
 	endpoint string
 	tokens   *int64
 	cost     *float64
-	key      signing.Signer
-	keyed    bool
+	signing  signing.Identity
 }
 
 // finished closes the agent's record and says what it spent. An error closing it is the run's when the run had none.
@@ -68,29 +66,15 @@ func (e ending) close(ctx context.Context) (int, error) {
 		ModelEndpoint:   e.endpoint,
 		Tokens:          e.tokens,
 		CostUSD:         e.cost,
-		Signer:          signer(e.key, e.keyed),
+		Signer:          e.signing.Says(),
 		AtUnix:          evidence.Now(),
 	}); err != nil {
 		return 0, err
 	}
-	if e.keyed {
-		if err := evidence.Seal(e.dir, e.key); err != nil {
+	if e.signing.Signed() {
+		if err := evidence.Seal(e.dir, e.signing.Key); err != nil {
 			return 0, err
 		}
 	}
 	return evidence.Earned(e.verdict, e.exit, silent != nil), nil
-}
-
-// signer is the name the manifest gives for who stands behind it. It is the
-// runner's own word: a verifier names the signer from its keyring instead. A
-// runner with a key and no name gives the key's id, so a signed record never
-// calls itself unsigned.
-func signer(key signing.Signer, keyed bool) string {
-	if name := os.Getenv("GUSTO_SIGNER"); name != "" {
-		return name
-	}
-	if keyed {
-		return key.ID()
-	}
-	return "unsigned"
 }

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/pkg/job"
@@ -169,10 +170,10 @@ func TestAJobWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
 // A program an integration brought runs in a box, behind the proxy, and a job calls it through the gateway: the whole way, in a real
 // container. It needs a container runtime and node's image, and a folder the runtime can mount.
 func TestAProgramAnIntegrationBroughtRunsInABoxAndAJobCallsItThroughTheProxy(t *testing.T) {
-	if _, err := exec.LookPath(sandbox.Runtime()); err != nil || exec.Command(sandbox.Runtime(), "image", "inspect", "node:24-slim").Run() != nil {
+	boxes := sandbox.Containers{Runtime: isolation.RuntimeName("", exec.LookPath), ToolImage: "node:24-slim", ToolCPUs: "0.5", ToolMemory: "512m"}
+	if _, err := exec.LookPath(boxes.Runtime); err != nil || exec.Command(boxes.Runtime, "image", "inspect", boxes.ToolImage).Run() != nil {
 		t.Skip("no container runtime, or no node image")
 	}
-	t.Setenv("GUSTO_TOOLS_IMAGE", "node:24-slim")
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no home directory")
@@ -235,6 +236,7 @@ rl.on("line", (line) => {
 	}
 
 	gates, err := openGateways(filepath.Join(root, "jobs"), fromEnv(t).way)
+	gates.containers = boxes
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +262,7 @@ rl.on("line", (line) => {
 		t.Errorf("the record = %s", record)
 	}
 	gates.Forget("20261008-1200-a-turn")
-	out, _ := exec.Command(sandbox.Runtime(), "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
+	out, _ := exec.Command(boxes.Runtime, "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
 	if strings.TrimSpace(string(out)) != "" {
 		t.Errorf("the program's box is still running after the job: %s", out)
 	}

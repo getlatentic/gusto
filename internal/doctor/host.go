@@ -4,15 +4,6 @@ import (
 	"os"
 )
 
-// JobsDirectory is where gusto serve keeps tasks, and so where a task's directory
-// is mounted from.
-func JobsDirectory() string {
-	if dir := os.Getenv("GUSTO_JOBS"); dir != "" {
-		return dir
-	}
-	return "jobs"
-}
-
 // gitOnPath matters because the runner clones outside the box, so a repository
 // credential never goes in with the agent. The image having git is not enough.
 func gitOnPath(machine Machine) Verdict {
@@ -25,8 +16,7 @@ func gitOnPath(machine Machine) Verdict {
 
 // jobsWritable checks the directory every job is written into. Serve opens it
 // at start and each job writes its evidence there.
-func jobsWritable(machine Machine) Verdict {
-	dir := JobsDirectory()
+func jobsWritable(machine Machine, dir string) Verdict {
 	info, err := os.Stat(dir)
 	switch {
 	case err != nil:
