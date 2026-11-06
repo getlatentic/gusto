@@ -58,7 +58,7 @@ func matrixWay(here bool) (matrix.Way, error) {
 	if here {
 		return matrix.Here(), nil
 	}
-	cfg, _, err := loadServe()
+	cfg, _, err := loadServe(os.Getenv)
 	if err != nil {
 		return matrix.Way{}, err
 	}

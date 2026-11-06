@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
 
 // scanCommand asks the runner image what it carries, which keeps the answer beside the image, so the
 // servers that start after this find it there. A host does it before it takes any work, since the first
 // question waits for the gateway to import the image.
 func scanCommand() int {
-	cfg, _, err := loadServe()
+	cfg, _, err := loadServe(os.Getenv)
 	if err != nil {
 		return fail(err)
 	}

@@ -5,10 +5,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/cmd/internal/cmdline"
 	"github.com/getlatentic/gusto/internal/isolation"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
@@ -143,5 +146,37 @@ func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
 	t.Setenv("GUSTO_SANDBOX", "container")
 	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != "container" || !wall.Forced {
 		t.Error("a person's own setting was second-guessed")
+	}
+}
+
+// The server of one person on their own computer is set by gusto: on the loopback, signed in by its own secret, and with the
+// person as the admin of their own registry.
+func TestTheServerOnAPersonsComputerIsSetByGusto(t *testing.T) {
+	t.Parallel()
+	setup := localSetup{Secret: "local-secret", Port: 8041, ProxyPort: 8042, FoundKeys: []string{"DEEPSEEK_API_KEY", "OPENAI_API_KEY"}}
+	theirs := map[string]string{"GUSTO_ADDR": "0.0.0.0:80", "GUSTO_ORG": "acme"}
+	cfg, _, err := loadServe(settings.Over(ownServer("/home/ada/gusto", setup), func(name string) string { return theirs[name] }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.core.addr != "127.0.0.1:8041" || cfg.core.password != "local-secret" || !cfg.core.local || cfg.core.org != "acme" {
+		t.Errorf("core is %+v", cfg.core)
+	}
+	if !slices.Equal(cfg.access.foundKeys, setup.FoundKeys) {
+		t.Errorf("found keys are %v", cfg.access.foundKeys)
+	}
+}
+
+// Every setting gusto decides for a person's own server is one serve reads, so none is decided and then never read.
+func TestEverySettingGustoDecidesLocallyIsOneServeReads(t *testing.T) {
+	t.Parallel()
+	declared := map[string]bool{}
+	for _, each := range cmdline.ParamsOf(new(serveSettings).declare) {
+		declared[each.Name] = true
+	}
+	for name := range ownServer("/home/ada/gusto", localSetup{}) {
+		if !declared[name] {
+			t.Errorf("%s is decided for the local server, and serve does not read it", name)
+		}
 	}
 }

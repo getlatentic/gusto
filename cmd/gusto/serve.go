@@ -52,7 +52,12 @@ func serve(args []string) int {
 	if len(args) != 0 {
 		return usageError("serve", "takes no arguments")
 	}
-	s, code := newServer()
+	return serveFrom(os.Getenv)
+}
+
+// serveFrom is the server with the settings lookup gives, until it stops.
+func serveFrom(lookup func(string) string) int {
+	s, code := newServer(lookup)
 	if s == nil {
 		return code
 	}
@@ -68,8 +73,8 @@ func serve(args []string) int {
 
 // newServer is a server that may start, or nil and the exit code of the reason it may not. A setting that does not read is a
 // server started wrongly, which is said as a missing password is.
-func newServer() (*server, int) {
-	cfg, set, err := loadServe()
+func newServer(lookup func(string) string) (*server, int) {
+	cfg, set, err := loadServe(lookup)
 	if err != nil {
 		return nil, refused(err)
 	}

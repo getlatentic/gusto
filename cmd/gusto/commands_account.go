@@ -185,7 +185,7 @@ func otherCommands() []*cmdline.Command {
 			Description: "What a sandbox runs in place of an agent: it starts the run's forwarder, which trades the run's secret for a " +
 				"token bound to a key of its own, points the agent at it, holds itself to the Landlock policy when one is given, and " +
 				"becomes the agent. Gusto runs this itself.",
-			Run: boxed,
+			Env: cmdline.ParamsOf(new(boxedSettings).declare), Run: boxed,
 		},
 		{
 			Name: "boxed-forward", Hidden: true, Summary: "The forwarder gusto boxed starts",
