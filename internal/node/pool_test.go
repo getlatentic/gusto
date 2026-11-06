@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -16,11 +16,11 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// pooled is a pool over a directory of registrations, with the cells given.
-func pooled(t *testing.T, min int, cells map[string]*agentHost) *Pool {
+// pooled is a pool over a directory of registrations, with the nodes given.
+func pooled(t *testing.T, min int, nodes map[string]*agentNode) *Pool {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "cells")
-	for name, host := range cells {
+	for name, host := range nodes {
 		if err := Register(dir, host.registration(name, time.Now())); err != nil {
 			t.Fatal(err)
 		}
@@ -28,8 +28,8 @@ func pooled(t *testing.T, min int, cells map[string]*agentHost) *Pool {
 	return &Pool{Dir: dir, Secret: secret, MaxAge: time.Minute, MinFreeMiB: min}
 }
 
-func TestAnOrganizationIsPlacedOnTheCellWithTheMostRoomThatHasEnough(t *testing.T) {
-	pool := pooled(t, 4096, map[string]*agentHost{
+func TestAnOrganizationIsPlacedOnTheNodeWithTheMostRoomThatHasEnough(t *testing.T) {
+	pool := pooled(t, 4096, map[string]*agentNode{
 		"cell-a": newAgent(t, "cell-a", 6000),
 		"cell-b": newAgent(t, "cell-b", 12000),
 		"cell-c": newAgent(t, "cell-c", 9000),
@@ -39,11 +39,11 @@ func TestAnOrganizationIsPlacedOnTheCellWithTheMostRoomThatHasEnough(t *testing.
 		t.Fatalf("%v %v", placed, err)
 	}
 	// Equal room is broken by the name, so the choice does not depend on the order of a listing.
-	tie := pooled(t, 0, map[string]*agentHost{"cell-b": newAgent(t, "cell-b", 8000), "cell-a": newAgent(t, "cell-a", 8000)})
+	tie := pooled(t, 0, map[string]*agentNode{"cell-b": newAgent(t, "cell-b", 8000), "cell-a": newAgent(t, "cell-a", 8000)})
 	if placed, _ := tie.Place(); placed.Name() != "cell-a" {
 		t.Errorf("a tie went to %s", placed.Name())
 	}
-	tight := pooled(t, 4096, map[string]*agentHost{"cell-a": newAgent(t, "cell-a", 3000), "cell-b": newAgent(t, "cell-b", 2000)})
+	tight := pooled(t, 4096, map[string]*agentNode{"cell-a": newAgent(t, "cell-a", 3000), "cell-b": newAgent(t, "cell-b", 2000)})
 	if _, err := tight.Place(); err == nil || !strings.Contains(err.Error(), "4096 MiB") {
 		t.Errorf("a cell without room was placed on: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestAnOrganizationIsPlacedOnTheCellWithTheMostRoomThatHasEnough(t *testing.
 	}
 }
 
-func TestACellThatIsSilentOrDoesNotAnswerIsNeverChosenOrReached(t *testing.T) {
+func TestANodeThatIsSilentOrDoesNotAnswerIsNeverChosenOrReached(t *testing.T) {
 	quiet := newAgent(t, "cell-a", 20000)
 	broken := newAgent(t, "cell-b", 30000)
 	well := newAgent(t, "cell-c", 5000)
@@ -77,23 +77,23 @@ func TestACellThatIsSilentOrDoesNotAnswerIsNeverChosenOrReached(t *testing.T) {
 	}
 }
 
-func TestACellThatDoesNotAnswerIsNotPlacedOnEvenWhenItIsTheOnlyOne(t *testing.T) {
+func TestANodeThatDoesNotAnswerIsNotPlacedOnEvenWhenItIsTheOnlyOne(t *testing.T) {
 	broken := newAgent(t, "cell-a", 30000)
-	pool := pooled(t, 0, map[string]*agentHost{"cell-a": broken})
+	pool := pooled(t, 0, map[string]*agentNode{"cell-a": broken})
 	broken.server.Close()
 	if placed, err := pool.Place(); err == nil {
 		t.Errorf("placed on %s, which does not answer", placed.Name())
 	}
 }
 
-func TestThisMachineIsACellToPlaceOnOnlyWhenTheFrontDoorSaysSo(t *testing.T) {
+func TestThisMachineIsANodeToPlaceOnOnlyWhenTheFrontDoorSaysSo(t *testing.T) {
 	remote := newAgent(t, "cell-a", 6000)
-	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": remote})
+	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": remote})
 	pool.Measure = func() Capacity { return Capacity{MemoryAvailableMiB: 15000} }
 	if placed, _ := pool.Place(); placed.Name() != "cell-a" {
 		t.Errorf("a front door that runs no servers placed on %s", placed.Name())
 	}
-	pool.Local = &cloud.LocalCell{}
+	pool.Local = &cloud.LocalNode{}
 	if placed, _ := pool.Place(); placed.Name() != "local" {
 		t.Errorf("this machine has the most room: %s", placed.Name())
 	}
@@ -110,7 +110,7 @@ func controlledOn(t *testing.T, pool *Pool) (*cloud.Controller, *cloud.Store) {
 		t.Fatal(err)
 	}
 	exe, _ := os.Executable()
-	c := &cloud.Controller{Store: store, Cells: pool, Command: []string{exe, "serve"}, Env: []string{"CELL_FAKE_ORG=1", "PATH=" + os.Getenv("PATH")},
+	c := &cloud.Controller{Store: store, Nodes: pool, Command: []string{exe, "serve"}, Env: []string{"CELL_FAKE_ORG=1", "PATH=" + os.Getenv("PATH")},
 		FrontDoor: "https://cloud.test", PortFrom: 26000 + int(time.Now().UnixNano()%9000), Wait: 20 * time.Second, Concurrent: 1, StopGrace: time.Second}
 	return c, store
 }
@@ -127,9 +127,9 @@ func whoami(t *testing.T, address string) map[string]string {
 	return seen
 }
 
-func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreReachedThere(t *testing.T) {
+func TestOrganizationsAreSpreadAcrossNodesByRoomStayWhereTheyWerePlacedAndAreReachedThere(t *testing.T) {
 	a, b := newAgent(t, "cell-a", 12000), newAgent(t, "cell-b", 11000)
-	pool := pooled(t, 4096, map[string]*agentHost{"cell-a": a, "cell-b": b})
+	pool := pooled(t, 4096, map[string]*agentNode{"cell-a": a, "cell-b": b})
 	c, store := controlledOn(t, pool)
 	signUp := func(email, name string) string {
 		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: email, OrgName: name})
@@ -142,10 +142,10 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 		return org.Slug
 	}
 	first := signUp("ada@acme.com", "Acme")
-	a.setFree(2000) // the first organization took what cell-a had
+	a.setFree(2000) // the first organization took what node-a had
 	second := signUp("bob@globex.com", "Globex")
 
-	placed := func(slug string) string { r, _ := store.Runtime(t.Context(), slug); return r.Cell }
+	placed := func(slug string) string { r, _ := store.Runtime(t.Context(), slug); return r.Node }
 	if placed(first) != "cell-a" || placed(second) != "cell-b" {
 		t.Fatalf("placed on %q and %q", placed(first), placed(second))
 	}
@@ -159,7 +159,7 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	if seen := whoami(t, address); seen["org"] != first || seen["cell"] != "cell-a" || !strings.HasPrefix(seen["addr"], "127.0.0.1:") {
 		t.Errorf("the server knows its own cell and where it listens: %v", seen)
 	}
-	// An organization is not moved when another cell has more room: its computers are on its cell.
+	// An organization is not moved when another node has more room: its computers are on its node.
 	a.setFree(50000)
 	b.setFree(1)
 	if err := c.Provision(t.Context(), second); err != nil {
@@ -170,15 +170,15 @@ func TestOrganizationsAreSpreadAcrossCellsByRoomStayWhereTheyWerePlacedAndAreRea
 	}
 }
 
-func TestAServerWhoseCellStopsAnsweringIsNotRoutedToAndIsStartedAgainWhenTheCellIsBack(t *testing.T) {
+func TestAServerWhoseNodeStopsAnsweringIsNotRoutedToAndIsStartedAgainWhenTheNodeIsBack(t *testing.T) {
 	host := newAgent(t, "cell-a", 12000)
-	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
+	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": host})
 	c, store := controlledOn(t, pool)
 	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	// The cell goes quiet: its registration is old.
+	// The node goes quiet: its registration is old.
 	Register(pool.Dir, host.registration("cell-a", time.Now().Add(-10*time.Minute)))
 	if address, state := c.Route(t.Context(), org.Slug); address != "" || state != cloud.Starting {
 		t.Errorf("a server on a cell that is not heard from is routed to: %q %v", address, state)
@@ -186,7 +186,7 @@ func TestAServerWhoseCellStopsAnsweringIsNotRoutedToAndIsStartedAgainWhenTheCell
 	if err := c.Provision(t.Context(), org.Slug); err == nil || !strings.Contains(err.Error(), "has not been heard from") {
 		t.Errorf("provisioning on a silent cell: %v", err)
 	}
-	if r, _ := store.Runtime(t.Context(), org.Slug); r.State != cloud.Failed || r.Cell != "cell-a" {
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.State != cloud.Failed || r.Node != "cell-a" {
 		t.Errorf("it is failed, and still placed where it was: %+v", r)
 	}
 	Register(pool.Dir, host.registration("cell-a", time.Now()))
@@ -198,9 +198,9 @@ func TestAServerWhoseCellStopsAnsweringIsNotRoutedToAndIsStartedAgainWhenTheCell
 	}
 }
 
-func TestPortsAreGivenPerCellSoTwoCellsMayUseTheSameOnesAndOneCellNeverDoes(t *testing.T) {
+func TestPortsAreGivenPerNodeSoTwoNodesMayUseTheSameOnesAndOneNodeNeverDoes(t *testing.T) {
 	a, b := newAgent(t, "cell-a", 12000), newAgent(t, "cell-b", 12000)
-	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": a, "cell-b": b})
+	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": a, "cell-b": b})
 	c, store := controlledOn(t, pool)
 	seen := map[string]bool{}
 	for i := 0; i < 4; i++ {
@@ -213,20 +213,20 @@ func TestPortsAreGivenPerCellSoTwoCellsMayUseTheSameOnesAndOneCellNeverDoes(t *t
 		}
 		r, _ := store.Runtime(t.Context(), org.Slug)
 		for _, port := range []int{r.Port, r.ProxyPort} {
-			key := fmt.Sprintf("%s:%d", r.Cell, port)
+			key := fmt.Sprintf("%s:%d", r.Node, port)
 			if seen[key] {
 				t.Errorf("%s was given twice", key)
 			}
 			seen[key] = true
 		}
-		// Placement follows the room, which two organizations on one cell would drain.
+		// Placement follows the room, which two organizations on one node would drain.
 		a.setFree(a.free - 4000)
 	}
 }
 
-// aCell is a cell that is not this machine: its servers are at an address of its own, and it says which ports
+// aNode is a node that is not this machine: its servers are at an address of its own, and it says which ports
 // it gave and what it was asked to start with. Every port it can give answers as a server.
-type aCell struct {
+type aNode struct {
 	name, private string
 	ports         []int
 	mu            sync.Mutex
@@ -234,9 +234,9 @@ type aCell struct {
 	started       []cloud.ServerSpec
 }
 
-func newACell(t *testing.T, name, private string) *aCell {
+func newANode(t *testing.T, name, private string) *aNode {
 	t.Helper()
-	c := &aCell{name: name, private: private}
+	c := &aNode{name: name, private: private}
 	for i := 0; i < 8; i++ {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) }))
 		t.Cleanup(server.Close)
@@ -247,10 +247,10 @@ func newACell(t *testing.T, name, private string) *aCell {
 	return c
 }
 
-func (c *aCell) Name() string   { return c.name }
-func (c *aCell) Host() string   { return "127.0.0.1" }
-func (c *aCell) Listen() string { return c.private }
-func (c *aCell) Ports(from int, taken map[int]bool) (int, int, error) {
+func (c *aNode) Name() string   { return c.name }
+func (c *aNode) Host() string   { return "127.0.0.1" }
+func (c *aNode) Listen() string { return c.private }
+func (c *aNode) Ports(from int, taken map[int]bool) (int, int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	copied := map[int]bool{}
@@ -269,32 +269,32 @@ func (c *aCell) Ports(from int, taken map[int]bool) (int, int, error) {
 	}
 	return found[0], found[1], nil
 }
-func (c *aCell) Start(spec cloud.ServerSpec) error {
+func (c *aNode) Start(spec cloud.ServerSpec) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.started = append(c.started, spec)
 	return nil
 }
-func (c *aCell) Stop(string, time.Duration) error { return nil }
-func (c *aCell) Alive(string) bool                { return true }
+func (c *aNode) Stop(string, time.Duration) error { return nil }
+func (c *aNode) Alive(string) bool                { return true }
 
-type cellsOf map[string]*aCell
+type nodesOf map[string]*aNode
 
-func (s cellsOf) Get(name string) (cloud.Cell, error) {
+func (s nodesOf) Get(name string) (cloud.Node, error) {
 	if c, ok := s[name]; ok {
 		return c, nil
 	}
 	return nil, fmt.Errorf("no cell called %q", name)
 }
-func (s cellsOf) Place() (cloud.Cell, error) { return s["cell-a"], nil }
+func (s nodesOf) Place() (cloud.Node, error) { return s["cell-a"], nil }
 
-func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTheOrganizationsOnThatCell(t *testing.T) {
-	a, b := newACell(t, "cell-a", "10.0.1.5"), newACell(t, "cell-b", "10.0.2.9")
+func TestAServerIsToldToListenOnItsNodesPrivateAddressAndPortsAreTakenOnlyFromTheOrganizationsOnThatNode(t *testing.T) {
+	a, b := newANode(t, "cell-a", "10.0.1.5"), newANode(t, "cell-b", "10.0.2.9")
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 100, Limits: cloud.DefaultLimits()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := &cloud.Controller{Store: store, Cells: cellsOf{"cell-a": a, "cell-b": b}, Command: []string{"serve"}, FrontDoor: "https://cloud.test", PortFrom: 9100, Wait: 5 * time.Second}
+	c := &cloud.Controller{Store: store, Nodes: nodesOf{"cell-a": a, "cell-b": b}, Command: []string{"serve"}, FrontDoor: "https://cloud.test", PortFrom: 9100, Wait: 5 * time.Second}
 	provision := func(email, name string) (string, cloud.Runtime) {
 		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: email, OrgName: name})
 		if err != nil {
@@ -307,18 +307,18 @@ func TestAServerIsToldToListenOnItsCellsPrivateAddressAndPortsAreTakenOnlyFromTh
 		return org.Slug, r
 	}
 	_, first := provision("ada@acme.com", "Acme")
-	// The second is placed on the other cell, by writing down where it goes before it is provisioned.
+	// The second is placed on the other node, by writing down where it goes before it is provisioned.
 	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "bob@globex.com", OrgName: "Globex"})
-	store.SetRuntime(t.Context(), org.Slug, cloud.Runtime{Cell: "cell-b"})
+	store.SetRuntime(t.Context(), org.Slug, cloud.Runtime{Node: "cell-b"})
 	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
 	_, third := provision("cy@initech.com", "Initech")
 
-	if got := a.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.1.5:"+fmt.Sprint(first.Port)) || !containsEnv(got.Env, "GUSTO_CELL=cell-a") {
+	if got := a.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.1.5:"+fmt.Sprint(first.Port)) || !containsEnv(got.Env, "GUSTO_NODE=cell-a") {
 		t.Errorf("a server on a cell listens on the cell's own address: %v", got.Env)
 	}
-	if got := b.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.2.9:") || !containsEnv(got.Env, "GUSTO_CELL=cell-b") {
+	if got := b.started[0]; !containsEnv(got.Env, "GUSTO_ADDR=10.0.2.9:") || !containsEnv(got.Env, "GUSTO_NODE=cell-b") {
 		t.Errorf("%v", got.Env)
 	}
 	taken := 0
@@ -344,11 +344,11 @@ func containsEnv(env []string, want string) bool {
 	return false
 }
 
-// A front door is restarted at every deploy, and the servers on other hosts keep running through it and are found
+// A front door is restarted at every deploy, and the servers on other nodes keep running through it and are found
 // running by the one that starts.
 func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByTheNext(t *testing.T) {
 	host := newAgent(t, "cell-a", 12000)
-	pool := pooled(t, 1000, map[string]*agentHost{"cell-a": host})
+	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": host})
 	first, store := controlledOn(t, pool)
 	t.Cleanup(host.stopServers)
 	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
@@ -364,7 +364,7 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 		t.Fatal("the server ended with the front door that started it")
 	}
 
-	next := &cloud.Controller{Store: store, Cells: pool, Command: first.Command, Env: first.Env, FrontDoor: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
+	next := &cloud.Controller{Store: store, Nodes: pool, Command: first.Command, Env: first.Env, FrontDoor: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
 	pids := func() string { return strings.Join(host.servers.Running(), ",") }
 	was := pids()
 	if err := next.Provision(t.Context(), org.Slug); err != nil {
@@ -382,9 +382,9 @@ func canceled() context.Context {
 	return ctx
 }
 
-func TestACellRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *testing.T) {
+func TestANodeRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "cells")
-	servers := &cloud.LocalCell{}
+	servers := &cloud.LocalNode{}
 	agent := &Agent{Name: "cell-a", Private: "127.0.0.1", Secret: secret, Servers: servers}
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -416,25 +416,25 @@ func TestACellRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *test
 	}
 }
 
-func TestAnOrganizationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlySilentIsNot(t *testing.T) {
+func TestAnOrganizationWhoseNodeIsGoneForGoodIsPlacedAgainAndOneWhoseNodeIsOnlySilentIsNot(t *testing.T) {
 	old, fresh := newAgent(t, "cell-old", 12000), newAgent(t, "cell-new", 9000)
-	pool := pooled(t, 1000, map[string]*agentHost{"cell-old": old, "cell-new": fresh})
+	pool := pooled(t, 1000, map[string]*agentNode{"cell-old": old, "cell-new": fresh})
 	pool.GoneAfter = 10 * time.Minute
 	c, store := controlledOn(t, pool)
 	_, org, _ := store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err := c.Provision(t.Context(), org.Slug); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ := store.Runtime(t.Context(), org.Slug); r.Cell != "cell-old" {
-		t.Fatalf("placed on %s", r.Cell)
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.Node != "cell-old" {
+		t.Fatalf("placed on %s", r.Node)
 	}
-	// Silent for five minutes: the host may come back, and the organization's computers are on it.
+	// Silent for five minutes: the node may come back, and the organization's computers are on it.
 	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-5*time.Minute)))
 	if err := c.Provision(t.Context(), org.Slug); err == nil {
 		t.Fatal("an organization was moved off a cell that was only quiet")
 	}
-	if r, _ := store.Runtime(t.Context(), org.Slug); r.Cell != "cell-old" {
-		t.Errorf("moved to %s", r.Cell)
+	if r, _ := store.Runtime(t.Context(), org.Slug); r.Node != "cell-old" {
+		t.Errorf("moved to %s", r.Node)
 	}
 	// Silent for a quarter of an hour: it is gone.
 	Register(pool.Dir, old.registration("cell-old", time.Now().Add(-15*time.Minute)))
@@ -442,7 +442,7 @@ func TestAnOrganizationWhoseCellIsGoneForGoodIsPlacedAgainAndOneWhoseCellIsOnlyS
 		t.Fatalf("it was not placed again: %v", err)
 	}
 	r, _ := store.Runtime(t.Context(), org.Slug)
-	if r.Cell != "cell-new" || r.State != cloud.Ready || r.Port == 0 {
+	if r.Node != "cell-new" || r.State != cloud.Ready || r.Port == 0 {
 		t.Errorf("%+v", r)
 	}
 	if address, state := c.Route(t.Context(), org.Slug); state != cloud.Ready || whoami(t, address)["cell"] != "cell-new" {

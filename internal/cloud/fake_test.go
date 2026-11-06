@@ -118,7 +118,7 @@ func controlled(t *testing.T, store *Store, extra ...string) *Controller {
 	// in this process's environment and not in them.
 	t.Setenv("GUSTO_CLOUD_MAIL", "smtp://user:secret@mail.example.com:587?from=x@example.com")
 	c := &Controller{
-		Store: store, Cell: &LocalCell{}, Command: []string{exe, "serve"},
+		Store: store, Node: &LocalNode{}, Command: []string{exe, "serve"},
 		Env:       append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),
 		FrontDoor: "https://cloud.test", PortFrom: 38000 + int(time.Now().UnixNano()%5000),
 		Wait: 20 * time.Second, Concurrent: 2, StopGrace: time.Second,

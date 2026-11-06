@@ -47,7 +47,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 		if members, _ := s.Members(t.Context(), "acme-com"); len(members) != 2 || members[0].Email != "ada@acme.com" {
 			t.Errorf("%+v", members)
 		}
-		if rt, _ := s.Runtime(t.Context(), "acme-com"); rt.State != Ready || rt.Cell != "cell-a" || rt.Port != 9100 || rt.ProxyPort != 9101 || rt.Restarts != 2 {
+		if rt, _ := s.Runtime(t.Context(), "acme-com"); rt.State != Ready || rt.Node != "cell-a" || rt.Port != 9100 || rt.ProxyPort != 9101 || rt.Restarts != 2 {
 			t.Errorf("%+v", rt)
 		}
 		// The quota is the old file's, which was written before an organization had a credit.

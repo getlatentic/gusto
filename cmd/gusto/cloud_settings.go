@@ -18,7 +18,7 @@ type cloudSettings struct {
 	demo    demoSettings
 	billing billingSettings
 	servers orgServerSettings
-	cells   cellPoolSettings
+	nodes   nodePoolSettings
 	scaler  scalerSettings
 }
 
@@ -29,7 +29,7 @@ func (c *cloudSettings) declare(set *settings.Set) {
 	c.demo.declare(set)
 	c.billing.declare(set)
 	c.servers.declare(set)
-	c.cells.declare(set)
+	c.nodes.declare(set)
 	c.scaler.declare(set)
 }
 

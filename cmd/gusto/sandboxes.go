@@ -24,7 +24,7 @@ import (
 // sandboxSettings is what turns run in and how many at once: the kind of box, its network, and for an organization's server
 // the computers its people have.
 type sandboxSettings struct {
-	sandbox, jobNetwork, computers, cell            string
+	sandbox, jobNetwork, computers, node            string
 	spare                                           bool
 	idleMinutes, concurrency, roomCopyMB, roomFiles int
 	containers                                      containerSettings
@@ -38,7 +38,8 @@ func (b *sandboxSettings) declare(set *settings.Set) {
 	b.containers.declare(set)
 	b.openShell.declare(set)
 	set.String(&b.computers, "GUSTO_COMPUTERS", "", "the directory of the records of the computers an organization's people have")
-	set.String(&b.cell, "GUSTO_CELL", "local", "where a new computer is made")
+	set.String(&b.node, "GUSTO_NODE", "local", "the node new computers are made on")
+	set.Renamed("GUSTO_NODE", "GUSTO_CELL")
 	set.Bool(&b.spare, "GUSTO_SPARE_COMPUTER", "keep one blank computer ready for the next person who has none")
 	set.Int(&b.idleMinutes, "GUSTO_COMPUTER_IDLE_MINUTES", 30, 1, "how long a computer nobody uses runs before it is stopped, in minutes")
 	set.Int(&b.roomCopyMB, "GUSTO_ROOM_COPY_MB", 4096, 1, "the most a room's folder may hold for an agent's turn to copy it, in megabytes")
@@ -79,7 +80,7 @@ func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, 
 			return nil, err
 		}
 		return vm.New(vm.Config{
-			Gateway: boxes.openShell.gateway(cfg.way.allowedHosts), Agents: agents, Computers: computers, Org: org, Cell: boxes.cell,
+			Gateway: boxes.openShell.gateway(cfg.way.allowedHosts), Agents: agents, Computers: computers, Org: org, Node: boxes.node,
 			Apps: shared, Spare: boxes.spare, ProxyPort: proxyPort, Idle: time.Duration(boxes.idleMinutes) * time.Minute, Signing: signs,
 		}), nil
 	}

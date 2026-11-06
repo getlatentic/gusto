@@ -21,37 +21,37 @@ objects under `releases/` and `image/`. It has no IAM right, so it cannot widen 
 A host that fails to start powers off 15 minutes after the failure, and every host has a timer for the most it
 may be up. There is no SSH: `aws ssm start-session --target <instance id>` is how a person reaches one.
 
-## More than one host
+## More than one node
 
 **demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no computers) and that
-many hosts that run the organizations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
+many nodes that run the organizations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One node is
 made with `cells` at 0, as before.
 
-- The hosts of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
-  named for the run. gusto cloud starts an organization's server on a host through the host's agent
+- The nodes of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
+  named for the run. gusto cloud starts an organization's server on a node through the node's agent
   (`gusto host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
-  gusto cloud removes the directories of earlier runs when it starts, since the computers they describe went with their hosts.
-- A host registers in `cells/` of that directory every ten seconds. A new organization is placed on the host with the
-  most free memory, and stays there. When its host has been silent for five minutes it is placed on another host, and its
+  gusto cloud removes the directories of earlier runs when it starts, since the computers they describe went with their nodes.
+- A node registers in `cells/` of that directory every ten seconds. A new organization is placed on the node with the
+  most free memory, and stays there. When its node has been silent for five minutes it is placed on another node, and its
   people start it again from gusto cloud.
-- gusto cloud writes `cells/orchestrator.beat` every ten seconds. A host that has not seen it for five minutes powers
-  itself off (and so terminates), after gusto cloud has had 15 minutes to start. A host has no lease of its own.
-- Requests to a host are signed with `/gusto/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A host
+- gusto cloud writes `cells/orchestrator.beat` every ten seconds. A node that has not seen it for five minutes powers
+  itself off (and so terminates), after gusto cloud has had 15 minutes to start. A node has no lease of its own.
+- Requests to a node are signed with `/gusto/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A node
   reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
 ## gusto cloud that stays up
 
 `aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs the public demo all the time: nginx and
-the certificate, gusto cloud at `https://<name>`, and the scaler that starts a host for an organization that
-waits for one and stops a host that has had nothing on it for ten minutes. With nobody using it there is no such host and
+the certificate, gusto cloud at `https://<name>`, and the scaler that starts a node for an organization that
+waits for one and stops a node that has had nothing on it for ten minutes. With nobody using it there is no such node and
 nothing is paid for but this machine, its address and the file system.
 
 - It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **demo bundle** run
   then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
-  and leaves the hosts and the organizations on them as they are.
-- Its role is its own, and is the only one that may start and stop hosts. It starts hosts only from the
-  `cell-live` template, which tags them `project=gusto-live`, and stops only hosts with that tag that it started
-  (`scaler=on`). A host that runs other people's code can start nothing. The demo workflows tag and stop
+  and leaves the nodes and the organizations on them as they are.
+- Its role is its own, and is the only one that may start and stop nodes. It starts nodes only from the
+  `cell-live` template, which tags them `project=gusto-live`, and stops only nodes with that tag that it started
+  (`scaler=on`). A node that runs other people's code can start nothing. The demo workflows tag and stop
   `project=gusto-poc`, so they never touch it, and it never touches theirs.
 - It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
   replaced.
@@ -80,5 +80,5 @@ other, not both. Then the rest:
 ./bootstrap.sh                                  # this directory
 ../openshell/put-cloudflare.sh                  # the two Cloudflare tokens
 ../openshell/put-demo-config.sh                 # what a host reads that is not secret, from demo.env
-../openshell/put-cell-secret.sh                 # the secret hosts are told what to do with; only for demos with several hosts
+../openshell/put-cell-secret.sh                 # the secret nodes are told what to do with; only for demos with several nodes
 ```

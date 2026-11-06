@@ -146,13 +146,13 @@ guard. FrontDoors models several front doors.
 
 ## FrontDoors
 
-Two front doors on one database, each with a controller over one organization, and two cells. With `leader`, one front
+Two front doors on one database, each with a controller over one organization, and two nodes. With `leader`, one front
 door at a time holds a lease with an epoch, only it acts, and a runtime write is refused unless its epoch is the lease's.
 The lease may lapse while its holder is paused, and the holder acts on until it notices.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
-| `OneServer` | The organization's server runs on one cell at most. | `leader`: each front door places it on a cell of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
+| `OneServer` | The organization's server runs on one node at most. | `leader`: each front door places it on a node of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
 
 ## ConnectorSignIn
 
@@ -319,7 +319,7 @@ offered to the channels until it is taken or given up on. A person adds a routin
 ## Hosts
 
 The hosts organizations' servers run on, as the scaler stops them and the controller places on them
-(`internal/cell/scaler.go`, `internal/cell/pool.go`, `internal/cloud/controller.go`). An organization is provisioned: it is
+(`internal/node/scaler.go`, `internal/node/pool.go`, `internal/cloud/controller.go`). An organization is provisioned: it is
 placed on a host, or stays on the one it was placed on, and its server is started there. A server may end on its own. The
 scaler retires a host it judges idle: it marks it, checks it again and stops it. A stopped host may start again and register.
 While a host's registration is there, the pool takes a silent host to be away for a while; once it is not, the host is gone,

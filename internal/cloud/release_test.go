@@ -21,7 +21,7 @@ func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.
 		first := whoIs(t, address)
 
 		same := controlled(t, s)
-		same.Cell = before.Cell
+		same.Node = before.Node
 		if err := same.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
@@ -30,7 +30,7 @@ func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.
 		}
 
 		newer := controlled(t, s)
-		newer.Cell = before.Cell
+		newer.Node = before.Node
 		newer.Command = append(newer.Command, "--newer")
 		if err := newer.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)

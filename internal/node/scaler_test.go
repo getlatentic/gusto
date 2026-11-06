@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -101,8 +101,8 @@ func scaling(t *testing.T) *rig {
 	return r
 }
 
-// cell registers a host as a cell, with a server on it or not.
-func (r *rig) cell(id string, withServer bool) *agentHost {
+// node registers a node as a node, with a server on it or not.
+func (r *rig) node(id string, withServer bool) *agentNode {
 	r.t.Helper()
 	name := "cell-" + strings.TrimPrefix(id, "i-")
 	h := newAgent(r.t, name, 9000)
@@ -137,15 +137,15 @@ func TestOneHostIsStartedForWhoeverWaitsAndNotAnotherWhileItIsOnItsWay(t *testin
 	if r.hosts.launched != 1 {
 		t.Errorf("one host for however many wait, and no more while it starts: %d", r.hosts.launched)
 	}
-	// It is a cell now, and they still wait, since it has not room: another may start, up to the most there may be.
-	r.cell("i-0aaa1111", true)
+	// It is a node now, and they still wait, since it has not room: another may start, up to the most there may be.
+	r.node("i-0aaa1111", true)
 	r.hosts.next = "i-0bbb2222"
 	r.tick(time.Minute)
 	r.tick(time.Minute)
 	if r.hosts.launched != 2 {
 		t.Errorf("a cell that cannot take them all is joined by another: %d", r.hosts.launched)
 	}
-	r.cell("i-0bbb2222", true)
+	r.node("i-0bbb2222", true)
 	r.hosts.next = "i-0ccc3333"
 	r.tick(time.Minute)
 	r.tick(time.Minute)
@@ -154,13 +154,13 @@ func TestOneHostIsStartedForWhoeverWaitsAndNotAnotherWhileItIsOnItsWay(t *testin
 	}
 }
 
-func TestACellThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHostIsStarted(t *testing.T) {
+func TestANodeThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHostIsStarted(t *testing.T) {
 	r := scaling(t)
 	r.waiting = 1
 	r.tick(0)
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.hosts.next = "i-0bbb2222"
-	// The cell is up, and the organization that waited has not been placed on it yet.
+	// The node is up, and the organization that waited has not been placed on it yet.
 	r.tick(10 * time.Second)
 	r.tick(10 * time.Second)
 	if r.hosts.launched != 1 {
@@ -172,7 +172,7 @@ func TestACellThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHost
 	if r.hosts.launched != 1 {
 		t.Errorf("%d", r.hosts.launched)
 	}
-	// Still waiting well after it registered, which is a cell that has no room.
+	// Still waiting well after it registered, which is a node that has no room.
 	r.waiting = 1
 	r.tick(time.Minute)
 	if r.hosts.launched != 2 {
@@ -196,7 +196,7 @@ func TestAHostThatCouldNotBeStartedIsNotTriedAgainAtOnce(t *testing.T) {
 	}
 }
 
-func TestAHostThatNeverBecomesACellIsStoppedAfterItsTime(t *testing.T) {
+func TestAHostThatNeverBecomesANodeIsStoppedAfterItsTime(t *testing.T) {
 	r := scaling(t)
 	r.waiting = 1
 	r.tick(0)
@@ -210,10 +210,10 @@ func TestAHostThatNeverBecomesACellIsStoppedAfterItsTime(t *testing.T) {
 	}
 }
 
-func TestACellWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.T) {
+func TestANodeWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.T) {
 	r := scaling(t)
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
-	busy := r.cell("i-0aaa1111", false)
+	busy := r.node("i-0aaa1111", false)
 	r.tick(0)
 	r.tick(9 * time.Minute)
 	if len(r.hosts.terminated) != 0 {
@@ -237,10 +237,10 @@ func TestACellWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.
 	}
 }
 
-func TestAnIdleCellIsKeptWhileAnOrganizationWaitsForRoom(t *testing.T) {
+func TestAnIdleNodeIsKeptWhileAnOrganizationWaitsForRoom(t *testing.T) {
 	r := scaling(t)
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.waiting = 1
 	r.hosts.next = "i-0bbb2222"
 	r.tick(0)
@@ -250,9 +250,9 @@ func TestAnIdleCellIsKeptWhileAnOrganizationWaitsForRoom(t *testing.T) {
 	}
 }
 
-func TestACellThatIsNotOneOfTheScalersIsNeverStopped(t *testing.T) {
+func TestANodeThatIsNotOneOfTheScalersIsNeverStopped(t *testing.T) {
 	r := scaling(t)
-	r.cell("i-0ddd4444", false)
+	r.node("i-0ddd4444", false)
 	r.tick(0)
 	r.tick(time.Hour)
 	if len(r.hosts.terminated) != 0 {
@@ -326,7 +326,7 @@ func freePort(t *testing.T) int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-// launches is a launcher that says on a channel when it starts a host.
+// launches is a launcher that says on a channel when it starts a node.
 type launches struct{ started chan string }
 
 func (l launches) Launch(bool) (string, error)   { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
@@ -366,8 +366,8 @@ func TestAHostIsStartedForAVisitorAboutToWaitOnceAndOnlyWhileTheyAreExpected(t *
 	if r.hosts.launched != 1 {
 		t.Fatalf("a visitor who began asking for a demo had %d hosts started for them", r.hosts.launched)
 	}
-	// The host is up, so a second visitor starts nothing more: whoever sends the form first takes it.
-	r.cell("i-0aaa1111", false)
+	// The node is up, so a second visitor starts nothing more: whoever sends the form first takes it.
+	r.node("i-0aaa1111", false)
 	r.scaler.Prewarm()
 	r.tick(time.Minute)
 	if r.hosts.launched != 1 {
@@ -410,13 +410,13 @@ func TestVisitorsStartNoMoreHostsInADayThanThePrewarmsAllowed(t *testing.T) {
 	}
 }
 
-// A kept cell that powers itself off at its twelfth hour goes quiet while EC2 still lists it as running, and was started long ago.
-func TestACellThatWasRegisteredAMomentAgoAndWentQuietIsLeftToShutDownAndOneQuietForLongIsRemoved(t *testing.T) {
+// A kept node that powers itself off at its twelfth hour goes quiet while EC2 still lists it as running, and was started long ago.
+func TestANodeThatWasRegisteredAMomentAgoAndWentQuietIsLeftToShutDownAndOneQuietForLongIsRemoved(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Pool.MaxAge = 30 * time.Second
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
 	r.now = r.now.Add(20 * time.Minute)
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.tick(0)
 	r.tick(40 * time.Second)
 	if len(r.hosts.terminated) != 0 {

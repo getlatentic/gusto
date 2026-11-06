@@ -533,7 +533,7 @@ func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServe
 }
 
 // quietGateway answers every request except the first for a path, which it holds without a word until the test is over,
-// as a gateway was seen to do for the first request to the first app on a new cell.
+// as a gateway was seen to do for the first request to the first app on a new node.
 func quietGateway(t *testing.T) (*gatewayFake, *int32) {
 	t.Helper()
 	var tried sync.Map

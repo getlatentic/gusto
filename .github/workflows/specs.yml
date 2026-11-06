@@ -16,7 +16,7 @@ on:
       - "cmd/gusto/roomturn.go"
       - "internal/connector/**"
       - "internal/cloud/controller.go"
-      - "internal/cell/**"
+      - "internal/node/**"
       - "internal/cloud/demo_sweep.go"
       - "internal/cloud/route.go"
       - "internal/cloud/leader.go"

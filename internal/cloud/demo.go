@@ -63,7 +63,7 @@ func DefaultDemoLimits() quota.Quota {
 }
 
 // Demo is what makes an organization a demo. Ready is when its server first answered, which is when its time
-// starts, so a visitor who waits for a cell to start is not charged for the wait.
+// starts, so a visitor who waits for a node to start is not charged for the wait.
 type Demo struct {
 	Name     string    `json:"name"`
 	Company  string    `json:"company"`

@@ -222,7 +222,7 @@ func TestAnOrchestratorIsConfiguredWithoutOpenShellAndWithTheSharedFileSystem(t 
 	}
 }
 
-func TestACellIsConfiguredWithOpenShellAndTheSharedFileSystem(t *testing.T) {
+func TestANodeIsConfiguredWithOpenShellAndTheSharedFileSystem(t *testing.T) {
 	play := playOf(t, "cell")
 	for _, want := range []string{"demo_role=cell", "demo_efs=fs-0123.efs.us-east-1.amazonaws.com", "demo_run=run-42", "site.yml", "demo.yml"} {
 		if !strings.Contains(play, want) {
@@ -316,7 +316,7 @@ func TestASmallHostGetsASwapFileOnceAndALargeOneGetsNone(t *testing.T) {
 	}
 }
 
-func TestAHostMadeFromTheImageOfACellDoesNotFetchPackagesAndAnOrdinaryHostDoes(t *testing.T) {
+func TestAHostMadeFromTheImageOfANodeDoesNotFetchPackagesAndAnOrdinaryHostDoes(t *testing.T) {
 	ordinary := newBoot(t)
 	ordinary.release(false)
 	lines, err := ordinary.run()
@@ -346,7 +346,7 @@ func TestAHostMadeFromTheImageOfACellDoesNotFetchPackagesAndAnOrdinaryHostDoes(t
 	}
 }
 
-func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsACell(t *testing.T) {
+func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsANode(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
 	done := filepath.Join(b.dir, "bake-done")
@@ -383,7 +383,7 @@ func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
 	}
 }
 
-func TestAHostMadeFromTheImageOfACellGoesStraightToConfiguringItselfOnlyWhenTheReleaseIsForThatImage(t *testing.T) {
+func TestAHostMadeFromTheImageOfANodeGoesStraightToConfiguringItselfOnlyWhenTheReleaseIsForThatImage(t *testing.T) {
 	for name, c := range map[string]struct {
 		marker, bundleKey string
 		fast              bool
@@ -427,7 +427,7 @@ func TestAHostMadeFromTheImageOfACellGoesStraightToConfiguringItselfOnlyWhenTheR
 	}
 }
 
-func TestAHostMadeFromTheImageOfACellWarmsItsDiskAndAnOrdinaryHostDoesNot(t *testing.T) {
+func TestAHostMadeFromTheImageOfANodeWarmsItsDiskAndAnOrdinaryHostDoesNot(t *testing.T) {
 	baked := newBoot(t)
 	baked.release(false)
 	marker := filepath.Join(baked.dir, "baked")
@@ -448,7 +448,7 @@ func TestAHostMadeFromTheImageOfACellWarmsItsDiskAndAnOrdinaryHostDoesNot(t *tes
 	}
 }
 
-// kitted is a cell made from the image of key abc123, whose front door has put a kit on the shared file system.
+// kitted is a node made from the image of key abc123, whose front door has put a kit on the shared file system.
 func kitted(t *testing.T) (b *boot, sum string, extra []string) {
 	t.Helper()
 	b = newBoot(t)
@@ -474,7 +474,7 @@ func kitted(t *testing.T) (b *boot, sum string, extra []string) {
 	return b, sum, extra
 }
 
-func TestACellFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrPlayed(t *testing.T) {
+func TestANodeFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrPlayed(t *testing.T) {
 	b, _, extra := kitted(t)
 	lines, err := b.run(extra...)
 	if err != nil {
@@ -497,7 +497,7 @@ func TestACellFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrP
 	}
 }
 
-func TestACellWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *testing.T) {
+func TestANodeWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *testing.T) {
 	for name, change := range map[string]func(sum string) []string{
 		"another sum":   func(string) []string { return []string{"KIT=" + strings.Repeat("0", 64)} },
 		"another image": func(string) []string { return []string{"BAKE_KEY=def456"} },
@@ -517,7 +517,7 @@ func TestACellWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *te
 	}
 }
 
-func TestAFrontDoorThatStartsCellsMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
+func TestAFrontDoorThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
 	src := filepath.Join(b.dir, "src")
@@ -613,7 +613,7 @@ func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *t
 }
 
 // The disk is read in the background, after the script has gone on, and a host whose agents run in containers has none of what is
-// read for virtual machines. Nothing of that reading may schedule the host to go: a cell that did powered off fifteen minutes after
+// read for virtual machines. Nothing of that reading may schedule the host to go: a node that did powered off fifteen minutes after
 // every start, with the organizations on it.
 func TestReadingTheDiskInTheBackgroundNeverSchedulesTheHostToGo(t *testing.T) {
 	b := newBoot(t)

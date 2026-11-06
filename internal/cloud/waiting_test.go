@@ -7,26 +7,26 @@ import (
 	"time"
 )
 
-// lateCells has no room until it is opened, as a front door does while a cell starts.
-type lateCells struct {
+// lateNodes has no room until it is opened, as a front door does while a node starts.
+type lateNodes struct {
 	open  atomic.Bool
-	local *LocalCell
+	local *LocalNode
 }
 
-func (l *lateCells) Get(string) (Cell, error) { return l.local, nil }
-func (l *lateCells) Place() (Cell, error) {
+func (l *lateNodes) Get(string) (Node, error) { return l.local, nil }
+func (l *lateNodes) Place() (Node, error) {
 	if !l.open.Load() {
 		return nil, ErrNoCapacity
 	}
 	return l.local, nil
 }
 
-func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testing.T) {
+func TestAnOrganizationWithNoNodeToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
-		cells := &lateCells{local: &LocalCell{}}
-		c.Cells, c.WaitEvery = cells, 10*time.Millisecond
+		nodes := &lateNodes{local: &LocalNode{}}
+		c.Nodes, c.WaitEvery = nodes, 10*time.Millisecond
 		org := made(t, s, "ada@acme.com", "Acme")
 
 		if err := c.Provision(t.Context(), org.Slug); err == nil {
@@ -35,7 +35,7 @@ func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 		if address, state := c.Route(t.Context(), org.Slug); state != Waiting || address != "" || c.Waiting() != 1 {
 			t.Fatalf("it waits, which is not failing: %q %q %d", address, state, c.Waiting())
 		}
-		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.State != Waiting || runtime.Restarts != 0 || runtime.Cell != "" {
+		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.State != Waiting || runtime.Restarts != 0 || runtime.Node != "" {
 			t.Errorf("a wait is not counted as a restart: %+v", runtime)
 		}
 
@@ -46,7 +46,7 @@ func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 			t.Errorf("it is tried again and there is still no room: %q", state)
 		}
 
-		cells.open.Store(true)
+		nodes.open.Store(true)
 		deadline := time.Now().Add(15 * time.Second)
 		for time.Now().Before(deadline) {
 			c.supervise(t.Context())
@@ -67,13 +67,13 @@ func TestAnOrganizationWithNoCellToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 	})
 }
 
-func TestAnOrganizationThatStartsWaitingAsksForACellAtOnceAndIsPlacedWithoutATick(t *testing.T) {
+func TestAnOrganizationThatStartsWaitingAsksForANodeAtOnceAndIsPlacedWithoutATick(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
-		cells := &lateCells{local: &LocalCell{}}
+		nodes := &lateNodes{local: &LocalNode{}}
 		var asked atomic.Int32
-		c.Cells, c.WaitEvery, c.OnWaiting = cells, 20*time.Millisecond, func() { asked.Add(1) }
+		c.Nodes, c.WaitEvery, c.OnWaiting = nodes, 20*time.Millisecond, func() { asked.Add(1) }
 		org := made(t, s, "ada@acme.com", "Acme")
 		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("an organization with nowhere to go was provisioned")
@@ -85,7 +85,7 @@ func TestAnOrganizationThatStartsWaitingAsksForACellAtOnceAndIsPlacedWithoutATic
 		ctx, cancel := context.WithCancel(context.Background())
 		ran := make(chan struct{})
 		go func() { c.Run(ctx, time.Hour); close(ran) }()
-		cells.open.Store(true)
+		nodes.open.Store(true)
 		deadline := time.Now().Add(15 * time.Second)
 		for time.Now().Before(deadline) {
 			if _, state := c.Route(ctx, org.Slug); state == Ready {

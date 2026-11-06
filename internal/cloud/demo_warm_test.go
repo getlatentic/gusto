@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestTheDemoFormAsksForACellWhenTheVisitorBeginsAndNotWhenDemosArePaused(t *testing.T) {
+func TestTheDemoFormAsksForANodeWhenTheVisitorBeginsAndNotWhenDemosArePaused(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		var asked atomic.Int32
 		f := newFront(t, demoSet, func(c *Config) { c.Prewarm = func() { asked.Add(1) } })
@@ -26,7 +26,7 @@ func TestTheDemoFormAsksForACellWhenTheVisitorBeginsAndNotWhenDemosArePaused(t *
 	})
 }
 
-func TestOnePlaceCannotKeepAskingForCells(t *testing.T) {
+func TestOnePlaceCannotKeepAskingForNodes(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		var asked atomic.Int32
 		f := newFront(t, demoSet, func(c *Config) { c.PerAddress = 2; c.Prewarm = func() { asked.Add(1) } })
@@ -39,7 +39,7 @@ func TestOnePlaceCannotKeepAskingForCells(t *testing.T) {
 	})
 }
 
-func TestAHostThatOffersNoDemoStartsNoCell(t *testing.T) {
+func TestAHostThatOffersNoDemoStartsNoNode(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, func(c *Config) { c.Prewarm = func() { t.Error("a cell was asked for") } })
 		if status, _, _ := f.browser().post("/demo/warm", nil); status != http.StatusNotFound {

@@ -67,7 +67,7 @@ func TestADemoBeingEndedIsNotMadeAgain(t *testing.T) {
 		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("a demo being ended was provisioned: %v", err)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a demo being ended has a server")
 		}
 		if due, _ := s.DemosDue(t.Context()); due[org.Slug] == "" {

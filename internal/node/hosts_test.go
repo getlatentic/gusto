@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -22,12 +22,12 @@ func realTime(t *testing.T, r *rig) {
 	r.now = time.Now()
 }
 
-// A host the scaler stops or removes is gone to the pool at once, so the organizations placed on it are placed again rather
-// than tried there until it has been silent for half an hour. spec/Hosts.before-unregister.cfg is the trace.
+// A node the scaler stops or removes is gone to the pool at once, so the organizations placed on it are placed again rather
+// than tried there until it has been silent for half an hour. spec/Nodes.before-unregister.cfg is the trace.
 func TestAHostTheScalerStopsOrRemovesIsGoneToThePool(t *testing.T) {
 	gone := func(r *rig, id string) {
 		t.Helper()
-		if _, err := r.scaler.Pool.Get(CellOf(id)); !errors.Is(err, cloud.ErrCellGone) {
+		if _, err := r.scaler.Pool.Get(NodeOf(id)); !errors.Is(err, cloud.ErrNodeGone) {
 			t.Errorf("the pool says of %s, which the scaler stopped: %v", id, err)
 		}
 	}
@@ -35,7 +35,7 @@ func TestAHostTheScalerStopsOrRemovesIsGoneToThePool(t *testing.T) {
 		r := scaling(t)
 		r.scaler.Pool.now = r.scaler.now
 		r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
-		r.cell("i-0aaa1111", false)
+		r.node("i-0aaa1111", false)
 		r.tick(0)
 		r.tick(11 * time.Minute)
 		if !slices.Contains(r.hosts.terminated, "i-0aaa1111") {
@@ -48,7 +48,7 @@ func TestAHostTheScalerStopsOrRemovesIsGoneToThePool(t *testing.T) {
 		r.scaler.Pool.now = r.scaler.now
 		r.scaler.Pool.MaxAge = 30 * time.Second
 		r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
-		r.cell("i-0aaa1111", false)
+		r.node("i-0aaa1111", false)
 		r.tick(0)
 		r.tick(11 * time.Minute)
 		if !slices.Contains(r.hosts.terminated, "i-0aaa1111") {
@@ -58,8 +58,8 @@ func TestAHostTheScalerStopsOrRemovesIsGoneToThePool(t *testing.T) {
 	})
 }
 
-// An organization being placed on the idle host keeps it from being stopped: the placement is made while the scaler asks the
-// host whether it has anything on it. spec/Hosts.before-busy.cfg is the trace.
+// An organization being placed on the idle node keeps it from being stopped: the placement is made while the scaler asks the
+// node whether it has anything on it. spec/Nodes.before-busy.cfg is the trace.
 func TestAHostIsNotStoppedUnderAnOrganizationBeingPlacedOnIt(t *testing.T) {
 	r := scaling(t)
 	realTime(t, r)
@@ -107,13 +107,13 @@ func TestAHostIsNotStoppedUnderAnOrganizationBeingPlacedOnIt(t *testing.T) {
 	}
 }
 
-// A kept host that is being stopped and says it is there on its way down is not placed on.
+// A kept node that is being stopped and says it is there on its way down is not placed on.
 func TestAHostBeingStoppedIsNotPlacedOnWhileItBeatsOnItsWayDown(t *testing.T) {
 	r := scaling(t)
 	realTime(t, r)
 	r.scaler.Keep = 1
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
-	h := r.cell("i-0aaa1111", false)
+	h := r.node("i-0aaa1111", false)
 	r.tick(0)
 	r.tick(11 * time.Minute)
 	if len(r.hosts.stopped) != 1 {
@@ -146,14 +146,14 @@ func TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain(t *testing.T) {
 	}
 }
 
-// A front door that starts again knows when a quiet host was last heard from, so one that went quiet a moment ago is left to
+// A front door that starts again knows when a quiet node was last heard from, so one that went quiet a moment ago is left to
 // shut down rather than removed.
 func TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Pool.MaxAge = 30 * time.Second
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
 	r.now = r.now.Add(20 * time.Minute)
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.tick(0)
 	again := &Scaler{Pool: &Pool{Dir: r.scaler.Pool.Dir, Secret: secret, MaxAge: 30 * time.Second}, Launcher: r.hosts,
 		Waiting: func() int { return 0 }, Max: 2, Idle: 10 * time.Minute, Boot: 10 * time.Minute, now: r.scaler.now}
@@ -164,14 +164,14 @@ func TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain(t *testin
 	}
 }
 
-// A host that goes stops its servers together, each given its grace, and takes its registration away, inside the time its
+// A node that goes stops its servers together, each given its grace, and takes its registration away, inside the time its
 // service has to stop.
 func TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("a server is asked to end by a signal Windows does not send")
 	}
 	dir := filepath.Join(t.TempDir(), "cells")
-	servers := &cloud.LocalCell{}
+	servers := &cloud.LocalNode{}
 	t.Cleanup(func() {
 		for _, slug := range servers.Running() {
 			servers.Stop(slug, time.Second)

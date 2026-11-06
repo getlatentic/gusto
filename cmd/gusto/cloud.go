@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/accesslog"
-	"github.com/getlatentic/gusto/internal/cell"
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/node"
 )
 
 // cloudComputers lists every computer on this node.
@@ -54,12 +54,12 @@ func cloudCommand() int {
 		return fail(err)
 	}
 	defer front.Store.Close()
-	scaler, err := cellScaler(cfg.scaler, controller)
+	scaler, err := nodeScaler(cfg.scaler, controller)
 	if err != nil {
 		return fail(err)
 	}
 	door := &frontDoor{front: front, controller: controller, scaler: scaler}
-	door.startBackground(ctx, cfg.cells.dir)
+	door.startBackground(ctx, cfg.nodes.dir)
 	controlled := door.leadInTurn(ctx, time.Duration(cfg.front.leaderSeconds)*time.Second)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
 		return fail(err)
@@ -74,17 +74,17 @@ func cloudCommand() int {
 type frontDoor struct {
 	front      *cloud.Server
 	controller *cloud.Controller
-	scaler     *cell.Scaler
+	scaler     *node.Scaler
 }
 
 // startBackground starts what every front door does, leader or not.
-func (d *frontDoor) startBackground(ctx context.Context, cellsDir string) {
+func (d *frontDoor) startBackground(ctx context.Context, nodesDir string) {
 	if d.scaler != nil {
 		d.controller.OnWaiting = d.scaler.Wake
 		d.front.Prewarm = d.scaler.Prewarm
 	}
-	if cellsDir != "" && d.controller != nil {
-		go beatForCells(ctx, cellsDir)
+	if nodesDir != "" && d.controller != nil {
+		go beatForNodes(ctx, nodesDir)
 	}
 	go d.front.RunLeads(ctx, 30*time.Second)
 	if d.front.Seats != nil {
@@ -270,17 +270,17 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	if indexDir == "" {
 		indexDir = filepath.Join(store.Root(), "index")
 	}
-	local := &cloud.LocalCell{}
+	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
-		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
+		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
 		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
 	}
-	pool, err := cellPool(cfg.cells, local)
+	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {
 		return controller, err
 	}
-	controller.Cells = pool
+	controller.Nodes = pool
 	// A host apart runs the servers from the shared files, as this release, and not the program it was made with.
 	shared, err := cloud.ShareRelease(exe, filepath.Join(store.Root(), "releases"))
 	if err != nil {

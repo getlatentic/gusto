@@ -7,7 +7,7 @@
 51 1 cmd/gusto/commands_account.go:otherCommands
 110 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
-89 1 cmd/gusto/commands_run.go:runCommands
+83 1 cmd/gusto/commands_run.go:runCommands
 116 1 cmd/gusto/commands_task.go:taskCommands
 50 14 cmd/gusto/export.go:exportTask
 37 11 cmd/gusto/gateway.go:(*gateways).open
@@ -16,13 +16,12 @@
 27 12 deploy/aws/openshell/demo/dns/main.go:run
 36 14 internal/acp/wire.go:(*conn).call
 32 14 internal/apitoken/store.go:(*Store).Check
-31 11 internal/cell/keep.go:(*Scaler).sweep
-39 13 internal/cell/scaler.go:(*Scaler).Tick
+31 11 internal/node/keep.go:(*Scaler).sweep
+39 13 internal/node/scaler.go:(*Scaler).Tick
 35 13 internal/cloud/accounts.go:(*Store).signUpIn
 21 15 internal/cloud/address.go:NormalEmail
 41 18 internal/cloud/billing.go:(*Store).RecordSubscription
 25 14 internal/cloud/billing_pages.go:(*Server).planOf
-66 8 internal/cloud/controller.go:(*Controller).environment
 60 19 internal/cloud/controller.go:(*Controller).provision
 32 12 internal/cloud/controller.go:(*Controller).supervise
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once

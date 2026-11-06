@@ -43,7 +43,7 @@ func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T
 	}
 }
 
-func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
+func TestANodeHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "the image")
 	h.as("cell")
@@ -72,7 +72,7 @@ func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 	}
 }
 
-func TestACellWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther(t *testing.T) {
+func TestANodeWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.docker.tar.gz", "the archive")
 	h.as("cell")
@@ -94,8 +94,8 @@ func TestACellWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther
 	}
 }
 
-// A cell runs a sign-up's agents in containers and a demo's in microVMs, so it has both images.
-func TestACellOfBothSandboxesHasTheContainerImageAndTheRootFileSystem(t *testing.T) {
+// A node runs a sign-up's agents in containers and a demo's in microVMs, so it has both images.
+func TestANodeOfBothSandboxesHasTheContainerImageAndTheRootFileSystem(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.docker.tar.gz", "the archive")
 	h.put("image/key1.tar.gz", "the root file system")
@@ -119,7 +119,7 @@ func TestAHostOfAnotherSandboxIsRefused(t *testing.T) {
 	}
 }
 
-func TestACellWithNoSecretDoesNotStart(t *testing.T) {
+func TestANodeWithNoSecretDoesNotStart(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")
 	h.as("cell")
@@ -153,13 +153,13 @@ func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOn
 			t.Errorf("%s: %v %v", role, info, err)
 		}
 	}
-	cell := newHost(t)
-	cell.put("image/key1.tar.gz", "x")
-	cell.as("cell")
-	if _, err := cell.boot(); err != nil {
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
 		t.Fatal(err)
 	}
-	if cell.has("run/secrets/turnstile.env") {
+	if node.has("run/secrets/turnstile.env") {
 		t.Error("a cell, which runs other people's code, holds the bot check's secret")
 	}
 }
@@ -203,13 +203,13 @@ func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded
 			t.Errorf("%s: half a hook, or a hook no longer stored, is still on the host", role)
 		}
 	}
-	cell := newHost(t)
-	cell.put("image/key1.tar.gz", "x")
-	cell.as("cell")
-	if _, err := cell.boot(); err != nil {
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
 		t.Fatal(err)
 	}
-	if cell.has("run/secrets/leadhook.env") {
+	if node.has("run/secrets/leadhook.env") {
 		t.Error("a cell, which runs other people's code, holds the lead hook")
 	}
 }
