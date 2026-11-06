@@ -64,7 +64,7 @@ func (keychain) Delete(server string) error {
 }
 
 // fileVault keeps a token in a file only its owner reads. It is for a machine with no keychain, such as a server with no
-// desktop session, and for a person who asks for it with GUSTO_VAULT=file.
+// desktop session, and for a person who asks for it.
 type fileVault struct{ dir string }
 
 func (f fileVault) path(server string) string {
@@ -134,14 +134,14 @@ func (f fallback) Delete(server string) error {
 }
 
 // OpenVault is where this computer keeps tokens: the keychain, with a file beside the helper's settings when there is no
-// keychain. GUSTO_VAULT=file asks for the file alone. Warnings go to warn.
-func OpenVault(warn io.Writer) (Vault, error) {
+// keychain. fileOnly asks for the file alone. Warnings go to warn.
+func OpenVault(warn io.Writer, fileOnly bool) (Vault, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
 	files := fileVault{dir: filepath.Join(dir, "gusto")}
-	if os.Getenv("GUSTO_VAULT") == "file" {
+	if fileOnly {
 		return files, nil
 	}
 	return fallback{keys: keychain{}, files: files, warn: warn}, nil

@@ -64,14 +64,10 @@ func taskCommands() []*cmdline.Command {
 			Usage:       []string{"<dir>"},
 			Description: "Sends the task to a gusto server instead of running it here, so the work outlives your shell. Prints the task's id and its address on the server.",
 			Args:        []cmdline.Param{{Name: "<dir>", Text: "the task directory made by gusto new"}},
-			Env: []cmdline.Param{
-				{Name: "GUSTO_SERVER", Text: "the server, with its scheme, such as https://gusto.example.com"},
-				{Name: "GUSTO_TOKEN", Text: "an API token from the server's Tokens page"},
-				{Name: "GUSTO_PASSWORD", Text: "the server's shared sign-in, when it has no tokens"},
-			},
-			Examples: []string{"GUSTO_SERVER=https://gusto.example.com gusto submit fix-login"},
-			SeeAlso:  []string{"serve", "show"},
-			Run:      submit,
+			Env:         cmdline.ParamsOf(new(submitSettings).declare),
+			Examples:    []string{"GUSTO_SERVER=https://gusto.example.com gusto submit fix-login"},
+			SeeAlso:     []string{"serve", "show"},
+			Run:         submit,
 		},
 		{
 			Name: "show", Group: groupTask, Summary: "What a task asked for and what happened",

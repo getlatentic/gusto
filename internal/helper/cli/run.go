@@ -13,6 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/helper"
 	"github.com/getlatentic/gusto/internal/helper/desk"
 	"github.com/getlatentic/gusto/internal/helper/service"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 // settingsDir is where the helper keeps what it writes: beside the token file, in the person's own settings folder.
@@ -26,8 +27,12 @@ func settingsDir() (string, error) {
 
 // Run is the helper itself, in the foreground. A service starts this.
 func Run(args []string) int {
+	var s account
+	if !loaded(os.Getenv, s.declare) {
+		return 2
+	}
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
-	address := serverFlag(flags)
+	address := serverFlag(flags, s.server)
 	withTray := flags.Bool("tray", true, "show the icon in the menu bar or tray, and a notification when a turn ends")
 	if flags.Parse(args) != nil {
 		return 2
@@ -36,7 +41,7 @@ func Run(args []string) int {
 	if !ok {
 		return 2
 	}
-	vault, err := helper.OpenVault(os.Stderr)
+	vault, err := s.openVault()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -133,28 +138,14 @@ func statusWords(status helper.Status) string {
 
 // Service installs or removes the helper's start at login.
 func Service(args []string) int {
-	if len(args) == 0 || (args[0] != "install" && args[0] != "uninstall" && args[0] != "status") {
-		fmt.Fprintln(os.Stderr, "usage: gusto-helper service install|uninstall|status [-server <address>]")
-		return 2
+	spec, address, code := serviceAsked(args)
+	if code != 0 {
+		return code
 	}
-	flags := flag.NewFlagSet("service", flag.ContinueOnError)
-	address := serverFlag(flags)
-	if flags.Parse(args[1:]) != nil {
-		return 2
-	}
-	program, err := os.Executable()
-	if err == nil {
-		program, err = filepath.EvalSymlinks(program)
-	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	spec := service.Spec{Program: program, Server: helper.Server(*address)}
 	manager := service.Here()
 	switch args[0] {
 	case "install":
-		if _, ok := needServer(*address); !ok {
+		if _, ok := needServer(address); !ok {
 			return 2
 		}
 		said, err := manager.Install(spec)
@@ -178,4 +169,31 @@ func Service(args []string) int {
 		}
 	}
 	return 0
+}
+
+// serviceAsked reads what gusto-helper service was asked: the start at login of this program for the server named, and the
+// server as it was given. It is the exit code of saying what is wrong when the command line or a setting does not read.
+func serviceAsked(args []string) (service.Spec, string, int) {
+	if len(args) == 0 || (args[0] != "install" && args[0] != "uninstall" && args[0] != "status") {
+		fmt.Fprintln(os.Stderr, "usage: gusto-helper service install|uninstall|status [-server <address>]")
+		return service.Spec{}, "", 2
+	}
+	var server string
+	if !loaded(os.Getenv, func(set *settings.Set) { declareServer(set, &server) }) {
+		return service.Spec{}, "", 2
+	}
+	flags := flag.NewFlagSet("service", flag.ContinueOnError)
+	address := serverFlag(flags, server)
+	if flags.Parse(args[1:]) != nil {
+		return service.Spec{}, "", 2
+	}
+	program, err := os.Executable()
+	if err == nil {
+		program, err = filepath.EvalSymlinks(program)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return service.Spec{}, "", 1
+	}
+	return service.Spec{Program: program, Server: helper.Server(*address)}, *address, 0
 }

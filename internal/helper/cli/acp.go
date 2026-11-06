@@ -87,10 +87,14 @@ func (c signedInCloud) StopJob(ctx context.Context, job string) error {
 // standard input and output, which are the protocol's and carry nothing else: whatever the helper has to say goes to standard
 // error, where an editor shows it in its log.
 func ACP(args []string) int {
+	var s acpSettings
+	if !loaded(os.Getenv, s.declare) {
+		return 2
+	}
 	flags := flag.NewFlagSet("acp", flag.ContinueOnError)
-	address := serverFlag(flags)
-	instance := flags.String("instance", os.Getenv("GUSTO_INSTANCE"), "the agent in the cloud to work with (default your newest, or a new one)")
-	engine := flags.String("agent", os.Getenv("GUSTO_AGENT_KIND"), "the kind of agent to start when you have none (default the first this server can run)")
+	address := serverFlag(flags, s.server)
+	instance := flags.String("instance", s.instance, "the agent in the cloud to work with (default your newest, or a new one)")
+	engine := flags.String("agent", s.kind, "the kind of agent to start when you have none (default the first this server can run)")
 	if flags.Parse(args) != nil {
 		return 2
 	}
@@ -98,7 +102,7 @@ func ACP(args []string) int {
 	if !ok {
 		return 2
 	}
-	vault, err := helper.OpenVault(os.Stderr)
+	vault, err := s.openVault()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getlatentic/gusto/cmd/internal/cmdline"
 	"github.com/getlatentic/gusto/internal/settings"
 )
 
@@ -51,17 +50,6 @@ func loadSettings(declare ...func(*settings.Set)) error {
 func refused(err error) int {
 	fmt.Fprintln(os.Stderr, "gusto:", err)
 	return 2
-}
-
-// paramsOf is the settings that declare declares as a command's help lists them.
-func paramsOf(declare func(*settings.Set)) []cmdline.Param {
-	set := settings.New()
-	declare(set)
-	var params []cmdline.Param
-	for _, each := range set.Params() {
-		params = append(params, cmdline.Param{Name: each.Name, Text: each.Text})
-	}
-	return params
 }
 
 // coreSettings is where the server listens, who it is for and how a person signs in with the shared password.

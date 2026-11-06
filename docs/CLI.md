@@ -1158,6 +1158,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 Examples:
 
@@ -1183,6 +1184,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 See also: `gusto login`
 
@@ -1202,6 +1204,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 See also: `gusto login`
 

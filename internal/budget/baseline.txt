@@ -2,13 +2,13 @@
 # A function here may shrink and not grow. Bring one within the budget and take it out; a new one is split, not added.
 # A line is "lines complexity name", and a # after it says why the function is over. Rewrite it, keeping the reasons, with:
 #   go test ./internal/budget -update
-95 1 cmd/gusto-helper/commands.go:program
+93 1 cmd/gusto-helper/commands.go:program
 64 16 cmd/gusto/changes.go:changesVerify
 51 1 cmd/gusto/commands_account.go:otherCommands
 110 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
 99 1 cmd/gusto/commands_run.go:runCommands
-120 1 cmd/gusto/commands_task.go:taskCommands
+116 1 cmd/gusto/commands_task.go:taskCommands
 50 14 cmd/gusto/export.go:exportTask
 37 11 cmd/gusto/gateway.go:(*gateways).open
 60 17 cmd/gusto/main.go:verify
@@ -48,8 +48,7 @@
 57 9 internal/helper/bridge/turn.go:(*Agent).prompt
 24 11 internal/helper/cli/folders.go:(*FolderSync).Register
 25 13 internal/helper/cli/folders.go:due
-47 15 internal/helper/cli/run.go:Service
-65 15 internal/helper/cli/sync.go:Sync
+39 11 internal/helper/cli/sync.go:Sync
 48 12 internal/helper/daemon.go:(*Daemon).Run
 57 13 internal/helper/desk/tray.go:(Tray).ready
 48 18 internal/helper/login.go:(Login).Run

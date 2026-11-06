@@ -19,7 +19,7 @@ import (
 // envCloudDatabase is the settings that say where gusto cloud's accounts are.
 func envCloudDatabase() []cmdline.Param {
 	var records cloudRecords
-	return paramsOf(records.declare)
+	return cmdline.ParamsOf(records.declare)
 }
 
 func cloudMigrateCommand() *cmdline.Command {
