@@ -32,7 +32,6 @@ type wayOutSettings struct {
 	maxOutput, silenceSeconds                            int
 	toolPolicy, gatewayMode                              string
 	gatewayPrivate                                       bool
-	toolsImage, toolsNetwork                             string
 	redaction, live                                      string
 	reloadSeconds, limitPerson, limitTeam                int
 	models                                               []string
@@ -71,8 +70,6 @@ func (w *wayOutSettings) declareTools(set *settings.Set) {
 	set.String(&w.toolPolicy, "GUSTO_TOOL_POLICY", "", "the file of which tool servers a task may call, and how")
 	set.Choice(&w.gatewayMode, "GUSTO_GATEWAY_MODE", "discover", []string{"discover", "all"}, "how a task finds the tools behind the gateway")
 	set.Bool(&w.gatewayPrivate, "GUSTO_GATEWAY_PRIVATE", "let tool servers and connected apps be on a private network")
-	set.String(&w.toolsImage, "GUSTO_TOOLS_IMAGE", "", "the image a tool server that is a program runs in")
-	set.Choice(&w.toolsNetwork, "GUSTO_TOOLS_NETWORK", "", []string{"open"}, "open gives a tool server the runtime's network")
 }
 
 func (w *wayOutSettings) declareLive(set *settings.Set) {

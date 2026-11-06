@@ -9,7 +9,7 @@ import (
 )
 
 func TestAContainerIsLabelledWithItsOrganizationPersonAgentAndJob(t *testing.T) {
-	args, err := sealedArgv("/jobs/20261028-1811-a-turn", "/jobs/.proxy.sock", "t", Owner{Org: "acme-research-com", Person: "3fa1c2d0", Instance: "20261028-1811-opencode"}, nil)
+	args, err := plain().sealedArgv("/jobs/20261028-1811-a-turn", "/jobs/.proxy.sock", "t", Owner{Org: "acme-research-com", Person: "3fa1c2d0", Instance: "20261028-1811-opencode"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestAContainerIsLabelledWithItsOrganizationPersonAgentAndJob(t *testing.T) 
 }
 
 func TestAnOwnerNobodyNamedIsNoLabel(t *testing.T) {
-	args, err := argv("/jobs/a", nil, Owner{}, nil)
+	args, err := plain().argv("/jobs/a", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestRemovingAnOrganizationRemovesItsContainersAndNoOneElses(t *testing.T) {
 
 // A person's kept home is mounted where the agent's home is, and the runner is told it is one, so it leaves what is there alone.
 func TestAKeptHomeIsMountedAndTheRunnerToldSo(t *testing.T) {
-	args, err := argv("/jobs/a", nil, Owner{}, []Mount{{From: "/computers/3fa1c2d0/home", To: Home, Kept: true}})
+	args, err := plain().argv("/jobs/a", nil, Owner{}, []Mount{{From: "/computers/3fa1c2d0/home", To: Home, Kept: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestAKeptHomeIsMountedAndTheRunnerToldSo(t *testing.T) {
 	if !strings.Contains(joined, "-v /computers/3fa1c2d0/home:/root") || !strings.Contains(joined, "-e "+KeptHomeEnv+"=1") {
 		t.Errorf("the home or the word for it is missing: %v", args)
 	}
-	plain, err := argv("/jobs/a", nil, Owner{}, []Mount{{From: "/state", To: "/root/.local/share"}})
+	plain, err := plain().argv("/jobs/a", nil, Owner{}, []Mount{{From: "/state", To: "/root/.local/share"}})
 	if err != nil {
 		t.Fatal(err)
 	}

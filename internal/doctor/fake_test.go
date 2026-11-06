@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // fakeRuntime answers the four things the checks ask a container runtime, each
@@ -52,20 +54,19 @@ func machineWith(commands Commands) Machine {
 	}
 }
 
-// healthy sets the environment of a runner that has everything it needs.
-func healthy(t *testing.T) {
+// healthy is the settings of a runner that has everything it needs.
+func healthy(t *testing.T) Settings {
 	t.Helper()
-	t.Setenv("GUSTO_JOBS", t.TempDir())
-	t.Setenv("GUSTO_PASSWORD", "correct horse battery staple")
-	for _, name := range []string{"GUSTO_CONTAINER", "GUSTO_IMAGE", "GUSTO_JOB_MEMORY", "GUSTO_JOB_CPUS",
-		"GUSTO_MODEL_URL", "GUSTO_HARNESSES", "GUSTO_SANDBOX", "XDG_RUNTIME_DIR"} {
-		t.Setenv(name, "")
+	return Settings{
+		Containers: sandbox.Containers{Runtime: "docker", Image: "gusto:dev", CPUs: "1", Memory: "3g"},
+		Jobs:       t.TempDir(),
+		Password:   true,
 	}
 }
 
-// examine runs every check against the machine and hands back what was printed.
-func examine(machine Machine) (string, bool) {
-	results := Run(Checks(machine))
+// examine runs every check against the machine set as s and hands back what was printed.
+func examine(machine Machine, s Settings) (string, bool) {
+	results := Run(Checks(machine, s))
 	var printed bytes.Buffer
 	Print(&printed, results)
 	return printed.String(), Healthy(results)

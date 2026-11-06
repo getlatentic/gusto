@@ -193,3 +193,14 @@ func Over(over map[string]string, lookup func(name string) string) func(name str
 		return lookup(name)
 	}
 }
+
+// Under is lookup with the values in under read where lookup has none, for settings an install made that a person or an
+// operator may still set themselves.
+func Under(under map[string]string, lookup func(name string) string) func(name string) string {
+	return func(name string) string {
+		if value := lookup(name); value != "" {
+			return value
+		}
+		return under[name]
+	}
+}

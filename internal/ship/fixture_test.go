@@ -1,6 +1,7 @@
 package ship_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -29,7 +31,6 @@ func hermetic(t *testing.T) {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	t.Setenv("GUSTO_SIGNER", "a-test")
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "yes.json"), answersYes)
 	write(t, filepath.Join(harnesses, "maybe.json"), answersNo)
@@ -54,6 +55,12 @@ func remote(t *testing.T) string {
 // and the remote it came from.
 func finished(t *testing.T, harness string) (job.Dir, string) {
 	t.Helper()
+	return finishedAs(t, harness, signing.Identity{Name: "a-test"})
+}
+
+// finishedAs is finished with the record signed as signs.
+func finishedAs(t *testing.T, harness string, signs signing.Identity) (job.Dir, string) {
+	t.Helper()
 	hermetic(t)
 	bare := remote(t)
 	dir := job.Dir(filepath.Join(t.TempDir(), "20260926-0900-make-the-answer-yes"))
@@ -70,7 +77,7 @@ func finished(t *testing.T, harness string) (job.Dir, string) {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runner.Inside(dir); err != nil {
+	if _, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs}); err != nil {
 		t.Fatal(err)
 	}
 	return dir, bare

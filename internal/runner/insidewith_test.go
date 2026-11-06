@@ -41,7 +41,7 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 		ModelURL:   "http://127.0.0.1:1/model/v1",
 		ModelToken: "given-token",
 	}
-	exit, err := runner.InsideWith(context.Background(), dir, env)
+	exit, err := runner.InsideWith(context.Background(), dir, env, runner.Place{})
 	if err != nil || exit != 0 {
 		gate, _ := os.ReadFile(dir.OutFile("gate.log"))
 		t.Fatalf("exit %d, %v: the gate saw the server's environment or no token\n%s", exit, err, gate)

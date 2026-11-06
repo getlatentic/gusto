@@ -17,7 +17,6 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
-	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -88,7 +87,11 @@ func runTask(args []string) int {
 	if err := runner.Fill(spec, dir); err != nil {
 		return fail(err)
 	}
-	exit, err := sandbox.Run(dir, harness.ModelURL(), "")
+	boxes, code := taskBoxes()
+	if code != 0 {
+		return code
+	}
+	exit, err := boxes.Run(context.Background(), dir, harness.ModelURL(), "", sandbox.Owner{})
 	if err != nil {
 		return fail(err)
 	}
@@ -104,7 +107,11 @@ func inside(args []string) int {
 	// down: the agent is stopped, and the record says so.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	exit, err := runner.InsideContext(ctx, dir)
+	place, code := insidePlace()
+	if code != 0 {
+		return code
+	}
+	exit, err := runner.InsideContext(ctx, dir, place)
 	if err != nil {
 		return fail(err)
 	}
@@ -143,7 +150,7 @@ func verify(args []string) int {
 	// The signer is named from the keyring, never from the record's signer
 	// field. Unsigned passes unless -signed asks otherwise, because every record
 	// made before signing, and every run with no key, is unsigned.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
@@ -198,7 +205,7 @@ func show(args []string) int {
 	}
 	// The signer is the keyring's name for the key, as verify gives it, never
 	// the record's signer field, which is the runner's claim.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}

@@ -1,6 +1,7 @@
 package ship_test
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -18,8 +19,11 @@ func signedBy(t *testing.T, ring, name string) job.Dir {
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, name+".key"))
-	dir, _ := finished(t, "yes")
+	signs, err := signing.Open(context.Background(), filepath.Join(ring, name+".key"), "a-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, _ := finishedAs(t, "yes", signs)
 	return dir
 }
 

@@ -23,7 +23,7 @@ func TestAGateThatNeverEndsIsStoppedWithItsChildrenWhenTheRunEnds(t *testing.T) 
 	ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
 	defer cancel()
 	began := time.Now()
-	verdict, err := gateWith(ctx, spec, dir, nil, nil)
+	verdict, err := gateWith(ctx, spec, dir, nil, nil, agent{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,8 +15,8 @@ func TestARunnerThatIsNotRootHandsNothingOver(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("the test is about a runner that is not root")
 	}
-	t.Setenv(AgentUIDEnv, "1000")
-	agent := agentHere()
+	t.Parallel()
+	agent := agentIn(Place{AgentUID: 1000})
 	if agent.present {
 		t.Fatal("a runner that is not root found an agent to switch to")
 	}

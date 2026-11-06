@@ -28,19 +28,15 @@ type pending struct {
 func pendingFile(dir job.Dir) string { return filepath.Join(dir.Path(), PendingFile) }
 
 // Decide keeps what was done with what a room's turn changed, and puts it under the record's signature: the manifest is made
-// again with the decision and signed with the key configured. All three are made and kept in PendingFile before any is put in
+// again with the decision and signed with key, when there is one. All three are made and kept in PendingFile before any is put in
 // place, so a crash part way leaves what Finish completes, and a key that cannot sign changes nothing. A record that no longer
 // checks is not decided, since making its manifest again would vouch for what changed, nor is a signed one with no key to
 // sign it again.
-func Decide(dir job.Dir, decision Decision) error {
-	signer, signs, err := signing.Configured()
-	if err != nil {
+func Decide(dir job.Dir, decision Decision, key signing.Signer) error {
+	if err := decidable(dir, key != nil); err != nil {
 		return err
 	}
-	if err := decidable(dir, signs); err != nil {
-		return err
-	}
-	next, err := prepare(dir, decision, signer, signs)
+	next, err := prepare(dir, decision, key)
 	if err != nil {
 		return err
 	}
@@ -70,7 +66,7 @@ func decidable(dir job.Dir, signs bool) error {
 }
 
 // prepare makes the decision, the manifest that hashes it with the rest of out/, and the manifest's signature.
-func prepare(dir job.Dir, decision Decision, signer signing.Signer, signs bool) (pending, error) {
+func prepare(dir job.Dir, decision Decision, key signing.Signer) (pending, error) {
 	text, err := json.MarshalIndent(decision, "", "  ")
 	if err != nil {
 		return pending{}, err
@@ -84,10 +80,10 @@ func prepare(dir job.Dir, decision Decision, signer signing.Signer, signs bool) 
 		return pending{}, err
 	}
 	manifest.Files = withFile(manifest.Files, DecisionFile, next.Decision)
-	if next.Manifest, err = encode(manifest); err != nil || !signs {
+	if next.Manifest, err = encode(manifest); err != nil || key == nil {
 		return next, err
 	}
-	signature, err := signing.Sign(signer, next.Manifest)
+	signature, err := signing.Sign(key, next.Manifest)
 	if err != nil {
 		return pending{}, err
 	}

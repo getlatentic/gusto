@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -24,7 +25,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +62,7 @@ func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +99,7 @@ func TestTheCommitIsPinnedBeforeAnyRunClones(t *testing.T) {
 	}
 	advance(t, bare)
 
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +119,7 @@ func TestAComparisonIsAddressedByItsDirectory(t *testing.T) {
 	hermetic(t)
 	submission := submitted(t, remote(t), "")
 	var first bytes.Buffer
-	exit, err := compare.Answer(&first, []string{submission.Path(), "yes", "maybe"}, "", replay.Here)
+	exit, err := compare.Answer(&first, []string{submission.Path(), "yes", "maybe"}, "", replay.Here(signing.Identity{}))
 	if err != nil || exit != 0 {
 		t.Fatalf("the comparison should run, exit %d: %v\n%s", exit, err, &first)
 	}
@@ -143,7 +144,7 @@ func TestAComparisonIsAddressedByItsDirectory(t *testing.T) {
 func TestARunThatCannotStartIsReportedBesideTheOneThatRan(t *testing.T) {
 	hermetic(t)
 	var out bytes.Buffer
-	exit, err := compare.Answer(&out, []string{submitted(t, remote(t), "").Path(), "yes", "missing"}, "", replay.Here)
+	exit, err := compare.Answer(&out, []string{submitted(t, remote(t), "").Path(), "yes", "missing"}, "", replay.Here(signing.Identity{}))
 
 	if err != nil {
 		t.Fatal(err)

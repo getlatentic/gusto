@@ -94,8 +94,6 @@
 44 11 internal/runner/converse.go:converse
 28 12 internal/runner/record.go:(*Record).Out
 29 14 internal/runtoken/dpop.go:(*replays).checkProof
-43 12 internal/sandbox/image.go:EnsureImage
-46 12 internal/sandbox/tool.go:ToolArgs
 33 11 internal/setup/history.go:(*Store).archive
 61 16 internal/setup/integrations.go:(*Store).carryIntegrations
 37 11 internal/setup/setup.go:(*Store).CarryFor

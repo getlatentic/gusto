@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
@@ -176,10 +177,7 @@ func removeLeftovers(slug string, env []string) {
 	if valueOf(env, "GUSTO_SANDBOX") != "container" {
 		return
 	}
-	runtime := valueOf(env, "GUSTO_CONTAINER")
-	if runtime == "" {
-		runtime = "docker"
-	}
+	runtime := isolation.RuntimeName(valueOf(env, "GUSTO_CONTAINER"), exec.LookPath)
 	if err := sandbox.RemoveOrg(runtime, slug); err != nil {
 		slog.Error("an organization's containers could not be removed", "org", slug, "error", err)
 	}

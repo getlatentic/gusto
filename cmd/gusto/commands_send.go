@@ -18,7 +18,7 @@ func sendCommands() []*cmdline.Command {
 				"the check again. The exit code is 0 when everything agrees and 1 when anything does not.",
 			Args:     []cmdline.Param{{Name: "<dir>", Text: "the task directory"}},
 			Flags:    flagsOf(declareVerify),
-			Env:      []cmdline.Param{envKeyring},
+			Env:      envKeyring,
 			Examples: []string{"gusto verify fix-login -signed"},
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "the files match, and the check still gives its recorded answer"},
@@ -35,7 +35,7 @@ func sendCommands() []*cmdline.Command {
 				"With -verify it checks an export instead of writing one.",
 			Args:  []cmdline.Param{{Name: "<dir>", Text: "the task directory, or with -verify the export directory"}},
 			Flags: flagsOf(declareExport),
-			Env:   []cmdline.Param{envKeyring},
+			Env:   envKeyring,
 			Examples: []string{
 				"gusto export fix-login",
 				"gusto export -verify fix-login.audit",
@@ -55,10 +55,9 @@ func prCommands() []*cmdline.Command {
 				"command that verifies it. A dry run prints what would happen and does none of it, and needs no token.",
 			Args:  []cmdline.Param{{Name: "<dir>", Text: "the task directory"}},
 			Flags: flagsOf(declareOpen),
-			Env: []cmdline.Param{
+			Env: append([]cmdline.Param{
 				{Name: "GUSTO_GITHUB_TOKEN", Text: "the standing token to push and open with, when there is no GitHub App"},
-				envKeyring,
-			},
+			}, envKeyring...),
 			Examples: []string{"gusto pr open fix-login -dry-run", "gusto pr open fix-login"},
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "the pull request was opened, or printed by a dry run"},

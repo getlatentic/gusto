@@ -1,6 +1,7 @@
 package audit_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -58,10 +60,15 @@ func ran(t *testing.T) job.Dir {
 // server would have written, so the export has every source it reads.
 func ranWith(t *testing.T, proxy ...string) job.Dir {
 	t.Helper()
+	return ranAs(t, signing.Identity{Name: "a-test"}, proxy...)
+}
+
+// ranAs is ranWith with the record signed as signs.
+func ranAs(t *testing.T, signs signing.Identity, proxy ...string) job.Dir {
+	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter(t, proxy))
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	dir := job.Dir(filepath.Join(t.TempDir(), "20260926-0900-answer"))
 	if err := dir.Make(); err != nil {
@@ -76,7 +83,7 @@ func ranWith(t *testing.T, proxy ...string) job.Dir {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if exit, err := runner.Inside(dir); err != nil || exit != 0 {
+	if exit, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs}); err != nil || exit != 0 {
 		t.Fatalf("the fixture should pass, exit %d: %v", exit, err)
 	}
 	state, err := json.MarshalIndent(jobs.Record{

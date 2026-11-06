@@ -11,7 +11,6 @@ import (
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/ship"
-	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -42,7 +41,7 @@ func openPullRequest(args []string) int {
 	if where == "" || set.NArg() > 0 {
 		return usageError("pr open", "needs one task directory, then its flags")
 	}
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}

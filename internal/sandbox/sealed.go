@@ -23,27 +23,24 @@ const (
 //
 // The repository is cloned before the container starts, so the box needs no
 // route to it either.
-func Sealed(dir job.Dir, socket, token string, mounts ...Mount) (int, error) {
-	return SealedContext(context.Background(), dir, socket, token, Owner{}, mounts...)
-}
-
-// SealedContext is Sealed that stops the container when its context ends.
-func SealedContext(ctx context.Context, dir job.Dir, socket, token string, owner Owner, mounts ...Mount) (int, error) {
+//
+// The container is stopped when ctx ends.
+func (c Containers) Sealed(ctx context.Context, dir job.Dir, socket, token string, owner Owner, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
 	}
-	if _, err := ready(absolute); err != nil {
+	if _, err := c.ready(absolute); err != nil {
 		return 0, err
 	}
-	args, err := sealedArgv(absolute, socket, token, owner, mounts)
+	args, err := c.sealedArgv(absolute, socket, token, owner, mounts)
 	if err != nil {
 		return 0, err
 	}
-	return start(ctx, dir, args)
+	return c.start(ctx, dir, args)
 }
 
-func sealedArgv(absolute, socket, token string, owner Owner, mounts []Mount) ([]string, error) {
+func (c Containers) sealedArgv(absolute, socket, token string, owner Owner, mounts []Mount) ([]string, error) {
 	socket, err := filepath.Abs(socket)
 	if err != nil {
 		return nil, err
@@ -62,5 +59,5 @@ func sealedArgv(absolute, socket, token string, owner Owner, mounts []Mount) ([]
 		"-e", "HTTP_PROXY=" + through, "-e", "http_proxy=" + through,
 		"-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost",
 	}
-	return argv(absolute, network, owner, mounts)
+	return c.argv(absolute, network, owner, mounts)
 }

@@ -25,8 +25,8 @@ type Config struct {
 	// Open leaves a container on the runtime's network, where it reaches the proxy on a port. Otherwise it has no network
 	// and reaches the proxy through a socket.
 	Open bool
-	// Fetched says the runner image can be fetched when this machine does not have it.
-	Fetched bool
+	// Containers is how containers are started, and who signs their records.
+	Containers sandbox.Containers
 }
 
 // Backend runs turns in containers.
@@ -40,7 +40,7 @@ type Backend struct {
 func New(cfg Config) *Backend { return &Backend{cfg: cfg} }
 
 func (b *Backend) String() string {
-	return "in a container, " + sandbox.Runtime() + " " + sandbox.Image()
+	return "in a container, " + b.cfg.Containers.Runtime + " " + b.cfg.Containers.Image
 }
 
 // Check finds nothing to refuse: a computer with no runtime or no image is said agent by agent in Offered.
@@ -65,17 +65,17 @@ func (b *Backend) Offered() []catalog.Entry {
 }
 
 func (b *Backend) survey() []catalog.Entry {
-	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), b.cfg.Agents)
+	return catalog.Survey(b.cfg.Containers.Runtime, b.cfg.Containers.Image, b.cfg.Agents)
 }
 
 // Start fetches the runner image in the background when its containers can run nothing yet and it can be fetched.
 func (b *Backend) Start(ctx context.Context) (func(), error) {
 	offered := b.Offered()
-	if !b.cfg.Fetched {
+	if b.cfg.Containers.ImageSource == "" {
 		return func() {}, nil
 	}
 	waiting, stop := context.WithCancel(ctx)
-	done := awaitImage(waiting, offered, sandbox.EnsureImage, b.survey, func(fresh []catalog.Entry) { b.offered.Store(&fresh) }, imageRetry)
+	done := awaitImage(waiting, offered, b.cfg.Containers.EnsureImage, b.survey, func(fresh []catalog.Entry) { b.offered.Store(&fresh) }, imageRetry)
 	return func() { stop(); <-done }, nil
 }
 
@@ -88,16 +88,16 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 	}
 	owner, exit := b.owner(turn), turn.Exit
 	if exit.Door == nil {
-		return sandbox.RunContext(ctx, turn.Dir, exit.Direct, "", owner, mounts...)
+		return b.cfg.Containers.Run(ctx, turn.Dir, exit.Direct, "", owner, mounts...)
 	}
 	token, err := exit.Door.Token(turn.Dir, turn.Spec)
 	if err != nil {
 		return 0, err
 	}
 	if !b.cfg.Open {
-		return sandbox.SealedContext(ctx, turn.Dir, exit.Socket, token, owner, mounts...)
+		return b.cfg.Containers.Sealed(ctx, turn.Dir, exit.Socket, token, owner, mounts...)
 	}
-	return sandbox.RunContext(ctx, turn.Dir, "http://localhost:"+exit.Port+"/model/v1", token, owner, mounts...)
+	return b.cfg.Containers.Run(ctx, turn.Dir, "http://localhost:"+exit.Port+"/model/v1", token, owner, mounts...)
 }
 
 // owner is whose a turn's container is: the organization, the person who pays as the same opaque id their computer has, and

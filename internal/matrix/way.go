@@ -3,6 +3,7 @@ package matrix
 import (
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -17,12 +18,12 @@ type Way struct {
 
 // Here runs every run in this process, the way `gusto inside` does. An agent
 // run here reads this machine's own configuration, which is what makes a
-// laptop's row differ from a container's.
-func Here() Way {
+// laptop's row differ from a container's. Each record is signed as signs.
+func Here(signs signing.Identity) Way {
 	return Way{
 		Where: "here, in this process",
 		Open: func(string) (replay.Run, func(), error) {
-			return replay.Here, func() {}, nil
+			return replay.Here(signs), func() {}, nil
 		},
 	}
 }

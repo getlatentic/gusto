@@ -26,20 +26,20 @@ type Tool struct {
 	Cwd          string
 }
 
-// ToolImage is the image programs run in: GUSTO_TOOLS_IMAGE, or the task image, which carries the interpreters a plugin is likely to
+// toolImage is the image programs run in: ToolImage, or the task image, which carries the interpreters a plugin is likely to
 // need. A program that needs more than it has is told so by the container.
-func ToolImage() string {
-	if image := os.Getenv("GUSTO_TOOLS_IMAGE"); image != "" {
-		return image
+func (c Containers) toolImage() string {
+	if c.ToolImage != "" {
+		return c.ToolImage
 	}
-	return Image()
+	return c.Image
 }
 
-// ToolNetwork is what a program reaches: none by default, and with GUSTO_TOOLS_NETWORK=open the runtime's own network, which an
+// toolNetwork is what a program reaches: none by default, and with ToolNetwork "open" the runtime's own network, which an
 // administrator allows for a program that must call a service. A program that reaches the network can send what it is given to
 // anywhere on it.
-func ToolNetwork() string {
-	if os.Getenv("GUSTO_TOOLS_NETWORK") == "open" {
+func (c Containers) toolNetwork() string {
+	if c.ToolNetwork == "open" {
 		return "bridge"
 	}
 	return "none"
@@ -61,7 +61,7 @@ const (
 // ToolArgs is the container's command line. The box has no capability, no network unless allowed, a file system it cannot write but
 // for its own folder and a scratch space, an unprivileged user, and a bound on what it takes of the machine. The image's own entry is
 // replaced, so that the program is the one the plugin names.
-func ToolArgs(tool Tool) ([]string, error) {
+func (c Containers) ToolArgs(tool Tool) ([]string, error) {
 	plugin, err := filepath.Abs(tool.Plugin)
 	if err != nil {
 		return nil, err
@@ -76,36 +76,44 @@ func ToolArgs(tool Tool) ([]string, error) {
 	}
 	expand := strings.NewReplacer("${PLUGIN_ROOT}", insidePlugin, "${PLUGIN_DATA}", insideData)
 	args := []string{"run", "--rm", "-i", "--init", "--name", ToolName(tool.Job, tool.Name),
-		"--network=" + ToolNetwork(),
+		"--network=" + c.toolNetwork(),
 		"--read-only", "--tmpfs=/tmp:rw,nosuid,size=64m",
 		"--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
-		"--cpus=" + share("GUSTO_TOOL_CPUS", "0.5"), "--memory=" + share("GUSTO_TOOL_MEMORY", "512m"), "--pids-limit=128",
+		"--cpus=" + c.ToolCPUs, "--memory=" + c.ToolMemory, "--pids-limit=128",
 		"-v", plugin + ":" + insidePlugin + ":ro",
 		"-v", data + ":" + insideData,
 		"-e", "PLUGIN_ROOT=" + insidePlugin, "-e", "PLUGIN_DATA=" + insideData, "-e", "HOME=" + insideData,
 	}
-	names := make([]string, 0, len(tool.Env))
-	for name := range tool.Env {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		if name == "PLUGIN_ROOT" || name == "PLUGIN_DATA" || strings.ContainsAny(name, "=\x00") {
-			continue
-		}
-		args = append(args, "-e", name+"="+expand.Replace(tool.Env[name]))
-	}
+	args = append(args, toolEnv(tool.Env, expand)...)
 	cwd := insidePlugin
 	if tool.Cwd != "" {
 		if cwd, err = inBox(expand.Replace(tool.Cwd), false); err != nil {
 			return nil, err
 		}
 	}
-	args = append(args, "-w", cwd, "--entrypoint", command, ToolImage())
+	args = append(args, "-w", cwd, "--entrypoint", command, c.toolImage())
 	for _, arg := range tool.Args {
 		args = append(args, expand.Replace(arg))
 	}
 	return args, nil
+}
+
+// toolEnv is the program's own variables as the runtime's flags, in name order, with the plugin's folders as they are in the box.
+// A program does not set the two the box sets, nor a name a flag cannot carry.
+func toolEnv(env map[string]string, expand *strings.Replacer) []string {
+	names := make([]string, 0, len(env))
+	for name := range env {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	var args []string
+	for _, name := range names {
+		if name == "PLUGIN_ROOT" || name == "PLUGIN_DATA" || strings.ContainsAny(name, "=\x00") {
+			continue
+		}
+		args = append(args, "-e", name+"="+expand.Replace(env[name]))
+	}
+	return args
 }
 
 // inBox is a path in the plugin, written as ./path or from the plugin's root, as it is in the box, or a bare program name left for the
@@ -126,8 +134,8 @@ func inBox(written string, program bool) (string, error) {
 
 // ToolCommand is the command that runs a program in a box, for the gateway to speak to over its standard input and output. The second
 // result removes the container by name once the program has ended, whatever became of the client that started it.
-func ToolCommand(_ context.Context, tool Tool) (*exec.Cmd, func(), error) {
-	args, err := ToolArgs(tool)
+func (c Containers) ToolCommand(_ context.Context, tool Tool) (*exec.Cmd, func(), error) {
+	args, err := c.ToolArgs(tool)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,5 +147,5 @@ func ToolCommand(_ context.Context, tool Tool) (*exec.Cmd, func(), error) {
 		return nil, nil, err
 	}
 	name := ToolName(tool.Job, tool.Name)
-	return exec.Command(Runtime(), args...), func() { _ = exec.Command(Runtime(), "rm", "-f", name).Run() }, nil
+	return exec.Command(c.Runtime, args...), func() { _ = exec.Command(c.Runtime, "rm", "-f", name).Run() }, nil
 }

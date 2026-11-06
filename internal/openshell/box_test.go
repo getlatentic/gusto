@@ -89,14 +89,17 @@ func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(keys, "acme.key"))
+	host, err := signing.Open(context.Background(), filepath.Join(keys, "acme.key"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ring, err := signing.OpenKeyring(keys)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir, _ := aJob(t)
 
-	exit, err := runner.Outside(dir, sandboxFor(t, dir))
+	exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), host)
 	if err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v: %s", exit, err, runner.Tail(dir.OutFile("stderr.log"), 5))
 	}
@@ -157,7 +160,7 @@ func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 func TestATamperedGuardLogFailsVerification(t *testing.T) {
 	installFake(t)
 	dir, _ := aJob(t)
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	write(t, dir.OutFile(runner.GuardEvents), "nothing was denied\n")
@@ -173,7 +176,7 @@ func TestWhatASandboxCannotYetCarryIsRefusedByNameBeforeAnythingStarts(t *testin
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runner.Outside(dir, sandboxFor(t, dir)); err == nil || !strings.Contains(err.Error(), "does not yet carry") {
+	if _, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err == nil || !strings.Contains(err.Error(), "does not yet carry") {
 		t.Fatalf("a job with skills was not refused: %v", err)
 	}
 	if calls, _ := os.ReadFile(filepath.Join(root, "calls.log")); len(calls) != 0 {
@@ -187,7 +190,7 @@ func TestADriverSubprocessCarriesNoneOfTheServersSecrets(t *testing.T) {
 	t.Setenv("GUSTO_MODEL_KEY", "a-real-key")
 	t.Setenv("OPENSHELL_GATEWAY", "kept")
 	dir, _ := aJob(t)
-	if _, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil {
+	if _, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	// The fake records its arguments, and the environment is what it was started with.
@@ -238,7 +241,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	// The fake keeps a sandbox as a directory, and it is gone after the run, so
@@ -267,7 +270,7 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"a-program-no-image-carries","argv":[],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	_, err := runner.Outside(dir, sandboxFor(t, dir))
+	_, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{})
 	if err == nil || !strings.Contains(err.Error(), "does not carry a-program-no-image-carries") {
 		t.Fatalf("%v", err)
 	}
@@ -315,7 +318,7 @@ func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
   "argv": ["-c", "printf yes > answer.txt; test -d ../.local/share/fixture && echo state folder is there || echo state folder is missing"],
   "needs": "nothing", "stream": "plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "state folder is there") {
@@ -347,7 +350,7 @@ done`
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), string(adapter))
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "Made it yes. token=a-job-token") {
@@ -413,7 +416,7 @@ func TestAHarnessIsToldItsOwnSandboxIsNotNeededInsideOne(t *testing.T) {
   "whenBoxed": {"workspace-write": "danger-full-access"},
   "needs": "nothing", "stream": "plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if said, _ := os.ReadFile(dir.OutFile("transcript.log")); !strings.Contains(string(said), "mode=danger-full-access") {
@@ -439,7 +442,7 @@ func TestASandboxIsAskedForAgainWhileTheGatewaysStagingSlotsAreBusy(t *testing.T
 	dir, _ := aJob(t)
 
 	write(t, filepath.Join(root, "busy"), "3")
-	if exit, err := runner.Outside(dir, sandboxFor(t, dir)); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("a busy gateway should be waited for: exit %d, %v", exit, err)
 	}
 	if left, _ := os.ReadFile(filepath.Join(root, "busy")); strings.TrimSpace(string(left)) != "0" {
@@ -450,7 +453,7 @@ func TestASandboxIsAskedForAgainWhileTheGatewaysStagingSlotsAreBusy(t *testing.T
 	openshell.SetRetry(50*time.Millisecond, time.Millisecond)
 	write(t, filepath.Join(root, "busy"), "100000")
 	other, _ := aJob(t)
-	if _, err := runner.Outside(other, sandboxFor(t, other)); err == nil || !strings.Contains(err.Error(), "staging slot") {
+	if _, err := runner.Outside(context.Background(), other, sandboxFor(t, other), signing.Identity{}); err == nil || !strings.Contains(err.Error(), "staging slot") {
 		t.Errorf("a gateway that never has room is a failure that names the slots: %v", err)
 	}
 }
@@ -461,7 +464,7 @@ func TestAnyOtherRefusalToMakeASandboxIsNotAskedAgain(t *testing.T) {
 	defer openshell.SetRetry(2*time.Minute, time.Second)
 	dir, _ := aJob(t)
 	write(t, filepath.Join(root, "broken"), "")
-	if _, err := runner.Outside(dir, sandboxFor(t, dir)); err == nil || !strings.Contains(err.Error(), "cannot make this sandbox") {
+	if _, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err == nil || !strings.Contains(err.Error(), "cannot make this sandbox") {
 		t.Fatalf("%v", err)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))

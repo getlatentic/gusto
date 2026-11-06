@@ -13,16 +13,20 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
 // Each value of GUSTO_SANDBOX makes the backend it names, and anything else is a container.
 func TestEachSandboxSettingMakesItsBackend(t *testing.T) {
-	t.Setenv("GUSTO_OPENSHELL_IMAGE", "/images/runner.tar.gz")
-	t.Setenv("GUSTO_COMPUTERS", "")
+	t.Parallel()
 	for setting, want := range map[string]string{"here": "process", "process": "process", "openshell": "vm", "container": "container", "": "container"} {
-		t.Setenv("GUSTO_SANDBOX", setting)
-		boxes, err := openBackend(fromEnv(t).boxes, "", "", nil, "8041")
+		set := map[string]string{"GUSTO_OPENSHELL_IMAGE": "/images/runner.tar.gz", "GUSTO_SANDBOX": setting}
+		cfg, _, err := loadServe(func(name string) string { return set[name] })
+		if err != nil {
+			t.Fatal(err)
+		}
+		boxes, err := openBackend(cfg, signing.Identity{}, nil, "8041")
 		if err != nil {
 			t.Fatalf("%q: %v", setting, err)
 		}
@@ -90,7 +94,7 @@ func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) 
 		t.Fatal(err)
 	}
 	boxes := &recording{session: "the-agents-own-name"}
-	if _, err := turns(boxes, way, instances, index, newRoomRuns(instances, nil, fromEnv(t).boxes.roomCopy()))(context.Background(), dir); err != nil {
+	if _, err := turns(boxes, way, instances, index, newRoomRuns(instances, nil, fromEnv(t).boxes.roomCopy(), nil))(context.Background(), dir); err != nil {
 		t.Fatal(err)
 	}
 	got := boxes.turn

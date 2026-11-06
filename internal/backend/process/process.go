@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 )
@@ -24,6 +25,8 @@ type Config struct {
 	Walled bool
 	// Open leaves the network open to a walled turn. Otherwise it reaches nothing but the proxy.
 	Open bool
+	// Signing is who stands behind each turn's record.
+	Signing signing.Identity
 }
 
 // Backend runs turns in this process.
@@ -47,7 +50,11 @@ func (b *Backend) Check() error {
 	if !b.cfg.Walled {
 		return nil
 	}
-	wall := isolation.ProcessWall(isolation.This())
+	set := isolation.Settings{}
+	if b.cfg.Open {
+		set.JobNetwork = "open"
+	}
+	wall := isolation.ProcessWall(isolation.This(set))
 	if wall.Ready {
 		return nil
 	}
@@ -91,7 +98,7 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 			return 0, err
 		}
 	}
-	return runner.InsideWith(ctx, turn.Dir, env)
+	return runner.InsideWith(ctx, turn.Dir, env, runner.Place{Signing: b.cfg.Signing})
 }
 
 // jobHome is the home an agent run here is given, as a container's /root is: a folder of the task's own, holding each agent's

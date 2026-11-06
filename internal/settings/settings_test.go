@@ -136,3 +136,14 @@ func TestOverReadsWhatTheCommandDecidedFirst(t *testing.T) {
 		}
 	}
 }
+
+func TestUnderReadsWhatWasSetFirst(t *testing.T) {
+	t.Parallel()
+	environment := map[string]string{"GUSTO_OPENSHELL": "/opt/openshell", "GUSTO_OPENSHELL_IMAGE": ""}
+	lookup := Under(map[string]string{"GUSTO_OPENSHELL": "/h/bin/openshell", "GUSTO_OPENSHELL_IMAGE": "rootfs.tar"}, func(name string) string { return environment[name] })
+	for name, want := range map[string]string{"GUSTO_OPENSHELL": "/opt/openshell", "GUSTO_OPENSHELL_IMAGE": "rootfs.tar", "GUSTO_NONE": ""} {
+		if got := lookup(name); got != want {
+			t.Errorf("%s is %q, want %q", name, got, want)
+		}
+	}
+}

@@ -10,8 +10,11 @@ import (
 // computer is a host that has the programs and files named, and answers the commands in answers by their first words.
 func computer(goos string, env map[string]string, has []string, answers map[string]string) Host {
 	return Host{
-		GOOS:   goos,
-		Getenv: func(name string) string { return env[name] },
+		GOOS: goos,
+		Settings: Settings{
+			Sandbox: env["GUSTO_SANDBOX"], Container: env["GUSTO_CONTAINER"], Image: env["GUSTO_IMAGE"], JobNetwork: env["GUSTO_JOB_NETWORK"],
+			OpenShell: env["GUSTO_OPENSHELL"], OpenShellImage: env["GUSTO_OPENSHELL_IMAGE"], OpenShellGateway: env["GUSTO_OPENSHELL_GATEWAY"],
+		},
 		Exists: func(path string) bool { return slices.Contains(has, path) },
 		LookPath: func(program string) (string, error) {
 			if slices.Contains(has, program) {

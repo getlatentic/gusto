@@ -9,6 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/replay"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -20,7 +21,7 @@ func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	advance(t, bare)
 	before := read(t, old.OutFile("manifest.json"))
 
-	rows := replay.Sweep([]job.Dir{old}, "", replay.Here)
+	rows := replay.Sweep([]job.Dir{old}, "", replay.Here(signing.Identity{}))
 
 	row := rows[0]
 	if row.Err != nil {
@@ -49,7 +50,7 @@ func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedEvidence(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]job.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 	if row.Err != nil {
 		t.Fatal(row.Err)
 	}
@@ -86,7 +87,7 @@ func TestAHarnessThatCommittedDoesNotMoveThePin(t *testing.T) {
 		t.Fatal("the fixture harness should have committed")
 	}
 
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]job.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 
 	if row.Err != nil {
 		t.Fatal(row.Err)
@@ -105,7 +106,7 @@ func TestAHarnessThatGotWorseFailsTheSweep(t *testing.T) {
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
 	write(t, filepath.Join(harnesses, "yes.json"), regressedTo)
 
-	rows := replay.Sweep([]job.Dir{old}, t.TempDir(), replay.Here)
+	rows := replay.Sweep([]job.Dir{old}, t.TempDir(), replay.Here(signing.Identity{}))
 
 	if rows[0].Err != nil {
 		t.Fatal(rows[0].Err)
@@ -127,7 +128,7 @@ func TestASweepOverADirectoryOfJobsGivesOneSummary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := replay.Sweep(olds, into, replay.Here)
+	rows := replay.Sweep(olds, into, replay.Here(signing.Identity{}))
 	var out bytes.Buffer
 	replay.Print(&out, rows)
 
@@ -149,7 +150,7 @@ func TestASecondSweepReplaysTheOriginalsAndNotTheFirstSweepsReplays(t *testing.T
 	jobs := t.TempDir()
 	finished(t, jobs, "fix", "yes", remote(t))
 	first, _ := replay.Expand([]string{jobs})
-	replay.Sweep(first, "", replay.Here)
+	replay.Sweep(first, "", replay.Here(signing.Identity{}))
 
 	second, err := replay.Expand([]string{jobs})
 	if err != nil {
@@ -158,7 +159,7 @@ func TestASecondSweepReplaysTheOriginalsAndNotTheFirstSweepsReplays(t *testing.T
 	if len(second) != 1 || filepath.Base(second[0].Path()) != "fix" {
 		t.Fatalf("the second sweep should find the one original, found %v", second)
 	}
-	rows := replay.Sweep(second, "", replay.Here)
+	rows := replay.Sweep(second, "", replay.Here(signing.Identity{}))
 	if filepath.Base(rows[0].Replay.Path()) != "fix-replay-2" {
 		t.Fatalf("a second replay should not reuse the first one's directory, got %s", rows[0].Replay)
 	}
@@ -172,7 +173,7 @@ func TestAJobWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 	fine := finished(t, jobs, "b-fine", "yes", bare)
 	write(t, tampered.OutFile("gates.json"), `{"passed": true}`)
 
-	rows := replay.Sweep([]job.Dir{tampered, fine}, "", replay.Here)
+	rows := replay.Sweep([]job.Dir{tampered, fine}, "", replay.Here(signing.Identity{}))
 
 	if rows[0].Err == nil || rows[0].Replay != "" {
 		t.Fatal("a job whose evidence changed has no verdict worth comparing against")
@@ -196,7 +197,7 @@ func TestAReplayCarriesTheAdapterTheOldJobCarried(t *testing.T) {
 	write(t, filepath.Join(old.Path(), "harnesses", "yes.json"), answersYes)
 	t.Setenv("GUSTO_HARNESSES", t.TempDir())
 
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]job.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 
 	if row.Err != nil {
 		t.Fatalf("the replay should run on the adapter the job carried: %v", row.Err)

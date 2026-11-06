@@ -14,15 +14,15 @@ import (
 // Ask runs the command that says pass or fail and writes nothing, until it ends or ctx does. An agent reporting success is a
 // claim; this is the check, and a re-run of it has to leave the record it is checking untouched.
 func Ask(ctx context.Context, spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
-	command, err := gateCommand(ctx, spec, dir, nil)
+	command, err := gateCommand(ctx, spec, dir, nil, agent{})
 	if err != nil {
 		return evidence.Verdict{}, nil, err
 	}
 	return askWith(spec, command)
 }
 
-// gateCommand is the task's check, to run in its workspace with env, or this process's environment when env is nil.
-func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string) (*exec.Cmd, error) {
+// gateCommand is the task's check, to run in its workspace as the agent with env, or this process's environment when env is nil.
+func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string, as agent) (*exec.Cmd, error) {
 	if len(spec.Gate) == 0 {
 		return nil, errors.New("the task names no check")
 	}
@@ -30,7 +30,7 @@ func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string) 
 	command.Dir = dir.Workspace()
 	command.Env = env
 	// The gate runs the repository's own code, as untrusted as the harness.
-	agentHere().runAs(command)
+	as.runAs(command)
 	return command, nil
 }
 
@@ -46,8 +46,8 @@ func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error)
 
 // gateWith runs the check within the run's ctx, in a process group that ends with it, behind a wall when wrap is given, and
 // keeps the answer and the whole output in the record.
-func gateWith(ctx context.Context, spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd)) (evidence.Verdict, error) {
-	command, err := gateCommand(ctx, spec, dir, env)
+func gateWith(ctx context.Context, spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd), as agent) (evidence.Verdict, error) {
+	command, err := gateCommand(ctx, spec, dir, env, as)
 	if err != nil {
 		return evidence.Verdict{}, err
 	}

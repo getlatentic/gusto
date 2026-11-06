@@ -55,14 +55,18 @@ func benchmarkTasks(args []string) int {
 // matrixWay is where a plan's runs go: in this process, or in the box a server's turns run in, through the proxy when a
 // credential is held.
 func matrixWay(here bool) (matrix.Way, error) {
-	if here {
-		return matrix.Here(), nil
-	}
 	cfg, _, err := loadServe(os.Getenv)
 	if err != nil {
 		return matrix.Way{}, err
 	}
-	boxes, err := openBackend(cfg.boxes, cfg.core.org, cfg.served.quota, nil, "")
+	signs, err := cfg.sign.identity()
+	if err != nil {
+		return matrix.Way{}, err
+	}
+	if here {
+		return matrix.Here(signs), nil
+	}
+	boxes, err := openBackend(cfg, signs, nil, "")
 	if err != nil {
 		return matrix.Way{}, err
 	}

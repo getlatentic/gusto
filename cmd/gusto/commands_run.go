@@ -109,7 +109,7 @@ func runCommands() []*cmdline.Command {
 		{
 			Name: "doctor", Group: groupRun, Summary: "Check this computer can run a task, before one is sent",
 			Description: "Checks everything a task needs on this computer and exits 1 when anything is missing, so a deploy can stop on it.",
-			Env:         envRuntime,
+			Env:         cmdline.ParamsOf(new(doctorSettings).declare),
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "everything a task needs is here"},
 				{Name: "1", Text: "something is missing"},

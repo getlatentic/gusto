@@ -47,7 +47,7 @@ func (b *Backend) inComputer(ctx context.Context, turn backend.Turn) (int, error
 	if turn.InRoom() {
 		box.Confine(folderInComputer(turn))
 	}
-	return runner.OutsideContext(ctx, dir, &computerBox{Sandbox: box, registry: b.cfg.Computers, id: held.ID, use: b.use})
+	return runner.Outside(ctx, dir, &computerBox{Sandbox: box, registry: b.cfg.Computers, id: held.ID, use: b.use}, b.cfg.Signing)
 }
 
 // failedBeforeStart says why a computer being made never started, so it is not left being made for good, counting against

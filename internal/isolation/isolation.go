@@ -42,16 +42,30 @@ type Backend struct {
 type Choice struct {
 	Kind   Kind
 	Detail string
-	// Forced says the person set GUSTO_SANDBOX, and nothing was probed.
+	// Forced says the person set the sandbox, and nothing was probed.
 	Forced bool
 	// Passed is the stronger kinds this computer could not make, with what each lacks.
 	Passed []Backend
 }
 
+// Settings are what a person or an operator set that the probes go by.
+type Settings struct {
+	// Sandbox is the kind decided on, which is not probed: openshell, here, process, or anything else for a container. Nothing
+	// is the strongest the computer can make.
+	Sandbox string
+	// Container is the container command, or nothing for docker, or podman when only it is installed. Image is the runner image.
+	Container, Image string
+	// OpenShell is the openshell command, OpenShellImage what its sandboxes are made from, and OpenShellGateway the gateway's
+	// name, or nothing for the one selected.
+	OpenShell, OpenShellImage, OpenShellGateway string
+	// JobNetwork "open" leaves a task the network, which an old Landlock can hold it to.
+	JobNetwork string
+}
+
 // Host is what the probes ask of the computer. A test is any computer it describes.
 type Host struct {
 	GOOS     string
-	Getenv   func(string) string
+	Settings Settings
 	Exists   func(path string) bool
 	LookPath func(program string) (string, error)
 	// Run is a program's output and whether it exited 0, within a few seconds.
@@ -64,13 +78,13 @@ type Host struct {
 	MountsSocket func(runtime, image string) error
 }
 
-// This is the computer gusto runs on.
-func This() Host {
+// This is the computer gusto runs on, set as given.
+func This(set Settings) Host {
 	self, _ := os.Executable()
 	return Host{
 		Self:     self,
 		GOOS:     runtime.GOOS,
-		Getenv:   os.Getenv,
+		Settings: set,
 		Exists:   func(path string) bool { _, err := os.Stat(path); return err == nil },
 		LookPath: exec.LookPath,
 		Run: func(program string, args ...string) (string, bool) {
@@ -88,10 +102,10 @@ func This() Host {
 	}
 }
 
-// Choose is the strongest sandbox the host can make. GUSTO_SANDBOX names one when a person or an operator has decided: openshell is a
-// VM, here is none, and anything else, including container, is a container.
+// Choose is the strongest sandbox the host can make. Settings.Sandbox names one when a person or an operator has decided: openshell
+// is a VM, here is none, and anything else, including container, is a container.
 func Choose(h Host) Choice {
-	switch h.Getenv("GUSTO_SANDBOX") {
+	switch h.Settings.Sandbox {
 	case "":
 	case "openshell":
 		return Choice{Kind: VM, Detail: "OpenShell", Forced: true}
@@ -100,7 +114,7 @@ func Choose(h Host) Choice {
 	case "process":
 		return Choice{Kind: Process, Detail: processName(h), Forced: true}
 	default:
-		return Choice{Kind: Container, Detail: runtimeName(h), Forced: true}
+		return Choice{Kind: Container, Detail: RuntimeName(h.Settings.Container, h.LookPath), Forced: true}
 	}
 	var passed []Backend
 	for _, probe := range []func(Host) Backend{virtualMachine, container, ProcessWall} {
@@ -139,13 +153,13 @@ func (c Choice) Short() string {
 	return "no sandbox"
 }
 
-// runtimeName is the container command the host uses: GUSTO_CONTAINER, or docker, or podman.
-func runtimeName(h Host) string {
-	if name := h.Getenv("GUSTO_CONTAINER"); name != "" {
-		return name
+// RuntimeName is the container command a computer uses: the one set, or docker, or podman when only it is installed.
+func RuntimeName(set string, lookPath func(string) (string, error)) string {
+	if set != "" {
+		return set
 	}
 	for _, name := range []string{"docker", "podman"} {
-		if _, err := h.LookPath(name); err == nil {
+		if _, err := lookPath(name); err == nil {
 			return name
 		}
 	}

@@ -47,8 +47,8 @@ func TestTheRelayCarriesLoopbackToTheSocket(t *testing.T) {
 }
 
 func TestABoxThatIsNotSealedRelaysNothing(t *testing.T) {
-	t.Setenv("GUSTO_PROXY_SOCKET", "")
-	stop, err := relayOut()
+	t.Parallel()
+	stop, err := relayOut("")
 	if err != nil {
 		t.Fatal(err)
 	}

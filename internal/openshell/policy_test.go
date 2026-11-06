@@ -151,16 +151,3 @@ func TestEveryCommandInASandboxStartsUnderAProcessLimit(t *testing.T) {
 		t.Error("the limit is set after the harness starts")
 	}
 }
-
-func TestAProcessLimitThatIsNotANumberAboveZeroIsRefused(t *testing.T) {
-	for _, bad := range []string{"0", "-3", "many"} {
-		t.Setenv("GUSTO_OPENSHELL_PROCESSES", bad)
-		if _, err := FromEnv(); err == nil {
-			t.Errorf("%q was taken as a process limit", bad)
-		}
-	}
-	t.Setenv("GUSTO_OPENSHELL_PROCESSES", "")
-	if cfg, err := FromEnv(); err != nil || cfg.Processes != 512 {
-		t.Errorf("with none set the limit is %d, %v", cfg.Processes, err)
-	}
-}

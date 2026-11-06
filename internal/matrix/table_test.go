@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -92,7 +93,7 @@ func TestTheTableIsMarkdownForTheReadmeAndJSONForTheCatalog(t *testing.T) {
 	hermetic(t)
 	path := planned(t, remote(t), finishes, doesNotFinish)
 	var out bytes.Buffer
-	exit, err := matrix.Answer(&out, path, matrix.Asked{Way: matrix.Here(), Progress: &bytes.Buffer{}})
+	exit, err := matrix.Answer(&out, path, matrix.Asked{Way: matrix.Here(signing.Identity{}), Progress: &bytes.Buffer{}})
 	if err != nil || exit != 0 {
 		t.Fatalf("the matrix should run, exit %d: %v", exit, err)
 	}
@@ -129,7 +130,7 @@ func TestAMatrixIsAddressedByItsDirectory(t *testing.T) {
 	hermetic(t)
 	path := planned(t, remote(t), finishes)
 	var first bytes.Buffer
-	if _, err := matrix.Answer(&first, path, matrix.Asked{Way: matrix.Here(), Progress: &bytes.Buffer{}}); err != nil {
+	if _, err := matrix.Answer(&first, path, matrix.Asked{Way: matrix.Here(signing.Identity{}), Progress: &bytes.Buffer{}}); err != nil {
 		t.Fatal(err)
 	}
 	var again bytes.Buffer

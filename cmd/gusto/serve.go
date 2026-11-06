@@ -19,6 +19,7 @@ import (
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/settings"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -31,6 +32,8 @@ type server struct {
 	cfg serveSettings
 	// set is the settings as they were read, which the record of what changed is written from.
 	set *settings.Set
+	// signs stands behind the records of the tasks run here, and of what changes on the platform.
+	signs signing.Identity
 
 	index     *jobs.Index
 	limits    *quota.File
@@ -91,7 +94,11 @@ func newServer(lookup func(string) string) (*server, int) {
 	if err := ready(cfg.stores); err != nil {
 		return nil, fail(err)
 	}
-	return &server{cfg: cfg, set: set}, 0
+	signs, err := cfg.sign.identity()
+	if err != nil {
+		return nil, fail(err)
+	}
+	return &server{cfg: cfg, set: set, signs: signs}, 0
 }
 
 // build makes the server, step by step. A step that fails stops the build, and what the steps before it started is stopped.
