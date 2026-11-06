@@ -4,9 +4,8 @@ import (
 	"flag"
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
+	"github.com/getlatentic/gusto/internal/helper/cli"
 )
-
-var envHelperServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organization's server, when -server is not given"}
 
 func accountCommands() []*cmdline.Command {
 	return []*cmdline.Command{
@@ -15,7 +14,7 @@ func accountCommands() []*cmdline.Command {
 			Usage:       []string{"[-server <address>] [-label <name>] [-browser=false]"},
 			Description: "Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.",
 			Flags:       loginFlags,
-			Env:         []cmdline.Param{envHelperServer},
+			Env:         cmdline.ParamsOf(cli.AccountSettings),
 			Examples:    []string{"gusto login -server https://acme.gusto.example.com"},
 			SeeAlso:     []string{"whoami", "logout"},
 			Run:         login,
@@ -24,7 +23,7 @@ func accountCommands() []*cmdline.Command {
 			Name: "logout", Group: groupAccount, Summary: "End this computer's sign-in and forget it",
 			Usage:   []string{"[-server <address>]"},
 			Flags:   serverFlag,
-			Env:     []cmdline.Param{envHelperServer},
+			Env:     cmdline.ParamsOf(cli.AccountSettings),
 			SeeAlso: []string{"login"},
 			Run:     logout,
 		},
@@ -32,7 +31,7 @@ func accountCommands() []*cmdline.Command {
 			Name: "whoami", Group: groupAccount, Summary: "Who this computer is signed in as",
 			Usage:   []string{"[-server <address>]"},
 			Flags:   serverFlag,
-			Env:     []cmdline.Param{envHelperServer},
+			Env:     cmdline.ParamsOf(cli.AccountSettings),
 			SeeAlso: []string{"login"},
 			Run:     whoami,
 		},

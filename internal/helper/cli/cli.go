@@ -14,9 +14,9 @@ import (
 	"github.com/getlatentic/gusto/internal/helper"
 )
 
-// serverFlag reads the address of the server a command talks to: the flag, or GUSTO_SERVER.
-func serverFlag(flags *flag.FlagSet) *string {
-	return flags.String("server", os.Getenv("GUSTO_SERVER"), "the address of your organization's server (default GUSTO_SERVER)")
+// serverFlag reads the address of the server a command talks to: the flag, or fallback, which is GUSTO_SERVER.
+func serverFlag(flags *flag.FlagSet, fallback string) *string {
+	return flags.String("server", fallback, "the address of your organization's server (default GUSTO_SERVER)")
 }
 
 func needServer(address string) (string, bool) {
@@ -29,8 +29,12 @@ func needServer(address string) (string, bool) {
 
 // Login signs this computer in as its person, by the device flow, and keeps the token in the keychain.
 func Login(args []string) int {
+	var s account
+	if !loaded(os.Getenv, s.declare) {
+		return 2
+	}
 	flags := flag.NewFlagSet("login", flag.ContinueOnError)
-	address := serverFlag(flags)
+	address := serverFlag(flags, s.server)
 	hostname, _ := os.Hostname()
 	label := flags.String("label", hostname, "what to call this computer in your list of approved ones")
 	open := flags.Bool("browser", true, "open the approval page in your browser")
@@ -41,7 +45,7 @@ func Login(args []string) int {
 	if !ok {
 		return 2
 	}
-	vault, err := helper.OpenVault(os.Stderr)
+	vault, err := s.openVault()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -71,8 +75,12 @@ func Login(args []string) int {
 
 // Whoami says who this computer is signed in as, asking the server so a token that was ended is found out.
 func Whoami(args []string) int {
+	var s account
+	if !loaded(os.Getenv, s.declare) {
+		return 2
+	}
 	flags := flag.NewFlagSet("whoami", flag.ContinueOnError)
-	address := serverFlag(flags)
+	address := serverFlag(flags, s.server)
 	if flags.Parse(args) != nil {
 		return 2
 	}
@@ -80,7 +88,7 @@ func Whoami(args []string) int {
 	if !ok {
 		return 2
 	}
-	client, code := signedIn(server)
+	client, code := signedIn(s, server)
 	if code != 0 {
 		return code
 	}
@@ -96,8 +104,12 @@ func Whoami(args []string) int {
 // Logout ends this computer's token on the server, then forgets it. When the server cannot be reached the token is
 // forgotten anyway and the person is told it can still be ended on the server's own page.
 func Logout(args []string) int {
+	var s account
+	if !loaded(os.Getenv, s.declare) {
+		return 2
+	}
 	flags := flag.NewFlagSet("logout", flag.ContinueOnError)
-	address := serverFlag(flags)
+	address := serverFlag(flags, s.server)
 	if flags.Parse(args) != nil {
 		return 2
 	}
@@ -105,7 +117,7 @@ func Logout(args []string) int {
 	if !ok {
 		return 2
 	}
-	vault, err := helper.OpenVault(os.Stderr)
+	vault, err := s.openVault()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -127,8 +139,8 @@ func Logout(args []string) int {
 }
 
 // signedIn is a client with the token kept for server, or the exit code of saying there is none.
-func signedIn(server string) (helper.Client, int) {
-	vault, err := helper.OpenVault(os.Stderr)
+func signedIn(s account, server string) (helper.Client, int) {
+	vault, err := s.openVault()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return helper.Client{}, 1

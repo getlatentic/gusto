@@ -11,7 +11,7 @@ func TestTheRealKeychainKeepsAToken(t *testing.T) {
 	if os.Getenv("GUSTO_REAL_KEYCHAIN") != "1" {
 		t.Skip("set GUSTO_REAL_KEYCHAIN=1 to use this computer's keychain")
 	}
-	vault, err := OpenVault(nil)
+	vault, err := OpenVault(nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}

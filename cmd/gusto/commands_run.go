@@ -5,22 +5,22 @@ import "github.com/getlatentic/gusto/cmd/internal/cmdline"
 // envServer is every setting gusto serve reads, as its declarations say them.
 func envServer() []cmdline.Param {
 	var cfg serveSettings
-	return paramsOf(cfg.declare)
+	return cmdline.ParamsOf(cfg.declare)
 }
 
 func envCloud() []cmdline.Param {
 	var cfg cloudSettings
-	return paramsOf(cfg.declare)
+	return cmdline.ParamsOf(cfg.declare)
 }
 
 func envHost() []cmdline.Param {
 	var cfg hostSettings
-	return paramsOf(cfg.declare)
+	return cmdline.ParamsOf(cfg.declare)
 }
 
 func envOperator() []cmdline.Param {
 	var cfg operatorSettings
-	return paramsOf(cfg.declare)
+	return cmdline.ParamsOf(cfg.declare)
 }
 
 func runCommands() []*cmdline.Command {
