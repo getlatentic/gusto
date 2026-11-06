@@ -7,11 +7,11 @@ import (
 
 // Drift is where the record and the gateway disagree about an organization.
 type Drift struct {
-	// Missing are workspaces the record says are there and the gateway has no
+	// Missing are computers the record says are there and the gateway has no
 	// sandbox for.
 	Missing []Computer
 	// Orphans are sandboxes the gateway has under this organization's name and
-	// the record has no workspace for.
+	// the record has no computer for.
 	Orphans []string
 }
 
@@ -19,8 +19,8 @@ type Drift struct {
 func (d Drift) Clean() bool { return len(d.Missing) == 0 && len(d.Orphans) == 0 }
 
 // Compare sets the record against the names of the sandboxes on a gateway. A
-// workspace that is still being made, or was deleted, is not missing, and a
-// sandbox that is not a workspace's, a task's for one, is not an orphan.
+// computer that is still being made, or was deleted, is not missing, and a
+// sandbox that is not a computer's, a task's for one, is not an orphan.
 func (r *Registry) Compare(gateway []string) (Drift, error) {
 	all, err := r.All()
 	if err != nil {

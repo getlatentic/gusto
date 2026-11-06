@@ -100,7 +100,7 @@ gusto compare /tmp/fix-compare-1         # prints it again from the record
 
 ## Task directory
 
-`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds a configured agent of your own. `workspace/` is the checkout. `out/` holds the record:
+`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
 
 | File in `out/` | Holds |
 | --- | --- |
@@ -150,7 +150,7 @@ An `opencode` task peaked at 662.7 MiB in its container, with the model outside 
 
 ## Adapters
 
-An agent is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. A configured agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
+An agent type is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. An agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
 
 `gusto agents` lists them with what each needs: `nothing`, `local`, `account` or `key`. With `nothing`, no model is involved and no endpoint is checked.
 
@@ -158,7 +158,7 @@ An agent is the program: `claude`, `codex`, `opencode`. An adapter is how to run
 
 A routine is a question an agent is asked on a schedule, in a conversation of its own, so the agent remembers from one run to the next. Add one on the agent's page under Routines: a title, what to ask, and either a time of day (`08:00`, in the server's own zone) or a number of hours between runs. Once a minute the server starts every routine whose slot has come as an ordinary turn: through the proxy, under the team's cap, and into the signed record, with the brief `[routine] <title>: <what to ask>`. A routine whose last turn is still answering skips the slot, and the page says so. A routine added after today's time waits for tomorrow's. Routines are kept in `routines.json` in the agent's folder. When that file cannot be read, the agent's page says why, and none of the agent's routines runs until the file is mended. The person who added a routine is told how each run went the way they are told of any turn of theirs, on the events a tray listens to (`/api/events`). Two more ways are off until set. `GUSTO_NOTIFY_WEBHOOK` is an https address, with `GUSTO_NOTIFY_SECRET`: it is sent `{event, instance, routine, title, job, state, at, link, who}` as JSON when a run ends, with `X-Gusto-Signature: sha256=<HMAC-SHA256 of the body under the secret>`, and never the agent's words. `GUSTO_MAIL` (`outbox`, `smtp://user:password@host:587?from=name@example.com` or `cloudflare://<account id>?from=name@example.com`, with `GUSTO_MAIL_TOKEN` for Cloudflare) mails the person who added the routine, when that person is an address, with the end of what the agent said. `GUSTO_PUBLIC_URL` is where the server's own pages are, for the link. Each channel takes an event once; one that is down is tried again each minute, five times, and the routine's page says why when it gives up. A run's news is kept until it is taken or given up on, also when the next slot comes first. Pause, resume and remove are on the same page; removing a routine keeps its conversation.
 
-An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a built-in adapter of the same name, or adds one. It holds bare adapters (`name.json`) or configured agents (`name/adapter.json` with its files beside it, reached through `{harnessDir}`).
+An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a built-in adapter of the same name, or adds one. It holds bare adapters (`name.json`) or agents (`name/adapter.json` with its files beside it, reached through `{harnessDir}`).
 
 ```json
 {

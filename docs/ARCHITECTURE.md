@@ -17,15 +17,16 @@ Four views show the system. Each answers one question.
 
 ```mermaid
 flowchart LR
-  O[Organization] --> P[Person]
-  P --> W[Workspace]
-  W --> T[Task]
+  O[Organization] --> W[Workspace]
+  W --> P[Person]
+  P --> M[Computer]
+  M --> T[Task]
   T --> A[Agent]
   T --> C[Check]
   T --> R[Record]
 ```
 
-An organization is a company or team. It has people, settings, a spend limit and its own server. Each person has one workspace in it, where their agents run and keep their files. A person gives a task to an agent. The check says whether the task passed. The record keeps what changed and can be re-checked by anyone.
+An organization is a company, or one person. It has settings, a spend limit and its own server. A workspace is a team's space in it, and today each organization has one. Each person has a computer in the workspace, where their agents run and keep their files. A person gives a task to an agent. The check says whether the task passed. The record keeps what changed and can be re-checked by anyone.
 
 ## The components
 
@@ -87,7 +88,8 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | --- | --- | --- |
 | Organization | One `gusto serve` process with its own data directory, signing key, spend ledger and change log | The organization's server |
 | Person and role | An account and a sign-in: password, SSO or token | The server, or gusto cloud in the hosted cloud |
-| Workspace | One sandbox per person that keeps their files | The host that runs the organization's server |
+| Workspace | The organization's members, repositories, connectors, tasks and records | The organization's server |
+| Computer | One sandbox per person that keeps their files | The node that runs the organization's server |
 | Task | A directory holding the brief, the repository, the check and the spend limit | The organization's data directory |
 | Agent | An adapter: a small JSON file that names the agent type | Inside the sandbox |
 | Check | A command run at the end. Its exit code is the verdict | Inside the sandbox |
@@ -111,19 +113,19 @@ flowchart TB
     LD[Landing and demo]
     AC[Sign-up and sign-in]
     RT[Router: by host name]
-    SC[Scaler: starts hosts]
+    SC[Scaler: starts nodes]
   end
   F --> MAIL[(Mail)]
   F --> BOT[(Bot check)]
   RT --> H
-  subgraph H["A host, started on demand"]
+  subgraph H["A node, started on demand"]
     O1[Organization server: Acme]
     O2[Organization server: Globex]
     SB[Sandboxes: a VM per task]
   end
 ```
 
-Each organization has its own server, data directory, signing key and spend ledger. gusto cloud holds accounts and routes by host name. It runs no tasks. A host starts when an organization waits and stops after ten idle minutes. See [CLOUD.md](CLOUD.md).
+Each organization has its own server, data directory, signing key and spend ledger. gusto cloud holds accounts and routes by host name. It runs no tasks. A node starts when an organization waits and stops after ten idle minutes. See [CLOUD.md](CLOUD.md).
 
 ## One task
 
@@ -146,17 +148,4 @@ sequenceDiagram
 
 ## Terms
 
-| Word | Meaning | Older name in the code and commands |
-| --- | --- | --- |
-| organization | A company or team account | |
-| workspace | One person's place in an organization, kept between tasks | computer |
-| task | One piece of work for an agent | job |
-| agent | The worker a task is given to. Both the program (Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent) and a person's own named setup, such as "Finance helper" | harness, engine |
-| agent type | The program: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent. Said when it must be told apart from a named agent | harness, engine |
-| named agent | An agent a person saved with a name, based on an agent type: "Finance helper, based on Claude Code" | |
-| check | The command whose result says pass or fail | gate |
-| record | What a task leaves behind: hashed files, the check result, a signature | evidence |
-| sandbox | The isolated box one task runs in | wall (the level) |
-| host | A machine that runs organization servers and their sandboxes | cell |
-| gusto cloud | The hosted server for accounts and routing | front door |
-| operator | The person who runs a hosted gusto | owner |
+[TERMS.md](TERMS.md) defines the words these pages use, and the older names the code still has.

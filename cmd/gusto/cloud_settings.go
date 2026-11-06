@@ -129,9 +129,9 @@ func (s *signupSettings) declare(set *settings.Set) {
 	set.Int(&s.jobs, "GUSTO_CLOUD_JOBS", d.Verified.Jobs, 1, "the tasks a month a confirmed organization may run")
 	set.Int(&s.concurrent, "GUSTO_CLOUD_CONCURRENT", d.Verified.Concurrent, 1, "the tasks at once a confirmed organization may run")
 	set.Int(&s.members, "GUSTO_CLOUD_MEMBERS", d.Verified.Members, 1, "the people a confirmed organization may have")
-	set.Int(&s.computers, "GUSTO_CLOUD_COMPUTERS", d.Verified.Computers, 1, "the workspaces a confirmed organization may have")
+	set.Int(&s.computers, "GUSTO_CLOUD_COMPUTERS", d.Verified.Computers, 1, "the computers a confirmed organization may have")
 	set.Int(&s.paidJobsPerSeat, "GUSTO_CLOUD_PAID_JOBS_PER_SEAT", d.Paid.Jobs, 1, "the tasks a month a paying organization may run for each seat")
-	set.Int(&s.paidMembers, "GUSTO_CLOUD_PAID_MEMBERS", d.Paid.Members, 1, "the people, and the workspaces, a paying organization may have")
+	set.Int(&s.paidMembers, "GUSTO_CLOUD_PAID_MEMBERS", d.Paid.Members, 1, "the people, and the computers, a paying organization may have")
 }
 
 func (s signupSettings) limits() cloud.Limits {

@@ -53,24 +53,16 @@ func runCommands() []*cmdline.Command {
 		},
 		{
 			Name: "cloud", Group: groupRun, Summary: "Run gusto cloud, the hosted server for accounts and routing",
-			Usage: []string{"", "workspaces", "migrate"},
+			Usage: []string{"", "computers", "migrate"},
 			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it " +
 				"starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting " +
 				"whose value does not read. The accounts are in a database that several front doors can share: SQLite in " +
 				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
 			Env:      envCloud(),
-			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud workspaces"},
+			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud computers"},
 			SeeAlso:  []string{"host", "operator"},
 			Run:      none("cloud", cloudCommand),
-			Subs: []*cmdline.Command{{
-				Name: "workspaces", Summary: "List every workspace on this host",
-				Description: "Lists every workspace on this host, with the organization each is in and whose it is: the operator's " +
-					"view across organizations, read from each one's own record.",
-				Env:      envCloudDatabase(),
-				Examples: []string{"gusto cloud workspaces"},
-				SeeAlso:  []string{"cloud"},
-				Run:      none("cloud workspaces", cloudWorkspaces),
-			}, cloudMigrateCommand()},
+			Subs:     []*cmdline.Command{cloudComputersCommand(), cloudWorkspacesCommand(), cloudMigrateCommand()},
 		},
 		{
 			Name: "host", Group: groupRun, Summary: "Run a host for organizations' servers, for a gusto cloud",

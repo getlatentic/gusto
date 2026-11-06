@@ -23,14 +23,14 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 
 ## More than one host
 
-**demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no workspaces) and that
+**demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no computers) and that
 many hosts that run the organizations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One host is
 made with `cells` at 0, as before.
 
 - The hosts of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
   named for the run. gusto cloud starts an organization's server on a host through the host's agent
   (`gusto host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
-  gusto cloud removes the directories of earlier runs when it starts, since the workspaces they describe went with their hosts.
+  gusto cloud removes the directories of earlier runs when it starts, since the computers they describe went with their hosts.
 - A host registers in `cells/` of that directory every ten seconds. A new organization is placed on the host with the
   most free memory, and stays there. When its host has been silent for five minutes it is placed on another host, and its
   people start it again from gusto cloud.

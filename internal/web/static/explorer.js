@@ -177,7 +177,7 @@
     function placesList() {
       var side = el("nav", "flex min-h-0 flex-col gap-px overflow-y-auto border-r border-line bg-wash p-3 @max-[40rem]:hidden");
       side.setAttribute("aria-label", "Projects");
-      var top = button(look.place + " font-semibold text-ink", function () { load("", true); }, [icon("cloud"), el("span", "truncate", "Your cloud workspace")]);
+      var top = button(look.place + " font-semibold text-ink", function () { load("", true); }, [icon("cloud"), el("span", "truncate", "Your cloud computer")]);
       if (!state.here.at) { top.setAttribute("aria-current", "true"); }
       side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {

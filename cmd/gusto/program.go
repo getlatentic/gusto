@@ -75,6 +75,15 @@ func none(path string, run func() int) func([]string) int {
 	}
 }
 
+// renamed runs a command by the name it had, after saying on stderr which name replaces it, so a script that uses the old
+// name keeps working for a release and its owner learns the new one.
+func renamed(was, is string, run func() int) func() int {
+	return func() int {
+		fmt.Fprintf(os.Stderr, "%s is now %s, and the old name goes in a later release\n", was, is)
+		return run()
+	}
+}
+
 // oneDir is the directory a command that takes only that was given.
 func oneDir(path string, args []string) (job.Dir, int) {
 	if len(args) != 1 || strings.HasPrefix(args[0], "-") {

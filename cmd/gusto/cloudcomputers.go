@@ -7,10 +7,11 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/getlatentic/gusto/cmd/internal/cmdline"
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// listComputers is every workspace on this host, with the organization each is in and
+// listComputers is every computer on this node, with the organization each is in and
 // whose it is: the operator's view across organizations, read from each one's own record.
 func listComputers(ctx context.Context, w io.Writer, store *cloud.Store) error {
 	orgs, err := store.Orgs(ctx)
@@ -41,6 +42,26 @@ func listComputers(ctx context.Context, w io.Writer, store *cloud.Store) error {
 	if err := table.Flush(); err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "%d workspaces in %d organizations\n", total, len(orgs))
+	fmt.Fprintf(w, "%d computers in %d organizations\n", total, len(orgs))
 	return nil
+}
+
+func cloudComputersCommand() *cmdline.Command {
+	return &cmdline.Command{
+		Name: "computers", Summary: "List every computer on this node",
+		Description: "Lists every computer on this node, with the organization each is in and whose it is: the operator's " +
+			"view across organizations, read from each one's own record.",
+		Env:      envCloudDatabase(),
+		Examples: []string{"gusto cloud computers"},
+		SeeAlso:  []string{"cloud"},
+		Run:      none("cloud computers", cloudComputers),
+	}
+}
+
+// cloudWorkspacesCommand is gusto cloud computers by the name it had, kept for a release.
+func cloudWorkspacesCommand() *cmdline.Command {
+	return &cmdline.Command{
+		Name: "workspaces", Summary: "The name gusto cloud computers had", Hidden: true,
+		Run: none("cloud workspaces", renamed("gusto cloud workspaces", "gusto cloud computers", cloudComputers)),
+	}
 }

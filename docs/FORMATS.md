@@ -67,9 +67,9 @@ Two files in `out/` name a run's parties and decisions. The manifest hashes them
 
 The decision comes after the run's manifest is signed. `evidence.Decide` makes the decision, the manifest that hashes it with the rest of `out/`, and that manifest's signature with the configured key. It keeps all three in `seal.pending` beside `out/` before it puts them in place. A crash part way leaves `seal.pending`, which the check reports and which the server puts in place when it starts again. A key that cannot sign changes nothing. A record that does not check is not decided, since a new manifest would vouch for what changed, and neither is a signed record when no key is configured. The record checks clean afterwards. A manifest signed before the decision is replaced, not kept beside it.
 
-## The configured agent digest
+## The agent digest
 
-`harnessDigest` in `out/manifest.json` names the configured agent that ran (see [TERMS.md](TERMS.md#configured-agent)). It is `sha256:` and 64 lowercase hex digits, computed from the agent's files alone. A clone and a tarball give the same string. The code is `pkg/harness/digest.go`.
+`harnessDigest` in `out/manifest.json` names the agent that ran (see [TERMS.md](TERMS.md#agent)). It is `sha256:` and 64 lowercase hex digits, computed from the agent's files alone. A clone and a tarball give the same string. The code is `pkg/harness/digest.go`.
 
 1. Take every regular file under the agent's directory, by its path relative to that directory, with `/` between the parts.
    - A bare adapter, `name.json`, is one file at the path `adapter.json`.
@@ -95,11 +95,11 @@ find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P
 
 This prints the hex without the prefix and does not refuse links, so run `find . -type l` first. `pkg/harness/digest_test.go` holds a fixture's digest, and these shell steps give the same one. `setup_test.go` holds that an agent and its setup digest as one directory.
 
-- The runner reads the configured agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. An agent built into gusto is not carried. Its digest is of the adapter built into the runner.
+- The runner reads the agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. An agent type built into gusto is not carried. Its digest is of the adapter built into the runner.
 - An agent that writes to its own directory in the task changes the copy the task carries. `evidence.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A task that carries no agent, and an export, have nothing to check.
-- Two runs with the same `harnessDigest` ran the same configured agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different agents, or a run with no digest.
+- Two runs with the same `harnessDigest` ran the same agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different agent types, or a run with no digest.
 - `harnessDigest` is a new optional field, so the manifest stays at version 1. A manifest written before it reports `no digest recorded`, and is comparable by name only.
-- `harnessVersion` is the agent's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the agent was installed by hand.
+- `harnessVersion` is the agent type's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the agent type was installed by hand.
 
 ## The audit export
 

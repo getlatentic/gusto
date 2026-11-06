@@ -44,10 +44,19 @@ func TestTheOldCommandsAreGone(t *testing.T) {
 			t.Errorf("gusto %s: exit code %d, stderr %q", old, code, errs)
 		}
 	}
-	for _, args := range [][]string{{"cloud", "computers"}, {"local", "wall"}} {
+	for _, args := range [][]string{{"local", "wall"}} {
 		if _, _, code := clitest.Capture(t, func() int { return run(args) }); code != 2 {
 			t.Errorf("gusto %v: exit code %d, want 2", args, code)
 		}
+	}
+}
+
+// A command that was renamed still runs by its old name for a release, and says the new one.
+func TestARenamedCommandRunsByItsOldNameAndSaysTheNewOne(t *testing.T) {
+	t.Setenv("GUSTO_CLOUD_ROOT", t.TempDir())
+	_, errs, _ := clitest.Capture(t, func() int { return run([]string{"cloud", "workspaces"}) })
+	if !strings.Contains(errs, "gusto cloud workspaces is now gusto cloud computers") {
+		t.Errorf("stderr %q", errs)
 	}
 }
 

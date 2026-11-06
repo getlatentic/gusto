@@ -37,7 +37,7 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 		return err
 	}
 	if filepath.Base(absolute) != "workspace" {
-		return fmt.Errorf("the directory is %s, and a workspace's directory is named workspace", absolute)
+		return fmt.Errorf("the directory is %s, and a task's working folder is named workspace", absolute)
 	}
 	here := jobsDir + "/" + s.job
 	// What a turn of a conversation left there is the last turn's, and the workspace it is
@@ -99,11 +99,11 @@ func (s *Sandbox) answering(ctx context.Context) error {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("the workspace %s did not answer in %s", s.name, readyWithin)
+			return fmt.Errorf("the computer %s did not answer in %s", s.name, readyWithin)
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("the workspace %s was not waited for: %w", s.name, ctx.Err())
+			return fmt.Errorf("the computer %s was not waited for: %w", s.name, ctx.Err())
 		case <-time.After(retryEvery):
 		}
 	}

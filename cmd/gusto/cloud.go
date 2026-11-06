@@ -22,8 +22,8 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// cloudWorkspaces lists every workspace on this host.
-func cloudWorkspaces() int {
+// cloudComputers lists every computer on this node.
+func cloudComputers() int {
 	var records cloudRecords
 	if err := loadSettings(records.declare); err != nil {
 		return refused(err)
