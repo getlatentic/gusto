@@ -13,10 +13,10 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
-// useSetups is what a task is set up with: the setups kept beside the instances and the operator's MCP servers they choose
+// offerSetups is what a task is set up with: the setups kept beside the instances and the operator's MCP servers they choose
 // from, one file each in GUSTO_MCP; the integrations an administrator imported, of which a task gets the version that is on; the
 // presets and the crew of agents; and where sign-ins are kept, beside the sessions, so a deploy does not sign people out.
-func (s *server) useSetups() error {
+func (s *server) offerSetups() error {
 	setups, err := setup.Open(setting("GUSTO_SETUPS", "setups"))
 	if err != nil {
 		return err
@@ -51,10 +51,10 @@ func (s *server) useSetups() error {
 	return nil
 }
 
-// useHistory is what the pages show of what happened: the comparisons, the signers a task's record is checked against, the way
+// offerHistory is what the pages show of what happened: the comparisons, the signers a task's record is checked against, the way
 // verify, show, pr open and export check them, the changes to the platform, in a file only this server appends to, and the
 // API tokens.
-func (s *server) useHistory() error {
+func (s *server) offerHistory() error {
 	lineups, err := compare.OpenBoard(setting("GUSTO_COMPARISONS", "comparisons"))
 	if err != nil {
 		return err

@@ -88,8 +88,8 @@ func newServer() (*server, int) {
 func (s *server) build() error {
 	for _, step := range []func() error{
 		s.openRecords, s.openWayOut, s.startTurns,
-		s.openPages, s.useThisComputer, s.useApps, s.useOrgSettings, s.useModels,
-		s.useSetups, s.useHistory, s.startBackground, s.useDoors,
+		s.openPages, s.offerThisComputer, s.shareApps, s.applyOrgSettings, s.offerModels,
+		s.offerSetups, s.offerHistory, s.startBackground, s.openDoors,
 	} {
 		if err := step(); err != nil {
 			return err

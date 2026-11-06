@@ -54,10 +54,10 @@ func (s *server) openPages() error {
 	return nil
 }
 
-// useThisComputer is what a server for one person on their own computer has: the keys found there, what is still to install,
+// offerThisComputer is what a server for one person on their own computer has: the keys found there, what is still to install,
 // a folder gusto installs agents it does not find into, and sign-in as the person. Every server reads the agents its boxes offer
 // as each page asks, and an agent run here is found on the PATH a person may have just changed.
-func (s *server) useThisComputer() error {
+func (s *server) offerThisComputer() error {
 	here := s.local && runsHere()
 	if s.local {
 		s.pages.UseFoundKeys(values("GUSTO_FOUND_KEYS"))
@@ -86,9 +86,9 @@ func (s *server) useThisComputer() error {
 	return nil
 }
 
-// useApps shares the apps agents built, run in their owners' computers when the boxes have them, and the connectors a turn's
+// shareApps shares the apps agents built, run in their owners' computers when the boxes have them, and the connectors a turn's
 // tools sign in with.
-func (s *server) useApps() error {
+func (s *server) shareApps() error {
 	if host, ok := s.boxes.(appHost); ok && host.Apps() != nil {
 		s.pages.UseApps(s.shared, host.Apps())
 		s.pages.ReconcileApps()
@@ -101,10 +101,10 @@ func (s *server) useApps() error {
 	return nil
 }
 
-// useOrgSettings is what an organization's admins chose: each member's budget and whether runs get plain tokens. Settings that
+// applyOrgSettings is what an organization's admins chose: each member's budget and whether runs get plain tokens. Settings that
 // cannot be read hold nobody to a budget, since the organization's caps and the credit still hold, and leave runs bound, the
 // safer way.
-func (s *server) useOrgSettings() error {
+func (s *server) applyOrgSettings() error {
 	path := os.Getenv("GUSTO_ORG_SETTINGS")
 	if path == "" {
 		return nil
@@ -125,9 +125,9 @@ func (s *server) useOrgSettings() error {
 	return nil
 }
 
-// useModels is what people think with: the chat's default, the organization's registry of models, what was spent, whether a
+// offerModels is what people think with: the chat's default, the organization's registry of models, what was spent, whether a
 // model answers, and the settings that change as the server runs.
-func (s *server) useModels() error {
+func (s *server) offerModels() error {
 	if agent, model, found := strings.Cut(os.Getenv("GUSTO_CHAT_DEFAULT"), "="); found {
 		s.pages.UseChatDefault(strings.TrimSpace(agent), strings.TrimSpace(model))
 	}
@@ -191,9 +191,9 @@ func (s *server) startBackground() error {
 	return nil
 }
 
-// useDoors is who may come in and how: the organization's roster, the settings it is governed by, a room's live connection,
+// openDoors is who may come in and how: the organization's roster, the settings it is governed by, a room's live connection,
 // and the front door of the organization's cloud.
-func (s *server) useDoors() error {
+func (s *server) openDoors() error {
 	if path := os.Getenv("GUSTO_MEMBERS"); path != "" {
 		s.pages.UseRoster(path)
 	}
